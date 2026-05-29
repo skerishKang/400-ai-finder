@@ -46,3 +46,45 @@
 ## 장기 방향
 
 400-ai-finder는 단순 챗봇이 아니라 홈페이지를 사람 말로 번역해주는 AI 내비게이터를 목표로 합니다.
+
+## 데모 실행
+
+### 빠른 시작 (모든 화면 한 번에)
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
+    --site-id bukgu_gwangju \
+    --provider mock \
+    --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json
+```
+
+실행 후 브라우저에서 접속:
+
+- **모바일 사용자 화면**: http://localhost:8400
+- **운영자 대시보드**: http://localhost:8090
+
+### 개별 실행
+
+**모바일 사용자 화면만:**
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/run_mobile_demo.py \
+    --site-id bukgu_gwangju \
+    --provider mock \
+    --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json \
+    --port 8400
+```
+
+**운영자 대시보드만:**
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/run_admin_demo.py \
+    --site-id bukgu_gwangju \
+    --provider mock \
+    --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json \
+    --port 8090
+```
+
+### 시연 시나리오
+
+자세한 시연 순서와 대화 스크립트는 [`docs/demo-scenario.md`](docs/demo-scenario.md)를 참고하세요.
