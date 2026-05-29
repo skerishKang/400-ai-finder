@@ -43,3 +43,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Tools
+.antigravitycli/
