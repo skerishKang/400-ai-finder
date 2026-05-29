@@ -367,3 +367,48 @@ class TestOpenAICompatibleProviderResponseParsing:
             result = provider.complete(messages=[{"role": "user", "content": "hi"}])
             assert result.ok is False
             assert "invalid json" in result.error.lower()
+
+
+# ======================================================================
+# Live / Integration tests (Opt-in via API Key env vars)
+# ======================================================================
+
+class TestLiveLLMProviders:
+    @pytest.mark.skipif(
+        not os.environ.get("OPENGATEWAY_API_KEY"),
+        reason="OPENGATEWAY_API_KEY env var not set (opt-in)",
+    )
+    def test_opengateway_live(self):
+        """Test actual opengateway connection when API key is provided."""
+        provider = get_provider("opengateway")
+        messages = [{"role": "user", "content": "안녕하세요. 1+1은 뭐죠? 간단히 답해주세요."}]
+        result = provider.complete(messages)
+        assert result.ok is True
+        assert result.provider == "opengateway"
+        assert result.content
+
+    @pytest.mark.skipif(
+        not os.environ.get("KILOCODE_API_KEY"),
+        reason="KILOCODE_API_KEY env var not set (opt-in)",
+    )
+    def test_kilocode_live(self):
+        """Test actual kilocode connection when API key is provided."""
+        provider = get_provider("kilocode")
+        messages = [{"role": "user", "content": "안녕하세요. 1+1은 뭐죠? 간단히 답해주세요."}]
+        result = provider.complete(messages)
+        assert result.ok is True
+        assert result.provider == "kilocode"
+        assert result.content
+
+    @pytest.mark.skipif(
+        not os.environ.get("GROQ_API_KEY"),
+        reason="GROQ_API_KEY env var not set (opt-in)",
+    )
+    def test_groq_live(self):
+        """Test actual groq connection when API key is provided."""
+        provider = get_provider("groq")
+        messages = [{"role": "user", "content": "안녕하세요. 1+1은 뭐죠? 간단히 답해주세요."}]
+        result = provider.complete(messages)
+        assert result.ok is True
+        assert result.provider == "groq"
+        assert result.content
