@@ -16,6 +16,7 @@ build/
 .env
 .env.local
 .env.*
+!.env.example
 
 # Data - keep only folder placeholders
 data/raw/*
