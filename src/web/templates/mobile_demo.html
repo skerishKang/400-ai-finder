@@ -64,10 +64,22 @@
             자연어로 질문하시면 관련 메뉴를 안내해 드립니다.
           </div>
           <div class="welcome-chips">
-            <button class="welcome-chip" onclick="quickAsk('민원서식 어디서 받아?')">📋 민원서식</button>
-            <button class="welcome-chip" onclick="quickAsk('교육접수는 어디서 해?')">🎓 교육접수</button>
-            <button class="welcome-chip" onclick="quickAsk('정보공개는 어디서 볼 수 있어?')">🔍 정보공개</button>
-            <button class="welcome-chip" onclick="quickAsk('고시공고는 어디서 확인해?')">📢 고시공고</button>
+            <button class="welcome-chip" onclick="quickAsk('민원서식 어디서 받아?')">
+              <span class="chip-title">📋 민원서식 받기</span>
+              <span class="chip-desc">다양한 민원신청 서식 다운로드 및 안내</span>
+            </button>
+            <button class="welcome-chip" onclick="quickAsk('교육접수는 어디서 해?')">
+              <span class="chip-title">🎓 교육접수 신청</span>
+              <span class="chip-desc">다양한 교육 및 문화 강좌 신청 안내</span>
+            </button>
+            <button class="welcome-chip" onclick="quickAsk('정보공개는 어디서 볼 수 있어?')">
+              <span class="chip-title">🔍 정보공개 조회</span>
+              <span class="chip-desc">행정 정보공개 청구 및 공표 자료 조회</span>
+            </button>
+            <button class="welcome-chip" onclick="quickAsk('고시공고는 어디서 확인해?')">
+              <span class="chip-title">📢 고시공고 확인</span>
+              <span class="chip-desc">구정 고시 및 공고 정보 실시간 확인</span>
+            </button>
           </div>
         </div>
       </div>
@@ -76,6 +88,13 @@
     <!-- Composer -->
     <div class="composer-wrap">
       <div class="composer-inner">
+        <!-- Quick recommendation chips above input -->
+        <div class="composer-chips" id="composerChips">
+          <button class="composer-chip" onclick="quickAsk('📋 민원서식 어디서 받아?')">📋 민원서식 받기</button>
+          <button class="composer-chip" onclick="quickAsk('🎓 교육접수는 어떻게 해?')">🎓 교육접수 신청</button>
+          <button class="composer-chip" onclick="quickAsk('🔍 정보공개는 어디서 봐?')">🔍 정보공개 조회</button>
+          <button class="composer-chip" onclick="quickAsk('📢 고시공고 확인하고 싶어')">📢 고시공고 확인</button>
+        </div>
         <div class="composer-box">
           <textarea class="composer-textarea" id="input" rows="1" placeholder="메시지를 입력하세요…" autocomplete="off"></textarea>
           <button class="send-btn" id="sendBtn" onclick="send()" aria-label="전송">

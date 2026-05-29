@@ -14,6 +14,7 @@ const convListEl = document.getElementById('convList');
 const sidebarEl = document.getElementById('sidebar');
 const overlayEl = document.getElementById('sidebarOverlay');
 const themeToggle = document.getElementById('themeToggle');
+const composerChips = document.getElementById('composerChips');
 
 // ===== Auto-resize textarea =====
 inputEl.addEventListener('input', () => {
@@ -147,10 +148,12 @@ function renderConversations(){
 // ===== Messages =====
 function showWelcome(){
   if (welcomeEl) welcomeEl.style.display = 'flex';
+  if (composerChips) composerChips.style.display = 'none';
 }
 
 function hideWelcome(){
   if (welcomeEl) welcomeEl.style.display = 'none';
+  if (composerChips) composerChips.style.display = 'flex';
 }
 
 function clearMessages(){
@@ -200,13 +203,15 @@ function addMessageToDOM(role, html, sources, animate = true){
       a.href = s.url || '#';
       a.target = '_blank';
       a.rel = 'noopener';
+      
+      const domain = extractDomain(s.url);
       a.innerHTML =
-        '<span class="src-icon">🔗</span>' +
-        '<div class="src-info">' +
-          '<div class="src-title">' + esc(s.title || '바로가기') + '</div>' +
-          '<div class="src-url">' + esc(s.url || '') + '</div>' +
+        '<div class="src-card-header">' +
+          '<span class="src-icon">🏛️</span>' +
+          '<span class="src-domain">' + esc(domain || '홈페이지') + '</span>' +
         '</div>' +
-        '<span class="src-arrow">→</span>';
+        '<div class="src-title">' + esc(s.title || '바로가기') + '</div>' +
+        '<div class="src-url">' + esc(s.url || '') + '</div>';
       wrap.appendChild(a);
     });
     content.appendChild(wrap);
@@ -345,3 +350,17 @@ function renderMarkdown(md){
 // ===== Init =====
 newChat();
 inputEl.focus();
+
+function extractDomain(url) {
+  if (!url) return '';
+  try {
+    // Check if relative url
+    if (url.startsWith('/')) {
+      return window.location.hostname;
+    }
+    const parsed = new URL(url);
+    return parsed.hostname.replace('www.', '');
+  } catch (e) {
+    return 'bukgu.gwangju.kr';
+  }
+}
