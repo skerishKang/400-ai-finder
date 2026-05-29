@@ -147,6 +147,7 @@ class AnswerComposer:
     ) -> list[dict[str, Any]]:
         sources = []
         for res in results[:max_sources]:
+            metadata = res.get("metadata", {}) or {}
             sources.append({
                 "rank": res.get("rank", 0),
                 "id": res.get("id", ""),
@@ -154,6 +155,13 @@ class AnswerComposer:
                 "url": res.get("url", ""),
                 "category": res.get("category", ""),
                 "content_type": res.get("content_type", ""),
+                "score": res.get("score", 0.0),
+                "matched_terms": res.get("matched_terms", []),
+                "matched_fields": res.get("matched_fields", []),
+                "snippet": res.get("snippet", ""),
+                "description": metadata.get("description", ""),
+                "fetch_status": metadata.get("fetch_status", ""),
+                "source_types": metadata.get("source_types", []),
             })
         return sources
 
@@ -167,6 +175,22 @@ class AnswerComposer:
             lines.append(f"url: {src['url']}")
             lines.append(f"category: {src['category']}")
             lines.append(f"content_type: {src['content_type']}")
+            lines.append(f"score: {src['score']}")
+            matched_terms = src.get("matched_terms", [])
+            lines.append(f"matched_terms: {', '.join(matched_terms) if isinstance(matched_terms, list) else matched_terms}")
+            matched_fields = src.get("matched_fields", [])
+            lines.append(f"matched_fields: {', '.join(matched_fields) if isinstance(matched_fields, list) else matched_fields}")
+            lines.append(f"fetch_status: {src['fetch_status']}")
+            source_types = src.get("source_types", [])
+            lines.append(f"source_types: {', '.join(source_types) if isinstance(source_types, list) else source_types}")
+            description = src.get("description", "")
+            if len(description) > 300:
+                description = description[:300] + "..."
+            lines.append(f"description: {description}")
+            snippet = src.get("snippet", "")
+            if len(snippet) > 500:
+                snippet = snippet[:500] + "..."
+            lines.append(f"snippet: {snippet}")
             lines.append("")  # blank line between sources
         return "\n".join(lines).rstrip("\n")
 

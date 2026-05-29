@@ -96,7 +96,7 @@ class TestBuildSourceContext:
         assert "https://example.com/apply" in ctx
 
     def test_fields_present(self):
-        """Each source has title, url, category, snippet."""
+        """Each source has title, url, category, content_type."""
         composer = AnswerComposer(provider="mock")
         sources = composer._extract_sources(SAMPLE_SEARCH_RESULTS["results"], 5)
         ctx = composer._build_source_context(sources)
@@ -104,6 +104,98 @@ class TestBuildSourceContext:
         assert "url:" in ctx
         assert "category:" in ctx
         assert "content_type:" in ctx
+
+    def test_evidence_fields_in_context(self):
+        """Source context includes evidence fields."""
+        composer = AnswerComposer(provider="mock")
+        sources = composer._extract_sources(SAMPLE_SEARCH_RESULTS["results"], 5)
+        ctx = composer._build_source_context(sources)
+        assert "score:" in ctx
+        assert "matched_terms:" in ctx
+        assert "matched_fields:" in ctx
+        assert "fetch_status:" in ctx
+        assert "source_types:" in ctx
+        assert "description:" in ctx
+        assert "snippet:" in ctx
+
+    def test_matched_terms_joined(self):
+        """matched_terms list is joined as comma-separated string."""
+        composer = AnswerComposer(provider="mock")
+        sources = composer._extract_sources(SAMPLE_SEARCH_RESULTS["results"], 5)
+        ctx = composer._build_source_context(sources)
+        assert "신청서, 제출서류" in ctx
+
+    def test_matched_fields_joined(self):
+        """matched_fields list is joined as comma-separated string."""
+        composer = AnswerComposer(provider="mock")
+        sources = composer._extract_sources(SAMPLE_SEARCH_RESULTS["results"], 5)
+        ctx = composer._build_source_context(sources)
+        assert "metadata.link_texts, title" in ctx
+
+    def test_source_types_joined(self):
+        """source_types list is joined as comma-separated string."""
+        composer = AnswerComposer(provider="mock")
+        sources = composer._extract_sources(SAMPLE_SEARCH_RESULTS["results"], 5)
+        ctx = composer._build_source_context(sources)
+        assert "navigation, sitemap" in ctx
+
+    def test_snippet_truncation(self):
+        """Snippet longer than 500 chars is truncated."""
+        long_snippet = "x" * 600
+        results = [
+            {
+                "rank": 1,
+                "id": "doc-long",
+                "title": "긴 문서",
+                "url": "https://example.com/long",
+                "category": "document",
+                "content_type": "page",
+                "score": 10.0,
+                "matched_terms": ["테스트"],
+                "matched_fields": ["text"],
+                "snippet": long_snippet,
+                "metadata": {
+                    "description": "",
+                    "fetch_status": "fetched",
+                    "source_types": ["page"],
+                },
+            }
+        ]
+        composer = AnswerComposer(provider="mock")
+        sources = composer._extract_sources(results, 5)
+        ctx = composer._build_source_context(sources)
+        assert "x" * 500 in ctx
+        assert "x" * 501 not in ctx
+        assert "..." in ctx
+
+    def test_description_truncation(self):
+        """Description longer than 300 chars is truncated."""
+        long_desc = "y" * 400
+        results = [
+            {
+                "rank": 1,
+                "id": "doc-desc",
+                "title": "긴 설명",
+                "url": "https://example.com/desc",
+                "category": "document",
+                "content_type": "page",
+                "score": 10.0,
+                "matched_terms": ["테스트"],
+                "matched_fields": ["text"],
+                "snippet": "snippet",
+                "metadata": {
+                    "description": long_desc,
+                    "fetch_status": "fetched",
+                    "source_types": ["page"],
+                },
+            }
+        ]
+        composer = AnswerComposer(provider="mock")
+        sources = composer._extract_sources(results, 5)
+        ctx = composer._build_source_context(sources)
+        assert "y" * 300 in ctx
+        assert "y" * 301 not in ctx
+        assert "..." in ctx
 
     def test_max_sources_truncation(self):
         """Only up to max_sources are included."""
@@ -211,6 +303,18 @@ class TestComposeWithMock:
         assert result["sources"][0]["title"] == "신청서 양식"
         assert result["sources"][1]["title"] == "지원사업 신청 안내"
 
+    def test_sources_evidence_fields_preserved(self):
+        """Evidence fields are preserved in output sources."""
+        composer = AnswerComposer(provider="mock")
+        result = composer.compose(SAMPLE_SEARCH_RESULTS)
+        s1 = result["sources"][0]
+        assert s1["score"] == 15.0
+        assert s1["matched_terms"] == ["신청서"]
+        assert s1["matched_fields"] == ["metadata.link_texts", "title"]
+        assert s1["snippet"] == "신청서 양식"
+        assert s1["fetch_status"] == "skipped"
+        assert s1["source_types"] == ["attachment"]
+
     def test_query_preserved(self):
         """Query string is preserved in the output."""
         composer = AnswerComposer(provider="mock")
@@ -235,6 +339,28 @@ class TestExtractSources:
         assert s1["url"] == "https://example.com/files/form.pdf"
         assert s1["category"] == "document"
         assert s1["content_type"] == "attachment"
+
+    def test_evidence_fields_preserved(self):
+        """Evidence fields (score, matched_terms, etc.) are preserved."""
+        composer = AnswerComposer(provider="mock")
+        sources = composer._extract_sources(SAMPLE_SEARCH_RESULTS["results"], 5)
+        s1 = sources[0]
+        assert s1["score"] == 15.0
+        assert s1["matched_terms"] == ["신청서"]
+        assert s1["matched_fields"] == ["metadata.link_texts", "title"]
+        assert s1["snippet"] == "신청서 양식"
+        assert s1["description"] == ""
+        assert s1["fetch_status"] == "skipped"
+        assert s1["source_types"] == ["attachment"]
+
+        s2 = sources[1]
+        assert s2["score"] == 5.0
+        assert s2["matched_terms"] == ["신청서", "제출서류"]
+        assert s2["matched_fields"] == ["text"]
+        assert "중소기업 지원사업" in s2["snippet"]
+        assert s2["description"] == "지원사업 신청 안내"
+        assert s2["fetch_status"] == "fetched"
+        assert s2["source_types"] == ["navigation", "sitemap"]
 
     def test_max_sources(self):
         """Only max_sources sources are extracted."""
