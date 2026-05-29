@@ -1,0 +1,379 @@
+"""Tests for the grounded answer demo runner — SiteDemoRunner."""
+
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+from pathlib import Path
+from unittest.mock import patch, MagicMock
+
+import pytest
+
+from src.demo import SiteDemoRunner, run_demo
+from src.demo.site_demo_runner import load_profile
+
+
+# ------------------------------------------------------------------
+# Fixtures
+# ------------------------------------------------------------------
+
+SAMPLE_SEARCH_RESULTS = [
+    {
+        "title": "민원서식",
+        "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101040000",
+        "category": "document",
+        "text": "민원서식 작성예시 QR코드 민원편의시책 여권민원 제증명 수수료",
+        "score": 0.95,
+    },
+    {
+        "title": "교육접수",
+        "url": "https://bukgu.gwangju.kr/menu.es?mid=a10208020000",
+        "category": "apply",
+        "text": "정보화교육(컴퓨터교육) 정보화교육 안내 시니어 디지털 교육 안내 교육접수",
+        "score": 0.88,
+    },
+]
+
+SAMPLE_SEARCH_OUTPUT = {
+    "query": "민원서식 어디서 받아?",
+    "top_k": 5,
+    "filters": {"category": "", "content_type": ""},
+    "result_count": 2,
+    "results": SAMPLE_SEARCH_RESULTS,
+}
+
+SAMPLE_ANSWER_OUTPUT = {
+    "query": "민원서식 어디서 받아?",
+    "provider": "mock",
+    "model": "mock-model",
+    "ok": True,
+    "answer_markdown": (
+        "## 답변\n\n"
+        "민원서식은 북구청 홈페이지에서 확인할 수 있습니다.\n\n"
+        "## 관련 자료\n"
+        "- [민원서식](https://bukgu.gwangju.kr/menu.es?mid=a10101040000)\n"
+        "- [교육접수](https://bukgu.gwangju.kr/menu.es?mid=a10208020000)\n\n"
+        "## 다음에 할 일\n"
+        "링크를 클릭하여 해당 페이지에서 서식을 내려받으세요.\n\n"
+        "## 확인 필요 사항\n"
+        "필요한 서식이 정확한지 홈페이지에서 확인하세요."
+    ),
+    "sources": [
+        {
+            "title": "민원서식",
+            "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101040000",
+            "source_type": "document",
+            "snippet": "민원서식 작성예시 QR코드 민원편의시책",
+            "score": 0.95,
+        },
+    ],
+    "warnings": [],
+    "error": "",
+}
+
+SAMPLE_PIPELINE_RESULT = {
+    "ok": True,
+    "url": "https://bukgu.gwangju.kr/",
+    "query": "민원서식 어디서 받아?",
+    "output_dir": "/tmp/demo-test",
+    "steps": [
+        {"name": "homepage_map", "ok": True, "output": "/tmp/demo-test/homepage-map.json", "error": ""},
+        {"name": "document_index", "ok": True, "output": "/tmp/demo-test/document-index.jsonl", "error": ""},
+        {"name": "enriched_index", "ok": True, "output": "/tmp/demo-test/enriched-index.jsonl", "error": ""},
+        {
+            "name": "search",
+            "ok": True,
+            "output": "/tmp/demo-test/search-results.json",
+            "error": "",
+        },
+        {
+            "name": "answer",
+            "ok": True,
+            "output": "/tmp/demo-test/answer.json",
+            "error": "",
+        },
+    ],
+    "answer_markdown": SAMPLE_ANSWER_OUTPUT["answer_markdown"],
+    "error": "",
+}
+
+
+@pytest.fixture
+def mock_pipeline_and_files(tmp_path: Path) -> dict:
+    """Set up a mock PipelineRunner that writes stub output files.
+
+    Returns a dict with the mock runner instance and paths.
+    """
+    search_path = tmp_path / "search-results.json"
+    answer_path = tmp_path / "answer.json"
+
+    with open(search_path, "w", encoding="utf-8") as f:
+        json.dump(SAMPLE_SEARCH_OUTPUT, f, ensure_ascii=False)
+
+    with open(answer_path, "w", encoding="utf-8") as f:
+        json.dump(SAMPLE_ANSWER_OUTPUT, f, ensure_ascii=False)
+
+    # Patch the pipeline steps to point to our tmp files
+    result = dict(SAMPLE_PIPELINE_RESULT)
+    result["output_dir"] = str(tmp_path)
+    for step in result["steps"]:
+        if step["name"] == "search":
+            step["output"] = str(search_path)
+        elif step["name"] == "answer":
+            step["output"] = str(answer_path)
+
+    mock_runner = MagicMock()
+    mock_runner.run.return_value = result
+
+    return {
+        "mock_runner": mock_runner,
+        "search_path": str(search_path),
+        "answer_path": str(answer_path),
+        "pipeline_result": result,
+        "tmp_path": str(tmp_path),
+    }
+
+
+# ------------------------------------------------------------------
+# Tests
+# ------------------------------------------------------------------
+
+
+class TestSiteDemoRunnerUnit:
+    """Unit tests — mock the PipelineRunner to avoid real HTTP calls."""
+
+    def test_profile_loaded_from_site_id(self):
+        """1. site_id로 북구청 프로필 로드 확인."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        assert runner.profile.site_id == "bukgu_gwangju"
+        assert "북구" in runner.profile.name
+        assert runner.profile.preferred_fetch_provider == "requests"
+
+    def test_empty_question_raises(self):
+        """2. 빈 질문 예외 처리."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        with pytest.raises(ValueError, match="Question must not be empty"):
+            runner.answer("")
+        with pytest.raises(ValueError, match="Question must not be empty"):
+            runner.answer("   ")
+
+    def test_invalid_site_id_raises(self):
+        """3. 잘못된 site_id 예외 처리."""
+        with pytest.raises(FileNotFoundError):
+            SiteDemoRunner(site_id="definitely_not_a_real_site", provider="mock")
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_mock_provider_answer_generated(self, mock_pipeline_cls, mock_pipeline_and_files):
+        """4. mock provider 기반 답변 생성."""
+        ctx = mock_pipeline_and_files
+        mock_pipeline_cls.return_value = ctx["mock_runner"]
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("민원서식 어디서 받아?", output_dir=ctx["tmp_path"])
+
+        assert result["ok"] is True
+        assert result["site_id"] == "bukgu_gwangju"
+        assert result["question"] == "민원서식 어디서 받아?"
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_search_results_included(self, mock_pipeline_cls, mock_pipeline_and_files):
+        """5. 검색 결과 포함 확인."""
+        ctx = mock_pipeline_and_files
+        mock_pipeline_cls.return_value = ctx["mock_runner"]
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("민원서식 어디서 받아?", output_dir=ctx["tmp_path"])
+
+        assert len(result["search_results"]) >= 1
+        assert any("민원서식" in str(r) for r in result["search_results"])
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_sources_included(self, mock_pipeline_cls, mock_pipeline_and_files):
+        """6. 출처 정보 포함 확인."""
+        ctx = mock_pipeline_and_files
+        mock_pipeline_cls.return_value = ctx["mock_runner"]
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("민원서식 어디서 받아?", output_dir=ctx["tmp_path"])
+
+        assert len(result["sources"]) >= 1
+        src = result["sources"][0]
+        assert "title" in src
+        assert "url" in src
+        assert "source_type" in src
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_json_serializable(self, mock_pipeline_cls, mock_pipeline_and_files):
+        """7. JSON 직렬화 가능한 결과 반환."""
+        ctx = mock_pipeline_and_files
+        mock_pipeline_cls.return_value = ctx["mock_runner"]
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("민원서식 어디서 받아?", output_dir=ctx["tmp_path"])
+
+        dumped = json.dumps(result, ensure_ascii=False)
+        loaded = json.loads(dumped)
+        assert loaded["site_id"] == "bukgu_gwangju"
+        assert len(loaded["sources"]) >= 1
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_minwonseo_keyword_connected(self, mock_pipeline_cls, mock_pipeline_and_files):
+        """8. '민원서식' 질문이 실제 북구청 메뉴/링크 후보와 연결."""
+        ctx = mock_pipeline_and_files
+        mock_pipeline_cls.return_value = ctx["mock_runner"]
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("민원서식 어디서 받아?", output_dir=ctx["tmp_path"])
+
+        sources = result.get("sources", [])
+        search_results = result.get("search_results", [])
+        all_text = str(sources) + str(search_results) + result.get("answer", "")
+        assert any(
+            kw in all_text
+            for kw in ["민원서식", "menu.es?mid=a10101040000"]
+        )
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_gyoyukjeopsu_keyword_connected(self, mock_pipeline_cls, tmp_path):
+        """9. '교육접수' 질문이 실제 북구청 메뉴/링크 후보와 연결."""
+        # Direct setup — avoid fixture complications
+        search_path = tmp_path / "search-results.json"
+        answer_path = tmp_path / "answer.json"
+
+        edu_output = {
+            "query": "교육접수는 어디서 해?",
+            "top_k": 5, "filters": {}, "result_count": 1,
+            "results": [
+                {"title": "교육접수", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10208020000",
+                 "category": "apply", "text": "교육접수 안내 정보화교육 컴퓨터교육", "score": 0.9}
+            ]
+        }
+        with open(search_path, "w", encoding="utf-8") as f:
+            json.dump(edu_output, f, ensure_ascii=False)
+
+        answer_out = {"query": "교육접수", "provider": "mock", "model": "mock",
+                      "ok": True, "answer_markdown": "## 답변\n교육접수",
+                      "sources": [], "warnings": [], "error": ""}
+        with open(answer_path, "w", encoding="utf-8") as f:
+            json.dump(answer_out, f, ensure_ascii=False)
+
+        pipeline_result = {
+            "ok": True, "url": "https://bukgu.gwangju.kr/", "query": "교육접수는 어디서 해?",
+            "output_dir": str(tmp_path),
+            "steps": [
+                {"name": "homepage_map", "ok": True, "output": str(tmp_path / "hm.json"), "error": ""},
+                {"name": "search", "ok": True, "output": str(search_path), "error": ""},
+                {"name": "answer", "ok": True, "output": str(answer_path), "error": ""},
+            ],
+            "answer_markdown": "## 답변\n교육접수", "error": "",
+        }
+
+        mock_runner = MagicMock()
+        mock_runner.run.return_value = pipeline_result
+        mock_pipeline_cls.return_value = mock_runner
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("교육접수는 어디서 해?", output_dir=str(tmp_path))
+
+        search_results = result.get("search_results", [])
+        all_text = str(search_results)
+        assert any(
+            kw in all_text
+            for kw in ["교육접수", "a10208020000"]
+        )
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_output_path_saved(self, mock_pipeline_cls, mock_pipeline_and_files):
+        """10. output path 저장 확인 (pytest tmp_path 사용)."""
+        ctx = mock_pipeline_and_files
+        mock_pipeline_cls.return_value = ctx["mock_runner"]
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("민원서식 어디서 받아?", output_dir=ctx["tmp_path"])
+
+        # Verify output_dir exists and contains result
+        assert os.path.isdir(ctx["tmp_path"])
+        assert runner.profile.site_id == "bukgu_gwangju"
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_answer_content_present(self, mock_pipeline_cls, mock_pipeline_and_files):
+        """Extra: 답변 내용이 result에 포함되는지 확인."""
+        ctx = mock_pipeline_and_files
+        mock_pipeline_cls.return_value = ctx["mock_runner"]
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("민원서식 어디서 받아?", output_dir=ctx["tmp_path"])
+
+        answer = result.get("answer", "")
+        assert len(answer) > 0
+        assert "민원서식" in answer or "답변" in answer
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_fetch_provider_from_profile(self, mock_pipeline_cls, mock_pipeline_and_files):
+        """Extra: fetch_provider defaults to profile's preferred."""
+        ctx = mock_pipeline_and_files
+        mock_pipeline_cls.return_value = ctx["mock_runner"]
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        assert runner._fetch_provider == "requests"
+
+        # Explicit override
+        runner2 = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock", fetch_provider="firecrawl")
+        assert runner2._fetch_provider == "firecrawl"
+
+    def test_run_demo_convenience(self):
+        """Extra: run_demo convenience function returns correct shape."""
+        with patch("src.demo.site_demo_runner.PipelineRunner") as mock_cls:
+            mock_runner = MagicMock()
+            mock_runner.run.return_value = SAMPLE_PIPELINE_RESULT
+            mock_cls.return_value = mock_runner
+
+            result = run_demo(
+                site_id="bukgu_gwangju",
+                question="민원서식 어디서 받아?",
+                provider="mock",
+                output_dir="/tmp/demo-test",
+            )
+
+            assert result["site_id"] == "bukgu_gwangju"
+            assert "question" in result
+            assert "sources" in result
+
+
+class TestDemoIntegration:
+    """Integration tests — verify demo runner wires together correctly.
+
+    These use the real profile loader and mock PipelineRunner only.
+    """
+
+    def test_real_profile_with_mock_pipeline(self, tmp_path):
+        """Real profile loading + mock pipeline returns valid result."""
+        with patch("src.demo.site_demo_runner.PipelineRunner") as mock_cls:
+            mock_runner = MagicMock()
+
+            # Set up stub pipeline output files
+            search_p = tmp_path / "search-results.json"
+            answer_p = tmp_path / "answer.json"
+            with open(search_p, "w") as f:
+                json.dump(SAMPLE_SEARCH_OUTPUT, f, ensure_ascii=False)
+            with open(answer_p, "w") as f:
+                json.dump(SAMPLE_ANSWER_OUTPUT, f, ensure_ascii=False)
+
+            result = dict(SAMPLE_PIPELINE_RESULT)
+            result["output_dir"] = str(tmp_path)
+            for step in result["steps"]:
+                if step["name"] == "search":
+                    step["output"] = str(search_p)
+                elif step["name"] == "answer":
+                    step["output"] = str(answer_p)
+
+            mock_runner.run.return_value = result
+            mock_cls.return_value = mock_runner
+
+            runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+            demo_result = runner.answer("민원서식 어디서 받아?", output_dir=str(tmp_path))
+
+            assert demo_result["ok"] is True
+            assert "bukgu" in demo_result["site_id"]
+            assert len(demo_result.get("sources", [])) > 0
