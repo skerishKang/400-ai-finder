@@ -14,12 +14,96 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from datetime import datetime, timezone
 from typing import Any
 
 from ..pipeline.pipeline_runner import PipelineRunner
 from ..site_profiles import load_profile
+
+
+def _tokenize_korean(text: str) -> list[str]:
+    """Simple tokenization for Korean menu keywords."""
+    cleaned = re.sub(r"[^\w\s]", " ", text.lower()).strip()
+    tokens = [t for t in cleaned.split() if len(t) > 1]
+    return tokens
+
+
+def _match_keyword_against_links(
+    keywords: list[str],
+    links: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Find links whose title or text matches any keyword."""
+    matched = []
+    seen_urls: set[str] = set()
+    for link in links:
+        title = (link.get("title") or link.get("text") or "").strip()
+        url = link.get("url", "")
+        if not title or not url:
+            continue
+        if url in seen_urls:
+            continue
+        title_lower = title.lower()
+        for kw in keywords:
+            if kw.lower() in title_lower:
+                matched.append({"title": title, "url": url})
+                seen_urls.add(url)
+                break
+    return matched
+
+
+def _fallback_sources_from_homepage_map(
+    homepage_map: dict[str, Any],
+    question: str,
+    important_keywords: list[str],
+) -> list[dict[str, Any]]:
+    """Build fallback sources from homepage_map menu/navigation links.
+
+    Strategy:
+    1. Match question tokens against navigation links
+    2. Match question tokens against all category links (menu, apply, notice, board, document)
+    3. Match profile important_keywords against navigation links
+    """
+    # Collect question tokens + relevant profile keywords
+    question_tokens = _tokenize_korean(question)
+
+    # Merge with important_keywords that appear in the question
+    expanded_tokens = list(question_tokens)
+    for kw in important_keywords:
+        kw_lower = kw.lower()
+        for token in question_tokens:
+            if token in kw_lower or kw_lower in token:
+                if kw not in expanded_tokens:
+                    expanded_tokens.append(kw)
+                break
+
+    candidates: list[dict[str, Any]] = []
+
+    # 1. Check navigation links
+    nav_links = homepage_map.get("homepage", {}).get("navigation_links", [])
+    nav_matches = _match_keyword_against_links(expanded_tokens, nav_links)
+    for m in nav_matches:
+        candidates.append({**m, "source_type": "navigation", "score": 10.0})
+
+    # 2. Check category links
+    categories = homepage_map.get("categories", {})
+    priority_cats = ["menu", "apply", "notice", "board", "document"]
+    for cat in priority_cats:
+        cat_links = categories.get(cat, [])
+        cat_matches = _match_keyword_against_links(expanded_tokens, cat_links)
+        for m in cat_matches:
+            candidates.append({**m, "source_type": cat, "score": 8.0})
+
+    # 3. Dedup by URL
+    seen: set[str] = set()
+    deduped: list[dict[str, Any]] = []
+    for c in candidates:
+        if c["url"] not in seen:
+            seen.add(c["url"])
+            deduped.append(c)
+
+    return deduped[:5]
 
 
 class SiteDemoRunner:
@@ -104,6 +188,8 @@ class SiteDemoRunner:
         # Extract search results from pipeline output
         search_results: list[dict[str, Any]] = []
         sources: list[dict[str, Any]] = []
+        warnings: list[str] = []
+        fallback_used = False
 
         for step in pipeline_result.get("steps", []):
             if step["name"] == "search" and step["ok"]:
@@ -128,6 +214,49 @@ class SiteDemoRunner:
             }
             sources.append(source)
 
+        # Fallback: when search_results is empty, try homepage_map menu candidates
+        if not search_results:
+            homepage_map = self._load_homepage_map(run_dir)
+            if homepage_map:
+                fallback_candidates = _fallback_sources_from_homepage_map(
+                    homepage_map,
+                    question,
+                    self.profile.important_keywords,
+                )
+                for fc in fallback_candidates:
+                    fallback_result = {
+                        "id": f"fb-{len(search_results):05d}",
+                        "title": fc["title"],
+                        "url": fc["url"],
+                        "canonical_url": fc["url"],
+                        "category": fc.get("source_type", "menu"),
+                        "content_type": "page",
+                        "score": fc.get("score", 5.0),
+                        "matched_terms": [],
+                        "matched_fields": ["title", "metadata.link_texts"],
+                        "snippet": fc["title"],
+                        "metadata": {
+                            "source_types": [fc.get("source_type", "menu")],
+                            "fetch_status": "fallback",
+                            "description": "Menu/navigation fallback from homepage map",
+                        },
+                    }
+                    search_results.append(fallback_result)
+                    sources.append({
+                        "title": fc["title"],
+                        "url": fc["url"],
+                        "source_type": fc.get("source_type", "menu"),
+                        "snippet": fc["title"][:200],
+                        "score": fc.get("score", 5.0),
+                    })
+
+                if fallback_candidates:
+                    fallback_used = True
+                    warnings.append(
+                        f"Search returned 0 results; used {len(fallback_candidates)} "
+                        f"homepage map fallback candidates"
+                    )
+
         # Extract answer
         answer = ""
         answer_ok = False
@@ -148,7 +277,6 @@ class SiteDemoRunner:
         if not answer:
             answer = pipeline_result.get("answer_markdown", "")
 
-        warnings: list[str] = []
         if not pipeline_result.get("ok", False):
             warnings.append(f"Pipeline partially failed: {pipeline_result.get('error', 'unknown')}")
 
@@ -165,8 +293,21 @@ class SiteDemoRunner:
             "fetch_provider": self._fetch_provider,
             "output_dir": run_dir,
             "fetched_at": now,
+            "fallback_used": fallback_used,
             "warnings": warnings,
         }
+
+    @staticmethod
+    def _load_homepage_map(run_dir: str) -> dict[str, Any] | None:
+        """Load homepage-map.json from the pipeline run directory."""
+        path = os.path.join(run_dir, "homepage-map.json")
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return None
 
 
 # ------------------------------------------------------------------

@@ -377,3 +377,261 @@ class TestDemoIntegration:
             assert demo_result["ok"] is True
             assert "bukgu" in demo_result["site_id"]
             assert len(demo_result.get("sources", [])) > 0
+
+
+class TestFallback:
+    """Fallback tests — search result 0-count → homepage map fallback."""
+
+    SAMPLE_HOMEPAGE_MAP = {
+        "start_url": "https://bukgu.gwangju.kr/",
+        "base_url": "https://bukgu.gwangju.kr",
+        "homepage": {
+            "title": "광주광역시 북구",
+            "description": "",
+            "navigation_links": [
+                {"title": "민원서식", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101040000", "text": "민원서식"},
+                {"title": "교육접수", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10208020000", "text": "교육접수"},
+                {"title": "정보공개", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10301010000", "text": "정보공개"},
+                {"title": "고시공고", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10401010000", "text": "고시공고"},
+            ],
+            "attachment_links": [],
+            "errors": [],
+        },
+        "categories": {
+            "menu": [
+                {"title": "교육접수", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10208020000", "text": "교육접수"},
+            ],
+            "notice": [],
+            "board": [],
+            "document": [
+                {"title": "민원서식", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101040000", "text": "민원서식"},
+            ],
+            "apply": [],
+            "contact": [],
+            "unknown": [],
+        },
+        "sitemap": {"candidates": [], "found": [], "url_count": 0, "urls": [], "errors": []},
+        "stats": {
+            "sitemap_url_count": 0,
+            "navigation_link_count": 4,
+            "attachment_count": 0,
+            "category_counts": {"menu": 1, "notice": 0, "board": 0, "document": 1, "apply": 0, "contact": 0, "unknown": 0},
+        },
+        "errors": [],
+    }
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_fallback_when_search_empty(self, mock_pipeline_cls, tmp_path):
+        """1. 검색 결과 0건일 때 fallback이 동작한다."""
+        search_path = tmp_path / "search-results.json"
+        answer_path = tmp_path / "answer.json"
+        hm_path = tmp_path / "homepage-map.json"
+
+        with open(search_path, "w") as f:
+            json.dump({"query": "교육접수", "top_k": 5, "filters": {}, "result_count": 0, "results": []}, f)
+        with open(answer_path, "w") as f:
+            json.dump({"query": "교육접수", "provider": "mock", "ok": True, "answer_markdown": "## 답변\n관련 자료를 찾지 못했습니다.", "sources": [], "warnings": [], "error": ""}, f)
+        with open(hm_path, "w") as f:
+            json.dump(self.SAMPLE_HOMEPAGE_MAP, f, ensure_ascii=False)
+
+        pipeline_result = {
+            "ok": True, "url": "https://bukgu.gwangju.kr/", "query": "교육접수",
+            "output_dir": str(tmp_path),
+            "steps": [
+                {"name": "homepage_map", "ok": True, "output": str(hm_path), "error": ""},
+                {"name": "document_index", "ok": True, "output": str(tmp_path / "doc.jsonl"), "error": ""},
+                {"name": "enriched_index", "ok": True, "output": str(tmp_path / "enr.jsonl"), "error": ""},
+                {"name": "search", "ok": True, "output": str(search_path), "error": ""},
+                {"name": "answer", "ok": True, "output": str(answer_path), "error": ""},
+            ],
+            "answer_markdown": "## 답변\n관련 자료를 찾지 못했습니다.", "error": "",
+        }
+
+        mock_runner = MagicMock()
+        mock_runner.run.return_value = pipeline_result
+        mock_pipeline_cls.return_value = mock_runner
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("교육접수는 어디서 해?", output_dir=str(tmp_path))
+
+        assert result["fallback_used"] is True
+        assert len(result["search_results"]) >= 1
+        assert len(result["sources"]) >= 1
+        assert "fallback" in " ".join(result["warnings"]).lower()
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_important_keywords_expansion(self, mock_pipeline_cls, tmp_path):
+        """2. site profile important_keywords 기반 확장이 동작한다."""
+        search_path = tmp_path / "search-results.json"
+        answer_path = tmp_path / "answer.json"
+        hm_path = tmp_path / "homepage-map.json"
+
+        with open(search_path, "w") as f:
+            json.dump({"query": "교육접수", "top_k": 5, "filters": {}, "result_count": 0, "results": []}, f)
+        with open(answer_path, "w") as f:
+            json.dump({"query": "교육접수", "provider": "mock", "ok": True, "answer_markdown": "", "sources": [], "warnings": [], "error": ""}, f)
+        with open(hm_path, "w") as f:
+            json.dump(self.SAMPLE_HOMEPAGE_MAP, f, ensure_ascii=False)
+
+        pipeline_result = {
+            "ok": True, "url": "https://bukgu.gwangju.kr/", "query": "교육접수",
+            "output_dir": str(tmp_path),
+            "steps": [
+                {"name": "homepage_map", "ok": True, "output": str(hm_path), "error": ""},
+                {"name": "search", "ok": True, "output": str(search_path), "error": ""},
+                {"name": "answer", "ok": True, "output": str(answer_path), "error": ""},
+            ],
+            "answer_markdown": "", "error": "",
+        }
+
+        mock_runner = MagicMock()
+        mock_runner.run.return_value = pipeline_result
+        mock_pipeline_cls.return_value = mock_runner
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("교육접수는 어디서 해?", output_dir=str(tmp_path))
+
+        # Should match "교육접수" from profile's important_keywords (expanded)
+        sources = result["sources"]
+        all_text = str(sources) + str(result["search_results"])
+        assert any(kw in all_text for kw in ["교육접수", "a10208020000"])
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_gyoyukjeopsu_source_at_least_1(self, mock_pipeline_cls, tmp_path):
+        """3. '교육접수' 질문에서 source 1건 이상 반환한다."""
+        search_path = tmp_path / "search-results.json"
+        answer_path = tmp_path / "answer.json"
+        hm_path = tmp_path / "homepage-map.json"
+
+        with open(search_path, "w") as f:
+            json.dump({"query": "교육접수", "top_k": 5, "filters": {}, "result_count": 0, "results": []}, f)
+        with open(answer_path, "w") as f:
+            json.dump({"query": "교육접수", "provider": "mock", "ok": True, "answer_markdown": "", "sources": [], "warnings": [], "error": ""}, f)
+        with open(hm_path, "w") as f:
+            json.dump(self.SAMPLE_HOMEPAGE_MAP, f, ensure_ascii=False)
+
+        pipeline_result = {
+            "ok": True, "url": "https://bukgu.gwangju.kr/", "query": "교육접수",
+            "output_dir": str(tmp_path),
+            "steps": [
+                {"name": "homepage_map", "ok": True, "output": str(hm_path), "error": ""},
+                {"name": "search", "ok": True, "output": str(search_path), "error": ""},
+                {"name": "answer", "ok": True, "output": str(answer_path), "error": ""},
+            ],
+            "answer_markdown": "", "error": "",
+        }
+
+        mock_runner = MagicMock()
+        mock_runner.run.return_value = pipeline_result
+        mock_pipeline_cls.return_value = mock_runner
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("교육접수는 어디서 해?", output_dir=str(tmp_path))
+
+        assert len(result["sources"]) >= 1
+        assert result["sources"][0]["title"]
+        assert result["sources"][0]["url"]
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_minwonseo_existing_success_maintained(self, mock_pipeline_cls, tmp_path):
+        """4. '민원서식' 기존 성공 케이스가 유지된다."""
+        search_path = tmp_path / "search-results.json"
+        answer_path = tmp_path / "answer.json"
+
+        with open(search_path, "w") as f:
+            json.dump(SAMPLE_SEARCH_OUTPUT, f, ensure_ascii=False)
+        with open(answer_path, "w") as f:
+            json.dump(SAMPLE_ANSWER_OUTPUT, f, ensure_ascii=False)
+
+        result = dict(SAMPLE_PIPELINE_RESULT)
+        result["output_dir"] = str(tmp_path)
+        for step in result["steps"]:
+            if step["name"] == "search":
+                step["output"] = str(search_path)
+            elif step["name"] == "answer":
+                step["output"] = str(answer_path)
+
+        mock_runner = MagicMock()
+        mock_runner.run.return_value = result
+        mock_pipeline_cls.return_value = mock_runner
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        demo_result = runner.answer("민원서식 어디서 받아?", output_dir=str(tmp_path))
+
+        assert len(demo_result["sources"]) >= 1
+        assert demo_result["fallback_used"] is False  # no fallback needed
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_fallback_json_serializable(self, mock_pipeline_cls, tmp_path):
+        """5. fallback 결과도 JSON 직렬화 가능하다."""
+        search_path = tmp_path / "search-results.json"
+        answer_path = tmp_path / "answer.json"
+        hm_path = tmp_path / "homepage-map.json"
+
+        with open(search_path, "w") as f:
+            json.dump({"query": "교육접수", "top_k": 5, "filters": {}, "result_count": 0, "results": []}, f)
+        with open(answer_path, "w") as f:
+            json.dump({"query": "교육접수", "provider": "mock", "ok": True, "answer_markdown": "", "sources": [], "warnings": [], "error": ""}, f)
+        with open(hm_path, "w") as f:
+            json.dump(self.SAMPLE_HOMEPAGE_MAP, f, ensure_ascii=False)
+
+        pipeline_result = {
+            "ok": True, "url": "https://bukgu.gwangju.kr/", "query": "교육접수",
+            "output_dir": str(tmp_path),
+            "steps": [
+                {"name": "homepage_map", "ok": True, "output": str(hm_path), "error": ""},
+                {"name": "search", "ok": True, "output": str(search_path), "error": ""},
+                {"name": "answer", "ok": True, "output": str(answer_path), "error": ""},
+            ],
+            "answer_markdown": "", "error": "",
+        }
+
+        mock_runner = MagicMock()
+        mock_runner.run.return_value = pipeline_result
+        mock_pipeline_cls.return_value = mock_runner
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("교육접수는 어디서 해?", output_dir=str(tmp_path))
+
+        dumped = json.dumps(result, ensure_ascii=False)
+        loaded = json.loads(dumped)
+        assert loaded["fallback_used"] is True
+        assert len(loaded["sources"]) >= 1
+
+    @patch("src.demo.site_demo_runner.PipelineRunner")
+    def test_fallback_source_has_title_url(self, mock_pipeline_cls, tmp_path):
+        """6. fallback 결과에는 source title/url이 포함된다."""
+        search_path = tmp_path / "search-results.json"
+        answer_path = tmp_path / "answer.json"
+        hm_path = tmp_path / "homepage-map.json"
+
+        with open(search_path, "w") as f:
+            json.dump({"query": "교육접수", "top_k": 5, "filters": {}, "result_count": 0, "results": []}, f)
+        with open(answer_path, "w") as f:
+            json.dump({"query": "교육접수", "provider": "mock", "ok": True, "answer_markdown": "", "sources": [], "warnings": [], "error": ""}, f)
+        with open(hm_path, "w") as f:
+            json.dump(self.SAMPLE_HOMEPAGE_MAP, f, ensure_ascii=False)
+
+        pipeline_result = {
+            "ok": True, "url": "https://bukgu.gwangju.kr/", "query": "교육접수",
+            "output_dir": str(tmp_path),
+            "steps": [
+                {"name": "homepage_map", "ok": True, "output": str(hm_path), "error": ""},
+                {"name": "search", "ok": True, "output": str(search_path), "error": ""},
+                {"name": "answer", "ok": True, "output": str(answer_path), "error": ""},
+            ],
+            "answer_markdown": "", "error": "",
+        }
+
+        mock_runner = MagicMock()
+        mock_runner.run.return_value = pipeline_result
+        mock_pipeline_cls.return_value = mock_runner
+
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer("교육접수는 어디서 해?", output_dir=str(tmp_path))
+
+        for src in result["sources"]:
+            assert "title" in src
+            assert "url" in src
+            assert len(src["title"]) > 0
+            assert len(src["url"]) > 0
