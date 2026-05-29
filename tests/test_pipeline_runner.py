@@ -486,3 +486,58 @@ class TestNoRealProviderCall:
         call_kwargs = MockComposer.call_args
         assert call_kwargs[1]["provider"] == "mock" or call_kwargs.kwargs.get("provider") == "mock"
         assert result["ok"] is True
+
+
+class TestPipelineFetchProvider:
+    """PipelineRunner passes fetch_provider to HomepageMapper."""
+
+    @patch("src.pipeline.pipeline_runner.AnswerComposer")
+    @patch("src.pipeline.pipeline_runner.KeywordSearcher")
+    @patch("src.pipeline.pipeline_runner.DocumentEnricher")
+    @patch("src.pipeline.pipeline_runner.DocumentIndexer")
+    @patch("src.pipeline.pipeline_runner.HomepageMapper")
+    def test_fetch_provider_passed_to_mapper(
+        self, MockMapper, MockIndexer, MockEnricher, MockSearcher, MockComposer, tmp_output_dir
+    ):
+        MockMapper.return_value.build_map.return_value = FAKE_HOMEPAGE_MAP
+        MockIndexer.return_value.build_index.return_value = FAKE_DOCS
+        MockEnricher.return_value.enrich_records.return_value = FAKE_ENRICHED_DOCS
+        MockSearcher.return_value.search.return_value = FAKE_SEARCH_RESULTS
+        MockComposer.return_value.compose.return_value = FAKE_ANSWER_RESULT
+
+        runner = PipelineRunner(
+            output_dir=tmp_output_dir,
+            provider="mock",
+            fetch_provider="requests",
+        )
+        result = runner.run(url="https://example.com", query="신청서")
+
+        # HomepageMapper was created with fetch_provider="requests"
+        MockMapper.assert_called_once()
+        call_kwargs = MockMapper.call_args
+        assert call_kwargs.kwargs.get("fetch_provider") == "requests"
+        assert result["ok"] is True
+
+    @patch("src.pipeline.pipeline_runner.AnswerComposer")
+    @patch("src.pipeline.pipeline_runner.KeywordSearcher")
+    @patch("src.pipeline.pipeline_runner.DocumentEnricher")
+    @patch("src.pipeline.pipeline_runner.DocumentIndexer")
+    @patch("src.pipeline.pipeline_runner.HomepageMapper")
+    def test_fetch_provider_none_default(
+        self, MockMapper, MockIndexer, MockEnricher, MockSearcher, MockComposer, tmp_output_dir
+    ):
+        MockMapper.return_value.build_map.return_value = FAKE_HOMEPAGE_MAP
+        MockIndexer.return_value.build_index.return_value = FAKE_DOCS
+        MockEnricher.return_value.enrich_records.return_value = FAKE_ENRICHED_DOCS
+        MockSearcher.return_value.search.return_value = FAKE_SEARCH_RESULTS
+        MockComposer.return_value.compose.return_value = FAKE_ANSWER_RESULT
+
+        runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+        result = runner.run(url="https://example.com", query="신청서")
+
+        MockMapper.assert_called_once()
+        call_kwargs = MockMapper.call_args
+        # fetch_provider is None by default
+        fp = call_kwargs.kwargs.get("fetch_provider")
+        assert fp is None, f"Expected None, got {fp}"
+        assert result["ok"] is True

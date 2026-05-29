@@ -27,6 +27,7 @@ class PipelineRunner:
         self,
         output_dir: str,
         provider: str | None = None,
+        fetch_provider: str | None = None,
         max_sitemap_urls: int = 200,
         max_sitemaps: int = 10,
         max_enrich_pages: int = 20,
@@ -36,6 +37,7 @@ class PipelineRunner:
     ):
         self.output_dir = output_dir
         self.provider = provider or "mock"
+        self.fetch_provider = fetch_provider  # None = original behavior
         self.max_sitemap_urls = max_sitemap_urls
         self.max_sitemaps = max_sitemaps
         self.max_enrich_pages = max_enrich_pages
@@ -107,6 +109,7 @@ class PipelineRunner:
             mapper = HomepageMapper(
                 max_sitemaps=self.max_sitemaps,
                 max_sitemap_urls=self.max_sitemap_urls,
+                fetch_provider=self.fetch_provider,
             )
             result = mapper.build_map(url)
             self._write_json(output, result)

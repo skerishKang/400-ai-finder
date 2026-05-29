@@ -7,6 +7,12 @@ Usage::
       --url "https://example.com" \
       --query "신청서 제출서류" \
       --provider mock
+
+    # With fetch provider:
+    python scripts/run_pipeline.py \
+      --url "https://example.com" \
+      --query "신청서 제출서류" \
+      --fetch-provider requests
 """
 
 from __future__ import annotations
@@ -33,6 +39,11 @@ def main() -> None:
         help="LLM provider name (default: env AI_FINDER_LLM_PROVIDER or mock)",
     )
     parser.add_argument(
+        "--fetch-provider",
+        default=os.environ.get("AI_FINDER_FETCH_PROVIDER"),
+        help="Fetch provider name (mock, requests, firecrawl). Default: requests (built-in)",
+    )
+    parser.add_argument(
         "--output-dir",
         default=None,
         help="Output directory (default: data/runs/run-YYYYMMDD-HHMMSS)",
@@ -51,6 +62,7 @@ def main() -> None:
     runner = PipelineRunner(
         output_dir=output_dir,
         provider=args.provider,
+        fetch_provider=args.fetch_provider,
         max_sitemap_urls=args.max_sitemap_urls,
         max_sitemaps=args.max_sitemaps,
         max_enrich_pages=args.max_enrich_pages,

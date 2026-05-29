@@ -236,3 +236,19 @@ def test_config_parsing(tmp_path):
         
     assert len(parsed_data["targets"]) == 2
     assert parsed_data["targets"][0]["name"] == "test-1"
+
+
+def test_smoke_runner_fetch_provider_default():
+    """SmokeTestRunner fetch_provider defaults to None."""
+    runner = SmokeTestRunner(output_dir="/tmp/smoke-test", provider="mock")
+    assert runner.fetch_provider is None
+
+
+def test_smoke_runner_fetch_provider_set():
+    """SmokeTestRunner accepts fetch_provider param and passes to PipelineRunner."""
+    runner = SmokeTestRunner(
+        output_dir="/tmp/smoke-test",
+        provider="mock",
+        fetch_provider="requests",
+    )
+    assert runner.fetch_provider == "requests"

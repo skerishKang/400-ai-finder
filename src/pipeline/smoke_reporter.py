@@ -21,6 +21,7 @@ class SmokeTestRunner:
         self,
         output_dir: str,
         provider: str = "mock",
+        fetch_provider: str | None = None,
         top_k: int = 5,
         max_sources: int = 5,
         max_enrich_pages: int = 10,
@@ -30,6 +31,7 @@ class SmokeTestRunner:
     ):
         self.output_dir = output_dir
         self.provider = provider
+        self.fetch_provider = fetch_provider  # None = original behavior
         self.top_k = top_k
         self.max_sources = max_sources
         self.max_enrich_pages = max_enrich_pages
@@ -48,6 +50,7 @@ class SmokeTestRunner:
         runner = PipelineRunner(
             output_dir=target_output_dir,
             provider=self.provider,
+            fetch_provider=self.fetch_provider,
             top_k=self.top_k,
             max_sources=self.max_sources,
             max_enrich_pages=self.max_enrich_pages,

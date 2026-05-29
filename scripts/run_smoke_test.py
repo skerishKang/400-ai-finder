@@ -33,6 +33,8 @@ def main():
     parser.add_argument("--name", help="Target name (optional)")
     parser.add_argument("--config", help="Path to config JSON containing target list")
     parser.add_argument("--provider", default=default_provider, help="LLM provider (default: mock)")
+    parser.add_argument("--fetch-provider", default=os.environ.get("AI_FINDER_FETCH_PROVIDER"),
+                        help="Fetch provider name (mock, requests, firecrawl). Default: requests (built-in)")
     parser.add_argument("--output-dir", help="Output directory for reports and raw runs")
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--max-sources", type=int, default=5)
@@ -85,6 +87,7 @@ def main():
     runner = SmokeTestRunner(
         output_dir=output_dir,
         provider=args.provider,
+        fetch_provider=args.fetch_provider,
         top_k=args.top_k,
         max_sources=args.max_sources,
         max_enrich_pages=args.max_enrich_pages,
@@ -96,6 +99,7 @@ def main():
     print(f"Starting smoke test batch runner...")
     print(f"Targets count: {len(targets)}")
     print(f"LLM Provider: {args.provider}")
+    print(f"Fetch Provider: {args.fetch_provider or '(default: requests built-in)'}")
     print(f"Output directory: {output_dir}")
     print("-" * 50)
     
