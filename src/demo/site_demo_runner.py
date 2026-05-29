@@ -147,9 +147,13 @@ def _generate_answer_from_sources(
 
     if not sources:
         return (
+            f"## 답변\n\n"
             f"'{topic}' 관련 정보를 찾지 못했습니다.\n\n"
+            f"## 다음 단계\n\n"
             f"{site_name} 홈페이지에서 직접 검색해 보시거나, "
-            f"다른 키워드로 다시 질문해 주세요."
+            f"다른 키워드로 다시 질문해 주세요.\n\n"
+            f"## 확인 필요\n\n"
+            f"정확한 최신 내용은 연결된 공식 홈페이지에서 확인해 주세요."
         )
 
     # Build source references
@@ -160,13 +164,15 @@ def _generate_answer_from_sources(
             source_names.append(title)
 
     main_source = source_names[0] if source_names else topic
-    source_list = "·".join(source_names) if source_names else topic
 
     answer = (
+        f"## 답변\n\n"
         f"찾으시는 내용은 '{topic}'에 해당합니다.\n\n"
         f"{site_name} 홈페이지의 {main_source} 메뉴에서 "
         f"관련 정보를 확인할 수 있습니다.\n\n"
-        f"아래 관련 홈페이지 바로가기를 눌러 해당 페이지로 이동해 주세요."
+        f"아래 관련 홈페이지 바로가기를 눌러 해당 페이지로 이동해 주세요.\n\n"
+        f"## 확인 필요\n\n"
+        f"정확한 최신 내용은 연결된 공식 홈페이지에서 확인해 주세요."
     )
 
     return answer
@@ -504,6 +510,11 @@ class SiteDemoRunner:
             )
 
         snapshot["snapshot_mode"] = True
+        snapshot["provider"] = self.provider
+        if self.provider == "stub":
+            snapshot["model"] = "stub"
+        elif self.provider == "mock":
+            snapshot["model"] = ""
         snapshot.setdefault("warnings", []).append(
             "홈페이지 메뉴와 저장된 데모 자료를 기준으로 안내합니다."
         )
