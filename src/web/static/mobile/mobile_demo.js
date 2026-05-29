@@ -157,7 +157,7 @@ function hideWelcome(){
 }
 
 function clearMessages(){
-  const existing = messagesInner.querySelectorAll('.msg-row, .typing-row, .welcome');
+  const existing = messagesInner.querySelectorAll('.msg-row, .typing-row');
   existing.forEach(el => el.remove());
 }
 
