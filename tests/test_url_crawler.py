@@ -90,3 +90,66 @@ def test_link_classification_and_normalization():
     types = [item["type"] for item in links["attachments"]]
     assert "pdf" in types
     assert "hwp" in types
+
+
+# ======================================================================
+# FetchProvider injection tests
+# ======================================================================
+
+def test_crawler_with_mock_fetch_provider():
+    """URLCrawler with fetch_provider='mock' uses MockFetchProvider."""
+    from src.fetch import MockFetchProvider
+    crawler = URLCrawler(fetch_provider="mock")
+    assert crawler.fetch_provider is not None
+    assert crawler.fetch_provider.name == "mock"
+    # analyze() should return a valid result (mock returns HTML)
+    result = crawler.analyze("https://bukgu.gwangju.kr/", max_chars=500)
+    assert result["status_code"] == 200
+    assert len(result["errors"]) == 0
+
+
+def test_crawler_with_none_fetch_provider_uses_original():
+    """URLCrawler with fetch_provider=None keeps original behavior."""
+    crawler = URLCrawler()
+    assert crawler.fetch_provider is None
+    # Should use original path — test with BeautifulSoup directly
+    from bs4 import BeautifulSoup
+    html = "<html><head><title>Original</title></head><body>Hello</body></html>"
+    soup = BeautifulSoup(html, 'html.parser')
+    clean_text = crawler.clean_text(soup)
+    assert "Hello" in clean_text
+
+
+def test_crawler_fetch_provider_name_string():
+    """URLCrawler accepts provider name string for fetch_provider."""
+    crawler = URLCrawler(fetch_provider="mock")
+    assert crawler.fetch_provider is not None
+    assert crawler.fetch_provider.name == "mock"
+
+
+def test_crawler_fetch_provider_instance():
+    """URLCrawler accepts a FetchProvider instance."""
+    from src.fetch import MockFetchProvider
+    provider = MockFetchProvider()
+    crawler = URLCrawler(fetch_provider=provider)
+    assert crawler.fetch_provider is provider
+
+
+def test_crawler_fetch_provider_error_returns_error_result():
+    """When fetch_provider returns ok=False, analyze() returns errors."""
+    from src.fetch import MockFetchProvider
+
+    class FailingProvider(MockFetchProvider):
+        def fetch(self, url, **kwargs):
+            from src.fetch.base import FetchResult
+            from datetime import datetime, timezone
+            return FetchResult(
+                url=url, ok=False, provider="mock_fail",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                error="Simulated failure",
+            )
+
+    crawler = URLCrawler(fetch_provider=FailingProvider())
+    result = crawler.analyze("https://example.com/")
+    assert len(result["errors"]) > 0
+    assert "Simulated failure" in result["errors"][0]

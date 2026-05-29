@@ -61,13 +61,16 @@ def main():
     parser.add_argument("--max-sitemaps", type=int, default=10, help="Maximum number of sitemaps to parse (default: 10)")
     parser.add_argument("--max-sitemap-urls", type=int, default=500, help="Maximum sitemap URLs to save (default: 500)")
     parser.add_argument("--timeout", type=int, default=15, help="HTTP timeout in seconds (default: 15)")
+    parser.add_argument("--fetch-provider", default=None,
+                        help="Fetch provider name (mock, requests, firecrawl). Default: requests (built-in)")
     
     args = parser.parse_args()
     
     mapper = HomepageMapper(
         timeout=args.timeout,
         max_sitemaps=args.max_sitemaps,
-        max_sitemap_urls=args.max_sitemap_urls
+        max_sitemap_urls=args.max_sitemap_urls,
+        fetch_provider=args.fetch_provider,
     )
     
     result = mapper.build_map(args.url)

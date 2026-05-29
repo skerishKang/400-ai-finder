@@ -5,6 +5,8 @@ from urllib.parse import urlparse, urlunparse, urljoin
 from bs4 import BeautifulSoup
 from src.crawler.url_crawler import URLCrawler
 from src.crawler.sitemap_parser import SitemapParser
+from src.fetch import FetchProvider, get_fetch_provider
+
 
 def get_base_url(url):
     parsed = urlparse(url)
@@ -69,11 +71,26 @@ def classify_url(url, text="", is_navigation=False):
     return "unknown"
 
 class HomepageMapper:
-    def __init__(self, timeout=15, max_sitemaps=10, max_sitemap_urls=500, user_agent=None):
-        self.crawler = URLCrawler(timeout=timeout, user_agent=user_agent)
+    def __init__(self, timeout=15, max_sitemaps=10, max_sitemap_urls=500, user_agent=None, fetch_provider=None):
+        self.fetch_provider = self._resolve_fetch_provider(fetch_provider)
+        self.crawler = URLCrawler(
+            timeout=timeout,
+            user_agent=user_agent,
+            fetch_provider=self.fetch_provider,
+        )
         self.max_sitemaps = max_sitemaps
         self.max_sitemap_urls = max_sitemap_urls
         self.sitemap_parser = SitemapParser(max_sitemaps=max_sitemaps, max_sitemap_urls=max_sitemap_urls)
+
+    @staticmethod
+    def _resolve_fetch_provider(fp):
+        if fp is None:
+            return None
+        if isinstance(fp, FetchProvider):
+            return fp
+        if isinstance(fp, str):
+            return get_fetch_provider(fp)
+        return None
 
     def extract_menu_links(self, html_content, base_url):
         navigation_links = []
@@ -145,6 +162,20 @@ class HomepageMapper:
         return navigation_links, attachment_links
 
     def fetch_content(self, url):
+        # === If fetch_provider is set, use it ===
+        if self.fetch_provider is not None:
+            try:
+                result = self.fetch_provider.fetch(url, timeout=self.crawler.timeout)
+                if result.ok:
+                    # Return HTML if available, otherwise text/markdown
+                    content = result.html or result.markdown or result.text or ""
+                    return content, None, result.status_code, result.url or url
+                else:
+                    return None, result.error, getattr(result, 'status_code', None), url
+            except Exception as e:
+                return None, str(e), None, url
+
+        # === Original code path ===
         try:
             res = requests.get(url, headers=self.crawler.headers, timeout=self.crawler.timeout)
             if res.status_code >= 400:

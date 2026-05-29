@@ -13,10 +13,12 @@ def main():
     parser.add_argument("--url", required=True, help="The URL to analyze")
     parser.add_argument("--max-chars", type=int, default=8000, help="Maximum body text characters to extract")
     parser.add_argument("--output", help="Output path to save the JSON result")
+    parser.add_argument("--fetch-provider", default=None,
+                        help="Fetch provider name (mock, requests, firecrawl). Default: requests (built-in)")
     
     args = parser.parse_args()
     
-    crawler = URLCrawler()
+    crawler = URLCrawler(fetch_provider=args.fetch_provider)
     result = crawler.analyze(args.url, max_chars=args.max_chars)
     
     json_result = json.dumps(result, ensure_ascii=False, indent=2)

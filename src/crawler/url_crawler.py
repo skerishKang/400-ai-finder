@@ -4,8 +4,11 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunparse, urljoin
 
+from src.fetch import FetchProvider, get_fetch_provider
+
+
 class URLCrawler:
-    def __init__(self, timeout=15, user_agent=None):
+    def __init__(self, timeout=15, user_agent=None, fetch_provider=None):
         self.timeout = timeout
         self.user_agent = user_agent or (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -14,6 +17,18 @@ class URLCrawler:
         )
         self.headers = {"User-Agent": self.user_agent}
         self.attachment_extensions = {'pdf', 'hwp', 'hwpx', 'docx', 'xlsx'}
+        self.fetch_provider = self._resolve_fetch_provider(fetch_provider)
+
+    @staticmethod
+    def _resolve_fetch_provider(fp):
+        """Resolve fetch_provider from a name, instance, or None."""
+        if fp is None:
+            return None  # keep original behavior
+        if isinstance(fp, FetchProvider):
+            return fp
+        if isinstance(fp, str):
+            return get_fetch_provider(fp)
+        return None
 
     def is_internal(self, base_url, target_url):
         base_parsed = urlparse(base_url)
@@ -138,6 +153,18 @@ class URLCrawler:
         }
 
     def analyze(self, url, max_chars=8000):
+        # === If fetch_provider is set, use it ===
+        if self.fetch_provider is not None:
+            return self._analyze_with_provider(url, max_chars)
+
+        # === Original code path (no fetch_provider) ===
+        return self._analyze_original(url, max_chars)
+
+    # ------------------------------------------------------------------
+    # Original analyze path (unchanged)
+    # ------------------------------------------------------------------
+
+    def _analyze_original(self, url, max_chars):
         result = {
             "url": url,
             "status_code": None,
@@ -225,5 +252,128 @@ class URLCrawler:
             
         except Exception as e:
             result["errors"].append(f"HTML parsing error: {str(e)}")
+
+        return result
+
+    # ------------------------------------------------------------------
+    # FetchProvider analyze path (opt-in)
+    # ------------------------------------------------------------------
+
+    def _analyze_with_provider(self, url, max_chars):
+        result = {
+            "url": url,
+            "status_code": None,
+            "content_type": None,
+            "title": "",
+            "description": "",
+            "text": "",
+            "links": {
+                "internal": [],
+                "external": [],
+                "attachments": []
+            },
+            "stats": {
+                "text_length": 0,
+                "internal_link_count": 0,
+                "external_link_count": 0,
+                "attachment_count": 0
+            },
+            "errors": []
+        }
+
+        # Validate URL
+        parsed_url = urlparse(url)
+        if not parsed_url.scheme or not parsed_url.netloc:
+            result["errors"].append("Invalid URL: Scheme and domain are required.")
+            return result
+
+        # Use fetch_provider
+        try:
+            fetch_result = self.fetch_provider.fetch(url, timeout=self.timeout)
+        except Exception as e:
+            result["errors"].append(f"Fetch provider error: {str(e)}")
+            return result
+
+        # Populate basic fields
+        result["url"] = fetch_result.url or url
+        result["status_code"] = fetch_result.status_code
+        result["content_type"] = fetch_result.content_type
+        result["title"] = fetch_result.title
+        result["description"] = fetch_result.description
+
+        if not fetch_result.ok:
+            result["errors"].append(fetch_result.error or "Fetch provider returned error")
+            return result
+
+        # --- Parse HTML with BeautifulSoup if available ---
+        html_source = fetch_result.html or ""
+        if html_source:
+            try:
+                soup = BeautifulSoup(html_source, 'html.parser')
+
+                # Title from HTML if we didn't get it from the provider
+                if not result["title"]:
+                    title_tag = soup.title
+                    if title_tag:
+                        result["title"] = title_tag.get_text().strip()
+
+                # Description from HTML if we didn't get it
+                if not result["description"]:
+                    desc_tag = soup.find('meta', attrs={'name': lambda x: x and x.lower() == 'description'})
+                    if desc_tag and desc_tag.get('content'):
+                        result["description"] = desc_tag.get('content').strip()
+                    else:
+                        og_desc_tag = soup.find('meta', attrs={'property': 'og:description'})
+                        if og_desc_tag and og_desc_tag.get('content'):
+                            result["description"] = og_desc_tag.get('content').strip()
+
+                # Clean text from HTML
+                clean_txt = self.clean_text(soup)
+                result["text"] = clean_txt[:max_chars]
+
+                # Links from BeautifulSoup
+                links = self.extract_links(soup, result["url"])
+                result["links"] = links
+
+                # Stats
+                result["stats"]["text_length"] = len(clean_txt)
+                result["stats"]["internal_link_count"] = len(links["internal"])
+                result["stats"]["external_link_count"] = len(links["external"])
+                result["stats"]["attachment_count"] = len(links["attachments"])
+
+            except Exception as e:
+                result["errors"].append(f"HTML parsing error: {str(e)}")
+
+        else:
+            # No HTML available — use text/markdown and links from FetchResult
+            text_content = fetch_result.markdown or fetch_result.text or ""
+            result["text"] = text_content[:max_chars]
+            result["stats"]["text_length"] = len(text_content)
+
+            # Convert flat links from FetchResult to classified links
+            internal_links = []
+            external_links = []
+            attachments = []
+            for link in fetch_result.links:
+                link_url = link.get("url", "")
+                text = link.get("text", "")
+                if not link_url:
+                    continue
+                ext = self.get_extension(link_url)
+                if ext in self.attachment_extensions:
+                    attachments.append({"text": text or f"{ext.upper()} File", "url": link_url, "type": ext})
+                elif self.is_internal(result["url"], link_url):
+                    internal_links.append({"text": text, "url": link_url})
+                else:
+                    external_links.append({"text": text, "url": link_url})
+
+            result["links"] = {
+                "internal": internal_links,
+                "external": external_links,
+                "attachments": attachments,
+            }
+            result["stats"]["internal_link_count"] = len(internal_links)
+            result["stats"]["external_link_count"] = len(external_links)
+            result["stats"]["attachment_count"] = len(attachments)
 
         return result

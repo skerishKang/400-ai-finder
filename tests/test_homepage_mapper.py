@@ -95,3 +95,64 @@ def test_homepage_menu_links_extraction_and_normalization():
     assert len(att_links) == 1
     assert att_links[0]["url"] == "https://example.com/downloads/manual.pdf"
     assert att_links[0]["type"] == "pdf"
+
+
+# ======================================================================
+# FetchProvider injection tests
+# ======================================================================
+
+def test_mapper_fetch_provider_mock():
+    """HomepageMapper with fetch_provider='mock' creates URLCrawler with mock provider."""
+    from src.fetch import MockFetchProvider
+    mapper = HomepageMapper(fetch_provider="mock")
+    assert mapper.fetch_provider is not None
+    assert mapper.fetch_provider.name == "mock"
+    # URLCrawler inside mapper should also have the mock provider
+    assert mapper.crawler.fetch_provider is not None
+    assert mapper.crawler.fetch_provider.name == "mock"
+
+
+def test_mapper_fetch_provider_instance():
+    """HomepageMapper accepts a FetchProvider instance directly."""
+    from src.fetch import MockFetchProvider
+    provider = MockFetchProvider()
+    mapper = HomepageMapper(fetch_provider=provider)
+    assert mapper.fetch_provider is provider
+
+
+def test_mapper_fetch_provider_none():
+    """HomepageMapper with fetch_provider=None keeps original behavior."""
+    mapper = HomepageMapper()
+    assert mapper.fetch_provider is None
+    # URLCrawler should also have no fetch_provider
+    assert mapper.crawler.fetch_provider is None
+
+
+def test_mapper_fetch_content_with_mock_provider():
+    """fetch_content() with mock provider returns HTML and no error."""
+    mapper = HomepageMapper(fetch_provider="mock")
+    content, error, status, final_url = mapper.fetch_content("https://bukgu.gwangju.kr/")
+    assert error is None
+    assert status == 200
+    assert "Mock Page" in content or "mock" in content.lower()
+
+
+def test_mapper_fetch_content_with_mock_provider_error():
+    """fetch_content() propagates provider errors correctly."""
+    from src.fetch import MockFetchProvider
+    from src.fetch.base import FetchResult
+    from datetime import datetime, timezone
+
+    class FailingProvider(MockFetchProvider):
+        def fetch(self, url, **kwargs):
+            return FetchResult(
+                url=url, ok=False, provider="mock_fail",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                error="Fetch error in mapper",
+            )
+
+    mapper = HomepageMapper(fetch_provider=FailingProvider())
+    content, error, status, final_url = mapper.fetch_content("https://example.com/")
+    assert content is None
+    assert error is not None
+    assert "Fetch error" in error
