@@ -144,6 +144,8 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "search_results": result.get("search_results", []),
                 "ok": result.get("ok", False),
                 "answer_ok": result.get("answer_ok", False),
+                "provider": result.get("provider", ""),
+                "model": result.get("model", ""),
                 "snapshot_mode": result.get("snapshot_mode", False),
                 "fallback_used": result.get("fallback_used", False),
                 "warnings": result.get("warnings", []),

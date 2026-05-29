@@ -326,6 +326,7 @@ class SiteDemoRunner:
         # Extract answer
         answer = ""
         answer_ok = False
+        answer_data = None
         for step in pipeline_result.get("steps", []):
             if step["name"] == "answer":
                 answer_ok = step["ok"]
@@ -356,6 +357,7 @@ class SiteDemoRunner:
             "ok": pipeline_result.get("ok", False),
             "answer_ok": answer_ok,
             "provider": self.provider,
+            "model": answer_data.get("model", "") if answer_data else "",
             "fetch_provider": self._fetch_provider,
             "output_dir": run_dir,
             "fetched_at": now,

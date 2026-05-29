@@ -22,6 +22,7 @@ from typing import Any
 
 from .base import LLMProvider, ProviderResult
 from .mock_provider import MockProvider
+from .stub_provider import StubProvider
 from .openai_compatible_provider import OpenAICompatibleProvider
 
 # ------------------------------------------------------------------
@@ -154,13 +155,19 @@ def get_provider(provider_name: str | None = None, **overrides: Any) -> LLMProvi
             response=overrides.get("response") or overrides.get("mock_response"),
         )
 
+    # --- Stub is a standalone implementation (test-only) ---
+    if name == "stub":
+        return StubProvider(
+            fail_on=overrides.get("fail_on"),
+        )
+
     # --- Built-in providers ---
     if name in BUILTIN_PROVIDERS:
         return _build_provider(name, **overrides)
 
     raise ValueError(
         f"Unknown LLM provider: '{name}'. "
-        f"Available providers: mock, {', '.join(sorted(BUILTIN_PROVIDERS))}. "
+        f"Available providers: mock, stub, {', '.join(sorted(BUILTIN_PROVIDERS))}. "
         f"Set AI_FINDER_LLM_PROVIDER env var or pass provider= to get_provider()."
     )
 
@@ -183,6 +190,14 @@ def list_providers() -> list[dict[str, Any]]:
         "name": "mock",
         "description": "Fixed response for testing (no API key required)",
         "default_model": "mock",
+        "base_url": "",
+        "has_api_key": True,
+    })
+    # Add stub (test-only, no API key required)
+    result.insert(1, {
+        "name": "stub",
+        "description": "Simulated grounded answer for testing (no API key required)",
+        "default_model": "stub",
         "base_url": "",
         "has_api_key": True,
     })
@@ -257,6 +272,7 @@ __all__ = [
     "LLMProvider",
     "ProviderResult",
     "MockProvider",
+    "StubProvider",
     "OpenAICompatibleProvider",
     "get_provider",
     "list_providers",

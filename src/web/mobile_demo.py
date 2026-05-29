@@ -111,6 +111,8 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "answer": result.get("answer", ""),
                 "sources": result.get("sources", []),
                 "ok": result.get("ok", False),
+                "provider": result.get("provider", ""),
+                "model": result.get("model", ""),
                 "snapshot_mode": result.get("snapshot_mode", False),
                 "fallback_used": result.get("fallback_used", False),
                 "warnings": result.get("warnings", []),
