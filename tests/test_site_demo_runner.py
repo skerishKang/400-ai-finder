@@ -635,3 +635,129 @@ class TestFallback:
             assert "url" in src
             assert len(src["title"]) > 0
             assert len(src["url"]) > 0
+
+
+# ------------------------------------------------------------------
+# Snapshot tests
+# ------------------------------------------------------------------
+
+FIXTURE_SNAPSHOT = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "tests", "fixtures", "bukgu_gwangju_demo_snapshot.json",
+)
+
+
+class TestSnapshot:
+    """Snapshot save / load / answer-from-snapshot tests."""
+
+    def test_save_snapshot_json_serializable(self, tmp_path):
+        """1. snapshot 저장 결과가 JSON 직렬화 가능하다."""
+        result = {"site_id": "bukgu_gwangju", "question": "민원서식", "ok": True,
+                  "sources": [{"title": "민원서식", "url": "https://bukgu.gwangju.kr"}],
+                  "search_results": [], "answer": "## 답변", "warnings": []}
+        out = tmp_path / "snap.json"
+        saved = SiteDemoRunner.save_snapshot(result, str(out))
+        assert os.path.exists(saved)
+        with open(saved, encoding="utf-8") as f:
+            loaded = json.load(f)
+        assert loaded["site_id"] == "bukgu_gwangju"
+
+    def test_load_snapshot_valid(self):
+        """2. snapshot 로드로 demo answer를 생성한다."""
+        snapshot = SiteDemoRunner.load_snapshot(FIXTURE_SNAPSHOT)
+        assert snapshot["site_id"] == "bukgu_gwangju"
+        assert snapshot["question"] == "민원서식 어디서 받아?"
+        assert len(snapshot["sources"]) >= 1
+
+    def test_answer_from_snapshot_same_question(self):
+        """3. snapshot 모드에서 기존 질문의 답변을 반환한다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(FIXTURE_SNAPSHOT)
+        assert result["snapshot_mode"] is True
+        assert result["site_id"] == "bukgu_gwangju"
+        assert len(result["sources"]) >= 1
+        assert "snapshot" in " ".join(result["warnings"]).lower()
+
+    def test_answer_from_snapshot_different_question(self):
+        """4. '교육접수' 질문에서 snapshot 기반 fallback source가 반환된다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(FIXTURE_SNAPSHOT, question="교육접수는 어디서 해?")
+        assert result["snapshot_mode"] is True
+        assert result["question"] == "교육접수는 어디서 해?"
+        sources = result.get("sources", [])
+        all_text = str(sources) + str(result.get("search_results", []))
+        assert any(kw in all_text for kw in ["교육접수", "a10208020000"]), \
+            f"Expected 교육접수 in sources, got: {all_text}"
+
+    def test_snapshot_source_has_title_url(self):
+        """5. snapshot mode에서도 sources title/url이 포함된다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(FIXTURE_SNAPSHOT, question="교육접수는 어디서 해?")
+        for src in result.get("sources", []):
+            assert "title" in src
+            assert "url" in src
+            assert len(src["title"]) > 0
+            assert len(src["url"]) > 0
+
+    def test_snapshot_minwonseo_success_maintained(self):
+        """6. '민원서식' 기존 성공 케이스가 유지된다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(FIXTURE_SNAPSHOT, question="민원서식 어디서 받아?")
+        assert len(result["sources"]) >= 1
+        all_text = str(result["sources"]) + str(result["search_results"])
+        assert any(kw in all_text for kw in ["민원서식", "a10101040000"])
+
+    def test_invalid_snapshot_path_raises(self):
+        """7. 잘못된 snapshot 경로는 명확한 예외를 반환한다."""
+        with pytest.raises(FileNotFoundError):
+            SiteDemoRunner.load_snapshot("/tmp/definitely_no_snapshot_xyz.json")
+
+    def test_invalid_snapshot_json_raises(self, tmp_path):
+        """7b. JSON이 아닌 snapshot 파일은 ValueError."""
+        bad = tmp_path / "bad.json"
+        bad.write_text("not json {{{", encoding="utf-8")
+        with pytest.raises(ValueError):
+            SiteDemoRunner.load_snapshot(str(bad))
+
+    def test_snapshot_missing_keys_raises(self, tmp_path):
+        """7c. 필수 키 누락 snapshot은 ValueError."""
+        bad = tmp_path / "missing.json"
+        bad.write_text(json.dumps({"site_id": "test"}), encoding="utf-8")
+        with pytest.raises(ValueError, match="missing required keys"):
+            SiteDemoRunner.load_snapshot(str(bad))
+
+    def test_run_demo_with_snapshot(self):
+        """8. run_demo convenience 함수가 snapshot 모드를 지원한다."""
+        result = run_demo(
+            site_id="bukgu_gwangju",
+            question="교육접수는 어디서 해?",
+            provider="mock",
+            snapshot=FIXTURE_SNAPSHOT,
+        )
+        assert result["snapshot_mode"] is True
+        assert len(result["sources"]) >= 1
+
+    def test_run_demo_save_snapshot(self, tmp_path):
+        """9. run_demo convenience 함수가 snapshot 저장을 지원한다."""
+        snap_out = str(tmp_path / "saved_snap.json")
+        result = run_demo(
+            site_id="bukgu_gwangju",
+            question="민원서식",
+            provider="mock",
+            snapshot=FIXTURE_SNAPSHOT,
+            save_snapshot=snap_out,
+        )
+        assert os.path.exists(snap_out)
+        with open(snap_out, encoding="utf-8") as f:
+            loaded = json.load(f)
+        assert loaded["site_id"] == "bukgu_gwangju"
+
+    def test_snapshot_roundtrip(self, tmp_path):
+        """10. save → load roundtrip이 데이터를 보존한다."""
+        original = SiteDemoRunner.load_snapshot(FIXTURE_SNAPSHOT)
+        out = str(tmp_path / "roundtrip.json")
+        SiteDemoRunner.save_snapshot(original, out)
+        reloaded = SiteDemoRunner.load_snapshot(out)
+        assert reloaded["site_id"] == original["site_id"]
+        assert reloaded["question"] == original["question"]
+        assert len(reloaded["sources"]) == len(original["sources"])

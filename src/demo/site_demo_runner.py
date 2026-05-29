@@ -309,6 +309,128 @@ class SiteDemoRunner:
         except (json.JSONDecodeError, OSError):
             return None
 
+    # ------------------------------------------------------------------
+    # Snapshot save / load
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def save_snapshot(result: dict[str, Any], path: str) -> str:
+        """Save a demo result dict as a reusable JSON snapshot.
+
+        Args:
+            result: The dict returned by ``answer()``.
+            path: File path to write the snapshot JSON.
+
+        Returns:
+            The absolute path of the written file.
+        """
+        os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        return os.path.abspath(path)
+
+    @staticmethod
+    def load_snapshot(path: str) -> dict[str, Any]:
+        """Load a demo result from a JSON snapshot file.
+
+        Args:
+            path: File path of the snapshot JSON.
+
+        Returns:
+            The loaded demo result dict.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If the file is not valid JSON or missing required keys.
+        """
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Snapshot file not found: {path}")
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            raise ValueError(f"Invalid snapshot file: {e}") from e
+
+        if not isinstance(data, dict):
+            raise ValueError("Snapshot file must contain a JSON object")
+
+        # Minimal validation
+        required = {"site_id", "question"}
+        missing = required - set(data.keys())
+        if missing:
+            raise ValueError(f"Snapshot missing required keys: {missing}")
+
+        return data
+
+    def answer_from_snapshot(
+        self,
+        snapshot_path: str,
+        question: str | None = None,
+    ) -> dict[str, Any]:
+        """Answer using a pre-saved snapshot instead of live pipeline.
+
+        If ``question`` is provided and differs from the snapshot's question,
+        re-runs the fallback logic on the snapshot's homepage_map.
+
+        Args:
+            snapshot_path: Path to a JSON snapshot file.
+            question: Override question (optional).
+
+        Returns:
+            A demo result dict.
+        """
+        snapshot = self.load_snapshot(snapshot_path)
+
+        # If question differs, rebuild sources via fallback
+        q = question or snapshot.get("question", "")
+        if not q or not q.strip():
+            raise ValueError("Question must not be empty")
+
+        if question and question != snapshot.get("question"):
+            # Re-run fallback from the snapshot's homepage_map data
+            homepage_map = snapshot.get("homepage_map")
+            if homepage_map:
+                fb = _fallback_sources_from_homepage_map(
+                    homepage_map, q, self.profile.important_keywords,
+                )
+                if fb:
+                    snapshot["search_results"] = [
+                        {
+                            "id": f"fb-{i:05d}",
+                            "title": c["title"],
+                            "url": c["url"],
+                            "canonical_url": c["url"],
+                            "category": c.get("source_type", "menu"),
+                            "content_type": "page",
+                            "score": c.get("score", 5.0),
+                            "matched_terms": [],
+                            "matched_fields": ["title"],
+                            "snippet": c["title"],
+                            "metadata": {"fetch_status": "snapshot-fallback"},
+                        }
+                        for i, c in enumerate(fb)
+                    ]
+                    snapshot["sources"] = [
+                        {
+                            "title": c["title"],
+                            "url": c["url"],
+                            "source_type": c.get("source_type", "menu"),
+                            "snippet": c["title"][:200],
+                            "score": c.get("score", 5.0),
+                        }
+                        for c in fb
+                    ]
+                    snapshot["fallback_used"] = True
+                    snapshot.setdefault("warnings", []).append(
+                        f"Snapshot-mode fallback: {len(fb)} candidates from homepage map"
+                    )
+
+            snapshot["question"] = q
+
+        snapshot["snapshot_mode"] = True
+        snapshot.setdefault("warnings", []).append("Loaded from snapshot (no live fetch)")
+        return snapshot
+
 
 # ------------------------------------------------------------------
 # Convenience function
@@ -321,6 +443,8 @@ def run_demo(
     provider: str = "mock",
     fetch_provider: str | None = None,
     output_dir: str | None = None,
+    snapshot: str | None = None,
+    save_snapshot: str | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
     """One-shot convenience function around SiteDemoRunner.
@@ -331,6 +455,8 @@ def run_demo(
         provider: LLM provider name (default: ``mock``).
         fetch_provider: Fetch provider name (default: from profile).
         output_dir: Output directory (default: temp dir).
+        snapshot: Path to a snapshot file to use instead of live fetch.
+        save_snapshot: Path to save the live result as a snapshot.
         **kwargs: Additional PipelineRunner args.
 
     Returns:
@@ -343,4 +469,13 @@ def run_demo(
         output_dir=output_dir,
         **kwargs,
     )
-    return runner.answer(question)
+
+    if snapshot:
+        result = runner.answer_from_snapshot(snapshot, question=question)
+    else:
+        result = runner.answer(question)
+
+    if save_snapshot:
+        SiteDemoRunner.save_snapshot(result, save_snapshot)
+
+    return result

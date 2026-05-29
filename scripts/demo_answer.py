@@ -55,6 +55,16 @@ def main() -> None:
         default=5,
         help="Top-K search results (default: 5)",
     )
+    parser.add_argument(
+        "--snapshot",
+        default=None,
+        help="Path to a snapshot JSON file — use cached data instead of live fetch",
+    )
+    parser.add_argument(
+        "--save-snapshot",
+        default=None,
+        help="Path to save the live result as a reusable snapshot",
+    )
 
     args = parser.parse_args()
 
@@ -67,6 +77,8 @@ def main() -> None:
         provider=args.provider,
         fetch_provider=args.fetch_provider,
         top_k=args.top_k,
+        snapshot=args.snapshot,
+        save_snapshot=args.save_snapshot,
     )
 
     # Print console-friendly output
@@ -91,7 +103,8 @@ def _print_result(result: dict) -> None:
     print(sep)
     print(f"  질문:      {result.get('question', '?')}")
     print(f"  LLM:       {result.get('provider', '?')}")
-    print(f"  Fetch:     {result.get('fetch_provider', '?')}")
+    mode_tag = "  [snapshot]" if result.get("snapshot_mode") else ""
+    print(f"  Fetch:     {result.get('fetch_provider', '?')}{mode_tag}")
     ok = result.get("ok", False)
     answer_ok = result.get("answer_ok", False)
     print(f"  Pipeline:  {'✅ 성공' if ok else '❌ 실패'}")
