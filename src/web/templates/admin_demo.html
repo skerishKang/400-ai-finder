@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>운영자 화면 — AI 홈페이지 파인더</title>
+<link rel="stylesheet" href="/static/admin/admin_demo.css">
+</head>
+<body>
+<div class="topbar">
+  <h1>🏛️ AI 홈페이지 파인더 — 운영자 화면</h1>
+  <span class="badge">ADMIN</span>
+</div>
+
+<div class="layout">
+  <!-- Summary -->
+  <div class="card">
+    <h2>서비스 정보</h2>
+    <div id="summaryInfo"></div>
+  </div>
+
+  <!-- Site Profile -->
+  <div class="card">
+    <h2>사이트 프로필</h2>
+    <div id="profileInfo"></div>
+  </div>
+
+  <!-- Snapshot Status -->
+  <div class="card">
+    <h2>snapshot 상태</h2>
+    <div id="snapshotInfo"></div>
+  </div>
+
+  <!-- Status/Warnings -->
+  <div class="card">
+    <h2>상태 / 경고</h2>
+    <div id="statusInfo"></div>
+  </div>
+
+  <!-- Demo Test Panel -->
+  <div class="card full">
+    <h2>데모 질문 테스트</h2>
+    <div class="test-panel">
+      <input type="text" id="testQuestion" placeholder="질문을 입력하세요" autocomplete="off">
+      <button id="testBtn" onclick="runTest()">실행</button>
+    </div>
+    <div class="quick-btns">
+      <button onclick="quickTest('민원서식 어디서 받아?')">민원서식</button>
+      <button onclick="quickTest('교육접수는 어디서 해?')">교육접수</button>
+      <button onclick="quickTest('정보공개는 어디서 볼 수 있어?')">정보공개</button>
+      <button onclick="quickTest('고시공고는 어디서 확인해?')">고시공고</button>
+    </div>
+    <div id="testResult" style="display:none">
+      <div class="result-summary" id="resultStats"></div>
+      <div class="answer-box" id="resultAnswer"></div>
+      <h3 style="font-size:.85rem;color:var(--text2);margin:10px 0 6px">출처 / 검색 결과</h3>
+      <table>
+        <thead><tr><th>제목</th><th>URL</th><th>유형</th><th>점수</th></tr></thead>
+        <tbody id="resultTable"></tbody>
+      </table>
+      <div class="warnings" id="resultWarnings"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/admin/admin_demo.js"></script>
+</body>
+</html>
