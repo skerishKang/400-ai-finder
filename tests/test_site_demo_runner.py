@@ -676,7 +676,7 @@ class TestSnapshot:
         assert result["snapshot_mode"] is True
         assert result["site_id"] == "bukgu_gwangju"
         assert len(result["sources"]) >= 1
-        assert "snapshot" in " ".join(result["warnings"]).lower()
+        assert "데모 자료" in " ".join(result["warnings"])
 
     def test_answer_from_snapshot_different_question(self):
         """4. '교육접수' 질문에서 snapshot 기반 fallback source가 반환된다."""
@@ -761,3 +761,123 @@ class TestSnapshot:
         assert reloaded["site_id"] == original["site_id"]
         assert reloaded["question"] == original["question"]
         assert len(reloaded["sources"]) == len(original["sources"])
+
+
+# ------------------------------------------------------------------
+# Stage 16: Answer-source consistency & UX tests
+# ------------------------------------------------------------------
+
+
+class TestAnswerSourceConsistency:
+    """Verify that answer content matches the question topic and sources."""
+
+    def test_gosigongo_answer_mentions_topic(self):
+        """고시공고 질문에서 답변이 고시공고를 안내한다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="고시공고는 어디서 확인해?"
+        )
+        assert "고시공고" in result["answer"]
+        assert result["question"] == "고시공고는 어디서 확인해?"
+
+    def test_gyoyukjeopsu_answer_mentions_topic(self):
+        """교육접수 질문에서 답변이 교육접수를 안내한다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="교육접수는 어디서 해?"
+        )
+        assert "교육접수" in result["answer"]
+
+    def test_minwonseo_answer_mentions_topic(self):
+        """민원서식 질문에서 답변이 민원서식을 안내한다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="민원서식 어디서 받아?"
+        )
+        assert "민원서식" in result["answer"]
+
+    def test_jeongbo_gonggae_answer_mentions_topic(self):
+        """정보공개 질문에서 답변이 정보공개를 안내한다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="정보공개는 어디서 볼 수 있어?"
+        )
+        assert "정보공개" in result["answer"]
+
+    def test_different_question_does_not_reuse_old_answer(self):
+        """질문이 바뀌면 이전 질문의 답변을 재사용하지 않는다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        # First: 민원서식
+        result1 = runner.answer_from_snapshot(FIXTURE_SNAPSHOT)
+        answer1 = result1["answer"]
+
+        # Then: 고시공고
+        result2 = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="고시공고는 어디서 확인해?"
+        )
+        answer2 = result2["answer"]
+
+        # Answers should be different
+        assert answer1 != answer2
+        assert "고시공고" in answer2
+
+    def test_answer_mentions_site_name(self):
+        """답변에 기관명이 포함된다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="고시공고는 어디서 확인해?"
+        )
+        assert "북구" in result["answer"]
+
+    def test_answer_has_guide_structure(self):
+        """답변이 안내형 구조를 갖춘다 (주제 + 메뉴 + 행동 안내)."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="교육접수는 어디서 해?"
+        )
+        answer = result["answer"]
+        # Should have topic acknowledgment
+        assert "교육접수" in answer
+        # Should have location guidance
+        assert any(kw in answer for kw in ["메뉴", "홈페이지", "에서"])
+        # Should have action guidance
+        assert any(kw in answer for kw in ["눌러", "이동", "확인"])
+
+    def test_user_friendly_warnings_no_dev_terms(self):
+        """warnings에 개발자 용어가 노출되지 않는다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="교육접수는 어디서 해?"
+        )
+        all_warnings = " ".join(result.get("warnings", []))
+        assert "snapshot" not in all_warnings.lower()
+        assert "fallback" not in all_warnings.lower()
+
+
+class TestGosigongoAndGonggae:
+    """고시공고/정보공개 fallback이 homepage_map에서 후보를 찾는지 확인."""
+
+    def test_gosigongo_source_found(self):
+        """고시공고 질문에서 출처가 1건 이상이다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="고시공고는 어디서 확인해?"
+        )
+        assert len(result["sources"]) >= 1
+
+    def test_gosigongo_source_has_url(self):
+        """고시공고 출처에 URL이 포함된다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="고시공고는 어디서 확인해?"
+        )
+        urls = [s["url"] for s in result["sources"]]
+        assert any("bukgu.gwangju.kr" in u for u in urls)
+
+    def test_jeongbo_gonggae_source_found(self):
+        """정보공개 질문에서 출처가 1건 이상이다."""
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="정보공개는 어디서 볼 수 있어?"
+        )
+        assert len(result["sources"]) >= 1

@@ -106,6 +106,72 @@ def _fallback_sources_from_homepage_map(
     return deduped[:5]
 
 
+def _extract_topic_from_question(question: str) -> str:
+    """Extract the main topic keyword from a Korean question.
+
+    Strips common particles (는/은/을/를/에서/의/에/로) from the first token.
+
+    Examples:
+        "민원서식 어디서 받아?" → "민원서식"
+        "교육접수는 어디서 해?" → "교육접수"
+        "고시공고는 어디서 확인해?" → "고시공고"
+    """
+    q = question.strip()
+    tokens = _tokenize_korean(q)
+    if not tokens:
+        return q
+    topic = tokens[0]
+    # Strip common Korean particles
+    particles = ("에서는", "에서", "는", "은", "을", "를", "의", "에", "로", "이", "가")
+    for p in particles:
+        if topic.endswith(p) and len(topic) > len(p) + 1:
+            topic = topic[: -len(p)]
+            break
+    return topic
+
+
+def _generate_answer_from_sources(
+    question: str,
+    sources: list[dict[str, Any]],
+    site_name: str,
+) -> str:
+    """Generate a user-friendly answer from question + matched sources.
+
+    Produces an AI-guide-style answer that:
+    1. Acknowledges the user's topic
+    2. Points to where to find it
+    3. Gives next-step guidance
+    4. References the source links
+    """
+    topic = _extract_topic_from_question(question)
+
+    if not sources:
+        return (
+            f"'{topic}' 관련 정보를 찾지 못했습니다.\n\n"
+            f"{site_name} 홈페이지에서 직접 검색해 보시거나, "
+            f"다른 키워드로 다시 질문해 주세요."
+        )
+
+    # Build source references
+    source_names = []
+    for s in sources[:3]:
+        title = s.get("title", "").strip()
+        if title and title not in source_names:
+            source_names.append(title)
+
+    main_source = source_names[0] if source_names else topic
+    source_list = "·".join(source_names) if source_names else topic
+
+    answer = (
+        f"찾으시는 내용은 '{topic}'에 해당합니다.\n\n"
+        f"{site_name} 홈페이지의 {main_source} 메뉴에서 "
+        f"관련 정보를 확인할 수 있습니다.\n\n"
+        f"아래 관련 홈페이지 바로가기를 눌러 해당 페이지로 이동해 주세요."
+    )
+
+    return answer
+
+
 class SiteDemoRunner:
     """Run a pipeline demo against a site profile.
 
@@ -370,7 +436,8 @@ class SiteDemoRunner:
         """Answer using a pre-saved snapshot instead of live pipeline.
 
         If ``question`` is provided and differs from the snapshot's question,
-        re-runs the fallback logic on the snapshot's homepage_map.
+        re-runs the fallback logic on the snapshot's homepage_map and
+        generates a NEW answer based on the current question + matched sources.
 
         Args:
             snapshot_path: Path to a JSON snapshot file.
@@ -386,7 +453,9 @@ class SiteDemoRunner:
         if not q or not q.strip():
             raise ValueError("Question must not be empty")
 
-        if question and question != snapshot.get("question"):
+        question_changed = question and question != snapshot.get("question")
+
+        if question_changed:
             # Re-run fallback from the snapshot's homepage_map data
             homepage_map = snapshot.get("homepage_map")
             if homepage_map:
@@ -422,13 +491,20 @@ class SiteDemoRunner:
                     ]
                     snapshot["fallback_used"] = True
                     snapshot.setdefault("warnings", []).append(
-                        f"Snapshot-mode fallback: {len(fb)} candidates from homepage map"
+                        "홈페이지 메뉴에서 찾은 결과"
                     )
 
             snapshot["question"] = q
 
+            # Generate a NEW answer based on current question + sources
+            snapshot["answer"] = _generate_answer_from_sources(
+                q, snapshot.get("sources", []), self.profile.name,
+            )
+
         snapshot["snapshot_mode"] = True
-        snapshot.setdefault("warnings", []).append("Loaded from snapshot (no live fetch)")
+        snapshot.setdefault("warnings", []).append(
+            "홈페이지 메뉴와 저장된 데모 자료를 기준으로 안내합니다."
+        )
         return snapshot
 
 

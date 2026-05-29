@@ -28,8 +28,8 @@ MOBILE_HTML = r"""<!DOCTYPE html>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#f5f6f8;--card:#fff;--primary:#1a56db;--primary-light:#e8eefb;--text:#1f2937;--text2:#6b7280;--border:#e5e7eb;--success:#059669;--warn:#d97706;--radius:12px}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
-.container{max-width:480px;margin:0 auto;padding:16px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;display:flex;justify-content:center}
+.container{max-width:480px;width:100%;margin:0 auto;padding:16px}
 header{text-align:center;padding:24px 0 16px}
 header h1{font-size:1.3rem;font-weight:700;color:var(--text)}
 header .badge{display:inline-block;background:var(--primary-light);color:var(--primary);font-size:.75rem;padding:2px 10px;border-radius:20px;margin-top:6px}
@@ -40,29 +40,32 @@ header .badge{display:inline-block;background:var(--primary-light);color:var(--p
 .search-box button:active{opacity:.85}
 .search-box button:disabled{opacity:.5;cursor:not-allowed}
 .quick-questions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-.quick-questions button{flex:1 1 calc(50% - 4px);padding:10px 8px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;color:var(--text);cursor:pointer;transition:all .2s;text-align:left;min-width:0}
+.quick-questions button{flex:1 1 calc(50% - 4px);padding:12px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;color:var(--text);cursor:pointer;transition:all .2s;text-align:left;min-width:0}
 .quick-questions button:active{background:var(--primary-light);border-color:var(--primary)}
 .status{padding:10px 16px;border-radius:10px;margin-bottom:12px;font-size:.85rem;display:none}
 .status.loading{display:block;background:#fef3c7;color:var(--warn)}
 .status.error{display:block;background:#fee2e2;color:#dc2626}
-.status.info{display:block;background:var(--primary-light);color:var(--primary)}
+.status.info{display:block;background:#ecfdf5;color:var(--success)}
 .result{display:none}
 .result.show{display:block}
+.question-echo{background:var(--primary-light);border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:.9rem;color:var(--primary);font-weight:500}
+.question-echo::before{content:"💬 ";font-size:1rem}
 .answer-card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:12px}
 .answer-card h3{font-size:.9rem;color:var(--text2);margin-bottom:8px}
-.answer-card .answer-text{font-size:.95rem;line-height:1.7;white-space:pre-wrap}
+.answer-card .answer-text{font-size:.95rem;line-height:1.8;white-space:pre-wrap}
 .answer-card .answer-text h2{font-size:1.05rem;margin:12px 0 6px;color:var(--text)}
 .answer-card .answer-text ul{padding-left:1.2em;margin:6px 0}
 .sources-section h3{font-size:.9rem;color:var(--text2);margin-bottom:8px;padding:0 4px}
-.source-card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:8px;transition:transform .1s}
-.source-card:active{transform:scale(.99)}
-.source-card .source-title{font-size:.95rem;font-weight:600;color:var(--primary);text-decoration:none;display:block;margin-bottom:4px}
+.source-card{display:block;background:var(--card);border-radius:var(--radius);padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:8px;text-decoration:none;color:inherit;transition:transform .1s,box-shadow .1s}
+.source-card:active{transform:scale(.99);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.source-card .source-title{font-size:.95rem;font-weight:600;color:var(--primary);margin-bottom:4px}
 .source-card .source-url{font-size:.75rem;color:var(--text2);word-break:break-all;margin-bottom:6px}
 .source-card .source-meta{display:flex;gap:6px;flex-wrap:wrap}
 .source-card .tag{font-size:.7rem;padding:2px 8px;border-radius:12px;background:var(--primary-light);color:var(--primary)}
-.source-card .tag.fallback{background:#fef3c7;color:var(--warn)}
+.source-card .go-arrow{float:right;font-size:.85rem;color:var(--primary);margin-top:2px}
+.guide-note{text-align:center;padding:10px;font-size:.78rem;color:var(--text2);margin-bottom:12px}
 footer{text-align:center;padding:24px 0;font-size:.75rem;color:var(--text2)}
-@media(min-width:768px){.container{padding:32px 24px}header h1{font-size:1.6rem}}
+@media(min-width:768px){.container{padding:32px 24px;max-width:520px}header h1{font-size:1.6rem}}
 </style>
 </head>
 <body>
@@ -87,18 +90,20 @@ footer{text-align:center;padding:24px 0;font-size:.75rem;color:var(--text2)}
   <div class="status" id="status"></div>
 
   <div class="result" id="result">
+    <div class="question-echo" id="questionEcho"></div>
     <div class="answer-card">
-      <h3>💬 답변</h3>
+      <h3>안내</h3>
       <div class="answer-text" id="answerText"></div>
     </div>
     <div class="sources-section">
-      <h3 id="sourcesTitle">📎 출처</h3>
+      <h3 id="sourcesTitle">관련 홈페이지 바로가기</h3>
       <div id="sourcesList"></div>
     </div>
+    <div class="guide-note" id="guideNote"></div>
   </div>
 
   <footer>
-    AI 홈페이지 파인더 MVP · snapshot 기반 안정 데모
+    AI 홈페이지 파인더 · {{site_name}} 안내 서비스
   </footer>
 </div>
 
@@ -110,6 +115,8 @@ const resultEl = document.getElementById('result');
 const answerEl = document.getElementById('answerText');
 const sourcesEl = document.getElementById('sourcesList');
 const sourcesTitle = document.getElementById('sourcesTitle');
+const questionEcho = document.getElementById('questionEcho');
+const guideNote = document.getElementById('guideNote');
 
 q.addEventListener('keydown', e => { if(e.key==='Enter') ask(); });
 
@@ -126,8 +133,8 @@ async function ask(){
   if(!question){ showStatus('질문을 입력해 주세요.','error'); return; }
 
   btn.disabled = true;
-  btn.textContent = '검색 중…';
-  showStatus('🔍 검색 중입니다…','loading');
+  btn.textContent = '확인 중…';
+  showStatus('질문을 확인하고 관련 메뉴를 찾고 있어요…','loading');
   resultEl.classList.remove('show');
 
   try {
@@ -140,34 +147,41 @@ async function ask(){
 
     if(data.error){ showStatus('❌ ' + data.error, 'error'); return; }
 
-    // Status
-    const msgs = [];
-    if(data.snapshot_mode) msgs.push('📦 snapshot 모드');
-    if(data.fallback_used) msgs.push('🔄 menu fallback 사용');
-    if(msgs.length) showStatus(msgs.join(' · '), 'info');
-    else hideStatus();
+    // Status — user-friendly
+    hideStatus();
+
+    // Question echo
+    questionEcho.textContent = data.question || question;
 
     // Answer
     answerEl.innerHTML = renderMarkdown(data.answer || '답변을 생성하지 못했습니다.');
-    sourcesTitle.textContent = '📎 출처 (' + (data.sources||[]).length + '건)';
+
+    // Sources — "관련 홈페이지 바로가기"
+    const srcCount = (data.sources||[]).length;
+    sourcesTitle.textContent = '관련 홈페이지 바로가기' + (srcCount > 0 ? ' (' + srcCount + '건)' : '');
     sourcesEl.innerHTML = '';
     (data.sources||[]).forEach(s => {
-      const card = document.createElement('div');
+      const card = document.createElement('a');
       card.className = 'source-card';
-      const tagCls = s.source_type === 'fallback' || (s.snippet||'').includes('fallback') ? 'fallback' : '';
+      card.href = s.url || '#';
+      card.target = '_blank';
+      card.rel = 'noopener';
       card.innerHTML =
-        '<a class="source-title" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.title||'제목 없음') + '</a>' +
+        '<span class="go-arrow">이동 ›</span>' +
+        '<div class="source-title">' + esc(s.title||'바로가기') + '</div>' +
         '<div class="source-url">' + esc(s.url||'') + '</div>' +
         '<div class="source-meta">' +
-          '<span class="tag ' + tagCls + '">' + esc(s.source_type||'web') + '</span>' +
-          (s.snippet ? '<span class="tag">' + esc(s.snippet.substring(0,60)) + '</span>' : '') +
+          '<span class="tag">' + esc(s.source_type||'web') + '</span>' +
         '</div>';
       sourcesEl.appendChild(card);
     });
 
+    // Guide note
+    guideNote.textContent = '홈페이지 메뉴와 저장된 데모 자료를 기준으로 안내합니다.';
+
     resultEl.classList.add('show');
   } catch(e) {
-    showStatus('❌ 오류: ' + e.message, 'error');
+    showStatus('❌ 오류가 발생했습니다. 다시 시도해 주세요.', 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = '질문하기';

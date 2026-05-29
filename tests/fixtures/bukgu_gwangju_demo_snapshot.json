@@ -61,12 +61,16 @@
       "menu": [
         {"title": "교육접수", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10208020000", "text": "교육접수"}
       ],
-      "notice": [],
+      "notice": [
+        {"title": "고시공고", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10401010000", "text": "고시공고"}
+      ],
       "board": [],
       "document": [
         {"title": "민원서식", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101040000", "text": "민원서식"}
       ],
-      "apply": [],
+      "apply": [
+        {"title": "정보공개", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10301010000", "text": "정보공개"}
+      ],
       "contact": [],
       "unknown": []
     },
