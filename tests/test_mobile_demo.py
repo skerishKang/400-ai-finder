@@ -71,8 +71,16 @@ class TestMobileDemoUnit:
         assert "send-btn" in _MOBILE_HTML
 
     def test_mobile_html_links_external_css_js(self):
-        assert 'href="/static/mobile/mobile_demo.css"' in _MOBILE_HTML
-        assert 'src="/static/mobile/mobile_demo.js"' in _MOBILE_HTML
+        html = _MOBILE_HTML
+        assert 'href="/static/mobile/mobile_base.css"' in html
+        assert 'href="/static/mobile/mobile_reset.css"' in html
+        assert 'href="/static/mobile/mobile_layout.css"' in html
+        assert 'href="/static/mobile/mobile_sidebar.css"' in html
+        assert 'href="/static/mobile/mobile_header.css"' in html
+        assert 'href="/static/mobile/mobile_chat.css"' in html
+        assert 'href="/static/mobile/mobile_composer.css"' in html
+        assert 'href="/static/mobile/mobile_responsive.css"' in html
+        assert 'src="/static/mobile/mobile_demo.js"' in html
 
     def test_mobile_html_has_theme_toggle(self):
         assert "theme-toggle" in _MOBILE_HTML
@@ -127,15 +135,26 @@ class TestMobileDemoHTTP:
         assert data["site_id"] == "bukgu_gwangju"
         conn.close()
 
-    def test_get_static_css(self, demo_server):
+    def test_get_static_base_css(self, demo_server):
         port = demo_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=5)
-        conn.request("GET", "/static/mobile/mobile_demo.css")
+        conn.request("GET", "/static/mobile/mobile_base.css")
         resp = conn.getresponse()
         body = resp.read().decode("utf-8")
         assert resp.status == 200
         assert "text/css" in resp.getheader("Content-Type", "")
         assert "--sidebar-width" in body
+        conn.close()
+
+    def test_get_static_chat_css(self, demo_server):
+        port = demo_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/static/mobile/mobile_chat.css")
+        resp = conn.getresponse()
+        body = resp.read().decode("utf-8")
+        assert resp.status == 200
+        assert "text/css" in resp.getheader("Content-Type", "")
+        assert "msg-row" in body
         conn.close()
 
     def test_get_static_js(self, demo_server):

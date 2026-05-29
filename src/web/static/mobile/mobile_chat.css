@@ -1,0 +1,216 @@
+/* ===== Messages ===== */
+.messages{
+  flex:1;
+  overflow-y:auto;
+  scroll-behavior:smooth;
+  padding:0;
+}
+.messages-inner{
+  max-width:720px;
+  margin:0 auto;
+  padding:0 0 16px;
+}
+
+/* Welcome screen */
+.welcome{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+  text-align:center;
+  padding:40px 24px;
+  animation:fadeIn .4s ease;
+}
+.welcome-icon{
+  width:56px;height:56px;
+  background:var(--accent-light);
+  border-radius:var(--radius-lg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;
+  margin-bottom:20px;
+}
+.welcome-title{
+  font-size:28px;
+  font-weight:700;
+  color:var(--text);
+  margin-bottom:8px;
+  letter-spacing:-.02em;
+}
+.welcome-sub{
+  font-size:15px;
+  color:var(--text-secondary);
+  line-height:1.7;
+  max-width:420px;
+  margin-bottom:28px;
+}
+.welcome-chips{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:center;
+  max-width:480px;
+}
+.welcome-chip{
+  padding:10px 18px;
+  background:var(--bg-secondary);
+  border:1px solid var(--border);
+  border-radius:var(--radius-full);
+  font-size:13px;
+  color:var(--text);
+  cursor:pointer;
+  transition:background .15s, border-color .15s;
+  white-space:nowrap;
+}
+.welcome-chip:hover{
+  background:var(--bg-hover);
+  border-color:var(--accent);
+}
+
+/* Message rows */
+.msg-row{
+  padding:16px 24px;
+  animation:msgIn .3s ease;
+  border-bottom:1px solid var(--border-light);
+}
+.msg-row:last-child{border-bottom:none}
+.msg-row.user{background:var(--bg)}
+.msg-row.assistant{background:var(--bg-secondary)}
+.msg-inner{
+  max-width:720px;
+  margin:0 auto;
+  display:flex;
+  gap:16px;
+}
+.msg-avatar{
+  width:30px;height:30px;
+  border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;
+  flex-shrink:0;
+  margin-top:2px;
+}
+.msg-row.user .msg-avatar{
+  background:var(--accent);
+  color:#fff;
+}
+.msg-row.assistant .msg-avatar{
+  background:var(--text-secondary);
+  color:#fff;
+}
+.msg-content{
+  flex:1;
+  min-width:0;
+  font-size:15px;
+  line-height:1.75;
+  color:var(--text);
+}
+.msg-content h2{font-size:17px;font-weight:600;margin:16px 0 8px;color:var(--text)}
+.msg-content h3{font-size:15px;font-weight:600;margin:12px 0 6px;color:var(--text)}
+.msg-content p{margin-bottom:10px}
+.msg-content p:last-child{margin-bottom:0}
+.msg-content ul{padding-left:1.4em;margin:8px 0}
+.msg-content li{margin-bottom:4px}
+.msg-content li:last-child{margin-bottom:0}
+.msg-content a{color:var(--accent)}
+.msg-content strong{font-weight:600}
+.msg-content code{
+  font-family:var(--font-mono);
+  font-size:13px;
+  background:var(--bg-code);
+  padding:2px 6px;
+  border-radius:4px;
+}
+.msg-content pre{
+  margin:12px 0;
+  border-radius:var(--radius-md);
+  overflow-x:auto;
+}
+.msg-content pre code{
+  display:block;
+  padding:14px 16px;
+  background:var(--bg-code);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  font-size:13px;
+  line-height:1.6;
+}
+
+/* Sources */
+.sources-wrap{
+  margin-top:14px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.source-link{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  text-decoration:none;
+  color:var(--text);
+  transition:background .15s, border-color .15s;
+}
+.source-link:hover{
+  background:var(--bg-hover);
+  border-color:var(--accent);
+  text-decoration:none;
+}
+.source-link .src-icon{
+  font-size:14px;
+  flex-shrink:0;
+  opacity:.7;
+}
+.source-link .src-info{
+  flex:1;
+  min-width:0;
+}
+.source-link .src-title{
+  font-size:13px;
+  font-weight:500;
+  color:var(--text);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.source-link .src-url{
+  font-size:11px;
+  color:var(--text-tertiary);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.source-link .src-arrow{
+  color:var(--text-tertiary);
+  font-size:12px;
+  flex-shrink:0;
+}
+
+/* Typing */
+.typing-row{
+  padding:16px 24px;
+  background:var(--bg-secondary);
+}
+.typing-row .msg-inner{
+  max-width:720px;
+  margin:0 auto;
+  display:flex;
+  gap:16px;
+}
+.typing-dots{
+  display:flex;
+  gap:5px;
+  padding:8px 0;
+}
+.typing-dots .dot{
+  width:8px;height:8px;
+  background:var(--text-tertiary);
+  border-radius:50%;
+  animation:bounce 1s infinite alternate;
+}
+.typing-dots .dot:nth-child(2){animation-delay:.2s}
+.typing-dots .dot:nth-child(3){animation-delay:.4s}
