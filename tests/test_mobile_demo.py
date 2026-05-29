@@ -79,7 +79,7 @@ class TestMobileDemoUnit:
     def test_mobile_html_has_search_input(self):
         """5. HTML에 질문 입력창이 있다."""
         assert 'id="question"' in MOBILE_HTML
-        assert "질문하기" in MOBILE_HTML
+        assert "찾아보기" in MOBILE_HTML
 
     def test_create_app_returns_server(self):
         """6. create_app이 HTTPServer 인스턴스를 반환한다."""
@@ -123,7 +123,7 @@ class TestMobileDemoHTTP:
         assert resp.status == 200
         assert "text/html" in resp.getheader("Content-Type", "")
         assert "AI 홈페이지 도우미" in body
-        assert "질문하기" in body
+        assert "찾아보기" in body
         conn.close()
 
     def test_get_health(self, demo_server):

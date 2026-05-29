@@ -30,17 +30,20 @@ MOBILE_HTML = r"""<!DOCTYPE html>
 :root{--bg:#f5f6f8;--card:#fff;--primary:#1a56db;--primary-light:#e8eefb;--text:#1f2937;--text2:#6b7280;--border:#e5e7eb;--success:#059669;--warn:#d97706;--radius:12px}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;display:flex;justify-content:center}
 .container{max-width:480px;width:100%;margin:0 auto;padding:16px}
-header{text-align:center;padding:24px 0 16px}
+header{text-align:center;padding:20px 0 12px}
 header h1{font-size:1.3rem;font-weight:700;color:var(--text)}
-header .badge{display:inline-block;background:var(--primary-light);color:var(--primary);font-size:.75rem;padding:2px 10px;border-radius:20px;margin-top:6px}
+header .subtitle{font-size:.88rem;color:var(--text2);margin-top:6px;line-height:1.5}
+header .badge{display:inline-block;background:var(--primary-light);color:var(--primary);font-size:.72rem;padding:2px 10px;border-radius:20px;margin-top:8px;letter-spacing:.02em}
 .search-box{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:12px}
 .search-box input{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:10px;font-size:1rem;outline:none;transition:border .2s}
 .search-box input:focus{border-color:var(--primary)}
 .search-box button{width:100%;margin-top:10px;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:opacity .2s}
 .search-box button:active{opacity:.85}
 .search-box button:disabled{opacity:.5;cursor:not-allowed}
-.quick-questions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-.quick-questions button{flex:1 1 calc(50% - 4px);padding:12px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;color:var(--text);cursor:pointer;transition:all .2s;text-align:left;min-width:0}
+.quick-section{margin-bottom:16px}
+.quick-section .quick-label{font-size:.78rem;color:var(--text2);margin-bottom:8px;padding:0 2px}
+.quick-questions{display:flex;flex-wrap:wrap;gap:8px}
+.quick-questions button{flex:1 1 calc(50% - 4px);padding:14px 12px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;font-size:.9rem;color:var(--text);cursor:pointer;transition:all .2s;text-align:center;min-width:0;font-weight:500}
 .quick-questions button:active{background:var(--primary-light);border-color:var(--primary)}
 .status{padding:10px 16px;border-radius:10px;margin-bottom:12px;font-size:.85rem;display:none}
 .status.loading{display:block;background:#fef3c7;color:var(--warn)}
@@ -52,7 +55,7 @@ header .badge{display:inline-block;background:var(--primary-light);color:var(--p
 .question-echo::before{content:"💬 ";font-size:1rem}
 .answer-card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:12px}
 .answer-card h3{font-size:.9rem;color:var(--text2);margin-bottom:8px}
-.answer-card .answer-text{font-size:.95rem;line-height:1.8;white-space:pre-wrap}
+.answer-card .answer-text{font-size:1rem;line-height:1.85;white-space:pre-wrap;padding:2px 0}
 .answer-card .answer-text h2{font-size:1.05rem;margin:12px 0 6px;color:var(--text)}
 .answer-card .answer-text ul{padding-left:1.2em;margin:6px 0}
 .sources-section h3{font-size:.9rem;color:var(--text2);margin-bottom:8px;padding:0 4px}
@@ -60,31 +63,34 @@ header .badge{display:inline-block;background:var(--primary-light);color:var(--p
 .source-card:active{transform:scale(.99);box-shadow:0 2px 6px rgba(0,0,0,.12)}
 .source-card .source-title{font-size:.95rem;font-weight:600;color:var(--primary);margin-bottom:4px}
 .source-card .source-url{font-size:.75rem;color:var(--text2);word-break:break-all;margin-bottom:6px}
-.source-card .source-meta{display:flex;gap:6px;flex-wrap:wrap}
-.source-card .tag{font-size:.7rem;padding:2px 8px;border-radius:12px;background:var(--primary-light);color:var(--primary)}
 .source-card .go-arrow{float:right;font-size:.85rem;color:var(--primary);margin-top:2px}
-.guide-note{text-align:center;padding:10px;font-size:.78rem;color:var(--text2);margin-bottom:12px}
-footer{text-align:center;padding:24px 0;font-size:.75rem;color:var(--text2)}
-@media(min-width:768px){.container{padding:32px 24px;max-width:520px}header h1{font-size:1.6rem}}
+.trust-note{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:.78rem;color:#166534;line-height:1.6}
+.trust-note strong{font-weight:600}
+footer{text-align:center;padding:20px 0 12px;font-size:.72rem;color:var(--text2);line-height:1.5}
+@media(min-width:768px){.container{padding:32px 24px;max-width:520px}header h1{font-size:1.5rem}header .subtitle{font-size:.95rem}.quick-questions button{font-size:.95rem;padding:16px 14px}}
 </style>
 </head>
 <body>
 <div class="container">
   <header>
     <h1>🏛️ {{site_name}}</h1>
-    <div class="badge">AI 홈페이지 도우미</div>
+    <div class="subtitle">복잡한 홈페이지 메뉴를 대신 찾아드립니다.</div>
+    <div class="badge">AI 안내 서비스</div>
   </header>
 
   <div class="search-box">
     <input type="text" id="question" placeholder="예: 민원서식 어디서 받아?" autocomplete="off">
-    <button id="askBtn" onclick="ask()">질문하기</button>
+    <button id="askBtn" onclick="ask()">찾아보기</button>
   </div>
 
-  <div class="quick-questions" id="quickQ">
-    <button onclick="quickAsk(this)">민원서식 어디서 받아?</button>
-    <button onclick="quickAsk(this)">교육접수는 어디서 해?</button>
-    <button onclick="quickAsk(this)">정보공개는 어디서 볼 수 있어?</button>
-    <button onclick="quickAsk(this)">고시공고는 어디서 확인해?</button>
+  <div class="quick-section">
+    <div class="quick-label">자주 찾는 질문</div>
+    <div class="quick-questions" id="quickQ">
+      <button onclick="quickAsk('민원서식 어디서 받아?')">민원서식</button>
+      <button onclick="quickAsk('교육접수는 어디서 해?')">교육접수</button>
+      <button onclick="quickAsk('정보공개는 어디서 볼 수 있어?')">정보공개</button>
+      <button onclick="quickAsk('고시공고는 어디서 확인해?')">고시공고</button>
+    </div>
   </div>
 
   <div class="status" id="status"></div>
@@ -92,18 +98,18 @@ footer{text-align:center;padding:24px 0;font-size:.75rem;color:var(--text2)}
   <div class="result" id="result">
     <div class="question-echo" id="questionEcho"></div>
     <div class="answer-card">
-      <h3>안내</h3>
+      <h3>AI 안내</h3>
       <div class="answer-text" id="answerText"></div>
     </div>
     <div class="sources-section">
-      <h3 id="sourcesTitle">관련 홈페이지 바로가기</h3>
+      <h3 id="sourcesTitle">관련 홈페이지</h3>
       <div id="sourcesList"></div>
     </div>
-    <div class="guide-note" id="guideNote"></div>
+    <div class="trust-note" id="trustNote"></div>
   </div>
 
   <footer>
-    AI 홈페이지 파인더 · {{site_name}} 안내 서비스
+    {{site_name}} AI 홈페이지 안내 서비스
   </footer>
 </div>
 
@@ -116,11 +122,11 @@ const answerEl = document.getElementById('answerText');
 const sourcesEl = document.getElementById('sourcesList');
 const sourcesTitle = document.getElementById('sourcesTitle');
 const questionEcho = document.getElementById('questionEcho');
-const guideNote = document.getElementById('guideNote');
+const trustNote = document.getElementById('trustNote');
 
 q.addEventListener('keydown', e => { if(e.key==='Enter') ask(); });
 
-function quickAsk(el){ q.value = el.textContent; ask(); }
+function quickAsk(question){ q.value = question; ask(); }
 
 function showStatus(msg, cls){
   statusEl.textContent = msg;
@@ -133,8 +139,8 @@ async function ask(){
   if(!question){ showStatus('질문을 입력해 주세요.','error'); return; }
 
   btn.disabled = true;
-  btn.textContent = '확인 중…';
-  showStatus('질문을 확인하고 관련 메뉴를 찾고 있어요…','loading');
+  btn.textContent = '찾는 중…';
+  showStatus('질문을 확인하고 관련 메뉴를 찾고 있어요.','loading');
   resultEl.classList.remove('show');
 
   try {
@@ -158,7 +164,7 @@ async function ask(){
 
     // Sources — "관련 홈페이지 바로가기"
     const srcCount = (data.sources||[]).length;
-    sourcesTitle.textContent = '관련 홈페이지 바로가기' + (srcCount > 0 ? ' (' + srcCount + '건)' : '');
+    sourcesTitle.textContent = '관련 홈페이지' + (srcCount > 0 ? ' (' + srcCount + '건)' : '');
     sourcesEl.innerHTML = '';
     (data.sources||[]).forEach(s => {
       const card = document.createElement('a');
@@ -169,22 +175,19 @@ async function ask(){
       card.innerHTML =
         '<span class="go-arrow">이동 ›</span>' +
         '<div class="source-title">' + esc(s.title||'바로가기') + '</div>' +
-        '<div class="source-url">' + esc(s.url||'') + '</div>' +
-        '<div class="source-meta">' +
-          '<span class="tag">' + esc(s.source_type||'web') + '</span>' +
-        '</div>';
+        '<div class="source-url">' + esc(s.url||'') + '</div>';
       sourcesEl.appendChild(card);
     });
 
-    // Guide note
-    guideNote.textContent = '홈페이지 메뉴와 저장된 데모 자료를 기준으로 안내합니다.';
+    // Trust note
+    trustNote.innerHTML = '<strong>안내 기준</strong><br>이 안내는 {{site_name}} 홈페이지 메뉴와 저장된 데모 자료를 기준으로 생성되었습니다. 정확한 최신 내용은 연결된 공식 홈페이지에서 확인해 주세요.';
 
     resultEl.classList.add('show');
   } catch(e) {
     showStatus('❌ 오류가 발생했습니다. 다시 시도해 주세요.', 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = '질문하기';
+    btn.textContent = '찾아보기';
   }
 }
 
