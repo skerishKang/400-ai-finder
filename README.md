@@ -22,6 +22,17 @@
 5. 신청 절차, 제출서류, 기한, 담당자 정보를 요약합니다.
 6. 답변에 바로가기 링크와 근거를 포함합니다.
 
+## 발표자료와 제안서
+
+외부 설명과 제안을 위한 자료는 별도 폴더에 정리합니다.
+
+- `presentation/`: 대상별 발표자료와 HTML 소개자료
+- `presentation/master/ai-finder-master.html`: 통합 HTML 소개자료
+- `presentation/audience-company-ceo/`: 회사 대표 대상 사업화 설명자료
+- `presentation/audience-public-institution/`: 공기업 및 기관 대상 도입 제안자료
+- `presentation/audience-consumer/`: 일반 소비자 대상 쉬운 소개자료
+- `proposal/`: 사업계획서와 PoC 제안서 초안
+
 ## 로컬 모델 사용 여부
 
 로컬 모델은 필수 조건이 아닙니다. 초기 구조는 API 모델, 로컬 모델, 하이브리드 모델을 모두 붙일 수 있도록 설계합니다.
