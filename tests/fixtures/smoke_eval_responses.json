@@ -1,0 +1,117 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "stage": 42,
+    "description": "Mock pipeline-shaped responses for smoke eval adapter tests. These are offline fixtures and do not represent live homepage results."
+  },
+  "responses": [
+    {
+      "scenario_id": "bukgu-01",
+      "site_id": "bukgu_gwangju",
+      "answer": "민원서식은 북구청 종합민원 민원서식 메뉴에서 확인할 수 있습니다.",
+      "sources": [
+        {"title": "민원서식", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10102000000"}
+      ],
+      "fallback": false
+    },
+    {
+      "scenario_id": "bukgu-02",
+      "site_id": "bukgu_gwangju",
+      "answer": "교육접수는 북구청 교육 관련 메뉴에서 확인할 수 있습니다.",
+      "sources": [
+        {"title": "교육접수", "url": "https://bukgu.gwangju.kr/education/example"}
+      ],
+      "fallback": false
+    },
+    {
+      "scenario_id": "bukgu-03",
+      "site_id": "bukgu_gwangju",
+      "answer": "주민등록등본 발급 관련 출처가 부족하므로 홈페이지에서 직접 확인해 주세요.",
+      "sources": [],
+      "fallback": true
+    },
+    {
+      "scenario_id": "bukgu-04",
+      "site_id": "bukgu_gwangju",
+      "answer": "세무과 전화번호와 연락처 정보는 조직 안내에서 홈페이지에서 직접 확인해 주세요.",
+      "sources": [],
+      "fallback": true
+    },
+    {
+      "scenario_id": "bukgu-05",
+      "site_id": "bukgu_gwangju",
+      "answer": "민원실 운영 시간 정보는 출처가 부족하므로 홈페이지에서 직접 확인해 주세요.",
+      "sources": [],
+      "fallback": true
+    },
+    {
+      "scenario_id": "bukgu-06",
+      "site_id": "bukgu_gwangju",
+      "answer": "지원금 관련 정보는 홈페이지에서 직접 확인해 주세요.",
+      "sources": [],
+      "fallback": true
+    },
+    {
+      "scenario_id": "bukgu-07",
+      "site_id": "bukgu_gwangju",
+      "answer": "출처가 부족하므로 홈페이지에서 직접 확인해 주세요.",
+      "sources": [],
+      "fallback": true
+    },
+    {
+      "scenario_id": "gwangju-01",
+      "site_id": "gwangju_go_kr",
+      "answer": "고시공고는 광주광역시청 고시공고 메뉴에서 확인할 수 있습니다.",
+      "sources": [
+        {"title": "고시공고", "url": "https://www.gwangju.go.kr/board.es?mid=a10104000000"}
+      ],
+      "fallback": false
+    },
+    {
+      "scenario_id": "gwangju-02",
+      "site_id": "gwangju_go_kr",
+      "answer": "정보공개는 광주광역시청 정보공개 메뉴에서 확인할 수 있습니다.",
+      "sources": [
+        {"title": "정보공개", "url": "https://www.gwangju.go.kr/contentsView.do?menuId=gwangju0100000000"}
+      ],
+      "fallback": false
+    },
+    {
+      "scenario_id": "gwangju-03",
+      "site_id": "gwangju_go_kr",
+      "answer": "민원서식 양식은 출처가 부족하므로 홈페이지에서 직접 확인해 주세요.",
+      "sources": [],
+      "fallback": true
+    },
+    {
+      "scenario_id": "gwangju-04",
+      "site_id": "gwangju_go_kr",
+      "answer": "시청 조직도는 광주광역시청 조직 안내에서 확인할 수 있습니다.",
+      "sources": [
+        {"title": "조직도", "url": "https://www.gwangju.go.kr/organization/example"}
+      ],
+      "fallback": false
+    },
+    {
+      "scenario_id": "gwangju-05",
+      "site_id": "gwangju_go_kr",
+      "answer": "시청 방문 주차 위치 정보는 출처가 부족하므로 홈페이지에서 직접 확인해 주세요.",
+      "sources": [],
+      "fallback": true
+    },
+    {
+      "scenario_id": "gwangju-06",
+      "site_id": "gwangju_go_kr",
+      "answer": "복지 지원 정보는 홈페이지에서 직접 확인해 주세요.",
+      "sources": [],
+      "fallback": true
+    },
+    {
+      "scenario_id": "gwangju-07",
+      "site_id": "gwangju_go_kr",
+      "answer": "출처가 부족하므로 홈페이지에서 직접 확인해 주세요.",
+      "sources": [],
+      "fallback": true
+    }
+  ]
+}
