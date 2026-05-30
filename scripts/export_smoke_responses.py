@@ -14,6 +14,18 @@ import json
 from pathlib import Path
 from typing import Any
 
+from scripts.run_smoke_eval import (
+    DEFAULT_MATRIX_PATH,
+    SmokeResponseFixtureError,
+    SmokeScenarioMatrixError,
+    build_response_eval_summary,
+    evaluate_response_fixture,
+    format_response_eval_summary,
+    load_matrix,
+    validate_matrix,
+    validate_response_fixture,
+)
+
 
 class SmokePipelineExportError(ValueError):
     """Raised when pipeline-result export input is structurally invalid."""
@@ -66,7 +78,9 @@ def export_pipeline_result_response(
     result: dict[str, Any],
 ) -> dict[str, Any]:
     if not isinstance(scenario_id, str) or not scenario_id.strip():
-        raise SmokePipelineExportError("Pipeline result scenario_id must be a non-empty string.")
+        raise SmokePipelineExportError(
+            "Pipeline result scenario_id must be a non-empty string."
+        )
     if not isinstance(result, dict):
         raise SmokePipelineExportError(f"Pipeline result for {scenario_id} must be an object.")
 
@@ -99,7 +113,9 @@ def export_pipeline_results_fixture(data: dict[str, Any]) -> dict[str, Any]:
 
         scenario_id = item.get("scenario_id")
         if not isinstance(scenario_id, str) or not scenario_id.strip():
-            raise SmokePipelineExportError(f"Pipeline result #{index} has an invalid scenario_id.")
+            raise SmokePipelineExportError(
+                f"Pipeline result #{index} has an invalid scenario_id."
+            )
         if scenario_id in seen_ids:
             raise SmokePipelineExportError(f"Duplicate pipeline result scenario_id: {scenario_id}")
         seen_ids.add(scenario_id)
@@ -117,6 +133,18 @@ def export_pipeline_results_fixture(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def evaluate_exported_pipeline_results(
+    data: dict[str, Any], matrix_path: Path = DEFAULT_MATRIX_PATH
+) -> tuple[str, bool]:
+    """Export pipeline-shaped results in memory and evaluate them with the smoke judge."""
+    scenarios = validate_matrix(load_matrix(matrix_path))
+    exported_fixture = export_pipeline_results_fixture(data)
+    responses_by_id = validate_response_fixture(exported_fixture, scenarios)
+    results = evaluate_response_fixture(scenarios, responses_by_id)
+    summary = build_response_eval_summary(results)
+    return format_response_eval_summary(summary), summary["failed"] == 0
+
+
 def run_export(input_path: Path, output_path: Path | None = None) -> str:
     exported = export_pipeline_results_fixture(load_pipeline_results(input_path))
     serialized = json.dumps(exported, ensure_ascii=False, indent=2) + "\n"
@@ -128,20 +156,46 @@ def run_export(input_path: Path, output_path: Path | None = None) -> str:
     return serialized.rstrip()
 
 
+def run_export_eval(
+    input_path: Path, matrix_path: Path = DEFAULT_MATRIX_PATH
+) -> tuple[str, bool]:
+    """Load pipeline-shaped results, export them in memory, and run response eval."""
+    return evaluate_exported_pipeline_results(load_pipeline_results(input_path), matrix_path)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Export offline demo/pipeline-shaped results to smoke eval responses."
     )
     parser.add_argument("input", type=Path, help="Pipeline/demo result JSON to export.")
+    parser.add_argument(
+        "--matrix",
+        type=Path,
+        default=DEFAULT_MATRIX_PATH,
+        help=f"Path to smoke scenario matrix JSON. Default: {DEFAULT_MATRIX_PATH}",
+    )
     parser.add_argument("--output", type=Path, default=None, help="Optional output JSON path.")
+    parser.add_argument(
+        "--eval",
+        action="store_true",
+        help="Export in memory and evaluate immediately without live calls.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     try:
+        if args.eval:
+            report, passed = run_export_eval(args.input, args.matrix)
+            print(report)
+            return 0 if passed else 1
         print(run_export(args.input, args.output))
-    except SmokePipelineExportError as exc:
+    except (
+        SmokePipelineExportError,
+        SmokeResponseFixtureError,
+        SmokeScenarioMatrixError,
+    ) as exc:
         print(f"Smoke response export failed: {exc}")
         return 1
     return 0
