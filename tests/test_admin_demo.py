@@ -9,7 +9,7 @@ from http.client import HTTPConnection
 
 import pytest
 
-from src.web.admin_demo import _load_template, create_admin_app
+from src.web.admin_demo import _load_template, _resolve_effective_snapshot, create_admin_app
 
 # Load admin HTML template once for unit tests
 _ADMIN_HTML = _load_template()
@@ -66,6 +66,14 @@ class TestAdminDemoUnit:
         handler = server.RequestHandlerClass
         assert handler._site_name == "광주광역시 북구청"
         server.server_close()
+
+    def test_resolve_effective_snapshot_does_not_cross_site_boundaries(self):
+        snapshot = _resolve_effective_snapshot(
+            startup_snapshot=FIXTURE_SNAPSHOT,
+            server_site_id="bukgu_gwangju",
+            effective_site_id="gwangju_go_kr",
+        )
+        assert snapshot is None
 
 
 @pytest.fixture
