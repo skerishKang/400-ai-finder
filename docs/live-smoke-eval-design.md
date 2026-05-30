@@ -58,6 +58,44 @@ sequenceDiagram
 
 ## 6. 구현 및 배포 로드맵
 
-1. **Stage 46**: 설계 완료 및 검증 (본 단계)
+1. **Stage 46**: 설계 완료 및 검증
 2. **Stage 47**: `--live` CLI 옵션 핸들러 구현 및 Live 시뮬레이션용 Mock 테스트 보강
-3. **Stage 48**: 외부 Key 감지 및 안전 조치 적용을 포함한 실제 Live Smoke Eval 결합 검증
+3. **Stage 48**: 외부 Key 감지 및 안전 조치 적용을 포함한 live smoke eval preflight skeleton 구축 (설정 이름 및 set/missing 상태만 마스킹 처리하여 리포팅)
+4. **Stage 49**: `--live-preflight` CLI 사용법 및 가이드 문서화 (본 단계)
+
+## 7. Live Preflight CLI 사용법
+
+Stage 48에서 추가된 `--live-preflight` 명령을 사용하여 라이브 스모크 평가 전 설정을 안전하게 검사할 수 있습니다.
+
+```bash
+python scripts/run_smoke_eval.py --live-preflight
+```
+
+이 명령은 환경 변수 값 자체를 출력하지 않고, 필수 설정 항목들의 감지 여부(`set` 또는 `missing`)만 리포트합니다. 실제 live provider, fetcher, network, app pipeline 호출은 전혀 발생하지 않습니다.
+
+출력 예시:
+
+```text
+Live smoke eval preflight
+Live opt-in: disabled
+Config names:
+- AI_FINDER_LIVE_EVAL: missing
+- AI_FINDER_LIVE_PROVIDER: missing
+- AI_FINDER_LIVE_FETCH_PROVIDER: missing
+
+Status: preflight completed
+No live provider, fetch, network, or pipeline calls were made.
+```
+
+환경 변수가 주입된 경우:
+
+```bash
+AI_FINDER_LIVE_EVAL=true \
+AI_FINDER_LIVE_PROVIDER=dummy-provider \
+AI_FINDER_LIVE_FETCH_PROVIDER=dummy-fetch \
+python scripts/run_smoke_eval.py --live-preflight
+```
+
+출력 시 `dummy-provider`, `dummy-fetch` 등의 실제 민감한 설정값은 노출되지 않고 `set`으로 마스킹 처리됩니다.
+
+`--live` 실행 플래그는 계속해서 가드 상태를 유지하며 실제 라이브 연동 및 실행을 수행하지 않습니다.

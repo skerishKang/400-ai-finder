@@ -114,7 +114,44 @@ python scripts/run_smoke_eval.py \
 
 단, Stage 42 eval을 통과하려면 `smoke_scenario_matrix.json`에 있는 모든 scenario_id에 대한 response가 있어야 합니다.
 
-## 4. Offline boundary
+## 4. Live preflight check
+
+Stage 48 adds a guarded preflight command for future live smoke eval work.
+
+```bash
+python scripts/run_smoke_eval.py --live-preflight
+```
+
+This command only reports whether required configuration names are set or missing. It must not print configuration values.
+
+Example output:
+
+```text
+Live smoke eval preflight
+Live opt-in: disabled
+Config names:
+- AI_FINDER_LIVE_EVAL: missing
+- AI_FINDER_LIVE_PROVIDER: missing
+- AI_FINDER_LIVE_FETCH_PROVIDER: missing
+
+Status: preflight completed
+No live provider, fetch, network, or pipeline calls were made.
+```
+
+With values present:
+
+```bash
+AI_FINDER_LIVE_EVAL=true \
+AI_FINDER_LIVE_PROVIDER=dummy-provider \
+AI_FINDER_LIVE_FETCH_PROVIDER=dummy-fetch \
+python scripts/run_smoke_eval.py --live-preflight
+```
+
+The report should show `set`/`missing` only. It should not print the actual values.
+
+`--live` remains guarded and non-executing. Even with opt-in enabled, live smoke eval execution is not implemented yet.
+
+## 5. Offline boundary
 
 이 문서의 평가 흐름은 다음을 하지 않습니다.
 
@@ -125,8 +162,9 @@ python scripts/run_smoke_eval.py \
 * Admin/mobile UI 변경
 
 실제 live eval은 별도 Stage에서 `--live` 또는 provider opt-in 방식으로 분리해야 합니다.
+`--live`는 여전히 실제 실행되지 않는 guard 상태이며, provider / fetch / network / app pipeline 호출이 전혀 발생하지 않습니다.
 
-## 5. 권장 검증 명령
+## 6. 권장 검증 명령
 
 Stage 40~44 관련 변경 후 기본 검증:
 
@@ -142,7 +180,7 @@ pytest tests/test_smoke_response_export.py
 pytest
 ```
 
-## 6. 다음 단계 후보
+## 7. 다음 단계 후보
 
 Stage 45부터는 다음 중 하나로 확장할 수 있습니다.
 
