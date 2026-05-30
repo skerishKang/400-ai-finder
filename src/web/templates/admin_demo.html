@@ -13,6 +13,18 @@
 </div>
 
 <div class="layout">
+  <!-- Site Selection Panel -->
+  <div class="card">
+    <h2>기관 선택 (Site)</h2>
+    <div class="config-panel" style="margin-top: 8px;">
+      <label for="siteSelect" style="font-size: .8rem; color: var(--text2); display: block; margin-bottom: 6px;">테스트할 기관을 선택하세요</label>
+      <select id="siteSelect" style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .85rem; outline: none; background: #fff;">
+        <option value="">로딩 중…</option>
+      </select>
+      <div id="siteSelectInfo" style="margin-top:6px; font-size:.75rem; color:var(--text2);"></div>
+    </div>
+  </div>
+
   <!-- LLM Config Panel -->
   <div class="card">
     <h2>LLM 모델 설정</h2>

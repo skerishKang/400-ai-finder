@@ -319,6 +319,25 @@ class TestListProfiles:
         assert loader.list_ids() == []
 
 
+class TestListProfilesFunc:
+    """list_profiles() — enumerate profiles with metadata."""
+
+    def test_returns_list_of_dicts(self):
+        """list_profiles() returns list with site_id, name, base_url, classification."""
+        from src.site_profiles import list_profiles
+        profiles = list_profiles()
+        assert isinstance(profiles, list)
+        assert len(profiles) >= 2
+        site_ids = [p["site_id"] for p in profiles]
+        assert "bukgu_gwangju" in site_ids
+        assert "gwangju_go_kr" in site_ids
+        for p in profiles:
+            assert "site_id" in p
+            assert "name" in p
+            assert "base_url" in p
+            assert "classification" in p
+
+
 class TestIntegrationNotes:
     """Integration checks — profile data coherence."""
 

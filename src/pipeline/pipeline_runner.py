@@ -108,12 +108,19 @@ class PipelineRunner:
     def _step_homepage_map(self, url: str) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "homepage-map.json")
         try:
-            mapper = HomepageMapper(
-                max_sitemaps=self.max_sitemaps,
-                max_sitemap_urls=self.max_sitemap_urls,
-                fetch_provider=self.fetch_provider,
-            )
-            result = mapper.build_map(url)
+            # Stage 36: retry build_map if nav links are empty (intermittent timeouts)
+            max_retries = 2
+            result = None
+            for attempt in range(max_retries):
+                mapper = HomepageMapper(
+                    max_sitemaps=self.max_sitemaps,
+                    max_sitemap_urls=self.max_sitemap_urls,
+                    fetch_provider=self.fetch_provider,
+                )
+                result = mapper.build_map(url)
+                nav_count = len(result.get("homepage", {}).get("navigation_links", []))
+                if nav_count > 0 or attempt == max_retries - 1:
+                    break
             self._write_json(output, result)
             return _step_ok("homepage_map", output)
         except Exception as e:

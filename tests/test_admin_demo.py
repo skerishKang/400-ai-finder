@@ -211,3 +211,69 @@ class TestAdminDemoHTTP:
         data = json.loads(resp.read())
         json.dumps(data, ensure_ascii=False)
         conn.close()
+
+    # --- Stage 38: profiles list, site_id override ---
+
+    def test_info_contains_profiles_list(self, admin_server):
+        """Verify /api/info returns a profiles list with known site_ids."""
+        port = admin_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/api/info")
+        resp = conn.getresponse()
+        data = json.loads(resp.read())
+        assert resp.status == 200
+        profiles = data.get("profiles", [])
+        assert isinstance(profiles, list)
+        assert len(profiles) >= 2
+        site_ids = [p["site_id"] for p in profiles]
+        assert "bukgu_gwangju" in site_ids
+        assert "gwangju_go_kr" in site_ids
+        # Each profile must have required keys
+        for p in profiles:
+            assert "site_id" in p
+            assert "name" in p
+            assert "base_url" in p
+            assert "classification" in p
+        conn.close()
+
+    def test_post_test_with_site_id_override_bukgu(self, admin_server):
+        """Verify /api/test accepts site_id=bukgu_gwangju and returns bukgu results."""
+        port = admin_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=10)
+        body = json.dumps({"question": "민원서식 어디서 받아?", "site_id": "bukgu_gwangju"})
+        conn.request("POST", "/api/test", body=body,
+                     headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        data = json.loads(resp.read())
+        assert resp.status == 200
+        assert data["site_id"] == "bukgu_gwangju"
+        assert "북구청" in data.get("site_name", "")
+        assert len(data["sources"]) >= 1
+        conn.close()
+
+    def test_post_test_with_site_id_override_unknown(self, admin_server):
+        """Verify /api/test returns 400 for unknown site_id."""
+        port = admin_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        body = json.dumps({"question": "고시공고는 어디서 봐?", "site_id": "nonexistent_site"})
+        conn.request("POST", "/api/test", body=body,
+                     headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        data = json.loads(resp.read())
+        assert resp.status == 400
+        assert "error" in data
+        assert "nonexistent_site" in data["error"]
+        conn.close()
+
+    def test_admin_html_contains_site_select(self):
+        """Verify admin HTML contains site selection dropdown."""
+        assert "siteSelect" in _ADMIN_HTML
+        assert "기관 선택" in _ADMIN_HTML
+
+    def test_admin_js_sends_site_id(self):
+        """Verify admin JS sends site_id in /api/test payload."""
+        with open("src/web/static/admin/admin_demo.js", encoding="utf-8") as f:
+            js = f.read()
+        assert "selectedSiteId" in js
+        assert "payload.site_id" in js
+        assert "allProfiles" in js

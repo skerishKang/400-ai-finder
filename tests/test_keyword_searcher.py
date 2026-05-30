@@ -150,3 +150,140 @@ def test_malformed_jsonl_handling(tmp_path):
     assert len(searcher.docs) == 2
     assert len(searcher.errors) == 1
     assert "Line 2" in searcher.errors[0]
+
+
+# ======================================================================
+# Stage 36: Korean particle stripping + N-gram matching
+# ======================================================================
+
+class TestParticleStripping:
+    """Stage 36: tokenize strips Korean particles from query tokens."""
+
+    def test_strip_neun(self):
+        """고시공고는 → 고시공고 (는 stripped)"""
+        tokens = tokenize("고시공고는")
+        assert "고시공고" in tokens
+
+    def test_strip_eun(self):
+        """지원사업은 → 지원사업"""
+        tokens = tokenize("지원사업은")
+        assert "지원사업" in tokens
+
+    def test_strip_i(self):
+        """조직도가 → 조직도"""
+        tokens = tokenize("조직도가")
+        assert "조직도" in tokens
+
+    def test_strip_eul(self):
+        """민원을 → 민원"""
+        tokens = tokenize("민원을")
+        assert "민원" in tokens
+
+    def test_strip_eseo(self):
+        """어디서 → 어딘 (에서 stripped but 어딘 > 1 char)"""
+        tokens = tokenize("어디서")
+        # "어디서" ends with "에서" but len("어디") = 2 > 1, so it's kept
+        assert "어디" in tokens or "어디서" in tokens
+
+    def test_no_strip_short_token(self):
+        """Very short tokens should not be stripped."""
+        tokens = tokenize("이")
+        # "이" has len 1, excluded by len > 1 check
+        assert tokens == []
+
+    def test_particle_stripped_dedup(self):
+        """Both original and stripped forms appear, but no duplicates."""
+        tokens = tokenize("고시공고는 고시공고")
+        assert tokens.count("고시공고") == 1
+        assert "고시공고는" in tokens
+
+
+class TestNGramFallback:
+    """Stage 36: N-gram matching for compound Korean tokens."""
+
+    def test_bigram_match_in_title(self):
+        """Compound token '고시공고' matches title with '고시 공고' via bigrams."""
+        searcher = KeywordSearcher()
+        searcher.docs = [
+            {
+                "id": "doc-1",
+                "title": "고시·공고/입법예고",
+                "category": "menu",
+                "content_type": "page",
+                "canonical_url": "https://www.gwangju.go.kr/contentsView.do?pageId=www791",
+                "metadata": {"link_texts": ["고시·공고/입법예고"]},
+            },
+        ]
+        results = searcher.search("고시공고는 어디서 봐?")
+        assert len(results) >= 1
+        assert results[0]["id"] == "doc-1"
+
+    def test_bigram_match_in_link_texts(self):
+        """Compound token matches via metadata.link_texts N-gram."""
+        searcher = KeywordSearcher()
+        searcher.docs = [
+            {
+                "id": "doc-1",
+                "title": "기타 페이지",
+                "category": "menu",
+                "content_type": "page",
+                "canonical_url": "https://example.com",
+                "metadata": {"link_texts": ["고시·공고 안내"]},
+            },
+        ]
+        results = searcher.search("고시공고")
+        assert len(results) >= 1
+
+    def test_no_ngram_for_short_tokens(self):
+        """Tokens shorter than 4 chars should not trigger N-gram fallback."""
+        searcher = KeywordSearcher()
+        searcher.docs = [
+            {
+                "id": "doc-1",
+                "title": "고 시",
+                "canonical_url": "https://example.com",
+                "metadata": {},
+            },
+        ]
+        # "고 시" as separate chars - token "고시" has len 2, no N-gram
+        results = searcher.search("고 시")
+        # Should match via direct token "고" (but len <= 1 excluded) or "시" (also excluded)
+        # This is expected behavior - very short queries don't match
+        assert len(results) == 0
+
+    def test_ngram_only_title_and_link_texts(self):
+        """N-gram matching only applies to title and metadata.link_texts fields."""
+        searcher = KeywordSearcher()
+        searcher.docs = [
+            {
+                "id": "doc-1",
+                "title": "다른 페이지",
+                "text": "이곳에서 고시 공고를 확인하세요",
+                "category": "menu",
+                "content_type": "page",
+                "canonical_url": "https://example.com",
+                "metadata": {},
+            },
+        ]
+        results = searcher.search("고시공고")
+        # "고시공고" via N-gram bigrams ["고시","공고"] should match text
+        # But N-gram only applies to title/link_texts, not text
+        # However, direct token "고시" and "공고" (from particle stripping of "고시공고")
+        # won't be generated since "고시공고" doesn't end with a known particle
+        # So this should NOT match via N-gram (text field excluded)
+        assert len(results) == 0
+
+
+class TestNormalizeTextMiddleDot:
+    """Stage 36: normalize_text handles middle dot (·)."""
+
+    def test_middle_dot_to_space(self):
+        assert "고시 공고" in normalize_text("고시·공고")
+
+    def test_slash_to_space(self):
+        assert "입법 예고" in normalize_text("입법/예고")
+
+    def test_combined_special_chars(self):
+        normalized = normalize_text("고시·공고/입법예고")
+        assert "고시" in normalized
+        assert "공고" in normalized

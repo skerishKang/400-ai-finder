@@ -7,6 +7,6 @@ Profiles are stored as YAML files under ``configs/sites/`` and loaded via
 the ``SiteProfileLoader``.
 """
 
-from .site_profile import SiteProfile, SiteProfileLoader, load_profile
+from .site_profile import SiteProfile, SiteProfileLoader, load_profile, list_profiles
 
-__all__ = ["SiteProfile", "SiteProfileLoader", "load_profile"]
+__all__ = ["SiteProfile", "SiteProfileLoader", "load_profile", "list_profiles"]

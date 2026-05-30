@@ -5,9 +5,25 @@ import re
 from typing import Any
 
 def tokenize_korean(text: str) -> list[str]:
-    """Simple tokenization for Korean menu keywords."""
+    """Simple tokenization for Korean menu keywords.
+
+    Stage 36: strip common Korean particles and normalize middle dot (·).
+    """
+    # Normalize middle dot and other special chars
     cleaned = re.sub(r"[^\w\s]", " ", text.lower()).strip()
     tokens = [t for t in cleaned.split() if len(t) > 1]
+
+    # Stage 36: strip particles and add stripped forms
+    particles = ("에서는", "에서", "는", "은", "을", "를", "의", "에", "로", "이", "가")
+    seen = set(tokens)
+    for t in list(tokens):
+        for p in particles:
+            if t.endswith(p) and len(t) > len(p) + 1:
+                stripped = t[: -len(p)]
+                if stripped not in seen and len(stripped) > 1:
+                    tokens.append(stripped)
+                    seen.add(stripped)
+                break
     return tokens
 
 
@@ -15,7 +31,10 @@ def match_keyword_against_links(
     keywords: list[str],
     links: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Find links whose title or text matches any keyword."""
+    """Find links whose title or text matches any keyword.
+
+    Stage 36: normalize middle dot (·) and special chars for matching.
+    """
     matched = []
     seen_urls: set[str] = set()
     for link in links:
@@ -25,7 +44,8 @@ def match_keyword_against_links(
             continue
         if url in seen_urls:
             continue
-        title_lower = title.lower()
+        # Stage 36: normalize special chars for matching
+        title_lower = re.sub(r"[^\w\s]", " ", title.lower())
         for kw in keywords:
             if kw.lower() in title_lower:
                 matched.append({"title": title, "url": url})

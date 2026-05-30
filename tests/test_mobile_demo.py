@@ -249,3 +249,15 @@ class TestMobileDemoHTTP:
         assert "composer" in body
         assert "welcome" in body
         conn.close()
+
+    def test_mobile_html_no_site_select_ui(self):
+        """Mobile template must not expose site selection or technical terms."""
+        html = _MOBILE_HTML
+        # No site selection dropdown
+        assert "siteSelect" not in html
+        assert "site_id" not in html
+        # No technical terms visible to end users
+        assert "provider" not in html.lower()
+        assert "preset" not in html.lower()
+        assert "stub" not in html.lower()
+        assert "mock" not in html.lower()

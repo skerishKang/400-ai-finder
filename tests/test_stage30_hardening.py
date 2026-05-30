@@ -115,7 +115,7 @@ def test_admin_demo_graceful_test_error():
     handler.provider = "opencode-go"
     handler.model = "deepseek-v4-flash"
     handler.snapshot_path = None
-    handler._runner = runner_mock
+    handler._runner_cache = {("bukgu_gwangju", "opencode-go", "deepseek-v4-flash"): runner_mock}
     handler._site_name = "광주광역시 북구청"
 
     with patch.dict(os.environ, {}, clear=True):
@@ -202,7 +202,7 @@ def test_admin_demo_dynamic_payload_resolution():
     handler.provider = "mock"
     handler.model = "mock"
     handler.snapshot_path = None
-    handler._runner = None
+    handler._runner_cache = {}  # empty cache — forces new runner creation
     handler._site_name = "광주광역시 북구청"
 
     # Mock SiteDemoRunner response to check what was passed

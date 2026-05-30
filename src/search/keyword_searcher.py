@@ -7,13 +7,29 @@ def normalize_text(text):
     if not text:
         return ""
     text_lower = text.lower()
-    cleaned = re.sub(r'[:\s,\.\(\)\[\]/\-_?&=~;!@#$^*+`<>"\']+', ' ', text_lower)
+    cleaned = re.sub(r'[:\s,\.\(\)\[\]/\\\-_?&=~;!@#$^*+`·<>"\']+', ' ', text_lower)
     return cleaned
+
+# Korean particles/suffixes to strip from query tokens (Stage 36)
+_KOREAN_PARTICLES = (
+    "은", "는", "이", "가", "을", "를", "에", "의", "로", "으로",
+    "과", "와", "도", "만", "에서", "까지", "부터", "이라", "라고",
+    "며", "면", "지만", "거나", "든지", "요", "죠", "까요",
+)
+
+
+def _strip_particles(token: str) -> str:
+    """Strip common Korean particles/suffixes from a token."""
+    for p in _KOREAN_PARTICLES:
+        if token.endswith(p) and len(token) > len(p) + 1:
+            return token[: -len(p)]
+    return token
+
 
 def tokenize(text):
     cleaned = normalize_text(text)
     raw_tokens = cleaned.split()
-    
+
     seen = set()
     tokens = []
     for token in raw_tokens:
@@ -21,6 +37,11 @@ def tokenize(text):
             if token not in seen:
                 seen.add(token)
                 tokens.append(token)
+            # Stage 36: add particle-stripped form as extra token
+            stripped = _strip_particles(token)
+            if stripped != token and stripped not in seen and len(stripped) > 1:
+                seen.add(stripped)
+                tokens.append(stripped)
     return tokens
 
 def make_snippet(doc, query_tokens, max_length=160):
@@ -120,12 +141,12 @@ class KeywordSearcher:
             matched_fields = set()
 
             fields_text = {
-                "title": doc.get("title", "").lower(),
-                "metadata.link_texts": " ".join(doc.get("metadata", {}).get("link_texts", [])).lower(),
+                "title": normalize_text(doc.get("title", "")),
+                "metadata.link_texts": normalize_text(" ".join(doc.get("metadata", {}).get("link_texts", []))),
                 "category": doc.get("category", "").lower(),
-                "summary": doc.get("summary", "").lower(),
-                "text": doc.get("text", "").lower(),
-                "metadata.description": doc.get("metadata", {}).get("description", "").lower(),
+                "summary": normalize_text(doc.get("summary", "")),
+                "text": normalize_text(doc.get("text", "")),
+                "metadata.description": normalize_text(doc.get("metadata", {}).get("description", "")),
                 "url": doc.get("url", "").lower(),
                 "canonical_url": doc.get("canonical_url", "").lower()
             }
@@ -137,6 +158,19 @@ class KeywordSearcher:
                         score += weights[field]
                         matched_fields.add(field)
                         token_matched = True
+                # Stage 36: N-gram fallback for compound tokens
+                # e.g. "고시공고" in "고시 공고 입법예고" via bigram match
+                if not token_matched and len(token) >= 4:
+                    for n in (3, 2):
+                        grams = [token[i : i + n] for i in range(0, len(token) - n + 1, n)]
+                        for field_name, field_text in fields_text.items():
+                            if field_name in ("title", "metadata.link_texts"):
+                                if all(g in field_text for g in grams):
+                                    score += weights[field_name] * 0.8
+                                    matched_fields.add(field_name)
+                                    token_matched = True
+                        if token_matched:
+                            break
                 if token_matched:
                     matched_terms.append(token)
 

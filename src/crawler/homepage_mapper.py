@@ -161,32 +161,42 @@ class HomepageMapper:
                     
         return navigation_links, attachment_links
 
-    def fetch_content(self, url):
-        # === If fetch_provider is set, use it ===
-        if self.fetch_provider is not None:
-            try:
-                result = self.fetch_provider.fetch(url, timeout=self.crawler.timeout)
-                if result.ok:
-                    # Return HTML if available, otherwise text/markdown
-                    content = result.html or result.markdown or result.text or ""
-                    return content, None, result.status_code, result.url or url
-                else:
-                    return None, result.error, getattr(result, 'status_code', None), url
-            except Exception as e:
-                return None, str(e), None, url
+    def fetch_content(self, url, retries=1):
+        """Fetch URL content with optional retry on timeout.
 
-        # === Original code path ===
-        try:
-            res = requests.get(url, headers=self.crawler.headers, timeout=self.crawler.timeout)
-            if res.status_code >= 400:
-                return None, f"HTTP Error: {res.status_code}", res.status_code, url
-            if res.encoding == 'ISO-8859-1':
-                res.encoding = res.apparent_encoding
-            return res.text, None, res.status_code, res.url
-        except requests.exceptions.Timeout:
-            return None, f"Timeout after {self.crawler.timeout}s", None, url
-        except Exception as e:
-            return None, str(e), None, url
+        Stage 36: public-sector sites (e.g. gwangju.go.kr) have intermittent
+        timeouts.  A single retry with the same timeout usually succeeds.
+        """
+        last_err = None
+        for attempt in range(1 + retries):
+            # === If fetch_provider is set, use it ===
+            if self.fetch_provider is not None:
+                try:
+                    result = self.fetch_provider.fetch(url, timeout=self.crawler.timeout)
+                    if result.ok:
+                        content = result.html or result.markdown or result.text or ""
+                        return content, None, result.status_code, result.url or url
+                    else:
+                        last_err = result.error
+                except Exception as e:
+                    last_err = str(e)
+            else:
+                # === Original code path ===
+                try:
+                    res = requests.get(url, headers=self.crawler.headers, timeout=self.crawler.timeout)
+                    if res.status_code >= 400:
+                        last_err = f"HTTP Error: {res.status_code}"
+                    else:
+                        if res.encoding == 'ISO-8859-1':
+                            res.encoding = res.apparent_encoding
+                        return res.text, None, res.status_code, res.url
+                except requests.exceptions.Timeout:
+                    last_err = f"Timeout after {self.crawler.timeout}s"
+                except Exception as e:
+                    last_err = str(e)
+
+        # All attempts exhausted
+        return None, last_err, None, url
 
     def build_map(self, start_url):
         result = {

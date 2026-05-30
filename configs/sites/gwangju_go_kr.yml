@@ -12,16 +12,23 @@ preferred_fetch_provider: requests
 classification: LEGACY_BOARD_SITE
 
 important_keywords:
+  - 고시공고
+  - 고시·공고
+  - 입법예고
   - 시정뉴스
   - 고시공고
   - 공지사항
   - 민원
+  - 민원서식
   - 시민참여
   - 조직도
   - 정보공개
   - 지원사업
   - 복지
   - 관광
+  - 시정소식
+  - 참여광장
+  - 입찰소식
 
 document_extensions:
   - pdf

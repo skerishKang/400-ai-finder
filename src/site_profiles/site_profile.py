@@ -260,6 +260,29 @@ class SiteProfileLoader:
 # ------------------------------------------------------------------
 
 
+def list_profiles() -> list[dict[str, str]]:
+    """List all available site profiles with basic metadata.
+
+    Returns:
+        A list of dicts, each with ``site_id``, ``name``, ``base_url``,
+        and ``classification`` keys.
+    """
+    loader = SiteProfileLoader()
+    profiles: list[dict[str, str]] = []
+    for sid in loader.list_ids():
+        try:
+            p = loader.load_by_id(sid)
+            profiles.append({
+                "site_id": p.site_id,
+                "name": p.name,
+                "base_url": p.base_url,
+                "classification": p.classification,
+            })
+        except Exception:
+            continue
+    return profiles
+
+
 def load_profile(site_id_or_path: str) -> SiteProfile:
     """One-shot convenience function.
 

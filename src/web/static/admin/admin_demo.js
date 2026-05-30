@@ -1,6 +1,11 @@
 const testQ = document.getElementById('testQuestion');
 testQ.addEventListener('keydown', e => { if(e.key==='Enter') runTest(); });
 
+// All profiles loaded from /api/info
+let allProfiles = [];
+// Currently selected site_id (empty = use server default)
+let selectedSiteId = '';
+
 async function init(){
   try {
     const res = await fetch('/api/info');
@@ -43,8 +48,48 @@ async function init(){
     if(!st.snapshot_mode && !st.fallback_used) statusHtml += '<span class="tag green">정상</span>';
     document.getElementById('statusInfo').innerHTML = statusHtml || '<span class="tag green">정상</span>';
 
+    // Populate site selection dropdown
+    allProfiles = d.profiles || [];
+    populateSiteSelect(allProfiles, s.site_id);
+
   } catch(e) {
     document.getElementById('summaryInfo').innerHTML = '<p style="color:var(--error)">정보 로드 실패: ' + esc(e.message) + '</p>';
+  }
+}
+
+function populateSiteSelect(profiles, currentSiteId) {
+  const sel = document.getElementById('siteSelect');
+  sel.innerHTML = '';
+  profiles.forEach(pr => {
+    const opt = document.createElement('option');
+    opt.value = pr.site_id;
+    opt.textContent = pr.name + ' — ' + pr.site_id;
+    if (pr.site_id === currentSiteId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  if (profiles.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = '(등록된 프로필 없음)';
+    sel.appendChild(opt);
+  }
+  selectedSiteId = sel.value;
+  updateSiteSelectInfo();
+
+  sel.addEventListener('change', () => {
+    selectedSiteId = sel.value;
+    updateSiteSelectInfo();
+  });
+}
+
+function updateSiteSelectInfo() {
+  const info = document.getElementById('siteSelectInfo');
+  const pr = allProfiles.find(p => p.site_id === selectedSiteId);
+  if (pr) {
+    info.innerHTML = '<a href="' + esc(pr.base_url) + '" target="_blank" style="color:var(--primary)">' + esc(pr.base_url) + '</a>'
+      + ' <span class="tag blue">' + esc(pr.classification || '-') + '</span>';
+  } else {
+    info.textContent = '';
   }
 }
 
@@ -73,16 +118,22 @@ async function runTest(){
   const selectEl = document.getElementById('modelPresetSelect');
   const selected = modelPresets[selectEl ? selectEl.value : 'deepseek-primary'] || modelPresets['deepseek-primary'];
 
+  const payload = {
+    question: q,
+    preset: selected.preset,
+    model: selected.model,
+    provider: selected.provider
+  };
+  // Include site_id if user selected a different site
+  if (selectedSiteId) {
+    payload.site_id = selectedSiteId;
+  }
+
   try {
     const res = await fetch('/api/test', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        question: q,
-        preset: selected.preset,
-        model: selected.model,
-        provider: selected.provider
-      })
+      body: JSON.stringify(payload)
     });
     const d = await res.json();
 
@@ -98,9 +149,10 @@ async function runTest(){
       statBox(d.fallback_used ? '사용' : '없음', 'Fallback') +
       statBox((d.warnings||[]).length, '경고');
 
-    // Display model metadata in result view
+    // Display site + model metadata in result view
     const metaHtml = '<div style="font-size:.8rem;color:var(--text2);margin-bottom:10px;text-align:right;border-bottom:1px solid var(--border);padding-bottom:6px;">' +
-      '<span>실행 LLM: <strong>' + esc(d.provider || '-') + '</strong> (' + esc(d.model || '-') + ')</span>' +
+      '<span>기관: <strong>' + esc(d.site_name || d.site_id || '-') + '</strong></span>' +
+      '<span style="margin-left:12px;">LLM: <strong>' + esc(d.provider || '-') + '</strong> (' + esc(d.model || '-') + ')</span>' +
       '<span style="margin-left:12px;">Preset: <strong>' + esc(d.preset || '-') + '</strong></span>' +
       '</div>';
 

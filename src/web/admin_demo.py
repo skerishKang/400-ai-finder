@@ -43,6 +43,7 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
     _site_name: str = ""
     _profile_data: dict[str, Any] | None = None
     _snapshot_data: dict[str, Any] | None = None
+    _runner_cache: dict[tuple, Any] = {}  # (site_id, provider, model) -> runner
 
     def log_message(self, format, *args):
         pass
@@ -124,6 +125,11 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
             info["status"]["snapshot_mode"] = snap.get("snapshot_mode", False)
         else:
             info["snapshot"] = {"loaded": False, "path": self.snapshot_path or ""}
+
+        # Available site profiles list
+        from src.site_profiles import list_profiles
+        info["profiles"] = list_profiles()
+
         self._json_response(info)
 
     def _handle_test(self):
@@ -138,6 +144,19 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
         if not question:
             self._json_response({"error": "질문을 입력해 주세요."}, 400)
             return
+
+        # site_id override from payload (admin can switch sites)
+        req_site_id = (data.get("site_id") or "").strip()
+        effective_site_id = req_site_id if req_site_id else self.site_id
+
+        # Validate site_id exists
+        if req_site_id:
+            try:
+                from src.site_profiles import load_profile
+                test_profile = load_profile(req_site_id)
+            except FileNotFoundError:
+                self._json_response({"error": f"Unknown site_id: {req_site_id}"}, 400)
+                return
 
         # Dynamically resolve preset/model/provider from payload
         req_provider = data.get("provider")
@@ -156,26 +175,43 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
             resolved_provider = req_provider or self.provider
             resolved_model = req_model or self.model
 
+        # Snapshot resolution: use site-specific snapshot if available
+        effective_snapshot = self.snapshot_path
+        if req_site_id and req_site_id != self.site_id:
+            # Try to find a snapshot for the requested site_id
+            import glob as _glob
+            fixture_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "..", "..", "tests", "fixtures"
+            )
+            candidates = _glob.glob(os.path.join(fixture_dir, f"{req_site_id}_demo_snapshot.json"))
+            effective_snapshot = candidates[0] if candidates else None
+
         try:
+            # Runner cache: reuse if (site_id, provider, model) matches
+            cache_key = (effective_site_id, resolved_provider, resolved_model or "")
+            cached_runner = self._runner_cache.get(cache_key)
             reuse_runner = False
-            if self._runner is not None:
-                is_mock = hasattr(self._runner, "_mock_return_value") or "Mock" in type(self._runner).__name__
+            if cached_runner is not None:
+                is_mock = hasattr(cached_runner, "_mock_return_value") or "Mock" in type(cached_runner).__name__
                 if is_mock:
                     reuse_runner = True
-                elif getattr(self._runner, "provider", None) == resolved_provider and getattr(self._runner, "model", None) == resolved_model:
+                else:
                     reuse_runner = True
 
             if not reuse_runner:
                 from src.demo import SiteDemoRunner
-                self.__class__._runner = SiteDemoRunner(
-                    site_id=self.site_id,
+                cached_runner = SiteDemoRunner(
+                    site_id=effective_site_id,
                     provider=resolved_provider,
                     model=resolved_model,
                 )
-            runner = self._runner
+                self._runner_cache[cache_key] = cached_runner
 
-            if self.snapshot_path:
-                result = runner.answer_from_snapshot(self.snapshot_path, question=question)
+            runner = cached_runner
+
+            if effective_snapshot:
+                result = runner.answer_from_snapshot(effective_snapshot, question=question)
             else:
                 result = runner.answer(question)
 
@@ -214,9 +250,16 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                     resolved_preset = p_name
                     recommended_order = p_info["recommended_order"]
                     break
+            # Resolve site name for error response
+            error_site_name = effective_site_id
+            try:
+                from src.site_profiles import load_profile as _lp
+                error_site_name = _lp(effective_site_id).name
+            except Exception:
+                pass
             self._json_response({
-                "site_id": self.site_id,
-                "site_name": self._site_name or self.site_id,
+                "site_id": effective_site_id,
+                "site_name": error_site_name,
                 "question": question,
                 "answer": "",
                 "sources": [],
@@ -227,7 +270,7 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "model": resolved_model or "",
                 "preset": resolved_preset or "-",
                 "recommended_order": recommended_order or "-",
-                "snapshot_mode": bool(self.snapshot_path),
+                "snapshot_mode": bool(effective_snapshot),
                 "fallback_used": False,
                 "warnings": [f"Error: {e}"],
                 "error": str(e),
