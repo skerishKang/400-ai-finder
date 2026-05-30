@@ -1,32 +1,47 @@
 # Live Smoke Result Artifact Schema
 
-Stage 56 defines the persisted result artifact shape for a future live smoke eval run. Stage 58 adds the reusable offline helper that converts this artifact shape into the existing Stage 43 pipeline-shaped result format and can immediately evaluate it through the existing response judge path.
+Stage 56 defines the persisted result artifact shape for a future live smoke eval run. Stage 58 adds the reusable offline helper that converts this artifact shape into the existing Stage 43 pipeline-shaped result format and can immediately evaluate it through the existing response judge path. Stage 60 adds the offline writer helper that serializes already-produced result dictionaries into this artifact shape.
 
-This document is design-only for the artifact shape itself. It does not enable live provider calls, fetch calls, network calls, or app pipeline execution. The current helper path is also fully offline and only normalizes already-produced artifact JSON.
+This document is design-only for the artifact shape itself. It does not enable live provider calls, fetch calls, network calls, or app pipeline execution. The current writer/export helper paths are also fully offline and only normalize already-produced JSON.
 
 ## 1. Boundary
 
-There are two related but different JSON shapes:
+There are three related but different JSON shapes:
 
 1. **Live smoke result artifact**
    - Captures one full live smoke eval run.
    - Contains run metadata, scenario-level status, timing summaries, normalized answers, normalized sources, fallback/error summaries, and redaction-safe diagnostics.
    - This is the future persisted output of a live run.
+   - Stage 60 can write this shape from already-produced result dictionaries.
 
-2. **Stage 42 response fixture**
+2. **Stage 43 pipeline/demo-shaped result**
+   - Intermediate structure accepted by `scripts/export_smoke_responses.py`.
+   - Contains `results[]` items with `{scenario_id, result}`.
+   - Stage 60 can accept this shape as input when writing an artifact.
+
+3. **Stage 42 response fixture**
    - The compact judge input already accepted by `scripts/run_smoke_eval.py --responses`.
    - Contains only `scenario_id`, `site_id`, `answer`, `sources`, and `fallback` per response.
    - This remains the canonical input to the existing response judge.
 
-Stage 58 provides the current offline bridge:
+Stage 60 provides the current offline writer bridge:
+
+```bash
+python scripts/write_live_smoke_artifact.py \
+  tests/fixtures/smoke_pipeline_results_roundtrip.json \
+  --output /tmp/written_live_artifact.json \
+  --created-at 2026-05-30T13:15:00Z
+```
+
+Stage 58 provides the current offline export/eval bridge:
 
 ```bash
 python scripts/export_live_smoke_artifact.py \
-  tests/fixtures/live_smoke_result_artifact.json \
+  /tmp/written_live_artifact.json \
   --eval
 ```
 
-That command converts the live smoke result artifact into the existing Stage 43 pipeline/demo-shaped result structure, then reuses the Stage 54 export eval path. It does not perform live execution.
+Together, these commands prove that already-produced result dictionaries can be persisted as a live smoke artifact and re-evaluated through the existing judge path without performing live execution.
 
 ## 2. Top-level shape
 
@@ -79,6 +94,8 @@ A persisted live smoke result artifact should be a JSON object with this shape:
 | `scenario_count` | yes | Number of scenarios loaded from the matrix. |
 | `offline_boundary` | yes | Must be `false` for true live runs. Dry-runs should continue using existing offline fixture formats. |
 | `redaction` | yes | Boolean proof flags confirming sensitive content was not persisted. |
+
+Stage 60 writer output currently records `stage: 60` to show that the artifact was produced by the writer helper. Future live-run artifacts may update the stage value when the writer contract changes.
 
 `run` should include:
 
@@ -142,6 +159,8 @@ Required fields:
 | `timing_ms` | no | Optional timing summary. |
 | `diagnostics` | yes | Redaction-safe status details only. |
 
+If Stage 60 writer receives Stage 43 pipeline/demo-shaped input, missing `query` is filled with the `scenario_id`, and missing `status` is inferred from `fallback_used`. This is a compatibility fallback for offline fixtures only. A future live runner should provide real `query` and `status` values directly.
+
 ## 5. Source shape
 
 Each source should use the same normalized source shape accepted by `scripts/export_smoke_responses.py`:
@@ -199,9 +218,18 @@ For errors, persist only redaction-safe summaries:
 
 `error_message` must be generic. It must not contain provider keys, request headers, cookies, private URLs, user-specific account data, or full raw payload excerpts.
 
-## 7. Conversion to existing judge path
+## 7. Writer and conversion to existing judge path
 
-The current Stage 58 converter transforms each live artifact result into the Stage 43 exporter input shape:
+Stage 60 writer can serialize already-produced results into the live artifact shape:
+
+```bash
+python scripts/write_live_smoke_artifact.py \
+  tests/fixtures/smoke_pipeline_results_roundtrip.json \
+  --output /tmp/written_live_artifact.json \
+  --created-at 2026-05-30T13:15:00Z
+```
+
+Then Stage 58 converter transforms each live artifact result into the Stage 43 exporter input shape:
 
 ```json
 {
@@ -226,11 +254,11 @@ The current Stage 58 converter transforms each live artifact result into the Sta
 }
 ```
 
-Direct eval command:
+Direct eval command for an artifact:
 
 ```bash
 python scripts/export_live_smoke_artifact.py \
-  tests/fixtures/live_smoke_result_artifact.json \
+  /tmp/written_live_artifact.json \
   --eval
 ```
 
@@ -249,7 +277,7 @@ Two-step export and eval is also supported:
 
 ```bash
 python scripts/export_live_smoke_artifact.py \
-  tests/fixtures/live_smoke_result_artifact.json \
+  /tmp/written_live_artifact.json \
   --output /tmp/live_pipeline_results.json
 
 python scripts/export_smoke_responses.py \
@@ -258,7 +286,7 @@ python scripts/export_smoke_responses.py \
   --eval
 ```
 
-This keeps live execution, result persistence, export normalization, and judge evaluation separate.
+This keeps live execution, result persistence, artifact writing, export normalization, and judge evaluation separate.
 
 ## 8. Redaction rules
 
@@ -300,13 +328,14 @@ Before a future code stage writes this artifact, it should validate that:
 7. no raw keys, cookies, headers, prompts, or provider payloads appear in the serialized JSON.
 8. the artifact can be converted to the Stage 43 exporter input shape.
 9. the converted result can be evaluated through `scripts/export_live_smoke_artifact.py --eval`.
+10. writer-generated artifacts remain fully offline unless a future live runner explicitly provides already-produced result dictionaries.
 
 ## 10. Recommended next implementation stages
 
-Recommended narrow order after this design and helper baseline:
+Recommended narrow order after this writer/helper baseline:
 
-1. Add a guarded live artifact writer that emits this shape under explicit opt-in without changing the judge path.
-2. Add an offline writer fixture roundtrip from writer-shaped output to `scripts/export_live_smoke_artifact.py --eval`.
-3. Add provider/fetch opt-in wiring behind `AI_FINDER_LIVE_EVAL=true`.
+1. Add a minimal live runner result payload contract for the data passed into Stage 60 writer.
+2. Add provider/fetch opt-in wiring behind `AI_FINDER_LIVE_EVAL=true` without executing scenario loops yet.
+3. Add a single-scenario guarded live runner path that writes an artifact through Stage 60 writer.
 4. Add live runner execution in a strictly sequential, rate-limited path.
 5. Add optional report import/export UI only after CLI artifacts are stable.
