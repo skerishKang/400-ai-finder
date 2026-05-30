@@ -107,11 +107,16 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             else:
                 result = runner.answer(question)
 
+            answer = result.get("answer", "")
+            if not answer or not result.get("ok", False):
+                if not answer:
+                    answer = "현재 AI 답변을 생성할 수 없습니다. 잠시 후 다시 시도하거나 관련 홈페이지를 직접 확인해 주세요."
+
             self._json_response({
                 "site_id": result.get("site_id"),
                 "site_name": result.get("site_name"),
                 "question": result.get("question"),
-                "answer": result.get("answer", ""),
+                "answer": answer,
                 "sources": result.get("sources", []),
                 "ok": result.get("ok", False),
                 "provider": result.get("provider", ""),
@@ -121,7 +126,19 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "warnings": result.get("warnings", []),
             })
         except Exception as e:
-            self._json_response({"error": str(e)}, 500)
+            self._json_response({
+                "site_id": self.site_id,
+                "site_name": self._site_name or self.site_id,
+                "question": question,
+                "answer": "현재 AI 답변을 생성할 수 없습니다. 잠시 후 다시 시도하거나 관련 홈페이지를 직접 확인해 주세요.",
+                "sources": [],
+                "ok": False,
+                "provider": self.provider,
+                "model": self.model or "",
+                "snapshot_mode": bool(self.snapshot_path),
+                "fallback_used": False,
+                "warnings": [str(e)],
+            })
 
     def _json_response(self, data: dict, status: int = 200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")

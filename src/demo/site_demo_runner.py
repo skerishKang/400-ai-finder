@@ -65,18 +65,32 @@ class SiteDemoRunner:
 
         run_dir = output_dir or self._output_dir or tempfile.mkdtemp(prefix="demo_")
 
-        runner = PipelineRunner(
-            output_dir=run_dir,
-            provider=self.provider,
-            fetch_provider=self._fetch_provider,
-            model=self.model,
-            **self._pipeline_kwargs,
-        )
+        try:
+            runner = PipelineRunner(
+                output_dir=run_dir,
+                provider=self.provider,
+                fetch_provider=self._fetch_provider,
+                model=self.model,
+                **self._pipeline_kwargs,
+            )
 
-        pipeline_result = runner.run(
-            url=self.profile.base_url,
-            query=question,
-        )
+            pipeline_result = runner.run(
+                url=self.profile.base_url,
+                query=question,
+            )
+        except Exception as e:
+            pipeline_result = {
+                "ok": False,
+                "url": self.profile.base_url,
+                "query": question,
+                "output_dir": run_dir,
+                "steps": [
+                    {"name": "search", "ok": False, "output": "", "error": str(e)},
+                    {"name": "answer", "ok": False, "output": "", "error": str(e)},
+                ],
+                "answer_markdown": "",
+                "error": str(e),
+            }
 
         # Build the demo result
         demo_result = self._build_result(question, pipeline_result, run_dir)
@@ -184,8 +198,14 @@ class SiteDemoRunner:
         if not answer:
             answer = pipeline_result.get("answer_markdown", "")
 
+        # Timeout/exception/pending error fallback handling
+        if not answer_ok or not answer:
+            answer = "현재 AI 답변을 생성할 수 없습니다. 잠시 후 다시 시도하거나 관련 홈페이지를 직접 확인해 주세요."
+            answer_ok = False
+
         if not pipeline_result.get("ok", False):
-            warnings.append(f"Pipeline partially failed: {pipeline_result.get('error', 'unknown')}")
+            err_msg = pipeline_result.get("error", "unknown error")
+            warnings.append(f"Pipeline partially failed: {err_msg}")
 
         # Resolve preset
         current_model = self.model or (answer_data.get("model", "") if answer_data else "")

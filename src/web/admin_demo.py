@@ -178,7 +178,32 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "warnings": result.get("warnings", []),
             })
         except Exception as e:
-            self._json_response({"error": str(e)}, 500)
+            from src.llm.model_presets import PRESETS
+            resolved_preset = None
+            recommended_order = None
+            for p_name, p_info in PRESETS.items():
+                if p_info["provider"] == self.provider and p_info["model"] == (self.model or ""):
+                    resolved_preset = p_name
+                    recommended_order = p_info["recommended_order"]
+                    break
+            self._json_response({
+                "site_id": self.site_id,
+                "site_name": self._site_name or self.site_id,
+                "question": question,
+                "answer": "",
+                "sources": [],
+                "search_results": [],
+                "ok": False,
+                "answer_ok": False,
+                "provider": self.provider,
+                "model": self.model or "",
+                "preset": resolved_preset or "-",
+                "recommended_order": recommended_order or "-",
+                "snapshot_mode": bool(self.snapshot_path),
+                "fallback_used": False,
+                "warnings": [f"Error: {e}"],
+                "error": str(e),
+            })
 
     def _get_profile_data(self) -> dict[str, Any] | None:
         if self._profile_data is not None:
