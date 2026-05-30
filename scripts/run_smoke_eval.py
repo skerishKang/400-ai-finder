@@ -1,20 +1,23 @@
 """Run smoke scenario evals for the AI homepage finder.
 
-Stage 42 still avoids live providers, Firecrawl, and app pipeline calls. It can
-validate the scenario matrix alone or evaluate offline pipeline-shaped response
-fixtures against the existing smoke quality gate.
+Stage 47 keeps live smoke eval guarded. Offline schema and response fixture evals
+remain the default behavior. The ``--live`` flag never calls providers, fetchers,
+or the app pipeline in this stage; it only verifies that live execution is
+explicitly opted in and then reports that live execution is not implemented yet.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 from urllib.parse import urlparse
 
 DEFAULT_MATRIX_PATH = Path("tests/fixtures/smoke_scenario_matrix.json")
+LIVE_EVAL_ENV_VAR = "AI_FINDER_LIVE_EVAL"
 REQUIRED_SCENARIO_KEYS = {
     "id",
     "site_id",
@@ -45,6 +48,10 @@ class SmokeScenarioMatrixError(ValueError):
 
 class SmokeResponseFixtureError(ValueError):
     """Raised when a smoke response fixture is structurally invalid."""
+
+
+class SmokeLiveEvalGuardError(ValueError):
+    """Raised when live smoke eval is requested without explicit opt-in."""
 
 
 def load_matrix(path: Path) -> dict[str, Any]:
@@ -294,6 +301,26 @@ def build_response_eval_summary(results: list[dict[str, Any]]) -> dict[str, Any]
     }
 
 
+def is_live_eval_enabled(env: Mapping[str, str] | None = None) -> bool:
+    """Return whether live smoke eval has been explicitly enabled."""
+    env_values = os.environ if env is None else env
+    return env_values.get(LIVE_EVAL_ENV_VAR, "").strip().lower() == "true"
+
+
+def run_live_eval_guard(env: Mapping[str, str] | None = None) -> str:
+    """Guard the not-yet-implemented live smoke eval path."""
+    if not is_live_eval_enabled(env):
+        raise SmokeLiveEvalGuardError(
+            f"--live requires {LIVE_EVAL_ENV_VAR}=true. "
+            "No live provider, fetch, or pipeline calls were made."
+        )
+    return (
+        "Live smoke eval is explicitly enabled, but live execution is not "
+        "implemented in this stage. No live provider, fetch, or pipeline calls "
+        "were made."
+    )
+
+
 def format_summary(summary: dict[str, Any]) -> str:
     """Format the eval summary for human-readable CLI output."""
     lines = [
@@ -363,19 +390,27 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional path to offline pipeline-shaped response fixture JSON.",
     )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Guarded live smoke eval mode. Requires AI_FINDER_LIVE_EVAL=true.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     try:
+        if args.live:
+            print(run_live_eval_guard())
+            return 1
         if args.responses is None:
             print(run_schema_eval(args.matrix))
             return 0
         report, passed = run_response_eval(args.matrix, args.responses)
         print(report)
         return 0 if passed else 1
-    except (SmokeScenarioMatrixError, SmokeResponseFixtureError) as exc:
+    except (SmokeScenarioMatrixError, SmokeResponseFixtureError, SmokeLiveEvalGuardError) as exc:
         print(f"Smoke scenario eval failed: {exc}")
         return 1
 
