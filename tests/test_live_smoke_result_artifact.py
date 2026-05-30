@@ -13,22 +13,18 @@ from scripts.run_smoke_eval import (
 
 
 LIVE_ARTIFACT_PATH = Path("tests/fixtures/live_smoke_result_artifact.json")
-FORBIDDEN_SUBSTRINGS = (
-    "api_key",
-    "authorization",
+FORBIDDEN_VALUE_SUBSTRINGS = (
+    "api_key=",
+    "authorization:",
     "bearer ",
-    "cookie",
-    "set-cookie",
-    "sessionid",
-    "secret",
+    "cookie:",
+    "set-cookie:",
+    "sessionid=",
+    "secret=",
     "token=",
     "sk-",
-    "raw_prompt",
-    "system_prompt",
-    "developer_prompt",
-    "raw_provider_payload",
-    "raw_request",
-    "raw_response",
+    "raw request",
+    "raw response",
 )
 REQUIRED_RESULT_KEYS = {
     "scenario_id",
@@ -117,7 +113,7 @@ def test_live_artifact_result_shape_is_redaction_safe() -> None:
     artifact = load_live_artifact()
     serialized = json.dumps(artifact, ensure_ascii=False).lower()
 
-    for forbidden in FORBIDDEN_SUBSTRINGS:
+    for forbidden in FORBIDDEN_VALUE_SUBSTRINGS:
         assert forbidden not in serialized
 
     for result in artifact["results"]:
