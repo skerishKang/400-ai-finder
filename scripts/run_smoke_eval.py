@@ -18,6 +18,11 @@ from urllib.parse import urlparse
 
 DEFAULT_MATRIX_PATH = Path("tests/fixtures/smoke_scenario_matrix.json")
 LIVE_EVAL_ENV_VAR = "AI_FINDER_LIVE_EVAL"
+LIVE_PREFLIGHT_CONFIG_NAMES = (
+    LIVE_EVAL_ENV_VAR,
+    "AI_FINDER_LIVE_PROVIDER",
+    "AI_FINDER_LIVE_FETCH_PROVIDER",
+)
 REQUIRED_SCENARIO_KEYS = {
     "id",
     "site_id",
@@ -321,6 +326,63 @@ def run_live_eval_guard(env: Mapping[str, str] | None = None) -> str:
     )
 
 
+def _has_config_value(env: Mapping[str, str], name: str) -> bool:
+    value = env.get(name)
+    return isinstance(value, str) and bool(value.strip())
+
+
+def build_live_eval_preflight(env: Mapping[str, str] | None = None) -> dict[str, Any]:
+    """Build a value-redacted live smoke eval preflight summary.
+
+    This function only reports config names and boolean status. It must never
+    return or print config values.
+    """
+    env_values = os.environ if env is None else env
+    items = [
+        {
+            "name": name,
+            "present": _has_config_value(env_values, name),
+        }
+        for name in LIVE_PREFLIGHT_CONFIG_NAMES
+    ]
+    return {
+        "live_enabled": is_live_eval_enabled(env_values),
+        "items": items,
+        "missing": [item["name"] for item in items if not item["present"]],
+    }
+
+
+def format_live_eval_preflight(summary: dict[str, Any]) -> str:
+    """Format a value-redacted live smoke eval preflight report."""
+    lines = [
+        "Live smoke eval preflight",
+        f"Live opt-in: {'enabled' if summary['live_enabled'] else 'disabled'}",
+        "Config names:",
+    ]
+    for item in summary["items"]:
+        status = "set" if item["present"] else "missing"
+        lines.append(f"- {item['name']}: {status}")
+
+    if summary["missing"]:
+        lines.append("")
+        lines.append("Missing config names:")
+        lines.extend(f"- {name}" for name in summary["missing"])
+
+    lines.extend(
+        [
+            "",
+            "Status: preflight completed",
+            "No live provider, fetch, network, or pipeline calls were made.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def run_live_eval_preflight(env: Mapping[str, str] | None = None) -> str:
+    """Run value-redacted live smoke eval preflight only."""
+    return format_live_eval_preflight(build_live_eval_preflight(env))
+
+
 def format_summary(summary: dict[str, Any]) -> str:
     """Format the eval summary for human-readable CLI output."""
     lines = [
@@ -395,12 +457,20 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Guarded live smoke eval mode. Requires AI_FINDER_LIVE_EVAL=true.",
     )
+    parser.add_argument(
+        "--live-preflight",
+        action="store_true",
+        help="Print value-redacted live smoke eval preflight status without live calls.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     try:
+        if args.live_preflight:
+            print(run_live_eval_preflight())
+            return 0
         if args.live:
             print(run_live_eval_guard())
             return 1
