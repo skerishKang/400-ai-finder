@@ -88,6 +88,26 @@ def admin_server():
     server.server_close()
 
 
+@pytest.fixture
+def admin_server_without_startup_snapshot():
+    """Start admin server without explicit snapshot path."""
+    import socket
+    sock = socket.socket()
+    sock.bind(("", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    server = create_admin_app(
+        site_id="bukgu_gwangju", provider="mock",
+        snapshot=None, port=port,
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    time.sleep(0.3)
+    yield {"port": port, "server": server}
+    server.shutdown()
+    server.server_close()
+
+
 class TestAdminDemoHTTP:
     """HTTP integration tests for the admin dashboard."""
 
@@ -248,6 +268,21 @@ class TestAdminDemoHTTP:
         assert resp.status == 200
         assert data["site_id"] == "bukgu_gwangju"
         assert "북구청" in data.get("site_name", "")
+        assert len(data["sources"]) >= 1
+        conn.close()
+
+    def test_post_test_uses_site_snapshot_when_startup_snapshot_missing(self, admin_server_without_startup_snapshot):
+        """Verify /api/test can use bundled site snapshot without startup snapshot."""
+        port = admin_server_without_startup_snapshot["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=10)
+        body = json.dumps({"question": "민원서식 어디서 받아?", "site_id": "bukgu_gwangju"})
+        conn.request("POST", "/api/test", body=body,
+                     headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        data = json.loads(resp.read())
+        assert resp.status == 200
+        assert data["site_id"] == "bukgu_gwangju"
+        assert data["snapshot_mode"] is True
         assert len(data["sources"]) >= 1
         conn.close()
 

@@ -32,6 +32,25 @@ def _load_template() -> str:
 <h1>Template not found</h1><p>{TEMPLATE_PATH}</p></body></html>"""
 
 
+def _find_site_snapshot(site_id: str) -> str | None:
+    """Return bundled demo snapshot path for *site_id* when it exists."""
+    fixture_path = os.path.abspath(
+        os.path.join(_THIS_DIR, "..", "..", "tests", "fixtures", f"{site_id}_demo_snapshot.json")
+    )
+    return fixture_path if os.path.exists(fixture_path) else None
+
+
+def _resolve_effective_snapshot(
+    startup_snapshot: str | None,
+    server_site_id: str,
+    effective_site_id: str,
+) -> str | None:
+    """Resolve a snapshot for an admin test without crossing site boundaries."""
+    if startup_snapshot and effective_site_id == server_site_id:
+        return startup_snapshot
+    return _find_site_snapshot(effective_site_id)
+
+
 class AdminDemoHandler(BaseHTTPRequestHandler):
     """HTTP handler for the admin dashboard."""
 
@@ -153,7 +172,7 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
         if req_site_id:
             try:
                 from src.site_profiles import load_profile
-                test_profile = load_profile(req_site_id)
+                load_profile(req_site_id)
             except FileNotFoundError:
                 self._json_response({"error": f"Unknown site_id: {req_site_id}"}, 400)
                 return
@@ -175,17 +194,11 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
             resolved_provider = req_provider or self.provider
             resolved_model = req_model or self.model
 
-        # Snapshot resolution: use site-specific snapshot if available
-        effective_snapshot = self.snapshot_path
-        if req_site_id and req_site_id != self.site_id:
-            # Try to find a snapshot for the requested site_id
-            import glob as _glob
-            fixture_dir = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                "..", "..", "tests", "fixtures"
-            )
-            candidates = _glob.glob(os.path.join(fixture_dir, f"{req_site_id}_demo_snapshot.json"))
-            effective_snapshot = candidates[0] if candidates else None
+        effective_snapshot = _resolve_effective_snapshot(
+            startup_snapshot=self.snapshot_path,
+            server_site_id=self.site_id,
+            effective_site_id=effective_site_id,
+        )
 
         try:
             # Runner cache: reuse if (site_id, provider, model) matches
