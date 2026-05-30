@@ -68,8 +68,9 @@
 | `bukgu_gwangju` | 광주광역시 북구청 | https://bukgu.gwangju.kr/ | LEGACY_BOARD_SITE |
 | `gwangju_go_kr` | 광주광역시청 | https://www.gwangju.go.kr/ | LEGACY_BOARD_SITE |
 
-- CLI 또는 서버 실행 시 `--site-id`로 대상 기관을 지정합니다.
-- 운영자가 UI에서 기관을 선택하는 기능은 향후 별도 Stage에서 구현합니다.
+- CLI 또는 서버 실행 시 `--site-id`로 기본 대상 기관을 지정합니다.
+- 운영자 대시보드에서는 등록된 site profile 목록을 불러와 테스트 대상 기관을 선택하고 전환할 수 있습니다.
+- 모바일 사용자 화면은 서버 실행 시 지정된 기본 기관을 유지하며, 운영자용 site 선택 UI를 노출하지 않습니다.
 
 ### 📱 모바일 ChatGPT형 사용자 UI (http://localhost:8400)
 - ChatGPT 스타일의 1:1 대화형 채팅 인터페이스입니다.
@@ -81,12 +82,13 @@
 
 ### 🖥️ 운영자 대시보드 (http://localhost:8090)
 - **서비스 및 사이트 정보 조회**: 현재 가동 중인 서비스명, 사이트 ID, 프로필 세부 사항 및 수집된 홈페이지 구조 요약을 모니터링합니다.
+- **기관 선택 패널**: 등록된 site profile 목록에서 북구청(`bukgu_gwangju`)과 광주광역시청(`gwangju_go_kr`)을 선택해 같은 대시보드에서 기관별 테스트를 전환할 수 있습니다.
 - **LLM 모델 선택 패널**: 대시보드 화면에서 테스트용 LLM 프리셋 조합을 실시간으로 변경해가며 응답 품질을 비교·테스트할 수 있습니다.
   - **DeepSeek 기본** (preset: `deepseek-primary` / model: `deepseek-v4-flash` / provider: `opencode-go`)
   - **MiMo 기본** (preset: `mimo-primary` / model: `mimo-v2.5-pro` / provider: `opengateway`)
   - **Step 기본** (preset: `step-primary` / model: `stepfun-ai/step-3.5-flash` / provider: `nvidia`)
 - **실시간 데모 테스트**: 질문을 직접 입력하거나 빠른 버튼으로 테스트하고, 상세 통계(Fallback 여부, 출처 점수, 경고 등)와 출처 목록 테이블을 점검할 수 있습니다.
-- API 응답에 `provider`, `model`, `preset` 정보가 포함되어 어떤 LLM이 응답했는지 즉시 확인할 수 있습니다.
+- API 응답에 `site_id`, `site_name`, `provider`, `model`, `preset` 정보가 포함되어 어떤 기관과 LLM 조합으로 응답했는지 즉시 확인할 수 있습니다.
 
 ### ⚙️ Model-First CLI 및 Preset 시스템
 - CLI 옵션을 명시하지 않을 경우 **DeepSeek 기본** 조합(`deepseek-primary`)이 자동 적용됩니다.
@@ -167,6 +169,8 @@ PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
 
 - **모바일 사용자 화면**: http://localhost:8400
 - **운영자 대시보드**: http://localhost:8090
+
+운영자 대시보드에서는 `--site-id`로 시작한 기본 기관과 별개로, 기관 선택 패널에서 등록된 profile을 골라 `/api/test` 테스트 대상을 전환할 수 있습니다.
 
 ### 개별 실행
 
