@@ -58,10 +58,12 @@ sequenceDiagram
 
 ## 6. 구현 및 배포 로드맵
 
-1. **Stage 46**: 설계 완료 및 검증
-2. **Stage 47**: `--live` CLI 옵션 핸들러 구현 및 Live 시뮬레이션용 Mock 테스트 보강
-3. **Stage 48**: 외부 Key 감지 및 안전 조치 적용을 포함한 live smoke eval preflight skeleton 구축 (설정 이름 및 set/missing 상태만 마스킹 처리하여 리포팅)
-4. **Stage 49**: `--live-preflight` CLI 사용법 및 가이드 문서화 (본 단계)
+1. **Stage 46**: optional live smoke eval 설계 경계 문서화 완료
+2. **Stage 47**: `--live` guard skeleton 완료
+3. **Stage 48**: `--live-preflight` 설정 점검 skeleton 완료
+4. **Stage 49**: `--live-preflight` CLI 사용법 문서화 완료
+5. **Stage 50**: smoke eval 문서 로드맵 정리
+6. **후속 단계**: mock live adapter, dry-run export, provider/fetch opt-in을 순차적으로 분리
 
 ## 7. Live Preflight CLI 사용법
 
