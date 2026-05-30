@@ -1,8 +1,8 @@
-"""Run a schema-only smoke scenario eval for the AI homepage finder.
+"""Run smoke scenario evals for the AI homepage finder.
 
-Stage 41 intentionally does not call live providers, Firecrawl, or the app
-pipeline. It validates the Stage 40 scenario matrix and prints a stable
-summary that can become the foundation for later live/snapshot evals.
+Stage 42 still avoids live providers, Firecrawl, and app pipeline calls. It can
+validate the scenario matrix alone or evaluate offline pipeline-shaped response
+fixtures against the existing smoke quality gate.
 """
 
 from __future__ import annotations
@@ -43,6 +43,10 @@ class SmokeScenarioMatrixError(ValueError):
     """Raised when the smoke scenario matrix is structurally invalid."""
 
 
+class SmokeResponseFixtureError(ValueError):
+    """Raised when a smoke response fixture is structurally invalid."""
+
+
 def load_matrix(path: Path) -> dict[str, Any]:
     """Load a smoke scenario matrix JSON file."""
     try:
@@ -55,6 +59,23 @@ def load_matrix(path: Path) -> dict[str, Any]:
 
     if not isinstance(data, dict):
         raise SmokeScenarioMatrixError("Matrix root must be a JSON object.")
+    return data
+
+
+def load_response_fixture(path: Path) -> dict[str, Any]:
+    """Load an offline smoke response fixture JSON file."""
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+    except FileNotFoundError as exc:
+        raise SmokeResponseFixtureError(f"Response fixture file not found: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise SmokeResponseFixtureError(
+            f"Response fixture file is not valid JSON: {path}"
+        ) from exc
+
+    if not isinstance(data, dict):
+        raise SmokeResponseFixtureError("Response fixture root must be a JSON object.")
     return data
 
 
@@ -111,6 +132,41 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
     return scenarios
 
 
+def validate_response_fixture(
+    data: dict[str, Any], scenarios: list[dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    """Validate response fixture entries and index them by scenario_id."""
+    responses = data.get("responses")
+    if not isinstance(responses, list) or not responses:
+        raise SmokeResponseFixtureError(
+            "Response fixture must include a non-empty responses list."
+        )
+
+    scenario_ids = {str(scenario["id"]) for scenario in scenarios}
+    indexed: dict[str, dict[str, Any]] = {}
+    for index, response in enumerate(responses, start=1):
+        if not isinstance(response, dict):
+            raise SmokeResponseFixtureError(f"Response #{index} must be an object.")
+
+        scenario_id = response.get("scenario_id")
+        if not isinstance(scenario_id, str) or not scenario_id.strip():
+            raise SmokeResponseFixtureError(f"Response #{index} has an invalid scenario_id.")
+        if scenario_id in indexed:
+            raise SmokeResponseFixtureError(f"Duplicate response scenario_id: {scenario_id}")
+        if scenario_id not in scenario_ids:
+            raise SmokeResponseFixtureError(f"Unknown response scenario_id: {scenario_id}")
+
+        indexed[scenario_id] = response
+
+    missing = sorted(scenario_ids - indexed.keys())
+    if missing:
+        raise SmokeResponseFixtureError(
+            f"Response fixture missing scenario_id values: {', '.join(missing)}"
+        )
+
+    return indexed
+
+
 def build_summary(scenarios: list[dict[str, Any]]) -> dict[str, Any]:
     """Build stable summary counts for the schema-only eval report."""
     by_site = Counter(str(scenario["site_id"]) for scenario in scenarios)
@@ -165,13 +221,7 @@ def _is_fallback_response(response: dict[str, Any]) -> bool:
 def evaluate_response(
     scenario: dict[str, Any], response: dict[str, Any]
 ) -> dict[str, Any]:
-    """Evaluate one pipeline-shaped response against a smoke scenario.
-
-    The expected response shape is intentionally small and provider-neutral:
-    {"site_id": str, "answer": str, "sources": [{"title": str, "url": str}],
-    "fallback": bool}. Extra keys are ignored so future live/snapshot pipeline
-    adapters can reuse the same judge.
-    """
+    """Evaluate one pipeline-shaped response against a smoke scenario."""
     criteria = scenario.get("pass_criteria", {})
     expected_domain = str(scenario.get("expected_domain", ""))
     scenario_id = str(scenario.get("id", ""))
@@ -223,6 +273,27 @@ def evaluate_response(
     }
 
 
+def evaluate_response_fixture(
+    scenarios: list[dict[str, Any]], responses_by_id: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Evaluate all scenarios against indexed pipeline-shaped responses."""
+    return [
+        evaluate_response(scenario, responses_by_id[str(scenario["id"])])
+        for scenario in scenarios
+    ]
+
+
+def build_response_eval_summary(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize response eval pass/fail results."""
+    failed = [result for result in results if not result["passed"]]
+    return {
+        "total": len(results),
+        "passed": len(results) - len(failed),
+        "failed": len(failed),
+        "failed_results": failed,
+    }
+
+
 def format_summary(summary: dict[str, Any]) -> str:
     """Format the eval summary for human-readable CLI output."""
     lines = [
@@ -240,6 +311,25 @@ def format_summary(summary: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def format_response_eval_summary(summary: dict[str, Any]) -> str:
+    """Format response eval summary for CLI output."""
+    lines = [
+        "Smoke response eval loaded",
+        f"Evaluated responses: {summary['total']}",
+        f"Passed: {summary['passed']}",
+        f"Failed: {summary['failed']}",
+    ]
+    if summary["failed_results"]:
+        lines.extend(["", "Failed scenarios:"])
+        for result in summary["failed_results"]:
+            failures = ", ".join(result["failures"])
+            lines.append(f"- {result['scenario_id']}: {failures}")
+        lines.extend(["", "Status: response eval failed"])
+    else:
+        lines.extend(["", "Status: response eval passed"])
+    return "\n".join(lines)
+
+
 def run_schema_eval(matrix_path: Path) -> str:
     """Load, validate, summarize, and format a schema-only smoke eval."""
     matrix = load_matrix(matrix_path)
@@ -248,15 +338,30 @@ def run_schema_eval(matrix_path: Path) -> str:
     return format_summary(summary)
 
 
+def run_response_eval(matrix_path: Path, responses_path: Path) -> tuple[str, bool]:
+    """Load matrix and response fixtures, evaluate responses, and format report."""
+    matrix = load_matrix(matrix_path)
+    scenarios = validate_matrix(matrix)
+    response_fixture = load_response_fixture(responses_path)
+    responses_by_id = validate_response_fixture(response_fixture, scenarios)
+    results = evaluate_response_fixture(scenarios, responses_by_id)
+    summary = build_response_eval_summary(results)
+    return format_response_eval_summary(summary), summary["failed"] == 0
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Run a schema-only smoke scenario matrix eval."
-    )
+    parser = argparse.ArgumentParser(description="Run smoke scenario matrix evals.")
     parser.add_argument(
         "--matrix",
         type=Path,
         default=DEFAULT_MATRIX_PATH,
         help=f"Path to smoke scenario matrix JSON. Default: {DEFAULT_MATRIX_PATH}",
+    )
+    parser.add_argument(
+        "--responses",
+        type=Path,
+        default=None,
+        help="Optional path to offline pipeline-shaped response fixture JSON.",
     )
     return parser.parse_args()
 
@@ -264,11 +369,15 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     try:
-        print(run_schema_eval(args.matrix))
-    except SmokeScenarioMatrixError as exc:
+        if args.responses is None:
+            print(run_schema_eval(args.matrix))
+            return 0
+        report, passed = run_response_eval(args.matrix, args.responses)
+        print(report)
+        return 0 if passed else 1
+    except (SmokeScenarioMatrixError, SmokeResponseFixtureError) as exc:
         print(f"Smoke scenario eval failed: {exc}")
         return 1
-    return 0
 
 
 if __name__ == "__main__":
