@@ -1,8 +1,8 @@
 # Live Smoke Result Artifact Schema
 
-Stage 56 defines the persisted result artifact shape for a future live smoke eval run.
+Stage 56 defines the persisted result artifact shape for a future live smoke eval run. Stage 58 adds the reusable offline helper that converts this artifact shape into the existing Stage 43 pipeline-shaped result format and can immediately evaluate it through the existing response judge path.
 
-This document is design-only. It does not enable live provider calls, fetch calls, network calls, or app pipeline execution. The goal is to make the future live path compatible with the existing offline export and response judge flow before any live execution is implemented.
+This document is design-only for the artifact shape itself. It does not enable live provider calls, fetch calls, network calls, or app pipeline execution. The current helper path is also fully offline and only normalizes already-produced artifact JSON.
 
 ## 1. Boundary
 
@@ -18,7 +18,15 @@ There are two related but different JSON shapes:
    - Contains only `scenario_id`, `site_id`, `answer`, `sources`, and `fallback` per response.
    - This remains the canonical input to the existing response judge.
 
-A future converter should transform the live smoke result artifact into the existing pipeline/demo-shaped result structure, then reuse `scripts/export_smoke_responses.py --eval` or the underlying exporter functions.
+Stage 58 provides the current offline bridge:
+
+```bash
+python scripts/export_live_smoke_artifact.py \
+  tests/fixtures/live_smoke_result_artifact.json \
+  --eval
+```
+
+That command converts the live smoke result artifact into the existing Stage 43 pipeline/demo-shaped result structure, then reuses the Stage 54 export eval path. It does not perform live execution.
 
 ## 2. Top-level shape
 
@@ -193,7 +201,7 @@ For errors, persist only redaction-safe summaries:
 
 ## 7. Conversion to existing judge path
 
-A future converter should transform each live artifact result into the Stage 43 exporter input shape:
+The current Stage 58 converter transforms each live artifact result into the Stage 43 exporter input shape:
 
 ```json
 {
@@ -218,9 +226,32 @@ A future converter should transform each live artifact result into the Stage 43 
 }
 ```
 
-Then the existing offline command can be reused:
+Direct eval command:
 
 ```bash
+python scripts/export_live_smoke_artifact.py \
+  tests/fixtures/live_smoke_result_artifact.json \
+  --eval
+```
+
+Expected result:
+
+```text
+Smoke response eval loaded
+Evaluated responses: 14
+Passed: 14
+Failed: 0
+
+Status: response eval passed
+```
+
+Two-step export and eval is also supported:
+
+```bash
+python scripts/export_live_smoke_artifact.py \
+  tests/fixtures/live_smoke_result_artifact.json \
+  --output /tmp/live_pipeline_results.json
+
 python scripts/export_smoke_responses.py \
   /tmp/live_pipeline_results.json \
   --matrix tests/fixtures/smoke_scenario_matrix.json \
@@ -268,14 +299,14 @@ Before a future code stage writes this artifact, it should validate that:
 6. all redaction flags are explicitly false for persisted sensitive data.
 7. no raw keys, cookies, headers, prompts, or provider payloads appear in the serialized JSON.
 8. the artifact can be converted to the Stage 43 exporter input shape.
-9. the converted result can be evaluated through `scripts/export_smoke_responses.py --eval`.
+9. the converted result can be evaluated through `scripts/export_live_smoke_artifact.py --eval`.
 
 ## 10. Recommended next implementation stages
 
-Recommended narrow order after this design:
+Recommended narrow order after this design and helper baseline:
 
-1. Add a static fixture for this artifact shape.
-2. Add schema validation tests for the fixture.
-3. Add a converter from live artifact shape to Stage 43 exporter input shape.
-4. Add an offline roundtrip test from live artifact fixture to `--eval`.
-5. Only after that, add a guarded live runner that can write this artifact under explicit opt-in.
+1. Add a guarded live artifact writer that emits this shape under explicit opt-in without changing the judge path.
+2. Add an offline writer fixture roundtrip from writer-shaped output to `scripts/export_live_smoke_artifact.py --eval`.
+3. Add provider/fetch opt-in wiring behind `AI_FINDER_LIVE_EVAL=true`.
+4. Add live runner execution in a strictly sequential, rate-limited path.
+5. Add optional report import/export UI only after CLI artifacts are stable.
