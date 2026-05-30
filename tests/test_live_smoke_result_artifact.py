@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from scripts.export_live_smoke_artifact import export_live_artifact_to_pipeline_results
 from scripts.export_smoke_responses import export_pipeline_results_fixture
 from scripts.run_smoke_eval import (
     DEFAULT_MATRIX_PATH,
@@ -49,25 +50,6 @@ ALLOWED_STATUSES = {
 
 def load_live_artifact() -> dict:
     return json.loads(LIVE_ARTIFACT_PATH.read_text(encoding="utf-8"))
-
-
-def live_artifact_to_pipeline_results(artifact: dict) -> dict:
-    return {
-        "results": [
-            {
-                "scenario_id": result["scenario_id"],
-                "result": {
-                    "site_id": result["site_id"],
-                    "answer": result["answer"],
-                    "sources": result["sources"],
-                    "ok": result["ok"],
-                    "answer_ok": result["answer_ok"],
-                    "fallback_used": result["fallback_used"],
-                },
-            }
-            for result in artifact["results"]
-        ]
-    }
 
 
 def test_live_artifact_metadata_matches_stage56_schema() -> None:
@@ -136,7 +118,7 @@ def test_live_artifact_converts_to_existing_response_judge_path() -> None:
     artifact = load_live_artifact()
     scenarios = validate_matrix(load_matrix(DEFAULT_MATRIX_PATH))
 
-    pipeline_results = live_artifact_to_pipeline_results(artifact)
+    pipeline_results = export_live_artifact_to_pipeline_results(artifact)
     exported_fixture = export_pipeline_results_fixture(pipeline_results)
     responses_by_id = validate_response_fixture(exported_fixture, scenarios)
     results = evaluate_response_fixture(scenarios, responses_by_id)
