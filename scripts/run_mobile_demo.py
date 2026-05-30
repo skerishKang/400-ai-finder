@@ -32,8 +32,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--provider",
-        default="mock",
-        help="LLM provider name (default: mock)",
+        default=None,
+        help="LLM provider name (default: None)",
     )
     parser.add_argument(
         "--model",

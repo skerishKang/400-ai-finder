@@ -102,8 +102,12 @@ def resolve_provider_model(
 ) -> tuple[str, str]:
     """Resolve model, provider, and preset into a final (provider, model) combination.
 
-    If the resolved provider is pending/not fully configured, raises ValueError.
+    If no model/provider/preset are provided, defaults to deepseek-primary.
     """
+    # 0. If all are None, default to deepseek-primary preset
+    if model is None and provider is None and preset is None:
+        preset = "deepseek-primary"
+
     # 1. Resolve from preset first
     if preset:
         p_info = get_model_preset(preset)
@@ -132,25 +136,5 @@ def resolve_provider_model(
     # 3. Fallbacks
     final_provider = (provider or "mock").strip().lower()
     final_model = (model or "").strip()
-
-    # 4. Check for pending providers
-    pending_providers = ["opencode-go", "opencode-zen", "nous"]
-    if final_provider in pending_providers:
-        # Check environment variables
-        env_prefix = final_provider.upper().replace("-", "_")
-        has_base_url = bool(
-            os.environ.get(f"AI_FINDER_{env_prefix}_BASE_URL")
-            or os.environ.get(f"{env_prefix}_BASE_URL")
-        )
-        has_api_key = bool(
-            os.environ.get(f"AI_FINDER_{env_prefix}_API_KEY")
-            or os.environ.get(f"{env_prefix}_API_KEY")
-            or (final_provider == "opencode-go" and os.environ.get("OPENCODE_API_KEY"))
-        )
-        if not (has_base_url and has_api_key):
-            raise ValueError(
-                f"Provider '{final_provider}' is pending configuration. "
-                f"Missing environment variables: AI_FINDER_{env_prefix}_BASE_URL and/or API key."
-            )
 
     return final_provider, final_model

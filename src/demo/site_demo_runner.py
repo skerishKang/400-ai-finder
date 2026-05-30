@@ -356,6 +356,15 @@ class SiteDemoRunner:
         if not pipeline_result.get("ok", False):
             warnings.append(f"Pipeline partially failed: {pipeline_result.get('error', 'unknown')}")
 
+        # Resolve preset
+        from src.llm.model_presets import PRESETS
+        resolved_preset = None
+        current_model = self.model or (answer_data.get("model", "") if answer_data else "")
+        for p_name, p_info in PRESETS.items():
+            if p_info["provider"] == self.provider and p_info["model"] == current_model:
+                resolved_preset = p_name
+                break
+
         return {
             "site_id": self.site_id,
             "site_name": self.profile.name,
@@ -366,7 +375,8 @@ class SiteDemoRunner:
             "ok": pipeline_result.get("ok", False),
             "answer_ok": answer_ok,
             "provider": self.provider,
-            "model": self.model or (answer_data.get("model", "") if answer_data else ""),
+            "model": current_model,
+            "preset": resolved_preset,
             "fetch_provider": self._fetch_provider,
             "output_dir": run_dir,
             "fetched_at": now,
@@ -520,6 +530,17 @@ class SiteDemoRunner:
             snapshot["model"] = "stub"
         elif self.provider == "mock":
             snapshot["model"] = ""
+
+        # Resolve preset
+        from src.llm.model_presets import PRESETS
+        resolved_preset = None
+        current_model = snapshot.get("model") or ""
+        for p_name, p_info in PRESETS.items():
+            if p_info["provider"] == snapshot["provider"] and p_info["model"] == current_model:
+                resolved_preset = p_name
+                break
+        snapshot["preset"] = resolved_preset
+
         snapshot.setdefault("warnings", []).append(
             "홈페이지 메뉴와 저장된 데모 자료를 기준으로 안내합니다."
         )

@@ -12,6 +12,7 @@ from src.llm import (
     get_model_preset,
     list_models_for_provider,
     resolve_provider_model,
+    get_provider,
 )
 
 def test_list_model_presets():
@@ -57,13 +58,16 @@ def test_resolve_nvidia_step():
     assert model == "stepfun-ai/step-3.5-flash"
 
 def test_resolve_opencode_go_deepseek_pending():
-    """Verify opencode-go + deepseek-v4-flash raises when environment is missing."""
+    """Verify opencode-go + deepseek-v4-flash resolves, but get_provider raises ValueError if environment is missing."""
     with patch.dict(os.environ, {}, clear=True):
+        provider, model = resolve_provider_model(model="deepseek-v4-flash", provider="opencode-go")
+        assert provider == "opencode-go"
+        assert model == "deepseek-v4-flash"
         with pytest.raises(ValueError, match="pending configuration"):
-            resolve_provider_model(model="deepseek-v4-flash", provider="opencode-go")
+            get_provider(provider)
 
 def test_resolve_opencode_go_deepseek_configured():
-    """Verify opencode-go + deepseek-v4-flash resolves when environment is configured."""
+    """Verify opencode-go + deepseek-v4-flash resolves and can be resolved when environment is configured."""
     env_mock = {
         "OPENCODE_GO_BASE_URL": "https://api.opencode.go/v1",
         "OPENCODE_API_KEY": "sk-test-key",
@@ -84,6 +88,12 @@ def test_resolve_model_first():
     provider, model = resolve_provider_model(model="mimo-v2.5-pro", provider="mock")
     assert provider == "opengateway"
     assert model == "mimo-v2.5-pro"
+
+def test_resolve_default():
+    """Verify default resolution (all None) is deepseek-primary."""
+    provider, model = resolve_provider_model(None, None, None)
+    assert provider == "opencode-go"
+    assert model == "deepseek-v4-flash"
 
 def test_cli_argument_resolution():
     """Verify that resolving model and provider parameters works as expected."""

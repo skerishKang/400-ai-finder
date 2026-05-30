@@ -42,7 +42,7 @@ def main() -> None:
         description="AI Homepage Finder — Run all demo servers"
     )
     parser.add_argument("--site-id", required=True, help="Site profile ID")
-    parser.add_argument("--provider", default="mock", help="LLM provider (default: mock)")
+    parser.add_argument("--provider", default=None, help="LLM provider (default: None)")
     parser.add_argument("--model", default=None, help="LLM model (default: None)")
     parser.add_argument("--preset", default=None, help="LLM model preset shortcut (default: None)")
     parser.add_argument("--snapshot", default=None, help="Path to snapshot JSON")
