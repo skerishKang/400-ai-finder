@@ -182,11 +182,12 @@ pytest
 
 ## 7. 다음 단계 후보
 
-Stage 45부터는 다음 중 하나로 확장할 수 있습니다.
+Stage 50 이후에는 다음 중 하나로 확장할 수 있습니다.
 
-1. `README.md`에 smoke eval 문서 링크 추가
-2. demo/pipeline result 14개를 생성하는 offline fixture builder 추가
-3. optional live eval mode 추가
+1. optional live smoke eval mock adapter 추가
+2. 실제 provider/fetch 호출 전용 `--live` opt-in 구현
+3. live 실행 결과를 Stage 42 response judge에 연결
 4. Admin dashboard에 eval result import/export 기능 추가
+5. demo/pipeline result fixture builder 보강
 
-권장 순서는 README 링크 추가 후, optional live eval을 별도 Stage로 분리하는 것입니다.
+권장 순서는 live 호출을 바로 붙이는 것이 아니라, mock adapter와 dry-run 경로를 먼저 추가한 뒤 provider/fetch opt-in을 별도 Stage로 분리하는 것입니다.
