@@ -5,7 +5,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-from scripts.run_smoke_eval import DEFAULT_MATRIX_PATH, load_matrix, validate_matrix
+from scripts.run_smoke_eval import (
+    DEFAULT_MATRIX_PATH,
+    build_response_eval_summary,
+    evaluate_response_fixture,
+    format_response_eval_summary,
+    load_matrix,
+    validate_matrix,
+    validate_response_fixture,
+)
 
 
 def build_mock_response_for_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
@@ -69,6 +77,16 @@ def run_build(matrix_path: Path, output_path: Path | None = None) -> str:
     return serialized.rstrip()
 
 
+def run_dry_eval(matrix_path: Path) -> tuple[str, bool]:
+    """Build mock responses and evaluate them with the existing response judge."""
+    scenarios = validate_matrix(load_matrix(matrix_path))
+    fixture = build_mock_live_response_fixture(scenarios)
+    responses_by_id = validate_response_fixture(fixture, scenarios)
+    results = evaluate_response_fixture(scenarios, responses_by_id)
+    summary = build_response_eval_summary(results)
+    return format_response_eval_summary(summary), summary["failed"] == 0
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build mock live smoke eval responses without external calls."
@@ -79,12 +97,22 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_MATRIX_PATH,
         help=f"Path to smoke scenario matrix JSON. Default: {DEFAULT_MATRIX_PATH}",
     )
+    parser.add_argument(
+        "--eval",
+        action="store_true",
+        help="Build mock responses and evaluate them immediately without external calls.",
+    )
     parser.add_argument("--output", type=Path, default=None)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    if args.eval:
+        report, passed = run_dry_eval(args.matrix)
+        print(report)
+        return 0 if passed else 1
+
     print(run_build(args.matrix, args.output))
     return 0
 

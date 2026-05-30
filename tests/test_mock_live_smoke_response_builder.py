@@ -5,6 +5,7 @@ from scripts.build_mock_live_smoke_responses import (
     build_mock_live_response_fixture,
     build_mock_response_for_scenario,
     run_build,
+    run_dry_eval,
 )
 from scripts.run_smoke_eval import (
     DEFAULT_MATRIX_PATH,
@@ -76,3 +77,14 @@ def test_run_build_writes_output_file(tmp_path: Path) -> None:
     assert "Mock live smoke responses written" in message
     data = json.loads(output_path.read_text(encoding="utf-8"))
     assert len(data["responses"]) == 14
+
+
+def test_run_dry_eval_reports_all_mock_responses_passed() -> None:
+    report, passed = run_dry_eval(DEFAULT_MATRIX_PATH)
+
+    assert passed is True
+    assert "Smoke response eval loaded" in report
+    assert "Evaluated responses: 14" in report
+    assert "Passed: 14" in report
+    assert "Failed: 0" in report
+    assert "Status: response eval passed" in report
