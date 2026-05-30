@@ -10,6 +10,14 @@ from scripts.export_smoke_responses import (
     load_pipeline_results,
     run_export,
 )
+from scripts.run_smoke_eval import (
+    DEFAULT_MATRIX_PATH,
+    build_response_eval_summary,
+    evaluate_response_fixture,
+    load_matrix,
+    validate_matrix,
+    validate_response_fixture,
+)
 
 
 def test_export_pipeline_result_response_preserves_core_fields() -> None:
@@ -140,3 +148,26 @@ def test_run_export_writes_output_file(tmp_path: Path) -> None:
 def test_load_pipeline_results_rejects_missing_file(tmp_path: Path) -> None:
     with pytest.raises(SmokePipelineExportError, match="Pipeline results file not found"):
         load_pipeline_results(tmp_path / "missing.json")
+
+
+ROUNDTRIP_PIPELINE_RESULTS_PATH = Path(
+    "tests/fixtures/smoke_pipeline_results_roundtrip.json"
+)
+
+
+def test_exported_roundtrip_fixture_passes_smoke_response_eval() -> None:
+    matrix = load_matrix(DEFAULT_MATRIX_PATH)
+    scenarios = validate_matrix(matrix)
+
+    pipeline_results = load_pipeline_results(ROUNDTRIP_PIPELINE_RESULTS_PATH)
+    exported_fixture = export_pipeline_results_fixture(pipeline_results)
+
+    responses_by_id = validate_response_fixture(exported_fixture, scenarios)
+    results = evaluate_response_fixture(scenarios, responses_by_id)
+    summary = build_response_eval_summary(results)
+
+    assert len(exported_fixture["responses"]) == 14
+    assert summary["total"] == 14
+    assert summary["passed"] == 14
+    assert summary["failed"] == 0
+    assert summary["failed_results"] == []
