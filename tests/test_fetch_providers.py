@@ -304,6 +304,200 @@ class TestRequestsFetchProvider:
 
 
 # ======================================================================
+# Stage 35: Header handling tests
+# ======================================================================
+
+class TestRequestsHeaderDefaults:
+    """Stage 35: Browser-like default headers for RequestsFetchProvider."""
+
+    def test_default_headers_include_accept(self):
+        """Default headers should include Accept with HTML mime types."""
+        provider = RequestsFetchProvider()
+        assert "Accept" in provider.headers
+        assert "text/html" in provider.headers["Accept"]
+
+    def test_default_headers_include_accept_language(self):
+        """Default headers include Accept-Language with Korean priority."""
+        provider = RequestsFetchProvider()
+        assert "Accept-Language" in provider.headers
+        assert "ko" in provider.headers["Accept-Language"]
+
+    def test_default_headers_include_accept_encoding(self):
+        """Default headers include Accept-Encoding with gzip/deflate."""
+        provider = RequestsFetchProvider()
+        assert "Accept-Encoding" in provider.headers
+        assert "gzip" in provider.headers["Accept-Encoding"]
+
+    def test_default_headers_include_connection(self):
+        """Default headers include Connection: keep-alive."""
+        provider = RequestsFetchProvider()
+        assert provider.headers.get("Connection") == "keep-alive"
+
+    def test_default_headers_include_upgrade_insecure(self):
+        """Default headers include Upgrade-Insecure-Requests: 1."""
+        provider = RequestsFetchProvider()
+        assert provider.headers.get("Upgrade-Insecure-Requests") == "1"
+
+    def test_default_user_agent_is_chrome(self):
+        """Default User-Agent mimics Chrome on Windows."""
+        provider = RequestsFetchProvider()
+        ua = provider.headers["User-Agent"]
+        assert "Mozilla/5.0" in ua
+        assert "Chrome" in ua
+
+    def test_custom_user_agent(self):
+        """Custom User-Agent overrides default."""
+        provider = RequestsFetchProvider(user_agent="CustomBot/1.0")
+        assert provider.headers["User-Agent"] == "CustomBot/1.0"
+        # Other headers should still be present
+        assert "Accept" in provider.headers
+
+    def test_headers_sent_on_request(self):
+        """Headers dict is actually passed to requests.get."""
+        captured = {}
+
+        def fake_get(url, headers, timeout):
+            captured["headers"] = headers
+
+            class FakeResponse:
+                status_code = 200
+                encoding = "utf-8"
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body></body></html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            provider.fetch("https://example.com/")
+
+        h = captured["headers"]
+        assert "User-Agent" in h
+        assert "Accept" in h
+        assert "Accept-Language" in h
+        assert "Accept-Encoding" in h
+
+
+class TestRequestsRetryOn400:
+    """Stage 35: Retry with enhanced headers on HTTP 400."""
+
+    def test_400_triggers_retry_with_sec_fetch_headers(self):
+        """On 400, provider retries with Sec-Fetch-* headers."""
+        call_count = {"n": 0}
+        captured_headers = []
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+            captured_headers.append(dict(headers))
+
+            class FakeResponse:
+                encoding = "utf-8"
+                def __init__(self, sc):
+                    self.status_code = sc
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body></body></html>"
+
+            if call_count["n"] == 1:
+                return FakeResponse(400)
+            return FakeResponse(200)
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            result = provider.fetch("https://example.com/")
+
+        assert call_count["n"] == 2
+        assert result.ok is True
+        # Second call should have Sec-Fetch headers
+        retry_h = captured_headers[1]
+        assert "Sec-Fetch-Dest" in retry_h
+        assert "Sec-Fetch-Mode" in retry_h
+        assert retry_h["Sec-Fetch-Dest"] == "document"
+
+    def test_400_retry_still_400_returns_error(self):
+        """If retry also returns 400, result is ok=False."""
+        def fake_get(url, headers, timeout):
+            class FakeResponse:
+                status_code = 400
+                encoding = "utf-8"
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+                @property
+                def text(self):
+                    return ""
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            result = provider.fetch("https://example.com/")
+
+        assert result.ok is False
+        assert "HTTP 400" in result.error
+
+    def test_non_400_no_retry(self):
+        """Non-400 errors do not trigger retry."""
+        call_count = {"n": 0}
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+
+            class FakeResponse:
+                status_code = 403
+                encoding = "utf-8"
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+                @property
+                def text(self):
+                    return ""
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            result = provider.fetch("https://example.com/")
+
+        assert call_count["n"] == 1  # No retry
+        assert result.ok is False
+        assert "HTTP 403" in result.error
+
+    def test_400_retry_exception_keeps_400(self):
+        """If retry raises an exception, original 400 result is returned."""
+        call_count = {"n": 0}
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                class FakeResponse:
+                    status_code = 400
+                    encoding = "utf-8"
+                    def __init__(self):
+                        self.headers = {"Content-Type": "text/html"}
+                        self.url = url
+                    @property
+                    def text(self):
+                        return ""
+                return FakeResponse()
+            raise Exception("Connection reset")
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            result = provider.fetch("https://example.com/")
+
+        assert call_count["n"] == 2
+        assert result.ok is False
+        assert "HTTP 400" in result.error
+
+
+# ======================================================================
 # FirecrawlFetchProvider
 # ======================================================================
 

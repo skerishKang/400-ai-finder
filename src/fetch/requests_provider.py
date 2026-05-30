@@ -1,6 +1,7 @@
 """Requests-based fetch provider — standard HTTP GET using the requests library.
 
 This is the default provider (mimics the existing URLCrawler behavior).
+Stage 35: Enhanced header handling with browser-like defaults and 400 retry.
 """
 
 from __future__ import annotations
@@ -18,9 +19,57 @@ except ImportError:
 
 from .base import FetchProvider, FetchResult
 
+# ---------------------------------------------------------------------------
+# Default browser-like headers (Stage 35)
+# ---------------------------------------------------------------------------
+_DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/120.0.0.0 Safari/537.36"
+)
+
+_BASE_HEADERS: dict[str, str] = {
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;"
+        "q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
+    ),
+    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+}
+
+_RETRY_HEADERS: dict[str, str] = {
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Cache-Control": "max-age=0",
+}
+
+
+def _build_headers(user_agent: str) -> dict[str, str]:
+    """Build full request headers dict from a User-Agent string."""
+    headers = dict(_BASE_HEADERS)
+    headers["User-Agent"] = user_agent
+    return headers
+
+
+def _build_retry_headers(user_agent: str) -> dict[str, str]:
+    """Build enhanced headers for 400-retry (includes Sec-Fetch-* set)."""
+    headers = _build_headers(user_agent)
+    headers.update(_RETRY_HEADERS)
+    return headers
+
 
 class RequestsFetchProvider(FetchProvider):
-    """Standard HTTP GET fetch provider using 'requests' + BeautifulSoup."""
+    """Standard HTTP GET fetch provider using 'requests' + BeautifulSoup.
+
+    Stage 35 enhancements:
+    - Browser-like default headers (Accept, Accept-Language, Accept-Encoding, etc.)
+    - Automatic single retry with enhanced Sec-Fetch-* headers on HTTP 400
+    - Configurable via constructor or environment variables
+    """
 
     def __init__(self, timeout: int = 15, user_agent: str | None = None):
         if req_lib is None:
@@ -28,12 +77,8 @@ class RequestsFetchProvider(FetchProvider):
                 "The 'requests' library is required for RequestsFetchProvider."
             )
         self.timeout = timeout
-        self.user_agent = user_agent or (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        )
-        self.headers = {"User-Agent": self.user_agent}
+        self.user_agent = user_agent or _DEFAULT_USER_AGENT
+        self.headers = _build_headers(self.user_agent)
 
     def fetch(self, url: str, **kwargs: Any) -> FetchResult:
         timeout = kwargs.get("timeout", self.timeout)
@@ -80,6 +125,17 @@ class RequestsFetchProvider(FetchProvider):
         status_code = resp.status_code
         content_type = resp.headers.get("Content-Type", "")
         final_url = resp.url
+
+        # --- Stage 35: Retry on 400 with enhanced headers ---
+        if status_code == 400:
+            retry_headers = _build_retry_headers(self.user_agent)
+            try:
+                resp = req_lib.get(url, headers=retry_headers, timeout=timeout)
+                status_code = resp.status_code
+                content_type = resp.headers.get("Content-Type", "")
+                final_url = resp.url
+            except Exception:
+                pass  # Keep original 400 response
 
         # --- Handle HTTP errors ---
         if status_code >= 400:
