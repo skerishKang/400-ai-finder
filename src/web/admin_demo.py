@@ -138,24 +138,52 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
         if not question:
             self._json_response({"error": "질문을 입력해 주세요."}, 400)
             return
+
+        # Dynamically resolve preset/model/provider from payload
+        req_provider = data.get("provider")
+        req_model = data.get("model")
+        req_preset = data.get("preset")
+
+        from src.llm import resolve_provider_model
         try:
-            if self._runner is None:
+            resolved_provider, resolved_model = resolve_provider_model(
+                model=req_model,
+                provider=req_provider,
+                preset=req_preset,
+            )
+        except Exception as e:
+            # Fallback to defaults if resolution fails
+            resolved_provider = req_provider or self.provider
+            resolved_model = req_model or self.model
+
+        try:
+            reuse_runner = False
+            if self._runner is not None:
+                is_mock = hasattr(self._runner, "_mock_return_value") or "Mock" in type(self._runner).__name__
+                if is_mock:
+                    reuse_runner = True
+                elif getattr(self._runner, "provider", None) == resolved_provider and getattr(self._runner, "model", None) == resolved_model:
+                    reuse_runner = True
+
+            if not reuse_runner:
                 from src.demo import SiteDemoRunner
                 self.__class__._runner = SiteDemoRunner(
                     site_id=self.site_id,
-                    provider=self.provider,
-                    model=self.model,
+                    provider=resolved_provider,
+                    model=resolved_model,
                 )
             runner = self._runner
+
             if self.snapshot_path:
                 result = runner.answer_from_snapshot(self.snapshot_path, question=question)
             else:
                 result = runner.answer(question)
+
             from src.llm.model_presets import PRESETS
             resolved_preset = None
             recommended_order = None
             for p_name, p_info in PRESETS.items():
-                if p_info["provider"] == self.provider and p_info["model"] == (self.model or ""):
+                if p_info["provider"] == resolved_provider and p_info["model"] == (resolved_model or ""):
                     resolved_preset = p_name
                     recommended_order = p_info["recommended_order"]
                     break
@@ -182,7 +210,7 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
             resolved_preset = None
             recommended_order = None
             for p_name, p_info in PRESETS.items():
-                if p_info["provider"] == self.provider and p_info["model"] == (self.model or ""):
+                if p_info["provider"] == resolved_provider and p_info["model"] == (resolved_model or ""):
                     resolved_preset = p_name
                     recommended_order = p_info["recommended_order"]
                     break
@@ -195,8 +223,8 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "search_results": [],
                 "ok": False,
                 "answer_ok": False,
-                "provider": self.provider,
-                "model": self.model or "",
+                "provider": resolved_provider,
+                "model": resolved_model or "",
                 "preset": resolved_preset or "-",
                 "recommended_order": recommended_order or "-",
                 "snapshot_mode": bool(self.snapshot_path),

@@ -13,6 +13,19 @@
 </div>
 
 <div class="layout">
+  <!-- LLM Config Panel -->
+  <div class="card">
+    <h2>LLM 모델 설정</h2>
+    <div class="config-panel" style="margin-top: 8px;">
+      <label for="modelPresetSelect" style="font-size: .8rem; color: var(--text2); display: block; margin-bottom: 6px;">테스트용 모델 프리셋</label>
+      <select id="modelPresetSelect" style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .85rem; outline: none; background: #fff;">
+        <option value="deepseek-primary" selected>DeepSeek 기본 (deepseek-v4-flash / opencode-go)</option>
+        <option value="mimo-primary">MiMo 기본 (mimo-v2.5-pro / opengateway)</option>
+        <option value="step-primary">Step 기본 (step-3.5-flash / nvidia)</option>
+      </select>
+    </div>
+  </div>
+
   <!-- Summary -->
   <div class="card">
     <h2>서비스 정보</h2>

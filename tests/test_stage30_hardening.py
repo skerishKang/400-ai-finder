@@ -191,3 +191,63 @@ def test_mimo_step_override_regression():
     p3, m3 = resolve_provider_model("stepfun-ai/step-3.5-flash", "nvidia", None)
     assert p3 == "nvidia"
     assert m3 == "stepfun-ai/step-3.5-flash"
+
+
+def test_admin_demo_dynamic_payload_resolution():
+    """Verify admin_demo test API dynamically resolves preset, model, and provider from POST request payload."""
+    from src.web.admin_demo import AdminDemoHandler
+
+    handler = MagicMock(spec=AdminDemoHandler)
+    handler.site_id = "bukgu_gwangju"
+    handler.provider = "mock"
+    handler.model = "mock"
+    handler.snapshot_path = None
+    handler._runner = None
+    handler._site_name = "광주광역시 북구청"
+
+    # Mock SiteDemoRunner response to check what was passed
+    runner_mock = MagicMock()
+    runner_mock.answer.return_value = {
+        "site_id": "bukgu_gwangju",
+        "site_name": "광주광역시 북구청",
+        "question": "민원서식",
+        "answer": "정상 답변",
+        "sources": [],
+        "search_results": [],
+        "ok": True,
+        "answer_ok": True,
+        "provider": "opengateway",
+        "model": "mimo-v2.5-pro",
+    }
+
+    # Inject mock runner during init
+    with patch("src.demo.SiteDemoRunner", return_value=runner_mock) as mock_runner_cls:
+        handler.headers = {"Content-Length": "120"}
+        handler.rfile = MagicMock()
+        # Requesting mimo-primary preset
+        handler.rfile.read.return_value = json.dumps({
+            "question": "민원서식",
+            "preset": "mimo-primary",
+            "model": "mimo-v2.5-pro",
+            "provider": "opengateway"
+        }).encode('utf-8')
+
+        response_data = None
+        def mock_json_response(data, status=200):
+            nonlocal response_data
+            response_data = data
+        handler._json_response = mock_json_response
+
+        # Execute
+        AdminDemoHandler._handle_test(handler)
+
+        # Check mock instantiation params
+        mock_runner_cls.assert_called_once_with(
+            site_id="bukgu_gwangju",
+            provider="opengateway",
+            model="mimo-v2.5-pro"
+        )
+        assert response_data is not None
+        assert response_data["provider"] == "opengateway"
+        assert response_data["model"] == "mimo-v2.5-pro"
+        assert response_data["preset"] == "mimo-primary"

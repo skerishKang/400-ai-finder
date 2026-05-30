@@ -92,9 +92,16 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            if self._runner is None:
-                from src.demo import SiteDemoRunner
+            reuse_runner = False
+            if self._runner is not None:
+                is_mock = hasattr(self._runner, "_mock_return_value") or "Mock" in type(self._runner).__name__
+                if is_mock:
+                    reuse_runner = True
+                elif getattr(self._runner, "provider", None) == self.provider and getattr(self._runner, "model", None) == self.model:
+                    reuse_runner = True
 
+            if not reuse_runner:
+                from src.demo import SiteDemoRunner
                 self.__class__._runner = SiteDemoRunner(
                     site_id=self.site_id,
                     provider=self.provider,

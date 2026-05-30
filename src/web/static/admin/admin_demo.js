@@ -64,11 +64,25 @@ async function runTest(){
   btn.disabled = true;
   btn.textContent = '실행 중…';
 
+  const modelPresets = {
+    'deepseek-primary': { preset: 'deepseek-primary', model: 'deepseek-v4-flash', provider: 'opencode-go' },
+    'mimo-primary': { preset: 'mimo-primary', model: 'mimo-v2.5-pro', provider: 'opengateway' },
+    'step-primary': { preset: 'step-primary', model: 'stepfun-ai/step-3.5-flash', provider: 'nvidia' }
+  };
+
+  const selectEl = document.getElementById('modelPresetSelect');
+  const selected = modelPresets[selectEl ? selectEl.value : 'deepseek-primary'] || modelPresets['deepseek-primary'];
+
   try {
     const res = await fetch('/api/test', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({question: q})
+      body: JSON.stringify({
+        question: q,
+        preset: selected.preset,
+        model: selected.model,
+        provider: selected.provider
+      })
     });
     const d = await res.json();
 
@@ -84,7 +98,13 @@ async function runTest(){
       statBox(d.fallback_used ? '사용' : '없음', 'Fallback') +
       statBox((d.warnings||[]).length, '경고');
 
-    document.getElementById('resultAnswer').textContent = d.answer || '(답변 없음)';
+    // Display model metadata in result view
+    const metaHtml = '<div style="font-size:.8rem;color:var(--text2);margin-bottom:10px;text-align:right;border-bottom:1px solid var(--border);padding-bottom:6px;">' +
+      '<span>실행 LLM: <strong>' + esc(d.provider || '-') + '</strong> (' + esc(d.model || '-') + ')</span>' +
+      '<span style="margin-left:12px;">Preset: <strong>' + esc(d.preset || '-') + '</strong></span>' +
+      '</div>';
+
+    document.getElementById('resultAnswer').innerHTML = metaHtml + '<div style="white-space:pre-wrap;">' + esc(d.answer || '(답변 없음)') + '</div>';
 
     const tbody = document.getElementById('resultTable');
     tbody.innerHTML = '';
