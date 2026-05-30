@@ -9,6 +9,7 @@ from scripts.export_smoke_responses import (
     export_pipeline_results_fixture,
     load_pipeline_results,
     run_export,
+    run_export_eval,
 )
 from scripts.run_smoke_eval import (
     DEFAULT_MATRIX_PATH,
@@ -171,3 +172,14 @@ def test_exported_roundtrip_fixture_passes_smoke_response_eval() -> None:
     assert summary["passed"] == 14
     assert summary["failed"] == 0
     assert summary["failed_results"] == []
+
+
+def test_run_export_eval_reports_all_roundtrip_responses_passed() -> None:
+    report, passed = run_export_eval(ROUNDTRIP_PIPELINE_RESULTS_PATH)
+
+    assert passed is True
+    assert "Smoke response eval loaded" in report
+    assert "Evaluated responses: 14" in report
+    assert "Passed: 14" in report
+    assert "Failed: 0" in report
+    assert "Status: response eval passed" in report
