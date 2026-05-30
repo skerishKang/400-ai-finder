@@ -15,7 +15,7 @@
 
 ## 초기 MVP 범위
 
-1. 특정 홈페이지 1개를 대상으로 수집합니다.
+1. 사이트 프로필(YAML)로 기관을 정의하고, `--site-id` 인자로 대상 기관을 선택합니다.
 2. 메뉴 구조와 주요 게시판을 분석합니다.
 3. PDF, HWP/HWPX, DOCX, XLSX 등 첨부문서를 파싱합니다.
 4. 사용자 질문에 대해 관련 페이지와 문서를 찾아줍니다.
@@ -58,6 +58,18 @@
 ```
 
 ## 주요 기능 및 특징
+
+### 🏛️ 다중 기관 지원 — 사이트 프로필 시스템
+- `configs/sites/` 아래 YAML 파일 하나로 새 기관을 추가할 수 있습니다.
+- 현재 지원 프로필:
+
+| site_id | 기관명 | 홈페이지 | 분류 |
+|---------|--------|----------|------|
+| `bukgu_gwangju` | 광주광역시 북구청 | https://bukgu.gwangju.kr/ | LEGACY_BOARD_SITE |
+| `gwangju_go_kr` | 광주광역시청 | https://www.gwangju.go.kr/ | LEGACY_BOARD_SITE |
+
+- CLI 또는 서버 실행 시 `--site-id`로 대상 기관을 지정합니다.
+- 운영자가 UI에서 기관을 선택하는 기능은 향후 별도 Stage에서 구현합니다.
 
 ### 📱 모바일 ChatGPT형 사용자 UI (http://localhost:8400)
 - ChatGPT 스타일의 1:1 대화형 채팅 인터페이스입니다.
@@ -132,7 +144,7 @@
 
 ## 데모 실행
 
-### 빠른 시작 (모바일 및 어드민 통합 실행)
+### 빠른 시작 — 북구청 (Snapshot 모드)
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
@@ -140,6 +152,16 @@ PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
     --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json
 ```
 *(옵션에 `--provider`를 생략하거나 미지정 시 기본 DeepSeek 프리셋 설정이 적용되며, 스냅샷 모드로 안정 구동됩니다.)*
+
+### 빠른 시작 — 광주광역시청 (Live Fetch)
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
+    --site-id gwangju_go_kr \
+    --provider stub \
+    --fetch-provider requests
+```
+*(네트워크가 필요합니다. `--provider stub`은 API 키 없이 동작합니다.)*
 
 실행 후 브라우저에서 접속:
 
@@ -155,6 +177,16 @@ PYTHONPATH=. .venv/bin/python scripts/run_mobile_demo.py \
     --site-id bukgu_gwangju \
     --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json \
     --port 8400
+```
+
+**광주광역시청 모바일 화면:**
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/run_mobile_demo.py \
+    --site-id gwangju_go_kr \
+    --provider stub \
+    --fetch-provider requests \
+    --port 8401
 ```
 
 **운영자 대시보드만:**
@@ -186,6 +218,63 @@ PYTHONPATH=. .venv/bin/python scripts/run_admin_demo.py \
 ```
 DeepSeek (1순위) → MiMo (2순위) → Step (3순위)
 ```
+
+## 질문-답변 데모 예시
+
+### 북구청 — 민원서식 (Snapshot)
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/demo_answer.py \
+    --site-id bukgu_gwangju \
+    --question "민원서식 어디서 받아?" \
+    --provider stub \
+    --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json
+```
+
+### 광주광역시청 — 고시공고 (Live Fetch)
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/demo_answer.py \
+    --site-id gwangju_go_kr \
+    --question "고시공고는 어디서 봐?" \
+    --provider stub \
+    --fetch-provider requests
+```
+
+### 광주광역시청 — 정보공개 (Live Fetch)
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/demo_answer.py \
+    --site-id gwangju_go_kr \
+    --question "정보공개는 어디서 확인해?" \
+    --provider stub \
+    --fetch-provider requests
+```
+
+### 광주광역시청 — 복지 지원사업 (Live Fetch)
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/demo_answer.py \
+    --site-id gwangju_go_kr \
+    --question "복지 지원사업은 어디서 확인해?" \
+    --provider stub \
+    --fetch-provider requests
+```
+
+### Stage 36 — 광주광역시청 검증 결과 (2026-05)
+
+Stage 36에서 광주광역시청(`gwangju_go_kr`) 프로필에 대해 5개 질문의 출처 기반 응답을 검증했습니다.
+
+| # | 질문 | 검색결과 | 출처 | 대표 출처 |
+|---|------|---------|------|----------|
+| 1 | 고시공고는 어디서 봐? | 1건 | 1건 | 고시·공고/입법예고 |
+| 2 | 정보공개는 어디서 확인해? | 5건 | 5건 | 계약정보공개시스템, 정보공개청구현황 |
+| 3 | 시청 조직도는 어디서 봐? | 5건 | 5건 | 시청안내, 어린이시청 |
+| 4 | 민원 신청은 어디서 해? | 5건 | 5건 | 광주통합민원 바로응답, 민원신청 |
+| 5 | 복지 지원사업은 어디서 확인해? | 5건 | 5건 | 광주복지플랫폼, 금융복지지원센터 |
+
+- 모든 질문이 `gwangju.go.kr` 도메인의 출처를 반환합니다.
+- 조사 스트립, 가운뎃점 정규화, N-gram fallback 등 한글 검색 강화가 적용되었습니다.
 
 ## 테스트 실행
 
