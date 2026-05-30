@@ -12,6 +12,7 @@ import json
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 DEFAULT_MATRIX_PATH = Path("tests/fixtures/smoke_scenario_matrix.json")
 REQUIRED_SCENARIO_KEYS = {
@@ -28,6 +29,14 @@ REQUIRED_PASS_CRITERIA_KEYS = {
     "min_sources",
     "no_cross_site_urls",
 }
+FALLBACK_MARKERS = (
+    "직접 확인",
+    "홈페이지에서 확인",
+    "출처가 부족",
+    "근거가 부족",
+    "확인해 주세요",
+    "확인해야 합니다",
+)
 
 
 class SmokeScenarioMatrixError(ValueError):
@@ -110,6 +119,107 @@ def build_summary(scenarios: list[dict[str, Any]]) -> dict[str, Any]:
         "total": len(scenarios),
         "sites": dict(sorted(by_site.items())),
         "categories": dict(sorted(by_category.items())),
+    }
+
+
+def _source_url(source: Any) -> str:
+    if not isinstance(source, dict):
+        return ""
+    value = source.get("url") or source.get("href") or source.get("link")
+    return value if isinstance(value, str) else ""
+
+
+def _source_title(source: Any) -> str:
+    if not isinstance(source, dict):
+        return ""
+    value = source.get("title") or source.get("name")
+    return value if isinstance(value, str) else ""
+
+
+def _source_matches_domain(source: Any, expected_domain: str) -> bool:
+    url = _source_url(source).strip()
+    if not url:
+        return False
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    expected = expected_domain.lower()
+    return host == expected or host.endswith(f".{expected}")
+
+
+def _valid_sources(response: dict[str, Any]) -> list[dict[str, Any]]:
+    sources = response.get("sources")
+    if not isinstance(sources, list):
+        return []
+    return [source for source in sources if isinstance(source, dict)]
+
+
+def _is_fallback_response(response: dict[str, Any]) -> bool:
+    if response.get("fallback") is True:
+        return True
+    answer = response.get("answer")
+    if not isinstance(answer, str):
+        return False
+    return any(marker in answer for marker in FALLBACK_MARKERS)
+
+
+def evaluate_response(
+    scenario: dict[str, Any], response: dict[str, Any]
+) -> dict[str, Any]:
+    """Evaluate one pipeline-shaped response against a smoke scenario.
+
+    The expected response shape is intentionally small and provider-neutral:
+    {"site_id": str, "answer": str, "sources": [{"title": str, "url": str}],
+    "fallback": bool}. Extra keys are ignored so future live/snapshot pipeline
+    adapters can reuse the same judge.
+    """
+    criteria = scenario.get("pass_criteria", {})
+    expected_domain = str(scenario.get("expected_domain", ""))
+    scenario_id = str(scenario.get("id", ""))
+    answer = response.get("answer") if isinstance(response.get("answer"), str) else ""
+    sources = _valid_sources(response)
+    checks: dict[str, bool] = {}
+
+    if criteria.get("site_id_match") is True:
+        checks["site_id_match"] = response.get("site_id") == scenario.get("site_id")
+
+    min_sources = criteria.get("min_sources")
+    if isinstance(min_sources, int):
+        checks["min_sources"] = len(sources) >= min_sources
+
+    source_domain = criteria.get("source_domain") or expected_domain
+    if isinstance(source_domain, str) and source_domain and sources:
+        checks["source_domain"] = any(
+            _source_title(source).strip() and _source_matches_domain(source, source_domain)
+            for source in sources
+        )
+
+    if criteria.get("no_cross_site_urls") is True and sources:
+        checks["no_cross_site_urls"] = all(
+            _source_matches_domain(source, expected_domain) for source in sources
+        )
+
+    answer_contains_any = criteria.get("answer_contains_any")
+    if isinstance(answer_contains_any, list) and answer_contains_any:
+        checks["answer_contains_any"] = any(
+            isinstance(keyword, str) and keyword in answer
+            for keyword in answer_contains_any
+        )
+
+    if criteria.get("answer_not_empty") is True:
+        checks["answer_not_empty"] = bool(answer.strip())
+
+    if criteria.get("fallback_required") is True:
+        checks["fallback_required"] = _is_fallback_response(response)
+
+    if criteria.get("fallback_when_no_source") is True:
+        checks["fallback_when_no_source"] = bool(sources) or _is_fallback_response(response)
+
+    failures = [name for name, passed in checks.items() if not passed]
+    return {
+        "scenario_id": scenario_id,
+        "passed": not failures,
+        "checks": checks,
+        "failures": failures,
     }
 
 
