@@ -4,13 +4,21 @@ import pytest
 
 from scripts.run_smoke_eval import (
     DEFAULT_MATRIX_PATH,
+    SmokeResponseFixtureError,
     SmokeScenarioMatrixError,
+    build_response_eval_summary,
     build_summary,
     evaluate_response,
+    evaluate_response_fixture,
     load_matrix,
+    load_response_fixture,
+    run_response_eval,
     run_schema_eval,
     validate_matrix,
+    validate_response_fixture,
 )
+
+RESPONSE_FIXTURE_PATH = Path("tests/fixtures/smoke_eval_responses.json")
 
 
 def test_stage40_matrix_loads_and_validates() -> None:
@@ -103,6 +111,11 @@ def _scenario_by_id(scenario_id: str) -> dict:
     matrix = load_matrix(DEFAULT_MATRIX_PATH)
     scenarios = validate_matrix(matrix)
     return next(scenario for scenario in scenarios if scenario["id"] == scenario_id)
+
+
+def _scenario_list() -> list[dict]:
+    matrix = load_matrix(DEFAULT_MATRIX_PATH)
+    return validate_matrix(matrix)
 
 
 def test_evaluate_response_passes_grounded_pipeline_shaped_response() -> None:
@@ -235,3 +248,78 @@ def test_evaluate_response_detects_site_id_mismatch() -> None:
     assert result["passed"] is False
     assert result["checks"]["site_id_match"] is False
     assert "site_id_match" in result["failures"]
+
+
+def test_response_fixture_loads_and_passes_all_scenarios() -> None:
+    scenarios = _scenario_list()
+    fixture = load_response_fixture(RESPONSE_FIXTURE_PATH)
+    responses_by_id = validate_response_fixture(fixture, scenarios)
+    results = evaluate_response_fixture(scenarios, responses_by_id)
+    summary = build_response_eval_summary(results)
+
+    assert len(responses_by_id) == 14
+    assert summary["total"] == 14
+    assert summary["passed"] == 14
+    assert summary["failed"] == 0
+    assert summary["failed_results"] == []
+
+
+def test_run_response_eval_returns_passed_report() -> None:
+    report, passed = run_response_eval(DEFAULT_MATRIX_PATH, RESPONSE_FIXTURE_PATH)
+
+    assert passed is True
+    assert "Smoke response eval loaded" in report
+    assert "Evaluated responses: 14" in report
+    assert "Passed: 14" in report
+    assert "Failed: 0" in report
+    assert "Status: response eval passed" in report
+
+
+def test_response_eval_reports_failed_scenario() -> None:
+    scenarios = _scenario_list()
+    fixture = load_response_fixture(RESPONSE_FIXTURE_PATH)
+    responses_by_id = validate_response_fixture(fixture, scenarios)
+    responses_by_id["bukgu-01"] = {
+        "scenario_id": "bukgu-01",
+        "site_id": "bukgu_gwangju",
+        "answer": "민원서식은 북구청에서 확인할 수 있습니다.",
+        "sources": [{"title": "민원서식", "url": "https://gwangju.go.kr/example"}],
+        "fallback": False,
+    }
+
+    results = evaluate_response_fixture(scenarios, responses_by_id)
+    summary = build_response_eval_summary(results)
+
+    assert summary["passed"] == 13
+    assert summary["failed"] == 1
+    assert summary["failed_results"][0]["scenario_id"] == "bukgu-01"
+    assert "source_domain" in summary["failed_results"][0]["failures"]
+    assert "no_cross_site_urls" in summary["failed_results"][0]["failures"]
+
+
+def test_validate_response_fixture_rejects_duplicate_scenario_id() -> None:
+    scenarios = _scenario_list()
+    fixture = load_response_fixture(RESPONSE_FIXTURE_PATH)
+    duplicate = dict(fixture["responses"][0])
+    fixture["responses"].append(duplicate)
+
+    with pytest.raises(SmokeResponseFixtureError, match="Duplicate response scenario_id"):
+        validate_response_fixture(fixture, scenarios)
+
+
+def test_validate_response_fixture_rejects_unknown_scenario_id() -> None:
+    scenarios = _scenario_list()
+    fixture = load_response_fixture(RESPONSE_FIXTURE_PATH)
+    fixture["responses"][0] = dict(fixture["responses"][0], scenario_id="unknown-01")
+
+    with pytest.raises(SmokeResponseFixtureError, match="Unknown response scenario_id"):
+        validate_response_fixture(fixture, scenarios)
+
+
+def test_validate_response_fixture_rejects_missing_scenario_id() -> None:
+    scenarios = _scenario_list()
+    fixture = load_response_fixture(RESPONSE_FIXTURE_PATH)
+    fixture["responses"] = fixture["responses"][:-1]
+
+    with pytest.raises(SmokeResponseFixtureError, match="missing scenario_id values"):
+        validate_response_fixture(fixture, scenarios)
