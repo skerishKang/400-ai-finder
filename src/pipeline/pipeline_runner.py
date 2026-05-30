@@ -34,9 +34,11 @@ class PipelineRunner:
         top_k: int = 5,
         max_sources: int = 5,
         max_chars: int = 12000,
+        model: str | None = None,
     ):
         self.output_dir = output_dir
         self.provider = provider or "mock"
+        self.model = model
         self.fetch_provider = fetch_provider  # None = original behavior
         self.max_sitemap_urls = max_sitemap_urls
         self.max_sitemaps = max_sitemaps
@@ -160,7 +162,11 @@ class PipelineRunner:
         md_output = os.path.join(self.output_dir, "answer.md")
         try:
             search_data = self._load_json(search_path)
-            composer = AnswerComposer(provider=self.provider, max_sources=self.max_sources)
+            composer = AnswerComposer(
+                provider=self.provider,
+                max_sources=self.max_sources,
+                model=self.model,
+            )
             result = composer.compose(search_data, max_sources=self.max_sources)
             self._write_json(output, result)
             with open(md_output, "w", encoding="utf-8") as f:

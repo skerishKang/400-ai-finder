@@ -36,6 +36,16 @@ def main() -> None:
         help="LLM provider name (default: mock)",
     )
     parser.add_argument(
+        "--model",
+        default=None,
+        help="LLM model name/ID (default: None)",
+    )
+    parser.add_argument(
+        "--preset",
+        default=None,
+        help="LLM model preset shortcut (default: None)",
+    )
+    parser.add_argument(
         "--snapshot",
         default=None,
         help="Path to snapshot JSON for stable demos (recommended)",
@@ -55,10 +65,22 @@ def main() -> None:
     args = parser.parse_args()
 
     from src.web.mobile_demo import create_app
+    from src.llm import resolve_provider_model
+
+    try:
+        resolved_provider, resolved_model = resolve_provider_model(
+            model=args.model,
+            provider=args.provider,
+            preset=args.preset,
+        )
+    except ValueError as e:
+        print(f"Error resolving LLM: {e}", file=sys.stderr)
+        sys.exit(1)
 
     server = create_app(
         site_id=args.site_id,
-        provider=args.provider,
+        provider=resolved_provider,
+        model=resolved_model,
         snapshot=args.snapshot,
         host=args.host,
         port=args.port,
@@ -71,7 +93,7 @@ def main() -> None:
     print("=" * 60)
     print(f"  URL:     http://localhost:{args.port}")
     print(f"  모드:    {'snapshot' if args.snapshot else 'live'}")
-    print(f"  LLM:     {args.provider}")
+    print(f"  LLM:     {resolved_provider} (model: {resolved_model or 'default'})")
     print()
     print(f"  브라우저에서 http://localhost:{args.port} 를 열어주세요.")
     print(f"  Ctrl+C로 종료합니다.{snap_tag}")

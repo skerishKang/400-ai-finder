@@ -82,7 +82,10 @@ class TestGetProvider:
     def test_builtin_providers(self):
         """All built-in providers resolve to OpenAICompatibleProvider."""
         for name in BUILTIN_PROVIDERS:
-            provider = get_provider(name)
+            if name in ["opencode-go", "opencode-zen", "nous"]:
+                provider = get_provider(name, base_url="https://api.test.com/v1", api_key="test-key")
+            else:
+                provider = get_provider(name)
             assert isinstance(provider, OpenAICompatibleProvider), f"{name} failed"
 
     def test_unknown_provider_raises(self):

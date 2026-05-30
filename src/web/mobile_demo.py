@@ -38,6 +38,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
 
     site_id: str = "bukgu_gwangju"
     provider: str = "mock"
+    model: str | None = None
     snapshot_path: str | None = None
     _runner: Any = None
     _site_name: str = ""
@@ -95,7 +96,9 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 from src.demo import SiteDemoRunner
 
                 self.__class__._runner = SiteDemoRunner(
-                    site_id=self.site_id, provider=self.provider,
+                    site_id=self.site_id,
+                    provider=self.provider,
+                    model=self.model,
                 )
             runner = self._runner
 
@@ -135,6 +138,7 @@ def create_app(
     snapshot: str | None = None,
     host: str = "0.0.0.0",
     port: int = 8080,
+    model: str | None = None,
 ) -> HTTPServer:
     """Create and return an HTTPServer for the mobile chat demo."""
     try:
@@ -147,6 +151,7 @@ def create_app(
     handler = type("Handler", (MobileDemoHandler,), {
         "site_id": site_id,
         "provider": provider,
+        "model": model,
         "snapshot_path": snapshot,
         "_runner": None,
         "_site_name": site_name,

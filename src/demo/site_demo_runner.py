@@ -195,10 +195,12 @@ class SiteDemoRunner:
         provider: str = "mock",
         fetch_provider: str | None = None,
         output_dir: str | None = None,
+        model: str | None = None,
         **pipeline_kwargs: Any,
     ) -> None:
         self.site_id = site_id
         self.provider = provider
+        self.model = model
         self._fetch_provider = fetch_provider
         self._output_dir = output_dir
         self._pipeline_kwargs = pipeline_kwargs
@@ -232,6 +234,7 @@ class SiteDemoRunner:
             output_dir=run_dir,
             provider=self.provider,
             fetch_provider=self._fetch_provider,
+            model=self.model,
             **self._pipeline_kwargs,
         )
 
@@ -363,7 +366,7 @@ class SiteDemoRunner:
             "ok": pipeline_result.get("ok", False),
             "answer_ok": answer_ok,
             "provider": self.provider,
-            "model": answer_data.get("model", "") if answer_data else "",
+            "model": self.model or (answer_data.get("model", "") if answer_data else ""),
             "fetch_provider": self._fetch_provider,
             "output_dir": run_dir,
             "fetched_at": now,
@@ -511,7 +514,9 @@ class SiteDemoRunner:
 
         snapshot["snapshot_mode"] = True
         snapshot["provider"] = self.provider
-        if self.provider == "stub":
+        if self.model:
+            snapshot["model"] = self.model
+        elif self.provider == "stub":
             snapshot["model"] = "stub"
         elif self.provider == "mock":
             snapshot["model"] = ""

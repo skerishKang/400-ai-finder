@@ -24,6 +24,12 @@ from .base import LLMProvider, ProviderResult
 from .mock_provider import MockProvider
 from .stub_provider import StubProvider
 from .openai_compatible_provider import OpenAICompatibleProvider
+from .model_presets import (
+    list_model_presets,
+    get_model_preset,
+    list_models_for_provider,
+    resolve_provider_model,
+)
 
 # ------------------------------------------------------------------
 # Built-in provider definitions
@@ -74,6 +80,19 @@ BUILTIN_PROVIDERS: dict[str, dict[str, Any]] = {
         "base_url": "https://api.groq.com/openai/v1",
         "env_api_key": "GROQ_API_KEY",
         "default_model": "gpt-oss-120b",
+    },
+    "opencode-go": {
+        "description": "OpenCode-Go Gateway",
+        "env_api_key": "OPENCODE_API_KEY",
+        "default_model": "deepseek-v4-flash",
+    },
+    "opencode-zen": {
+        "description": "OpenCode-Zen Gateway",
+        "default_model": "deepseek-v4-flash-free",
+    },
+    "nous": {
+        "description": "Nous Gateway",
+        "default_model": "deepseek/deepseek-v4-flash:free",
     },
 }
 
@@ -148,6 +167,26 @@ def get_provider(provider_name: str | None = None, **overrides: Any) -> LLMProvi
     """
     name = provider_name or os.environ.get("AI_FINDER_LLM_PROVIDER", "mock")
     name = name.strip().lower()
+
+    # --- Check for pending configuration ---
+    if name in ["opencode-go", "opencode-zen", "nous"]:
+        env_prefix = name.upper().replace("-", "_")
+        has_base_url = bool(
+            overrides.get("base_url")
+            or os.environ.get(f"AI_FINDER_{env_prefix}_BASE_URL")
+            or os.environ.get(f"{env_prefix}_BASE_URL")
+        )
+        has_api_key = bool(
+            overrides.get("api_key")
+            or os.environ.get(f"AI_FINDER_{env_prefix}_API_KEY")
+            or os.environ.get(f"{env_prefix}_API_KEY")
+            or (name == "opencode-go" and os.environ.get("OPENCODE_API_KEY"))
+        )
+        if not (has_base_url and has_api_key):
+            raise ValueError(
+                f"Provider '{name}' is pending configuration. "
+                f"Missing environment variables: AI_FINDER_{env_prefix}_BASE_URL and/or API key."
+            )
 
     # --- Mock is a standalone implementation ---
     if name == "mock":
@@ -277,4 +316,8 @@ __all__ = [
     "get_provider",
     "list_providers",
     "BUILTIN_PROVIDERS",
+    "list_model_presets",
+    "get_model_preset",
+    "list_models_for_provider",
+    "resolve_provider_model",
 ]

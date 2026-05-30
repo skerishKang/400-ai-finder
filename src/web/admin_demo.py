@@ -37,6 +37,7 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
 
     site_id: str = "bukgu_gwangju"
     provider: str = "mock"
+    model: str | None = None
     snapshot_path: str | None = None
     _runner: Any = None
     _site_name: str = ""
@@ -80,11 +81,24 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
 
     def _handle_info(self):
         info: dict[str, Any] = {"summary": {}, "profile": {}, "snapshot": {}, "status": {}}
+        
+        from src.llm.model_presets import PRESETS
+        resolved_preset = None
+        recommended_order = None
+        for p_name, p_info in PRESETS.items():
+            if p_info["provider"] == self.provider and p_info["model"] == (self.model or ""):
+                resolved_preset = p_name
+                recommended_order = p_info["recommended_order"]
+                break
+
         info["summary"] = {
             "service_name": "AI 홈페이지 파인더",
             "site_id": self.site_id,
             "site_name": self._site_name,
             "provider": self.provider,
+            "model": self.model or "",
+            "preset": resolved_preset or "-",
+            "recommended_order": recommended_order or "-",
             "fetch_provider": "-",
             "snapshot_path": self.snapshot_path or "",
         }
@@ -128,13 +142,24 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
             if self._runner is None:
                 from src.demo import SiteDemoRunner
                 self.__class__._runner = SiteDemoRunner(
-                    site_id=self.site_id, provider=self.provider,
+                    site_id=self.site_id,
+                    provider=self.provider,
+                    model=self.model,
                 )
             runner = self._runner
             if self.snapshot_path:
                 result = runner.answer_from_snapshot(self.snapshot_path, question=question)
             else:
                 result = runner.answer(question)
+            from src.llm.model_presets import PRESETS
+            resolved_preset = None
+            recommended_order = None
+            for p_name, p_info in PRESETS.items():
+                if p_info["provider"] == self.provider and p_info["model"] == (self.model or ""):
+                    resolved_preset = p_name
+                    recommended_order = p_info["recommended_order"]
+                    break
+
             self._json_response({
                 "site_id": result.get("site_id"),
                 "site_name": result.get("site_name"),
@@ -146,6 +171,8 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "answer_ok": result.get("answer_ok", False),
                 "provider": result.get("provider", ""),
                 "model": result.get("model", ""),
+                "preset": resolved_preset or "-",
+                "recommended_order": recommended_order or "-",
                 "snapshot_mode": result.get("snapshot_mode", False),
                 "fallback_used": result.get("fallback_used", False),
                 "warnings": result.get("warnings", []),
@@ -198,6 +225,7 @@ def create_admin_app(
     snapshot: str | None = None,
     host: str = "0.0.0.0",
     port: int = 8090,
+    model: str | None = None,
 ) -> HTTPServer:
     """Create and return an HTTPServer for the admin dashboard."""
     try:
@@ -209,6 +237,7 @@ def create_admin_app(
     handler = type("AdminHandler", (AdminDemoHandler,), {
         "site_id": site_id,
         "provider": provider,
+        "model": model,
         "snapshot_path": snapshot,
         "_runner": None,
         "_site_name": site_name,

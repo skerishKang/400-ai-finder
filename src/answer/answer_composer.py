@@ -74,9 +74,10 @@ class AnswerComposer:
         max_sources: int = 5,
         temperature: float = 0.2,
         max_tokens: int = 1200,
+        model: str | None = None,
     ):
         if provider is None or isinstance(provider, str):
-            self._provider: LLMProvider = get_provider(provider)
+            self._provider: LLMProvider = get_provider(provider, model=model)
         else:
             self._provider = provider
 

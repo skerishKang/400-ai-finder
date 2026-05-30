@@ -40,6 +40,16 @@ def main() -> None:
         help="LLM provider name (default: mock)",
     )
     parser.add_argument(
+        "--model",
+        default=None,
+        help="LLM model name/ID (default: None)",
+    )
+    parser.add_argument(
+        "--preset",
+        default=None,
+        help="LLM model preset shortcut (default: None)",
+    )
+    parser.add_argument(
         "--fetch-provider",
         default=None,
         help="Fetch provider name (default: from profile, e.g. requests)",
@@ -70,11 +80,23 @@ def main() -> None:
 
     # Lazy import so CLI help is fast
     from src.demo import run_demo
+    from src.llm import resolve_provider_model
+
+    try:
+        resolved_provider, resolved_model = resolve_provider_model(
+            model=args.model,
+            provider=args.provider,
+            preset=args.preset,
+        )
+    except ValueError as e:
+        print(f"Error resolving LLM: {e}", file=sys.stderr)
+        sys.exit(1)
 
     result = run_demo(
         site_id=args.site_id,
         question=args.question,
-        provider=args.provider,
+        provider=resolved_provider,
+        model=resolved_model,
         fetch_provider=args.fetch_provider,
         top_k=args.top_k,
         snapshot=args.snapshot,
