@@ -40,6 +40,17 @@ def _find_site_snapshot(site_id: str) -> str | None:
     return fixture_path if os.path.exists(fixture_path) else None
 
 
+def _resolve_effective_snapshot(
+    startup_snapshot: str | None,
+    server_site_id: str,
+    effective_site_id: str,
+) -> str | None:
+    """Resolve a snapshot for an admin test without crossing site boundaries."""
+    if startup_snapshot and effective_site_id == server_site_id:
+        return startup_snapshot
+    return _find_site_snapshot(effective_site_id)
+
+
 class AdminDemoHandler(BaseHTTPRequestHandler):
     """HTTP handler for the admin dashboard."""
 
@@ -183,8 +194,11 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
             resolved_provider = req_provider or self.provider
             resolved_model = req_model or self.model
 
-        # Snapshot resolution: prefer explicit startup snapshot, then bundled site fixture.
-        effective_snapshot = self.snapshot_path or _find_site_snapshot(effective_site_id)
+        effective_snapshot = _resolve_effective_snapshot(
+            startup_snapshot=self.snapshot_path,
+            server_site_id=self.site_id,
+            effective_site_id=effective_site_id,
+        )
 
         try:
             # Runner cache: reuse if (site_id, provider, model) matches
