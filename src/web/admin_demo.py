@@ -111,6 +111,12 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 recommended_order = p_info["recommended_order"]
                 break
 
+        effective_snapshot = _resolve_effective_snapshot(
+            startup_snapshot=self.snapshot_path,
+            server_site_id=self.site_id,
+            effective_site_id=self.site_id,
+        )
+
         info["summary"] = {
             "service_name": "AI 홈페이지 파인더",
             "site_id": self.site_id,
@@ -120,13 +126,13 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
             "preset": resolved_preset or "-",
             "recommended_order": recommended_order or "-",
             "fetch_provider": "-",
-            "snapshot_path": self.snapshot_path or "",
+            "snapshot_path": effective_snapshot or "",
         }
         profile = self._get_profile_data()
         if profile:
             info["profile"] = profile
             info["summary"]["fetch_provider"] = profile.get("preferred_fetch_provider", "-")
-        snap = self._get_snapshot_data()
+        snap = self._get_snapshot_data(effective_snapshot)
         if snap:
             nav_count = len(
                 snap.get("homepage_map", {})
@@ -135,7 +141,7 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
             )
             info["snapshot"] = {
                 "loaded": True,
-                "path": self.snapshot_path,
+                "path": effective_snapshot,
                 "fetched_at": snap.get("fetched_at", "-"),
                 "nav_link_count": nav_count,
                 "source_count": len(snap.get("sources", [])),
@@ -143,7 +149,7 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
             }
             info["status"]["snapshot_mode"] = snap.get("snapshot_mode", False)
         else:
-            info["snapshot"] = {"loaded": False, "path": self.snapshot_path or ""}
+            info["snapshot"] = {"loaded": False, "path": effective_snapshot or ""}
 
         # Available site profiles list
         from src.site_profiles import list_profiles
@@ -307,15 +313,17 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
         except Exception:
             return None
 
-    def _get_snapshot_data(self) -> dict[str, Any] | None:
-        if self._snapshot_data is not None:
+    def _get_snapshot_data(self, snapshot_path: str | None) -> dict[str, Any] | None:
+        if self._snapshot_data is not None and snapshot_path == self.snapshot_path:
             return self._snapshot_data
-        if not self.snapshot_path:
+        if not snapshot_path:
             return None
         try:
             from src.demo import SiteDemoRunner
-            self.__class__._snapshot_data = SiteDemoRunner.load_snapshot(self.snapshot_path)
-            return self._snapshot_data
+            snapshot_data = SiteDemoRunner.load_snapshot(snapshot_path)
+            if snapshot_path == self.snapshot_path:
+                self.__class__._snapshot_data = snapshot_data
+            return snapshot_data
         except Exception:
             return None
 

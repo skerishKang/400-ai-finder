@@ -146,6 +146,19 @@ class TestAdminDemoHTTP:
         assert data["snapshot"]["nav_link_count"] >= 1
         conn.close()
 
+    def test_get_info_uses_bundled_snapshot_without_startup_snapshot(self, admin_server_without_startup_snapshot):
+        port = admin_server_without_startup_snapshot["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/api/info")
+        resp = conn.getresponse()
+        data = json.loads(resp.read())
+        assert resp.status == 200
+        assert data["summary"]["site_id"] == "bukgu_gwangju"
+        assert data["snapshot"]["loaded"] is True
+        assert data["snapshot"]["path"].endswith("bukgu_gwangju_demo_snapshot.json")
+        assert data["snapshot"]["nav_link_count"] >= 1
+        conn.close()
+
     def test_get_static_css(self, admin_server):
         port = admin_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=5)
