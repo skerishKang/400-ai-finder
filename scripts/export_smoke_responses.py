@@ -16,6 +16,8 @@ from typing import Any
 
 from scripts.run_smoke_eval import (
     DEFAULT_MATRIX_PATH,
+    SmokeResponseFixtureError,
+    SmokeScenarioMatrixError,
     build_response_eval_summary,
     evaluate_response_fixture,
     format_response_eval_summary,
@@ -76,7 +78,9 @@ def export_pipeline_result_response(
     result: dict[str, Any],
 ) -> dict[str, Any]:
     if not isinstance(scenario_id, str) or not scenario_id.strip():
-        raise SmokePipelineExportError("Pipeline result scenario_id must be a non-empty string.")
+        raise SmokePipelineExportError(
+            "Pipeline result scenario_id must be a non-empty string."
+        )
     if not isinstance(result, dict):
         raise SmokePipelineExportError(f"Pipeline result for {scenario_id} must be an object.")
 
@@ -109,7 +113,9 @@ def export_pipeline_results_fixture(data: dict[str, Any]) -> dict[str, Any]:
 
         scenario_id = item.get("scenario_id")
         if not isinstance(scenario_id, str) or not scenario_id.strip():
-            raise SmokePipelineExportError(f"Pipeline result #{index} has an invalid scenario_id.")
+            raise SmokePipelineExportError(
+                f"Pipeline result #{index} has an invalid scenario_id."
+            )
         if scenario_id in seen_ids:
             raise SmokePipelineExportError(f"Duplicate pipeline result scenario_id: {scenario_id}")
         seen_ids.add(scenario_id)
@@ -185,7 +191,11 @@ def main() -> int:
             print(report)
             return 0 if passed else 1
         print(run_export(args.input, args.output))
-    except SmokePipelineExportError as exc:
+    except (
+        SmokePipelineExportError,
+        SmokeResponseFixtureError,
+        SmokeScenarioMatrixError,
+    ) as exc:
         print(f"Smoke response export failed: {exc}")
         return 1
     return 0
