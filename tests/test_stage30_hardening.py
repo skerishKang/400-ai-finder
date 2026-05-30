@@ -109,6 +109,7 @@ def test_admin_demo_graceful_test_error():
     # Make mock runner that raises ValueError (simulate pending provider)
     runner_mock = MagicMock()
     runner_mock.answer.side_effect = ValueError("opencode-go mock pending configuration error")
+    runner_mock.answer_from_snapshot.side_effect = ValueError("opencode-go mock pending configuration error")
 
     handler = MagicMock(spec=AdminDemoHandler)
     handler.site_id = "bukgu_gwangju"
@@ -219,6 +220,8 @@ def test_admin_demo_dynamic_payload_resolution():
         "provider": "opengateway",
         "model": "mimo-v2.5-pro",
     }
+    # Also mock answer_from_snapshot (used when fixture file auto-resolves)
+    runner_mock.answer_from_snapshot.return_value = runner_mock.answer.return_value
 
     # Inject mock runner during init
     with patch("src.demo.SiteDemoRunner", return_value=runner_mock) as mock_runner_cls:
