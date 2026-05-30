@@ -2,7 +2,7 @@
 
 400-ai-finder는 복잡한 기관 홈페이지, 공공기관 홈페이지, 대학 홈페이지, 기업 지원사업 홈페이지를 사용자가 자연어로 쉽게 탐색할 수 있도록 돕는 AI 기반 홈페이지 파인더입니다.
 
-사용자는 정확한 메뉴명이나 행정 용어를 몰라도 “신청서 어디 있어?”, “지원사업 공고 어디서 봐?”, “제출서류 뭐야?”, “담당자 연락처 찾아줘”처럼 질문할 수 있습니다. AI파인더는 홈페이지 구조, 게시판, 공지사항, 첨부문서, 신청 절차를 분석하여 사용자가 원하는 페이지와 문서로 안내합니다.
+사용자는 정확한 메뉴명이나 행정 용어를 몰라도 "신청서 어디 있어?", "지원사업 공고 어디서 봐?", "제출서류 뭐야?", "담당자 연락처 찾아줘"처럼 질문할 수 있습니다. AI파인더는 홈페이지 구조, 게시판, 공지사항, 첨부문서, 신청 절차를 분석하여 사용자가 원하는 페이지와 문서로 안내합니다.
 
 ## 핵심 목표
 
@@ -22,6 +22,103 @@
 5. 신청 절차, 제출서류, 기한, 담당자 정보를 요약합니다.
 6. 답변에 바로가기 링크와 근거를 포함합니다.
 
+## 프로젝트 구조
+
+```
+400-ai-finder/
+├── configs/sites/             # 사이트 프로필 설정 (YAML)
+├── data/
+│   ├── raw/                   # 원본 수집 데이터
+│   ├── processed/             # 가공된 홈페이지 지도 (JSON/MD)
+│   └── index/                 # 검색 인덱스 (JSONL)
+├── docs/                      # 기획·설계 문서
+├── examples/                  # 예시 질문·답변·지도
+├── presentation/              # 발표자료 (대상별 HTML/PPT)
+├── prompts/                   # LLM 프롬프트 템플릿
+├── proposal/                  # 사업계획서·제안서
+├── scripts/                   # 실행 스크립트 (데모, 파이프라인, 유틸리티)
+├── src/
+│   ├── answer/                # AnswerComposer — 근거 기반 답변 생성
+│   ├── crawler/               # 홈페이지 수집 (URL, sitemap, 지도)
+│   ├── demo/                  # SiteDemoRunner — 데모 실행 엔진
+│   ├── diagnostics/           # 사이트 진단
+│   ├── fetch/                 # Fetch Provider (requests, firecrawl, mock)
+│   ├── indexer/               # 문서 색인·보강
+│   ├── llm/                   # LLM Provider 추상화 (mock, stub, openai_compatible)
+│   ├── pipeline/              # 파이프라인 Runner, Smoke Reporter
+│   ├── search/                # 키워드 검색 엔진
+│   ├── site_profiles/         # 사이트 프로필 로더
+│   ├── strategy/              # 전략 라우터 (Fallback 포함)
+│   └── web/                   # 웹 UI (모바일 + 운영자 대시보드)
+│       ├── templates/         # HTML 템플릿 (Jinja-style)
+│       └── static/            # CSS/JS 정적 자산
+│           ├── mobile/        # 모바일 UI (8개 CSS + 1개 JS)
+│           └── admin/         # 운영자 UI (CSS + JS)
+└── tests/                     # pytest 테스트 스위트 + fixtures
+```
+
+## 주요 기능 및 특징
+
+### 📱 모바일 ChatGPT형 사용자 UI (http://localhost:8400)
+- ChatGPT 스타일의 1:1 대화형 채팅 인터페이스입니다.
+- 하단 고정 입력창, 메시지 누적, 추천 질문 Chip, 답변 하단 관련 홈페이지 카드 구조를 제공합니다.
+- 라이트모드 기본, 다크모드 토글 지원, 핑크색 포인트 버튼입니다.
+- CSS/JS가 파일별로 분리되어 유지보수가 용이합니다 (총 8개 CSS + 1개 JS).
+- 사이드바 접기/펼치기 기능으로 채팅 이력을 관리합니다.
+- 일반 사용자 관점에서 기술적인 용어(`provider`, `model`, `preset` 등)가 전혀 노출되지 않습니다.
+
+### 🖥️ 운영자 대시보드 (http://localhost:8090)
+- **서비스 및 사이트 정보 조회**: 현재 가동 중인 서비스명, 사이트 ID, 프로필 세부 사항 및 수집된 홈페이지 구조 요약을 모니터링합니다.
+- **LLM 모델 선택 패널**: 대시보드 화면에서 테스트용 LLM 프리셋 조합을 실시간으로 변경해가며 응답 품질을 비교·테스트할 수 있습니다.
+  - **DeepSeek 기본** (preset: `deepseek-primary` / model: `deepseek-v4-flash` / provider: `opencode-go`)
+  - **MiMo 기본** (preset: `mimo-primary` / model: `mimo-v2.5-pro` / provider: `opengateway`)
+  - **Step 기본** (preset: `step-primary` / model: `stepfun-ai/step-3.5-flash` / provider: `nvidia`)
+- **실시간 데모 테스트**: 질문을 직접 입력하거나 빠른 버튼으로 테스트하고, 상세 통계(Fallback 여부, 출처 점수, 경고 등)와 출처 목록 테이블을 점검할 수 있습니다.
+- API 응답에 `provider`, `model`, `preset` 정보가 포함되어 어떤 LLM이 응답했는지 즉시 확인할 수 있습니다.
+
+### ⚙️ Model-First CLI 및 Preset 시스템
+- CLI 옵션을 명시하지 않을 경우 **DeepSeek 기본** 조합(`deepseek-primary`)이 자동 적용됩니다.
+- `--provider`, `--model`, `--preset` 인자를 통해 실행 시점에 유연하게 동적 재정의(override)할 수 있습니다.
+- 모델 이름만 지정하면 프리셋에 정의된 provider를 자동으로 찾아 연결합니다 (Model-First 해석).
+- 프리셋 순서: DeepSeek(1순위) → MiMo(2순위) → Step(3순위).
+
+### 🧪 StubProvider — API 키 없는 종단간 테스트
+- `stub` 프로바이더는 실제 LLM API 호출 없이 source context를 파싱하여 현실적인 grounded answer를 생성합니다.
+- API 키 없이 전체 파이프라인을 종단간(end-to-end) 테스트할 수 있습니다.
+- `fail_on` 옵션으로 에러 처리 경로를 강제 테스트할 수 있습니다.
+
+### 📦 Snapshot 안정 데모 지원
+- `--snapshot` 인자를 통해 사전 수집 및 가공된 스냅샷 JSON 파일을 주입하면, 외부 네트워크 및 API 호출 없이도 시연 대화가 완벽하게 동작합니다.
+- 오프라인 환경, 보안 구역, 네트워크 차단 환경에서도 안정적으로 시연할 수 있습니다.
+
+### 🛡️ 실패 대응 Hardening (예외 복구)
+- **API Key 누락**: `Pending configuration` 에러를 명확히 반환합니다.
+- **API 통신 타임아웃/커넥션 에러**: 백엔드가 Crash되지 않고 안전하게 포착합니다.
+- **사용자 안내**: 에러 시 `"현재 AI 답변을 생성할 수 없습니다..."` 메시지를 표시합니다.
+- **Fallback 출처**: 검색 결과가 없으면 홈페이지 지도의 메뉴 링크를 출처로 제공합니다.
+- **Snapshot 모드**: 네트워크/API 불가 환경에서도 사전 수집 데이터로 안정 동작합니다.
+
+### 🔒 보안 주의사항
+- **API Key 노출 금지**: 실제 외부 LLM 공급자 API Key는 소스코드, 테스트 코드, 설정 파일(.env 등)에 하드코딩되어서는 안 됩니다. `.env.example` 파일에 환경변수 이름만 기재하고, `.gitignore`에 `.env`가 포함되어 있는지 확인하십시오.
+- **로컬 Mock/Stub 테스트**: 로컬 개발 및 테스트 시에는 `mock` 또는 `stub` 프로바이더를 활용하십시오. 두 프로바이더 모두 API 키를 요구하지 않습니다.
+- **Pending Configuration 검증**: `opencode-go`, `opencode-zen`, `nous` 등 환경변수 기반 프로바이더는 Base URL과 API Key가 모두 설정되어야 동작합니다. 미설정 시 명확한 에러를 반환합니다.
+- **프로덕션 배포 시**: `.env` 파일에 실제 키를 넣고, Git에 커밋하지 마십시오.
+
+## LLM 프로바이더 목록
+
+| 프로바이더 | 설명 | 기본 모델 | API Key 필요 |
+|-----------|------|----------|-------------|
+| `mock` | 테스트용 고정 응답 | mock | ❌ |
+| `stub` | Source 기반 시뮬레이션 응답 | stub | ❌ |
+| `opencode-go` | OpenCode-Go Gateway | deepseek-v4-flash | ✅ |
+| `opengateway` | OpenGateway | mimo-v2.5-pro | ✅ |
+| `nvidia` | NVIDIA NIM | openai/gpt-oss-120b | ✅ |
+| `kilocode` | KiloCode | deepseek/deepseek-v4-flash:free | ✅ |
+| `mistral` | Mistral AI | mistral-medium-3.5 | ✅ |
+| `groq` | Groq | gpt-oss-120b | ✅ |
+| `opencode-zen` | OpenCode-Zen Gateway | deepseek-v4-flash-free | ✅ |
+| `nous` | Nous Gateway | deepseek/deepseek-v4-flash:free | ✅ |
+
 ## 발표자료와 제안서
 
 외부 설명과 제안을 위한 자료는 별도 폴더에 정리합니다.
@@ -33,30 +130,16 @@
 - `presentation/audience-consumer/`: 일반 소비자 대상 쉬운 소개자료
 - `proposal/`: 사업계획서와 PoC 제안서 초안
 
-## 로컬 모델 사용 여부
-
-로컬 모델은 필수 조건이 아닙니다. 초기 구조는 API 모델, 로컬 모델, 하이브리드 모델을 모두 붙일 수 있도록 설계합니다.
-
-- 빠른 MVP: API 모델 또는 기존 LLM 연결
-- 기관 납품형/보안형: 로컬 모델 또는 내부망 모델
-- 품질형: API 모델 + 검색 근거 + 로컬 캐시
-
-중요한 것은 모델 종류가 아니라, 반드시 수집된 문서와 URL 근거에 기반해 답변하도록 만드는 것입니다.
-
-## 장기 방향
-
-400-ai-finder는 단순 챗봇이 아니라 홈페이지를 사람 말로 번역해주는 AI 내비게이터를 목표로 합니다.
-
 ## 데모 실행
 
-### 빠른 시작 (모든 화면 한 번에)
+### 빠른 시작 (모바일 및 어드민 통합 실행)
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
     --site-id bukgu_gwangju \
-    --provider mock \
     --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json
 ```
+*(옵션에 `--provider`를 생략하거나 미지정 시 기본 DeepSeek 프리셋 설정이 적용되며, 스냅샷 모드로 안정 구동됩니다.)*
 
 실행 후 브라우저에서 접속:
 
@@ -70,7 +153,6 @@ PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/run_mobile_demo.py \
     --site-id bukgu_gwangju \
-    --provider mock \
     --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json \
     --port 8400
 ```
@@ -80,11 +162,36 @@ PYTHONPATH=. .venv/bin/python scripts/run_mobile_demo.py \
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/run_admin_demo.py \
     --site-id bukgu_gwangju \
-    --provider mock \
     --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json \
     --port 8090
 ```
 
-### 시연 시나리오
+### CLI 옵션
 
-자세한 시연 순서와 대화 스크립트는 [`docs/demo-scenario.md`](docs/demo-scenario.md)를 참고하세요.
+| 옵션 | 설명 | 기본값 |
+|------|------|--------|
+| `--site-id` | 사이트 프로필 ID (필수) | - |
+| `--provider` | LLM 프로바이더 이름 | 자동 해석 (deepseek-primary) |
+| `--model` | LLM 모델 이름 | 프리셋에 따라 자동 결정 |
+| `--preset` | 프리셋 이름 (`deepseek-primary`, `mimo-primary`, `step-primary`) | - |
+| `--snapshot` | 스냅샷 JSON 파일 경로 | - |
+| `--mobile-port` | 모바일 서버 포트 | 8400 |
+| `--admin-port` | 운영자 서버 포트 | 8090 |
+| `--host` | 바인드 호스트 | 0.0.0.0 |
+
+### 프리셋 미지정 시 동작
+
+`--provider`, `--model`, `--preset` 모두 지정하지 않으면 `resolve_provider_model()`이 자동으로 `deepseek-primary` 프리셋을 선택합니다:
+
+```
+DeepSeek (1순위) → MiMo (2순위) → Step (3순위)
+```
+
+## 테스트 실행
+
+```bash
+PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
+```
+
+- 전체 테스트는 API 키 없이 실행 가능합니다 (`mock`, `stub` 프로바이더 사용).
+- `tests/fixtures/bukgu_gwangju_demo_snapshot.json` 파일을 스냅샷 테스트에 활용합니다.
