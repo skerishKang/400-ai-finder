@@ -3,8 +3,8 @@
 Stage 65 is still fully offline. This module does not call live providers,
 fetch providers, external networks, Firecrawl, or the app pipeline. It only
 selects one scenario from the smoke matrix, builds one Stage 62-compatible
-result payload with deterministic fake-adapter data, and writes it through the
-Stage 60 artifact writer.
+result payload through the Stage 72 adapter interface defaulting to fake data,
+and writes it through the Stage 60 artifact writer.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.run_smoke_eval import DEFAULT_MATRIX_PATH, load_matrix, validate_matrix
-from scripts.single_live_smoke_fake_adapter import build_fake_single_live_result_payload
+from scripts.single_live_smoke_adapter import build_single_live_adapter_payload
 from scripts.write_live_smoke_artifact import build_live_smoke_artifact
 
 
@@ -39,7 +39,7 @@ def find_single_scenario(scenarios: list[dict[str, Any]], scenario_id: str) -> d
 
 def build_single_scenario_payload(scenario: dict[str, Any]) -> dict[str, Any]:
     """Build one Stage 62-compatible dry result payload without live calls."""
-    return build_fake_single_live_result_payload(scenario)
+    return build_single_live_adapter_payload(scenario)
 
 
 def build_single_live_smoke_dry_payload(
