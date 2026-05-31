@@ -115,3 +115,8 @@ def test_stage126_real_adapter_placeholder_does_not_iterate_scenario_fields() ->
 def test_stage128_real_adapter_placeholder_does_not_require_dict_like_scenario() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(object())  # type: ignore[arg-type]
+
+
+def test_stage130_real_adapter_placeholder_does_not_validate_none_scenario() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(None)  # type: ignore[arg-type]
