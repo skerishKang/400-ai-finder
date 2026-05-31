@@ -39,6 +39,11 @@ class _ExplodingBoolScenario:
         raise AssertionError("scenario truthiness should not be evaluated")
 
 
+class _ExplodingLenScenario:
+    def __len__(self) -> int:
+        raise AssertionError("scenario length should not be checked")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -140,3 +145,8 @@ def test_stage132_real_adapter_placeholder_does_not_repr_scenario() -> None:
 def test_stage134_real_adapter_placeholder_does_not_evaluate_scenario_truthiness() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_ExplodingBoolScenario())  # type: ignore[arg-type]
+
+
+def test_stage136_real_adapter_placeholder_does_not_check_scenario_length() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_ExplodingLenScenario())  # type: ignore[arg-type]
