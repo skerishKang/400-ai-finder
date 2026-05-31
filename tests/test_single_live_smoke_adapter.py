@@ -9,6 +9,7 @@ from scripts.single_live_smoke_adapter import (
     get_single_scenario_adapter,
     get_single_scenario_adapter_name,
     supported_single_scenario_adapter_names_message,
+    unsupported_single_scenario_adapter_error_message,
 )
 from scripts.single_live_smoke_fake_adapter import (
     FAKE_SINGLE_LIVE_ADAPTER_NAME,
@@ -145,3 +146,12 @@ def test_stage84_payload_helper_unsupported_adapter_error_lists_supported_names(
     message = str(exc_info.value)
     assert f"Unsupported single-scenario adapter: {REAL_SINGLE_LIVE_ADAPTER_NAME}" in message
     assert f"Supported adapters: {FAKE_SINGLE_LIVE_ADAPTER_NAME}" in message
+
+
+def test_stage86_unsupported_adapter_error_message_helper_matches_selector_error() -> None:
+    expected_message = unsupported_single_scenario_adapter_error_message("unknown-adapter")
+
+    with pytest.raises(SingleLiveSmokeAdapterError) as exc_info:
+        get_single_scenario_adapter("unknown-adapter")
+
+    assert str(exc_info.value) == expected_message
