@@ -21,6 +21,11 @@ def _scenario_by_id(scenario_id: str) -> dict:
     return next(scenario for scenario in scenarios if scenario["id"] == scenario_id)
 
 
+class _ExplodingScenario(dict):
+    def __getitem__(self, key: object) -> object:
+        raise AssertionError(f"scenario field should not be read: {key}")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -90,3 +95,8 @@ def test_stage120_real_adapter_placeholder_does_not_mutate_nested_scenario_data(
 def test_stage122_real_adapter_placeholder_does_not_require_scenario_shape() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload({})
+
+
+def test_stage124_real_adapter_placeholder_does_not_inspect_scenario_fields() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_ExplodingScenario())
