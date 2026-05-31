@@ -204,3 +204,10 @@ def test_stage94_none_payload_adapter_name_uses_fake_adapter() -> None:
 def test_stage96_none_adapter_selector_uses_fake_adapter() -> None:
     assert get_single_scenario_adapter_name(None) == FAKE_SINGLE_LIVE_ADAPTER_NAME
     assert get_single_scenario_adapter(None) is build_fake_single_live_result_payload
+
+
+def test_stage98_whitespace_adapter_selector_uses_fake_adapter() -> None:
+    whitespace_name = "   "
+
+    assert get_single_scenario_adapter_name(whitespace_name) == FAKE_SINGLE_LIVE_ADAPTER_NAME
+    assert get_single_scenario_adapter(whitespace_name) is build_fake_single_live_result_payload
