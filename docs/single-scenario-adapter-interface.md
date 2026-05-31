@@ -1,6 +1,6 @@
 # Single-Scenario Adapter Interface
 
-Stage 73 documents the Stage 72 adapter interface skeleton. Stage 75 adds the Stage 74 real adapter placeholder boundary. Stage 77 notes the Stage 76 selector test coverage. Stage 79 documents the Stage 78 adapter allowlist. Stage 81 documents the Stage 80 adapter name normalization behavior.
+Stage 73 documents the Stage 72 adapter interface skeleton. Stage 75 adds the Stage 74 real adapter placeholder boundary. Stage 77 notes the Stage 76 selector test coverage. Stage 79 documents the Stage 78 adapter allowlist. Stage 81 documents the Stage 80 adapter name normalization behavior. Stage 83 documents the Stage 82 adapter name type guard.
 
 This document is documentation-only. It does not add execution behavior.
 
@@ -12,12 +12,14 @@ This document is documentation-only. It does not add execution behavior.
 | `scripts/single_live_smoke_fake_adapter.py` | Deterministic offline payload builder. |
 | `scripts/single_live_smoke_real_adapter.py` | Future real adapter placeholder. Importable, but raises if called. |
 | `scripts/run_single_live_smoke_dry.py` | One-scenario dry runner that now calls the adapter helper. |
-| `tests/test_single_live_smoke_adapter.py` | Contract tests for adapter selection, including selector normalization, Stage 76 payload-helper selector coverage, and Stage 78 allowlist coverage. |
+| `tests/test_single_live_smoke_adapter.py` | Contract tests for adapter selection, including selector type guarding, selector normalization, Stage 76 payload-helper selector coverage, and Stage 78 allowlist coverage. |
 | `tests/test_single_live_smoke_real_adapter_placeholder.py` | Contract tests proving the placeholder is inert. |
 
 ## Current behavior
 
 The default adapter name is `fake-single-scenario-live-adapter`.
+
+Adapter names must be `str` or `None`. Non-string adapter names fail with `SingleLiveSmokeAdapterError` before whitespace normalization.
 
 Adapter names are trimmed before selection. Empty or whitespace-only adapter names use the default fake adapter. Matching remains case-sensitive.
 
@@ -35,7 +37,7 @@ The dry runner still produces one Stage 62-compatible payload, writes it through
 
 ## Boundary
 
-Stage 72 adds an interface seam. Stage 74 adds an inert placeholder. Stage 76 hardens selector tests. Stage 78 adds an explicit allowlist. Stage 80 normalizes adapter names by trimming outer whitespace while preserving case-sensitive matching. None of these stages add a broader execution path.
+Stage 72 adds an interface seam. Stage 74 adds an inert placeholder. Stage 76 hardens selector tests. Stage 78 adds an explicit allowlist. Stage 80 normalizes adapter names by trimming outer whitespace while preserving case-sensitive matching. Stage 82 rejects non-string adapter names with `SingleLiveSmokeAdapterError` before normalization. None of these stages add a broader execution path.
 
 The current successful path remains:
 
