@@ -1,13 +1,21 @@
 import pytest
 
 from scripts.export_live_smoke_artifact import export_live_artifact_to_pipeline_results
+from scripts.export_smoke_responses import export_pipeline_results_fixture
 from scripts.run_single_live_smoke_dry import (
     SingleLiveSmokeDryRunError,
     build_single_live_smoke_dry_artifact,
     build_single_live_smoke_dry_payload,
     find_single_scenario,
 )
-from scripts.run_smoke_eval import DEFAULT_MATRIX_PATH, load_matrix, validate_matrix
+from scripts.run_smoke_eval import (
+    DEFAULT_MATRIX_PATH,
+    build_response_eval_summary,
+    evaluate_response_fixture,
+    load_matrix,
+    validate_matrix,
+    validate_response_fixture,
+)
 from scripts.write_live_smoke_artifact import build_live_smoke_artifact
 
 
@@ -118,4 +126,24 @@ def test_stage65_artifact_exports_to_pipeline_shape() -> None:
             "answer_ok": True,
             "fallback_used": False,
         },
+    }
+
+
+def test_stage65_exported_single_result_passes_existing_judge_for_single_slice() -> None:
+    artifact = build_single_live_smoke_dry_artifact(
+        "bukgu-01",
+        created_at="2026-05-30T15:00:00Z",
+    )
+    exported = export_live_artifact_to_pipeline_results(artifact)
+    exported_fixture = export_pipeline_results_fixture(exported)
+    scenarios = [scenario for scenario in _scenarios() if scenario["id"] == "bukgu-01"]
+    responses_by_id = validate_response_fixture(exported_fixture, scenarios)
+    results = evaluate_response_fixture(scenarios, responses_by_id)
+    summary = build_response_eval_summary(results)
+
+    assert summary == {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "failed_results": [],
     }
