@@ -96,3 +96,24 @@ def test_stage80_adapter_name_matching_remains_case_sensitive() -> None:
 def test_stage80_padded_unknown_adapter_name_is_trimmed_then_rejected() -> None:
     with pytest.raises(SingleLiveSmokeAdapterError, match="Unsupported single-scenario adapter: unknown-adapter"):
         get_single_scenario_adapter("  unknown-adapter\t")
+
+
+def test_stage82_non_string_adapter_name_is_rejected_before_normalization() -> None:
+    with pytest.raises(
+        SingleLiveSmokeAdapterError,
+        match="Adapter name must be a string or None: int",
+    ):
+        get_single_scenario_adapter(123)  # type: ignore[arg-type]
+
+
+def test_stage82_non_string_payload_adapter_name_is_rejected() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+
+    with pytest.raises(
+        SingleLiveSmokeAdapterError,
+        match="Adapter name must be a string or None: list",
+    ):
+        build_single_live_adapter_payload(
+            scenario,
+            adapter_name=[],  # type: ignore[arg-type]
+        )

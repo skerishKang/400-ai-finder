@@ -28,6 +28,10 @@ def get_single_scenario_adapter_name(adapter_name: str | None = None) -> str:
     """Return the selected adapter name; currently only the fake adapter exists."""
     if adapter_name is None:
         return DEFAULT_SINGLE_SCENARIO_ADAPTER_NAME
+    if not isinstance(adapter_name, str):
+        raise SingleLiveSmokeAdapterError(
+            f"Adapter name must be a string or None: {type(adapter_name).__name__}"
+        )
     normalized_name = adapter_name.strip()
     if normalized_name == "":
         return DEFAULT_SINGLE_SCENARIO_ADAPTER_NAME
