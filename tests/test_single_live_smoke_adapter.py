@@ -199,3 +199,8 @@ def test_stage94_none_payload_adapter_name_uses_fake_adapter() -> None:
         scenario,
         adapter_name=None,
     ) == build_fake_single_live_result_payload(scenario)
+
+
+def test_stage96_none_adapter_selector_uses_fake_adapter() -> None:
+    assert get_single_scenario_adapter_name(None) == FAKE_SINGLE_LIVE_ADAPTER_NAME
+    assert get_single_scenario_adapter(None) is build_fake_single_live_result_payload
