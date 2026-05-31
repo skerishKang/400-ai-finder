@@ -85,3 +85,8 @@ def test_stage120_real_adapter_placeholder_does_not_mutate_nested_scenario_data(
         build_real_single_live_result_payload(scenario)
 
     assert scenario == expected_scenario
+
+
+def test_stage122_real_adapter_placeholder_does_not_require_scenario_shape() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload({})
