@@ -4,14 +4,22 @@ import pytest
 
 from scripts.run_smoke_eval import (
     DEFAULT_MATRIX_PATH,
+    LIVE_EVAL_ENV_VAR,
+    LIVE_PREFLIGHT_CONFIG_NAMES,
+    SmokeLiveEvalGuardError,
     SmokeResponseFixtureError,
     SmokeScenarioMatrixError,
+    build_live_eval_preflight,
     build_response_eval_summary,
     build_summary,
     evaluate_response,
     evaluate_response_fixture,
+    format_live_eval_preflight,
+    is_live_eval_enabled,
     load_matrix,
     load_response_fixture,
+    run_live_eval_guard,
+    run_live_eval_preflight,
     run_response_eval,
     run_schema_eval,
     validate_matrix,
@@ -323,3 +331,71 @@ def test_validate_response_fixture_rejects_missing_scenario_id() -> None:
 
     with pytest.raises(SmokeResponseFixtureError, match="missing scenario_id values"):
         validate_response_fixture(fixture, scenarios)
+
+
+def test_stage64_live_opt_in_defaults_to_disabled() -> None:
+    env = {}
+
+    assert is_live_eval_enabled(env) is False
+
+    with pytest.raises(SmokeLiveEvalGuardError, match=LIVE_EVAL_ENV_VAR):
+        run_live_eval_guard(env)
+
+
+def test_stage64_live_guard_remains_non_executing_even_when_enabled() -> None:
+    env = {LIVE_EVAL_ENV_VAR: "true"}
+
+    report = run_live_eval_guard(env)
+
+    assert "explicitly enabled" in report
+    assert "not implemented" in report
+    assert "No live provider, fetch, or pipeline calls were made." in report
+
+
+def test_stage64_preflight_reports_missing_config_without_values() -> None:
+    summary = build_live_eval_preflight({})
+    report = format_live_eval_preflight(summary)
+
+    assert summary["live_enabled"] is False
+    assert summary["missing"] == list(LIVE_PREFLIGHT_CONFIG_NAMES)
+    assert "Live opt-in: disabled" in report
+    for name in LIVE_PREFLIGHT_CONFIG_NAMES:
+        assert f"- {name}: missing" in report
+    assert "No live provider, fetch, network, or pipeline calls were made." in report
+
+
+def test_stage64_preflight_reports_set_missing_only_and_redacts_values() -> None:
+    env = {
+        LIVE_EVAL_ENV_VAR: "true",
+        "AI_FINDER_LIVE_PROVIDER": "secret-provider-token-123",
+        "AI_FINDER_LIVE_FETCH_PROVIDER": "secret-fetch-token-456",
+    }
+
+    summary = build_live_eval_preflight(env)
+    report = run_live_eval_preflight(env)
+
+    assert summary["live_enabled"] is True
+    assert summary["missing"] == []
+    for name in LIVE_PREFLIGHT_CONFIG_NAMES:
+        assert f"- {name}: set" in report
+    assert "secret-provider-token-123" not in report
+    assert "secret-fetch-token-456" not in report
+    assert "Status: preflight completed" in report
+    assert "No live provider, fetch, network, or pipeline calls were made." in report
+
+
+def test_stage64_preflight_does_not_treat_non_true_opt_in_as_enabled() -> None:
+    env = {
+        LIVE_EVAL_ENV_VAR: "1",
+        "AI_FINDER_LIVE_PROVIDER": "provider-name-should-not-print",
+        "AI_FINDER_LIVE_FETCH_PROVIDER": "fetch-name-should-not-print",
+    }
+
+    summary = build_live_eval_preflight(env)
+    report = format_live_eval_preflight(summary)
+
+    assert summary["live_enabled"] is False
+    assert summary["missing"] == []
+    assert "Live opt-in: disabled" in report
+    assert "provider-name-should-not-print" not in report
+    assert "fetch-name-should-not-print" not in report
