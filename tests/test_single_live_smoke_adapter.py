@@ -12,6 +12,7 @@ from scripts.single_live_smoke_fake_adapter import (
     FAKE_SINGLE_LIVE_ADAPTER_NAME,
     build_fake_single_live_result_payload,
 )
+from scripts.single_live_smoke_real_adapter import REAL_SINGLE_LIVE_ADAPTER_NAME
 
 
 def _scenario_by_id(scenario_id: str) -> dict:
@@ -49,3 +50,22 @@ def test_stage72_adapter_payload_preserves_fallback_shape() -> None:
     assert payload["status"] == "fallback"
     assert payload["sources"] == []
     assert payload["fallback_used"] is True
+
+
+def test_stage76_empty_adapter_name_payload_still_uses_fake_adapter() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+
+    assert build_single_live_adapter_payload(
+        scenario,
+        adapter_name="",
+    ) == build_fake_single_live_result_payload(scenario)
+
+
+def test_stage76_real_placeholder_name_is_rejected_by_payload_helper() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+
+    with pytest.raises(SingleLiveSmokeAdapterError, match="Unsupported single-scenario adapter"):
+        build_single_live_adapter_payload(
+            scenario,
+            adapter_name=REAL_SINGLE_LIVE_ADAPTER_NAME,
+        )
