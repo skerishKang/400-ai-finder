@@ -16,6 +16,7 @@ from scripts.single_live_smoke_fake_adapter import (
 )
 
 SingleScenarioAdapter = Callable[[dict[str, Any]], dict[str, Any]]
+SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES = (FAKE_SINGLE_LIVE_ADAPTER_NAME,)
 DEFAULT_SINGLE_SCENARIO_ADAPTER_NAME = FAKE_SINGLE_LIVE_ADAPTER_NAME
 
 
@@ -38,6 +39,10 @@ def get_single_scenario_adapter(adapter_name: str | None = None) -> SingleScenar
     changing this default.
     """
     selected_name = get_single_scenario_adapter_name(adapter_name)
+    if selected_name not in SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES:
+        raise SingleLiveSmokeAdapterError(
+            f"Unsupported single-scenario adapter: {selected_name}"
+        )
     if selected_name == FAKE_SINGLE_LIVE_ADAPTER_NAME:
         return build_fake_single_live_result_payload
     raise SingleLiveSmokeAdapterError(
