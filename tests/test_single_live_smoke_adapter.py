@@ -155,3 +155,14 @@ def test_stage86_unsupported_adapter_error_message_helper_matches_selector_error
         get_single_scenario_adapter("unknown-adapter")
 
     assert str(exc_info.value) == expected_message
+
+
+def test_stage88_padded_real_placeholder_name_is_trimmed_then_rejected() -> None:
+    padded_name = f"  {REAL_SINGLE_LIVE_ADAPTER_NAME}\n"
+
+    with pytest.raises(SingleLiveSmokeAdapterError) as exc_info:
+        get_single_scenario_adapter(padded_name)
+
+    message = str(exc_info.value)
+    assert f"Unsupported single-scenario adapter: {REAL_SINGLE_LIVE_ADAPTER_NAME}" in message
+    assert f"Supported adapters: {FAKE_SINGLE_LIVE_ADAPTER_NAME}" in message
