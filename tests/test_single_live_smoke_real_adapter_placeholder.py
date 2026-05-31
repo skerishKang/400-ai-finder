@@ -41,3 +41,14 @@ def test_stage74_default_adapter_remains_fake() -> None:
 def test_stage74_real_adapter_is_not_selectable_yet() -> None:
     with pytest.raises(SingleLiveSmokeAdapterError, match="Unsupported single-scenario adapter"):
         get_single_scenario_adapter(REAL_SINGLE_LIVE_ADAPTER_NAME)
+
+
+def test_stage112_real_adapter_placeholder_error_message_points_to_fake_path() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError) as exc_info:
+        build_real_single_live_result_payload(scenario)
+
+    assert str(exc_info.value) == (
+        "Real single-scenario adapter is not implemented. Use the fake adapter path."
+    )
