@@ -1,0 +1,51 @@
+import pytest
+
+from scripts.run_smoke_eval import DEFAULT_MATRIX_PATH, load_matrix, validate_matrix
+from scripts.single_live_smoke_adapter import (
+    DEFAULT_SINGLE_SCENARIO_ADAPTER_NAME,
+    SingleLiveSmokeAdapterError,
+    build_single_live_adapter_payload,
+    get_single_scenario_adapter,
+    get_single_scenario_adapter_name,
+)
+from scripts.single_live_smoke_fake_adapter import (
+    FAKE_SINGLE_LIVE_ADAPTER_NAME,
+    build_fake_single_live_result_payload,
+)
+
+
+def _scenario_by_id(scenario_id: str) -> dict:
+    scenarios = validate_matrix(load_matrix(DEFAULT_MATRIX_PATH))
+    return next(scenario for scenario in scenarios if scenario["id"] == scenario_id)
+
+
+def test_stage72_default_adapter_name_is_fake_adapter() -> None:
+    assert DEFAULT_SINGLE_SCENARIO_ADAPTER_NAME == FAKE_SINGLE_LIVE_ADAPTER_NAME
+    assert get_single_scenario_adapter_name() == FAKE_SINGLE_LIVE_ADAPTER_NAME
+    assert get_single_scenario_adapter_name("") == FAKE_SINGLE_LIVE_ADAPTER_NAME
+
+
+def test_stage72_default_adapter_resolves_to_fake_adapter_function() -> None:
+    assert get_single_scenario_adapter() is build_fake_single_live_result_payload
+    assert get_single_scenario_adapter(FAKE_SINGLE_LIVE_ADAPTER_NAME) is build_fake_single_live_result_payload
+
+
+def test_stage72_unsupported_adapter_name_is_rejected() -> None:
+    with pytest.raises(SingleLiveSmokeAdapterError, match="Unsupported single-scenario adapter"):
+        get_single_scenario_adapter("real-provider")
+
+
+def test_stage72_adapter_payload_matches_fake_payload() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+
+    assert build_single_live_adapter_payload(scenario) == build_fake_single_live_result_payload(scenario)
+
+
+def test_stage72_adapter_payload_preserves_fallback_shape() -> None:
+    scenario = _scenario_by_id("gwangju-07")
+    payload = build_single_live_adapter_payload(scenario)
+
+    assert payload == build_fake_single_live_result_payload(scenario)
+    assert payload["status"] == "fallback"
+    assert payload["sources"] == []
+    assert payload["fallback_used"] is True
