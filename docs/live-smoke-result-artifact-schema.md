@@ -1,28 +1,46 @@
 # Live Smoke Result Artifact Schema
 
-Stage 56 defines the persisted result artifact shape for a future live smoke eval run. Stage 58 adds the reusable offline helper that converts this artifact shape into the existing Stage 43 pipeline-shaped result format and can immediately evaluate it through the existing response judge path. Stage 60 adds the offline writer helper that serializes already-produced result dictionaries into this artifact shape.
+Stage 56 defines the persisted result artifact shape for a future live smoke eval run. Stage 58 adds the reusable offline helper that converts this artifact shape into the existing Stage 43 pipeline-shaped result format and can immediately evaluate it through the existing response judge path. Stage 60 adds the offline writer helper that serializes already-produced result dictionaries into this artifact shape. Stage 62 defines the minimal payload contract that a future live runner should pass into the Stage 60 writer.
 
-This document is design-only for the artifact shape itself. It does not enable live provider calls, fetch calls, network calls, or app pipeline execution. The current writer/export helper paths are also fully offline and only normalize already-produced JSON.
+This document is design-only for the artifact and runner payload shapes. It does not enable live provider calls, fetch calls, network calls, or app pipeline execution. The current writer/export/helper/test paths are fully offline and only normalize already-produced JSON.
 
 ## 1. Boundary
 
-There are three related but different JSON shapes:
+There are four related but different JSON shapes:
 
-1. **Live smoke result artifact**
+1. **Live runner result payload**
+   - Minimal already-produced result dictionaries expected from a future live runner before Stage 60 artifact writing.
+   - Captured by `tests/fixtures/live_runner_result_payloads.json` and `tests/test_live_runner_result_payload_contract.py`.
+   - Contains the core answer/source/status fields needed by the writer.
+   - Does not require artifact-level `timing_ms` or `diagnostics`.
+
+2. **Live smoke result artifact**
    - Captures one full live smoke eval run.
    - Contains run metadata, scenario-level status, timing summaries, normalized answers, normalized sources, fallback/error summaries, and redaction-safe diagnostics.
    - This is the future persisted output of a live run.
    - Stage 60 can write this shape from already-produced result dictionaries.
 
-2. **Stage 43 pipeline/demo-shaped result**
+3. **Stage 43 pipeline/demo-shaped result**
    - Intermediate structure accepted by `scripts/export_smoke_responses.py`.
    - Contains `results[]` items with `{scenario_id, result}`.
-   - Stage 60 can accept this shape as input when writing an artifact.
+   - Stage 58 converts live artifacts into this shape.
+   - Stage 60 can also accept this shape as input when writing an artifact.
 
-3. **Stage 42 response fixture**
+4. **Stage 42 response fixture**
    - The compact judge input already accepted by `scripts/run_smoke_eval.py --responses`.
    - Contains only `scenario_id`, `site_id`, `answer`, `sources`, and `fallback` per response.
    - This remains the canonical input to the existing response judge.
+
+The current Stage 62 contract proves this offline route:
+
+```text
+live_runner_result_payloads.json
+  -> Stage 60 writer
+  -> Stage 56/57-compatible live artifact
+  -> Stage 58 export helper
+  -> Stage 43 pipeline-shaped result
+  -> Stage 42 response judge
+```
 
 Stage 60 provides the current offline writer bridge:
 
@@ -41,7 +59,7 @@ python scripts/export_live_smoke_artifact.py \
   --eval
 ```
 
-Together, these commands prove that already-produced result dictionaries can be persisted as a live smoke artifact and re-evaluated through the existing judge path without performing live execution.
+Together, these commands and the Stage 62 payload contract prove that already-produced result dictionaries can be persisted as a live smoke artifact and re-evaluated through the existing judge path without performing live execution.
 
 ## 2. Top-level shape
 
@@ -111,7 +129,7 @@ Stage 60 writer output currently records `stage: 60` to show that the artifact w
 
 ## 4. Scenario result shape
 
-Each item in `results` should contain exactly one scenario result:
+Each item in an artifact `results` array should contain exactly one scenario result:
 
 ```json
 {
@@ -143,7 +161,7 @@ Each item in `results` should contain exactly one scenario result:
 }
 ```
 
-Required fields:
+Artifact result fields:
 
 | Field | Required | Description |
 |---|---:|---|
@@ -161,7 +179,44 @@ Required fields:
 
 If Stage 60 writer receives Stage 43 pipeline/demo-shaped input, missing `query` is filled with the `scenario_id`, and missing `status` is inferred from `fallback_used`. This is a compatibility fallback for offline fixtures only. A future live runner should provide real `query` and `status` values directly.
 
-## 5. Source shape
+## 5. Minimal live runner payload contract
+
+Stage 62 defines the minimal shape for future live runner result dictionaries in `tests/fixtures/live_runner_result_payloads.json`. This is the shape passed into the Stage 60 writer before an artifact exists.
+
+Each runner payload result must include exactly these core fields:
+
+| Field | Required | Description |
+|---|---:|---|
+| `scenario_id` | yes | Must match a scenario id in `tests/fixtures/smoke_scenario_matrix.json`. |
+| `site_id` | yes | Site profile id used for the scenario. |
+| `query` | yes | Scenario question text. |
+| `status` | yes | One of `answered`, `fallback`, `error`, `skipped`, `pending_configuration`. |
+| `answer` | yes | Normalized user-facing answer. |
+| `sources` | yes | Array of normalized source objects. Empty array is valid for fallback/error paths. |
+| `fallback_used` | yes | Boolean fallback flag. |
+| `ok` | yes | Whether the scenario completed without runner-level failure. |
+| `answer_ok` | yes | Whether the answer is usable enough for judge conversion. |
+
+The minimal runner payload contract intentionally does **not** require `timing_ms` or `diagnostics`. Those fields belong to the richer persisted artifact layer. The Stage 60 writer can derive or attach redaction-safe diagnostics such as `source_count`, `normalized_source_count`, and generic error metadata while preserving the same answer/source/status contract.
+
+The targeted contract test is:
+
+```bash
+pytest tests/test_live_runner_result_payload_contract.py
+```
+
+That test verifies:
+
+1. the payload fixture metadata,
+2. exact 14-scenario matrix coverage,
+3. required core fields and normalized source shape,
+4. payload compatibility with the Stage 60 writer,
+5. writer output compatibility with the Stage 58 export helper, and
+6. response judge roundtrip with 14 passed / 0 failed.
+
+This contract is still offline. It does not call a provider, fetch provider, external network, Firecrawl, or the app pipeline.
+
+## 6. Source shape
 
 Each source should use the same normalized source shape accepted by `scripts/export_smoke_responses.py`:
 
@@ -183,7 +238,7 @@ Allowed optional source fields for live artifacts:
 
 Do not store request headers, cookies, raw HTML dumps, private signed URLs, or crawl-provider internal payloads in source objects.
 
-## 6. Error and fallback handling
+## 7. Error and fallback handling
 
 Fallback and error paths should still be convertible to the Stage 42 response fixture shape.
 
@@ -218,7 +273,7 @@ For errors, persist only redaction-safe summaries:
 
 `error_message` must be generic. It must not contain provider keys, request headers, cookies, private URLs, user-specific account data, or full raw payload excerpts.
 
-## 7. Writer and conversion to existing judge path
+## 8. Writer and conversion to existing judge path
 
 Stage 60 writer can serialize already-produced results into the live artifact shape:
 
@@ -228,6 +283,8 @@ python scripts/write_live_smoke_artifact.py \
   --output /tmp/written_live_artifact.json \
   --created-at 2026-05-30T13:15:00Z
 ```
+
+Stage 62 verifies the same writer boundary starting from the minimal runner payload fixture rather than a Stage 43 pipeline-shaped fixture.
 
 Then Stage 58 converter transforms each live artifact result into the Stage 43 exporter input shape:
 
@@ -288,7 +345,7 @@ python scripts/export_smoke_responses.py \
 
 This keeps live execution, result persistence, artifact writing, export normalization, and judge evaluation separate.
 
-## 8. Redaction rules
+## 9. Redaction rules
 
 A live smoke result artifact must not persist:
 
@@ -315,27 +372,30 @@ A safe artifact may persist:
 - redaction-safe error type
 - generic redaction-safe error message
 
-## 9. Validation checklist for future implementation
+The minimal runner payload contract should follow the same redaction boundary even before artifact writing. It may contain public scenario/query/answer/source fields, but it must not contain keys, cookies, request headers, raw provider payloads, raw prompts, private endpoints, signed URLs, or raw HTML dumps.
+
+## 10. Validation checklist for future implementation
 
 Before a future code stage writes this artifact, it should validate that:
 
-1. `artifact_type` is `live_smoke_eval_results`.
+1. `artifact_type` is `live_smoke_eval_results` after artifact writing.
 2. `scenario_count` matches the loaded matrix.
 3. every executed scenario has a unique `scenario_id`.
 4. each `scenario_id` exists in the matrix.
 5. every source URL is public and belongs to the expected scenario domain when applicable.
 6. all redaction flags are explicitly false for persisted sensitive data.
 7. no raw keys, cookies, headers, prompts, or provider payloads appear in the serialized JSON.
-8. the artifact can be converted to the Stage 43 exporter input shape.
-9. the converted result can be evaluated through `scripts/export_live_smoke_artifact.py --eval`.
-10. writer-generated artifacts remain fully offline unless a future live runner explicitly provides already-produced result dictionaries.
+8. the runner payload can be written by the Stage 60 writer.
+9. the artifact can be converted to the Stage 43 exporter input shape.
+10. the converted result can be evaluated through `scripts/export_live_smoke_artifact.py --eval`.
+11. writer-generated artifacts remain fully offline unless a future live runner explicitly provides already-produced result dictionaries.
 
-## 10. Recommended next implementation stages
+## 11. Recommended next implementation stages
 
-Recommended narrow order after this writer/helper baseline:
+Recommended narrow order after this writer/helper/payload-contract baseline:
 
-1. Add a minimal live runner result payload contract for the data passed into Stage 60 writer.
-2. Add provider/fetch opt-in wiring behind `AI_FINDER_LIVE_EVAL=true` without executing scenario loops yet.
-3. Add a single-scenario guarded live runner path that writes an artifact through Stage 60 writer.
+1. Add provider/fetch opt-in preflight contract behind `AI_FINDER_LIVE_EVAL=true` without executing scenario loops yet.
+2. Add a single-scenario guarded live runner dry skeleton that writes an artifact through Stage 60 writer.
+3. Document the single-scenario dry skeleton and its payload -> writer -> artifact -> export helper -> judge flow.
 4. Add live runner execution in a strictly sequential, rate-limited path.
 5. Add optional report import/export UI only after CLI artifacts are stable.
