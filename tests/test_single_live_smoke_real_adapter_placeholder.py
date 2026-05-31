@@ -34,6 +34,11 @@ class _ExplodingReprScenario:
         raise AssertionError("scenario repr should not be called")
 
 
+class _ExplodingBoolScenario:
+    def __bool__(self) -> bool:
+        raise AssertionError("scenario truthiness should not be evaluated")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -130,3 +135,8 @@ def test_stage130_real_adapter_placeholder_does_not_validate_none_scenario() -> 
 def test_stage132_real_adapter_placeholder_does_not_repr_scenario() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_ExplodingReprScenario())  # type: ignore[arg-type]
+
+
+def test_stage134_real_adapter_placeholder_does_not_evaluate_scenario_truthiness() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_ExplodingBoolScenario())  # type: ignore[arg-type]
