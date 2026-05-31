@@ -3,6 +3,7 @@ import pytest
 from scripts.run_smoke_eval import DEFAULT_MATRIX_PATH, load_matrix, validate_matrix
 from scripts.single_live_smoke_adapter import (
     DEFAULT_SINGLE_SCENARIO_ADAPTER_NAME,
+    SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES,
     SingleLiveSmokeAdapterError,
     build_single_live_adapter_payload,
     get_single_scenario_adapter,
@@ -69,3 +70,9 @@ def test_stage76_real_placeholder_name_is_rejected_by_payload_helper() -> None:
             scenario,
             adapter_name=REAL_SINGLE_LIVE_ADAPTER_NAME,
         )
+
+
+def test_stage78_supported_adapter_allowlist_contains_only_fake_adapter() -> None:
+    assert SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES == (FAKE_SINGLE_LIVE_ADAPTER_NAME,)
+    assert REAL_SINGLE_LIVE_ADAPTER_NAME not in SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES
+    assert DEFAULT_SINGLE_SCENARIO_ADAPTER_NAME in SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES
