@@ -63,3 +63,13 @@ def test_stage116_real_adapter_placeholder_raises_base_not_implemented_error() -
 
     with pytest.raises(NotImplementedError):
         build_real_single_live_result_payload(scenario)
+
+
+def test_stage118_real_adapter_placeholder_does_not_mutate_scenario() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+    expected_scenario = dict(scenario)
+
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(scenario)
+
+    assert scenario == expected_scenario
