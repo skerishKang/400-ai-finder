@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 
 from scripts.run_smoke_eval import DEFAULT_MATRIX_PATH, load_matrix, validate_matrix
@@ -68,6 +70,16 @@ def test_stage116_real_adapter_placeholder_raises_base_not_implemented_error() -
 def test_stage118_real_adapter_placeholder_does_not_mutate_scenario() -> None:
     scenario = _scenario_by_id("bukgu-01")
     expected_scenario = dict(scenario)
+
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(scenario)
+
+    assert scenario == expected_scenario
+
+
+def test_stage120_real_adapter_placeholder_does_not_mutate_nested_scenario_data() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+    expected_scenario = copy.deepcopy(scenario)
 
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(scenario)
