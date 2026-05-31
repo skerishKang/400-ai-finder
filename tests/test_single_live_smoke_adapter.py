@@ -8,6 +8,7 @@ from scripts.single_live_smoke_adapter import (
     build_single_live_adapter_payload,
     get_single_scenario_adapter,
     get_single_scenario_adapter_name,
+    supported_single_scenario_adapter_names_message,
 )
 from scripts.single_live_smoke_fake_adapter import (
     FAKE_SINGLE_LIVE_ADAPTER_NAME,
@@ -117,3 +118,30 @@ def test_stage82_non_string_payload_adapter_name_is_rejected() -> None:
             scenario,
             adapter_name=[],  # type: ignore[arg-type]
         )
+
+
+def test_stage84_supported_adapter_names_message_is_deterministic() -> None:
+    assert supported_single_scenario_adapter_names_message() == FAKE_SINGLE_LIVE_ADAPTER_NAME
+
+
+def test_stage84_unsupported_adapter_error_lists_supported_adapter_names() -> None:
+    with pytest.raises(SingleLiveSmokeAdapterError) as exc_info:
+        get_single_scenario_adapter("unknown-adapter")
+
+    message = str(exc_info.value)
+    assert "Unsupported single-scenario adapter: unknown-adapter" in message
+    assert f"Supported adapters: {FAKE_SINGLE_LIVE_ADAPTER_NAME}" in message
+
+
+def test_stage84_payload_helper_unsupported_adapter_error_lists_supported_names() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+
+    with pytest.raises(SingleLiveSmokeAdapterError) as exc_info:
+        build_single_live_adapter_payload(
+            scenario,
+            adapter_name=REAL_SINGLE_LIVE_ADAPTER_NAME,
+        )
+
+    message = str(exc_info.value)
+    assert f"Unsupported single-scenario adapter: {REAL_SINGLE_LIVE_ADAPTER_NAME}" in message
+    assert f"Supported adapters: {FAKE_SINGLE_LIVE_ADAPTER_NAME}" in message
