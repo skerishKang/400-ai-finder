@@ -224,3 +224,13 @@ def test_stage102_supported_adapter_payload_uses_fake_payload() -> None:
         scenario,
         adapter_name=FAKE_SINGLE_LIVE_ADAPTER_NAME,
     ) == build_fake_single_live_result_payload(scenario)
+
+
+def test_stage104_padded_supported_adapter_payload_uses_fake_payload() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+    padded_name = f"  {FAKE_SINGLE_LIVE_ADAPTER_NAME}  "
+
+    assert build_single_live_adapter_payload(
+        scenario,
+        adapter_name=padded_name,
+    ) == build_fake_single_live_result_payload(scenario)
