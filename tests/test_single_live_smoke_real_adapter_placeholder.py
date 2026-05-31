@@ -52,3 +52,7 @@ def test_stage112_real_adapter_placeholder_error_message_points_to_fake_path() -
     assert str(exc_info.value) == (
         "Real single-scenario adapter is not implemented. Use the fake adapter path."
     )
+
+
+def test_stage114_real_adapter_placeholder_error_is_not_implemented_error_subclass() -> None:
+    assert issubclass(SingleLiveSmokeRealAdapterNotImplementedError, NotImplementedError)
