@@ -1,6 +1,6 @@
 # Single-Scenario Adapter Interface
 
-Stage 73 documents the Stage 72 adapter interface skeleton. Stage 75 adds the Stage 74 real adapter placeholder boundary. Stage 77 notes the Stage 76 selector test coverage.
+Stage 73 documents the Stage 72 adapter interface skeleton. Stage 75 adds the Stage 74 real adapter placeholder boundary. Stage 77 notes the Stage 76 selector test coverage. Stage 79 documents the Stage 78 adapter allowlist.
 
 This document is documentation-only. It does not add execution behavior.
 
@@ -8,22 +8,24 @@ This document is documentation-only. It does not add execution behavior.
 
 | File | Role |
 |---|---|
-| `scripts/single_live_smoke_adapter.py` | Adapter selection helper. Currently selects only the fake adapter. |
+| `scripts/single_live_smoke_adapter.py` | Adapter selection helper. Currently selects only the fake adapter through an explicit allowlist. |
 | `scripts/single_live_smoke_fake_adapter.py` | Deterministic offline payload builder. |
 | `scripts/single_live_smoke_real_adapter.py` | Future real adapter placeholder. Importable, but raises if called. |
 | `scripts/run_single_live_smoke_dry.py` | One-scenario dry runner that now calls the adapter helper. |
-| `tests/test_single_live_smoke_adapter.py` | Contract tests for adapter selection, including Stage 76 payload-helper selector coverage. |
+| `tests/test_single_live_smoke_adapter.py` | Contract tests for adapter selection, including Stage 76 payload-helper selector coverage and Stage 78 allowlist coverage. |
 | `tests/test_single_live_smoke_real_adapter_placeholder.py` | Contract tests proving the placeholder is inert. |
 
 ## Current behavior
 
 The default adapter name is `fake-single-scenario-live-adapter`.
 
+`SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES` currently contains only `fake-single-scenario-live-adapter`.
+
 `get_single_scenario_adapter()` returns the fake adapter only.
 
 Unsupported adapter names raise `SingleLiveSmokeAdapterError`.
 
-The real placeholder name is `real-single-scenario-live-adapter`, but that name is not selectable through the adapter helper yet. Stage 76 also verifies that this name is rejected through `build_single_live_adapter_payload()`.
+The real placeholder name is `real-single-scenario-live-adapter`, but that name is not selectable through the adapter helper yet. Stage 76 also verifies that this name is rejected through `build_single_live_adapter_payload()`, and Stage 78 verifies that this name is not in the supported adapter allowlist.
 
 Calling `build_real_single_live_result_payload()` raises `SingleLiveSmokeRealAdapterNotImplementedError`.
 
@@ -31,7 +33,7 @@ The dry runner still produces one Stage 62-compatible payload, writes it through
 
 ## Boundary
 
-Stage 72 adds an interface seam. Stage 74 adds an inert placeholder. Stage 76 hardens selector tests. None of these stages add a broader execution path.
+Stage 72 adds an interface seam. Stage 74 adds an inert placeholder. Stage 76 hardens selector tests. Stage 78 adds an explicit allowlist. None of these stages add a broader execution path.
 
 The current successful path remains:
 
