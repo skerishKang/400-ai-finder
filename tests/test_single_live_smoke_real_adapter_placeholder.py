@@ -25,6 +25,9 @@ class _ExplodingScenario(dict):
     def __getitem__(self, key: object) -> object:
         raise AssertionError(f"scenario field should not be read: {key}")
 
+    def items(self):  # type: ignore[override]
+        raise AssertionError("scenario fields should not be iterated")
+
 
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
@@ -100,3 +103,10 @@ def test_stage122_real_adapter_placeholder_does_not_require_scenario_shape() -> 
 def test_stage124_real_adapter_placeholder_does_not_inspect_scenario_fields() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_ExplodingScenario())
+
+
+def test_stage126_real_adapter_placeholder_does_not_iterate_scenario_fields() -> None:
+    scenario = _ExplodingScenario({"id": "boom"})
+
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(scenario)
