@@ -56,3 +56,10 @@ def test_stage112_real_adapter_placeholder_error_message_points_to_fake_path() -
 
 def test_stage114_real_adapter_placeholder_error_is_not_implemented_error_subclass() -> None:
     assert issubclass(SingleLiveSmokeRealAdapterNotImplementedError, NotImplementedError)
+
+
+def test_stage116_real_adapter_placeholder_raises_base_not_implemented_error() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+
+    with pytest.raises(NotImplementedError):
+        build_real_single_live_result_payload(scenario)
