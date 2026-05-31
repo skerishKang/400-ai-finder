@@ -29,6 +29,11 @@ class _ExplodingScenario(dict):
         raise AssertionError("scenario fields should not be iterated")
 
 
+class _ExplodingReprScenario:
+    def __repr__(self) -> str:
+        raise AssertionError("scenario repr should not be called")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -120,3 +125,8 @@ def test_stage128_real_adapter_placeholder_does_not_require_dict_like_scenario()
 def test_stage130_real_adapter_placeholder_does_not_validate_none_scenario() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(None)  # type: ignore[arg-type]
+
+
+def test_stage132_real_adapter_placeholder_does_not_repr_scenario() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_ExplodingReprScenario())  # type: ignore[arg-type]
