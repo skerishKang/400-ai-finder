@@ -166,3 +166,18 @@ def test_stage88_padded_real_placeholder_name_is_trimmed_then_rejected() -> None
     message = str(exc_info.value)
     assert f"Unsupported single-scenario adapter: {REAL_SINGLE_LIVE_ADAPTER_NAME}" in message
     assert f"Supported adapters: {FAKE_SINGLE_LIVE_ADAPTER_NAME}" in message
+
+
+def test_stage90_payload_helper_uses_normalized_adapter_name_for_error() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+    padded_name = f"\t{REAL_SINGLE_LIVE_ADAPTER_NAME}  "
+
+    with pytest.raises(SingleLiveSmokeAdapterError) as exc_info:
+        build_single_live_adapter_payload(
+            scenario,
+            adapter_name=padded_name,
+        )
+
+    message = str(exc_info.value)
+    assert f"Unsupported single-scenario adapter: {REAL_SINGLE_LIVE_ADAPTER_NAME}" in message
+    assert f"Supported adapters: {FAKE_SINGLE_LIVE_ADAPTER_NAME}" in message
