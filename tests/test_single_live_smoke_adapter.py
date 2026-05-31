@@ -181,3 +181,12 @@ def test_stage90_payload_helper_uses_normalized_adapter_name_for_error() -> None
     message = str(exc_info.value)
     assert f"Unsupported single-scenario adapter: {REAL_SINGLE_LIVE_ADAPTER_NAME}" in message
     assert f"Supported adapters: {FAKE_SINGLE_LIVE_ADAPTER_NAME}" in message
+
+
+def test_stage92_whitespace_payload_adapter_name_uses_fake_adapter() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+
+    assert build_single_live_adapter_payload(
+        scenario,
+        adapter_name=" \t\n ",
+    ) == build_fake_single_live_result_payload(scenario)
