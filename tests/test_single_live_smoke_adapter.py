@@ -234,3 +234,18 @@ def test_stage104_padded_supported_adapter_payload_uses_fake_payload() -> None:
         scenario,
         adapter_name=padded_name,
     ) == build_fake_single_live_result_payload(scenario)
+
+
+def test_stage106_payload_helper_adapter_name_matching_remains_case_sensitive() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+    upper_name = FAKE_SINGLE_LIVE_ADAPTER_NAME.upper()
+
+    with pytest.raises(SingleLiveSmokeAdapterError) as exc_info:
+        build_single_live_adapter_payload(
+            scenario,
+            adapter_name=upper_name,
+        )
+
+    message = str(exc_info.value)
+    assert f"Unsupported single-scenario adapter: {upper_name}" in message
+    assert f"Supported adapters: {FAKE_SINGLE_LIVE_ADAPTER_NAME}" in message
