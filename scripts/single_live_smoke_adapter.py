@@ -38,6 +38,11 @@ def get_single_scenario_adapter_name(adapter_name: str | None = None) -> str:
     return normalized_name
 
 
+def supported_single_scenario_adapter_names_message() -> str:
+    """Return a deterministic display string for supported adapter names."""
+    return ", ".join(SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES)
+
+
 def get_single_scenario_adapter(adapter_name: str | None = None) -> SingleScenarioAdapter:
     """Return the selected single-scenario adapter implementation.
 
@@ -48,12 +53,16 @@ def get_single_scenario_adapter(adapter_name: str | None = None) -> SingleScenar
     selected_name = get_single_scenario_adapter_name(adapter_name)
     if selected_name not in SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES:
         raise SingleLiveSmokeAdapterError(
-            f"Unsupported single-scenario adapter: {selected_name}"
+            "Unsupported single-scenario adapter: "
+            f"{selected_name}. Supported adapters: "
+            f"{supported_single_scenario_adapter_names_message()}"
         )
     if selected_name == FAKE_SINGLE_LIVE_ADAPTER_NAME:
         return build_fake_single_live_result_payload
     raise SingleLiveSmokeAdapterError(
-        f"Unsupported single-scenario adapter: {selected_name}"
+        "Unsupported single-scenario adapter: "
+        f"{selected_name}. Supported adapters: "
+        f"{supported_single_scenario_adapter_names_message()}"
     )
 
 
