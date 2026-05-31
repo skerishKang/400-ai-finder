@@ -26,9 +26,12 @@ class SingleLiveSmokeAdapterError(ValueError):
 
 def get_single_scenario_adapter_name(adapter_name: str | None = None) -> str:
     """Return the selected adapter name; currently only the fake adapter exists."""
-    if adapter_name is None or adapter_name == "":
+    if adapter_name is None:
         return DEFAULT_SINGLE_SCENARIO_ADAPTER_NAME
-    return adapter_name
+    normalized_name = adapter_name.strip()
+    if normalized_name == "":
+        return DEFAULT_SINGLE_SCENARIO_ADAPTER_NAME
+    return normalized_name
 
 
 def get_single_scenario_adapter(adapter_name: str | None = None) -> SingleScenarioAdapter:

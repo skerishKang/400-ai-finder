@@ -76,3 +76,23 @@ def test_stage78_supported_adapter_allowlist_contains_only_fake_adapter() -> Non
     assert SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES == (FAKE_SINGLE_LIVE_ADAPTER_NAME,)
     assert REAL_SINGLE_LIVE_ADAPTER_NAME not in SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES
     assert DEFAULT_SINGLE_SCENARIO_ADAPTER_NAME in SUPPORTED_SINGLE_SCENARIO_ADAPTER_NAMES
+
+
+def test_stage80_adapter_name_trims_outer_whitespace() -> None:
+    padded_name = f"  {FAKE_SINGLE_LIVE_ADAPTER_NAME}\n"
+
+    assert get_single_scenario_adapter_name(padded_name) == FAKE_SINGLE_LIVE_ADAPTER_NAME
+    assert get_single_scenario_adapter(padded_name) is build_fake_single_live_result_payload
+
+
+def test_stage80_adapter_name_matching_remains_case_sensitive() -> None:
+    upper_name = FAKE_SINGLE_LIVE_ADAPTER_NAME.upper()
+
+    assert get_single_scenario_adapter_name(upper_name) == upper_name
+    with pytest.raises(SingleLiveSmokeAdapterError, match="Unsupported single-scenario adapter"):
+        get_single_scenario_adapter(upper_name)
+
+
+def test_stage80_padded_unknown_adapter_name_is_trimmed_then_rejected() -> None:
+    with pytest.raises(SingleLiveSmokeAdapterError, match="Unsupported single-scenario adapter: unknown-adapter"):
+        get_single_scenario_adapter("  unknown-adapter\t")
