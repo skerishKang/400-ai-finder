@@ -215,3 +215,12 @@ def test_stage98_whitespace_adapter_selector_uses_fake_adapter() -> None:
 
 def test_stage100_empty_adapter_selector_uses_fake_adapter_function() -> None:
     assert get_single_scenario_adapter("") is build_fake_single_live_result_payload
+
+
+def test_stage102_supported_adapter_payload_uses_fake_payload() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+
+    assert build_single_live_adapter_payload(
+        scenario,
+        adapter_name=FAKE_SINGLE_LIVE_ADAPTER_NAME,
+    ) == build_fake_single_live_result_payload(scenario)
