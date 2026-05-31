@@ -36,6 +36,29 @@ def _scenarios() -> list[dict]:
     return validate_matrix(load_matrix(DEFAULT_MATRIX_PATH))
 
 
+@pytest.mark.parametrize(
+    "selector",
+    ["", "   ", "all", "ALL", " All ", "\tall\n", "*"],
+)
+def test_stage68_rejects_empty_or_broad_scenario_selectors(selector: str) -> None:
+    scenarios = _scenarios()
+
+    with pytest.raises(
+        SingleLiveSmokeDryRunError,
+        match="non-empty scenario id|required|cannot execute all scenarios",
+    ):
+        find_single_scenario(scenarios, selector)
+
+
+@pytest.mark.parametrize("selector", ["all", "ALL", " All ", "\tall\n", "*"])
+def test_stage68_broad_selectors_fail_before_artifact_build(selector: str) -> None:
+    with pytest.raises(SingleLiveSmokeDryRunError, match="cannot execute all scenarios"):
+        build_single_live_smoke_dry_artifact(
+            selector,
+            created_at="2026-05-30T15:00:00Z",
+        )
+
+
 def test_stage65_rejects_all_scenario_shortcuts() -> None:
     scenarios = _scenarios()
 
