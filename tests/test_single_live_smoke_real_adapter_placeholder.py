@@ -59,6 +59,11 @@ class _ExplodingValuesScenario:
         raise AssertionError("scenario values should not be listed")
 
 
+class _RaisingContainsScenario:
+    def __contains__(self, key: object) -> bool:
+        raise AssertionError(f"scenario containment lookup should not be called: {key}")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -180,3 +185,8 @@ def test_stage140_real_adapter_placeholder_does_not_call_scenario_keys() -> None
 def test_stage142_real_adapter_placeholder_does_not_call_scenario_values() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_ExplodingValuesScenario())  # type: ignore[arg-type]
+
+
+def test_stage144_real_adapter_placeholder_does_not_call_scenario_contains() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingContainsScenario())  # type: ignore[arg-type]
