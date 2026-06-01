@@ -84,6 +84,11 @@ class _RaisingEqScenario:
         raise AssertionError(f"scenario equality comparison should not be called: {other}")
 
 
+class _RaisingHashScenario:
+    def __hash__(self) -> int:
+        raise AssertionError("scenario hash lookup should not be called")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -230,3 +235,8 @@ def test_stage150_real_adapter_placeholder_does_not_stringify_scenario() -> None
 def test_stage152_real_adapter_placeholder_does_not_compare_scenario_equality() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingEqScenario())  # type: ignore[arg-type]
+
+
+def test_stage154_real_adapter_placeholder_does_not_hash_scenario() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingHashScenario())  # type: ignore[arg-type]
