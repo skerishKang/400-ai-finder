@@ -99,6 +99,11 @@ class _RaisingBytesScenario:
         raise AssertionError("scenario bytes conversion should not be called")
 
 
+class _RaisingCopyScenario:
+    def copy(self) -> object:
+        raise AssertionError("scenario copy lookup should not be called")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -260,3 +265,8 @@ def test_stage156_real_adapter_placeholder_does_not_format_scenario() -> None:
 def test_stage158_real_adapter_placeholder_does_not_convert_scenario_to_bytes() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingBytesScenario())  # type: ignore[arg-type]
+
+
+def test_stage160_real_adapter_placeholder_does_not_call_scenario_copy() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingCopyScenario())  # type: ignore[arg-type]
