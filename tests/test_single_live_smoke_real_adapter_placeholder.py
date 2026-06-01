@@ -134,6 +134,11 @@ class _RaisingGetnewargsExProtocolScenario:
         raise AssertionError("scenario getnewargs-ex protocol lookup should not be called")
 
 
+class _RaisingGetnewargsProtocolScenario:
+    def __getnewargs__(self) -> object:
+        raise AssertionError("scenario getnewargs protocol lookup should not be called")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -330,3 +335,8 @@ def test_stage170_real_adapter_placeholder_does_not_call_scenario_getstate_proto
 def test_stage172_real_adapter_placeholder_does_not_call_scenario_getnewargs_ex_protocol() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingGetnewargsExProtocolScenario())  # type: ignore[arg-type]
+
+
+def test_stage174_real_adapter_placeholder_does_not_call_scenario_getnewargs_protocol() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingGetnewargsProtocolScenario())  # type: ignore[arg-type]
