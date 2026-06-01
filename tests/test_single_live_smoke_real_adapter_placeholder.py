@@ -64,6 +64,11 @@ class _RaisingContainsScenario:
         raise AssertionError(f"scenario containment lookup should not be called: {key}")
 
 
+class _RaisingAttributeScenario:
+    def __getattr__(self, name: str) -> object:
+        raise AssertionError(f"scenario attribute lookup should not be called: {name}")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -190,3 +195,8 @@ def test_stage142_real_adapter_placeholder_does_not_call_scenario_values() -> No
 def test_stage144_real_adapter_placeholder_does_not_call_scenario_contains() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingContainsScenario())  # type: ignore[arg-type]
+
+
+def test_stage146_real_adapter_placeholder_does_not_call_scenario_attribute() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingAttributeScenario())  # type: ignore[arg-type]
