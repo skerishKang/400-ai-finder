@@ -54,6 +54,11 @@ class _ExplodingKeysScenario:
         raise AssertionError("scenario keys should not be listed")
 
 
+class _ExplodingValuesScenario:
+    def values(self):
+        raise AssertionError("scenario values should not be listed")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -170,3 +175,8 @@ def test_stage138_real_adapter_placeholder_does_not_call_scenario_get() -> None:
 def test_stage140_real_adapter_placeholder_does_not_call_scenario_keys() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_ExplodingKeysScenario())  # type: ignore[arg-type]
+
+
+def test_stage142_real_adapter_placeholder_does_not_call_scenario_values() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_ExplodingValuesScenario())  # type: ignore[arg-type]
