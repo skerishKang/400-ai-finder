@@ -49,6 +49,11 @@ class _ExplodingGetScenario:
         raise AssertionError(f"scenario get lookup should not be called: {key}")
 
 
+class _ExplodingKeysScenario:
+    def keys(self):
+        raise AssertionError("scenario keys should not be listed")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -160,3 +165,8 @@ def test_stage136_real_adapter_placeholder_does_not_check_scenario_length() -> N
 def test_stage138_real_adapter_placeholder_does_not_call_scenario_get() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_ExplodingGetScenario())  # type: ignore[arg-type]
+
+
+def test_stage140_real_adapter_placeholder_does_not_call_scenario_keys() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_ExplodingKeysScenario())  # type: ignore[arg-type]
