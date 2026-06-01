@@ -94,6 +94,11 @@ class _RaisingFormatScenario:
         raise AssertionError(f"scenario format conversion should not be called: {format_spec}")
 
 
+class _RaisingBytesScenario:
+    def __bytes__(self) -> bytes:
+        raise AssertionError("scenario bytes conversion should not be called")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -250,3 +255,8 @@ def test_stage154_real_adapter_placeholder_does_not_hash_scenario() -> None:
 def test_stage156_real_adapter_placeholder_does_not_format_scenario() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingFormatScenario())  # type: ignore[arg-type]
+
+
+def test_stage158_real_adapter_placeholder_does_not_convert_scenario_to_bytes() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingBytesScenario())  # type: ignore[arg-type]
