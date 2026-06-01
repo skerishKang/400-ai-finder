@@ -74,6 +74,11 @@ class _RaisingGetattributeScenario:
         raise AssertionError(f"scenario getattribute lookup should not be called: {name}")
 
 
+class _RaisingDirScenario:
+    def __dir__(self) -> list[str]:
+        raise AssertionError("scenario dir lookup should not be called")
+
+
 class _RaisingIterScenario:
     def __iter__(self):
         raise AssertionError("scenario iteration should not be started")
@@ -280,6 +285,11 @@ def test_stage146_real_adapter_placeholder_does_not_call_scenario_attribute() ->
 def test_stage176_real_adapter_placeholder_does_not_call_scenario_getattribute() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingGetattributeScenario())  # type: ignore[arg-type]
+
+
+def test_stage178_real_adapter_placeholder_does_not_call_scenario_dir() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingDirScenario())  # type: ignore[arg-type]
 
 
 def test_stage148_real_adapter_placeholder_does_not_start_scenario_iteration() -> None:
