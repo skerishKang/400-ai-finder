@@ -124,6 +124,11 @@ class _RaisingReduceProtocolScenario:
         raise AssertionError("scenario reduce protocol lookup should not be called")
 
 
+class _RaisingGetstateProtocolScenario:
+    def __getstate__(self) -> object:
+        raise AssertionError("scenario getstate protocol lookup should not be called")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -310,3 +315,8 @@ def test_stage166_real_adapter_placeholder_does_not_call_scenario_reduce_ex_prot
 def test_stage168_real_adapter_placeholder_does_not_call_scenario_reduce_protocol() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingReduceProtocolScenario())  # type: ignore[arg-type]
+
+
+def test_stage170_real_adapter_placeholder_does_not_call_scenario_getstate_protocol() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingGetstateProtocolScenario())  # type: ignore[arg-type]
