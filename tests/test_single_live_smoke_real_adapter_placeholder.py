@@ -114,6 +114,11 @@ class _RaisingCopyProtocolScenario:
         raise AssertionError("scenario copy protocol lookup should not be called")
 
 
+class _RaisingReduceExProtocolScenario:
+    def __reduce_ex__(self, protocol: int) -> object:
+        raise AssertionError(f"scenario reduce-ex protocol lookup should not be called: {protocol}")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -290,3 +295,8 @@ def test_stage162_real_adapter_placeholder_does_not_call_scenario_deepcopy() -> 
 def test_stage164_real_adapter_placeholder_does_not_call_scenario_copy_protocol() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingCopyProtocolScenario())  # type: ignore[arg-type]
+
+
+def test_stage166_real_adapter_placeholder_does_not_call_scenario_reduce_ex_protocol() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingReduceExProtocolScenario())  # type: ignore[arg-type]
