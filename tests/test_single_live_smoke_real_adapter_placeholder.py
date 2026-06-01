@@ -74,6 +74,11 @@ class _RaisingIterScenario:
         raise AssertionError("scenario iteration should not be started")
 
 
+class _RaisingStrScenario:
+    def __str__(self) -> str:
+        raise AssertionError("scenario string conversion should not be called")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -210,3 +215,8 @@ def test_stage146_real_adapter_placeholder_does_not_call_scenario_attribute() ->
 def test_stage148_real_adapter_placeholder_does_not_start_scenario_iteration() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingIterScenario())  # type: ignore[arg-type]
+
+
+def test_stage150_real_adapter_placeholder_does_not_stringify_scenario() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingStrScenario())  # type: ignore[arg-type]
