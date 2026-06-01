@@ -69,6 +69,11 @@ class _RaisingAttributeScenario:
         raise AssertionError(f"scenario attribute lookup should not be called: {name}")
 
 
+class _RaisingGetattributeScenario:
+    def __getattribute__(self, name: str) -> object:
+        raise AssertionError(f"scenario getattribute lookup should not be called: {name}")
+
+
 class _RaisingIterScenario:
     def __iter__(self):
         raise AssertionError("scenario iteration should not be started")
@@ -270,6 +275,11 @@ def test_stage144_real_adapter_placeholder_does_not_call_scenario_contains() -> 
 def test_stage146_real_adapter_placeholder_does_not_call_scenario_attribute() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingAttributeScenario())  # type: ignore[arg-type]
+
+
+def test_stage176_real_adapter_placeholder_does_not_call_scenario_getattribute() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingGetattributeScenario())  # type: ignore[arg-type]
 
 
 def test_stage148_real_adapter_placeholder_does_not_start_scenario_iteration() -> None:
