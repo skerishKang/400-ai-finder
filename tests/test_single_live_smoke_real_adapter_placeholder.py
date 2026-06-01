@@ -104,6 +104,11 @@ class _RaisingCopyScenario:
         raise AssertionError("scenario copy lookup should not be called")
 
 
+class _RaisingDeepcopyScenario:
+    def __deepcopy__(self, memo: dict) -> object:
+        raise AssertionError("scenario deepcopy lookup should not be called")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -270,3 +275,8 @@ def test_stage158_real_adapter_placeholder_does_not_convert_scenario_to_bytes() 
 def test_stage160_real_adapter_placeholder_does_not_call_scenario_copy() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingCopyScenario())  # type: ignore[arg-type]
+
+
+def test_stage162_real_adapter_placeholder_does_not_call_scenario_deepcopy() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingDeepcopyScenario())  # type: ignore[arg-type]
