@@ -79,6 +79,11 @@ class _RaisingStrScenario:
         raise AssertionError("scenario string conversion should not be called")
 
 
+class _RaisingEqScenario:
+    def __eq__(self, other: object) -> bool:
+        raise AssertionError(f"scenario equality comparison should not be called: {other}")
+
+
 def test_stage74_real_adapter_placeholder_has_explicit_name() -> None:
     assert REAL_SINGLE_LIVE_ADAPTER_NAME == "real-single-scenario-live-adapter"
 
@@ -220,3 +225,8 @@ def test_stage148_real_adapter_placeholder_does_not_start_scenario_iteration() -
 def test_stage150_real_adapter_placeholder_does_not_stringify_scenario() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingStrScenario())  # type: ignore[arg-type]
+
+
+def test_stage152_real_adapter_placeholder_does_not_compare_scenario_equality() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingEqScenario())  # type: ignore[arg-type]
