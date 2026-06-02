@@ -130,6 +130,16 @@ class _RaisingSlotsLookupScenario:
         raise AttributeError(name)
 
 
+class _RaisingSizeofLookupScenario:
+    def __getattribute__(self, name: str):
+        if name == "__sizeof__":
+            raise AssertionError("real placeholder must not look up scenario sizeof")
+        return super().__getattribute__(name)
+
+    def __sizeof__(self):
+        raise AssertionError("real placeholder must not call scenario sizeof")
+
+
 class _RaisingIterScenario:
     def __iter__(self):
         raise AssertionError("scenario iteration should not be started")
@@ -381,6 +391,11 @@ def test_stage192_real_adapter_placeholder_does_not_call_scenario_weakref_lookup
 def test_stage194_real_adapter_placeholder_does_not_call_scenario_slots_lookup() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingSlotsLookupScenario())  # type: ignore[arg-type]
+
+
+def test_stage196_real_adapter_placeholder_does_not_call_scenario_sizeof_lookup() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingSizeofLookupScenario())  # type: ignore[arg-type]
 
 
 def test_stage148_real_adapter_placeholder_does_not_start_scenario_iteration() -> None:
