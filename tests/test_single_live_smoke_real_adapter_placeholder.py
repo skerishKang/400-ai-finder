@@ -91,6 +91,12 @@ class _RaisingDictLookupScenario:
         raise AssertionError("scenario dict lookup should not be called")
 
 
+class _RaisingAnnotationsLookupScenario:
+    @property
+    def __annotations__(self) -> dict[str, object]:
+        raise AssertionError("scenario annotations lookup should not be called")
+
+
 class _RaisingIterScenario:
     def __iter__(self):
         raise AssertionError("scenario iteration should not be started")
@@ -312,6 +318,11 @@ def test_stage180_real_adapter_placeholder_does_not_call_scenario_class_lookup()
 def test_stage182_real_adapter_placeholder_does_not_call_scenario_dict_lookup() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingDictLookupScenario())  # type: ignore[arg-type]
+
+
+def test_stage184_real_adapter_placeholder_does_not_call_scenario_annotations_lookup() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingAnnotationsLookupScenario())  # type: ignore[arg-type]
 
 
 def test_stage148_real_adapter_placeholder_does_not_start_scenario_iteration() -> None:
