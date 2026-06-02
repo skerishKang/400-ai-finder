@@ -285,6 +285,28 @@ def test_stage210_evaluate_response_accepts_name_source_title_alias() -> None:
     assert result["checks"]["no_cross_site_urls"] is True
 
 
+def test_stage212_evaluate_response_falls_back_to_name_when_title_is_blank() -> None:
+    scenario = _scenario_by_id("bukgu-01")
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "민원서식은 북구청 종합민원 민원서식 메뉴에서 확인할 수 있습니다.",
+        "sources": [
+            {
+                "title": "",
+                "name": "민원서식",
+                "url": "https://bukgu.gwangju.kr/menu.es?mid=a10102000000",
+            }
+        ],
+        "fallback": False,
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is True
+    assert result["checks"]["source_domain"] is True
+    assert result["checks"]["no_cross_site_urls"] is True
+
+
 def test_evaluate_response_fails_when_min_sources_not_met() -> None:
     scenario = _scenario_by_id("gwangju-01")
     response = {
