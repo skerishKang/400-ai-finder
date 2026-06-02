@@ -226,6 +226,20 @@ def test_evaluate_response_accepts_fallback_when_sources_are_empty() -> None:
     assert result["checks"]["fallback_when_no_source"] is True
 
 
+def test_stage201_evaluate_response_accepts_fallback_marker_without_flag() -> None:
+    scenario = _scenario_by_id("bukgu-03")
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "주민등록등본 발급 관련 출처가 부족하므로 홈페이지에서 직접 확인해 주세요.",
+        "sources": [],
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is True
+    assert result["checks"]["fallback_when_no_source"] is True
+
+
 def test_evaluate_response_requires_fallback_for_low_confidence_case() -> None:
     scenario = _scenario_by_id("gwangju-07")
     response = {
