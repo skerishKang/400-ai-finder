@@ -109,6 +109,13 @@ class _RaisingDocLookupScenario:
         raise AssertionError("scenario doc lookup should not be called")
 
 
+class _RaisingQualnameLookupScenario:
+    def __getattr__(self, name: str) -> object:
+        if name == "__qualname__":
+            raise AssertionError("scenario qualname lookup should not be called")
+        raise AttributeError(name)
+
+
 class _RaisingIterScenario:
     def __iter__(self):
         raise AssertionError("scenario iteration should not be started")
@@ -345,6 +352,11 @@ def test_stage186_real_adapter_placeholder_does_not_call_scenario_module_lookup(
 def test_stage188_real_adapter_placeholder_does_not_call_scenario_doc_lookup() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingDocLookupScenario())  # type: ignore[arg-type]
+
+
+def test_stage190_real_adapter_placeholder_does_not_call_scenario_qualname_lookup() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingQualnameLookupScenario())  # type: ignore[arg-type]
 
 
 def test_stage148_real_adapter_placeholder_does_not_start_scenario_iteration() -> None:
