@@ -123,6 +123,13 @@ class _RaisingWeakrefLookupScenario:
         raise AttributeError(name)
 
 
+class _RaisingSlotsLookupScenario:
+    def __getattr__(self, name: str) -> object:
+        if name == "__slots__":
+            raise AssertionError("scenario slots lookup should not be called")
+        raise AttributeError(name)
+
+
 class _RaisingIterScenario:
     def __iter__(self):
         raise AssertionError("scenario iteration should not be started")
@@ -369,6 +376,11 @@ def test_stage190_real_adapter_placeholder_does_not_call_scenario_qualname_looku
 def test_stage192_real_adapter_placeholder_does_not_call_scenario_weakref_lookup() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingWeakrefLookupScenario())  # type: ignore[arg-type]
+
+
+def test_stage194_real_adapter_placeholder_does_not_call_scenario_slots_lookup() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingSlotsLookupScenario())  # type: ignore[arg-type]
 
 
 def test_stage148_real_adapter_placeholder_does_not_start_scenario_iteration() -> None:
