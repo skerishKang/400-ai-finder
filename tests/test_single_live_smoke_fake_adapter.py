@@ -74,3 +74,36 @@ def test_stage69_fake_adapter_builds_fallback_payload_without_source() -> None:
     assert payload["ok"] is True
     assert payload["answer_ok"] is True
     assert "홈페이지에서 직접 확인" in payload["answer"]
+
+
+def test_stage199_fake_adapter_falls_back_to_expected_keywords_when_answer_contains_any_empty() -> None:
+    scenario = {
+        "pass_criteria": {"answer_contains_any": []},
+        "expected_keywords": ["첫번째키워드", "두번째키워드"],
+    }
+    assert answer_keyword_from_scenario(scenario) == "첫번째키워드"
+
+
+def test_stage199_fake_adapter_falls_back_to_question_when_expected_keywords_empty() -> None:
+    scenario = {
+        "pass_criteria": {"answer_contains_any": []},
+        "expected_keywords": [],
+        "question": "테스트 질문입니다",
+    }
+    assert answer_keyword_from_scenario(scenario) == "테스트 질문입니다"
+
+
+def test_stage199_fake_adapter_falls_back_to_default_info_when_all_empty() -> None:
+    scenario = {
+        "pass_criteria": {"answer_contains_any": []},
+        "expected_keywords": [],
+        "question": "",
+    }
+    assert answer_keyword_from_scenario(scenario) == "정보"
+
+
+def test_stage199_fake_adapter_skips_blank_entries_in_expected_keywords() -> None:
+    scenario = {
+        "expected_keywords": ["  ", "", "실제키워드"],
+    }
+    assert answer_keyword_from_scenario(scenario) == "실제키워드"
