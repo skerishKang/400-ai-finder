@@ -103,6 +103,12 @@ class _RaisingModuleLookupScenario:
         raise AssertionError("scenario module lookup should not be called")
 
 
+class _RaisingDocLookupScenario:
+    @property
+    def __doc__(self) -> str:
+        raise AssertionError("scenario doc lookup should not be called")
+
+
 class _RaisingIterScenario:
     def __iter__(self):
         raise AssertionError("scenario iteration should not be started")
@@ -334,6 +340,11 @@ def test_stage184_real_adapter_placeholder_does_not_call_scenario_annotations_lo
 def test_stage186_real_adapter_placeholder_does_not_call_scenario_module_lookup() -> None:
     with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
         build_real_single_live_result_payload(_RaisingModuleLookupScenario())  # type: ignore[arg-type]
+
+
+def test_stage188_real_adapter_placeholder_does_not_call_scenario_doc_lookup() -> None:
+    with pytest.raises(SingleLiveSmokeRealAdapterNotImplementedError):
+        build_real_single_live_result_payload(_RaisingDocLookupScenario())  # type: ignore[arg-type]
 
 
 def test_stage148_real_adapter_placeholder_does_not_start_scenario_iteration() -> None:
