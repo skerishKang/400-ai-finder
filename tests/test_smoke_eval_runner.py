@@ -221,6 +221,187 @@ def test_stage284_validate_matrix_preserves_existing_fixtures() -> None:
         assert len(result) > 0
 
 
+@pytest.mark.parametrize(
+    "bad_expected_keywords",
+    [
+        "foo",
+        None,
+        True,
+        123,
+        {},
+    ],
+)
+def test_stage286_validate_matrix_rejects_non_list_expected_keywords(
+    bad_expected_keywords: object,
+) -> None:
+    """Reject non-list expected_keywords: string, None, bool, int, dict."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-expected-keywords",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "test question",
+                "expected_domain": "bukgu.go.kr",
+                "expected_keywords": bad_expected_keywords,
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ]
+    }
+    with pytest.raises(SmokeScenarioMatrixError, match="expected_keywords must be a list"):
+        validate_matrix(invalid_matrix)
+
+
+@pytest.mark.parametrize(
+    "bad_item",
+    [
+        1,
+        None,
+        True,
+    ],
+)
+def test_stage286_validate_matrix_rejects_non_string_expected_keywords_items(
+    bad_item: object,
+) -> None:
+    """Reject non-string items within expected_keywords list."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-expected-keyword-item",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "test question",
+                "expected_domain": "bukgu.go.kr",
+                "expected_keywords": ["foo", bad_item],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ]
+    }
+    with pytest.raises(SmokeScenarioMatrixError, match="expected_keywords.*must be a string"):
+        validate_matrix(invalid_matrix)
+
+
+@pytest.mark.parametrize(
+    "blank_item",
+    [
+        "",
+        "   ",
+    ],
+)
+def test_stage286_validate_matrix_rejects_blank_expected_keywords_items(
+    blank_item: str,
+) -> None:
+    """Reject blank (empty or whitespace-only) items within expected_keywords list."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-expected-keyword-blank",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "test question",
+                "expected_domain": "bukgu.go.kr",
+                "expected_keywords": ["foo", blank_item],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ]
+    }
+    with pytest.raises(SmokeScenarioMatrixError, match="expected_keywords.*must not be blank"):
+        validate_matrix(invalid_matrix)
+
+
+def test_stage286_validate_matrix_rejects_duplicate_expected_keywords_items() -> None:
+    """Reject duplicate exact items within expected_keywords list."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-expected-keyword-duplicate",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "test question",
+                "expected_domain": "bukgu.go.kr",
+                "expected_keywords": ["foo", "foo"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ]
+    }
+    with pytest.raises(SmokeScenarioMatrixError, match="expected_keywords.*duplicate"):
+        validate_matrix(invalid_matrix)
+
+
+def test_stage286_validate_matrix_preserves_valid_expected_keywords_list() -> None:
+    """Preserve valid list-of-string expected_keywords."""
+    valid_matrix = {
+        "scenarios": [
+            {
+                "id": "valid-expected-keywords",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "test question",
+                "expected_domain": "bukgu.go.kr",
+                "expected_keywords": ["foo", "bar"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ]
+    }
+    result = validate_matrix(valid_matrix)
+    assert len(result) == 1
+    assert result[0]["expected_keywords"] == ["foo", "bar"]
+
+
+def test_stage286_validate_matrix_allows_empty_expected_keywords_list() -> None:
+    """Allow empty expected_keywords list (minimum length policy is deferred)."""
+    valid_matrix = {
+        "scenarios": [
+            {
+                "id": "empty-expected-keywords",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "test question",
+                "expected_domain": "bukgu.go.kr",
+                "expected_keywords": [],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ]
+    }
+    result = validate_matrix(valid_matrix)
+    assert len(result) == 1
+    assert result[0]["expected_keywords"] == []
+
+
+def test_stage286_validate_matrix_preserves_expected_keywords_in_fixtures() -> None:
+    """Preserve all existing valid matrix fixtures with expected_keywords."""
+    fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+    for matrix_path in sorted(fixtures_dir.glob("*matrix*")):
+        data = json.loads(matrix_path.read_text(encoding="utf-8"))
+        result = validate_matrix(data)
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+
 def test_stage261_validate_matrix_rejects_non_string_truthy_source_domain() -> None:
     """Reject truthy non-string pass_criteria.source_domain values."""
     for source_domain in (True, 123):
