@@ -53,6 +53,11 @@ OPTIONAL_BOOLEAN_PASS_CRITERIA_KEYS = (
     "fallback_required",
     "fallback_when_no_source",
 )
+KNOWN_MATRIX_KEYS = {
+    "_meta",
+    "quality_gate",
+    "scenarios",
+}
 FALLBACK_MARKERS = (
     "직접 확인",
     "홈페이지에서 확인",
@@ -109,6 +114,10 @@ def load_response_fixture(path: Path) -> dict[str, Any]:
 
 def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Validate and return scenarios from a schema-only matrix."""
+    unknown_matrix_keys = set(data) - KNOWN_MATRIX_KEYS
+    if unknown_matrix_keys:
+        unknown_keys = ", ".join(sorted(unknown_matrix_keys))
+        raise SmokeScenarioMatrixError(f"unknown matrix keys: {unknown_keys}")
     scenarios = data.get("scenarios")
     if not isinstance(scenarios, list) or not scenarios:
         raise SmokeScenarioMatrixError("Matrix must include a non-empty scenarios list.")
