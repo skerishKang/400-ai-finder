@@ -225,6 +225,29 @@ def test_stage232_evaluate_response_treats_missing_sources_as_empty() -> None:
     assert "min_sources" in result["failures"]
 
 
+def test_stage233_evaluate_response_treats_non_list_sources_as_empty() -> None:
+    """Treat non-list sources as empty filtered sources."""
+    scenario = _scenario_by_id("bukgu-01")
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "민원서식은 북구청 종합민원 민원서식 메뉴에서 확인할 수 있습니다.",
+        "sources": {
+            "title": "민원서식",
+            "url": "https://bukgu.gwangju.kr/menu.es?mid=a10102000000",
+        },
+        "fallback": False,
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is False
+    assert result["checks"]["site_id_match"] is True
+    assert result["checks"]["min_sources"] is False
+    assert "source_domain" not in result["checks"]
+    assert "no_cross_site_urls" not in result["checks"]
+    assert "min_sources" in result["failures"]
+
+
 def test_evaluate_response_fails_cross_site_source_url() -> None:
     scenario = _scenario_by_id("bukgu-01")
     response = {
