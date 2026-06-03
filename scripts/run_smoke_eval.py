@@ -142,9 +142,9 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
             )
 
         min_sources = pass_criteria.get("min_sources")
-        if isinstance(min_sources, bool):
+        if type(min_sources) is not int or min_sources < 0:
             raise SmokeScenarioMatrixError(
-                f"Scenario {scenario_id} pass_criteria.min_sources must be an integer."
+                f"Scenario {scenario_id} pass_criteria.min_sources must be a non-negative integer."
             )
 
         source_domain = pass_criteria.get("source_domain")
