@@ -487,6 +487,29 @@ def test_stage234_evaluate_response_accepts_fallback_marker_when_sources_missing
     assert result["checks"]["fallback_when_no_source"] is True
 
 
+def test_stage235_evaluate_response_accepts_fallback_marker_when_sources_is_non_list() -> None:
+    """Accept fallback marker text when sources is present but not a list."""
+    scenario = _scenario_by_id("bukgu-03")
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "주민등록등본 발급 관련 출처가 부족하므로 홈페이지에서 직접 확인해 주세요.",
+        "sources": {
+            "title": "주민등록등본",
+            "url": "https://bukgu.gwangju.kr/menu.es?mid=a10102000000",
+        },
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is True
+    assert result["checks"]["site_id_match"] is True
+    assert result["checks"]["min_sources"] is True
+    assert "source_domain" not in result["checks"]
+    assert "no_cross_site_urls" not in result["checks"]
+    assert result["checks"]["answer_contains_any"] is True
+    assert result["checks"]["fallback_when_no_source"] is True
+
+
 def test_evaluate_response_requires_fallback_for_low_confidence_case() -> None:
     scenario = _scenario_by_id("gwangju-07")
     response = {
