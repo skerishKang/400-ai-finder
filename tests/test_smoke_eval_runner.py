@@ -577,6 +577,27 @@ def test_evaluate_response_requires_fallback_for_low_confidence_case() -> None:
     assert "fallback_required" in result["failures"]
 
 
+def test_stage240_evaluate_response_keeps_answer_not_empty_failing_when_fallback_flag_is_true() -> None:
+    """Allow fallback flag while keeping missing answer_not_empty failure."""
+    scenario = _scenario_by_id("gwangju-07")
+    response = {
+        "site_id": "gwangju_go_kr",
+        "sources": [],
+        "fallback": True,
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is False
+    assert result["checks"]["site_id_match"] is True
+    assert result["checks"]["min_sources"] is True
+    assert result["checks"]["answer_not_empty"] is False
+    assert result["checks"]["fallback_required"] is True
+    assert "source_domain" not in result["checks"]
+    assert "no_cross_site_urls" not in result["checks"]
+    assert result["failures"] == ["answer_not_empty"]
+
+
 def test_evaluate_response_detects_site_id_mismatch() -> None:
     scenario = _scenario_by_id("bukgu-06")
     response = {
