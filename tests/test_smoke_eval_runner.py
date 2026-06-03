@@ -464,6 +464,32 @@ def test_stage237_evaluate_response_treats_missing_answer_as_empty_for_keyword_c
     assert result["failures"] == ["answer_contains_any"]
 
 
+def test_stage238_evaluate_response_treats_non_string_answer_as_empty_for_keyword_check() -> None:
+    """Treat non-string answer as empty for answer_contains_any."""
+    scenario = _scenario_by_id("bukgu-01")
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": 123,
+        "sources": [
+            {
+                "title": "민원서식",
+                "url": "https://bukgu.gwangju.kr/menu.es?mid=a10102000000",
+            }
+        ],
+        "fallback": False,
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is False
+    assert result["checks"]["site_id_match"] is True
+    assert result["checks"]["min_sources"] is True
+    assert result["checks"]["source_domain"] is True
+    assert result["checks"]["no_cross_site_urls"] is True
+    assert result["checks"]["answer_contains_any"] is False
+    assert result["failures"] == ["answer_contains_any"]
+
+
 def test_evaluate_response_accepts_fallback_when_sources_are_empty() -> None:
     scenario = _scenario_by_id("bukgu-03")
     response = {
