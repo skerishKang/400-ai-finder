@@ -593,6 +593,28 @@ def test_evaluate_response_detects_site_id_mismatch() -> None:
     assert "site_id_match" in result["failures"]
 
 
+def test_stage239_evaluate_response_rejects_whitespace_only_answer_for_answer_not_empty() -> None:
+    """Reject whitespace-only answers for answer_not_empty and no-source fallback."""
+    scenario = _scenario_by_id("bukgu-06")
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "   ",
+        "sources": [],
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is False
+    assert result["checks"]["site_id_match"] is True
+    assert result["checks"]["min_sources"] is True
+    assert result["checks"]["answer_not_empty"] is False
+    assert result["checks"]["fallback_when_no_source"] is False
+    assert "source_domain" not in result["checks"]
+    assert "no_cross_site_urls" not in result["checks"]
+    assert "answer_not_empty" in result["failures"]
+    assert "fallback_when_no_source" in result["failures"]
+
+
 def test_response_fixture_loads_and_passes_all_scenarios() -> None:
     scenarios = _scenario_list()
     fixture = load_response_fixture(RESPONSE_FIXTURE_PATH)
