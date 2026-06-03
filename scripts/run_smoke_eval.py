@@ -181,16 +181,21 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
                 raise SmokeScenarioMatrixError(
                     f"Scenario {scenario_id} pass_criteria.answer_contains_any must be a list."
                 )
+            seen_answer_contains_any = set()
             for item in value:
                 if type(item) is not str:
                     raise SmokeScenarioMatrixError(
                         f"Scenario {scenario_id} pass_criteria.answer_contains_any items must be strings."
                     )
-            for item in value:
                 if item.strip() == "":
                     raise SmokeScenarioMatrixError(
                         f"Scenario {scenario_id} pass_criteria.answer_contains_any items must not be blank."
                     )
+                if item in seen_answer_contains_any:
+                    raise SmokeScenarioMatrixError(
+                        f"Scenario {scenario_id} pass_criteria.answer_contains_any items must be unique."
+                    )
+                seen_answer_contains_any.add(item)
 
     return scenarios
 

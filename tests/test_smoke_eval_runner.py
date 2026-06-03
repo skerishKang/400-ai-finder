@@ -729,6 +729,81 @@ def test_validate_matrix_preserves_non_blank_answer_contains_any_items(
     assert scenarios[0]["pass_criteria"]["answer_contains_any"] == valid_items
 
 
+@pytest.mark.parametrize(
+    "duplicate_items",
+    [
+        ["foo", "foo"],
+        ["foo", "bar", "foo"],
+    ],
+)
+def test_validate_matrix_rejects_duplicate_answer_contains_any_items(
+    duplicate_items: list[str],
+) -> None:
+    """Reject duplicate items inside answer_contains_any lists."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "duplicate-items",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                    "answer_contains_any": duplicate_items,
+                },
+            }
+        ]
+    }
+
+    with pytest.raises(
+        SmokeScenarioMatrixError, match="answer_contains_any items must be unique"
+    ):
+        validate_matrix(invalid_matrix)
+
+
+@pytest.mark.parametrize(
+    "distinct_items",
+    [
+        pytest.param(["foo"], id="single-item"),
+        pytest.param(["foo", "bar"], id="distinct-items"),
+        pytest.param(["foo", "Foo"], id="case-distinct-items"),
+        pytest.param(["foo", " foo "], id="whitespace-distinct-items"),
+    ],
+)
+def test_validate_matrix_preserves_distinct_answer_contains_any_items(
+    distinct_items: list[str],
+) -> None:
+    """Preserve distinct answer_contains_any lists."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "distinct-items",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                    "answer_contains_any": distinct_items,
+                },
+            }
+        ]
+    }
+
+    scenarios = validate_matrix(matrix)
+    assert (
+        scenarios[0]["pass_criteria"]["answer_contains_any"]
+        == distinct_items
+    )
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 
