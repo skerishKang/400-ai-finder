@@ -487,6 +487,102 @@ def test_validate_matrix_allows_missing_optional_boolean_pass_criteria() -> None
     assert "fallback_when_no_source" not in scenarios[0]["pass_criteria"]
 
 
+@pytest.mark.parametrize(
+    "invalid_value",
+    [
+        "foo",
+        ("foo",),
+        None,
+        1,
+        True,
+        {},
+    ],
+)
+def test_validate_matrix_rejects_non_list_answer_contains_any_values(
+    invalid_value: object,
+) -> None:
+    """Reject non-list answer_contains_any values in matrix validation."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-answer-contains-any",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                    "answer_contains_any": invalid_value,
+                },
+            }
+        ]
+    }
+
+    with pytest.raises(SmokeScenarioMatrixError, match="answer_contains_any"):
+        validate_matrix(invalid_matrix)
+
+
+def test_validate_matrix_preserves_missing_answer_contains_any() -> None:
+    """Allow missing answer_contains_any."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "no-answer-contains-any",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ]
+    }
+
+    scenarios = validate_matrix(matrix)
+    assert "answer_contains_any" not in scenarios[0]["pass_criteria"]
+
+
+@pytest.mark.parametrize(
+    "valid_value",
+    [
+        [],
+        ["foo"],
+    ],
+)
+def test_validate_matrix_preserves_list_answer_contains_any_values(
+    valid_value: list[str],
+) -> None:
+    """Preserve list answer_contains_any values."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "valid-answer-contains-any",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                    "answer_contains_any": valid_value,
+                },
+            }
+        ]
+    }
+
+    scenarios = validate_matrix(matrix)
+    assert scenarios[0]["pass_criteria"]["answer_contains_any"] == valid_value
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 
