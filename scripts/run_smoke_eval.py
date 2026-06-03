@@ -41,6 +41,11 @@ REQUIRED_BOOLEAN_PASS_CRITERIA_KEYS = (
     "site_id_match",
     "no_cross_site_urls",
 )
+OPTIONAL_BOOLEAN_PASS_CRITERIA_KEYS = (
+    "answer_not_empty",
+    "fallback_required",
+    "fallback_when_no_source",
+)
 FALLBACK_MARKERS = (
     "직접 확인",
     "홈페이지에서 확인",
@@ -148,6 +153,12 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
         for key in REQUIRED_BOOLEAN_PASS_CRITERIA_KEYS:
             value = pass_criteria.get(key)
             if type(value) is not bool:
+                raise SmokeScenarioMatrixError(
+                    f"Scenario {scenario_id} pass_criteria.{key} must be a boolean."
+                )
+
+        for key in OPTIONAL_BOOLEAN_PASS_CRITERIA_KEYS:
+            if key in pass_criteria and type(pass_criteria[key]) is not bool:
                 raise SmokeScenarioMatrixError(
                     f"Scenario {scenario_id} pass_criteria.{key} must be a boolean."
                 )
