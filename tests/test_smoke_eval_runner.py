@@ -460,6 +460,33 @@ def test_stage255_evaluate_response_passes_fallback_required_with_fallback_marke
     }
 
 
+def test_stage256_evaluate_response_passes_fallback_when_no_source_with_valid_sources() -> None:
+    """Pass fallback_when_no_source when the response has valid sources."""
+    scenario = _scenario_by_id("bukgu-01")
+    scenario = {
+        **scenario,
+        "pass_criteria": {
+            "fallback_when_no_source": True,
+        },
+    }
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "민원서식은 북구청 종합민원 민원서식 메뉴에서 확인할 수 있습니다.",
+        "sources": [
+            {
+                "title": "민원서식",
+                "url": "https://bukgu.gwangju.kr/menu.es?mid=a10102000000",
+            }
+        ],
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is True
+    assert result["failures"] == []
+    assert result["checks"]["fallback_when_no_source"] is True
+
+
 def test_stage228_evaluate_response_ignores_non_dict_source_entries() -> None:
     """Ignore non-dict source entries while preserving valid dict sources."""
     scenario = _scenario_by_id("bukgu-01")
