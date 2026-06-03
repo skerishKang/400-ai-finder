@@ -163,6 +163,25 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
                 f"Scenario {scenario_id} expected_keywords must be a list."
             )
 
+        seen_expected_keywords: set[str] = set()
+        for keyword_index, keyword in enumerate(expected_keywords):
+            if not isinstance(keyword, str):
+                raise SmokeScenarioMatrixError(
+                    f"Scenario {scenario_id} field 'expected_keywords' "
+                    f"item at index {keyword_index} must be a string"
+                )
+            if not keyword.strip():
+                raise SmokeScenarioMatrixError(
+                    f"Scenario {scenario_id} field 'expected_keywords' "
+                    f"item at index {keyword_index} must not be blank"
+                )
+            if keyword in seen_expected_keywords:
+                raise SmokeScenarioMatrixError(
+                    f"Scenario {scenario_id} field 'expected_keywords' "
+                    f"contains duplicate item {keyword!r}"
+                )
+            seen_expected_keywords.add(keyword)
+
         pass_criteria = scenario["pass_criteria"]
         if not isinstance(pass_criteria, dict):
             raise SmokeScenarioMatrixError(
