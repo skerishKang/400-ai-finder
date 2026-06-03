@@ -125,6 +125,11 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
     if unknown_matrix_keys:
         unknown_keys = ", ".join(sorted(unknown_matrix_keys))
         raise SmokeScenarioMatrixError(f"unknown matrix keys: {unknown_keys}")
+
+    quality_gate = data.get("quality_gate")
+    if quality_gate is not None and not isinstance(quality_gate, dict):
+        raise SmokeScenarioMatrixError("quality_gate must be a dict")
+
     scenarios = data.get("scenarios")
     if not isinstance(scenarios, list) or not scenarios:
         raise SmokeScenarioMatrixError("Matrix must include a non-empty scenarios list.")

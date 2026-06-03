@@ -1282,6 +1282,76 @@ def test_validate_matrix_preserves_known_top_level_matrix_keys(
     assert len(scenarios) == 1
 
 
+@pytest.mark.parametrize(
+    "bad_quality_gate",
+    [
+        [],
+        "foo",
+        123,
+        True,
+    ],
+)
+def test_validate_matrix_rejects_non_dict_quality_gate(
+    bad_quality_gate,
+) -> None:
+    """Reject non-dict quality_gate values."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "quality-gate-test",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "테스트 질문",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["테스트"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ],
+        "quality_gate": bad_quality_gate,
+    }
+
+    with pytest.raises(
+        SmokeScenarioMatrixError,
+        match="quality_gate must be a dict",
+    ):
+        validate_matrix(matrix)
+
+
+def test_validate_matrix_preserves_valid_dict_quality_gate() -> None:
+    """Preserve valid dict quality_gate."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "quality-gate-valid",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "테스트 질문",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["테스트"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ],
+        "quality_gate": {
+            "site_id_match": "required",
+            "grounded_source": "required",
+            "no_cross_site_confusion": "required",
+            "no_unsupported_facts": "required",
+            "clear_fallback": "required",
+        },
+    }
+
+    scenarios = validate_matrix(matrix)
+    assert len(scenarios) == 1
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 
