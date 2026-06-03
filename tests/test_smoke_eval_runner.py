@@ -490,6 +490,28 @@ def test_stage238_evaluate_response_treats_non_string_answer_as_empty_for_keywor
     assert result["failures"] == ["answer_contains_any"]
 
 
+def test_stage241_evaluate_response_rejects_non_string_answer_fallback_marker_without_flag() -> None:
+    """Reject marker-based fallback when answer is non-string and fallback flag is absent."""
+    scenario = _scenario_by_id("bukgu-03")
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": 123,
+        "sources": [],
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is False
+    assert result["checks"]["site_id_match"] is True
+    assert result["checks"]["min_sources"] is True
+    assert result["checks"]["answer_contains_any"] is False
+    assert result["checks"]["fallback_when_no_source"] is False
+    assert "source_domain" not in result["checks"]
+    assert "no_cross_site_urls" not in result["checks"]
+    assert "answer_contains_any" in result["failures"]
+    assert "fallback_when_no_source" in result["failures"]
+
+
 def test_evaluate_response_accepts_fallback_when_sources_are_empty() -> None:
     scenario = _scenario_by_id("bukgu-03")
     response = {
