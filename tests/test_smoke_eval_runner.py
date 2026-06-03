@@ -510,6 +510,30 @@ def test_stage257_evaluate_response_passes_fallback_when_no_source_with_fallback
     assert result["checks"]["fallback_when_no_source"] is True
 
 
+def test_stage258_evaluate_response_fails_fallback_when_no_source_with_empty_sources_and_no_fallback() -> None:
+    """Fail fallback_when_no_source when sources are empty and response is not fallback."""
+    scenario = _scenario_by_id("bukgu-03")
+    scenario = {
+        **scenario,
+        "pass_criteria": {
+            "fallback_when_no_source": True,
+        },
+    }
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "일반 안내 문장입니다.",
+        "sources": [],
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is False
+    assert result["failures"] == ["fallback_when_no_source"]
+    assert result["checks"] == {
+        "fallback_when_no_source": False,
+    }
+
+
 def test_stage228_evaluate_response_ignores_non_dict_source_entries() -> None:
     """Ignore non-dict source entries while preserving valid dict sources."""
     scenario = _scenario_by_id("bukgu-01")
