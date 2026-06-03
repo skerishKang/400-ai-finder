@@ -308,6 +308,185 @@ def test_validate_matrix_preserves_bool_no_cross_site_urls_values() -> None:
         assert scenarios[0]["pass_criteria"]["no_cross_site_urls"] is value
 
 
+def test_validate_matrix_rejects_non_bool_optional_answer_not_empty() -> None:
+    """Reject int answer_not_empty in matrix validation."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-answer-not-empty",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                    "answer_not_empty": 1,
+                },
+            }
+        ]
+    }
+
+    with pytest.raises(SmokeScenarioMatrixError, match="answer_not_empty"):
+        validate_matrix(invalid_matrix)
+
+
+def test_validate_matrix_rejects_non_bool_optional_fallback_required() -> None:
+    """Reject int fallback_required in matrix validation."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-fallback-required",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                    "fallback_required": 1,
+                },
+            }
+        ]
+    }
+
+    with pytest.raises(SmokeScenarioMatrixError, match="fallback_required"):
+        validate_matrix(invalid_matrix)
+
+
+def test_validate_matrix_rejects_non_bool_optional_fallback_when_no_source() -> None:
+    """Reject int fallback_when_no_source in matrix validation."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-fallback-when-no-source",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                    "fallback_when_no_source": 1,
+                },
+            }
+        ]
+    }
+
+    with pytest.raises(SmokeScenarioMatrixError, match="fallback_when_no_source"):
+        validate_matrix(invalid_matrix)
+
+
+def test_validate_matrix_preserves_optional_boolean_answer_not_empty_values() -> None:
+    """Preserve True and False for answer_not_empty."""
+    for value in (True, False):
+        matrix = {
+            "scenarios": [
+                {
+                    "id": f"valid-answer-not-empty-{value}",
+                    "site_id": "bukgu_gwangju",
+                    "category": "service_navigation",
+                    "question": "민원서식은 어디에서 확인하나요?",
+                    "expected_domain": "bukgu.gwangju.kr",
+                    "expected_keywords": ["민원서식"],
+                    "pass_criteria": {
+                        "site_id_match": True,
+                        "min_sources": 1,
+                        "no_cross_site_urls": True,
+                        "answer_not_empty": value,
+                    },
+                }
+            ]
+        }
+
+        scenarios = validate_matrix(matrix)
+        assert scenarios[0]["pass_criteria"]["answer_not_empty"] is value
+
+
+def test_validate_matrix_preserves_optional_boolean_fallback_required_values() -> None:
+    """Preserve True and False for fallback_required."""
+    for value in (True, False):
+        matrix = {
+            "scenarios": [
+                {
+                    "id": f"valid-fallback-required-{value}",
+                    "site_id": "bukgu_gwangju",
+                    "category": "service_navigation",
+                    "question": "민원서식은 어디에서 확인하나요?",
+                    "expected_domain": "bukgu.gwangju.kr",
+                    "expected_keywords": ["민원서식"],
+                    "pass_criteria": {
+                        "site_id_match": True,
+                        "min_sources": 1,
+                        "no_cross_site_urls": True,
+                        "fallback_required": value,
+                    },
+                }
+            ]
+        }
+
+        scenarios = validate_matrix(matrix)
+        assert scenarios[0]["pass_criteria"]["fallback_required"] is value
+
+
+def test_validate_matrix_preserves_optional_boolean_fallback_when_no_source_values() -> None:
+    """Preserve True and False for fallback_when_no_source."""
+    for value in (True, False):
+        matrix = {
+            "scenarios": [
+                {
+                    "id": f"valid-fallback-when-no-source-{value}",
+                    "site_id": "bukgu_gwangju",
+                    "category": "service_navigation",
+                    "question": "민원서식은 어디에서 확인하나요?",
+                    "expected_domain": "bukgu.gwangju.kr",
+                    "expected_keywords": ["민원서식"],
+                    "pass_criteria": {
+                        "site_id_match": True,
+                        "min_sources": 1,
+                        "no_cross_site_urls": True,
+                        "fallback_when_no_source": value,
+                    },
+                }
+            ]
+        }
+
+        scenarios = validate_matrix(matrix)
+        assert scenarios[0]["pass_criteria"]["fallback_when_no_source"] is value
+
+
+def test_validate_matrix_allows_missing_optional_boolean_pass_criteria() -> None:
+    """Allow missing optional boolean keys."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "no-optional-bools",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ]
+    }
+
+    scenarios = validate_matrix(matrix)
+    assert "answer_not_empty" not in scenarios[0]["pass_criteria"]
+    assert "fallback_required" not in scenarios[0]["pass_criteria"]
+    assert "fallback_when_no_source" not in scenarios[0]["pass_criteria"]
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 
