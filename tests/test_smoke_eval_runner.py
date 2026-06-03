@@ -895,6 +895,99 @@ def test_validate_matrix_allows_missing_optional_pass_criteria_keys() -> None:
     assert scenarios[0]["id"] == "required-only"
 
 
+@pytest.mark.parametrize(
+    "unknown_key",
+    [
+        pytest.param("unknown_key", id="unknown-key"),
+        pytest.param("scenario", id="typo-scenario"),
+        pytest.param("scenarious", id="typo-scenarious"),
+        pytest.param("passCriteria", id="camelCase-pass-criteria"),
+    ],
+)
+def test_validate_matrix_rejects_unknown_top_level_matrix_keys(
+    unknown_key: str,
+) -> None:
+    """Reject unknown top-level matrix keys."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "unknown-top-level",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ],
+        unknown_key: "some_value",
+    }
+
+    with pytest.raises(
+        SmokeScenarioMatrixError, match="unknown matrix keys"
+    ):
+        validate_matrix(matrix)
+
+
+@pytest.mark.parametrize(
+    "matrix",
+    [
+        pytest.param(
+            {
+                "scenarios": [
+                    {
+                        "id": "only-scenarios",
+                        "site_id": "bukgu_gwangju",
+                        "category": "service_navigation",
+                        "question": "민원서식은 어디에서 확인하나요?",
+                        "expected_domain": "bukgu.gwangju.kr",
+                        "expected_keywords": ["민원서식"],
+                        "pass_criteria": {
+                            "site_id_match": True,
+                            "min_sources": 1,
+                            "no_cross_site_urls": True,
+                        },
+                    }
+                ],
+            },
+            id="scenarios-only",
+        ),
+        pytest.param(
+            {
+                "_meta": {"version": 1},
+                "quality_gate": {"min_pass_rate": 1.0},
+                "scenarios": [
+                    {
+                        "id": "with-meta-and-quality",
+                        "site_id": "bukgu_gwangju",
+                        "category": "service_navigation",
+                        "question": "민원서식은 어디에서 확인하나요?",
+                        "expected_domain": "bukgu.gwangju.kr",
+                        "expected_keywords": ["민원서식"],
+                        "pass_criteria": {
+                            "site_id_match": True,
+                            "min_sources": 1,
+                            "no_cross_site_urls": True,
+                        },
+                    }
+                ],
+            },
+            id="meta-quality-gate-scenarios",
+        ),
+    ],
+)
+def test_validate_matrix_preserves_known_top_level_matrix_keys(
+    matrix: dict,
+) -> None:
+    """Preserve known top-level matrix keys (_meta, quality_gate, scenarios)."""
+    scenarios = validate_matrix(matrix)
+    assert len(scenarios) == 1
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 
