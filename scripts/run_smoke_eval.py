@@ -141,6 +141,12 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
                 f"Scenario {scenario_id} pass_criteria missing: {missing_list}"
             )
 
+        source_domain = pass_criteria.get("source_domain")
+        if source_domain and not isinstance(source_domain, str):
+            raise SmokeScenarioMatrixError(
+                f"Scenario {scenario_id} pass_criteria.source_domain must be a string."
+            )
+
     return scenarios
 
 

@@ -108,6 +108,32 @@ def test_validate_matrix_rejects_duplicate_ids() -> None:
         validate_matrix({"scenarios": [scenario, dict(scenario)]})
 
 
+def test_stage261_validate_matrix_rejects_non_string_truthy_source_domain() -> None:
+    """Reject truthy non-string pass_criteria.source_domain values."""
+    for source_domain in (True, 123):
+        invalid_matrix = {
+            "scenarios": [
+                {
+                    "id": f"invalid-source-domain-{source_domain}",
+                    "site_id": "bukgu_gwangju",
+                    "category": "service_navigation",
+                    "question": "민원서식은 어디에서 확인하나요?",
+                    "expected_domain": "bukgu.gwangju.kr",
+                    "expected_keywords": ["민원서식"],
+                    "pass_criteria": {
+                        "site_id_match": True,
+                        "min_sources": 1,
+                        "source_domain": source_domain,
+                        "no_cross_site_urls": True,
+                    },
+                }
+            ]
+        }
+
+        with pytest.raises(SmokeScenarioMatrixError, match="source_domain"):
+            validate_matrix(invalid_matrix)
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 
