@@ -412,6 +412,30 @@ def test_stage253_evaluate_response_passes_fallback_required_with_explicit_fallb
     }
 
 
+def test_stage254_evaluate_response_fails_fallback_required_without_fallback_flag_or_marker() -> None:
+    """Fail fallback_required when the response has no fallback flag and no fallback marker."""
+    scenario = _scenario_by_id("bukgu-03")
+    scenario = {
+        **scenario,
+        "pass_criteria": {
+            "fallback_required": True,
+        },
+    }
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "일반적인 안내 문구입니다.",
+        "sources": [],
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is False
+    assert result["failures"] == ["fallback_required"]
+    assert result["checks"] == {
+        "fallback_required": False,
+    }
+
+
 def test_stage228_evaluate_response_ignores_non_dict_source_entries() -> None:
     """Ignore non-dict source entries while preserving valid dict sources."""
     scenario = _scenario_by_id("bukgu-01")
