@@ -134,6 +134,31 @@ def test_stage261_validate_matrix_rejects_non_string_truthy_source_domain() -> N
             validate_matrix(invalid_matrix)
 
 
+def test_stage263_validate_matrix_rejects_bool_min_sources() -> None:
+    """Reject bool pass_criteria.min_sources values in matrix validation."""
+    for min_sources in (True, False):
+        invalid_matrix = {
+            "scenarios": [
+                {
+                    "id": f"invalid-min-sources-{min_sources}",
+                    "site_id": "bukgu_gwangju",
+                    "category": "service_navigation",
+                    "question": "민원서식은 어디에서 확인하나요?",
+                    "expected_domain": "bukgu.gwangju.kr",
+                    "expected_keywords": ["민원서식"],
+                    "pass_criteria": {
+                        "site_id_match": True,
+                        "min_sources": min_sources,
+                        "no_cross_site_urls": True,
+                    },
+                }
+            ]
+        }
+
+        with pytest.raises(SmokeScenarioMatrixError, match="min_sources"):
+            validate_matrix(invalid_matrix)
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 

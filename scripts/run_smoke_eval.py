@@ -141,6 +141,12 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
                 f"Scenario {scenario_id} pass_criteria missing: {missing_list}"
             )
 
+        min_sources = pass_criteria.get("min_sources")
+        if isinstance(min_sources, bool):
+            raise SmokeScenarioMatrixError(
+                f"Scenario {scenario_id} pass_criteria.min_sources must be an integer."
+            )
+
         source_domain = pass_criteria.get("source_domain")
         if source_domain and not isinstance(source_domain, str):
             raise SmokeScenarioMatrixError(
