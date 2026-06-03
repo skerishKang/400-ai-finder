@@ -1352,6 +1352,120 @@ def test_validate_matrix_preserves_valid_dict_quality_gate() -> None:
     assert len(scenarios) == 1
 
 
+@pytest.mark.parametrize(
+    "bad_meta",
+    [
+        [],
+        "foo",
+        123,
+        True,
+    ],
+)
+def test_validate_matrix_rejects_non_dict_meta(bad_meta) -> None:
+    """Reject non-dict _meta values."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "meta-test",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "테스트 질문",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["테스트"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ],
+        "_meta": bad_meta,
+    }
+
+    with pytest.raises(
+        SmokeScenarioMatrixError,
+        match="_meta must be a dict",
+    ):
+        validate_matrix(matrix)
+
+
+def test_validate_matrix_preserves_valid_meta_dict() -> None:
+    """Preserve valid dict _meta."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "meta-valid",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "테스트 질문",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["테스트"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ],
+        "_meta": {
+            "version": "test",
+            "description": "test metadata",
+        },
+    }
+
+    scenarios = validate_matrix(matrix)
+    assert len(scenarios) == 1
+
+
+def test_validate_matrix_allows_missing_meta() -> None:
+    """Allow missing _meta (scenarios-only matrix)."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "meta-missing",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "테스트 질문",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["테스트"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ],
+    }
+
+    scenarios = validate_matrix(matrix)
+    assert len(scenarios) == 1
+
+
+def test_validate_matrix_allows_none_meta() -> None:
+    """Allow _meta=None as optional/missing-like."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "meta-none",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "테스트 질문",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["테스트"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ],
+        "_meta": None,
+    }
+
+    scenarios = validate_matrix(matrix)
+    assert len(scenarios) == 1
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 
