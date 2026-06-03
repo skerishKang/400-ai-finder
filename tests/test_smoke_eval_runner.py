@@ -574,6 +574,31 @@ def test_stage214_evaluate_response_rejects_truthy_non_string_source_title() -> 
     assert result["checks"]["no_cross_site_urls"] is True
 
 
+def test_stage226_evaluate_response_falls_back_to_name_when_title_is_falsey() -> None:
+    """Fall back to name when title is falsey non-string."""
+    scenario = _scenario_by_id("bukgu-01")
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "민원서식은 북구청 종합민원 민원서식 메뉴에서 확인할 수 있습니다.",
+        "sources": [
+            {
+                "title": 0,
+                "name": "민원서식",
+                "url": "https://bukgu.gwangju.kr/menu.es?mid=a10102000000",
+            }
+        ],
+        "fallback": False,
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is True
+    assert result["checks"]["source_domain"] is True
+    assert result["checks"]["no_cross_site_urls"] is True
+    assert result["checks"]["site_id_match"] is True
+    assert result["checks"]["min_sources"] is True
+
+
 def test_stage216_evaluate_response_rejects_truthy_non_string_source_url() -> None:
     """Reject truthy non-string url before falling back to href/link."""
     scenario = _scenario_by_id("bukgu-01")
