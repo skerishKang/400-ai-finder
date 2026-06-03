@@ -37,6 +37,13 @@ REQUIRED_PASS_CRITERIA_KEYS = {
     "min_sources",
     "no_cross_site_urls",
 }
+KNOWN_PASS_CRITERIA_KEYS = REQUIRED_PASS_CRITERIA_KEYS | {
+    "source_domain",
+    "answer_contains_any",
+    "answer_not_empty",
+    "fallback_required",
+    "fallback_when_no_source",
+}
 REQUIRED_BOOLEAN_PASS_CRITERIA_KEYS = (
     "site_id_match",
     "no_cross_site_urls",
@@ -148,6 +155,13 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
             missing_list = ", ".join(sorted(missing_criteria))
             raise SmokeScenarioMatrixError(
                 f"Scenario {scenario_id} pass_criteria missing: {missing_list}"
+            )
+
+        unknown_pass_criteria_keys = pass_criteria.keys() - KNOWN_PASS_CRITERIA_KEYS
+        if unknown_pass_criteria_keys:
+            unknown_list = ", ".join(sorted(unknown_pass_criteria_keys))
+            raise SmokeScenarioMatrixError(
+                f"Scenario {scenario_id} pass_criteria contains unknown keys: {unknown_list}"
             )
 
         for key in REQUIRED_BOOLEAN_PASS_CRITERIA_KEYS:
