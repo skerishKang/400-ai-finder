@@ -58,6 +58,13 @@ KNOWN_MATRIX_KEYS = {
     "quality_gate",
     "scenarios",
 }
+SCENARIO_STRING_FIELDS = (
+    "id",
+    "site_id",
+    "category",
+    "question",
+    "expected_domain",
+)
 FALLBACK_MARKERS = (
     "직접 확인",
     "홈페이지에서 확인",
@@ -134,19 +141,21 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
                 f"Scenario #{index} is missing required keys: {missing_list}"
             )
 
+        for field_name in SCENARIO_STRING_FIELDS:
+            value = scenario[field_name]
+            if not isinstance(value, str):
+                raise SmokeScenarioMatrixError(
+                    f"Scenario #{index} field '{field_name}' must be a string"
+                )
+            if not value.strip():
+                raise SmokeScenarioMatrixError(
+                    f"Scenario #{index} field '{field_name}' must not be blank"
+                )
+
         scenario_id = scenario["id"]
-        if not isinstance(scenario_id, str) or not scenario_id.strip():
-            raise SmokeScenarioMatrixError(f"Scenario #{index} has an invalid id.")
         if scenario_id in seen_ids:
             raise SmokeScenarioMatrixError(f"Duplicate scenario id: {scenario_id}")
         seen_ids.add(scenario_id)
-
-        for key in ("site_id", "category", "question", "expected_domain"):
-            value = scenario[key]
-            if not isinstance(value, str) or not value.strip():
-                raise SmokeScenarioMatrixError(
-                    f"Scenario {scenario_id} has an invalid {key}."
-                )
 
         expected_keywords = scenario["expected_keywords"]
         if not isinstance(expected_keywords, list):

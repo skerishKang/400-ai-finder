@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -106,6 +107,61 @@ def test_validate_matrix_rejects_duplicate_ids() -> None:
 
     with pytest.raises(SmokeScenarioMatrixError, match="Duplicate scenario id"):
         validate_matrix({"scenarios": [scenario, dict(scenario)]})
+
+
+@pytest.mark.parametrize(
+    ("field_name", "bad_value"),
+    [
+        ("id", 123),
+        ("site_id", True),
+        ("category", None),
+        ("question", []),
+        ("expected_domain", 123),
+    ],
+)
+def test_stage283_validate_matrix_rejects_non_string_scenario_scalar_fields(
+    field_name: str, bad_value: object
+) -> None:
+    """Reject non-string values for scalar scenario fields id/site_id/category/question/expected_domain."""
+    scenario = {
+        "id": "bukgu-01",
+        "site_id": "bukgu_gwangju",
+        "category": "service_navigation",
+        "question": "test question",
+        "expected_domain": "bukgu.go.kr",
+        "expected_keywords": ["키워드"],
+        "pass_criteria": {"site_id_match": True, "min_sources": 1, "no_cross_site_urls": True},
+    }
+    invalid = dict(scenario)
+    invalid[field_name] = bad_value
+    with pytest.raises(SmokeScenarioMatrixError, match="must be a string"):
+        validate_matrix({"scenarios": [invalid]})
+
+
+def test_stage283_validate_matrix_preserves_valid_string_scenario_scalar_fields() -> None:
+    """Preserve valid string values for all five scalar scenario fields."""
+    scenario = {
+        "id": "bukgu-01",
+        "site_id": "bukgu_gwangju",
+        "category": "service_navigation",
+        "question": "test question",
+        "expected_domain": "bukgu.go.kr",
+        "expected_keywords": ["키워드"],
+        "pass_criteria": {"site_id_match": True, "min_sources": 1, "no_cross_site_urls": True},
+    }
+    result = validate_matrix({"scenarios": [scenario]})
+    assert len(result) == 1
+    assert result[0] == scenario
+
+
+def test_stage283_validate_matrix_preserves_valid_string_scenario_scalar_fields_all_fixtures() -> None:
+    """Preserve all existing valid matrix fixtures."""
+    fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+    for matrix_path in sorted(fixtures_dir.glob("*matrix*")):
+        data = json.loads(matrix_path.read_text(encoding="utf-8"))
+        result = validate_matrix(data)
+        assert isinstance(result, list)
+        assert len(result) > 0
 
 
 def test_stage261_validate_matrix_rejects_non_string_truthy_source_domain() -> None:
