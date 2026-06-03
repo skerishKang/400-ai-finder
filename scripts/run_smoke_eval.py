@@ -37,6 +37,10 @@ REQUIRED_PASS_CRITERIA_KEYS = {
     "min_sources",
     "no_cross_site_urls",
 }
+REQUIRED_BOOLEAN_PASS_CRITERIA_KEYS = (
+    "site_id_match",
+    "no_cross_site_urls",
+)
 FALLBACK_MARKERS = (
     "직접 확인",
     "홈페이지에서 확인",
@@ -140,6 +144,13 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
             raise SmokeScenarioMatrixError(
                 f"Scenario {scenario_id} pass_criteria missing: {missing_list}"
             )
+
+        for key in REQUIRED_BOOLEAN_PASS_CRITERIA_KEYS:
+            value = pass_criteria.get(key)
+            if type(value) is not bool:
+                raise SmokeScenarioMatrixError(
+                    f"Scenario {scenario_id} pass_criteria.{key} must be a boolean."
+                )
 
         min_sources = pass_criteria.get("min_sources")
         if type(min_sources) is not int or min_sources < 0:

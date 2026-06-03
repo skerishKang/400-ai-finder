@@ -210,6 +210,104 @@ def test_stage265_validate_matrix_preserves_zero_and_one_min_sources() -> None:
         assert scenarios[0]["pass_criteria"]["min_sources"] == min_sources
 
 
+def test_validate_matrix_rejects_non_bool_site_id_match() -> None:
+    """Reject truthy int site_id_match in matrix validation."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-site-id-match",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": 1,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+            }
+        ]
+    }
+
+    with pytest.raises(SmokeScenarioMatrixError, match="site_id_match"):
+        validate_matrix(invalid_matrix)
+
+
+def test_validate_matrix_rejects_non_bool_no_cross_site_urls() -> None:
+    """Reject truthy int no_cross_site_urls in matrix validation."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-no-cross-site-urls",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": 1,
+                },
+            }
+        ]
+    }
+
+    with pytest.raises(SmokeScenarioMatrixError, match="no_cross_site_urls"):
+        validate_matrix(invalid_matrix)
+
+
+def test_validate_matrix_preserves_bool_site_id_match_values() -> None:
+    """Preserve True and False for site_id_match."""
+    for value in (True, False):
+        matrix = {
+            "scenarios": [
+                {
+                    "id": f"valid-site-id-match-{value}",
+                    "site_id": "bukgu_gwangju",
+                    "category": "service_navigation",
+                    "question": "민원서식은 어디에서 확인하나요?",
+                    "expected_domain": "bukgu.gwangju.kr",
+                    "expected_keywords": ["민원서식"],
+                    "pass_criteria": {
+                        "site_id_match": value,
+                        "min_sources": 1,
+                        "no_cross_site_urls": True,
+                    },
+                }
+            ]
+        }
+
+        scenarios = validate_matrix(matrix)
+        assert scenarios[0]["pass_criteria"]["site_id_match"] is value
+
+
+def test_validate_matrix_preserves_bool_no_cross_site_urls_values() -> None:
+    """Preserve True and False for no_cross_site_urls."""
+    for value in (True, False):
+        matrix = {
+            "scenarios": [
+                {
+                    "id": f"valid-no-cross-site-urls-{value}",
+                    "site_id": "bukgu_gwangju",
+                    "category": "service_navigation",
+                    "question": "민원서식은 어디에서 확인하나요?",
+                    "expected_domain": "bukgu.gwangju.kr",
+                    "expected_keywords": ["민원서식"],
+                    "pass_criteria": {
+                        "site_id_match": True,
+                        "min_sources": 1,
+                        "no_cross_site_urls": value,
+                    },
+                }
+            ]
+        }
+
+        scenarios = validate_matrix(matrix)
+        assert scenarios[0]["pass_criteria"]["no_cross_site_urls"] is value
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 
