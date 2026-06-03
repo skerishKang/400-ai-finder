@@ -159,6 +159,57 @@ def test_stage263_validate_matrix_rejects_bool_min_sources() -> None:
             validate_matrix(invalid_matrix)
 
 
+def test_stage265_validate_matrix_rejects_invalid_min_sources_values() -> None:
+    """Reject non-integer and negative pass_criteria.min_sources values."""
+    for min_sources in (-1, 1.0, "1"):
+        invalid_matrix = {
+            "scenarios": [
+                {
+                    "id": f"invalid-min-sources-{min_sources}",
+                    "site_id": "bukgu_gwangju",
+                    "category": "service_navigation",
+                    "question": "민원서식은 어디에서 확인하나요?",
+                    "expected_domain": "bukgu.gwangju.kr",
+                    "expected_keywords": ["민원서식"],
+                    "pass_criteria": {
+                        "site_id_match": True,
+                        "min_sources": min_sources,
+                        "no_cross_site_urls": True,
+                    },
+                }
+            ]
+        }
+
+        with pytest.raises(SmokeScenarioMatrixError, match="min_sources"):
+            validate_matrix(invalid_matrix)
+
+
+def test_stage265_validate_matrix_preserves_zero_and_one_min_sources() -> None:
+    """Preserve non-negative integer pass_criteria.min_sources values."""
+    for min_sources in (0, 1):
+        valid_matrix = {
+            "scenarios": [
+                {
+                    "id": f"valid-min-sources-{min_sources}",
+                    "site_id": "bukgu_gwangju",
+                    "category": "service_navigation",
+                    "question": "민원서식은 어디에서 확인하나요?",
+                    "expected_domain": "bukgu.gwangju.kr",
+                    "expected_keywords": ["민원서식"],
+                    "pass_criteria": {
+                        "site_id_match": True,
+                        "min_sources": min_sources,
+                        "no_cross_site_urls": True,
+                    },
+                }
+            ]
+        }
+
+        scenarios = validate_matrix(valid_matrix)
+
+        assert scenarios[0]["pass_criteria"]["min_sources"] == min_sources
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 
