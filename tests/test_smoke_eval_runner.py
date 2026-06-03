@@ -387,6 +387,31 @@ def test_stage252_evaluate_response_fails_answer_not_empty_for_whitespace_only_a
     assert result["checks"]["answer_not_empty"] is False
 
 
+def test_stage253_evaluate_response_passes_fallback_required_with_explicit_fallback() -> None:
+    """Pass fallback_required when the response explicitly sets fallback=True."""
+    scenario = _scenario_by_id("bukgu-03")
+    scenario = {
+        **scenario,
+        "pass_criteria": {
+            "fallback_required": True,
+        },
+    }
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "요청하신 내용은 현재 제공된 근거 안에서 확정하기 어렵습니다.",
+        "sources": [],
+        "fallback": True,
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is True
+    assert result["failures"] == []
+    assert result["checks"] == {
+        "fallback_required": True,
+    }
+
+
 def test_stage228_evaluate_response_ignores_non_dict_source_entries() -> None:
     """Ignore non-dict source entries while preserving valid dict sources."""
     scenario = _scenario_by_id("bukgu-01")
