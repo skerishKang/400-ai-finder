@@ -164,6 +164,63 @@ def test_stage283_validate_matrix_preserves_valid_string_scenario_scalar_fields_
         assert len(result) > 0
 
 
+@pytest.mark.parametrize(
+    "bad_pass_criteria",
+    [
+        [],
+        None,
+        "foo",
+        True,
+        123,
+    ],
+)
+def test_stage284_validate_matrix_rejects_non_dict_pass_criteria(
+    bad_pass_criteria: object,
+) -> None:
+    """Reject non-dict pass_criteria values: list, None, str, bool, int."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-pass-criteria",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "test question",
+                "expected_domain": "bukgu.go.kr",
+                "expected_keywords": ["키워드"],
+                "pass_criteria": bad_pass_criteria,
+            }
+        ]
+    }
+    with pytest.raises(SmokeScenarioMatrixError, match="pass_criteria must be an object"):
+        validate_matrix(invalid_matrix)
+
+
+def test_stage284_validate_matrix_preserves_valid_dict_pass_criteria() -> None:
+    """Preserve valid dict pass_criteria."""
+    scenario = {
+        "id": "bukgu-01",
+        "site_id": "bukgu_gwangju",
+        "category": "service_navigation",
+        "question": "test question",
+        "expected_domain": "bukgu.go.kr",
+        "expected_keywords": ["키워드"],
+        "pass_criteria": {"site_id_match": True, "min_sources": 1, "no_cross_site_urls": True},
+    }
+    result = validate_matrix({"scenarios": [scenario]})
+    assert len(result) == 1
+    assert result[0] == scenario
+
+
+def test_stage284_validate_matrix_preserves_existing_fixtures() -> None:
+    """Preserve all existing valid matrix fixtures (all use dict pass_criteria)."""
+    fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+    for matrix_path in sorted(fixtures_dir.glob("*matrix*")):
+        data = json.loads(matrix_path.read_text(encoding="utf-8"))
+        result = validate_matrix(data)
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+
 def test_stage261_validate_matrix_rejects_non_string_truthy_source_domain() -> None:
     """Reject truthy non-string pass_criteria.source_domain values."""
     for source_domain in (True, 123):
