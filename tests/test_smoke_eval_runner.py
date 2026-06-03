@@ -252,6 +252,39 @@ def test_stage246_evaluate_response_fails_non_string_only_answer_keywords() -> N
     assert result["checks"]["answer_contains_any"] is False
 
 
+def test_stage247_evaluate_response_omits_empty_answer_keyword_list() -> None:
+    """Omit answer_contains_any when the configured keyword list is empty."""
+    scenario = _scenario_by_id("bukgu-01")
+    scenario = {
+        **scenario,
+        "pass_criteria": {
+            **scenario["pass_criteria"],
+            "answer_contains_any": [],
+        },
+    }
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "북구청 종합민원 메뉴에서 관련 자료를 확인할 수 있습니다.",
+        "sources": [
+            {
+                "title": "민원서식",
+                "url": "https://bukgu.gwangju.kr/menu.es?mid=a10102000000",
+            }
+        ],
+        "fallback": False,
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert result["passed"] is True
+    assert result["failures"] == []
+    assert result["checks"]["site_id_match"] is True
+    assert result["checks"]["min_sources"] is True
+    assert result["checks"]["source_domain"] is True
+    assert result["checks"]["no_cross_site_urls"] is True
+    assert "answer_contains_any" not in result["checks"]
+
+
 def test_stage228_evaluate_response_ignores_non_dict_source_entries() -> None:
     """Ignore non-dict source entries while preserving valid dict sources."""
     scenario = _scenario_by_id("bukgu-01")
