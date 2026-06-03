@@ -583,6 +583,78 @@ def test_validate_matrix_preserves_list_answer_contains_any_values(
     assert scenarios[0]["pass_criteria"]["answer_contains_any"] == valid_value
 
 
+@pytest.mark.parametrize(
+    "invalid_items",
+    [
+        ["foo", 1],
+        ["foo", True],
+        ["foo", None],
+        ["foo", {}],
+        ["foo", []],
+    ],
+)
+def test_validate_matrix_rejects_non_string_answer_contains_any_items(
+    invalid_items: list[object],
+) -> None:
+    """Reject non-string items inside answer_contains_any lists."""
+    invalid_matrix = {
+        "scenarios": [
+            {
+                "id": "invalid-items",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                    "answer_contains_any": invalid_items,
+                },
+            }
+        ]
+    }
+
+    with pytest.raises(SmokeScenarioMatrixError, match="answer_contains_any"):
+        validate_matrix(invalid_matrix)
+
+
+@pytest.mark.parametrize(
+    "valid_items",
+    [
+        [],
+        ["foo"],
+        ["foo", "bar"],
+    ],
+)
+def test_validate_matrix_preserves_string_answer_contains_any_items(
+    valid_items: list[str],
+) -> None:
+    """Preserve string-only answer_contains_any lists."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "valid-items",
+                "site_id": "bukgu_gwangju",
+                "category": "service_navigation",
+                "question": "민원서식은 어디에서 확인하나요?",
+                "expected_domain": "bukgu.gwangju.kr",
+                "expected_keywords": ["민원서식"],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                    "answer_contains_any": valid_items,
+                },
+            }
+        ]
+    }
+
+    scenarios = validate_matrix(matrix)
+    assert scenarios[0]["pass_criteria"]["answer_contains_any"] == valid_items
+
+
 def test_load_matrix_rejects_missing_file(tmp_path: Path) -> None:
     missing_path = tmp_path / "missing.json"
 
