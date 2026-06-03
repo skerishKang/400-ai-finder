@@ -130,6 +130,10 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
     if quality_gate is not None and not isinstance(quality_gate, dict):
         raise SmokeScenarioMatrixError("quality_gate must be a dict")
 
+    meta = data.get("_meta")
+    if meta is not None and not isinstance(meta, dict):
+        raise SmokeScenarioMatrixError("_meta must be a dict")
+
     scenarios = data.get("scenarios")
     if not isinstance(scenarios, list) or not scenarios:
         raise SmokeScenarioMatrixError("Matrix must include a non-empty scenarios list.")
