@@ -69,7 +69,7 @@ pipeline boundaries must be audited or hardened separately.
 |---|---|---|---|---|
 | `scripts/run_smoke_eval.py` | Yes, live smoke evaluation path | Yes, live guard and preflight | Covered by `tests/test_live_smoke_eval_guard.py` | Keep as the current guarded live path |
 | `scripts/run_pipeline.py` | Yes, app pipeline may cross provider/fetch boundaries | Yes, `--allow-live` guard in `main()` | `tests/test_run_pipeline_live_guard.py` | Stage 318: live opt-in guard added. Safe offline path via `--provider mock --fetch-provider mock` |
-| `scripts/demo_answer.py` | Yes, demo answer flow may cross provider/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
+| `scripts/demo_answer.py` | Yes, demo answer flow may cross provider/fetch boundaries | Audited: import-safe but default path may reach live LLM/fetch through preset/profile (Stage 319) | Not established by this document | Stage 320: documented. Follow-up: import-safety test and guard decision |
 | `scripts/fetch_url.py` | Yes, fetch utility can cross network/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
 | `scripts/diagnose_site.py` | Yes, site diagnostics may cross network/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
 
@@ -77,8 +77,8 @@ This table records the current boundary status only. Stage 307 does not change
 any script behavior, add any guards, or run live network paths.
 
 Future guard hardening should be split by script or boundary. Good follow-up
-candidates include auditing `scripts/demo_answer.py` and `scripts/diagnose_site.py`
-before adding any new guard behavior.
+candidates include auditing `scripts/diagnose_site.py` and updating
+`demo_answer.py` coverage before adding any new guard behavior.
 
 ## `scripts/run_pipeline.py` live boundary
 
@@ -168,12 +168,46 @@ This decision does not make live provider, fetch, network, or Firecrawl
 execution part of normal tests. Future changes to `fetch_url.py` live opt-in
 behavior should be handled in a separate audit/code stage.
 
+## `scripts/demo_answer.py` live boundary
+
+`demo_answer.py` is import-safe based on the Stage 319 audit: module-level imports
+are stdlib-only, and heavier provider/pipeline imports are lazy inside `main()`.
+The audit did not execute `scripts/demo_answer.py`, the demo answer path, the
+pipeline, live fetch, Firecrawl, or live LLM/API providers.
+
+The execution boundary is the CLI path: `run_demo()` constructs a
+`SiteDemoRunner`, which can call `PipelineRunner.run()`. The CLI requires
+`--site-id` and `--question`. `--provider`, `--model`, `--preset`, and
+`--fetch-provider` default to `None`.
+
+The safe cached/offline path is `--snapshot`. A safe explicit provider/fetch path
+is also available through `--provider mock --fetch-provider mock`. However, an
+all-default invocation can resolve through preset/profile logic: the default
+preset path can select a live LLM provider such as `opencode-go`, and
+`fetch_provider=None` can resolve through a profile preferred fetch provider such
+as `requests`. Therefore, default demo execution can leave the offline/mock
+boundary.
+
+`demo_answer.py` currently has no `--dry-run`, `--no-network`, `--allow-live`, or
+`--live` flag, and no explicit live opt-in guard. A natural guard may occur when
+a selected live provider is not configured, but missing provider configuration is
+not a deliberate live opt-in policy. Firecrawl remains reachable through
+`--fetch-provider firecrawl` or profile configuration and still requires
+`FIRECRAWL_API_KEY`. Live LLM providers remain reachable through `--provider` or
+`--preset` and their own API key configuration.
+
+Current direct coverage is incomplete: there are no direct `demo_answer.py`
+import-safety or guard tests yet. `SiteDemoRunner` has mocked/offline tests, but
+those do not establish a CLI guard for `scripts/demo_answer.py`. Current risk is
+MEDIUM-HIGH until a follow-up stage decides whether to add import-safety tests
+and/or an explicit live opt-in guard.
+
 ## Future work
 
 Future stages should remain narrow and should not mix unrelated boundaries. Good
 candidate follow-up stages include:
 
-- audit or harden `demo_answer.py` and `diagnose_site.py` live boundaries
+- audit `diagnose_site.py` live boundary
 - audit Firecrawl integration boundary
 - audit provider/fetch mock vs live separation
 - audit app pipeline/backend/UI/API behavior separately
