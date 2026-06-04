@@ -240,11 +240,50 @@ Current risk is MEDIUM. Import-safety is locked. The safe offline path is
 documented. No additional explicit live opt-in guard is required for the current
 scope.
 
+## Firecrawl integration boundary
+
+Stage 330 audited the Firecrawl integration boundary. The Firecrawl provider is
+network-free at import time, and provider construction is also network-free: it
+only reads configuration such as `FIRECRAWL_API_KEY`. The implementation does not
+depend on a Firecrawl SDK; it uses `requests` with a lazy import.
+
+The live boundary is `FirecrawlFetchProvider.fetch()`. That method is the point
+where the provider can make a Firecrawl API request through `requests.post()`.
+Missing `FIRECRAWL_API_KEY` is handled gracefully by returning
+`FetchResult(ok=False)` rather than raising during import or construction.
+
+The fetch provider registry/factory remains informational and network-free.
+Looking up or constructing the Firecrawl provider does not itself perform a live
+Firecrawl API call. Current tests are mock-based and do not call the real
+Firecrawl service.
+
+Firecrawl remains reachable from user-facing scripts only through explicit
+provider selection or guarded live execution paths:
+
+- `scripts/fetch_url.py`: `--provider firecrawl`; this remains a conscious
+  required-`--url` fetch path, and Stage 312 decided no additional explicit guard
+  is required in the current scope.
+- `scripts/run_pipeline.py`: `--fetch-provider firecrawl`; this is blocked unless
+  `--allow-live` is passed after Stage 318.
+- `scripts/demo_answer.py`: `--fetch-provider firecrawl` or profile/preset
+  resolution; this is blocked unless `--allow-live` is passed after Stage 326.
+  The `--snapshot` path remains cached/offline.
+- `scripts/diagnose_site.py`: `--provider firecrawl` or `--provider all`; this is
+  a required-`--url` fetch diagnostics path, and Stage 327 decided no additional
+  explicit guard is required in the current scope.
+
+`--allow-live` is only an execution opt-in. It does not replace provider-specific
+configuration. Firecrawl still requires `FIRECRAWL_API_KEY`.
+
+Current risk is LOW, with a borderline MEDIUM note for the
+`diagnose_site.py --provider all` path because that command can include
+Firecrawl when `FIRECRAWL_API_KEY` is configured. Live Firecrawl integration
+execution remains deferred.
+
 ## Future work
 
 Future stages should remain narrow and should not mix unrelated boundaries. Good
-Good candidate follow-up stages include:
+candidate follow-up stages include:
 
-- audit Firecrawl integration boundary
 - audit provider/fetch mock vs live separation
 - audit app pipeline/backend/UI/API behavior separately
