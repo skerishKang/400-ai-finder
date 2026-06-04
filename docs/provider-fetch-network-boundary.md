@@ -280,6 +280,25 @@ Current risk is LOW, with a borderline MEDIUM note for the
 Firecrawl when `FIRECRAWL_API_KEY` is configured. Live Firecrawl integration
 execution remains deferred.
 
+## Provider live test opt-in policy
+
+Provider live-only tests are opt-in. Default pytest runs must remain mock-safe and must not call live provider APIs, even when API key environment variables are present.
+
+API key environment variables alone are not sufficient to run live tests. A live provider test requires both the provider API key and the matching explicit `RUN_LIVE_*_TESTS` flag.
+
+| Provider | API key env var | Required opt-in flag | Default pytest behavior |
+| --- | --- | --- | --- |
+| Firecrawl | `FIRECRAWL_API_KEY` | `RUN_LIVE_FIRECRAWL_TESTS=1` | skipped |
+| KiloCode | `KILOCODE_API_KEY` | `RUN_LIVE_KILOCODE_TESTS=1` | skipped |
+| Groq | `GROQ_API_KEY` | `RUN_LIVE_GROQ_TESTS=1` | skipped |
+| OpenGateway | `OPENGATEWAY_API_KEY` | `RUN_LIVE_OPENGATEWAY_TESTS=1` | skipped |
+
+This protects local and CI runs from accidental live calls when a developer shell contains stale, invalid, or unrelated API key environment variables.
+
+Default validation should use normal pytest without live opt-in flags. Live provider tests, when intentionally run, must be treated as integration tests and must not be required for routine local validation.
+
+Do not set `RUN_LIVE_*_TESTS=1` in routine local or CI test runs. Do not rely on API key presence as the live-test trigger.
+
 ## Future work
 
 Future stages should remain narrow and should not mix unrelated boundaries. Good
