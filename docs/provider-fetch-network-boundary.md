@@ -80,6 +80,35 @@ Future guard hardening should be split by script or boundary. Good follow-up
 candidates include auditing `scripts/run_pipeline.py` and `scripts/fetch_url.py`
 before adding any new guard behavior.
 
+## `fetch_url.py` live boundary
+
+`scripts/fetch_url.py` is import-safe. Importing the module does not perform a
+provider, fetch, network, Firecrawl, or API call. Network behavior is triggered
+from the CLI path when `main()` calls the selected provider's `fetch()` method.
+
+The default provider is `requests`, which performs live HTTP. Provider selection
+can be controlled with the `--provider` flag. The mock provider is the safe
+offline/no-network path and should be used for local checks that must avoid live
+fetching.
+
+`--list-providers` is an informational path and does not require a live fetch.
+The Firecrawl provider can be selected, but it requires the `FIRECRAWL_API_KEY`
+environment variable and crosses the Firecrawl API boundary.
+
+`fetch_url.py` currently has no dry-run/no-network option and no explicit live
+opt-in guard. URL validation for the requests path is handled by
+`RequestsFetchProvider`, which accepts `http://` and `https://` URLs and fails
+gracefully for invalid schemes.
+
+Current provider tests are offline or mocked. There is no direct `fetch_url.py`
+guard or CLI test coverage yet. The current live/network risk is medium: the
+default provider is live HTTP, but a user must consciously invoke the CLI with a
+URL before network behavior occurs.
+
+Future hardening of `fetch_url.py` should be handled in narrow follow-up stages.
+Good candidates include an import-safety test, a `--list-providers` no-network
+test, or an explicit live opt-in guard decision.
+
 ## Future work
 
 Future stages should remain narrow and should not mix unrelated boundaries. Good
