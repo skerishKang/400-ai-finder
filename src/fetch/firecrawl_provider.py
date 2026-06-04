@@ -33,7 +33,10 @@ class FirecrawlFetchProvider(FetchProvider):
                 "The 'requests' library is required for FirecrawlFetchProvider."
             )
 
-        self._api_key = api_key or os.environ.get("FIRECRAWL_API_KEY", "")
+        if api_key is not None:
+            self._api_key = api_key
+        else:
+            self._api_key = os.environ.get("FIRECRAWL_API_KEY", "")
         self._base_url = (
             base_url
             or os.environ.get("FIRECRAWL_BASE_URL", "")

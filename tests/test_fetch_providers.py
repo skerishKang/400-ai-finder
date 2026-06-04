@@ -504,13 +504,27 @@ class TestRequestsRetryOn400:
 class TestFirecrawlConfigValidation:
     """Config validation errors return FetchResult(ok=False), not exceptions."""
 
-    def test_missing_api_key(self):
-        """No API key → no requests.post call, returns ok=False."""
+    def test_missing_api_key_does_not_fallback_when_empty_string(self, monkeypatch):
+        """api_key="" must not fallback to FIRECRAWL_API_KEY. No network call."""
+        import requests
+        from unittest.mock import Mock
+
+        monkeypatch.setenv("FIRECRAWL_API_KEY", "dummy-env-key")
+        post = Mock(side_effect=AssertionError("requests.post() must not be called"))
+        monkeypatch.setattr(requests, "post", post)
+
         provider = FirecrawlFetchProvider(api_key="")
-        result = provider.fetch("https://bukgu.gwangju.kr/")
+        result = provider.fetch("https://example.com")
+
         assert result.ok is False
         assert "api key" in result.error.lower()
+        post.assert_not_called()
 
+    @pytest.mark.skipif(
+        os.environ.get("RUN_LIVE_FIRECRAWL_TESTS") != "1"
+        or not os.environ.get("FIRECRAWL_API_KEY"),
+        reason="Firecrawl live tests require RUN_LIVE_FIRECRAWL_TESTS=1 and FIRECRAWL_API_KEY",
+    )
     def test_error_does_not_leak_api_key(self):
         """Error messages should not contain the actual API key value."""
         provider = FirecrawlFetchProvider(api_key="fc-super-secret-12345")
