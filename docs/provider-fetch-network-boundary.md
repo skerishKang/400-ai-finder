@@ -105,9 +105,31 @@ guard or CLI test coverage yet. The current live/network risk is medium: the
 default provider is live HTTP, but a user must consciously invoke the CLI with a
 URL before network behavior occurs.
 
-Future hardening of `fetch_url.py` should be handled in narrow follow-up stages.
-Good candidates include an import-safety test, a `--list-providers` no-network
-test, or an explicit live opt-in guard decision.
+### `fetch_url.py` live opt-in decision
+
+`fetch_url.py` does not currently require an additional explicit live opt-in
+guard beyond its existing CLI shape.
+
+The decision is based on the current boundary:
+
+- importing `scripts.fetch_url` is network-free
+- `--list-providers` is a no-network informational path
+- `--provider mock` is the safe offline/no-network path
+- live fetch behavior requires a user-provided `--url`
+- Firecrawl requires `FIRECRAWL_API_KEY`
+
+Because `--url` is required, a live fetch cannot occur without conscious
+user-provided input. This differs from automated live runners such as
+`scripts/run_smoke_eval.py`, where broad live evaluation requires an explicit
+guard and preflight flow.
+
+Adding another environment-variable opt-in guard to `fetch_url.py` would change
+the user-facing CLI behavior and could break existing examples. For the current
+risk profile, the documented safe paths and tests are the intended boundary.
+
+This decision does not make live provider, fetch, network, or Firecrawl
+execution part of normal tests. Future changes to `fetch_url.py` live opt-in
+behavior should be handled in a separate audit/code stage.
 
 ## Future work
 
