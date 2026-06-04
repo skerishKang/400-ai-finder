@@ -68,7 +68,7 @@ pipeline boundaries must be audited or hardened separately.
 | Script | Possible live/network behavior | Known guard/preflight | Guard test coverage | Current policy / next action |
 |---|---|---|---|---|
 | `scripts/run_smoke_eval.py` | Yes, live smoke evaluation path | Yes, live guard and preflight | Covered by `tests/test_live_smoke_eval_guard.py` | Keep as the current guarded live path |
-| `scripts/run_pipeline.py` | Yes, app pipeline may cross provider/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
+| `scripts/run_pipeline.py` | Yes, app pipeline may cross provider/fetch boundaries | Import safety: tested and documented | `tests/test_run_pipeline_import_boundary.py` | Documented in Stage 316. Audit live opt-in guard decision in Stage 317 |
 | `scripts/demo_answer.py` | Yes, demo answer flow may cross provider/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
 | `scripts/fetch_url.py` | Yes, fetch utility can cross network/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
 | `scripts/diagnose_site.py` | Yes, site diagnostics may cross network/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
@@ -77,8 +77,38 @@ This table records the current boundary status only. Stage 307 does not change
 any script behavior, add any guards, or run live network paths.
 
 Future guard hardening should be split by script or boundary. Good follow-up
-candidates include auditing `scripts/run_pipeline.py` and `scripts/fetch_url.py`
+candidates include auditing `scripts/demo_answer.py` and `scripts/diagnose_site.py`
 before adding any new guard behavior.
+
+## `scripts/run_pipeline.py` live boundary
+
+`run_pipeline.py` is import-safe. Importing `scripts.run_pipeline` does not execute the
+pipeline and does not call `requests.get()`, `RequestsFetchProvider.fetch()`, or
+`FirecrawlFetchProvider.fetch()`. This import boundary is locked by
+`tests/test_run_pipeline_import_boundary.py` (Stage 315).
+
+The live/network boundary is the CLI execution path. `main()` parses required
+`--url` and `--query` arguments, constructs a `PipelineRunner`, and calls
+`PipelineRunner.run()`.
+
+The default LLM provider is safe/offline because `--provider` defaults to
+`AI_FINDER_LLM_PROVIDER` or `"mock"`. The fetch boundary is different:
+`--fetch-provider` defaults to `AI_FINDER_FETCH_PROVIDER` or `None`; when no fetch
+provider is selected, the pipeline can fall back to the direct `requests`-based
+crawler path. Therefore, a CLI invocation with a real URL can perform live HTTP
+fetching unless the caller explicitly selects the mock fetch provider.
+
+Safe offline usage is available through `--fetch-provider mock`, with the default
+mock LLM provider. Firecrawl remains reachable through the Firecrawl fetch
+provider and requires `FIRECRAWL_API_KEY`. Live LLM providers such as
+OpenAI-compatible providers remain reachable through provider selection and their
+own API key configuration.
+
+`run_pipeline.py` currently has no `--dry-run`, `--no-network`, or `--live` flag,
+and no explicit live opt-in guard. Its risk is currently MEDIUM: import is
+network-free and the LLM default is mock, but the default fetch path can perform
+live HTTP during CLI pipeline execution. A separate follow-up stage should decide
+whether an additional live opt-in guard is needed.
 
 ## `fetch_url.py` live boundary
 
@@ -136,8 +166,8 @@ behavior should be handled in a separate audit/code stage.
 Future stages should remain narrow and should not mix unrelated boundaries. Good
 candidate follow-up stages include:
 
-- audit live/network guard coverage
+- audit live opt-in guard decision for `run_pipeline.py`
+- audit or harden `demo_answer.py` and `diagnose_site.py` live boundaries
 - audit Firecrawl integration boundary
 - audit provider/fetch mock vs live separation
-- document or harden individual script opt-in behavior
 - audit app pipeline/backend/UI/API behavior separately
