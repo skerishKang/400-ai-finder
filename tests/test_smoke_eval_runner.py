@@ -2786,3 +2786,41 @@ def test_stage300_evaluate_response_checks_values_are_bool() -> None:
     assert isinstance(result["checks"], dict)
     assert result["checks"]
     assert all(type(value) is bool for value in result["checks"].values())
+
+def test_stage302_evaluate_response_failures_are_derived_from_failed_checks() -> None:
+    """Lock that failures list is exactly the subset of checks whose values are False."""
+    scenario = {
+        "id": "failures-derived",
+        "site_id": "site-a",
+        "category": "audit",
+        "question": "audit question",
+        "expected_domain": "example.com",
+        "expected_keywords": ["alpha"],
+        "pass_criteria": {
+            "site_id_match": True,
+            "min_sources": 1,
+            "source_domain": "example.com",
+            "no_cross_site_urls": True,
+            "answer_contains_any": ["alpha"],
+            "answer_not_empty": True,
+        },
+    }
+    response = {
+        "answer": "wrong response",
+        "site_id": "wrong-site",
+        "sources": [{"url": "https://other.example.org/a", "title": "Other"}],
+        "fallback": False,
+    }
+
+    result = evaluate_response(scenario, response)
+
+    expected_failures = [
+        name for name, passed in result["checks"].items() if not passed
+    ]
+
+    assert isinstance(result["failures"], list)
+    assert result["failures"]
+    assert all(type(item) is str for item in result["failures"])
+    assert all(item in result["checks"] for item in result["failures"])
+    assert result["failures"] == expected_failures
+    assert result["passed"] is (not result["failures"])
