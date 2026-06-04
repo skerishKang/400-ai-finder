@@ -378,8 +378,9 @@ class TestOpenAICompatibleProviderResponseParsing:
 
 class TestLiveLLMProviders:
     @pytest.mark.skipif(
-        not os.environ.get("OPENGATEWAY_API_KEY"),
-        reason="OPENGATEWAY_API_KEY env var not set (opt-in)",
+        os.environ.get("RUN_LIVE_OPENGATEWAY_TESTS") != "1"
+        or not os.environ.get("OPENGATEWAY_API_KEY"),
+        reason="OpenGateway live tests require RUN_LIVE_OPENGATEWAY_TESTS=1 and OPENGATEWAY_API_KEY",
     )
     def test_opengateway_live(self):
         """Test actual opengateway connection when API key is provided."""
@@ -391,8 +392,9 @@ class TestLiveLLMProviders:
         assert result.content
 
     @pytest.mark.skipif(
-        not os.environ.get("KILOCODE_API_KEY"),
-        reason="KILOCODE_API_KEY env var not set (opt-in)",
+        os.environ.get("RUN_LIVE_KILOCODE_TESTS") != "1"
+        or not os.environ.get("KILOCODE_API_KEY"),
+        reason="KiloCode live tests require RUN_LIVE_KILOCODE_TESTS=1 and KILOCODE_API_KEY",
     )
     def test_kilocode_live(self):
         """Test actual kilocode connection when API key is provided."""
@@ -404,8 +406,9 @@ class TestLiveLLMProviders:
         assert result.content
 
     @pytest.mark.skipif(
-        not os.environ.get("GROQ_API_KEY"),
-        reason="GROQ_API_KEY env var not set (opt-in)",
+        os.environ.get("RUN_LIVE_GROQ_TESTS") != "1"
+        or not os.environ.get("GROQ_API_KEY"),
+        reason="Groq live tests require RUN_LIVE_GROQ_TESTS=1 and GROQ_API_KEY",
     )
     def test_groq_live(self):
         """Test actual groq connection when API key is provided."""
