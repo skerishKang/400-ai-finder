@@ -59,6 +59,27 @@ and static server code.
 
 Stage 305 does not change app pipeline, backend, UI, or API behavior.
 
+## Live guard coverage matrix
+
+The live guard used by `scripts/run_smoke_eval.py` is not a global guard for all
+scripts. Other scripts that can cross provider, fetch, network, Firecrawl, or
+pipeline boundaries must be audited or hardened separately.
+
+| Script | Possible live/network behavior | Known guard/preflight | Guard test coverage | Current policy / next action |
+|---|---|---|---|---|
+| `scripts/run_smoke_eval.py` | Yes, live smoke evaluation path | Yes, live guard and preflight | Covered by `tests/test_live_smoke_eval_guard.py` | Keep as the current guarded live path |
+| `scripts/run_pipeline.py` | Yes, app pipeline may cross provider/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
+| `scripts/demo_answer.py` | Yes, demo answer flow may cross provider/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
+| `scripts/fetch_url.py` | Yes, fetch utility can cross network/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
+| `scripts/diagnose_site.py` | Yes, site diagnostics may cross network/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
+
+This table records the current boundary status only. Stage 307 does not change
+any script behavior, add any guards, or run live network paths.
+
+Future guard hardening should be split by script or boundary. Good follow-up
+candidates include auditing `scripts/run_pipeline.py` and `scripts/fetch_url.py`
+before adding any new guard behavior.
+
 ## Future work
 
 Future stages should remain narrow and should not mix unrelated boundaries. Good
