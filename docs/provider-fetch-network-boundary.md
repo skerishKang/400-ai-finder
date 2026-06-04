@@ -69,16 +69,14 @@ pipeline boundaries must be audited or hardened separately.
 |---|---|---|---|---|
 | `scripts/run_smoke_eval.py` | Yes, live smoke evaluation path | Yes, live guard and preflight | Covered by `tests/test_live_smoke_eval_guard.py` | Keep as the current guarded live path |
 | `scripts/run_pipeline.py` | Yes, app pipeline may cross provider/fetch boundaries | Yes, `--allow-live` guard in `main()` | `tests/test_run_pipeline_live_guard.py` | Stage 318: live opt-in guard added. Safe offline path via `--provider mock --fetch-provider mock` |
-|| `scripts/demo_answer.py` | Yes, demo answer flow may cross provider/fetch boundaries | Yes, `--allow-live` guard in `main()` | `tests/test_demo_answer_live_guard.py` | Stage 326: live opt-in guard added. Safe offline path via `--snapshot` or `--provider mock --fetch-provider mock` |
+| `scripts/demo_answer.py` | Yes, demo answer flow may cross provider/fetch boundaries | Yes, `--allow-live` guard in `main()` | `tests/test_demo_answer_live_guard.py` | Stage 326: live opt-in guard added. Safe offline path via `--snapshot` or `--provider mock --fetch-provider mock` |
 | `scripts/fetch_url.py` | Yes, fetch utility can cross network/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
-| `scripts/diagnose_site.py` | Yes, site diagnostics may cross network/fetch boundaries | Audited: import-safe, default requests live HTTP, fetch-only (Stage 321) | Not established by this document | Stage 322: documented. Follow-up: import-safety test or guard decision |
+| `scripts/diagnose_site.py` | Yes, site diagnostics may cross network/fetch boundaries | Import-safe, default requests live HTTP, fetch-only (Stage 321). Stage 327 decision: no explicit live opt-in guard required in current scope | Stage 323: import-safety locked by `tests/test_diagnose_site_import_boundary.py` | Stage 322: documented. Stage 327: guard not required (fetch-only diagnostics, required --url, no PipelineRunner/LLM path). Safe path: `--provider mock` |
 
 This table records the current boundary status only. Stage 307 does not change
 any script behavior, add any guards, or run live network paths.
 
-Future guard hardening should be split by script or boundary. Good follow-up
-candidates include adding import-safety tests or guard decisions for
-`demo_answer.py` and `diagnose_site.py` before adding any new guard behavior.
+Future guard hardening should be split by script or boundary.
 
 ## `scripts/run_pipeline.py` live boundary
 
@@ -209,38 +207,44 @@ safe offline paths are documented.
 
 ## `scripts/diagnose_site.py` live boundary
 
+Stage 327 decided that `diagnose_site.py` does not currently require an
+additional explicit live opt-in guard. The script is a single-purpose fetch
+diagnostics CLI: it requires `--url`, does not call `PipelineRunner`, and does
+not reach LLM providers. Its default `requests` provider can perform live HTTP,
+but live fetch is the expected purpose of this diagnostics tool.
+
+The safe offline path remains `--provider mock`. Firecrawl remains reachable
+through `--provider firecrawl` or `--provider all` when `FIRECRAWL_API_KEY` is
+configured. Missing Firecrawl configuration can naturally skip or fail that
+provider path, but this is not an explicit live opt-in policy.
+
+This risk profile is closer to `fetch_url.py` than to `run_pipeline.py` or
+`demo_answer.py`. The decision should be reconsidered only if `diagnose_site.py`
+is later used in automation/CI, expands into `PipelineRunner` or LLM provider
+behavior, or starts encouraging live network use in normal development tests.
+
 `diagnose_site.py` is import-safe based on the Stage 321 audit. Module-level
-imports are stdlib plus import-safe project imports, and the audit did not
-execute `scripts/diagnose_site.py`, site diagnosis, live fetch, Firecrawl, or
-API paths.
+imports are stdlib plus import-safe project imports, and import-safety is locked
+by `tests/test_diagnose_site_import_boundary.py` (Stage 323).
 
 The execution boundary is the CLI path: `run_diagnostics()` constructs
 `SiteDiagnostics`, and `SiteDiagnostics.run()` diagnoses one or more fetch
-providers through `_diagnose_provider()`. This is a fetch-only diagnostics script:
-it does not call `PipelineRunner` and does not reach LLM providers.
+providers through `_diagnose_provider()`. The CLI requires `--url`.
+`--provider` defaults to `None` and resolves through `AI_FINDER_FETCH_PROVIDER`
+before falling back to `"requests"`. Therefore, the default execution path uses
+the requests fetch provider and can perform live HTTP. The safe offline path is
+`--provider mock`. This is a fetch-only diagnostics script: it does not call
+`PipelineRunner` and does not reach LLM providers.
 
-The CLI requires `--url`. `--provider` defaults to `None` and resolves through
-`AI_FINDER_FETCH_PROVIDER` before falling back to `"requests"`. Therefore, the
-default execution path uses the requests fetch provider and can perform live HTTP.
-The safe offline path is `--provider mock`.
-
-Firecrawl remains reachable through `--provider firecrawl`, and can also be
-included by `--provider all` when `FIRECRAWL_API_KEY` is configured. Missing
-Firecrawl configuration can naturally skip or fail that provider path, but this
-is not the same as an explicit live opt-in policy.
-
-`diagnose_site.py` currently has no `--dry-run`, `--no-network`, `--allow-live`,
-or `--live` flag, and no explicit live opt-in guard. Current direct coverage is
-incomplete: there are no direct `diagnose_site.py` import-safety or guard tests
-yet. `SiteDiagnostics` has mocked/offline unit tests, but those do not establish
-a CLI guard for `scripts/diagnose_site.py`. Current risk is MEDIUM.
+Current risk is MEDIUM. Import-safety is locked. The safe offline path is
+documented. No additional explicit live opt-in guard is required for the current
+scope.
 
 ## Future work
 
 Future stages should remain narrow and should not mix unrelated boundaries. Good
-candidate follow-up stages include:
+Good candidate follow-up stages include:
 
-- add guard decisions for `diagnose_site.py`
 - audit Firecrawl integration boundary
 - audit provider/fetch mock vs live separation
 - audit app pipeline/backend/UI/API behavior separately
