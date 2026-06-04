@@ -68,7 +68,7 @@ pipeline boundaries must be audited or hardened separately.
 | Script | Possible live/network behavior | Known guard/preflight | Guard test coverage | Current policy / next action |
 |---|---|---|---|---|
 | `scripts/run_smoke_eval.py` | Yes, live smoke evaluation path | Yes, live guard and preflight | Covered by `tests/test_live_smoke_eval_guard.py` | Keep as the current guarded live path |
-| `scripts/run_pipeline.py` | Yes, app pipeline may cross provider/fetch boundaries | Import safety: tested and documented | `tests/test_run_pipeline_import_boundary.py` | Documented in Stage 316. Audit live opt-in guard decision in Stage 317 |
+| `scripts/run_pipeline.py` | Yes, app pipeline may cross provider/fetch boundaries | Yes, `--allow-live` guard in `main()` | `tests/test_run_pipeline_live_guard.py` | Stage 318: live opt-in guard added. Safe offline path via `--provider mock --fetch-provider mock` |
 | `scripts/demo_answer.py` | Yes, demo answer flow may cross provider/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
 | `scripts/fetch_url.py` | Yes, fetch utility can cross network/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
 | `scripts/diagnose_site.py` | Yes, site diagnostics may cross network/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
@@ -104,11 +104,18 @@ provider and requires `FIRECRAWL_API_KEY`. Live LLM providers such as
 OpenAI-compatible providers remain reachable through provider selection and their
 own API key configuration.
 
-`run_pipeline.py` currently has no `--dry-run`, `--no-network`, or `--live` flag,
-and no explicit live opt-in guard. Its risk is currently MEDIUM: import is
-network-free and the LLM default is mock, but the default fetch path can perform
-live HTTP during CLI pipeline execution. A separate follow-up stage should decide
-whether an additional live opt-in guard is needed.
+`run_pipeline.py` now requires explicit live opt-in for any provider/fetch
+combination that can leave the offline/mock boundary. The safe no-network CLI
+path is `--provider mock --fetch-provider mock`; because the default fetch
+provider is `None`, a default CLI invocation is blocked unless `--allow-live` is
+passed.
+
+`--allow-live` permits the CLI to reach the existing live fetch/provider paths,
+but it does not replace provider-specific API key requirements. For example,
+Firecrawl still requires `FIRECRAWL_API_KEY`, and live LLM providers still require
+their own API key configuration.
+
+This guard is tested by `tests/test_run_pipeline_live_guard.py` (Stage 318).
 
 ## `fetch_url.py` live boundary
 
@@ -166,7 +173,6 @@ behavior should be handled in a separate audit/code stage.
 Future stages should remain narrow and should not mix unrelated boundaries. Good
 candidate follow-up stages include:
 
-- audit live opt-in guard decision for `run_pipeline.py`
 - audit or harden `demo_answer.py` and `diagnose_site.py` live boundaries
 - audit Firecrawl integration boundary
 - audit provider/fetch mock vs live separation
