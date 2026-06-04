@@ -2753,3 +2753,36 @@ def test_stage297_evaluate_response_returns_exact_result_keys() -> None:
     assert isinstance(result["checks"], dict)
     assert isinstance(result["failures"], list)
     assert "fail_reason" not in result
+
+def test_stage300_evaluate_response_checks_values_are_bool() -> None:
+    """Lock that every evaluate_response() checks value is exactly bool."""
+    scenario = {
+        "id": "checks-bool",
+        "site_id": "site-a",
+        "category": "audit",
+        "question": "audit question",
+        "expected_domain": "example.com",
+        "expected_keywords": ["alpha"],
+        "pass_criteria": {
+            "site_id_match": True,
+            "min_sources": 1,
+            "source_domain": "example.com",
+            "no_cross_site_urls": True,
+            "answer_contains_any": ["alpha"],
+            "answer_not_empty": True,
+            "fallback_required": False,
+            "fallback_when_no_source": False,
+        },
+    }
+    response = {
+        "answer": "alpha response",
+        "site_id": "site-a",
+        "sources": [{"url": "https://example.com/a", "title": "Example"}],
+        "fallback": False,
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert isinstance(result["checks"], dict)
+    assert result["checks"]
+    assert all(type(value) is bool for value in result["checks"].values())
