@@ -19,6 +19,67 @@ import os
 # Ensure the project root is on sys.path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+_OFFLINE_LLM_PROVIDERS = {"mock", "stub"}
+_OFFLINE_FETCH_PROVIDERS = {"mock"}
+
+
+def _is_snapshot_mode(snapshot: object | None) -> bool:
+    return snapshot is not None
+
+
+def _is_explicit_offline_provider_mode(
+    *,
+    provider: str | None,
+    preset: str | None,
+    fetch_provider: str | None,
+) -> bool:
+    if preset is not None:
+        return False
+    return provider in _OFFLINE_LLM_PROVIDERS and fetch_provider in _OFFLINE_FETCH_PROVIDERS
+
+
+def _requires_live_opt_in(
+    *,
+    snapshot: object | None,
+    provider: str | None,
+    preset: str | None,
+    fetch_provider: str | None,
+) -> bool:
+    if _is_snapshot_mode(snapshot):
+        return False
+    if _is_explicit_offline_provider_mode(
+        provider=provider,
+        preset=preset,
+        fetch_provider=fetch_provider,
+    ):
+        return False
+    return True
+
+
+def _enforce_live_opt_in(
+    parser: argparse.ArgumentParser,
+    *,
+    snapshot: object | None,
+    provider: str | None,
+    preset: str | None,
+    fetch_provider: str | None,
+    allow_live: bool,
+) -> None:
+    if allow_live:
+        return
+    if not _requires_live_opt_in(
+        snapshot=snapshot,
+        provider=provider,
+        preset=preset,
+        fetch_provider=fetch_provider,
+    ):
+        return
+    parser.error(
+        "demo_answer.py may execute live provider/fetch/network/API paths. "
+        "Pass --allow-live to opt in explicitly, use --snapshot for cached/offline "
+        "execution, or use --provider mock --fetch-provider mock for offline/no-network execution."
+    )
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -75,8 +136,27 @@ def main() -> None:
         default=None,
         help="Path to save the live result as a reusable snapshot",
     )
+    parser.add_argument(
+        "--allow-live",
+        action="store_true",
+        help=(
+            "Allow demo_answer.py to execute live provider/fetch/network/API paths. "
+            "Without this flag, only --snapshot or an explicit offline "
+            "--provider mock --fetch-provider mock path is allowed."
+        ),
+    )
 
     args = parser.parse_args()
+
+    # Guard: require explicit --allow-live for potentially live paths
+    _enforce_live_opt_in(
+        parser,
+        snapshot=args.snapshot,
+        provider=args.provider,
+        preset=args.preset,
+        fetch_provider=args.fetch_provider,
+        allow_live=args.allow_live,
+    )
 
     # Lazy import so CLI help is fast
     from src.demo import run_demo
