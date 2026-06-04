@@ -2723,3 +2723,33 @@ def test_stage224_evaluate_response_rejects_terminal_non_string_link() -> None:
     assert "no_cross_site_urls" in result["failures"]
     assert result["checks"]["site_id_match"] is True
     assert result["checks"]["min_sources"] is True
+
+
+def test_stage297_evaluate_response_returns_exact_result_keys() -> None:
+    """Lock the exact top-level key set returned by evaluate_response()."""
+    scenario = _scenario_by_id("bukgu-01")
+    response = {
+        "site_id": "bukgu_gwangju",
+        "answer": "민원서식은 북구청 종합민원 민원서식 메뉴에서 확인할 수 있습니다.",
+        "sources": [
+            {
+                "title": "민원서식",
+                "url": "https://bukgu.gwangju.kr/menu.es?mid=a10102000000",
+            }
+        ],
+        "fallback": False,
+    }
+
+    result = evaluate_response(scenario, response)
+
+    assert set(result) == {
+        "scenario_id",
+        "passed",
+        "checks",
+        "failures",
+    }
+    assert result["scenario_id"] == scenario["id"]
+    assert isinstance(result["passed"], bool)
+    assert isinstance(result["checks"], dict)
+    assert isinstance(result["failures"], list)
+    assert "fail_reason" not in result
