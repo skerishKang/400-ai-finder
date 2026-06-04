@@ -69,7 +69,7 @@ pipeline boundaries must be audited or hardened separately.
 |---|---|---|---|---|
 | `scripts/run_smoke_eval.py` | Yes, live smoke evaluation path | Yes, live guard and preflight | Covered by `tests/test_live_smoke_eval_guard.py` | Keep as the current guarded live path |
 | `scripts/run_pipeline.py` | Yes, app pipeline may cross provider/fetch boundaries | Yes, `--allow-live` guard in `main()` | `tests/test_run_pipeline_live_guard.py` | Stage 318: live opt-in guard added. Safe offline path via `--provider mock --fetch-provider mock` |
-| `scripts/demo_answer.py` | Yes, demo answer flow may cross provider/fetch boundaries | Audited: import-safe but default path may reach live LLM/fetch through preset/profile (Stage 319) | Not established by this document | Stage 320: documented. Follow-up: import-safety test and guard decision |
+|| `scripts/demo_answer.py` | Yes, demo answer flow may cross provider/fetch boundaries | Yes, `--allow-live` guard in `main()` | `tests/test_demo_answer_live_guard.py` | Stage 326: live opt-in guard added. Safe offline path via `--snapshot` or `--provider mock --fetch-provider mock` |
 | `scripts/fetch_url.py` | Yes, fetch utility can cross network/fetch boundaries | Not established by this document | Not established by this document | Audit separately before hardening |
 | `scripts/diagnose_site.py` | Yes, site diagnostics may cross network/fetch boundaries | Audited: import-safe, default requests live HTTP, fetch-only (Stage 321) | Not established by this document | Stage 322: documented. Follow-up: import-safety test or guard decision |
 
@@ -170,37 +170,42 @@ behavior should be handled in a separate audit/code stage.
 
 ## `scripts/demo_answer.py` live boundary
 
+`demo_answer.py` now requires explicit live opt-in for any demo execution path
+that can leave the cached/offline or explicit mock boundary.
+
+The cached/offline path `--snapshot` remains allowed without `--allow-live`, and
+the explicit offline provider path is `--provider mock --fetch-provider mock`.
+
+All-default demo execution is blocked unless `--allow-live` is passed because
+provider/model/preset/fetch-provider defaults can resolve through preset/profile
+logic to live LLM and live fetch providers. Live providers and live presets
+therefore require `--allow-live`, but this flag does not replace provider-specific
+configuration. For example, Firecrawl still requires `FIRECRAWL_API_KEY`, and live
+LLM providers still require their own API key configuration.
+
 `demo_answer.py` is import-safe based on the Stage 319 audit: module-level imports
 are stdlib-only, and heavier provider/pipeline imports are lazy inside `main()`.
-The audit did not execute `scripts/demo_answer.py`, the demo answer path, the
-pipeline, live fetch, Firecrawl, or live LLM/API providers.
+The Stage 326 guard does not change the import-safety status.
 
 The execution boundary is the CLI path: `run_demo()` constructs a
 `SiteDemoRunner`, which can call `PipelineRunner.run()`. The CLI requires
-`--site-id` and `--question`. `--provider`, `--model`, `--preset`, and
-`--fetch-provider` default to `None`.
+`--site-id` and `--question`. The guard runs before `run_demo()` or
+`SiteDemoRunner` are reached.
 
-The safe cached/offline path is `--snapshot`. A safe explicit provider/fetch path
-is also available through `--provider mock --fetch-provider mock`. However, an
-all-default invocation can resolve through preset/profile logic: the default
-preset path can select a live LLM provider such as `opencode-go`, and
-`fetch_provider=None` can resolve through a profile preferred fetch provider such
-as `requests`. Therefore, default demo execution can leave the offline/mock
-boundary.
+Guard test coverage is provided by `tests/test_demo_answer_live_guard.py`:
 
-`demo_answer.py` currently has no `--dry-run`, `--no-network`, `--allow-live`, or
-`--live` flag, and no explicit live opt-in guard. A natural guard may occur when
-a selected live provider is not configured, but missing provider configuration is
-not a deliberate live opt-in policy. Firecrawl remains reachable through
-`--fetch-provider firecrawl` or profile configuration and still requires
-`FIRECRAWL_API_KEY`. Live LLM providers remain reachable through `--provider` or
-`--preset` and their own API key configuration.
+| Path | Requires `--allow-live`? |
+|---|---|
+| `--snapshot` | No (cached/offline path) |
+| `--provider mock --fetch-provider mock` | No (explicit offline path) |
+| all-default invocation | Yes |
+| live LLM provider (`openai_compatible`, `mistral`, `opencode-go`, `groq`, etc.) | Yes |
+| live fetch provider (`requests`, `firecrawl`) | Yes |
+| preset path (`--preset deepseek-primary`) | Yes |
+| `--allow-live` with default path | Yes, permits execution |
 
-Current direct coverage is incomplete: there are no direct `demo_answer.py`
-import-safety or guard tests yet. `SiteDemoRunner` has mocked/offline tests, but
-those do not establish a CLI guard for `scripts/demo_answer.py`. Current risk is
-MEDIUM-HIGH until a follow-up stage decides whether to add import-safety tests
-and/or an explicit live opt-in guard.
+Current risk is MEDIUM. The guard is in place, import-safety is locked, and
+safe offline paths are documented.
 
 ## `scripts/diagnose_site.py` live boundary
 
@@ -235,7 +240,7 @@ a CLI guard for `scripts/diagnose_site.py`. Current risk is MEDIUM.
 Future stages should remain narrow and should not mix unrelated boundaries. Good
 candidate follow-up stages include:
 
-- add import-safety tests or guard decisions for `demo_answer.py` and `diagnose_site.py`
+- add guard decisions for `diagnose_site.py`
 - audit Firecrawl integration boundary
 - audit provider/fetch mock vs live separation
 - audit app pipeline/backend/UI/API behavior separately
