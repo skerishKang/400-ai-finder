@@ -182,6 +182,29 @@ URL 키로 `url`, `href`, `link` 세 가지 별칭(alias)을 인식합니다.
 이러한 유연성은 의도적인 설계로, provider, fetch, network, Firecrawl, app pipeline, backend, UI, API 통합 shape와의 호환성을 유지하기 위함입니다.
 향후 source object 키 또는 값에 대한 hardening이 필요하면 별도의 감사(audit) 스테이지를 거친 후 협소한 후속 스테이지에서 구현합니다.
 
+### `checks` dict 정책
+
+`evaluate_response()`는 `scenario_id`, `passed`, `checks`, `failures` 네 개의 최상위 키를 가진 result object를 반환합니다.
+
+`checks` 값은 동적(dynamic) 딕셔너리입니다. 모든 가능한 check 키를 항상 포함하지 않습니다. 대신 시나리오의 `pass_criteria` 설정과, source 기반 check의 경우 source 존재 여부에 따라 키가 추가됩니다.
+
+가능한 check 키 후보는 다음과 같습니다.
+
+- `site_id_match`
+- `min_sources`
+- `source_domain`
+- `no_cross_site_urls`
+- `answer_contains_any`
+- `answer_not_empty`
+- `fallback_required`
+- `fallback_when_no_source`
+
+`site_id_match`는 `site_id_match` 기준이 활성화된 경우 추가됩니다. `min_sources`는 `min_sources`가 정수로 설정된 경우 추가됩니다. `source_domain`과 `no_cross_site_urls`는 source 기반 check이며 source 데이터가 있을 때만 추가됩니다. `answer_contains_any`는 비어 있지 않은 키워드 목록이 설정된 경우 추가됩니다. `answer_not_empty`, `fallback_required`, `fallback_when_no_source`는 선택적 check이며 명시적으로 활성화된 경우에만 추가됩니다.
+
+Check 값은 boolean입니다. `failures` 목록은 실패한 check에서 파생되며, 값이 `False`인 check 이름들을 포함합니다.
+
+모든 후보 키를 항상 포함하는 exact all-key `checks` contract는 의도된 정책이 아닙니다. 향후 check 값 타입 또는 `failures` item schema에 대한 hardening이 필요하면 별도의 감사(audit) 스테이지를 거친 후 협소한 후속 스테이지에서 구현합니다.
+
 ## Stage 41 연동 안내
 
 Stage 41에서 이 매트릭스를 활용하는 방식:
