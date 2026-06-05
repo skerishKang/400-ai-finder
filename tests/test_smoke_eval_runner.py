@@ -1228,6 +1228,44 @@ def test_validate_matrix_rejects_unknown_top_level_matrix_keys(
 
 
 @pytest.mark.parametrize(
+    ("extra_key", "extra_value"),
+    [
+        pytest.param("unknown_key", "must be rejected", id="unknown-key"),
+        pytest.param("site", "example", id="site-instead-of-site_id"),
+        pytest.param("passCriteria", {"min_sources": 1}, id="camelCase-pass-criteria"),
+        pytest.param("no_cross_site_urls", True, id="scenario-level-no-cross-site-urls"),
+    ],
+)
+def test_validate_matrix_rejects_scenario_level_unknown_keys(
+    extra_key: str, extra_value: object,
+) -> None:
+    """Reject unknown keys at the scenario level."""
+    matrix = {
+        "scenarios": [
+            {
+                "id": "s1",
+                "site_id": "example",
+                "category": "smoke",
+                "question": "What is this site about?",
+                "expected_domain": "example.com",
+                "expected_keywords": [],
+                "pass_criteria": {
+                    "site_id_match": True,
+                    "min_sources": 1,
+                    "no_cross_site_urls": True,
+                },
+                extra_key: extra_value,
+            }
+        ],
+    }
+
+    with pytest.raises(
+        SmokeScenarioMatrixError, match="contains unknown keys"
+    ):
+        validate_matrix(matrix)
+
+
+@pytest.mark.parametrize(
     "matrix",
     [
         pytest.param(
