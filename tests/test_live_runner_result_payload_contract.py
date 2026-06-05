@@ -19,7 +19,7 @@ from scripts.write_live_smoke_artifact import (
 )
 
 
-PAYLOAD_PATH = Path("tests/fixtures/live_runner_result_payloads.json")
+PAYLOAD_PATH = Path(__file__).resolve().parent / "fixtures" / "live_runner_result_payloads.json"
 CREATED_AT = "2026-05-30T14:00:00Z"
 REQUIRED_KEYS = {
     "scenario_id",

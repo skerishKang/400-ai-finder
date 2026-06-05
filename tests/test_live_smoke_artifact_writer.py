@@ -21,8 +21,10 @@ from scripts.write_live_smoke_artifact import (
 )
 
 
-LIVE_ARTIFACT_PATH = Path("tests/fixtures/live_smoke_result_artifact.json")
-PIPELINE_RESULTS_PATH = Path("tests/fixtures/smoke_pipeline_results_roundtrip.json")
+TESTS_DIR = Path(__file__).resolve().parent
+FIXTURES_DIR = TESTS_DIR / "fixtures"
+LIVE_ARTIFACT_PATH = FIXTURES_DIR / "live_smoke_result_artifact.json"
+PIPELINE_RESULTS_PATH = FIXTURES_DIR / "smoke_pipeline_results_roundtrip.json"
 CREATED_AT = "2026-05-30T13:15:00Z"
 
 

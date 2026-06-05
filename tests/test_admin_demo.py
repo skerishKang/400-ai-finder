@@ -6,6 +6,7 @@ import json
 import threading
 import time
 from http.client import HTTPConnection
+from pathlib import Path
 
 import pytest
 
@@ -14,7 +15,9 @@ from src.web.admin_demo import _load_template, _resolve_effective_snapshot, crea
 # Load admin HTML template once for unit tests
 _ADMIN_HTML = _load_template()
 
-FIXTURE_SNAPSHOT = "tests/fixtures/bukgu_gwangju_demo_snapshot.json"
+TESTS_DIR = Path(__file__).resolve().parent
+FIXTURES_DIR = TESTS_DIR / "fixtures"
+FIXTURE_SNAPSHOT = str(FIXTURES_DIR / "bukgu_gwangju_demo_snapshot.json")
 
 
 class TestAdminDemoUnit:

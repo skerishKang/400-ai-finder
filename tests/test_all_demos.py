@@ -8,11 +8,14 @@ import socket
 import threading
 import time
 from http.client import HTTPConnection
+from pathlib import Path
 
 import pytest
 
 
-FIXTURE_SNAPSHOT = "tests/fixtures/bukgu_gwangju_demo_snapshot.json"
+TESTS_DIR = Path(__file__).resolve().parent
+FIXTURES_DIR = TESTS_DIR / "fixtures"
+FIXTURE_SNAPSHOT = str(FIXTURES_DIR / "bukgu_gwangju_demo_snapshot.json")
 
 
 def _free_port() -> int:

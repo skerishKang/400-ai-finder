@@ -13,7 +13,7 @@ from scripts.run_smoke_eval import (
 )
 
 
-LIVE_ARTIFACT_PATH = Path("tests/fixtures/live_smoke_result_artifact.json")
+LIVE_ARTIFACT_PATH = Path(__file__).resolve().parent / "fixtures" / "live_smoke_result_artifact.json"
 FORBIDDEN_VALUE_SUBSTRINGS = (
     "api_key=",
     "authorization:",
