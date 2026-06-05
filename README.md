@@ -305,3 +305,4 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 - [`docs/bukgu-live-demo-package.md`](docs/bukgu-live-demo-package.md) — Buk-gu live LLM demo package (외부 시연용)
 - [`docs/bukgu-demo-one-page-handout.md`](docs/bukgu-demo-one-page-handout.md) — Buk-gu demo one-page handout (외부 시연용 1페이지 요약)
 - [`docs/bukgu-demo-presentation-outline.md`](docs/bukgu-demo-presentation-outline.md) — Buk-gu demo presentation outline (5~7분 발표 구성안)
+- [`docs/artifacts/400-ai-finder-bukgu-demo.pptx`](docs/artifacts/400-ai-finder-bukgu-demo.pptx) — Buk-gu demo PPT slide deck (6~7 slides, 5~7분 발표용)
