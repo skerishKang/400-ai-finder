@@ -243,8 +243,10 @@ PYTHONPATH=. .venv/bin/python scripts/demo_answer.py \
     --site-id gwangju_go_kr \
     --question "고시공고는 어디서 봐?" \
     --provider stub \
-    --fetch-provider requests
+    --fetch-provider requests --allow-live
 ```
+
+*(Live fetch providers such as `requests` require `--allow-live`. For safe offline runs, use the mock provider and omit `--allow-live`.)*
 
 ### 광주광역시청 — 정보공개 (Live Fetch)
 
@@ -253,8 +255,10 @@ PYTHONPATH=. .venv/bin/python scripts/demo_answer.py \
     --site-id gwangju_go_kr \
     --question "정보공개는 어디서 확인해?" \
     --provider stub \
-    --fetch-provider requests
+    --fetch-provider requests --allow-live
 ```
+
+*(Live fetch providers such as `requests` require `--allow-live`. For safe offline runs, use the mock provider and omit `--allow-live`.)*
 
 ### 광주광역시청 — 복지 지원사업 (Live Fetch)
 
@@ -263,7 +267,7 @@ PYTHONPATH=. .venv/bin/python scripts/demo_answer.py \
     --site-id gwangju_go_kr \
     --question "복지 지원사업은 어디서 확인해?" \
     --provider stub \
-    --fetch-provider requests
+    --fetch-provider requests --allow-live
 ```
 
 ### Stage 36 — 광주광역시청 검증 결과 (2026-05)
