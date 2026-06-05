@@ -12,7 +12,7 @@ from scripts.export_live_smoke_artifact import (
 )
 
 
-LIVE_ARTIFACT_PATH = Path("tests/fixtures/live_smoke_result_artifact.json")
+LIVE_ARTIFACT_PATH = Path(__file__).resolve().parent / "fixtures" / "live_smoke_result_artifact.json"
 
 
 def test_export_live_artifact_to_pipeline_results_preserves_14_results() -> None:

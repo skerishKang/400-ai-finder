@@ -27,7 +27,9 @@ from scripts.run_smoke_eval import (
     validate_response_fixture,
 )
 
-RESPONSE_FIXTURE_PATH = Path("tests/fixtures/smoke_eval_responses.json")
+TESTS_DIR = Path(__file__).resolve().parent
+FIXTURES_DIR = TESTS_DIR / "fixtures"
+RESPONSE_FIXTURE_PATH = FIXTURES_DIR / "smoke_eval_responses.json"
 
 
 def test_stage40_matrix_loads_and_validates() -> None:

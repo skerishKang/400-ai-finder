@@ -20,6 +20,10 @@ from scripts.run_smoke_eval import (
     validate_response_fixture,
 )
 
+TESTS_DIR = Path(__file__).resolve().parent
+FIXTURES_DIR = TESTS_DIR / "fixtures"
+ROUNDTRIP_PIPELINE_RESULTS_PATH = FIXTURES_DIR / "smoke_pipeline_results_roundtrip.json"
+
 
 def test_export_pipeline_result_response_preserves_core_fields() -> None:
     result = {
@@ -149,11 +153,6 @@ def test_run_export_writes_output_file(tmp_path: Path) -> None:
 def test_load_pipeline_results_rejects_missing_file(tmp_path: Path) -> None:
     with pytest.raises(SmokePipelineExportError, match="Pipeline results file not found"):
         load_pipeline_results(tmp_path / "missing.json")
-
-
-ROUNDTRIP_PIPELINE_RESULTS_PATH = Path(
-    "tests/fixtures/smoke_pipeline_results_roundtrip.json"
-)
 
 
 def test_exported_roundtrip_fixture_passes_smoke_response_eval() -> None:
