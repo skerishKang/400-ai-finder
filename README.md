@@ -303,3 +303,5 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 - [`docs/operator-quickstart.md`](docs/operator-quickstart.md) — 운영자 빠른 안내서 (offline → live 순서)
 - [`docs/smoke-eval-flow.md`](docs/smoke-eval-flow.md) — Smoke eval CLI 흐름
 - [`docs/bukgu-live-demo-package.md`](docs/bukgu-live-demo-package.md) — Buk-gu live LLM demo package (외부 시연용)
+- [`docs/bukgu-demo-one-page-handout.md`](docs/bukgu-demo-one-page-handout.md) — Buk-gu demo one-page handout (외부 시연용 1페이지 요약)
+- [`docs/bukgu-demo-presentation-outline.md`](docs/bukgu-demo-presentation-outline.md) — Buk-gu demo presentation outline (5~7분 발표 구성안)
