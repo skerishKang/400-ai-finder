@@ -295,3 +295,10 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 - 전체 테스트는 API 키 없이 실행 가능합니다 (`mock`, `stub` 프로바이더 사용).
 - `tests/fixtures/bukgu_gwangju_demo_snapshot.json` 파일을 스냅샷 테스트에 활용합니다.
 - Provider live-only tests are opt-in and skipped by default. They require explicit `RUN_LIVE_*_TESTS=1` flags in addition to API keys. See `docs/provider-fetch-network-boundary.md` for details.
+
+### Operator quickstart
+
+실행 흐름, 데모, smoke eval, live provider 사용법은 다음 문서를 참고하십시오:
+
+- [`docs/operator-quickstart.md`](docs/operator-quickstart.md) — 운영자 빠른 안내서 (offline → live 순서)
+- [`docs/smoke-eval-flow.md`](docs/smoke-eval-flow.md) — Smoke eval CLI 흐름
