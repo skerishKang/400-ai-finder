@@ -203,7 +203,53 @@ No live provider, fetch, network, or pipeline calls were made.
 
 ---
 
-## 6. Safety checklist
+## 6. Live site validation notes
+
+Live LLM + live fetch validation (e.g., `demo_answer.py --allow-live --provider nvidia --fetch-provider requests`) can produce useful grounded answers overall, but operators should be aware of the following:
+
+### WARN vs FAIL
+
+- A WARN result does not automatically mean a provider or fetch failure.
+- Some municipal websites use menu labels, board names, or legacy URL structures that do not match the user's natural-language query.
+- Topics like youth/jobs, employment, welfare, or education may require **alternative Korean keywords** beyond the initial query.
+
+### Keyword guidance
+
+If a live query returns few or no results, try these alternative terms:
+
+```
+청년 / 일자리 / 채용 / 취업 / 고용 / 경제 / 기업지원
+비즈광주북구 / 정보화교육 / 복지 / 민원 / 고시공고 / 공지사항
+```
+
+### Domain grounding check
+
+After receiving an answer, verify that:
+
+- The cited URLs belong to the target site's **official domain** (e.g., `bukgu.gwangju.kr` for Buk-gu).
+- Any external official domains (e.g., `workplus.go.kr`) are **contextually relevant** to the question — they are not automatically errors, but operators should confirm alignment.
+
+### Example from Buk-gu validation (Stage 333)
+
+In the Buk-gu (`bukgu_gwangju`) live validation:
+
+| Topic | Result | Note |
+|-------|--------|------|
+| Notice/announcement (공지사항/고시공고) | PASS | Specific menu URLs provided |
+| Welfare programs (복지 지원사업) | PASS | Majority of sources on target domain |
+| Civil services (민원 신청) | PASS | All sources on target domain |
+| Youth/jobs (청년/일자리) | **WARN** | Relevant pages not reliably discovered with initial query terms |
+| Domain correctness | PASS | All cited sources confirmed on target domain |
+
+The youth/jobs WARN occurred because the relevant menu pages (e.g., 비즈광주북구, 정보화교육) use different labeling than the natural-language query "청년" or "일자리". This is a **search coverage limitation**, not a pipeline or provider failure.
+
+### Key takeaway
+
+**Try alternate official menu terms** when a live query does not surface the expected page. The pipeline is designed to discover content based on available crawlable pages and text matching — not all content may be surfaced from every query on the first attempt.
+
+---
+
+## 7. Safety checklist
 
 - [ ] **API 키/시크릿을 코드에 하드코딩하지 마십시오.** `.env` 파일을 사용하고 `.gitignore`에 추가하십시오.
 - [ ] **로컬 확인 시 mock/stub 프로바이더를 사용하십시오.** 두 프로바이더 모두 API 키가 필요하지 않습니다.
@@ -231,7 +277,9 @@ No live provider, fetch, network, or pipeline calls were made.
     │
     ├── Live provider 확인
     │   ├── Fetch 필요 → --fetch-provider requests --allow-live
-    │   └── Live smoke → RUN_LIVE_SMOKE_EVAL=true + --live
+    │   ├── Live smoke → RUN_LIVE_SMOKE_EVAL=true + --live
+    │   ├── 질문-답변 검증 → --provider nvidia --fetch-provider requests --allow-live
+    │   └── WARN 결과 해석 → docs/operator-quickstart.md §6 Live site validation notes 참고
     │
     └── 문제 발생
         ├── 에러 메시지 확인
