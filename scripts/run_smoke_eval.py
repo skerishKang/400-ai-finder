@@ -32,6 +32,7 @@ REQUIRED_SCENARIO_KEYS = {
     "expected_keywords",
     "pass_criteria",
 }
+SCENARIO_ALLOWED_KEYS = REQUIRED_SCENARIO_KEYS
 REQUIRED_PASS_CRITERIA_KEYS = {
     "site_id_match",
     "min_sources",
@@ -148,6 +149,13 @@ def validate_matrix(data: dict[str, Any]) -> list[dict[str, Any]]:
             missing_list = ", ".join(sorted(missing))
             raise SmokeScenarioMatrixError(
                 f"Scenario #{index} is missing required keys: {missing_list}"
+            )
+
+        unknown_keys = set(scenario.keys()) - SCENARIO_ALLOWED_KEYS
+        if unknown_keys:
+            sorted_unknown = ", ".join(sorted(unknown_keys))
+            raise SmokeScenarioMatrixError(
+                f"Scenario #{index} contains unknown keys: {sorted_unknown}"
             )
 
         for field_name in SCENARIO_STRING_FIELDS:
