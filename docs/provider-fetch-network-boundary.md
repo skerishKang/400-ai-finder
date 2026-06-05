@@ -343,8 +343,6 @@ Do not set `RUN_LIVE_*_TESTS=1` in routine local or CI test runs. Do not rely on
 
 ## Future work
 
-Future stages should remain narrow and should not mix unrelated boundaries. Good
-candidate follow-up stages include:
-
-- audit provider/fetch mock vs live separation
-- add import-safety contract tests for web demo entrypoints (Stage 311 suggested)
+No active provider/fetch boundary Future Work remains for the current scope.
+Stage 316 completed the provider/fetch mock-vs-live separation audit, and the
+web demo boundary docs/tests track was completed in Stages 312-314.
