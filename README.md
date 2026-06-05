@@ -105,6 +105,7 @@
 - `--snapshot` 인자를 통해 사전 수집 및 가공된 스냅샷 JSON 파일을 주입하면, 외부 네트워크 및 API 호출 없이도 시연 대화가 완벽하게 동작합니다.
 - 오프라인 환경, 보안 구역, 네트워크 차단 환경에서도 안정적으로 시연할 수 있습니다.
 - Smoke eval CLI 흐름은 `docs/smoke-eval-flow.md`를 참고하십시오.
+- 운영자 빠른 시작 안내는 `docs/operator-quickstart.md`를 참고하십시오.
 
 ### 🛡️ 실패 대응 Hardening (예외 복구)
 - **API Key 누락**: `Pending configuration` 에러를 명확히 반환합니다.
