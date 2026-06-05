@@ -31,9 +31,12 @@ behavior and should be treated carefully:
 - `scripts/demo_answer.py`
 - `scripts/fetch_url.py`
 - `scripts/diagnose_site.py`
+- `scripts/run_all_demos.py`
+- `scripts/run_mobile_demo.py`
+- `scripts/run_admin_demo.py`
 
-Stage 305 does not change these scripts. Their guard behavior should be audited
-or hardened in separate follow-up stages.
+These scripts have been audited and their guard/policy decisions documented in
+the following sections and the live guard coverage matrix below.
 
 ## Provider and fetch layers
 
@@ -55,9 +58,8 @@ after a dedicated audit.
 `src/pipeline/` and `scripts/run_pipeline.py` are app pipeline boundaries.
 
 `src/web/` contains backend/API/UI demo boundaries, including mobile/admin demo
-and static server code.
-
-Stage 305 does not change app pipeline, backend, UI, or API behavior.
+and static server code. Stage 311 audited the web demo server entrypoints; the
+boundary policy is documented in the "Web demo boundary" section below.
 
 ## Live guard coverage matrix
 
@@ -72,6 +74,9 @@ pipeline boundaries must be audited or hardened separately.
 | `scripts/demo_answer.py` | Yes, demo answer flow may cross provider/fetch boundaries | Yes, `--allow-live` guard in `main()` | `tests/test_demo_answer_live_guard.py` | Stage 326: live opt-in guard added. Safe offline path via `--snapshot` or `--provider mock --fetch-provider mock` |
 | `scripts/fetch_url.py` | Yes, fetch utility can cross network/fetch boundaries | Import-safe, default requests live HTTP, fetch-only (Stage 312). Stage 307 decision: no explicit live opt-in guard required in current scope | Stage 311: import-safety locked by `tests/test_fetch_url_import_boundary.py` | Stage 312/307: guard not required (fetch-only CLI, required --url, no PipelineRunner/LLM path). Safe path: `--provider mock` |
 | `scripts/diagnose_site.py` | Yes, site diagnostics may cross network/fetch boundaries | Import-safe, default requests live HTTP, fetch-only (Stage 321). Stage 327 decision: no explicit live opt-in guard required in current scope | Stage 323: import-safety locked by `tests/test_diagnose_site_import_boundary.py` | Stage 322: documented. Stage 327: guard not required (fetch-only diagnostics, required --url, no PipelineRunner/LLM path). Safe path: `--provider mock` |
+| `scripts/run_all_demos.py` | Yes, web demo wrapper; may cross provider/fetch boundaries through UI/API after server start | Import-safe. Stage 311 decision: no explicit live opt-in guard required in current scope | None yet | Stage 312: documented. No guard required (web demo, user-triggered via browser UI/API after server start, not automatic at script start). Safe path: import only, do not start server |
+| `scripts/run_mobile_demo.py` | Yes, web demo wrapper; may cross provider/fetch boundaries through UI/API after server start | Import-safe. Stage 311 decision: no explicit live opt-in guard required in current scope | None yet | Stage 312: documented. No guard required (web demo, user-triggered via browser UI/API after server start, not automatic at script start). Safe path: import only, do not start server |
+| `scripts/run_admin_demo.py` | Yes, web demo wrapper; may cross provider/fetch boundaries through UI/API after server start | Import-safe. Stage 311 decision: no explicit live opt-in guard required in current scope | None yet | Stage 312: documented. No guard required (web demo, user-triggered via browser UI/API after server start, not automatic at script start). Safe path: import only, do not start server |
 
 This table records the current boundary status only. Stage 307 does not change
 any script behavior, add any guards, or run live network paths.
@@ -240,6 +245,43 @@ Current risk is MEDIUM. Import-safety is locked. The safe offline path is
 documented. No additional explicit live opt-in guard is required for the current
 scope.
 
+## Web demo boundary
+
+Stage 311 audited the web demo server entrypoints:
+
+- `scripts/run_all_demos.py`
+- `scripts/run_mobile_demo.py`
+- `scripts/run_admin_demo.py`
+
+These entrypoints are import-safe in the current implementation. Project imports
+are lazy and occur inside `main()`, so importing the wrapper modules does not
+start a demo server, open a browser, call a provider, fetch a URL, require an API
+key, or contact Firecrawl.
+
+The `src.web.*` modules are also import-safe for the current boundary. Their
+top-level imports are standard-library-only, and project-specific provider/fetch
+work is reached from request handlers rather than module import.
+
+No additional `--allow-live` guard is required for these web demo wrappers in the
+current shape. Unlike immediate-execution CLI scripts such as `run_pipeline.py`
+and `demo_answer.py`, the web demo wrappers do not automatically run a
+provider/fetch pipeline at script start. Live provider/fetch behavior is
+user-triggered through browser UI/API requests such as `POST /api/ask` or
+`POST /api/test`.
+
+The required `--site-id` argument records explicit user intent to launch a demo
+for a selected site. Starting the local demo server is therefore treated as a
+web UI boundary, while any live provider/fetch behavior remains behind
+user-triggered UI/API actions.
+
+Safe path:
+
+- import the wrapper modules only;
+- do not start the demo server;
+- do not send browser/API requests to `/api/ask` or `/api/test`;
+- do not configure live provider credentials in tests unless a live-only test
+  explicitly opts in.
+
 ## Firecrawl integration boundary
 
 Stage 330 audited the Firecrawl integration boundary. The Firecrawl provider is
@@ -305,4 +347,4 @@ Future stages should remain narrow and should not mix unrelated boundaries. Good
 candidate follow-up stages include:
 
 - audit provider/fetch mock vs live separation
-- audit app pipeline/backend/UI/API behavior separately
+- add import-safety contract tests for web demo entrypoints (Stage 311 suggested)
