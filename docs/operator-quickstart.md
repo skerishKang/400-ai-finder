@@ -249,7 +249,143 @@ The youth/jobs WARN occurred because the relevant menu pages (e.g., 비즈광주
 
 ---
 
-## 7. Safety checklist
+## 7. Product demo: live LLM site conversation
+
+This section describes how to run a **live end-to-end product demo** using actual LLM inference and live site fetch. Unlike the offline/snapshot demos in section 1, this flow validates the product as a real AI-assisted site conversation tool.
+
+Live product validation was confirmed in **Stage 333** (Buk-gu, `bukgu_gwangju`), where 4 of 5 questions passed with grounded answers from the official domain.
+
+### Safety warning (read first)
+
+> ⚠️ **API key safety is your responsibility.**
+
+- Set API keys via **local shell export only** — never hardcode in scripts or commit to git.
+- If you use a `.env` file, confirm it is in `.gitignore` first.
+- Never paste API keys into documentation, PR bodies, log output, or chat.
+- Start with `requests` fetch provider. Do not use Firecrawl unless explicitly needed.
+
+### Provider setup
+
+Choose one of the following providers. Replace placeholder values with your own keys.
+
+**NVIDIA** (verified in Stage 333):
+
+```bash
+export AI_FINDER_LLM_PROVIDER=nvidia
+export NVIDIA_API_KEY="<LOCAL_SECRET_ONLY>"
+export AI_FINDER_FETCH_PROVIDER=requests
+```
+
+The default model is `openai/gpt-oss-120b` (used in Stage 333). To override:
+
+```bash
+export AI_FINDER_NVIDIA_MODEL="openai/gpt-oss-120b"
+```
+
+**OpenAI-compatible endpoint** (generic):
+
+```bash
+export AI_FINDER_LLM_PROVIDER=openai_compatible
+export AI_FINDER_LLM_BASE_URL="<OPENAI_COMPATIBLE_BASE_URL>"
+export AI_FINDER_LLM_API_KEY="<LOCAL_SECRET_ONLY>"
+export AI_FINDER_LLM_MODEL="<MODEL_NAME>"
+export AI_FINDER_FETCH_PROVIDER=requests
+```
+
+Other available providers: `mistral`, `opengateway`, `kilocode`, `groq`. Each requires its own API key environment variable (see `src/llm/__init__.py`).
+
+### Understanding `--allow-live`
+
+Both `demo_answer.py` and `run_pipeline.py` require the **`--allow-live`** flag to execute live provider/fetch/network paths. Without this flag, only the offline `mock` / `stub` provider path is allowed.
+
+```bash
+# Without --allow-live this will fail
+python scripts/demo_answer.py \
+  --site-id bukgu_gwangju \
+  --question "..." \
+  --provider nvidia \
+  --fetch-provider requests
+# → error: live path requires --allow-live
+
+# Correct — with --allow-live
+python scripts/demo_answer.py \
+  --allow-live \
+  --site-id bukgu_gwangju \
+  --question "..." \
+  --provider nvidia \
+  --fetch-provider requests
+```
+
+### Demo target
+
+| Field | Value |
+|-------|-------|
+| Site | 광주광역시 북구청 |
+| URL | https://bukgu.gwangju.kr/ |
+| Site profile | `bukgu_gwangju` |
+| Profile file | `configs/sites/bukgu_gwangju.yml` |
+
+### Demo questions
+
+The following five questions were used in Stage 333. They cover common citizen inquiry topics:
+
+```text
+Q1. 북구청에서 최근 공지사항이나 고시공고를 어디에서 확인할 수 있나요?
+Q2. 북구청에서 복지 지원사업 정보를 찾으려면 어느 메뉴나 부서를 봐야 하나요?
+Q3. 북구청 민원 신청이나 온라인 민원 안내는 어디에서 확인할 수 있나요?
+Q4. 북구청 사이트에서 청년 또는 일자리 관련 정보를 찾으려면 어떻게 접근해야 하나요?
+Q5. 북구청이 아닌 다른 구청 정보가 섞이지 않도록, 답변 출처가 북구청 공식 도메인인지 확인해 주세요.
+```
+
+### Command example
+
+```bash
+python scripts/demo_answer.py \
+  --allow-live \
+  --site-id bukgu_gwangju \
+  --provider nvidia \
+  --fetch-provider requests \
+  --question "북구청에서 최근 공지사항이나 고시공고를 어디에서 확인할 수 있나요?"
+```
+
+Each question runs independently. The pipeline fetches live content from the site, indexes relevant pages, searches against your query, and generates a grounded answer via the live LLM.
+
+### Expected interpretation
+
+Based on Stage 333 results:
+
+- **공지사항/고시공고, 복지, 민원, 도메인 확인** questions are likely to **PASS** with properly grounded answers from the target domain.
+- **청년/일자리** questions may produce a **WARN** — the relevant pages exist (e.g., 비즈광주북구, 정보화교육) but use different menu labeling than the natural-language query terms. This is a **search coverage limitation**, not a pipeline failure.
+- A **WARN** does not mean the provider or fetch failed. Try alternate official menu terms as described in the [Live site validation notes](#6-live-site-validation-notes) section.
+
+### PASS / WARN / FAIL checklist
+
+**PASS:**
+
+- [ ] Live LLM is actually called (not mock/stub fallback)
+- [ ] `requests` fetch successfully retrieves source pages from the target site
+- [ ] Answer addresses the question intent
+- [ ] Answer is grounded on the official domain (or a contextually relevant external official domain)
+- [ ] No other municipal district information is incorrectly mixed in
+
+**WARN:**
+
+- [ ] Answer is plausible but some topics are weak due to query/menu label mismatch
+- [ ] Relevant pages may exist but initial query terms did not reliably surface them
+- [ ] An external official domain is included but is contextually relevant (e.g., `workplus.go.kr` for employment)
+
+**FAIL:**
+
+- [ ] Only mock/stub response returned
+- [ ] Live LLM call did not execute
+- [ ] Live fetch returned no results or errors
+- [ ] Answer asserts without citing any source
+- [ ] Non-target district information is incorrectly mixed in
+- [ ] API key is exposed in logs, output, documentation, or PR body
+
+---
+
+## 8. Safety checklist
 
 - [ ] **API 키/시크릿을 코드에 하드코딩하지 마십시오.** `.env` 파일을 사용하고 `.gitignore`에 추가하십시오.
 - [ ] **로컬 확인 시 mock/stub 프로바이더를 사용하십시오.** 두 프로바이더 모두 API 키가 필요하지 않습니다.
@@ -278,8 +414,9 @@ The youth/jobs WARN occurred because the relevant menu pages (e.g., 비즈광주
     ├── Live provider 확인
     │   ├── Fetch 필요 → --fetch-provider requests --allow-live
     │   ├── Live smoke → RUN_LIVE_SMOKE_EVAL=true + --live
+    │   ├── 제품 데모 (live LLM) → §7 Product demo: live LLM site conversation 참고
     │   ├── 질문-답변 검증 → --provider nvidia --fetch-provider requests --allow-live
-    │   └── WARN 결과 해석 → docs/operator-quickstart.md §6 Live site validation notes 참고
+    │   └── WARN 결과 해석 → §6 Live site validation notes 참고
     │
     └── 문제 발생
         ├── 에러 메시지 확인
