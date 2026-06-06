@@ -88,6 +88,14 @@ def answer_from_snapshot_helper(
                 snapshot.setdefault("warnings", []).append(
                     "홈페이지 메뉴에서 찾은 결과"
                 )
+            else:
+                # Clear stale sources when fallback returns empty
+                snapshot["search_results"] = []
+                snapshot["sources"] = []
+                snapshot["fallback_used"] = False
+                snapshot.setdefault("warnings", []).append(
+                    "관련 메뉴를 찾지 못했습니다"
+                )
 
         snapshot["question"] = q
         snapshot["answer"] = generate_answer_from_sources(
