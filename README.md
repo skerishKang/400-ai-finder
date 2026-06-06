@@ -310,3 +310,4 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 ### Product design
 
 - [`docs/product/dynamic-retrieval-query-learning-strategy.md`](docs/product/dynamic-retrieval-query-learning-strategy.md) — Dynamic Retrieval + Query Learning Strategy
+- [`docs/product/repeated-question-analytics-promotion-plan.md`](docs/product/repeated-question-analytics-promotion-plan.md) — Repeated-Question Analytics and Scenario-Cache Promotion Plan

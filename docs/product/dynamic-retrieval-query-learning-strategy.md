@@ -301,6 +301,9 @@ Promote to validated scenario/snapshot/cache
 ### Stage 351 — Question Logging Boundary (Completed)
 - Stage 351 adds an offline-safe question logging boundary. The initial boundary supports sanitized structured question events and optional local JSONL logging, without analytics, clustering, scenario promotion, external storage, or live provider calls.
 
+### Stage 352 — Repeated-Question Analytics and Promotion Planning (Completed)
+- Stage 352 adds repeated-question analytics and scenario/cache promotion planning. The boundary treats repeated questions as human-review candidates only and does not automatically create scenarios, snapshots, caches, or pull requests.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
