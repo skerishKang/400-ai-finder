@@ -340,7 +340,11 @@ class TestMaxEnrichPagesPassed:
 
 
 class TestTopKPassedToSearch:
-    """top_k is passed to KeywordSearcher.search."""
+    """top_k is passed to KeywordSearcher.search.
+
+    Note: With query rewriter integration (Stage 344a), search is called
+    once per query candidate. The test verifies top_k is passed correctly.
+    """
 
     @patch("src.pipeline.pipeline_runner.AnswerComposer")
     @patch("src.pipeline.pipeline_runner.KeywordSearcher")
@@ -359,9 +363,10 @@ class TestTopKPassedToSearch:
         runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock", top_k=3)
         runner.run(url="https://example.com", query="신청서")
 
-        MockSearcher.return_value.search.assert_called_once()
-        call_args = MockSearcher.return_value.search.call_args
-        assert call_args[1]["top_k"] == 3 or call_args.kwargs.get("top_k") == 3
+        # Search is called for each query candidate (original + rewritten)
+        assert MockSearcher.return_value.search.call_count >= 1
+        for call in MockSearcher.return_value.search.call_args_list:
+            assert call[1]["top_k"] == 3 or call.kwargs.get("top_k") == 3
 
 
 class TestMaxSourcesPassedToComposer:
