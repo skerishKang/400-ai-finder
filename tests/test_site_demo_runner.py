@@ -762,6 +762,52 @@ class TestSnapshot:
         assert reloaded["question"] == original["question"]
         assert len(reloaded["sources"]) == len(original["sources"])
 
+    def test_snapshot_question_change_with_empty_fallback_does_not_reuse_stale_sources(self):
+        """
+        Regression test for Stage 341 P0 bug:
+        When snapshot question changes and fallback_sources_from_homepage_map returns empty,
+        stale original sources must NOT be reused.
+
+        Original snapshot question: "민원서식 어디서 받아?"
+        New question: "구청장이 누구야?"
+        Fallback candidates: empty (nav links don't match 구청장)
+        Expected: sources cleared, no-results style answer returned
+        NOT: original 민원서식 sources reused
+        """
+        runner = SiteDemoRunner(site_id="bukgu_gwangju", provider="mock")
+        result = runner.answer_from_snapshot(
+            FIXTURE_SNAPSHOT, question="구청장이 누구야?"
+        )
+
+        # Snapshot mode should be active
+        assert result["snapshot_mode"] is True
+        assert result["question"] == "구청장이 누구야?"
+
+        # Sources should be empty or marked as no relevant source
+        # The bug was: old sources (민원서식) were kept when fallback returned []
+        sources = result.get("sources", [])
+        search_results = result.get("search_results", [])
+
+        # Assert: No stale source from original snapshot (민원서식 URL)
+        stale_url = "a10101040000"  # 민원서식 URL from original snapshot
+        all_source_urls = []
+        for src in sources:
+            all_source_urls.append(src.get("url", ""))
+        for sr in search_results:
+            all_source_urls.append(sr.get("url", ""))
+
+        assert not any(stale_url in url for url in all_source_urls), \
+            f"Stale source URL {stale_url} should not be reused, got: {all_source_urls}"
+
+        # Assert: Answer should not say 구청장 is found in 민원서식
+        answer = result.get("answer", "")
+        assert "민원서식" not in answer or "구청장" not in answer, \
+            f"Answer should not mix 구청장 topic with 민원서식 source: {answer}"
+
+        # Expected: sources empty and no-results style message OR explicit no-results status
+        # The fix should clear sources when fallback is empty
+        # At minimum, we verify no stale source reuse above
+
 
 # ------------------------------------------------------------------
 # Stage 16: Answer-source consistency & UX tests
