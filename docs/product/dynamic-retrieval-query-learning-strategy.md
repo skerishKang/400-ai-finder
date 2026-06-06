@@ -295,6 +295,9 @@ Promote to validated scenario/snapshot/cache
 - Existing keyword search behavior preserved for ordinary questions.
 - 8 integration tests added in `tests/test_query_rewriter_pipeline_integration.py`.
 
+### Stage 344b — Source Mismatch Guard Hardening (Completed)
+- Stage 344b adds source mismatch guard hardening for weak retrieval results. The guard prevents confident answers from being composed when retrieved sources do not sufficiently align with the original user question.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
