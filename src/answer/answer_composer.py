@@ -113,6 +113,25 @@ class AnswerComposer:
         if not results or not sources:
             return self._no_results_answer(query)
 
+        # --- Source match guard ---
+        from ..search.source_match_guard import assess_source_match
+        query_rewrite = data.get("query_rewrite", {})
+        query_rewrite_queries = query_rewrite.get("queries", [])
+        assessment = assess_source_match(
+            query,
+            sources,
+            query_rewrite_queries=query_rewrite_queries
+        )
+
+        if assessment.status == "no_results":
+            no_res = self._no_results_answer(query)
+            no_res["warnings"] = [assessment.reason]
+            return no_res
+
+        guard_warnings = []
+        if assessment.status == "warn":
+            guard_warnings.append(assessment.reason)
+
         # --- Build source context and messages ---
         source_context = self._build_source_context(sources)
         messages = self._build_messages(query, source_context)
@@ -133,7 +152,7 @@ class AnswerComposer:
                 "ok": False,
                 "answer_markdown": "",
                 "sources": sources,
-                "warnings": [provider_result.error],
+                "warnings": [provider_result.error] + guard_warnings,
                 "error": provider_result.error,
             }
 
@@ -144,7 +163,7 @@ class AnswerComposer:
             "ok": True,
             "answer_markdown": provider_result.content,
             "sources": sources,
-            "warnings": [],
+            "warnings": guard_warnings,
             "error": "",
         }
 
