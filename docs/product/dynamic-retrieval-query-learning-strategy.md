@@ -275,6 +275,21 @@ Promote to validated scenario/snapshot/cache
 
 ---
 
+## Implementation Status
+
+### Stage 341 — P0 Bug Fix (Completed)
+- Clear stale snapshot sources when fallback matching returns empty.
+
+### Stage 343 — Query Rewriter Contract (Completed)
+- Added `src/search/query_rewriter.py` with offline-safe deterministic query rewriter.
+- Produces retrieval query candidates only — does not generate answers.
+- Supports mayor, youth/jobs, civil service, notice, welfare, and education query patterns.
+- Preserves original question exactly, deduplicates candidates, limits to `max_queries`.
+- No live LLM/API/network calls.
+- 18 contract tests added in `tests/test_query_rewriter.py`.
+
+---
+
 ## 13. Example: "구청장이 누구야?"
 
 ### Correct Behavior After Stage 341
