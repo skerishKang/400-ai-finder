@@ -288,6 +288,13 @@ Promote to validated scenario/snapshot/cache
 - No live LLM/API/network calls.
 - 18 contract tests added in `tests/test_query_rewriter.py`.
 
+### Stage 344a — Query Rewriter Pipeline Integration (Completed)
+- Integrates deterministic query rewrite candidates into the offline-testable pipeline search path.
+- Original question preserved for answer composition in `query_rewrite` metadata.
+- Results across rewritten queries are deduplicated by canonical URL.
+- Existing keyword search behavior preserved for ordinary questions.
+- 8 integration tests added in `tests/test_query_rewriter_pipeline_integration.py`.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

@@ -17,6 +17,7 @@ from ..crawler.homepage_mapper import HomepageMapper
 from ..indexer.document_indexer import DocumentIndexer
 from ..indexer.document_enricher import DocumentEnricher
 from ..search.keyword_searcher import KeywordSearcher
+from ..search.query_rewriter import rewrite_query_candidates
 from ..answer.answer_composer import AnswerComposer
 
 
@@ -151,18 +152,67 @@ class PipelineRunner:
         output = os.path.join(self.output_dir, "search-results.json")
         try:
             searcher = KeywordSearcher(index_path=enriched_path)
-            results = searcher.search(query, top_k=self.top_k)
+
+            # Use query rewriter to get retrieval candidates
+            rewrite_result = rewrite_query_candidates(query, max_queries=self.top_k)
+            query_candidates = list(rewrite_result.queries)
+
+            # Run search for each query candidate and merge results
+            all_results = self._search_for_candidates(searcher, query_candidates)
+
             search_output = {
                 "query": query,
                 "top_k": self.top_k,
                 "filters": {"category": "", "content_type": ""},
-                "result_count": len(results),
-                "results": results,
+                "result_count": len(all_results),
+                "results": all_results,
+                "query_rewrite": {
+                    "strategy": rewrite_result.strategy,
+                    "original_question": rewrite_result.original_question,
+                    "queries": list(rewrite_result.queries),
+                    "warnings": list(rewrite_result.warnings),
+                },
             }
             self._write_json(output, search_output)
             return _step_ok("search", output)
         except Exception as e:
             return _step_fail("search", output, e)
+
+    def _search_for_candidates(
+        self, searcher: KeywordSearcher, query_candidates: list[str]
+    ) -> list[dict[str, Any]]:
+        """Run search for each query candidate and merge results.
+
+        Args:
+            searcher: Initialized KeywordSearcher instance.
+            query_candidates: List of query strings to search for.
+
+        Returns:
+            Merged and deduplicated results (by canonical_url).
+        """
+        all_results = []
+        seen_urls = set()
+
+        for q in query_candidates:
+            results = searcher.search(q, top_k=self.top_k)
+            for result in results:
+                canon_url = result.get("canonical_url") or result.get("url", "")
+                if canon_url and canon_url not in seen_urls:
+                    seen_urls.add(canon_url)
+                    all_results.append(result)
+
+        # Sort by score descending, then by canonical_url for determinism
+        all_results.sort(key=lambda r: (-r.get("score", 0), r.get("canonical_url", "")))
+
+        # Limit to top_k
+        if len(all_results) > self.top_k:
+            all_results = all_results[:self.top_k]
+
+        # Re-assign ranks
+        for rank, res in enumerate(all_results, start=1):
+            res["rank"] = rank
+
+        return all_results
 
     def _step_answer(self, query: str, search_path: str) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "answer.json")
