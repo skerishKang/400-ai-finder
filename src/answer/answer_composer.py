@@ -111,7 +111,10 @@ class AnswerComposer:
 
         # --- No results: short-circuit without calling LLM ---
         if not results or not sources:
-            return self._no_results_answer(query)
+            no_res = self._no_results_answer(query)
+            no_res["guard_status"] = "no_results"
+            no_res["guard_reason"] = "No sources retrieved"
+            return no_res
 
         # --- Source match guard ---
         from ..search.source_match_guard import assess_source_match
@@ -126,6 +129,8 @@ class AnswerComposer:
         if assessment.status == "no_results":
             no_res = self._no_results_answer(query)
             no_res["warnings"] = [assessment.reason]
+            no_res["guard_status"] = assessment.status
+            no_res["guard_reason"] = assessment.reason
             return no_res
 
         guard_warnings = []
@@ -154,6 +159,8 @@ class AnswerComposer:
                 "sources": sources,
                 "warnings": [provider_result.error] + guard_warnings,
                 "error": provider_result.error,
+                "guard_status": assessment.status,
+                "guard_reason": assessment.reason,
             }
 
         return {
@@ -165,6 +172,8 @@ class AnswerComposer:
             "sources": sources,
             "warnings": guard_warnings,
             "error": "",
+            "guard_status": assessment.status,
+            "guard_reason": assessment.reason,
         }
 
     # ------------------------------------------------------------------
@@ -262,6 +271,8 @@ class AnswerComposer:
             "sources": [],
             "warnings": ["no search results"],
             "error": "",
+            "guard_status": None,
+            "guard_reason": None,
         }
 
 

@@ -298,6 +298,9 @@ Promote to validated scenario/snapshot/cache
 ### Stage 344b — Source Mismatch Guard Hardening (Completed)
 - Stage 344b adds source mismatch guard hardening for weak retrieval results. The guard prevents confident answers from being composed when retrieved sources do not sufficiently align with the original user question.
 
+### Stage 351 — Question Logging Boundary (Completed)
+- Stage 351 adds an offline-safe question logging boundary. The initial boundary supports sanitized structured question events and optional local JSONL logging, without analytics, clustering, scenario promotion, external storage, or live provider calls.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

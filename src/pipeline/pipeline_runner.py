@@ -19,6 +19,7 @@ from ..indexer.document_enricher import DocumentEnricher
 from ..search.keyword_searcher import KeywordSearcher
 from ..search.query_rewriter import rewrite_query_candidates
 from ..answer.answer_composer import AnswerComposer
+from ..analytics.question_logger import QuestionLogger, NoOpQuestionLogger
 
 
 class PipelineRunner:
@@ -36,6 +37,7 @@ class PipelineRunner:
         max_sources: int = 5,
         max_chars: int = 12000,
         model: str | None = None,
+        question_logger: QuestionLogger | None = None,
     ):
         self.output_dir = output_dir
         self.provider = provider or "mock"
@@ -47,6 +49,7 @@ class PipelineRunner:
         self.top_k = top_k
         self.max_sources = max_sources
         self.max_chars = max_chars
+        self.question_logger = question_logger or NoOpQuestionLogger()
 
     # ------------------------------------------------------------------
     # Public API
@@ -96,11 +99,84 @@ class PipelineRunner:
         # Step 5 — answer
         step = self._step_answer(query, step["output"])
         steps.append(step)
+
+        # Emit question log event
+        self._emit_question_log(url, query, steps)
+
         if not step["ok"]:
             return self._final_result(url, query, steps, overall_ok=False)
 
         answer_markdown = self._load_json(step["output"]).get("answer_markdown", "")
         return self._final_result(url, query, steps, overall_ok=True, answer_markdown=answer_markdown)
+
+    def _emit_question_log(self, url: str, query: str, steps: list[dict[str, Any]]) -> None:
+        """Helper to build and log the QuestionLogEvent after a run."""
+        try:
+            from ..analytics.question_logger import build_question_log_event
+
+            # Resolve site_id from url
+            site_id = None
+            try:
+                from ..site_profiles.site_profile import SiteProfileLoader
+                loader = SiteProfileLoader()
+                for sid in loader.list_ids():
+                    try:
+                        p = loader.load_by_id(sid)
+                        if p.match_url(url):
+                            site_id = p.site_id
+                            break
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+
+            # Find search step output
+            search_data = {}
+            for step in steps:
+                if step.get("name") == "search" and step.get("ok"):
+                    search_data = self._load_json(step["output"])
+                    break
+
+            # Find answer step output
+            answer_data = {}
+            answer_ok = False
+            for step in steps:
+                if step.get("name") == "answer":
+                    answer_ok = step.get("ok", False)
+                    if answer_ok:
+                        answer_data = self._load_json(step["output"])
+                    break
+
+            # Determine statuses
+            answer_status = "success" if answer_ok else "error"
+            if answer_data.get("guard_status") == "no_results":
+                answer_status = "no_results"
+
+            fallback_used = False
+            for res in search_data.get("results", []):
+                if res.get("category") in ("navigation", "main") or "홈페이지" in res.get("title", ""):
+                    fallback_used = True
+                    break
+
+            event = build_question_log_event(
+                site_id=site_id,
+                question=query,
+                provider_mode=self.provider,
+                retrieval_mode="live" if self.fetch_provider else "snapshot",
+                query_rewrite=search_data.get("query_rewrite"),
+                search_results=search_data.get("results", []),
+                sources=answer_data.get("sources", []),
+                answer_status=answer_status,
+                fallback_used=fallback_used,
+                guard_status=answer_data.get("guard_status"),
+                guard_reason=answer_data.get("guard_reason"),
+                warnings=answer_data.get("warnings", []),
+            )
+            self.question_logger.log(event)
+        except Exception:
+            # Silently ignore errors during logging to prevent pipeline crash
+            pass
+
 
     # ------------------------------------------------------------------
     # Step implementations
