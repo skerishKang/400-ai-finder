@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -247,14 +248,17 @@ class TestBuildMessages:
 
 class TestNoSearchResults:
     def test_empty_results_returns_no_source_answer(self):
-        """When results are empty, return 'no search results' answer."""
+        """When results are empty, return improved no-source guidance."""
         composer = AnswerComposer(provider="mock")
         result = composer.compose(EMPTY_SEARCH_RESULTS)
         assert result["ok"] is True
-        assert "관련 자료를 찾지 못했습니다" in result["answer_markdown"]
+        assert "공식 홈페이지에서 답변 근거 자료를 찾지 못했습니다" in result["answer_markdown"]
         assert result["sources"] == []
         assert "no search results" in result["warnings"]
+        assert "no_source_guidance" in result["warnings"]
         assert result["provider"] == "none"
+        assert result["guard_status"] == "no_results"
+        assert "query_hints" in result
 
     def test_empty_results_skips_llm_call(self):
         """No search results means no LLM provider call."""
@@ -271,6 +275,8 @@ class TestNoSearchResults:
         composer = AnswerComposer(provider=spy)
         result = composer.compose(EMPTY_SEARCH_RESULTS)
         assert spy.called is False
+        assert "no_source_guidance" in result["warnings"]
+        assert result["provider"] == "none"
 
     def test_json_string_input(self):
         """Accept search results as a JSON string."""
@@ -278,7 +284,9 @@ class TestNoSearchResults:
         json_str = json.dumps(EMPTY_SEARCH_RESULTS, ensure_ascii=False)
         result = composer.compose(json_str)
         assert result["ok"] is True
-        assert "관련 자료를 찾지 못했습니다" in result["answer_markdown"]
+        assert "공식 홈페이지에서 답변 근거 자료를 찾지 못했습니다" in result["answer_markdown"]
+        assert "no_source_guidance" in result["warnings"]
+        assert result["provider"] == "none"
 
 
 # ======================================================================
@@ -388,4 +396,97 @@ class TestComposeAnswerFunction:
         """compose_answer() with empty results works."""
         result = compose_answer(EMPTY_SEARCH_RESULTS, provider="mock")
         assert result["ok"] is True
-        assert "관련 자료를 찾지 못했습니다" in result["answer_markdown"]
+        assert "공식 홈페이지에서 답변 근거 자료를 찾지 못했습니다" in result["answer_markdown"]
+        assert "no_source_guidance" in result["warnings"]
+        assert result["provider"] == "none"
+
+
+# ======================================================================
+# No source guidance validation
+# ======================================================================
+
+class TestNoSourceGuidance:
+    def test_empty_results_returns_helpful_guidance(self):
+        """No-results path returns improved guidance without inventing facts."""
+        composer = AnswerComposer(provider="mock")
+        result = composer.compose(EMPTY_SEARCH_RESULTS)
+        assert result["ok"] is True
+        assert "공식 홈페이지에서 답변 근거 자료를 찾지 못했습니다" in result["answer_markdown"]
+        assert "## 확인해 볼 만한 경로" in result["answer_markdown"]
+        assert result["sources"] == []
+        assert "no search results" in result["warnings"]
+        assert "no_source_guidance" in result["warnings"]
+        assert result["provider"] == "none"
+        assert result["guard_status"] == "no_results"
+
+    def test_mayor_question_returns_menu_hints_not_names(self):
+        """Mayor questions must show menu hints in answer text and not invent facts."""
+        composer = AnswerComposer(provider="mock")
+        result = composer.compose({"query": "구청장이 누구야?", "results": []})
+        assert result["ok"] is True
+        text = result["answer_markdown"]
+        assert "근거 자료를 찾지 못했습니다" in text
+        assert "- 구청장실" in text
+        assert "- 기관장 소개" in text
+        assert "- 인사말" in text
+        assert result["provider"] == "none"
+        assert result["guard_status"] == "no_results"
+
+    def test_contact_question_returns_org_hints_not_numbers(self):
+        """Contact questions must show org-menu hints and no phone numbers."""
+        composer = AnswerComposer(provider="mock")
+        result = composer.compose({"query": "담당자 연락처 알려줘", "results": []})
+        assert result["ok"] is True
+        text = result["answer_markdown"]
+        assert "- 조직도" in text
+        assert "- 직원검색" in text
+        assert "- 부서안내" in text
+        phone_prefixes = ["010", "070", "02-", "031-", "032-", "042-", "051-", "053-", "062-", "063-", "064-"]
+        assert all(p not in text for p in phone_prefixes)
+        assert result["guard_status"] == "no_results"
+
+    def test_parking_question_returns_location_hints_only(self):
+        """Parking questions must show location menu hints."""
+        composer = AnswerComposer(provider="mock")
+        result = composer.compose({"query": "주차장이 어디있어?", "results": []})
+        assert result["ok"] is True
+        text = result["answer_markdown"]
+        assert "- 청사안내" in text
+        assert "- 오시는 길" in text
+        assert "- 주차안내" in text
+        assert result["guard_status"] == "no_results"
+
+    def test_application_question_returns_service_hints(self):
+        """Application questions must show service menu hints without procedure claims."""
+        composer = AnswerComposer(provider="mock")
+        result = composer.compose({"query": "민원서식 어디서 받아?", "results": []})
+        assert result["ok"] is True
+        text = result["answer_markdown"]
+        assert "- 민원" in text
+        assert "- 민원서식" in text
+        assert "- 신청/접수" in text
+        assert "- 자주찾는 서비스" in text
+        assert result["guard_status"] == "no_results"
+
+    def test_source_backed_answer_behavior_unchanged(self):
+        """Composer still returns source-backed answer with sources."""
+        composer = AnswerComposer(provider="mock")
+        result = composer.compose(SAMPLE_SEARCH_RESULTS)
+        assert result["ok"] is True
+        assert result["answer_markdown"]
+        assert len(result["sources"]) == 2
+
+    def test_no_source_path_seals_provider_completion(self):
+        """No-results path must not call provider complete."""
+        provider_calls: list[list[Any]] = []
+
+        class SealingProvider(MockProvider):
+            def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+                provider_calls.append([messages, temperature, max_tokens, timeout])
+                return super().complete(messages, temperature=temperature, max_tokens=max_tokens, timeout=timeout)
+
+        composer = AnswerComposer(provider=SealingProvider())
+        result = composer.compose(EMPTY_SEARCH_RESULTS)
+        assert result["ok"] is True
+        assert result["provider"] == "none"
+        assert provider_calls == []
