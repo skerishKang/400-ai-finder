@@ -409,6 +409,13 @@ Promote to validated scenario/snapshot/cache
 - Introduces `location` category output for location/parking keywords (`청사`, `청사안내`, `오시는 길`, `오시는길`, `찾아오시는길`, `주차`, `주차안내`, `위치`, `parking`).
 - Keeps crawl traversal behavior unchanged.
 
+### Stage 386 — Crawl Budget Path Filtering Policy (Completed)
+- Stage 386 establishes a policy for crawl budget protection and URL path filtering for public-sector websites.
+- Identifies safe deny candidates (print layouts, tracking params, sorting noise, and deep pagination) and dangerous parameters that must never be blocked by default (menu, article, and content IDs).
+- Establishes a precedence hierarchy (allow overrides deny, explicit deny, site-specific local overrides global, and protected escape hatch rules).
+- Recommends Stage 387 for helper-only pure function implementation.
+- No code, test, or config changes. Docs/design-only.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
