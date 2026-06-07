@@ -24,7 +24,7 @@ def test_robots_txt_sitemap_parsing():
     assert "https://example.com/sitemap_index.xml" in sitemaps
 
 def test_category_classification_rules():
-    # Priority order: document > apply > notice > board > contact > menu > unknown
+    # Priority order: document > apply > notice > board > contact > location > menu > unknown
     
     # 1. Document
     assert classify_url("https://example.com/downloads/report.pdf", "My Report") == "document"
@@ -37,6 +37,10 @@ def test_category_classification_rules():
     # 3. Notice
     assert classify_url("https://example.com/announcements", "News") == "notice"
     assert classify_url("https://example.com/notice-list", "새로운 알림") == "notice"
+    assert classify_url("https://example.com/board", "고시공고") == "notice"
+    assert classify_url("https://example.com/notice/board", "입법예고") == "notice"
+    assert classify_url("https://example.com/recruit", "채용공고") == "notice"
+    assert classify_url("https://example.com/board/list", "공고") == "notice"
     
     # 4. Board
     assert classify_url("https://example.com/bbs/free-board", "Talk") == "board"
@@ -45,11 +49,28 @@ def test_category_classification_rules():
     # 5. Contact
     assert classify_url("https://example.com/support", "Get Help") == "contact"
     assert classify_url("https://example.com/contact-us", "고객 상담") == "contact"
+    assert classify_url("https://example.com/org", "조직도") == "contact"
+    assert classify_url("https://example.com/staff-search", "직원검색") == "contact"
+    assert classify_url("https://example.com/dept-info", "부서안내") == "contact"
+    assert classify_url("https://example.com/phone", "전화번호") == "contact"
+    assert classify_url("https://example.com/manager", "담당자") == "contact"
+    assert classify_url("https://example.com/job", "담당업무") == "contact"
     
-    # 6. Menu (is_navigation=True)
+    # 6. Location
+    assert classify_url("https://example.com/office-guide", "청사안내") == "location"
+    assert classify_url("https://example.com/office-location", "청사") == "location"
+    assert classify_url("https://example.com/map", "오시는길") == "location"
+    assert classify_url("https://example.com/direction", "오시는 길") == "location"
+    assert classify_url("https://example.com/way-to-come", "찾아오시는길") == "location"
+    assert classify_url("https://example.com/parking", "주차") == "location"
+    assert classify_url("https://example.com/parking-lot", "주차안내") == "location"
+    assert classify_url("https://example.com/address", "위치") == "location"
+    assert classify_url("https://example.com/parking-info", "parking") == "location"
+
+    # 7. Menu (is_navigation=True)
     assert classify_url("https://example.com/about-us", "회사소개", is_navigation=True) == "menu"
     
-    # 7. Unknown
+    # 8. Unknown
     assert classify_url("https://example.com/about-us", "회사소개", is_navigation=False) == "unknown"
 
 def test_homepage_menu_links_extraction_and_normalization():

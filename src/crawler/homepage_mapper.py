@@ -50,7 +50,7 @@ def classify_url(url, text="", is_navigation=False):
         return "apply"
         
     # 3. notice rule
-    notice_keywords = {'notice', 'notices', 'announcement', 'announcements', '공지', '알림', '소식'}
+    notice_keywords = {'notice', 'notices', 'announcement', 'announcements', '공지', '알림', '소식', '공고', '고시공고', '입법예고', '채용공고'}
     if any(k in url_lower or k in text_lower for k in notice_keywords):
         return "notice"
         
@@ -60,11 +60,16 @@ def classify_url(url, text="", is_navigation=False):
         return "board"
         
     # 5. contact rule
-    contact_keywords = {'contact', 'inquiry', 'help', 'support', '문의', '연락', '상담'}
+    contact_keywords = {'contact', 'inquiry', 'help', 'support', '문의', '연락', '상담', '조직도', '직원검색', '부서안내', '전화번호', '담당자', '담당업무'}
     if any(k in url_lower or k in text_lower for k in contact_keywords):
         return "contact"
         
-    # 6. menu rule (only if it is detected inside navigation area and has not matched any of the above)
+    # 6. location rule
+    location_keywords = {'청사', '청사안내', '오시는 길', '오시는길', '찾아오시는길', '주차', '주차안내', '위치', 'parking'}
+    if any(k in url_lower or k in text_lower for k in location_keywords):
+        return "location"
+
+    # 7. menu rule (only if it is detected inside navigation area and has not matched any of the above)
     if is_navigation:
         return "menu"
         

@@ -402,6 +402,12 @@ Promote to validated scenario/snapshot/cache
 - Outlines recommendations for Stage 385 to expand category keyword classification and introduce targeted crawl rules.
 - No code or test changes. Docs-only.
 
+### Stage 385 — Expand Municipal URL Classification Keywords (Completed)
+- Stage 385 expands `classify_url()` in `src/crawler/homepage_mapper.py` to support Korean and English public-sector keywords.
+- Maps contact/org keywords (`조직도`, `직원검색`, `부서안내`, `전화번호`, `담당자`, `담당업무`) to `contact`.
+- Maps notice keywords (`공고`, `고시공고`, `입법예고`, `채용공고`) to `notice`.
+- Introduces `location` category output for location/parking keywords (`청사`, `청사안내`, `오시는 길`, `오시는길`, `찾아오시는길`, `주차`, `주차안내`, `위치`, `parking`).
+- Keeps crawl traversal behavior unchanged.
 
 ---
 
