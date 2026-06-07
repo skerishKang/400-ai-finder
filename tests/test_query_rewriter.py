@@ -224,3 +224,97 @@ class TestQueryRewriterDeterminism:
         result = rewrite_query_candidates("정보공개는 어디서 봐?", max_queries=5)
         assert len(result.queries) >= 1
         assert "정보공개" in result.queries or any("정보공개" in q for q in result.queries)
+
+
+class TestSiteSpecificSynonyms:
+    """Tests for site_id-based synonym dictionary integration (Stage 363)."""
+
+    def test_rewrite_applies_site_specific_synonyms(self, monkeypatch):
+        """Site-specific synonym values are appended when site_id matches."""
+        from src.search import query_rewriter as qr
+
+        def fake_loader(site_id):
+            assert site_id == "bukgu_gwangju"
+            return {
+                "민원": ["종합민원", "온라인 민원", "민원서식"],
+            }
+
+        monkeypatch.setattr(qr, "_load_site_synonym_dictionary", fake_loader)
+
+        result = qr.rewrite_query_candidates(
+            "민원 어디서 해?",
+            site_id="bukgu_gwangju",
+            max_queries=10,
+        )
+
+        assert "종합민원" in result.queries
+        assert "온라인 민원" in result.queries
+        assert "민원서식" in result.queries
+
+    def test_rewrite_without_site_id_preserves_existing_behavior(self):
+        """No site_id means site synonym loading is skipped."""
+        result = rewrite_query_candidates("민원 어디서 해?", max_queries=10)
+        assert "민원" in result.queries
+        assert result.original_question == "민원 어디서 해?"
+        assert result.strategy == "deterministic_v1"
+
+    def test_rewrite_site_synonyms_are_deduplicated_and_limited(
+        self, monkeypatch
+    ):
+        """Duplicate site synonyms are deduped and total is limited."""
+        from src.search import query_rewriter as qr
+
+        def fake_loader(site_id):
+            return {
+                "민원": ["민원", "종합민원", "종합민원", "온라인 민원"],
+            }
+
+        monkeypatch.setattr(qr, "_load_site_synonym_dictionary", fake_loader)
+
+        result = qr.rewrite_query_candidates(
+            "민원 어디서 해?",
+            site_id="bukgu_gwangju",
+            max_queries=3,
+        )
+
+        assert len(result.queries) == len(set(result.queries))
+        assert len(result.queries) <= 3
+
+    def test_rewrite_site_profile_load_failure_is_safe(self, monkeypatch):
+        """If synonym loader raises, rewriter must still return valid output."""
+        from src.search import query_rewriter as qr
+
+        def fake_loader(site_id):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(qr, "_load_site_synonym_dictionary", fake_loader)
+
+        result = qr.rewrite_query_candidates(
+            "민원 어디서 해?",
+            site_id="unknown_site",
+            max_queries=5,
+        )
+
+        assert result.original_question == "민원 어디서 해?"
+        assert len(result.queries) >= 1
+        assert result.strategy == "deterministic_v1"
+
+    def test_rewrite_does_not_call_provider_or_live_modules(self, monkeypatch):
+        """Synonym loading path must not call providers/fetch/LLM."""
+        from src.search import query_rewriter as qr
+
+        called: list[str] = []
+
+        def fake_loader(site_id):
+            called.append(site_id or "")
+            return {}
+
+        monkeypatch.setattr(qr, "_load_site_synonym_dictionary", fake_loader)
+
+        # Run with a site_id and confirm the loader is the only side effect.
+        qr.rewrite_query_candidates(
+            "민원 어디서 해?",
+            site_id="some_site",
+            max_queries=5,
+        )
+        assert called == ["some_site"]

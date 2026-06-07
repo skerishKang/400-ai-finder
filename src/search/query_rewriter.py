@@ -112,7 +112,11 @@ def rewrite_query_candidates(
 
     Args:
         question: The user's original question.
-        site_id: Optional site identifier (reserved for future site-specific rules).
+        site_id: Optional site identifier. When provided, the rewriter
+            loads the site's ``synonym_dictionary`` (if available) and
+            appends matching retrieval terms. If profile loading fails
+            or the profile has no ``synonym_dictionary``, behavior is
+            identical to the global-only path.
         max_queries: Maximum number of query candidates to return.
 
     Returns:
@@ -138,6 +142,17 @@ def rewrite_query_candidates(
         if pattern.search(normalized):
             candidates.extend(expansions)
 
+    # Apply site-specific synonym dictionary (Stage 363 contract).
+    # These are retrieval terms only — not answers, not person names,
+    # not volatile facts. Load failures are silent fallbacks.
+    try:
+        site_synonyms = _load_site_synonym_dictionary(site_id)
+    except Exception:
+        site_synonyms = {}
+    candidates.extend(
+        _apply_site_synonyms(normalized, candidates, site_synonyms)
+    )
+
     # Deduplicate while preserving order
     candidates = _deduplicate_preserve_order(candidates)
 
@@ -151,3 +166,49 @@ def rewrite_query_candidates(
         strategy="deterministic_v1",
         warnings=tuple(warnings),
     )
+
+
+def _load_site_synonym_dictionary(site_id: str | None) -> dict[str, list[str]]:
+    """Load the synonym dictionary for a given site_id.
+
+    Returns an empty dict if ``site_id`` is empty, the profile is
+    missing, or loading fails for any reason. Never raises.
+    """
+    if not site_id:
+        return {}
+    try:
+        from src.site_profiles.site_profile import load_profile
+
+        profile = load_profile(site_id)
+        return profile.synonym_dictionary
+    except Exception:
+        return {}
+
+
+def _apply_site_synonyms(
+    normalized: str,
+    candidates: Sequence[str],
+    synonym_dictionary: dict[str, list[str]],
+) -> list[str]:
+    """Append site-specific synonym values whose keys match the question.
+
+    Matching is performed against the normalized question and the
+    already-built global candidates. Synonyms are retrieval terms
+    only — they are not deduplicated against the candidates list
+    here; the caller performs deduplication.
+    """
+    if not synonym_dictionary:
+        return []
+
+    haystacks = [normalized, *candidates]
+    additions: list[str] = []
+    for key, values in synonym_dictionary.items():
+        key_normalized = _normalize_text(key)
+        if not key_normalized:
+            continue
+        if any(
+            key_normalized in _normalize_text(h) for h in haystacks if h
+        ):
+            additions.extend(values)
+
+    return additions

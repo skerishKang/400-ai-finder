@@ -352,3 +352,69 @@ class TestIntegrationNotes:
         assert profile.match_url("https://bukgu.gwangju.kr/menu.es?mid=a10101000000")
         # should NOT detect non-bukgu URLs
         assert not profile.match_url("https://www.gwangju.go.kr/")
+
+
+class TestSynonymDictionary:
+    """Tests for the optional ``synonym_dictionary`` field on SiteProfile.
+
+    Added in Stage 363. Profiles that omit the field must still load
+    correctly, and invalid entries must be filtered, not hard-failed.
+    """
+
+    def test_synonym_dictionary_defaults_to_empty(self):
+        """Profiles without synonym_dictionary return an empty dict."""
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+        })
+        assert p.synonym_dictionary == {}
+
+    def test_synonym_dictionary_loads_optional_mapping(self):
+        """A well-formed synonym_dictionary is exposed unchanged."""
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+            "synonym_dictionary": {
+                "민원": ["종합민원", "온라인 민원", "민원서식"],
+                "공고": ["고시공고", "공지사항"],
+            },
+        })
+        assert p.synonym_dictionary["민원"] == [
+            "종합민원", "온라인 민원", "민원서식",
+        ]
+        assert p.synonym_dictionary["공고"] == ["고시공고", "공지사항"]
+
+    def test_synonym_dictionary_filters_invalid_entries(self):
+        """Invalid entries are silently filtered, not raised."""
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+            "synonym_dictionary": {
+                "민원": ["종합민원", "", "종합민원", 123, "온라인 민원"],
+                "": ["should-drop"],
+                123: ["should-drop"],
+                "공고": "not-a-list",
+            },
+        })
+        assert p.synonym_dictionary == {
+            "민원": ["종합민원", "온라인 민원"],
+        }
+
+    def test_synonym_dictionary_in_to_dict_and_json_serializable(self):
+        """synonym_dictionary is included in to_dict() and JSON-safe."""
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+            "synonym_dictionary": {
+                "민원": ["종합민원"],
+            },
+        })
+        d = p.to_dict()
+        assert d["synonym_dictionary"] == {"민원": ["종합민원"]}
+        dumped = json.dumps(d, ensure_ascii=False)
+        loaded = json.loads(dumped)
+        assert loaded["synonym_dictionary"]["민원"] == ["종합민원"]
