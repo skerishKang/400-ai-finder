@@ -288,64 +288,175 @@ class TestBukguSynonymOfflineRetrieval:
                             )
 
 
-class TestBukguSynonymPipelineIntegrationGap:
-    """Document the integration gap revealed by Stage 368.
+class TestBukguSynonymPipelineIntegrationWired:
+    """Stage 369: positive coverage of the site_id wiring into
+    ``PipelineRunner._step_search``.
 
-    ``PipelineRunner._step_search`` currently calls
-    ``rewrite_query_candidates(query, max_queries=self.top_k)``
-    *without* forwarding ``site_id``. As a result, even when a caller
-    provides a site_id to the pipeline, the in-pipeline query rewrite
-    does not benefit from the bukgu synonym slice.
+    Replaces the Stage 368 gap-documenting test with two positive
+    tests:
 
-    This is not a regression: it is the pre-existing plumbing gap
-    that the contract in Stage 363 left open. Stage 368 records it
-    explicitly so a follow-up stage can wire it through.
+    - AST-level guard: ``PipelineRunner`` must call
+      ``rewrite_query_candidates`` with a ``site_id`` keyword.
+    - Runtime guard: a minimal in-memory index demonstrates the
+      pipeline search step records the resolved site_id, includes
+      site-specific synonyms, and surfaces the expected doc.
     """
 
-    def test_pipeline_runner_search_step_does_not_forward_site_id(
+    def test_pipeline_step_search_forwards_site_id_to_query_rewriter(
         self,
     ):
-        """Confirm that ``_step_search`` does not pass site_id to
-        ``rewrite_query_candidates``.
-
-        This is the documented gap. If a future stage wires site_id
-        through, this test should be updated to assert the new
-        behavior and add a positive retrieval test.
-        """
         import ast
+        from pathlib import Path
 
-        runner_path = os.path.join(
-            os.path.dirname(__file__),
-            "..", "src", "pipeline", "pipeline_runner.py",
-        )
-        with open(os.path.abspath(runner_path), "r", encoding="utf-8") as f:
-            source = f.read()
+        source = Path(
+            "src/pipeline/pipeline_runner.py"
+        ).read_text(encoding="utf-8")
         tree = ast.parse(source)
 
-        # Find the call site of rewrite_query_candidates inside _step_search
-        found_in_step_search = False
-        for node in ast.walk(tree):
-            if (
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Name)
-                and node.func.id == "rewrite_query_candidates"
-            ):
-                # Check if it has a site_id keyword
-                has_site_id = any(
-                    kw.arg == "site_id" for kw in node.keywords
-                )
-                if not has_site_id:
-                    found_in_step_search = True
-                    break
-                # If site_id is present, that's the future-state pass
-                # we want; this test would then need to be updated.
-                pytest.fail(
-                    "PipelineRunner now forwards site_id; update this "
-                    "test to assert positive behavior."
-                )
+        calls = [
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and getattr(node.func, "id", "") == "rewrite_query_candidates"
+        ]
+        assert calls, (
+            "Expected PipelineRunner to call rewrite_query_candidates"
+        )
+        assert any(
+            any(kw.arg == "site_id" for kw in call.keywords)
+            for call in calls
+        ), (
+            "PipelineRunner._step_search must pass site_id to "
+            "rewrite_query_candidates"
+        )
 
-        assert found_in_step_search, (
-            "Expected at least one rewrite_query_candidates() call "
-            "in pipeline_runner that does NOT pass site_id (the gap). "
-            "If this fails, site_id is already wired through."
+    def test_pipeline_step_search_uses_site_specific_synonyms(
+        self, tmp_path,
+    ):
+        """Minimal end-to-end: pipeline search with site_id must
+        include the bukgu slice terms in the rewrite metadata and
+        surface the 교육접수 doc."""
+        from src.pipeline.pipeline_runner import PipelineRunner
+
+        enriched_path = tmp_path / "enriched-index.jsonl"
+        docs = [
+            {
+                "id": "education-jeopsu",
+                "title": "교육접수 안내",
+                "url": "https://bukgu.gwangju.kr/education/jeopsu",
+                "canonical_url": "https://bukgu.gwangju.kr/education/jeopsu",
+                "category": "menu",
+                "content_type": "page",
+                "score": 0.0,
+                "text": "교육접수 평생교육 강좌 프로그램 신청 안내",
+                "summary": "교육접수 안내 페이지",
+                "metadata": {
+                    "link_texts": ["교육접수", "평생교육", "강좌", "프로그램"],
+                    "fetch_status": "fetched",
+                },
+            },
+            {
+                "id": "minwon-jonghap",
+                "title": "종합민원 안내",
+                "url": "https://bukgu.gwangju.kr/minwon/jonghap",
+                "canonical_url": "https://bukgu.gwangju.kr/minwon/jonghap",
+                "category": "menu",
+                "content_type": "page",
+                "score": 0.0,
+                "text": "종합민원 온라인 민원 민원서식 발급",
+                "summary": "종합민원 안내 페이지",
+                "metadata": {
+                    "link_texts": ["종합민원", "온라인 민원"],
+                    "fetch_status": "fetched",
+                },
+            },
+        ]
+        with enriched_path.open("w", encoding="utf-8") as f:
+            for doc in docs:
+                f.write(json.dumps(doc, ensure_ascii=False) + "\n")
+
+        runner = PipelineRunner(
+            output_dir=str(tmp_path), provider="mock", top_k=15,
+        )
+        step = runner._step_search(
+            "교육 신청 어디서 해?",
+            str(enriched_path),
+            site_id="bukgu_gwangju",
+        )
+
+        assert step["ok"], f"Expected search step to succeed, got {step}"
+        data = json.loads(
+            Path(step["output"]).read_text(encoding="utf-8")
+        )
+
+        # site_id is recorded in query_rewrite metadata
+        assert data["query_rewrite"]["site_id"] == "bukgu_gwangju", (
+            f"Expected query_rewrite.site_id to be recorded, got {data['query_rewrite']}"
+        )
+
+        # Bukgu slice terms appear in the rewrite queries
+        queries = data["query_rewrite"]["queries"]
+        assert "교육접수" in queries, (
+            f"Expected 교육접수 in rewrite queries, got {queries}"
+        )
+        assert "평생교육" in queries
+
+        # The education doc is surfaced in the results
+        titles = [r.get("title", "") for r in data["results"]]
+        ids = [r.get("id", "") for r in data["results"]]
+        assert "교육접수" in " ".join(titles) or "education-jeopsu" in ids, (
+            f"Expected education doc in results, got titles={titles} ids={ids}"
+        )
+
+    def test_pipeline_step_search_site_id_none_omits_synonyms(
+        self, tmp_path,
+    ):
+        """When site_id is not provided, no slice terms should leak
+        in even if a profile with a synonym slice is on disk.
+        """
+        from src.pipeline.pipeline_runner import PipelineRunner
+
+        enriched_path = tmp_path / "enriched-index.jsonl"
+        docs = [
+            {
+                "id": "mayor-open",
+                "title": "열린구청장실",
+                "url": "https://bukgu.gwangju.kr/mayor/open",
+                "canonical_url": "https://bukgu.gwangju.kr/mayor/open",
+                "category": "menu",
+                "content_type": "page",
+                "score": 0.0,
+                "text": "열린구청장실 구청장 인사말 구청장 프로필 북구청장 소개",
+                "summary": "북구청장 인사말 및 프로필 페이지",
+                "metadata": {
+                    "link_texts": ["열린구청장실", "구청장 인사말", "구청장 프로필"],
+                    "fetch_status": "fetched",
+                },
+            },
+        ]
+        with enriched_path.open("w", encoding="utf-8") as f:
+            for doc in docs:
+                f.write(json.dumps(doc, ensure_ascii=False) + "\n")
+
+        runner = PipelineRunner(
+            output_dir=str(tmp_path), provider="mock", top_k=5,
+        )
+        step = runner._step_search(
+            "구청장이 누구야?",
+            str(enriched_path),
+            site_id=None,
+        )
+        assert step["ok"]
+        data = json.loads(
+            Path(step["output"]).read_text(encoding="utf-8")
+        )
+
+        # site_id is recorded as None
+        assert data["query_rewrite"]["site_id"] is None
+
+        # No bukgu-slice-only terms appear (no education or minwon slice)
+        queries = data["query_rewrite"]["queries"]
+        first_slice_only = {"온라인 민원", "교육접수", "평생교육", "새소식"}
+        leaked = first_slice_only & set(queries)
+        assert not leaked, (
+            f"site_id=None unexpectedly leaked slice terms: {leaked}"
         )
