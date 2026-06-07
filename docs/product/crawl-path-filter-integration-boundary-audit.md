@@ -127,3 +127,10 @@ Korean public sector websites heavily use query parameters to represent their co
   - Allow overrides overriding deny rules
   - Structural municipal URLs surviving unrelated deny rules
   - External link extraction remaining completely unaffected
+
+---
+
+## Stage 391 Implementation Status (Completed)
+- **Status**: Wired the integration path from `SiteProfile` config fields to `URLCrawler` instantiations. In `PipelineRunner`, site profiles are loaded, and their parsed `crawl_filters` dictionary is forwarded via `HomepageMapper` down to `URLCrawler`.
+- **Safety**: Fully tested with synthetic profiles, verified default-allow behavior for legacy profiles, mock HTML crawl safety for denied/protected parameters, and non-HTML provider fallback flat links contract.
+- **Next Step**: Stage 392.

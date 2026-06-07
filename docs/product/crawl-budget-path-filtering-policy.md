@@ -132,3 +132,11 @@ The following test matrix will govern the verification of the filter decision he
 - **Default-Allow**: Assured default-allow behavior where absence or empty state of `crawl_filters` preserves 100% of existing internal link discovery.
 - **Safety**: Added rigorous testing covering explicit denies, protected overrides, allow overrides, and municipal structural URL safety (preventing accidental loss of `mid=`, `seq=`, etc. under unrelated deny patterns).
 - **Next Step**: Stage 391.
+
+---
+
+## Stage 391 SiteProfile-to-URLCrawler Mapping Integration (Completed)
+- **Status**: Implemented the safe mapping path from `SiteProfile` config fields to `URLCrawler` instantiations. Specifically, `PipelineRunner` loads matched profiles and forwards `crawl_filters` via `HomepageMapper` down to `URLCrawler`.
+- **Default-Allow**: Profiles without `crawl_filters` continue to run with default empty filters, guaranteeing zero behavior changes for existing sites.
+- **Safety**: Added rigorous integration tests verifying profile mapping from synthetic profiles, default-allow backward compatibility, mock static HTML crawl safety, and non-HTML provider fallback flat links contract.
+- **Next Step**: Stage 392.

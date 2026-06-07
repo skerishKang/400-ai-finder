@@ -442,6 +442,12 @@ Promote to validated scenario/snapshot/cache
 - Fully validated via extensive unit tests in `tests/test_url_crawler.py` covering overrides, explicit denies, and municipal structural URL safety.
 - Recommends Stage 391 for site-profile-to-crawler integration path.
 
+### Stage 391 — SiteProfile-to-URLCrawler Mapping Integration (Completed)
+- Stage 391 integrates the parsed `SiteProfile.crawl_filters` config properties with `URLCrawler` instantiations in the pipeline path.
+- Resolves matched profiles in `PipelineRunner` and passes `crawl_filters` down to `HomepageMapper` and the underlying `URLCrawler`.
+- Fully tested using synthetic profiles, verifying legacy default-allow compatibility, mock HTML crawl safety, and flat link fallback contracts.
+- Recommends Stage 392 for real site profile candidate configurations.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
