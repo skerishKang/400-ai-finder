@@ -341,6 +341,57 @@ Default validation should use normal pytest without live opt-in flags. Live prov
 
 Do not set `RUN_LIVE_*_TESTS=1` in routine local or CI test runs. Do not rely on API key presence as the live-test trigger.
 
+## `scripts/validate_retrieval_gaps.py` live boundary
+
+`validate_retrieval_gaps.py` is a read-only validation CLI for retrieval-gap
+checks. Its purpose is **not** answer generation: it reports source counts,
+guard status, and query rewrite metadata for a list of questions, without
+promoting any retrieved data into answers, snapshots, caches, or promotions.
+
+Importing `scripts.validate_retrieval_gaps` does not execute the pipeline,
+call providers, fetch URLs, or contact Firecrawl. Heavy project imports are
+lazy and occur inside `validate_question()`.
+
+The CLI requires `--site-id` and `--questions-file`. A questions file is a
+JSON object with a `questions` array of non-empty strings.
+
+The default execution path is **offline**. Without `--allow-live`, the CLI
+blocks whenever the effective provider or fetch provider would cross the
+offline/mock boundary. Explicit offline execution (`--provider mock
+--fetch-provider mock`) is allowed without `--allow-live`.
+
+With `--allow-live`, the CLI may execute `SiteDemoRunner.answer()` through
+the full pipeline, including live fetch behavior via the selected fetch
+provider. `--allow-live` is an execution opt-in only; it does not replace
+provider-specific configuration such as `FIRECRAWL_API_KEY`.
+
+The output is a sanitized report with the following constraints:
+- Allowed report fields: `question`, `site_id`, `ok`, `error`,
+  `source_count`, `guard_status`, `guard_reason`, `top_sources`,
+  `query_rewrite`
+- Allowed `top_sources` fields: `title`, `url`, `category`,
+  `content_type`, `score`
+- Prohibited output: `full_text`, `text`, `prompt`, `raw_provider_response`,
+  `api_key`, `secret`, `cookie`, `authorization`, `auth_header`, and other
+  sensitive or verbose content
+- No snapshot, cache, promotion, or answer artifact is written automatically
+
+Guard test coverage is provided by `tests/test_validate_retrieval_gaps_cli.py`:
+
+| Path | Requires `--allow-live`? |
+|---|---|
+| Offline defaults (`mock` / no fetch provider) | No |
+| Explicit offline (`--provider mock --fetch-provider mock`) | No |
+| Live provider or live fetch provider | Yes |
+| Missing/invalid questions file | N/A (fails before guard) |
+
+This CLI does not modify `validate_matrix()` or `evaluate_response()` and
+does not require `RUN_LIVE_*_TESTS=1`.
+
+Current risk is LOW. Import-safety is maintained. The safe offline path is
+the default, and live execution requires both `--allow-live` and explicit
+provider/fetch selection.
+
 ## Future work
 
 No active provider/fetch boundary Future Work remains for the current scope.
