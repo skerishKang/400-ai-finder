@@ -332,6 +332,12 @@ Promote to validated scenario/snapshot/cache
 - No code or test changes. Docs-only.
 - No live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
 
+### Stage 358 — Operator Docs Completeness Audit (Completed)
+- Stage 358 audits the Stage 354–357 operator documentation set and confirms that the repeated-question promotion workflow is sufficiently documented for manual, human-reviewed operation.
+- It fixes stale roadmap wording in the repeated-question analytics promotion plan so the docs no longer imply automated scenario skeleton generation.
+- No code or test changes. Docs-only.
+- No live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
