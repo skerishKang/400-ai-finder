@@ -283,6 +283,98 @@ class TestSiteProfileLoader:
         assert profile.classification == "LEGACY_BOARD_SITE"
         assert profile.preferred_fetch_provider == "requests"
 
+    def test_missing_crawl_filters(self):
+        """Verify that missing crawl_filters config defaults to an empty dict."""
+        p = SiteProfile({
+            "site_id": "test",
+            "name": "Test",
+            "base_url": "https://example.com/",
+        })
+        assert p.crawl_filters == {}
+
+    def test_valid_crawl_filters(self):
+        """Verify that a valid crawl_filters dictionary is parsed correctly."""
+        p = SiteProfile({
+            "site_id": "test",
+            "name": "Test",
+            "base_url": "https://example.com/",
+            "crawl_filters": {
+                "allow_patterns": ["menu.es?mid="],
+                "deny_patterns": ["print=", "pageNo="],
+                "protected_patterns": ["mid=", "menuId="],
+            }
+        })
+        assert p.crawl_filters == {
+            "allow_patterns": ["menu.es?mid="],
+            "deny_patterns": ["print=", "pageNo="],
+            "protected_patterns": ["mid=", "menuId="],
+        }
+
+    def test_invalid_crawl_filters_block(self):
+        """Verify that an invalid crawl_filters block defaults safely to an empty dict."""
+        p1 = SiteProfile({
+            "site_id": "test",
+            "name": "Test",
+            "base_url": "https://example.com/",
+            "crawl_filters": "not-a-dict",
+        })
+        assert p1.crawl_filters == {}
+
+        p2 = SiteProfile({
+            "site_id": "test",
+            "name": "Test",
+            "base_url": "https://example.com/",
+            "crawl_filters": ["list", "of", "items"],
+        })
+        assert p2.crawl_filters == {}
+
+    def test_invalid_pattern_values(self):
+        """Verify that invalid/non-list/non-string values inside crawl_filters are sanitized."""
+        p = SiteProfile({
+            "site_id": "test",
+            "name": "Test",
+            "base_url": "https://example.com/",
+            "crawl_filters": {
+                "allow_patterns": "not-a-list",
+                "deny_patterns": ["print=", 123, "   ", ""],
+                "protected_patterns": ["mid=", None, "menuId="],
+            }
+        })
+        assert p.crawl_filters == {
+            "allow_patterns": [],
+            "deny_patterns": ["print="],
+            "protected_patterns": ["mid=", "menuId="],
+        }
+
+    def test_unknown_keys_ignored(self):
+        """Verify that unknown keys in the crawl_filters block are ignored."""
+        p = SiteProfile({
+            "site_id": "test",
+            "name": "Test",
+            "base_url": "https://example.com/",
+            "crawl_filters": {
+                "allow_patterns": ["menu.es?mid="],
+                "regex_patterns": ["^abc$"],
+                "thresholds": 5,
+            }
+        })
+        assert p.crawl_filters == {
+            "allow_patterns": ["menu.es?mid="],
+            "deny_patterns": [],
+            "protected_patterns": [],
+        }
+
+    def test_no_traversal_wiring(self):
+        """Ensure url_crawler.py does not reference crawl_filters or should_crawl_url."""
+        import inspect
+        try:
+            import src.crawler.url_crawler as uc
+            source = inspect.getsource(uc)
+            assert "crawl_filters" not in source
+            assert "should_crawl_url" not in source
+        except ImportError:
+            pass
+
 
 class TestLoadProfileConvenience:
     """load_profile() convenience function."""

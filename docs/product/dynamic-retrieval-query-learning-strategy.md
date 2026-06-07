@@ -429,6 +429,13 @@ Promote to validated scenario/snapshot/cache
 - Outlines protected municipal URL parameters and required test coverage mapping.
 - No code, test, or config changes. Docs-only.
 
+### Stage 389 — SiteProfile Config Schema Support (Completed)
+- Stage 389 implements the `crawl_filters` property parsing contract in `SiteProfile` class (`src/site_profiles/site_profile.py`).
+- Cleans and formats raw dictionary input: strips/excludes blank strings, filters out non-string items, ignores unknown keys, and defaults safely to empty lists for backward compatibility.
+- Asserts parsing contract via 6 new focused tests in `tests/test_site_profile.py`.
+- Keeps the helper completely unwired from the runtime crawler traversal logic.
+- Recommends Stage 390 to wire the helper in `url_crawler.py` behind a default-allow fallback.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

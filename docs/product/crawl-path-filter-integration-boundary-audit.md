@@ -107,3 +107,10 @@ Korean public sector websites heavily use query parameters to represent their co
 - No source grounding changes
 - No scenario/snapshot/cache generation
 - No volatile fact hardcoding
+
+---
+
+## Stage 389 Implementation Status (Completed)
+- **Status**: Implemented configuration schema parsing property `crawl_filters` inside `SiteProfile` class (`src/site_profiles/site_profile.py`). Added 6 focused unit tests under `tests/test_site_profile.py` verifying missing, valid, invalid block, invalid pattern values, unknown keys ignored, and import isolation.
+- **Wiring**: Unwired. No logic in `url_crawler.py` references or uses `crawl_filters`.
+- **Next Step**: Stage 390 is still needed to safely integrate the decision helper into crawler traversal.

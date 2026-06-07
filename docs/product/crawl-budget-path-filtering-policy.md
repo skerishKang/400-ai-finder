@@ -117,3 +117,10 @@ The following test matrix will govern the verification of the filter decision he
 - **Status**: Completed audit in `docs/product/crawl-path-filter-integration-boundary-audit.md` to evaluate helper integration constraints.
 - **Decision**: Recommended Option 1 (SiteProfile schema/config support first) for Stage 389, deferring crawler traversal wiring to Stage 390. This isolates the configuration parsing logic before impacting crawl runtime.
 - **Next Step**: Stage 389 is required to add `crawl_filters` properties in `SiteProfile` and tests in `tests/test_site_profile.py`.
+
+---
+
+## Stage 389 SiteProfile Config Schema Support (Completed)
+- **Status**: Implemented `crawl_filters` configuration property inside `SiteProfile` with strict formatting checks (filtering non-string values, stripping/filtering blank strings, ignoring unknown keys) and default fallback values.
+- **Wiring**: Completely unwired from the runtime crawler traversal logic.
+- **Next Step**: Stage 390 is still needed to safely integrate the helper function into crawler traversal logic.

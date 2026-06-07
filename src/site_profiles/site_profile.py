@@ -175,6 +175,43 @@ class SiteProfile:
 
         return result
 
+    @property
+    def crawl_filters(self) -> dict[str, list[str]]:
+        """Optional site-specific crawl filters for URL allow/deny decisions.
+
+        Returns a dictionary containing 'allow_patterns', 'deny_patterns',
+        and 'protected_patterns' list of strings. Missing or invalid
+        properties fallback safely to empty lists.
+        """
+        raw = self._data.get("crawl_filters")
+        if not isinstance(raw, dict):
+            return {}
+
+        supported_keys = ("allow_patterns", "deny_patterns", "protected_patterns")
+        result: dict[str, list[str]] = {}
+
+        for key in supported_keys:
+            val = raw.get(key)
+            if not isinstance(val, list):
+                result[key] = []
+                continue
+
+            cleaned_values: list[str] = []
+            seen: set[str] = set()
+            for item in val:
+                if not isinstance(item, str):
+                    continue
+                item_stripped = item.strip()
+                if not item_stripped or item_stripped in seen:
+                    continue
+                seen.add(item_stripped)
+                cleaned_values.append(item_stripped)
+
+            result[key] = cleaned_values
+
+        return result
+
+
     def _extract_domain(self) -> str:
         """Extract a domain from base_url as a fallback for allowed_domains."""
         m = re.search(r"https?://([^:/]+)", self.base_url)
