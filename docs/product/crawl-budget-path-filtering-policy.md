@@ -124,3 +124,11 @@ The following test matrix will govern the verification of the filter decision he
 - **Status**: Implemented `crawl_filters` configuration property inside `SiteProfile` with strict formatting checks (filtering non-string values, stripping/filtering blank strings, ignoring unknown keys) and default fallback values.
 - **Wiring**: Completely unwired from the runtime crawler traversal logic.
 - **Next Step**: Stage 390 is still needed to safely integrate the helper function into crawler traversal logic.
+
+---
+
+## Stage 390 Crawler Integration Wiring (Completed)
+- **Status**: Successfully integrated `should_crawl_url` path filtering helper and `SiteProfile.crawl_filters` configs into the `URLCrawler` traversal (`extract_links` phase).
+- **Default-Allow**: Assured default-allow behavior where absence or empty state of `crawl_filters` preserves 100% of existing internal link discovery.
+- **Safety**: Added rigorous testing covering explicit denies, protected overrides, allow overrides, and municipal structural URL safety (preventing accidental loss of `mid=`, `seq=`, etc. under unrelated deny patterns).
+- **Next Step**: Stage 391.
