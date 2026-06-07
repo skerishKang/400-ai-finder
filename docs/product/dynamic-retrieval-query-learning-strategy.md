@@ -151,6 +151,7 @@ analytics and scenario/cache promotion candidate generation
 ```
 
 > Stage 341 implemented the first guard by clearing stale snapshot sources when fallback matching returns empty.
+> Stage 378/379 established the strict safety boundaries for no-source fallback responses to prevent rule-expansion drift. For detailed policies, see the [No-Source Fallback Scope and Rule-Expansion Policy](file:///mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder/docs/product/no-source-fallback-scope-and-rule-expansion-policy.md).
 
 ---
 
@@ -379,6 +380,16 @@ Promote to validated scenario/snapshot/cache
 - Search result metadata now records `query_rewrite.site_id` for observability.
 - No new synonym data, live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
 
+### Stage 378 — No-Source Guidance Fallback (Completed)
+- Stage 378 improves no-source guidance fallback with visible menu hints.
+- The fallback path remains entirely provider-free, avoiding LLM calls when sources are absent.
+- Adds visible Markdown bullet assertions for public-sector fallback categories (e.g., mayor, contacts, location, forms).
+
+### Stage 379 — Fallback Scope Audit and Policy Definition (Completed)
+- Stage 379 audits the fallback scope and defines strict guidelines in `docs/product/no-source-fallback-scope-and-rule-expansion-policy.md` to prevent rule-expansion drift.
+- Confirms the boundaries between dynamic RAG retrieval (query rewrite, source match guard, source-backed composer) and the static, provider-free no-source fallback.
+- No code or test changes. Docs-only.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
@@ -416,6 +427,7 @@ If many users repeatedly ask this and the source is stable, promote a validated 
 Recommended follow-ups:
 
 ```txt
+[AUDIT] Inspect query rewrite to retrieval integration for public-sector volatile questions
 [AUDIT] Evaluate hybrid keyword + vector search options
 [AUDIT] Evaluate semantic menu matching options
 [AUDIT] Evaluate site-specific synonym dictionary strategy
