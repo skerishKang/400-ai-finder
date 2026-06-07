@@ -112,5 +112,5 @@ Distinguish:
 - Do not use `RUN_LIVE_*_TESTS=1`.
 - Do not modify `validate_matrix()` or `evaluate_response()`.
 - Do not weaken source grounding rules.
-- Do not hardcode volatile facts such as mayor names, responsible officer names, phone numbers, or parking locations. For detailed rules and safety boundaries, refer to the [No-Source Fallback Scope and Rule-Expansion Policy](file:///mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder/docs/product/no-source-fallback-scope-and-rule-expansion-policy.md).
+- Do not hardcode volatile facts such as mayor names, responsible officer names, phone numbers, or parking locations. For detailed rules and safety boundaries, refer to the [No-Source Fallback Scope and Rule-Expansion Policy](./product/no-source-fallback-scope-and-rule-expansion-policy.md).
 - Do not automatically create scenario, snapshot, or cache artifacts from validation output.

@@ -151,7 +151,7 @@ analytics and scenario/cache promotion candidate generation
 ```
 
 > Stage 341 implemented the first guard by clearing stale snapshot sources when fallback matching returns empty.
-> Stage 378/379 established the strict safety boundaries for no-source fallback responses to prevent rule-expansion drift. For detailed policies, see the [No-Source Fallback Scope and Rule-Expansion Policy](file:///mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder/docs/product/no-source-fallback-scope-and-rule-expansion-policy.md).
+> Stage 378/379 established the strict safety boundaries for no-source fallback responses to prevent rule-expansion drift. For detailed policies, see the [No-Source Fallback Scope and Rule-Expansion Policy](./no-source-fallback-scope-and-rule-expansion-policy.md).
 
 ---
 

@@ -12,7 +12,7 @@ The no-source fallback is a safety guardrail—not an LLM-based answer composer 
 
 Following the merge of PR #700 (Stage 378), the fallback behavior was refined as follows:
 - When the search step retrieves no official sources (or all retrieved sources are rejected by the query-source relevance check), the pipeline short-circuits.
-- Instead of calling an LLM provider (e.g., via `provider.complete()`), the system invokes `_build_no_source_guidance()` in [answer_composer.py](file:///mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder/src/answer/answer_composer.py#L278-L317).
+- Instead of calling an LLM provider (e.g., via `provider.complete()`), the system invokes `_build_no_source_guidance()` in [answer_composer.py](../../src/answer/answer_composer.py#L278-L317).
 - This method maps broad keyword patterns in the query to a pre-defined set of Korean public-sector navigation/menu recommendations (e.g., `구청장실`, `조직도`, `오시는 길`).
 - The returned response contains the warnings `["no search results", "no_source_guidance"]`, has `provider="none"`, `guard_status="no_results"`, and includes `query_hints`.
 
@@ -46,8 +46,8 @@ To preserve the RAG-first architecture, the fallback path is bound by the follow
 
 Rule-expansion drift occurs when developers continuously append specific condition clauses to bypass retrieval failures.
 ```
-User asks: "구청장 누구야?"  ──> Search fails ──> Fallback hardcodes: "문인입니다." (DRIFT!)
-User asks: "전화번호 뭐야?"  ──> Search fails ──> Fallback hardcodes: "062-410..."  (DRIFT!)
+User asks: "구청장 누구야?"  ──> Search fails ──> Fallback hardcodes: "<기관장명>입니다." (DRIFT!)
+User asks: "전화번호 뭐야?"  ──> Search fails ──> Fallback hardcodes: "<전화번호>..."  (DRIFT!)
 ```
 
 ### Risks of Rule-Expansion Drift:
@@ -91,7 +91,7 @@ graph TD
 
 ## 7. Allowed Generic Menu Hint Buckets
 
-The system defines only the following five generic menu buckets in [answer_composer.py](file:///mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder/src/answer/answer_composer.py):
+The system defines only the following five generic menu buckets in [answer_composer.py](../../src/answer/answer_composer.py):
 
 | Category | Keywords | Allowed Menu Hints |
 | :--- | :--- | :--- |
@@ -112,7 +112,7 @@ The following code snippets illustrate patterns that violate the rule-expansion 
 # VIOLATION: Hardcoding volatile administrative facts
 if "구청장" in query:
     return {
-        "answer_markdown": "광주 북구청장은 문인 구청장입니다.", # Hardcoded fact!
+        "answer_markdown": "<기관명> 기관장은 <기관장명>입니다.", # Hardcoded fact!
         "sources": []
     }
 ```
@@ -122,7 +122,7 @@ if "구청장" in query:
 # VIOLATION: Hardcoding contact info
 if "세무" in query and "전화" in query:
     return {
-        "answer_markdown": "세무1과 전화번호는 062-410-7352 입니다.", # Hardcoded fact!
+        "answer_markdown": "<부서명> 전화번호는 <전화번호>입니다.", # Hardcoded fact!
         "sources": []
     }
 ```
