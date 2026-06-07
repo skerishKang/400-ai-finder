@@ -304,6 +304,11 @@ Promote to validated scenario/snapshot/cache
 ### Stage 352 — Repeated-Question Analytics and Promotion Planning (Completed)
 - Stage 352 adds repeated-question analytics and scenario/cache promotion planning. The boundary treats repeated questions as human-review candidates only and does not automatically create scenarios, snapshots, caches, or pull requests.
 
+### Stage 353 — Repeated-Question Analytics Dry-Run Report (Completed)
+- Stage 353 adds a local dry-run repeated-question analytics report for human review. It keeps promotion manual and does not write scenario/snapshot/cache files.
+- The CLI reads sanitized JSONL question logs and produces a Markdown report separating promotion candidates from retrieval gaps.
+- No live network, LLM, fetch, or external storage calls are used.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

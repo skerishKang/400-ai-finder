@@ -311,3 +311,15 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 
 - [`docs/product/dynamic-retrieval-query-learning-strategy.md`](docs/product/dynamic-retrieval-query-learning-strategy.md) — Dynamic Retrieval + Query Learning Strategy
 - [`docs/product/repeated-question-analytics-promotion-plan.md`](docs/product/repeated-question-analytics-promotion-plan.md) — Repeated-Question Analytics and Scenario-Cache Promotion Plan
+
+### Repeated-question analytics dry-run (Stage 353)
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/analyze_question_logs.py \
+    --input question-log.jsonl \
+    --output repeated-question-report.md
+```
+
+Reads sanitized JSONL question logs and produces a Markdown report separating
+promotion candidates from retrieval gaps. Dry-run only — no scenarios, snapshots,
+caches, PRs, or commits are created.
