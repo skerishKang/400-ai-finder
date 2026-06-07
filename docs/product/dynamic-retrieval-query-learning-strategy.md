@@ -416,6 +416,13 @@ Promote to validated scenario/snapshot/cache
 - Recommends Stage 387 for helper-only pure function implementation.
 - No code, test, or config changes. Docs/design-only.
 
+### Stage 387 — Add Crawl Path Filter Decision Helper (Completed)
+- Stage 387 implements the pure filter decision helper function `should_crawl_url` in `src/crawler/crawl_path_filter.py`.
+- Integrates deterministic precedence logic (protected patterns override denies, allow patterns override denies, explicit denies block, default allow).
+- Asserts correctness via 8 focused unit tests in `tests/test_crawl_path_filter.py`.
+- Keeps the helper completely unwired from the crawler traversal pipeline to prevent runtime side effects.
+- Recommends Stage 388 to plan integration and configuration mapping.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
