@@ -150,7 +150,7 @@ Rather than expanding the fallback conditional branches, future efforts to resol
 
 ## 10. Recommended Next Stage
 
-To ensure that the query rewriter is properly communicating with the retrieval pipeline and mapping volatile public-sector questions correctly, we propose the following next stage:
+Following the completion of the Stage 380 query rewrite and retrieval integration audit (see [Query Rewrite to Retrieval Integration Audit](./query-rewrite-retrieval-integration-audit.md)), we propose the following next stage:
 
-* **Stage Title**: `[AUDIT] Inspect query rewrite to retrieval integration for public-sector volatile questions`
-* **Objective**: Evaluate how queries regarding volatile topics (e.g., mayor, department contact info, parking) are rewritten and whether these rewritten query variations successfully fetch target index pages in the offline validation matrix. Ensure no queries leak empty results because of synonym gaps or integration mismatches.
+* **Stage Title**: `[TEST] Add offline retrieval integration tests for public-sector volatile questions`
+* **Objective**: Implement focused offline integration tests that assert that queries regarding mayor/leadership, contacts, locations, and announcements are correctly rewritten to all necessary candidate search terms (without truncation) and successfully match mock/snapshot indexes, verifying the integration pipeline end-to-end.
