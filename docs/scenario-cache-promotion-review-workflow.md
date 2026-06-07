@@ -357,6 +357,7 @@ This workflow does **not**:
 ## 12. Related documents
 
 - [Operator Question Log Guide](operator-question-log-guide.md)
+- [Operator Synthetic Promotion Dry-Run Guide](operator-synthetic-promotion-dry-run.md)
 - [Promotion Candidate Review Template](promotion-candidate-review-template.md) — copy-pasteable review template for human reviewers
 - [Repeated Question Analytics and Promotion Plan](product/repeated-question-analytics-promotion-plan.md)
 - [Dynamic Retrieval and Query Learning Strategy](product/dynamic-retrieval-query-learning-strategy.md)
