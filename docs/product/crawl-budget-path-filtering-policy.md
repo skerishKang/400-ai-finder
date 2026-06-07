@@ -110,4 +110,10 @@ The following test matrix will govern the verification of the filter decision he
 ## Stage 387 Implementation Status (Completed)
 - **Status**: Pure filter decision helper `should_crawl_url` was successfully implemented in `src/crawler/crawl_path_filter.py` and validated with 8 focused unit tests in `tests/test_crawl_path_filter.py`.
 - **Wiring**: The helper is completely isolated and not wired into the `url_crawler.py` traversal logic. Runtime crawling behavior remains entirely unchanged.
-- **Next Step**: Stage 388 is still needed to decide whether to integrate the helper into crawler traversal and extend the `SiteProfile` schema.
+
+---
+
+## Stage 388 Integration Boundary Audit (Completed)
+- **Status**: Completed audit in `docs/product/crawl-path-filter-integration-boundary-audit.md` to evaluate helper integration constraints.
+- **Decision**: Recommended Option 1 (SiteProfile schema/config support first) for Stage 389, deferring crawler traversal wiring to Stage 390. This isolates the configuration parsing logic before impacting crawl runtime.
+- **Next Step**: Stage 389 is required to add `crawl_filters` properties in `SiteProfile` and tests in `tests/test_site_profile.py`.
