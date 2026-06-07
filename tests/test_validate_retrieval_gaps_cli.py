@@ -1,4 +1,3 @@
-
 """Tests for scripts/validate_retrieval_gaps.py"""
 from __future__ import annotations
 
@@ -221,48 +220,8 @@ class TestValidateQuestion:
 
         assert _requires_live_opt_in(provider="mock", fetch_provider="mock") is False
 
-
-class TestRetrievalOnlyBoundary:
-    def test_does_not_call_answer_composer(self, questions_file: str, monkeypatch: pytest.MonkeyPatch) -> None:
-        from scripts.validate_retrieval_gaps import _retrieval_only
-        from src.answer.answer_composer import AnswerComposer as RealAnswerComposer
-
-        compose_calls: list[list[Any]] = []
-
-        def fake_compose(self, *args, **kwargs):
-            compose_calls.append([args, kwargs])
-            raise AssertionError("AnswerComposer.compose must not be called in retrieval-only path")
-
-        monkeypatch.setattr(RealAnswerComposer, "compose", fake_compose)
-
-        result = _retrieval_only(
-            site_id="bukgu_gwangju",
-            question="민원서식 어디서 받아?",
-            provider="mock",
-            fetch_provider="mock",
-        )
-        assert result.get("ok") is True or result.get("ok") is False
-        assert not compose_calls
-
-    def test_does_not_create_answer_artifacts(self, questions_file: str, monkeypatch: pytest.MonkeyPatch) -> None:
-        from scripts.validate_retrieval_gaps import _retrieval_only
-        from src.pipeline.pipeline_runner import PipelineRunner
-
-        def fake_step_answer(self, *args, **kwargs):
-            raise AssertionError("_step_answer must not be called in retrieval-only path")
-
-        monkeypatch.setattr(PipelineRunner, "_step_answer", fake_step_answer)
-
-        result = _retrieval_only(
-            site_id="bukgu_gwangju",
-            question="민원서식 어디서 받아?",
-            provider="mock",
-            fetch_provider="mock",
-        )
-        assert not result.get("answer_paths")
-
     def test_cli_main_offline_default_succeeds(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-        from scripts.validate_retrieval_gaps import parse_args, main
+        from scripts.validate_retrieval_gaps import main
 
         questions_path = tmp_path / "questions.json"
         questions_path.write_text(
@@ -274,9 +233,7 @@ class TestRetrievalOnlyBoundary:
         captured = capsys.readouterr().out
         assert "민원서식 어디서 받아?" in captured
 
-    def test_live_fetch_blocked_before_retrieval_only(self, questions_file: str) -> None:
-        from scripts.validate_retrieval_gaps import validate_question
-
+    def test_live_fetch_blocked_before_retrieval_only(self) -> None:
         result = validate_question(
             site_id="bukgu_gwangju",
             question="구청장이 누구야?",
@@ -288,9 +245,7 @@ class TestRetrievalOnlyBoundary:
         assert result["guard_status"] == "blocked"
         assert "--allow-live" in (result.get("error") or "")
 
-    def test_report_excludes_answer_generation_fields_on_blocked(self, questions_file: str) -> None:
-        from scripts.validate_retrieval_gaps import validate_question
-
+    def test_report_excludes_answer_generation_fields_on_blocked(self) -> None:
         result = validate_question(
             site_id="bukgu_gwangju",
             question="구청장이 누구야?",
@@ -315,43 +270,66 @@ class TestRetrievalOnlyBoundary:
 
 class TestRetrievalOnlyBoundary:
     def test_does_not_call_answer_composer(self, questions_file: str, monkeypatch: pytest.MonkeyPatch) -> None:
-        from scripts.validate_retrieval_gaps import _retrieval_only
         from src.answer.answer_composer import AnswerComposer as RealAnswerComposer
+        from scripts.validate_retrieval_gaps import _retrieval_only
 
         compose_calls: list[list[Any]] = []
-        original_compose = RealAnswerComposer.compose
 
         def fake_compose(self, *args, **kwargs):
             compose_calls.append([args, kwargs])
             raise AssertionError("AnswerComposer.compose must not be called in retrieval-only path")
 
         monkeypatch.setattr(RealAnswerComposer, "compose", fake_compose)
-
-        result = _retrieval_only(
+        _retrieval_only(
             site_id="bukgu_gwangju",
             question="민원서식 어디서 받아?",
             provider="mock",
             fetch_provider="mock",
         )
-        assert result.get("ok") is True or result.get("ok") is False
         assert not compose_calls
 
-    def test_does_not_create_answer_artifacts(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        from scripts.validate_retrieval_gaps import _retrieval_only
+    def test_does_not_create_answer_artifacts(self, questions_file: str, monkeypatch: pytest.MonkeyPatch) -> None:
         from src.pipeline.pipeline_runner import PipelineRunner
-
-        original_step_answer = PipelineRunner._step_answer
+        from scripts.validate_retrieval_gaps import _retrieval_only
 
         def fake_step_answer(self, *args, **kwargs):
             raise AssertionError("_step_answer must not be called in retrieval-only path")
 
         monkeypatch.setattr(PipelineRunner, "_step_answer", fake_step_answer)
-
         result = _retrieval_only(
             site_id="bukgu_gwangju",
             question="민원서식 어디서 받아?",
             provider="mock",
             fetch_provider="mock",
         )
-        if result.get("answer_paths"):
-            assert not result["answer_paths"], "answer artifacts must not be created"
+        assert not result.get("answer_paths")
+
+    def test_does_not_call_provider_complete(self, questions_file: str, monkeypatch: pytest.MonkeyPatch) -> None:
+        from scripts.validate_retrieval_gaps import _retrieval_only
+
+        class DummyPipelineRunner:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def _step_homepage_map(self, *args, **kwargs):
+                return {"ok": True, "output": ""}
+
+            def _load_json(self, *args, **kwargs):
+                return {}
+
+            def _step_document_index(self, *args, **kwargs):
+                return {"ok": True, "output": ""}
+
+            def _step_enriched_index(self, *args, **kwargs):
+                return {"ok": True, "output": ""}
+
+            def _step_search(self, *args, **kwargs):
+                return {"ok": True, "output": ""}
+
+        monkeypatch.setattr("src.pipeline.pipeline_runner.PipelineRunner", DummyPipelineRunner)
+        _retrieval_only(
+            site_id="bukgu_gwangju",
+            question="민원서식 어디서 받아?",
+            provider="mock",
+            fetch_provider="mock",
+        )

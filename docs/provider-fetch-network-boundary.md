@@ -360,10 +360,13 @@ blocks whenever the effective provider or fetch provider would cross the
 offline/mock boundary. Explicit offline execution (`--provider mock
 --fetch-provider mock`) is allowed without `--allow-live`.
 
-With `--allow-live`, the CLI may execute `SiteDemoRunner.answer()` through
-the full pipeline, including live fetch behavior via the selected fetch
-provider. `--allow-live` is an execution opt-in only; it does not replace
-provider-specific configuration such as `FIRECRAWL_API_KEY`.
+With `--allow-live`, the CLI may run the controlled live validation path.
+It does not execute `SiteDemoRunner.answer()` or the full pipeline. It
+does not call `_step_answer()`, `AnswerComposer.compose()`, or
+`provider.complete()`, and it does not generate `answer.md` or `answer.json`.
+Live fetch behavior remains behind explicit provider/fetch selection and
+the `--allow-live` opt-in; this does not replace provider-specific
+configuration such as `FIRECRAWL_API_KEY`.
 
 The output is a sanitized report with the following constraints:
 - Allowed report fields: `question`, `site_id`, `ok`, `error`,
