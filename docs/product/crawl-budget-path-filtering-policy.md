@@ -104,3 +104,10 @@ The following test matrix will govern the verification of the filter decision he
 - **Title**: `[TECH] Add crawl path filter decision helper without wiring crawler traversal`
 - **Scope**: Implement the pure helper function and focused tests based on the test matrix above.
 - **Rationale**: Implementing the helper logic and verifying it in isolation avoids side effects on crawl runs. Wiring the crawler traversal can be safely deferred to Stage 388.
+
+---
+
+## Stage 387 Implementation Status (Completed)
+- **Status**: Pure filter decision helper `should_crawl_url` was successfully implemented in `src/crawler/crawl_path_filter.py` and validated with 8 focused unit tests in `tests/test_crawl_path_filter.py`.
+- **Wiring**: The helper is completely isolated and not wired into the `url_crawler.py` traversal logic. Runtime crawling behavior remains entirely unchanged.
+- **Next Step**: Stage 388 is still needed to decide whether to integrate the helper into crawler traversal and extend the `SiteProfile` schema.
