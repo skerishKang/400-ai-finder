@@ -423,6 +423,12 @@ Promote to validated scenario/snapshot/cache
 - Keeps the helper completely unwired from the crawler traversal pipeline to prevent runtime side effects.
 - Recommends Stage 388 to plan integration and configuration mapping.
 
+### Stage 388 — Crawl Path Filter Integration Boundary Audit (Completed)
+- Stage 388 completes an audit of the helper integration boundary in `docs/product/crawl-path-filter-integration-boundary-audit.md`.
+- Evaluates the safely selected path (Option 1: SiteProfile schema/config support first) and defer wiring traversal logic to Stage 390.
+- Outlines protected municipal URL parameters and required test coverage mapping.
+- No code, test, or config changes. Docs-only.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
