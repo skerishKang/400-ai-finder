@@ -111,10 +111,10 @@ class AnswerComposer:
 
         # --- No results: short-circuit without calling LLM ---
         if not results or not sources:
-            no_res = self._no_results_answer(query)
-            no_res["guard_status"] = "no_results"
-            no_res["guard_reason"] = "No sources retrieved"
-            return no_res
+            guidance = self._build_no_source_guidance(query)
+            guidance["guard_status"] = "no_results"
+            guidance["guard_reason"] = "No sources retrieved"
+            return guidance
 
         # --- Source match guard ---
         from ..search.source_match_guard import assess_source_match
@@ -273,6 +273,51 @@ class AnswerComposer:
             "error": "",
             "guard_status": None,
             "guard_reason": None,
+        }
+
+    def _build_no_source_guidance(self, query: str) -> dict[str, Any]:
+        normalized = (query or "").strip()
+        hints: list[str] = []
+        lower_query = normalized.lower()
+
+        if any(k in lower_query for k in ["구청장", "기관장", "mayor", "총장", "국장"]):
+            hints = ["구청장실", "기관장 소개", "인사말"]
+        elif any(k in lower_query for k in ["담당자", "연락처", "전화번호", "부서", "담당", "contact"]):
+            hints = ["조직도", "직원검색", "부서안내"]
+        if any(k in lower_query for k in ["구청장", "기관장", "mayor", "총장", "국장"]):
+            hints = ["구청장실", "기관장 소개", "인사말"]
+        elif any(k in lower_query for k in ["담당자", "연락처", "전화번호", "부서", "담당", "contact"]):
+            hints = ["조직도", "직원검색", "부서안내"]
+        elif any(k in lower_query for k in ["주차", "위치", "오시는 길", "주소", "parking", "오시는길"]):
+            hints = ["청사안내", "오시는 길", "주차안내"]
+        elif any(k in lower_query for k in ["민원", "신청", "서식", "접수", "양식", "form"]):
+            hints = ["민원", "민원서식", "신청/접수", "자주찾는 서비스"]
+        else:
+            hints = ["홈페이지 통합검색", "관련 메뉴"]
+
+        hint_lines = "\n".join(f"- {hint}" for hint in hints)
+        answer_markdown = (
+            "## 답변\n\n"
+            "공식 홈페이지에서 답변 근거 자료를 찾지 못했습니다.\n\n"
+            "## 확인해 볼 만한 경로\n\n"
+            f"{hint_lines}\n\n"
+            "## 다음 단계\n\n"
+            "홈페이지 관련 메뉴나 통합검색에서 다시 확인해 주세요.\n\n"
+            "## 확인 필요\n\n"
+            "정확한 최신 내용은 연결된 공식 홈페이지에서 확인해 주세요."
+        )
+        return {
+            "query": normalized,
+            "provider": "none",
+            "model": "",
+            "ok": True,
+            "answer_markdown": answer_markdown,
+            "sources": [],
+            "warnings": ["no search results", "no_source_guidance"],
+            "error": "",
+            "guard_status": "no_results",
+            "guard_reason": "No official sources retrieved.",
+            "query_hints": hints,
         }
 
 
