@@ -326,6 +326,12 @@ Promote to validated scenario/snapshot/cache
 - Cross-linked from the scenario/cache promotion review workflow, the repeated-question analytics promotion plan, and the operator quickstart.
 - No code or test changes. Docs-only.
 
+### Stage 357 — Synthetic Promotion Dry-Run Operator Guide (Completed)
+- Stage 357 adds a synthetic-only operator dry-run guide showing how to run repeated-question analytics with local JSONL examples and copy findings into the promotion candidate review template.
+- The guide demonstrates cache candidate, scenario candidate, retrieval gap, and monitor-only review outcomes.
+- No code or test changes. Docs-only.
+- No live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

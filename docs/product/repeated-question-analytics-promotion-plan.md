@@ -120,4 +120,6 @@ For the human-review workflow that classifies dry-run candidates as cache review
 
 For a copy-pasteable review template that operators and reviewers can use when evaluating a dry-run candidate, see [Promotion Candidate Review Template](../promotion-candidate-review-template.md).
 
-Promotion is always manual and requires a separate follow-up issue — this planning document, the review workflow, and the review template do not create scenarios, snapshots, caches, or pull requests automatically.
+For a synthetic-only operator dry-run guide that walks through running the dry-run CLI and copying findings into the review template, see [Operator Synthetic Promotion Dry-Run Guide](../operator-synthetic-promotion-dry-run.md).
+
+Promotion is always manual and requires a separate follow-up issue — this planning document, the review workflow, the review template, and the synthetic dry-run guide do not create scenarios, snapshots, caches, or pull requests automatically.

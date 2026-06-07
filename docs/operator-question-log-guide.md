@@ -234,6 +234,9 @@ Before starting log collection, confirm:
 
 ## Related documents
 
+- [Operator Synthetic Promotion Dry-Run Guide](operator-synthetic-promotion-dry-run.md)
+- [Promotion Candidate Review Template](promotion-candidate-review-template.md)
+- [Scenario/Cache Promotion Review Workflow](scenario-cache-promotion-review-workflow.md)
 - [Repeated-Question Analytics and Scenario-Cache Promotion Plan](product/repeated-question-analytics-promotion-plan.md)
 - [Dynamic Retrieval and Query Learning Strategy](product/dynamic-retrieval-query-learning-strategy.md)
 - Stage 351: Question logging boundary
