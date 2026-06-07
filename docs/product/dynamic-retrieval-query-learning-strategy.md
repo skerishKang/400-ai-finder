@@ -390,6 +390,12 @@ Promote to validated scenario/snapshot/cache
 - Confirms the boundaries between dynamic RAG retrieval (query rewrite, source match guard, source-backed composer) and the static, provider-free no-source fallback.
 - No code or test changes. Docs-only.
 
+### Stage 380 — Query Rewrite and Retrieval Integration Audit (Completed)
+- Stage 380 audits the integration path between the query rewriter, keyword searcher, and source match guard for public-sector volatile questions.
+- Identifies critical gaps in rewrite rules (missing rules for Contacts and Location), candidate query truncation due to `max_queries=5`, and redundant site synonym mappings.
+- Documents findings and maps out a roadmap in [query-rewrite-retrieval-integration-audit.md](./query-rewrite-retrieval-integration-audit.md).
+- No code or test changes. Docs-only.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
@@ -427,7 +433,7 @@ If many users repeatedly ask this and the source is stable, promote a validated 
 Recommended follow-ups:
 
 ```txt
-[AUDIT] Inspect query rewrite to retrieval integration for public-sector volatile questions
+[TEST] Add offline retrieval integration tests for public-sector volatile questions
 [AUDIT] Evaluate hybrid keyword + vector search options
 [AUDIT] Evaluate semantic menu matching options
 [AUDIT] Evaluate site-specific synonym dictionary strategy
