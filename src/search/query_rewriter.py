@@ -67,6 +67,16 @@ _EXPANSION_RULES: tuple[tuple[re.Pattern, tuple[str, ...]], ...] = (
         re.compile(r"교육|강좌|수강|평생교육|프로그램|신청"),
         ("교육", "교육접수", "평생교육", "강좌", "프로그램"),
     ),
+    # Staff / contact questions
+    (
+        re.compile(r"담당자|연락처|전화번호|부서|담당|직원|조직|contact"),
+        ("조직도", "직원검색", "부서안내"),
+    ),
+    # Location / parking questions
+    (
+        re.compile(r"주차|주차장|위치|주소|오시는\s?길|오시는길|찾아오시는길|parking"),
+        ("청사안내", "오시는 길", "주차안내"),
+    ),
 )
 
 

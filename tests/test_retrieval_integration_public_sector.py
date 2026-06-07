@@ -149,28 +149,14 @@ class TestQueryRewriteGeneration:
             assert "문인" not in q
             assert "<기관장명>" not in q
 
-    def test_contacts_query_rewrite_current_behavior(self):
-        """담당자/연락처 질문에 대한 현재의 rule gap(확장 후보 없음) 상태를 확인."""
-        result = rewrite_query_candidates("담당자 연락처 알려줘")
-        # Under current rules, no expansion candidates are created. Only the original normalized query remains.
-        assert result.queries == ("담당자 연락처 알려줘",)
-
-    @pytest.mark.xfail(reason="Stage 380 audit: lack of rewrite rule for contacts/staff query types")
     def test_contacts_query_rewrite_expected_behavior(self):
-        """담당자/연락처 질문에 대해 기대하는 target rewrite 후보 생성을 검증 (xfail)."""
+        """담당자/연락처 질문에 대해 기대하는 target rewrite 후보 생성을 검증."""
         result = rewrite_query_candidates("담당자 연락처 알려줘")
         expected_candidates = {"조직도", "직원검색", "부서안내"}
         assert expected_candidates.issubset(set(result.queries))
 
-    def test_location_query_rewrite_current_behavior(self):
-        """주차/위치/오시는 길 질문에 대한 현재의 rule gap(확장 후보 없음) 상태를 확인."""
-        result = rewrite_query_candidates("주차장이 어디있어?")
-        # Normalized and stripped text (retains question mark under current parser)
-        assert result.queries == ("주차장이 어디있어?",)
-
-    @pytest.mark.xfail(reason="Stage 380 audit: lack of rewrite rule for location/parking query types")
     def test_location_query_rewrite_expected_behavior(self):
-        """주차/위치/오시는 길 질문에 대해 기대하는 target rewrite 후보 생성을 검증 (xfail)."""
+        """주차/위치/오시는 길 질문에 대해 기대하는 target rewrite 후보 생성을 검증."""
         result = rewrite_query_candidates("주차장이 어디있어?")
         expected_candidates = {"청사안내", "오시는 길", "주차안내"}
         assert expected_candidates.issubset(set(result.queries))
@@ -225,24 +211,8 @@ class TestOfflineRetrievalIntegration:
         assert results[0]["id"] == "mayor-001"
         assert "열린구청장" in results[0]["title"]
 
-    def test_search_contacts_fails_due_to_missing_rewrite_rules(self, tmp_path):
-        """담당자/연락처 질문에 rewrite rule이 없어, '조직도' 문서를 검색하지 못하고 실패하는 현재 상태 확인."""
-        docs = [CONTACTS_DOC, CIVIL_DOC]
-        searcher = _build_searcher(docs, tmp_path)
-        runner = PipelineRunner(output_dir=str(tmp_path), provider="mock", top_k=5)
-
-        # "세무과 연락처 알려줘" does not contain exact keywords of CONTACTS_DOC in unexpanded query.
-        # It remains unexpanded.
-        candidates = list(rewrite_query_candidates("세무과 연락처 알려줘", max_queries=5).queries)
-        results = runner._search_for_candidates(searcher, candidates)
-
-        # Should fail to retrieve the document because there is no matching keyword in CONTACTS_DOC for "세무과"
-        # and no rewrite rule expands it to "조직도" or "직원검색".
-        assert not any(r["id"] == "contacts-001" for r in results)
-
-    @pytest.mark.xfail(reason="Stage 380 audit: lack of rewrite rule for contacts query types")
     def test_search_contacts_expected_success(self, tmp_path):
-        """Contacts rewrite rule이 주어졌을 때, '조직도' 문서 검색에 성공하는지 검증 (xfail)."""
+        """Contacts rewrite rule이 주어졌을 때, '조직도' 문서 검색에 성공하는지 검증."""
         docs = [CONTACTS_DOC, CIVIL_DOC]
         searcher = _build_searcher(docs, tmp_path)
         runner = PipelineRunner(output_dir=str(tmp_path), provider="mock", top_k=5)
@@ -255,23 +225,8 @@ class TestOfflineRetrievalIntegration:
         results = runner._search_for_candidates(searcher, candidates)
         assert any(r["id"] == "contacts-001" for r in results)
 
-    def test_search_location_fails_due_to_missing_rewrite_rules(self, tmp_path):
-        """주차/위치 질문에 rewrite rule이 없어, '찾아오시는길' 문서를 검색하지 못하고 실패하는 현재 상태 확인."""
-        docs = [LOCATION_DOC, CIVIL_DOC]
-        searcher = _build_searcher(docs, tmp_path)
-        runner = PipelineRunner(output_dir=str(tmp_path), provider="mock", top_k=5)
-
-        # "주차장이 어디있어?" is tokenized to ["주차장이", "주차장", "어디있어"].
-        # LOCATION_DOC text has "주차안내" but not exact word "주차장".
-        # Due to lack of synonym/rewrite rules to expand "주차장" -> "주차안내" or "오시는 길", search fails.
-        candidates = list(rewrite_query_candidates("주차장이 어디있어?", max_queries=5).queries)
-        results = runner._search_for_candidates(searcher, candidates)
-
-        assert not any(r["id"] == "location-001" for r in results)
-
-    @pytest.mark.xfail(reason="Stage 380 audit: lack of rewrite rule for location query types")
     def test_search_location_expected_success(self, tmp_path):
-        """Location rewrite/synonym rule이 주어졌을 때, '찾아오시는길' 문서 검색에 성공하는지 검증 (xfail)."""
+        """Location rewrite/synonym rule이 주어졌을 때, '찾아오시는길' 문서 검색에 성공하는지 검증."""
         docs = [LOCATION_DOC, CIVIL_DOC]
         searcher = _build_searcher(docs, tmp_path)
         runner = PipelineRunner(output_dir=str(tmp_path), provider="mock", top_k=5)
