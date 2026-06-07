@@ -367,6 +367,18 @@ Promote to validated scenario/snapshot/cache
 - 7 new focused tests added; 0 regressions.
 - No live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
 
+### Stage 368 — Offline Retrieval Evidence for Bukgu Synonym Slice (Completed)
+- Stage 368 adds a small synthetic offline enriched-index fixture (`tests/test_bukgu_synonym_offline_retrieval.py`) and confirms that site_id-aware rewrite surfaces the intended menu documents.
+- A separate AST-based test documents the integration gap that `PipelineRunner._step_search` does not forward `site_id` to `rewrite_query_candidates`.
+- No new synonym data, live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
+
+### Stage 369 — Pipeline Site ID Query Rewrite Wiring (Completed)
+- Stage 369 wires `PipelineRunner._step_search()` to forward the resolved `site_id` to `rewrite_query_candidates()`.
+- `site_id` is now resolved once per `run()` and reused for both the search step and question logging.
+- The Stage 368 gap-documenting test is replaced with positive wiring coverage (AST guard + runtime retrieval test + `site_id=None` non-leakage guard).
+- Search result metadata now records `query_rewrite.site_id` for observability.
+- No new synonym data, live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

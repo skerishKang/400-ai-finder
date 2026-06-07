@@ -70,6 +70,10 @@ class PipelineRunner:
         steps: list[dict[str, Any]] = []
         overall_ok = True
 
+        # Stage 369: resolve site_id once per run so it can be forwarded
+        # to query rewrite and question logging consistently.
+        site_id = self._resolve_site_id(url)
+
         # Step 1 — homepage map
         step = self._step_homepage_map(url)
         steps.append(step)
@@ -91,7 +95,7 @@ class PipelineRunner:
             return self._final_result(url, query, steps, overall_ok=False)
 
         # Step 4 — search
-        step = self._step_search(query, step["output"])
+        step = self._step_search(query, step["output"], site_id=site_id)
         steps.append(step)
         if not step["ok"]:
             return self._final_result(url, query, steps, overall_ok=False)
@@ -101,7 +105,7 @@ class PipelineRunner:
         steps.append(step)
 
         # Emit question log event
-        self._emit_question_log(url, query, steps)
+        self._emit_question_log(url, query, steps, site_id=site_id)
 
         if not step["ok"]:
             return self._final_result(url, query, steps, overall_ok=False)
@@ -109,26 +113,20 @@ class PipelineRunner:
         answer_markdown = self._load_json(step["output"]).get("answer_markdown", "")
         return self._final_result(url, query, steps, overall_ok=True, answer_markdown=answer_markdown)
 
-    def _emit_question_log(self, url: str, query: str, steps: list[dict[str, Any]]) -> None:
+    def _emit_question_log(
+        self,
+        url: str,
+        query: str,
+        steps: list[dict[str, Any]],
+        site_id: str | None = None,
+    ) -> None:
         """Helper to build and log the QuestionLogEvent after a run."""
         try:
             from ..analytics.question_logger import build_question_log_event
 
-            # Resolve site_id from url
-            site_id = None
-            try:
-                from ..site_profiles.site_profile import SiteProfileLoader
-                loader = SiteProfileLoader()
-                for sid in loader.list_ids():
-                    try:
-                        p = loader.load_by_id(sid)
-                        if p.match_url(url):
-                            site_id = p.site_id
-                            break
-                    except Exception:
-                        continue
-            except Exception:
-                pass
+            # Resolve site_id from url if not already provided.
+            if site_id is None:
+                site_id = self._resolve_site_id(url)
 
             # Find search step output
             search_data = {}
@@ -182,6 +180,25 @@ class PipelineRunner:
     # Step implementations
     # ------------------------------------------------------------------
 
+    def _resolve_site_id(self, url: str) -> str | None:
+        """Resolve a site_id for a URL using configured site profiles.
+
+        Returns None if no profile matches or loading fails. Never raises.
+        """
+        try:
+            from ..site_profiles.site_profile import SiteProfileLoader
+            loader = SiteProfileLoader()
+            for sid in loader.list_ids():
+                try:
+                    p = loader.load_by_id(sid)
+                    if p.match_url(url):
+                        return p.site_id
+                except Exception:
+                    continue
+        except Exception:
+            return None
+        return None
+
     def _step_homepage_map(self, url: str) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "homepage-map.json")
         try:
@@ -224,13 +241,24 @@ class PipelineRunner:
         except Exception as e:
             return _step_fail("enriched_index", output, e)
 
-    def _step_search(self, query: str, enriched_path: str) -> dict[str, Any]:
+    def _step_search(
+        self,
+        query: str,
+        enriched_path: str,
+        site_id: str | None = None,
+    ) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "search-results.json")
         try:
             searcher = KeywordSearcher(index_path=enriched_path)
 
-            # Use query rewriter to get retrieval candidates
-            rewrite_result = rewrite_query_candidates(query, max_queries=self.top_k)
+            # Use query rewriter to get retrieval candidates.
+            # Stage 369: forward site_id so site-specific synonym
+            # dictionaries can be applied to retrieval term expansion.
+            rewrite_result = rewrite_query_candidates(
+                query,
+                site_id=site_id,
+                max_queries=self.top_k,
+            )
             query_candidates = list(rewrite_result.queries)
 
             # Run search for each query candidate and merge results
@@ -247,6 +275,7 @@ class PipelineRunner:
                     "original_question": rewrite_result.original_question,
                     "queries": list(rewrite_result.queries),
                     "warnings": list(rewrite_result.warnings),
+                    "site_id": site_id,
                 },
             }
             self._write_json(output, search_output)
