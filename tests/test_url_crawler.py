@@ -304,3 +304,196 @@ def test_no_runtime_behavior_change_for_default_constructor():
     # G. no runtime behavior change for default constructor
     crawler = URLCrawler()
     assert crawler.crawl_filters is None
+
+
+# ======================================================================
+# Stage 391: Safe SiteProfile-to-URLCrawler mapping path and contracts
+# ======================================================================
+
+def test_homepage_mapper_mapping_path_from_synthetic_profile():
+    from src.crawler.homepage_mapper import HomepageMapper
+    from src.site_profiles.site_profile import SiteProfile
+
+    # 1. Create a synthetic profile containing crawl filters
+    profile_data = {
+        "site_id": "synthetic_gov",
+        "name": "Synthetic Gov",
+        "base_url": "https://synthetic.gov.kr/",
+        "crawl_filters": {
+            "allow_patterns": ["/allowed/"],
+            "deny_patterns": ["print="],
+            "protected_patterns": ["mid="]
+        }
+    }
+    profile = SiteProfile(profile_data)
+
+    # 2. Instantiate HomepageMapper with the profile's crawl filters
+    mapper = HomepageMapper(crawl_filters=profile.crawl_filters)
+
+    # 3. Assert the crawl filters dictionary is successfully mapped and passed to URLCrawler
+    assert mapper.crawler.crawl_filters == {
+        "allow_patterns": ["/allowed/"],
+        "deny_patterns": ["print="],
+        "protected_patterns": ["mid="]
+    }
+
+
+def test_existing_profiles_without_crawl_filters_preserve_default_behavior():
+    from src.crawler.homepage_mapper import HomepageMapper
+    from src.site_profiles.site_profile import SiteProfile
+
+    # Profile without crawl_filters (empty or omitted)
+    profile_data = {
+        "site_id": "existing_legacy_gov",
+        "name": "Legacy Gov",
+        "base_url": "https://legacy.gov.kr/"
+    }
+    profile = SiteProfile(profile_data)
+
+    # Instantiate with the profile's crawl filters (which defaults to empty dict from SiteProfile property)
+    mapper = HomepageMapper(crawl_filters=profile.crawl_filters)
+    assert mapper.crawler.crawl_filters == {}
+
+    # Verify that it allows all internal URLs
+    html = """
+    <html>
+      <body>
+        <a href="/menu.es?mid=1">Menu</a>
+        <a href="/page?print=1">Print</a>
+        <a href="/normal">Normal</a>
+      </body>
+    </html>
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    links = mapper.crawler.extract_links(soup, "https://legacy.gov.kr/")
+    assert len(links["internal"]) == 3
+
+
+def test_mock_static_html_crawl_safety():
+    from src.crawler.homepage_mapper import HomepageMapper
+    from src.site_profiles.site_profile import SiteProfile
+
+    # Synthetic profile
+    profile_data = {
+        "site_id": "safety_gov",
+        "name": "Safety Gov",
+        "base_url": "https://safety.gov.kr/",
+        "crawl_filters": {
+            "deny_patterns": ["print="],
+            "protected_patterns": ["mid="]
+        }
+    }
+    profile = SiteProfile(profile_data)
+    mapper = HomepageMapper(crawl_filters=profile.crawl_filters)
+
+    html = """
+    <html>
+      <body>
+        <a href="/menu.es?mid=a101">Menu ES mid</a>
+        <a href="/page?print=1">Print Page</a>
+        <a href="/normal">Normal Page</a>
+      </body>
+    </html>
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    links = mapper.crawler.extract_links(soup, "https://safety.gov.kr/")
+
+    urls = [link["url"] for link in links["internal"]]
+    # /menu.es?mid=a101 -> survives (protected)
+    assert "https://safety.gov.kr/menu.es?mid=a101" in urls
+    # /page?print=1 -> removed (deny)
+    assert "https://safety.gov.kr/page?print=1" not in urls
+    # /normal -> survives (allow)
+    assert "https://safety.gov.kr/normal" in urls
+
+
+def test_non_html_provider_fallback_path_contract_none_filters():
+    from src.crawler.url_crawler import URLCrawler
+    from src.fetch.base import FetchProvider, FetchResult
+    from datetime import datetime, timezone
+
+    # Mock provider returning flat links (without HTML)
+    class FlatLinksProvider(FetchProvider):
+        @property
+        def name(self) -> str:
+            return "flat_mock"
+
+        def fetch(self, url, **kwargs):
+            return FetchResult(
+                url=url,
+                ok=True,
+                provider="flat_mock",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                status_code=200,
+                content_type="application/json",
+                markdown="Mock Content",
+                links=[
+                    {"text": "Internal Menu", "url": "https://example.com/menu.es?mid=123"},
+                    {"text": "Internal Print", "url": "https://example.com/page?print=1"},
+                    {"text": "External Link", "url": "https://external.com/page"},
+                    {"text": "Attachment", "url": "https://example.com/doc.pdf"}
+                ]
+            )
+
+    # Case A: crawl_filters = None (default-allow behavior)
+    crawler_none = URLCrawler(fetch_provider=FlatLinksProvider(), crawl_filters=None)
+    result_none = crawler_none.analyze("https://example.com/")
+    links_none = result_none["links"]
+
+    # All internal links should be preserved
+    assert len(links_none["internal"]) == 2
+    internal_urls_none = [link["url"] for link in links_none["internal"]]
+    assert "https://example.com/menu.es?mid=123" in internal_urls_none
+    assert "https://example.com/page?print=1" in internal_urls_none
+
+    # External and attachments must remain unaffected
+    assert len(links_none["external"]) == 1
+    assert links_none["external"][0]["url"] == "https://external.com/page"
+    assert len(links_none["attachments"]) == 1
+    assert links_none["attachments"][0]["url"] == "https://example.com/doc.pdf"
+
+
+def test_non_html_provider_fallback_path_contract_explicit_deny():
+    from src.crawler.url_crawler import URLCrawler
+    from src.fetch.base import FetchProvider, FetchResult
+    from datetime import datetime, timezone
+
+    class FlatLinksProvider(FetchProvider):
+        @property
+        def name(self) -> str:
+            return "flat_mock"
+
+        def fetch(self, url, **kwargs):
+            return FetchResult(
+                url=url,
+                ok=True,
+                provider="flat_mock",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                status_code=200,
+                content_type="application/json",
+                markdown="Mock Content",
+                links=[
+                    {"text": "Internal Menu", "url": "https://example.com/menu.es?mid=123"},
+                    {"text": "Internal Print", "url": "https://example.com/page?print=1"},
+                    {"text": "External Link", "url": "https://external.com/page?print=1"},
+                    {"text": "Attachment", "url": "https://example.com/doc.pdf?print=1"}
+                ]
+            )
+
+    # Case B: crawl_filters with explicit deny_patterns = ["print="]
+    crawler_deny = URLCrawler(
+        fetch_provider=FlatLinksProvider(),
+        crawl_filters={"deny_patterns": ["print="]}
+    )
+    result_deny = crawler_deny.analyze("https://example.com/")
+    links_deny = result_deny["links"]
+
+    # Internal Print should be removed (only Internal Menu survives)
+    assert len(links_deny["internal"]) == 1
+    assert links_deny["internal"][0]["url"] == "https://example.com/menu.es?mid=123"
+
+    # External and attachments must NOT be affected by the crawl filter
+    assert len(links_deny["external"]) == 1
+    assert links_deny["external"][0]["url"] == "https://external.com/page?print=1"
+    assert len(links_deny["attachments"]) == 1
+    assert links_deny["attachments"][0]["url"] == "https://example.com/doc.pdf?print=1"

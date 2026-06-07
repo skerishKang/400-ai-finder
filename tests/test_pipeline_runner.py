@@ -546,3 +546,52 @@ class TestPipelineFetchProvider:
         fp = call_kwargs.kwargs.get("fetch_provider")
         assert fp is None, f"Expected None, got {fp}"
         assert result["ok"] is True
+
+
+class TestPipelineCrawlFilters:
+    """PipelineRunner maps SiteProfile crawl filters into HomepageMapper."""
+
+    @patch("src.pipeline.pipeline_runner.AnswerComposer")
+    @patch("src.pipeline.pipeline_runner.KeywordSearcher")
+    @patch("src.pipeline.pipeline_runner.DocumentEnricher")
+    @patch("src.pipeline.pipeline_runner.DocumentIndexer")
+    @patch("src.pipeline.pipeline_runner.HomepageMapper")
+    @patch("src.site_profiles.site_profile.SiteProfileLoader")
+    def test_pipeline_runner_passes_crawl_filters_from_profile(
+        self, MockLoader, MockMapper, MockIndexer, MockEnricher, MockSearcher, MockComposer, tmp_output_dir
+    ):
+        from src.site_profiles.site_profile import SiteProfile
+
+        # 1. Setup mock synthetic profile with crawl_filters
+        profile = SiteProfile({
+            "site_id": "synthetic_gov",
+            "name": "Synthetic Gov",
+            "base_url": "https://synthetic.gov.kr/",
+            "crawl_filters": {
+                "deny_patterns": ["print="],
+                "protected_patterns": ["mid="]
+            }
+        })
+
+        MockLoader.return_value.list_ids.return_value = ["synthetic_gov"]
+        MockLoader.return_value.load_by_id.return_value = profile
+
+        MockMapper.return_value.build_map.return_value = FAKE_HOMEPAGE_MAP
+        MockIndexer.return_value.build_index.return_value = FAKE_DOCS
+        MockEnricher.return_value.enrich_records.return_value = FAKE_ENRICHED_DOCS
+        MockSearcher.return_value.search.return_value = FAKE_SEARCH_RESULTS
+        MockComposer.return_value.compose.return_value = FAKE_ANSWER_RESULT
+
+        # 2. Run PipelineRunner with matching URL
+        runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+        result = runner.run(url="https://synthetic.gov.kr/", query="신청서")
+
+        # 3. Assert resolved crawl_filters were passed to HomepageMapper
+        MockMapper.assert_called_once()
+        call_kwargs = MockMapper.call_args
+        assert call_kwargs.kwargs.get("crawl_filters") == {
+            "allow_patterns": [],
+            "deny_patterns": ["print="],
+            "protected_patterns": ["mid="]
+        }
+        assert result["ok"] is True

@@ -76,12 +76,13 @@ def classify_url(url, text="", is_navigation=False):
     return "unknown"
 
 class HomepageMapper:
-    def __init__(self, timeout=15, max_sitemaps=10, max_sitemap_urls=500, user_agent=None, fetch_provider=None):
+    def __init__(self, timeout=15, max_sitemaps=10, max_sitemap_urls=500, user_agent=None, fetch_provider=None, crawl_filters: dict | None = None):
         self.fetch_provider = self._resolve_fetch_provider(fetch_provider)
         self.crawler = URLCrawler(
             timeout=timeout,
             user_agent=user_agent,
             fetch_provider=self.fetch_provider,
+            crawl_filters=crawl_filters,
         )
         self.max_sitemaps = max_sitemaps
         self.max_sitemap_urls = max_sitemap_urls

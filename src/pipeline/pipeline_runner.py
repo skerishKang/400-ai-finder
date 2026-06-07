@@ -202,6 +202,18 @@ class PipelineRunner:
     def _step_homepage_map(self, url: str) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "homepage-map.json")
         try:
+            # Stage 391: Resolve site profile to pass crawl_filters to HomepageMapper
+            crawl_filters = None
+            site_id = self._resolve_site_id(url)
+            if site_id:
+                try:
+                    from ..site_profiles.site_profile import SiteProfileLoader
+                    loader = SiteProfileLoader()
+                    profile = loader.load_by_id(site_id)
+                    crawl_filters = profile.crawl_filters
+                except Exception:
+                    pass
+
             # Stage 36: retry build_map if nav links are empty (intermittent timeouts)
             max_retries = 2
             result = None
@@ -210,6 +222,7 @@ class PipelineRunner:
                     max_sitemaps=self.max_sitemaps,
                     max_sitemap_urls=self.max_sitemap_urls,
                     fetch_provider=self.fetch_provider,
+                    crawl_filters=crawl_filters,
                 )
                 result = mapper.build_map(url)
                 nav_count = len(result.get("homepage", {}).get("navigation_links", []))
