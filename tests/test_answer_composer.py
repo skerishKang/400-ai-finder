@@ -412,52 +412,61 @@ class TestNoSourceGuidance:
         result = composer.compose(EMPTY_SEARCH_RESULTS)
         assert result["ok"] is True
         assert "공식 홈페이지에서 답변 근거 자료를 찾지 못했습니다" in result["answer_markdown"]
+        assert "## 확인해 볼 만한 경로" in result["answer_markdown"]
         assert result["sources"] == []
         assert "no search results" in result["warnings"]
         assert "no_source_guidance" in result["warnings"]
         assert result["provider"] == "none"
         assert result["guard_status"] == "no_results"
-        assert "query_hints" in result
 
     def test_mayor_question_returns_menu_hints_not_names(self):
-        """Mayor questions must not invent names; only hint menus."""
+        """Mayor questions must show menu hints in answer text and not invent facts."""
         composer = AnswerComposer(provider="mock")
         result = composer.compose({"query": "구청장이 누구야?", "results": []})
         assert result["ok"] is True
         text = result["answer_markdown"]
         assert "근거 자료를 찾지 못했습니다" in text
-        hints = result.get("query_hints", [])
-        assert any(hint in hints for hint in ["구청장실", "기관장 소개", "인사말"])
-        cleaner = "".join(ch for ch in text if not ch.isdigit())
-        assert ("구청장" not in cleaner) or ("근거 자료를 찾지 못했습니다" in cleaner)
+        assert "- 구청장실" in text
+        assert "- 기관장 소개" in text
+        assert "- 인사말" in text
+        assert result["provider"] == "none"
+        assert result["guard_status"] == "no_results"
 
     def test_contact_question_returns_org_hints_not_numbers(self):
-        """Contact questions must not invent phone numbers."""
+        """Contact questions must show org-menu hints and no phone numbers."""
         composer = AnswerComposer(provider="mock")
         result = composer.compose({"query": "담당자 연락처 알려줘", "results": []})
         assert result["ok"] is True
         text = result["answer_markdown"]
-        hints = result.get("query_hints", [])
-        assert any(hint in hints for hint in ["조직도", "직원검색", "부서안내"])
+        assert "- 조직도" in text
+        assert "- 직원검색" in text
+        assert "- 부서안내" in text
         phone_prefixes = ["010", "070", "02-", "031-", "032-", "042-", "051-", "053-", "062-", "063-", "064-"]
         assert all(p not in text for p in phone_prefixes)
+        assert result["guard_status"] == "no_results"
 
     def test_parking_question_returns_location_hints_only(self):
-        """Parking questions must not guess locations."""
+        """Parking questions must show location menu hints."""
         composer = AnswerComposer(provider="mock")
         result = composer.compose({"query": "주차장이 어디있어?", "results": []})
         assert result["ok"] is True
+        text = result["answer_markdown"]
+        assert "- 청사안내" in text
+        assert "- 오시는 길" in text
+        assert "- 주차안내" in text
         assert result["guard_status"] == "no_results"
-        hints = result.get("query_hints", [])
-        assert any(hint in hints for hint in ["청사안내", "오시는 길", "주차안내"])
 
     def test_application_question_returns_service_hints(self):
-        """Application/form questions must not invent procedures."""
+        """Application questions must show service menu hints without procedure claims."""
         composer = AnswerComposer(provider="mock")
         result = composer.compose({"query": "민원서식 어디서 받아?", "results": []})
         assert result["ok"] is True
-        hints = result.get("query_hints", [])
-        assert any(hint in hints for hint in ["민원", "민원서식", "신청/접수", "자주찾는 서비스"])
+        text = result["answer_markdown"]
+        assert "- 민원" in text
+        assert "- 민원서식" in text
+        assert "- 신청/접수" in text
+        assert "- 자주찾는 서비스" in text
+        assert result["guard_status"] == "no_results"
 
     def test_source_backed_answer_behavior_unchanged(self):
         """Composer still returns source-backed answer with sources."""
