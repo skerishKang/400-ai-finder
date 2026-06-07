@@ -114,7 +114,7 @@ def test_pipeline_does_not_compose_confident_answer_from_mismatched_source(tmp_p
     
     # It should not produce a confident answer, but return no-results style response
     assert response["ok"] is True
-    assert "관련 자료를 찾지 못했습니다" in response["answer_markdown"]
+    assert "답변 근거 자료를 찾지 못했습니다" in response["answer_markdown"]
     assert len(response["sources"]) == 0  # no-results clears the sources list or returns empty sources
     assert any("Topic mismatch" in w for w in response["warnings"])
 
