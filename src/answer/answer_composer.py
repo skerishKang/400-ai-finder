@@ -284,10 +284,6 @@ class AnswerComposer:
             hints = ["구청장실", "기관장 소개", "인사말"]
         elif any(k in lower_query for k in ["담당자", "연락처", "전화번호", "부서", "담당", "contact"]):
             hints = ["조직도", "직원검색", "부서안내"]
-        if any(k in lower_query for k in ["구청장", "기관장", "mayor", "총장", "국장"]):
-            hints = ["구청장실", "기관장 소개", "인사말"]
-        elif any(k in lower_query for k in ["담당자", "연락처", "전화번호", "부서", "담당", "contact"]):
-            hints = ["조직도", "직원검색", "부서안내"]
         elif any(k in lower_query for k in ["주차", "위치", "오시는 길", "주소", "parking", "오시는길"]):
             hints = ["청사안내", "오시는 길", "주차안내"]
         elif any(k in lower_query for k in ["민원", "신청", "서식", "접수", "양식", "form"]):
