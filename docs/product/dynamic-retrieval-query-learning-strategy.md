@@ -243,23 +243,32 @@ Promote to validated scenario/snapshot/cache
 
 ## 11. Implementation Roadmap
 
-### P0 — Already Completed
-- Clear stale snapshot sources when fallback matching returns empty (Stage 341)
+### Completed
+- Clear stale snapshot sources when fallback matching returns empty (Stage 341).
+- Add deterministic query rewriter design and test boundary (Stage 343).
+- Integrate query rewrite candidates into the pipeline search path (Stage 344a).
+- Add source mismatch / no-results guard hardening (Stage 344b).
+- Add offline-safe question logging boundary (Stage 351).
+- Add repeated-question analyzer and human-review promotion planning (Stage 352).
+- Add repeated-question analytics dry-run report CLI (Stage 353).
+- Add operator question log guide, promotion review workflow, review template, synthetic dry-run guide, and docs audit cleanup (Stages 354-358).
 
-### P1 — Next
-- Add query rewriter design and test boundary
-- Add source mismatch / no-results guard hardening
-- Add query rewrite logging in dry-run/mock mode
+### Remaining candidates
 
-### P2
-- Add question logging
-- Add analytics report for repeated questions
-- Add scenario/cache promotion candidate generator
+#### Retrieval quality
+- Audit hybrid keyword + vector search options.
+- Audit semantic menu matching options.
+- Audit site-specific synonym dictionary strategy.
+- Evaluate whether query rewrite coverage should expand beyond the current deterministic patterns.
 
-### P3
-- Add hybrid keyword + vector search
-- Add semantic menu matching
-- Add site-specific synonym dictionaries
+#### Operator workflow
+- Run the first real sanitized-log operator dry-run only when actual sanitized logs exist.
+- Keep real-log review local/offline/report-only unless a separate production logging policy is approved.
+
+#### Promotion workflow
+- Keep scenario/cache promotion manual.
+- Create cache, scenario, snapshot, or retrieval-improvement implementation issues only after human review.
+- Do not automatically create scenarios, snapshots, caches, commits, or pull requests from repeated-question analytics.
 
 ---
 
@@ -338,6 +347,12 @@ Promote to validated scenario/snapshot/cache
 - No code or test changes. Docs-only.
 - No live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
 
+### Stage 360 — Dynamic Retrieval Roadmap Cleanup (Completed)
+- Stage 360 cleans up stale roadmap and follow-up wording in this strategy document after the operator docs track closed.
+- It moves completed Stage 343-358 work out of future/next roadmap wording and keeps future candidates focused on genuinely remaining retrieval/productization gaps.
+- No code or test changes. Docs-only.
+- No live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
@@ -370,14 +385,24 @@ If many users repeatedly ask this and the source is stable, promote a validated 
 
 ## 14. Open Follow-Up Candidates
 
-> List issue candidates but do not create all unless instructed.
+> List issue candidates only when they represent genuinely remaining work. Do not create all unless instructed.
 
 Recommended follow-ups:
 
 ```txt
-[TECH] Add query rewriter contract for live retrieval
-[TECH] Add source mismatch guard for weak retrieval results
-[TECH] Add question logging boundary
-[PRODUCT] Define scenario/cache promotion review workflow
-[TECH] Add repeated-question analytics report
+[AUDIT] Evaluate hybrid keyword + vector search options
+[AUDIT] Evaluate semantic menu matching options
+[AUDIT] Evaluate site-specific synonym dictionary strategy
+[OPS] Run first real sanitized-log operator dry-run when sanitized logs exist
+[PRODUCT] Define production logging/storage policy before any shared or persistent real-log workflow
 ```
+
+Deferred until real sanitized logs exist:
+
+```txt
+[OPS] First real operator dry-run with sanitized logs
+[REVIEW] Evaluate cache/scenario candidates from real dry-run report
+[TECH] Implement approved retrieval improvement from real retrieval-gap report
+```
+
+Do not create scenario, snapshot, cache, or promotion PRs automatically from this list.
