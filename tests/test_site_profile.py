@@ -418,3 +418,51 @@ class TestSynonymDictionary:
         dumped = json.dumps(d, ensure_ascii=False)
         loaded = json.loads(dumped)
         assert loaded["synonym_dictionary"]["민원"] == ["종합민원"]
+
+
+class TestBukguSynonymDictionarySlice:
+    """Tests for the first approved synonym_dictionary slice on the
+    real ``bukgu_gwangju`` profile (Stage 365).
+
+    The slice is limited to stable official menu vocabulary for
+    ``민원``, ``공고``, and ``교육``. Deferred groups are intentionally
+    excluded and must not appear in the first slice.
+    """
+
+    def test_bukgu_profile_loads_synonym_dictionary(self, loader):
+        """Real bukgu profile exposes the first approved slice."""
+        profile = loader.load_by_id("bukgu_gwangju")
+        synonyms = profile.synonym_dictionary
+
+        assert synonyms["민원"] == ["종합민원", "온라인 민원", "민원서식"]
+        assert synonyms["공고"] == ["고시공고", "공지사항", "새소식"]
+        assert synonyms["교육"] == [
+            "교육접수", "평생교육", "강좌", "프로그램",
+        ]
+
+    def test_bukgu_profile_synonym_dictionary_contains_no_deferred_groups(
+        self, loader
+    ):
+        """First slice must not include deferred or volatile groups."""
+        profile = loader.load_by_id("bukgu_gwangju")
+        synonyms = profile.synonym_dictionary
+
+        assert "구청장" not in synonyms
+        assert "열린구청장" not in synonyms
+        assert "복지" not in synonyms
+        assert "정보공개" not in synonyms
+        assert "청년일자리" not in synonyms
+
+    def test_bukgu_profile_synonym_dictionary_json_serializable(self, loader):
+        """Real profile synonym dictionary remains JSON serializable."""
+        import json
+
+        profile = loader.load_by_id("bukgu_gwangju")
+        data = profile.to_dict()
+
+        dumped = json.dumps(data, ensure_ascii=False)
+        loaded = json.loads(dumped)
+
+        assert loaded["synonym_dictionary"]["민원"] == [
+            "종합민원", "온라인 민원", "민원서식",
+        ]
