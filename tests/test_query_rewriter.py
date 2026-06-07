@@ -318,3 +318,70 @@ class TestSiteSpecificSynonyms:
             max_queries=5,
         )
         assert called == ["some_site"]
+
+
+class TestRealBukguSynonymSlice:
+    """Tests for the query rewriter using the real
+    ``configs/sites/bukgu_gwangju.yml`` synonym slice (Stage 365).
+
+    The slice covers ``민원``, ``공고``, and ``교육`` only. These tests
+    confirm that the rewriter uses the real profile and does not bleed
+    those groups into unrelated questions.
+    """
+
+    def test_rewrite_uses_real_bukgu_synonym_dictionary_for_civil_service(
+        self,
+    ):
+        """민원 question on the real bukgu profile produces the
+        approved 민원 slice."""
+        result = rewrite_query_candidates(
+            "민원 어디서 해?",
+            site_id="bukgu_gwangju",
+            max_queries=10,
+        )
+
+        assert "종합민원" in result.queries
+        assert "온라인 민원" in result.queries
+        assert "민원서식" in result.queries
+
+    def test_rewrite_uses_real_bukgu_synonym_dictionary_for_notice(self):
+        """공고 question on the real bukgu profile produces the
+        approved 공고 slice."""
+        result = rewrite_query_candidates(
+            "공고 어디서 봐?",
+            site_id="bukgu_gwangju",
+            max_queries=10,
+        )
+
+        assert "고시공고" in result.queries
+        assert "공지사항" in result.queries
+        assert "새소식" in result.queries
+
+    def test_rewrite_uses_real_bukgu_synonym_dictionary_for_education(self):
+        """교육 question on the real bukgu profile produces the
+        approved 교육 slice."""
+        result = rewrite_query_candidates(
+            "교육 신청 어디서 해?",
+            site_id="bukgu_gwangju",
+            max_queries=15,
+        )
+
+        assert "교육접수" in result.queries
+        assert "평생교육" in result.queries
+        assert "강좌" in result.queries
+        assert "프로그램" in result.queries
+
+    def test_rewrite_real_bukgu_synonyms_do_not_add_deferred_groups(self):
+        """The real slice must not contaminate unrelated questions
+        (e.g. 구청장) with 민원/교육/공고 expansion terms."""
+        result = rewrite_query_candidates(
+            "구청장이 누구야?",
+            site_id="bukgu_gwangju",
+            max_queries=20,
+        )
+
+        queries_str = " ".join(result.queries)
+        assert "종합민원" not in queries_str
+        assert "교육접수" not in queries_str
+        assert "평생교육" not in queries_str
+        assert "새소식" not in queries_str

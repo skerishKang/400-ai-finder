@@ -353,6 +353,20 @@ Promote to validated scenario/snapshot/cache
 - No code or test changes. Docs-only.
 - No live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
 
+### Stage 363 — Site-Specific Synonym Dictionary Contract (Completed)
+- Stage 363 adds the optional `synonym_dictionary` field to `SiteProfile` and a `site_id`-aware retrieval term expansion path in the offline query rewriter.
+- Profiles that omit the field still load unchanged; invalid entries are filtered silently.
+- Re-writer load failures are silent fallbacks — global behavior is preserved.
+- No live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
+- 9 new focused tests added; 0 regressions.
+
+### Stage 365 — First bukgu_gwangju Synonym Dictionary Slice (Completed)
+- Stage 365 adds the first config-only `synonym_dictionary` data slice to `configs/sites/bukgu_gwangju.yml`.
+- The slice is limited to stable official menu vocabulary for `민원`, `공고`, and `교육`.
+- Deferred groups such as `구청장`/`열린구청장`, `복지`, `정보공개`, and `청년일자리` are intentionally excluded.
+- 7 new focused tests added; 0 regressions.
+- No live network, LLM, fetch, Firecrawl, scenario, snapshot, cache, PR, or automatic promotion behavior is added.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
