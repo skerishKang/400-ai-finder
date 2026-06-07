@@ -118,4 +118,6 @@ For the full operator workflow for collecting sanitized question logs, running t
 
 For the human-review workflow that classifies dry-run candidates as cache review, scenario review, retrieval gaps, or monitor-only items, see [Scenario/Cache Promotion Review Workflow](../scenario-cache-promotion-review-workflow.md).
 
-Promotion is always manual and requires a separate follow-up issue — this planning document and the review workflow do not create scenarios, snapshots, caches, or pull requests automatically.
+For a copy-pasteable review template that operators and reviewers can use when evaluating a dry-run candidate, see [Promotion Candidate Review Template](../promotion-candidate-review-template.md).
+
+Promotion is always manual and requires a separate follow-up issue — this planning document, the review workflow, and the review template do not create scenarios, snapshots, caches, or pull requests automatically.

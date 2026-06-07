@@ -303,6 +303,7 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 - [`docs/operator-quickstart.md`](docs/operator-quickstart.md) — 운영자 빠른 안내서 (offline → live 순서)
 - [`docs/operator-question-log-guide.md`](docs/operator-question-log-guide.md) — Operator Question Log Guide (sanitized log collection + dry-run analytics)
 - [`docs/scenario-cache-promotion-review-workflow.md`](docs/scenario-cache-promotion-review-workflow.md) — Scenario/Cache Promotion Review Workflow (cache/scenario/retrieval-gap/monitor-only 분류 + human review 체크리스트)
+- [`docs/promotion-candidate-review-template.md`](docs/promotion-candidate-review-template.md) — Promotion Candidate Review Template (copy-pasteable 후킹 review template)
 - [`docs/smoke-eval-flow.md`](docs/smoke-eval-flow.md) — Smoke eval CLI 흐름
 - [`docs/bukgu-live-demo-package.md`](docs/bukgu-live-demo-package.md) — Buk-gu live LLM demo package (외부 시연용)
 - [`docs/bukgu-demo-one-page-handout.md`](docs/bukgu-demo-one-page-handout.md) — Buk-gu demo one-page handout (외부 시연용 1페이지 요약)
