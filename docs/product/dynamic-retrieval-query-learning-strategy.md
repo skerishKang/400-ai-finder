@@ -462,6 +462,13 @@ Promote to validated scenario/snapshot/cache
 - Enforces deny-list forbidden guards statically, preventing critical fields from being denied.
 - Recommends Stage 394 to introduce the first real configs.
 
+### Stage 394 — First Real Profile Config Candidate (Completed)
+- Stage 394 applies the first conservative `crawl_filters` config candidate. Changed exactly only one profile: `configs/sites/bukgu_gwangju.yml`.
+- Adds targeted loader, validation, and safety unit tests under `tests/test_site_profile.py` using mock/static HTML.
+- Keeps live validation disabled (no live/network/API/Firecrawl calls).
+- Recommends Stage 395 to either add a second municipal config candidate after reviewing Stage 394 diff, or perform controlled live smoke only if explicitly approved.
+
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

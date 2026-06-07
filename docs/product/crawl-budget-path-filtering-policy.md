@@ -161,3 +161,11 @@ The following test matrix will govern the verification of the filter decision he
   - Enforced a forbidden guard on the deny list (no critical parameters in `deny_patterns`).
   - Verified pipeline runner mock mapping.
 - **Next Step**: Stage 394.
+
+---
+
+## Stage 394 First Real Profile Candidate Application (Completed)
+- **Status**: First real YAML profile candidate applied. Changed exactly only one profile: `configs/sites/bukgu_gwangju.yml`.
+- **Validation**: Added unit tests in `tests/test_site_profile.py` verifying that the loader correctly loads the real profile filters and guards against critical parameters inside `deny_patterns`. Evaluated safety behaviors locally using mock/static HTML only.
+- **No Live**: No live validation performed (no live/network/API/Firecrawl calls).
+- **Stage 395 Recommended Next**: Either add second municipal config candidate after reviewing Stage 394 diff, or controlled live smoke only if explicitly approved.

@@ -114,3 +114,14 @@ Before any real YAML configuration files are modified (planned for Stage 394), t
   7. No Real Config Mutation: Statically ensured no config YAML files are touched.
   8. No Live/Network/API: All tests executed locally with BeautifulSoup mocks.
 - **Next Step**: Stage 394.
+
+---
+
+## Stage 394 Implementation Status (Completed)
+- **Status**: First real YAML profile candidate applied. Changed exactly only one profile: `configs/sites/bukgu_gwangju.yml`.
+- **Validation**:
+  - Loader Test: Verified `SiteProfileLoader` loads `bukgu_gwangju.yml` and exposes candidate rules correctly.
+  - Guard Test: Verified no critical parameters exist in `deny_patterns`.
+  - Static HTML safety: Verified allowed, denied, and pagination deferred behaviors locally.
+- **No Live**: No live validation performed (no live/network/API/Firecrawl calls).
+- **Stage 395 Recommended Next**: Either add second municipal config candidate after reviewing Stage 394 diff, or controlled live smoke only if explicitly approved.

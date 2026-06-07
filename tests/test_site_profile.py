@@ -558,3 +558,95 @@ class TestBukguSynonymDictionarySlice:
         assert loaded["synonym_dictionary"]["민원"] == [
             "종합민원", "온라인 민원", "민원서식",
         ]
+
+
+class TestBukguCrawlFiltersConfig:
+    """Stage 394: Real profile crawl filters verification contract tests."""
+
+    def test_bukgu_profile_crawl_filters_loader(self, loader):
+        """1. Verify that real bukgu YAML profile loads crawl_filters matching candidate."""
+        profile = loader.load_by_id("bukgu_gwangju")
+        filters = profile.crawl_filters
+
+        assert filters["allow_patterns"] == []
+        assert filters["deny_patterns"] == [
+            "print=",
+            "utm_",
+            "utm_source=",
+            "utm_medium=",
+            "utm_campaign="
+        ]
+        assert filters["protected_patterns"] == [
+            "mid=",
+            "menuId=",
+            "board.es",
+            "seq=",
+            "contentId=",
+            "articleId="
+        ]
+
+    def test_bukgu_profile_protected_patterns(self, loader):
+        """2. Verify that loaded profile's protected_patterns has all required parameters."""
+        profile = loader.load_by_id("bukgu_gwangju")
+        protected = profile.crawl_filters.get("protected_patterns", [])
+
+        required = ["mid=", "menuId=", "board.es", "seq=", "contentId=", "articleId="]
+        for pat in required:
+            assert pat in protected
+
+    def test_bukgu_profile_deny_patterns(self, loader):
+        """3. Verify that loaded profile's deny_patterns has all required parameters."""
+        profile = loader.load_by_id("bukgu_gwangju")
+        denied = profile.crawl_filters.get("deny_patterns", [])
+
+        required = ["print=", "utm_", "utm_source=", "utm_medium=", "utm_campaign="]
+        for pat in required:
+            assert pat in denied
+
+    def test_bukgu_profile_forbidden_deny_guard(self, loader):
+        """4. Verify that critical parameters are NOT in the real profile's deny_patterns."""
+        profile = loader.load_by_id("bukgu_gwangju")
+        denied = profile.crawl_filters.get("deny_patterns", [])
+
+        forbidden = ["board.es", "mid=", "menuId=", "seq=", "contentId=", "articleId="]
+        for pat in forbidden:
+            assert pat not in denied
+
+    def test_mock_static_html_safety_using_real_profile_filters(self, loader):
+        """5. Verify static HTML crawl safety using filters from loaded real profile."""
+        from bs4 import BeautifulSoup
+        from src.crawler.url_crawler import URLCrawler
+
+        profile = loader.load_by_id("bukgu_gwangju")
+        crawler = URLCrawler(crawl_filters=profile.crawl_filters)
+
+        base_url = "https://bukgu.gwangju.kr/"
+        html = """
+        <html>
+          <body>
+            <a href="/menu.es?mid=a101">Menu ES mid</a>
+            <a href="/board.es?seq=999">Board ES seq</a>
+            <a href="/content?contentId=123">Content ID</a>
+            <a href="/article?articleId=777">Article ID</a>
+            <a href="/page?print=1">Print Page</a>
+            <a href="/page?utm_source=test">UTM Source</a>
+            <a href="/board.es?pageNo=2">Page No 2</a>
+          </body>
+        </html>
+        """
+        soup = BeautifulSoup(html, 'html.parser')
+        links = crawler.extract_links(soup, base_url)
+        urls = [link["url"] for link in links["internal"]]
+
+        # 5a. Check that protected parameter URLs survive
+        assert "https://bukgu.gwangju.kr/menu.es?mid=a101" in urls
+        assert "https://bukgu.gwangju.kr/board.es?seq=999" in urls
+        assert "https://bukgu.gwangju.kr/content?contentId=123" in urls
+        assert "https://bukgu.gwangju.kr/article?articleId=777" in urls
+
+        # 5b. Check that deny parameter URLs are filtered out
+        assert "https://bukgu.gwangju.kr/page?print=1" not in urls
+        assert "https://bukgu.gwangju.kr/page?utm_source=test" not in urls
+
+        # 5c. Check that pageNo survives (pagination deferred)
+        assert "https://bukgu.gwangju.kr/board.es?pageNo=2" in urls

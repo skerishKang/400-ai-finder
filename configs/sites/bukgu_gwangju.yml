@@ -76,3 +76,19 @@ crawl_rules:
   respect_robots: true
 
 notes: "Legacy PHP/EGOV board site. requests provider works. Sitemap not found. Menu keywords detected in Stage 10D diagnostics."
+
+crawl_filters:
+  allow_patterns: []
+  deny_patterns:
+    - "print="
+    - "utm_"
+    - "utm_source="
+    - "utm_medium="
+    - "utm_campaign="
+  protected_patterns:
+    - "mid="
+    - "menuId="
+    - "board.es"
+    - "seq="
+    - "contentId="
+    - "articleId="
