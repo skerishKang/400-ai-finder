@@ -127,7 +127,7 @@ class AnswerComposer:
         )
 
         if assessment.status == "no_results":
-            no_res = self._no_results_answer(query)
+            no_res = self._build_no_source_guidance(query)
             no_res["warnings"] = [assessment.reason]
             no_res["guard_status"] = assessment.status
             no_res["guard_reason"] = assessment.reason

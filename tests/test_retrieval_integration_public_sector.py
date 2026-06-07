@@ -273,51 +273,8 @@ class TestOfflineRetrievalIntegration:
 class TestSourceMismatchFallbackUXGap:
     """Target 3: Verify the UX discrepancy between search failure (no results) and mismatch."""
 
-    def test_mismatch_fallback_degrades_to_generic_no_results(self):
-        """검색 결과가 존재하지만 mismatch된 경우, generic no-results fallback이 사용되는 현재 상태 검증.
-
-        Stage 378의 카테고리별 guidance menu hint가 노출되지 않는 UX gap을 확인한다.
-        """
-        composer = AnswerComposer(provider="mock")
-
-        # Mock search output containing query and unrelated results (mismatch)
-        search_data = {
-            "query": "구청장이 누구야?",
-            "top_k": 5,
-            "results": [
-                {
-                    "id": "unrelated-001",
-                    "title": "건설 도로 공사 안내",
-                    "url": "https://bukgu.gwangju.kr/menu.es?mid=a10500000000",
-                    "canonical_url": "https://bukgu.gwangju.kr/menu.es?mid=a10500000000",
-                    "category": "notice",
-                    "score": 10.0,
-                    "matched_terms": ["안내"],
-                    "matched_fields": ["title"],
-                    "snippet": "도로 정비 공사에 따른 통행 제한 안내문",
-                }
-            ],
-            "query_rewrite": {
-                "queries": ["구청장이 누구야", "구청장", "북구청장"],
-            }
-        }
-
-        response = composer.compose(search_data, max_sources=5)
-
-        # Confirm guard blocks it as mismatch
-        assert response.get("guard_status") == "no_results"
-        assert "mismatch" in response.get("guard_reason", "").lower()
-
-        # Confirms the UX gap: uses _no_results_answer() instead of _build_no_source_guidance()
-        # This generic response lacks the "구청장실", "기관장 소개" specialized navigation hints.
-        markdown = response.get("answer_markdown", "")
-        assert "관련 자료를 찾지 못했습니다." in markdown
-        assert "구청장실" not in markdown
-        assert "기관장 소개" not in markdown
-
-    @pytest.mark.xfail(reason="Stage 380 audit: mismatched sources fallback does not display specialized category guidance menu hints")
     def test_mismatch_fallback_retains_specialized_guidance(self):
-        """Source mismatch fallback 시에도 카테고리별 specialized guidance menu hint가 보존되는 기대 동작 (xfail)."""
+        """Source mismatch fallback 시에도 카테고리별 specialized guidance menu hint가 보존되는 기대 동작."""
         composer = AnswerComposer(provider="mock")
 
         search_data = {
