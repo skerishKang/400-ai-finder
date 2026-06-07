@@ -364,14 +364,14 @@ class TestSiteProfileLoader:
             "protected_patterns": [],
         }
 
-    def test_no_traversal_wiring(self):
-        """Ensure url_crawler.py does not reference crawl_filters or should_crawl_url."""
+    def test_traversal_wiring_implemented(self):
+        """Ensure url_crawler.py references crawl_filters and should_crawl_url."""
         import inspect
         try:
             import src.crawler.url_crawler as uc
             source = inspect.getsource(uc)
-            assert "crawl_filters" not in source
-            assert "should_crawl_url" not in source
+            assert "crawl_filters" in source
+            assert "should_crawl_url" in source
         except ImportError:
             pass
 

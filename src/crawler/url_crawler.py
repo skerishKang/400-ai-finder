@@ -5,10 +5,11 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunparse, urljoin
 
 from src.fetch import FetchProvider, get_fetch_provider
+from src.crawler.crawl_path_filter import should_crawl_url
 
 
 class URLCrawler:
-    def __init__(self, timeout=15, user_agent=None, fetch_provider=None):
+    def __init__(self, timeout=15, user_agent=None, fetch_provider=None, crawl_filters: dict | None = None):
         self.timeout = timeout
         self.user_agent = user_agent or (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -18,6 +19,7 @@ class URLCrawler:
         self.headers = {"User-Agent": self.user_agent}
         self.attachment_extensions = {'pdf', 'hwp', 'hwpx', 'docx', 'xlsx'}
         self.fetch_provider = self._resolve_fetch_provider(fetch_provider)
+        self.crawl_filters = crawl_filters
 
     @staticmethod
     def _resolve_fetch_provider(fp):
@@ -110,10 +112,11 @@ class URLCrawler:
                 })
             else:
                 if self.is_internal(base_url, normalized_url):
-                    internal_links.append({
-                        "text": link_text,
-                        "url": normalized_url
-                    })
+                    if should_crawl_url(normalized_url, self.crawl_filters):
+                        internal_links.append({
+                            "text": link_text,
+                            "url": normalized_url
+                        })
                 else:
                     external_links.append({
                         "text": link_text,
@@ -363,7 +366,8 @@ class URLCrawler:
                 if ext in self.attachment_extensions:
                     attachments.append({"text": text or f"{ext.upper()} File", "url": link_url, "type": ext})
                 elif self.is_internal(result["url"], link_url):
-                    internal_links.append({"text": text, "url": link_url})
+                    if should_crawl_url(link_url, self.crawl_filters):
+                        internal_links.append({"text": text, "url": link_url})
                 else:
                     external_links.append({"text": text, "url": link_url})
 

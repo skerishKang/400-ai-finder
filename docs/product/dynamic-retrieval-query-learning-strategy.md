@@ -436,6 +436,12 @@ Promote to validated scenario/snapshot/cache
 - Keeps the helper completely unwired from the runtime crawler traversal logic.
 - Recommends Stage 390 to wire the helper in `url_crawler.py` behind a default-allow fallback.
 
+### Stage 390 — Wire Crawl Path Filter into URLCrawler (Completed)
+- Stage 390 wires the `should_crawl_url` decision helper and the `SiteProfile.crawl_filters` config properties into `URLCrawler` traversal (`extract_links` phase).
+- Default behavior preserves 100% of discovered internal links when `crawl_filters` is `None` or `{}` (default-allow).
+- Fully validated via extensive unit tests in `tests/test_url_crawler.py` covering overrides, explicit denies, and municipal structural URL safety.
+- Recommends Stage 391 for site-profile-to-crawler integration path.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

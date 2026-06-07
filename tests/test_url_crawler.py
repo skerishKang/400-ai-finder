@@ -153,3 +153,154 @@ def test_crawler_fetch_provider_error_returns_error_result():
     result = crawler.analyze("https://example.com/")
     assert len(result["errors"]) > 0
     assert "Simulated failure" in result["errors"][0]
+
+
+# ======================================================================
+# Stage 390: Path filtering wiring and default-allow tests
+# ======================================================================
+
+def test_default_no_filters_preserves_internal_links():
+    # A. default no filters preserves internal links
+    base_url = "https://example.com"
+    html = """
+    <html>
+      <body>
+        <a href="/allowed1">Allowed 1</a>
+        <a href="/allowed2">Allowed 2</a>
+        <a href="/denied?print=1">Print URL</a>
+      </body>
+    </html>
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+
+    # Case 1: None
+    crawler_none = URLCrawler(crawl_filters=None)
+    links_none = crawler_none.extract_links(soup, base_url)
+    assert len(links_none["internal"]) == 3
+
+    # Case 2: {}
+    crawler_empty = URLCrawler(crawl_filters={})
+    links_empty = crawler_empty.extract_links(soup, base_url)
+    assert len(links_empty["internal"]) == 3
+
+
+def test_explicit_deny_removes_matching_internal_links():
+    # B. explicit deny removes matching internal links
+    base_url = "https://example.com"
+    html = """
+    <html>
+      <body>
+        <a href="/allowed1">Allowed 1</a>
+        <a href="/denied?print=1">Print URL</a>
+        <a href="/denied?utm_source=facebook">Tracking URL</a>
+      </body>
+    </html>
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+
+    crawler = URLCrawler(crawl_filters={
+        "deny_patterns": ["print=", "utm_source="]
+    })
+    links = crawler.extract_links(soup, base_url)
+    assert len(links["internal"]) == 1
+    assert links["internal"][0]["url"] == "https://example.com/allowed1"
+
+
+def test_protected_overrides_deny():
+    # C. protected overrides deny
+    base_url = "https://bukgu.gwangju.kr"
+    html = """
+    <html>
+      <body>
+        <a href="/menu.es?mid=a10103000000">Protected Menu</a>
+        <a href="/menu.es?print=1">Denied Print Menu</a>
+      </body>
+    </html>
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+
+    crawler = URLCrawler(crawl_filters={
+        "deny_patterns": ["menu.es"],
+        "protected_patterns": ["mid="]
+    })
+    links = crawler.extract_links(soup, base_url)
+    assert len(links["internal"]) == 1
+    assert links["internal"][0]["url"] == "https://bukgu.gwangju.kr/menu.es?mid=a10103000000"
+
+
+def test_allow_overrides_deny():
+    # D. allow overrides deny
+    base_url = "https://example.com"
+    html = """
+    <html>
+      <body>
+        <a href="/board/notice/view?id=123">Allowed view</a>
+        <a href="/board/notice/delete?id=123">Denied delete</a>
+      </body>
+    </html>
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+
+    crawler = URLCrawler(crawl_filters={
+        "allow_patterns": ["notice/view"],
+        "deny_patterns": ["notice"]
+    })
+    links = crawler.extract_links(soup, base_url)
+    assert len(links["internal"]) == 1
+    assert links["internal"][0]["url"] == "https://example.com/board/notice/view?id=123"
+
+
+def test_municipal_structural_urls_allowed_by_unrelated_deny():
+    # E. municipal structural URLs allowed by unrelated deny
+    base_url = "https://bukgu.gwangju.kr"
+    html = """
+    <html>
+      <body>
+        <a href="/menu.es?mid=a101">Menu ES mid</a>
+        <a href="/some/path?menuId=a101">Menu ID</a>
+        <a href="/board.es?seq=999">Board ES seq</a>
+        <a href="/content?contentId=123">Content ID</a>
+        <a href="/print-page?print=1">Unrelated Denied Page</a>
+      </body>
+    </html>
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+
+    crawler = URLCrawler(crawl_filters={
+        "deny_patterns": ["print="]
+    })
+    links = crawler.extract_links(soup, base_url)
+    assert len(links["internal"]) == 4
+    urls = [item["url"] for item in links["internal"]]
+    assert "https://bukgu.gwangju.kr/menu.es?mid=a101" in urls
+    assert "https://bukgu.gwangju.kr/some/path?menuId=a101" in urls
+    assert "https://bukgu.gwangju.kr/board.es?seq=999" in urls
+    assert "https://bukgu.gwangju.kr/content?contentId=123" in urls
+
+
+def test_external_links_unaffected():
+    # F. external links unaffected
+    base_url = "https://example.com"
+    html = """
+    <html>
+      <body>
+        <a href="https://external-site.com/denied?print=1">External Denied URL</a>
+        <a href="/internal/denied?print=1">Internal Denied URL</a>
+      </body>
+    </html>
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+
+    crawler = URLCrawler(crawl_filters={
+        "deny_patterns": ["print="]
+    })
+    links = crawler.extract_links(soup, base_url)
+    assert len(links["internal"]) == 0
+    assert len(links["external"]) == 1
+    assert links["external"][0]["url"] == "https://external-site.com/denied?print=1"
+
+
+def test_no_runtime_behavior_change_for_default_constructor():
+    # G. no runtime behavior change for default constructor
+    crawler = URLCrawler()
+    assert crawler.crawl_filters is None

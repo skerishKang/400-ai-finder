@@ -114,3 +114,16 @@ Korean public sector websites heavily use query parameters to represent their co
 - **Status**: Implemented configuration schema parsing property `crawl_filters` inside `SiteProfile` class (`src/site_profiles/site_profile.py`). Added 6 focused unit tests under `tests/test_site_profile.py` verifying missing, valid, invalid block, invalid pattern values, unknown keys ignored, and import isolation.
 - **Wiring**: Unwired. No logic in `url_crawler.py` references or uses `crawl_filters`.
 - **Next Step**: Stage 390 is still needed to safely integrate the decision helper into crawler traversal.
+
+---
+
+## Stage 390 Implementation Status (Completed)
+- **Wiring**: Successfully wired `should_crawl_url` decision helper and `SiteProfile.crawl_filters` config into the `URLCrawler` class inside `src/crawler/url_crawler.py` (specifically within the `extract_links()` stage).
+- **Aesthetic / Behavior**: Preserves 100% of previous traversal behavior when `crawl_filters` is omitted (i.e. default-allow is fully active).
+- **Verification**: Updated `tests/test_site_profile.py` assertions and added comprehensive test cases in `tests/test_url_crawler.py` covering:
+  - Default-allow behavior (None and `{}` values)
+  - Explicit deny patterns matching & filtering
+  - Protected overrides overriding deny rules
+  - Allow overrides overriding deny rules
+  - Structural municipal URLs surviving unrelated deny rules
+  - External link extraction remaining completely unaffected
