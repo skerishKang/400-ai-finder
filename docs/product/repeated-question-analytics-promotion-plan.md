@@ -109,3 +109,7 @@ python scripts/analyze_question_logs.py \
 - No live network, LLM, or fetch calls
 - All text fields are sanitized for secret/credential values
 - Human review is mandatory before any promotion
+
+## 10. Operator guide
+
+For the full operator workflow for collecting sanitized question logs, running the dry-run report, and reviewing candidates, see [Operator Question Log Guide](../operator-question-log-guide.md).
