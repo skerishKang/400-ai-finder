@@ -128,6 +128,53 @@ class SiteProfile:
     def notes(self) -> str:
         return str(self._data.get("notes", ""))
 
+    @property
+    def synonym_dictionary(self) -> dict[str, list[str]]:
+        """Optional site-specific synonym dictionary for retrieval expansion.
+
+        Maps a normalized key (e.g. ``"민원"``) to a list of related
+        retrieval terms (e.g. ``["종합민원", "온라인 민원", "민원서식"]``).
+
+        The dictionary is **optional**. Profiles that omit
+        ``synonym_dictionary`` return an empty dict. Invalid entries
+        (non-string keys, non-list values, blank/duplicate/non-string
+        items) are silently filtered out so that partial/legacy data
+        does not break loaders.
+
+        These values are retrieval candidates only. They are not answers
+        and must not contain person names, incumbent officeholders, or
+        volatile facts.
+        """
+        raw = self._data.get("synonym_dictionary", {})
+        if not isinstance(raw, dict):
+            return {}
+
+        result: dict[str, list[str]] = {}
+        for key, values in raw.items():
+            if not isinstance(key, str):
+                continue
+            key = key.strip()
+            if not key:
+                continue
+            if not isinstance(values, list):
+                continue
+
+            cleaned_values: list[str] = []
+            seen: set[str] = set()
+            for value in values:
+                if not isinstance(value, str):
+                    continue
+                value = value.strip()
+                if not value or value in seen:
+                    continue
+                seen.add(value)
+                cleaned_values.append(value)
+
+            if cleaned_values:
+                result[key] = cleaned_values
+
+        return result
+
     def _extract_domain(self) -> str:
         """Extract a domain from base_url as a fallback for allowed_domains."""
         m = re.search(r"https?://([^:/]+)", self.base_url)
@@ -148,6 +195,7 @@ class SiteProfile:
             "fallback_strategy": self.fallback_strategy,
             "crawl_rules": self.crawl_rules,
             "notes": self.notes,
+            "synonym_dictionary": self.synonym_dictionary,
         }
 
     def match_url(self, url: str) -> bool:
