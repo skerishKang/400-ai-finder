@@ -32,7 +32,8 @@ CANDIDATE_CONFIG = {
             "menuId=",
             "board.es",
             "seq=",
-            "contentId="
+            "contentId=",
+            "articleId="
         ]
     }
 }
@@ -138,7 +139,7 @@ def test_forbidden_deny_rule_guard():
     profile = SiteProfile(CANDIDATE_CONFIG)
     deny_patterns = profile.crawl_filters.get("deny_patterns", [])
     
-    forbidden = ["board.es", "mid=", "menuId=", "seq=", "contentId="]
+    forbidden = ["board.es", "mid=", "menuId=", "seq=", "contentId=", "articleId="]
     for pattern in forbidden:
         assert pattern not in deny_patterns, f"Pattern {pattern} is strictly forbidden in deny_patterns"
 
