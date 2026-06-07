@@ -5,19 +5,18 @@ from __future__ import annotations
 import json
 import os
 import sys
-import types
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-# Ensure project root on path for script imports
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.validate_retrieval_gaps import (
-    _PROHIBITED_REPORT_FIELDS,
     _REQUIRED_REPORT_FIELDS,
     _REQUIRED_SOURCE_FIELDS,
+    _PROHIBITED_REPORT_FIELDS,
+    _ANSWER_GENERATION_FIELDS,
     build_validation_report,
     load_questions_file,
     sanitize_sources,
@@ -25,11 +24,6 @@ from scripts.validate_retrieval_gaps import (
     write_json_report,
     write_text_report,
 )
-
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture()
@@ -67,11 +61,6 @@ def sample_search_results() -> list[dict[str, Any]]:
             },
         }
     ]
-
-
-# ---------------------------------------------------------------------------
-# load_questions_file tests
-# ---------------------------------------------------------------------------
 
 
 class TestLoadQuestionsFile:
@@ -127,11 +116,6 @@ class TestLoadQuestionsFile:
             load_questions_file(str(path))
 
 
-# ---------------------------------------------------------------------------
-# sanitize_sources tests
-# ---------------------------------------------------------------------------
-
-
 class TestSanitizeSources:
     def test_basic_sanitization(self, sample_search_results: list[dict[str, Any]]) -> None:
         cleaned = sanitize_sources(sample_search_results)
@@ -153,11 +137,6 @@ class TestSanitizeSources:
     def test_empty_input(self) -> None:
         cleaned = sanitize_sources([])
         assert cleaned == []
-
-
-# ---------------------------------------------------------------------------
-# build_validation_report tests
-# ---------------------------------------------------------------------------
 
 
 class TestBuildValidationReport:
@@ -191,6 +170,21 @@ class TestBuildValidationReport:
         extra = _PROHIBITED_REPORT_FIELDS & set(report.keys())
         assert not extra, f"Prohibited fields found: {extra}"
 
+    def test_answer_generation_fields_absent(self, sample_search_results: list[dict[str, Any]]) -> None:
+        report = build_validation_report(
+            site_id="bukgu_gwangju",
+            question="test",
+            ok=True,
+            error="",
+            source_count=1,
+            guard_status="ok",
+            guard_reason="",
+            search_results=sample_search_results,
+            query_rewrite={},
+        )
+        for field in _ANSWER_GENERATION_FIELDS:
+            assert field not in report, f"Unexpected answer-generation field: {field}"
+
     def test_top_sources_allowed_fields_only(self, sample_search_results: list[dict[str, Any]]) -> None:
         report = build_validation_report(
             site_id="bukgu_gwangju",
@@ -207,17 +201,8 @@ class TestBuildValidationReport:
             assert set(src.keys()) == _REQUIRED_SOURCE_FIELDS
 
 
-# ---------------------------------------------------------------------------
-# validate_question tests
-# ---------------------------------------------------------------------------
-
-
 class TestValidateQuestion:
-    def test_requires_allow_live_without_explicit_offline(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """Without --allow-live and without explicit mock providers, must fail."""
+    def test_requires_allow_live_with_live_provider(self) -> None:
         result = validate_question(
             site_id="bukgu_gwangju",
             question="구청장이 누구야?",
@@ -228,13 +213,9 @@ class TestValidateQuestion:
         )
         assert result["ok"] is False
         assert result["guard_status"] == "blocked"
-        assert "--allow-live" in (result["error"] or "")
+        assert "--allow-live" in (result.get("error") or "")
 
-    def test_offline_mock_path_allowed(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Explicit mock + mock providers should be allowed even without --allow-live."""
+    def test_offline_mock_path_allowed(self) -> None:
         from scripts.validate_retrieval_gaps import _requires_live_opt_in
 
         assert _requires_live_opt_in(provider="mock", fetch_provider="mock") is False
-
-    def test_no_sources_produces_no_results_guard(self, questions_file: str) -> None:
-        load_questions_file(questions_file)

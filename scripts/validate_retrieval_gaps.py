@@ -1,14 +1,30 @@
 #!/usr/bin/env python3
-"""validate_retrieval_gaps.py — Controlled live validation CLI for retrieval-gap checks.
+"""validate_retrieval_gaps.py — Retrieval-only validation CLI for gap checks.
+
+Retrieval-only design:
+
+    - Runs pipeline stages up to search only (homepage map → document index →
+      enrich → search).
+    - Does NOT run _step_answer() / AnswerComposer.compose() / provider.complete().
+    - Does NOT generate answer.md / answer.json.
+    - Reports source counts, guard status, query rewrite metadata, and
+      sanitized source summaries.
+
+Safe defaults:
+
+    - Default provider is ``mock``.
+    - Default fetch provider is ``mock``.
+    - Live fetch/network behavior requires explicit ``--allow-live`` plus
+      an explicit non-mock provider or fetch provider.
 
 Usage::
 
-    # Offline validation (no live fetch/pipeline):
+    # Offline validation:
     python scripts/validate_retrieval_gaps.py \
         --site-id bukgu_gwangju \
         --questions-file gap_questions.json
 
-    # Live validation (requires explicit --allow-live):
+    # Live validation (explicit opt-in):
     python scripts/validate_retrieval_gaps.py \
         --site-id bukgu_gwangju \
         --questions-file gap_questions.json \
@@ -22,9 +38,9 @@ import argparse
 import json
 import os
 import sys
+import tempfile
 from typing import Any
 
-# Ensure project root is on sys.path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # ---------------------------------------------------------------------------
@@ -60,6 +76,20 @@ _PROHIBITED_REPORT_FIELDS = {
     "auth_header",
 }
 
+# Answer-generation fields that must not appear in validation reports.
+_ANSWER_GENERATION_FIELDS = {
+    "answer",
+    "answer_markdown",
+    "answer_md",
+    "prompt",
+    "messages",
+    "raw_provider_response",
+    "provider_response",
+    "completion",
+    "full_text",
+    "text",
+}
+
 
 # ---------------------------------------------------------------------------
 # Guard helpers
@@ -75,21 +105,25 @@ def _requires_live_opt_in(provider: str | None, fetch_provider: str | None) -> b
 
 
 def _enforce_live_opt_in(
-    parser: argparse.ArgumentParser,
+    parser_or_provider: Any,
     *,
     provider: str | None,
     fetch_provider: str | None,
     allow_live: bool,
 ) -> None:
+    # Avoid argparse coupling: accept argparse parser or string msg.
     if allow_live:
         return
     if not _requires_live_opt_in(provider=provider, fetch_provider=fetch_provider):
         return
-    parser.error(
+    msg = (
         "validate_retrieval_gaps.py may execute live provider/fetch/network/API paths. "
         "Pass --allow-live to opt in explicitly, or use --provider mock "
         "and --fetch-provider mock for offline/no-network execution."
     )
+    if hasattr(parser_or_provider, "error"):
+        parser_or_provider.error(msg)
+    raise SystemExit(msg)
 
 
 # ---------------------------------------------------------------------------
@@ -98,10 +132,6 @@ def _enforce_live_opt_in(
 
 
 def load_questions_file(path: str) -> list[str]:
-    """Load and validate a questions JSON file.
-
-    Raises SystemExit on any validation failure.
-    """
     try:
         with open(path, "r", encoding="utf-8") as f:
             raw = f.read()
@@ -116,10 +146,7 @@ def load_questions_file(path: str) -> list[str]:
         sys.exit(1)
 
     if not isinstance(data, dict):
-        print(
-            "Malformed questions file: root must be a JSON object.",
-            file=sys.stderr,
-        )
+        print("Malformed questions file: root must be a JSON object.", file=sys.stderr)
         sys.exit(1)
 
     if "questions" not in data:
@@ -154,7 +181,6 @@ def load_questions_file(path: str) -> list[str]:
 
 
 def sanitize_sources(search_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Keep only stable, non-sensitive metadata from search results."""
     cleaned: list[dict[str, Any]] = []
     for result in search_results:
         source: dict[str, Any] = {
@@ -166,6 +192,14 @@ def sanitize_sources(search_results: list[dict[str, Any]]) -> list[dict[str, Any
         }
         cleaned.append(source)
     return cleaned
+
+
+def _assert_no_answer_fields(report: dict[str, Any]) -> None:
+    extra = _ANSWER_GENERATION_FIELDS & set(report.keys())
+    if extra:
+        raise ValueError(
+            f"Validation report must not contain answer-generation fields: {sorted(extra)}"
+        )
 
 
 def build_validation_report(
@@ -180,7 +214,6 @@ def build_validation_report(
     search_results: list[dict[str, Any]],
     query_rewrite: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Build a single-question validation report with safe metadata only."""
     report: dict[str, Any] = {
         "question": question,
         "site_id": site_id,
@@ -198,21 +231,178 @@ def build_validation_report(
         },
     }
 
-    # Sanity check: required fields
     missing = _REQUIRED_REPORT_FIELDS - set(report.keys())
     if missing:
         raise ValueError(f"Report missing required fields: {missing}")
 
-    # Sanity check: prohibited fields
     extra = _PROHIBITED_REPORT_FIELDS & set(report.keys())
     if extra:
         raise ValueError(f"Report contains prohibited fields: {extra}")
 
+    _assert_no_answer_fields(report)
     return report
 
 
 # ---------------------------------------------------------------------------
-# Single-question validation logic (pure + testable)
+# Retrieval-only pipeline execution
+# ---------------------------------------------------------------------------
+
+
+def _retrieval_only(
+    *,
+    site_id: str,
+    question: str,
+    provider: str | None = None,
+    model: str | None = None,
+    fetch_provider: str | None = None,
+    top_k: int = 5,
+    max_sources: int = 5,
+    max_chars: int = 12000,
+    max_enrich_pages: int = 20,
+) -> dict[str, Any]:
+    """Run retrieval stages only (up to search).
+
+    This never invokes AnswerComposer or any provider .complete() call.
+    """
+    try:
+        from src.site_profiles import load_profile
+        from src.pipeline.pipeline_runner import PipelineRunner
+        from src.answer.answer_composer import AnswerComposer
+        from src.search.source_match_guard import assess_source_match
+    except Exception as e:  # pragma: no cover - import safety fallback
+        return {
+            "ok": False,
+            "error": f"Import error during retrieval setup: {e}",
+            "search_results": [],
+            "sources": [],
+            "query_rewrite": None,
+            "guard_status": "error",
+            "guard_reason": str(e),
+        }
+
+    try:
+        profile = load_profile(site_id)
+        url = profile.base_url
+    except Exception as e:
+        return {
+            "ok": False,
+            "error": f"Failed to load site profile '{site_id}': {e}",
+            "search_results": [],
+            "sources": [],
+            "query_rewrite": None,
+            "guard_status": "error",
+            "guard_reason": str(e),
+        }
+
+    run_dir = tempfile.mkdtemp(prefix="validate_gaps_")
+    try:
+        runner = PipelineRunner(
+            output_dir=run_dir,
+            provider=provider or "mock",
+            fetch_provider=fetch_provider,
+            max_chars=max_chars,
+            max_enrich_pages=max_enrich_pages,
+            top_k=top_k,
+            max_sources=max_sources,
+            model=model,
+        )
+
+        # Stage 1-4 only. Intentionally skip _step_answer() / AnswerComposer.
+        step_map = runner._step_homepage_map(url)
+        if not step_map["ok"]:
+            return {
+                "ok": False,
+                "error": step_map.get("error", "homepage_map failed"),
+                "search_results": [],
+                "sources": [],
+                "query_rewrite": None,
+                "guard_status": "error",
+                "guard_reason": step_map.get("error", "homepage_map failed"),
+            }
+
+        homepage_map = runner._load_json(step_map["output"])
+        step_index = runner._step_document_index(homepage_map)
+        if not step_index["ok"]:
+            return {
+                "ok": False,
+                "error": step_index.get("error", "document_index failed"),
+                "search_results": [],
+                "sources": [],
+                "query_rewrite": None,
+                "guard_status": "error",
+                "guard_reason": step_index.get("error", "document_index failed"),
+            }
+
+        step_enrich = runner._step_enriched_index(step_index["output"])
+        if not step_enrich["ok"]:
+            return {
+                "ok": False,
+                "error": step_enrich.get("error", "enriched_index failed"),
+                "search_results": [],
+                "sources": [],
+                "query_rewrite": None,
+                "guard_status": "error",
+                "guard_reason": step_enrich.get("error", "enriched_index failed"),
+            }
+
+        step_search = runner._step_search(
+            query=question,
+            enriched_path=step_enrich["output"],
+            site_id=site_id,
+        )
+        if not step_search["ok"]:
+            return {
+                "ok": False,
+                "error": step_search.get("error", "search failed"),
+                "search_results": [],
+                "sources": [],
+                "query_rewrite": None,
+                "guard_status": "error",
+                "guard_reason": step_search.get("error", "search failed"),
+            }
+
+        search_path = step_search["output"]
+        search_data = runner._load_json(search_path)
+        search_results = search_data.get("results", [])
+        query_rewrite = search_data.get("query_rewrite")
+
+        # Extract sources without invoking AnswerComposer.compose().
+        sources = AnswerComposer._extract_sources(search_results, max_sources=max_sources)
+        source_count = len(sources)
+
+        if source_count == 0:
+            guard_status = "no_results"
+            guard_reason = "No sources retrieved."
+        else:
+            assessment = assess_source_match(
+                question,
+                sources,
+                query_rewrite_queries=(query_rewrite or {}).get("queries", []),
+            )
+            guard_status = assessment.status
+            guard_reason = assessment.reason or ""
+
+        return {
+            "ok": True,
+            "error": "",
+            "search_results": search_results,
+            "sources": sources,
+            "query_rewrite": query_rewrite,
+            "source_count": source_count,
+            "guard_status": guard_status,
+            "guard_reason": guard_reason,
+        }
+    finally:
+        try:
+            for name in os.listdir(run_dir):
+                os.remove(os.path.join(run_dir, name))
+            os.rmdir(run_dir)
+        except OSError:
+            pass
+
+
+# ---------------------------------------------------------------------------
+# Public validation API used by CLI / tests
 # ---------------------------------------------------------------------------
 
 
@@ -227,14 +417,9 @@ def validate_question(
     top_k: int = 5,
     max_sources: int = 5,
 ) -> dict[str, Any]:
-    """Run one validation question through the pipeline and return a report.
-
-    This function intentionally does NOT generate or return LLM answers.
-    It only returns retrieval metadata: sources, guard status, query rewrite.
-    """
-    # SAFETY: require explicit opt-in before any live execution path
     if not allow_live and _requires_live_opt_in(
-        provider=provider, fetch_provider=fetch_provider
+        provider=provider,
+        fetch_provider=fetch_provider,
     ):
         return build_validation_report(
             site_id=site_id,
@@ -248,74 +433,27 @@ def validate_question(
             query_rewrite=None,
         )
 
-    try:
-        from src.demo import SiteDemoRunner
-        from src.pipeline.pipeline_runner import PipelineRunner
+    pipeline_out = _retrieval_only(
+        site_id=site_id,
+        question=question,
+        provider=provider,
+        model=model,
+        fetch_provider=fetch_provider,
+        top_k=top_k,
+        max_sources=max_sources,
+    )
 
-        runner = SiteDemoRunner(
-            site_id=site_id,
-            provider=provider or "mock",
-            model=model,
-            fetch_provider=fetch_provider,
-            top_k=top_k,
-            max_sources=max_sources,
-        )
-
-        # Use the pipeline directly to avoid answering; we only need retrieval data
-        pipeline_result = runner.answer(question)
-        search_results = pipeline_result.get("search_results", [])
-        sources = pipeline_result.get("sources", [])
-        warnings = pipeline_result.get("warnings", [])
-        fallback_used = pipeline_result.get("fallback_used", False)
-
-        # Determine guard status from answer stage or fallback signal
-        if not search_results and not sources:
-            guard_status = "no_results"
-            guard_reason = "No sources retrieved."
-        elif fallback_used:
-            guard_status = "warn"
-            guard_reason = "Homepage map fallback used (no direct retrieval match)."
-        else:
-            guard_status = "ok"
-            guard_reason = ""
-
-        # Extract query rewrite from pipeline output directory if available
-        query_rewrite = None
-        run_dir = pipeline_result.get("output_dir")
-        if run_dir:
-            search_path = os.path.join(run_dir, "search-results.json")
-            if os.path.exists(search_path):
-                try:
-                    with open(search_path, "r", encoding="utf-8") as f:
-                        search_data = json.load(f)
-                    query_rewrite = search_data.get("query_rewrite")
-                except (json.JSONDecodeError, OSError):
-                    pass
-
-        return build_validation_report(
-            site_id=site_id,
-            question=question,
-            ok=True,
-            error="",
-            source_count=len(sources),
-            guard_status=guard_status,
-            guard_reason=guard_reason or (warnings[0] if warnings else ""),
-            search_results=sources,
-            query_rewrite=query_rewrite,
-        )
-
-    except Exception as e:
-        return build_validation_report(
-            site_id=site_id,
-            question=question,
-            ok=False,
-            error=str(e),
-            source_count=0,
-            guard_status="error",
-            guard_reason=str(e),
-            search_results=[],
-            query_rewrite=None,
-        )
+    return build_validation_report(
+        site_id=site_id,
+        question=question,
+        ok=pipeline_out["ok"],
+        error=pipeline_out.get("error", ""),
+        source_count=pipeline_out.get("source_count", 0),
+        guard_status=pipeline_out.get("guard_status"),
+        guard_reason=pipeline_out.get("guard_reason", ""),
+        search_results=pipeline_out.get("sources", []),
+        query_rewrite=pipeline_out.get("query_rewrite"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -383,8 +521,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--provider",
-        default=None,
-        help="LLM provider name (default: None / profile default)",
+        default="mock",
+        help="LLM provider name (default: mock)",
     )
     parser.add_argument(
         "--model",
@@ -393,8 +531,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--fetch-provider",
-        default=None,
-        help="Fetch provider name (default: from profile)",
+        default="mock",
+        help="Fetch provider name (default: mock)",
     )
     parser.add_argument(
         "--top-k",
@@ -433,17 +571,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
 
-    # Enforce guard before loading questions or running pipeline
-    _enforce_live_opt_in(
-        parser=argparse.ArgumentParser(),  # only used for error formatting
+    if not args.allow_live and _requires_live_opt_in(
         provider=args.provider,
         fetch_provider=args.fetch_provider,
-        allow_live=args.allow_live,
-    )
+    ):
+        print(
+            "validate_retrieval_gaps.py may execute live provider/fetch/network/API paths. "
+            "Pass --allow-live to opt in explicitly, or use --provider mock "
+            "and --fetch-provider mock for offline/no-network execution.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     questions = load_questions_file(args.questions_file)
 
-    # Aggregate report
     aggregated: dict[str, Any] = {
         "site_id": args.site_id,
         "allow_live": args.allow_live,
@@ -466,12 +607,10 @@ def main(argv: list[str] | None = None) -> None:
         )
         aggregated["questions"].append(report)
 
-    # Write or print report
     if args.output:
         if args.output_format == "json":
             write_json_report(aggregated, args.output)
         else:
-            # For text output, write a combined text report
             lines: list[str] = []
             lines.append(f"Site   : {aggregated.get('site_id', '')}")
             lines.append(f"Live   : {aggregated.get('allow_live', False)}")
