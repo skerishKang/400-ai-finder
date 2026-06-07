@@ -113,3 +113,9 @@ python scripts/analyze_question_logs.py \
 ## 10. Operator guide
 
 For the full operator workflow for collecting sanitized question logs, running the dry-run report, and reviewing candidates, see [Operator Question Log Guide](../operator-question-log-guide.md).
+
+## 11. Promotion review workflow
+
+For the human-review workflow that classifies dry-run candidates as cache review, scenario review, retrieval gaps, or monitor-only items, see [Scenario/Cache Promotion Review Workflow](../scenario-cache-promotion-review-workflow.md).
+
+Promotion is always manual and requires a separate follow-up issue — this planning document and the review workflow do not create scenarios, snapshots, caches, or pull requests automatically.
