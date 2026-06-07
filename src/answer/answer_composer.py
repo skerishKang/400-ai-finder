@@ -238,14 +238,13 @@ class AnswerComposer:
             lines.append(f"snippet: {snippet}")
             lines.append("")  # blank line between sources
         return "\n".join(lines).rstrip("\n")
-
     def _build_messages(
         self, query: str, source_context: str
     ) -> list[dict[str, str]]:
         user_prompt = (
             f"## 사용자 질문\n\n{query}\n\n"
             f"## Source Context\n\n{source_context}\n\n"
-            f"위 Source Context의 정보만 사용하여 답변을 작성하라.\n"
+            f"위 Source Context의 정보만 사용하여 답변을 작성하라. "
             f"출력은 한국어 존댓말 Markdown으로 한다."
         )
         return [
