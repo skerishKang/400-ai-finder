@@ -1,5 +1,5 @@
-"""Tests for scripts/validate_retrieval_gaps.py"""
 
+"""Tests for scripts/validate_retrieval_gaps.py"""
 from __future__ import annotations
 
 import json
@@ -23,6 +23,7 @@ from scripts.validate_retrieval_gaps import (
     validate_question,
     write_json_report,
     write_text_report,
+    _retrieval_only,
 )
 
 
@@ -219,3 +220,138 @@ class TestValidateQuestion:
         from scripts.validate_retrieval_gaps import _requires_live_opt_in
 
         assert _requires_live_opt_in(provider="mock", fetch_provider="mock") is False
+
+
+class TestRetrievalOnlyBoundary:
+    def test_does_not_call_answer_composer(self, questions_file: str, monkeypatch: pytest.MonkeyPatch) -> None:
+        from scripts.validate_retrieval_gaps import _retrieval_only
+        from src.answer.answer_composer import AnswerComposer as RealAnswerComposer
+
+        compose_calls: list[list[Any]] = []
+
+        def fake_compose(self, *args, **kwargs):
+            compose_calls.append([args, kwargs])
+            raise AssertionError("AnswerComposer.compose must not be called in retrieval-only path")
+
+        monkeypatch.setattr(RealAnswerComposer, "compose", fake_compose)
+
+        result = _retrieval_only(
+            site_id="bukgu_gwangju",
+            question="민원서식 어디서 받아?",
+            provider="mock",
+            fetch_provider="mock",
+        )
+        assert result.get("ok") is True or result.get("ok") is False
+        assert not compose_calls
+
+    def test_does_not_create_answer_artifacts(self, questions_file: str, monkeypatch: pytest.MonkeyPatch) -> None:
+        from scripts.validate_retrieval_gaps import _retrieval_only
+        from src.pipeline.pipeline_runner import PipelineRunner
+
+        def fake_step_answer(self, *args, **kwargs):
+            raise AssertionError("_step_answer must not be called in retrieval-only path")
+
+        monkeypatch.setattr(PipelineRunner, "_step_answer", fake_step_answer)
+
+        result = _retrieval_only(
+            site_id="bukgu_gwangju",
+            question="민원서식 어디서 받아?",
+            provider="mock",
+            fetch_provider="mock",
+        )
+        assert not result.get("answer_paths")
+
+    def test_cli_main_offline_default_succeeds(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        from scripts.validate_retrieval_gaps import parse_args, main
+
+        questions_path = tmp_path / "questions.json"
+        questions_path.write_text(
+            json.dumps({"questions": ["민원서식 어디서 받아?"]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        main(["--site-id", "bukgu_gwangju", "--questions-file", str(questions_path)])
+        captured = capsys.readouterr().out
+        assert "민원서식 어디서 받아?" in captured
+
+    def test_live_fetch_blocked_before_retrieval_only(self, questions_file: str) -> None:
+        from scripts.validate_retrieval_gaps import validate_question
+
+        result = validate_question(
+            site_id="bukgu_gwangju",
+            question="구청장이 누구야?",
+            provider="openai_compatible",
+            fetch_provider="requests",
+            allow_live=False,
+        )
+        assert result["ok"] is False
+        assert result["guard_status"] == "blocked"
+        assert "--allow-live" in (result.get("error") or "")
+
+    def test_report_excludes_answer_generation_fields_on_blocked(self, questions_file: str) -> None:
+        from scripts.validate_retrieval_gaps import validate_question
+
+        result = validate_question(
+            site_id="bukgu_gwangju",
+            question="구청장이 누구야?",
+            provider="openai_compatible",
+            fetch_provider="requests",
+            allow_live=False,
+        )
+        for field in [
+            "answer",
+            "answer_markdown",
+            "answer_md",
+            "prompt",
+            "messages",
+            "raw_provider_response",
+            "provider_response",
+            "completion",
+            "full_text",
+            "text",
+        ]:
+            assert field not in result
+
+
+class TestRetrievalOnlyBoundary:
+    def test_does_not_call_answer_composer(self, questions_file: str, monkeypatch: pytest.MonkeyPatch) -> None:
+        from scripts.validate_retrieval_gaps import _retrieval_only
+        from src.answer.answer_composer import AnswerComposer as RealAnswerComposer
+
+        compose_calls: list[list[Any]] = []
+        original_compose = RealAnswerComposer.compose
+
+        def fake_compose(self, *args, **kwargs):
+            compose_calls.append([args, kwargs])
+            raise AssertionError("AnswerComposer.compose must not be called in retrieval-only path")
+
+        monkeypatch.setattr(RealAnswerComposer, "compose", fake_compose)
+
+        result = _retrieval_only(
+            site_id="bukgu_gwangju",
+            question="민원서식 어디서 받아?",
+            provider="mock",
+            fetch_provider="mock",
+        )
+        assert result.get("ok") is True or result.get("ok") is False
+        assert not compose_calls
+
+    def test_does_not_create_answer_artifacts(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        from scripts.validate_retrieval_gaps import _retrieval_only
+        from src.pipeline.pipeline_runner import PipelineRunner
+
+        original_step_answer = PipelineRunner._step_answer
+
+        def fake_step_answer(self, *args, **kwargs):
+            raise AssertionError("_step_answer must not be called in retrieval-only path")
+
+        monkeypatch.setattr(PipelineRunner, "_step_answer", fake_step_answer)
+
+        result = _retrieval_only(
+            site_id="bukgu_gwangju",
+            question="민원서식 어디서 받아?",
+            provider="mock",
+            fetch_provider="mock",
+        )
+        if result.get("answer_paths"):
+            assert not result["answer_paths"], "answer artifacts must not be created"

@@ -3,10 +3,11 @@
 
 Retrieval-only design:
 
-    - Runs pipeline stages up to search only (homepage map → document index →
-      enrich → search).
+    - Runs pipeline stages up to search only (homepage map -> document index ->
+      enrich -> search).
     - Does NOT run _step_answer() / AnswerComposer.compose() / provider.complete().
-    - Does NOT generate answer.md / answer.json.
+    - Does NOT generate answer.md / answer.json or finalize sources through the
+      answer path.
     - Reports source counts, guard status, query rewrite metadata, and
       sanitized source summaries.
 
@@ -20,15 +21,15 @@ Safe defaults:
 Usage::
 
     # Offline validation:
-    python scripts/validate_retrieval_gaps.py \
-        --site-id bukgu_gwangju \
+    python scripts/validate_retrieval_gaps.py \\
+        --site-id bukgu_gwangju \\
         --questions-file gap_questions.json
 
     # Live validation (explicit opt-in):
-    python scripts/validate_retrieval_gaps.py \
-        --site-id bukgu_gwangju \
-        --questions-file gap_questions.json \
-        --allow-live \
+    python scripts/validate_retrieval_gaps.py \\
+        --site-id bukgu_gwangju \\
+        --questions-file gap_questions.json \\
+        --allow-live \\
         --fetch-provider requests
 """
 
@@ -194,6 +195,34 @@ def sanitize_sources(search_results: list[dict[str, Any]]) -> list[dict[str, Any
     return cleaned
 
 
+def extract_sources_for_report(
+    search_results: list[dict[str, Any]],
+    max_sources: int,
+) -> list[dict[str, Any]]:
+    """Extract safe source metadata without importing AnswerComposer."""
+    sources: list[dict[str, Any]] = []
+    for res in search_results[:max_sources]:
+        metadata = res.get("metadata") or {}
+        sources.append(
+            {
+                "rank": res.get("rank", 0),
+                "id": res.get("id", ""),
+                "title": res.get("title", ""),
+                "url": res.get("url", ""),
+                "category": res.get("category", ""),
+                "content_type": res.get("content_type", ""),
+                "score": res.get("score", 0.0),
+                "matched_terms": res.get("matched_terms", []),
+                "matched_fields": res.get("matched_fields", []),
+                "snippet": (res.get("snippet") or "")[:500],
+                "description": (metadata.get("description") or "")[:300],
+                "fetch_status": metadata.get("fetch_status", ""),
+                "source_types": list(metadata.get("source_types", [])),
+            }
+        )
+    return sources
+
+
 def _assert_no_answer_fields(report: dict[str, Any]) -> None:
     extra = _ANSWER_GENERATION_FIELDS & set(report.keys())
     if extra:
@@ -267,7 +296,6 @@ def _retrieval_only(
     try:
         from src.site_profiles import load_profile
         from src.pipeline.pipeline_runner import PipelineRunner
-        from src.answer.answer_composer import AnswerComposer
         from src.search.source_match_guard import assess_source_match
     except Exception as e:  # pragma: no cover - import safety fallback
         return {
@@ -295,6 +323,7 @@ def _retrieval_only(
         }
 
     run_dir = tempfile.mkdtemp(prefix="validate_gaps_")
+    produced_answer_paths: list[str] = []
     try:
         runner = PipelineRunner(
             output_dir=run_dir,
@@ -366,9 +395,12 @@ def _retrieval_only(
         search_results = search_data.get("results", [])
         query_rewrite = search_data.get("query_rewrite")
 
-        # Extract sources without invoking AnswerComposer.compose().
-        sources = AnswerComposer._extract_sources(search_results, max_sources=max_sources)
+        sources = extract_sources_for_report(search_results, max_sources=max_sources)
         source_count = len(sources)
+
+        answer_path = os.path.join(run_dir, "answer.json")
+        answer_md_path = os.path.join(run_dir, "answer.md")
+        produced_answer_paths = [p for p in (answer_path, answer_md_path) if os.path.exists(p)]
 
         if source_count == 0:
             guard_status = "no_results"
@@ -391,6 +423,7 @@ def _retrieval_only(
             "source_count": source_count,
             "guard_status": guard_status,
             "guard_reason": guard_reason,
+            "answer_paths": produced_answer_paths,
         }
     finally:
         try:
