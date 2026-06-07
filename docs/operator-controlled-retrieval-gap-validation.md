@@ -8,7 +8,21 @@ This guide covers `scripts/validate_retrieval_gaps.py` as an operator-facing wor
 - Its job is to check whether official candidate sources are retrieved through the controlled pipeline.
 - It is not a proof tool for exact factual absence. A negative result can mean a retrieval gap, an unsupported query, or a query that is not well aligned to the site's source structure.
 
-## 2. When to use
+## 2. CLI-only boundary
+
+Controlled retrieval-gap validation is currently CLI-only.
+
+Do not expose this workflow through `/api`, admin dashboard, mobile UI, or any HTTP route without a separate approved follow-up issue.
+
+The CLI `--allow-live` flag does not mean that an HTTP request field such as `allow_live` is supported or safe to add.
+
+Endpoint/admin/dashboard wiring is out of scope until a later approved design and implementation stage.
+
+Default `provider=mock` and `fetch_provider=mock` behavior must remain unchanged.
+
+No answer-generation path may be introduced. There is no supported HTTP/API `allow_live` request field. Endpoint, admin UI, and dashboard wiring remain prohibited until a separately approved follow-up stage.
+
+## 3. When to use
 
 Use it for:
 
