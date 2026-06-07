@@ -309,6 +309,11 @@ Promote to validated scenario/snapshot/cache
 - The CLI reads sanitized JSONL question logs and produces a Markdown report separating promotion candidates from retrieval gaps.
 - No live network, LLM, fetch, or external storage calls are used.
 
+### Stage 354 — Operator Question Log Guide (Completed)
+- Stage 354 adds an operator guide for collecting sanitized question logs and running local dry-run analytics reports. It keeps logging local/offline and requires human review before any scenario/cache promotion.
+- The guide documents safe JSONL format, what must never be logged, the dry-run report command, and the human review workflow.
+- No code or test changes. Docs-only.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

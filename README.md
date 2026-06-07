@@ -301,6 +301,7 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 실행 흐름, 데모, smoke eval, live provider 사용법은 다음 문서를 참고하십시오:
 
 - [`docs/operator-quickstart.md`](docs/operator-quickstart.md) — 운영자 빠른 안내서 (offline → live 순서)
+- [`docs/operator-question-log-guide.md`](docs/operator-question-log-guide.md) — Operator Question Log Guide (sanitized log collection + dry-run analytics)
 - [`docs/smoke-eval-flow.md`](docs/smoke-eval-flow.md) — Smoke eval CLI 흐름
 - [`docs/bukgu-live-demo-package.md`](docs/bukgu-live-demo-package.md) — Buk-gu live LLM demo package (외부 시연용)
 - [`docs/bukgu-demo-one-page-handout.md`](docs/bukgu-demo-one-page-handout.md) — Buk-gu demo one-page handout (외부 시연용 1페이지 요약)
