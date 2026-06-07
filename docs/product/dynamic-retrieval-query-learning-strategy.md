@@ -314,6 +314,12 @@ Promote to validated scenario/snapshot/cache
 - The guide documents safe JSONL format, what must never be logged, the dry-run report command, and the human review workflow.
 - No code or test changes. Docs-only.
 
+### Stage 355 — Scenario/Cache Promotion Review Workflow (Completed)
+- Stage 355 adds the human review workflow for scenario/cache promotion candidates. It defines how dry-run report candidates should be classified as cache review, scenario review, retrieval gaps, or monitor-only items, without automatic promotion.
+- Adds review checklists, a decision matrix, and follow-up issue templates for cache, scenario, and retrieval-gap candidates.
+- Cross-linked from the repeated-question analytics promotion plan and the operator quickstart.
+- No code or test changes. Docs-only.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
