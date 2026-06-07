@@ -142,3 +142,10 @@ Korean public sector websites heavily use query parameters to represent their co
 - **Candidates**: Defined conservative initial configuration rules (deny prints, tracking parameters, protect structural parameters, allow-patterns left empty by default).
 - **Plan**: Outlined the pre-Stage 393/394 contract verification test plan.
 - **Next Step**: Stage 393.
+
+---
+
+## Stage 393 Implementation Status (Completed)
+- **Status**: Implemented the complete 8-point verification plan locally inside `tests/test_municipal_crawl_filters_config_contract.py`.
+- **Validation**: Assured that all synthetic candidate configurations correctly filter prints/tracking parameters while leaving core pagination, boards, and structural municipal parameters completely untouched.
+- **Next Step**: Stage 394.

@@ -455,6 +455,13 @@ Promote to validated scenario/snapshot/cache
 - Establishes a comprehensive test validation plan for Stage 393.
 - Recommends Stage 393 for config fixture contract tests.
 
+### Stage 393 — Config Fixture Contract Tests (Completed)
+- Stage 393 implements the complete contract verification test plan in `tests/test_municipal_crawl_filters_config_contract.py` before any real configs are changed.
+- Validates the candidate rules via synthetic mock HTML crawlers, ensuring tracking parameters are denied while protected/structural municipal URLs are kept.
+- Locks down pagination parameters (`pageNo`, `currentPage`) as deferred.
+- Enforces deny-list forbidden guards statically, preventing critical fields from being denied.
+- Recommends Stage 394 to introduce the first real configs.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

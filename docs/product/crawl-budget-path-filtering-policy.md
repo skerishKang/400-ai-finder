@@ -148,3 +148,16 @@ The following test matrix will govern the verification of the filter decision he
 - **Candidates**: Proposed initial conservative candidate rules: deny prints/tracking parameters, protect core navigation/article parameters, keep allow patterns empty by default to prevent overriding denies accidentally.
 - **Safety Boundaries**: Outlined deny candidates risk analysis (strict ban on denying `board.es`, `mid=`, `seq=`, etc. to prevent crawl loss) and established an 8-point pre-Stage 393/394 validation test plan.
 - **Next Step**: Stage 393.
+
+---
+
+## Stage 393 Config Fixture Contract Tests (Completed)
+- **Status**: Contract verification tests successfully implemented in `tests/test_municipal_crawl_filters_config_contract.py`.
+- **Validation**:
+  - Validated synthetic config parsing.
+  - Locked preservation of protected parameters (`mid=`, `menuId=`, `board.es`, `seq=`, `contentId=`, `articleId=`).
+  - Checked explicit denies of print/tracking URLs.
+  - Locked preservation of pagination parameters (`pageNo`, `currentPage`) as deferred.
+  - Enforced a forbidden guard on the deny list (no critical parameters in `deny_patterns`).
+  - Verified pipeline runner mock mapping.
+- **Next Step**: Stage 394.

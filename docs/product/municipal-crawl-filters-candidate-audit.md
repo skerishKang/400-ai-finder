@@ -99,3 +99,18 @@ Before any real YAML configuration files are modified (planned for Stage 394), t
 - **Stage 393**: Add config fixture contract tests only. No real YAML configuration modifications are allowed.
 - **Stage 394**: Apply the candidate configurations to real municipal YAML files only after all Stage 393 contract tests pass successfully.
 - **Stage 395+**: Execute controlled live smoke tests with the updated configs, subject to explicit user approval.
+
+---
+
+## Stage 393 Implementation Status (Completed)
+- **Status**: Implemented the full contract validation suite in `tests/test_municipal_crawl_filters_config_contract.py`.
+- **Validation**:
+  1. Synthetic Candidate Config Fixture Test: Verified config parser sanitizes candidate filters accurately.
+  2. Protected Municipal URL Preservation Test: Checked that `/menu.es?mid=`, `/some/path?menuId=`, `/board.es?seq=`, `/content?contentId=`, `/article?articleId=` links are preserved.
+  3. Deny Duplicate/Tracking Test: Checked print and UTM links are filtered out.
+  4. Pagination Deferred Test: Checked `pageNo` and `currentPage` continue to be allowed.
+  5. Forbidden Deny Rule Guard Test: Checked critical parameters are never present in the deny lists.
+  6. Pipeline Synthetic Profile Fixture Test: Verified mapping propagation in `PipelineRunner`.
+  7. No Real Config Mutation: Statically ensured no config YAML files are touched.
+  8. No Live/Network/API: All tests executed locally with BeautifulSoup mocks.
+- **Next Step**: Stage 394.
