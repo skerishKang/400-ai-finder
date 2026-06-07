@@ -396,6 +396,13 @@ Promote to validated scenario/snapshot/cache
 - Documents findings and maps out a roadmap in [query-rewrite-retrieval-integration-audit.md](./query-rewrite-retrieval-integration-audit.md).
 - No code or test changes. Docs-only.
 
+### Stage 384 — Municipal Service Crawl and Index Completeness Audit (Completed)
+- Stage 384 audits the site profile configurations, crawl pipelines, and indexing structures for public-sector municipal services.
+- Identifies limitations in current link classification keywords (missing mapping for contacts, locations, and announcement synonyms) and crawl budget starvation risks under recursive crawling.
+- Outlines recommendations for Stage 385 to expand category keyword classification and introduce targeted crawl rules.
+- No code or test changes. Docs-only.
+
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
