@@ -357,6 +357,7 @@ This workflow does **not**:
 ## 12. Related documents
 
 - [Operator Question Log Guide](operator-question-log-guide.md)
+- [Promotion Candidate Review Template](promotion-candidate-review-template.md) — copy-pasteable review template for human reviewers
 - [Repeated Question Analytics and Promotion Plan](product/repeated-question-analytics-promotion-plan.md)
 - [Dynamic Retrieval and Query Learning Strategy](product/dynamic-retrieval-query-learning-strategy.md)
 - `scripts/analyze_question_logs.py` — Stage 353 dry-run CLI

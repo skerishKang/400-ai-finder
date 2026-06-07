@@ -320,6 +320,12 @@ Promote to validated scenario/snapshot/cache
 - Cross-linked from the repeated-question analytics promotion plan and the operator quickstart.
 - No code or test changes. Docs-only.
 
+### Stage 356 — Promotion Candidate Review Template (Completed)
+- Stage 356 adds a copy-pasteable promotion candidate review template for human reviewers. It supports cache, scenario, retrieval gap, monitor-only, and reject decisions without automatic promotion.
+- Includes a decision guide table, per-category checklists, and a synthetic completed review example.
+- Cross-linked from the scenario/cache promotion review workflow, the repeated-question analytics promotion plan, and the operator quickstart.
+- No code or test changes. Docs-only.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
