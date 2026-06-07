@@ -448,6 +448,13 @@ Promote to validated scenario/snapshot/cache
 - Fully tested using synthetic profiles, verifying legacy default-allow compatibility, mock HTML crawl safety, and flat link fallback contracts.
 - Recommends Stage 392 for real site profile candidate configurations.
 
+### Stage 392 — Design Municipal candidates Audit (Completed)
+- Stage 392 completes an audit of municipal crawl filter candidates in `docs/product/municipal-crawl-filters-candidate-audit.md`.
+- Establishes highly conservative candidate configuration rules (deny prints, tracking parameters, protect structural parameters, keep allow patterns empty by default to prevent accidental override of denies).
+- Maps a catalogue of protected parameters to prevent crawl loss on Notice Detail and Menu pages, and provides risk analysis for pagination and print views.
+- Establishes a comprehensive test validation plan for Stage 393.
+- Recommends Stage 393 for config fixture contract tests.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"

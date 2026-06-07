@@ -134,3 +134,11 @@ Korean public sector websites heavily use query parameters to represent their co
 - **Status**: Wired the integration path from `SiteProfile` config fields to `URLCrawler` instantiations. In `PipelineRunner`, site profiles are loaded, and their parsed `crawl_filters` dictionary is forwarded via `HomepageMapper` down to `URLCrawler`.
 - **Safety**: Fully tested with synthetic profiles, verified default-allow behavior for legacy profiles, mock HTML crawl safety for denied/protected parameters, and non-HTML provider fallback flat links contract.
 - **Next Step**: Stage 392.
+
+---
+
+## Stage 392 Implementation Status (Completed)
+- **Status**: Audit completed and documented in [municipal-crawl-filters-candidate-audit.md](./municipal-crawl-filters-candidate-audit.md).
+- **Candidates**: Defined conservative initial configuration rules (deny prints, tracking parameters, protect structural parameters, allow-patterns left empty by default).
+- **Plan**: Outlined the pre-Stage 393/394 contract verification test plan.
+- **Next Step**: Stage 393.

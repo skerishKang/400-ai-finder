@@ -140,3 +140,11 @@ The following test matrix will govern the verification of the filter decision he
 - **Default-Allow**: Profiles without `crawl_filters` continue to run with default empty filters, guaranteeing zero behavior changes for existing sites.
 - **Safety**: Added rigorous integration tests verifying profile mapping from synthetic profiles, default-allow backward compatibility, mock static HTML crawl safety, and non-HTML provider fallback flat links contract.
 - **Next Step**: Stage 392.
+
+---
+
+## Stage 392 Design Municipal Candidates Audit (Completed)
+- **Status**: Audit completed and documented in [municipal-crawl-filters-candidate-audit.md](./municipal-crawl-filters-candidate-audit.md).
+- **Candidates**: Proposed initial conservative candidate rules: deny prints/tracking parameters, protect core navigation/article parameters, keep allow patterns empty by default to prevent overriding denies accidentally.
+- **Safety Boundaries**: Outlined deny candidates risk analysis (strict ban on denying `board.es`, `mid=`, `seq=`, etc. to prevent crawl loss) and established an 8-point pre-Stage 393/394 validation test plan.
+- **Next Step**: Stage 393.
