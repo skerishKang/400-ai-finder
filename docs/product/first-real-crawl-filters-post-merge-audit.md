@@ -1,0 +1,83 @@
+# Post-Merge Audit: First Real Crawl Filters Config
+
+This document reviews the integration and validation state of the first real crawl filters candidate applied during Stage 394, assesses regression risks, and plans the safe path forward.
+
+---
+
+## 1. Stage 394 Diff Review Summary
+
+A rigorous post-merge review of the Stage 394 commit (`d46490cb9bd90a9923ddb90095e1006d1907a55e`) was conducted.
+
+* **Single Profile Isolation**: Exactly one real site configuration was modified: `configs/sites/bukgu_gwangju.yml`. No other site profiles or database configurations were touched.
+* **Production Integrity**: No production code under `src/` was changed. All changes were limited strictly to the target configuration, test suite additions, and documentation logs.
+* **Contract/Loader Alignment**: The schema loading mechanism correctly read the candidate parameters and successfully mapped them to the `URLCrawler` instance without side effects.
+
+---
+
+## 2. Applied Candidate Summary
+
+The following `crawl_filters` config candidate has been successfully applied to the `bukgu_gwangju` site profile:
+
+```yaml
+crawl_filters:
+  allow_patterns: []
+  deny_patterns:
+    - "print="
+    - "utm_"
+    - "utm_source="
+    - "utm_medium="
+    - "utm_campaign="
+  protected_patterns:
+    - "mid="
+    - "menuId="
+    - "board.es"
+    - "seq="
+    - "contentId="
+    - "articleId="
+```
+
+### Analysis of Settings:
+* **`allow_patterns`**: Left empty (`[]`) by design. This avoids any accidental overriding of the deny list via overly permissive allow rule precedence.
+* **`deny_patterns`**: Filters out print pages and standard analytics/tracking query parameters.
+* **`protected_patterns`**: Guards critical parameters from being filtered, ensuring structural menu and item pages continue to be parsed.
+
+---
+
+## 3. Why Live Smoke is Still Deferred
+
+Even though the mock/static HTML validation passed successfully, live validation (using active requests/Firecrawl runs against target servers) remains deferred for the following reasons:
+
+1. **Active Configuration Risk**: The candidate filters are now active in the standard profile-loading and execution pathway. A live run could alter existing snapshot datasets or trigger unexpected remote site behaviors.
+2. **Edge Cases & Server Variations**: Remote servers may behave differently under varied user-agents or query strings. Controlled simulation of these behaviors under local tests must be established first.
+3. **Safety Isolation**: Keeping `RUN_LIVE_*_TESTS=1` disabled guarantees that no external network calls are performed without explicit verification and approval from the operator.
+
+---
+
+## 4. Regression Risk Checklist
+
+Before rolling out more configs, we evaluated potential regression paths:
+
+* **Print View Pages**: Print pages (`print=`) occasionally act as primary fallback links on legacy municipal sites if regular pages fail. However, for `bukgu_gwangju.yml`, normal HTML content pages are fully accessible. Denying `print=` is verified as low-risk.
+* **UTM Query Parameters**: Analytics tags (`utm_`, `utm_source=`, etc.) are purely tracking links. Filtering them carries near-zero functional risk.
+* **Pagination (pageNo, currentPage)**: Pagination query fields are intentionally omitted from `deny_patterns` and kept as deferred. They will not be blocked, which prevents crawl truncation.
+* **Board, Detail, and Menu Pages**: Structural parameters (`mid=`, `menuId=`, `board.es`, `seq=`, `contentId=`, `articleId=`) are explicitly listed in `protected_patterns` to guarantee notice boards and articles survive traversal.
+* **Grounding & Answer Generation**: No changes were made to source grounding, answer composition, or evaluation metrics (`validate_matrix`/`evaluate_response`).
+* **Storage & Cache**: No modifications were made to scenario files, snapshots, or query cache files.
+
+---
+
+## 5. Stage 396 Decision Options
+
+To determine the safest next step for Stage 396, the following three options were reviewed:
+
+* **Option A: Add second municipal config candidate** (one YAML only)
+  * *Pros*: Moves forward with config rollout.
+  * *Cons*: If there is a latent loader or pipeline regression in the first profile config, applying it to a second profile multiplies the regression surface area without further verification.
+* **Option B: Add no-live pipeline regression test for bukgu profile filters** (Recommended)
+  * *Pros*: Allows validating the end-to-end integration path of the newly loaded `bukgu` filters in `PipelineRunner` using mock site content. This guarantees that `PipelineRunner` doesn't throw exceptions or drop essential pages during a full simulated run.
+  * *Cons*: Postpones rollout of the second profile configuration by one stage.
+* **Option C: Controlled live smoke**
+  * *Pros*: Tests real-world response.
+  * *Cons*: High risk. Can only be performed under explicit operator approval and guidance.
+
+**Decision**: **Option B** is recommended first. Building a no-live pipeline mock regression test specifically for `bukgu_gwangju` using its loaded profile filters is the most conservative and safest engineering choice before extending changes to other real profiles.
