@@ -468,6 +468,11 @@ Promote to validated scenario/snapshot/cache
 - Keeps live validation disabled (no live/network/API/Firecrawl calls).
 - Recommends Stage 395 to either add a second municipal config candidate after reviewing Stage 394 diff, or perform controlled live smoke only if explicitly approved.
 
+### Stage 395 — Post-Merge Audit / No-Live Regression Check (Completed)
+- Stage 395 conducts a post-merge audit on the first real config candidate.
+- Verifies single-profile isolation and low risk of regression across print and tracking variables.
+- Defers live validation completely and keeps testing isolated.
+- Recommends Stage 396 Option B (no-live pipeline regression test for bukgu profile filters) to construct an end-to-end integration path test.
 
 ---
 

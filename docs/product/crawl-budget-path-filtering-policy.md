@@ -169,3 +169,13 @@ The following test matrix will govern the verification of the filter decision he
 - **Validation**: Added unit tests in `tests/test_site_profile.py` verifying that the loader correctly loads the real profile filters and guards against critical parameters inside `deny_patterns`. Evaluated safety behaviors locally using mock/static HTML only.
 - **No Live**: No live validation performed (no live/network/API/Firecrawl calls).
 - **Stage 395 Recommended Next**: Either add second municipal config candidate after reviewing Stage 394 diff, or controlled live smoke only if explicitly approved.
+
+---
+
+## Stage 395 Review and Audit (Completed)
+- **Status**: Post-merge audit completed without live validation.
+- **Key Findings**:
+  - Confirmed exactly one real config (`configs/sites/bukgu_gwangju.yml`) changed in Stage 394.
+  - Deferred live validation and confirmed no network calls or `RUN_LIVE_*_TESTS=1` changes.
+  - Evaluated regression risk factors (print parameters, UTMs, deferred pagination, protected parameters).
+- **Stage 396 Recommended Next**: Option B: Add no-live pipeline regression test for bukgu profile filters.

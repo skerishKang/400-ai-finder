@@ -125,3 +125,13 @@ Before any real YAML configuration files are modified (planned for Stage 394), t
   - Static HTML safety: Verified allowed, denied, and pagination deferred behaviors locally.
 - **No Live**: No live validation performed (no live/network/API/Firecrawl calls).
 - **Stage 395 Recommended Next**: Either add second municipal config candidate after reviewing Stage 394 diff, or controlled live smoke only if explicitly approved.
+
+---
+
+## Stage 395 Implementation Status (Completed)
+- **Status**: Post-merge audit completed without live validation.
+- **Key Findings**:
+  - Confirmed exactly one real config (`configs/sites/bukgu_gwangju.yml`) changed in Stage 394.
+  - Deferred live validation and confirmed no network calls or `RUN_LIVE_*_TESTS=1` changes.
+  - Evaluated regression risk factors (print parameters, UTMs, deferred pagination, protected parameters).
+- **Stage 396 Recommended Next**: Option B: Add no-live pipeline regression test for bukgu profile filters.
