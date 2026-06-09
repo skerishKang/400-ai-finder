@@ -65,3 +65,19 @@ crawl_rules:
   respect_robots: true
 
 notes: "SIIRU 기반 CMS이나 PHP legacy board 패턴 다수 감지(php=432, board=152). boardList.do, contentsView.do 패턴. Sitemap 존재(200). User-Agent 설정 필요(미설정 시 400 반환). Stage 34 진단 결과 LEGACY_BOARD_SITE 분류."
+
+crawl_filters:
+  allow_patterns: []
+  deny_patterns:
+    - "print="
+    - "utm_"
+    - "utm_source="
+    - "utm_medium="
+    - "utm_campaign="
+  protected_patterns:
+    - "mid="
+    - "menuId="
+    - "board.es"
+    - "seq="
+    - "contentId="
+    - "articleId="
