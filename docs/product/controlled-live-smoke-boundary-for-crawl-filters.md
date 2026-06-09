@@ -7,13 +7,13 @@ Stage 405
 
 ## 1. Current No-Live Readiness Summary
 
-As of Stage 404 merge (PR #753, commit `c7aaeb0`), the following no-live validation coverage exists for the three configured `crawl_filters` profiles:
+As of Stage 406 merge (PR #[TBD], commit `HEAD`), the following no-live validation coverage exists for the three configured `crawl_filters` profiles:
 
 | Profile | Site ID | Config File | Stages Completed |
 |---------|---------|-------------|------------------|
-| 광주광역시 북구청 | `bukgu_gwangju` | `configs/sites/bukgu_gwangju.yml` | 394 (config), 396 (pipeline), 401 (source preservation), 404 (all-configured) |
-| 광주광역시청 | `gwangju_go_kr` | `configs/sites/gwangju_go_kr.yml` | 397 (config), 398 (pipeline), 401 (source preservation), 404 (all-configured) |
-| 광주광역시 서구청 | `seogu_gwangju` | `configs/sites/seogu_gwangju.yml` | 403 (onboarding + config), 404 (all-configured) |
+| 광주광역시 북구청 | `bukgu_gwangju` | `configs/sites/bukgu_gwangju.yml` | 394 (config), 396 (pipeline), 401 (source preservation), 404 (all-configured), 406 (edge cases) |
+| 광주광역시청 | `gwangju_go_kr` | `configs/sites/gwangju_go_kr.yml` | 397 (config), 398 (pipeline), 401 (source preservation), 404 (all-configured), 406 (edge cases) |
+| 광주광역시 서구청 | `seogu_gwangju` | `configs/sites/seogu_gwangju.yml` | 403 (onboarding + config), 404 (all-configured), 406 (edge cases) |
 
 ### Test Coverage Inventory
 
@@ -26,8 +26,9 @@ As of Stage 404 merge (PR #753, commit `c7aaeb0`), the following no-live validat
 | `tests/test_seogu_profile_onboarding_no_live.py` | 29 | Full onboarding validation: loader schema, homepage map, URL classification, pipeline, crawl_filters behavior, inventory, no-live guards |
 | `tests/test_crawl_filters_source_preservation_regression.py` | 21 | 2-profile inventory, shared candidate, source preservation, cross-profile consistency, no-live guards |
 | `tests/test_all_configured_crawl_filters_source_preservation.py` | 27 | 3-profile inventory, shared candidate, parameterized source preservation, homepage map, cross-profile regression, no-live guards |
+| `tests/test_crawl_filters_edge_case_regression.py` | 83 | Recursive/deep protected, mixed protected+denied precedence, pure denied duplicates, pagination deferred, cross-profile parametrize, source candidate preservation, no-live/network, no mutation |
 
-**Total no-live crawl_filters tests: 113 tests across 7 test files**
+**Total no-live crawl_filters tests: 196 tests across 8 test files**
 
 ### Shared Conservative Candidate (All 3 Profiles)
 
@@ -51,19 +52,20 @@ crawl_filters:
 
 ### Full Suite Status
 
-- **Total pytest: 1014 passed, 4 skipped**
-- **No config/production code/live calls/scenario changes in Stages 394-404**
+- **Total pytest: 1097 passed, 4 skipped**
+- **No config/production code/live calls/scenario changes in Stages 394-406**
+- **Stage 406 added 83 edge-case regression tests (no-live, mock/static fixtures only)**
 
 ---
 
 ## 2. Live Smoke Remains Not Executed
 
-**Stage 405 does NOT execute any live smoke validation.**
+**Stage 406 does NOT execute any live smoke validation.**
 
-- No live/network/API/Firecrawl calls are made in Stage 405
+- No live/network/API/Firecrawl calls are made in Stage 406
 - `RUN_LIVE_*_TESTS=1` is explicitly prohibited
 - This document defines the boundary and prerequisites; it does not execute them
-- Live validation remains **explicit-approval only**, deferred to Stage 406+
+- Live validation remains **explicit-approval only**, deferred to Stage 407+
 
 ---
 
@@ -79,7 +81,7 @@ Before ANY live smoke validation can be executed, ALL of the following must be s
 ### 3.2 Exact Target Profile Selection
 - **One profile at a time** — no batch/live runs across multiple profiles
 - Profile must be one of the three configured: `bukgu_gwangju`, `gwangju_go_kr`, or `seogu_gwangju`
-- Profile must have completed all no-live regression tests (all do as of Stage 404)
+- Profile must have completed all no-live regression tests (all do as of Stage 406)
 
 ### 3.3 Exact Command Specification
 The live command must be fully specified in the approval, including:
@@ -120,9 +122,9 @@ A documented rollback plan must exist before execution, including:
 
 | Profile | Risk Assessment | Recommendation |
 |---------|-----------------|----------------|
-| **`bukgu_gwangju`** | Lowest: First profile, most test coverage (394, 396, 401, 404), conservative config only | **RECOMMENDED** for first live |
-| `gwangju_go_kr` | Low: Second profile, full coverage (397, 398, 401, 404), identical config | Acceptable alternative |
-| `seogu_gwangju` | Medium: Newest profile, onboarding complete (403, 404) but less live exposure | **Not recommended** for first live |
+| **`bukgu_gwangju`** | Lowest: First profile, most test coverage (394, 396, 401, 404, 406), conservative config only | **RECOMMENDED** for first live |
+| `gwangju_go_kr` | Low: Second profile, full coverage (397, 398, 401, 404, 406), identical config | Acceptable alternative |
+| `seogu_gwangju` | Medium: Newest profile, onboarding complete (403, 404, 406) but less live exposure | **Not recommended** for first live |
 
 **Recommendation**: If operator approves live smoke, start with `bukgu_gwangju` using `--max-pages=20 --max-depth=2 --timeout=180` and exact command as specified in §3.3.
 
@@ -163,13 +165,13 @@ All stop conditions must be documented in the live run log.
 
 ---
 
-## 7. Stage 406 Options
+## 7. Stage 407 Options
 
 | Option | Description | When to Choose |
 |--------|-------------|----------------|
 | **A: Controlled Live Smoke for One Approved Profile Only** | Execute live smoke against exactly one profile (recommended: `bukgu_gwangju`) with all prerequisites from §3 | **Only if operator explicitly approves live**; all §3 prerequisites met; first live validation |
 | **B: Fourth Municipal Profile Onboarding, No-Live Only** | Add one new municipal profile via onboarding boundary (§5 of onboarding doc), apply conservative `crawl_filters`, no live | If no live approval; want to expand coverage safely |
-| **C: More No-Live Edge-Case Regression** | Add no-live tests for edge cases: recursive crawl traversal, sitemap+homepage map integration, dynamic URL patterns, deep pagination | Default safe path; builds confidence without live risk |
+| **C: Continue No-Live Edge-Case Regression** | Add no-live tests for edge cases: sitemap+homepage map integration, dynamic URL patterns, deep pagination beyond current coverage | Default safe path; builds confidence without live risk |
 
 **Recommended**: **Option A only if user explicitly approves live**; otherwise **Option C**.
 
@@ -183,7 +185,7 @@ Live smoke remains **explicit-approval only**, never automatic, never batch, alw
 |----------|--------|
 | `configs/sites/` | No changes |
 | `src/` production code | No changes |
-| `tests/` | No changes |
+| `tests/` (except new edge-case regression) | No changes |
 | `scenario/` `snapshot/` `cache/` | No mutations |
 | `README.md` | No changes |
 | `validate_matrix()` / `evaluate_response()` | No changes |
@@ -195,12 +197,32 @@ Live smoke remains **explicit-approval only**, never automatic, never batch, alw
 
 ```bash
 git diff --check  # PASS
-# No pytest required (docs-only change)
+PYTHONPATH=. .venv/bin/pytest tests/test_crawl_filters_edge_case_regression.py  # 83 passed
+PYTHONPATH=. .venv/bin/pytest tests/test_all_configured_crawl_filters_source_preservation.py tests/test_crawl_filters_source_preservation_regression.py  # 46 passed
+PYTHONPATH=. .venv/bin/pytest  # 1097 passed, 4 skipped
 ```
 
 ---
 
 ## 10. Next Steps
 
-- **Stage 406**: Controlled live smoke for one approved profile only if explicitly approved; otherwise continue no-live edge-case coverage.
+- **Stage 407**: Controlled live smoke for one approved profile only if explicitly approved; otherwise continue no-live edge-case coverage or profile onboarding.
 - **Live Smoke**: Remains explicit-approval only, no automatic schedule.
+
+---
+
+## Stage 406 Implementation Status (Completed)
+
+- **Status**: No-live edge-case regression for configured crawl_filters profiles added in `tests/test_crawl_filters_edge_case_regression.py` (83 tests).
+- **Coverage**:
+  1. **Recursive/deep URL edge cases** — protected URLs with tracking/query params survive; pure tracking denied
+  2. **Mixed protected + denied query precedence** — protected patterns override deny patterns
+  3. **Pure denied duplicate cases** — print, utm_source, utm_medium, utm_campaign, utm_content all denied
+  4. **Pagination deferred edge cases** — pageNo, currentPage, pageIndex allowed (not in deny_patterns)
+  5. **Cross-profile parameterized check** — pytest.mark.parametrize for all 3 profiles with base_url isolation
+  6. **Source candidate preservation** — protected+tracking mixed URLs remain source candidates; pure denied excluded
+  7. **No live/network guard** — mock/static fixtures only, RUN_LIVE_*_TESTS=1 prohibited
+  8. **No mutation safety** — tmp_path only, no scenario/snapshot/cache generation
+- **Verification**: 83 new tests pass; full suite 1097 passed.
+- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
+- **Live Smoke Still Deferred**: Explicit approval required.
