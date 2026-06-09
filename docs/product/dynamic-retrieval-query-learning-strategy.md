@@ -562,6 +562,34 @@ Promote to validated scenario/snapshot/cache
 
 ---
 
+### Stage 400 — Third Municipal Crawl Filters Candidate with No-Live Regression (Completed)
+
+- Stage 400 applies the same conservative `crawl_filters` candidate to a third real municipal profile: **`configs/sites/seogu_gwangju.yml` (광주광역시 서구청 / `seogu_gwangju`)**.
+- **Selection Criteria Met**:
+  - Existing real municipal/public-sector SiteProfile (LEGACY_BOARD_SITE)
+  - Compatible URL patterns (boardList.do, contentsView.do)
+  - No prior crawl_filters configuration
+- **Config Changes**: Single YAML file only (`configs/sites/seogu_gwangju.yml`), identical conservative candidate.
+- **Test Changes**:
+  - Added `TestSeoguGwangjuCrawlFiltersConfig` (5 tests) in `tests/test_site_profile.py`
+  - Added `tests/test_seogu_crawl_filters_pipeline_regression.py` (14 tests):
+    - A: Profile load verification (crawl_filters match candidate exactly)
+    - B: Static HTML filtering (preserves protected, denies print/tracking, pagination deferred)
+    - C: PipelineRunner no-live path (passes real filters to HomepageMapper → URLCrawler)
+- **Existing Regressions Preserved**: bukgu (12 tests) and gwangju (14 tests) still pass.
+- **No Live/Network/API/Firecrawl**: Mock/static HTML only.
+- **No Production Code Changes**: `src/` untouched.
+- **Previous Configs Unchanged**: bukgu_gwangju.yml and gwangju_go_kr.yml not modified.
+- **Verification**: 19 new tests pass; full suite 958 tests clean.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 401 Recommended Next
+
+- Add source preservation / homepage map consistency no-live regression covering all three configured profiles.
+- Live smoke remains explicit-approval only.
+
+---
+
 ## 13. Example: "구청장이 누구야?"
 
 ### Correct Behavior After Stage 341

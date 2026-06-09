@@ -166,8 +166,38 @@ crawl_filters:
 
 ---
 
-## 8. Files Not Modified
+## Stage 400 Implementation Status (Completed)
 
+- **Status**: Third municipal config candidate applied + no-live pipeline regression completed.
+- **Profile 3: seogu_gwangju (광주광역시 서구청)**
+- **Config File**: `configs/sites/seogu_gwangju.yml`
+- **Classification**: LEGACY_BOARD_SITE
+- **Base URL**: `https://seogu.gwangju.kr/`
+- **Real Config Applied**: Stage 400 (this stage)
+- **Loader/Unit Tests**: Stage 400 (`tests/test_site_profile.py::TestSeoguGwangjuCrawlFiltersConfig`, 5 tests)
+- **No-Live Pipeline Regression**: Stage 400 (`tests/test_seogu_crawl_filters_pipeline_regression.py`, 14 tests)
+- **Post-Merge Audit**: Stage 400 merged directly
+
+### Updated Three-Profile Test Coverage Matrix
+
+| Profile | Config Applied | Loader Tests | Pipeline Regression | Total |
+|---------|----------------|--------------|---------------------|-------|
+| bukgu_gwangju | Stage 394 | 5 tests | 12 tests | 17 |
+| gwangju_go_kr | Stage 397 | 5 tests | 14 tests | 19 |
+| seogu_gwangju | Stage 400 | 5 tests | 14 tests | 19 |
+
+### Updated Decision Options for Stage 401
+
+Now with three profiles having complete no-live regression baselines:
+
+1. **Option A (Recommended)**: Add source preservation / homepage map consistency no-live regression covering all three configured profiles
+2. **Option B**: Add fourth municipal config candidate (one YAML only) after source preservation regression
+3. **Option C**: Controlled live smoke for any of the three profiles — only with explicit operator approval
+
+---
+
+## 8. Files Not Modified
+...
 | Category | Status |
 |----------|--------|
 | `configs/sites/` | No changes (bukgu + gwangju only) |

@@ -172,3 +172,31 @@ To determine the safest next step for Stage 396, the following three options wer
 1. Add third municipal config candidate (one YAML only) + its no-live pipeline regression test.
 2. Add source preservation / homepage map consistency no-live regression test covering both existing profiles.
 3. Live smoke only with explicit approval.
+
+---
+
+## 10. Stage 400 Implementation Status (Completed)
+
+- **Status**: Third municipal crawl_filters candidate applied to exactly one additional real YAML: `configs/sites/seogu_gwangju.yml` (광주광역시 서구청 / `seogu_gwangju`).
+- **Selection Reasoning**:
+  - Real municipal/public-sector site profile (LEGACY_BOARD_SITE)
+  - boardList.do/contentsView.do URL patterns compatible with protected patterns
+  - No existing crawl_filters configuration
+- **Config Changes**: Single file `configs/sites/seogu_gwangju.yml` appended with conservative candidate (same as bukgu/gwangju).
+- **Test Changes**:
+  - Added `TestSeoguGwangjuCrawlFiltersConfig` (5 tests) in `tests/test_site_profile.py`
+  - Added `tests/test_seogu_crawl_filters_pipeline_regression.py` (14 tests):
+    - A: Profile load verification (6 tests) — crawl_filters loaded, deny/protected patterns match conservative candidate
+    - B: Static HTML filtering (7 tests) — URLCrawler preserves protected URLs, denies print/tracking, pagination deferred
+    - C: PipelineRunner no-live path (3 tests) — passes real seogu crawl_filters to HomepageMapper/URLCrawler with zero live calls
+- **Existing Regressions Preserved**: bukgu (12 tests) and gwangju (14 tests) regressions still pass.
+- **No Live/Network/API/Firecrawl**: All validations via mock/static HTML.
+- **No Production Code Changes**: `src/` untouched.
+- **Previous Configs Unchanged**: `configs/sites/bukgu_gwangju.yml` and `configs/sites/gwangju_go_kr.yml` not modified.
+- **Verification**: 19 new tests pass; full suite 958 passed.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 401 Recommended Next
+
+1. Add source preservation / homepage map consistency no-live regression covering all three configured profiles.
+2. Live smoke only with explicit approval.

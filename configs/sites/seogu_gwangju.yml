@@ -1,0 +1,83 @@
+# 광주광역시 서구청 사이트 프로필
+# 광주광역시 서구청 — LEGACY_BOARD_SITE
+# boardList.do / contentsView.do 패턴의 Java/Spring CMS
+
+site_id: seogu_gwangju
+name: "광주광역시 서구청"
+base_url: "https://seogu.gwangju.kr/"
+allowed_domains:
+  - seogu.gwangju.kr
+preferred_fetch_provider: requests
+classification: LEGACY_BOARD_SITE
+
+important_keywords:
+  - 고시공고
+  - 공지사항
+  - 민원
+  - 민원서식
+  - 복지
+  - 지원사업
+  - 교육
+  - 문화
+  - 체육
+  - 환경
+  - 도시관리
+  - 교통
+  - 건축
+  - 세무
+  - 지적
+
+document_extensions:
+  - pdf
+  - hwp
+  - hwpx
+  - doc
+  - docx
+  - xls
+  - xlsx
+  - ppt
+  - pptx
+  - zip
+
+board_patterns:
+  - boardList.do
+  - boardView.do
+  - contentsView.do
+  - board
+  - bbs
+  - list
+  - view
+  - article
+  - notice
+
+fallback_strategy:
+  - requests
+  - sitemap
+  - homepage_map
+  - document_index
+  - internal_search
+  - browser_provider_candidate
+
+crawl_rules:
+  max_depth: 3
+  max_pages: 300
+  include_documents: true
+  respect_robots: true
+
+notes: "SIIRU 기반 CMS이나 PHP legacy board 패턴 다수 감지. boardList.do, contentsView.do 패턴. Sitemap 존재. Stage 400에서 conservative crawl_filters 적용 예정."
+
+crawl_filters:
+  allow_patterns: []
+  deny_patterns:
+    - "print="
+    - "utm_"
+    - "utm_source="
+    - "utm_medium="
+    - "utm_campaign="
+  protected_patterns:
+    - "mid="
+    - "menuId="
+    - "board.es"
+    - "seq="
+    - "contentId="
+    - "articleId="
