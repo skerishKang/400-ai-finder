@@ -165,7 +165,7 @@ class TestConfiguredProfilesInventory:
             sid for sid in all_ids
             if loader.load_by_id(sid).crawl_filters and loader.load_by_id(sid).crawl_filters != {}
         ]
-        assert set(profiles_with_filters) >= {"bukgu_gwangju", "gwangju_go_kr"}
+        assert set(profiles_with_filters) == {"bukgu_gwangju", "gwangju_go_kr"}
 
 
 # ------------------------------------------------------------------
