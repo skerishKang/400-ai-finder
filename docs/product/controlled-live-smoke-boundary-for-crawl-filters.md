@@ -7,7 +7,7 @@ Stage 407
 
 ## 1. Current No-Live Readiness Summary
 
-As of Stage 407 PR #[TBD], the following no-live validation coverage exists for the three configured `crawl_filters` profiles:
+As of Stage 407 PR #758, the following no-live validation coverage exists for the three configured `crawl_filters` profiles:
 
 | Profile | Site ID | Config File | Stages Completed |
 |---------|---------|-------------|------------------|
