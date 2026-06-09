@@ -245,3 +245,25 @@ The following test matrix will govern the verification of the filter decision he
 1. Compare first/second config rollout behavior before further expansion.
 2. Add third municipal config candidate (one YAML only) after no-live regression baseline established for both profiles.
 3. Live smoke only with explicit approval.
+
+---
+
+## Stage 399 Implementation Status (Completed)
+
+- **Status**: Comparison audit completed in `docs/product/crawl-filters-first-second-rollout-comparison-audit.md`.
+- **Scope**: Docs-only comparison of first two rollouts (bukgu_gwangju Stage 394/396, gwangju_go_kr Stage 397/398).
+- **Comparison Coverage**:
+  - Rollout inventory (config files, stages, test files)
+  - Shared candidate rules (identical conservative config)
+  - Test coverage matrix (12 vs 14 tests, both complete)
+  - Risk comparison (print, UTM, pagination, structural params)
+  - Stage 400 decision options (A: third config, B: source preservation, C: live smoke, D: hybrid)
+- **Decision**: Stage 400 should follow Option D (Hybrid) — add third config candidate + its no-live regression, then source preservation regression before fourth config.
+- **No Config/Code/Test Changes**.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 400 Recommended Next
+
+1. Add third municipal config candidate (one YAML only) + its no-live pipeline regression test.
+2. Add source preservation / homepage map consistency no-live regression test covering both existing profiles.
+3. Live smoke only with explicit approval.

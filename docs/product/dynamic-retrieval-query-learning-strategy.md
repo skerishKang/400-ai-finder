@@ -541,6 +541,27 @@ Promote to validated scenario/snapshot/cache
 
 ---
 
+### Stage 399 — First/Second Rollout Comparison Audit (Completed)
+
+- Stage 399 adds a comparison audit in `docs/product/crawl-filters-first-second-rollout-comparison-audit.md` for the first two real municipal `crawl_filters` rollouts.
+- **Comparison Coverage**:
+  - Rollout inventory: bukgu_gwangju (Stage 394/396, 12 tests) vs gwangju_go_kr (Stage 397/398, 14 tests)
+  - Shared candidate rules: identical conservative config (empty allow, 5 deny, 6 protected)
+  - Test coverage matrix: loader, deny/protected exact match, forbidden deny, static HTML preserve/deny, pagination deferred, pipeline no-live regression
+  - Risk comparison: print (low), UTM (near-zero), pagination (deferred), structural (protected)
+  - Stage 400 decision options: A (third config), B (source preservation), C (live smoke), D (hybrid)
+- **Decision**: Stage 400 should follow Option D (Hybrid) — third config candidate + no-live regression, then source preservation regression before fourth config.
+- **No Config/Code/Test Changes** — docs only.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 400 Recommended Next
+
+- Add third municipal config candidate (one YAML only) + its no-live pipeline regression test.
+- Add source preservation / homepage map consistency no-live regression test covering both existing profiles.
+- Live smoke remains explicit-approval only.
+
+---
+
 ## 13. Example: "구청장이 누구야?"
 
 ### Correct Behavior After Stage 341
