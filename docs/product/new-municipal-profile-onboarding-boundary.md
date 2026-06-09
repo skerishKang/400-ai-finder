@@ -104,21 +104,23 @@ Before a new municipal site profile can be added to `configs/sites/` and before 
 
 ---
 
-## 7. Stage 404 Decision Options
+## 7. Stage 404 Implementation Status (Completed)
 
-| Option | Description | When to Choose |
-|--------|-------------|----------------|
-| **A: Add New Municipal Profile (Onboarding Track)** | Add one new municipal profile via full onboarding checklist (§5), then optionally apply conservative `crawl_filters` in the same or next Stage | If a validated profile source exists and team wants to expand coverage |
-| **B: Continue No-Live Regression (Existing Profiles)** | Deepen no-live regression for `bukgu_gwangju` and `gwangju_go_kr` (e.g., recursive crawl traversal, sitemap+homepage map integration, source preservation edge cases) | If no new profile source is ready, or to build confidence before further expansion |
-| **C: Controlled Live Smoke (Existing Profiles Only)** | Run live validation against `bukgu_gwangju`, `gwangju_go_kr`, and/or `seogu_gwangju` with explicit operator approval | Only with explicit approval + rollback plan; never automatic |
+- **Status**: All-configured-profiles source preservation / homepage map consistency no-live regression added in `tests/test_all_configured_crawl_filters_source_preservation.py` (27 tests).
+- **Coverage**:
+  - Configured profiles inventory verification (exactly 3 profiles with crawl_filters)
+  - Shared candidate consistency (all 3 profiles use identical conservative candidate)
+  - Parameterized source preservation test (protect/deny URLs for all 3 profiles)
+  - Homepage map consistency (navigation and attachment links)
+  - Cross-profile regression (base_url isolation, candidate rules identical, classification)
+  - No live/network/API guard
+  - No scenario/snapshot/cache mutation
+- **Verification**: 27 new tests pass; full suite 1014 passed.
+- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
 
-**Recommended: Option A only if profile source data can be validated without live calls; otherwise Option B.**
+## 8. Stage 405 Decision Options
 
-Live smoke for new profiles or existing profiles remains **explicit-approval only**, never automatic.
-
----
-
-## 8. Files Not Modified in This Stage
+## 9. Files Not Modified in This Stage
 
 | Category | Status |
 |----------|--------|
@@ -132,7 +134,7 @@ Live smoke for new profiles or existing profiles remains **explicit-approval onl
 
 ---
 
-## 9. Validation
+## 10. Validation
 
 ```bash
 git diff --check  # PASS
@@ -141,7 +143,7 @@ git diff --check  # PASS
 
 ---
 
-## 10. Next Steps
+## 11. Next Steps
 
-- **Stage 404**: Either add one new municipal profile via onboarding rules (§5), or continue no-live coverage for existing profiles.
+- **Stage 405**: Either add one new municipal profile via onboarding rules (§5), or continue no-live coverage for existing profiles.
 - **Live Smoke**: Remains explicit-approval only, no automatic schedule.

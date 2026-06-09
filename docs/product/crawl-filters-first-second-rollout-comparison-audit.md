@@ -233,7 +233,21 @@ git diff --check  # PASS
 - **Existing Profiles Unchanged**: `bukgu_gwangju.yml`, `gwangju_go_kr.yml` not modified.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
-## 15. Next Steps
+## 15. Stage 404 Implementation Status (Completed)
 
-- **Stage 404**: Add one new municipal profile via onboarding rules, or continue no-live coverage for existing 3 profiles.
+- **Status**: All-configured-profiles source preservation / homepage map consistency no-live regression added in `tests/test_all_configured_crawl_filters_source_preservation.py` (27 tests).
+- **Coverage**:
+  - Configured profiles inventory verification (exactly 3 profiles with crawl_filters)
+  - Shared candidate consistency (all 3 profiles use identical conservative candidate)
+  - Parameterized source preservation test (protect/deny URLs for all 3 profiles)
+  - Homepage map consistency (navigation and attachment links)
+  - Cross-profile regression (base_url isolation, candidate rules identical, classification)
+  - No live/network/API guard
+  - No scenario/snapshot/cache mutation
+- **Verification**: 27 new tests pass; full suite 1014 passed.
+- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
+
+## 16. Next Steps
+
+- **Stage 405**: Add one new municipal profile via onboarding rules, or continue no-live coverage for existing 3 profiles.
 - **Live Smoke**: Remains explicit-approval only, no automatic schedule.
