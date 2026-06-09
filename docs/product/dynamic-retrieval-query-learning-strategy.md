@@ -494,6 +494,34 @@ Promote to validated scenario/snapshot/cache
 
 ---
 
+### Stage 397 — Add Second Municipal Crawl Filters Candidate (Completed)
+
+- Stage 397 applies the same conservative `crawl_filters` candidate to a second real municipal profile: **`configs/sites/gwangju_go_kr.yml` (광주광역시청 / `gwangju_go_kr`)**.
+- **Selection Criteria Met**:
+  - Existing real municipal/public-sector SiteProfile loaded by SiteProfileLoader
+  - LEGACY_BOARD_SITE classification with compatible URL patterns (boardList.do, contentsView.do)
+  - No prior crawl_filters configuration
+- **Config Changes**: Single YAML file only (`configs/sites/gwangju_go_kr.yml`), identical conservative candidate to bukgu.
+- **Test Changes**: Added `TestGwangjuGoKrCrawlFiltersConfig` (5 tests) in `tests/test_site_profile.py`:
+  1. Profile loader verification (crawl_filters match candidate exactly)
+  2. Protected patterns verification (all 6 required params)
+  3. Deny patterns verification (all 5 required params)
+  4. Forbidden deny guard (critical params NOT in deny_patterns)
+  5. Static HTML behavior using second profile filters (mock gwangju.go.kr URLs)
+- **No Live/Network/API/Firecrawl**: Mock/static HTML only.
+- **No Production Code Changes**: `src/` untouched.
+- **Bukgu Config Unchanged**: `configs/sites/bukgu_gwangju.yml` not modified.
+- **Verification**: 5 new tests pass; full suite 925 tests clean.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 398 Recommended Next
+
+- Add no-live pipeline regression test for `gwangju_go_kr` profile (mirroring Stage 396).
+- Compare first/second config rollout behavior before further expansion.
+- Live smoke remains explicit-approval only.
+
+---
+
 ## 13. Example: "구청장이 누구야?"
 
 ### Correct Behavior After Stage 341

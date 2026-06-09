@@ -197,3 +197,32 @@ The following test matrix will govern the verification of the filter decision he
 
 - Add second municipal config candidate (one YAML) or extend no-live regression coverage.
 - Live smoke remains explicit-approval only.
+
+---
+
+## Stage 397 Implementation Status (Completed)
+
+- **Status**: Second municipal crawl_filters candidate applied to exactly one additional real YAML: `configs/sites/gwangju_go_kr.yml` (광주광역시청 / `gwangju_go_kr`).
+- **Selection Reasoning**:
+  - Real municipal/public-sector site profile already loaded by SiteProfileLoader
+  - LEGACY_BOARD_SITE classification with boardList.do/contentsView.do URL patterns
+  - No existing crawl_filters configuration
+  - URL structure compatible with candidate protected patterns (mid=, seq=, etc.)
+- **Config Changes**: Single file `configs/sites/gwangju_go_kr.yml` appended with conservative candidate (same as bukgu).
+- **Test Changes**: Added `TestGwangjuGoKrCrawlFiltersConfig` (5 tests) in `tests/test_site_profile.py`:
+  1. Profile loader verification (crawl_filters match candidate exactly)
+  2. Protected patterns verification (all 6 required params present)
+  3. Deny patterns verification (all 5 required params present)
+  4. Forbidden deny guard (critical params NOT in deny_patterns)
+  5. Static HTML behavior using second profile filters (mock gwangju.go.kr URLs)
+- **No Live/Network/API/Firecrawl**: All validations via mock/static HTML.
+- **No Production Code Changes**: `src/` untouched.
+- **Bukgu Config Unchanged**: `configs/sites/bukgu_gwangju.yml` not modified.
+- **Verification**: 5 new tests pass; full suite 925 passed.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 398 Recommended Next
+
+1. Add no-live pipeline regression test for `gwangju_go_kr` profile (mirroring Stage 396).
+2. Compare first/second config rollout behavior before further expansion.
+3. Live smoke only with explicit approval.
