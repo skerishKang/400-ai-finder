@@ -465,14 +465,32 @@ Promote to validated scenario/snapshot/cache
 ### Stage 394 — First Real Profile Config Candidate (Completed)
 - Stage 394 applies the first conservative `crawl_filters` config candidate. Changed exactly only one profile: `configs/sites/bukgu_gwangju.yml`.
 - Adds targeted loader, validation, and safety unit tests under `tests/test_site_profile.py` using mock/static HTML.
-- Keeps live validation disabled (no live/network/API/Firecrawl calls).
-- Recommends Stage 395 to either add a second municipal config candidate after reviewing Stage 394 diff, or perform controlled live smoke only if explicitly approved.
+---
 
 ### Stage 395 — Post-Merge Audit / No-Live Regression Check (Completed)
+
 - Stage 395 conducts a post-merge audit on the first real config candidate.
 - Verifies single-profile isolation and low risk of regression across print and tracking variables.
 - Defers live validation completely and keeps testing isolated.
 - Recommends Stage 396 Option B (no-live pipeline regression test for bukgu profile filters) to construct an end-to-end integration path test.
+
+---
+
+### Stage 396 — No-Live Pipeline Regression Test for Bukgu Crawl Filters (Completed)
+
+- Stage 396 adds no-live regression tests in `tests/test_bukgu_crawl_filters_pipeline_regression.py` for the real `bukgu_gwangju` `crawl_filters` config.
+- **Test Coverage**:
+  - **A**: Profile load verification — `SiteProfileLoader.load_by_id("bukgu_gwangju")` loads `crawl_filters` with Stage 394 deny/protected patterns.
+  - **B**: Static HTML filtering — `URLCrawler` with real filters preserves protected municipal URLs (`mid=`, `seq=`, `contentId=`, `articleId=`, `board.es`, pagination) and denies print/tracking (`print=`, `utm_*`).
+  - **C**: `PipelineRunner(provider="mock")` passes real profile `crawl_filters` to `HomepageMapper` → `URLCrawler` with zero live network/API/Firecrawl calls.
+- **Verification**: 12 focused tests pass; full pytest suite (920 tests) clean.
+- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
+- **Live Smoke Still Deferred**: Explicit approval still required.
+
+### Stage 397 Recommended Next
+
+- Add second municipal config candidate (one YAML) or extend no-live regression coverage.
+- Live smoke remains explicit-approval only.
 
 ---
 
