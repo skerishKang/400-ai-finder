@@ -247,7 +247,21 @@ git diff --check  # PASS
 - **Verification**: 27 new tests pass; full suite 1014 passed.
 - **No Config/Production/Source Grounding/Scenario/Cache Changes**.
 
-## 16. Next Steps
+## 16. Stage 405 Implementation Status (Completed)
 
-- **Stage 405**: Add one new municipal profile via onboarding rules, or continue no-live coverage for existing 3 profiles.
+- **Status**: Controlled live smoke boundary defined in `docs/product/controlled-live-smoke-boundary-for-crawl-filters.md`.
+- **Scope**: Docs-only audit defining prerequisites, pass/fail criteria, rollback conditions, and Stage 406 options for controlled live smoke.
+- **Key Deliverables**:
+  - Current no-live readiness summary (3 profiles, 113 total tests)
+  - Live smoke remains not executed (explicit-approval only)
+  - Controlled live smoke prerequisites (operator approval, exact command, rollback plan, no secrets)
+  - Suggested first live candidate (`bukgu_gwangju` recommended)
+  - Pass/fail criteria (7 criteria, all must pass)
+  - Rollback/stop conditions (6 conditions)
+  - Stage 406 options (A: live smoke if approved, B: onboarding, C: more no-live)
+- **No Config/Code/Test/Live Changes**.
+
+## 17. Next Steps
+
+- **Stage 406**: Controlled live smoke for one approved profile only if explicitly approved; otherwise continue no-live edge-case coverage.
 - **Live Smoke**: Remains explicit-approval only, no automatic schedule.

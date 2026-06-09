@@ -1,0 +1,206 @@
+# Controlled Live Smoke Boundary for Crawl Filters Profiles
+
+## Stage
+Stage 405
+
+---
+
+## 1. Current No-Live Readiness Summary
+
+As of Stage 404 merge (PR #753, commit `c7aaeb0`), the following no-live validation coverage exists for the three configured `crawl_filters` profiles:
+
+| Profile | Site ID | Config File | Stages Completed |
+|---------|---------|-------------|------------------|
+| 광주광역시 북구청 | `bukgu_gwangju` | `configs/sites/bukgu_gwangju.yml` | 394 (config), 396 (pipeline), 401 (source preservation), 404 (all-configured) |
+| 광주광역시청 | `gwangju_go_kr` | `configs/sites/gwangju_go_kr.yml` | 397 (config), 398 (pipeline), 401 (source preservation), 404 (all-configured) |
+| 광주광역시 서구청 | `seogu_gwangju` | `configs/sites/seogu_gwangju.yml` | 403 (onboarding + config), 404 (all-configured) |
+
+### Test Coverage Inventory
+
+| Test File | Tests | Scope |
+|-----------|-------|-------|
+| `tests/test_site_profile.py::TestBukguCrawlFiltersConfig` | 5 | Loader, deny/protected/allow exact match, forbidden deny, static HTML |
+| `tests/test_bukgu_crawl_filters_pipeline_regression.py` | 12 | Profile load, static HTML filter, PipelineRunner no-live path |
+| `tests/test_site_profile.py::TestGwangjuGoKrCrawlFiltersConfig` | 5 | Loader, deny/protected/allow exact match, forbidden deny, static HTML |
+| `tests/test_gwangju_crawl_filters_pipeline_regression.py` | 14 | Profile load, static HTML filter, PipelineRunner no-live path |
+| `tests/test_seogu_profile_onboarding_no_live.py` | 29 | Full onboarding validation: loader schema, homepage map, URL classification, pipeline, crawl_filters behavior, inventory, no-live guards |
+| `tests/test_crawl_filters_source_preservation_regression.py` | 21 | 2-profile inventory, shared candidate, source preservation, cross-profile consistency, no-live guards |
+| `tests/test_all_configured_crawl_filters_source_preservation.py` | 27 | 3-profile inventory, shared candidate, parameterized source preservation, homepage map, cross-profile regression, no-live guards |
+
+**Total no-live crawl_filters tests: 113 tests across 7 test files**
+
+### Shared Conservative Candidate (All 3 Profiles)
+
+```yaml
+crawl_filters:
+  allow_patterns: []
+  deny_patterns:
+    - "print="
+    - "utm_"
+    - "utm_source="
+    - "utm_medium="
+    - "utm_campaign="
+  protected_patterns:
+    - "mid="
+    - "menuId="
+    - "board.es"
+    - "seq="
+    - "contentId="
+    - "articleId="
+```
+
+### Full Suite Status
+
+- **Total pytest: 1014 passed, 4 skipped**
+- **No config/production code/live calls/scenario changes in Stages 394-404**
+
+---
+
+## 2. Live Smoke Remains Not Executed
+
+**Stage 405 does NOT execute any live smoke validation.**
+
+- No live/network/API/Firecrawl calls are made in Stage 405
+- `RUN_LIVE_*_TESTS=1` is explicitly prohibited
+- This document defines the boundary and prerequisites; it does not execute them
+- Live validation remains **explicit-approval only**, deferred to Stage 406+
+
+---
+
+## 3. Controlled Live Smoke Prerequisites
+
+Before ANY live smoke validation can be executed, ALL of the following must be satisfied:
+
+### 3.1 Explicit Operator Approval
+- A designated operator must explicitly approve the live run in writing (e.g., GitHub Issue comment, PR approval, or documented message)
+- Approval must specify: **which profile**, **which exact command**, **max pages/depth**, **timeout**
+- No automated or implicit approval; blanket approvals are not valid
+
+### 3.2 Exact Target Profile Selection
+- **One profile at a time** — no batch/live runs across multiple profiles
+- Profile must be one of the three configured: `bukgu_gwangju`, `gwangju_go_kr`, or `seogu_gwangju`
+- Profile must have completed all no-live regression tests (all do as of Stage 404)
+
+### 3.3 Exact Command Specification
+The live command must be fully specified in the approval, including:
+```bash
+# Example format (DO NOT EXECUTE WITHOUT APPROVAL)
+PYTHONPATH=. RUN_LIVE_CRAWL_TESTS=1 .venv/bin/python -m pytest \
+  tests/test_bukgu_live_smoke.py \
+  -k "not test_pagination_deep" \
+  --max-pages=50 --max-depth=2 \
+  --timeout=300
+```
+
+Required parameters:
+- `--max-pages`: explicit page budget limit (e.g., 50)
+- `--max-depth`: explicit depth limit (e.g., 2)
+- `--timeout`: explicit timeout in seconds (e.g., 300)
+- `-k` filter to exclude known-risk tests if any
+
+### 3.4 No API Keys or Secrets
+- No live API keys (Firecrawl, OpenAI, etc.) may be used
+- `preferred_fetch_provider: requests` only — no browser providers
+- If Firecrawl or LLM providers are needed, they require **separate explicit approval**
+
+### 3.5 Rollback Plan
+A documented rollback plan must exist before execution, including:
+- How to stop the run if it goes wrong (Ctrl+C, kill command)
+- How to identify and revert any persisted changes (snapshots, cache, scenario files)
+- Commit hash to roll back to if config/test changes were made
+
+### 3.6 Expected Diff / No Persisted Artifacts Policy
+- **Default expectation**: Live smoke should produce **NO persisted artifacts** (no snapshot, cache, scenario file modifications)
+- If artifacts are generated, they must be explicitly reviewed and documented
+- Any diff to `configs/`, `scenario/`, `snapshot/`, `cache/` must be part of the approval
+
+---
+
+## 4. Suggested First Live Candidate
+
+| Profile | Risk Assessment | Recommendation |
+|---------|-----------------|----------------|
+| **`bukgu_gwangju`** | Lowest: First profile, most test coverage (394, 396, 401, 404), conservative config only | **RECOMMENDED** for first live |
+| `gwangju_go_kr` | Low: Second profile, full coverage (397, 398, 401, 404), identical config | Acceptable alternative |
+| `seogu_gwangju` | Medium: Newest profile, onboarding complete (403, 404) but less live exposure | **Not recommended** for first live |
+
+**Recommendation**: If operator approves live smoke, start with `bukgu_gwangju` using `--max-pages=20 --max-depth=2 --timeout=180` and exact command as specified in §3.3.
+
+---
+
+## 5. Pass/Fail Criteria
+
+A live smoke run **passes** ONLY if **ALL** of the following are true:
+
+| Criterion | Check Method |
+|-----------|--------------|
+| Process exits successfully (exit code 0) | `echo $?` == 0 |
+| No unhandled exceptions in output | `grep -i "traceback\|exception\|error" output.log` returns nothing |
+| Protected URLs are not filtered out | Verify `mid=`, `seq=`, `contentId=`, `articleId=`, `board.es`, `menuId=` URLs appear in crawled results |
+| Print/UTM duplicates reduced | Verify `print=`, `utm_*` URLs are absent or significantly reduced vs. baseline |
+| No source grounding regression | Run existing evaluation suite; no degradation in `validate_matrix()` metrics |
+| No scenario/snapshot/cache auto-generation | `git status` shows no changes to `scenario/`, `snapshot/`, `cache/` |
+| Logs contain no secrets | `grep -i "api_key\|secret\|token\|password" output.log` returns nothing |
+
+**Any single failure = entire live smoke FAILS**
+
+---
+
+## 6. Rollback / Stop Conditions
+
+The live run **MUST BE STOPPED IMMEDIATELY** if ANY of the following occur:
+
+| Condition | Detection | Action |
+|-----------|-----------|--------|
+| **Timeout** | Run exceeds `--timeout` | Kill process; investigate before retry |
+| **Unexpected crawl explosion** | Page count > `--max-pages` × 2 | Kill process; check pagination filtering |
+| **Source candidate count collapses** | Internal URLs discovered < 50% of no-live baseline | Kill process; crawl_filters may be over-filtering |
+| **Protected municipal URLs missing** | `mid=`, `seq=`, `board.es` URLs absent from results | Kill process; protected patterns may not be working |
+| **Domain leakage** | URLs outside `allowed_domains` being crawled | Kill process; check domain filtering |
+| **Error spike** | HTTP 4xx/5xx > 20% of requests | Kill process; site may be blocking or down |
+
+All stop conditions must be documented in the live run log.
+
+---
+
+## 7. Stage 406 Options
+
+| Option | Description | When to Choose |
+|--------|-------------|----------------|
+| **A: Controlled Live Smoke for One Approved Profile Only** | Execute live smoke against exactly one profile (recommended: `bukgu_gwangju`) with all prerequisites from §3 | **Only if operator explicitly approves live**; all §3 prerequisites met; first live validation |
+| **B: Fourth Municipal Profile Onboarding, No-Live Only** | Add one new municipal profile via onboarding boundary (§5 of onboarding doc), apply conservative `crawl_filters`, no live | If no live approval; want to expand coverage safely |
+| **C: More No-Live Edge-Case Regression** | Add no-live tests for edge cases: recursive crawl traversal, sitemap+homepage map integration, dynamic URL patterns, deep pagination | Default safe path; builds confidence without live risk |
+
+**Recommended**: **Option A only if user explicitly approves live**; otherwise **Option C**.
+
+Live smoke remains **explicit-approval only**, never automatic, never batch, always one profile at a time.
+
+---
+
+## 8. Files Not Modified in This Stage
+
+| Category | Status |
+|----------|--------|
+| `configs/sites/` | No changes |
+| `src/` production code | No changes |
+| `tests/` | No changes |
+| `scenario/` `snapshot/` `cache/` | No mutations |
+| `README.md` | No changes |
+| `validate_matrix()` / `evaluate_response()` | No changes |
+| Live/Network/API/Firecrawl | No calls made |
+
+---
+
+## 9. Validation
+
+```bash
+git diff --check  # PASS
+# No pytest required (docs-only change)
+```
+
+---
+
+## 10. Next Steps
+
+- **Stage 406**: Controlled live smoke for one approved profile only if explicitly approved; otherwise continue no-live edge-case coverage.
+- **Live Smoke**: Remains explicit-approval only, no automatic schedule.
