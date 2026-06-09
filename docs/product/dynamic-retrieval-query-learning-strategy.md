@@ -554,11 +554,43 @@ Promote to validated scenario/snapshot/cache
 - **No Config/Code/Test Changes** — docs only.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
-### Stage 400 Recommended Next
+### Stage 400 Actual Outcome
 
-- Add third municipal config candidate (one YAML only) + its no-live pipeline regression test.
-- Add source preservation / homepage map consistency no-live regression test covering both existing profiles.
-- Live smoke remains explicit-approval only.
+**Stage 400 (PR #744) was closed not planned / not merged.**
+
+- **Reason**: Stage 400 required selecting an *existing* municipal profile without crawl_filters from `configs/sites/`. At the time, `configs/sites/` contained only `bukgu_gwangju.yml` and `gwangju_go_kr.yml` (both already with crawl_filters). The PR attempted to add `seogu_gwangju.yml` as a **new file**, which violated the "existing profile only" constraint.
+- **Lesson**: Adding a new YAML to `configs/sites/` = **profile onboarding**, not crawl_filters rollout. These are separate tracks with different validation requirements.
+
+### Stage 401 Implementation Status (Completed)
+
+- **Status**: Source preservation / homepage map consistency no-live regression added in `tests/test_crawl_filters_source_preservation_regression.py` (21 tests).
+- **Coverage**:
+  - Configured profiles inventory verification (exactly 2 profiles with crawl_filters)
+  - Homepage map consistency for both bukgu_gwangju and gwangju_go_kr
+  - Protected URLs remain source candidates; denied URLs excluded
+  - Cross-profile consistency (identical conservative candidate rules)
+  - No live/network/API guard
+  - No scenario/snapshot/cache mutation
+- **Verification**: 21 new tests pass; full suite 960 passed.
+- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
+
+### Stage 402 Implementation Status (Completed)
+
+- **Status**: New municipal profile onboarding boundary defined in `docs/product/new-municipal-profile-onboarding-boundary.md`.
+- **Scope**: Docs-only audit defining the boundary between crawl_filters rollout and new profile onboarding.
+- **Key Deliverables**:
+  - Current configured profile inventory (exactly 2: bukgu_gwangju, gwangju_go_kr)
+  - Stage 400 invalidation summary
+  - Boundary decision: two separate tracks (rollout vs onboarding)
+  - New profile onboarding requirements checklist
+  - Seogu_gwangju handling guidance
+  - Stage 403 decision options
+- **No Config/Code/Test Changes**.
+
+### Stage 403 Recommended Next
+
+1. Add one new municipal profile via onboarding rules, or continue no-live coverage for existing profiles.
+2. Live smoke only with explicit approval.
 
 ---
 
