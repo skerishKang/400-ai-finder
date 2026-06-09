@@ -341,6 +341,22 @@ The following test matrix will govern the verification of the filter decision he
   - Stage 406 options (A: live smoke if approved, B: onboarding, C: more no-live)
 - **No Config/Code/Test/Live Changes**.
 
-### Stage 406 Recommended Next
+## Stage 406 Implementation Status (Completed)
 
-1. Controlled live smoke for one approved profile only if explicitly approved; otherwise continue no-live edge-case coverage.
+- **Status**: No-live edge-case regression for configured crawl_filters profiles added in `tests/test_crawl_filters_edge_case_regression.py` (83 tests).
+- **Coverage**:
+  1. **Recursive/deep URL edge cases** — protected URLs with tracking/query params survive; pure tracking denied
+  2. **Mixed protected + denied query precedence** — protected patterns override deny patterns
+  3. **Pure denied duplicate cases** — print, utm_source, utm_medium, utm_campaign, utm_content all denied
+  4. **Pagination deferred edge cases** — pageNo, currentPage, pageIndex allowed (not in deny_patterns)
+  5. **Cross-profile parameterized check** — pytest.mark.parametrize for all 3 profiles with base_url isolation
+  6. **Source candidate preservation** — protected+tracking mixed URLs remain source candidates; pure denied excluded
+  7. **No live/network guard** — mock/static fixtures only, RUN_LIVE_*_TESTS=1 prohibited
+  8. **No mutation safety** — tmp_path only, no scenario/snapshot/cache generation
+- **Verification**: 83 new tests pass; full suite 1097 passed.
+- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 407 Recommended Next
+
+- Controlled live smoke for one approved profile only if explicitly approved; otherwise continue no-live edge-case coverage or profile onboarding.
