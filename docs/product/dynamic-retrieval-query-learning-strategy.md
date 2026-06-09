@@ -522,6 +522,25 @@ Promote to validated scenario/snapshot/cache
 
 ---
 
+### Stage 398 — No-Live Pipeline Regression Test for Gwangju Crawl Filters (Completed)
+
+- Stage 398 adds no-live regression tests in `tests/test_gwangju_crawl_filters_pipeline_regression.py` for the real `gwangju_go_kr` `crawl_filters` config.
+- **Test Coverage**:
+  - **A**: Profile load verification — `SiteProfileLoader.load_by_id("gwangju_go_kr")` loads `crawl_filters` with Stage 397 deny/protected patterns.
+  - **B**: Static HTML filtering — `URLCrawler` with real filters preserves protected municipal URLs (`mid=`, `seq=`, `contentId=`, `articleId=`, `board.es`, pagination) and denies print/tracking (`print=`, `utm_*`).
+  - **C**: `PipelineRunner(provider="mock")` passes real profile `crawl_filters` to `HomepageMapper` → `URLCrawler` with zero live network/API/Firecrawl calls.
+- **Verification**: 14 focused tests pass; full pytest suite (939 tests) clean.
+- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
+- **Live Smoke Still Deferred**: Explicit approval still required.
+
+### Stage 399 Recommended Next
+
+- Compare first/second config rollout behavior before further expansion.
+- Add third municipal config candidate (one YAML only) after no-live regression baseline established for both profiles.
+- Live smoke remains explicit-approval only.
+
+---
+
 ## 13. Example: "구청장이 누구야?"
 
 ### Correct Behavior After Stage 341

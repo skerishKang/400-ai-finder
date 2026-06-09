@@ -131,3 +131,22 @@ To determine the safest next step for Stage 396, the following three options wer
 1. Add no-live pipeline regression test for `gwangju_go_kr` profile (mirroring Stage 396).
 2. Compare first/second config rollout behavior before further expansion.
 3. Live smoke only with explicit approval.
+
+---
+
+## 8. Stage 398 Implementation Status (Completed)
+
+- **Status**: No-live pipeline regression test added in `tests/test_gwangju_crawl_filters_pipeline_regression.py`.
+- **Coverage**: 14 focused tests for profile load, static HTML filtering, and pipeline mapping.
+  - A: Profile load verification (6 tests) — crawl_filters loaded, deny/protected patterns match Stage 397
+  - B: Static HTML filtering (7 tests) — URLCrawler preserves protected URLs, denies print/tracking, pagination deferred
+  - C: PipelineRunner no-live path (3 tests) — passes real gwangju crawl_filters to HomepageMapper/URLCrawler with zero live calls
+- **Verification**: 14 new tests pass; full suite 939 passed.
+- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 399 Recommended Next
+
+1. Compare first/second config rollout behavior before further expansion.
+2. Add third municipal config candidate (one YAML only) after no-live regression baseline established for both profiles.
+3. Live smoke only with explicit approval.
