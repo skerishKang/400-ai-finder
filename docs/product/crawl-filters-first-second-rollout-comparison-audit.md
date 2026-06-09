@@ -19,7 +19,7 @@ This document compares the first two real municipal site profile rollouts of con
 | **Config File** | `configs/sites/bukgu_gwangju.yml` |
 | **Classification** | LEGACY_BOARD_SITE |
 | **Base URL** | `https://bukgu.gwangju.kr/` |
-| **Real Config Applied** | Stage 394 (PR #735, merge commit `ceeb29f`) |
+| **Real Config Applied** | Stage 394 (PR #733, merge commit `d46490cb9bd90a9923ddb90095e1006d1907a55e`) |
 | **Loader/Unit Tests** | Stage 394 (`tests/test_site_profile.py::TestBukguCrawlFiltersConfig`) |
 | **No-Live Pipeline Regression** | Stage 396 (`tests/test_bukgu_crawl_filters_pipeline_regression.py`, 12 tests) |
 | **Post-Merge Audit** | Stage 395 (`docs/product/first-real-crawl-filters-post-merge-audit.md`) |
