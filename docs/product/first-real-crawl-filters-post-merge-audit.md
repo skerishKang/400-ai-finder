@@ -81,3 +81,24 @@ To determine the safest next step for Stage 396, the following three options wer
   * *Cons*: High risk. Can only be performed under explicit operator approval and guidance.
 
 **Decision**: **Option B** is recommended first. Building a no-live pipeline mock regression test specifically for `bukgu_gwangju` using its loaded profile filters is the most conservative and safest engineering choice before extending changes to other real profiles.
+---
+
+## 6. Stage 396 Implementation Status (Completed)
+
+- **Status**: No-live pipeline regression test successfully added in `tests/test_bukgu_crawl_filters_pipeline_regression.py`.
+- **Coverage**:
+  - Test A: Real profile load verification — `SiteProfileLoader().load_by_id("bukgu_gwangju")` loads crawl_filters correctly, deny/protected patterns match Stage 394.
+  - Test B: Static HTML filtering — `URLCrawler` with real bukgu filters preserves protected URLs (`mid=`, `seq=`, `contentId=`, `articleId=`, `board.es`, pagination) and denies print/tracking URLs (`print=`, `utm_*`).
+  - Test C: PipelineRunner no-live path — `PipelineRunner(provider="mock")` passes real bukgu `crawl_filters` to `HomepageMapper` → `URLCrawler` without any live network/API/Firecrawl calls.
+- **Verification**: 12 new focused tests pass; full suite (920 tests) remains green.
+- **No Config Changes**: `configs/sites/bukgu_gwangju.yml` unchanged.
+- **No Production Code Changes**: `src/` paths untouched.
+- **No Source Grounding/Answer Changes**: Only mock AnswerComposer assertion for compose call.
+- **No Scenario/Snapshot/Cache Mutation**: All outputs to `tmp_path` only.
+- **Live Smoke Still Deferred**: `RUN_LIVE_*_TESTS=1` not used; explicit approval still required.
+
+### Stage 397 Recommended Next Steps
+
+1. **Option A (Recommended)**: Add second municipal config candidate (one YAML only) now that no-live regression baseline exists.
+2. **Option B**: Add another no-live regression around homepage map/source preservation (deeper crawl traversal coverage).
+3. **Option C**: Controlled live smoke — **only with explicit operator approval**.
