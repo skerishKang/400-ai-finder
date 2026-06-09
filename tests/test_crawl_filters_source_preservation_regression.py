@@ -1,7 +1,7 @@
 """Source preservation and homepage map consistency no-live regression for crawl_filters profiles.
 
 All tests use mock/static fixtures only. No live network/API/Firecrawl calls.
-Verifies that configured profiles (bukgu_gwangju, gwangju_go_kr) preserve protected
+Verifies that configured profiles (bukgu_gwangju, gwangju_go_kr, seogu_gwangju) preserve protected
 municipal URLs in homepage map/source candidates while filtering print/tracking URLs.
 """
 
@@ -128,44 +128,36 @@ GWANGJU_DENY_URLS = [
 # ------------------------------------------------------------------
 
 class TestConfiguredProfilesInventory:
-    """Verify which profiles have crawl_filters on main branch."""
+    """Verify which profiles have crawl_filters after Stage 403 onboarding."""
 
-    def test_only_two_profiles_have_crawl_filters(self):
-        """Only bukgu_gwangju and gwangju_go_kr have crawl_filters configured."""
+    def test_three_profiles_have_crawl_filters(self):
+        """After Stage 403, exactly 3 profiles have crawl_filters configured."""
         loader = SiteProfileLoader()
         all_ids = loader.list_ids()
 
-        # Both target profiles should exist
+        # All three target profiles should exist
         assert "bukgu_gwangju" in all_ids
         assert "gwangju_go_kr" in all_ids
+        assert "seogu_gwangju" in all_ids
 
         # Verify they have non-empty crawl_filters
         bukgu_profile = loader.load_by_id("bukgu_gwangju")
         gwangju_profile = loader.load_by_id("gwangju_go_kr")
+        seogu_profile = loader.load_by_id("seogu_gwangju")
 
         assert bukgu_profile.crawl_filters is not None
         assert bukgu_profile.crawl_filters != {}
         assert gwangju_profile.crawl_filters is not None
         assert gwangju_profile.crawl_filters != {}
+        assert seogu_profile.crawl_filters is not None
+        assert seogu_profile.crawl_filters != {}
 
-    def test_seogu_gwangju_not_on_main(self):
-        """seogu_gwangju profile should not exist on main."""
-        loader = SiteProfileLoader()
-        all_ids = loader.list_ids()
-        assert "seogu_gwangju" not in all_ids, "seogu_gwangju should not be on main"
-
-    def test_no_new_profile_created(self):
-        """No new site profiles added beyond the existing two."""
-        loader = SiteProfileLoader()
-        all_ids = loader.list_ids()
-        # Should only have the original 2 profiles
-        assert len(all_ids) >= 2
-        # The two with crawl_filters should be the current ones
+        # Verify exactly 3 profiles have crawl_filters
         profiles_with_filters = [
             sid for sid in all_ids
             if loader.load_by_id(sid).crawl_filters and loader.load_by_id(sid).crawl_filters != {}
         ]
-        assert set(profiles_with_filters) == {"bukgu_gwangju", "gwangju_go_kr"}
+        assert set(profiles_with_filters) == {"bukgu_gwangju", "gwangju_go_kr", "seogu_gwangju"}
 
 
 # ------------------------------------------------------------------

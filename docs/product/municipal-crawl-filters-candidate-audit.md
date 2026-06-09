@@ -238,7 +238,25 @@ Before any real YAML configuration files are modified (planned for Stage 394), t
   - Stage 403 decision options
 - **No Config/Code/Test Changes**.
 
-### Stage 403 Recommended Next
+## Stage 403 Implementation Status (Completed)
 
-1. Add one new municipal profile via onboarding rules, or continue no-live coverage for existing profiles.
+- **Status**: New municipal profile `seogu_gwangju` onboarded with full validation.
+- **Config Changes**: Single new file `configs/sites/seogu_gwangju.yml` added with conservative `crawl_filters` candidate.
+- **Test Changes**: New test file `tests/test_seogu_profile_onboarding_no_live.py` (29 tests) covering:
+  - SiteProfileLoader schema and required fields validation
+  - Mock/static homepage map extraction and navigation link categorization
+  - URL classification for seogu-specific patterns (bbs/BBSMSTR, boardDownload.es, list.do)
+  - PipelineRunner no-live path with crawl_filters pass-through
+  - crawl_filters behavior (preserve protected, deny print/UTM, defer pagination)
+  - Updated configured profiles inventory (3 profiles with crawl_filters)
+  - No live/network/API/Firecrawl calls; tmp_path only
+- **Updated Existing Test**: `tests/test_crawl_filters_source_preservation_regression.py` inventory test updated from 2 to 3 profiles.
+- **Verification**: 29 new tests + 1 updated test pass; full suite 987 passed.
+- **No Production Code Changes**: `src/` untouched.
+- **Existing Profiles Unchanged**: `bukgu_gwangju.yml`, `gwangju_go_kr.yml` not modified.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 404 Recommended Next
+
+1. Add one new municipal profile via onboarding rules, or continue no-live coverage for existing 3 profiles.
 2. Live smoke only with explicit approval.
