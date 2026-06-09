@@ -189,14 +189,7 @@ git diff --check  # PASS
 
 ---
 
-## 10. Stage 400 Actual Outcome
-
-**Stage 400 (PR #744) was closed not planned / not merged.**
-
-- **Reason**: Stage 400 required selecting an *existing* municipal profile without crawl_filters from `configs/sites/`. At the time, `configs/sites/` contained only `bukgu_gwangju.yml` and `gwangju_go_kr.yml` (both already with crawl_filters). The PR attempted to add `seogu_gwangju.yml` as a **new file**, which violated the "existing profile only" constraint.
-- **Lesson**: Adding a new YAML to `configs/sites/` = **profile onboarding**, not crawl_filters rollout. These are separate tracks with different validation requirements.
-
-## 11. Stage 401 Implementation Status (Completed)
+## 12. Stage 401 Implementation Status (Completed)
 
 - **Status**: Source preservation / homepage map consistency no-live regression added in `tests/test_crawl_filters_source_preservation_regression.py` (21 tests).
 - **Coverage**:
@@ -209,7 +202,7 @@ git diff --check  # PASS
 - **Verification**: 21 new tests pass; full suite 960 passed.
 - **No Config/Production/Source Grounding/Scenario/Cache Changes**.
 
-## 12. Stage 402 Implementation Status (Completed)
+## 13. Stage 402 Implementation Status (Completed)
 
 - **Status**: New municipal profile onboarding boundary defined in `docs/product/new-municipal-profile-onboarding-boundary.md`.
 - **Scope**: Docs-only audit defining the boundary between crawl_filters rollout and new profile onboarding.
@@ -222,7 +215,25 @@ git diff --check  # PASS
   - Stage 403 decision options
 - **No Config/Code/Test Changes**.
 
-## 13. Next Steps
+## 14. Stage 403 Implementation Status (Completed)
 
-- **Stage 403**: Either add one new municipal profile via onboarding rules, or continue no-live coverage for existing profiles.
+- **Status**: New municipal profile `seogu_gwangju` onboarded with full validation.
+- **Config Changes**: Single new file `configs/sites/seogu_gwangju.yml` added with conservative `crawl_filters` candidate.
+- **Test Changes**: New test file `tests/test_seogu_profile_onboarding_no_live.py` (29 tests) covering:
+  - SiteProfileLoader schema and required fields validation
+  - Mock/static homepage map extraction and navigation link categorization
+  - URL classification for seogu-specific patterns (bbs/BBSMSTR, boardDownload.es, list.do)
+  - PipelineRunner no-live path with crawl_filters pass-through
+  - crawl_filters behavior (preserve protected, deny print/UTM, defer pagination)
+  - Updated configured profiles inventory (3 profiles with crawl_filters)
+  - No live/network/API/Firecrawl calls; tmp_path only
+- **Updated Existing Test**: `tests/test_crawl_filters_source_preservation_regression.py` inventory test updated from 2 to 3 profiles.
+- **Verification**: 29 new tests + 1 updated test pass; full suite 987 passed.
+- **No Production Code Changes**: `src/` untouched.
+- **Existing Profiles Unchanged**: `bukgu_gwangju.yml`, `gwangju_go_kr.yml` not modified.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+## 15. Next Steps
+
+- **Stage 404**: Add one new municipal profile via onboarding rules, or continue no-live coverage for existing 3 profiles.
 - **Live Smoke**: Remains explicit-approval only, no automatic schedule.

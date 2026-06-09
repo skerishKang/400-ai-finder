@@ -13,17 +13,15 @@ Going forward, any new municipal profile must follow a dedicated onboarding proc
 
 ---
 
-## 2. Current Configured Profile Inventory (as of Stage 401 merge)
+## 2. Current Configured Profile Inventory (as of Stage 403 merge)
 
 | # | Profile | Site ID | Config File | crawl_filters Applied |
 |---|---------|---------|-------------|----------------------|
 | 1 | 광주광역시 북구청 | bukgu_gwangju | `configs/sites/bukgu_gwangju.yml` | Yes (Stage 394) |
 | 2 | 광주광역시청 | gwangju_go_kr | `configs/sites/gwangju_go_kr.yml` | Yes (Stage 397) |
+| 3 | 광주광역시 서구청 | seogu_gwangju | `configs/sites/seogu_gwangju.yml` | Yes (Stage 403) |
 
-**Total profiles with crawl_filters: exactly 2**
-
-- `seogu_gwangju` is **NOT** on main branch
-- No other municipal profiles exist in `configs/sites/`
+**Total profiles with crawl_filters: exactly 3**
 
 ---
 
@@ -93,25 +91,26 @@ Before a new municipal site profile can be added to `configs/sites/` and before 
 
 ---
 
-## 6. Seogu_gwangju Candidate Handling
+## 6. Seogu_gwangju Onboarding (Stage 403 Completed)
 
 | Aspect | Decision |
 |--------|----------|
-| **Status** | Not on main; PR #744's `seogu_gwangju.yml` was a new file addition |
-| **Future Consideration** | May be onboarded as a **new profile** (not a crawl_filters rollout) in a future Stage |
-| **Process** | Must follow the full onboarding checklist in §5, not just crawl_filters tests |
-| **Do Not Reuse** | Do not blindly reuse PR #744's YAML or tests — profile validation steps are mandatory |
-| **Dedicated Issue/PR** | If onboarded, it requires its own Issue/PR with full onboarding validation |
+| **Status** | **Onboarded in Stage 403** — `configs/sites/seogu_gwangju.yml` added to main |
+| **Profile Source** | Verified via public website (www.seogu.gwangju.kr) — LEGACY_BOARD_SITE |
+| **Onboarding Checklist** | All §5 requirements satisfied (loader, static HTML, URL classification, pipeline, crawl_filters) |
+| **Tests Added** | `tests/test_seogu_profile_onboarding_no_live.py` (29 tests) |
+| **Crawl Filters** | Applied conservative candidate (same as bukgu/gwangju) |
+| **Inventory Test Updated** | `test_crawl_filters_source_preservation_regression.py` now expects 3 profiles |
 
 ---
 
-## 7. Stage 403 Decision Options
+## 7. Stage 404 Decision Options
 
 | Option | Description | When to Choose |
 |--------|-------------|----------------|
 | **A: Add New Municipal Profile (Onboarding Track)** | Add one new municipal profile via full onboarding checklist (§5), then optionally apply conservative `crawl_filters` in the same or next Stage | If a validated profile source exists and team wants to expand coverage |
 | **B: Continue No-Live Regression (Existing Profiles)** | Deepen no-live regression for `bukgu_gwangju` and `gwangju_go_kr` (e.g., recursive crawl traversal, sitemap+homepage map integration, source preservation edge cases) | If no new profile source is ready, or to build confidence before further expansion |
-| **C: Controlled Live Smoke (Existing Profiles Only)** | Run live validation against `bukgu_gwangju` and/or `gwangju_go_kr` with explicit operator approval | Only with explicit approval + rollback plan; never automatic |
+| **C: Controlled Live Smoke (Existing Profiles Only)** | Run live validation against `bukgu_gwangju`, `gwangju_go_kr`, and/or `seogu_gwangju` with explicit operator approval | Only with explicit approval + rollback plan; never automatic |
 
 **Recommended: Option A only if profile source data can be validated without live calls; otherwise Option B.**
 
@@ -144,5 +143,5 @@ git diff --check  # PASS
 
 ## 10. Next Steps
 
-- **Stage 403**: Either add one new municipal profile via onboarding rules (§5), or continue no-live coverage for existing profiles.
+- **Stage 404**: Either add one new municipal profile via onboarding rules (§5), or continue no-live coverage for existing profiles.
 - **Live Smoke**: Remains explicit-approval only, no automatic schedule.

@@ -1,0 +1,102 @@
+# 광주광역시 서구청 사이트 프로필
+# 광주광역시 서구 — LEGACY_BOARD_SITE (PHP/Java 혼합 Legacy Board 구조)
+# boardList.do / list.do / view.do / boardDownload.es 패턴
+
+site_id: seogu_gwangju
+name: "광주광역시 서구청"
+base_url: "https://www.seogu.gwangju.kr/"
+allowed_domains:
+  - www.seogu.gwangju.kr
+  - seogu.gwangju.kr
+preferred_fetch_provider: requests
+classification: LEGACY_BOARD_SITE
+
+important_keywords:
+  - 공지사항
+  - 고시공고
+  - 입법예고
+  - 서구소식
+  - 소식알림
+  - 민원
+  - 민원서식
+  - 조직도
+  - 정보공개
+  - 복지
+  - 문화
+  - 체육
+  - 관광
+  - 보건
+  - 환경
+  - 교통
+  - 도시
+  - 건축
+  - 세무
+  - 회계
+  - 토지
+  - 지적
+  - 주택
+  - 공원
+  - 녹지
+  - 청소
+  - 재활용
+  - 쓰레기
+  - 주차
+  - 도로
+  - 하수
+  - 상수도
+
+document_extensions:
+  - pdf
+  - hwp
+  - hwpx
+  - doc
+  - docx
+  - xls
+  - xlsx
+  - ppt
+  - pptx
+  - zip
+
+board_patterns:
+  - bbs/BBSMSTR
+  - list.do
+  - view.do
+  - boardDownload.es
+  - boardList.do
+  - boardView.do
+  - contentsView.do
+  - board
+  - notice
+  - bbs
+
+fallback_strategy:
+  - requests
+  - sitemap
+  - homepage_map
+  - document_index
+  - internal_search
+  - browser_provider_candidate
+
+crawl_rules:
+  max_depth: 3
+  max_pages: 300
+  include_documents: true
+  respect_robots: true
+
+notes: "광주광역시 서구청 대표 홈페이지. PHP/Java 혼합 Legacy Board 구조. bbs/BBSMSTR 패턴의 list.do/view.do 및 boardDownload.es 사용. Sitemap 존재 확인 필요. User-Agent 설정 필요할 수 있음. Stage 403에서 신규 온보딩됨."
+
+crawl_filters:
+  allow_patterns: []
+  deny_patterns:
+    - "print="
+    - "utm_"
+    - "utm_source="
+    - "utm_medium="
+    - "utm_campaign="
+  protected_patterns:
+    - "mid="
+    - "menuId="
+    - "board.es"
+    - "seq="
+    - "contentId="
+    - "articleId="
