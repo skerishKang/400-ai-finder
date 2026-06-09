@@ -7,7 +7,7 @@ Stage 405
 
 ## 1. Current No-Live Readiness Summary
 
-As of Stage 406 merge (PR #[TBD], commit `HEAD`), the following no-live validation coverage exists for the three configured `crawl_filters` profiles:
+As of Stage 406 PR #757 (head `7b25102bddafd71ab5be2bc3edc079bf599a74c2`), the following no-live validation coverage exists for the three configured `crawl_filters` profiles:
 
 | Profile | Site ID | Config File | Stages Completed |
 |---------|---------|-------------|------------------|
