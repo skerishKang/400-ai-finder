@@ -401,8 +401,8 @@ The following test matrix will govern the verification of the filter decision he
 - **Verification**: 1205 tests pass; full suite green.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
-### Stage 410 Recommended Next
+### Stage 410 Recommended Next (Bukgu-Centric)
 
-- Option A: Fifth municipal profile onboarding no-live only
-- Option B: Controlled live smoke for `bukgu_gwangju` if explicitly approved
-- Option C: Continue no-live integration coverage
+- **Default (Option B)**: Bukgu no-live deeper hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
+- **Live Approval Only (Option A)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
+- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 410

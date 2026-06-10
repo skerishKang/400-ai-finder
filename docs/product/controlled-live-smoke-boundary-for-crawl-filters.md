@@ -167,17 +167,17 @@ All stop conditions must be documented in the live run log.
 
 ---
 
-## 7. Stage 410 Options (Updated Post-Stage 409)
+## 7. Stage 410 Options (Updated Post-Stage 409 — Bukgu-Centric)
 
 | Option | Description | When to Choose |
 |--------|-------------|----------------|
-| **A: Controlled Live Smoke for One Approved Profile Only** | Execute live smoke against exactly one profile (recommended: `bukgu_gwangju`) with all prerequisites from §3 | **Only if operator explicitly approves live**; all §3 prerequisites met; first live validation |
-| **B: Fifth Municipal Profile Onboarding, No-Live Only** | Add one new municipal profile via onboarding boundary, apply conservative `crawl_filters`, no live | After Stage 409 hardening complete; no live approval; safe expansion |
-| **C: Continue No-Live Integration Coverage** | Add no-live tests for edge cases: dynamic URL patterns, deep pagination beyond current coverage | If neither A nor B; builds confidence without live risk |
+| **A: Controlled Live Smoke for Bukgu Only** | Execute live smoke against `bukgu_gwangju` only with all prerequisites from §3 | **Only if operator explicitly approves live**; all §3 prerequisites met; first live validation |
+| **B: Bukgu No-Live Deeper Hardening** | Add more no-live integration tests for `bukgu_gwangju`: dynamic URL patterns, deep pagination, additional edge cases beyond current 58 tests | **Default recommendation** — no live approval needed; builds confidence on the profile with most coverage |
+| **C: Profile Expansion (Deferred)** | Add new municipal profile (fourth/fifth) via onboarding boundary | **Only with explicit separate approval**; not part of default Stage 410 |
 
-**Recommended**: **Option B** after Stage 409 hardening is complete, unless user explicitly approves live (Option A).
+**Recommended**: **Option B** as default after Stage 409. Live smoke (Option A) remains explicit-approval only. Profile expansion (Option C) requires separate explicit approval and is deferred.
 
-Live smoke remains **explicit-approval only**, never automatic, never batch, always one profile at a time.
+Live smoke remains **explicit-approval only**, never automatic, never batch, always one profile at a time (`bukgu_gwangju` only for first live).
 
 ---
 
@@ -206,8 +206,9 @@ git diff --check  # PASS
 
 ## 10. Next Steps
 
-- **Stage 410**: Fifth municipal profile onboarding no-live only, or controlled live smoke for `bukgu_gwangju` if explicitly approved.
-- **Live Smoke**: Remains explicit-approval only, no automatic schedule.
+- **Stage 410 (Default)**: Bukgu no-live deeper hardening (dynamic URL patterns, deep pagination, more edge cases)
+- **Stage 410 (Live)**: Controlled live smoke for `bukgu_gwangju` only — explicit operator approval required, never automatic
+- **Profile Expansion**: Deferred — requires separate explicit approval (not part of default Stage 410)
 
 ---
 

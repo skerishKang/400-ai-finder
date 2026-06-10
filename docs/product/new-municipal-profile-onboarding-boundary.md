@@ -142,8 +142,8 @@ Before a new municipal site profile can be added to `configs/sites/` and before 
   - Priority shortlist: 동구청, 남구청, 광산구청
   - Stage 409 onboarding checklist (7 sections, 20+ items)
   - Safety gates for Stage 409
-  - Stage 410 options (A: live smoke, B: 4th profile, C: more no-live)
-  - Recommended: Option B after audit, unless explicit live approval for A
+  - Stage 410 options (A: live smoke, B: 4th profile, C: more no-live) — **Note**: Stage 409 direction changed; see §10
+  - Recommended (historical): Option B after audit, unless explicit live approval for A
 - **No Config/Code/Test/Live Changes**.
 
 ## 10. Stage 409 Implementation Status (Revised — Bukgu Hardening)
@@ -158,6 +158,13 @@ Before a new municipal site profile can be added to `configs/sites/` and before 
 - **Documentation**: Stage 409 direction change recorded in audit docs, onboarding boundary docs, and smoke boundary docs.
 - **Verification**: 1205 tests pass; full suite green.
 
+## 11. Stage 410 Recommended Next (Bukgu-Centric)
+
+- **Default (Option B)**: Bukgu no-live deeper hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
+- **Live Approval Only (Option A)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
+- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 410
+- **Key Principle**: Profile expansion is deferred until explicit separate approval. Default Stage 410 work is Bukgu-focused.
+
 ---
 
-## 11. Files Not Modified in This Stage
+## 12. Files Not Modified in This Stage

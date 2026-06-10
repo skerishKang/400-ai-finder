@@ -679,6 +679,12 @@ Promote to validated scenario/snapshot/cache
 - **Verification**: 1205 tests pass; full suite green.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
+### Stage 410 Recommended Next (Bukgu-Centric)
+
+- **Default (Option B)**: Bukgu no-live deeper hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
+- **Live Approval Only (Option A)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
+- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 410
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
