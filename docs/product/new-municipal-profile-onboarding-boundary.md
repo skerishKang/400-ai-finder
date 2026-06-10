@@ -187,6 +187,8 @@ Before a new municipal site profile can be added to `configs/sites/` and before 
 - **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 412
 - **Key Principle**: Profile expansion is deferred until explicit separate approval. Default Stage 412 work is Bukgu-focused.
 
+**NEW — Stage 413:** The live smoke path has been reframed from the prior default to **local-first**. See `docs/product/bukgu-local-first-controlled-live-smoke-plan.md` for the complete provider priority (`requests` default → `playwright` fallback → `firecrawl` optional), command templates, stop conditions, output policy, and Stage 414 recommendations.
+
 ---
 
 ## 14. Stage 412 Implementation Status (Completed — Bukgu Readiness Audit)

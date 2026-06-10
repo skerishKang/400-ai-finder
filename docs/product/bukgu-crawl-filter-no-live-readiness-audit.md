@@ -89,7 +89,9 @@ As of Stage 411 completion, the `bukgu_gwangju` crawl_filter has **comprehensive
 
 ---
 
-## 5. Controlled Live Smoke Preconditions
+## 5. Controlled Live Smoke Preconditions (Updated Stage 413 — Local-First)
+
+**NEW — Stage 413:** The default live validation path has been reframed from the prior default to **local-first**. See `docs/product/bukgu-local-first-controlled-live-smoke-plan.md` for the complete provider priority, command templates, stop conditions, output policy, and Stage 414 recommendations.
 
 Per `docs/product/controlled-live-smoke-boundary-for-crawl-filters.md` §3, **ALL** of the following must be satisfied before ANY live smoke:
 
@@ -115,6 +117,7 @@ Per `docs/product/controlled-live-smoke-boundary-for-crawl-filters.md` §3, **AL
 ## 7. Stage 412 Gap Analysis & Closures
 
 ### Identified Edge Cases (from manual audit)
+
 | Edge Case | Current Behavior | Test Coverage | Gap Closure |
 |-----------|------------------|---------------|-------------|
 | Empty query string (`/page?`, `/page`) | Allowed (no deny match) | Not explicitly tested | Added 2 tests |
@@ -125,6 +128,7 @@ Per `docs/product/controlled-live-smoke-boundary-for-crawl-filters.md` §3, **AL
 | Multiple tracking params together | Protected wins | Covered in mixed precedence tests | Covered |
 
 ### Tests Added in Stage 412
+
 **File:** `tests/test_bukgu_crawl_filters_readiness_no_live.py` (11 tests)
 
 | Test | Purpose |
@@ -159,4 +163,5 @@ Per `docs/product/controlled-live-smoke-boundary-for-crawl-filters.md` §3, **AL
 
 **Ready for live smoke** — pending explicit operator approval per documented preconditions.
 
-**Default next stage (413):** Bukgu no-live continued hardening (more edge cases, deeper integration) or profile expansion with explicit approval.
+**Default next stage (413):** **Documented local-first controlled live smoke plan** in `docs/product/bukgu-local-first-controlled-live-smoke-plan.md` (COMPLETE in Stage 413).
+**Stage 414 recommendation:** See local-first plan §8 — Option B (dry-run command contract tests) or Option C (continue no-live hardening) as default; Option A (execute live) only with explicit approval.

@@ -294,6 +294,8 @@ Live smoke remains **explicit-approval only**, never automatic, never batch, alw
 
 Live smoke remains **explicit-approval only**, never automatic, never batch, always one profile at a time (`bukgu_gwangju` only for first live).
 
+**NEW — Stage 413:** The live smoke path has been reframed from the prior default to **local-first**. See `docs/product/bukgu-local-first-controlled-live-smoke-plan.md` for the complete provider priority (`requests` default → `playwright` fallback → `firecrawl` optional), command templates, stop conditions, output policy, and Stage 414 recommendations.
+
 ---
 
 ## 9. Files Not Modified in Stage 408
