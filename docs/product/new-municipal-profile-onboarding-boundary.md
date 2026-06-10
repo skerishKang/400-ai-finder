@@ -132,31 +132,32 @@ Before a new municipal site profile can be added to `configs/sites/` and before 
   - Stage 406 options (A: live smoke if approved, B: onboarding, C: more no-live)
 - **No Config/Code/Test/Live Changes**.
 
-## 10. Files Not Modified in This Stage
+## 9. Stage 408 Implementation Status (Completed)
 
-| Category | Status |
-|----------|--------|
-| `configs/sites/` | No changes |
-| `src/` production code | No changes |
-| `tests/` | No changes |
-| `scenario/` `snapshot/` `cache/` | No mutations |
-| `README.md` | No changes |
-| `validate_matrix()` / `evaluate_response()` | No changes |
-| Live/Network/API/Firecrawl | No calls made |
+- **Status**: Fourth municipal profile onboarding candidate audit documented in `docs/product/fourth-municipal-profile-onboarding-candidate-audit.md`.
+- **Scope**: Docs-only audit defining selection criteria, exclusion criteria, shortlist policy, onboarding checklist, and Stage 410 options.
+- **Key Deliverables**:
+  - Candidate selection criteria (mandatory + preferred)
+  - Exclusion criteria (API, login, JS-only, live required, source grounding changes)
+  - Priority shortlist: 동구청, 남구청, 광산구청
+  - Stage 409 onboarding checklist (7 sections, 20+ items)
+  - Safety gates for Stage 409
+  - Stage 410 options (A: live smoke, B: 4th profile, C: more no-live)
+  - Recommended: Option B after audit, unless explicit live approval for A
+- **No Config/Code/Test/Live Changes**.
+
+## 10. Stage 409 Implementation Status (Revised — Bukgu Hardening)
+
+- **Direction Change**: Stage 409 does **not** add a fourth municipal profile.
+- **Focus**: Harden `bukgu_gwangju` crawl filter coverage with no-live static fixture tests only.
+- **Scope**:
+  - No new configs/sites/*.yml added
+  - No new municipal profile onboarding
+  - New test file: `tests/test_bukgu_crawl_filters_hardening_no_live.py` (58 tests)
+  - Tests cover: exact candidate verification, protected+denied mixed precedence, pure denied duplicates, pagination deferred, query order invariance, fragment handling, relative URL normalization, allowed domain isolation, homepage/sitemap static fixtures, malformed href safety, board.es+tracking survival, forbidden deny guard, tmp_path only, no live/network/env guards
+- **Documentation**: Stage 409 direction change recorded in audit docs, onboarding boundary docs, and smoke boundary docs.
+- **Verification**: 1205 tests pass; full suite green.
 
 ---
 
-## 11. Validation
-
-```bash
-git diff --check  # PASS
-# No pytest required (docs-only change)
-```
-
----
-
-## 11. Next Steps
-
-- **Stage 408**: Audit fourth municipal profile onboarding candidate (docs-only).
-- **Stage 409**: Onboard one fourth municipal profile no-live only after candidate audit is accepted.
-- **Live Smoke**: Remains explicit-approval only, no automatic schedule.
+## 11. Files Not Modified in This Stage

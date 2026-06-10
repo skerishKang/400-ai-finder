@@ -666,21 +666,17 @@ Promote to validated scenario/snapshot/cache
 - **No new query rewrite, synonym dictionary, or retrieval code**.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
-### Stage 408 Implementation Status (Completed)
+### Stage 409 Implementation Status (Completed — Bukgu Hardening)
 
-- **Status**: Fourth municipal profile onboarding candidate audit completed in `docs/product/fourth-municipal-profile-onboarding-candidate-audit.md`.
-- **Scope**: Docs-only audit defining candidate selection criteria, exclusion criteria, recommended shortlist policy, Stage 409 onboarding checklist, and Stage 410 options.
-- **Key Deliverables**:
-  - Current readiness summary (3 profiles, 246 total tests)
-  - Stage 400 invalidation lesson
-  - Candidate selection criteria (7 mandatory + preferred)
-  - Candidate exclusion criteria (8 exclusion categories)
-  - Recommended shortlist policy (Gwangju municipal siblings, documented as "candidate")
-  - Stage 409 onboarding checklist (7 phases, 30+ items)
-  - Required safety gates for Stage 409
-  - Stage 410 options (A: live if approved, B: fourth profile no-live, C: continue no-live)
-- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
-- **No new query rewrite, synonym dictionary, or retrieval code**.
+- **Direction Change**: Stage 409 does **not** add a fourth municipal profile. Operator decision: expand profile count later; first harden `bukgu_gwangju`.
+- **Focus**: Harden `bukgu_gwangju` crawl filter coverage with no-live static fixture tests only.
+- **Scope**:
+  - No new configs/sites/*.yml added
+  - No new municipal profile onboarding
+  - New test file: `tests/test_bukgu_crawl_filters_hardening_no_live.py` (58 tests)
+  - Tests cover: exact candidate verification, protected+denied mixed precedence, pure denied duplicates, pagination deferred, query order invariance, fragment handling, relative URL normalization, allowed domain isolation, homepage/sitemap static fixtures, malformed href safety, board.es+tracking survival, forbidden deny guard, tmp_path only, no live/network/env guards
+- **Documentation**: Stage 409 direction change recorded in audit docs, onboarding boundary docs, and smoke boundary docs.
+- **Verification**: 1205 tests pass; full suite green.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
 ---

@@ -294,5 +294,5 @@ git diff --check  # PASS
 
 ## 11. Next Steps
 
-- **Stage 409**: Onboard one fourth municipal profile no-live only after candidate audit is accepted.
+- **Stage 409 (revised)**: Harden `bukgu_gwangju` crawl filter coverage with no-live tests only. Do not add a fourth municipal profile. Operator decision: expand profile count later; first harden `bukgu_gwangju`.
 - **Live Smoke**: Remains explicit-approval only, no automatic schedule.
