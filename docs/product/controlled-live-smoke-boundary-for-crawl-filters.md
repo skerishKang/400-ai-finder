@@ -1,7 +1,7 @@
 # Controlled Live Smoke Boundary for Crawl Filters Profiles
 
 ## Stage
-Stage 407
+Stage 407 (updated Stage 413)
 
 ---
 
@@ -79,6 +79,8 @@ crawl_filters:
 
 ## 3. Controlled Live Smoke Prerequisites
 
+**NEW — Stage 413:** The default live validation path has been reframed from the prior default to **local-first**. See `docs/product/bukgu-local-first-controlled-live-smoke-plan.md` for the complete provider priority, command templates, stop conditions, output policy, and Stage 414 recommendations.
+
 Before ANY live smoke validation can be executed, ALL of the following must be satisfied:
 
 ### 3.1 Explicit Operator Approval
@@ -93,6 +95,7 @@ Before ANY live smoke validation can be executed, ALL of the following must be s
 
 ### 3.3 Exact Command Specification
 The live command must be fully specified in the approval, including:
+
 ```bash
 # Example format (DO NOT EXECUTE WITHOUT APPROVAL)
 PYTHONPATH=. RUN_LIVE_CRAWL_TESTS=1 .venv/bin/python -m pytest \
@@ -126,15 +129,19 @@ A documented rollback plan must exist before execution, including:
 
 ---
 
-## 4. Suggested First Live Candidate
+## 4. Suggested First Live Candidate (Updated Stage 413 — Local-First)
+
+**Reference:** `docs/product/bukgu-local-first-controlled-live-smoke-plan.md` §2 (Provider Priority), §4 (Approval Requirements), §5 (Command Templates)
 
 | Profile | Risk Assessment | Recommendation |
 |---------|-----------------|----------------|
-| **`bukgu_gwangju`** | Lowest: First profile, most test coverage (394, 396, 401, 404, 406, 407), conservative config only | **RECOMMENDED** for first live |
+| **`bukgu_gwangju`** | Lowest: First profile, most test coverage (394, 396, 401, 404, 406, 407), conservative config only | **RECOMMENDED** for first live (local-first path) |
 | `gwangju_go_kr` | Low: Second profile, full coverage (397, 398, 401, 404, 406, 407), identical config | Acceptable alternative |
 | `seogu_gwangju` | Medium: Newest profile, onboarding complete (403, 404, 406, 407) but less live exposure | **Not recommended** for first live |
 
-**Recommendation**: If operator approves live smoke, start with `bukgu_gwangju` using `--max-pages=20 --max-depth=2 --timeout=180` and exact command as specified in §3.3.
+**Recommendation**: If operator approves live smoke, start with `bukgu_gwangju` using the **local-first command template** from `docs/product/bukgu-local-first-controlled-live-smoke-plan.md` §5.1 with caps `--max-pages=20 --max-depth=2 --timeout=180` and provider `requests`.
+
+**Firecrawl is NOT the default path.** See §2 of the local-first plan for provider priority.
 
 ---
 
@@ -184,6 +191,22 @@ All stop conditions must be documented in the live run log.
 **Recommended**: **Option B** as default after Stage 410. Live smoke (Option A) remains explicit-approval only. Profile expansion (Option C) requires separate explicit approval and is deferred.
 
 Live smoke remains **explicit-approval only**, never automatic, never batch, always one profile at a time (`bukgu_gwangju` only for first live).
+
+---
+
+## 7b. Stage 413 Implementation Status (Completed — Bukgu Local-First Live Smoke Plan)
+
+- **Focus**: Document local-first controlled live smoke plan for `bukgu_gwangju` following Stage 412 no-live readiness COMPLETE.
+- **Scope**:
+  - New document: `docs/product/bukgu-local-first-controlled-live-smoke-plan.md`
+  - Reframes Firecrawl from default to optional/manual fallback only
+  - Defines provider priority: `requests` (default) → `playwright` (fallback, separate issue) → `firecrawl` (fallback, separate approval)
+  - Defines explicit operator approval gates, command templates (placeholders only), stop conditions, and artifact policy
+  - **No live/network/API/Firecrawl calls executed**
+  - **No config/production code/tests changes**
+- **Documentation**: Stage 413 completion recorded in this document, crawl budget policy docs, dynamic retrieval strategy docs, onboarding boundary docs, and candidate audit docs.
+- **Verification**: `git diff --check` PASS; docs grep/link checks PASS
+- **Live Smoke Still Deferred**: Explicit approval required per new plan.
 
 ---
 

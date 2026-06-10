@@ -1,7 +1,7 @@
 # Crawl Budget Path Filtering Policy
 
 ## Stage
-Stage 386
+Stage 386 (updated Stage 413)
 
 ## Goal
 Design a safe and robust crawl budget protection and URL path filtering policy for public-sector websites. This design ensures that recursive crawling does not exhaust the crawler's page budget on duplicate pages, pagination loops, or print views, while protecting critical query parameters that identify core municipal services.
@@ -443,3 +443,5 @@ The following test matrix will govern the verification of the filter decision he
 - **Default (Option B)**: Bukgu no-live continued hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
 - **Live Approval Only (Option A)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
 - **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 413
+
+**NEW — Stage 413:** The live smoke path has been reframed from the prior default to **local-first**. See `docs/product/bukgu-local-first-controlled-live-smoke-plan.md` for the complete provider priority (`requests` default → `playwright` fallback → `firecrawl` optional), command templates, stop conditions, output policy, and Stage 414 recommendations.

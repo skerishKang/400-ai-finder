@@ -722,6 +722,8 @@ Promote to validated scenario/snapshot/cache
 - **Live Approval Only (Option A)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
 - **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 413
 
+**NEW — Stage 413:** The live smoke path has been reframed from the prior default to **local-first**. See `docs/product/bukgu-local-first-controlled-live-smoke-plan.md` for the complete provider priority (`requests` default → `playwright` fallback → `firecrawl` optional), command templates, stop conditions, output policy, and Stage 414 recommendations.
+
 ---
 
 ## 13. Example: "구청장이 누구야?"
