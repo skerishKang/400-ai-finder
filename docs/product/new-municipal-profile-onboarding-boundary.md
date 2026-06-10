@@ -189,4 +189,19 @@ Before a new municipal site profile can be added to `configs/sites/` and before 
 
 ---
 
-## 14. Files Not Modified in This Stage
+## 14. Stage 412 Implementation Status (Completed — Bukgu Readiness Audit)
+
+- **Focus**: Audit `bukgu_gwangju` crawl filter no-live readiness after Stages 409-411; close remaining edge-case gaps.
+- **Scope**:
+  - No new configs/sites/*.yml added
+  - No new municipal profile onboarding
+  - New test file: `tests/test_bukgu_crawl_filters_readiness_no_live.py` (11 tests)
+  - Tests cover: empty query string handling, very long URLs with protected params, case-insensitive pattern matching, double-encoded entities behavior documentation, enhanced no-live network guards, tmp_path-only no-mutation, crawl_filters exact config match validation
+  - New audit document: `docs/product/bukgu-crawl-filter-no-live-readiness-audit.md` documenting complete readiness, gap analysis, and live smoke preconditions
+- **Documentation**: Stage 412 completion recorded in smoke boundary docs, crawl budget policy docs, dynamic retrieval strategy docs, onboarding boundary docs, and candidate audit docs.
+- **Verification**: 1325 tests pass; full suite green.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+---
+
+## 15. Files Not Modified in This Stage
