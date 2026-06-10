@@ -125,7 +125,11 @@ The live run **MUST BE STOPPED IMMEDIATELY** if ANY of the following occur:
 | **Non-bukgu domain** | Any non-`bukgu.gwangju.kr` domain crawled | Kill process; check allowed_domains |
 | **Any artifact write attempt** | File write to `scenario/`, `snapshot/`, `cache/`, `configs/` | Kill process; verify `--no-write-artifacts` honored |
 | **Any API key/secret requirement** | Code requests env var with key/secret | Kill process; violates §4 no-secrets rule |
-| **Any Firecrawl/API call attempt** | Firecrawl import or HTTP call to Firecrawl API | Kill process; violates provider priority (§2) |
+| **Firecrawl provider explicitly selected/constructed/used** | Code constructs `FirecrawlFetchProvider` or sets `provider=firecrawl` | Kill process; violates provider priority (§2) |
+| **FirecrawlFetchProvider.fetch() call attempt** | Runtime call to `FirecrawlFetchProvider.fetch()` detected | Kill process; violates local-first path |
+| **Firecrawl API/network call attempt** | HTTP request to Firecrawl API endpoint | Kill process; violates local-first path |
+| **Firecrawl API key/secret required** | Code demands Firecrawl API key/secret via env/config | Kill process; violates §4 no-secrets rule |
+| **Provider switch away from approved local requests path** | Command/provider flag selects non-`requests` provider without separate approval | Kill process; violates §4 approval requirements |
 
 All stop conditions must be documented in the live run log.
 
@@ -179,6 +183,7 @@ git diff --check  # PASS
 # No pytest required (docs-only change)
 grep -R "local-first" docs/product  # Should include this document
 grep -R "bukgu_gwangju" docs/product/bukgu-local-first-controlled-live-smoke-plan.md  # Should match
+grep -R "Firecrawl import" docs/product/bukgu-local-first-controlled-live-smoke-plan.md || true  # Should return nothing
 ```
 
 ---
