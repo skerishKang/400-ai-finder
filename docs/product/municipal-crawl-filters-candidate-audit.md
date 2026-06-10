@@ -300,6 +300,21 @@ Before any real YAML configuration files are modified (planned for Stage 394), t
 - **No Config/Production/Source Grounding/Scenario/Cache Changes**.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
-### Stage 407 Recommended Next
+### Stage 407 Implementation Status (Completed)
+
+- **Status**: No-live sitemap/homepage integration regression for configured crawl_filters profiles added in `tests/test_sitemap_homepage_crawl_filters_integration.py` (50 tests).
+- **Coverage**:
+  1. **Sitemap XML fixture integration** — static XML only, protected survive / denied excluded
+  2. **Homepage HTML fixture integration** — static HTML only, protected+tracking mixed survive / pure denied excluded
+  3. **Merged candidate pool** — test helper merges sitemap + homepage, applies crawl_filters, verifies dedupe preserves protected/excludes denied
+  4. **Cross-profile parameterized check** — pytest.mark.parametrize for all 3 profiles with base_url isolation
+  5. **Edge-case order invariance** — sitemap-first vs homepage-first produce same URL set
+  6. **No live/network guard** — mock/static fixtures only, RUN_LIVE_*_TESTS=1 prohibited
+  7. **No mutation safety** — tmp_path only, no scenario/snapshot/cache generation
+- **Verification**: 50 new tests pass; full suite 1147 passed.
+- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 408 Recommended Next
 
 - Controlled live smoke for one approved profile only if explicitly approved; otherwise continue no-live edge-case coverage or profile onboarding.
