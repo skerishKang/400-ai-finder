@@ -388,6 +388,21 @@ The following test matrix will govern the verification of the filter decision he
 - **No Config/Code/Test/Live Changes**.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
-### Stage 409 Recommended Next
+## Stage 409 Implementation Status (Completed — Bukgu Hardening)
 
-- Onboard one fourth municipal profile no-live only after candidate audit is accepted.
+- **Direction Change**: Stage 409 does **not** add a fourth municipal profile. Operator decision: expand profile count later; first harden `bukgu_gwangju`.
+- **Focus**: Harden `bukgu_gwangju` crawl filter coverage with no-live static fixture tests only.
+- **Scope**:
+  - No new configs/sites/*.yml added
+  - No new municipal profile onboarding
+  - New test file: `tests/test_bukgu_crawl_filters_hardening_no_live.py` (58 tests)
+  - Tests cover: exact candidate verification, protected+denied mixed precedence, pure denied duplicates, pagination deferred, query order invariance, fragment handling, relative URL normalization, allowed domain isolation, homepage/sitemap static fixtures, malformed href safety, board.es+tracking survival, forbidden deny guard, tmp_path only, no live/network/env guards
+- **Documentation**: Stage 409 direction change recorded in audit docs, onboarding boundary docs, and smoke boundary docs.
+- **Verification**: 1205 tests pass; full suite green.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 410 Recommended Next (Bukgu-Centric)
+
+- **Default (Option B)**: Bukgu no-live deeper hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
+- **Live Approval Only (Option A)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
+- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 410
