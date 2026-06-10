@@ -158,13 +158,24 @@ Before a new municipal site profile can be added to `configs/sites/` and before 
 - **Documentation**: Stage 409 direction change recorded in audit docs, onboarding boundary docs, and smoke boundary docs.
 - **Verification**: 1205 tests pass; full suite green.
 
-## 11. Stage 410 Recommended Next (Bukgu-Centric)
+## 11. Stage 410 Implementation Status (Completed — Bukgu Deeper Hardening)
 
-- **Default (Option B)**: Bukgu no-live deeper hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
+- **Focus**: Deepen `bukgu_gwangju` crawl filter integration coverage with no-live static fixture tests only.
+- **Scope**:
+  - No new configs/sites/*.yml added
+  - No new municipal profile onboarding
+  - New test file: `tests/test_bukgu_crawl_filters_deeper_no_live.py` (66 tests)
+  - Tests cover: dynamic URL patterns (board.es act=view, bskind, keyField, search+pagination), deep pagination variants (pageNo, currentPage, pageIndex, page, p, perPage, recordCount, pageUnit, pageSize, offset, limit, start, count), board/detail URL preservation with query order invariance, sitemap/homepage candidate merge edge cases (duplicate URLs, fragments, external domains, malformed hrefs), enhanced no-live network guards (requests, httpx, urllib, socket patch guards; env var checks)
+- **Documentation**: Stage 410 completion recorded in audit docs, onboarding boundary docs, smoke boundary docs, crawl budget policy docs, dynamic retrieval strategy docs, and candidate audit docs.
+- **Verification**: 1271 tests pass; full suite green.
+
+## 12. Stage 411 Recommended Next (Bukgu-Centric)
+
+- **Default (Option B)**: Bukgu no-live continued hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
 - **Live Approval Only (Option A)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
-- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 410
-- **Key Principle**: Profile expansion is deferred until explicit separate approval. Default Stage 410 work is Bukgu-focused.
+- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 411
+- **Key Principle**: Profile expansion is deferred until explicit separate approval. Default Stage 411 work is Bukgu-focused.
 
 ---
 
-## 12. Files Not Modified in This Stage
+## 13. Files Not Modified in This Stage

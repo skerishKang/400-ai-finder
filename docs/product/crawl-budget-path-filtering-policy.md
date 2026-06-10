@@ -401,8 +401,20 @@ The following test matrix will govern the verification of the filter decision he
 - **Verification**: 1205 tests pass; full suite green.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
-### Stage 410 Recommended Next (Bukgu-Centric)
+## Stage 410 Implementation Status (Completed — Bukgu Deeper Hardening)
 
-- **Default (Option B)**: Bukgu no-live deeper hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
+- **Focus**: Deepen `bukgu_gwangju` crawl filter integration coverage with no-live static fixture tests only.
+- **Scope**:
+  - No new configs/sites/*.yml added
+  - No new municipal profile onboarding
+  - New test file: `tests/test_bukgu_crawl_filters_deeper_no_live.py` (66 tests)
+  - Tests cover: dynamic URL patterns (board.es act=view, bskind, keyField, search+pagination), deep pagination variants (pageNo, currentPage, pageIndex, page, p, perPage, recordCount, pageUnit, pageSize, offset, limit, start, count), board/detail URL preservation with query order invariance, sitemap/homepage candidate merge edge cases (duplicate URLs, fragments, external domains, malformed hrefs), enhanced no-live network guards (requests, httpx, urllib, socket patch guards; env var checks)
+- **Documentation**: Stage 410 completion recorded in smoke boundary docs, crawl budget policy docs, dynamic retrieval strategy docs, onboarding boundary docs, and candidate audit docs.
+- **Verification**: 1271 tests pass; full suite green.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 411 Recommended Next (Bukgu-Centric)
+
+- **Default (Option B)**: Bukgu no-live continued hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
 - **Live Approval Only (Option A)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
-- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 410
+- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 411
