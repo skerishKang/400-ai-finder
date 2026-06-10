@@ -315,6 +315,22 @@ Before any real YAML configuration files are modified (planned for Stage 394), t
 - **No Config/Production/Source Grounding/Scenario/Cache Changes**.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
-### Stage 408 Recommended Next
+### Stage 408 Implementation Status (Completed)
 
-- Controlled live smoke for one approved profile only if explicitly approved; otherwise continue no-live edge-case coverage or profile onboarding.
+- **Status**: Fourth municipal profile onboarding candidate audit completed in `docs/product/fourth-municipal-profile-onboarding-candidate-audit.md`.
+- **Scope**: Docs-only audit defining candidate selection criteria, exclusion criteria, recommended shortlist policy, Stage 409 onboarding checklist, and Stage 410 options.
+- **Key Deliverables**:
+  - Current readiness summary (3 profiles, 246 total tests)
+  - Stage 400 invalidation lesson (separate onboarding vs rollout tracks)
+  - Candidate selection criteria (7 mandatory + preferred)
+  - Candidate exclusion criteria (8 exclusion categories)
+  - Recommended shortlist policy (Gwangju municipal siblings, documented as "candidate")
+  - Stage 409 onboarding checklist (7 phases, 30+ items)
+  - Required safety gates for Stage 409
+  - Stage 410 options (A: live if approved, B: fourth profile no-live, C: continue no-live)
+- **No Config/Code/Test/Live Changes**.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 409 Recommended Next
+
+- Onboard one fourth municipal profile no-live only after candidate audit is accepted.

@@ -54,19 +54,19 @@ crawl_filters:
 ### Full Suite Status
 
 - **Total pytest: 1147 passed, 4 skipped**
-- **No config/production code/live calls/scenario changes in Stages 394-407**
-- **Stage 407 added 50 sitemap/homepage integration tests (no-live, mock/static fixtures only)**
+- **No config/production code/live calls/scenario changes in Stages 394-408**
+- **Stage 408 added fourth profile onboarding candidate audit (docs-only)**
 
 ---
 
 ## 2. Live Smoke Remains Not Executed
 
-**Stage 407 does NOT execute any live smoke validation.**
+**Stage 408 does NOT execute any live smoke validation.**
 
-- No live/network/API/Firecrawl calls are made in Stage 407
+- No live/network/API/Firecrawl calls are made in Stage 408
 - `RUN_LIVE_*_TESTS=1` is explicitly prohibited
 - This document defines the boundary and prerequisites; it does not execute them
-- Live validation remains **explicit-approval only**, deferred to Stage 408+
+- Live validation remains **explicit-approval only**, deferred to Stage 409+
 
 ---
 
@@ -82,7 +82,7 @@ Before ANY live smoke validation can be executed, ALL of the following must be s
 ### 3.2 Exact Target Profile Selection
 - **One profile at a time** — no batch/live runs across multiple profiles
 - Profile must be one of the three configured: `bukgu_gwangju`, `gwangju_go_kr`, or `seogu_gwangju`
-- Profile must have completed all no-live regression tests (all do as of Stage 407)
+- Profile must have completed all no-live regression tests (all do as of Stage 408)
 
 ### 3.3 Exact Command Specification
 The live command must be fully specified in the approval, including:
@@ -166,15 +166,15 @@ All stop conditions must be documented in the live run log.
 
 ---
 
-## 7. Stage 408 Options
+## 7. Stage 409 Options
 
 | Option | Description | When to Choose |
 |--------|-------------|----------------|
 | **A: Controlled Live Smoke for One Approved Profile Only** | Execute live smoke against exactly one profile (recommended: `bukgu_gwangju`) with all prerequisites from §3 | **Only if operator explicitly approves live**; all §3 prerequisites met; first live validation |
-| **B: Fourth Municipal Profile Onboarding, No-Live Only** | Add one new municipal profile via onboarding boundary (§5 of onboarding doc), apply conservative `crawl_filters`, no live | If no live approval; want to expand coverage safely |
-| **C: Continue No-Live Integration Coverage** | Add no-live tests for edge cases: dynamic URL patterns, deep pagination beyond current coverage | Default safe path; builds confidence without live risk |
+| **B: Fourth Municipal Profile Onboarding, No-Live Only** | Add one new municipal profile via onboarding boundary (§5 of onboarding doc), apply conservative `crawl_filters`, no live | **Recommended after Stage 408 audit**; no live approval; safe expansion |
+| **C: Continue No-Live Integration Coverage** | Add no-live tests for edge cases: dynamic URL patterns, deep pagination beyond current coverage | If neither A nor B; builds confidence without live risk |
 
-**Recommended**: **Option A only if user explicitly approves live**; otherwise **Option C**.
+**Recommended**: **Option B** after Stage 408 audit is accepted, unless user explicitly approves live (Option A).
 
 Live smoke remains **explicit-approval only**, never automatic, never batch, always one profile at a time.
 
@@ -186,7 +186,7 @@ Live smoke remains **explicit-approval only**, never automatic, never batch, alw
 |----------|--------|
 | `configs/sites/` | No changes |
 | `src/` production code | No changes |
-| `tests/` (except new sitemap/homepage integration) | No changes |
+| `tests/` | No changes |
 | `scenario/` `snapshot/` `cache/` | No mutations |
 | `README.md` | No changes |
 | `validate_matrix()` / `evaluate_response()` | No changes |
@@ -198,19 +198,33 @@ Live smoke remains **explicit-approval only**, never automatic, never batch, alw
 
 ```bash
 git diff --check  # PASS
-PYTHONPATH=. .venv/bin/pytest tests/test_sitemap_homepage_crawl_filters_integration.py  # 50 passed
-PYTHONPATH=. .venv/bin/pytest tests/test_crawl_filters_edge_case_regression.py tests/test_all_configured_crawl_filters_source_preservation.py  # 129 passed
-PYTHONPATH=. .venv/bin/pytest  # 1147 passed, 4 skipped
+# No pytest required (docs-only change)
 ```
 
 ---
 
 ## 10. Next Steps
 
-- **Stage 408**: Controlled live smoke for one approved profile only if explicitly approved; otherwise continue no-live edge-case coverage or profile onboarding.
+- **Stage 409**: Onboard one fourth municipal profile no-live only after candidate audit is accepted.
 - **Live Smoke**: Remains explicit-approval only, no automatic schedule.
 
 ---
+
+## Stage 408 Implementation Status (Completed)
+
+- **Status**: Fourth municipal profile onboarding candidate audit completed in `docs/product/fourth-municipal-profile-onboarding-candidate-audit.md`.
+- **Scope**: Docs-only audit defining candidate selection criteria, exclusion criteria, recommended shortlist policy, Stage 409 onboarding checklist, and Stage 410 options.
+- **Key Deliverables**:
+  - Current readiness summary (3 profiles, 246 total tests)
+  - Stage 400 invalidation lesson
+  - Candidate selection criteria (7 mandatory + preferred)
+  - Candidate exclusion criteria (8 exclusion categories)
+  - Recommended shortlist policy (Gwangju municipal siblings, documented as "candidate")
+  - Stage 409 onboarding checklist (7 phases, 30+ items)
+  - Required safety gates for Stage 409
+  - Stage 410 options (A: live if approved, B: fourth profile no-live, C: continue no-live)
+- **No Config/Production/Source Grounding/Scenario/Cache Changes**.
+- **Live Smoke Still Deferred**: Explicit approval required.
 
 ## Stage 407 Implementation Status (Completed)
 

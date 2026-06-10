@@ -155,7 +155,8 @@ git diff --check  # PASS
 
 ---
 
-## 12. Next Steps
+## 11. Next Steps
 
-- **Stage 406**: Controlled live smoke for one approved profile only if explicitly approved; otherwise continue no-live edge-case coverage.
+- **Stage 408**: Audit fourth municipal profile onboarding candidate (docs-only).
+- **Stage 409**: Onboard one fourth municipal profile no-live only after candidate audit is accepted.
 - **Live Smoke**: Remains explicit-approval only, no automatic schedule.
