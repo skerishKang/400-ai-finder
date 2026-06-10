@@ -169,13 +169,24 @@ Before a new municipal site profile can be added to `configs/sites/` and before 
 - **Documentation**: Stage 410 completion recorded in audit docs, onboarding boundary docs, smoke boundary docs, crawl budget policy docs, dynamic retrieval strategy docs, and candidate audit docs.
 - **Verification**: 1271 tests pass; full suite green.
 
-## 12. Stage 411 Recommended Next (Bukgu-Centric)
+## 12. Stage 411 Implementation Status (Completed — Bukgu Continued Hardening)
+
+- **Focus**: Continue `bukgu_gwangju` crawl filter integration coverage with no-live static fixture tests only.
+- **Scope**:
+  - No new configs/sites/*.yml added
+  - No new municipal profile onboarding
+  - New test file: `tests/test_bukgu_crawl_filters_stage411_no_live.py` (32 tests)
+  - Tests cover: query-order/URL normalization edge cases, homepage+sitemap duplicate canonicalization, percent-encoded Korean query parameters, malformed-but-parseable internal links (scheme-relative, whitespace, HTML entities), mixed precedence regressions, enhanced no-live network guards
+- **Documentation**: Stage 411 completion recorded in audit docs, onboarding boundary docs, smoke boundary docs, crawl budget policy docs, dynamic retrieval strategy docs, and candidate audit docs.
+- **Verification**: 1303 tests pass; full suite green.
+
+## 13. Stage 412 Recommended Next (Bukgu-Centric)
 
 - **Default (Option B)**: Bukgu no-live continued hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
 - **Live Approval Only (Option A)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
-- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 411
-- **Key Principle**: Profile expansion is deferred until explicit separate approval. Default Stage 411 work is Bukgu-focused.
+- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 412
+- **Key Principle**: Profile expansion is deferred until explicit separate approval. Default Stage 412 work is Bukgu-focused.
 
 ---
 
-## 13. Files Not Modified in This Stage
+## 14. Files Not Modified in This Stage
