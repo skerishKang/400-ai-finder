@@ -85,7 +85,7 @@ BUKGU_HOMEPAGE_HTML_DEEPER = """
       <a href="/board.es?pageUnit=10">게시판 pageUnit</a>
       <a href="/board.es?pageSize=50&page=10">게시판 pageSize</a>
 
-      <!-- Protected + pagination + tracking mixed -->  
+      <!-- Protected + pagination + tracking mixed -->
       <a href="/board.es?seq=999&pageNo=2&utm_source=test">보호+페이지네이션+트래킹</a>
       <a href="/board.es?mid=a101&pageIndex=3&utm_medium=email">메뉴+페이지인덱스+트래킹</a>
       <a href="/content?contentId=123&page=5&utm_campaign=spring">컨텐츠+페이지+트래킹</a>
