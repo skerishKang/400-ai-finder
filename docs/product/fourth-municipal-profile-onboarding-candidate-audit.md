@@ -255,15 +255,15 @@ When Stage 409 proceeds to onboard the selected fourth profile, the following MU
 
 ---
 
-## 8. Stage 411 Options (Updated Post-Stage 410 — Bukgu-Centric)
+## 8. Stage 412 Options (Updated Post-Stage 411 — Bukgu-Centric)
 
 | Option | Description | When to Choose |
 |--------|-------------|----------------|
 | **A: Controlled Live Smoke for Bukgu Only** | Execute live smoke against `bukgu_gwangju` only with all prerequisites | **Only if operator explicitly approves live**; all prerequisites met; first live validation |
-| **B: Bukgu No-Live Continued Hardening** | Add more no-live integration tests for `bukgu_gwangju`: dynamic URL patterns, deep pagination, additional edge cases beyond current 124 tests | **Default recommendation** — no live approval needed; builds confidence on the profile with most coverage |
-| **C: Profile Expansion (Deferred)** | Add new municipal profile (fourth/fifth) via onboarding boundary | **Only with explicit separate approval**; not part of default Stage 411 |
+| **B: Bukgu No-Live Continued Hardening** | Add more no-live integration tests for `bukgu_gwangju`: dynamic URL patterns, deep pagination, additional edge cases beyond current 156 tests | **Default recommendation** — no live approval needed; builds confidence on the profile with most coverage |
+| **C: Profile Expansion (Deferred)** | Add new municipal profile (fourth/fifth) via onboarding boundary | **Only with explicit separate approval**; not part of default Stage 412 |
 
-**Recommended**: **Option B** as default after Stage 410. Live smoke (Option A) remains explicit-approval only. Profile expansion (Option C) requires separate explicit approval and is deferred.
+**Recommended**: **Option B** as default after Stage 411. Live smoke (Option A) remains explicit-approval only. Profile expansion (Option C) requires separate explicit approval and is deferred.
 
 Live smoke remains **explicit-approval only**, never automatic, never batch, always one profile at a time (`bukgu_gwangju` only for first live).
 
@@ -294,6 +294,6 @@ git diff --check  # PASS
 
 ## 11. Next Steps
 
-- **Stage 411 (Default)**: Bukgu no-live continued hardening (dynamic URL patterns, deep pagination, more edge cases)
-- **Stage 411 (Live)**: Controlled live smoke for `bukgu_gwangju` only — explicit operator approval required, never automatic
-- **Profile Expansion**: Deferred — requires separate explicit approval (not part of default Stage 411)
+- **Stage 412 (Default)**: Bukgu no-live continued hardening (dynamic URL patterns, deep pagination, more edge cases)
+- **Stage 412 (Live)**: Controlled live smoke for `bukgu_gwangju` only — explicit operator approval required, never automatic
+- **Profile Expansion**: Deferred — requires separate explicit approval (not part of default Stage 412)
