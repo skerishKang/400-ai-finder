@@ -11,7 +11,7 @@ As of Stage 410, the following no-live validation coverage exists for the three 
 
 | Profile | Site ID | Config File | Stages Completed |
 |---------|---------|-------------|------------------|
-| 광주광역시 북구청 | `bukgu_gwangju` | `configs/sites/bukgu_gwangju.yml` | 394 (config), 396 (pipeline), 401 (source preservation), 404 (all-configured), 406 (edge cases), 407 (sitemap/homepage integration), **409 (hardening)**, **410 (deeper hardening)** |
+| 광주광역시 북구청 | `bukgu_gwangju` | `configs/sites/bukgu_gwangju.yml` | 394 (config), 396 (pipeline), 401 (source preservation), 404 (all-configured), 406 (edge cases), 407 (sitemap/homepage integration), **409 (hardening)**, **410 (deeper hardening)**, **411 (continued hardening)**, **412 (readiness audit)** |
 | 광주광역시청 | `gwangju_go_kr` | `configs/sites/gwangju_go_kr.yml` | 397 (config), 398 (pipeline), 401 (source preservation), 404 (all-configured), 406 (edge cases), 407 (sitemap/homepage integration) |
 | 광주광역시 서구청 | `seogu_gwangju` | `configs/sites/seogu_gwangju.yml` | 403 (onboarding + config), 404 (all-configured), 406 (edge cases), 407 (sitemap/homepage integration) |
 
@@ -31,8 +31,9 @@ As of Stage 410, the following no-live validation coverage exists for the three 
 | `tests/test_bukgu_crawl_filters_hardening_no_live.py` | 58 | Exact candidate verification, protected+denied mixed precedence, pure denied duplicates, pagination deferred, query order invariance, fragment handling, relative URL normalization, allowed domain isolation, homepage/sitemap static fixtures, malformed href safety, board.es+tracking survival, forbidden deny guard, tmp_path only, no live/network/env guards |
 | `tests/test_bukgu_crawl_filters_deeper_no_live.py` | 66 | Dynamic URL patterns, deep pagination variants, board/detail preservation, sitemap/homepage merge edge cases, enhanced no-live network guards |
 | `tests/test_bukgu_crawl_filters_stage411_no_live.py` | 32 | Query-order/URL normalization, homepage+sitemap canonicalization, percent-encoded Korean queries, malformed-but-parseable links, precedence regressions, no-live guards |
+| `tests/test_bukgu_crawl_filters_readiness_no_live.py` | 11 | Empty query string, very long URLs, case-insensitive patterns, double-encoded entities, enhanced no-live guards, config exact match |
 
-**Total no-live crawl_filters tests: 402 tests across 12 test files**
+**Total no-live crawl_filters tests: 413 tests across 13 test files**
 
 ### Shared Conservative Candidate (All 3 Profiles)
 
@@ -56,11 +57,12 @@ crawl_filters:
 
 ### Full Suite Status
 
-- **Total pytest: 1303 passed, 6 skipped**
-- **No config/production code/live calls/scenario changes in Stages 394-411**
+- **Total pytest: 1325 passed, 7 skipped**
+- **No config/production code/live calls/scenario changes in Stages 394-412**
 - **Stage 409 added bukgu_gwangju hardening tests (58 tests, no-live only)**
 - **Stage 410 added bukgu_gwangju deeper hardening tests (66 tests, no-live only)**
 - **Stage 411 added bukgu_gwangju continued hardening tests (32 tests, no-live only)**
+- **Stage 412 added bukgu_gwangju readiness audit tests (11 tests, no-live only) + new audit document**
 
 ---
 
@@ -210,11 +212,24 @@ git diff --check  # PASS
 
 ## 10. Next Steps
 
-- **Stage 412 (Default)**: Bukgu no-live continued hardening (dynamic URL patterns, deep pagination, more edge cases)
-- **Stage 412 (Live)**: Controlled live smoke for `bukgu_gwangju` only — explicit operator approval required, never automatic
-- **Profile Expansion**: Deferred — requires separate explicit approval (not part of default Stage 412)
+- **Stage 413 (Default)**: Bukgu no-live continued hardening (dynamic URL patterns, deep pagination beyond current coverage, additional edge cases)
+- **Stage 413 (Live)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
+- **Profile Expansion**: Deferred — requires separate explicit approval (not part of default Stage 413)
 
 ---
+
+## Stage 412 Implementation Status (Completed — Bukgu Readiness Audit)
+
+- **Focus**: Audit `bukgu_gwangju` crawl filter no-live readiness after Stages 409-411; close remaining edge-case gaps.
+- **Scope**:
+  - No new configs/sites/*.yml added
+  - No new municipal profile onboarding
+  - New test file: `tests/test_bukgu_crawl_filters_readiness_no_live.py` (11 tests)
+  - Tests cover: empty query string handling, very long URLs with protected params, case-insensitive pattern matching, double-encoded entities behavior documentation, enhanced no-live network guards, tmp_path-only no-mutation, crawl_filters exact config match validation
+  - New audit document: `docs/product/bukgu-crawl-filter-no-live-readiness-audit.md` documenting complete readiness, gap analysis, and live smoke preconditions
+- **Documentation**: Stage 412 completion recorded in smoke boundary docs, crawl budget policy docs, dynamic retrieval strategy docs, onboarding boundary docs, and candidate audit docs.
+- **Verification**: 1325 tests pass; full suite green.
+- **Live Smoke Still Deferred**: Explicit approval required.
 
 ## Stage 411 Implementation Status (Completed — Bukgu Continued Hardening)
 

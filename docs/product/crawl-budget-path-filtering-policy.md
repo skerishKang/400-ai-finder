@@ -425,8 +425,21 @@ The following test matrix will govern the verification of the filter decision he
 - **Verification**: 1303 tests pass; full suite green.
 - **Live Smoke Still Deferred**: Explicit approval required.
 
-### Stage 412 Recommended Next (Bukgu-Centric)
+## Stage 412 Implementation Status (Completed — Bukgu Readiness Audit)
+
+- **Focus**: Audit `bukgu_gwangju` crawl filter no-live readiness after Stages 409-411; close remaining edge-case gaps.
+- **Scope**:
+  - No new configs/sites/*.yml added
+  - No new municipal profile onboarding
+  - New test file: `tests/test_bukgu_crawl_filters_readiness_no_live.py` (11 tests)
+  - Tests cover: empty query string handling, very long URLs with protected params, case-insensitive pattern matching, double-encoded entities behavior documentation, enhanced no-live network guards, tmp_path-only no-mutation, crawl_filters exact config match validation
+  - New audit document: `docs/product/bukgu-crawl-filter-no-live-readiness-audit.md` documenting complete readiness, gap analysis, and live smoke preconditions
+- **Documentation**: Stage 412 completion recorded in smoke boundary docs, crawl budget policy docs, dynamic retrieval strategy docs, onboarding boundary docs, and candidate audit docs.
+- **Verification**: 1325 tests pass; full suite green.
+- **Live Smoke Still Deferred**: Explicit approval required.
+
+### Stage 413 Recommended Next (Bukgu-Centric)
 
 - **Default (Option B)**: Bukgu no-live continued hardening — dynamic URL patterns, deep pagination beyond current coverage, additional edge cases for `bukgu_gwangju`
 - **Live Approval Only (Option A)**: Controlled live smoke for `bukgu_gwangju` — explicit operator approval required, never automatic
-- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 412
+- **Profile Expansion (Option C, Deferred)**: Fourth/fifth municipal profile onboarding — requires separate explicit approval, not part of default Stage 413
