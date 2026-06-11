@@ -198,7 +198,7 @@ class TestPostRunReportFields:
     """Verify mandatory post-run evidence report fields are documented."""
 
     def test_all_report_fields_present(self):
-        """All 11 mandatory post-run report fields must be listed."""
+        """All 10 mandatory post-run report fields must be listed (9 required + 1 optional)."""
         content = read_doc()
         section = extract_section(content, H_POST_RUN_CHECKLIST)
         required_fields = [
@@ -211,6 +211,7 @@ class TestPostRunReportFields:
             "timeouts",
             "output artifacts",
             "no-disallowed-persistence",
+            "evidence review",
             "follow-up",
         ]
         for field in required_fields:
@@ -270,6 +271,40 @@ class TestPostRunReportFields:
         content = read_doc()
         section = extract_section(content, H_POST_RUN_CHECKLIST)
         assert "no-disallowed-persistence" in section.lower() or "no disallowed persistence" in section.lower()
+
+    def test_evidence_review_issue_pr_field_mandatory(self):
+        """Evidence review issue/PR field must be present and marked mandatory."""
+        content = read_doc()
+        section = extract_section(content, H_POST_RUN_CHECKLIST)
+        assert "evidence review" in section.lower()
+        assert "mandatory" in section.lower()
+        assert "github" in section.lower()
+        assert "issue" in section.lower() or "pr" in section.lower()
+
+    def test_followup_issue_field_distinct_from_evidence_review(self):
+        """Recommended follow-up issue field must be present and distinct from evidence review."""
+        content = read_doc()
+        section = extract_section(content, H_POST_RUN_CHECKLIST)
+        assert "follow-up" in section.lower() or "followup" in section.lower()
+        assert "distinct" in section.lower() or "separate" in section.lower() or "gaps/anomalies" in section.lower()
+
+    def test_evidence_review_unconditional_requirement(self):
+        """Evidence review issue/PR must be required regardless of live outcome."""
+        content = read_doc()
+        # Check both the checklist section and the full document
+        section = extract_section(content, H_POST_RUN_CHECKLIST)
+        # The checklist itself contains "mandatory for every approved live run, regardless of outcome"
+        assert "mandatory for every approved live run" in section.lower()
+        assert "regardless of outcome" in section.lower()
+        # Also check the Evidence Review Link Requirement subsection in full doc
+        assert "without this link" in content.lower() or "incomplete" in content.lower()
+
+    def test_evidence_review_required_for_failure_too(self):
+        """Evidence review must be required even for failed live runs."""
+        content = read_doc()
+        section = extract_section(content, H_POST_RUN_CHECKLIST)
+        # The requirement should cover failures as well
+        assert "failure" in section.lower() or "regardless of" in section.lower() or "success or failure" in section.lower()
 
     def test_recommended_followup_issue_field(self):
         """Recommended follow-up issue field must be present."""
