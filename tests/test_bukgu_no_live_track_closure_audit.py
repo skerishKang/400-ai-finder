@@ -312,7 +312,12 @@ class TestProhibitedInterpretations:
         """Document must block 'live ready → execute' interpretation."""
         content = read_doc()
         section = extract_section(content, H_PROHIBITED)
-        assert "Firecrawl is the default" in section or "Firecrawl is the default" in section
+        # Assert the prohibited interpretation row itself
+        assert "Live is ready" in section or "live is ready" in section.lower()
+        assert "execute" in section.lower()
+        # Assert the correct explicit-approval wording for that row
+        assert "explicitly approved" in section.lower() or "per §4.2" in section
+        # Also verify Firecrawl/default is properly contrasted
         assert "Local-first" in section or "local-first" in section.lower()
         assert "optional fallback" in section.lower() or "fallback" in section.lower()
 
@@ -413,6 +418,7 @@ class TestProhibitedWordingNotPresent:
         """Document must not suggest RUN_LIVE can be enabled by default."""
         content = read_doc()
         main_content = self._get_main_content(content)
+        main_content_lower = main_content.lower()
         prohibited = [
             "RUN_LIVE_CRAWL_TESTS=1 can be enabled",
             "RUN_LIVE_CRAWL_TESTS=1 by default",
@@ -421,7 +427,7 @@ class TestProhibitedWordingNotPresent:
             "RUN_LIVE_*_TESTS=1 may be executed",
         ]
         for phrase in prohibited:
-            assert phrase not in main_content.lower(), f"Prohibited RUN_LIVE phrasing: {phrase}"
+            assert phrase.lower() not in main_content_lower, f"Prohibited RUN_LIVE phrasing: {phrase}"
 
 
 class TestSafetyStrings:

@@ -131,7 +131,7 @@ This document closes the **bukgu_gwangju no-live crawl filter hardening track** 
 
 **Total bukgu-focused no-live tests: 256 dedicated + 89 shared = 345 tests**
 
-**Full suite: 1300+ tests passed**
+**Prior full-suite baseline: 1300+ tests passed; Stage 416 full pytest not run because only docs/tests contract files changed.**
 
 ---
 
@@ -265,4 +265,4 @@ PYTHONPATH=. python3 -m pytest tests/test_bukgu_crawl_filters_readiness_no_live.
 # Full pytest: not run unless shared helpers or broad infrastructure changed
 ```
 
-**No live/network/API/Firecrawl calls executed. No config/src/tests/scenario/snapshot/cache modifications.**
+**No live/network/API/Firecrawl calls executed. No config/src/scenario/snapshot/cache modifications; docs/tests only.**
