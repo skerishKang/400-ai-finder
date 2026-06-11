@@ -22,6 +22,17 @@ This document is an **approval/preflight packet** for a future controlled live s
 - **Live execution remains blocked** until a human explicitly fills and approves this packet.
 - All fields below are **mandatory** and must be completed before approval consideration.
 
+### Completeness Gate (Stage 418)
+
+**An incomplete packet is NOT an approval and MUST NOT be interpreted as authorization for live execution.**
+
+- **Incomplete packet = not approved = no execution.** Any missing mandatory field (§4) blocks approval.
+- **Placeholders are not approval.** Template placeholders (e.g., `<MAX_PAGES>`, `<CANDIDATE_LIVE_SMOKE_SCRIPT>`) do not constitute filled values.
+- **A command template is not an executable script.** The template in §5 is a non-executable placeholder; it does not reference a verified runnable script.
+- **Approval requires ALL mandatory fields (§4) plus separate explicit human approval.** No field may be left blank, defaulted, or placeholdered.
+- **Missing ANY mandatory field blocks approval.** The gate is all-or-nothing.
+- **Unsafe requests cannot receive default approval** (see §6 Forbidden Defaults). Any request involving Firecrawl/provider switch, API keys/secrets, profile expansion, batch runs, `RUN_LIVE_*_TESTS=1`, or persistence of scenario/snapshot/cache/config/source-grounding is explicitly blocked from default approval and requires separate, explicit approval per the cross-referenced boundaries.
+
 ---
 
 ## 2. Exact Target Policy
