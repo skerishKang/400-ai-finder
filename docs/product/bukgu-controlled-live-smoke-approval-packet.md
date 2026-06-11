@@ -33,6 +33,34 @@ This document is an **approval/preflight packet** for a future controlled live s
 - **Missing ANY mandatory field blocks approval.** The gate is all-or-nothing.
 - **Unsafe requests cannot receive default approval** (see §6 Forbidden Defaults). Any request involving Firecrawl/provider switch, API keys/secrets, profile expansion, batch runs, `RUN_LIVE_*_TESTS=1`, or persistence of scenario/snapshot/cache/config/source-grounding is explicitly blocked from default approval and requires separate, explicit approval per the cross-referenced boundaries.
 
+### Post-Run Evidence Review Gate (Stage 419)
+
+**Even if a live smoke is executed after full approval, its results are EVIDENCE ONLY and do not constitute approval for any persistence or promotion.**
+
+- **Live result is evidence only.** A successful live smoke produces audit data — it does not authorize scenario/snapshot/cache/config/source-grounding changes.
+- **Live success is NOT approval for persistence.** No automatic merge, promotion, or config mutation occurs based on live results alone.
+- **Post-run report is mandatory before any follow-up.** The operator MUST produce the full report (§8) before any further action.
+- **Evidence review issue/PR is MANDATORY for EVERY approved live run.** Regardless of success or failure, every approved live run MUST have a corresponding human-reviewed GitHub issue or PR link documenting the evidence review. This is not optional and is not conditional on outcome.
+- **Evidence review must be a separate human-reviewed GitHub issue or PR.** No automatic process may consume live results.
+- **No automatic merge/promotion based only on live success.** Any promotion requires explicit human review and a separate decision.
+- **Scenario/snapshot/cache/config/source-grounding changes remain PROHIBITED by default.** The default no-persist policy (§4 field #12, §6) continues to apply after live execution.
+- **Any promotion requires a separate follow-up issue after human review.** The post-run report's "Recommended follow-up issue" field (§8) is for gaps/anomalies only; it is distinct from the mandatory evidence review link and is not auto-triggered.
+- **`bukgu_gwangju` remains the only first-live target.** No profile expansion or batch live runs are authorized by this gate.
+
+#### Failure Reporting Rules — Automatic Promotion Blockers
+
+The following conditions, if observed in a live run, **automatically block any promotion** regardless of other results:
+
+| Blocker | Description |
+|---------|-------------|
+| **Failures** | Any fetch error, non-2xx response, or crawl failure |
+| **Timeouts** | Any request exceeding approved `--timeout` |
+| **Unexpected domain expansion** | Any URL outside `bukgu.gwangju.kr` (and allowed subdomains) |
+| **Provider switch** | Any attempt to switch provider away from approved `requests` |
+| **Artifact write attempt** | Any attempt to write scenario/snapshot/cache/config |
+| **Firecrawl/API key/secret requirement** | Any code path requiring Firecrawl or API key/secret (unless separately approved per §6) |
+| **Disallowed persistence attempt** | Any attempt to persist scenario/snapshot/cache/config/source-grounding changes |
+
 ---
 
 ## 2. Exact Target Policy
@@ -156,17 +184,29 @@ The following stop conditions apply by default and must be acknowledged in §4 f
 
 If and when live smoke is executed after approval, the operator MUST produce a post-run report containing:
 
-| Item | Description |
-|------|-------------|
-| **Exact command used** | Full command line as executed |
-| **Target profile** | Confirmed `bukgu_gwangju` |
-| **Provider used** | Confirmed `requests` (or separately approved fallback) |
-| **Caps used** | Actual `--max-pages`, `--max-depth`, `--timeout`, retry values |
-| **Pages attempted / fetched** | Count of URLs discovered vs. successfully fetched |
-| **Errors / timeouts** | List of errors, timeout counts, affected URLs |
-| **Output artifacts** | Location and summary of any artifacts produced |
-| **No-disallowed-persistence confirmation** | Explicit statement that no scenario/snapshot/cache/config/source-grounding changes were persisted |
-| **Recommended follow-up issue** | If any gaps, anomalies, or new findings — link to new GitHub issue |
+| Item | Description | Required |
+|------|-------------|:--------:|
+| **Exact command used** | Full command line as executed | ✅ |
+| **Target profile** | Confirmed `bukgu_gwangju` | ✅ |
+| **Provider used** | Confirmed `requests` (or separately approved fallback) | ✅ |
+| **Caps used** | Actual `--max-pages`, `--max-depth`, `--timeout`, retry values | ✅ |
+| **Pages attempted / fetched** | Count of URLs discovered vs. successfully fetched | ✅ |
+| **Errors / timeouts** | List of errors, timeout counts, affected URLs | ✅ |
+| **Output artifacts** | Location and summary of any artifacts produced | ✅ |
+| **No-disallowed-persistence confirmation** | Explicit statement that no scenario/snapshot/cache/config/source-grounding changes were persisted | ✅ |
+| **Evidence review issue/PR** | Link to human-reviewed GitHub issue or PR for evidence review — **MANDATORY for every approved live run, regardless of outcome** | ✅ |
+| **Recommended follow-up issue** | If any gaps, anomalies, or new findings — link to new GitHub issue (distinct from evidence review) | — |
+
+---
+
+### Evidence Review Link Requirement
+
+The **Evidence review issue/PR** field is **unconditionally mandatory** for every approved live run:
+
+- Required regardless of live success, failure, partial results, or no results
+- Must be a link to a GitHub issue or PR where human evidence review is documented
+- Separate from "Recommended follow-up issue" which is only for gaps/anomalies
+- Without this link, the post-run report is incomplete and no further action may proceed
 
 ---
 

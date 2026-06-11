@@ -435,9 +435,14 @@ class TestProhibitedWordingNotPresent:
     """Verify document does not contain prohibited wording suggesting unauthorized actions."""
 
     def _get_main_content(self, content: str) -> str:
-        """Get document content excluding Prohibited Interpretations sections if any."""
-        # This document doesn't have a prohibited interpretations section,
-        # but we check the whole content for positive assertions of forbidden things
+        """Get document content excluding sections that list prohibited things as prohibited."""
+        # Remove the Post-Run Evidence Review Gate section (Stage 419) which lists
+        # prohibited things as prohibited (e.g., "No automatic promotion...")
+        # This is a ### sub-section under Purpose and Scope
+        pattern = r'(^### Post-Run Evidence Review Gate \(Stage 419\)\s*\n)(.*?)(?=\n## |\n### |\Z)'
+        match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+        if match:
+            return content[:match.start()] + content[match.end():]
         return content
 
     def test_no_live_approved_language(self):
