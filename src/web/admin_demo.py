@@ -18,6 +18,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Any
 from urllib.parse import urlparse
 
+from src.llm.runtime_status import resolve_llm_runtime_status
+
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_PATH = os.path.join(_THIS_DIR, "templates", "admin_demo.html")
 
@@ -111,6 +113,13 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 recommended_order = p_info["recommended_order"]
                 break
 
+        llm_status = resolve_llm_runtime_status(
+            provider=self.provider,
+            model=self.model,
+            ok=None,
+            warnings=[],
+        )
+
         effective_snapshot = _resolve_effective_snapshot(
             startup_snapshot=self.snapshot_path,
             server_site_id=self.site_id,
@@ -125,6 +134,9 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
             "model": self.model or "",
             "preset": resolved_preset or "-",
             "recommended_order": recommended_order or "-",
+            "llm_live": llm_status["llm_live"],
+            "llm_status": llm_status["llm_status"],
+            "llm_label": llm_status["llm_label"],
             "fetch_provider": "-",
             "snapshot_path": effective_snapshot or "",
         }
@@ -243,6 +255,15 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                     recommended_order = p_info["recommended_order"]
                     break
 
+            llm_status = resolve_llm_runtime_status(
+                provider=resolved_provider,
+                model=resolved_model,
+                ok=result.get("ok", False),
+                answer_ok=result.get("answer_ok", False),
+                warnings=result.get("warnings", []),
+                snapshot_mode=result.get("snapshot_mode", False),
+            )
+
             self._json_response({
                 "site_id": result.get("site_id"),
                 "site_name": result.get("site_name"),
@@ -258,6 +279,9 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "recommended_order": recommended_order or "-",
                 "snapshot_mode": result.get("snapshot_mode", False),
                 "fallback_used": result.get("fallback_used", False),
+                "llm_live": llm_status["llm_live"],
+                "llm_status": llm_status["llm_status"],
+                "llm_label": llm_status["llm_label"],
                 "warnings": result.get("warnings", []),
             })
         except Exception as e:
@@ -269,6 +293,14 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                     resolved_preset = p_name
                     recommended_order = p_info["recommended_order"]
                     break
+
+            llm_status = resolve_llm_runtime_status(
+                provider=resolved_provider,
+                model=resolved_model,
+                ok=False,
+                warnings=[f"Error: {e}"],
+                snapshot_mode=bool(effective_snapshot),
+            )
             # Resolve site name for error response
             error_site_name = effective_site_id
             try:
@@ -291,6 +323,9 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "recommended_order": recommended_order or "-",
                 "snapshot_mode": bool(effective_snapshot),
                 "fallback_used": False,
+                "llm_live": llm_status["llm_live"],
+                "llm_status": llm_status["llm_status"],
+                "llm_label": llm_status["llm_label"],
                 "warnings": [f"Error: {e}"],
                 "error": str(e),
             })
