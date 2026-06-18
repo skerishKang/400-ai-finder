@@ -36,6 +36,20 @@ from src.llm.site_search_router import (
 log = logging.getLogger(__name__)
 
 
+# Provider names that do not need a real LLM and therefore should not
+# trigger router provider construction. Keeping router creation off for
+# ``mock``/``stub`` ensures tests and demos using those providers do not
+# need any external LLM configuration to run.
+_NON_LIVE_LLM_PROVIDERS = frozenset({"mock", "stub", ""})
+
+
+def _is_live_llm_provider(provider: str | None) -> bool:
+    name = (provider or "").strip().lower()
+    if not name or name in _NON_LIVE_LLM_PROVIDERS:
+        return False
+    return True
+
+
 class SiteDemoRunner:
     """Run a pipeline demo against a site profile.
 
@@ -72,8 +86,10 @@ class SiteDemoRunner:
 
         # Router is created lazily so callers (especially tests) can inject
         # a mock provider by setting ``_router_provider`` after construction.
-        self._router_provider = None
-        self._router_model = None
+        # In production, ``_resolve_router()`` builds a real provider from
+        # the same LLM factory used by the answer pipeline.
+        self._router_provider: Any | None = None
+        self._router_model: str | None = None
         self.router: SiteSearchRouter | None = None
 
     def answer(self, question: str, output_dir: str | None = None) -> dict[str, Any]:
@@ -293,10 +309,48 @@ class SiteDemoRunner:
     # ------------------------------------------------------------------
     # Router helpers
     # ------------------------------------------------------------------
-    def _decide_route(self, question: str) -> RouterDecision:
-        """Return a RouterDecision using either the injected router or a
-        positive default fallback.
+    def _resolve_router(self) -> SiteSearchRouter | None:
+        """Return a router for the current runner, building it lazily if needed.
+
+        Resolution order:
+
+        1. ``self.router`` (explicit injection, including tests).
+        2. ``self._router_provider`` (injected LLM provider handle).
+        3. If ``self.provider`` is a live LLM provider name (anything other
+           than ``mock``/``stub``/empty), build a provider via
+           ``src.llm.get_provider`` and wrap it in a ``SiteSearchRouter``.
+        4. Otherwise return ``None`` so the caller falls back to the
+           positive ``default_fallback_decision``.
         """
+        if self.router is not None:
+            return self.router
+
+        if not _is_live_llm_provider(self.provider):
+            # No router for non-live providers; tests that want a router
+            # can still inject one explicitly via ``self.router = ...``.
+            return None
+
+        # Lazy import to avoid loading requests / config at import time
+        from src.llm import get_provider  # noqa: WPS433 - lazy import
+
+        try:
+            router_provider = get_provider(self.provider, model=self.model)
+        except Exception as e:  # noqa: BLE001 - never break the user response
+            log.debug("router provider build failed: %s", e)
+            return None
+
+        return SiteSearchRouter(
+            provider=router_provider,
+            model=self.model,
+            site_name=self.profile.name,
+        )
+
+    def _decide_route(self, question: str) -> RouterDecision:
+        """Return a RouterDecision using either the injected router, a
+        lazily resolved router, or a positive default fallback.
+        """
+        if self.router is None:
+            self.router = self._resolve_router()
         if self.router is not None:
             try:
                 return self.router.decide(question)

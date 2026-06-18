@@ -275,6 +275,212 @@ def test_runner_without_router_falls_back_to_site_search(tmp_path):
 
 
 # ----------------------------------------------------------------------
+# SiteDemoRunner lazy router resolution
+# ----------------------------------------------------------------------
+
+
+class _FakeProvider:
+    """Stand-in for a real LLMProvider that uses .complete() and
+    returns a ProviderResult-style object with a ``content`` field.
+
+    No network calls; the canned text is what the router will parse.
+    """
+
+    def __init__(self, content: str) -> None:
+        self._content = content
+        self.complete_calls = 0
+
+    def complete(self, messages, **_kwargs):
+        self.complete_calls += 1
+        return SimpleNamespace(
+            ok=True,
+            provider="fake",
+            model="fake-model",
+            content=self._content,
+        )
+
+    @property
+    def provider_name(self):
+        return "fake"
+
+    @property
+    def model_name(self):
+        return "fake-model"
+
+
+def test_runner_resolves_router_via_get_provider_for_live_provider(tmp_path, monkeypatch):
+    """A live-provider runner must build a router via ``get_provider`` and
+    call its LLM-backed ``decide()`` instead of always falling back to
+    ``default_fallback_decision``.
+    """
+    from src.llm import get_provider as llm_get_provider
+    from src.demo.site_demo_runner import SiteDemoRunner
+
+    payload = (
+        '{"route": "direct_answer", "should_search_site": false, '
+        '"confidence": 0.92, "reason": "명백한 인사", '
+        '"search_query": "", "direct_answer": "안녕하세요"}'
+    )
+    fake = _FakeProvider(payload)
+
+    calls: list[tuple] = []
+
+    def fake_get_provider(name, **overrides):
+        calls.append((name, overrides))
+        return fake
+
+    # Patch the function the runner imports lazily: ``src.llm.get_provider``.
+    monkeypatch.setattr(llm_get_provider.__module__ + ".get_provider", fake_get_provider)
+
+    runner = SiteDemoRunner(
+        site_id="bukgu_gwangju",
+        provider="nvidia",
+        output_dir=str(tmp_path),
+    )
+    # Router should be built lazily on first route decision
+    assert runner.router is None
+
+    # Resolve the route through the lazy router path; this must trigger
+    # get_provider() and call the LLM-backed router (not the fallback).
+    decision = runner._decide_route("안녕")
+
+    # get_provider was called once with the live provider name
+    assert calls and calls[0][0] == "nvidia"
+    # Fake provider.complete() was used by the router shim
+    assert fake.complete_calls == 1
+    # Router actually ran; decision is the direct_answer, not the positive fallback
+    assert decision.route == "direct_answer"
+    assert decision.should_search_site is False
+    assert decision.direct_answer == "안녕하세요"
+    # Router is now cached on the runner
+    assert runner.router is not None
+
+
+def test_runner_does_not_call_get_provider_for_mock_or_stub(tmp_path, monkeypatch):
+    """Mock/stub runners must NOT instantiate a real LLM provider for the
+    router. This guarantees test paths stay free of network calls.
+    """
+    from src.demo.site_demo_runner import SiteDemoRunner
+
+    def fail_get_provider(*_args, **_kwargs):
+        raise AssertionError(
+            "get_provider must not be called for mock/stub provider runners"
+        )
+
+    monkeypatch.setattr("src.llm.get_provider", fail_get_provider)
+
+    for non_live in ("mock", "stub"):
+        runner = SiteDemoRunner(
+            site_id="bukgu_gwangju",
+            provider=non_live,
+            output_dir=str(tmp_path),
+        )
+        # No router injection; calling _decide_route must not call get_provider
+        # because the runner's provider is non-live. It must fall back to
+        # the positive site_search default.
+        decision = runner._decide_route("안녕")
+        assert decision.route == "site_search"
+        assert decision.reason == "router_fallback_positive"
+        assert runner.router is None  # get_provider never called
+
+
+def test_runner_with_lazy_router_routes_greeting_to_direct_answer(tmp_path, monkeypatch):
+    """End-to-end: a live-provider runner lazily builds a router via
+    ``get_provider`` and uses it to send a clear greeting to the
+    ``direct_answer`` route, skipping the search pipeline entirely.
+
+    This is the regression guard for the "안녕" greeting problem.
+    """
+    from src.demo.site_demo_runner import SiteDemoRunner
+
+    payload = (
+        '{"route": "direct_answer", "should_search_site": false, '
+        '"confidence": 0.99, "reason": "명백한 인사", '
+        '"search_query": "", "direct_answer": "안녕하세요! 무엇을 도와드릴까요?"}'
+    )
+    fake = _FakeProvider(payload)
+    monkeypatch.setattr("src.llm.get_provider", lambda *_a, **_k: fake)
+
+    runner = SiteDemoRunner(
+        site_id="bukgu_gwangju",
+        provider="openai_compatible",
+        output_dir=str(tmp_path),
+    )
+
+    result = runner.answer("안녕")
+
+    assert result["route"] == "direct_answer"
+    assert result["should_search_site"] is False
+    assert result["answer_mode"] == "direct_answer"
+    assert "안녕하세요" in result["answer"]
+    assert result["sources"] == []
+    assert result["search_results"] == []
+    assert fake.complete_calls == 1
+
+
+def test_runner_with_lazy_router_routes_search_query_to_site_search(tmp_path, monkeypatch):
+    """Lazy router should also route genuine site-search questions to the
+    ``site_search`` path so the pipeline runs.
+    """
+    from src.demo.site_demo_runner import SiteDemoRunner
+
+    payload = (
+        '{"route": "site_search", "should_search_site": true, '
+        '"confidence": 0.88, "reason": "민원서식 관련", '
+        '"search_query": "민원서식", "direct_answer": ""}'
+    )
+    fake = _FakeProvider(payload)
+    monkeypatch.setattr("src.llm.get_provider", lambda *_a, **_k: fake)
+
+    runner = SiteDemoRunner(
+        site_id="bukgu_gwangju",
+        provider="openai_compatible",
+        output_dir=str(tmp_path),
+    )
+
+    # Resolve the route through the lazy router path; the runner must
+    # actually call the LLM-backed router and produce a site_search
+    # decision, not the positive fallback.
+    decision = runner._decide_route("민원서식 어디서 받아?")
+
+    assert decision.route == "site_search"
+    assert decision.should_search_site is True
+    assert decision.search_query == "민원서식"
+    assert fake.complete_calls == 1
+    # The router is now cached on the runner.
+    assert runner.router is not None
+
+
+def test_runner_router_provider_build_failure_falls_back(tmp_path, monkeypatch):
+    """If ``get_provider`` raises (e.g. missing API key for a live provider),
+    the runner's router must be ``None`` and ``_decide_route`` must fall
+    back to the positive ``site_search`` default — without trying to build
+    a real LLM provider.
+    """
+    from src.demo import site_demo_runner as runner_module
+    from src.demo.site_demo_runner import SiteDemoRunner
+
+    def explode(*_args, **_kwargs):
+        raise ValueError("API key not configured")
+
+    monkeypatch.setattr(runner_module, "_is_live_llm_provider", lambda *_a, **_k: True)
+    monkeypatch.setattr("src.llm.get_provider", explode)
+
+    runner = SiteDemoRunner(
+        site_id="bukgu_gwangju",
+        provider="nvidia",
+        output_dir=str(tmp_path),
+    )
+
+    # Resolve router directly: must fall back gracefully when get_provider explodes.
+    decision = runner._decide_route("민원서식 어디서 받아?")
+
+    assert decision.route == "site_search"
+    assert decision.reason == "router_fallback_positive"
+    assert runner.router is None  # router build was attempted but failed
+
+
+# ----------------------------------------------------------------------
 # Conversation log: source_weak rule (site_search only)
 # ----------------------------------------------------------------------
 

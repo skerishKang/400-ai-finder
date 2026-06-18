@@ -148,16 +148,58 @@ class SiteSearchRouter:
         self.model = model
         self.site_name = site_name
 
+    def _call_llm(self, prompt: str) -> Any:
+        """Call the underlying provider in a duck-typed, shim-friendly way.
+
+        Supports two provider interfaces:
+
+        - ``provider.generate(prompt, model=...)`` — used by simple mock
+          providers in tests. Returns an object with a ``.text`` attribute.
+        - ``provider.complete(messages, ...)`` — the canonical
+          ``LLMProvider`` interface (used by ``OpenAICompatibleProvider``).
+          Returns a ``ProviderResult`` with a ``content`` field.
+
+        Any other interface should be wired into one of these two shapes
+        before being passed in.
+        """
+        generate = getattr(self.provider, "generate", None)
+        if callable(generate):
+            return generate(prompt=prompt, model=self.model or "")
+        complete = getattr(self.provider, "complete", None)
+        if callable(complete):
+            return complete(
+                messages=[{"role": "user", "content": prompt}],
+            )
+        raise RuntimeError(
+            "router provider exposes neither .generate() nor .complete()"
+        )
+
+    def _result_text(self, result: Any) -> str:
+        """Extract the LLM response text from various result shapes.
+
+        Accepts objects with ``.text`` (test mocks) or ``.content``
+        (``ProviderResult``) attributes.
+        """
+        if result is None:
+            return ""
+        text = getattr(result, "text", None)
+        if text:
+            return text if isinstance(text, str) else str(text)
+        content = getattr(result, "content", None)
+        if content:
+            return content if isinstance(content, str) else str(content)
+        return ""
+
     def decide(self, question: str) -> RouterDecision:
         if not self.provider:
             return default_fallback_decision(question, self.site_name)
         prompt = _build_prompt(question or "", self.site_name)
         try:
-            result = self.provider.generate(prompt=prompt, model=self.model or "")
+            result = self._call_llm(prompt)
         except Exception as e:  # noqa: BLE001 - never break the user response
             log.debug("router LLM call failed: %s", e)
             return default_fallback_decision(question, self.site_name)
-        text = getattr(result, "text", "") or ""
+        text = self._result_text(result)
         decision = _parse_decision(text, question or "")
         if not decision:
             return default_fallback_decision(question, self.site_name)
