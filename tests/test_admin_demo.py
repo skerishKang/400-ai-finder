@@ -155,6 +155,9 @@ class TestAdminDemoHTTP:
         assert data["profile"]["name"] == "광주광역시 북구청"
         assert data["snapshot"]["loaded"] is True
         assert data["snapshot"]["nav_link_count"] >= 1
+        assert data["summary"]["llm_live"] is False
+        assert data["summary"]["llm_status"] == "mock_no_api"
+        assert "테스트 고정 응답" in data["summary"]["llm_label"]
         conn.close()
 
     def test_get_info_uses_bundled_snapshot_without_startup_snapshot(self, admin_server_without_startup_snapshot):
@@ -192,6 +195,19 @@ class TestAdminDemoHTTP:
         assert "runTest" in body
         conn.close()
 
+    def test_admin_js_status_card_reads_summary_llm_status(self, admin_server):
+        port = admin_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/static/admin/admin_demo.js")
+        resp = conn.getresponse()
+        body = resp.read().decode("utf-8")
+        assert resp.status == 200
+        assert 'if(s.llm_status) statusHtml += ' in body
+        assert "s.llm_live" in body
+        assert "s.llm_label || s.llm_status" in body
+        assert "if(d.llm_status) statusHtml" not in body
+        conn.close()
+
     def test_post_test_minwonseo(self, admin_server):
         port = admin_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=10)
@@ -204,6 +220,10 @@ class TestAdminDemoHTTP:
         assert data["question"] == "민원서식 어디서 받아?"
         assert len(data["sources"]) >= 1
         assert data["answer"] != ""
+        assert data["answer_ok"] is True
+        assert data["llm_live"] is False
+        assert data["llm_status"] == "snapshot_no_api"
+        assert "저장된 source 자료 기반" in data["llm_label"]
         conn.close()
 
     def test_post_test_gyoyukjeopsu(self, admin_server):

@@ -6,6 +6,7 @@ import json
 from typing import Any
 from src.demo.demo_helpers import fallback_sources_from_homepage_map, generate_answer_from_sources
 from src.demo.metadata_helper import resolve_preset_from_model_provider
+from src.llm.runtime_status import resolve_llm_runtime_status
 
 def save_snapshot(result: dict[str, Any], path: str) -> str:
     """Save a demo result dict as a reusable JSON snapshot."""
@@ -113,6 +114,16 @@ def answer_from_snapshot_helper(
 
     # Resolve preset
     snapshot["preset"] = resolve_preset_from_model_provider(snapshot["provider"], snapshot.get("model") or "")
+    snapshot_llm_status = resolve_llm_runtime_status(
+        provider=snapshot["provider"],
+        model=snapshot.get("model") or "",
+        ok=True,
+        warnings=snapshot.setdefault("warnings", []),
+        snapshot_mode=True,
+    )
+    snapshot["llm_live"] = snapshot_llm_status["llm_live"]
+    snapshot["llm_status"] = snapshot_llm_status["llm_status"]
+    snapshot["llm_label"] = snapshot_llm_status["llm_label"]
 
     snapshot.setdefault("warnings", []).append(
         "홈페이지 메뉴와 저장된 데모 자료를 기준으로 안내합니다."

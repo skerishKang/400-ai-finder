@@ -18,6 +18,7 @@ async function init(){
       '기관명': s.site_name || '-',
       'Provider': s.provider || '-',
       'Fetch Provider': s.fetch_provider || '-',
+      'LLM 상태': s.llm_label ? esc(s.llm_label) : '-',
       'Snapshot': s.snapshot_path ? '사용 중' : '없음',
     });
 
@@ -43,6 +44,7 @@ async function init(){
 
     const st = d.status || {};
     let statusHtml = '';
+    if(s.llm_status) statusHtml += '<span class="tag ' + ((s.llm_live ? 'green' : 'yellow')) + '">' + esc(s.llm_label || s.llm_status) + '</span> ';
     if(st.snapshot_mode) statusHtml += '<span class="tag blue">Snapshot 모드</span> ';
     if(st.fallback_used) statusHtml += '<span class="tag yellow">Fallback 사용</span> ';
     if(!st.snapshot_mode && !st.fallback_used) statusHtml += '<span class="tag green">정상</span>';
@@ -154,6 +156,7 @@ async function runTest(){
       '<span>기관: <strong>' + esc(d.site_name || d.site_id || '-') + '</strong></span>' +
       '<span style="margin-left:12px;">LLM: <strong>' + esc(d.provider || '-') + '</strong> (' + esc(d.model || '-') + ')</span>' +
       '<span style="margin-left:12px;">Preset: <strong>' + esc(d.preset || '-') + '</strong></span>' +
+      '<span style="margin-left:12px;">LLM 상태: <strong>' + esc(d.llm_label || d.llm_status || '-') + '</strong></span>' +
       '</div>';
 
     document.getElementById('resultAnswer').innerHTML = metaHtml + '<div style="white-space:pre-wrap;">' + esc(d.answer || '(답변 없음)') + '</div>';

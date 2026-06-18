@@ -187,6 +187,10 @@ class TestMobileDemoHTTP:
         data = json.loads(resp.read())
         assert resp.status == 200
         assert len(data["sources"]) >= 1
+        assert data["answer_ok"] is True
+        assert data["llm_live"] is False
+        assert data["llm_status"] == "snapshot_no_api"
+        assert "저장된 source 자료 기반" in data["llm_label"]
         conn.close()
 
     def test_post_ask_gyoyukjeopsu(self, demo_server):

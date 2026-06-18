@@ -18,6 +18,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Any
 from urllib.parse import urlparse
 
+from src.llm.runtime_status import resolve_llm_runtime_status
+
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_PATH = os.path.join(_THIS_DIR, "templates", "mobile_demo.html")
 
@@ -126,13 +128,24 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "answer": answer,
                 "sources": result.get("sources", []),
                 "ok": result.get("ok", False),
+                "answer_ok": result.get("answer_ok", False),
                 "provider": result.get("provider", ""),
                 "model": result.get("model", ""),
                 "snapshot_mode": result.get("snapshot_mode", False),
                 "fallback_used": result.get("fallback_used", False),
+                "llm_live": result.get("llm_live", False),
+                "llm_status": result.get("llm_status", "unknown"),
+                "llm_label": result.get("llm_label", ""),
                 "warnings": result.get("warnings", []),
             })
         except Exception as e:
+            llm_status = resolve_llm_runtime_status(
+                provider=self.provider,
+                model=self.model,
+                ok=False,
+                warnings=[str(e)],
+                snapshot_mode=bool(self.snapshot_path),
+            )
             self._json_response({
                 "site_id": self.site_id,
                 "site_name": self._site_name or self.site_id,
@@ -140,10 +153,14 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "answer": "현재 AI 답변을 생성할 수 없습니다. 잠시 후 다시 시도하거나 관련 홈페이지를 직접 확인해 주세요.",
                 "sources": [],
                 "ok": False,
+                "answer_ok": False,
                 "provider": self.provider,
                 "model": self.model or "",
                 "snapshot_mode": bool(self.snapshot_path),
                 "fallback_used": False,
+                "llm_live": llm_status["llm_live"],
+                "llm_status": llm_status["llm_status"],
+                "llm_label": llm_status["llm_label"],
                 "warnings": [str(e)],
             })
 

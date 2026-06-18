@@ -24,6 +24,11 @@ from .base import LLMProvider, ProviderResult
 from .mock_provider import MockProvider
 from .stub_provider import StubProvider
 from .openai_compatible_provider import OpenAICompatibleProvider
+from .runtime_status import (
+    LIVE_PROVIDERS,
+    is_live_llm_provider,
+    resolve_llm_runtime_status,
+)
 from .model_presets import (
     list_model_presets,
     get_model_preset,
@@ -313,6 +318,9 @@ __all__ = [
     "MockProvider",
     "StubProvider",
     "OpenAICompatibleProvider",
+    "LIVE_PROVIDERS",
+    "is_live_llm_provider",
+    "resolve_llm_runtime_status",
     "get_provider",
     "list_providers",
     "BUILTIN_PROVIDERS",

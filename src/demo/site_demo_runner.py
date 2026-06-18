@@ -22,6 +22,7 @@ from src.demo.snapshot_helper import (
     load_snapshot as _load_snapshot,
     answer_from_snapshot_helper,
 )
+from src.llm.runtime_status import resolve_llm_runtime_status
 
 
 class SiteDemoRunner:
@@ -211,6 +212,14 @@ class SiteDemoRunner:
         current_model = self.model or (answer_data.get("model", "") if answer_data else "")
         resolved_preset = resolve_preset_from_model_provider(self.provider, current_model)
 
+        llm_status = resolve_llm_runtime_status(
+            provider=self.provider,
+            model=current_model,
+            ok=pipeline_result.get("ok", False),
+            answer_ok=answer_ok,
+            warnings=warnings,
+        )
+
         return {
             "site_id": self.site_id,
             "site_name": self.profile.name,
@@ -228,6 +237,9 @@ class SiteDemoRunner:
             "fetched_at": now,
             "fallback_used": fallback_used,
             "warnings": warnings,
+            "llm_live": llm_status["llm_live"],
+            "llm_status": llm_status["llm_status"],
+            "llm_label": llm_status["llm_label"],
         }
 
     @staticmethod
