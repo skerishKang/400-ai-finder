@@ -137,6 +137,12 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "llm_status": result.get("llm_status", "unknown"),
                 "llm_label": result.get("llm_label", ""),
                 "warnings": list(result.get("warnings", [])),
+                "route": result.get("route", "site_search"),
+                "should_search_site": bool(result.get("should_search_site", True)),
+                "route_confidence": float(result.get("route_confidence", 0.0)),
+                "route_reason": result.get("route_reason", ""),
+                "search_query": result.get("search_query", ""),
+                "answer_mode": result.get("answer_mode", "retrieval_answer"),
             }
             if not log_conversation(response_data):
                 response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]

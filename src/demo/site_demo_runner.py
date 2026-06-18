@@ -8,6 +8,7 @@ and returns a structured result with sources.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import tempfile
 from datetime import datetime, timezone
@@ -23,6 +24,16 @@ from src.demo.snapshot_helper import (
     answer_from_snapshot_helper,
 )
 from src.llm.runtime_status import resolve_llm_runtime_status
+from src.llm.site_search_router import (
+    SiteSearchRouter,
+    RouterDecision,
+    default_fallback_decision,
+    greeting_fallback_direct_answer,
+    clarify_fallback_direct_answer,
+)
+
+
+log = logging.getLogger(__name__)
 
 
 class SiteDemoRunner:
@@ -59,6 +70,12 @@ class SiteDemoRunner:
         if self._fetch_provider is None:
             self._fetch_provider = self.profile.preferred_fetch_provider
 
+        # Router is created lazily so callers (especially tests) can inject
+        # a mock provider by setting ``_router_provider`` after construction.
+        self._router_provider = None
+        self._router_model = None
+        self.router: SiteSearchRouter | None = None
+
     def answer(self, question: str, output_dir: str | None = None) -> dict[str, Any]:
         """Answer a natural-language question against the site profile."""
         if not question or not question.strip():
@@ -66,6 +83,19 @@ class SiteDemoRunner:
 
         run_dir = output_dir or self._output_dir or tempfile.mkdtemp(prefix="demo_")
 
+        # 1) LLM-first positive site-search router decides the route.
+        router_decision = self._decide_route(question)
+
+        # 2) Non-search routes short-circuit and skip the pipeline.
+        if router_decision.route in ("direct_answer", "clarify"):
+            return self._build_non_search_result(
+                question=question,
+                run_dir=run_dir,
+                decision=router_decision,
+            )
+
+        # 3) site_search: run the pipeline with the router-supplied query.
+        search_query = router_decision.search_query or question
         try:
             runner = PipelineRunner(
                 output_dir=run_dir,
@@ -77,13 +107,13 @@ class SiteDemoRunner:
 
             pipeline_result = runner.run(
                 url=self.profile.base_url,
-                query=question,
+                query=search_query,
             )
         except Exception as e:
             pipeline_result = {
                 "ok": False,
                 "url": self.profile.base_url,
-                "query": question,
+                "query": search_query,
                 "output_dir": run_dir,
                 "steps": [
                     {"name": "search", "ok": False, "output": "", "error": str(e)},
@@ -94,7 +124,12 @@ class SiteDemoRunner:
             }
 
         # Build the demo result
-        demo_result = self._build_result(question, pipeline_result, run_dir)
+        demo_result = self._build_result(
+            question=question,
+            pipeline_result=pipeline_result,
+            run_dir=run_dir,
+            router_decision=router_decision,
+        )
         return demo_result
 
     def _build_result(
@@ -102,9 +137,13 @@ class SiteDemoRunner:
         question: str,
         pipeline_result: dict[str, Any],
         run_dir: str,
+        router_decision: RouterDecision | None = None,
     ) -> dict[str, Any]:
         """Build the final structured demo result dict."""
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        if router_decision is None:
+            router_decision = default_fallback_decision(question, self.profile.name)
+        site_name = self.profile.name
 
         # Extract search results from pipeline output
         search_results: list[dict[str, Any]] = []
@@ -243,7 +282,81 @@ class SiteDemoRunner:
             "llm_live": llm_status["llm_live"],
             "llm_status": llm_status["llm_status"],
             "llm_label": llm_status["llm_label"],
+            "route": router_decision.route,
+            "should_search_site": router_decision.should_search_site,
+            "route_confidence": router_decision.confidence,
+            "route_reason": router_decision.reason,
+            "search_query": router_decision.search_query or question,
+            "answer_mode": "retrieval_answer",
         }
+
+    # ------------------------------------------------------------------
+    # Router helpers
+    # ------------------------------------------------------------------
+    def _decide_route(self, question: str) -> RouterDecision:
+        """Return a RouterDecision using either the injected router or a
+        positive default fallback.
+        """
+        if self.router is not None:
+            try:
+                return self.router.decide(question)
+            except Exception as e:  # noqa: BLE001
+                log.debug("router decide raised: %s", e)
+        return default_fallback_decision(question, self.profile.name)
+
+    def _build_non_search_result(
+        self,
+        question: str,
+        run_dir: str,
+        decision: RouterDecision,
+    ) -> dict[str, Any]:
+        """Build a result for direct_answer or clarify routes (no pipeline)."""
+        site_name = self.profile.name
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        if decision.route == "direct_answer":
+            answer_text = decision.direct_answer or greeting_fallback_direct_answer(site_name)
+            answer_mode = "direct_answer"
+        else:  # clarify
+            answer_text = decision.direct_answer or clarify_fallback_direct_answer(site_name)
+            answer_mode = "clarify"
+
+        current_model = self.model or ""
+        resolved_preset = resolve_preset_from_model_provider(self.provider, current_model)
+        llm_status = resolve_llm_runtime_status(
+            provider=self.provider,
+            model=current_model,
+            ok=True,
+            answer_ok=True,
+            warnings=[],
+        )
+        return {
+            "site_id": self.site_id,
+            "site_name": site_name,
+            "question": question,
+            "answer": answer_text,
+            "sources": [],
+            "search_results": [],
+            "ok": True,
+            "answer_ok": True,
+            "provider": self.provider,
+            "model": current_model,
+            "preset": resolved_preset,
+            "fetch_provider": self._fetch_provider,
+            "output_dir": run_dir,
+            "fetched_at": now,
+            "fallback_used": False,
+            "warnings": [],
+            "llm_live": llm_status["llm_live"],
+            "llm_status": llm_status["llm_status"],
+            "llm_label": llm_status["llm_label"],
+            "route": decision.route,
+            "should_search_site": decision.should_search_site,
+            "route_confidence": decision.confidence,
+            "route_reason": decision.reason,
+            "search_query": decision.search_query or "",
+            "answer_mode": answer_mode,
+        }
+
 
     @staticmethod
     def _load_homepage_map(run_dir: str) -> dict[str, Any] | None:
