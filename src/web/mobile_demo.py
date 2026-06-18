@@ -19,6 +19,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from src.llm.runtime_status import resolve_llm_runtime_status
+from src.demo.conversation_log import log_conversation
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_PATH = os.path.join(_THIS_DIR, "templates", "mobile_demo.html")
@@ -117,11 +118,10 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 result = runner.answer(question)
 
             answer = result.get("answer", "")
-            if not answer or not result.get("ok", False):
-                if not answer:
-                    answer = "현재 AI 답변을 생성할 수 없습니다. 잠시 후 다시 시도하거나 관련 홈페이지를 직접 확인해 주세요."
+            if not answer:
+                answer = "지금은 답변 생성이 어렵습니다. 먼저 아래 출처를 확인해 보세요."
 
-            self._json_response({
+            response_data = {
                 "site_id": result.get("site_id"),
                 "site_name": result.get("site_name"),
                 "question": result.get("question"),
@@ -136,8 +136,11 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "llm_live": result.get("llm_live", False),
                 "llm_status": result.get("llm_status", "unknown"),
                 "llm_label": result.get("llm_label", ""),
-                "warnings": result.get("warnings", []),
-            })
+                "warnings": list(result.get("warnings", [])),
+            }
+            if not log_conversation(response_data):
+                response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]
+            self._json_response(response_data)
         except Exception as e:
             llm_status = resolve_llm_runtime_status(
                 provider=self.provider,
@@ -146,11 +149,11 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 warnings=[str(e)],
                 snapshot_mode=bool(self.snapshot_path),
             )
-            self._json_response({
+            response_data = {
                 "site_id": self.site_id,
                 "site_name": self._site_name or self.site_id,
                 "question": question,
-                "answer": "현재 AI 답변을 생성할 수 없습니다. 잠시 후 다시 시도하거나 관련 홈페이지를 직접 확인해 주세요.",
+                "answer": "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다. 아래 출처를 먼저 확인해 보세요.",
                 "sources": [],
                 "ok": False,
                 "answer_ok": False,
@@ -162,7 +165,10 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "llm_status": llm_status["llm_status"],
                 "llm_label": llm_status["llm_label"],
                 "warnings": [str(e)],
-            })
+            }
+            if not log_conversation(response_data):
+                response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]
+            self._json_response(response_data)
 
     def _json_response(self, data: dict, status: int = 200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")

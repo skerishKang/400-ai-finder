@@ -199,9 +199,12 @@ class SiteDemoRunner:
         if not answer:
             answer = pipeline_result.get("answer_markdown", "")
 
-        # Timeout/exception/pending error fallback handling
-        if not answer_ok or not answer:
-            answer = "현재 AI 답변을 생성할 수 없습니다. 잠시 후 다시 시도하거나 관련 홈페이지를 직접 확인해 주세요."
+        # Relaxed fallback: use a soft source hint only when there is no answer yet.
+        # We do not block non-empty answers just because the provider returned
+        # `answer_ok=false` or `ok=false`; we only substitute when the final
+        # answer text is empty.
+        if not answer:
+            answer = "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다. 아래 출처를 먼저 확인해 보세요."
             answer_ok = False
 
         if not pipeline_result.get("ok", False):

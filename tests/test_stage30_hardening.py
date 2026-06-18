@@ -56,7 +56,7 @@ def test_pending_provider_graceful_error_handling(tmp_path):
             result = runner.answer("민원서식 어디서 받아?")
             assert result["ok"] is False
             assert result["answer_ok"] is False
-            assert "현재 AI 답변을 생성할 수 없습니다" in result["answer"]
+            assert "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다" in result["answer"]
             assert len(result["sources"]) > 0  # Fallback sources should be preserved
             assert any("pending configuration" in w for w in result["warnings"])
 
@@ -97,7 +97,7 @@ def test_mobile_demo_graceful_ask_error():
 
         assert response_data is not None
         assert response_data["ok"] is False
-        assert "현재 AI 답변을 생성할 수 없습니다" in response_data["answer"]
+        assert "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다" in response_data["answer"]
         assert response_data["provider"] == "opencode-go"
         assert "pending configuration mock error" in response_data["warnings"][0]
 
@@ -171,7 +171,7 @@ def test_timeout_hardening(tmp_path):
         result = runner.answer("민원서식 어디서 받아?")
         assert result["ok"] is False
         assert result["answer_ok"] is False
-        assert "현재 AI 답변을 생성할 수 없습니다" in result["answer"]
+        assert "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다" in result["answer"]
         assert len(result["sources"]) > 0  # Sources from fallback menu matching should be kept
         assert any("LLM API Call Timeout" in w for w in result["warnings"])
 

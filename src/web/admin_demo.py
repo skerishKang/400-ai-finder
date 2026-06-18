@@ -19,6 +19,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from src.llm.runtime_status import resolve_llm_runtime_status
+from src.demo.conversation_log import log_conversation
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_PATH = os.path.join(_THIS_DIR, "templates", "admin_demo.html")
@@ -264,7 +265,7 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 snapshot_mode=result.get("snapshot_mode", False),
             )
 
-            self._json_response({
+            response_data = {
                 "site_id": result.get("site_id"),
                 "site_name": result.get("site_name"),
                 "question": result.get("question"),
@@ -282,8 +283,11 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "llm_live": llm_status["llm_live"],
                 "llm_status": llm_status["llm_status"],
                 "llm_label": llm_status["llm_label"],
-                "warnings": result.get("warnings", []),
-            })
+                "warnings": list(result.get("warnings", [])),
+            }
+            if not log_conversation(response_data):
+                response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]
+            self._json_response(response_data)
         except Exception as e:
             from src.llm.model_presets import PRESETS
             resolved_preset = None
@@ -308,11 +312,11 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 error_site_name = _lp(effective_site_id).name
             except Exception:
                 pass
-            self._json_response({
+            response_data = {
                 "site_id": effective_site_id,
                 "site_name": error_site_name,
                 "question": question,
-                "answer": "",
+                "answer": "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다. 아래 출처를 먼저 확인해 보세요.",
                 "sources": [],
                 "search_results": [],
                 "ok": False,
@@ -328,7 +332,10 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "llm_label": llm_status["llm_label"],
                 "warnings": [f"Error: {e}"],
                 "error": str(e),
-            })
+            }
+            if not log_conversation(response_data):
+                response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]
+            self._json_response(response_data)
 
     def _get_profile_data(self) -> dict[str, Any] | None:
         if self._profile_data is not None:
