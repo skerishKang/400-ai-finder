@@ -1,8 +1,9 @@
 """Conversation log helper for MVP dialog operation mode.
 
 Saves JSONL conversation logs under ``logs/conversations.jsonl``.
-Only non-sensitive fields are persisted; auth headers, raw responses,
-secrets, and PII are never written.
+For MVP analysis, question/answer/source metadata are persisted.
+Auth headers, raw transport metadata, raw provider responses, and
+secrets are not written.
 """
 
 from __future__ import annotations
@@ -61,10 +62,11 @@ def _source_weak_flag(result: dict[str, Any]) -> bool:
     return sources_count < 1
 
 
-def log_conversation(result: dict[str, Any], log_path: str = DEFAULT_LOG_PATH) -> None:
+def log_conversation(result: dict[str, Any], log_path: str = DEFAULT_LOG_PATH) -> bool:
     """Append a single conversation record to the JSONL log.
 
-    Write failures are swallowed; callers may inspect ``warnings`` separately
+    Returns True on success, False on write failure.
+    Failures are silent to the user-facing path; callers can add a warning
     if needed.
     """
     try:
@@ -89,6 +91,6 @@ def log_conversation(result: dict[str, Any], log_path: str = DEFAULT_LOG_PATH) -
         line = json.dumps(record, ensure_ascii=False)
         with open(log_path, "a", encoding="utf-8") as f:
             f.write(line + "\n")
+        return True
     except Exception:
-        # Logging must not break the user-facing response path.
-        pass
+        return False

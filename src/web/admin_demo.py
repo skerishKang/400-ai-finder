@@ -283,9 +283,10 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "llm_live": llm_status["llm_live"],
                 "llm_status": llm_status["llm_status"],
                 "llm_label": llm_status["llm_label"],
-                "warnings": result.get("warnings", []),
+                "warnings": list(result.get("warnings", [])),
             }
-            log_conversation(response_data)
+            if not log_conversation(response_data):
+                response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]
             self._json_response(response_data)
         except Exception as e:
             from src.llm.model_presets import PRESETS
@@ -332,7 +333,8 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "warnings": [f"Error: {e}"],
                 "error": str(e),
             }
-            log_conversation(response_data)
+            if not log_conversation(response_data):
+                response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]
             self._json_response(response_data)
 
     def _get_profile_data(self) -> dict[str, Any] | None:
