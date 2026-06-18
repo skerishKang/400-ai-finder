@@ -256,11 +256,32 @@ def test_runner_uses_clarify_route_skips_pipeline(tmp_path):
     assert "어떤 신청인지 알려주세요" in result["answer"]
 
 
-def test_runner_without_router_falls_back_to_site_search(tmp_path):
+def test_runner_without_router_falls_back_to_site_search(tmp_path, monkeypatch):
     """When no router is attached, the runner must use a positive
     site_search fallback so the search pipeline is still attempted.
+
+    This test must not hit the live network: we stub ``PipelineRunner``
+    so the fallback routing decision (positive site_search) is verified
+    without any external fetch.
     """
+    from src.demo import site_demo_runner as runner_module
     from src.demo.site_demo_runner import SiteDemoRunner
+
+    class _StubPipelineRunner:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def run(self, url, query):
+            return {
+                "ok": True,
+                "url": url,
+                "query": query,
+                "output_dir": str(tmp_path),
+                "steps": [],
+                "answer_markdown": "stub pipeline result",
+            }
+
+    monkeypatch.setattr(runner_module, "PipelineRunner", _StubPipelineRunner)
 
     runner = SiteDemoRunner(
         site_id="bukgu_gwangju",
