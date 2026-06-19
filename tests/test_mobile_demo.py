@@ -94,7 +94,7 @@ class TestMobileDemoUnit:
         assert "API_ENDPOINT" in _MOBILE_HTML
 
     def test_create_app_returns_server(self):
-        from http.server import HTTPServer
+        from http.server import HTTPServer, ThreadingHTTPServer
         server = create_app(
             site_id="bukgu_gwangju", provider="mock",
             snapshot=FIXTURE_SNAPSHOT, host="127.0.0.1", port=0,

@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -104,6 +105,70 @@ class TestGetProvider:
         with patch.dict(os.environ, {}, clear=True):
             provider = get_provider()
             assert isinstance(provider, MockProvider)
+
+    def test_env_prefix_model_for_openai_compatible(self):
+        """AI_FINDER_LLM_MODEL is respected for openai_compatible provider."""
+        with patch.dict(
+            os.environ,
+            {
+                "AI_FINDER_LLM_PROVIDER": "openai_compatible",
+                "AI_FINDER_LLM_BASE_URL": "https://api.test.example.com/v1",
+                "AI_FINDER_LLM_API_KEY": "test-prefix-key",
+                "AI_FINDER_LLM_MODEL": "custom-llm-model",
+            },
+            clear=True,
+        ):
+            provider = get_provider("openai_compatible")
+            assert isinstance(provider, OpenAICompatibleProvider)
+            assert provider._model == "custom-llm-model"
+            assert provider._base_url == "https://api.test.example.com/v1"
+            assert provider._api_key == "test-prefix-key"
+
+    def test_env_prefix_base_url_for_openai_compatible(self):
+        """AI_FINDER_LLM_BASE_URL is respected for openai_compatible provider."""
+        with patch.dict(
+            os.environ,
+            {
+                "AI_FINDER_LLM_PROVIDER": "openai_compatible",
+                "AI_FINDER_LLM_BASE_URL": "https://api.prefix.example.com/v1",
+                "AI_FINDER_LLM_API_KEY": "test-prefix-url-key",
+            },
+            clear=True,
+        ):
+            provider = get_provider("openai_compatible")
+            assert provider._base_url == "https://api.prefix.example.com/v1"
+
+    def test_env_prefix_api_key_for_openai_compatible(self):
+        """AI_FINDER_LLM_API_KEY is respected for openai_compatible provider."""
+        with patch.dict(
+            os.environ,
+            {
+                "AI_FINDER_LLM_PROVIDER": "openai_compatible",
+                "AI_FINDER_LLM_BASE_URL": "https://api.test.example.com/v1",
+                "AI_FINDER_LLM_API_KEY": "test-prefix-api-key",
+            },
+            clear=True,
+        ):
+            provider = get_provider("openai_compatible")
+            assert provider._api_key == "test-prefix-api-key"
+
+    def test_provider_specific_env_fallback_for_openai_compatible(self):
+        """AI_FINDER_OPENAI_COMPATIBLE_* still works as fallback when prefix env is absent."""
+        with patch.dict(
+            os.environ,
+            {
+                "AI_FINDER_LLM_PROVIDER": "openai_compatible",
+                "AI_FINDER_OPENAI_COMPATIBLE_BASE_URL": "https://api.provider.example.com/v1",
+                "AI_FINDER_OPENAI_COMPATIBLE_API_KEY": "test-provider-specific-key",
+                "AI_FINDER_OPENAI_COMPATIBLE_MODEL": "provider-specific-model",
+            },
+            clear=True,
+        ):
+            provider = get_provider("openai_compatible")
+            assert isinstance(provider, OpenAICompatibleProvider)
+            assert provider._model == "provider-specific-model"
+            assert provider._base_url == "https://api.provider.example.com/v1"
+            assert provider._api_key == "test-provider-specific-key"
 
 
 class TestListProviders:

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import os
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer as HTTPServer, BaseHTTPRequestHandler
 from typing import Any
 from urllib.parse import urlparse
 

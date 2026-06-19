@@ -249,28 +249,42 @@ def list_providers() -> list[dict[str, Any]]:
 
 
 def _build_provider(name: str, **overrides: Any) -> LLMProvider:
-    """Build an OpenAICompatibleProvider from a built-in provider config."""
+    """Build an OpenAICompatibleProvider from a built-in provider config.
+
+    Resolution order (per setting):
+
+    1. explicit override (``overrides``)
+    2. cfg ``env_prefix``-based env var (e.g. ``AI_FINDER_LLM_*``)
+    3. provider-specific env var (e.g. ``AI_FINDER_OPENAI_COMPATIBLE_*``)
+    4. legacy/simple env var (e.g. ``OPENAI_COMPATIBLE_*``)
+    5. cfg default
+    """
     cfg = BUILTIN_PROVIDERS[name]
+    env_prefix = (cfg.get("env_prefix") or "").strip()
 
-    # Determine each setting: override > env > cfg default
-    base_url = (
-        overrides.get("base_url")
-        or os.environ.get(f"AI_FINDER_{name.upper()}_BASE_URL")
-        or os.environ.get(f"{name.upper()}_BASE_URL")
-        or cfg.get("base_url", "")
-    )
+    def _resolve(key_suffix: str, override_key: str) -> str:
+        return (
+            overrides.get(override_key)
+            or (os.environ.get(f"{env_prefix}_{key_suffix}") if env_prefix else None)
+            or os.environ.get(f"{name.upper()}_{key_suffix}")
+            or os.environ.get(key_suffix)
+            or cfg.get(override_key, "")
+        )
 
+    base_url = _resolve("BASE_URL", "base_url")
     env_api_key = cfg.get("env_api_key", f"{name.upper()}_API_KEY")
     api_key = (
         overrides.get("api_key")
+        or (os.environ.get(f"{env_prefix}_API_KEY") if env_prefix else None)
         or os.environ.get(f"AI_FINDER_{name.upper()}_API_KEY")
         or os.environ.get(env_api_key)
+        or os.environ.get(f"{name.upper()}_API_KEY")
         or ""
     )
-
     default_model = cfg.get("default_model", "")
     model = (
         overrides.get("model")
+        or (os.environ.get(f"{env_prefix}_MODEL") if env_prefix else None)
         or os.environ.get(f"AI_FINDER_{name.upper()}_MODEL")
         or os.environ.get(f"{name.upper()}_MODEL")
         or default_model
