@@ -52,6 +52,10 @@ def _safe_pipeline_warning() -> str:
     return f"Pipeline failed: {_safe_timeout_diagnostic()}"
 
 
+def _fallback_warning(count: int = 1) -> str:
+    return f"Search returned 0 results; used {count} homepage map fallback candidates"
+
+
 class _RaisingHomepageMapper:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
@@ -387,3 +391,91 @@ def test_safe_timeout_and_pipeline_diagnostics_remain_visible() -> None:
 
     assert sanitize_warning(_safe_timeout_warning()) == _safe_timeout_warning()
     assert sanitize_warning(_safe_pipeline_warning()) == _safe_pipeline_warning()
+
+
+def test_malicious_fetch_diagnostic_object_is_sanitized(
+    tmp_path: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.demo import conversation_log
+    from src.fetch.compat_diagnostics import FetchCategory, FetchDiagnostic
+    from src.web import mobile_demo
+    from src.web.mobile_demo import MobileDemoHandler
+
+    class _MaliciousDiagnosticRunner:
+        provider = "mock"
+        model = None
+
+        def answer(self, question: str) -> dict[str, Any]:
+            return {
+                "ok": True,
+                "answer_ok": True,
+                "answer": "ok",
+                "answer_status": "answered_with_evidence",
+                "warnings": [],
+                "fetch_diagnostic": FetchDiagnostic(
+                    FetchCategory.TIMEOUT,
+                    "opaque-untrusted-detail",
+                    "retry",
+                    True,
+                ),
+                "route": "site_search",
+                "should_search_site": False,
+                "should_use_homepage_map": False,
+                "source_weak": False,
+                "sources": [],
+                "llm_status": {"ok": True, "provider": "mock", "model": "mock-model"},
+            }
+
+    class _Handler:
+        site_id = "bukgu_gwangju"
+        provider = "mock"
+        model = None
+        snapshot_path = None
+        pipeline_timeout_s = 5.0
+        _runner = _MaliciousDiagnosticRunner()
+        _site_name = "광주광역시 북구청"
+
+        def _json_response(self, data: dict[str, Any], status: int = 200) -> None:
+            nonlocal response_data
+            response_data = {"data": data, "status": status}
+
+    response_data: dict[str, Any] = {}
+    handler = cast(Any, _Handler())
+    body = json.dumps(
+        {"question": "민원서식 어디서 받아?"},
+        ensure_ascii=False,
+    ).encode("utf-8")
+    handler.rfile = io.BytesIO(body)
+    handler.headers = {"Content-Length": str(len(body))}
+
+    log_path = tmp_path / "conversations.jsonl"
+
+    def _wrap_log(result: dict[str, Any]) -> bool:
+        return conversation_log.log_conversation(result, log_path=str(log_path))
+
+    monkeypatch.setattr(mobile_demo, "log_conversation", _wrap_log)
+    MobileDemoHandler._handle_ask(cast(Any, handler))
+
+    data = response_data["data"]
+    response_blob = json.dumps(data, ensure_ascii=False)
+    log_blob = log_path.read_text(encoding="utf-8")
+    _assert_no_canary(response_blob)
+    _assert_no_canary(log_blob)
+    assert data["fetch_diagnostic"] is None
+
+
+@pytest.mark.parametrize(
+    ("warning", "expected"),
+    [
+        (_fallback_warning(), _fallback_warning()),
+        (
+            f"{_fallback_warning()} opaque-untrusted-detail",
+            "Request failed with a sanitized diagnostic.",
+        ),
+    ],
+)
+def test_homepage_fallback_warning_exact_match(warning: str, expected: str) -> None:
+    from src.fetch.sanitization import sanitize_warning
+
+    assert sanitize_warning(warning) == expected

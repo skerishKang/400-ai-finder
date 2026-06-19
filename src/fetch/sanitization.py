@@ -63,6 +63,10 @@ _WARNING_RE = re.compile(
     r"^(?P<prefix>Failure|Pipeline failed|Pipeline raised|Pipeline step failed|Pipeline timed out after "
     r"(?:\d+(?:\.\d+)?)s during site_search fetch): (?P<diagnostic>.+)$"
 )
+_HOMEPAGE_FALLBACK_WARNING_RE = re.compile(
+    r"^Search returned 0 results; used [1-9][0-9]* "
+    r"homepage map fallback candidates$"
+)
 
 _SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]+", re.IGNORECASE),
@@ -117,6 +121,8 @@ def _parse_operator_safe(line: str) -> dict[str, Any] | None:
 def _is_exact_safe_warning(text: str) -> bool:
     if text == "conversation log write failed":
         return True
+    if _HOMEPAGE_FALLBACK_WARNING_RE.fullmatch(text) is not None:
+        return True
     match = _WARNING_RE.fullmatch(text)
     if match is None:
         return False
@@ -158,7 +164,7 @@ def sanitize_warnings(values: Any) -> list[str]:
 def sanitize_fetch_diagnostic(value: Any) -> dict[str, Any] | None:
     """Keep only the exact closed-vocabulary fetch diagnostic shape."""
     if isinstance(value, FetchDiagnostic):
-        return value.to_dict()
+        value = value.to_dict()
     if not isinstance(value, dict):
         return None
     if set(value.keys()) != _ALLOWED_DIAGNOSTIC_KEYS:
