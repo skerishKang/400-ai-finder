@@ -15,8 +15,33 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 from datetime import datetime, timezone
 from typing import Any
 
+from src.fetch.compat_diagnostics import (
+    FetchCategory,
+    FetchDiagnostic,
+    classify_exception,
+    format_operator_safe,
+)
+
 from ..pipeline.pipeline_runner import PipelineRunner
 from ..site_profiles import load_profile
+
+
+def _timeout_diagnostic(budget_s: float) -> FetchDiagnostic:
+    """Build a :class:`FetchDiagnostic` for a budget-only timeout.
+
+    Used when the pipeline worker is still running and there is no
+    exception to classify. We surface the budget as part of the
+    category but never as raw text — the ``short_reason`` is closed
+    vocabulary.
+    """
+    # We keep the short_reason stable across budgets; callers that need
+    # the exact number can read ``error`` from ``_build_timeout_pipeline_result``.
+    return FetchDiagnostic(
+        category=FetchCategory.TIMEOUT,
+        short_reason="Request exceeded its deadline.",
+        retry_hint="retry",
+        is_transient=True,
+    )
 from src.demo.demo_helpers import fallback_sources_from_homepage_map
 from src.demo.metadata_helper import resolve_preset_from_model_provider
 from src.demo.snapshot_helper import (
@@ -185,29 +210,54 @@ class SiteDemoRunner:
                     # ``future.exception()`` would block on the still-running
                     # worker and re-introduce the exact hang the budget was
                     # meant to prevent.
+                    #
+                    # Stage #800: the warning itself must be operator-safe.
+                    # We classify the exception into the seven-category
+                    # taxonomy and emit only the diagnostic line — never the
+                    # raw exception text. The raw exception stays in the
+                    # debug log only (not in operator-facing output).
                     inner_exc: BaseException | None = None
                     try:
                         inner_exc = future.exception(timeout=0)
                     except FuturesTimeout:  # pragma: no cover - defensive
                         inner_exc = None
                     if inner_exc is not None:
-                        warning = f"Pipeline raised: {inner_exc}"
+                        diagnostic = classify_exception(inner_exc)
+                        operator_safe = format_operator_safe(diagnostic)
+                        warning = f"Pipeline raised: {operator_safe}"
+                        # Stage #800 safety boundary: the log line carries
+                        # ONLY the exception class name and the sanitized
+                        # diagnostic. We never pass the raw exception object
+                        # to the logger (no ``%r`` / ``str(e)`` / ``repr(e)``
+                        # / ``exc_info=True``) because debug/warning logs can
+                        # be persisted to files, CI logs, or shipped to
+                        # downstream services, and exception ``__str__`` may
+                        # embed URL fragments, headers, tokens, or body
+                        # fragments we do not control.
                         log.warning(
-                            "Pipeline raised %r during site_search fetch "
-                            "(site_id=%s)",
-                            inner_exc,
+                            "Pipeline raised during site_search fetch "
+                            "(site_id=%s) exception_type=%s diagnostic=%s",
                             self.site_id,
+                            type(inner_exc).__name__,
+                            operator_safe,
                         )
                     else:
+                        # Genuine budget timeout (worker still running).
+                        # No exception to classify; emit a timeout-flavored
+                        # diagnostic so the operator-facing warning carries
+                        # a category.
+                        diagnostic = _timeout_diagnostic(budget)
+                        operator_safe = format_operator_safe(diagnostic)
                         warning = (
                             f"Pipeline timed out after {budget}s during "
-                            f"site_search fetch"
+                            f"site_search fetch: {operator_safe}"
                         )
                         log.warning("%s (site_id=%s)", warning, self.site_id)
                     pipeline_result = self._build_timeout_pipeline_result(
                         run_dir=run_dir,
                         search_query=search_query,
                         budget_s=budget,
+                        diagnostic=diagnostic,
                     )
                     return pipeline_result, warning
             finally:
@@ -217,33 +267,58 @@ class SiteDemoRunner:
                 # JSON has already been produced.
                 ex.shutdown(wait=False)
         except Exception as e:  # noqa: BLE001 - never break the user response
+            # Stage #800: route the exception through the diagnostic
+            # taxonomy so the operator-facing warning and pipeline_result
+            # never echo raw exception text, headers, bodies, or URLs.
+            diagnostic = classify_exception(e)
+            operator_safe = format_operator_safe(diagnostic)
+            safe_error = f"Pipeline raised: {operator_safe}"
             pipeline_result = {
                 "ok": False,
                 "url": self.profile.base_url,
                 "query": search_query,
                 "output_dir": run_dir,
                 "steps": [
-                    {"name": "search", "ok": False, "output": "", "error": str(e)},
-                    {"name": "answer", "ok": False, "output": "", "error": str(e)},
+                    {"name": "search", "ok": False, "output": "", "error": safe_error},
+                    {"name": "answer", "ok": False, "output": "", "error": safe_error},
                 ],
                 "answer_markdown": "",
-                "error": str(e),
+                "error": safe_error,
             }
-            return pipeline_result, f"Pipeline raised: {e}"
+            log.warning(
+                "Pipeline raised during site_search fetch "
+                "(site_id=%s) exception_type=%s diagnostic=%s",
+                self.site_id,
+                type(e).__name__,
+                format_operator_safe(diagnostic),
+            )
+            return pipeline_result, safe_error
 
     def _build_timeout_pipeline_result(
         self,
         run_dir: str,
         search_query: str,
         budget_s: float,
+        diagnostic: FetchDiagnostic | None = None,
     ) -> dict[str, Any]:
         """Synthesize a pipeline_result dict when the pipeline hits its budget.
 
         The shape matches what ``PipelineRunner.run`` would have produced so
         ``_build_result`` can consume it uniformly. We mark the search/answer
         steps as failed and surface the timeout reason via ``error``.
+
+        Stage #800: the ``error`` field carries an operator-safe diagnostic
+        line (never the raw exception text). When ``diagnostic`` is provided
+        we surface its category; otherwise we fall back to the budget-only
+        message plus a timeout diagnostic for downstream consumers.
         """
-        msg = f"Pipeline timed out after {budget_s}s during site_search fetch"
+        if diagnostic is not None:
+            operator_safe = format_operator_safe(diagnostic)
+            msg = f"Pipeline timed out after {budget_s}s during site_search fetch: {operator_safe}"
+        else:
+            fallback = _timeout_diagnostic(budget_s)
+            operator_safe = format_operator_safe(fallback)
+            msg = f"Pipeline timed out after {budget_s}s during site_search fetch: {operator_safe}"
         return {
             "ok": False,
             "url": self.profile.base_url,
@@ -468,7 +543,14 @@ class SiteDemoRunner:
         try:
             router_provider = get_provider(self.provider, model=self.model)
         except Exception as e:  # noqa: BLE001 - never break the user response
-            log.debug("router provider build failed: %s", e)
+            # Stage #800: never echo the raw exception into the log stream.
+            # The class name plus a stable, closed-vocabulary tag keeps the
+            # log useful without leaking provider response fragments that
+            # exception ``__str__`` may carry.
+            log.debug(
+                "router provider build failed: exception_type=%s",
+                type(e).__name__,
+            )
             return None
 
         return SiteSearchRouter(
@@ -487,7 +569,12 @@ class SiteDemoRunner:
             try:
                 return self.router.decide(question)
             except Exception as e:  # noqa: BLE001
-                log.debug("router decide raised: %s", e)
+                # Stage #800: same boundary as above — never log the raw
+                # exception message.
+                log.debug(
+                    "router decide raised: exception_type=%s",
+                    type(e).__name__,
+                )
         return default_fallback_decision(question, self.profile.name)
 
     def _build_non_search_result(

@@ -61,7 +61,13 @@ def test_pending_provider_graceful_error_handling(tmp_path):
             # "공식 홈페이지 응답이 지연" message instead of the generic hint.
             assert "공식 홈페이지 응답이 지연" in result["answer"]
             assert len(result["sources"]) > 0  # Fallback sources should be preserved
-            assert any("pending configuration" in w for w in result["warnings"])
+            # Stage #800: the warning carries the sanitized diagnostic
+            # category instead of the raw exception message. Operators
+            # still see *why* the pipeline failed (timeout vs.
+            # unknown), but the raw "pending configuration" string never
+            # appears in operator-facing output.
+            assert any("category=" in w for w in result["warnings"])
+            assert any("category=unknown_fetch_error" in w for w in result["warnings"])
 
 
 def test_mobile_demo_graceful_ask_error():
@@ -179,7 +185,14 @@ def test_timeout_hardening(tmp_path):
         # soft-fallback message.
         assert "공식 홈페이지 응답이 지연" in result["answer"]
         assert len(result["sources"]) > 0  # Sources from fallback menu matching should be kept
-        assert any("LLM API Call Timeout" in w for w in result["warnings"])
+        # Stage #800: PR #799 preserves the original exception message
+        # here for diagnostic value, but Stage #800 routes it through
+        # the seven-category taxonomy so the operator-facing warning is
+        # closed-vocabulary only. We assert the diagnostic category is
+        # present; the raw "LLM API Call Timeout" string is intentionally
+        # no longer echoed in operator-facing output.
+        assert any("category=" in w for w in result["warnings"])
+        assert any("category=timeout" in w for w in result["warnings"])
 
 
 def test_mimo_step_override_regression():
