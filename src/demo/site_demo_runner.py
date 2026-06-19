@@ -222,8 +222,9 @@ class SiteDemoRunner:
                     # Stage #800: the warning itself must be operator-safe.
                     # We classify the exception into the seven-category
                     # taxonomy and emit only the diagnostic line — never the
-                    # raw exception text. The raw exception stays in the
-                    # debug log only (not in operator-facing output).
+                    # raw exception text. Raw exception text is not emitted
+                    # to operator-facing output or application log surfaces;
+                    # only the sanitized diagnostic is retained.
                     inner_exc: BaseException | None = None
                     try:
                         inner_exc = future.exception(timeout=0)
