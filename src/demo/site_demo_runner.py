@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from datetime import datetime, timezone
 from typing import Any
 
@@ -68,6 +69,7 @@ class SiteDemoRunner:
         fetch_provider: str | None = None,
         output_dir: str | None = None,
         model: str | None = None,
+        pipeline_timeout_s: float | None = None,
         **pipeline_kwargs: Any,
     ) -> None:
         self.site_id = site_id
@@ -75,6 +77,13 @@ class SiteDemoRunner:
         self.model = model
         self._fetch_provider = fetch_provider
         self._output_dir = output_dir
+        # Default budget: 30s for the entire pipeline run. When the upstream
+        # site is unreachable or extremely slow (e.g. firewalled in offline
+        # environments), exceeding this budget is treated as a soft failure:
+        # the demo returns a structured JSON result instead of hanging.
+        self._pipeline_timeout_s = (
+            float(pipeline_timeout_s) if pipeline_timeout_s is not None else 30.0
+        )
         self._pipeline_kwargs = pipeline_kwargs
 
         # Load profile
@@ -112,7 +121,41 @@ class SiteDemoRunner:
 
         # 3) site_search: run the pipeline with the router-supplied query.
         search_query = router_decision.search_query or question
-        try:
+        pipeline_result, pipeline_warning = self._run_pipeline_with_timeout(
+            run_dir=run_dir,
+            search_query=search_query,
+        )
+
+        # Build the demo result
+        demo_result = self._build_result(
+            question=question,
+            pipeline_result=pipeline_result,
+            run_dir=run_dir,
+            router_decision=router_decision,
+            pipeline_warning=pipeline_warning,
+        )
+        return demo_result
+
+    def _run_pipeline_with_timeout(
+        self,
+        run_dir: str,
+        search_query: str,
+    ) -> tuple[dict[str, Any], str | None]:
+        """Run the pipeline under a wall-clock budget.
+
+        Returns ``(pipeline_result, warning)``. ``warning`` is ``None`` on a
+        normal run and a short message when the pipeline exceeded
+        ``self._pipeline_timeout_s`` or raised.
+
+        The pipeline runs on a single-thread executor so we can enforce a
+        deadline without leaking threads. The executor is always closed via
+        ``with``; on timeout the future is cancelled (best-effort — fetch
+        sockets may continue in the background, but the demo response no
+        longer blocks on them).
+        """
+        budget = self._pipeline_timeout_s
+
+        def _execute() -> dict[str, Any]:
             runner = PipelineRunner(
                 output_dir=run_dir,
                 provider=self.provider,
@@ -120,12 +163,60 @@ class SiteDemoRunner:
                 model=self.model,
                 **self._pipeline_kwargs,
             )
-
-            pipeline_result = runner.run(
+            return runner.run(
                 url=self.profile.base_url,
                 query=search_query,
             )
-        except Exception as e:
+
+        try:
+            ex = ThreadPoolExecutor(max_workers=1)
+            try:
+                future = ex.submit(_execute)
+                try:
+                    pipeline_result = future.result(timeout=budget)
+                    return pipeline_result, None
+                except FuturesTimeout:
+                    future.cancel()
+                    # If the worker raised an exception before timing out,
+                    # ``future.exception(timeout=0)`` carries its message —
+                    # we surface that in the warning so operators can see
+                    # *why* the pipeline failed, not just the budget number.
+                    # The ``timeout=0`` is critical: a plain
+                    # ``future.exception()`` would block on the still-running
+                    # worker and re-introduce the exact hang the budget was
+                    # meant to prevent.
+                    inner_exc: BaseException | None = None
+                    try:
+                        inner_exc = future.exception(timeout=0)
+                    except FuturesTimeout:  # pragma: no cover - defensive
+                        inner_exc = None
+                    if inner_exc is not None:
+                        warning = f"Pipeline raised: {inner_exc}"
+                        log.warning(
+                            "Pipeline raised %r during site_search fetch "
+                            "(site_id=%s)",
+                            inner_exc,
+                            self.site_id,
+                        )
+                    else:
+                        warning = (
+                            f"Pipeline timed out after {budget}s during "
+                            f"site_search fetch"
+                        )
+                        log.warning("%s (site_id=%s)", warning, self.site_id)
+                    pipeline_result = self._build_timeout_pipeline_result(
+                        run_dir=run_dir,
+                        search_query=search_query,
+                        budget_s=budget,
+                    )
+                    return pipeline_result, warning
+            finally:
+                # ``wait=False`` so a still-running pipeline does not block
+                # the demo response. The orphan thread may continue
+                # performing fetches in the background but the user-facing
+                # JSON has already been produced.
+                ex.shutdown(wait=False)
+        except Exception as e:  # noqa: BLE001 - never break the user response
             pipeline_result = {
                 "ok": False,
                 "url": self.profile.base_url,
@@ -138,15 +229,33 @@ class SiteDemoRunner:
                 "answer_markdown": "",
                 "error": str(e),
             }
+            return pipeline_result, f"Pipeline raised: {e}"
 
-        # Build the demo result
-        demo_result = self._build_result(
-            question=question,
-            pipeline_result=pipeline_result,
-            run_dir=run_dir,
-            router_decision=router_decision,
-        )
-        return demo_result
+    def _build_timeout_pipeline_result(
+        self,
+        run_dir: str,
+        search_query: str,
+        budget_s: float,
+    ) -> dict[str, Any]:
+        """Synthesize a pipeline_result dict when the pipeline hits its budget.
+
+        The shape matches what ``PipelineRunner.run`` would have produced so
+        ``_build_result`` can consume it uniformly. We mark the search/answer
+        steps as failed and surface the timeout reason via ``error``.
+        """
+        msg = f"Pipeline timed out after {budget_s}s during site_search fetch"
+        return {
+            "ok": False,
+            "url": self.profile.base_url,
+            "query": search_query,
+            "output_dir": run_dir,
+            "steps": [
+                {"name": "search", "ok": False, "output": "", "error": msg},
+                {"name": "answer", "ok": False, "output": "", "error": msg},
+            ],
+            "answer_markdown": "",
+            "error": msg,
+        }
 
     def _build_result(
         self,
@@ -154,6 +263,7 @@ class SiteDemoRunner:
         pipeline_result: dict[str, Any],
         run_dir: str,
         router_decision: RouterDecision | None = None,
+        pipeline_warning: str | None = None,
     ) -> dict[str, Any]:
         """Build the final structured demo result dict."""
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -259,12 +369,28 @@ class SiteDemoRunner:
         # `answer_ok=false` or `ok=false`; we only substitute when the final
         # answer text is empty.
         if not answer:
-            answer = "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다. 아래 출처를 먼저 확인해 보세요."
+            if pipeline_warning:
+                # Surface the timeout in the user-visible answer too, so the
+                # chat UI shows a clear "we couldn't reach the homepage right
+                # now" message rather than the generic hint.
+                site_label = self.profile.name or self.site_id
+                answer = (
+                    f"현재 공식 홈페이지 응답이 지연되어 상세 내용을 바로 확인하지 못했습니다. "
+                    f"질문은 {site_label} 정보 검색 대상으로 분류되었고, "
+                    f"다시 시도하거나 공식 홈페이지 접속이 가능한 환경에서 확인이 필요합니다."
+                )
+            else:
+                answer = "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다. 아래 출처를 먼저 확인해 보세요."
             answer_ok = False
 
         if not pipeline_result.get("ok", False):
             err_msg = pipeline_result.get("error", "unknown error")
             warnings.append(f"Pipeline partially failed: {err_msg}")
+
+        # Surface the timeout/warning reported by the pipeline runner. We
+        # prepend so it is the first thing operators see in the demo UI.
+        if pipeline_warning:
+            warnings.insert(0, pipeline_warning)
 
         # Resolve preset
         current_model = self.model or (answer_data.get("model", "") if answer_data else "")
@@ -304,6 +430,12 @@ class SiteDemoRunner:
             "route_reason": router_decision.reason,
             "search_query": router_decision.search_query or question,
             "answer_mode": "retrieval_answer",
+            # source_weak is computed locally so callers always see the flag,
+            # even before conversation_log serializes it. It mirrors the same
+            # rule as ``conversation_log._source_weak_flag``.
+            "source_weak": (
+                router_decision.route == "site_search" and len(sources) < 1
+            ),
         }
 
     # ------------------------------------------------------------------

@@ -40,6 +40,49 @@ def demo_server(tmp_path):
     server.server_close()
 
 
+@pytest.fixture
+def timeout_demo_server(tmp_path, monkeypatch):
+    """Start a demo server whose SiteDemoRunner pipeline always times out.
+
+    This isolates the ``PR #799`` behavior under HTTP: a site_search request
+    must still return HTTP 200 with a structured JSON body containing the
+    timeout warning, ``source_weak=True`` and ``route=site_search``.
+    """
+    import socket
+    import time as _time
+    from src.demo import site_demo_runner as runner_module
+
+    class _HangingPipelineRunner:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def run(self, url, query):
+            # Hang well past the runner budget.
+            _time.sleep(5.0)
+            return {"ok": True, "steps": [], "answer_markdown": ""}
+
+    monkeypatch.setattr(runner_module, "PipelineRunner", _HangingPipelineRunner)
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    # ``pipeline_timeout_s`` flows through SiteDemoRunner's kwargs.
+    server = create_app(
+        site_id="bukgu_gwangju",
+        provider="mock",
+        snapshot=None,  # do NOT use snapshot; force live pipeline path
+        host="127.0.0.1",
+        port=port,
+        pipeline_timeout_s=0.3,
+    )
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    _time.sleep(0.3)
+    yield {"port": port, "server": server}
+    server.shutdown()
+    server.server_close()
+
+
 class TestMobileDemoUnit:
     """Unit tests — no HTTP server needed."""
 
@@ -223,6 +266,41 @@ class TestMobileDemoHTTP:
         resp = conn.getresponse()
         assert resp.status == 400
         conn.close()
+
+    def test_post_ask_returns_json_when_pipeline_times_out(self, timeout_demo_server):
+        """When the underlying pipeline hangs longer than the runner
+        budget, the HTTP endpoint must still answer with a JSON body
+        (not 500, not hang), preserving ``route=site_search`` and
+        recording ``source_weak=True`` plus a timeout warning.
+        """
+        import time as _time
+
+        port = timeout_demo_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=8)
+        body = json.dumps({"question": "민원서식 어디서 받아?"}).encode()
+        started = _time.monotonic()
+        conn.request(
+            "POST", "/api/ask", body=body,
+            headers={"Content-Type": "application/json"},
+        )
+        resp = conn.getresponse()
+        elapsed = _time.monotonic() - started
+        data = json.loads(resp.read())
+        conn.close()
+
+        assert resp.status == 200, f"expected 200, got {resp.status}"
+        assert elapsed < 5.0, f"server blocked {elapsed:.2f}s (expected <5s)"
+        assert data["route"] == "site_search"
+        assert data["should_search_site"] is True
+        assert data["answer_mode"] == "retrieval_answer"
+        assert data["ok"] is False
+        assert data["answer_ok"] is False
+        assert data["source_weak"] is True
+        # warnings must include a timeout/fetch-failure marker
+        joined = " ".join(data.get("warnings", [])).lower()
+        assert "timed out" in joined or "timeout" in joined
+        # soft answer must still be non-empty
+        assert data["answer"]
 
     def test_get_404(self, demo_server):
         port = demo_server["port"]

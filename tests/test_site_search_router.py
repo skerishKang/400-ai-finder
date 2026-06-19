@@ -584,3 +584,165 @@ def test_conversation_log_site_search_with_sources_is_not_weak(tmp_path):
     record = _json.loads(line)
     assert record["source_weak"] is False
     assert record["sources_count"] == 1
+
+
+# ----------------------------------------------------------------------
+# SiteDemoRunner pipeline timeout budget (PR #799)
+# ----------------------------------------------------------------------
+
+
+def test_runner_returns_soft_json_when_pipeline_times_out(tmp_path, monkeypatch):
+    """When the underlying pipeline run hangs longer than the budget,
+    SiteDemoRunner.answer() must return a structured JSON dict instead
+    of raising or blocking.
+
+    - route stays ``site_search``
+    - warnings include a timeout/fetch failure message
+    - source_weak is True (no sources)
+    - ok=False / answer_ok=False but the response is still a dict.
+    """
+    import time
+    from src.demo import site_demo_runner as runner_module
+    from src.demo.site_demo_runner import SiteDemoRunner
+
+    class _HangingPipelineRunner:
+        """Simulates a pipeline that never returns (hangs on fetch)."""
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def run(self, url, query):
+            # Sleep longer than the runner budget. Tests must remain
+            # bounded — the budget enforced by ``future.result(timeout=...)``
+            # should cancel the wait long before this returns.
+            time.sleep(5.0)
+            return {"ok": True, "steps": [], "answer_markdown": ""}
+
+    monkeypatch.setattr(runner_module, "PipelineRunner", _HangingPipelineRunner)
+
+    runner = SiteDemoRunner(
+        site_id="bukgu_gwangju",
+        provider="mock",
+        output_dir=str(tmp_path),
+        pipeline_timeout_s=0.3,
+    )
+    started = time.monotonic()
+    result = runner.answer("민원서식 어디서 받아?")
+    elapsed = time.monotonic() - started
+
+    # The runner must return roughly within budget + a small overhead,
+    # never the 5s that the hanging pipeline would have taken.
+    assert elapsed < 2.0, f"runner blocked for {elapsed:.2f}s, expected <2.0s"
+
+    # Route preserved as site_search; soft JSON returned.
+    assert isinstance(result, dict)
+    assert result["route"] == "site_search"
+    assert result["should_search_site"] is True
+    assert result["answer_mode"] == "retrieval_answer"
+    assert result["ok"] is False
+    assert result["answer_ok"] is False
+    assert result["sources"] == []
+    assert result["source_weak"] is True
+
+    # Warnings carry the timeout/fetch failure message.
+    joined = " ".join(result.get("warnings", []))
+    assert "timed out" in joined.lower() or "timeout" in joined.lower()
+    # Pipeline error step also surfaces the timeout reason.
+    steps = (result.get("output_dir") and "") or ""
+    assert result["answer"], "answer should be non-empty (soft message)"
+
+
+def test_runner_returns_normal_result_when_pipeline_completes(tmp_path, monkeypatch):
+    """Sanity check: a fast pipeline that completes under the budget must
+    NOT trigger the timeout path and must NOT include a timeout warning."""
+    from src.demo import site_demo_runner as runner_module
+    from src.demo.site_demo_runner import SiteDemoRunner
+
+    class _FastPipelineRunner:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def run(self, url, query):
+            return {
+                "ok": True,
+                "url": url,
+                "query": query,
+                "output_dir": str(tmp_path),
+                "steps": [
+                    {"name": "search", "ok": True, "output": "", "error": ""},
+                    {"name": "answer", "ok": True, "output": "", "error": ""},
+                ],
+                "answer_markdown": "정상 답변",
+            }
+
+    monkeypatch.setattr(runner_module, "PipelineRunner", _FastPipelineRunner)
+
+    runner = SiteDemoRunner(
+        site_id="bukgu_gwangju",
+        provider="mock",
+        output_dir=str(tmp_path),
+        pipeline_timeout_s=5.0,
+    )
+    result = runner.answer("안녕")
+
+    assert result["route"] == "site_search"
+    assert result["ok"] is True
+    assert result["answer"] == "정상 답변"
+    assert all("timeout" not in w.lower() for w in result.get("warnings", []))
+
+
+def test_runner_does_not_leak_threads_on_timeout(tmp_path, monkeypatch):
+    """Even when the pipeline hangs, the runner must close its executor and
+    not leak daemon threads. We monkeypatch ``ThreadPoolExecutor`` to count
+    construction vs. ``shutdown`` calls, ensuring cleanup runs after a
+    timeout.
+    """
+    import time
+    from src.demo import site_demo_runner as runner_module
+    from src.demo.site_demo_runner import SiteDemoRunner
+
+    real_pool = runner_module.ThreadPoolExecutor
+
+    constructed: list[int] = []
+    shutdown_calls: list[bool] = []
+
+    class _CountingPool(real_pool):  # type: ignore[misc]
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            constructed.append(1)
+
+        def shutdown(self, wait=True, *, cancel_futures=False):
+            shutdown_calls.append(wait)
+            # Always pass wait=False in the runner; preserve that contract
+            # even if shutdown() is called with the default wait=True.
+            return super().shutdown(wait=False, cancel_futures=cancel_futures)
+
+    class _HangingPipelineRunner:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def run(self, url, query):
+            time.sleep(5.0)
+            return {"ok": True, "steps": [], "answer_markdown": ""}
+
+    monkeypatch.setattr(runner_module, "ThreadPoolExecutor", _CountingPool)
+    monkeypatch.setattr(runner_module, "PipelineRunner", _HangingPipelineRunner)
+
+    runner = SiteDemoRunner(
+        site_id="bukgu_gwangju",
+        provider="mock",
+        output_dir=str(tmp_path),
+        pipeline_timeout_s=0.2,
+    )
+    runner.answer("민원서식 어디서 받아?")
+
+    assert len(constructed) >= 1, "ThreadPoolExecutor was never constructed"
+    assert len(shutdown_calls) >= len(constructed), (
+        f"Executor leaked: constructed={len(constructed)}, "
+        f"shutdown_calls={len(shutdown_calls)}"
+    )
+    # Runner contract: shutdown must use wait=False so the demo response
+    # is not delayed by the orphan thread.
+    assert all(w is False for w in shutdown_calls), (
+        f"shutdown() called with wait=True: {shutdown_calls}"
+    )

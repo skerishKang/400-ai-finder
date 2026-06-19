@@ -80,8 +80,31 @@ class RequestsFetchProvider(FetchProvider):
         self.user_agent = user_agent or _DEFAULT_USER_AGENT
         self.headers = _build_headers(self.user_agent)
 
+    @staticmethod
+    def _split_timeout(timeout: Any) -> tuple[float, float]:
+        """Split a timeout into (connect, read) so a single value never blocks both.
+
+        requests accepts ``timeout`` as a single float/int (applied to both
+        connect and read) or a tuple ``(connect, read)``. When the upstream
+        network refuses to ACK the TCP SYN (e.g. firewalled hosts in offline
+        environments), a single ``timeout`` still waits the full budget on the
+        connect step. Capping ``connect`` at a small bound (default 5s) keeps
+        the worst-case wait bounded even when callers pass a large ``read``
+        budget.
+        """
+        try:
+            total = float(timeout)
+        except (TypeError, ValueError):
+            return (5.0, 15.0)
+        if total <= 0:
+            return (5.0, 15.0)
+        connect = min(5.0, total)
+        read = total
+        return (connect, read)
+
     def fetch(self, url: str, **kwargs: Any) -> FetchResult:
-        timeout = kwargs.get("timeout", self.timeout)
+        raw_timeout = kwargs.get("timeout", self.timeout)
+        timeout = self._split_timeout(raw_timeout)
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # --- Validate URL ---
