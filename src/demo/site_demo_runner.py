@@ -146,9 +146,11 @@ class SiteDemoRunner:
 
         # 3) site_search: run the pipeline with the router-supplied query.
         search_query = router_decision.search_query or question
-        pipeline_result, pipeline_warning = self._run_pipeline_with_timeout(
-            run_dir=run_dir,
-            search_query=search_query,
+        pipeline_result, pipeline_warning, pipeline_diagnostic = (
+            self._run_pipeline_with_timeout(
+                run_dir=run_dir,
+                search_query=search_query,
+            )
         )
 
         # Build the demo result
@@ -158,6 +160,7 @@ class SiteDemoRunner:
             run_dir=run_dir,
             router_decision=router_decision,
             pipeline_warning=pipeline_warning,
+            pipeline_diagnostic=pipeline_diagnostic,
         )
         return demo_result
 
@@ -165,12 +168,15 @@ class SiteDemoRunner:
         self,
         run_dir: str,
         search_query: str,
-    ) -> tuple[dict[str, Any], str | None]:
+    ) -> tuple[dict[str, Any], str | None, FetchDiagnostic | None]:
         """Run the pipeline under a wall-clock budget.
 
-        Returns ``(pipeline_result, warning)``. ``warning`` is ``None`` on a
-        normal run and a short message when the pipeline exceeded
-        ``self._pipeline_timeout_s`` or raised.
+        Returns ``(pipeline_result, warning, diagnostic)``.
+        ``warning`` is ``None`` on a normal run and a short message
+        when the pipeline exceeded ``self._pipeline_timeout_s`` or
+        raised. ``diagnostic`` is a closed-vocabulary
+        :class:`FetchDiagnostic` for any failure path (timeout, raised
+        exception, or budget exhaustion) and ``None`` for normal runs.
 
         The pipeline runs on a single-thread executor so we can enforce a
         deadline without leaking threads. The executor is always closed via
@@ -199,7 +205,8 @@ class SiteDemoRunner:
                 future = ex.submit(_execute)
                 try:
                     pipeline_result = future.result(timeout=budget)
-                    return pipeline_result, None
+                    # Normal run: no warning, no diagnostic.
+                    return pipeline_result, None, None
                 except FuturesTimeout:
                     future.cancel()
                     # If the worker raised an exception before timing out,
@@ -259,7 +266,10 @@ class SiteDemoRunner:
                         budget_s=budget,
                         diagnostic=diagnostic,
                     )
-                    return pipeline_result, warning
+                    # Stage #801: surface the closed-vocabulary
+                    # diagnostic so the caller can persist it alongside
+                    # the user-facing warning.
+                    return pipeline_result, warning, diagnostic
             finally:
                 # ``wait=False`` so a still-running pipeline does not block
                 # the demo response. The orphan thread may continue
@@ -292,7 +302,10 @@ class SiteDemoRunner:
                 type(e).__name__,
                 format_operator_safe(diagnostic),
             )
-            return pipeline_result, safe_error
+            # Stage #801: propagate the closed-vocabulary diagnostic
+            # so ``answer()`` can attach it to the demo result and the
+            # conversation log.
+            return pipeline_result, safe_error, diagnostic
 
     def _build_timeout_pipeline_result(
         self,
@@ -339,6 +352,7 @@ class SiteDemoRunner:
         run_dir: str,
         router_decision: RouterDecision | None = None,
         pipeline_warning: str | None = None,
+        pipeline_diagnostic: FetchDiagnostic | None = None,
     ) -> dict[str, Any]:
         """Build the final structured demo result dict."""
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -511,6 +525,15 @@ class SiteDemoRunner:
             "source_weak": (
                 router_decision.route == "site_search" and len(sources) < 1
             ),
+            # Stage #801: persist the closed-vocabulary fetch diagnostic
+            # alongside the user-facing response so dashboards and the
+            # conversation log can correlate ``source_weak`` with the
+            # underlying fetch failure category (timeout, blocked,
+            # tls_error, etc.) without ever echoing raw exception text.
+            # On the normal / non-failure path the field is ``None``.
+            "fetch_diagnostic": (
+                pipeline_diagnostic.to_dict() if pipeline_diagnostic is not None else None
+            ),
         }
 
     # ------------------------------------------------------------------
@@ -628,6 +651,12 @@ class SiteDemoRunner:
             "route_reason": decision.reason,
             "search_query": decision.search_query or "",
             "answer_mode": answer_mode,
+            # Stage #801: direct_answer and clarify never invoke the
+            # fetch pipeline, so there is no fetch diagnostic. We
+            # set the field to ``None`` explicitly so callers and
+            # conversation-log serialization can rely on the key
+            # being present.
+            "fetch_diagnostic": None,
         }
 
 

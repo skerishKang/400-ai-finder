@@ -293,6 +293,9 @@ class AdminDemoHandler(BaseHTTPRequestHandler):
                 "search_query": result.get("search_query", ""),
                 "answer_mode": result.get("answer_mode", "retrieval_answer"),
                 "source_weak": bool(result.get("source_weak", False)),
+                # Stage #801: closed-vocabulary fetch diagnostic (None
+                # on direct_answer / clarify / snapshot paths).
+                "fetch_diagnostic": result.get("fetch_diagnostic"),
             }
             if not log_conversation(response_data):
                 response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]

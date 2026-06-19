@@ -135,3 +135,80 @@ Real `bukgu_gwangju` live-compatibility validation runs in a separate
 
 Until that Stage lands, the diagnostic helper is exercised only through
 unit tests and the demo's mocked pipelines.
+
+## Stage #801 — Sanitized fetch diagnostic persistence
+
+Stage #800 added the classification helper. Stage #801 persists its
+output so operators and dashboards can correlate `source_weak` with
+the underlying fetch failure category without re-running anything.
+
+### What is persisted
+
+When `SiteDemoRunner` produces a structured result, the result dict
+now carries a `fetch_diagnostic` field. On the normal / non-failure
+path the field is `None`. On the failure path it is a small
+closed-vocabulary dict:
+
+```json
+{
+  "category": "timeout",
+  "short_reason": "Request exceeded its deadline.",
+  "retry_hint": "retry",
+  "is_transient": true
+}
+```
+
+The mobile and admin HTTP endpoints surface the same field under the
+same name so the dashboard UI can show the category without parsing
+nested structures.
+
+`SiteDemoRunner.answer_from_snapshot()` always emits
+`fetch_diagnostic: None` because snapshots bypass the live pipeline.
+`SiteDemoRunner._build_non_search_result()` (direct_answer / clarify)
+emits `fetch_diagnostic: None` for the same reason.
+
+### Conversation log columns
+
+`logs/conversations.jsonl` writes four scalar columns alongside the
+existing `route` / `source_weak` / `fallback_used` columns:
+
+| column                              | closed vocabulary                              |
+| ----------------------------------- | ---------------------------------------------- |
+| `fetch_diagnostic_category`         | one of the seven `FetchCategory` enum values   |
+| `fetch_diagnostic_short_reason`     | fixed string from the taxonomy                 |
+| `fetch_diagnostic_retry_hint`       | one of `retry`, `backoff`, `do_not_retry`      |
+| `fetch_diagnostic_is_transient`     | bool                                           |
+
+The columns are flattened (rather than a nested dict) so JSONL
+readers can grep or aggregate on `category` and `retry_hint`
+directly without parsing nested structures.
+
+### Boundary preserved
+
+Stage #801 does not relax any Stage #800 safety boundary:
+
+* No live fetch / network / API / Firecrawl call is added.
+* No raw exception text, header, body, provider payload, API key, or
+  URL credential is ever persisted to the JSONL log.
+* The log surface (warning / error / debug) remains sanitized as in
+  Stage #800.
+* Canary strings (synthetic secrets used in tests) are asserted
+  against every persisted record via the Stage #801 leak tests.
+
+### Why this matters for future live validation
+
+Once `bukgu_gwangju` live-compatibility validation is approved, the
+JSONL records carry enough structured signal to distinguish:
+
+* `route=site_search` + `source_weak=true` + `fetch_diagnostic_category=timeout`
+  → upstream TCP/TLS or WAF blocks the read; retry might work.
+* `route=site_search` + `source_weak=true` + `fetch_diagnostic_category=blocked_or_forbidden`
+  → upstream is rate-limiting or refusing; retry will not help.
+* `route=site_search` + `source_weak=true` + `fetch_diagnostic_category=connection_error`
+  → DNS or TCP failure; check network egress.
+* `route=site_search` + `source_weak=true` + `fetch_diagnostic_category=parse_error`
+  → upstream responded but the body could not be parsed.
+
+Without these columns, every soft-fail looks the same in the log and
+operators cannot tell network problems apart from response-format
+problems.

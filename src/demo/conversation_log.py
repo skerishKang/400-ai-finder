@@ -4,6 +4,11 @@ Saves JSONL conversation logs under ``logs/conversations.jsonl``.
 For MVP analysis, question/answer/source metadata are persisted.
 Auth headers, raw transport metadata, raw provider responses, and
 secrets are not written.
+
+Stage #801: sanitized fetch diagnostic fields (closed-vocabulary)
+are recorded alongside the existing ``route`` / ``source_weak`` /
+``fallback_used`` fields. Raw exception text, headers, bodies,
+provider payloads, API keys, and URL credentials are never written.
 """
 
 from __future__ import annotations
@@ -38,6 +43,15 @@ SAFE_FIELDS = (
     "route_reason",
     "search_query",
     "answer_mode",
+    # Stage #801: sanitized fetch diagnostic. Each field is drawn
+    # from a closed vocabulary (FetchCategory enum + retry_hint
+    # closed set + bool). We persist them as separate scalar columns
+    # so JSONL readers can grep / aggregate on category or retry_hint
+    # without parsing nested dicts.
+    "fetch_diagnostic_category",
+    "fetch_diagnostic_short_reason",
+    "fetch_diagnostic_retry_hint",
+    "fetch_diagnostic_is_transient",
 )
 
 
@@ -76,6 +90,33 @@ def _source_weak_flag(result: dict[str, Any]) -> bool:
     return sources_count < 1
 
 
+def _fetch_diagnostic_columns(result: dict[str, Any]) -> dict[str, Any]:
+    """Flatten ``fetch_diagnostic`` into four closed-vocabulary columns.
+
+    The runner emits either ``None`` (no diagnostic — direct_answer,
+    clarify, snapshot, or a successful site_search) or a small dict
+    with the four fields populated by :class:`FetchDiagnostic.to_dict`.
+    We never log raw exception text, headers, bodies, provider
+    payloads, API keys, or URL credentials — only the values that
+    :class:`FetchDiagnostic` was built to carry.
+    """
+    diag = result.get("fetch_diagnostic")
+    if not isinstance(diag, dict):
+        # Either None or non-conforming value — record as no diagnostic.
+        return {
+            "fetch_diagnostic_category": None,
+            "fetch_diagnostic_short_reason": None,
+            "fetch_diagnostic_retry_hint": None,
+            "fetch_diagnostic_is_transient": None,
+        }
+    return {
+        "fetch_diagnostic_category": diag.get("category"),
+        "fetch_diagnostic_short_reason": diag.get("short_reason"),
+        "fetch_diagnostic_retry_hint": diag.get("retry_hint"),
+        "fetch_diagnostic_is_transient": diag.get("is_transient"),
+    }
+
+
 def log_conversation(result: dict[str, Any], log_path: str = DEFAULT_LOG_PATH) -> bool:
     """Append a single conversation record to the JSONL log.
 
@@ -107,6 +148,7 @@ def log_conversation(result: dict[str, Any], log_path: str = DEFAULT_LOG_PATH) -
             "route_reason": result.get("route_reason", ""),
             "search_query": result.get("search_query", ""),
             "answer_mode": result.get("answer_mode", ""),
+            **_fetch_diagnostic_columns(result),
         }
         line = json.dumps(record, ensure_ascii=False)
         with open(log_path, "a", encoding="utf-8") as f:

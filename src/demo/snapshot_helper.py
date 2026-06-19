@@ -128,4 +128,9 @@ def answer_from_snapshot_helper(
     snapshot.setdefault("warnings", []).append(
         "홈페이지 메뉴와 저장된 데모 자료를 기준으로 안내합니다."
     )
+    # Stage #801: snapshot mode never runs the live fetch pipeline, so
+    # there is no fetch diagnostic to record. We set the field to
+    # ``None`` explicitly so downstream consumers (conversation_log,
+    # dashboards) can rely on the key being present.
+    snapshot["fetch_diagnostic"] = None
     return snapshot
