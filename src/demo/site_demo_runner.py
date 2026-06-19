@@ -42,6 +42,7 @@ def _timeout_diagnostic(budget_s: float) -> FetchDiagnostic:
         retry_hint="retry",
         is_transient=True,
     )
+from src.answer.answer_status import normalize_answer_status
 from src.demo.demo_helpers import fallback_sources_from_homepage_map
 from src.demo.metadata_helper import resolve_preset_from_model_provider
 from src.demo.snapshot_helper import (
@@ -472,6 +473,45 @@ class SiteDemoRunner:
                 answer = "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다. 아래 출처를 먼저 확인해 보세요."
             answer_ok = False
 
+        # Stage #803: derive the closed-vocab ``answer_status`` and
+        # reconcile ``answer_ok`` with evidence semantics.
+        #
+        # Contract:
+        #   ok=true, answer_ok=true,  answer_status=answered_with_evidence
+        #     → pipeline succeeded AND at least one non-fallback source
+        #   ok=true, answer_ok=false, answer_status=fallback_no_match
+        #     → pipeline succeeded but no real source (sources=[] or
+        #       only homepage-map menu/navigation fallback was used)
+        #   ok=false, answer_ok=false, answer_status=fallback_unavailable
+        #     → pipeline timed out (diagnostic.category == "timeout")
+        #   ok=false, answer_ok=false, answer_status=error
+        #     → pipeline raised a non-timeout exception (any other
+        #       closed-vocab fetch diagnostic category)
+        #
+        # We deliberately key off ``pipeline_diagnostic.category`` rather
+        # than the truthiness of ``pipeline_warning`` so that exception
+        # paths (which also produce a warning string for operator UI)
+        # are still classified as ``error`` rather than as a timeout.
+        pipeline_ok = bool(pipeline_result.get("ok", False))
+        if not pipeline_ok:
+            answer_ok = False
+            if (
+                pipeline_diagnostic is not None
+                and getattr(pipeline_diagnostic, "category", None) is not None
+                and getattr(pipeline_diagnostic.category, "value", None) == "timeout"
+            ):
+                answer_status = "fallback_unavailable"
+            else:
+                answer_status = "error"
+        elif sources and not fallback_used:
+            # Evidence-based: at least one real source, no menu fallback.
+            answer_ok = True
+            answer_status = "answered_with_evidence"
+        else:
+            # sources=[] or only fallback_used=True (menu/nav fallback).
+            answer_ok = False
+            answer_status = "fallback_no_match"
+
         if not pipeline_result.get("ok", False):
             err_msg = pipeline_result.get("error", "unknown error")
             warnings.append(f"Pipeline partially failed: {err_msg}")
@@ -502,6 +542,7 @@ class SiteDemoRunner:
             "search_results": search_results,
             "ok": pipeline_result.get("ok", False),
             "answer_ok": answer_ok,
+            "answer_status": answer_status,
             "provider": self.provider,
             "model": current_model,
             "preset": resolved_preset,
@@ -634,6 +675,7 @@ class SiteDemoRunner:
             "search_results": [],
             "ok": True,
             "answer_ok": True,
+            "answer_status": "answered_with_evidence",
             "provider": self.provider,
             "model": current_model,
             "preset": resolved_preset,
@@ -651,6 +693,11 @@ class SiteDemoRunner:
             "route_reason": decision.reason,
             "search_query": decision.search_query or "",
             "answer_mode": answer_mode,
+            # source_weak is False for direct_answer / clarify because
+            # the source-weak rule only applies to site_search (see
+            # conversation_log._source_weak_flag). We set the key
+            # explicitly so downstream consumers always see the flag.
+            "source_weak": False,
             # Stage #801: direct_answer and clarify never invoke the
             # fetch pipeline, so there is no fetch diagnostic. We
             # set the field to ``None`` explicitly so callers and

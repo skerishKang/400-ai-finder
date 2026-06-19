@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import json
 from typing import Any
+from src.answer.answer_status import normalize_answer_status
 from src.demo.demo_helpers import fallback_sources_from_homepage_map, generate_answer_from_sources
 from src.demo.metadata_helper import resolve_preset_from_model_provider
 from src.llm.runtime_status import resolve_llm_runtime_status
@@ -103,6 +104,25 @@ def answer_from_snapshot_helper(
             q, snapshot.get("sources", []), runner.profile.name,
         )
 
+    # Stage #803: when the question changed and the helper rebuilt the
+    # answer from an empty source set, the answer is a generic
+    # ``fallback_no_match`` response, not evidence-based. We override
+    # ``answer_ok`` and stamp ``answer_status`` accordingly so the demo
+    # response, the conversation log, and the aggregation report all
+    # agree on the contract. When the question did not change, we keep
+    # whatever ``answer_ok`` the snapshot already carried and stamp
+    # ``answer_status`` defensively (closed-vocab default = ``error``).
+    if question_changed and not snapshot.get("sources"):
+        snapshot["answer_ok"] = False
+        snapshot["answer_status"] = "fallback_no_match"
+    else:
+        snapshot["answer_ok"] = bool(snapshot.get("answer_ok", True))
+        snapshot["answer_status"] = normalize_answer_status(
+            snapshot.get("answer_status")
+        )
+        if snapshot["answer_ok"] and snapshot["answer_status"] == "error":
+            snapshot["answer_status"] = "answered_with_evidence"
+
     snapshot["snapshot_mode"] = True
     snapshot["provider"] = runner.provider
     if runner.model:
@@ -133,4 +153,16 @@ def answer_from_snapshot_helper(
     # ``None`` explicitly so downstream consumers (conversation_log,
     # dashboards) can rely on the key being present.
     snapshot["fetch_diagnostic"] = None
+
+    # Stage #803: source_weak must be present in the snapshot dict so
+    # downstream consumers (conversation_log, admin/mobile demos) see
+    # the same shape they get from a live pipeline run. Mirror the
+    # rule from ``conversation_log._source_weak_flag``: only true when
+    # the route is ``site_search`` AND no sources were attached.
+    snapshot_route = str(snapshot.get("route", "site_search")).strip().lower()
+    if snapshot_route == "site_search" and not snapshot.get("sources"):
+        snapshot["source_weak"] = True
+    else:
+        snapshot["source_weak"] = False
+
     return snapshot

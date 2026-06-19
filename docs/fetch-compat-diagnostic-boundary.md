@@ -326,3 +326,97 @@ artifacts. It reads a sanitized local file and emits counts.
 Real `bukgu_gwangju` live-compatibility validation remains a separate
 **controlled live validation** Stage, gated on the Stage 418 approval
 packet.
+
+## Stage #803 — answer_ok / answer_status contract (Issue #803)
+
+Issue #803 root cause: ``snapshot_helper.answer_from_snapshot_helper``
+rebuilt the user-facing answer from an empty fallback source set
+without touching ``ok`` / ``answer_ok``. The fixture snapshot had
+``ok=True, answer_ok=True`` (matched state), and that envelope
+followed the demo response even though the answer body had been
+replaced by a generic "관련 정보를 찾지 못했습니다" fallback. Operators
+seing the response could not tell from the envelope alone whether the
+answer was evidence-based or a fallback.
+
+Stage #803 closes that gap with two changes:
+
+### 1. ``answer_ok`` redefined as evidence-based
+
+> ``answer_ok=true`` is true iff the answer was generated from
+> grounded source content or from an allowed direct-response path
+> (direct_answer / clarify / matched snapshot / grounded site_search
+> / LLM degraded direct response).
+>
+> ``answer_ok=false`` means the response is a generic fallback
+> (snapshot unmatched / site_search no-source / timeout / pipeline
+> exception).
+
+The previous interpretation — "the pipeline did not crash and a
+non-empty answer string was produced" — is now expressed by the
+``ok`` field, which keeps its transport/pipeline-success meaning.
+
+### 2. ``answer_status`` closed-vocab enum
+
+A new closed-vocab scalar field is exposed on every demo response
+(snapshot / mobile / admin) and persisted as a separate column in the
+conversation log:
+
+| value | meaning | typical envelope |
+|---|---|---|
+| `answered_with_evidence` | 근거 source 기반 답변 또는 허용된 직접 응답 경로가 정상 생성 | `ok=true, answer_ok=true` |
+| `fallback_no_match`      | source/snapshot 매칭 없음, generic fallback 반환 | `ok=true, answer_ok=false, source_weak=true` |
+| `fallback_unavailable`   | timeout으로 데이터 미수신, soft fallback 반환 | `ok=false, answer_ok=false, source_weak=true` |
+| `error`                  | pipeline 예외 등 처리 불가능 상태 | `ok=false, answer_ok=false, source_weak=true` |
+
+Definitions live in ``src/answer/answer_status.py`` (the closed vocab
+and a ``normalize_answer_status`` defensive default that maps unknown
+values to ``"error"``).
+
+### 9-path behavior matrix (before → after)
+
+| # | route / scenario                          | before                                                                  | after                                                                                              |
+|---|-------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| 1 | direct_answer                              | ok=t, answer_ok=t, source_weak=F, fetch_diag=null                       | ok=t, answer_ok=t, source_weak=F, fetch_diag=null, **answer_status=`answered_with_evidence`**     |
+| 2 | clarify                                    | ok=t, answer_ok=t, source_weak=F, fetch_diag=null                       | ok=t, answer_ok=t, source_weak=F, fetch_diag=null, **answer_status=`answered_with_evidence`**     |
+| 3 | snapshot matched                            | ok=t, answer_ok=t, source_weak=F, fetch_diag=null                       | ok=t, answer_ok=t, source_weak=F, fetch_diag=null, **answer_status=`answered_with_evidence`**     |
+| 4 | snapshot unmatched fallback (Issue #803)    | ok=t, answer_ok=t, source_weak=T, fetch_diag=null   ⚠️ **모순**           | ok=t, answer_ok=F, source_weak=T, fetch_diag=null, **answer_status=`fallback_no_match`**         |
+| 5 | site_search grounded success                | ok=t, answer_ok=t, source_weak=F, fetch_diag=null                       | ok=t, answer_ok=t, source_weak=F, fetch_diag=null, **answer_status=`answered_with_evidence`**     |
+| 6 | site_search no-source / fallback used       | ok=t, answer_ok=t, source_weak=T, fetch_diag=null   ⚠️ 부분 모순          | ok=t, answer_ok=F, source_weak=T, fetch_diag=null, **answer_status=`fallback_no_match`**         |
+| 7 | site_search timeout                         | ok=F, answer_ok=F, source_weak=T, fetch_diag=category=timeout           | ok=F, answer_ok=F, source_weak=T, fetch_diag=category=timeout, **answer_status=`fallback_unavailable`** |
+| 8 | pipeline exception soft-fail                | ok=F, answer_ok=F, source_weak=T, fetch_diag=category=connection_error  | ok=F, answer_ok=F, source_weak=T, fetch_diag=category=connection_error, **answer_status=`error`** |
+| 9 | LLM degraded direct response                | ok=t, answer_ok=t, source_weak=F, llm_status=live_provider_error        | ok=t, answer_ok=t, source_weak=F, llm_status=live_provider_error, **answer_status=`answered_with_evidence`** |
+
+Note on path 8 vs 7: the previous code classified any non-ok pipeline
+with a non-empty warning as `fallback_unavailable`, which conflated
+timeout with non-timeout exceptions. Stage #803 keys the
+classification off ``pipeline_diagnostic.category`` so that timeout
+diagnostics map to `fallback_unavailable` and every other closed-vocab
+fetch diagnostic (connection_error / tls_error / http_error /
+blocked_or_forbidden / parse_error / unknown_fetch_error) maps to
+`error`.
+
+### Operational impact
+
+- Conversation log JSONL gains a 26th scalar column `answer_status`.
+- Stage #802 aggregation report gains an `answer_status_counts` field
+  with a `"none"` bucket for legacy / malformed records.
+- Existing `answer_ok_false_count` semantics tighten: it now counts
+  only the records whose answer was a generic fallback (path 4, 6, 7,
+  8). Records that previously reported `answer_ok=false` because the
+  runner classified an exception as such continue to be counted; what
+  changes is that path 4 (snapshot unmatched) and path 6 (site_search
+  no-source) now also count, where they did not before.
+
+### Boundary preserved
+
+Stage #803 does not relax any Stage #800 / Stage #801 / Stage #802
+safety boundary:
+
+- No live fetch / network / API / Firecrawl call is added.
+- No raw exception text is exposed in any operator-visible field.
+- Canary strings (synthetic secrets used in tests) are asserted
+  against the new `answer_status` and the full envelope on both
+  `answer_from_snapshot` and `runner.answer` (pipeline exception) paths.
+- The conversation log writer normalizes unknown `answer_status`
+  values to `"error"`, so legacy or malformed snapshots never inject a
+  free-form string into the JSONL.
