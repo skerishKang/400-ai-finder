@@ -101,6 +101,60 @@ def admin_server():
 
 
 @pytest.fixture
+def timeout_admin_server(monkeypatch):
+    """Admin server whose SiteDemoRunner pipeline always times out.
+
+    Mirrors ``tests.test_mobile_demo.timeout_demo_server`` for the admin
+    dashboard. Used by ``PR #799`` tests to verify the HTTP API stays
+    alive even when the pipeline hangs.
+
+    Note: admin's ``_resolve_effective_snapshot`` falls back to a bundled
+    fixture snapshot when no explicit snapshot path is provided. We
+    disable that fallback here so the request exercises the live pipeline
+    path, which is what ``pipeline_timeout_s`` is meant to bound.
+    """
+    import socket
+    import time as _time
+    from src.demo import site_demo_runner as runner_module
+    from src.web import admin_demo as admin_module
+
+    class _HangingPipelineRunner:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def run(self, url, query):
+            _time.sleep(5.0)
+            return {"ok": True, "steps": [], "answer_markdown": ""}
+
+    monkeypatch.setattr(runner_module, "PipelineRunner", _HangingPipelineRunner)
+    # Force admin's snapshot auto-fallback to return None so the live
+    # pipeline is exercised.
+    monkeypatch.setattr(admin_module, "_find_site_snapshot", lambda site_id: None)
+    # AdminDemoHandler._runner_cache is a class-level dict shared across
+    # all handler subclasses. Clear it so a previous test's cached runner
+    # (built without pipeline_timeout_s) is not reused.
+    monkeypatch.setattr(admin_module.AdminDemoHandler, "_runner_cache", {})
+
+    sock = socket.socket()
+    sock.bind(("", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    server = create_admin_app(
+        site_id="bukgu_gwangju",
+        provider="mock",
+        snapshot=None,
+        port=port,
+        pipeline_timeout_s=0.3,
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    _time.sleep(0.3)
+    yield {"port": port, "server": server}
+    server.shutdown()
+    server.server_close()
+
+
+@pytest.fixture
 def admin_server_without_startup_snapshot():
     """Start admin server without explicit snapshot path."""
     import socket
@@ -259,6 +313,44 @@ class TestAdminDemoHTTP:
         resp = conn.getresponse()
         assert resp.status == 400
         conn.close()
+
+    def test_post_test_returns_json_when_pipeline_times_out(self, timeout_admin_server):
+        """Admin ``/api/test`` must return a structured JSON response
+        (not 500, not hang) when the underlying pipeline exceeds its
+        budget. The route stays ``site_search`` and the response records
+        ``source_weak=True`` plus a timeout warning.
+        """
+        import time as _time
+
+        port = timeout_admin_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=8)
+        body = json.dumps({"question": "민원서식 어디서 받아?"})
+        started = _time.monotonic()
+        conn.request(
+            "POST", "/api/test", body=body,
+            headers={"Content-Type": "application/json"},
+        )
+        resp = conn.getresponse()
+        elapsed = _time.monotonic() - started
+        data = json.loads(resp.read())
+        conn.close()
+
+        assert resp.status == 200, f"expected 200, got {resp.status}"
+        # Generous upper bound: the runner budget is 0.3s but the
+        # pipeline fixture sleeps for 5.0s. Even with shutdown(wait=False)
+        # there is a tiny window where the orphan thread may delay
+        # the response by milliseconds; we accept anything strictly
+        # less than 5s here as "did not block on the sleep".
+        assert elapsed < 5.0, f"server blocked {elapsed:.2f}s (expected <5s)"
+        assert data["route"] == "site_search"
+        assert data["should_search_site"] is True
+        assert data["answer_mode"] == "retrieval_answer"
+        assert data["ok"] is False
+        assert data["answer_ok"] is False
+        assert data["source_weak"] is True
+        joined = " ".join(data.get("warnings", [])).lower()
+        assert "timed out" in joined or "timeout" in joined
+        assert data["answer"]
 
     def test_get_404(self, admin_server):
         port = admin_server["port"]

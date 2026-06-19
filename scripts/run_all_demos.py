@@ -16,6 +16,13 @@ Options::
     --mobile-port   Mobile demo port (default: 8400)
     --admin-port    Admin dashboard port (default: 8090)
     --host          Bind host (default: 0.0.0.0)
+    --pipeline-timeout-s  Wall-clock budget for the site_search pipeline.
+                         When the upstream fetch hangs past this value, the
+                         demo returns a structured soft-JSON response
+                         (route=site_search, ok=false, source_weak=true)
+                         instead of blocking the HTTP request. Default 30s;
+                         lower it (e.g. ``1``) for offline / controlled
+                         smoke runs where the homepage is unreachable.
 """
 
 from __future__ import annotations
@@ -48,7 +55,18 @@ def main() -> None:
     parser.add_argument("--snapshot", default=None, help="Path to snapshot JSON")
     parser.add_argument("--mobile-port", type=int, default=8400, help="Mobile demo port")
     parser.add_argument("--admin-port", type=int, default=8090, help="Admin dashboard port")
-    parser.add_argument("--host", default="0.0.0.0", help="Bind host")
+    parser.add_argument("--host", default="0.0.0.0", help="Bind host (default: 0.0.0.0)")
+    parser.add_argument(
+        "--pipeline-timeout-s",
+        type=float,
+        default=30.0,
+        help=(
+            "Wall-clock budget (seconds) for the site_search pipeline. "
+            "When the upstream fetch hangs past this value, the demo "
+            "returns a structured soft-JSON response instead of "
+            "blocking. Default: 30.0."
+        ),
+    )
     args = parser.parse_args()
 
     from src.web.mobile_demo import create_app
@@ -73,6 +91,7 @@ def main() -> None:
         snapshot=args.snapshot,
         host=args.host,
         port=args.mobile_port,
+        pipeline_timeout_s=args.pipeline_timeout_s,
     )
 
     admin_server = create_admin_app(
@@ -82,6 +101,7 @@ def main() -> None:
         snapshot=args.snapshot,
         host=args.host,
         port=args.admin_port,
+        pipeline_timeout_s=args.pipeline_timeout_s,
     )
 
     # Print banner
@@ -93,6 +113,7 @@ def main() -> None:
     print(f"  LLM: {resolved_provider} (model: {resolved_model or 'default'})")
     if args.snapshot:
         print(f"  Snapshot: {args.snapshot}")
+    print(f"  Pipeline timeout: {args.pipeline_timeout_s}s")
     print()
     print(f"  📱 모바일 사용자 화면: http://localhost:{args.mobile_port}")
     print(f"  🖥️  운영자 대시보드:   http://localhost:{args.admin_port}")

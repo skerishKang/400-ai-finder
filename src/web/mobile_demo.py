@@ -43,6 +43,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
     provider: str = "mock"
     model: str | None = None
     snapshot_path: str | None = None
+    pipeline_timeout_s: float | None = None
     _runner: Any = None
     _site_name: str = ""
 
@@ -109,6 +110,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                     site_id=self.site_id,
                     provider=self.provider,
                     model=self.model,
+                    pipeline_timeout_s=self.pipeline_timeout_s,
                 )
             runner = self._runner
 
@@ -143,6 +145,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "route_reason": result.get("route_reason", ""),
                 "search_query": result.get("search_query", ""),
                 "answer_mode": result.get("answer_mode", "retrieval_answer"),
+                "source_weak": bool(result.get("source_weak", False)),
             }
             if not log_conversation(response_data):
                 response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]
@@ -192,6 +195,7 @@ def create_app(
     host: str = "0.0.0.0",
     port: int = 8080,
     model: str | None = None,
+    pipeline_timeout_s: float | None = None,
 ) -> HTTPServer:
     """Create and return an HTTPServer for the mobile chat demo."""
     try:
@@ -206,6 +210,7 @@ def create_app(
         "provider": provider,
         "model": model,
         "snapshot_path": snapshot,
+        "pipeline_timeout_s": pipeline_timeout_s,
         "_runner": None,
         "_site_name": site_name,
     })
