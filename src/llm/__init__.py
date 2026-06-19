@@ -266,6 +266,7 @@ def _build_provider(name: str, **overrides: Any) -> LLMProvider:
         return (
             overrides.get(override_key)
             or (os.environ.get(f"{env_prefix}_{key_suffix}") if env_prefix else None)
+            or os.environ.get(f"AI_FINDER_{name.upper()}_{key_suffix}")
             or os.environ.get(f"{name.upper()}_{key_suffix}")
             or os.environ.get(key_suffix)
             or cfg.get(override_key, "")

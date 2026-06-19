@@ -152,6 +152,29 @@ class TestGetProvider:
             provider = get_provider("openai_compatible")
             assert provider._api_key == "test-prefix-api-key"
 
+    def test_explicit_override_wins_over_env_prefix(self):
+        """explicit kwargs take precedence over env variables."""
+        with patch.dict(
+            os.environ,
+            {
+                "AI_FINDER_LLM_PROVIDER": "openai_compatible",
+                "AI_FINDER_LLM_BASE_URL": "https://api.env.example.com/v1",
+                "AI_FINDER_LLM_API_KEY": "env-key",
+                "AI_FINDER_LLM_MODEL": "env-model",
+            },
+            clear=True,
+        ):
+            provider = get_provider(
+                "openai_compatible",
+                base_url="https://api.override.example.com/v1",
+                api_key="override-key",
+                model="override-model",
+            )
+            assert isinstance(provider, OpenAICompatibleProvider)
+            assert provider._model == "override-model"
+            assert provider._base_url == "https://api.override.example.com/v1"
+            assert provider._api_key == "override-key"
+
     def test_provider_specific_env_fallback_for_openai_compatible(self):
         """AI_FINDER_OPENAI_COMPATIBLE_* still works as fallback when prefix env is absent."""
         with patch.dict(

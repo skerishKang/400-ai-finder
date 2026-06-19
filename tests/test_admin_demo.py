@@ -56,12 +56,13 @@ class TestAdminDemoUnit:
         assert 'src="/static/admin/admin_demo.js"' in _ADMIN_HTML
 
     def test_create_admin_app_returns_server(self):
-        from http.server import HTTPServer
+        from http.server import HTTPServer, ThreadingHTTPServer
         server = create_admin_app(
             site_id="bukgu_gwangju", provider="mock",
             snapshot=FIXTURE_SNAPSHOT, port=40901,
         )
         assert isinstance(server, HTTPServer)
+        assert type(server).__name__ in {"ThreadingHTTPServer", "HTTPServer"}
         server.server_close()
 
     def test_create_admin_app_resolves_site_name(self):
