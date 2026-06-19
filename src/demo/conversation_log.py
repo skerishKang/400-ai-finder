@@ -32,6 +32,12 @@ SAFE_FIELDS = (
     "sources",
     "fallback_used",
     "warnings",
+    "route",
+    "should_search_site",
+    "route_confidence",
+    "route_reason",
+    "search_query",
+    "answer_mode",
 )
 
 
@@ -58,6 +64,14 @@ def _sanitize_sources(sources: Any) -> list[dict[str, Any]]:
 
 
 def _source_weak_flag(result: dict[str, Any]) -> bool:
+    """source_weak only applies when the route is site_search.
+
+    direct_answer and clarify do not run the search pipeline, so they
+    have no source list to evaluate.
+    """
+    route = str(result.get("route", "")).strip().lower()
+    if route != "site_search":
+        return False
     sources_count = len(result.get("sources", []) or [])
     return sources_count < 1
 
@@ -87,6 +101,12 @@ def log_conversation(result: dict[str, Any], log_path: str = DEFAULT_LOG_PATH) -
             "sources": _sanitize_sources(result.get("sources")),
             "fallback_used": bool(result.get("fallback_used", False)),
             "warnings": result.get("warnings", []) or [],
+            "route": result.get("route", ""),
+            "should_search_site": bool(result.get("should_search_site", False)),
+            "route_confidence": float(result.get("route_confidence", 0.0)),
+            "route_reason": result.get("route_reason", ""),
+            "search_query": result.get("search_query", ""),
+            "answer_mode": result.get("answer_mode", ""),
         }
         line = json.dumps(record, ensure_ascii=False)
         with open(log_path, "a", encoding="utf-8") as f:
