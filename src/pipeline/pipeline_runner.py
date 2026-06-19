@@ -20,6 +20,7 @@ from ..search.keyword_searcher import KeywordSearcher
 from ..search.query_rewriter import rewrite_query_candidates
 from ..answer.answer_composer import AnswerComposer
 from ..analytics.question_logger import QuestionLogger, NoOpQuestionLogger
+from ..fetch.sanitization import safe_failure_message
 
 
 class PipelineRunner:
@@ -428,7 +429,8 @@ def _step_ok(name: str, output: str) -> dict[str, Any]:
 
 
 def _step_fail(name: str, output: str, error: Exception) -> dict[str, Any]:
-    return {"name": name, "ok": False, "output": output, "error": str(error)}
+    safe_error = safe_failure_message(error, prefix="Pipeline step failed")
+    return {"name": name, "ok": False, "output": output, "error": safe_error}
 
 
 # ------------------------------------------------------------------

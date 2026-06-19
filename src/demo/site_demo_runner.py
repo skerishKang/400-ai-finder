@@ -21,6 +21,7 @@ from src.fetch.compat_diagnostics import (
     classify_exception,
     format_operator_safe,
 )
+from src.fetch.sanitization import safe_pipeline_failure_message, sanitize_warning
 
 from ..pipeline.pipeline_runner import PipelineRunner
 from ..site_profiles import load_profile
@@ -514,13 +515,12 @@ class SiteDemoRunner:
             answer_status = "fallback_no_match"
 
         if not pipeline_result.get("ok", False):
-            err_msg = pipeline_result.get("error", "unknown error")
-            warnings.append(f"Pipeline partially failed: {err_msg}")
+            warnings.append(safe_pipeline_failure_message(pipeline_diagnostic))
 
         # Surface the timeout/warning reported by the pipeline runner. We
         # prepend so it is the first thing operators see in the demo UI.
         if pipeline_warning:
-            warnings.insert(0, pipeline_warning)
+            warnings.insert(0, sanitize_warning(pipeline_warning))
 
         # Resolve preset
         current_model = self.model or (answer_data.get("model", "") if answer_data else "")
