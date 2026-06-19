@@ -212,3 +212,117 @@ JSONL records carry enough structured signal to distinguish:
 Without these columns, every soft-fail looks the same in the log and
 operators cannot tell network problems apart from response-format
 problems.
+
+## Stage #802 — Fetch diagnostic aggregation report
+
+Stage #800 added the classification helper. Stage #801 persists its
+output. Stage #802 reads the persisted JSONL file and produces an
+operator-safe aggregation report so operators can spot patterns
+without re-running anything.
+
+### Scope of the report
+
+The aggregation helper (`src/demo/conversation_log_report.py`) and the
+CLI (`scripts/report_conversation_diagnostics.py`) **never** print:
+
+* raw question text
+* raw answer text
+* raw warning text
+* raw exception / header / body / provider response text
+* URL credentials or API keys
+* raw conversation contents in any form
+
+The report is **count-based only**. It surfaces counts of routes,
+source_weak records, answer_ok failures, fetch diagnostic categories,
+retry hints, transient failures, and similar bucketed values. This
+is intentional — once real user questions start landing in the log,
+the question text becomes sensitive on its own, and operators should
+not need it to see whether timeouts are trending up.
+
+### Output shape
+
+```json
+{
+  "total_records": 12,
+  "malformed_line_count": 1,
+  "route_counts": {
+    "site_search": 9,
+    "direct_answer": 2,
+    "clarify": 1
+  },
+  "site_id_counts": {
+    "bukgu_gwangju": 12
+  },
+  "llm_status_counts": {
+    "mock_no_api": 8,
+    "degraded": 4
+  },
+  "source_weak_count": 4,
+  "answer_ok_false_count": 4,
+  "records_with_warnings_count": 4,
+  "fetch_diagnostic_category_counts": {
+    "timeout": 3,
+    "blocked_or_forbidden": 1,
+    "none": 8
+  },
+  "fetch_diagnostic_retry_hint_counts": {
+    "retry": 3,
+    "do_not_retry": 1,
+    "none": 8
+  },
+  "fetch_diagnostic_transient_count": 3
+}
+```
+
+Missing or `None` fields are bucketed under `"none"` rather than
+silently dropped. `is_transient=True` is counted (false / null is the
+trivial default and would dilute the metric), and the `records_with_warnings_count`
+field tells operators how many rows in the file carry at least one
+warning.
+
+### Malformed-line handling
+
+A malformed line (invalid JSON, a JSON list instead of a dict, or a
+non-empty string of garbage) is **skipped** and counted under
+`malformed_line_count`. The raw malformed content is **never**
+returned to the caller — the helper only emits counts.
+
+### CLI usage
+
+```bash
+PYTHONPATH=. python3 scripts/report_conversation_diagnostics.py \
+  --log-path logs/conversations.jsonl \
+  --json
+```
+
+The `--log-path` flag is optional and defaults to
+`logs/conversations.jsonl`. With `--json`, the report is emitted as a
+JSON object suitable for piping into `jq`. Without `--json`, the
+report is a human-readable multi-line text block.
+
+If the log file is missing or empty, the report returns an
+empty-summary shape — the CLI never crashes on a missing log.
+
+### Boundary preserved
+
+Stage #802 does not relax any Stage #800 / Stage #801 safety boundary:
+
+* No live fetch / network / API / Firecrawl call is added.
+* The aggregator is **read-only** — it reads the local JSONL file and
+  emits counts.
+* Canary strings (synthetic secrets used in tests) are asserted
+  against every output surface (helper dict, `format_text_summary`,
+  CLI text, CLI JSON) in the Stage #802 leak tests.
+* The CLI never prints the contents of malformed lines; only their
+  count.
+
+### What this is **not**
+
+The aggregation report is **not** a live validation tool. It does not
+issue fetches, does not resolve hostnames, does not touch any
+provider API, and does not produce scenario / snapshot / cache
+artifacts. It reads a sanitized local file and emits counts.
+
+Real `bukgu_gwangju` live-compatibility validation remains a separate
+**controlled live validation** Stage, gated on the Stage 418 approval
+packet.
