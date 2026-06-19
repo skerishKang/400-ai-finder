@@ -225,12 +225,21 @@ class SiteDemoRunner:
                         diagnostic = classify_exception(inner_exc)
                         operator_safe = format_operator_safe(diagnostic)
                         warning = f"Pipeline raised: {operator_safe}"
+                        # Stage #800 safety boundary: the log line carries
+                        # ONLY the exception class name and the sanitized
+                        # diagnostic. We never pass the raw exception object
+                        # to the logger (no ``%r`` / ``str(e)`` / ``repr(e)``
+                        # / ``exc_info=True``) because debug/warning logs can
+                        # be persisted to files, CI logs, or shipped to
+                        # downstream services, and exception ``__str__`` may
+                        # embed URL fragments, headers, tokens, or body
+                        # fragments we do not control.
                         log.warning(
-                            "Pipeline raised %r during site_search fetch "
-                            "(site_id=%s) category=%s",
-                            inner_exc,
+                            "Pipeline raised during site_search fetch "
+                            "(site_id=%s) exception_type=%s diagnostic=%s",
                             self.site_id,
-                            diagnostic.category.value,
+                            type(inner_exc).__name__,
+                            operator_safe,
                         )
                     else:
                         # Genuine budget timeout (worker still running).
@@ -277,11 +286,11 @@ class SiteDemoRunner:
                 "error": safe_error,
             }
             log.warning(
-                "Pipeline raised %r during site_search fetch "
-                "(site_id=%s) category=%s",
-                e,
+                "Pipeline raised during site_search fetch "
+                "(site_id=%s) exception_type=%s diagnostic=%s",
                 self.site_id,
-                diagnostic.category.value,
+                type(e).__name__,
+                format_operator_safe(diagnostic),
             )
             return pipeline_result, safe_error
 
@@ -534,7 +543,14 @@ class SiteDemoRunner:
         try:
             router_provider = get_provider(self.provider, model=self.model)
         except Exception as e:  # noqa: BLE001 - never break the user response
-            log.debug("router provider build failed: %s", e)
+            # Stage #800: never echo the raw exception into the log stream.
+            # The class name plus a stable, closed-vocabulary tag keeps the
+            # log useful without leaking provider response fragments that
+            # exception ``__str__`` may carry.
+            log.debug(
+                "router provider build failed: exception_type=%s",
+                type(e).__name__,
+            )
             return None
 
         return SiteSearchRouter(
@@ -553,7 +569,12 @@ class SiteDemoRunner:
             try:
                 return self.router.decide(question)
             except Exception as e:  # noqa: BLE001
-                log.debug("router decide raised: %s", e)
+                # Stage #800: same boundary as above — never log the raw
+                # exception message.
+                log.debug(
+                    "router decide raised: exception_type=%s",
+                    type(e).__name__,
+                )
         return default_fallback_decision(question, self.profile.name)
 
     def _build_non_search_result(

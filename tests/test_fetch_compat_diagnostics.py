@@ -308,6 +308,211 @@ class TestNoLeakGuarantee:
 
 
 # ---------------------------------------------------------------------------
+# Canary leak guard for log surface (Stage #800 — final pre-merge gate)
+# ---------------------------------------------------------------------------
+
+
+# Distinct canaries for the log-surface tests. We deliberately reuse
+# the operator-facing canary set so a regression that leaks them to
+# logs is caught with the same vocabulary operators care about.
+_LOG_LEAK_CANARIES: tuple[str, ...] = _LEAK_CANARIES + (
+    # canary used as the exception message itself — must never reach log
+    "VERY_SPECIFIC_LOG_CANARY_DO_NOT_PERSIST",
+)
+
+
+class _CanaryRaisingPipeline:
+    """Pipeline stub that raises a ``TimeoutError`` carrying every canary."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def run(self, url: str, query: str) -> dict[str, Any]:
+        msg = (
+            "transport failed: sk-LIV...cdef "
+            "Bearer c4n4ry-token-zzzzzzzzzzzzzzzz "
+            "X-Internal-Secret: top-secret "
+            "secret_body=THIS_IS_THE_BODY "
+            "https://user:p4ssw0rd@host.example/path "
+            "VERY_SPECIFIC_LOG_CANARY_DO_NOT_PERSIST"
+        )
+        raise TimeoutError(msg)
+
+
+class _CanaryRaisingOuterPipeline:
+    """Pipeline stub that raises a generic ``ValueError`` carrying canaries.
+
+    This drives the outer ``except Exception`` path in
+    ``SiteDemoRunner._run_pipeline_with_timeout``.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def run(self, url: str, query: str) -> dict[str, Any]:
+        raise ValueError(
+            "outer failure sk-LIV...cdef Bearer c4n4ry-token-zzzzzzzzzzzzzzzz "
+            "X-Internal-Secret: top-secret secret_body=THIS_IS_THE_BODY "
+            "https://user:p4ssw0rd@host.example/path "
+            "VERY_SPECIFIC_LOG_CANARY_DO_NOT_PERSIST"
+        )
+
+
+class TestLogSurfaceNoLeak:
+    """Stage #800 final gate: log surface must not echo raw exceptions.
+
+    The operator-facing output (warnings, pipeline_result.error) was
+    already covered by :class:`TestNoLeakGuarantee`. This class asserts
+    the same boundary for ``log.debug`` / ``log.warning`` /
+    ``log.error`` because logs are persisted to files, CI logs, server
+    logs, and downstream observability services in production.
+    """
+
+    def _build_runner(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Any, pipeline_stub: Any) -> Any:
+        from src.demo import site_demo_runner as runner_module
+        from src.demo.site_demo_runner import SiteDemoRunner
+
+        monkeypatch.setattr(runner_module, "PipelineRunner", pipeline_stub)
+        return SiteDemoRunner(
+            site_id="bukgu_gwangju",
+            provider="mock",
+            output_dir=str(tmp_path),
+            pipeline_timeout_s=5.0,
+        )
+
+    @staticmethod
+    def _assert_no_canary_in_records(records: list[Any]) -> None:
+        for record in records:
+            # ``record.getMessage()`` is what the logging handler would
+            # actually persist — that is the byte stream we are
+            # protecting.
+            rendered = record.getMessage()
+            for canary in _LOG_LEAK_CANARIES:
+                assert canary not in rendered, (
+                    f"canary {canary!r} leaked into log record: "
+                    f"level={record.levelname} msg={rendered!r}"
+                )
+            # ``exc_info`` payloads must also be sanitized. We assert
+            # the raw exception object is not present on the record.
+            assert record.exc_info is None, (
+                f"record carries exc_info (raw exception would be "
+                f"rendered): {record!r}"
+            )
+
+    def test_inner_timeout_log_has_no_canary(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        runner = self._build_runner(monkeypatch, tmp_path, _CanaryRaisingPipeline)
+
+        with caplog.at_level("DEBUG"):
+            result = runner.answer("민원서식 어디서 받아?")
+
+        # Operator-facing surfaces (warnings + pipeline_result.error)
+        # must also remain clean.
+        for canary in _LOG_LEAK_CANARIES:
+            for warning in result.get("warnings", []):
+                assert canary not in warning
+            assert canary not in result.get("error", "")
+
+        self._assert_no_canary_in_records(list(caplog.records))
+
+    def test_outer_exception_log_has_no_canary(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        # The outer ``except Exception`` path fires when the worker
+        # exception is not a FuturesTimeout and propagates through the
+        # ThreadPoolExecutor result. ``_CanaryRaisingOuterPipeline``
+        # raises a plain ``ValueError`` to exercise that branch.
+        runner = self._build_runner(monkeypatch, tmp_path, _CanaryRaisingOuterPipeline)
+
+        with caplog.at_level("DEBUG"):
+            result = runner.answer("민원서식 어디서 받아?")
+
+        for canary in _LOG_LEAK_CANARIES:
+            for warning in result.get("warnings", []):
+                assert canary not in warning
+            assert canary not in result.get("error", "")
+
+        self._assert_no_canary_in_records(list(caplog.records))
+
+    def test_router_debug_log_has_no_canary(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """``SiteDemoRunner._decide_route`` logs debug info when the
+        injected router raises. The log line must remain free of raw
+        exception text.
+        """
+        from src.demo.site_demo_runner import SiteDemoRunner
+
+        class _RaisingRouter:
+            def decide(self, question: str) -> Any:
+                raise ValueError(
+                    "router decide leaked sk-LIV...cdef Bearer "
+                    "c4n4ry-token-zzzzzzzzzzzzzzzz "
+                    "X-Internal-Secret: top-secret "
+                    "https://user:p4ssw0rd@host.example/path "
+                    "VERY_SPECIFIC_LOG_CANARY_DO_NOT_PERSIST"
+                )
+
+        monkeypatch.setattr(
+            SiteDemoRunner, "_resolve_router", lambda self: _RaisingRouter()
+        )
+
+        runner = SiteDemoRunner(
+            site_id="bukgu_gwangju",
+            provider="mock",
+            output_dir=str(tmp_path),
+            pipeline_timeout_s=5.0,
+        )
+
+        with caplog.at_level("DEBUG"):
+            result = runner.answer("민원서식 어디서 받아?")
+
+        # The runner should still produce a usable soft response.
+        assert result["route"] == "site_search"
+        assert result["ok"] is False
+
+        # No canary in any operator-facing surface.
+        for canary in _LOG_LEAK_CANARIES:
+            for warning in result.get("warnings", []):
+                assert canary not in warning
+            assert canary not in result.get("error", "")
+
+        self._assert_no_canary_in_records(list(caplog.records))
+
+    def test_log_records_use_sanitized_diagnostic_format(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Positive counterpart: the log line MUST include the sanitized
+        diagnostic (category + retry_hint) so operators retain
+        actionable signal — proving we did not throw the baby out
+        with the bathwater.
+        """
+        runner = self._build_runner(monkeypatch, tmp_path, _CanaryRaisingPipeline)
+
+        with caplog.at_level("DEBUG"):
+            runner.answer("민원서식 어디서 받아?")
+
+        # Find at least one log line from site_demo_runner at WARNING
+        # level that carries our closed-vocabulary diagnostic.
+        warning_lines = [
+            r.getMessage()
+            for r in caplog.records
+            if r.name == "src.demo.site_demo_runner"
+            and r.levelno >= 30  # WARNING
+        ]
+        assert warning_lines, "expected at least one WARNING-level log line"
+        joined = " ".join(warning_lines)
+        assert "exception_type=TimeoutError" in joined, (
+            f"warning should carry exception class name: {joined!r}"
+        )
+        assert "category=timeout" in joined, (
+            f"warning should carry diagnostic category: {joined!r}"
+        )
+        assert "retry_hint=retry" in joined
+
+
+# ---------------------------------------------------------------------------
 # 5. #799 timeout warning integration
 # ---------------------------------------------------------------------------
 
