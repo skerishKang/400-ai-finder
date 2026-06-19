@@ -9,6 +9,12 @@ Stage #801: sanitized fetch diagnostic fields (closed-vocabulary)
 are recorded alongside the existing ``route`` / ``source_weak`` /
 ``fallback_used`` fields. Raw exception text, headers, bodies,
 provider payloads, API keys, and URL credentials are never written.
+
+Stage #803: closed-vocab ``answer_status`` column added. It is
+always normalized to one of the four values defined in
+``src.answer.answer_status``. Unknown values fall back to
+``"error"`` so the conversation log never carries a free-form
+string from a legacy or malformed snapshot.
 """
 
 from __future__ import annotations
@@ -17,6 +23,8 @@ import json
 import os
 from datetime import datetime, timezone
 from typing import Any
+
+from src.answer.answer_status import normalize_answer_status
 
 
 DEFAULT_LOG_PATH = os.path.join("logs", "conversations.jsonl")
@@ -52,6 +60,10 @@ SAFE_FIELDS = (
     "fetch_diagnostic_short_reason",
     "fetch_diagnostic_retry_hint",
     "fetch_diagnostic_is_transient",
+    # Stage #803: closed-vocab answer_status scalar column. Always
+    # one of {answered_with_evidence, fallback_no_match,
+    # fallback_unavailable, error} after normalization.
+    "answer_status",
 )
 
 
@@ -149,6 +161,10 @@ def log_conversation(result: dict[str, Any], log_path: str = DEFAULT_LOG_PATH) -
             "search_query": result.get("search_query", ""),
             "answer_mode": result.get("answer_mode", ""),
             **_fetch_diagnostic_columns(result),
+            # Stage #803: normalize the answer_status to one of the
+            # four closed-vocab values. Defensive default for
+            # malformed snapshots is "error".
+            "answer_status": normalize_answer_status(result.get("answer_status")),
         }
         line = json.dumps(record, ensure_ascii=False)
         with open(log_path, "a", encoding="utf-8") as f:

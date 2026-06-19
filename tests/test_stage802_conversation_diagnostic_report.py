@@ -273,6 +273,10 @@ class TestMissingFields:
             "fetch_diagnostic_category_counts": {},
             "fetch_diagnostic_retry_hint_counts": {},
             "fetch_diagnostic_transient_count": 0,
+            # Stage #803: closed-vocab answer_status aggregation. The
+            # empty summary carries an empty dict so downstream
+            # consumers can rely on the key being present.
+            "answer_status_counts": {},
         }
 
     def test_missing_file_returns_empty_summary(self, tmp_path: Any) -> None:

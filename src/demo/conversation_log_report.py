@@ -73,6 +73,12 @@ def summarize_conversation_log(log_path: str) -> dict[str, Any]:
         "fetch_diagnostic_category_counts": {},
         "fetch_diagnostic_retry_hint_counts": {},
         "fetch_diagnostic_transient_count": 0,
+        # Stage #803: closed-vocab answer_status aggregation. Operators
+        # can now see at a glance how many records fell into each
+        # status bucket (answered_with_evidence / fallback_no_match /
+        # fallback_unavailable / error). Missing/None values land in
+        # the "none" bucket so the report never invents a status.
+        "answer_status_counts": {},
     }
 
     if not log_path:
@@ -85,6 +91,7 @@ def summarize_conversation_log(log_path: str) -> dict[str, Any]:
     llm_status_counts: dict[str, int] = {}
     fetch_diagnostic_category_counts: dict[str, int] = {}
     fetch_diagnostic_retry_hint_counts: dict[str, int] = {}
+    answer_status_counts: dict[str, int] = {}
 
     total_records = 0
     malformed_line_count = 0
@@ -151,6 +158,18 @@ def summarize_conversation_log(log_path: str) -> dict[str, Any]:
             if is_transient is True:
                 fetch_diagnostic_transient_count += 1
 
+            # Stage #803: closed-vocab answer_status column. Missing /
+            # None values land in the "none" bucket. The conversation
+            # log writer already normalizes the status to one of the
+            # four valid values, so anything that reaches this branch
+            # with a non-conforming value is a legacy / malformed
+            # record — we still bucket it honestly without inventing
+            # a fake status.
+            status_bucket = _bucket(record.get("answer_status"))
+            answer_status_counts[status_bucket] = (
+                answer_status_counts.get(status_bucket, 0) + 1
+            )
+
     return {
         "total_records": total_records,
         "malformed_line_count": malformed_line_count,
@@ -163,6 +182,7 @@ def summarize_conversation_log(log_path: str) -> dict[str, Any]:
         "fetch_diagnostic_category_counts": fetch_diagnostic_category_counts,
         "fetch_diagnostic_retry_hint_counts": fetch_diagnostic_retry_hint_counts,
         "fetch_diagnostic_transient_count": fetch_diagnostic_transient_count,
+        "answer_status_counts": answer_status_counts,
     }
 
 
@@ -218,5 +238,9 @@ def format_text_summary(summary: dict[str, Any]) -> str:
     _fmt_counts(
         "fetch_diagnostic_retry_hint_counts",
         summary.get("fetch_diagnostic_retry_hint_counts", {}),
+    )
+    _fmt_counts(
+        "answer_status_counts",
+        summary.get("answer_status_counts", {}),
     )
     return "\n".join(lines) + "\n"
