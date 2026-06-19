@@ -9,10 +9,18 @@ Definitions (verbatim, 박사님 확정):
   응답 경로가 정상적으로 답변을 생성함. ``answer_ok=True`` 동반.
 * ``fallback_no_match``    — source/snapshot 매칭이 없어 generic
   fallback이 반환됨. ``answer_ok=False`` 동반.
-* ``fallback_unavailable`` — timeout 또는 fetch 인프라 실패로
-  데이터 미수신, soft fallback 반환. ``answer_ok=False`` 동반.
-* ``error``                — pipeline 예외 등 처리 불가능 상태.
+* ``fallback_unavailable`` — pipeline timeout으로 데이터 미수신,
+  soft fallback 반환. ``answer_ok=False`` 동반. timeout 외 다른
+  인프라 실패는 아래 ``error`` 로 분류한다.
+* ``error``                — timeout 외 pipeline 예외 (예: connection_error,
+  tls_error, http_error, blocked_or_forbidden, parse_error,
+  unknown_fetch_error 등) 또는 처리 불가능 상태.
   ``answer_ok=False`` 동반.
+
+분류는 ``pipeline_diagnostic.category`` 가 ``"timeout"`` 이면
+``fallback_unavailable``, 그 외 closed-vocab category 또는 진단 부재면
+``error`` 로 매핑한다. ``ok`` 필드는 transport/pipeline 성공 여부로
+유지하며 ``answer_ok``/``answer_status`` 와 혼동하지 않는다.
 
 This module is intentionally tiny: it owns the closed vocabulary and a
 single sanity check. There is no I/O, no logging, no network access.

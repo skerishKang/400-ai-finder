@@ -482,6 +482,162 @@ def test_path_8_pipeline_exception_returns_error_status(tmp_path, monkeypatch):
     assert "bukgu.gwangju.kr" not in (result["fetch_diagnostic"]["short_reason"] or "")
 
 
+def test_path_8b_parse_error_returns_error_status(tmp_path, monkeypatch):
+    """Non-timeout diagnostic category (parse_error) → answer_status=error.
+
+    박사님 보강 지시: timeout 외 closed-vocab diagnostic category는 모두
+    ``error`` 로 분류되어야 한다. parse_error 케이스로 검증.
+    """
+    from src.fetch.compat_diagnostics import (
+        FetchCategory,
+        FetchDiagnostic,
+        format_operator_safe,
+    )
+
+    parse_diagnostic = FetchDiagnostic(
+        category=FetchCategory.PARSE_ERROR,
+        short_reason="Response payload could not be parsed.",
+        retry_hint="do_not_retry",
+        is_transient=False,
+    )
+    parse_operator_safe = format_operator_safe(parse_diagnostic)
+    safe_error = f"Pipeline raised: {parse_operator_safe}"
+
+    class _RaisingParsePipeline:
+        def __init__(self, *a, **kw):
+            pass
+
+        def run(self, url, query):
+            # Simulated ValueError that classify_exception routes to
+            # parse_error (JSONDecodeError → parse_error).
+            import json as _json
+            raise _json.JSONDecodeError("Expecting value", "", 0)
+
+    monkeypatch.setattr(runner_module, "PipelineRunner", _RaisingParsePipeline)
+    runner = SiteDemoRunner(
+        site_id="bukgu_gwangju",
+        provider="mock",
+        output_dir=str(tmp_path),
+        pipeline_timeout_s=10.0,
+    )
+    result = runner.answer("민원서식 어디서 받아?")
+
+    assert result["ok"] is False
+    assert result["answer_ok"] is False
+    assert result["answer_status"] == "error"  # ← 핵심: timeout 아닌 diagnostic은 error
+    assert result["fetch_diagnostic"]["category"] == "parse_error"
+    # raw exception ("Expecting value") must NOT leak into user-facing
+    # answer, warnings, or fetch_diagnostic short_reason.
+    blob = json.dumps(result, ensure_ascii=False)
+    assert "Expecting value" not in blob
+
+
+def test_path_7_timeout_returns_fallback_unavailable(tmp_path, monkeypatch):
+    """budget 초과 → pipeline_diagnostic.category == "timeout" →
+    answer_status=fallback_unavailable (error가 아님).
+
+    박사님 보강 지시: timeout만 ``fallback_unavailable`` 이고 나머지는
+    ``error`` 인 분류가 명확히 작동해야 한다.
+    """
+    import time
+    from src.fetch.compat_diagnostics import FetchCategory
+
+    class _HangingPipeline:
+        def __init__(self, *a, **kw):
+            pass
+
+        def run(self, url, query):
+            time.sleep(5.0)
+            return {"ok": True, "steps": [], "answer_markdown": ""}
+
+    monkeypatch.setattr(runner_module, "PipelineRunner", _HangingPipeline)
+    runner = SiteDemoRunner(
+        site_id="bukgu_gwangju",
+        provider="mock",
+        output_dir=str(tmp_path),
+        pipeline_timeout_s=0.3,
+    )
+    result = runner.answer("민원서식 어디서 받아?")
+
+    assert result["ok"] is False
+    assert result["answer_ok"] is False
+    assert result["answer_status"] == "fallback_unavailable"
+    # 분류 기준은 pipeline_diagnostic.category == "timeout"
+    assert result["fetch_diagnostic"]["category"] == FetchCategory.TIMEOUT.value
+    # error나 fallback_no_match가 아니어야 함 (분리 검증)
+    assert result["answer_status"] != "error"
+    assert result["answer_status"] != "fallback_no_match"
+
+
+# ---------------------------------------------------------------------------
+# 8.5) docs contract keyword 회귀 방지 — 박사님 merge 전 보강
+# ---------------------------------------------------------------------------
+
+
+def test_answer_status_module_docstring_contains_failure_taxonomy():
+    """src/answer/answer_status.py docstring 안에 timeout-only 분류
+    계약 문구가 명시되어 있어야 한다 (박사님 보강 merge 조건)."""
+    import inspect
+    from src.answer import answer_status
+
+    src = inspect.getsource(answer_status)
+    # 'fallback_unavailable' 는 timeout으로 한정, 그 외 인프라 실패는 error
+    assert "pipeline timeout으로 데이터 미수신" in src
+    assert "timeout 외" in src
+    # error 정의에 non-timeout closed-vocab category 명시
+    assert "connection_error" in src
+    assert "parse_error" in src
+
+
+def test_fetch_compat_docs_have_no_debug_log_only_phrase():
+    """박사님 보강 merge 조건: docs/fetch-compat-diagnostic-boundary.md 에
+    ``raw exception stays in the debug log only`` 같은 구문이 남아 있으면 안 된다.
+    동일한 의미를 ``raw exception text is not emitted ... to any application log
+    surface (including debug logs)`` 로 대체했기 때문.
+    """
+    from pathlib import Path
+    docs_path = Path("docs/fetch-compat-diagnostic-boundary.md")
+    content = docs_path.read_text(encoding="utf-8")
+    forbidden_phrases = [
+        "raw exception stays in the debug log only",
+        "operators who need the raw text can still read",
+        "raw exception stays",  # suffix variant
+    ]
+    for phrase in forbidden_phrases:
+        assert phrase.lower() not in content.lower(), (
+            f"docs still contain forbidden phrase: {phrase!r}"
+        )
+    # replacement 문구는 살아 있어야 함 (박사님 명시 verbatim — sentence case)
+    content_lower = content.lower()
+    assert "raw exception text is not emitted to user-facing output or application log surfaces" in content_lower
+    assert "operators receive only the sanitized diagnostic category, short reason, retry hint, and transient flag" in content_lower
+
+
+def test_fetch_compat_docs_list_closed_vocab_categories_for_error():
+    """박사님 보강 merge 조건: docs 가 timeout 외 closed-vocab diagnostic
+    category (connection_error / tls_error / http_error / parse_error /
+    unknown_fetch_error) 가 모두 error 로 매핑된다는 사실을 명시해야 한다."""
+    from pathlib import Path
+    docs_path = Path("docs/fetch-compat-diagnostic-boundary.md")
+    content = docs_path.read_text(encoding="utf-8")
+    required_categories = [
+        "connection_error",
+        "tls_error",
+        "http_error",
+        "blocked_or_forbidden",
+        "parse_error",
+        "unknown_fetch_error",
+    ]
+    for cat in required_categories:
+        assert cat in content, (
+            f"docs missing closed-vocab category reference: {cat}"
+        )
+    # 모두 'error' 로 매핑된다는 사실 (timeout 만 fallback_unavailable)
+    # 9-path matrix 의 path 8 이 error 로 분류된다는 사실
+    assert "answer_status=`error`" in content
+    assert "answer_status=`fallback_unavailable`" in content
+
+
 # ---------------------------------------------------------------------------
 # 9) LLM degraded fallback (live provider이지만 호출 실패)
 # ---------------------------------------------------------------------------

@@ -98,10 +98,7 @@ category=parse_error; short_reason=Response payload could not be parsed.; retry_
 * **No API key use.** No API key is required, read, or transmitted by
   any helper in this Stage.
 * **No Firecrawl call.** The Firecrawl provider path is untouched.
-* **No raw exception / body / header / URL exposure.** The operator-
-  facing output is a closed-vocabulary record. The raw exception stays
-  in the debug log only (it is never echoed in the user-facing
-  warning, the `pipeline_result.error` field, or the demo response).
+* **No raw exception / body / header / URL exposure.** The operator-facing output is a closed-vocabulary record. Raw exception text is not emitted to user-facing output or application log surfaces. Operators receive only the sanitized diagnostic category, short reason, retry hint, and transient flag.
 * **No scenario / snapshot / cache auto-generation.** This Stage does
   not produce or promote any live artifact.
 * **No `RUN_LIVE_*_TESTS=1`.** Tests are pure unit tests that monkey-
@@ -119,10 +116,7 @@ leaking the original exception. Concretely:
 Pipeline raised: category=parse_error; short_reason=Response payload could not be parsed.; retry_hint=do_not_retry; is_transient=false
 ```
 
-The previous raw-exception message ("Pipeline raised: Expecting value:
-line 1 column 1 (char 0)") is replaced by the diagnostic line.
-Operators who need the raw text can still read the debug log; the
-public warning and the user-facing JSON never include it.
+The previous raw-exception message ("Pipeline raised: Expecting value: line 1 column 1 (char 0)") is replaced by the diagnostic line. Raw exception text is not emitted to user-facing output or application log surfaces. Operators receive only the sanitized diagnostic category, short reason, retry hint, and transient flag. The public warning and the user-facing JSON never include the raw text.
 
 ## Follow-up
 
