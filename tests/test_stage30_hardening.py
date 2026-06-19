@@ -108,7 +108,7 @@ def test_mobile_demo_graceful_ask_error():
         assert response_data["ok"] is False
         assert "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다" in response_data["answer"]
         assert response_data["provider"] == "opencode-go"
-        assert "pending configuration mock error" in response_data["warnings"][0]
+        assert response_data["warnings"][0] == "Request failed with a sanitized diagnostic."
 
 
 def test_admin_demo_graceful_test_error():

@@ -270,7 +270,8 @@ class TestFailureStopsPipeline:
         result = runner.run(url="https://example.com", query="신청서 제출서류")
 
         assert result["ok"] is False
-        assert "network error" in result["error"]
+        assert "Pipeline step failed" in result["error"]
+        assert "network error" not in result["error"]
         assert len(result["steps"]) == 1
         assert result["steps"][0]["ok"] is False
         # Indexer should not have been called
@@ -289,7 +290,8 @@ class TestFailureStopsPipeline:
         result = runner.run(url="https://example.com", query="신청서 제출서류")
 
         assert result["ok"] is False
-        assert "bad map" in result["error"]
+        assert "Pipeline step failed" in result["error"]
+        assert "bad map" not in result["error"]
         assert len(result["steps"]) == 2
         assert result["steps"][0]["ok"] is True
         assert result["steps"][1]["ok"] is False

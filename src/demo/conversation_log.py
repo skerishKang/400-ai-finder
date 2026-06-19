@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from src.answer.answer_status import normalize_answer_status
+from src.fetch.sanitization import sanitize_fetch_diagnostic, sanitize_warnings
 
 
 DEFAULT_LOG_PATH = os.path.join("logs", "conversations.jsonl")
@@ -112,7 +113,7 @@ def _fetch_diagnostic_columns(result: dict[str, Any]) -> dict[str, Any]:
     payloads, API keys, or URL credentials — only the values that
     :class:`FetchDiagnostic` was built to carry.
     """
-    diag = result.get("fetch_diagnostic")
+    diag = sanitize_fetch_diagnostic(result.get("fetch_diagnostic"))
     if not isinstance(diag, dict):
         # Either None or non-conforming value — record as no diagnostic.
         return {
@@ -153,7 +154,7 @@ def log_conversation(result: dict[str, Any], log_path: str = DEFAULT_LOG_PATH) -
             "source_weak": _source_weak_flag(result),
             "sources": _sanitize_sources(result.get("sources")),
             "fallback_used": bool(result.get("fallback_used", False)),
-            "warnings": result.get("warnings", []) or [],
+            "warnings": sanitize_warnings(result.get("warnings", [])),
             "route": result.get("route", ""),
             "should_search_site": bool(result.get("should_search_site", False)),
             "route_confidence": float(result.get("route_confidence", 0.0)),

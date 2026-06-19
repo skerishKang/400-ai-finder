@@ -18,8 +18,13 @@ from http.server import ThreadingHTTPServer as HTTPServer, BaseHTTPRequestHandle
 from typing import Any
 from urllib.parse import urlparse
 
-from src.llm.runtime_status import resolve_llm_runtime_status
 from src.demo.conversation_log import log_conversation
+from src.fetch.sanitization import (
+    SAFE_FAILURE_MESSAGE,
+    sanitize_fetch_diagnostic,
+    sanitize_warnings,
+)
+from src.llm.runtime_status import resolve_llm_runtime_status
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_PATH = os.path.join(_THIS_DIR, "templates", "mobile_demo.html")
@@ -139,7 +144,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "llm_live": result.get("llm_live", False),
                 "llm_status": result.get("llm_status", "unknown"),
                 "llm_label": result.get("llm_label", ""),
-                "warnings": list(result.get("warnings", [])),
+                "warnings": sanitize_warnings(result.get("warnings", [])),
                 "route": result.get("route", "site_search"),
                 "should_search_site": bool(result.get("should_search_site", True)),
                 "route_confidence": float(result.get("route_confidence", 0.0)),
@@ -153,17 +158,20 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 # short_reason / retry_hint / is_transient on failure
                 # paths. Callers must never echo raw exception text,
                 # headers, bodies, or URLs in this field.
-                "fetch_diagnostic": result.get("fetch_diagnostic"),
+                "fetch_diagnostic": sanitize_fetch_diagnostic(result.get("fetch_diagnostic")),
             }
             if not log_conversation(response_data):
-                response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]
+                response_data["warnings"] = sanitize_warnings(
+                    list(response_data.get("warnings", [])) + ["conversation log write failed"]
+                )
             self._json_response(response_data)
-        except Exception as e:
+        except Exception:
+            safe_warning = SAFE_FAILURE_MESSAGE
             llm_status = resolve_llm_runtime_status(
                 provider=self.provider,
                 model=self.model,
                 ok=False,
-                warnings=[str(e)],
+                warnings=[safe_warning],
                 snapshot_mode=bool(self.snapshot_path),
             )
             response_data = {
@@ -182,10 +190,20 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "llm_live": llm_status["llm_live"],
                 "llm_status": llm_status["llm_status"],
                 "llm_label": llm_status["llm_label"],
-                "warnings": [str(e)],
+                "warnings": [safe_warning],
+                "route": "site_search",
+                "should_search_site": True,
+                "route_confidence": 0.0,
+                "route_reason": "outer_exception",
+                "search_query": "",
+                "answer_mode": "retrieval_answer",
+                "source_weak": True,
+                "fetch_diagnostic": None,
             }
             if not log_conversation(response_data):
-                response_data["warnings"] = list(response_data.get("warnings", [])) + ["conversation log write failed"]
+                response_data["warnings"] = sanitize_warnings(
+                    list(response_data.get("warnings", [])) + ["conversation log write failed"]
+                )
             self._json_response(response_data)
 
     def _json_response(self, data: dict, status: int = 200):
