@@ -325,6 +325,7 @@ def test_mobile_handler_preserves_no_evidence_envelope(
         ("null_artifact_answer", {"ok": True, "answer_markdown": None}, "top-level nonblank answer"),
         ("list_artifact_answer", {"ok": True, "answer_markdown": ["not", "text"]}, "top-level nonblank answer"),
         ("number_artifact_answer", {"ok": True, "answer_markdown": 42}, "top-level nonblank answer"),
+        ("missing_ok_artifact", {"answer_markdown": "nonblank text"}, "top-level nonblank answer"),
         ("string_ok_artifact_answer", {"ok": "false", "answer_markdown": "nonblank text"}, "top-level nonblank answer"),
     ],
 )

@@ -468,8 +468,7 @@ class SiteDemoRunner:
             if not isinstance(answer_data, dict):
                 answer_data = None
                 break
-            artifact_ok = answer_data.get("ok", True)
-            if artifact_ok is not True:
+            if answer_data.get("ok") is not True:
                 answer_data = None
                 break
 
