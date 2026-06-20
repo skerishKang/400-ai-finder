@@ -91,14 +91,17 @@ def _sanitize_sources(sources: Any) -> list[dict[str, Any]]:
 
 
 def _source_weak_flag(result: dict[str, Any]) -> bool:
-    """source_weak only applies when the route is site_search.
+    """Return whether the response is source/answer weak.
 
-    direct_answer and clarify do not run the search pipeline, so they
-    have no source list to evaluate.
+    SiteDemoRunner computes the canonical flag for current responses. For
+    legacy records without ``source_weak``, fall back to the old source-count
+    heuristic so snapshot/log replay remains deterministic.
     """
     route = str(result.get("route", "")).strip().lower()
     if route != "site_search":
         return False
+    if "source_weak" in result:
+        return bool(result["source_weak"])
     sources_count = len(result.get("sources", []) or [])
     return sources_count < 1
 
