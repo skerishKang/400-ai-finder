@@ -7,6 +7,7 @@ succeeded. Sources alone are not evidence.
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import time
@@ -18,6 +19,7 @@ from src.demo import site_demo_runner as runner_module
 from src.demo.conversation_log import log_conversation
 from src.demo.site_demo_runner import SiteDemoRunner
 from src.llm.site_search_router import default_fallback_decision
+from src.web import mobile_demo
 
 
 QUESTION = "민원서식 어디서 받아?"
@@ -201,6 +203,107 @@ def test_source_without_usable_answer_is_not_evidence(
     result = runner.answer(QUESTION)
 
     _assert_no_answer_evidence_result(result, tmp_path / "conv.jsonl")
+
+
+@pytest.mark.parametrize(
+    "answer_data",
+    [
+        _answer_data(ok=False),
+        _answer_data(ok=True, markdown="   \n\t"),
+    ],
+)
+def test_mobile_handler_preserves_no_evidence_envelope(
+    tmp_path: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    answer_data: dict[str, Any],
+) -> None:
+    search_path = os.path.join(tmp_path, "search.jsonl")
+    answer_path = os.path.join(tmp_path, "answer.json")
+    _write_search_results(search_path, [_real_source()])
+    _write_answer(answer_path, answer_data)
+
+    class _NoAnswerPipeline:
+        def __init__(self, *a: Any, **kw: Any) -> None:
+            pass
+
+        def run(self, url: str, query: str) -> dict[str, Any]:
+            return {
+                "ok": True,
+                "url": url,
+                "query": query,
+                "output_dir": str(tmp_path),
+                "steps": [
+                    {"name": "search", "ok": True, "output": search_path, "error": ""},
+                    {"name": "answer", "ok": True, "output": answer_path, "error": ""},
+                ],
+                "answer_markdown": "",
+            }
+
+    runner = _make_runner(tmp_path, monkeypatch, _NoAnswerPipeline)
+    runner_result = runner.answer(QUESTION)
+    assert runner_result["ok"] is True
+    assert runner_result["answer_ok"] is False
+    assert runner_result["answer_status"] == "fallback_no_match"
+    assert runner_result["source_weak"] is True
+
+    class _FixedRunner:
+        provider = "mock"
+        model = None
+
+        def __init__(self) -> None:
+            self.answer_calls = 0
+
+        def answer(self, question: str) -> dict[str, Any]:
+            self.answer_calls += 1
+            return runner_result
+
+    fixed_runner = _FixedRunner()
+
+    class _Handler:
+        site_id = "bukgu_gwangju"
+        provider = "mock"
+        model = None
+        snapshot_path = None
+        pipeline_timeout_s = 10.0
+        _runner = fixed_runner
+        _site_name = "광주광역시 북구청"
+
+        def _json_response(self, data: dict[str, Any], status: int = 200) -> None:
+            nonlocal response_data
+            response_data = {"data": data, "status": status}
+
+    response_data: dict[str, Any] = {}
+    handler = cast(Any, _Handler())
+    body = json.dumps({"question": QUESTION}, ensure_ascii=False).encode("utf-8")
+    handler.rfile = io.BytesIO(body)
+    handler.headers = {"Content-Length": str(len(body))}
+
+    log_path = tmp_path / "mobile-conv.jsonl"
+
+    def _wrap_log(result: dict[str, Any], log_path_arg: Any = None) -> bool:
+        return log_conversation(result, log_path=str(log_path))
+
+    monkeypatch.setattr(mobile_demo, "log_conversation", _wrap_log)
+
+    mobile_demo.MobileDemoHandler._handle_ask(cast(Any, handler))
+
+    mobile_data = response_data["data"]
+    assert response_data["status"] == 200
+    assert fixed_runner.answer_calls == 1
+    assert handler._runner is fixed_runner
+    assert runner_result["answer_ok"] is False
+    assert runner_result["answer_status"] == "fallback_no_match"
+    assert runner_result["source_weak"] is True
+    assert mobile_data["ok"] is True
+    assert mobile_data["answer_ok"] is False
+    assert mobile_data["answer_status"] == "fallback_no_match"
+    assert mobile_data["answer_status"] != "answered_with_evidence"
+    assert mobile_data["source_weak"] is True
+
+    logged = json.loads(log_path.read_text(encoding="utf-8"))
+    assert logged["answer_ok"] is False
+    assert logged["answer_status"] == "fallback_no_match"
+    assert logged["source_weak"] is True
 
 
 def test_timeout_failure_keeps_fallback_unavailable_contract(
