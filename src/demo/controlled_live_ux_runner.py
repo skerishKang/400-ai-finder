@@ -42,6 +42,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Final
 
+from src.demo.controlled_live_command_guard import evaluate_command
 from src.demo.controlled_live_smoke_contract import (
     APPROVED_EXECUTION_MODE,
     APPROVED_FETCH_PROVIDER,
@@ -152,17 +153,6 @@ def _validate_question(question: Any) -> str:
     if len(question) > MAX_QUESTION_LEN:
         raise LockedControlledLiveUxError(QUESTION_INVALID_CODE)
     return question
-
-
-def _opt_in_satisfied(request: LockedControlledLiveUxRequest) -> bool:
-    """Return True iff both opt-in conditions are explicitly satisfied."""
-    if request.allow_controlled_live is not True:
-        return False
-    if not isinstance(request.acknowledgement, str):
-        return False
-    if request.acknowledgement != REQUIRED_ACKNOWLEDGEMENT:
-        return False
-    return True
 
 
 # --- Envelope factories --------------------------------------------------
@@ -362,22 +352,27 @@ def run_locked_controlled_live_ux(
 
     Four branches:
 
-    1. **Dry-run** — opt-in conditions are not both satisfied. Neither
+    1. **Dry-run** — the command guard denies the request (no flag,
+       missing acknowledgement, or wrong acknowledgement). Neither
        seam is invoked, regardless of whether either is passed.
-    2. **Execution not enabled** — opt-in conditions are met, but no
-       seam was supplied. A safe error envelope is returned.
-    3. **One-shot runner call** — opt-in met AND ``one_shot_runner`` is
-       supplied. The runner is invoked *exactly once* and its return
-       value (or raised exception) is normalized into the Stage #806
-       answer envelope. When both seams are supplied, the one-shot
-       runner takes priority over ``execution_boundary``.
-    4. **Boundary call (back-compat)** — opt-in met AND only
+    2. **Execution not enabled** — the guard approves, but no seam
+       was supplied. A safe error envelope is returned.
+    3. **One-shot runner call** — guard approves AND ``one_shot_runner``
+       is supplied. The runner is invoked *exactly once* and its
+       return value (or raised exception) is normalized into the
+       Stage #806 answer envelope. When both seams are supplied, the
+       one-shot runner takes priority over ``execution_boundary``.
+    4. **Boundary call (back-compat)** — guard approves AND only
        ``execution_boundary`` is supplied. Same one-shot + normalize
        semantics as the runner seam; this is the Stage #813 surface
        preserved for existing tests.
 
-    In this stage only injected stub runners are wired in. Real
-    fetch / live LLM / subprocess / browser execution is forbidden.
+    The command guard is the LAST gate before any execution. It is
+    implemented as a separate module
+    (:mod:`src.demo.controlled_live_command_guard`) so the approval
+    contract can be audited in isolation. In this stage only
+    injected stub runners are wired in — real fetch / live LLM /
+    subprocess / browser execution is forbidden.
     """
     if not isinstance(request, LockedControlledLiveUxRequest):
         raise LockedControlledLiveUxError(INVALID_REQUEST_CODE)
@@ -387,8 +382,9 @@ def run_locked_controlled_live_ux(
     envelope = _build_approved_envelope()
     plan = validate_controlled_live_smoke_request(envelope)
 
-    # 1. Opt-in gate.
-    if not _opt_in_satisfied(request):
+    # 1. Command guard (last gate before any execution).
+    decision = evaluate_command(request)
+    if not decision.allowed:
         return LockedControlledLiveUxResponse(
             mode=DRY_RUN_MODE,
             execution_allowed=False,
