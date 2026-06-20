@@ -240,20 +240,25 @@ def _is_valid_source_id(value: Any) -> bool:
 def _safe_source_item(item: Any) -> dict:
     """Filter a single source dict down to ``id`` and ``url`` only.
 
-    A source is only kept if it carries a valid (non-empty) ``id``.
-    URL is run through userinfo stripping. Any other field is dropped
-    so that tokens, headers, bodies, or question text cannot leak.
+    A source is only kept if it carries BOTH a valid (non-empty) ``id``
+    AND a valid (non-empty) ``url``. URL is run through userinfo
+    stripping. Any other field is dropped so that tokens, headers,
+    bodies, or question text cannot leak. Sources without a URL (or
+    with a blank/non-string URL) are discarded entirely — an ``id``
+    alone is not enough to count as evidence.
     """
     if not isinstance(item, dict):
         return {}
     id_value = item.get("id")
     if not _is_valid_source_id(id_value):
         return {}
-    safe: dict = {"id": id_value}
     url_value = item.get("url")
-    if isinstance(url_value, str) and url_value:
-        safe["url"] = _strip_url_userinfo(url_value)
-    return safe
+    if not (isinstance(url_value, str) and url_value.strip()):
+        return {}
+    return {
+        "id": id_value,
+        "url": _strip_url_userinfo(url_value),
+    }
 
 
 def _safe_sources(value: Any) -> list:
@@ -286,8 +291,11 @@ def _normalize_boundary_result(boundary_result: Any) -> dict:
     """Normalize a test-boundary dict into the Stage #806 envelope.
 
     Evidence requires all four conditions; anything else under
-    ``ok=True`` collapses to ``fallback_no_match``. ``ok=False`` or
-    a non-dict boundary output maps to ``error``.
+    ``ok=True`` collapses to ``fallback_no_match``. Any failure,
+    missing key, or non-bool-True value of ``ok`` (e.g. ``False``,
+    missing, ``"true"``, ``1``, ``None``) maps to ``error`` —
+    a transport-level failure must never be silently relabeled as
+    a soft fallback.
     """
     if not isinstance(boundary_result, dict):
         return _error_envelope(None)
@@ -299,12 +307,17 @@ def _normalize_boundary_result(boundary_result: Any) -> dict:
     fetch_diagnostic = _safe_diagnostic(boundary_result.get("fetch_diagnostic"))
 
     raw_ok = boundary_result.get("ok")
-    ok = raw_ok is True
+    ok = raw_ok is True  # strict: only True counts as True
+
+    # Failure / missing / non-bool-True / "true" / 1 / None -> safe error.
+    if not ok:
+        return _error_envelope(fetch_diagnostic)
+
+    # ok is strictly True. Now check the remaining 3 evidence conditions.
     raw_answer_ok = boundary_result.get("answer_ok")
     answer_ok = raw_answer_ok is True
 
-    # Evidence: all four Stage #806 conditions must hold strictly.
-    if ok and answer_ok and bool(answer.strip()) and sources:
+    if answer_ok and bool(answer.strip()) and sources:
         return {
             "ok": True,
             "answer_ok": True,
@@ -314,7 +327,7 @@ def _normalize_boundary_result(boundary_result: Any) -> dict:
             "fetch_diagnostic": fetch_diagnostic,
         }
 
-    # Fallback: ok=True but at least one of the four conditions is missing.
+    # ok=True but at least one of the 3 remaining conditions is missing.
     return {
         "ok": True,
         "answer_ok": False,

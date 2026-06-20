@@ -281,6 +281,167 @@ def test_boundary_empty_or_invalid_sources_returns_fallback(sources_value):
     assert result["source_weak"] is True
 
 
+# --- Fix #1: URL-less source must NOT count as evidence -----------------
+
+def test_boundary_source_with_id_but_no_url_returns_fallback():
+    """A source with a valid id but no url is not enough for evidence.
+
+    PR #816 review: ``id`` alone is insufficient — the runner must
+    require a nonblank string ``url`` alongside ``id``. With the url
+    missing, ``sources`` collapses to ``[]`` and the response is
+    ``fallback_no_match`` (not ``answered_with_evidence``).
+    """
+    def _boundary(plan):
+        return {
+            "ok": True,
+            "answer_ok": True,
+            "answer_markdown": "정상 답변",
+            "sources": [{"id": "source-only-id"}],
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        execution_boundary=_boundary,
+    )
+
+    result = response.result
+    assert result["ok"] is True
+    assert result["answer_ok"] is False
+    assert result["answer_status"] == "fallback_no_match"
+    assert result["source_weak"] is True
+    assert result["sources"] == []
+    assert result["fetch_diagnostic"] is None
+
+
+@pytest.mark.parametrize(
+    "url_value",
+    [
+        None,
+        "",
+        "   ",
+        42,
+        True,
+        ["https://bukgu.gwangju.kr/apply"],
+        {"u": "https://bukgu.gwangju.kr/apply"},
+    ],
+)
+def test_boundary_source_with_blank_or_non_string_url_returns_fallback(url_value):
+    """Nonblank string url is required; blank/non-string drops the source."""
+    def _boundary(plan):
+        return {
+            "ok": True,
+            "answer_ok": True,
+            "answer_markdown": "real answer",
+            "sources": [{"id": "r1", "url": url_value}],
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        execution_boundary=_boundary,
+    )
+
+    result = response.result
+    assert result["ok"] is True
+    assert result["answer_ok"] is False
+    assert result["answer_status"] == "fallback_no_match"
+    assert result["source_weak"] is True
+    assert result["sources"] == []
+
+
+# --- Fix #2: failure / non-strict-True ok must map to error, not fallback
+
+@pytest.mark.parametrize(
+    "ok_value",
+    [
+        False,
+        "true",   # string, not bool
+        1,        # int, not bool
+        None,
+        0,
+        "",
+        "false",
+    ],
+)
+def test_boundary_non_strict_true_ok_returns_error_not_fallback(ok_value):
+    """``ok`` must be strictly True; anything else -> safe error envelope.
+
+    PR #816 review: a boundary that returns ``ok=False``, omits the
+    key, or returns a non-bool truthy value (``"true"``, ``1``,
+    ``None``) represents a transport-level failure. The runner must
+    not silently relabel that as ``fallback_no_match``.
+    """
+    def _boundary(plan):
+        return {
+            "ok": ok_value,
+            "answer_ok": True,
+            "answer_markdown": "real answer",
+            "sources": [{"id": "r1", "url": "https://bukgu.gwangju.kr/apply"}],
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        execution_boundary=_boundary,
+    )
+
+    result = response.result
+    assert result["ok"] is False
+    assert result["answer_ok"] is False
+    assert result["answer_status"] == "error"
+    assert result["source_weak"] is True
+    assert result["sources"] == []
+    # Safe category-only diagnostic policy preserved.
+    assert result["fetch_diagnostic"] is None
+
+
+def test_boundary_ok_field_missing_returns_error_not_fallback():
+    """A boundary dict with no ``ok`` key at all -> safe error."""
+    def _boundary(plan):
+        return {
+            "answer_ok": True,
+            "answer_markdown": "real answer",
+            "sources": [{"id": "r1", "url": "https://bukgu.gwangju.kr/apply"}],
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        execution_boundary=_boundary,
+    )
+
+    result = response.result
+    assert result["ok"] is False
+    assert result["answer_ok"] is False
+    assert result["answer_status"] == "error"
+    assert result["source_weak"] is True
+    assert result["sources"] == []
+
+
+def test_boundary_ok_false_with_safe_diagnostic_category_preserved():
+    """Safe category-only diagnostic policy survives the error path."""
+    def _boundary(plan):
+        return {
+            "ok": False,
+            "answer_ok": True,
+            "answer_markdown": "real answer",
+            "sources": [{"id": "r1", "url": "https://bukgu.gwangju.kr/apply"}],
+            "fetch_diagnostic": {
+                "category": "connection_error",
+                "message": "raw leak attempt",
+                "headers": {"Authorization": "Bearer leak"},
+            },
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        execution_boundary=_boundary,
+    )
+
+    result = response.result
+    assert result["ok"] is False
+    assert result["answer_status"] == "error"
+    # Only the safe category survives; message and headers are dropped.
+    assert result["fetch_diagnostic"] == {"category": "connection_error"}
+
+
 def test_boundary_timeout_exception_returns_fallback_unavailable():
     def _boundary(plan):
         raise TimeoutError("simulated pipeline timeout")
