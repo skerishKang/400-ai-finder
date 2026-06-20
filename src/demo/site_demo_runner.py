@@ -450,27 +450,45 @@ class SiteDemoRunner:
         answer_ok = False
         answer_data = None
         for step in pipeline_result.get("steps", []):
-            if step["name"] == "answer":
-                answer_ok = bool(step.get("ok", False))
-                if answer_ok:
-                    ap = step.get("output", "")
-                    if ap and os.path.exists(ap):
-                        try:
-                            with open(ap, "r", encoding="utf-8") as f:
-                                answer_data = json.load(f)
-                            if isinstance(answer_data, dict):
-                                answer_ok = bool(answer_data.get("ok", True))
-                                answer = answer_data.get("answer_markdown", "")
-                            else:
-                                answer_ok = False
-                        except (json.JSONDecodeError, OSError):
-                            answer_ok = False
+            if step.get("name") != "answer":
+                continue
+            if step.get("ok") is not True:
                 break
 
-        if answer_ok and not answer:
-            answer = pipeline_result.get("answer_markdown", "")
+            answer_path = step.get("output", "")
+            if not isinstance(answer_path, str) or not answer_path.strip() or not os.path.exists(answer_path):
+                break
+
+            try:
+                with open(answer_path, "r", encoding="utf-8") as f:
+                    answer_data = json.load(f)
+            except (json.JSONDecodeError, OSError):
+                break
+
+            if not isinstance(answer_data, dict):
+                answer_data = None
+                break
+            artifact_ok = answer_data.get("ok", True)
+            if artifact_ok is not True:
+                answer_data = None
+                break
+
+            markdown = answer_data.get("answer_markdown", "")
+            if not isinstance(markdown, str) or not markdown.strip():
+                answer_data = None
+                break
+
+            answer_ok = True
+            answer = markdown
+            break
+
+        top_level_answer = pipeline_result.get("answer_markdown", "")
+        if not isinstance(top_level_answer, str):
+            top_level_answer = ""
 
         answer_has_content = bool(answer.strip())
+        has_real_source = bool(sources) and not fallback_used
+        pipeline_ok = bool(pipeline_result.get("ok", False))
         if not answer_ok or not answer_has_content:
             if pipeline_warning:
                 # Surface the timeout in the user-visible answer too, so the
@@ -482,12 +500,12 @@ class SiteDemoRunner:
                     f"질문은 {site_label} 정보 검색 대상으로 분류되었고, "
                     f"다시 시도하거나 공식 홈페이지 접속이 가능한 환경에서 확인이 필요합니다."
                 )
+            elif pipeline_ok and not has_real_source and top_level_answer.strip():
+                answer = top_level_answer
             else:
                 answer = "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다. 아래 출처를 먼저 확인해 보세요."
             answer_ok = False
 
-        has_real_source = bool(sources) and not fallback_used
-        pipeline_ok = bool(pipeline_result.get("ok", False))
         evidence_answer = pipeline_ok and has_real_source and answer_ok and bool(answer.strip())
 
         # Stage #803: derive the closed-vocab ``answer_status`` and

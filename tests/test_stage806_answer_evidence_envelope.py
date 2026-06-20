@@ -116,6 +116,70 @@ def _assert_no_answer_evidence_result(result: dict[str, Any], log_path: Any) -> 
     assert logged["source_weak"] is True
 
 
+def _assert_mobile_no_evidence_envelope(
+    tmp_path: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    runner_result: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    class _FixedRunner:
+        provider = "mock"
+        model = None
+
+        def __init__(self) -> None:
+            self.answer_calls = 0
+
+        def answer(self, question: str) -> dict[str, Any]:
+            self.answer_calls += 1
+            return runner_result
+
+    fixed_runner = _FixedRunner()
+
+    class _Handler:
+        site_id = "bukgu_gwangju"
+        provider = "mock"
+        model = None
+        snapshot_path = None
+        pipeline_timeout_s = 10.0
+        _runner = fixed_runner
+        _site_name = "광주광역시 북구청"
+
+        def _json_response(self, data: dict[str, Any], status: int = 200) -> None:
+            nonlocal response_data
+            response_data = {"data": data, "status": status}
+
+    response_data: dict[str, Any] = {}
+    handler = cast(Any, _Handler())
+    body = json.dumps({"question": QUESTION}, ensure_ascii=False).encode("utf-8")
+    handler.rfile = io.BytesIO(body)
+    handler.headers = {"Content-Length": str(len(body))}
+
+    log_path = tmp_path / "mobile-conv.jsonl"
+
+    def _wrap_log(result: dict[str, Any], log_path_arg: Any = None) -> bool:
+        return log_conversation(result, log_path=str(log_path))
+
+    monkeypatch.setattr(mobile_demo, "log_conversation", _wrap_log)
+
+    mobile_demo.MobileDemoHandler._handle_ask(cast(Any, handler))
+
+    assert response_data["status"] == 200
+    assert fixed_runner.answer_calls == 1
+    assert handler._runner is fixed_runner
+
+    mobile_data = response_data["data"]
+    assert mobile_data["ok"] is True
+    assert mobile_data["answer_ok"] is False
+    assert mobile_data["answer_status"] == "fallback_no_match"
+    assert mobile_data["answer_status"] != "answered_with_evidence"
+    assert mobile_data["source_weak"] is True
+
+    logged = json.loads(log_path.read_text(encoding="utf-8"))
+    assert logged["answer_ok"] is False
+    assert logged["answer_status"] == "fallback_no_match"
+    assert logged["source_weak"] is True
+    return mobile_data, logged
+
+
 def test_non_fallback_source_and_nonblank_answer_is_evidence(
     tmp_path: Any,
     monkeypatch: pytest.MonkeyPatch,
@@ -246,61 +310,69 @@ def test_mobile_handler_preserves_no_evidence_envelope(
     assert runner_result["answer_status"] == "fallback_no_match"
     assert runner_result["source_weak"] is True
 
-    class _FixedRunner:
-        provider = "mock"
-        model = None
+    mobile_data, logged = _assert_mobile_no_evidence_envelope(tmp_path, monkeypatch, runner_result)
+    assert mobile_data["ok"] is True
+    assert logged["answer_ok"] is False
+    assert logged["answer_status"] == "fallback_no_match"
+    assert logged["source_weak"] is True
 
-        def __init__(self) -> None:
-            self.answer_calls = 0
 
-        def answer(self, question: str) -> dict[str, Any]:
-            self.answer_calls += 1
-            return runner_result
+@pytest.mark.parametrize(
+    "case_name, artifact_payload, top_level_answer",
+    [
+        ("missing_artifact_nonblank_top_level", None, "top-level nonblank answer"),
+        ("blank_artifact_answer", {"ok": True, "answer_markdown": ""}, "top-level nonblank answer"),
+        ("null_artifact_answer", {"ok": True, "answer_markdown": None}, "top-level nonblank answer"),
+        ("list_artifact_answer", {"ok": True, "answer_markdown": ["not", "text"]}, "top-level nonblank answer"),
+        ("number_artifact_answer", {"ok": True, "answer_markdown": 42}, "top-level nonblank answer"),
+        ("string_ok_artifact_answer", {"ok": "false", "answer_markdown": "nonblank text"}, "top-level nonblank answer"),
+    ],
+)
+def test_invalid_answer_artifact_is_no_evidence_across_surfaces(
+    tmp_path: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    case_name: str,
+    artifact_payload: dict[str, Any] | None,
+    top_level_answer: str,
+) -> None:
+    search_path = os.path.join(tmp_path, "search.jsonl")
+    answer_path = os.path.join(tmp_path, "answer.json")
+    _write_search_results(search_path, [_real_source()])
+    if artifact_payload is not None:
+        _write_answer(answer_path, artifact_payload)
 
-    fixed_runner = _FixedRunner()
+    class _InvalidArtifactPipeline:
+        def __init__(self, *a: Any, **kw: Any) -> None:
+            pass
 
-    class _Handler:
-        site_id = "bukgu_gwangju"
-        provider = "mock"
-        model = None
-        snapshot_path = None
-        pipeline_timeout_s = 10.0
-        _runner = fixed_runner
-        _site_name = "광주광역시 북구청"
+        def run(self, url: str, query: str) -> dict[str, Any]:
+            return {
+                "ok": True,
+                "url": url,
+                "query": query,
+                "output_dir": str(tmp_path),
+                "steps": [
+                    {"name": "search", "ok": True, "output": search_path, "error": ""},
+                    {"name": "answer", "ok": True, "output": answer_path, "error": ""},
+                ],
+                "answer_markdown": top_level_answer,
+            }
 
-        def _json_response(self, data: dict[str, Any], status: int = 200) -> None:
-            nonlocal response_data
-            response_data = {"data": data, "status": status}
+    runner = _make_runner(tmp_path, monkeypatch, _InvalidArtifactPipeline)
+    result = runner.answer(QUESTION)
 
-    response_data: dict[str, Any] = {}
-    handler = cast(Any, _Handler())
-    body = json.dumps({"question": QUESTION}, ensure_ascii=False).encode("utf-8")
-    handler.rfile = io.BytesIO(body)
-    handler.headers = {"Content-Length": str(len(body))}
+    assert result["ok"] is True
+    assert result["answer_ok"] is False
+    assert result["answer_status"] == "fallback_no_match"
+    assert result["answer_status"] != "answered_with_evidence"
+    assert result["source_weak"] is True
+    assert result["answer"] != top_level_answer
 
-    log_path = tmp_path / "mobile-conv.jsonl"
-
-    def _wrap_log(result: dict[str, Any], log_path_arg: Any = None) -> bool:
-        return log_conversation(result, log_path=str(log_path))
-
-    monkeypatch.setattr(mobile_demo, "log_conversation", _wrap_log)
-
-    mobile_demo.MobileDemoHandler._handle_ask(cast(Any, handler))
-
-    mobile_data = response_data["data"]
-    assert response_data["status"] == 200
-    assert fixed_runner.answer_calls == 1
-    assert handler._runner is fixed_runner
-    assert runner_result["answer_ok"] is False
-    assert runner_result["answer_status"] == "fallback_no_match"
-    assert runner_result["source_weak"] is True
+    mobile_data, logged = _assert_mobile_no_evidence_envelope(tmp_path, monkeypatch, result)
     assert mobile_data["ok"] is True
     assert mobile_data["answer_ok"] is False
     assert mobile_data["answer_status"] == "fallback_no_match"
-    assert mobile_data["answer_status"] != "answered_with_evidence"
     assert mobile_data["source_weak"] is True
-
-    logged = json.loads(log_path.read_text(encoding="utf-8"))
     assert logged["answer_ok"] is False
     assert logged["answer_status"] == "fallback_no_match"
     assert logged["source_weak"] is True
