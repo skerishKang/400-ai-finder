@@ -149,3 +149,29 @@ def test_module_api_exports() -> None:
 
     assert hasattr(module, "validate_controlled_live_request")
     assert hasattr(module, "ControlledLiveRequestValidationResult")
+
+
+def test_run_all_demos_does_not_link_to_controlled_live_path() -> None:
+    """scripts/run_all_demos.py must not link the demo runner into any
+    controlled-live execution path or provider module."""
+
+    forbidden_substrings = (
+        "controlled_live_request_contract",
+        "validate_controlled_live_request",
+        "controlled_live_ux_runner",
+        "controlled_live_command_guard",
+        "I_ACKNOWLEDGE_CONTROLLED_LIVE",
+        "firecrawl",
+        "openai",
+        "anthropic",
+        "subprocess.run",
+    )
+
+    script_path = Path("scripts/run_all_demos.py")
+    content = script_path.read_text(encoding="utf-8")
+
+    for needle in forbidden_substrings:
+        assert needle not in content, (
+            f"scripts/run_all_demos.py unexpectedly contains {needle!r}; "
+            "the demo runner must not be wired into any controlled-live path."
+        )
