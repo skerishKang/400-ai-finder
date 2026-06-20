@@ -1,24 +1,36 @@
-"""Locked UX runner — Stage #813.
+"""Locked UX runner — Stage #817.
 
-Extends the Stage #811 MVP with:
+Builds on Stage #813 (double opt-in + ``execution_boundary`` seam) and
+Stage #811 (dry-run MVP) and adds:
+
+* A ``one_shot_runner`` keyword-only seam: invoked *exactly once* and
+  *only* when both opt-in conditions are satisfied AND a runner
+  callable is supplied. This is the seam where a real controlled-live
+  runner will eventually be wired in. In this stage only injected stub
+  runners are accepted; real fetch / live LLM / subprocess / browser
+  execution is forbidden.
+* When both ``one_shot_runner`` and the legacy ``execution_boundary``
+  are supplied, the one-shot runner takes priority (it represents the
+  intended production seam).
+* Default path remains dry-run whenever opt-in is not met or no seam
+  is supplied.
+
+Stage #813 surfaces preserved:
 
 * Double opt-in gate (``allow_controlled_live is True`` AND exact
   ``acknowledgement == REQUIRED_ACKNOWLEDGEMENT``).
-* Test-only ``execution_boundary`` keyword-only seam: invoked *exactly
-  once* and *only* when both opt-in conditions are satisfied AND a
-  boundary callable is supplied. The default behavior with no boundary
-  returns a safe "execution not enabled" envelope.
+* ``execution_boundary`` back-compat seam (kept for existing tests).
 * Boundary-result state correction (Stage #806 contract):
   - ``ok and answer_ok and nonblank answer_markdown and non-empty sources``
     -> ``answered_with_evidence``
   - everything else under ``ok=True`` -> ``fallback_no_match``
   - ``TimeoutError`` -> ``fallback_unavailable``
   - other ``Exception`` -> ``error``
-* Canary-safe source / fetch_diagnostic filtering: only ``id`` and
-  ``url`` survive in sources (with URL userinfo stripped); only
-  ``category`` survives in fetch_diagnostic. Arbitrary fields that
-  could carry tokens, headers, bodies, or raw question text are
-  dropped before the envelope is built.
+  - ``ok`` not strictly True (``False`` / missing / ``"true"`` / ``1``
+    / ``None``) -> ``error`` (never silently relabeled as fallback)
+* Canary-safe source / fetch_diagnostic filtering: source requires
+  BOTH a valid ``id`` AND a valid nonblank ``url`` (URL userinfo
+  stripped); only ``category`` survives in fetch_diagnostic.
 
 The raw user question is never echoed into the plan, the result, any
 exception, or any repr. No real fetch, no live LLM, no subprocess,
@@ -344,20 +356,28 @@ def run_locked_controlled_live_ux(
     request: LockedControlledLiveUxRequest,
     *,
     execution_boundary: Callable[[ControlledLiveSmokePlan], Any] | None = None,
+    one_shot_runner: Callable[[ControlledLiveSmokePlan], Any] | None = None,
 ) -> LockedControlledLiveUxResponse:
     """Locked UX runner entry point.
 
-    Three branches:
+    Four branches:
 
-    1. **Dry-run** — opt-in conditions are not both satisfied. The
-       boundary is never invoked, regardless of whether one is passed.
+    1. **Dry-run** — opt-in conditions are not both satisfied. Neither
+       seam is invoked, regardless of whether either is passed.
     2. **Execution not enabled** — opt-in conditions are met, but no
-       ``execution_boundary`` was supplied. A safe error envelope is
-       returned.
-    3. **Boundary call** — opt-in met AND ``execution_boundary`` is
-       supplied. The boundary is invoked *exactly once* and its return
+       seam was supplied. A safe error envelope is returned.
+    3. **One-shot runner call** — opt-in met AND ``one_shot_runner`` is
+       supplied. The runner is invoked *exactly once* and its return
        value (or raised exception) is normalized into the Stage #806
-       answer envelope.
+       answer envelope. When both seams are supplied, the one-shot
+       runner takes priority over ``execution_boundary``.
+    4. **Boundary call (back-compat)** — opt-in met AND only
+       ``execution_boundary`` is supplied. Same one-shot + normalize
+       semantics as the runner seam; this is the Stage #813 surface
+       preserved for existing tests.
+
+    In this stage only injected stub runners are wired in. Real
+    fetch / live LLM / subprocess / browser execution is forbidden.
     """
     if not isinstance(request, LockedControlledLiveUxRequest):
         raise LockedControlledLiveUxError(INVALID_REQUEST_CODE)
@@ -376,8 +396,14 @@ def run_locked_controlled_live_ux(
             result=_dry_run_envelope(),
         )
 
-    # 2. Opt-in met, no boundary -> safe "execution not enabled" envelope.
-    if execution_boundary is None:
+    # 2. Choose the execution seam. one_shot_runner takes priority over
+    #    execution_boundary; both may be absent (execution_not_enabled).
+    chosen_seam = (
+        one_shot_runner if one_shot_runner is not None else execution_boundary
+    )
+
+    # 3. Opt-in met, no seam -> safe "execution not enabled" envelope.
+    if chosen_seam is None:
         return LockedControlledLiveUxResponse(
             mode=CONTROLLED_LIVE_REQUESTED_MODE,
             execution_allowed=True,
@@ -385,9 +411,9 @@ def run_locked_controlled_live_ux(
             result=_execution_not_enabled_envelope(),
         )
 
-    # 3. Opt-in met + boundary -> call exactly once and normalize.
+    # 4. Opt-in met + seam -> call exactly once and normalize.
     try:
-        boundary_result = execution_boundary(plan)
+        seam_result = chosen_seam(plan)
     except TimeoutError:
         return LockedControlledLiveUxResponse(
             mode=CONTROLLED_LIVE_REQUESTED_MODE,
@@ -407,7 +433,7 @@ def run_locked_controlled_live_ux(
         mode=CONTROLLED_LIVE_REQUESTED_MODE,
         execution_allowed=True,
         plan=plan,
-        result=_normalize_boundary_result(boundary_result),
+        result=_normalize_boundary_result(seam_result),
     )
 
 

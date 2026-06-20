@@ -442,6 +442,340 @@ def test_boundary_ok_false_with_safe_diagnostic_category_preserved():
     assert result["fetch_diagnostic"] == {"category": "connection_error"}
 
 
+# --- Stage #817: one-shot runner seam ----------------------------------
+#
+# These tests pin the new ``one_shot_runner`` keyword-only seam that
+# sits alongside the Stage #813 ``execution_boundary``. The default
+# path stays dry-run, the runner is invoked at most once per call,
+# and only injected stubs are wired in (no real fetch / provider).
+
+def test_one_shot_runner_default_path_is_dry_run():
+    """When no runner is injected, default path is still dry-run."""
+    response = run_locked_controlled_live_ux(request=_request())
+    assert response.mode == DRY_RUN_MODE
+    assert response.execution_allowed is False
+
+
+def test_one_shot_runner_opt_in_not_met_never_invokes_runner():
+    """Opt-in not met -> runner injected or not, runner 0 calls."""
+    calls = []
+
+    def _runner(plan):
+        calls.append(plan)
+        return {
+            "ok": True,
+            "answer_ok": True,
+            "answer_markdown": "real answer",
+            "sources": [{"id": "r1", "url": "https://bukgu.gwangju.kr/apply"}],
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_request(),
+        one_shot_runner=_runner,
+    )
+
+    assert response.mode == DRY_RUN_MODE
+    assert response.execution_allowed is False
+    assert calls == []
+
+
+def test_one_shot_runner_opt_in_met_without_runner_is_execution_not_enabled():
+    """Opt-in met but no seam injected -> safe error envelope."""
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        one_shot_runner=None,
+    )
+
+    assert response.mode == CONTROLLED_LIVE_REQUESTED_MODE
+    assert response.execution_allowed is True
+    result = response.result
+    assert result["ok"] is False
+    assert result["answer_status"] == "error"
+    assert result["sources"] == []
+
+
+def test_one_shot_runner_opt_in_met_with_runner_invokes_exactly_once():
+    """Opt-in met + runner -> runner called once, normalized."""
+    calls = []
+
+    def _runner(plan):
+        calls.append(plan)
+        return {
+            "ok": True,
+            "answer_ok": True,
+            "answer_markdown": "real answer",
+            "sources": [{"id": "r1", "url": "https://bukgu.gwangju.kr/apply"}],
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        one_shot_runner=_runner,
+    )
+
+    assert len(calls) == 1
+    received = calls[0]
+    # Runner receives the bounded plan only -- never the raw question.
+    assert isinstance(received, type(response.plan))
+    _check_plan(received)
+
+    result = response.result
+    assert result["ok"] is True
+    assert result["answer_ok"] is True
+    assert result["answer_status"] == "answered_with_evidence"
+    assert result["source_weak"] is False
+
+
+def test_one_shot_runner_takes_priority_over_execution_boundary():
+    """When both seams are supplied, only one_shot_runner is invoked."""
+    runner_calls = []
+    boundary_calls = []
+
+    def _runner(plan):
+        runner_calls.append(plan)
+        return {
+            "ok": True,
+            "answer_ok": True,
+            "answer_markdown": "runner answer",
+            "sources": [{"id": "r1", "url": "https://bukgu.gwangju.kr/apply"}],
+        }
+
+    def _boundary(plan):
+        boundary_calls.append(plan)
+        return {
+            "ok": True,
+            "answer_ok": True,
+            "answer_markdown": "BOUNDARY answer must not surface",
+            "sources": [],
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        execution_boundary=_boundary,
+        one_shot_runner=_runner,
+    )
+
+    assert len(runner_calls) == 1
+    assert boundary_calls == []
+    assert response.result["answer_status"] == "answered_with_evidence"
+
+
+def test_one_shot_runner_evidence_result_normalized():
+    """Evidence requires id+url on every source + strict ok=True."""
+    def _runner(plan):
+        return {
+            "ok": True,
+            "answer_ok": True,
+            "answer_markdown": "정상 답변",
+            "sources": [
+                {"id": "r1", "url": "https://bukgu.gwangju.kr/apply"},
+                {"id": "r2", "url": "https://bukgu.gwangju.kr/apply2"},
+            ],
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        one_shot_runner=_runner,
+    )
+    result = response.result
+    assert result["answer_status"] == "answered_with_evidence"
+    assert result["sources"] == [
+        {"id": "r1", "url": "https://bukgu.gwangju.kr/apply"},
+        {"id": "r2", "url": "https://bukgu.gwangju.kr/apply2"},
+    ]
+
+
+def test_one_shot_runner_url_less_source_returns_fallback():
+    """URL-less source through runner -> fallback_no_match, sources=[]."""
+    def _runner(plan):
+        return {
+            "ok": True,
+            "answer_ok": True,
+            "answer_markdown": "정상 답변",
+            "sources": [{"id": "source-only-id"}],
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        one_shot_runner=_runner,
+    )
+    result = response.result
+    assert result["ok"] is True
+    assert result["answer_ok"] is False
+    assert result["answer_status"] == "fallback_no_match"
+    assert result["sources"] == []
+
+
+def test_one_shot_runner_non_strict_ok_returns_error_not_fallback():
+    """Runner returning ok=False/missing/non-bool -> error envelope."""
+    def _runner(plan):
+        return {
+            "ok": False,
+            "answer_ok": True,
+            "answer_markdown": "real",
+            "sources": [{"id": "r1", "url": "https://bukgu.gwangju.kr/apply"}],
+        }
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        one_shot_runner=_runner,
+    )
+    result = response.result
+    assert result["ok"] is False
+    assert result["answer_ok"] is False
+    assert result["answer_status"] == "error"
+    assert result["sources"] == []
+
+
+def test_one_shot_runner_timeout_exception_returns_fallback_unavailable():
+    """Runner raising TimeoutError -> fallback_unavailable."""
+    def _runner(plan):
+        raise TimeoutError("simulated runner timeout")
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        one_shot_runner=_runner,
+    )
+    result = response.result
+    assert result["ok"] is False
+    assert result["answer_status"] == "fallback_unavailable"
+    assert result["fetch_diagnostic"] == {"category": "timeout"}
+
+
+def test_one_shot_runner_generic_exception_returns_error():
+    """Runner raising a generic Exception -> error envelope."""
+    def _runner(plan):
+        raise RuntimeError("simulated runner failure")
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        one_shot_runner=_runner,
+    )
+    result = response.result
+    assert result["ok"] is False
+    assert result["answer_status"] == "error"
+    assert result["fetch_diagnostic"] is None
+
+
+@pytest.mark.parametrize("canary", SECRET_CANARIES)
+def test_canary_in_one_shot_runner_exception_does_not_leak(canary):
+    """Runner exception text containing a canary must not surface."""
+    def _runner(plan):
+        raise RuntimeError(f"simulated failure with {canary}")
+
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        one_shot_runner=_runner,
+    )
+
+    response_repr = repr(response)
+    plan_repr = repr(response.plan)
+    result_repr = repr(response.result)
+    result_str = str(response.result)
+
+    assert canary not in response_repr
+    assert canary not in plan_repr
+    assert canary not in result_repr
+    assert canary not in result_str
+
+
+def _make_canary_one_shot_runner(canary, placement):
+    if placement == "title":
+        sources = [{"id": "r1", "title": canary, "url": "https://bukgu.gwangju.kr/apply"}]
+        diagnostic = None
+    elif placement == "text":
+        sources = [{"id": "r1", "text": canary, "url": "https://bukgu.gwangju.kr/apply"}]
+        diagnostic = None
+    elif placement == "url":
+        sources = [{"id": "r1", "url": canary}]
+        diagnostic = None
+    elif placement == "fetch_diagnostic_message":
+        sources = [{"id": "r1", "url": "https://bukgu.gwangju.kr/apply"}]
+        diagnostic = {"category": "ok", "message": canary}
+    else:
+        raise ValueError(placement)
+
+    def _runner(plan):
+        result = {
+            "ok": True,
+            "answer_ok": True,
+            "answer_markdown": "real answer",
+            "sources": sources,
+        }
+        if diagnostic is not None:
+            result["fetch_diagnostic"] = diagnostic
+        return result
+
+    return _runner
+
+
+@pytest.mark.parametrize("canary, placement", [
+    ("Bearer secret-token", "title"),
+    ("Authorization: Bearer token-abc123", "fetch_diagnostic_message"),
+    ("https://user:pass@example.test/path", "url"),
+    ("header-like: x-api-key=abc123", "title"),
+    ("body-like secret=abc123", "text"),
+])
+def test_canary_in_one_shot_runner_return_value_does_not_leak(canary, placement):
+    """Runner return value carrying canary must not surface."""
+    response = run_locked_controlled_live_ux(
+        request=_opt_in_request(),
+        one_shot_runner=_make_canary_one_shot_runner(canary, placement),
+    )
+
+    response_repr = repr(response)
+    plan_repr = repr(response.plan)
+    result_repr = repr(response.result)
+    result_str = str(response.result)
+
+    assert canary not in response_repr
+    assert canary not in plan_repr
+    assert canary not in result_repr
+    assert canary not in result_str
+
+    for src in response.result["sources"]:
+        assert canary not in repr(src)
+        assert canary not in str(src)
+
+    diag = response.result["fetch_diagnostic"]
+    if diag is not None:
+        assert canary not in repr(diag)
+        assert canary not in str(diag)
+
+
+def test_one_shot_runner_receives_bounded_plan_only():
+    """Runner input must be the bounded plan; raw question must not appear."""
+    canary = "Bearer secret-token"
+
+    received_inputs = []
+
+    def _runner(plan):
+        received_inputs.append(plan)
+        return {
+            "ok": True,
+            "answer_ok": True,
+            "answer_markdown": "real answer",
+            "sources": [{"id": "r1", "url": "https://bukgu.gwangju.kr/apply"}],
+        }
+
+    run_locked_controlled_live_ux(
+        request=LockedControlledLiveUxRequest(
+            question=canary,
+            allow_controlled_live=True,
+            acknowledgement=REQUIRED_ACKNOWLEDGEMENT,
+        ),
+        one_shot_runner=_runner,
+    )
+
+    assert len(received_inputs) == 1
+    plan_input = received_inputs[0]
+    assert isinstance(plan_input, type(run_locked_controlled_live_ux(
+        request=_request(), one_shot_runner=lambda p: {"ok": True, "sources": []},
+    ).plan))
+    # Raw question / canary must never enter the runner.
+    assert canary not in repr(plan_input)
+    assert canary not in str(plan_input)
+
+
 def test_boundary_timeout_exception_returns_fallback_unavailable():
     def _boundary(plan):
         raise TimeoutError("simulated pipeline timeout")
