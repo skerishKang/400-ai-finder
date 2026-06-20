@@ -78,6 +78,13 @@ def _is_live_llm_provider(provider: str | None) -> bool:
     return True
 
 
+def _is_fallback_search_result(result: dict[str, Any]) -> bool:
+    return (
+        result.get("category") in {"navigation", "main"}
+        or "홈페이지" in str(result.get("title", ""))
+    )
+
+
 class SiteDemoRunner:
     """Run a pipeline demo against a site profile.
 
@@ -392,6 +399,9 @@ class SiteDemoRunner:
             }
             sources.append(source)
 
+        if search_results and all(_is_fallback_search_result(r) for r in search_results):
+            fallback_used = True
+
         # Fallback: when search_results is empty, try homepage_map menu candidates
         if not search_results:
             homepage_map = self._load_homepage_map(run_dir)
@@ -440,27 +450,45 @@ class SiteDemoRunner:
         answer_ok = False
         answer_data = None
         for step in pipeline_result.get("steps", []):
-            if step["name"] == "answer":
-                answer_ok = step["ok"]
-                if answer_ok:
-                    ap = step.get("output", "")
-                    if ap and os.path.exists(ap):
-                        try:
-                            with open(ap, "r", encoding="utf-8") as f:
-                                answer_data = json.load(f)
-                            answer = answer_data.get("answer_markdown", "")
-                        except (json.JSONDecodeError, OSError):
-                            pass
+            if step.get("name") != "answer":
+                continue
+            if step.get("ok") is not True:
                 break
 
-        if not answer:
-            answer = pipeline_result.get("answer_markdown", "")
+            answer_path = step.get("output", "")
+            if not isinstance(answer_path, str) or not answer_path.strip() or not os.path.exists(answer_path):
+                break
 
-        # Relaxed fallback: use a soft source hint only when there is no answer yet.
-        # We do not block non-empty answers just because the provider returned
-        # `answer_ok=false` or `ok=false`; we only substitute when the final
-        # answer text is empty.
-        if not answer:
+            try:
+                with open(answer_path, "r", encoding="utf-8") as f:
+                    answer_data = json.load(f)
+            except (json.JSONDecodeError, OSError):
+                break
+
+            if not isinstance(answer_data, dict):
+                answer_data = None
+                break
+            if answer_data.get("ok") is not True:
+                answer_data = None
+                break
+
+            markdown = answer_data.get("answer_markdown", "")
+            if not isinstance(markdown, str) or not markdown.strip():
+                answer_data = None
+                break
+
+            answer_ok = True
+            answer = markdown
+            break
+
+        top_level_answer = pipeline_result.get("answer_markdown", "")
+        if not isinstance(top_level_answer, str):
+            top_level_answer = ""
+
+        answer_has_content = bool(answer.strip())
+        has_real_source = bool(sources) and not fallback_used
+        pipeline_ok = bool(pipeline_result.get("ok", False))
+        if not answer_ok or not answer_has_content:
             if pipeline_warning:
                 # Surface the timeout in the user-visible answer too, so the
                 # chat UI shows a clear "we couldn't reach the homepage right
@@ -471,9 +499,13 @@ class SiteDemoRunner:
                     f"질문은 {site_label} 정보 검색 대상으로 분류되었고, "
                     f"다시 시도하거나 공식 홈페이지 접속이 가능한 환경에서 확인이 필요합니다."
                 )
+            elif pipeline_ok and not has_real_source and top_level_answer.strip():
+                answer = top_level_answer
             else:
                 answer = "제가 확인한 자료 기준으로는 관련 메뉴가 가장 먼저 필요해 보입니다. 아래 출처를 먼저 확인해 보세요."
             answer_ok = False
+
+        evidence_answer = pipeline_ok and has_real_source and answer_ok and bool(answer.strip())
 
         # Stage #803: derive the closed-vocab ``answer_status`` and
         # reconcile ``answer_ok`` with evidence semantics.
@@ -494,7 +526,6 @@ class SiteDemoRunner:
         # than the truthiness of ``pipeline_warning`` so that exception
         # paths (which also produce a warning string for operator UI)
         # are still classified as ``error`` rather than as a timeout.
-        pipeline_ok = bool(pipeline_result.get("ok", False))
         if not pipeline_ok:
             answer_ok = False
             if (
@@ -505,12 +536,12 @@ class SiteDemoRunner:
                 answer_status = "fallback_unavailable"
             else:
                 answer_status = "error"
-        elif sources and not fallback_used:
-            # Evidence-based: at least one real source, no menu fallback.
+        elif evidence_answer:
+            # Evidence-based: real retrieval source plus a usable composer answer.
             answer_ok = True
             answer_status = "answered_with_evidence"
         else:
-            # sources=[] or only fallback_used=True (menu/nav fallback).
+            # sources=[] / fallback-only source / answer failure / blank answer.
             answer_ok = False
             answer_status = "fallback_no_match"
 
@@ -562,10 +593,12 @@ class SiteDemoRunner:
             "search_query": router_decision.search_query or question,
             "answer_mode": "retrieval_answer",
             # source_weak is computed locally so callers always see the flag,
-            # even before conversation_log serializes it. It mirrors the same
-            # rule as ``conversation_log._source_weak_flag``.
+            # even before conversation_log serializes it. It is true whenever
+            # a site_search response cannot be treated as an evidence-backed
+            # answer: no real source, fallback-only source, answer failure, or
+            # blank answer text.
             "source_weak": (
-                router_decision.route == "site_search" and len(sources) < 1
+                router_decision.route == "site_search" and not evidence_answer
             ),
             # Stage #801: persist the closed-vocabulary fetch diagnostic
             # alongside the user-facing response so dashboards and the

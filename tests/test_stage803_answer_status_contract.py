@@ -106,7 +106,7 @@ def _write_search_results(path: str, results: list[dict[str, Any]]) -> None:
 
 def _write_answer(path: str, markdown: str, sources: list[dict[str, Any]]) -> None:
     with open(path, "w", encoding="utf-8") as f:
-        json.dump({"answer_markdown": markdown, "sources": sources, "warnings": []}, f, ensure_ascii=False)
+        json.dump({"ok": True, "answer_markdown": markdown, "sources": sources, "warnings": []}, f, ensure_ascii=False)
 
 
 def _make_runner_with_router(
