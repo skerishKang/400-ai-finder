@@ -229,3 +229,64 @@ def test_run_all_demos_does_not_link_to_controlled_live_path() -> None:
         assert needle not in content, (
             f"scripts/run_all_demos.py unexpectedly contains {needle!r}"
         )
+
+
+@pytest.mark.parametrize(
+    "canary_key",
+    [
+        "Bearer secret-token",
+        "https://user:pass@example.test/path",
+    ],
+)
+def test_user_supplied_canary_key_name_does_not_leak_in_packet(canary_key: str) -> None:
+    payload = {**BASE_PAYLOAD, canary_key: "x"}
+    packet = _build(payload)
+    fields = _packet_fields(packet)
+    rendered = " ".join(
+        [
+            str(packet),
+            repr(packet),
+            str(packet.validation_errors),
+            repr(packet.validation_errors),
+            str(fields),
+            repr(fields),
+        ]
+    )
+    assert canary_key not in rendered
+    if "secret-token" in canary_key:
+        assert "secret-token" not in rendered
+    if "user:pass" in canary_key:
+        assert "user:pass" not in rendered
+
+
+_ALLOWED_ERROR_VOCAB: frozenset[str] = frozenset(
+    {
+        "unknown_keys",
+        "missing_keys",
+        "request_invalid",
+    }
+)
+
+
+def test_validation_errors_are_closed_vocabulary_only() -> None:
+    packet_missing = _build({})
+    packet_unknown = _build({**BASE_PAYLOAD, "Bearer secret-token": "x"})
+    packet_url = _build({**BASE_PAYLOAD, "https://user:pass@example.test/path": "x"})
+    packet_non_dict = _build("not a dict")
+    packet_leak = _build({**BASE_PAYLOAD, "headers": "leak"})
+
+    for packet in (packet_missing, packet_unknown, packet_url, packet_non_dict, packet_leak):
+        assert packet.validation_errors, "expected at least one sanitized error code"
+        for code in packet.validation_errors:
+            assert code in _ALLOWED_ERROR_VOCAB, (
+                f"validation_errors must use closed vocabulary only, got {code!r}"
+            )
+
+
+def test_missing_field_error_normalizes_to_missing_keys_only() -> None:
+    packet = _build({k: v for k, v in BASE_PAYLOAD.items() if k != "site_id"})
+    assert packet.request_valid is False
+    assert "missing_keys" in packet.validation_errors
+    for code in packet.validation_errors:
+        assert ":" not in code
+        assert code in _ALLOWED_ERROR_VOCAB

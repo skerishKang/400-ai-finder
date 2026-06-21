@@ -6,6 +6,11 @@ contains no fetch, network, provider, LLM, runner, subprocess, thread,
 or I/O side effects. The packet is safe to surface in logs, dashboards,
 or pull-request reviews without leaking raw questions, tokens, headers,
 or provider payloads.
+
+Validation errors from Stage #825 are normalized to a closed vocabulary
+so that user-supplied key names, error payload fragments, or any
+unrecognized error code never propagate into the review packet or its
+representation.
 """
 
 from __future__ import annotations
@@ -18,6 +23,17 @@ from src.demo.controlled_live_request_contract import (
 )
 
 EXECUTION_STATE_REVIEW_ONLY: str = "review_only"
+
+_ALLOWED_ERROR_CODES: frozenset[str] = frozenset(
+    {
+        "unknown_keys",
+        "missing_keys",
+        "request_invalid",
+    }
+)
+
+_PREFIX_UNKNOWN_KEYS: str = "unknown_keys:"
+_PREFIX_MISSING_KEYS: str = "missing_keys:"
 
 
 @dataclass(frozen=True)
@@ -37,6 +53,33 @@ class ControlledLiveReviewPacket:
     human_review_required: bool
 
 
+def _sanitize_validation_errors(errors: tuple[str, ...]) -> tuple[str, ...]:
+    """Normalize Stage #825 validation errors to a closed vocabulary.
+
+    The contract validator returns codes such as
+    ``unknown_keys:Bearer-secret`` or ``missing_keys:site_id``. Those
+    detail suffixes can echo user-supplied key names or future error
+    payload fragments. This sanitizer collapses them to a fixed
+    vocabulary so the review packet never leaks the raw detail.
+    """
+    sanitized: list[str] = []
+    for code in errors:
+        if not isinstance(code, str):
+            sanitized.append("request_invalid")
+            continue
+        if code.startswith(_PREFIX_UNKNOWN_KEYS):
+            sanitized.append("unknown_keys")
+            continue
+        if code.startswith(_PREFIX_MISSING_KEYS):
+            sanitized.append("missing_keys")
+            continue
+        if code in _ALLOWED_ERROR_CODES:
+            sanitized.append(code)
+            continue
+        sanitized.append("request_invalid")
+    return tuple(sanitized)
+
+
 def _safe_packet(
     *,
     request_valid: bool,
@@ -52,7 +95,7 @@ def _safe_packet(
 ) -> ControlledLiveReviewPacket:
     return ControlledLiveReviewPacket(
         request_valid=request_valid,
-        validation_errors=validation_errors,
+        validation_errors=_sanitize_validation_errors(validation_errors),
         question_length=question_length,
         site_id=site_id,
         fetch_provider=fetch_provider,
