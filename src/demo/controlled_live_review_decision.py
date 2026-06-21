@@ -11,6 +11,10 @@ The summarizer:
 
 * treats any non-``ControlledLiveReviewPacket`` input, any forged packet, and
   any packet that violates the Stage #826 invariants as ``blocked``.
+* enforces strict identity checks on ``request_valid`` (``is True``) and
+  ``validation_errors`` (must be a ``tuple`` and equal to ``()``) before
+  allowing the human-review path; any forged type-coerced value blocks
+  the packet.
 * maps the packet's already-sanitized ``validation_errors`` back to a
   decision-level closed vocabulary, discarding unknown codes and never
   echoing user-supplied strings.
@@ -20,7 +24,7 @@ The summarizer:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional
+from typing import Iterable
 
 from src.demo.controlled_live_review_packet import ControlledLiveReviewPacket
 
@@ -87,6 +91,18 @@ def _is_well_formed_packet(packet: object) -> bool:
     if packet.execution_allowed is not False:
         return False
     if packet.human_review_required is not True:
+        return False
+    return True
+
+
+def _is_strict_request_valid_packet(packet: ControlledLiveReviewPacket) -> bool:
+    if type(packet.request_valid) is not bool:
+        return False
+    if packet.request_valid is not True:
+        return False
+    if not isinstance(packet.validation_errors, tuple):
+        return False
+    if packet.validation_errors != ():
         return False
     return True
 
@@ -163,8 +179,17 @@ def summarize_controlled_live_review_packet(
         return _build_blocked_decision(reason_codes=[REASON_INVALID_PACKET])
 
     assert isinstance(packet, ControlledLiveReviewPacket)
-    if bool(packet.request_valid) and not tuple(packet.validation_errors):
+
+    if _is_strict_request_valid_packet(packet):
         return _build_human_review_decision()
+
+    if (
+        type(packet.request_valid) is not bool
+        or not isinstance(packet.validation_errors, tuple)
+    ):
+        return _build_blocked_decision(
+            reason_codes=[REASON_INVALID_PACKET, REASON_REQUEST_INVALID]
+        )
 
     mapped = _map_validation_errors(tuple(packet.validation_errors))
     return _build_blocked_decision(reason_codes=mapped)

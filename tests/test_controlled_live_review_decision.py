@@ -309,3 +309,83 @@ def test_run_all_demos_does_not_link_to_controlled_live_path() -> None:
         assert needle not in content, (
             f"scripts/run_all_demos.py unexpectedly contains {needle!r}"
         )
+
+
+@pytest.mark.parametrize(
+    "override, expected_reasons",
+    [
+        ({"request_valid": "yes"}, {REASON_INVALID_PACKET, REASON_REQUEST_INVALID}),
+        ({"request_valid": 1}, {REASON_INVALID_PACKET, REASON_REQUEST_INVALID}),
+        ({"request_valid": 0}, {REASON_INVALID_PACKET, REASON_REQUEST_INVALID}),
+        ({"request_valid": None}, {REASON_INVALID_PACKET, REASON_REQUEST_INVALID}),
+        ({"validation_errors": []}, {REASON_INVALID_PACKET, REASON_REQUEST_INVALID}),
+        ({"validation_errors": ["unexpected"]}, {REASON_INVALID_PACKET, REASON_REQUEST_INVALID}),
+        ({"validation_errors": ("unexpected",)}, {REASON_REQUEST_INVALID}),
+        ({"validation_errors": ("Bearer secret-token",)}, {REASON_REQUEST_INVALID}),
+    ],
+)
+def test_type_coerced_forgery_is_blocked_without_leak(
+    override: dict, expected_reasons: set
+) -> None:
+    valid = _valid_packet()
+    forged = replace(valid, **override)
+    decision = summarize_controlled_live_review_packet(forged)
+    _assert_envelope(decision)
+    assert decision.request_valid is False
+    assert decision.review_state == REVIEW_STATE_BLOCKED
+    assert decision.next_action == NEXT_ACTION_CORRECT_CONTRACT
+    assert expected_reasons.issubset(set(decision.reason_codes))
+    rendered = _rendered(decision)
+    for forbidden in (
+        "yes",
+        "Bearer secret-token",
+        "secret-token",
+        "unexpected",
+    ):
+        assert forbidden not in rendered, (
+            f"forged value {forbidden!r} leaked into decision/repr: {rendered!r}"
+        )
+
+
+def test_request_valid_yes_does_not_satisfy_strict_is_true_check() -> None:
+    valid = _valid_packet()
+    forged = replace(valid, request_valid="yes")
+    decision = summarize_controlled_live_review_packet(forged)
+    _assert_envelope(decision)
+    assert decision.request_valid is False
+    assert decision.review_state == REVIEW_STATE_BLOCKED
+    assert REASON_INVALID_PACKET in decision.reason_codes
+    rendered = _rendered(decision)
+    assert "yes" not in rendered
+
+
+def test_request_valid_one_does_not_satisfy_strict_is_true_check() -> None:
+    valid = _valid_packet()
+    forged = replace(valid, request_valid=1)
+    decision = summarize_controlled_live_review_packet(forged)
+    _assert_envelope(decision)
+    assert decision.request_valid is False
+    assert decision.review_state == REVIEW_STATE_BLOCKED
+    assert REASON_INVALID_PACKET in decision.reason_codes
+
+
+def test_empty_list_validation_errors_is_blocked_not_human_review() -> None:
+    valid = _valid_packet()
+    forged = replace(valid, validation_errors=[])
+    decision = summarize_controlled_live_review_packet(forged)
+    _assert_envelope(decision)
+    assert decision.request_valid is False
+    assert decision.review_state == REVIEW_STATE_BLOCKED
+    assert decision.next_action == NEXT_ACTION_CORRECT_CONTRACT
+    assert REASON_INVALID_PACKET in decision.reason_codes
+
+
+def test_unexpected_string_validation_error_is_normalized_to_request_invalid() -> None:
+    valid = _valid_packet()
+    forged = replace(valid, validation_errors=("unexpected",))
+    decision = summarize_controlled_live_review_packet(forged)
+    _assert_envelope(decision)
+    assert decision.request_valid is False
+    assert decision.review_state == REVIEW_STATE_BLOCKED
+    assert REASON_REQUEST_INVALID in decision.reason_codes
+    assert "unexpected" not in _rendered(decision)
