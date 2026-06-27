@@ -3,6 +3,11 @@
 Serves files from ``src/web/static/`` under the ``/static/`` URL prefix.
 Uses standard library only — no external dependencies.
 
+This is a development-grade static server for local demos and is **not
+suitable for production**. Path resolution is hardened against directory
+traversal, encoded bypasses, absolute-path injection, and symlink escapes,
+but it is not intended to face untrusted networks.
+
 Usage inside a BaseHTTPRequestHandler::
 
     from .static_server import is_static_request, serve_static
@@ -28,36 +33,61 @@ mimetypes.add_type("text/javascript", ".js")
 
 
 def is_static_request(path: str) -> bool:
-    """Return True if *path* is a static-file request (``/static/...``)."""
+    """Return True if *path* is a static-file request (``/static/...``).
+
+    The ``".." not in path`` check is an auxiliary fast-reject only. The final
+    security decision is made inside :func:`serve_static` using ``realpath``
+    resolution, so an attempted traversal is blocked even if this helper were
+    bypassed.
+    """
     return path.startswith("/static/") and ".." not in path
+
+
+def _is_within_base(requested_real: str, base_real: str) -> bool:
+    """Return True iff *requested_real* is *base_real* itself or a descendant.
+
+    Uses an exact match or a proper separator boundary to avoid the classic
+    prefix-confusion bug (e.g. ``/srv/static`` matching ``/srv/static-evil``).
+    """
+    if requested_real == base_real:
+        return True
+    return requested_real.startswith(base_real + os.sep)
 
 
 def serve_static(handler) -> None:
     """Serve a static file in response to *handler*'s request.
 
     Call from ``do_GET`` after :func:`is_static_request` returns True.
-    Sends 200 with the correct Content-Type on success, 404 on missing file.
+    Sends 200 with the correct Content-Type on success, 404 on missing file
+    or on any path that resolves outside ``STATIC_ROOT``.
     """
     path = handler.path
-    # Strip the /static/ prefix
+    # Strip the /static/ prefix and neutralize any leading slashes so that an
+    # injected absolute path (e.g. "/etc/passwd") is treated as relative.
     relative = path[len("/static/"):].lstrip("/")
-    file_path = os.path.normpath(os.path.join(STATIC_ROOT, relative))
+    candidate = os.path.normpath(os.path.join(STATIC_ROOT, relative))
 
-    # Security: ensure the resolved path is under STATIC_ROOT
-    if not file_path.startswith(os.path.normpath(STATIC_ROOT)):
+    # Resolve the real on-disk location, collapsing "..", symlinks, and any
+    # mixed separators, then compare against the real STATIC_ROOT boundary.
+    base_real = os.path.realpath(STATIC_ROOT)
+    requested_real = os.path.realpath(candidate)
+
+    if not _is_within_base(requested_real, base_real):
         handler.send_error(404)
         return
 
-    if not os.path.isfile(file_path):
+    # Final re-check before opening: the resolved target must be a regular
+    # file that still lives under the real STATIC_ROOT boundary.
+    if not os.path.isfile(requested_real):
         handler.send_error(404)
         return
 
-    content_type, _ = mimetypes.guess_type(file_path)
+    content_type, _ = mimetypes.guess_type(requested_real)
     if content_type is None:
         content_type = "application/octet-stream"
 
     try:
-        with open(file_path, "rb") as f:
+        with open(requested_real, "rb") as f:
             body = f.read()
         handler.send_response(200)
         handler.send_header("Content-Type", content_type)
