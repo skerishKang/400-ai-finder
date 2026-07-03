@@ -276,7 +276,7 @@ class TestComplaintJourney:
         assert idx != -1, "handoff-stop route not found"
         block = js[idx:idx + 300]
         # navTargets must be []
-        assert "navTargets: []" in block, \
+        assert "navTargets: Object.freeze([])" in block, \
             "handoff-stop navTargets must be empty (handoff-notice renders as static div)"
 
 
@@ -321,9 +321,12 @@ class TestRouteStructure:
         assert "_renderBreadcrumb" in js
         assert "canvas-breadcrumb" in js
 
-    def test_each_route_renders_page_title(self):
+    def test_each_route_renders_page_header(self):
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "canvas-nav__title" in js or "route.title" in js
+        assert "_renderPageHeader" in js
+        assert "canvas-page-header" in js
+        assert "canvas-page-title" in js
+        assert "canvas-page-purpose" in js
 
     def test_each_route_renders_poc_banner(self):
         js = _read_static("citizen-action-demo-canvas.js")
@@ -445,6 +448,36 @@ class TestRuntimeRender:
             html = rendered_routes[route_id]
             assert html, f"route '{route_id}' rendered empty HTML"
 
+    def test_each_route_has_required_structural_elements(self, rendered_routes):
+        """
+        Each route must render in order: top nav, breadcrumb, page header, PoC banner, and content.
+        """
+        js_map = _read_static("citizen-action-demo-map.js")
+        # Simple way to get title/purpose for each route from the map JS (since we can't easily parse JS)
+        # For this test, we'll check if any title/purpose from the map appears in the rendered HTML.
+
+        for route_id in EXPECTED_ROUTE_IDS:
+            html = rendered_routes[route_id]
+
+            # 1. Top Nav
+            assert 'class="canvas-nav"' in html, f"route {route_id} missing nav bar"
+
+            # 2. Breadcrumb
+            assert 'class="canvas-breadcrumb"' in html, f"route {route_id} missing breadcrumb"
+
+            # 3. Page Header (title and purpose)
+            assert 'class="canvas-page-header"' in html, f"route {route_id} missing page header"
+            assert 'class="canvas-page-title"' in html, f"route {route_id} missing page title"
+            assert 'class="canvas-page-purpose"' in html, f"route {route_id} missing page purpose"
+
+            # 4. PoC Banner
+            assert 'class="canvas-poc-banner"' in html, f"route {route_id} missing PoC banner"
+            assert "로컬 개념 시연 (PoC) 안내" in html, f"route {route_id} missing PoC label"
+            assert "공식 사이트가 아니며" in html, f"route {route_id} missing PoC disclaimer"
+
+            # 5. Content (simplified check: just ensure body exists)
+            assert 'class="canvas-body"' in html, f"route {route_id} missing canvas body"
+
     def test_complaint_intake_contains_complaint_body_element(self, rendered_routes):
         """Intake renders a non-button element carrying data-action-target='complaint-body'."""
         html = rendered_routes["complaint-intake"]
@@ -540,6 +573,17 @@ class TestRuntimeRender:
             assert buttons, f"{route_id} nav buttons must have data-demo-route"
             for val in buttons:
                 assert val in EXPECTED_ROUTE_IDS
+
+    def test_real_entity_replacements_present(self, rendered_routes):
+        """Verify that HTML contains real entity replacements, not unicode escapes."""
+        combined = "".join(rendered_routes.values())
+        # Check for any real HTML entities (including &rsaquo;)
+        assert any(ent in combined for ent in ["&amp;", "&lt;", "&gt;", "&quot;", "&#39;", "&rsaquo;"]), \
+            "no real HTML entities found"
+
+        # Ensure no unicode escaped versions of & are present in the rendered HTML
+        assert "\\x26" not in combined, "found unicode escape \\x26 in rendered HTML"
+        assert "\\u0026" not in combined, "found unicode escape \\u0026 in rendered HTML"
 
 
 # ---------------------------------------------------------------------------

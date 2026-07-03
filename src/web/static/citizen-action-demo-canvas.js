@@ -29,13 +29,13 @@
     if (!valid) { throw new Error("CanvasError: " + msg); }
   }
 
-  function _escHtml(str) {
-    return String(str)
-      .replace(/&/g, "\x26")
-      .replace(/</g, "\x3c")
-      .replace(/>/g, "\x3e")
-      .replace(/"/g, "\x22")
-      .replace(/'/g, "\x27");
+  function _escHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   // -----------------------------------------------------------------------
@@ -80,11 +80,21 @@
     return labels[targetId] || targetId;
   }
 
+  function _renderPageHeader(route) {
+    return (
+      '<div class="canvas-page-header">' +
+        '<h1 class="canvas-page-title">' + _escHtml(route.title) + '</h1>' +
+        '<p class="canvas-page-purpose">' + _escHtml(route.purpose) + '</p>' +
+      '</div>'
+    );
+  }
+
   function _renderHome(route) {
     return (
       _renderNavBar() +
       _renderBreadcrumb(route.breadcrumbLabel) +
       '<div class="canvas-body">' +
+        _renderPageHeader(route) +
         _renderPocBanner() +
         _renderNavTargets(route.navTargets, "civil-service") +
       '</div>'
@@ -96,6 +106,7 @@
       _renderNavBar() +
       _renderBreadcrumb(route.breadcrumbLabel) +
       '<div class="canvas-body">' +
+        _renderPageHeader(route) +
         _renderPocBanner() +
         '<p style="font-size:0.875rem;color:#5d6d7e;line-height:1.6;">' +
         '아래 유익한 민원 서비스를 선택하여 절차를 안내받으세요.</p>' +
@@ -109,6 +120,7 @@
       _renderNavBar() +
       _renderBreadcrumb(route.breadcrumbLabel) +
       '<div class="canvas-body">' +
+        _renderPageHeader(route) +
         _renderPocBanner() +
         '<p style="font-size:0.875rem;color:#5d6d7e;line-height:1.5;margin-bottom:4px;">' +
         '해당 상황에 맞는 민원 유형을 선택해 주세요.</p>' +
@@ -136,6 +148,7 @@
       _renderNavBar() +
       _renderBreadcrumb(route.breadcrumbLabel) +
       '<div class="canvas-body">' +
+        _renderPageHeader(route) +
         _renderPocBanner() +
         '<div class="canvas-intake-section">' +
           '<div class="canvas-intake-field">' +
@@ -162,6 +175,7 @@
       _renderNavBar() +
       _renderBreadcrumb(route.breadcrumbLabel) +
       '<div class="canvas-body">' +
+        _renderPageHeader(route) +
         _renderPocBanner() +
         '<div class="canvas-review-box">' +
           '<div class="canvas-review-row">' +
@@ -187,6 +201,8 @@
       _renderNavBar() +
       _renderBreadcrumb(route.breadcrumbLabel) +
       '<div class="canvas-body">' +
+        _renderPageHeader(route) +
+        _renderPocBanner() +
         '<div class="canvas-handoff-box">' +
           '<div class="canvas-handoff-box__title">데모 종료</div>' +
           '<div class="canvas-handoff-box__body">' +
@@ -230,8 +246,11 @@
     return (
       '<div class="canvas-poc-banner" role="note" aria-label="데모 고지">' +
         '<span class="canvas-poc-banner__label">⚠️ 로컬 개념 시연 (PoC) 안내</span>' +
-        '이 페이지는 실제 북구청 공식 사이트가 아닙니다.<br>' +
-        '인증 및 민원 제출은 북구청 공식 채널에서 직접 진행하시기 바랍니다.' +
+        '<p class="canvas-poc-banner__text">' +
+        '이 페이지는 실제 북구청 공식 사이트가 아니며, 로컬 개념 시연 (PoC) 목적으로 제작되었습니다.<br>' +
+        '본 데모에서는 어떠한 데이터도 실제로 제출되거나 처리되지 않습니다.<br>' +
+        '인증 및 실제 민원 제출은 시민의 책임 하에 북구청 공식 채널을 통해 진행하시기 바랍니다.' +
+        '</p>' +
       '</div>'
     );
   }

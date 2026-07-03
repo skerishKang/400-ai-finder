@@ -53,9 +53,9 @@
   var ROUTES = Object.freeze({
     home: Object.freeze({
       id: "home",
-      title: " 시민 행정 도우미",
-      purpose: "북구청 행정서비스를local에서 안내합니다.",
-      navTargets: ["nav-civil-service"],
+      title: "시민 행정 도우미",
+      purpose: "북구청 행정서비스를 안내합니다.",
+      navTargets: Object.freeze(["nav-civil-service"]),
       breadcrumbLabel: "홈",
     }),
 
@@ -63,7 +63,7 @@
       id: "civil-service",
       title: "민원 신청",
       purpose: "북구청 주요 민원 서비스를 안내합니다.",
-      navTargets: ["nav-complaint-category"],
+      navTargets: Object.freeze(["nav-complaint-category"]),
       breadcrumbLabel: "민원 신청",
     }),
 
@@ -85,7 +85,7 @@
       id: "complaint-intake",
       title: "민원 작성",
       purpose: "선택한 유형에 따라 내용을 작성해 주세요.",
-      navTargets: ["complaint-draft-review"],
+      navTargets: Object.freeze(["complaint-draft-review"]),
       breadcrumbLabel: "민원 작성",
     }),
 
@@ -93,7 +93,7 @@
       id: "complaint-review",
       title: "민원 내용 확인",
       purpose: "작성된 내용을 확인해 주세요.",
-      navTargets: ["confirm-draft-prefill"],
+      navTargets: Object.freeze(["confirm-draft-prefill"]),
       breadcrumbLabel: "내용 확인",
     }),
 
@@ -101,7 +101,7 @@
       id: "handoff-stop",
       title: "데모 종료",
       purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요.",
-      navTargets: [],
+      navTargets: Object.freeze([]),
       breadcrumbLabel: "종료",
     }),
   });
