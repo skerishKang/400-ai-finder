@@ -1,0 +1,309 @@
+/**
+ * citizen-action-demo-canvas.css
+ * Route-rendered administrative-page canvas for the local concept demo.
+ *
+ * Privacy/safety: no external URLs, no analytics, no persistence.
+ * This is a local PoC only — NOT an official Buk-gu or municipal site.
+ */
+
+/* ---------------------------------------------------------------------------
+   Canvas base — rendered inside #demo-canvas
+--------------------------------------------------------------------------- */
+.canvas-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #1a252f;
+  background: #ffffff;
+}
+
+/* ---------------------------------------------------------------------------
+   Top navigation bar
+--------------------------------------------------------------------------- */
+.canvas-nav {
+  background: #2c3e50;
+  color: #ecf0f1;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.canvas-nav__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ecf0f1;
+}
+
+.canvas-nav__hint {
+  font-size: 0.75rem;
+  color: #aab8c2;
+  margin-left: auto;
+}
+
+/* ---------------------------------------------------------------------------
+   Breadcrumb
+--------------------------------------------------------------------------- */
+.canvas-breadcrumb {
+  background: #ecf0f1;
+  border-bottom: 1px solid #d0d8e4;
+  padding: 6px 20px;
+  font-size: 0.75rem;
+  color: #5d6d7e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.canvas-breadcrumb__item {
+  color: #5d6d7e;
+}
+
+.canvas-breadcrumb__sep {
+  color: #aab8c2;
+}
+
+/* ---------------------------------------------------------------------------
+   Page header
+--------------------------------------------------------------------------- */
+.canvas-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e8ecf2;
+}
+
+.canvas-header__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a252f;
+  margin-bottom: 4px;
+}
+
+.canvas-header__purpose {
+  font-size: 0.875rem;
+  color: #5d6d7e;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------------------
+   Page body
+--------------------------------------------------------------------------- */
+.canvas-body {
+  flex: 1;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------------------------------------------------------------------------
+   Proof-of-concept disclosure banner
+--------------------------------------------------------------------------- */
+.canvas-poc-banner {
+  background: #fef9e7;
+  border: 1px solid #f9ca2b;
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+  color: #6e4c1e;
+  line-height: 1.6;
+}
+
+.canvas-poc-banner__label {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+  color: #9a7b1a;
+}
+
+/* ---------------------------------------------------------------------------
+   Navigation target tiles (data-action-target elements)
+--------------------------------------------------------------------------- */
+.canvas-targets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.canvas-target {
+  background: #f4f7fb;
+  border: 1px solid #c8d5e6;
+  border-radius: 4px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #1a252f;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.canvas-target:hover {
+  background: #eaf2fb;
+  border-color: #2980b9;
+}
+
+.canvas-target:focus-visible {
+  outline: 2px solid #2980b9;
+  outline-offset: 2px;
+}
+
+.canvas-target__arrow {
+  color: #7f8c9a;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Category selection cards
+--------------------------------------------------------------------------- */
+.canvas-category-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.canvas-category-card {
+  background: #f4f7fb;
+  border: 1px solid #c8d5e6;
+  border-radius: 4px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #1a252f;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.canvas-category-card:hover {
+  background: #eaf2fb;
+  border-color: #2980b9;
+}
+
+.canvas-category-card:focus-visible {
+  outline: 2px solid #2980b9;
+  outline-offset: 2px;
+}
+
+.canvas-category-card--selected {
+  background: #eaf3fb;
+  border-color: #2980b9;
+  font-weight: 600;
+}
+
+.canvas-category-card__arrow {
+  color: #7f8c9a;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Form-like section (no <form>, no submission)
+--------------------------------------------------------------------------- */
+.canvas-intake-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.canvas-intake-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.canvas-intake-field__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.canvas-intake-field__input {
+  border: 1px solid #c8d5e6;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  padding: 7px 10px;
+  background: #f8fafc;
+  color: #2c3e50;
+  outline: none;
+  cursor: text;
+  width: 100%;
+  max-width: 400px;
+}
+
+.canvas-intake-field__input:focus {
+  border-color: #2980b9;
+  background: #fff;
+}
+
+.canvas-intake-field__note {
+  font-size: 0.75rem;
+  color: #7f8c9a;
+}
+
+/* ---------------------------------------------------------------------------
+   Review summary (fixture only)
+--------------------------------------------------------------------------- */
+.canvas-review-box {
+  background: #f4f7fb;
+  border: 1px solid #c8d5e6;
+  border-radius: 4px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.canvas-review-row {
+  display: flex;
+  gap: 12px;
+  font-size: 0.875rem;
+}
+
+.canvas-review-row__label {
+  color: #5d6d7e;
+  min-width: 90px;
+}
+
+.canvas-review-row__value {
+  color: #1a252f;
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------------------
+   Handoff stop page
+--------------------------------------------------------------------------- */
+.canvas-handoff-box {
+  background: #fdf2f2;
+  border: 1px solid #e8a8a8;
+  border-radius: 4px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.canvas-handoff-box__title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #922b21;
+}
+
+.canvas-handoff-box__body {
+  font-size: 0.875rem;
+  color: #5d2c29;
+  line-height: 1.6;
+}
+
+/* ---------------------------------------------------------------------------
+   Route transition
+--------------------------------------------------------------------------- */
+.canvas-page[hidden] {
+  display: none;
+}

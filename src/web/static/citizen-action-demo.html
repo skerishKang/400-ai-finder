@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>시민 행정 도우미 — 로컬 시연용</title>
+  <link rel="stylesheet" href="/static/citizen-copilot-shell.css">
+  <link rel="stylesheet" href="/static/citizen-action-demo-canvas.css">
+</head>
+<body data-copilot-dock="right" data-copilot-dock-choices="left right"><!-- allowed dock values: left, right -->
+  <!-- Dock rail: left or right side panel -->
+  <aside class="copilot-rail" id="copilot-rail" role="complementary" aria-label="시민 행동 가이드" tabindex="-1">
+    <div class="copilot-header" id="copilot-header">
+      <span class="copilot-title">행동 가이드</span>
+      <button
+        class="copilot-dock-toggle"
+        id="dock-toggle"
+        aria-label="패널 위치 전환"
+        type="button"
+      >
+        &#x21c4;
+      </button>
+    </div>
+
+    <!-- Conversation / clarifying choices region -->
+    <section
+      class="copilot-section"
+      id="copilot-conversation"
+      aria-labelledby="conv-heading"
+    >
+      <h2 class="copilot-section-title" id="conv-heading" aria-label="대화 영역">대화</h2>
+      <ul class="copilot-conversation-list" id="conversation-list" role="list" aria-live="polite">
+        <li class="conv-item conv-item--assistant">질문을 통해 내용을 확인하고 있습니다.</li>
+        <li class="conv-item conv-item--assistant">해당 상황에 맞는 민원 유형을 선택해 주세요.</li>
+      </ul>
+      <div class="copilot-choices" id="clarifying-choices" role="group" aria-label="선택지">
+        <button class="choice-btn" type="button" data-choice-id="illegal-parking"> 불법주정차 </button>
+        <button class="choice-btn" type="button" data-choice-id="public-parking-inconvenience"> 공용주차장 불편 </button>
+        <button class="choice-btn" type="button" data-choice-id="residential-parking"> 공동주택 주차 </button>
+        <button class="choice-btn" type="button" data-choice-id="traffic-or-facility-safety"> 교통·시설 안전 </button>
+        <button class="choice-btn" type="button" data-choice-id="other-or-unsure"> 기타 </button>
+      </div>
+    </section>
+
+    <!-- Current action explanation -->
+    <section
+      class="copilot-section"
+      id="copilot-action-explanation"
+      aria-labelledby="action-exp-heading"
+    >
+      <h2 class="copilot-section-title" id="action-exp-heading" aria-label="현재 동작">현재 동작</h2>
+      <p class="action-explanation" id="current-explanation">
+        해당 페이지로 이동합니다.
+      </p>
+    </section>
+
+    <!-- Action trace -->
+    <section
+      class="copilot-section"
+      id="copilot-trace"
+      aria-labelledby="trace-heading"
+    >
+      <h2 class="copilot-section-title" id="trace-heading" aria-label="동작 추적">동작 추적</h2>
+      <ol class="action-trace-list" id="action-trace" role="list" aria-live="polite" aria-label="실행된 동작 순서">
+        <li class="trace-item trace-item--done" data-action-index="0">
+          <span class="trace-icon" aria-hidden="true">&#x2713;</span>
+          질문하기
+        </li>
+        <li class="trace-item trace-item--done" data-action-index="1">
+          <span class="trace-icon" aria-hidden="true">&#x2713;</span>
+          유형 선택
+        </li>
+        <li class="trace-item trace-item--active" data-action-index="2">
+          <span class="trace-icon" aria-hidden="true">&#x25B6;</span>
+          페이지 열기
+        </li>
+        <li class="trace-item" data-action-index="3">
+          <span class="trace-icon" aria-hidden="true">&#x25A0;</span>
+          요소 클릭
+        </li>
+        <li class="trace-item" data-action-index="4">
+          <span class="trace-icon" aria-hidden="true">&#x25A0;</span>
+          확인 요청
+        </li>
+      </ol>
+    </section>
+
+    <!-- Explicit user-confirmation control (visual/local only, non-submit) -->
+    <section
+      class="copilot-section copilot-confirm-section"
+      id="copilot-confirmation"
+      aria-labelledby="confirm-heading"
+    >
+      <h2 class="copilot-section-title" id="confirm-heading" aria-label="확인 대기">확인 필요</h2>
+      <p class="confirm-notice" id="confirm-notice">
+        계속 진행하려면 사용자의 확인이 필요합니다.
+      </p>
+      <div class="confirm-controls" role="group" aria-label="확인 제어">
+        <button
+          class="confirm-btn confirm-btn--approve"
+          id="btn-confirm-approve"
+          type="button"
+          aria-disabled="false"
+        >
+          계속 진행
+        </button>
+        <button
+          class="confirm-btn confirm-btn--cancel"
+          id="btn-confirm-cancel"
+          type="button"
+          aria-disabled="false"
+        >
+          취소
+        </button>
+      </div>
+    </section>
+  </aside>
+
+  <!-- Central demo canvas — route-rendered by canvas.js -->
+  <main class="demo-canvas" id="demo-canvas" role="main" aria-label="데모 캔버스">
+    <!-- Initial content; replaced by CitizenActionDemoCanvas on load -->
+    <div class="demo-canvas__inner">
+      <div class="demo-canvas__loading" aria-live="polite">
+        로컬 데모 캔버스를 불러오는 중…
+      </div>
+    </div>
+  </main>
+
+  <!-- Compact-mode toggle (visible only below breakpoint) -->
+  <button
+    class="compact-toggle"
+    id="compact-toggle"
+    type="button"
+    aria-expanded="false"
+    aria-controls="copilot-rail"
+    aria-label="행동 가이드 패널 열기"
+  >
+    &#x25B6; 행동 가이드
+  </button>
+
+  <!-- Load map first (provides vocabulary), then canvas (renders content) -->
+  <script src="/static/citizen-action-demo-map.js"></script>
+  <script src="/static/citizen-action-demo-canvas.js"></script>
+  <script src="/static/citizen-copilot-shell.js"></script>
+</body>
+</html>
