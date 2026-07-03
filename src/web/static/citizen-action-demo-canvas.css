@@ -247,6 +247,20 @@
   color: #7f8c9a;
 }
 
+/* Non-editable fixture display (not an input or textarea) */
+.canvas-intake-display {
+  background: #f0f4f8;
+  border: 1px solid #d0d8e4;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  padding: 10px 12px;
+  color: #5d6d7e;
+  min-height: 80px;
+  cursor: default;
+  user-select: none;
+}
+
 /* ---------------------------------------------------------------------------
    Review summary (fixture only)
 --------------------------------------------------------------------------- */

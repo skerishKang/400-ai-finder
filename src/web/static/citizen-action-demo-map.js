@@ -49,21 +49,22 @@
 
   // -----------------------------------------------------------------------
   // Route definitions — local static fixture content only
+  // All navTargets arrays are individually frozen.
   // -----------------------------------------------------------------------
   var ROUTES = Object.freeze({
     home: Object.freeze({
       id: "home",
-      title: " 시민 행정 도우미",
-      purpose: "북구청 행정서비스를olocal에서 안내합니다.",
-      navTargets: ["nav-civil-service"],
+      title: "시민 행정 도우미",
+      purpose: "로컬 개념 시연용으로 행정절차를 안내합니다.",
+      navTargets: Object.freeze(["nav-civil-service"]),
       breadcrumbLabel: "홈",
     }),
 
     "civil-service": Object.freeze({
       id: "civil-service",
       title: "민원 신청",
-      purpose: "북구청 주요 민원 서비스를 안내합니다.",
-      navTargets: ["nav-complaint-category"],
+      purpose: "주요 민원 서비스 절차를 안내합니다.",
+      navTargets: Object.freeze(["nav-complaint-category"]),
       breadcrumbLabel: "민원 신청",
     }),
 
@@ -71,21 +72,21 @@
       id: "complaint-category",
       title: "민원 유형 선택",
       purpose: "해당 상황에 맞는 민원 유형을 선택해 주세요.",
-      navTargets: [
+      navTargets: Object.freeze([
         "complaint-category-illegal-parking",
         "complaint-category-public-parking-inconvenience",
         "complaint-category-residential-parking",
         "complaint-category-traffic-or-facility-safety",
         "complaint-category-other-or-unsure",
-      ],
+      ]),
       breadcrumbLabel: "유형 선택",
     }),
 
     "complaint-intake": Object.freeze({
       id: "complaint-intake",
       title: "민원 작성",
-      purpose: "선택한 유형에 따라 내용을 작성해 주세요.",
-      navTargets: ["complaint-body", "complaint-draft-review"],
+      purpose: "선택한 유형의 민원 작성 예를 안내합니다.",
+      navTargets: Object.freeze(["complaint-body", "complaint-draft-review"]),
       breadcrumbLabel: "민원 작성",
     }),
 
@@ -93,15 +94,15 @@
       id: "complaint-review",
       title: "민원 내용 확인",
       purpose: "작성된 내용을 확인해 주세요.",
-      navTargets: ["confirm-draft-prefill"],
+      navTargets: Object.freeze(["confirm-draft-prefill"]),
       breadcrumbLabel: "내용 확인",
     }),
 
     "handoff-stop": Object.freeze({
       id: "handoff-stop",
       title: "데모 종료",
-      purpose: "실제 민원 신청은 북구청 공식 채널을 이용してください.",
-      navTargets: ["handoff-notice"],
+      purpose: "로컬 개념 시연 데모가 여기서 종료됩니다.",
+      navTargets: Object.freeze(["handoff-notice"]),
       breadcrumbLabel: "종료",
     }),
   });
@@ -121,12 +122,12 @@
   // Immutable public API
   // -----------------------------------------------------------------------
   window.CitizenActionDemoMap = Object.freeze({
-    /** @type {string[]} */
+    /** @returns {string[]} */
     getRouteIds: function () {
       return CLOSED_ROUTE_IDS.slice();
     },
 
-    /** @type {string[]} */
+    /** @returns {string[]} */
     getTargetIds: function () {
       return CLOSED_TARGET_IDS.slice();
     },
@@ -144,14 +145,13 @@
 
     /**
      * @param {string} targetId
-     * @returns {string|undefined} Korean label for category targets
+     * @returns {string|undefined}
      */
     getCategoryLabel: function (targetId) {
       return CATEGORY_LABELS[targetId];
     },
 
     /**
-     * Validate that a routeId is in the closed vocabulary.
      * @param {string} routeId
      * @returns {boolean}
      */
@@ -160,7 +160,6 @@
     },
 
     /**
-     * Validate that a targetId is in the closed vocabulary.
      * @param {string} targetId
      * @returns {boolean}
      */
