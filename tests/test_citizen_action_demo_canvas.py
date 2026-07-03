@@ -451,10 +451,16 @@ class TestRuntimeRender:
     def test_each_route_has_required_structural_elements(self, rendered_routes):
         """
         Each route must render in order: top nav, breadcrumb, page header, PoC banner, and content.
+        Additionally, verify specific title and purpose for each route.
         """
-        js_map = _read_static("citizen-action-demo-map.js")
-        # Simple way to get title/purpose for each route from the map JS (since we can't easily parse JS)
-        # For this test, we'll check if any title/purpose from the map appears in the rendered HTML.
+        ROUTE_METADATA = {
+            "home": {"title": "시민 행정 도우미", "purpose": "북구청 행정서비스를 안내합니다."},
+            "civil-service": {"title": "민원 신청", "purpose": "북구청 주요 민원 서비스를 안내합니다."},
+            "complaint-category": {"title": "민원 유형 선택", "purpose": "해당 상황에 맞는 민원 유형을 선택해 주세요."},
+            "complaint-intake": {"title": "민원 작성", "purpose": "선택한 유형에 따라 내용을 작성해 주세요."},
+            "complaint-review": {"title": "민원 내용 확인", "purpose": "작성된 내용을 확인해 주세요."},
+            "handoff-stop": {"title": "데모 종료", "purpose": "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
+        }
 
         for route_id in EXPECTED_ROUTE_IDS:
             html = rendered_routes[route_id]
@@ -470,6 +476,11 @@ class TestRuntimeRender:
             assert 'class="canvas-page-title"' in html, f"route {route_id} missing page title"
             assert 'class="canvas-page-purpose"' in html, f"route {route_id} missing page purpose"
 
+            # Verify exact title and purpose
+            meta = ROUTE_METADATA[route_id]
+            assert meta["title"] in html, f"route {route_id} missing expected title: {meta['title']}"
+            assert meta["purpose"] in html, f"route {route_id} missing expected purpose: {meta['purpose']}"
+
             # 4. PoC Banner
             assert 'class="canvas-poc-banner"' in html, f"route {route_id} missing PoC banner"
             assert "로컬 개념 시연 (PoC) 안내" in html, f"route {route_id} missing PoC label"
@@ -477,6 +488,46 @@ class TestRuntimeRender:
 
             # 5. Content (simplified check: just ensure body exists)
             assert 'class="canvas-body"' in html, f"route {route_id} missing canvas body"
+
+    def test_complaint_category_buttons_have_correct_metadata(self, rendered_routes):
+        """
+        Render 'complaint-category'.
+        Assert exactly the five closed category target IDs are present as buttons.
+        Assert each category button has non-empty data-demo-route="complaint-intake".
+        Assert no category button points to any other route.
+        """
+        html = rendered_routes["complaint-category"]
+        category_targets = [
+            "complaint-category-illegal-parking",
+            "complaint-category-public-parking-inconvenience",
+            "complaint-category-residential-parking",
+            "complaint-category-traffic-or-facility-safety",
+            "complaint-category-other-or-unsure",
+        ]
+
+        # Verify exactly these five targets are buttons
+        for tid in category_targets:
+            button_pattern = r'<button[^>]*\sdata-action-target="' + tid + r'"[^>]*>'
+            assert re.search(button_pattern, html), f"category button '{tid}' missing"
+
+        # Assert each has data-demo-route="complaint-intake"
+        for tid in category_targets:
+            # Find the specific button tag for this target
+            button_tag = re.search(
+                r'<button[^>]*\sdata-action-target="' + tid + r'"[^>]*>',
+                html
+            ).group(0)
+            assert 'data-demo-route="complaint-intake"' in button_tag, \
+                f"category button '{tid}' missing data-demo-route='complaint-intake'"
+
+        # Verify no other data-demo-route exists on buttons in this route
+        all_buttons = re.findall(r'<button[^>]*>', html)
+        for btn in all_buttons:
+            if 'data-action-target' in btn:
+                demo_route_match = re.search(r'data-demo-route="([^"]*)"', btn)
+                if demo_route_match:
+                    val = demo_route_match.group(1)
+                    assert val == "complaint-intake", f"unexpected route '{val}' found on button: {btn}"
 
     def test_complaint_intake_contains_complaint_body_element(self, rendered_routes):
         """Intake renders a non-button element carrying data-action-target='complaint-body'."""

@@ -133,6 +133,7 @@
       html +=
         '<button class="canvas-category-card' + selectedCls + '" ' +
         'data-action-target="' + _escHtml(tid) + '" ' +
+        'data-demo-route="complaint-intake" ' +
         'tabindex="0" type="button">' +
         '<span>' + _escHtml(label) + '</span>' +
         '<span class="canvas-category-card__arrow" aria-hidden="true">&#x203A;</span>' +
