@@ -426,6 +426,21 @@ class TestObjectNewForgedInstances:
         assert CANARY_CSS_SELECTOR not in repr(plan)
         assert CANARY_CSS_SELECTOR not in str(plan)
 
+    def test_partial_init_citizen_action_plan_blocked_no_raise(self):
+        """object.__new__(CitizenActionPlan) partially initialized via __setattr__ → blocked."""
+        forged = object.__new__(CitizenActionPlan)
+        # Populate four of five required fields; intentionally leave reason_codes absent
+        object.__setattr__(forged, "plan_status", "guided")
+        object.__setattr__(forged, "actions", ())
+        object.__setattr__(forged, "requires_user_confirmation", False)
+        object.__setattr__(forged, "hard_stop_required", True)
+        # reason_codes deliberately not set — attribute will be missing
+        result = validate_citizen_action_plan(forged)
+        assert result.plan_status == "blocked"
+        # Supplied canary must not appear in blocked output
+        assert CANARY_TOKEN not in repr(result)
+        assert CANARY_TOKEN not in str(result)
+
 
 # ---------------------------------------------------------------------------
 # STOP / action count rules

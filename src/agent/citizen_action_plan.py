@@ -454,16 +454,16 @@ def validate_citizen_action_plan(candidate: object) -> CitizenActionPlan:
     if not _is_exact_instance(candidate, CitizenActionPlan):
         return _build_blocked_plan(["invalid_action_plan"])
 
-    # Safely extract all fields — uninitialized __new__ instances raise here
-    ps = _safe_get_field(candidate, "plan_status", None)
-    acts = _safe_get_field(candidate, "actions", None)
-    ruc = _safe_get_field(candidate, "requires_user_confirmation", None)
-    hsr = _safe_get_field(candidate, "hard_stop_required", None)
-    rc = _safe_get_field(candidate, "reason_codes", None)
-
-    # If any field is the sentinel (missing attribute / default)
+    # Safely extract all fields — uninitialized __new__ instances return sentinel
     _sentinel = object()
-    if ps is _sentinel or acts is _sentinel or ruc is _sentinel or hsr is _sentinel or rc is _sentinel:
+    ps = _safe_get_field(candidate, "plan_status", _sentinel)
+    acts = _safe_get_field(candidate, "actions", _sentinel)
+    ruc = _safe_get_field(candidate, "requires_user_confirmation", _sentinel)
+    hsr = _safe_get_field(candidate, "hard_stop_required", _sentinel)
+    rc = _safe_get_field(candidate, "reason_codes", _sentinel)
+
+    # If any field was absent (returned sentinel)
+    if any(value is _sentinel for value in (ps, acts, ruc, hsr, rc)):
         return _build_blocked_plan(["invalid_action_plan"])
 
     # Strict field types
