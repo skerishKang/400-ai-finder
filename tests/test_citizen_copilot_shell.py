@@ -299,23 +299,35 @@ class TestLayoutRailNotOverlay:
 
 
 # ---------------------------------------------------------------------------
-# ARIA attributes
+# ARIA attributes and keyboard accessibility
 # ---------------------------------------------------------------------------
 
 class TestARIAAttributes:
-    def test_dock_toggle_has_aria_expanded(self):
+    # Dock toggle is NOT a disclosure button — it changes layout, not expands content
+    def test_dock_toggle_is_type_button(self):
         html = _read_static("citizen-action-demo.html")
-        assert "aria-expanded=" in html
+        dock_toggle_section = html[html.find('id="dock-toggle"'):html.find('id="dock-toggle"') + 300]
+        assert 'type="button"' in dock_toggle_section
 
-    def test_dock_toggle_has_aria_controls(self):
+    def test_dock_toggle_has_aria_label(self):
         html = _read_static("citizen-action-demo.html")
-        assert "aria-controls=" in html
+        dock_toggle_section = html[html.find('id="dock-toggle"'):]
+        assert 'aria-label=' in dock_toggle_section
+        # Must NOT have aria-expanded (not a disclosure toggle)
+        assert 'aria-expanded=' not in dock_toggle_section.split(">")[0]
+        # Must NOT have aria-controls pointing at copilot-canvas
+        assert 'aria-controls="copilot-canvas"' not in dock_toggle_section.split(">")[0]
 
+    # Compact toggle IS a disclosure button — keeps aria-expanded + aria-controls
     def test_compact_toggle_has_aria_expanded_and_controls(self):
         html = _read_static("citizen-action-demo.html")
         section = html[html.find('id="compact-toggle"'):]
-        assert "aria-expanded=" in section
-        assert "aria-controls=" in section
+        assert 'aria-expanded=' in section
+        assert 'aria-controls="copilot-rail"' in section
+
+    def test_copilot_rail_has_tabindex_minus_one(self):
+        html = _read_static("citizen-action-demo.html")
+        assert 'tabindex="-1"' in html
 
     def test_copilot_rail_has_role_and_aria_label(self):
         html = _read_static("citizen-action-demo.html")
@@ -329,6 +341,51 @@ class TestARIAAttributes:
     def test_keyboard_focus_style_in_css(self):
         css = _read_static("citizen-copilot-shell.css")
         assert ":focus-visible" in css or ":focus" in css
+
+
+# ---------------------------------------------------------------------------
+# Compact drawer keyboard accessibility
+# ---------------------------------------------------------------------------
+
+class TestCompactDrawerAccessibility:
+    def test_js_has_matchmedia_for_compact_viewport(self):
+        js = _read_static("citizen-copilot-shell.js")
+        assert "matchMedia" in js
+        assert "max-width: 767px" in js or "767px" in js
+
+    def test_js_manages_inert_attribute(self):
+        js = _read_static("citizen-copilot-shell.js")
+        assert 'setAttribute("inert"' in js or 'setAttribute("inert"' in js
+        assert 'removeAttribute("inert")' in js
+
+    def test_js_manages_aria_hidden_on_rail(self):
+        js = _read_static("citizen-copilot-shell.js")
+        assert 'setAttribute("aria-hidden"' in js
+        assert 'setAttribute("aria-hidden", "false")' in js or 'aria-hidden", "true"' in js
+
+    def test_js_moves_focus_to_rail_on_open(self):
+        js = _read_static("citizen-copilot-shell.js")
+        code_only = _strip_all(js)
+        # On open: focus goes to rail, not back to toggle
+        assert "_copilotRail.focus()" in js or "_copilotRail.focus()" in code_only
+
+    def test_js_restores_focus_to_toggle_on_close(self):
+        js = _read_static("citizen-copilot-shell.js")
+        code_only = _strip_all(js)
+        # On close: focus returns to compact toggle
+        assert "_compactToggle.focus()" in js or "_compactToggle.focus()" in code_only
+
+    def test_escape_collapses_and_restores_focus(self):
+        js = _read_static("citizen-copilot-shell.js")
+        assert 'key === "Escape"' in js or "e.key === 'Escape'" in js
+        assert "_closeCompactDrawer" in js
+
+    def test_js_viewport_change_resets_compact_state(self):
+        js = _read_static("citizen-copilot-shell.js")
+        assert "_isCompactViewport" in js
+        assert "_onViewportChange" in js
+        # On viewport change back to desktop, inert must be removed
+        assert "_applyInertToRail(false)" in js or "_applyInertToRail" in js
 
 
 # ---------------------------------------------------------------------------
