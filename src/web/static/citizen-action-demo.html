@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>시민 행동계획 코파일럿 데모</title>
+  <title>시민 행정 도우미 — 로컬 시연용</title>
   <link rel="stylesheet" href="/static/citizen-copilot-shell.css">
+  <link rel="stylesheet" href="/static/citizen-action-demo-canvas.css">
 </head>
 <body data-copilot-dock="right" data-copilot-dock-choices="left right"><!-- allowed dock values: left, right -->
   <!-- Dock rail: left or right side panel -->
@@ -115,22 +116,12 @@
     </section>
   </aside>
 
-  <!-- Central demo canvas -->
-  <main class="demo-canvas" id="demo-canvas" role="main">
+  <!-- Central demo canvas — route-rendered by canvas.js -->
+  <main class="demo-canvas" id="demo-canvas" role="main" aria-label="데모 캔버스">
+    <!-- Initial content; replaced by CitizenActionDemoCanvas on load -->
     <div class="demo-canvas__inner">
-      <h1 class="demo-canvas__title">시민 행동계획 코파일럿 데모</h1>
-      <p class="demo-canvas__desc">
-        이 데모는 북구청형 클릭 내비게이터의 행동계획 시맨틱을 시각적으로 보여줍니다.
-        좌측 또는 우측에 도킹된 패널을 확인하세요.
-      </p>
-      <div class="demo-canvas__placeholder" aria-hidden="true">
-        <span class="placeholder-icon">&#x1F5FA;</span>
-        <p>데모 캔버스 영역</p>
-        <p class="placeholder-sub">실제 내비게이션 시각화는 여기에 표시됩니다.</p>
-      </div>
-      <div class="demo-canvas__actions" id="canvas-actions" aria-label="데모 동작 시뮬레이션">
-        <button class="canvas-btn" id="canvas-btn-prefill" type="button">초안 미리 채우기 시뮬레이션</button>
-        <button class="canvas-btn" id="canvas-btn-reset" type="button">초기화</button>
+      <div class="demo-canvas__loading" aria-live="polite">
+        로컬 데모 캔버스를 불러오는 중…
       </div>
     </div>
   </main>
@@ -147,6 +138,9 @@
     &#x25B6; 행동 가이드
   </button>
 
+  <!-- Load map first (provides vocabulary), then canvas (renders content) -->
+  <script src="/static/citizen-action-demo-map.js"></script>
+  <script src="/static/citizen-action-demo-canvas.js"></script>
   <script src="/static/citizen-copilot-shell.js"></script>
 </body>
 </html>
