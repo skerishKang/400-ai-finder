@@ -254,16 +254,21 @@ class TestTypeCoercion:
             requires_user_confirmation=True,
             choice_ids=(),
         )
-        # Build via validate (which enforces strict bool check)
-        bad_plan = SimpleNamespace(
+        # Build a valid plan first, then corrupt requires_user_confirmation to int
+        # using object.__setattr__ to bypass frozen=True and constructor type check
+        plan = CitizenActionPlan(
             plan_status="guided",
             actions=(stop_a,),
-            requires_user_confirmation=1,  # int, not bool
+            requires_user_confirmation=True,
             hard_stop_required=True,
             reason_codes=(),
         )
-        result = validate_citizen_action_plan(bad_plan)
+        object.__setattr__(plan, "requires_user_confirmation", 1)  # int, not bool
+        result = validate_citizen_action_plan(plan)
         assert result.plan_status == "blocked"
+        # Canary values must not appear in blocked output
+        assert CANARY_TOKEN not in repr(result)
+        assert CANARY_TOKEN not in str(result)
 
     def test_hard_stop_required_str_rejected(self):
         """Real CitizenActionPlan with str hard_stop_required → blocked, no raise."""
@@ -275,15 +280,18 @@ class TestTypeCoercion:
             requires_user_confirmation=True,
             choice_ids=(),
         )
-        bad_plan = SimpleNamespace(
+        plan = CitizenActionPlan(
             plan_status="guided",
             actions=(stop_a,),
             requires_user_confirmation=True,
-            hard_stop_required="true",  # str, not bool
+            hard_stop_required=True,
             reason_codes=(),
         )
-        result = validate_citizen_action_plan(bad_plan)
+        object.__setattr__(plan, "hard_stop_required", "true")  # str, not bool
+        result = validate_citizen_action_plan(plan)
         assert result.plan_status == "blocked"
+        assert CANARY_CSS_SELECTOR not in repr(result)
+        assert CANARY_CSS_SELECTOR not in str(result)
 
     def test_actions_as_list_rejected(self):
         """tuple-wrapped list for actions field → blocked, no raise."""

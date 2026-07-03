@@ -338,9 +338,6 @@ def _validate_guided_plan(plan: CitizenActionPlan) -> CitizenActionPlan | None:
     except (AttributeError, TypeError):
         return None
 
-    if not _is_true_tuple_of_str(()) and not isinstance(actions, tuple):
-        # actions must be tuple
-        pass
     if type(actions) is not tuple:
         return None
 
