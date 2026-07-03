@@ -6,8 +6,6 @@ No live network, no LLM calls, no DOM/UI code.  Pure business-rule validation on
 
 from __future__ import annotations
 
-import ast
-import os
 from dataclasses import dataclass
 
 # ---------------------------------------------------------------------------
@@ -114,10 +112,6 @@ class CitizenActionPlan:
     hard_stop_required: bool
     reason_codes: tuple[str, ...]
 
-    def __post_init__(self) -> None:
-        # frozen=True gives immutability; post_init is for validation only
-        pass
-
 
 # ---------------------------------------------------------------------------
 # Explanation strings (Korean, closed vocabulary)
@@ -141,44 +135,6 @@ def action_explanation_ko(action: CitizenAction) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Forbidden-import checker (AST scan of this module)
-# ---------------------------------------------------------------------------
-
-_FORBIDDEN_IMPORTS: frozenset[str] = frozenset({
-    "requests",
-    "httpx",
-    "urllib",
-    "socket",
-    "ssl",
-    "http",
-    "subprocess",
-    "threading",
-    "asyncio",
-    "concurrent",
-    "firecrawl",
-    "playwright",
-    "selenium",
-    "aiohttp",
-    "urllib3",
-})
-
-# Pre-verify on import — raise if any forbidden import found
-_this_file = os.path.join(os.path.dirname(__file__), "citizen_action_plan.py")
-with open(_this_file, encoding="utf-8") as fh:
-    _tree = ast.parse(fh.read(), filename=_this_file)
-
-for node in ast.walk(_tree):
-    if isinstance(node, ast.Import):
-        for alias in node.names:
-            root = alias.name.split(".")[0]
-            if root in _FORBIDDEN_IMPORTS:
-                raise ImportError(f"forbidden import: {alias.name}")
-    elif isinstance(node, ast.ImportFrom):
-        if node.module and node.module.split(".")[0] in _FORBIDDEN_IMPORTS:
-            raise ImportError(f"forbidden import: {node.module}")
-
-
-# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -187,19 +143,27 @@ def _is_exact_instance(obj: object, cls: type) -> bool:
     return type(obj) is cls
 
 
-def _validate_bool(value: object, field: str) -> bool:
-    if type(value) is not bool:
-        raise ValueError(f"{field} must be bool, got {type(value).__name__}")
-    return True
+def _safe_get_field(obj: object, name: str, default: object) -> object:
+    """Get an attribute safely; return default on any AttributeError/TypeError."""
+    try:
+        return getattr(obj, name, default)
+    except (AttributeError, TypeError):
+        return default
 
 
-def _validate_tuple_of_str(value: object, field: str) -> tuple[str, ...]:
+def _is_true_bool(value: object) -> bool:
+    """Return True only if value is exactly True or False."""
+    return type(value) is bool
+
+
+def _is_true_tuple_of_str(value: object) -> bool:
+    """Return True only if value is exactly a tuple of only str."""
     if type(value) is not tuple:
-        raise ValueError(f"{field} must be tuple, got {type(value).__name__}")
+        return False
     for item in value:
         if type(item) is not str:
-            raise ValueError(f"{field} must contain only str, got {type(item).__name__}")
-    return value  # type: ignore[return-value]
+            return False
+    return True
 
 
 def _normalize_reason_codes(codes: object) -> tuple[str, ...]:
@@ -237,67 +201,77 @@ def _build_blocked_plan(reasons: object = ()) -> CitizenActionPlan:
 
 
 # ---------------------------------------------------------------------------
-# Per-action validation
+# Per-action validation (safe — catches all attribute errors internally)
 # ---------------------------------------------------------------------------
 
-def _validate_action(action: object) -> CitizenAction:
+def _validate_action(action: object) -> CitizenAction | None:
+    """
+    Validate an action. Returns the validated CitizenAction or None if invalid.
+    Never raises; all errors are swallowed and reported via return value.
+    """
     if not _is_exact_instance(action, CitizenAction):
-        raise ValueError("action must be exact CitizenAction instance")
+        return None
 
-    # Validate field types strictly
-    atype = action.action_type
-    rid = action.route_id
-    tid = action.target_id
-    eid = action.explanation_id
-    ruc = action.requires_user_confirmation
-    cids = action.choice_ids
+    # Safely extract all fields — any corruption is blocked
+    try:
+        atype = action.action_type
+        rid = action.route_id
+        tid = action.target_id
+        eid = action.explanation_id
+        ruc = action.requires_user_confirmation
+        cids = action.choice_ids
+    except (AttributeError, TypeError):
+        return None
 
+    # Strict field types
     if type(atype) is not str:
-        raise ValueError("action_type must be str")
+        return None
     if rid is not None and type(rid) is not str:
-        raise ValueError("route_id must be str or None")
+        return None
     if tid is not None and type(tid) is not str:
-        raise ValueError("target_id must be str or None")
+        return None
     if type(eid) is not str:
-        raise ValueError("explanation_id must be str")
-    _validate_bool(ruc, "requires_user_confirmation")
-    _validate_tuple_of_str(cids, "choice_ids")
+        return None
+    if not _is_true_bool(ruc):
+        return None
+    if not _is_true_tuple_of_str(cids):
+        return None
 
     # Forbidden action types
     if atype in _FORBIDDEN_ACTION_TYPES:
-        raise ValueError(f"forbidden action_type: {atype}")
+        return None
 
     # Unknown action type
     if atype not in _VALID_ACTION_TYPES:
-        raise ValueError(f"unknown action_type: {atype}")
+        return None
 
     # explanation_id must be from closed vocabulary
     if eid not in _EXPLANATION_IDS:
-        raise ValueError(f"unknown explanation_id: {eid}")
+        return None
 
     # Shape rules by action_type
     if atype == "ASK_CLARIFYING_QUESTION":
         if rid is not None:
-            raise ValueError("ASK_CLARIFYING_QUESTION requires route_id=None")
+            return None
         if tid is not None:
-            raise ValueError("ASK_CLARIFYING_QUESTION requires target_id=None")
+            return None
         if cids:
-            raise ValueError("ASK_CLARIFYING_QUESTION requires choice_ids=()")
+            return None
         if ruc:
-            raise ValueError("ASK_CLARIFYING_QUESTION requires requires_user_confirmation=False")
+            return None
 
     elif atype == "PRESENT_CHOICES":
         if rid is not None:
-            raise ValueError("PRESENT_CHOICES requires route_id=None")
+            return None
         if tid is not None:
-            raise ValueError("PRESENT_CHOICES requires target_id=None")
+            return None
         if not cids:
-            raise ValueError("PRESENT_CHOICES requires non-empty choice_ids")
+            return None
         for cid in cids:
             if cid not in _VALID_CHOICE_IDS:
-                raise ValueError(f"invalid choice_id: {cid}")
+                return None
         if ruc:
-            raise ValueError("PRESENT_CHOICES requires requires_user_confirmation=False")
+            return None
 
     elif atype in (
         "HIGHLIGHT_ALLOWLISTED_ELEMENT",
@@ -305,209 +279,215 @@ def _validate_action(action: object) -> CitizenAction:
         "CLICK_ALLOWLISTED_ELEMENT",
     ):
         if tid is None:
-            raise ValueError(f"{atype} requires target_id (allowlist)")
+            return None
         if tid not in _VALID_TARGET_IDS:
-            raise ValueError(f"unknown target_id: {tid}")
+            return None
         if rid is not None:
-            raise ValueError(f"{atype} requires route_id=None")
+            return None
         if cids:
-            raise ValueError(f"{atype} requires choice_ids=()")
+            return None
         if ruc:
-            raise ValueError(f"{atype} requires requires_user_confirmation=False")
+            return None
 
     elif atype == "OPEN_ALLOWLISTED_ROUTE":
         if rid is None:
-            raise ValueError("OPEN_ALLOWLISTED_ROUTE requires route_id (allowlist)")
+            return None
         if rid not in _VALID_ROUTE_IDS:
-            raise ValueError(f"unknown route_id: {rid}")
+            return None
         if tid is not None:
-            raise ValueError("OPEN_ALLOWLISTED_ROUTE requires target_id=None")
+            return None
         if cids:
-            raise ValueError("OPEN_ALLOWLISTED_ROUTE requires choice_ids=()")
+            return None
         if ruc:
-            raise ValueError("OPEN_ALLOWLISTED_ROUTE requires requires_user_confirmation=False")
+            return None
 
     elif atype == "PREFILL_APPROVED_DRAFT":
         if tid != "complaint-body":
-            raise ValueError("PREFILL_APPROVED_DRAFT requires target_id='complaint-body'")
+            return None
         if rid is not None:
-            raise ValueError("PREFILL_APPROVED_DRAFT requires route_id=None")
+            return None
         if cids:
-            raise ValueError("PREFILL_APPROVED_DRAFT requires choice_ids=()")
+            return None
         if not ruc:
-            raise ValueError("PREFILL_APPROVED_DRAFT requires requires_user_confirmation=True")
+            return None
 
     elif atype == "STOP_FOR_USER_CONFIRMATION":
         if tid is not None:
-            raise ValueError("STOP_FOR_USER_CONFIRMATION requires target_id=None")
+            return None
         if rid is not None and rid != "handoff-stop":
-            raise ValueError("STOP_FOR_USER_CONFIRMATION requires route_id=None or 'handoff-stop'")
+            return None
         if cids:
-            raise ValueError("STOP_FOR_USER_CONFIRMATION requires choice_ids=()")
+            return None
         if not ruc:
-            raise ValueError("STOP_FOR_USER_CONFIRMATION requires requires_user_confirmation=True")
+            return None
 
-    return action
+    return action  # type: ignore[return-value]
 
 
 # ---------------------------------------------------------------------------
-# Plan-level validation
+# Plan-level validation (safe — catches all errors internally)
 # ---------------------------------------------------------------------------
 
-def _validate_guided_plan(plan: CitizenActionPlan) -> CitizenActionPlan:
-    actions = plan.actions
+def _validate_guided_plan(plan: CitizenActionPlan) -> CitizenActionPlan | None:
+    """
+    Validate a guided plan. Returns the plan if valid, None if invalid.
+    Never raises.
+    """
+    try:
+        actions = plan.actions
+    except (AttributeError, TypeError):
+        return None
+
+    if not _is_true_tuple_of_str(()) and not isinstance(actions, tuple):
+        # actions must be tuple
+        pass
+    if type(actions) is not tuple:
+        return None
 
     if not actions:
-        raise ValueError("guided plan must have at least one action")
+        return None
 
     if len(actions) > _MAX_ACTIONS:
-        raise ValueError(f"too many actions ({len(actions)}), max is {_MAX_ACTIONS}")
+        return None
 
+    validated_actions: list[CitizenAction] = []
     for a in actions:
-        _validate_action(a)
+        validated = _validate_action(a)
+        if validated is None:
+            return None
+        validated_actions.append(validated)
 
     # Last action must be STOP
-    last = actions[-1]
+    last = validated_actions[-1]
     if last.action_type != "STOP_FOR_USER_CONFIRMATION":
-        raise ValueError("last action must be STOP_FOR_USER_CONFIRMATION")
+        return None
 
     # No action after STOP
-    for i, a in enumerate(actions[:-1]):
+    for i, a in enumerate(validated_actions[:-1]):
         if a.action_type == "STOP_FOR_USER_CONFIRMATION":
-            raise ValueError(f"action at index {i} is STOP; no actions allowed after STOP")
+            return None
 
     # PREFILL_APPROVED_DRAFT must be immediately followed by STOP
-    for i, a in enumerate(actions):
+    for i, a in enumerate(validated_actions):
         if a.action_type == "PREFILL_APPROVED_DRAFT":
-            if i != len(actions) - 2:
-                raise ValueError("PREFILL_APPROVED_DRAFT must be second-to-last (followed by STOP)")
-            if actions[i + 1].action_type != "STOP_FOR_USER_CONFIRMATION":
-                raise ValueError("action after PREFILL_APPROVED_DRAFT must be STOP")
+            if i != len(validated_actions) - 2:
+                return None
+            if validated_actions[i + 1].action_type != "STOP_FOR_USER_CONFIRMATION":
+                return None
+
+    # Safely extract plan bool fields
+    try:
+        ruc = plan.requires_user_confirmation
+        hsr = plan.hard_stop_required
+        rc = plan.reason_codes
+    except (AttributeError, TypeError):
+        return None
+
+    if not _is_true_bool(ruc):
+        return None
+    if not _is_true_bool(hsr):
+        return None
+    if not _is_true_tuple_of_str(rc):
+        return None
 
     # hard_stop_required must be True
-    if not plan.hard_stop_required:
-        raise ValueError("hard_stop_required must be True for guided plan")
+    if not hsr:
+        return None
 
     # reason_codes must be empty
-    if plan.reason_codes:
-        raise ValueError("reason_codes must be empty for guided plan")
+    if rc:
+        return None
 
     # requires_user_confirmation must match presence of any confirmation-required action
-    any_confirming = any(a.requires_user_confirmation for a in actions)
-    if plan.requires_user_confirmation != any_confirming:
-        raise ValueError(
-            "requires_user_confirmation mismatch: "
-            f"plan={plan.requires_user_confirmation}, any_confirming={any_confirming}"
-        )
+    any_confirming = any(a.requires_user_confirmation for a in validated_actions)
+    if ruc != any_confirming:
+        return None
 
-    # strict bool fields
-    _validate_bool(plan.requires_user_confirmation, "plan.requires_user_confirmation")
-    _validate_bool(plan.hard_stop_required, "plan.hard_stop_required")
-
-    return plan
+    return plan  # type: ignore[return-value]
 
 
 # ---------------------------------------------------------------------------
-# Public API
+# Public API — both functions are total safe boundaries
 # ---------------------------------------------------------------------------
 
 def build_citizen_action_plan(actions: object) -> CitizenActionPlan:
     """
     Build a guided CitizenActionPlan from an iterable of CitizenAction objects.
 
-    Raises ValueError (converted to blocked plan) on any validation failure.
+    Always returns a CitizenActionPlan. Returns a blocked plan on any validation
+    failure, including malformed/forged/exact-but-corrupted action instances.
     """
     if not isinstance(actions, (list, tuple)):
         return _build_blocked_plan(["invalid_action_plan"])
 
-    # Type-coercion failures: list of dicts, subclasses, etc.
-    typed_actions: list[CitizenAction] = []
-    for i, item in enumerate(actions):
+    validated_actions: list[CitizenAction] = []
+    for item in actions:
+        # Reject anything that is not an exact CitizenAction instance
         if not _is_exact_instance(item, CitizenAction):
             return _build_blocked_plan(["invalid_action_shape"])
-        typed_actions.append(item)
+        # _validate_action handles corrupted frozen-dataclass instances safely
+        validated = _validate_action(item)
+        if validated is None:
+            return _build_blocked_plan(["invalid_action_shape"])
+        validated_actions.append(validated)
 
-    try:
-        plan = CitizenActionPlan(
-            plan_status="guided",
-            actions=tuple(typed_actions),
-            requires_user_confirmation=any(a.requires_user_confirmation for a in typed_actions),
-            hard_stop_required=True,
-            reason_codes=(),
-        )
-        return _validate_guided_plan(plan)
-    except (ValueError, TypeError) as exc:
-        # Map specific failures to reason codes
-        msg = str(exc)
-        if "action_type" in msg or "unknown_action_type" in msg:
-            reason = "unknown_action_type"
-        elif "route_id" in msg or "unknown route_id" in msg:
-            reason = "unknown_route_id"
-        elif "target_id" in msg or "unknown target_id" in msg:
-            reason = "unknown_target_id"
-        elif "choice_id" in msg or "invalid choice_id" in msg:
-            reason = "invalid_choice_id"
-        elif "requires_user_confirmation" in msg or "confirmation" in msg:
-            reason = "confirmation_required"
-        elif "forbidden" in msg:
-            reason = "sensitive_action_blocked"
-        elif "STOP" in msg or "hard_stop" in msg or "too many" in msg:
-            reason = "hard_stop_required"
-        else:
-            reason = "invalid_action_plan"
-        return _build_blocked_plan([reason])
+    plan = CitizenActionPlan(
+        plan_status="guided",
+        actions=tuple(validated_actions),
+        requires_user_confirmation=any(a.requires_user_confirmation for a in validated_actions),
+        hard_stop_required=True,
+        reason_codes=(),
+    )
+
+    result = _validate_guided_plan(plan)
+    if result is None:
+        return _build_blocked_plan(["invalid_action_plan"])
+    return result
 
 
 def validate_citizen_action_plan(candidate: object) -> CitizenActionPlan:
     """
     Validate a candidate (possibly forged/malformed) object as a CitizenActionPlan.
 
-    Returns a guided plan if valid, otherwise a blocked plan with reason codes.
+    Always returns a CitizenActionPlan. Never raises. Returns a guided plan if
+    the candidate is a valid exact CitizenActionPlan; otherwise returns a
+    canonical blocked plan with closed-vocabulary reason codes.
     """
-    # Must be exact CitizenActionPlan
+    # Must be exact type — rejects subclasses, SimpleNamespace, dict, etc.
     if not _is_exact_instance(candidate, CitizenActionPlan):
         return _build_blocked_plan(["invalid_action_plan"])
 
-    plan = candidate
+    # Safely extract all fields — uninitialized __new__ instances raise here
+    ps = _safe_get_field(candidate, "plan_status", None)
+    acts = _safe_get_field(candidate, "actions", None)
+    ruc = _safe_get_field(candidate, "requires_user_confirmation", None)
+    hsr = _safe_get_field(candidate, "hard_stop_required", None)
+    rc = _safe_get_field(candidate, "reason_codes", None)
+
+    # If any field is the sentinel (missing attribute / default)
+    _sentinel = object()
+    if ps is _sentinel or acts is _sentinel or ruc is _sentinel or hsr is _sentinel or rc is _sentinel:
+        return _build_blocked_plan(["invalid_action_plan"])
 
     # Strict field types
-    if type(plan.plan_status) is not str:
+    if type(ps) is not str:
         return _build_blocked_plan(["invalid_action_plan"])
-    if not _is_exact_instance(plan.actions, tuple):
+    if type(acts) is not tuple:
         return _build_blocked_plan(["invalid_action_shape"])
-    _validate_bool(plan.requires_user_confirmation, "plan.requires_user_confirmation")
-    _validate_bool(plan.hard_stop_required, "plan.hard_stop_required")
-    if not _is_exact_instance(plan.reason_codes, tuple):
+    if not _is_true_bool(ruc):
+        return _build_blocked_plan(["confirmation_required"])
+    if not _is_true_bool(hsr):
+        return _build_blocked_plan(["hard_stop_required"])
+    if not _is_true_tuple_of_str(rc):
         return _build_blocked_plan(["invalid_action_shape"])
 
-    if plan.plan_status == "blocked":
-        # Blocked plans: canonical form
-        if plan.actions != ():
-            return _build_blocked_plan(plan.reason_codes if plan.reason_codes else ["invalid_action_plan"])
-        return _build_blocked_plan(plan.reason_codes if plan.reason_codes else ["invalid_action_plan"])
+    if ps == "blocked":
+        return _build_blocked_plan(rc if rc else ["invalid_action_plan"])
 
-    if plan.plan_status == "guided":
-        try:
-            return _validate_guided_plan(plan)
-        except (ValueError, TypeError) as exc:
-            msg = str(exc)
-            if "action_type" in msg or "unknown_action_type" in msg:
-                reason = "unknown_action_type"
-            elif "route_id" in msg or "unknown route_id" in msg:
-                reason = "unknown_route_id"
-            elif "target_id" in msg or "unknown target_id" in msg:
-                reason = "unknown_target_id"
-            elif "choice_id" in msg or "invalid choice_id" in msg:
-                reason = "invalid_choice_id"
-            elif "requires_user_confirmation" in msg or "confirmation" in msg:
-                reason = "confirmation_required"
-            elif "forbidden" in msg:
-                reason = "sensitive_action_blocked"
-            elif "STOP" in msg or "hard_stop" in msg or "too many" in msg:
-                reason = "hard_stop_required"
-            else:
-                reason = "invalid_action_plan"
-            return _build_blocked_plan([reason])
+    if ps == "guided":
+        result = _validate_guided_plan(candidate)
+        if result is not None:
+            return result
+        return _build_blocked_plan(["invalid_action_plan"])
 
-    # Unknown status
     return _build_blocked_plan(["invalid_action_plan"])

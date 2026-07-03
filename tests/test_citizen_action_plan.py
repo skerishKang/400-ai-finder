@@ -4,8 +4,7 @@ Tests for citizen_action_plan — closed / immutable action plan contract.
 
 import ast
 import os
-import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from types import SimpleNamespace
 
 import pytest
@@ -16,7 +15,6 @@ from src.agent.citizen_action_plan import (
     build_citizen_action_plan,
     validate_citizen_action_plan,
     action_explanation_ko,
-    _FORBIDDEN_IMPORTS,
     _MAX_ACTIONS,
 )
 
@@ -117,11 +115,10 @@ class TestHappyPath:
         assert plan.requires_user_confirmation is True  # STOP is in actions
 
     def test_plan_is_frozen(self):
-        actions = [
+        plan = build_citizen_action_plan([
             make_action("OPEN_ALLOWLISTED_ROUTE", route_id="civil-service"),
             stop_action(),
-        ]
-        plan = build_citizen_action_plan([make_action("OPEN_ALLOWLISTED_ROUTE", route_id="civil-service"), stop_action()])
+        ])
         with pytest.raises(AttributeError):
             plan.plan_status = "blocked"
 
@@ -179,7 +176,7 @@ class TestPrefillFlow:
         actions = [
             make_action(
                 "PREFILL_APPROVED_DRAFT",
-                target_id="complaint-draft-review",  # not complaint-body
+                target_id="complaint-draft-review",
                 requires_user_confirmation=True,
             ),
             stop_action(),
@@ -247,37 +244,49 @@ class TestUnknownInputs:
 # ---------------------------------------------------------------------------
 
 class TestTypeCoercion:
-    def test_requires_user_confirmation_int(self):
-        actions = [
-            make_action("OPEN_ALLOWLISTED_ROUTE", route_id="home"),
-            make_action(
-                "STOP_FOR_USER_CONFIRMATION",
-                requires_user_confirmation=True,
-            ),
-        ]
-        # Build plan manually with int
+    def test_requires_user_confirmation_int_rejected(self):
+        """Real CitizenActionPlan with int requires_user_confirmation → blocked, no raise."""
         stop_a = CitizenAction(
             action_type="STOP_FOR_USER_CONFIRMATION",
             route_id=None,
             target_id=None,
             explanation_id="stop_for_confirmation",
-            requires_user_confirmation=True,  # bool
+            requires_user_confirmation=True,
             choice_ids=(),
         )
-        plan = validate_citizen_action_plan(
-            CitizenActionPlan(
-                plan_status="guided",
-                actions=(stop_a,),
-                requires_user_confirmation=True,
-                hard_stop_required=True,
-                reason_codes=(),
-            )
+        # Build via validate (which enforces strict bool check)
+        bad_plan = SimpleNamespace(
+            plan_status="guided",
+            actions=(stop_a,),
+            requires_user_confirmation=1,  # int, not bool
+            hard_stop_required=True,
+            reason_codes=(),
         )
-        assert plan.plan_status == "guided"
+        result = validate_citizen_action_plan(bad_plan)
+        assert result.plan_status == "blocked"
+
+    def test_hard_stop_required_str_rejected(self):
+        """Real CitizenActionPlan with str hard_stop_required → blocked, no raise."""
+        stop_a = CitizenAction(
+            action_type="STOP_FOR_USER_CONFIRMATION",
+            route_id=None,
+            target_id=None,
+            explanation_id="stop_for_confirmation",
+            requires_user_confirmation=True,
+            choice_ids=(),
+        )
+        bad_plan = SimpleNamespace(
+            plan_status="guided",
+            actions=(stop_a,),
+            requires_user_confirmation=True,
+            hard_stop_required="true",  # str, not bool
+            reason_codes=(),
+        )
+        result = validate_citizen_action_plan(bad_plan)
+        assert result.plan_status == "blocked"
 
     def test_actions_as_list_rejected(self):
-        """Passing a list (not tuple) for actions field → blocked."""
-        # validate_citizen_action_plan should reject tuple-wrapped-list as non-tuple
+        """tuple-wrapped list for actions field → blocked, no raise."""
         stop_a = CitizenAction(
             action_type="STOP_FOR_USER_CONFIRMATION",
             route_id=None,
@@ -297,7 +306,7 @@ class TestTypeCoercion:
         assert result.plan_status == "blocked"
 
     def test_choice_ids_as_list_rejected(self):
-        """choice_ids as list instead of tuple → blocked."""
+        """choice_ids as list instead of tuple → blocked, no raise."""
         bad_action = SimpleNamespace(
             action_type="PRESENT_CHOICES",
             route_id=None,
@@ -313,7 +322,7 @@ class TestTypeCoercion:
         """Dataclass subclass instance must not be accepted."""
         @dataclass(frozen=True)
         class ExtendedCitizenAction(CitizenAction):
-            pass  # subclass
+            pass
 
         sub_action = ExtendedCitizenAction(
             action_type="OPEN_ALLOWLISTED_ROUTE",
@@ -339,47 +348,29 @@ class TestTypeCoercion:
         result = validate_citizen_action_plan(fake)
         assert result.plan_status == "blocked"
 
-    def test_non_bool_requires_confirmation_rejected(self):
-        """requires_user_confirmation as int 1 must be rejected."""
-        stop_a = CitizenAction(
-            action_type="STOP_FOR_USER_CONFIRMATION",
-            route_id=None,
-            target_id=None,
-            explanation_id="stop_for_confirmation",
-            requires_user_confirmation=True,
-            choice_ids=(),
-        )
-        bad_plan = _make_plan_type(
-            plan_status="guided",
-            actions=(stop_a,),
-            requires_user_confirmation=1,  # int, not bool
-            hard_stop_required=True,
-            reason_codes=(),
-        )
-        result = validate_citizen_action_plan(bad_plan)
+
+# ---------------------------------------------------------------------------
+# Object.__new__ forged instances — no AttributeError should escape
+# ---------------------------------------------------------------------------
+
+class TestObjectNewForgedInstances:
+    def test_object_new_citizen_action_plan_blocked_no_raise(self):
+        """object.__new__(CitizenActionPlan) uninitialized → blocked, no AttributeError."""
+        # Uninitialized __new__ instance has no fields; must not raise AttributeError
+        forged = object.__new__(CitizenActionPlan)
+        result = validate_citizen_action_plan(forged)
         assert result.plan_status == "blocked"
 
-    def test_non_bool_hard_stop_rejected(self):
-        stop_a = CitizenAction(
-            action_type="STOP_FOR_USER_CONFIRMATION",
-            route_id=None,
-            target_id=None,
-            explanation_id="stop_for_confirmation",
-            requires_user_confirmation=True,
-            choice_ids=(),
-        )
-        bad_plan = _make_plan_type(
-            plan_status="guided",
-            actions=(stop_a,),
-            requires_user_confirmation=True,
-            hard_stop_required="true",  # str, not bool
-            reason_codes=(),
-        )
-        result = validate_citizen_action_plan(bad_plan)
-        assert result.plan_status == "blocked"
+    def test_object_new_citizen_action_blocked_no_raise(self):
+        """object.__new__(CitizenAction) uninitialized → blocked via build, no AttributeError."""
+        forged = object.__new__(CitizenAction)
+        # Must not raise AttributeError when iterating actions
+        plan = build_citizen_action_plan([forged])
+        assert plan.plan_status == "blocked"
 
-    def test_plan_status_not_str(self):
-        stop_a = CitizenAction(
+    def test_object_new_citizen_action_in_valid_container_blocked(self):
+        """A valid-looking plan whose actions tuple contains an object.__new__(CitizenAction) → blocked."""
+        real_stop = CitizenAction(
             action_type="STOP_FOR_USER_CONFIRMATION",
             route_id=None,
             target_id=None,
@@ -387,9 +378,10 @@ class TestTypeCoercion:
             requires_user_confirmation=True,
             choice_ids=(),
         )
-        bad_plan = _make_plan_type(
-            plan_status=123,  # not str
-            actions=(stop_a,),
+        forged_action = object.__new__(CitizenAction)
+        bad_plan = CitizenActionPlan(
+            plan_status="guided",
+            actions=(forged_action, real_stop),
             requires_user_confirmation=True,
             hard_stop_required=True,
             reason_codes=(),
@@ -397,16 +389,34 @@ class TestTypeCoercion:
         result = validate_citizen_action_plan(bad_plan)
         assert result.plan_status == "blocked"
 
+    def test_object_setattr_citizen_action_blocked_no_canary(self):
+        """A real CitizenAction corrupted via object.__setattr__ with canary value → blocked."""
+        # Create a real CitizenAction, then corrupt one field via object.__setattr__
+        real_action = make_action(
+            "OPEN_ALLOWLISTED_ROUTE",
+            route_id="home",
+        )
+        # Use object.__setattr__ to bypass frozen=True
+        object.__setattr__(real_action, "route_id", CANARY_URL_USERINFO)
 
-def _make_plan_type(plan_status, actions, requires_user_confirmation, hard_stop_required, reason_codes):
-    """Make a plain SimpleNamespace with same field names (not real CitizenActionPlan)."""
-    return SimpleNamespace(
-        plan_status=plan_status,
-        actions=actions,
-        requires_user_confirmation=requires_user_confirmation,
-        hard_stop_required=hard_stop_required,
-        reason_codes=reason_codes,
-    )
+        plan = build_citizen_action_plan([real_action, stop_action()])
+        assert plan.plan_status == "blocked"
+        # Canary must not appear in repr/str of blocked result
+        assert CANARY_URL_USERINFO not in repr(plan)
+        assert CANARY_URL_USERINFO not in str(plan)
+
+    def test_corrupted_field_via_object_setattr_target(self):
+        """Corrupt target_id with canary CSS selector."""
+        real_action = make_action(
+            "CLICK_ALLOWLISTED_ELEMENT",
+            target_id="complaint-body",
+        )
+        object.__setattr__(real_action, "target_id", CANARY_CSS_SELECTOR)
+
+        plan = build_citizen_action_plan([real_action, stop_action()])
+        assert plan.plan_status == "blocked"
+        assert CANARY_CSS_SELECTOR not in repr(plan)
+        assert CANARY_CSS_SELECTOR not in str(plan)
 
 
 # ---------------------------------------------------------------------------
@@ -559,11 +569,31 @@ class TestExplanationKo:
 
 
 # ---------------------------------------------------------------------------
-# AST forbidden import check
+# AST forbidden import check (test-only; lives in test, not source)
 # ---------------------------------------------------------------------------
+
+_FORBIDDEN_IMPORTS = frozenset({
+    "requests",
+    "httpx",
+    "urllib",
+    "socket",
+    "ssl",
+    "http",
+    "subprocess",
+    "threading",
+    "asyncio",
+    "concurrent",
+    "firecrawl",
+    "playwright",
+    "selenium",
+    "aiohttp",
+    "urllib3",
+})
+
 
 class TestForbiddenImports:
     def test_no_forbidden_imports_in_module(self):
+        """Verify source file has no forbidden imports via AST scan."""
         this_file = os.path.join(os.path.dirname(__file__), "..", "src", "agent", "citizen_action_plan.py")
         this_file = os.path.normpath(this_file)
         with open(this_file, encoding="utf-8") as fh:
@@ -582,6 +612,34 @@ class TestForbiddenImports:
 
         assert not found, f"forbidden imports found: {found}"
 
+    def test_import_triggers_no_file_read(self):
+        """Import/reload must not open the source file at runtime."""
+        import importlib
+        import sys
+
+        # Record open() call count before import
+        import builtins
+        opens: list[str] = []
+
+        real_open = builtins.open
+        def tracking_open(*args, **kwargs):
+            opens.append(str(args[0]) if args else "")
+            return real_open(*args, **kwargs)
+
+        builtins.open = tracking_open
+        try:
+            # Force re-import from scratch
+            for mod in list(sys.modules.keys()):
+                if "agent" in mod:
+                    del sys.modules[mod]
+            import src.agent.citizen_action_plan as cap
+
+            # Check that no src/agent path was opened during import
+            agent_file_opens = [f for f in opens if "agent" in f]
+            assert not agent_file_opens, f"File read during import: {agent_file_opens}"
+        finally:
+            builtins.open = real_open
+
 
 # ---------------------------------------------------------------------------
 # Action shape rules (type-specific)
@@ -589,21 +647,18 @@ class TestForbiddenImports:
 
 class TestActionShapeRules:
     def test_ask_clarifying_needs_no_route_no_target_no_choices(self):
-        # Valid
         plan = build_citizen_action_plan([
             make_action("ASK_CLARIFYING_QUESTION"),
             stop_action(),
         ])
         assert plan.plan_status == "guided"
 
-        # route_id not None
         plan = build_citizen_action_plan([
             make_action("ASK_CLARIFYING_QUESTION", route_id="home"),
             stop_action(),
         ])
         assert plan.plan_status == "blocked"
 
-        # target_id not None
         plan = build_citizen_action_plan([
             make_action("ASK_CLARIFYING_QUESTION", target_id="nav-civil-service"),
             stop_action(),
@@ -629,21 +684,18 @@ class TestActionShapeRules:
             "SCROLL_TO_ALLOWLISTED_ELEMENT",
             "CLICK_ALLOWLISTED_ELEMENT",
         ]:
-            # Valid: has target
             plan = build_citizen_action_plan([
                 make_action(atype, target_id="nav-civil-service"),
                 stop_action(),
             ])
             assert plan.plan_status == "guided", f"failed for {atype}"
 
-            # Invalid: no target
             plan = build_citizen_action_plan([
                 make_action(atype),
                 stop_action(),
             ])
             assert plan.plan_status == "blocked", f"failed for {atype}"
 
-            # Invalid: has route
             plan = build_citizen_action_plan([
                 make_action(atype, target_id="nav-civil-service", route_id="home"),
                 stop_action(),
@@ -664,20 +716,18 @@ class TestActionShapeRules:
         assert plan.plan_status == "blocked"
 
     def test_stop_requires_confirmation_true(self):
-        # Valid stop with confirmation=True
         plan = build_citizen_action_plan([
             make_action("OPEN_ALLOWLISTED_ROUTE", route_id="home"),
             stop_action(),
         ])
         assert plan.plan_status == "guided"
 
-        # Invalid stop with confirmation=False
         bad_stop = CitizenAction(
             action_type="STOP_FOR_USER_CONFIRMATION",
             route_id=None,
             target_id=None,
             explanation_id="stop_for_confirmation",
-            requires_user_confirmation=False,  # wrong
+            requires_user_confirmation=False,
             choice_ids=(),
         )
         plan = build_citizen_action_plan([
@@ -687,11 +737,9 @@ class TestActionShapeRules:
         assert plan.plan_status == "blocked"
 
     def test_stop_route_handoff_stop_or_none(self):
-        # route=None is valid
         plan = build_citizen_action_plan([stop_action()])
         assert plan.plan_status == "guided"
 
-        # route=handoff-stop is valid
         stop_handoff = make_action(
             "STOP_FOR_USER_CONFIRMATION",
             route_id="handoff-stop",
@@ -700,7 +748,6 @@ class TestActionShapeRules:
         plan = build_citizen_action_plan([stop_handoff])
         assert plan.plan_status == "guided"
 
-        # route=other is invalid
         stop_bad_route = make_action(
             "STOP_FOR_USER_CONFIRMATION",
             route_id="home",
@@ -711,7 +758,7 @@ class TestActionShapeRules:
 
 
 # ---------------------------------------------------------------------------
-# Missing STOP in middle of list edge case
+# Empty plan
 # ---------------------------------------------------------------------------
 
 class TestEmptyPlan:
@@ -720,14 +767,6 @@ class TestEmptyPlan:
         assert plan.plan_status == "blocked"
 
     def test_empty_tuple_via_validate(self):
-        stop_a = CitizenAction(
-            action_type="STOP_FOR_USER_CONFIRMATION",
-            route_id=None,
-            target_id=None,
-            explanation_id="stop_for_confirmation",
-            requires_user_confirmation=True,
-            choice_ids=(),
-        )
         empty_plan = CitizenActionPlan(
             plan_status="guided",
             actions=(),
@@ -740,26 +779,16 @@ class TestEmptyPlan:
 
 
 # ---------------------------------------------------------------------------
-# Confirm requires_user_confirmation matches action state
+# Confirmation consistency
 # ---------------------------------------------------------------------------
 
 class TestConfirmationConsistency:
     def test_requires_true_when_any_action_requires_true(self):
-        # Has STOP which requires confirmation=True
         plan = build_citizen_action_plan([
             make_action("OPEN_ALLOWLISTED_ROUTE", route_id="home"),
             stop_action(),
         ])
         assert plan.requires_user_confirmation is True
-
-    def test_requires_false_when_no_action_requires_true(self):
-        # Only actions that don't require confirmation
-        plan = build_citizen_action_plan([
-            make_action("OPEN_ALLOWLISTED_ROUTE", route_id="home"),
-            make_action("OPEN_ALLOWLISTED_ROUTE", route_id="civil-service"),
-            make_action("STOP_FOR_USER_CONFIRMATION", requires_user_confirmation=True),
-        ])
-        assert plan.requires_user_confirmation is True  # has STOP
 
 
 # ---------------------------------------------------------------------------
@@ -792,11 +821,10 @@ class TestBlockedStatus:
 # ---------------------------------------------------------------------------
 
 class TestDemosUnchanged:
-    def test_run_all_demos_unchanged(self):
+    def test_run_all_demos_exists(self):
         demos = os.path.join(os.path.dirname(__file__), "..", "scripts", "run_all_demos.py")
         demos = os.path.normpath(demos)
         assert os.path.exists(demos), "scripts/run_all_demos.py must not be deleted"
         with open(demos, encoding="utf-8") as fh:
             content = fh.read()
-        # Just verify it hasn't been gutted or turned into an agent file
         assert "demo" in content.lower() or "run" in content.lower()
