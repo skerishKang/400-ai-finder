@@ -52,7 +52,7 @@
         '<header class="bg-header">' +
           '<div class="bg-header__inner">' +
             '<h1 class="bg-logo">' +
-              '<a href="#">전남광주통합특별시 북구</a>' +
+              '<a href="#">광주광역시 북구</a>' +
             '</h1>' +
             '<div class="bg-header__tools">' +
               '<span class="bg-weather">구름많음 24℃</span>' +
@@ -100,6 +100,7 @@
           '<div class="bg-main-visual">' +
             '<div class="bg-welcome-card">' +
               '<h2 class="bg-welcome-title">따뜻한 북구를<br>만들겠습니다.</h2>' +
+              '<p class="bg-welcome-mayor">북구청장 신수정 입니다.</p>' +
               '<div class="bg-welcome-actions">' +
                 '<a href="#" class="bg-btn bg-btn--primary">열린구청장실 바로가기</a>' +
                 '<a href="#" class="bg-btn bg-btn--outline">매니페스토 바로가기</a>' +
@@ -107,7 +108,10 @@
             '</div>' +
             '<div class="bg-slider">' +
               '<div class="bg-slider-item">' +
-                '<div class="bg-slider-placeholder">2026년 대상포진 예방접종 지원 안내</div>' +
+                '<div class="bg-slider-placeholder">' +
+                  '<strong>2025년 기준 경제총조사</strong><br>' +
+                  '2026. 6. 1. ~ 7. 22.' +
+                '</div>' +
               '</div>' +
               '<div class="bg-slider-controls">' +
                 '<button type="button" class="bg-slider-btn">◀ 이전</button>' +
@@ -127,23 +131,28 @@
             '<a href="#" class="bg-quick-item">일반민원 대기현황</a>' +
           '</div>' +
 
-          /* info grid */
+          /* info grid — two equal columns */
           '<div class="bg-info-grid">' +
+            /* left: 공지사항 */
             '<section class="bg-card bg-card--notice">' +
               '<h3 class="bg-card-title"><a href="#">공지사항</a></h3>' +
               '<ul class="bg-card-list">' +
                 '<li><a href="#">2026.07.03 2026년 국적취득비용(수수료) 지원사업 진행 안내</a></li>' +
-                '<li><a href="#">2026.07.03 축산물이력제 식육포장처리업소 지원사업 안내</a></li>' +
-                '<li><a href="#">2026.07.03 북구 소속 공무원 사칭 피해 주의 안내</a></li>' +
+                '<li><a href="#">2026.07.03 2026년 축산물이력제 식육포장처리업소 이력번호 표시 지원사업 안내</a></li>' +
+                '<li><a href="#">2026.07.03 전남광주통합특별시 북구 소속 공무원 사칭 피해 주의 안내</a></li>' +
               '</ul>' +
               '<a href="#" class="bg-more">더보기</a>' +
             '</section>' +
+            /* right: 주요사이트 */
             '<section class="bg-card bg-card--sites">' +
               '<h3 class="bg-card-title">주요사이트</h3>' +
               '<div class="bg-site-items">' +
-                '<a href="#" class="bg-site-item">탄소중립 지원센터</a>' +
-                '<a href="#" class="bg-site-item">골목형상점가 커뮤니티</a>' +
-                '<a href="#" class="bg-site-item">소상공인 AI 지원플랫폼</a>' +
+                '<a href="#" class="bg-site-item">통계정보</a>' +
+                '<a href="#" class="bg-site-item">평생학습관</a>' +
+                '<a href="#" class="bg-site-item">청년센터</a>' +
+                '<a href="#" class="bg-site-item">문화센터</a>' +
+                '<a href="#" class="bg-site-item">공원시설 예약</a>' +
+                '<a href="#" class="bg-site-item">체육시설 예약</a>' +
               '</div>' +
             '</section>' +
           '</div>' +
@@ -163,6 +172,10 @@
               '<li><a href="#">보건증 발급</a></li>' +
               '<li><a href="#">대형 폐기물 처리</a></li>' +
               '<li><a href="#" data-action-target="nav-civil-service">온라인 민원발급(정부24)</a></li>' +
+              '<li><a href="#">洞운영프로그램안내</a></li>' +
+              '<li><a href="#">소화기 사용법</a></li>' +
+              '<li><a href="#">정보화교육</a></li>' +
+              '<li><a href="#">공공데이터</a></li>' +
             '</ul>' +
           '</div>' +
 
@@ -177,10 +190,9 @@
             '<a href="#">유관기관</a>' +
           '</div>' +
           '<div class="bg-footer-body">' +
-            '<img src="/static/images/bukgu_logo.png" alt="" class="bg-footer-logo" onerror="this.style.display=\'none\'" />' +
             '<div class="bg-footer-info">' +
-              '<p>대표전화: 062-410-8000</p>' +
-              '<p>운영시간: 평일 09:00~18:00 (점심시간 12:00~13:00)</p>' +
+              '<p>61187 전남광주통합특별시 북구 우치로 77 (용봉동) | 대표전화: 062-410-8000</p>' +
+              '<p>운영시간: 평일 09:00~18:00 (점심시간 12:00~13:00) ※ 주말, 공휴일 휴무</p>' +
             '</div>' +
           '</div>' +
           '<div class="bg-footer-legal">' +
@@ -189,6 +201,13 @@
             '<a href="#">개인정보처리방침</a>' +
             '<span>|</span>' +
             '<a href="#">저작권 보호정책</a>' +
+            '<span>|</span>' +
+            '<a href="#">이메일무단수집거부</a>' +
+            '<span>|</span>' +
+            '<a href="#">영상정보처리기기 운영·관리 방침</a>' +
+          '</div>' +
+          '<div class="bg-footer-copy">' +
+            '<p>Copyright © Jeonnam-Gwangju Special Metropolitan City BUKGU. all rights reserved.</p>' +
           '</div>' +
         '</footer>' +
       '</div>'
@@ -212,15 +231,20 @@
     );
   }
 
-  /** Complaint category — LNB + sidebar menu reconstruction */
+  /** Complaint category — LNB + category cards */
   function _renderComplaintCategory(route) {
     var categoryHtml = "";
     for (var i = 0; i < route.navTargets.length; i++) {
       var tid = route.navTargets[i];
       var label = _map.getCategoryLabel(tid) || tid;
       categoryHtml +=
-        '<li><a href="#" data-action-target="' + _escHtml(tid) + '">' +
-        _escHtml(label) + '</a></li>';
+        '<button class="bg-category-card" ' +
+        'data-action-target="' + _escHtml(tid) + '" ' +
+        'tabindex="0" type="button">' +
+        '<span class="bg-category-card__icon">📋</span>' +
+        '<span class="bg-category-card__label">' + _escHtml(label) + '</span>' +
+        '<span class="bg-category-card__arrow" aria-hidden="true">›</span>' +
+        '</button>';
     }
 
     return (
@@ -228,7 +252,7 @@
         _renderSubHeader("종합민원") +
         _renderBreadcrumb([{label:"홈"},{label:"종합민원"},{label:"전자민원창구"}]) +
         '<div class="bg-layout bg-layout--lnb">' +
-          /* LNB */
+          /* LNB — matches actual site structure */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
             '<div class="bg-lnb__header">종합민원</div>' +
             '<ul class="bg-lnb__list">' +
@@ -236,7 +260,12 @@
               '<li class="bg-lnb__item bg-lnb__item--open">' +
                 '<a href="#" class="bg-lnb__parent">전자민원창구</a>' +
                 '<ul class="bg-lnb__sub">' +
-                  categoryHtml +
+                  '<li><a href="#">민원처리공개</a></li>' +
+                  '<li><a href="#">민원상담(국민신문고)</a></li>' +
+                  '<li><a href="#">정부24</a></li>' +
+                  '<li><a href="#">청원24(온라인청원제도)</a></li>' +
+                  '<li><a href="#">온라인 행정심판이용안내</a></li>' +
+                  '<li><a href="#">110수화(화상)상담</a></li>' +
                 '</ul>' +
               '</li>' +
               '<li class="bg-lnb__item"><a href="#">민원신고</a></li>' +
