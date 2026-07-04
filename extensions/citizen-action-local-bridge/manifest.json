@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Citizen Action Local Bridge",
+  "version": "0.1.0",
+  "description": "MV3 content-script transport/validation scaffold for local fixture only. No network, no storage, no browser execution of actions.",
+  "action": {
+    "default_title": "Citizen Action Local Bridge"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/static/citizen-action-demo.html",
+        "http://127.0.0.1/static/citizen-action-demo.html",
+        "http://localhost/citizen-action-demo.html",
+        "http://127.0.0.1/citizen-action-demo.html"
+      ],
+      "js": ["protocol.js", "content-script.js"],
+      "run_at": "document_idle",
+      "all_frames": false,
+      "world": "ISOLATED"
+    }
+  ]
+}
