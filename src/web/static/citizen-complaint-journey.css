@@ -1,0 +1,208 @@
+/*
+ * citizen-complaint-journey.css — Stage #849 Phase B.
+ *
+ * Local closed-choice complaint intake journey styling.
+ * Uses only `.journey-` prefixed classes so it does not override
+ * the copilot shell, canvas, or executor styles.
+ *
+ * No external font, image, URL, or @import.
+ */
+
+/* Section wrapper -------------------------------------------------------- */
+.journey-section {
+  border-top: 1px solid #e3e8ef;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.journey-section__title {
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+/* Status line ------------------------------------------------------------ */
+.journey-status-text {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #2c3e50;
+  margin: 0;
+  padding: 6px 8px;
+  background: #f4f7fb;
+  border-radius: 6px;
+  border: 1px solid #e3e8ef;
+}
+
+/* Fact choice cards ------------------------------------------------------ */
+.journey-facts-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.journey-fact-group {
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  padding: 8px;
+  background: #ffffff;
+}
+
+.journey-fact-group__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #34495e;
+  margin-bottom: 6px;
+}
+
+.journey-fact-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.journey-choice-card {
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  color: #2c3e50;
+  background: #ffffff;
+  border: 1px solid #c7d2dc;
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.journey-choice-card:hover {
+  border-color: #5d8bb3;
+  background: #f0f6fc;
+}
+
+.journey-choice-card:focus-visible {
+  outline: 2px solid #5d8bb3;
+  outline-offset: 1px;
+}
+
+/* Selected state — must be unambiguous */
+.journey-choice-card--selected {
+  background: #1f6feb;
+  border-color: #1f6feb;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.journey-choice-card--selected:hover {
+  background: #1a60d4;
+  border-color: #1a60d4;
+  color: #ffffff;
+}
+
+/* Build / reset control buttons */
+.journey-control-btn {
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: pointer;
+  border: 1px solid #c7d2dc;
+  background: #ffffff;
+  color: #2c3e50;
+}
+
+.journey-control-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background: #eef2f6;
+}
+
+.journey-control-btn:focus-visible {
+  outline: 2px solid #5d8bb3;
+  outline-offset: 1px;
+}
+
+.journey-control-btn--primary {
+  background: #1f6feb;
+  border-color: #1f6feb;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.journey-control-btn--primary:hover:not(:disabled) {
+  background: #1a60d4;
+}
+
+.journey-control-btn--danger {
+  background: #ffffff;
+  border-color: #d4691f;
+  color: #a14a14;
+}
+
+.journey-control-btn--danger:hover:not(:disabled) {
+  background: #fef3ea;
+}
+
+.journey-controls-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Review draft ----------------------------------------------------------- */
+.journey-draft-text {
+  font-family: inherit;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  margin: 0;
+  padding: 10px;
+  background: #fbfcfe;
+  border: 1px solid #c7d2dc;
+  border-radius: 8px;
+  color: #2c3e50;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.journey-review-caption {
+  font-size: 0.72rem;
+  color: #6b7785;
+  margin: 6px 0 8px 0;
+  letter-spacing: -0.01em;
+}
+
+.journey-review-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Terminal notice — visually distinct from review draft ------------------- */
+.journey-terminal-text {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #4a3a1a;
+  background: #fff8e1;
+  border: 1px solid #e0c98a;
+  border-left: 4px solid #d4a64a;
+  border-radius: 6px;
+  padding: 10px;
+  margin: 0;
+}
+
+.journey-terminal-text:empty {
+  display: none;
+}
+
+/* Hide empty review draft area cleanly */
+.journey-draft-text:empty::before {
+  content: "아직 작성된 검토용 초안이 없습니다.";
+  color: #9aa7b3;
+}
+
+/* Compact (mobile) adjustments — kept scoped to journey classes only */
+@media (max-width: 720px) {
+  .journey-choice-card {
+    flex: 1 1 auto;
+  }
+}
