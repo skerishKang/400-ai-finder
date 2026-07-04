@@ -344,14 +344,16 @@ body[data-copilot-dock="right"] {
 .chat-composer-send-btn {
   background: #e2e8f0;
   border: none;
-  border-radius: 50%;
-  width: 32px;
+  border-radius: 16px;
   height: 32px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #94a3b8;
   cursor: not-allowed;
+  font-size: 0.775rem;
+  font-weight: 700;
   transition: background 0.15s, color 0.15s;
 }
 
