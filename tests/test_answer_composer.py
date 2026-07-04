@@ -210,6 +210,31 @@ class TestBuildSourceContext:
 # Messages generation
 # ======================================================================
 
+    def test_url_validation_flags_untrusted_url(self):
+        """URL validation flags URLs not present in source context."""
+        result = AnswerComposer._validate_answer_urls(
+            "자세한 내용은 https://evil.example.com/page 에서 확인하세요.",
+            [{"url": "https://bukgu.gwangju.kr/menu.es?mid=a101"}],
+        )
+        assert result["ok"] is False
+        assert result["untrusted_urls"] == ["https://evil.example.com/page"]
+
+    def test_url_validation_allows_source_url(self):
+        """URL validation allows exact source URLs."""
+        result = AnswerComposer._validate_answer_urls(
+            "자세한 내용은 https://bukgu.gwangju.kr/menu.es?mid=a101 에서 확인하세요.",
+            [{"url": "https://bukgu.gwangju.kr/menu.es?mid=a101"}],
+        )
+        assert result["ok"] is True
+        assert result["untrusted_urls"] == []
+
+    def test_no_results_answer(self):
+        """No-results convenience answer is still available."""
+        result = AnswerComposer._no_results_answer("테스트")
+        assert result["ok"] is True
+        assert result["sources"] == []
+
+
 class TestBuildMessages:
     def test_system_and_user_messages(self):
         """Messages contain a system message and a user message."""
@@ -475,6 +500,27 @@ class TestNoSourceGuidance:
         assert result["ok"] is True
         assert result["answer_markdown"]
         assert len(result["sources"]) == 2
+        assert result["url_validation"]["ok"] is True
+
+    def test_source_backed_answer_reports_untrusted_url(self):
+        """Composer reports URLs generated outside source context."""
+        from src.llm import MockProvider
+
+        class FixedUrlProvider(MockProvider):
+            def __init__(self):
+                super().__init__(
+                    "## 답변\n\n"
+                    "다음 링크에서 확인하세요: https://evil.example.com/page\n\n"
+                    "## 확인 필요\n\n"
+                    "정확한 최신 내용은 연결된 공식 홈페이지에서 확인해 주세요."
+                )
+
+        composer = AnswerComposer(provider=FixedUrlProvider())
+        result = composer.compose(SAMPLE_SEARCH_RESULTS)
+        assert result["ok"] is True
+        assert result["url_validation"]["ok"] is False
+        assert "https://evil.example.com/page" in result["url_validation"]["untrusted_urls"]
+        assert any("Generated answer contains URLs not present" in warning for warning in result["warnings"])
 
     def test_no_source_path_seals_provider_completion(self):
         """No-results path must not call provider complete."""

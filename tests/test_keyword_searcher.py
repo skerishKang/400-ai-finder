@@ -119,6 +119,23 @@ def test_snippet_generation():
     snippet_desc = make_snippet(doc_no_text, ["제출서류"])
     assert "제출서류" in snippet_desc
 
+def test_metadata_link_texts_non_list():
+    """Searcher should tolerate malformed metadata.link_texts values."""
+    searcher = KeywordSearcher()
+    searcher.docs = [
+        {
+            "id": "doc-1",
+            "title": "지원사업 신청",
+            "content_type": "page",
+            "canonical_url": "https://example.com/apply",
+            "metadata": {"link_texts": "지원사업 신청"},
+        }
+    ]
+    results = searcher.search("지원사업")
+    assert len(results) == 1
+    assert results[0]["id"] == "doc-1"
+
+
 def test_deterministic_sorting():
     searcher = KeywordSearcher()
     # Doc 1 & Doc 2 have identical scores

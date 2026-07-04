@@ -200,9 +200,9 @@ function addMessageToDOM(role, html, sources, animate = true){
     sources.forEach(s => {
       const a = document.createElement('a');
       a.className = 'source-link';
-      a.href = s.url || '#';
+      a.href = safeUrl(s.url);
       a.target = '_blank';
-      a.rel = 'noopener';
+      a.rel = 'noopener noreferrer';
       
       const domain = extractDomain(s.url);
       a.innerHTML =
@@ -328,13 +328,23 @@ function esc(s){
   return d.innerHTML;
 }
 
+function safeUrl(url) {
+  const trimmed = String(url || '').trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^\/(?!\/)/.test(trimmed)) return trimmed;
+  return '#';
+}
+
 function renderMarkdown(md){
   let html = md
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => {
+      const safe = safeUrl(url);
+      return '<a href="' + esc(safe) + '" target="_blank" rel="noopener noreferrer">' + esc(label) + '</a>';
+    })
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
     .replace(/\n\n/g, '</p><p>')

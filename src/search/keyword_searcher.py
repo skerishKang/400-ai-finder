@@ -3,6 +3,12 @@ import re
 import json
 from urllib.parse import urlparse
 
+def _as_list(value):
+    if isinstance(value, (list, tuple, set)):
+        return list(value)
+    return []
+
+
 def normalize_text(text):
     if not text:
         return ""
@@ -142,7 +148,7 @@ class KeywordSearcher:
 
             fields_text = {
                 "title": normalize_text(doc.get("title", "")),
-                "metadata.link_texts": normalize_text(" ".join(doc.get("metadata", {}).get("link_texts", []))),
+                "metadata.link_texts": normalize_text(" ".join(_as_list(doc.get("metadata", {}).get("link_texts", [])))),
                 "category": doc.get("category", "").lower(),
                 "summary": normalize_text(doc.get("summary", "")),
                 "text": normalize_text(doc.get("text", "")),

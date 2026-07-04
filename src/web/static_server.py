@@ -44,7 +44,7 @@ def serve_static(handler) -> None:
     file_path = os.path.normpath(os.path.join(STATIC_ROOT, relative))
 
     # Security: ensure the resolved path is under STATIC_ROOT
-    if not file_path.startswith(os.path.normpath(STATIC_ROOT)):
+    if os.path.commonpath([file_path, os.path.normpath(STATIC_ROOT)]) != os.path.normpath(STATIC_ROOT):
         handler.send_error(404)
         return
 

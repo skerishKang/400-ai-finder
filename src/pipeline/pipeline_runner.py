@@ -437,4 +437,5 @@ def _step_fail(name: str, output: str, error: Exception) -> dict[str, Any]:
 
 def make_default_output_dir(base: str = "data/runs") -> str:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    return os.path.join(base, f"run-{timestamp}")
+    base = base.replace(os.sep, "/")
+    return f"{base}/run-{timestamp}"

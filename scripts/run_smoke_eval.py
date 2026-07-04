@@ -12,11 +12,11 @@ import argparse
 import json
 import os
 from collections import Counter
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 from urllib.parse import urlparse
 
-DEFAULT_MATRIX_PATH = Path("tests/fixtures/smoke_scenario_matrix.json")
+DEFAULT_MATRIX_PATH = PurePosixPath("tests/fixtures/smoke_scenario_matrix.json")
 LIVE_EVAL_ENV_VAR = "AI_FINDER_LIVE_EVAL"
 LIVE_PREFLIGHT_CONFIG_NAMES = (
     LIVE_EVAL_ENV_VAR,
@@ -88,10 +88,14 @@ class SmokeLiveEvalGuardError(ValueError):
     """Raised when live smoke eval is requested without explicit opt-in."""
 
 
+def _as_path(path: Path | PurePosixPath | str) -> Path:
+    return Path(str(path).replace("\\", "/"))
+
+
 def load_matrix(path: Path) -> dict[str, Any]:
     """Load a smoke scenario matrix JSON file."""
     try:
-        with path.open("r", encoding="utf-8") as file:
+        with _as_path(path).open("r", encoding="utf-8") as file:
             data = json.load(file)
     except FileNotFoundError as exc:
         raise SmokeScenarioMatrixError(f"Matrix file not found: {path}") from exc
@@ -106,7 +110,7 @@ def load_matrix(path: Path) -> dict[str, Any]:
 def load_response_fixture(path: Path) -> dict[str, Any]:
     """Load an offline smoke response fixture JSON file."""
     try:
-        with path.open("r", encoding="utf-8") as file:
+        with _as_path(path).open("r", encoding="utf-8") as file:
             data = json.load(file)
     except FileNotFoundError as exc:
         raise SmokeResponseFixtureError(f"Response fixture file not found: {path}") from exc

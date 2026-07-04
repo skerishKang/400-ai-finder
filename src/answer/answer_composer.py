@@ -7,8 +7,9 @@ a source-grounded answer.
 from __future__ import annotations
 
 import json
-import os
+import re
 from typing import Any
+from urllib.parse import urlparse
 
 from ..llm import LLMProvider, ProviderResult, get_provider
 
@@ -57,6 +58,18 @@ SYSTEM_PROMPT = (
     "모든 답변에는 마지막에 다음 문구를 포함한다:\n"
     "\"정확한 최신 내용은 연결된 공식 홈페이지에서 확인해 주세요.\""
 )
+
+
+def _parse_url(url: str):
+    try:
+        return urlparse(url)
+    except Exception:
+        return None
+
+
+def _url_matches_source_host(url: str, source_hosts: set[str]) -> bool:
+    parsed = _parse_url(url)
+    return bool(parsed and parsed.hostname and parsed.hostname in source_hosts)
 
 
 class AnswerComposer:
@@ -163,6 +176,9 @@ class AnswerComposer:
                 "guard_reason": assessment.reason,
             }
 
+        url_validation = self._validate_answer_urls(provider_result.content, sources)
+        warnings = guard_warnings + url_validation["warnings"]
+
         return {
             "query": query,
             "provider": provider_result.provider,
@@ -170,10 +186,11 @@ class AnswerComposer:
             "ok": True,
             "answer_markdown": provider_result.content,
             "sources": sources,
-            "warnings": guard_warnings,
+            "warnings": warnings,
             "error": "",
             "guard_status": assessment.status,
             "guard_reason": assessment.reason,
+            "url_validation": url_validation,
         }
 
     # ------------------------------------------------------------------
@@ -198,6 +215,7 @@ class AnswerComposer:
                 "id": res.get("id", ""),
                 "title": res.get("title", ""),
                 "url": res.get("url", ""),
+                "canonical_url": res.get("canonical_url", ""),
                 "category": res.get("category", ""),
                 "content_type": res.get("content_type", ""),
                 "score": res.get("score", 0.0),
@@ -252,6 +270,41 @@ class AnswerComposer:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
         ]
+
+    @staticmethod
+    def _validate_answer_urls(answer_markdown: str, sources: list[dict[str, Any]]) -> dict[str, Any]:
+        """Validate URLs in generated Markdown against provided source URLs."""
+        url_pattern = re.compile(r"https?://[^\s)>\]]+")
+        source_urls = {
+            str(src.get("url", "")).strip()
+            for src in sources
+            if str(src.get("url", "")).strip()
+        }
+        source_urls.update(
+            str(src.get("canonical_url", "")).strip()
+            for src in sources
+            if str(src.get("canonical_url", "")).strip()
+        )
+        source_hosts = {
+            parsed.hostname
+            for url in source_urls
+            if (parsed := _parse_url(url)) and parsed.hostname
+        }
+        found_urls = sorted({url.rstrip(".,") for url in url_pattern.findall(answer_markdown)})
+        untrusted_urls = [
+            url for url in found_urls
+            if url not in source_urls and not _url_matches_source_host(url, source_hosts)
+        ]
+        return {
+            "ok": not untrusted_urls,
+            "found_urls": found_urls,
+            "source_urls": sorted(source_urls),
+            "source_hosts": sorted(source_hosts),
+            "untrusted_urls": untrusted_urls,
+            "warnings": [
+                "Generated answer contains URLs not present in source context: " + ", ".join(untrusted_urls)
+            ] if untrusted_urls else [],
+        }
 
     @staticmethod
     def _no_results_answer(query: str) -> dict[str, Any]:

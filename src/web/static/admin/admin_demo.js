@@ -24,7 +24,7 @@ async function init(){
     const p = d.profile || {};
     document.getElementById('profileInfo').innerHTML = kvRows({
       '기관명': p.name || '-',
-      'Base URL': p.base_url ? '<a href="' + esc(p.base_url) + '" target="_blank">' + esc(p.base_url) + '</a>' : '-',
+      'Base URL': p.base_url ? '<a href="' + esc(safeUrl(p.base_url)) + '" target="_blank" rel="noopener noreferrer">' + esc(p.base_url) + '</a>' : '-',
       '분류': p.classification || '-',
       'Fetch Provider': p.preferred_fetch_provider || '-',
       '중요 키워드': (p.important_keywords||[]).join(', ') || '-',
@@ -57,6 +57,13 @@ async function init(){
   }
 }
 
+function safeUrl(url) {
+  const trimmed = String(url || '').trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^\/(?!\/)/.test(trimmed)) return trimmed;
+  return '#';
+}
+
 function populateSiteSelect(profiles, currentSiteId) {
   const sel = document.getElementById('siteSelect');
   sel.innerHTML = '';
@@ -86,7 +93,7 @@ function updateSiteSelectInfo() {
   const info = document.getElementById('siteSelectInfo');
   const pr = allProfiles.find(p => p.site_id === selectedSiteId);
   if (pr) {
-    info.innerHTML = '<a href="' + esc(pr.base_url) + '" target="_blank" style="color:var(--primary)">' + esc(pr.base_url) + '</a>'
+    info.innerHTML = '<a href="' + esc(safeUrl(pr.base_url)) + '" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">' + esc(pr.base_url) + '</a>'
       + ' <span class="tag blue">' + esc(pr.classification || '-') + '</span>';
   } else {
     info.textContent = '';

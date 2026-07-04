@@ -89,6 +89,21 @@ def test_source_match_guard_blocks_youth_jobs_question_with_unrelated_informatio
     assert assessment.status in ("no_results", "warn")
 
 
+def test_source_match_guard_tolerates_non_list_matched_terms():
+    """Guard should tolerate malformed matched_terms values."""
+    sources = [
+        {
+            "id": "civil-01",
+            "title": "종합민원실",
+            "snippet": "온라인 민원 신청 및 민원서식 발급",
+            "category": "civil",
+            "matched_terms": "민원 신청",
+        }
+    ]
+    assessment = assess_source_match("민원 신청 어디서 해?", sources)
+    assert assessment.status == "pass"
+
+
 # ------------------------------------------------------------------
 # Pipeline Integration Tests
 # ------------------------------------------------------------------

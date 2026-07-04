@@ -31,10 +31,16 @@ TOPICS = {
 }
 
 GENERIC_STOPWORDS = {
-    "어디", "어디서", "어떻게", "방법", "알려줘", "확인", "조회", "검색", 
+    "어디", "어디서", "어떻게", "방법", "알려줘", "확인", "조회", "검색",
     "홈페이지", "누구", "이름", "누구야", "알려", "좀", "해", "봐", "하고",
     "이", "가", "을", "를", "은", "는", "에", "의", "로", "으로", "에서"
 }
+
+
+def _as_list(value):
+    if isinstance(value, (list, tuple, set)):
+        return list(value)
+    return []
 
 
 def _extract_tokens(text: str) -> set[str]:
@@ -94,7 +100,7 @@ def assess_source_match(
                 snippet = src.get("snippet", "") or ""
                 category = src.get("category", "") or ""
                 description = src.get("description", "") or ""
-                matched_terms = src.get("matched_terms", []) or []
+                matched_terms = _as_list(src.get("matched_terms", []))
                 
                 src_text = f"{title} {snippet} {category} {description} {' '.join(matched_terms)}".lower()
                 for kw in keywords:
