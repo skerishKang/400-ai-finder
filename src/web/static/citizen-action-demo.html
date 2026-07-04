@@ -9,9 +9,79 @@
   <link rel="stylesheet" href="/static/citizen-action-executor.css">
   <link rel="stylesheet" href="/static/citizen-complaint-journey.css">
 </head>
-<body data-copilot-dock="right" data-copilot-dock-choices="left right"><!-- allowed dock values: left, right -->
-  <!-- Dock rail: left or right side panel -->
-  <aside class="copilot-rail" id="copilot-rail" role="complementary" aria-label="시민 행동 가이드" tabindex="-1">
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════
+       Chat-first shell — primary right-side panel
+       ChatGPT/Tabbit-style conversation UI
+       ═══════════════════════════════════════════════════════ -->
+  <aside class="chat-shell" id="chat-shell" role="complementary" aria-label="AI 민원 도우미">
+    <div class="chat-shell__header">
+      <span class="chat-shell__title">AI 민원 도우미</span>
+      <span class="chat-shell__badge">데모</span>
+    </div>
+
+    <!-- Conversation thread -->
+    <div class="chat-thread" id="chat-thread">
+      <!-- User question -->
+      <div class="chat-msg chat-msg--user">
+        <div class="chat-bubble chat-bubble--user">
+          불법 주정차 신고는 어디서 하나요?
+        </div>
+      </div>
+
+      <!-- AI response 1 -->
+      <div class="chat-msg chat-msg--ai">
+        <div class="chat-avatar" aria-label="AI">A</div>
+        <div class="chat-bubble chat-bubble--ai">
+          북구청 홈페이지에서 신고 경로를 확인하겠습니다.
+        </div>
+      </div>
+
+      <!-- AI response 2 -->
+      <div class="chat-msg chat-msg--ai">
+        <div class="chat-avatar" aria-label="AI">A</div>
+        <div class="chat-bubble chat-bubble--ai">
+          종합민원 메뉴에서 온라인 민원신청 경로를 찾고 있습니다. 잠시만 기다려 주세요.
+        </div>
+      </div>
+
+      <!-- Compact progress indicator -->
+      <div class="chat-progress">
+        <span class="chat-progress__label">진행 단계</span>
+        <div class="chat-progress__steps">
+          <span class="chat-progress__step chat-progress__step--done">✓ 홈</span>
+          <span class="chat-progress__step chat-progress__step--active">● 신청</span>
+          <span class="chat-progress__step">○ 확인</span>
+          <span class="chat-progress__step">○ 종료</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat composer -->
+    <div class="chat-composer">
+      <div class="chat-composer__row">
+        <input
+          class="chat-composer__input"
+          type="text"
+          placeholder="민원에 대해 물어보세요..."
+          aria-label="메시지 입력"
+          disabled
+        />
+        <button class="chat-composer__send" type="button" disabled aria-label="보내기">
+          보내기
+        </button>
+      </div>
+      <p class="chat-composer__hint">로컬 시연 — 입력이 비활성화되어 있습니다.</p>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════
+       Legacy copilot rail — hidden but kept for compatibility
+       ═══════════════════════════════════════════════════════ -->
+  <aside class="copilot-rail" id="copilot-rail"
+    role="complementary" aria-label="시민 행동 가이드"
+    style="display:none;" tabindex="-1">
     <div class="copilot-header" id="copilot-header">
       <span class="copilot-title">AI 민원 도우미</span>
       <button
@@ -24,60 +94,29 @@
       </button>
     </div>
 
-    <!-- Conversation / clarifying choices region -->
-    <section
-      class="copilot-section"
-      id="copilot-conversation"
-      aria-labelledby="conv-heading"
-    >
+    <section class="copilot-section" id="copilot-conversation" aria-labelledby="conv-heading">
       <h2 class="copilot-section-title" id="conv-heading" aria-label="대화 영역">대화</h2>
       <ul class="copilot-conversation-list" id="conversation-list" role="list" aria-live="polite">
         <li class="conv-item conv-item--user">불법 주정차 신고는 어디서 하나요?</li>
         <li class="conv-item conv-item--assistant">북구청 홈페이지에서 신고 경로를 확인하겠습니다.</li>
-        <li class="conv-item conv-item--assistant">종합민원 메뉴에서 온라인 민원신청 경로를 찾고 있습니다. 잠시만 기다려 주세요.</li>
+        <li class="conv-item conv-item--assistant">종합민원 메뉴에서 온라인 민원신청 경로를 찾고 있습니다.</li>
       </ul>
-      <div class="copilot-choices" id="clarifying-choices" role="group" aria-label="선택지">
-        <!-- category buttons are rendered at runtime by
-             citizen-complaint-journey-ui.js from CitizenComplaintJourney.getClosedChoices() -->
-      </div>
+      <div class="copilot-choices" id="clarifying-choices" role="group" aria-label="선택지"></div>
     </section>
 
-    <!-- Current action explanation → currently hidden; use display:none on load if executor/trace was removed -->
-    <section
-      class="copilot-section"
-      id="copilot-action-explanation"
-      aria-labelledby="action-exp-heading"
-      style="display:none;"
-    >
+    <section class="copilot-section" id="copilot-action-explanation" aria-labelledby="action-exp-heading" style="display:none;">
       <h2 class="copilot-section-title" id="action-exp-heading" aria-label="현재 동작">현재 동작</h2>
-      <p class="action-explanation" id="current-explanation">
-        해당 페이지로 이동합니다.
-      </p>
+      <p class="action-explanation" id="current-explanation">해당 페이지로 이동합니다.</p>
     </section>
 
-    <!-- Action trace → hidden in chat-first UI -->
-    <section
-      class="copilot-section"
-      id="copilot-trace"
-      aria-labelledby="trace-heading"
-      style="display:none;"
-    >
+    <section class="copilot-section" id="copilot-trace" aria-labelledby="trace-heading" style="display:none;">
       <h2 class="copilot-section-title" id="trace-heading" aria-label="동작 추적">동작 추적</h2>
-      <ol class="action-trace-list" id="action-trace" role="list" aria-live="polite" aria-label="실행된 동작 순서">
-      </ol>
+      <ol class="action-trace-list" id="action-trace" role="list" aria-live="polite" aria-label="실행된 동작 순서"></ol>
     </section>
 
-    <!-- Executor controls → hidden in chat-first UI (no 제어판) -->
-    <section
-      class="copilot-section"
-      id="copilot-executor"
-      aria-labelledby="executor-heading"
-      style="display:none;"
-    >
+    <section class="copilot-section" id="copilot-executor" aria-labelledby="executor-heading" style="display:none;">
       <h2 class="copilot-section-title" id="executor-heading" aria-label="시연 제어">시연 제어</h2>
-      <div class="executor-status" id="executor-status" aria-live="polite">
-        대기 중
-      </div>
+      <div class="executor-status" id="executor-status" aria-live="polite">대기 중</div>
       <div class="executor-controls" role="group" aria-label="시연 실행">
         <button class="exec-btn" id="btn-exec-nav" type="button">민원 경로 시연 시작</button>
         <button class="exec-btn" id="btn-exec-prefill" type="button">초안 채우기 시연</button>
@@ -89,140 +128,55 @@
       </div>
     </section>
 
-    <!-- Explicit user-confirmation control → hidden in chat-first UI -->
-    <section
-      class="copilot-section copilot-confirm-section"
-      id="copilot-confirmation"
-      aria-labelledby="confirm-heading"
-      style="display:none;"
-    >
+    <section class="copilot-section copilot-confirm-section" id="copilot-confirmation" aria-labelledby="confirm-heading" style="display:none;">
       <h2 class="copilot-section-title" id="confirm-heading" aria-label="확인 대기">확인 필요</h2>
-      <p class="confirm-notice" id="confirm-notice">
-        계속 진행하려면 사용자의 확인이 필요합니다.
-      </p>
+      <p class="confirm-notice" id="confirm-notice">계속 진행하려면 사용자의 확인이 필요합니다.</p>
       <div class="confirm-controls" role="group" aria-label="확인 제어">
-        <button
-          class="confirm-btn confirm-btn--approve"
-          id="btn-confirm-approve"
-          type="button"
-          aria-disabled="false"
-        >
-          계속 진행
-        </button>
-        <button
-          class="confirm-btn confirm-btn--cancel"
-          id="btn-confirm-cancel"
-          type="button"
-          aria-disabled="false"
-        >
-          취소
-        </button>
+        <button class="confirm-btn confirm-btn--approve" id="btn-confirm-approve" type="button" aria-disabled="false">계속 진행</button>
+        <button class="confirm-btn confirm-btn--cancel" id="btn-confirm-cancel" type="button">취소</button>
       </div>
     </section>
 
-    <!-- Non‑persistence disclosure — visible from load, no dynamic rendering.
-         This local demo never submits real complaints, never persists choices,
-         drafts, or trace records to browser storage or server.
-         Stage #850: always-on notice. -->
-    <section
-      class="copilot-section"
-      id="action-demo-nonpersistence-disclosure"
-      aria-labelledby="action-demo-nonpersistence-heading"
-    >
-      <h2
-        class="copilot-section-title"
-        id="action-demo-nonpersistence-heading"
-        aria-label="시연 데이터 안내"
-      >시연 데이터 안내</h2>
+    <section class="copilot-section" id="action-demo-nonpersistence-disclosure" aria-labelledby="action-demo-nonpersistence-heading">
+      <h2 class="copilot-section-title" id="action-demo-nonpersistence-heading" aria-label="시연 데이터 안내">시연 데이터 안내</h2>
       <p id="action-demo-nonpersistence-text">
         이 로컬 시연은 민원을 실제로 제출하지 않으며, 선택 내용·검토용 초안·진행 기록을 브라우저나 서버에 저장하지 않습니다.
         페이지를 새로 고치거나 닫으면 현재 시연 세션은 사라집니다.
       </p>
     </section>
 
-    <!-- Local complaint intake journey (Stage #849 Phase B).
-         Closed-choice only. No forms, no inputs, no submit, no network.
-         Populated at runtime by citizen-complaint-journey-ui.js. -->
-    <section
-      class="copilot-section journey-section"
-      id="journey-status"
-      aria-labelledby="journey-status-heading"
-    >
+    <section class="copilot-section journey-section" id="journey-status" aria-labelledby="journey-status-heading">
       <h2 class="copilot-section-title journey-section__title" id="journey-status-heading" aria-label="민원 안내 상태">민원 안내 상태</h2>
-      <p class="journey-status-text" id="journey-status-text" aria-live="polite">
-        민원 유형을 선택해 주세요.
-      </p>
+      <p class="journey-status-text" id="journey-status-text" aria-live="polite">민원 유형을 선택해 주세요.</p>
     </section>
 
-    <section
-      class="copilot-section journey-section"
-      id="journey-fact-choices"
-      aria-labelledby="journey-facts-heading"
-    >
+    <section class="copilot-section journey-section" id="journey-fact-choices" aria-labelledby="journey-facts-heading">
       <h2 class="copilot-section-title journey-section__title" id="journey-facts-heading" aria-label="항목 선택">항목 선택</h2>
-      <!-- fixed fact closed-choice cards are rendered at runtime by
-           citizen-complaint-journey-ui.js from CitizenComplaintJourney.getClosedChoices()
-           based on getClarification() missing fields. -->
       <div class="journey-facts-body" id="journey-facts-body" role="group" aria-label="항목 선택지"></div>
     </section>
 
-    <section
-      class="copilot-section journey-section"
-      id="journey-draft-review"
-      aria-labelledby="journey-review-heading"
-    >
+    <section class="copilot-section journey-section" id="journey-draft-review" aria-labelledby="journey-review-heading">
       <h2 class="copilot-section-title journey-section__title" id="journey-review-heading" aria-label="검토용 초안">검토용 초안</h2>
-      <!-- review draft text is rendered as textContent only (no innerHTML). -->
       <pre class="journey-draft-text" id="journey-draft-text" aria-live="polite"></pre>
-      <p class="journey-review-caption" id="journey-review-caption">
-        검토용 초안 · 실제 제출 전 확인 필요 · 로컬 개념 시연
-      </p>
-      <div class="journey-review-controls" id="journey-review-controls" role="group" aria-label="초안 검토 제어">
-        <!-- review control buttons are rendered at runtime -->
-      </div>
+      <p class="journey-review-caption" id="journey-review-caption">검토용 초안 · 실제 제출 전 확인 필요 · 로컬 개념 시연</p>
+      <div class="journey-review-controls" id="journey-review-controls" role="group" aria-label="초안 검토 제어"></div>
     </section>
 
-    <section
-      class="copilot-section journey-section"
-      id="journey-controls"
-      aria-labelledby="journey-controls-heading"
-    >
+    <section class="copilot-section journey-section" id="journey-controls" aria-labelledby="journey-controls-heading">
       <h2 class="copilot-section-title journey-section__title" id="journey-controls-heading" aria-label="초안 제어">초안 제어</h2>
-      <div class="journey-controls-body" id="journey-controls-body" role="group" aria-label="초안 빌드 제어">
-        <!-- build/reset control buttons are rendered at runtime -->
-      </div>
+      <div class="journey-controls-body" id="journey-controls-body" role="group" aria-label="초안 빌드 제어"></div>
     </section>
 
-    <section
-      class="copilot-section journey-section"
-      id="journey-terminal-notice"
-      aria-labelledby="journey-terminal-heading"
-    >
+    <section class="copilot-section journey-section" id="journey-terminal-notice" aria-labelledby="journey-terminal-heading">
       <h2 class="copilot-section-title journey-section__title" id="journey-terminal-heading" aria-label="종료 안내">종료 안내</h2>
       <p class="journey-terminal-text" id="journey-terminal-text" aria-live="polite"></p>
     </section>
-
-    <!-- Chat composer — persistent input at rail bottom -->
-    <div class="chat-composer" id="chat-composer">
-      <div class="chat-composer__input-wrapper">
-        <input
-          class="chat-composer__input"
-          id="chat-input"
-          type="text"
-          placeholder="민원에 대해 물어보세요..."
-          aria-label="메시지 입력"
-          disabled
-        />
-        <button class="chat-composer__send" id="chat-send" type="button" disabled aria-label="보내기">
-          보내기
-        </button>
-      </div>
-    </div>
   </aside>
 
-  <!-- Central demo canvas — route-rendered by canvas.js -->
+  <!-- ═══════════════════════════════════════════════════════
+       Central demo canvas — route-rendered by canvas.js
+       ═══════════════════════════════════════════════════════ -->
   <main class="demo-canvas" id="demo-canvas" role="main" aria-label="데모 캔버스">
-    <!-- Initial content; replaced by CitizenActionDemoCanvas on load -->
     <div class="demo-canvas__inner">
       <div class="demo-canvas__loading" aria-live="polite">
         로컬 데모 캔버스를 불러오는 중…
@@ -230,19 +184,7 @@
     </div>
   </main>
 
-  <!-- Compact-mode toggle (visible only below breakpoint) -->
-  <button
-    class="compact-toggle"
-    id="compact-toggle"
-    type="button"
-    aria-expanded="false"
-    aria-controls="copilot-rail"
-    aria-label="행동 가이드 패널 열기"
-  >
-    &#x25B6; 행동 가이드
-  </button>
-
-  <!-- Review mode: ?review=true enables visible overlay borders + labels -->
+  <!-- Review mode: ?review=true enables visual debugging (kept for backward compat) -->
   <script>
     (function() {
       if (window.location.search.indexOf("review=true") !== -1) {

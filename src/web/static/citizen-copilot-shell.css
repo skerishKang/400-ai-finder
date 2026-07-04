@@ -466,39 +466,166 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 }
 
 /* ---------------------------------------------------------------------------
-   Chat composer — input + 보내기 at rail bottom
+   Chat shell — primary right-side panel (replaces copilot-rail)
 --------------------------------------------------------------------------- */
-.chat-composer {
-  border-top: 1px solid var(--copilot-section-border);
-  padding: 8px 10px;
-  background: var(--copilot-bg);
-  flex-shrink: 0;
-  margin-top: auto;
+.chat-shell {
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fc;
+  border-left: 1px solid #dde2ec;
+  overflow: hidden;
 }
-.chat-composer__input-wrapper {
+
+.chat-shell__header {
+  background: #2c3e50;
+  color: #ecf0f1;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.chat-shell__title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+.chat-shell__badge {
+  background: #27ae60;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+/* Conversation thread */
+.chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-msg {
+  display: flex;
+  gap: 6px;
+  max-width: 100%;
+}
+.chat-msg--user {
+  justify-content: flex-end;
+}
+.chat-msg--ai {
+  justify-content: flex-start;
+}
+
+.chat-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2c3e50;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.chat-bubble {
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  max-width: 85%;
+  word-break: break-word;
+}
+.chat-bubble--user {
+  background: #d4e6f7;
+  color: #1a252f;
+  border-radius: 14px 14px 4px 14px;
+}
+.chat-bubble--ai {
+  background: #fff;
+  color: #2c3e50;
+  border: 1px solid #e0e4ec;
+  border-radius: 14px 14px 14px 4px;
+}
+
+/* Compact progress indicator */
+.chat-progress {
+  background: #f0f4f8;
+  border: 1px solid #e0e4ec;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-top: 4px;
+}
+.chat-progress__label {
+  font-size: 0.6875rem;
+  color: #7f8c9a;
+  display: block;
+  margin-bottom: 6px;
+}
+.chat-progress__steps {
+  display: flex;
+  gap: 4px;
+  font-size: 0.75rem;
+  align-items: center;
+}
+.chat-progress__step {
+  color: #aab8c2;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.chat-progress__step--done {
+  color: #27ae60;
+  font-weight: 600;
+}
+.chat-progress__step--active {
+  background: #2980b9;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Chat composer */
+.chat-composer {
+  border-top: 1px solid #dde2ec;
+  padding: 10px 12px;
+  background: #fff;
+  flex-shrink: 0;
+}
+.chat-composer__row {
   display: flex;
   gap: 6px;
   align-items: center;
 }
 .chat-composer__input {
   flex: 1;
-  border: 1px solid var(--copilot-section-border);
-  border-radius: 4px;
-  padding: 7px 10px;
+  border: 1px solid #c8d5e6;
+  border-radius: 20px;
+  padding: 8px 14px;
   font-size: 0.8125rem;
-  color: var(--copilot-text);
-  background: #fff;
+  color: #2c3e50;
+  background: #f8f9fc;
   outline: none;
 }
 .chat-composer__input:focus {
-  border-color: var(--copilot-active);
+  border-color: #2980b9;
+  background: #fff;
 }
 .chat-composer__send {
-  background: var(--copilot-active);
+  background: #2980b9;
   color: #fff;
   border: none;
-  border-radius: 4px;
-  padding: 7px 14px;
+  border-radius: 20px;
+  padding: 8px 18px;
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -509,17 +636,9 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
   opacity: 0.4;
   cursor: default;
 }
-
-/* User message bubble */
-.conv-item--user {
-  background: #d4e6f7;
-  border-radius: 12px 12px 4px 12px;
-  padding: 8px 12px;
-  margin: 4px 0;
-  font-size: 0.8125rem;
-  color: #1a252f;
-  align-self: flex-end;
-  max-width: 85%;
-  text-align: right;
-  list-style: none;
+.chat-composer__hint {
+  margin: 6px 0 0;
+  font-size: 0.6875rem;
+  color: #aab8c2;
+  text-align: center;
 }
