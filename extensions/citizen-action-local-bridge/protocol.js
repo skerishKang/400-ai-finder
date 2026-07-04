@@ -44,6 +44,16 @@
     ]),
   });
 
+  /** Exact explanation_id mapping — accepted action types only. */
+  var EXPLANATION_MAP = Object.freeze({
+    HIGHLIGHT_ALLOWLISTED_ELEMENT: "highlight_element",
+    SCROLL_TO_ALLOWLISTED_ELEMENT: "scroll_to_element",
+    OPEN_ALLOWLISTED_ROUTE: "open_route",
+    CLICK_ALLOWLISTED_ELEMENT: "click_element",
+    PREFILL_APPROVED_DRAFT: "prefill_draft",
+    STOP_FOR_USER_CONFIRMATION: "stop_for_confirmation",
+  });
+
   var CODE = Object.freeze({
     MALFORMED: "malformed_message",
     UNKNOWN_TYPE: "unknown_message_type",
@@ -61,42 +71,64 @@
   function isString(v) { return typeof v === "string"; }
   function isObj(v)    { return v !== null && typeof v === "object" && !Array.isArray(v); }
   function inSet(s, s2) { return isString(s) && s2.indexOf(s) !== -1; }
-  function keys(obj)   { return Object.keys(obj); }
 
   function onlyKeys(obj, allowed) {
-    return keys(obj).every(function (k) { return allowed.indexOf(k) !== -1; });
+    return Object.keys(obj).every(function (k) { return allowed.indexOf(k) !== -1; });
   }
 
   function reject(msg) { return { ok: false, reason_code: msg }; }
 
-  function ok(action) { return { ok: true, action: action }; }
-
-  function baseAction(a) {
-    return {
-      action_type: a.action_type,
-      route_id: a.route_id,
-      target_id: a.target_id,
-      explanation_id: a.explanation_id || "highlight_element",
-      requires_user_confirmation: a.requires_user_confirmation,
-      choice_ids: [],
-    };
-  }
-
   // -----------------------------------------------------------------------
-  // Location guard
+  // Location guard — protocol + hostname + pathname only; port unrestricted
   // -----------------------------------------------------------------------
   function isLocalFixtureLocation(loc) {
     if (!loc) return false;
-    var origin, pathname;
+
+    var protocol = "";
+    var hostname = "";
+    var pathname = "";
+
     if (isString(loc)) {
-      try { var u = new URL(loc); origin = u.origin; pathname = u.pathname; }
-      catch (e) { return false; }
+      try {
+        var parsed = new URL(loc);
+        protocol = parsed.protocol;
+        hostname = parsed.hostname;
+        pathname = parsed.pathname;
+      } catch (e) {
+        return false;
+      }
     } else if (isObj(loc)) {
-      origin = loc.origin || ""; pathname = loc.pathname || "";
-    } else { return false; }
-    var hosts = Object.freeze(["http://localhost", "http://127.0.0.1"]);
-    var paths = Object.freeze(["/static/citizen-action-demo.html", "/citizen-action-demo.html"]);
-    return hosts.indexOf(origin) !== -1 && paths.indexOf(pathname) !== -1;
+      // window.location-like object
+      protocol = loc.protocol || "";
+      hostname = loc.hostname || "";
+      pathname = loc.pathname || "";
+
+      // If protocol/hostname missing, try parsing from loc.origin (includes port)
+      if ((!protocol || !hostname) && isString(loc.origin)) {
+        try {
+          var fromOrigin = new URL(loc.origin);
+          protocol = protocol || fromOrigin.protocol;
+          hostname = hostname || fromOrigin.hostname;
+          pathname = pathname || fromOrigin.pathname;
+        } catch (e2) {
+          return false;
+        }
+      }
+    } else {
+      return false;
+    }
+
+    var validHosts = Object.freeze(["localhost", "127.0.0.1"]);
+    var validPaths = Object.freeze([
+      "/static/citizen-action-demo.html",
+      "/citizen-action-demo.html",
+    ]);
+
+    return (
+      protocol === "http:" &&
+      validHosts.indexOf(hostname) !== -1 &&
+      validPaths.indexOf(pathname) !== -1
+    );
   }
 
   // -----------------------------------------------------------------------
@@ -121,6 +153,12 @@
                       "explanation_id", "requires_user_confirmation", "choice_ids"]))
                                                return reject(CODE.BAD_SHAPE);
 
+    // ---- Exact explanation_id validation for all accepted action types ----
+    var expectedExp = EXPLANATION_MAP[a.action_type];
+    if (!isString(a.explanation_id) || a.explanation_id !== expectedExp) {
+      return reject(CODE.BAD_SHAPE);
+    }
+
     // ---- HIGHLIGHT / SCROLL / CLICK ----
     if (a.action_type === "HIGHLIGHT_ALLOWLISTED_ELEMENT" ||
         a.action_type === "SCROLL_TO_ALLOWLISTED_ELEMENT" ||
@@ -130,14 +168,17 @@
       if (a.requires_user_confirmation !== false) return reject(CODE.BAD_SHAPE);
       if (!Array.isArray(a.choice_ids) || a.choice_ids.length !== 0)
                                                return reject(CODE.BAD_SHAPE);
-      var expMap = {
-        HIGHLIGHT_ALLOWLISTED_ELEMENT: "highlight_element",
-        SCROLL_TO_ALLOWLISTED_ELEMENT: "scroll_to_element",
-        CLICK_ALLOWLISTED_ELEMENT: "click_element",
+      return {
+        ok: true,
+        action: {
+          action_type: a.action_type,
+          route_id: null,
+          target_id: a.target_id,
+          explanation_id: expectedExp,
+          requires_user_confirmation: false,
+          choice_ids: [],
+        },
       };
-      var out = baseAction(a);
-      out.explanation_id = expMap[a.action_type];
-      return ok(out);
     }
 
     // ---- OPEN ROUTE ----
@@ -147,21 +188,37 @@
       if (a.requires_user_confirmation !== false) return reject(CODE.BAD_SHAPE);
       if (!Array.isArray(a.choice_ids) || a.choice_ids.length !== 0)
                                                return reject(CODE.BAD_SHAPE);
-      return ok(baseAction(a));
+      return {
+        ok: true,
+        action: {
+          action_type: a.action_type,
+          route_id: a.route_id,
+          target_id: null,
+          explanation_id: expectedExp,
+          requires_user_confirmation: false,
+          choice_ids: [],
+        },
+      };
     }
 
     // ---- PREFILL ----
     if (a.action_type === "PREFILL_APPROVED_DRAFT") {
       if (a.target_id !== "complaint-body")     return reject(CODE.BAD_TARGET);
       if (a.route_id !== null)                  return reject(CODE.BAD_SHAPE);
-      if ((a.explanation_id || "") !== "prefill_draft")
-                                               return reject(CODE.BAD_SHAPE);
       if (a.requires_user_confirmation !== true) return reject(CODE.BAD_SHAPE);
       if (!Array.isArray(a.choice_ids) || a.choice_ids.length !== 0)
                                                return reject(CODE.BAD_SHAPE);
-      var out2 = baseAction(a);
-      out2.explanation_id = "prefill_draft";
-      return ok(out2);
+      return {
+        ok: true,
+        action: {
+          action_type: a.action_type,
+          route_id: null,
+          target_id: "complaint-body",
+          explanation_id: expectedExp,
+          requires_user_confirmation: true,
+          choice_ids: [],
+        },
+      };
     }
 
     // ---- STOP ----
@@ -169,12 +226,20 @@
       if (a.route_id !== null && a.route_id !== "handoff-stop")
                                                return reject(CODE.BAD_ROUTE);
       if (a.target_id !== null)                  return reject(CODE.BAD_SHAPE);
-      if ((a.explanation_id || "") !== "stop_for_confirmation")
-                                               return reject(CODE.BAD_SHAPE);
       if (a.requires_user_confirmation !== true) return reject(CODE.BAD_SHAPE);
       if (!Array.isArray(a.choice_ids) || a.choice_ids.length !== 0)
                                                return reject(CODE.BAD_SHAPE);
-      return ok(baseAction(a));
+      return {
+        ok: true,
+        action: {
+          action_type: a.action_type,
+          route_id: a.route_id,
+          target_id: null,
+          explanation_id: expectedExp,
+          requires_user_confirmation: true,
+          choice_ids: [],
+        },
+      };
     }
 
     return reject(CODE.UNSUPPORTED);

@@ -29,6 +29,46 @@ fixture path for local static-directory test servers that serve from the
 project root rather than from `/static/`. It is not a general-purpose path
 and is explicitly scoped to localhost/127.0.0.1 in the manifest matches.
 
+## Local Fixture Guard — Protocol / Hostname / Pathname Only
+
+The `isLocalFixtureLocation()` guard accepts a page only when ALL of the
+following hold:
+
+- `protocol === "http:"` (no https, no other schemes)
+- `hostname === "localhost"` OR `hostname === "127.0.0.1"`
+  (no other host, no hostname suffixes such as `localhost.evil`)
+- `pathname === "/static/citizen-action-demo.html"`
+  OR `pathname === "/citizen-action-demo.html"`
+
+**Port is NOT restricted.** Developers may run the local static demo on any
+port (e.g., 8000, 8401, 5173). The port portion of `location.origin` is
+ignored by the guard. This is intentional — it avoids breaking local demos
+when the dev server picks an ephemeral port.
+
+**This is NOT live-host authorization.** Only `localhost` and `127.0.0.1`
+are allowed. External hosts (e.g., `bukgu.go.kr`) or non-http schemes are
+never accepted by the guard, regardless of port.
+
+## Explanation ID — Exact Mapping Only
+
+The protocol requires an exact `explanation_id` match for every accepted
+action type. The mapping is:
+
+| action_type                    | required explanation_id        |
+|--------------------------------|-------------------------------|
+| HIGHLIGHT_ALLOWLISTED_ELEMENT  | `highlight_element`            |
+| SCROLL_TO_ALLOWLISTED_ELEMENT  | `scroll_to_element`            |
+| OPEN_ALLOWLISTED_ROUTE         | `open_route`                   |
+| CLICK_ALLOWLISTED_ELEMENT      | `click_element`                |
+| PREFILL_APPROVED_DRAFT         | `prefill_draft`                |
+| STOP_FOR_USER_CONFIRMATION     | `stop_for_confirmation`        |
+
+Any deviation (missing, wrong, or extra `explanation_id`) results in
+`invalid_action_shape`. The protocol never echoes the inbound
+`explanation_id` value back into the accepted response — it always
+returns the fixed closed value from the table above. Raw text, user
+input, or free-form strings are never reflected in any response field.
+
 ## Architecture
 
 ```
@@ -52,12 +92,16 @@ Inbound message shape (exactly):
     action_type: string,          // 6 allowed types only
     route_id: string | null,      // route_id or null depending on action_type
     target_id: string | null,     // target_id or null depending on action_type
-    explanation_id: string,       // closed vocabulary
+    explanation_id: string,       // MUST match the exact closed mapping (see table)
     requires_user_confirmation: boolean,
     choice_ids: string[],         // must be empty []
   }
 }
 ```
+
+The `explanation_id` field is not optional. It must exactly match the
+value defined in the Explanation ID table above. Any other value (including
+free-form text or close variants) causes `invalid_action_shape`.
 
 Accepted action types:
 
