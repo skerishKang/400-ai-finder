@@ -146,7 +146,7 @@
         target_id: tid,
         explanation_id: eid,
         requires_user_confirmation: reqConf,
-        choice_ids: cids.slice(),
+        choice_ids: Object.freeze(cids.slice()),
       }));
     }
 
@@ -368,6 +368,10 @@
   }
 
   function _handleBlocked(safeText) {
+    if (_confirmationListener) {
+      document.removeEventListener("click", _confirmationListener, true);
+      _confirmationListener = null;
+    }
     if (_pendingTimer) {
       clearTimeout(_pendingTimer);
       _pendingTimer = null;

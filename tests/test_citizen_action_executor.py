@@ -705,6 +705,75 @@ def test_cancel_during_prefill_leaves_body_unchanged():
     assert "PASS" in _run_js(test_code)
 
 
+def test_blocked_during_prefill_clears_listener_and_safe():
+    """If complaint-body is missing when approve fires, executor blocks,
+    removes the confirmation listener, leaves body unchanged, and later
+    synthetic approval clicks have no effect."""
+    plan = {
+        "plan_status": "guided",
+        "actions": [
+            {"action_type": "PREFILL_APPROVED_DRAFT", "route_id": None,
+             "target_id": "complaint-body", "explanation_id": "prefill_draft",
+             "requires_user_confirmation": True, "choice_ids": []},
+            {"action_type": "STOP_FOR_USER_CONFIRMATION", "route_id": None, "target_id": None,
+             "explanation_id": "stop_for_confirmation", "requires_user_confirmation": True,
+             "choice_ids": []},
+        ],
+        "requires_user_confirmation": True,
+        "hard_stop_required": True,
+        "reason_codes": [],
+    }
+    plan_json = json.dumps(plan)
+    test_code = f"""
+    const plan = {plan_json};
+    var bodyEl = document.getElementById('complaint-body');
+    bodyEl.setAttribute('data-action-target', 'complaint-body');
+    bodyEl.textContent = 'original text';
+    executor.startPlan(plan);
+    drainUntilTerminalOrWait();
+    // verify waiting
+    console.log(executor.getSnapshot().status === 'waiting' ? 'WAITING' : 'NOT_WAITING');
+    // Remove the target element so approval fails
+    delete elements['complaint-body'];
+    // Dispatch approve click via document-level listener
+    var listeners = _listeners || [];
+    var dispatched = false;
+    for (var li = 0; li < listeners.length; li++) {{
+        var l = listeners[li];
+        if (l.e === 'click' && !l.id) {{
+            l.h({{ target: {{ id: 'btn-confirm-approve' }}, stopPropagation: function() {{}} }});
+            dispatched = true;
+            break;
+        }}
+    }}
+    console.log(dispatched ? 'DISPATCHED' : 'NO_LISTENER');
+    // Check final state
+    var snap = executor.getSnapshot();
+    console.log(snap.status === 'blocked' ? 'BLOCKED' : snap.status);
+    console.log(bodyEl.textContent === 'original text' ? 'BODY_UNCHANGED' : 'BODY_CHANGED');
+    // Verify listener removed: count document-level click handlers
+    var remaining = 0;
+    var listeners2 = _listeners || [];
+    for (var li2 = 0; li2 < listeners2.length; li2++) {{
+        if (listeners2[li2].e === 'click' && !listeners2[li2].id) {{
+            remaining++;
+        }}
+    }}
+    console.log(remaining === 0 ? 'LISTENER_CLEARED' : 'LISTENER_LEAKED:' + remaining);
+    // A second synthetic approval should do nothing (state already blocked)
+    for (var li3 = 0; li3 < listeners2.length; li3++) {{
+        if (listeners2[li3].e === 'click' && !listeners2[li3].id) {{
+            listeners2[li3].h({{ target: {{ id: 'btn-confirm-approve' }}, stopPropagation: function() {{}} }});
+        }}
+    }}
+    var snap2 = executor.getSnapshot();
+    console.log(snap2.status === 'blocked' ? 'STILL_BLOCKED' : 'STATUS_CHANGED:' + snap2.status);
+    var allOk = snap.status === 'blocked' && bodyEl.textContent === 'original text' && remaining === 0 && snap2.status === 'blocked';
+    console.log(allOk ? 'PASS' : 'FAIL');
+    """
+    assert "PASS" in _run_js(test_code)
+
+
 def test_prefill_approval_writes_fixed_text():
     """Approve writes fixed PREFILL_TEXT and proceeds to STOP."""
     plan = {
