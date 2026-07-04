@@ -220,6 +220,15 @@
     &#x25B6; 행동 가이드
   </button>
 
+  <!-- Review mode: ?review=true enables visible overlay borders + labels -->
+  <script>
+    (function() {
+      if (window.location.search.indexOf("review=true") !== -1) {
+        document.body.classList.add("review-mode");
+      }
+    })();
+  </script>
+
   <!-- Load order: map → canvas → shell → executor → complaint journey reducer → complaint journey UI -->
   <script src="/static/citizen-action-demo-map.js"></script>
   <script src="/static/citizen-action-demo-canvas.js"></script>

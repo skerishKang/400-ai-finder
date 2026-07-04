@@ -257,11 +257,104 @@
   }
 
   // -----------------------------------------------------------------------
+  // Image-based routes — use real Buk-gu screenshots as background
+  // with transparent overlay targets on each.
+  // -----------------------------------------------------------------------
+  var IMAGE_ROUTES = {
+    "home": {
+      image: "/static/images/bukgu_home.png",
+      overlays: [
+        {
+          targetId: "nav-civil-service",
+          label: "민원 신청하기 (종합민원 GNB)",
+          top: "2%", left: "18%", width: "7%", height: "2.5%",
+        },
+      ],
+    },
+    "complaint-category": {
+      image: "/static/images/bukgu_menu.png",
+      overlays: [
+        {
+          targetId: "complaint-category-illegal-parking",
+          label: "불법 주정차 신고",
+          top: "22%", left: "3%", width: "45%", height: "3%",
+        },
+        {
+          targetId: "complaint-category-public-parking-inconvenience",
+          label: "공용주차장 불편",
+          top: "27%", left: "3%", width: "45%", height: "3%",
+        },
+        {
+          targetId: "complaint-category-residential-parking",
+          label: "공동주택 주차 관련",
+          top: "32%", left: "3%", width: "45%", height: "3%",
+        },
+        {
+          targetId: "complaint-category-traffic-or-facility-safety",
+          label: "교통·시설 안전",
+          top: "37%", left: "3%", width: "45%", height: "3%",
+        },
+        {
+          targetId: "complaint-category-other-or-unsure",
+          label: "기타",
+          top: "42%", left: "3%", width: "45%", height: "3%",
+        },
+      ],
+    },
+    "complaint-intake": {
+      image: "/static/images/bukgu_intake.png",
+      overlays: [
+        {
+          targetId: "complaint-draft-review",
+          label: "검토용 초안 작성",
+          top: "40%", left: "5%", width: "50%", height: "3%",
+        },
+      ],
+    },
+  };
+
+  function _renderImageBasedRoute(routeId) {
+    var imgRoute = IMAGE_ROUTES[routeId];
+    if (!imgRoute) { return ""; }
+
+    var route = _map.getRoute(routeId);
+    var overlayHtml = "";
+    for (var i = 0; i < imgRoute.overlays.length; i++) {
+      var o = imgRoute.overlays[i];
+      var nextRoute = _targetToNextRoute(o.targetId);
+      var routeAttr = nextRoute
+        ? ' data-demo-route="' + _escHtml(nextRoute) + '"'
+        : '';
+      overlayHtml +=
+        '<button class="canvas-image-overlay" ' +
+        'data-action-target="' + _escHtml(o.targetId) + '"' +
+        routeAttr + ' ' +
+        'data-label="' + _escHtml(o.label) + '" ' +
+        'data-coords="' + _escHtml(o.top + " / " + o.left) + '" ' +
+        'style="top:' + o.top + ';left:' + o.left + ';' +
+        'width:' + o.width + ';height:' + o.height + ';" ' +
+        'tabindex="0" type="button" aria-label="' + _escHtml(o.label) + '">' +
+        '</button>';
+    }
+    return (
+      '<div class="canvas-page canvas-page--image-based" ' +
+      'style="background-image:url(' + _escHtml(imgRoute.image) + ');">' +
+        overlayHtml +
+      '</div>'
+    );
+  }
+
+  // -----------------------------------------------------------------------
   // Route renderer dispatch
   // -----------------------------------------------------------------------
   function _renderRoute(routeId) {
     var route = _map.getRoute(routeId);
     if (!route) { return "<p>알 수 없는 경로입니다.</p>"; }
+
+    // Image-based routes use real Buk-gu screenshots with transparent overlays
+    if (IMAGE_ROUTES[routeId]) {
+      return _renderImageBasedRoute(routeId);
+    }
 
     switch (routeId) {
       case "home":               return _renderHome(route);
