@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/static/citizen-copilot-shell.css">
   <link rel="stylesheet" href="/static/citizen-action-demo-canvas.css">
   <link rel="stylesheet" href="/static/citizen-action-executor.css">
+  <link rel="stylesheet" href="/static/citizen-complaint-journey.css">
 </head>
 <body data-copilot-dock="right" data-copilot-dock-choices="left right"><!-- allowed dock values: left, right -->
   <!-- Dock rail: left or right side panel -->
@@ -35,11 +36,8 @@
         <li class="conv-item conv-item--assistant">해당 상황에 맞는 민원 유형을 선택해 주세요.</li>
       </ul>
       <div class="copilot-choices" id="clarifying-choices" role="group" aria-label="선택지">
-        <button class="choice-btn" type="button" data-choice-id="illegal-parking"> 불법주정차 </button>
-        <button class="choice-btn" type="button" data-choice-id="public-parking-inconvenience"> 공용주차장 불편 </button>
-        <button class="choice-btn" type="button" data-choice-id="residential-parking"> 공동주택 주차 </button>
-        <button class="choice-btn" type="button" data-choice-id="traffic-or-facility-safety"> 교통·시설 안전 </button>
-        <button class="choice-btn" type="button" data-choice-id="other-or-unsure"> 기타 </button>
+        <!-- category buttons are rendered at runtime by
+             citizen-complaint-journey-ui.js from CitizenComplaintJourney.getClosedChoices() -->
       </div>
     </section>
 
@@ -116,6 +114,68 @@
         </button>
       </div>
     </section>
+
+    <!-- Local complaint intake journey (Stage #849 Phase B).
+         Closed-choice only. No forms, no inputs, no submit, no network.
+         Populated at runtime by citizen-complaint-journey-ui.js. -->
+    <section
+      class="copilot-section journey-section"
+      id="journey-status"
+      aria-labelledby="journey-status-heading"
+    >
+      <h2 class="copilot-section-title journey-section__title" id="journey-status-heading" aria-label="민원 안내 상태">민원 안내 상태</h2>
+      <p class="journey-status-text" id="journey-status-text" aria-live="polite">
+        민원 유형을 선택해 주세요.
+      </p>
+    </section>
+
+    <section
+      class="copilot-section journey-section"
+      id="journey-fact-choices"
+      aria-labelledby="journey-facts-heading"
+    >
+      <h2 class="copilot-section-title journey-section__title" id="journey-facts-heading" aria-label="항목 선택">항목 선택</h2>
+      <!-- fixed fact closed-choice cards are rendered at runtime by
+           citizen-complaint-journey-ui.js from CitizenComplaintJourney.getClosedChoices()
+           based on getClarification() missing fields. -->
+      <div class="journey-facts-body" id="journey-facts-body" role="group" aria-label="항목 선택지"></div>
+    </section>
+
+    <section
+      class="copilot-section journey-section"
+      id="journey-draft-review"
+      aria-labelledby="journey-review-heading"
+    >
+      <h2 class="copilot-section-title journey-section__title" id="journey-review-heading" aria-label="검토용 초안">검토용 초안</h2>
+      <!-- review draft text is rendered as textContent only (no innerHTML). -->
+      <pre class="journey-draft-text" id="journey-draft-text" aria-live="polite"></pre>
+      <p class="journey-review-caption" id="journey-review-caption">
+        검토용 초안 · 실제 제출 전 확인 필요 · 로컬 개념 시연
+      </p>
+      <div class="journey-review-controls" id="journey-review-controls" role="group" aria-label="초안 검토 제어">
+        <!-- review control buttons are rendered at runtime -->
+      </div>
+    </section>
+
+    <section
+      class="copilot-section journey-section"
+      id="journey-controls"
+      aria-labelledby="journey-controls-heading"
+    >
+      <h2 class="copilot-section-title journey-section__title" id="journey-controls-heading" aria-label="초안 제어">초안 제어</h2>
+      <div class="journey-controls-body" id="journey-controls-body" role="group" aria-label="초안 빌드 제어">
+        <!-- build/reset control buttons are rendered at runtime -->
+      </div>
+    </section>
+
+    <section
+      class="copilot-section journey-section"
+      id="journey-terminal-notice"
+      aria-labelledby="journey-terminal-heading"
+    >
+      <h2 class="copilot-section-title journey-section__title" id="journey-terminal-heading" aria-label="종료 안내">종료 안내</h2>
+      <p class="journey-terminal-text" id="journey-terminal-text" aria-live="polite"></p>
+    </section>
   </aside>
 
   <!-- Central demo canvas — route-rendered by canvas.js -->
@@ -140,10 +200,12 @@
     &#x25B6; 행동 가이드
   </button>
 
-  <!-- Load map first (provides vocabulary), then canvas (renders content) -->
+  <!-- Load order: map → canvas → shell → executor → complaint journey reducer → complaint journey UI -->
   <script src="/static/citizen-action-demo-map.js"></script>
   <script src="/static/citizen-action-demo-canvas.js"></script>
   <script src="/static/citizen-copilot-shell.js"></script>
   <script src="/static/citizen-action-executor.js"></script>
+  <script src="/static/citizen-complaint-journey.js"></script>
+  <script src="/static/citizen-complaint-journey-ui.js"></script>
 </body>
 </html>
