@@ -717,3 +717,237 @@ class TestSelectFactKeepsEditMode:
         body = code[start:pos - 1]
         assert "_editingSelections = false" not in body, \
             "SELECT_FACT must NOT exit edit mode"
+
+
+# =========================================================================
+# Test 29: _isKnownCategoryId uses getClosedChoices().categories only
+# =========================================================================
+
+class TestIsKnownCategoryId:
+
+    def test_is_known_category_id_function_exists(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        assert "_isKnownCategoryId" in code, \
+            "_isKnownCategoryId helper must exist"
+
+    def test_is_known_category_id_uses_get_closed_choices(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        # Extract _isKnownCategoryId function body
+        m = re.search(r'function\s+_isKnownCategoryId\s*\([^)]*\)\s*\{', code)
+        assert m, "_isKnownCategoryId function not found"
+        start = m.end()
+        depth = 1
+        pos = start
+        while depth > 0 and pos < len(code):
+            if code[pos] == '{':
+                depth += 1
+            elif code[pos] == '}':
+                depth -= 1
+            pos += 1
+        body = code[start:pos - 1]
+        assert "getClosedChoices" in body, \
+            "_isKnownCategoryId must use getClosedChoices().categories"
+
+
+# =========================================================================
+# Test 30: Canvas category sync uses _isKnownCategoryId before reduce
+# =========================================================================
+
+class TestCanvasCategorySyncKnownCategoryGuard:
+
+    @staticmethod
+    def _canvas_sync_body(code):
+        """Extract the click handler body from _bindCanvasCategorySync."""
+        m = re.search(r'demo\.addEventListener\s*\(\s*"click"\s*,\s*function\s*\([^)]*\)\s*\{', code)
+        if not m:
+            return ""
+        start = m.end()
+        depth = 1
+        pos = start
+        while depth > 0 and pos < len(code):
+            if code[pos] == '{':
+                depth += 1
+            elif code[pos] == '}':
+                depth -= 1
+            pos += 1
+        return code[start:pos - 1]
+
+    def test_canvas_sync_calls_is_known_category_id(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        body = self._canvas_sync_body(code)
+        assert "_isKnownCategoryId(categoryId)" in body, \
+            "Canvas sync must call _isKnownCategoryId(categoryId)"
+
+    def test_canvas_sync_known_check_before_reduce(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        body = self._canvas_sync_body(code)
+        known_pos = body.find("_isKnownCategoryId(categoryId)")
+        reduce_pos = body.find("journey.reduce(_state")
+        assert known_pos != -1, "_isKnownCategoryId call not found in canvas sync"
+        assert reduce_pos != -1, "reduce call not found in canvas sync"
+        assert known_pos < reduce_pos, \
+            "_isKnownCategoryId check must appear before reduce in canvas sync"
+
+    def test_unknown_category_returns_before_ensure_intake_route(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        body = self._canvas_sync_body(code)
+        # Find the if-block that guards unknown categories
+        guard_m = re.search(
+            r'if\s*\(\s*!_isKnownCategoryId\s*\(\s*categoryId\s*\)\s*\)\s*\{',
+            body
+        )
+        assert guard_m, "Unknown category guard block not found in canvas sync"
+        # Extract the if-block body by tracking brace depth
+        block_start = guard_m.end()
+        depth = 1
+        pos = block_start
+        while depth > 0 and pos < len(body):
+            if body[pos] == '{':
+                depth += 1
+            elif body[pos] == '}':
+                depth -= 1
+            pos += 1
+        block_body = body[block_start:pos - 1]
+        assert "return" in block_body, \
+            "Unknown category guard must return without calling reduce"
+
+
+# =========================================================================
+# Test 31: _clearLocalPrefill uses LOCAL_TARGET only, textContent = ""
+# =========================================================================
+
+class TestClearLocalPrefill:
+
+    @staticmethod
+    def _extract_func_body(code, func_name):
+        m = re.search(
+            r'function\s+' + func_name + r'\s*\([^)]*\)\s*\{',
+            code
+        )
+        if not m:
+            return ""
+        start = m.end()
+        depth = 1
+        pos = start
+        while depth > 0 and pos < len(code):
+            if code[pos] == '{':
+                depth += 1
+            elif code[pos] == '}':
+                depth -= 1
+            pos += 1
+        return code[start:pos - 1]
+
+    def test_clear_prefill_function_exists(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        assert "_clearLocalPrefill" in code, \
+            "_clearLocalPrefill helper must exist"
+
+    def test_clear_prefill_uses_local_target_only(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        body = self._extract_func_body(code, "_clearLocalPrefill")
+        assert 'LOCAL_TARGET' in body, \
+            "_clearLocalPrefill must reference LOCAL_TARGET"
+        # Must not reference other targets
+        for other in ["_el(", "getElementById", "querySelector"]:
+            assert other not in body, \
+                "_clearLocalPrefill must not use '%s' for target lookup" % other
+
+    def test_clear_prefill_uses_textContent_only(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        body = self._extract_func_body(code, "_clearLocalPrefill")
+        assert 'textContent = ""' in body or 'textContent=""' in body, \
+            "_clearLocalPrefill must set textContent to empty string"
+
+    def test_clear_prefill_no_executor_or_navigation(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        body = self._extract_func_body(code, "_clearLocalPrefill")
+        for forbidden in ["navigateToRoute", "reduce", "CitizenActionExecutor"]:
+            assert forbidden not in body, \
+                "_clearLocalPrefill must not call '%s'" % forbidden
+
+
+# =========================================================================
+# Test 32: All 5 invalidation paths call _clearLocalPrefill
+# =========================================================================
+
+class TestClearLocalPrefillCalledOnInvalidation:
+
+    PATH_FUNCTIONS = [
+        "_dispatchSelectCategory",
+        "_dispatchSelectFact",
+        "_dispatchRejectDraft",
+        "_dispatchClearAll",
+        "_editSelections",
+    ]
+
+    def test_all_five_paths_call_clear_local_prefill(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        for func_name in self.PATH_FUNCTIONS:
+            m = re.search(
+                r'function\s+' + func_name + r'\s*\([^)]*\)\s*\{',
+                code
+            )
+            assert m, "%s function not found" % func_name
+            start = m.end()
+            depth = 1
+            pos = start
+            while depth > 0 and pos < len(code):
+                if code[pos] == '{':
+                    depth += 1
+                elif code[pos] == '}':
+                    depth -= 1
+                pos += 1
+            body = code[start:pos - 1]
+            assert "_clearLocalPrefill" in body, \
+                "%s must call _clearLocalPrefill" % func_name
+
+
+# =========================================================================
+# Test 33: Existing safety contracts preserved alongside boundary additions
+# =========================================================================
+
+class TestSafetyContractsPreservedAfterBoundaryChanges:
+    def test_no_network_after_boundary_additions(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        forbidden = [
+            r'\bfetch\s*\(',
+            r'new\s+WebSocket\s*\(',
+            r'\blocalStorage\b',
+            r'\bsessionStorage\b',
+            r'XMLHttpRequest',
+        ]
+        for pat in forbidden:
+            assert not re.search(pat, code), \
+                f"Boundary additions must not introduce '{pat}'"
+
+    def test_no_form_elements_after_boundary_additions(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        for pat in ["<form", "<input", "<textarea", "<select",
+                     'contenteditable=', 'type="submit"']:
+            assert pat not in code, \
+                f"Boundary additions must not introduce '{pat}'"
+
+    def test_no_executor_reference_after_boundary_additions(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        executor_pats = [
+            r'\.CitizenActionExecutor\b',
+            r'\.CitizenActionDemoMap\b',
+            r'citizen_action_plan',
+            r'PREFILL_APPROVED_DRAFT',
+        ]
+        for pat in executor_pats:
+            assert not re.search(pat, code), \
+                f"Boundary additions must not reference executor/map/planner: '{pat}'"

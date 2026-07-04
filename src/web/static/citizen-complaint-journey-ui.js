@@ -173,18 +173,22 @@
     return (typeof v === "string") ? v : null;
   }
 
-  function _hasValidSelectedCategory() {
-    if (!_state || typeof _state.category_id !== "string") {
+  function _isKnownCategoryId(categoryId) {
+    if (typeof categoryId !== "string") {
       return false;
     }
 
     var categories = journey.getClosedChoices().categories || [];
     for (var i = 0; i < categories.length; i++) {
-      if (categories[i].id === _state.category_id) {
+      if (categories[i].id === categoryId) {
         return true;
       }
     }
     return false;
+  }
+
+  function _hasValidSelectedCategory() {
+    return !!_state && _isKnownCategoryId(_state.category_id);
   }
 
   function _renderFactCards() {
@@ -405,6 +409,21 @@
   }
 
   // ===================================================================
+  // Stale local prefill invalidation
+  // ===================================================================
+
+  function _clearLocalPrefill() {
+    if (!canvas || typeof canvas.getTargetElement !== "function") {
+      return;
+    }
+
+    var target = canvas.getTargetElement(LOCAL_TARGET);
+    if (target) {
+      target.textContent = "";
+    }
+  }
+
+  // ===================================================================
   // Full re-render from current state
   // ===================================================================
 
@@ -439,6 +458,7 @@
       type: "SELECT_CATEGORY",
       category_id: categoryId
     });
+    _clearLocalPrefill();
     _ensureIntakeRoute();
     _editingSelections = false;
     // Selecting a category clears draft/approval in the reducer; make sure
@@ -453,8 +473,9 @@
       field_id: fieldId,
       choice_id: choiceId
     });
-    // Changing a fact invalidates draft/approval; clear stale DOM text.
+    // Changing a fact invalidates draft/approval; clear stale DOM and prefill.
     _clearTerminal();
+    _clearLocalPrefill();
     var draftNode = _el("journey-draft-text");
     _setText(draftNode, "");
     _renderAll();
@@ -469,6 +490,7 @@
 
   function _dispatchRejectDraft() {
     _state = journey.reduce(_state, { type: "REJECT_DRAFT" });
+    _clearLocalPrefill();
     _editingSelections = true;
     _clearTerminal();
     var draftNode = _el("journey-draft-text");
@@ -478,6 +500,7 @@
 
   function _dispatchClearAll() {
     _state = journey.reduce(_state, { type: "CLEAR_ALL" });
+    _clearLocalPrefill();
     _editingSelections = false;
     _clearTerminal();
     var draftNode = _el("journey-draft-text");
@@ -538,6 +561,7 @@
     // then enter edit mode so all four fact fields are re-shown. The
     // category and current fact selections are preserved by the reducer.
     _state = journey.reduce(_state, { type: "REJECT_DRAFT" });
+    _clearLocalPrefill();
     _editingSelections = true;
     _clearTerminal();
     _renderAll();
@@ -626,11 +650,15 @@
         return;
       }
       var categoryId = targetId.slice(CANVAS_CATEGORY_PREFIX.length);
-      // Validate the extracted category id against the reducer's own
-      // vocabulary (not against the canvas target id). The canvas target
-      // id format is "complaint-category-" + reducer-category-id; if the
-      // slice is known in the reducer's category list it is safe to dispatch.
+      // Reject if the reconstructed target id does not match (defence
+      // against malformed or unexpected suffix patterns).
       if (_canvasTargetIdForCategory(categoryId) !== targetId) {
+        return;
+      }
+      // Reject unknown category IDs — only 5 canonical hyphen IDs are
+      // recognised. This prevents arbitrary suffix values from reaching
+      // the reducer, route navigation, or rendering.
+      if (!_isKnownCategoryId(categoryId)) {
         return;
       }
       _state = journey.reduce(_state, {
