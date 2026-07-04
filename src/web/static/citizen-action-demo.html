@@ -115,6 +115,26 @@
       </div>
     </section>
 
+    <!-- Non‑persistence disclosure — visible from load, no dynamic rendering.
+         This local demo never submits real complaints, never persists choices,
+         drafts, or trace records to browser storage or server.
+         Stage #850: always-on notice. -->
+    <section
+      class="copilot-section"
+      id="action-demo-nonpersistence-disclosure"
+      aria-labelledby="action-demo-nonpersistence-heading"
+    >
+      <h2
+        class="copilot-section-title"
+        id="action-demo-nonpersistence-heading"
+        aria-label="시연 데이터 안내"
+      >시연 데이터 안내</h2>
+      <p id="action-demo-nonpersistence-text">
+        이 로컬 시연은 민원을 실제로 제출하지 않으며, 선택 내용·검토용 초안·진행 기록을 브라우저나 서버에 저장하지 않습니다.
+        페이지를 새로 고치거나 닫으면 현재 시연 세션은 사라집니다.
+      </p>
+    </section>
+
     <!-- Local complaint intake journey (Stage #849 Phase B).
          Closed-choice only. No forms, no inputs, no submit, no network.
          Populated at runtime by citizen-complaint-journey-ui.js. -->
