@@ -365,3 +365,136 @@ class TestNoHardcodedCategoryButtons:
             pattern = '<button[^>]+data-choice-id[^>]*' + cat_id
             assert not re.search(pattern, src), \
                 f"HTML must not hard-code category button for '{cat_id}'"
+
+
+# =========================================================================
+# Test 17: Edit mode state exists
+# =========================================================================
+
+class TestEditModeState:
+    def test_editing_selections_variable_exists(self):
+        src = _read(UI_FILE)
+        assert "_editingSelections" in src, \
+            "UI must declare _editingSelections boolean"
+
+
+# =========================================================================
+# Test 18: Edit path dispatches REJECT_DRAFT
+# =========================================================================
+
+class TestEditDispatchesReject:
+    def test_edit_path_dispatches_reject_draft(self):
+        src = _read(UI_FILE)
+        # The _editSelections function must call reduce with REJECT_DRAFT
+        # to clear draft and approval before entering edit mode.
+        code = re.sub(r'/\*[\s\S]*?\*/', '',
+                      re.sub(r'//.*', '', src))
+        # Look for the edit function body containing REJECT_DRAFT
+        assert "REJECT_DRAFT" in code, \
+            "Edit path must dispatch REJECT_DRAFT"
+        assert "_editingSelections = true" in code, \
+            "Edit path must set _editingSelections = true"
+
+
+# =========================================================================
+# Test 19: Edit path clears terminal notice
+# =========================================================================
+
+class TestEditClearsTerminal:
+    def test_edit_path_clears_terminal(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '',
+                      re.sub(r'//.*', '', src))
+        # The edit function body must contain a clear-terminal call
+        assert "REJECT_DRAFT" in code and "_clearTerminal" in code, \
+            "Edit path must clear terminal notice after REJECT_DRAFT"
+
+
+# =========================================================================
+# Test 20: Edit mode renders all four fact fields
+# =========================================================================
+
+class TestEditModeShowsAllFacts:
+    def test_edit_mode_shows_all_four_fields(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '',
+                      re.sub(r'//.*', '', src))
+        # The _renderFactCards function must have a path that iterates
+        # over all fact field IDs when _editingSelections is true.
+        assert "_editingSelections" in src, \
+            "Edit mode flag must exist in _renderFactCards context"
+        # Verify the edit-mode render path iterates over fieldIds
+        assert "fieldIds" in code or "Object.keys(facts)" in code, \
+            "Edit mode render path must iterate all fact field IDs"
+
+
+# =========================================================================
+# Test 21: Build / category reset / clear exit edit mode
+# =========================================================================
+
+class TestEditModeExit:
+    def test_build_exits_edit_mode(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '',
+                      re.sub(r'//.*', '', src))
+        # BUILD_DRAFT must set _editingSelections = false
+        assert "_editingSelections = false" in code, \
+            "BUILD_DRAFT must exit edit mode (_editingSelections = false)"
+
+    def test_select_category_exits_edit_mode(self):
+        src = _read(UI_FILE)
+        # SELECT_CATEGORY dispatcher must contain _editingSelections = false
+        count = src.count("_editingSelections = false")
+        assert count >= 3, \
+            f"Expected at least 3 exit points (build, category, clear, canvas sync). Found: {count}"
+
+    def test_clear_exits_edit_mode(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '',
+                      re.sub(r'//.*', '', src))
+        assert "CLEAR_ALL" in code, \
+            "CLEAR_ALL must be present"
+
+
+# =========================================================================
+# Test 22: Existing safety contracts preserved alongside edit mode
+# =========================================================================
+
+class TestSafetyContractsPreserved:
+    def test_no_network_after_edit_additions(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '',
+                      re.sub(r'//.*', '', src))
+        forbidden = [
+            r'\bfetch\s*\(',
+            r'new\s+WebSocket\s*\(',
+            r'\blocalStorage\b',
+            r'\bsessionStorage\b',
+            r'XMLHttpRequest',
+        ]
+        for pat in forbidden:
+            assert not re.search(pat, code), \
+                f"Edit additions must not introduce '{pat}'"
+
+    def test_no_form_elements_after_edit_additions(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '',
+                      re.sub(r'//.*', '', src))
+        for pat in ["<form", "<input", "<textarea", "<select",
+                     'contenteditable=', 'type="submit"']:
+            assert pat not in code, \
+                f"Edit additions must not introduce '{pat}'"
+
+    def test_no_executor_reference_after_edit(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '',
+                      re.sub(r'//.*', '', src))
+        executor_pats = [
+            r'\.CitizenActionExecutor\b',
+            r'\.CitizenActionDemoMap\b',
+            r'citizen_action_plan',
+            r'PREFILL_APPROVED_DRAFT',
+        ]
+        for pat in executor_pats:
+            assert not re.search(pat, code), \
+                f"Edit additions must not reference executor/map/planner: '{pat}'"

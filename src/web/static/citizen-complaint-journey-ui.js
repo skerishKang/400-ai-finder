@@ -56,6 +56,10 @@
   // ===================================================================
 
   var _state = null;
+  /** Edit mode: when true, _renderFactCards shows all four fact fields
+   *  instead of only the missing ones, so the user can re-select choices
+   *  without losing the current category and selected facts. */
+  var _editingSelections = false;
 
   // ===================================================================
   // DOM helpers (read-only lookups only; textContent for draft)
@@ -174,6 +178,22 @@
     if (!host) { return; }
     _clearChildren(host);
 
+    // Edit mode: show every fact field when the category is valid,
+    // regardless of whether all facts are already selected. This lets
+    // the user re-select closed choices without losing category context.
+    if (_editingSelections &&
+        _state &&
+        typeof _state.category_id === "string" &&
+        journey.getClarification(_state)) {
+      var vocab = journey.getClosedChoices();
+      var facts = vocab.facts || {};
+      var fieldIds = Object.keys(facts);
+      for (var i = 0; i < fieldIds.length; i++) {
+        _renderFactGroup(host, fieldIds[i], facts[fieldIds[i]]);
+      }
+      return;
+    }
+
     // Only show fact picking after a valid category is selected.
     var clar = journey.getClarification(_state);
     if (!clar || clar.type !== "facts") {
@@ -189,14 +209,14 @@
       return;
     }
 
-    var vocab = journey.getClosedChoices();
-    var facts = vocab.facts || {};
+    var vocab2 = journey.getClosedChoices();
+    var facts2 = vocab2.facts || {};
     var missing = clar.missing || [];
 
     // Show only the missing fields first (per requirement C).
     for (var m = 0; m < missing.length; m++) {
       var fieldId = missing[m];
-      _renderFactGroup(host, fieldId, facts[fieldId]);
+      _renderFactGroup(host, fieldId, facts2[fieldId]);
     }
   }
 
@@ -404,6 +424,7 @@
       category_id: categoryId
     });
     _ensureIntakeRoute();
+    _editingSelections = false;
     // Selecting a category clears draft/approval in the reducer; make sure
     // no leftover draft text remains in the DOM.
     _clearTerminal();
@@ -425,6 +446,7 @@
 
   function _dispatchBuildDraft() {
     _state = journey.reduce(_state, { type: "BUILD_DRAFT" });
+    _editingSelections = false;
     _clearTerminal();
     _renderAll();
   }
@@ -439,6 +461,7 @@
 
   function _dispatchClearAll() {
     _state = journey.reduce(_state, { type: "CLEAR_ALL" });
+    _editingSelections = false;
     _clearTerminal();
     var draftNode = _el("journey-draft-text");
     _setText(draftNode, "");
@@ -494,37 +517,13 @@
   // ===================================================================
 
   function _editSelections() {
-    // Hide the review draft text and re-show fact choices without
-    // discarding current selections. We do this by clearing the draft
-    // text shown in the DOM and re-rendering fact cards (which are
-    // gated on getClarification() — once a draft exists, clarification
-    // is null, so force re-display of all fact groups by temporarily
-    // relying on the build controls). The cleanest closed-choice path is
-    // to re-show every fact group by re-rendering after dropping draft
-    // display only.
-    var draftNode = _el("journey-draft-text");
-    _setText(draftNode, "");
-    var ctrlHost = _el("journey-review-controls");
-    if (ctrlHost) { _clearChildren(ctrlHost); }
+    // Dispatch REJECT_DRAFT to clear draft and approval in the reducer,
+    // then enter edit mode so all four fact fields are re-shown. The
+    // category and current fact selections are preserved by the reducer.
+    _state = journey.reduce(_state, { type: "REJECT_DRAFT" });
+    _editingSelections = true;
     _clearTerminal();
-
-    // Re-render fact cards for all required fields so the user can
-    // re-select choices. Since clarification is null once complete, we
-    // need a dedicated "edit" render that shows every fact group.
-    _renderFactCardsForEdit();
-  }
-
-  function _renderFactCardsForEdit() {
-    var host = _el("journey-facts-body");
-    if (!host) { return; }
-    _clearChildren(host);
-
-    var vocab = journey.getClosedChoices();
-    var facts = vocab.facts || {};
-    var fieldIds = Object.keys(facts);
-    for (var i = 0; i < fieldIds.length; i++) {
-      _renderFactGroup(host, fieldIds[i], facts[fieldIds[i]]);
-    }
+    _renderAll();
   }
 
   // ===================================================================
@@ -621,6 +620,7 @@
         type: "SELECT_CATEGORY",
         category_id: categoryId
       });
+      _editingSelections = false;
       _ensureIntakeRoute();
       _clearTerminal();
       _renderAll();
