@@ -177,6 +177,23 @@ ALL of the following conditions must be met:
 7. **Controlled validation and rollback plan** — ability to disable the
    extension instantly and verify no residual state
 
+## Toolbar Action — Default Disabled
+
+The toolbar action (browserAction / action) is **disabled by default** in this
+spike. The manifest declares `"default_state": "disabled"` and there is no popup
+or options UI. This means:
+
+- Outside the local fixture pages, the toolbar icon is grayed out and
+  non-interactive. No extension popup opens.
+- Even on matching local fixture pages, the toolbar action has no interactive
+  UI — the only visual indicator is the `#citizen-action-mv3-local-bridge-status`
+  marker injected by the content script.
+- The content script itself only activates on the four exact localhost/127.0.0.1
+  fixture URLs; outside those URLs it silently exits.
+- Regardless of the marker being active, DOM action execution, route navigation,
+  draft prefill, form submission, or any state-changing UI operation is never
+  performed by this scaffold.
+
 ## Prohibited in This Stage
 
 The following are explicitly prohibited for this stage and require a

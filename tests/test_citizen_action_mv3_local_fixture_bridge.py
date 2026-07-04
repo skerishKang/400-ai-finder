@@ -44,6 +44,7 @@ class TestManifest:
         assert m["content_scripts"][0]["js"] == ["protocol.js", "content-script.js"]
         assert m["content_scripts"][0]["all_frames"] is False
         assert m["content_scripts"][0]["run_at"] == "document_idle"
+        assert m["action"]["default_state"] == "disabled"
 
     def test_exact_4_localhost_matches(self):
         import json as _j

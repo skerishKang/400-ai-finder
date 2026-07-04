@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "description": "MV3 content-script transport/validation scaffold for local fixture only. No network, no storage, no browser execution of actions.",
   "action": {
-    "default_title": "Citizen Action Local Bridge"
+    "default_title": "Citizen Action Local Bridge",
+    "default_state": "disabled"
   },
   "content_scripts": [
     {
