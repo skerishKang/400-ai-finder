@@ -13,7 +13,7 @@
   <!-- Dock rail: left or right side panel -->
   <aside class="copilot-rail" id="copilot-rail" role="complementary" aria-label="시민 행동 가이드" tabindex="-1">
     <div class="copilot-header" id="copilot-header">
-      <span class="copilot-title">행동 가이드</span>
+      <span class="copilot-title">AI 민원 도우미</span>
       <button
         class="copilot-dock-toggle"
         id="dock-toggle"
@@ -32,8 +32,9 @@
     >
       <h2 class="copilot-section-title" id="conv-heading" aria-label="대화 영역">대화</h2>
       <ul class="copilot-conversation-list" id="conversation-list" role="list" aria-live="polite">
-        <li class="conv-item conv-item--assistant">질문을 통해 내용을 확인하고 있습니다.</li>
-        <li class="conv-item conv-item--assistant">해당 상황에 맞는 민원 유형을 선택해 주세요.</li>
+        <li class="conv-item conv-item--user">불법 주정차 신고는 어디서 하나요?</li>
+        <li class="conv-item conv-item--assistant">북구청 홈페이지에서 신고 경로를 확인하겠습니다.</li>
+        <li class="conv-item conv-item--assistant">종합민원 메뉴에서 온라인 민원신청 경로를 찾고 있습니다. 잠시만 기다려 주세요.</li>
       </ul>
       <div class="copilot-choices" id="clarifying-choices" role="group" aria-label="선택지">
         <!-- category buttons are rendered at runtime by
@@ -200,6 +201,23 @@
       <h2 class="copilot-section-title journey-section__title" id="journey-terminal-heading" aria-label="종료 안내">종료 안내</h2>
       <p class="journey-terminal-text" id="journey-terminal-text" aria-live="polite"></p>
     </section>
+
+    <!-- Chat composer — persistent input at rail bottom -->
+    <div class="chat-composer" id="chat-composer">
+      <div class="chat-composer__input-wrapper">
+        <input
+          class="chat-composer__input"
+          id="chat-input"
+          type="text"
+          placeholder="민원에 대해 물어보세요..."
+          aria-label="메시지 입력"
+          disabled
+        />
+        <button class="chat-composer__send" id="chat-send" type="button" disabled aria-label="보내기">
+          보내기
+        </button>
+      </div>
+    </div>
   </aside>
 
   <!-- Central demo canvas — route-rendered by canvas.js -->

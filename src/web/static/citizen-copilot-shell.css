@@ -464,3 +464,62 @@ body[data-copilot-dock="right"] {
 body.compact-drawer-open .compact-toggle .toggle-icon {
   /* arrow indicator could rotate here */
 }
+
+/* ---------------------------------------------------------------------------
+   Chat composer — input + 보내기 at rail bottom
+--------------------------------------------------------------------------- */
+.chat-composer {
+  border-top: 1px solid var(--copilot-section-border);
+  padding: 8px 10px;
+  background: var(--copilot-bg);
+  flex-shrink: 0;
+  margin-top: auto;
+}
+.chat-composer__input-wrapper {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.chat-composer__input {
+  flex: 1;
+  border: 1px solid var(--copilot-section-border);
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 0.8125rem;
+  color: var(--copilot-text);
+  background: #fff;
+  outline: none;
+}
+.chat-composer__input:focus {
+  border-color: var(--copilot-active);
+}
+.chat-composer__send {
+  background: var(--copilot-active);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 7px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chat-composer__send:disabled,
+.chat-composer__input:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* User message bubble */
+.conv-item--user {
+  background: #d4e6f7;
+  border-radius: 12px 12px 4px 12px;
+  padding: 8px 12px;
+  margin: 4px 0;
+  font-size: 0.8125rem;
+  color: #1a252f;
+  align-self: flex-end;
+  max-width: 85%;
+  text-align: right;
+  list-style: none;
+}

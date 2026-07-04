@@ -266,8 +266,8 @@
       overlays: [
         {
           targetId: "nav-civil-service",
-          label: "민원 신청하기 (종합민원 GNB)",
-          top: "2%", left: "18%", width: "7%", height: "2.5%",
+          label: "종합민원 메뉴 (홈)",
+          top: "1.8%", left: "17%", width: "8%", height: "2.8%",
         },
       ],
     },
@@ -276,28 +276,28 @@
       overlays: [
         {
           targetId: "complaint-category-illegal-parking",
-          label: "불법 주정차 신고",
-          top: "22%", left: "3%", width: "45%", height: "3%",
+          label: "민원처리공개",
+          top: "18%", left: "3%", width: "14%", height: "1.8%",
         },
         {
           targetId: "complaint-category-public-parking-inconvenience",
-          label: "공용주차장 불편",
-          top: "27%", left: "3%", width: "45%", height: "3%",
+          label: "민원상담(국민신문고)",
+          top: "20%", left: "3%", width: "16%", height: "1.8%",
         },
         {
           targetId: "complaint-category-residential-parking",
-          label: "공동주택 주차 관련",
-          top: "32%", left: "3%", width: "45%", height: "3%",
+          label: "정부24",
+          top: "22%", left: "3%", width: "10%", height: "1.8%",
         },
         {
           targetId: "complaint-category-traffic-or-facility-safety",
-          label: "교통·시설 안전",
-          top: "37%", left: "3%", width: "45%", height: "3%",
+          label: "청원24(온라인청원제도)",
+          top: "24%", left: "3%", width: "16%", height: "1.8%",
         },
         {
           targetId: "complaint-category-other-or-unsure",
-          label: "기타",
-          top: "42%", left: "3%", width: "45%", height: "3%",
+          label: "온라인 행정심판",
+          top: "26%", left: "3%", width: "14%", height: "1.8%",
         },
       ],
     },
@@ -306,8 +306,18 @@
       overlays: [
         {
           targetId: "complaint-draft-review",
-          label: "검토용 초안 작성",
-          top: "40%", left: "5%", width: "50%", height: "3%",
+          label: "민원서식 선택",
+          top: "20%", left: "5%", width: "50%", height: "2.5%",
+        },
+      ],
+    },
+    "complaint-review": {
+      image: "/static/images/bukgu_menu.png",
+      overlays: [
+        {
+          targetId: "confirm-draft-prefill",
+          label: "온라인 신청 (cheongwon.go.kr)",
+          top: "38%", left: "35%", width: "20%", height: "3%",
         },
       ],
     },
@@ -335,10 +345,33 @@
         'tabindex="0" type="button" aria-label="' + _escHtml(o.label) + '">' +
         '</button>';
     }
+
+    // Safety Stop overlay: shown on complaint-review route
+    var safetyHtml = "";
+    if (routeId === "complaint-review") {
+      safetyHtml =
+        '<div class="safety-stop-overlay">' +
+          '<div class="safety-stop-box">' +
+            '<div class="safety-stop-box__title">⚠️ 제출 전 안전 중지 (Safety Stop)</div>' +
+            '<div class="safety-stop-box__body">' +
+              '이 데모는 로컬 개념 시연(PoC)입니다.<br><br>' +
+              '실제 민원 신청은 북구청 공식 채널을 이용하시기 바랍니다.<br>' +
+              '<strong>본 화면에서는 어떠한 데이터도 제출되지 않습니다.</strong>' +
+            '</div>' +
+            '<button class="safety-stop-box__btn" type="button" data-action-target="handoff-notice" tabindex="0">확인 및 데모 종료</button>' +
+          '</div>' +
+        '</div>';
+    }
+
     return (
-      '<div class="canvas-page canvas-page--image-based" ' +
-      'style="background-image:url(' + _escHtml(imgRoute.image) + ');">' +
-        overlayHtml +
+      '<div class="canvas-page--image-based">' +
+        '<div class="canvas-img-wrapper">' +
+          '<img src="' + _escHtml(imgRoute.image) + '" ' +
+          'alt="북구청 화면 캡처 — 로컬 시연용" ' +
+          'style="width:100%;height:auto;display:block;" />' +
+          overlayHtml +
+          safetyHtml +
+        '</div>' +
       '</div>'
     );
   }
@@ -449,8 +482,8 @@
       "complaint-category-other-or-unsure":               "complaint-intake",
       "complaint-body":               null,
       "complaint-draft-review":       "complaint-review",
-      "confirm-draft-prefill":         "handoff-stop",
-      "handoff-notice":               null,
+      "confirm-draft-prefill":        "handoff-stop",
+      "handoff-notice":               "handoff-stop",
     };
     return flow[targetId] !== undefined ? flow[targetId] : null;
   }

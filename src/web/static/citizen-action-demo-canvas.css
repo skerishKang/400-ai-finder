@@ -317,6 +317,7 @@
 
 /* ---------------------------------------------------------------------------
    Image-based canvas route — real Buk-gu screenshot as background
+   Uses <img> tag inside .canvas-img-wrapper for precise % coords
 --------------------------------------------------------------------------- */
 .canvas-page--image-based {
   position: relative;
@@ -329,7 +330,26 @@
   overflow: hidden;
 }
 
-/* Transparent overlay target positioned on the image */
+/* Transparent overlay target positioned on the image (img-wrapper-based) */
+.canvas-page--image-based {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  background: #fff;
+}
+.canvas-img-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  max-width: 100%;
+  line-height: 0;
+}
+.canvas-img-wrapper img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
 .canvas-image-overlay {
   position: absolute;
   cursor: pointer;
@@ -339,7 +359,6 @@
   margin: 0;
   z-index: 10;
   border-radius: 0;
-  display: block;
 }
 .canvas-image-overlay:hover {
   background: rgba(41, 128, 185, 0.08);
@@ -381,6 +400,50 @@
   white-space: nowrap;
   border-radius: 2px;
   z-index: 20;
+}
+
+/* ---------------------------------------------------------------------------
+   Safety Stop overlay — shown on complaint-review route (image-based)
+--------------------------------------------------------------------------- */
+.safety-stop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.safety-stop-box {
+  background: #fff;
+  border: 2px solid #e74c3c;
+  border-radius: 6px;
+  padding: 24px 28px;
+  max-width: 85%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+.safety-stop-box__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #c0392b;
+  margin-bottom: 12px;
+}
+.safety-stop-box__body {
+  font-size: 0.875rem;
+  color: #2c3e50;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.safety-stop-box__btn {
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 24px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* ---------------------------------------------------------------------------
