@@ -41,11 +41,12 @@
       </div>
     </section>
 
-    <!-- Current action explanation -->
+    <!-- Current action explanation → currently hidden; use display:none on load if executor/trace was removed -->
     <section
       class="copilot-section"
       id="copilot-action-explanation"
       aria-labelledby="action-exp-heading"
+      style="display:none;"
     >
       <h2 class="copilot-section-title" id="action-exp-heading" aria-label="현재 동작">현재 동작</h2>
       <p class="action-explanation" id="current-explanation">
@@ -53,22 +54,24 @@
       </p>
     </section>
 
-    <!-- Action trace -->
+    <!-- Action trace → hidden in chat-first UI -->
     <section
       class="copilot-section"
       id="copilot-trace"
       aria-labelledby="trace-heading"
+      style="display:none;"
     >
       <h2 class="copilot-section-title" id="trace-heading" aria-label="동작 추적">동작 추적</h2>
       <ol class="action-trace-list" id="action-trace" role="list" aria-live="polite" aria-label="실행된 동작 순서">
       </ol>
     </section>
 
-    <!-- Executor controls (local demo only) -->
+    <!-- Executor controls → hidden in chat-first UI (no 제어판) -->
     <section
       class="copilot-section"
       id="copilot-executor"
       aria-labelledby="executor-heading"
+      style="display:none;"
     >
       <h2 class="copilot-section-title" id="executor-heading" aria-label="시연 제어">시연 제어</h2>
       <div class="executor-status" id="executor-status" aria-live="polite">
@@ -85,11 +88,12 @@
       </div>
     </section>
 
-    <!-- Explicit user-confirmation control (visual/local only, non-submit) -->
+    <!-- Explicit user-confirmation control → hidden in chat-first UI -->
     <section
       class="copilot-section copilot-confirm-section"
       id="copilot-confirmation"
       aria-labelledby="confirm-heading"
+      style="display:none;"
     >
       <h2 class="copilot-section-title" id="confirm-heading" aria-label="확인 대기">확인 필요</h2>
       <p class="confirm-notice" id="confirm-notice">
@@ -219,6 +223,15 @@
   >
     &#x25B6; 행동 가이드
   </button>
+
+  <!-- Review mode: ?review=true enables visible overlay borders + labels -->
+  <script>
+    (function() {
+      if (window.location.search.indexOf("review=true") !== -1) {
+        document.body.classList.add("review-mode");
+      }
+    })();
+  </script>
 
   <!-- Load order: map → canvas → shell → executor → complaint journey reducer → complaint journey UI -->
   <script src="/static/citizen-action-demo-map.js"></script>

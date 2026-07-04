@@ -316,6 +316,74 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Image-based canvas route — real Buk-gu screenshot as background
+--------------------------------------------------------------------------- */
+.canvas-page--image-based {
+  position: relative;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-color: #ffffff;
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+/* Transparent overlay target positioned on the image */
+.canvas-image-overlay {
+  position: absolute;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  z-index: 10;
+  border-radius: 0;
+  display: block;
+}
+.canvas-image-overlay:hover {
+  background: rgba(41, 128, 185, 0.08);
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
+   Review mode — reveal transparent overlays with borders + labels
+   Activated via URL parameter: ?review=true
+--------------------------------------------------------------------------- */
+.review-mode .canvas-image-overlay {
+  border: 2px solid #e74c3c !important;
+  background: rgba(231, 76, 60, 0.12) !important;
+}
+.review-mode .canvas-image-overlay::after {
+  content: attr(data-label);
+  position: absolute;
+  top: -18px;
+  left: 0;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 4px;
+  white-space: nowrap;
+  border-radius: 2px;
+  z-index: 20;
+}
+.review-mode .canvas-image-overlay::before {
+  content: attr(data-coords);
+  position: absolute;
+  bottom: -16px;
+  left: 0;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  font-size: 8px;
+  padding: 1px 3px;
+  white-space: nowrap;
+  border-radius: 2px;
+  z-index: 20;
+}
+
+/* ---------------------------------------------------------------------------
    Route transition
 --------------------------------------------------------------------------- */
 .canvas-page[hidden] {
