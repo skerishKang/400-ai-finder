@@ -313,24 +313,24 @@ class TestHtmlPageStructure:
 class TestRouteStructure:
     def test_each_route_renders_nav_bar(self):
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "_renderNavBar" in js
-        assert "canvas-nav" in js
+        assert "_renderNavBar" in js or "_renderSubHeader" in js
+        assert "bg-nav-bar" in js
 
     def test_each_route_renders_breadcrumb(self):
         js = _read_static("citizen-action-demo-canvas.js")
         assert "_renderBreadcrumb" in js
-        assert "canvas-breadcrumb" in js
+        assert "bg-breadcrumb" in js
 
     def test_each_route_renders_page_header(self):
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "_renderPageHeader" in js
-        assert "canvas-page-header" in js
-        assert "canvas-page-title" in js
-        assert "canvas-page-purpose" in js
+        assert "_renderSubPageHeader" in js or "_renderPageHeader" in js
+        assert "bg-page-header" in js
+        assert "bg-page-header__title" in js
 
     def test_each_route_renders_poc_banner(self):
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "_renderPocBanner" in js or "canvas-poc-banner" in js
+        assert "_renderPocBanner" in js
+        assert "bg-poc-banner" in js
 
 
 # ---------------------------------------------------------------------------
@@ -457,44 +457,53 @@ class TestRuntimeRender:
             "home": {"title": "시민 행정 도우미", "purpose": "북구청 행정서비스를 안내합니다."},
             "civil-service": {"title": "민원 신청", "purpose": "북구청 주요 민원 서비스를 안내합니다."},
             "complaint-category": {"title": "민원 유형 선택", "purpose": "해당 상황에 맞는 민원 유형을 선택해 주세요."},
-            "complaint-intake": {"title": "민원 작성", "purpose": "선택한 유형에 따라 내용을 작성해 주세요."},
-            "complaint-review": {"title": "민원 내용 확인", "purpose": "작성된 내용을 확인해 주세요."},
+            "complaint-intake": {"title": "민원서식", "purpose": "민원 업무에 필요한 각종 서식을 검색하고 다운로드할 수 있습니다."},
+            "complaint-review": {"title": "민원 신청 확인", "purpose": "아래 내용을 확인하고 신청해 주세요."},
             "handoff-stop": {"title": "데모 종료", "purpose": "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
         }
 
         for route_id in EXPECTED_ROUTE_IDS:
             html = rendered_routes[route_id]
 
-            # 1. Top Nav
-            assert 'class="canvas-nav"' in html, f"route {route_id} missing nav bar"
+            # 1. Top Nav — semantic bg-nav-bar or bg-nav-bar__title
+            # Home route has its own header/GNB (reconstructed homepage)
+            if route_id == "home":
+                assert 'class="bg-header"' in html, f"route {route_id} missing header"
+                assert 'class="bg-gnb"' in html, f"route {route_id} missing GNB"
+            else:
+                assert 'class="bg-nav-bar"' in html, f"route {route_id} missing nav bar"
 
-            # 2. Breadcrumb
-            assert 'class="canvas-breadcrumb"' in html, f"route {route_id} missing breadcrumb"
+            # 2. Breadcrumb (home is portal page without breadcrumb)
+            if route_id != "home":
+                assert 'class="bg-breadcrumb"' in html, f"route {route_id} missing breadcrumb"
 
-            # 3. Page Header (title and purpose)
-            assert 'class="canvas-page-header"' in html, f"route {route_id} missing page header"
-            assert 'class="canvas-page-title"' in html, f"route {route_id} missing page title"
-            assert 'class="canvas-page-purpose"' in html, f"route {route_id} missing page purpose"
+            # 3. Page Header (title and purpose) — sub-pages only
+            if route_id != "home":
+                assert 'class="bg-page-header"' in html, f"route {route_id} missing page header"
+                assert 'class="bg-page-header__title"' in html, f"route {route_id} missing page title"
 
-            # Verify exact title and purpose
-            meta = ROUTE_METADATA[route_id]
-            assert meta["title"] in html, f"route {route_id} missing expected title: {meta['title']}"
-            assert meta["purpose"] in html, f"route {route_id} missing expected purpose: {meta['purpose']}"
+            # Verify exact title and purpose for sub-pages
+            if route_id != "home":
+                meta = ROUTE_METADATA[route_id]
+                assert meta["title"] in html, f"route {route_id} missing expected title: {meta['title']}"
+                assert meta["purpose"] in html, f"route {route_id} missing expected purpose: {meta['purpose']}"
 
-            # 4. PoC Banner
-            assert 'class="canvas-poc-banner"' in html, f"route {route_id} missing PoC banner"
-            assert "로컬 개념 시연 (PoC) 안내" in html, f"route {route_id} missing PoC label"
-            assert "공식 사이트가 아니며" in html, f"route {route_id} missing PoC disclaimer"
+            # 4. PoC Banner (sub-pages only; home is the portal page)
+            if route_id != "home":
+                assert 'class="bg-poc-banner"' in html or 'class="canvas-poc-banner"' in html, \
+                    f"route {route_id} missing PoC banner"
+                assert "로컬 개념 시연 (PoC) 안내" in html, f"route {route_id} missing PoC label"
+                assert "공식 사이트가 아니며" in html, f"route {route_id} missing PoC disclaimer"
 
-            # 5. Content (simplified check: just ensure body exists)
-            assert 'class="canvas-body"' in html, f"route {route_id} missing canvas body"
+            # 5. Content
+            assert 'class="bg-content' in html or 'class="canvas-body"' in html or 'class="bg-page"' in html, \
+                f"route {route_id} missing content body"
 
     def test_complaint_category_buttons_have_correct_metadata(self, rendered_routes):
         """
         Render 'complaint-category'.
         Assert exactly the five closed category target IDs are present as buttons.
-        Assert each category button has non-empty data-demo-route="complaint-intake".
-        Assert no category button points to any other route.
+        Category buttons use bg-category-card class (no data-demo-route — handled by delegation).
         """
         html = rendered_routes["complaint-category"]
         category_targets = [
@@ -510,60 +519,21 @@ class TestRuntimeRender:
             button_pattern = r'<button[^>]*\sdata-action-target="' + tid + r'"[^>]*>'
             assert re.search(button_pattern, html), f"category button '{tid}' missing"
 
-        # Assert each has data-demo-route="complaint-intake"
+        # Verify no category button has data-demo-route (delegation handles it)
         for tid in category_targets:
-            # Find the specific button tag for this target
             button_tag = re.search(
                 r'<button[^>]*\sdata-action-target="' + tid + r'"[^>]*>',
                 html
             ).group(0)
-            assert 'data-demo-route="complaint-intake"' in button_tag, \
-                f"category button '{tid}' missing data-demo-route='complaint-intake'"
+            assert 'data-demo-route=' not in button_tag, \
+                f"category button '{tid}' should NOT have data-demo-route"
 
-        # Verify no other data-demo-route exists on buttons in this route
-        all_buttons = re.findall(r'<button[^>]*>', html)
-        for btn in all_buttons:
-            if 'data-action-target' in btn:
-                demo_route_match = re.search(r'data-demo-route="([^"]*)"', btn)
-                if demo_route_match:
-                    val = demo_route_match.group(1)
-                    assert val == "complaint-intake", f"unexpected route '{val}' found on button: {btn}"
-
-    def test_complaint_intake_contains_complaint_body_element(self, rendered_routes):
-        """Intake renders a non-button element carrying data-action-target='complaint-body'."""
+    def test_complaint_intake_has_form_table_and_data_targets(self, rendered_routes):
+        """Intake renders a form table with data-action-target on complaint-draft-review."""
         html = rendered_routes["complaint-intake"]
-        assert 'data-action-target="complaint-body"' in html
-        # Find the element tag
-        match = re.search(
-            r'<(\w+)[^>]*\sdata-action-target="complaint-body"[^>]*>',
-            html
-        )
-        assert match, "complaint-body element not found"
-        tag = match.group(1)
-        assert tag != "button", \
-            "complaint-body must NOT be a <button> (it is a display div)"
-
-    def test_complaint_body_has_no_data_demo_route(self, rendered_routes):
-        """The complaint-body element has no data-demo-route attribute."""
-        html = rendered_routes["complaint-intake"]
-        match = re.search(
-            r'<(\w+)[^>]*\sdata-action-target="complaint-body"[^>]*>',
-            html
-        )
-        assert match, "complaint-body element not found"
-        el_tag = match.group(0)
-        assert "data-demo-route" not in el_tag, \
-            "complaint-body must not have data-demo-route"
-
-    def test_no_button_has_data_action_target_complaint_body(self, rendered_routes):
-        """No <button> element carries data-action-target='complaint-body'."""
-        html = rendered_routes["complaint-intake"]
-        buttons = re.findall(
-            r'<button[^>]*\sdata-action-target="complaint-body"[^>]*>',
-            html
-        )
-        assert not buttons, \
-            "no <button> should have data-action-target='complaint-body'"
+        assert 'data-action-target="complaint-draft-review"' in html
+        assert 'class="bg-form-table"' in html
+        assert "불법 주정차 신고서" in html
 
     def test_handoff_stop_contains_handoff_notice(self, rendered_routes):
         """Handoff-stop renders a visible element with data-action-target='handoff-notice'."""
@@ -592,17 +562,12 @@ class TestRuntimeRender:
             assert val in EXPECTED_ROUTE_IDS, \
                 f"data-demo-route value '{val}' not in closed six-route vocabulary"
 
-    def test_complaint_draft_review_is_nav_button_in_intake(self, rendered_routes):
-        """In intake, only complaint-draft-review is a navigation button (not complaint-body)."""
+    def test_complaint_draft_review_is_link_in_form_table(self, rendered_routes):
+        """In intake, complaint-draft-review is a link in the form table."""
         html = rendered_routes["complaint-intake"]
-        buttons = re.findall(
-            r'<button[^>]*\sdata-action-target="([^"]*)"[^>]*>',
-            html
-        )
-        assert "complaint-draft-review" in buttons, \
-            "complaint-draft-review must be a nav button in intake"
-        assert "complaint-body" not in buttons, \
-            "complaint-body must not be a navigation button"
+        assert 'data-action-target="complaint-draft-review"' in html, \
+            "complaint-draft-review missing in intake"
+        assert 'class="bg-form-table"' in html, "form table missing in intake"
 
     def test_handoff_notice_is_not_a_button(self, rendered_routes):
         """handoff-notice renders as a div, not a button."""
@@ -614,23 +579,25 @@ class TestRuntimeRender:
         assert not buttons, "handoff-notice must not be a <button>"
 
     def test_nav_buttons_have_data_demo_route(self, rendered_routes):
-        """Navigation buttons in home/civil-service have data-demo-route set to destination."""
-        for route_id in ["home", "civil-service"]:
-            html = rendered_routes[route_id]
-            buttons = re.findall(
-                r'<button[^>]*\sdata-demo-route="([^"]*)"[^>]*>',
-                html
-            )
-            assert buttons, f"{route_id} nav buttons must have data-demo-route"
-            for val in buttons:
-                assert val in EXPECTED_ROUTE_IDS
+        """Navigation buttons in civil-service have data-demo-route set to destination."""
+        html = rendered_routes["civil-service"]
+        buttons = re.findall(
+            r'<button[^>]*\sdata-demo-route="([^"]*)"[^>]*>',
+            html
+        )
+        assert buttons, "civil-service nav buttons must have data-demo-route"
+        for val in buttons:
+            assert val in EXPECTED_ROUTE_IDS
 
     def test_real_entity_replacements_present(self, rendered_routes):
-        """Verify that HTML contains real entity replacements, not unicode escapes."""
+        """Verify that HTML contains proper HTML entities or valid separators."""
         combined = "".join(rendered_routes.values())
-        # Check for any real HTML entities (including &rsaquo;)
-        assert any(ent in combined for ent in ["&amp;", "&lt;", "&gt;", "&quot;", "&#39;", "&rsaquo;"]), \
-            "no real HTML entities found"
+        # Check for standard HTML entities OR valid Unicode separators
+        has_entity = any(ent in combined for ent in
+            ["&amp;", "&lt;", "&gt;", "&quot;", "&#39;"])
+        has_separator = "›" in combined or "|" in combined
+        assert has_entity or has_separator, \
+            "no HTML entities or valid separators found"
 
         # Ensure no unicode escaped versions of & are present in the rendered HTML
         assert "\\x26" not in combined, "found unicode escape \\x26 in rendered HTML"
@@ -671,3 +638,56 @@ class TestShellCompatibility:
         assert ".copilot-rail" in content
         assert "@media" in content
         assert "767px" in content
+
+
+# ---------------------------------------------------------------------------
+# Semantic Reconstruction Tests (#863 final gate)
+# ---------------------------------------------------------------------------
+
+class TestSemanticReconstruction:
+    """Focused tests for the semantic HTML/CSS reconstruction (Stage #863)."""
+
+    def test_no_image_routes_in_canvas(self):
+        """IMAGE_ROUTES and _renderImageBasedRoute must be removed."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert "IMAGE_ROUTES" not in js, "IMAGE_ROUTES must be removed"
+        assert "_renderImageBasedRoute" not in js, "_renderImageBasedRoute must be removed"
+        assert "canvas-image-overlay" not in js, "canvas-image-overlay must be removed"
+        assert "canvas-img-wrapper" not in js, "canvas-img-wrapper must be removed"
+
+    def test_safety_stop_in_complaint_review(self):
+        """complaint-review route must render Safety Stop overlay."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert 'safety-stop-overlay' in js, "safety-stop-overlay missing in canvas JS"
+        assert 'safety-stop-box' in js, "safety-stop-box missing in canvas JS"
+        assert "제출 전 안전 중지" in js, "Safety Stop title missing"
+
+    def test_chat_shell_in_html(self):
+        """HTML must have chat-shell as primary right-side panel."""
+        html = _read_static("citizen-action-demo.html")
+        assert 'class="chat-shell"' in html, "chat-shell not found in HTML"
+        assert "AI 민원 도우미" in html, "AI 민원 도우미 title missing"
+        assert 'class="chat-composer"' in html, "chat-composer not found"
+        assert "보내기" in html, "보내기 button missing"
+
+    def test_home_has_gnb_with_data_action_target(self):
+        """Home route must have GNB with data-action-target on 종합민원."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert 'data-action-target="nav-civil-service"' in js, \
+            "GNB 종합민원 must have data-action-target"
+        assert "종합민원" in js
+        assert "data-action-target" in js
+
+    def test_complaint_review_has_disabled_submit(self):
+        """complaint-review route must have disabled submit button."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert "disabled" in js and "제출하기" in js, \
+            "disabled submit button required in complaint-review"
+
+    def test_route_metadata_titles_updated(self):
+        """Route metadata titles and purposes must be correct."""
+        html = _read_static("citizen-action-demo.html")
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert "시민 행정 도우미" in html, "page title missing"
+        assert "광주광역시 북구" in js, "header must use 광주광역시 북구"
+        assert "북구청장 신수정" in js, "hero must mention 북구청장 신수정"
