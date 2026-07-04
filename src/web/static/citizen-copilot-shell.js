@@ -108,6 +108,7 @@
     }
   }
 
+  // Make Escape collapse compact drawer
   function _closeCompactDrawer() {
     _body.classList.remove("compact-drawer-open");
     _isCompactOpen = false;
@@ -115,7 +116,6 @@
     if (_compactToggle) {
       _compactToggle.setAttribute("aria-expanded", "false");
       _compactToggle.setAttribute("aria-label", "행동 가이드 패널 열기");
-      // Restore focus to the compact toggle (the user's entry point)
       _compactToggle.focus();
     }
   }
@@ -132,7 +132,6 @@
     _compactToggle.addEventListener("click", _toggleCompact);
   }
 
-  // Escape key collapses open compact drawer and returns focus to toggle
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && _isCompactOpen) {
       _closeCompactDrawer();
@@ -143,11 +142,9 @@
   // Viewport-change listener: sync compact state on resize / rotate
   // -----------------------------------------------------------------------
   function _onViewportChange() {
-    var wasCompact = _isCompactViewport;
     _isCompactViewport = _isCompact();
 
     if (_isCompactViewport) {
-      // Switched to compact: hide rail from accessibility tree until opened
       if (_isCompactOpen) {
         _applyInertToRail(false);
       } else {
@@ -156,7 +153,6 @@
       _body.classList.remove("compact-drawer-open");
       _isCompactOpen = false;
     } else {
-      // Switched back to desktop: remove all compact overrides
       _body.classList.remove("compact-drawer-open");
       _isCompactOpen = false;
       _applyInertToRail(false);
@@ -166,12 +162,10 @@
     }
   }
 
-  // Listen to viewport changes (width change or orientation change)
   var _viewportMedia = window.matchMedia("(max-width: 767px)");
   if (_viewportMedia.addEventListener) {
     _viewportMedia.addEventListener("change", _onViewportChange);
   } else {
-    // Fallback for older browsers (IE)
     _viewportMedia.addListener(_onViewportChange);
   }
 
@@ -200,44 +194,58 @@
   }
 
   // -----------------------------------------------------------------------
-  // Demo canvas buttons — visual simulation only
+  // Chat Scenario Chips Bridge (High-fidelity interactive demo flow)
   // -----------------------------------------------------------------------
-  var _canvasBtnPrefill = document.getElementById("canvas-btn-prefill");
-  var _canvasBtnReset = document.getElementById("canvas-btn-reset");
+  var _scenarioChips = document.querySelectorAll(".chat-scenario-chip");
+  _scenarioChips.forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      var scenario = chip.getAttribute("data-scenario");
+      var mapping = {
+        "illegal-parking": "illegal-parking",
+        "public-parking": "public-parking-inconvenience",
+        "residential-parking": "residential-parking",
+        "traffic-safety": "traffic-or-facility-safety"
+      };
+      var targetCatId = mapping[scenario];
+      if (!targetCatId) return;
 
-  if (_canvasBtnPrefill) {
-    _canvasBtnPrefill.addEventListener("click", function () {
-      var placeholder = document.querySelector(".demo-canvas__placeholder");
-      if (placeholder) {
-        placeholder.style.opacity = "0.5";
-        setTimeout(function () {
-          placeholder.style.opacity = "1";
-        }, 600);
-      }
-    });
-  }
+      // Find the hidden category button in the DOM and click it to trigger reducer
+      var hiddenBtn = document.querySelector('button[data-journey-category-id="' + targetCatId + '"]');
+      if (hiddenBtn) {
+        hiddenBtn.click();
 
-  if (_canvasBtnReset) {
-    _canvasBtnReset.addEventListener("click", function () {
-      var notice = document.getElementById("confirm-notice");
-      if (notice) {
-        notice.textContent = "확인이 필요합니다. 계속 진행하려면 사용자의 확인이 필요합니다.";
-      }
-      var explanation = document.getElementById("current-explanation");
-      if (explanation) {
-        explanation.textContent = "해당 페이지로 이동합니다.";
-      }
-    });
-  }
+        // Style the clicked chip
+        _scenarioChips.forEach(function (c) { c.classList.remove("chat-scenario-chip--active"); });
+        chip.classList.add("chat-scenario-chip--active");
 
-  // -----------------------------------------------------------------------
-  // Choice buttons — visual demo only, no data submission
-  // -----------------------------------------------------------------------
-  var _choiceBtns = document.querySelectorAll(".choice-btn");
-  _choiceBtns.forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      _choiceBtns.forEach(function (b) { b.style.fontWeight = ""; });
-      btn.style.fontWeight = "700";
+        // Append user bubble to thread
+        var chatThread = document.getElementById("chat-thread");
+        if (chatThread) {
+          var oldBubble = document.getElementById("dynamic-user-bubble");
+          if (oldBubble) oldBubble.remove();
+
+          var wrapper = document.createElement("div");
+          wrapper.id = "dynamic-user-bubble";
+          wrapper.className = "chat-bubble-wrapper chat-bubble-wrapper--user";
+          wrapper.innerHTML =
+            '<div class="chat-bubble-avatar">👤</div>' +
+            '<div class="chat-bubble chat-bubble--user">' +
+              chip.textContent.trim() + ' 시나리오에 대해 안내해 주세요.' +
+            '</div>';
+
+          // Insert user bubble right after welcome bubble (before scenarios grid)
+          var welcomeBubble = chatThread.querySelector(".chat-bubble-wrapper--assistant");
+          if (welcomeBubble && welcomeBubble.nextSibling) {
+            chatThread.insertBefore(wrapper, welcomeBubble.nextSibling);
+          } else {
+            chatThread.appendChild(wrapper);
+          }
+
+          // Scroll down
+          var content = document.querySelector(".chat-content");
+          if (content) content.scrollTop = content.scrollHeight;
+        }
+      }
     });
   });
 
@@ -253,9 +261,11 @@
     _applyDock("right");
   }
 
-  // Set initial inert state in compact viewport
   if (_isCompactViewport && !_isCompactOpen) {
     _applyInertToRail(true);
   }
+
+  // Export close method for accessibility tests
+  window._closeCompactDrawer = _closeCompactDrawer;
 
 })();

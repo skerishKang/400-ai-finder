@@ -10,183 +10,193 @@
 
 /* Section wrapper -------------------------------------------------------- */
 .journey-section {
-  border-top: 1px solid #e3e8ef;
-  padding-top: 10px;
-  margin-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 16px;
+  margin-top: 16px;
 }
 
 .journey-section__title {
-  font-size: 0.9rem;
-  letter-spacing: -0.01em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
   margin-bottom: 8px;
+  letter-spacing: 0.05em;
 }
 
 /* Status line ------------------------------------------------------------ */
 .journey-status-text {
   font-size: 0.85rem;
   line-height: 1.5;
-  color: #2c3e50;
+  color: #1e3a8a;
   margin: 0;
-  padding: 6px 8px;
-  background: #f4f7fb;
-  border-radius: 6px;
-  border: 1px solid #e3e8ef;
+  padding: 10px 14px;
+  background: #eff6ff;
+  border-radius: 8px;
+  border: 1.5px solid #bfdbfe;
 }
 
 /* Fact choice cards ------------------------------------------------------ */
 .journey-facts-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .journey-fact-group {
-  border: 1px solid #e3e8ef;
-  border-radius: 8px;
-  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
   background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .journey-fact-group__label {
   font-size: 0.8rem;
-  font-weight: 600;
-  color: #34495e;
-  margin-bottom: 6px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 8px;
 }
 
 .journey-fact-choices {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .journey-choice-card {
   font: inherit;
   font-size: 0.8rem;
   line-height: 1.25;
-  color: #2c3e50;
-  background: #ffffff;
-  border: 1px solid #c7d2dc;
-  border-radius: 999px;
-  padding: 6px 12px;
+  color: #334155;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 8px 14px;
   cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease;
+  transition: all 0.15s ease;
+  font-weight: 500;
 }
 
 .journey-choice-card:hover {
-  border-color: #5d8bb3;
-  background: #f0f6fc;
+  border-color: #0054a6;
+  background: #eff6ff;
+  color: #0054a6;
 }
 
 .journey-choice-card:focus-visible {
-  outline: 2px solid #5d8bb3;
+  outline: 2px solid #0054a6;
   outline-offset: 1px;
 }
 
 /* Selected state — must be unambiguous */
 .journey-choice-card--selected {
-  background: #1f6feb;
-  border-color: #1f6feb;
+  background: #0054a6;
+  border-color: #0054a6;
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .journey-choice-card--selected:hover {
-  background: #1a60d4;
-  border-color: #1a60d4;
+  background: #003c77;
+  border-color: #003c77;
   color: #ffffff;
 }
 
 /* Build / reset control buttons */
 .journey-control-btn {
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.825rem;
+  font-weight: 600;
   line-height: 1.2;
-  border-radius: 6px;
-  padding: 7px 12px;
+  border-radius: 8px;
+  padding: 9px 14px;
   cursor: pointer;
-  border: 1px solid #c7d2dc;
+  border: 1.5px solid #cbd5e1;
   background: #ffffff;
-  color: #2c3e50;
+  color: #334155;
+  transition: all 0.15s;
 }
 
 .journey-control-btn:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
-  background: #eef2f6;
+  opacity: 0.4;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
 }
 
 .journey-control-btn:focus-visible {
-  outline: 2px solid #5d8bb3;
+  outline: 2px solid #0054a6;
   outline-offset: 1px;
 }
 
 .journey-control-btn--primary {
-  background: #1f6feb;
-  border-color: #1f6feb;
+  background: #0054a6;
+  border-color: #0054a6;
   color: #ffffff;
-  font-weight: 600;
 }
 
 .journey-control-btn--primary:hover:not(:disabled) {
-  background: #1a60d4;
+  background: #003c77;
 }
 
 .journey-control-btn--danger {
   background: #ffffff;
-  border-color: #d4691f;
-  color: #a14a14;
+  border-color: #ef4444;
+  color: #ef4444;
 }
 
 .journey-control-btn--danger:hover:not(:disabled) {
-  background: #fef3ea;
+  background: #fef2f2;
 }
 
 .journey-controls-body {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 /* Review draft ----------------------------------------------------------- */
 .journey-draft-text {
   font-family: inherit;
-  font-size: 0.82rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  line-height: 1.6;
   white-space: pre-wrap;
   margin: 0;
-  padding: 10px;
-  background: #fbfcfe;
-  border: 1px solid #c7d2dc;
+  padding: 14px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
   border-radius: 8px;
-  color: #2c3e50;
+  color: #1e293b;
   max-height: 260px;
   overflow-y: auto;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .journey-review-caption {
-  font-size: 0.72rem;
-  color: #6b7785;
-  margin: 6px 0 8px 0;
+  font-size: 0.725rem;
+  color: #64748b;
+  margin: 6px 0 10px 0;
   letter-spacing: -0.01em;
 }
 
 .journey-review-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 /* Terminal notice — visually distinct from review draft ------------------- */
 .journey-terminal-text {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   line-height: 1.5;
-  color: #4a3a1a;
-  background: #fff8e1;
-  border: 1px solid #e0c98a;
-  border-left: 4px solid #d4a64a;
-  border-radius: 6px;
-  padding: 10px;
+  color: #065f46;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  border-left: 4px solid #10b981;
+  border-radius: 8px;
+  padding: 12px;
   margin: 0;
 }
 
@@ -197,7 +207,7 @@
 /* Hide empty review draft area cleanly */
 .journey-draft-text:empty::before {
   content: "아직 작성된 검토용 초안이 없습니다.";
-  color: #9aa7b3;
+  color: #94a3b8;
 }
 
 /* Compact (mobile) adjustments — kept scoped to journey classes only */
