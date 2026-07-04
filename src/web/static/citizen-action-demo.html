@@ -6,6 +6,7 @@
   <title>시민 행정 도우미 — 로컬 시연용</title>
   <link rel="stylesheet" href="/static/citizen-copilot-shell.css">
   <link rel="stylesheet" href="/static/citizen-action-demo-canvas.css">
+  <link rel="stylesheet" href="/static/citizen-action-executor.css">
 </head>
 <body data-copilot-dock="right" data-copilot-dock-choices="left right"><!-- allowed dock values: left, right -->
   <!-- Dock rail: left or right side panel -->
@@ -62,27 +63,28 @@
     >
       <h2 class="copilot-section-title" id="trace-heading" aria-label="동작 추적">동작 추적</h2>
       <ol class="action-trace-list" id="action-trace" role="list" aria-live="polite" aria-label="실행된 동작 순서">
-        <li class="trace-item trace-item--done" data-action-index="0">
-          <span class="trace-icon" aria-hidden="true">&#x2713;</span>
-          질문하기
-        </li>
-        <li class="trace-item trace-item--done" data-action-index="1">
-          <span class="trace-icon" aria-hidden="true">&#x2713;</span>
-          유형 선택
-        </li>
-        <li class="trace-item trace-item--active" data-action-index="2">
-          <span class="trace-icon" aria-hidden="true">&#x25B6;</span>
-          페이지 열기
-        </li>
-        <li class="trace-item" data-action-index="3">
-          <span class="trace-icon" aria-hidden="true">&#x25A0;</span>
-          요소 클릭
-        </li>
-        <li class="trace-item" data-action-index="4">
-          <span class="trace-icon" aria-hidden="true">&#x25A0;</span>
-          확인 요청
-        </li>
       </ol>
+    </section>
+
+    <!-- Executor controls (local demo only) -->
+    <section
+      class="copilot-section"
+      id="copilot-executor"
+      aria-labelledby="executor-heading"
+    >
+      <h2 class="copilot-section-title" id="executor-heading" aria-label="시연 제어">시연 제어</h2>
+      <div class="executor-status" id="executor-status" aria-live="polite">
+        대기 중
+      </div>
+      <div class="executor-controls" role="group" aria-label="시연 실행">
+        <button class="exec-btn" id="btn-exec-nav" type="button">민원 경로 시연 시작</button>
+        <button class="exec-btn" id="btn-exec-prefill" type="button">초안 채우기 시연</button>
+        <div class="exec-playback-controls">
+          <button class="exec-btn exec-btn--playback" id="btn-exec-pause" type="button">일시정지</button>
+          <button class="exec-btn exec-btn--playback" id="btn-exec-resume" type="button" style="display:none;">계속</button>
+          <button class="exec-btn exec-btn--cancel" id="btn-exec-cancel" type="button">남은 동작 취소</button>
+        </div>
+      </div>
     </section>
 
     <!-- Explicit user-confirmation control (visual/local only, non-submit) -->
@@ -142,5 +144,6 @@
   <script src="/static/citizen-action-demo-map.js"></script>
   <script src="/static/citizen-action-demo-canvas.js"></script>
   <script src="/static/citizen-copilot-shell.js"></script>
+  <script src="/static/citizen-action-executor.js"></script>
 </body>
 </html>
