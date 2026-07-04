@@ -63,9 +63,39 @@ Screenshots generated from local server at http://127.0.0.1:8401/static/citizen-
 
 ## 8. Test Results
 
-- `git diff --check`: clean (no trailing whitespace, no merge conflicts)
-- Focused test: see `docs/design-mockup-test.js` for acceptance criteria
-- Local pytest results: TODO
+### pytest
+```
+$ python3 -m pytest tests/test_citizen_action_demo_canvas.py -v
+============================== 91 passed in 0.91s ==============================
+```
+
+All 91 tests pass, including 7 new focused tests for semantic reconstruction:
+
+| Test | Status |
+|------|--------|
+| `test_no_image_routes_in_canvas` | ✅ IMAGE_ROUTES removed |
+| `test_safety_stop_in_complaint_review` | ✅ Safety Stop rendered |
+| `test_chat_shell_in_html` | ✅ Chat-shell + 보내기 |
+| `test_home_has_gnb_with_data_action_target` | ✅ GNB data-action-target |
+| `test_complaint_review_has_disabled_submit` | ✅ Disabled submit |
+| `test_route_metadata_titles_updated` | ✅ Correct naming |
+
+### git diff --check
+```
+$ git diff --check
+(no output) — clean, no trailing whitespace or merge conflicts
+```
+
+### Visual Verification Screenshots
+
+Located in `docs/artifacts/863-semantic/`:
+
+| View | Reconstruction | Reference Comparison |
+|------|---------------|---------------------|
+| Home | `semantic-home.png` | `compare-home---홈.png` |
+| Complaint Category (LNB + cards) | `semantic-complaint-category.png` | `compare-complaint-category---민원-메뉴.png` |
+| Intake (Form Table) | `semantic-intake.png` | N/A (reference is 전체 페이지) |
+| Safety Stop | `semantic-safety-stop.png` | N/A (modal is demo-only) |
 
 ## 9. Non-functional Requirements
 

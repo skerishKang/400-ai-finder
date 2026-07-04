@@ -139,7 +139,7 @@
               '<ul class="bg-card-list">' +
                 '<li><a href="#">2026.07.03 2026년 국적취득비용(수수료) 지원사업 진행 안내</a></li>' +
                 '<li><a href="#">2026.07.03 2026년 축산물이력제 식육포장처리업소 이력번호 표시 지원사업 안내</a></li>' +
-                '<li><a href="#">2026.07.03 전남광주통합특별시 북구 소속 공무원 사칭 피해 주의 안내</a></li>' +
+                '<li><a href="#">2026.07.03 광주광역시 북구 소속 공무원 사칭 피해 주의 안내</a></li>' +
               '</ul>' +
               '<a href="#" class="bg-more">더보기</a>' +
             '</section>' +
@@ -191,7 +191,7 @@
           '</div>' +
           '<div class="bg-footer-body">' +
             '<div class="bg-footer-info">' +
-              '<p>61187 전남광주통합특별시 북구 우치로 77 (용봉동) | 대표전화: 062-410-8000</p>' +
+              '<p>61187 광주광역시 북구 우치로 77 (용봉동) | 대표전화: 062-410-8000</p>' +
               '<p>운영시간: 평일 09:00~18:00 (점심시간 12:00~13:00) ※ 주말, 공휴일 휴무</p>' +
             '</div>' +
           '</div>' +
@@ -207,7 +207,7 @@
             '<a href="#">영상정보처리기기 운영·관리 방침</a>' +
           '</div>' +
           '<div class="bg-footer-copy">' +
-            '<p>Copyright © Jeonnam-Gwangju Special Metropolitan City BUKGU. all rights reserved.</p>' +
+            '<p>Copyright © Gwangju Metropolitan City BUKGU. all rights reserved.</p>' +
           '</div>' +
         '</footer>' +
       '</div>'
