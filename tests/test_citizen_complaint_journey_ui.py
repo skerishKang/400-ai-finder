@@ -498,3 +498,222 @@ class TestSafetyContractsPreserved:
         for pat in executor_pats:
             assert not re.search(pat, code), \
                 f"Edit additions must not reference executor/map/planner: '{pat}'"
+
+
+# =========================================================================
+# Test 23: Edit mode branch uses _hasValidSelectedCategory(), not
+#          journey.getClarification(_state)
+# =========================================================================
+
+class TestEditModeBranchUsesHasValidSelectedCategory:
+
+    @staticmethod
+    def _render_fact_cards_body(code):
+        """Extract the body of _renderFactCards from JS source."""
+        m = re.search(r'function\s+_renderFactCards\s*\([^)]*\)\s*\{', code)
+        if not m:
+            return ""
+        start = m.end()
+        depth = 1
+        pos = start
+        while depth > 0 and pos < len(code):
+            if code[pos] == '{':
+                depth += 1
+            elif code[pos] == '}':
+                depth -= 1
+            pos += 1
+        return code[start:pos - 1]
+
+    @staticmethod
+    def _edit_branch_block(func_body):
+        """Extract the full edit-mode if-block (condition + body)
+        from _renderFactCards."""
+        m = re.search(
+            r'if\s*\(\s*_editingSelections\s*&&\s*_hasValidSelectedCategory\s*\(\s*\)\s*\)',
+            func_body
+        )
+        if not m:
+            return ""
+        # Include the condition and the opening brace
+        cond_end = m.end()
+        brace_pos = func_body.find('{', cond_end)
+        if brace_pos == -1:
+            return ""
+        start = m.start()
+        depth = 1
+        pos = brace_pos + 1
+        while depth > 0 and pos < len(func_body):
+            if func_body[pos] == '{':
+                depth += 1
+            elif func_body[pos] == '}':
+                depth -= 1
+            pos += 1
+        return func_body[start:pos]
+
+    def test_edit_branch_uses_has_valid_selected_category(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        body = self._render_fact_cards_body(code)
+        block = self._edit_branch_block(body)
+        assert "_hasValidSelectedCategory()" in block, \
+            "Edit mode branch must reference _hasValidSelectedCategory()"
+
+    def test_edit_branch_no_get_clarification(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        body = self._render_fact_cards_body(code)
+        block = self._edit_branch_block(body)
+        assert "getClarification" not in block, \
+            "Edit mode branch must NOT use journey.getClarification(_state)"
+
+
+# =========================================================================
+# Test 24: Edit mode uses explicit 4-field allowlist, not Object.keys(facts)
+# =========================================================================
+
+class TestEditModeExplicitAllowlist:
+
+    def test_explicit_four_field_allowlist(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        # Extract _renderFactCards body
+        func_m = re.search(r'function\s+_renderFactCards\s*\([^)]*\)\s*\{', code)
+        assert func_m, "_renderFactCards function not found"
+        start = func_m.end()
+        depth = 1
+        pos = start
+        while depth > 0 and pos < len(code):
+            if code[pos] == '{':
+                depth += 1
+            elif code[pos] == '}':
+                depth -= 1
+            pos += 1
+        func_body = code[start:pos - 1]
+        # Extract edit-mode if-block
+        edit_cond = re.search(
+            r'if\s*\(\s*_editingSelections\s*&&\s*_hasValidSelectedCategory\s*\(\s*\)\s*\)\s*\{',
+            func_body
+        )
+        assert edit_cond, "Edit mode if-block not found"
+        block_start = edit_cond.end()
+        depth = 1
+        pos = block_start
+        while depth > 0 and pos < len(func_body):
+            if func_body[pos] == '{':
+                depth += 1
+            elif func_body[pos] == '}':
+                depth -= 1
+            pos += 1
+        branch_body = func_body[block_start:pos - 1]
+        # Verify the four field IDs are present
+        for field_id in ["location", "timing_or_recurrence",
+                         "observed_situation", "requested_remedy"]:
+            assert '"%s"' % field_id in branch_body, \
+                "Edit mode branch must reference field '%s'" % field_id
+        # Verify Object.keys(facts) is NOT used
+        assert "Object.keys(facts)" not in branch_body, \
+            "Edit mode branch must NOT use Object.keys(facts)"
+
+
+# =========================================================================
+# Test 25: Edit path dispatches REJECT_DRAFT (already exists as Test 18,
+#          kept here for completeness in the edit lifecycle group)
+# =========================================================================
+
+class TestEditPathDispatchesRejectDraft:
+
+    def test_edit_path_reject_draft(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        assert "REJECT_DRAFT" in code, \
+            "Edit path must dispatch REJECT_DRAFT"
+
+
+# =========================================================================
+# Test 26: Edit path clears terminal notice
+# =========================================================================
+
+class TestEditPathClearsTerminal:
+
+    def test_edit_path_clears_terminal(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        assert "REJECT_DRAFT" in code and "_clearTerminal" in code, \
+            "Edit path must clear terminal notice after REJECT_DRAFT"
+
+
+# =========================================================================
+# Test 27: Edit mode exit conditions
+# =========================================================================
+
+class TestEditModeExitConditions:
+
+    def test_build_draft_exits_edit_mode(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        assert "_editingSelections = false" in code, \
+            "BUILD_DRAFT must exit edit mode"
+
+    def test_select_category_exits_edit_mode(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        # Extract _dispatchSelectCategory function body
+        m = re.search(r'function\s+_dispatchSelectCategory\s*\([^)]*\)\s*\{', code)
+        assert m, "_dispatchSelectCategory function not found"
+        start = m.end()
+        depth = 1
+        pos = start
+        while depth > 0 and pos < len(code):
+            if code[pos] == '{':
+                depth += 1
+            elif code[pos] == '}':
+                depth -= 1
+            pos += 1
+        body = code[start:pos - 1]
+        assert "_editingSelections = false" in body, \
+            "SELECT_CATEGORY must exit edit mode"
+
+    def test_clear_all_exits_edit_mode(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        # Extract _dispatchClearAll function body
+        m = re.search(r'function\s+_dispatchClearAll\s*\([^)]*\)\s*\{', code)
+        assert m, "_dispatchClearAll function not found"
+        start = m.end()
+        depth = 1
+        pos = start
+        while depth > 0 and pos < len(code):
+            if code[pos] == '{':
+                depth += 1
+            elif code[pos] == '}':
+                depth -= 1
+            pos += 1
+        body = code[start:pos - 1]
+        assert "_editingSelections = false" in body, \
+            "CLEAR_ALL must exit edit mode"
+
+
+# =========================================================================
+# Test 28: SELECT_FACT does NOT exit edit mode
+# =========================================================================
+
+class TestSelectFactKeepsEditMode:
+
+    def test_select_fact_does_not_clear_edit_mode(self):
+        src = _read(UI_FILE)
+        code = re.sub(r'/\*[\s\S]*?\*/', '', re.sub(r'//.*', '', src))
+        # Extract _dispatchSelectFact function body
+        m = re.search(r'function\s+_dispatchSelectFact\s*\([^)]*\)\s*\{', code)
+        assert m, "_dispatchSelectFact function not found"
+        start = m.end()
+        depth = 1
+        pos = start
+        while depth > 0 and pos < len(code):
+            if code[pos] == '{':
+                depth += 1
+            elif code[pos] == '}':
+                depth -= 1
+            pos += 1
+        body = code[start:pos - 1]
+        assert "_editingSelections = false" not in body, \
+            "SELECT_FACT must NOT exit edit mode"

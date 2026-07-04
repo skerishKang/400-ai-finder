@@ -173,6 +173,20 @@
     return (typeof v === "string") ? v : null;
   }
 
+  function _hasValidSelectedCategory() {
+    if (!_state || typeof _state.category_id !== "string") {
+      return false;
+    }
+
+    var categories = journey.getClosedChoices().categories || [];
+    for (var i = 0; i < categories.length; i++) {
+      if (categories[i].id === _state.category_id) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function _renderFactCards() {
     var host = _el("journey-facts-body");
     if (!host) { return; }
@@ -181,13 +195,15 @@
     // Edit mode: show every fact field when the category is valid,
     // regardless of whether all facts are already selected. This lets
     // the user re-select closed choices without losing category context.
-    if (_editingSelections &&
-        _state &&
-        typeof _state.category_id === "string" &&
-        journey.getClarification(_state)) {
+    if (_editingSelections && _hasValidSelectedCategory()) {
       var vocab = journey.getClosedChoices();
       var facts = vocab.facts || {};
-      var fieldIds = Object.keys(facts);
+      var fieldIds = [
+        "location",
+        "timing_or_recurrence",
+        "observed_situation",
+        "requested_remedy"
+      ];
       for (var i = 0; i < fieldIds.length; i++) {
         _renderFactGroup(host, fieldIds[i], facts[fieldIds[i]]);
       }
@@ -453,6 +469,7 @@
 
   function _dispatchRejectDraft() {
     _state = journey.reduce(_state, { type: "REJECT_DRAFT" });
+    _editingSelections = true;
     _clearTerminal();
     var draftNode = _el("journey-draft-text");
     _setText(draftNode, "");
