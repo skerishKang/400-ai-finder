@@ -9,8 +9,15 @@ CSS = (STATIC / "citizen-action-demo-canvas.css").read_text(encoding="utf-8")
 
 
 def _home_block() -> str:
-    start = JS.index("  function _renderHome() {")
-    end = JS.index("  // -----------------------------------------------------------------------\n  // _renderCivilService", start)
+    start = JS.index("  function _renderHome(")
+    # Find end of _renderHome function (next top-level function or utility)
+    candidates = ["\n  // -----------------------------------------------------------------------\n  // _renderCivilService",
+                  "\n  function _renderCivilService"]
+    end = len(JS)
+    for c in candidates:
+        idx = JS.find(c, start + 50)
+        if idx != -1 and idx < end:
+            end = idx
     return JS[start:end]
 
 
@@ -25,12 +32,13 @@ def test_current_home_uses_approved_identity_and_exact_gnb_order():
 
 def test_current_home_top_uses_only_approved_derived_assets():
     home = _home_block()
+    # Default R-HOME-01 asset set
     assets = [
         "home-government-notice.png",
         "home-identity.png",
         "home-civic-brand.png",
         "home-mayor-card.png",
-        "home-alert-banner-r-home-02.png",
+        "home-alert-banner.png",
         "home-quick-work.png",
         "home-quick-office.png",
         "home-quick-donation.png",
@@ -39,8 +47,11 @@ def test_current_home_top_uses_only_approved_derived_assets():
         "home-quick-waiting.png",
     ]
     for asset in assets:
-        assert asset in home
-        assert (STATIC / "images" / "bukgu-current" / asset).is_file()
+        assert asset in home, f"default asset {asset} missing from home block"
+        assert (STATIC / "images" / "bukgu-current" / asset).is_file(), f"file missing: {asset}"
+    # Alternate R-HOME-02 state asset must exist as file (used via ?home-reference=R-HOME-02)
+    assert "home-alert-banner-r-home-02.png" in JS, "R-HOME-02 alternate asset not referenced in JS"
+    assert (STATIC / "images" / "bukgu-current" / "home-alert-banner-r-home-02.png").is_file(), "R-HOME-02 crop file missing"
     assert "bukgu_home.png" not in home
     assert "bukgu_menu.png" not in home
     assert "bukgu_intake.png" not in home

@@ -175,8 +175,23 @@
   // -----------------------------------------------------------------------
   // _renderHome — faithful Buk-gu Office main portal
   // -----------------------------------------------------------------------
-  function _renderHome() {
+
+  /** Resolve which home reference state to render based on query parameter.
+   *  Only "?home-reference=R-HOME-02" selects the R-HOME-02 full-home state.
+   *  Everything else falls back to R-HOME-01 (ordinary above-fold state). */
+  function _resolveHomeReferenceState(search) {
+    search = search || "";
+    // Simple query parser (no URLSearchParams dependency for Node sandbox compat)
+    var match = search.match(/[?&]home-reference=([^&]*)/);
+    var value = match ? decodeURIComponent(match[1]) : "";
+    return value === "R-HOME-02" ? "R-HOME-02" : "R-HOME-01";
+  }
+
+  function _renderHome(state) {
     var assets = "/static/images/bukgu-current";
+    var bannerFile = state === "R-HOME-02"
+      ? "home-alert-banner-r-home-02.png"
+      : "home-alert-banner.png";
     var searchIcon =
       '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.4 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
     var menuIcon =
@@ -203,7 +218,7 @@
     }
 
     return (
-      '<div class="bg-page bg-page--full bg-page--home">' +
+      '<div class="bg-page bg-page--full bg-page--home" data-home-reference-state="' + state + '">' +
         '<div class="bg-skip"><a href="#bg-content-main">본문으로 바로가기</a></div>' +
 
         '<div class="bg-home-gov-strip">' +
@@ -270,7 +285,7 @@
               '<img src="' + assets + '/home-mayor-card.png" alt="따뜻한 북구를 만들겠습니다. 북구청장 신수정입니다." />' +
             '</article>' +
             '<article class="bg-home-lead__banner" aria-label="소속 공무원 사칭 피해주의 알림">' +
-              '<img src="' + assets + '/home-alert-banner-r-home-02.png" alt="주요 알림 배너" />' +
+              '<img src="' + assets + '/' + bannerFile + '" alt="주요 알림 배너" />' +
             '</article>' +
           '</section>' +
 
@@ -958,7 +973,7 @@
 
     var html = "";
     switch (routeId) {
-      case "home":               html = _renderHome(); break;
+      case "home":               html = _renderHome(_resolveHomeReferenceState(typeof window !== "undefined" && window.location ? window.location.search : "")); break;
       case "civil-service":      html = _renderCivilService(route); break;
       case "complaint-category": html = _renderCheongwon24(route); break;
       case "complaint-intake":   html = _renderComplaintIntake(route); break;

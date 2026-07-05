@@ -38,11 +38,11 @@ The two supplied home captures show different carousel slides. The initial stati
 
 ### Carousel state separation
 
-- R-HOME-01 (1344x756) provides the above-fold initial home state.
-- R-HOME-02 (1344x1833) provides the full-home state including lower modules and footer.
-- Full-home render evidence against R-HOME-02 must use a banner crop from R-HOME-02, not from R-HOME-01.
+- R-HOME-01: ordinary default local home state (above-fold comparison only). Default banner: `home-alert-banner.png`.
+- R-HOME-02: selectable via `?home-reference=R-HOME-02` only. Full-home comparison state. Banner: `home-alert-banner-r-home-02.png`.
+- R-HOME-01 and R-HOME-02 are different carousel states. A canvas rendered in one state must NOT be compared against the other state's source capture.
+- R-HOME-02 full-home evidence must render with `?home-reference=R-HOME-02`.
 - The banner crop is `src/web/static/images/bukgu-current/home-alert-banner-r-home-02.png` (box `[562, 258, 1123, 555)`, 561x297).
-- The above-fold viewport crop `home-alert-banner.png` (from R-HOME-01) is NOT used for full-home comparison.
 
 ## Implementation boundaries
 
