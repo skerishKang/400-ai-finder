@@ -1686,3 +1686,163 @@
   .bg-page--home .bg-home-partners,
   .bg-page--home .bg-home-footer__inner { min-width: var(--bg-home-width); }
 }
+
+/* ---------------------------------------------------------------------------
+   J-DEPT-01 specific scoped styles
+   --------------------------------------------------------------------------- */
+
+/* Home modifications inside J-DEPT-01 */
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu {
+  background: #f8f9fa;
+  border-bottom: 2px solid #0054A6;
+  padding: 20px 0;
+  width: 100%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  animation: bgSlideDown 0.2s ease-out;
+}
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__col {
+  width: 250px;
+}
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__col h3 {
+  font-size: 16px;
+  color: #222;
+  margin-bottom: 12px;
+  font-weight: 700;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 6px;
+}
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__col a {
+  display: block;
+  font-size: 14px;
+  color: #555;
+  text-decoration: none;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+}
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__col a:hover {
+  color: #0054A6;
+  text-decoration: underline;
+}
+
+@keyframes bgSlideDown {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Department directory layout */
+.bg-page--dept-directory .bg-dept-main {
+  flex: 1;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 30px 20px 60px;
+}
+.bg-page--dept-directory .bg-dept-breadcrumb {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 20px;
+}
+.bg-page--dept-directory .bg-dept-breadcrumb span {
+  color: #888;
+}
+.bg-page--dept-directory .bg-dept-breadcrumb strong {
+  color: #222;
+  font-weight: 700;
+}
+.bg-page--dept-directory .bg-dept-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #222;
+  padding-bottom: 15px;
+}
+.bg-page--dept-directory .bg-dept-search {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  padding: 24px;
+  border-radius: 4px;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+}
+.bg-page--dept-directory .bg-dept-search__box {
+  display: flex;
+  width: 100%;
+  max-width: 600px;
+  height: 48px;
+}
+.bg-page--dept-directory .bg-dept-search__input {
+  flex: 1;
+  border: 2px solid #0054A6;
+  border-radius: 4px 0 0 4px;
+  padding: 0 16px;
+  font-size: 16px;
+  outline: none;
+}
+.bg-page--dept-directory .bg-dept-search__btn {
+  background: #0054A6;
+  color: #fff;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  padding: 0 24px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.bg-page--dept-directory .bg-dept-search__btn:hover {
+  background: #004a99;
+}
+.bg-page--dept-directory .bg-dept-results__count {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 12px;
+  text-align: right;
+}
+.bg-page--dept-directory .bg-dept-results__count strong {
+  color: #E60012;
+  font-weight: 700;
+}
+.bg-page--dept-directory .bg-dept-results__empty {
+  text-align: center;
+  padding: 60px 0;
+  color: #888;
+  font-size: 15px;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+.bg-page--dept-directory .bg-dept-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  border-top: 2px solid #0054A6;
+}
+.bg-page--dept-directory .bg-dept-table th,
+.bg-page--dept-directory .bg-dept-table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+}
+.bg-page--dept-directory .bg-dept-table th {
+  background: #f8f9fa;
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+}
+.bg-page--dept-directory .bg-dept-table td {
+  font-size: 14px;
+  color: #444;
+}
+.bg-page--dept-directory .bg-dept-table__row--highlighted {
+  background: #fdfefe;
+}
+.bg-page--dept-directory .bg-dept-table__row--highlighted td {
+  font-weight: 700;
+  color: #0054A6;
+}

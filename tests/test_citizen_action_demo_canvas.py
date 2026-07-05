@@ -786,3 +786,162 @@ class TestFidelityAndSeparation:
         js = _read_static("citizen-action-demo-canvas.js")
         assert '_svgLogo' not in js, "_svgLogo still in canvas.js"
         assert '_svgLogoWhite' not in js, "_svgLogoWhite still in canvas.js"
+
+
+# ---------------------------------------------------------------------------
+# J-DEPT-01 specific tests
+# ---------------------------------------------------------------------------
+
+class TestJDept01SpecificContracts:
+    @pytest.fixture(scope="class")
+    def dept_render(self):
+        """Helper to run Node and capture HTML under J-DEPT-01 query states."""
+        def _render(query: str):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            # Run with custom sandbox search query
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            var eventListeners = {};
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function(event, handler) {
+                  eventListeners[id + ':' + event] = handler;
+                },
+                querySelector: function(sel) {
+                  if (sel === '.bg-dept-search__input') {
+                    return { value: '공동주택' };
+                  }
+                  return null;
+                }
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+            process.stdout.write(capturedHTML);
+            """ % (
+                json.dumps(query),
+                map_js,
+                canvas_js
+            )
+            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return res.stdout
+        return _render
+
+    def test_jdept01_does_not_extend_vocabulary(self):
+        """1. Closed vocabulary in map.js is NOT changed."""
+        js = _read_static("citizen-action-demo-map.js")
+        assert "J-DEPT-01" not in js
+        assert "dept-state" not in js
+        assert "data-dept-action" not in js
+
+    def test_jdept01_query_gated_states_render(self, dept_render):
+        """2. The four query states render successfully."""
+        html_home = dept_render("?journey=J-DEPT-01")
+        assert "bg-page--home" in html_home
+        assert 'data-dept-journey="true"' in html_home
+
+        html_menu = dept_render("?journey=J-DEPT-01&dept-state=menu")
+        assert "bg-dept-mega-menu" in html_menu
+
+        html_dir = dept_render("?journey=J-DEPT-01&dept-state=directory")
+        assert "bg-page--dept-directory" in html_dir
+        assert "업무 및 전화번호 안내" in html_dir
+
+        html_res = dept_render("?journey=J-DEPT-01&dept-state=result")
+        assert "bg-page--dept-directory" in html_res
+        assert "공동주택과" in html_res
+
+    def test_jdept01_exact_route_and_chat_progression(self, dept_render):
+        """3. Output contains correct route navigation elements."""
+        html_dir = dept_render("?journey=J-DEPT-01&dept-state=directory")
+        assert "홈" in html_dir
+        assert "북구소개" in html_dir
+        assert "구청안내" in html_dir
+        assert "업무 및 전화번호 안내" in html_dir
+
+    def test_jdept01_factual_result_row_only(self, dept_render):
+        """4. Result state renders only the single approved factual row and count."""
+        html_res = dept_render("?journey=J-DEPT-01&dept-state=result")
+        assert "전체" in html_res
+        assert "9" in html_res
+        assert "1/1" in html_res
+        assert "공동주택과" in html_res
+        assert "062-410-6033" in html_res
+        assert "공동주택과 업무전반" in html_res
+        # Assert no other fake or synthesized rows are present
+        assert "공동주택지원팀" not in html_res
+        assert "홍길동" not in html_res
+
+    def test_jdept01_no_raw_captures_in_code(self):
+        """5. Verify no raw R-DEPT capture filenames are used as backgrounds or source tags in js/css."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        css = _read_static("citizen-action-demo-canvas.css")
+        combined = js + css
+        for filename in [
+            "bukgu-menu-dropdown.png",
+            "CaptureX_2026-07-06_001130_bukgu.gwangju.kr_upmu.png",
+            "CaptureX_2026-07-06_001132_bukgu.gwangju.kr_upmu_full.png",
+            "CaptureX_2026-07-06_001716_bukgu.gwangju.kr_gongdong.png",
+            "CaptureX_2026-07-06_001719_bukgu.gwangju.kr_gongdong_full.png"
+        ]:
+            assert filename not in combined, f"prohibited usage of reference capture filename: {filename}"
+
+    def test_jdept01_uses_data_dept_action(self, dept_render):
+        """6. Interaction targets use data-dept-action, not data-action-target."""
+        html_home = dept_render("?journey=J-DEPT-01")
+        assert 'data-dept-action="open-menu"' in html_home
+        assert 'data-action-target="open-menu"' not in html_home
+
+    def test_jdept01_css_is_scoped(self):
+        """7. Verify J-DEPT CSS rules are route-scoped only."""
+        css = _read_static("citizen-action-demo-canvas.css")
+        # Split by the exact end marker of the comment block to clear the header comment
+        jdept_part = css.split("--------------------------------------------------------------------------- */")[-1]
+
+        import re
+        jdept_part = re.sub(r"/\*[\s\S]*?\*/", "", jdept_part)
+        jdept_part = jdept_part.replace("*/", "", 1).strip()
+        jdept_part = re.sub(r"@keyframes\s+\w+\s*\{[\s\S]*?\}", "", jdept_part)
+
+        selectors = []
+        blocks = jdept_part.split("}")
+        for block in blocks:
+            if "{" in block:
+                sel = block.split("{")[0].strip()
+                if sel and not sel.startswith("@") and not sel == "from" and not sel == "to":
+                    selectors.append(sel)
+
+        for selector in selectors:
+            for sel_part in [s.strip() for s in selector.split(",")]:
+                if not sel_part:
+                    continue
+                if sel_part in ["from", "to"] or sel_part.startswith("@"):
+                    continue
+                assert (sel_part.startswith(".bg-page--dept-directory") or
+                        sel_part.startswith(".bg-page--home[data-dept-journey=\"true\"]")), \
+                    f"prohibited unscoped J-DEPT selector: {sel_part}"

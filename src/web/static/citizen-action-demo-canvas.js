@@ -36,6 +36,202 @@
   }
 
   // -----------------------------------------------------------------------
+  // J-DEPT-01 local-only utilities and renderers
+  // -----------------------------------------------------------------------
+  function _resolveDeptJourneyState(search) {
+    var params = new URLSearchParams(search || "");
+    var journey = params.get("journey");
+    var deptState = params.get("dept-state");
+    if (journey === "J-DEPT-01") {
+      if (deptState === "menu" || deptState === "directory" || deptState === "result") {
+        return { isDept: true, state: deptState };
+      }
+      return { isDept: true, state: "home" };
+    }
+    return { isDept: false, state: "" };
+  }
+
+  function _updateChatProgressForDept(deptState) {
+    var thread = document.getElementById("chat-thread");
+    if (!thread) return;
+
+    var messages = [
+      '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">공동주택 관련 문의는 어느 부서에 해야 하나요?</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내에서 담당 부서를 찾아보겠습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구소개 메뉴에서 구청안내를 확인했습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">업무 및 전화번호 안내에서 ‘공동주택’을 검색하고 있습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.</div></div>'
+    ];
+
+    var progressIndicator =
+      '<div class="chat-progress">' +
+        '<span class="chat-progress__label">진행 단계</span>' +
+        '<div class="chat-progress__steps">';
+
+    var renderCount = 2;
+    var progressHtml = '';
+    if (deptState === "menu") {
+      renderCount = 3;
+      progressHtml += '<span class="chat-progress__step chat-progress__step--done">✓ 홈</span>' +
+                      '<span class="chat-progress__step chat-progress__step--active">● 메뉴</span>' +
+                      '<span class="chat-progress__step">○ 디렉토리</span>' +
+                      '<span class="chat-progress__step">○ 결과</span>';
+    } else if (deptState === "directory") {
+      renderCount = 4;
+      progressHtml += '<span class="chat-progress__step chat-progress__step--done">✓ 홈</span>' +
+                      '<span class="chat-progress__step chat-progress__step--done">✓ 메뉴</span>' +
+                      '<span class="chat-progress__step chat-progress__step--active">● 디렉토리</span>' +
+                      '<span class="chat-progress__step">○ 결과</span>';
+    } else if (deptState === "result") {
+      renderCount = 5;
+      progressHtml += '<span class="chat-progress__step chat-progress__step--done">✓ 홈</span>' +
+                      '<span class="chat-progress__step chat-progress__step--done">✓ 메뉴</span>' +
+                      '<span class="chat-progress__step chat-progress__step--done">✓ 디렉토리</span>' +
+                      '<span class="chat-progress__step chat-progress__step--active">● 결과</span>';
+    } else { // home
+      renderCount = 2;
+      progressHtml += '<span class="chat-progress__step chat-progress__step--active">● 홈</span>' +
+                      '<span class="chat-progress__step">○ 메뉴</span>' +
+                      '<span class="chat-progress__step">○ 디렉토리</span>' +
+                      '<span class="chat-progress__step">○ 결과</span>';
+    }
+
+    progressIndicator += progressHtml + '</div></div>';
+
+    var html = '';
+    for (var i = 0; i < renderCount; i++) {
+      html += messages[i];
+    }
+    thread.innerHTML = html + progressIndicator;
+  }
+
+  function _restoreHistoricalChat() {
+    var thread = document.getElementById("chat-thread");
+    if (!thread) return;
+    var defaultHtml =
+      '<div class="chat-msg chat-msg--user">' +
+        '<div class="chat-bubble chat-bubble--user">불법 주정차 신고는 어디서 하나요?</div>' +
+      '</div>' +
+      '<div class="chat-msg chat-msg--ai">' +
+        '<div class="chat-avatar" aria-label="AI">A</div>' +
+        '<div class="chat-bubble chat-bubble--ai">북구청 홈페이지에서 신고 경로를 확인하겠습니다.</div>' +
+      '</div>' +
+      '<div class="chat-msg chat-msg--ai">' +
+        '<div class="chat-avatar" aria-label="AI">A</div>' +
+        '<div class="chat-bubble chat-bubble--ai">종합민원 메뉴에서 온라인 민원신청 경로를 찾고 있습니다.</div>' +
+      '</div>' +
+      '<div class="chat-progress">' +
+        '<span class="chat-progress__label">진행 단계</span>' +
+        '<div class="chat-progress__steps">' +
+          '<span class="chat-progress__step chat-progress__step--done">✓ 홈</span>' +
+          '<span class="chat-progress__step chat-progress__step--active">● 신청</span>' +
+          '<span class="chat-progress__step">○ 확인</span>' +
+          '<span class="chat-progress__step">○ 종료</span>' +
+        '</div>' +
+      '</div>';
+    thread.innerHTML = defaultHtml;
+  }
+
+  function _renderDeptDirectory(deptState) {
+    var assets = "/static/images/bukgu-current";
+    return (
+      '<div class="bg-page bg-page--full bg-page--dept-directory">' +
+        '<div class="bg-home-gov-strip">' +
+          '<div class="bg-home-gov-strip__inner">' +
+            '<img src="' + assets + '/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+          '</div>' +
+        '</div>' +
+        '<div class="bg-home-utility" aria-label="사이트 도구">' +
+          '<div class="bg-home-utility__inner">' +
+            '<div class="bg-home-utility__weather">' +
+              '<strong>26°C</strong>' +
+              '<span>미세먼지 <b>좋음</b></span>' +
+              '<span>초미세먼지 <b>좋음</b></span>' +
+            '</div>' +
+            '<div class="bg-home-utility__menus">' +
+              '<a href="#">주요사이트 <span aria-hidden="true">▾</span></a>' +
+              '<a href="#">SNS <span aria-hidden="true">▾</span></a>' +
+              '<a href="#">KOR <span aria-hidden="true">▾</span></a>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<header class="bg-header">' +
+          '<div class="bg-home-header">' +
+            '<div class="bg-home-header__inner">' +
+              '<a href="#" class="bg-home-header__identity" aria-label="전남광주통합특별시북구 홈">' +
+                '<img src="' + assets + '/home-identity.png" alt="전남광주통합특별시북구" />' +
+              '</a>' +
+              '<nav class="bg-gnb" aria-label="주메뉴">' +
+                '<div class="bg-home-gnb">' +
+                  '<a href="#" class="bg-home-gnb__link">종합민원</a>' +
+                  '<a href="#" class="bg-home-gnb__link">소통광장</a>' +
+                  '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
+                  '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
+                  '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
+                  '<a href="#" class="bg-home-gnb__link bg-home-gnb__link--active" data-dept-action="open-menu">북구소개</a>' +
+                '</div>' +
+              '</nav>' +
+            '</div>' +
+          '</div>' +
+        '</header>' +
+        '<main class="bg-dept-main">' +
+          '<div class="bg-dept-breadcrumb">' +
+            '<span>홈</span> &gt; <span>북구소개</span> &gt; <span>구청안내</span> &gt; <strong>업무 및 전화번호 안내</strong>' +
+          '</div>' +
+          '<div class="bg-dept-header">' +
+            '<h2>업무 및 전화번호 안내</h2>' +
+          '</div>' +
+          '<div class="bg-dept-search">' +
+            '<div class="bg-dept-search__box">' +
+              '<input type="text" class="bg-dept-search__input" placeholder="검색어를 입력하세요." value="' + (deptState === 'result' ? '공동주택' : '') + '" />' +
+              '<button type="button" class="bg-dept-search__btn" data-dept-action="trigger-search">검색</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="bg-dept-results">' +
+            (deptState === 'result' ?
+              '<div class="bg-dept-results__count">' +
+                '전체 <strong>9</strong>명, 현재 페이지 <strong>1/1</strong>' +
+              '</div>' +
+              '<table class="bg-dept-table">' +
+                '<thead>' +
+                  '<tr>' +
+                    '<th>부서명</th>' +
+                    '<th>전화번호</th>' +
+                    '<th>담당업무</th>' +
+                  '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                  '<tr class="bg-dept-table__row bg-dept-table__row--highlighted">' +
+                    '<td>공동주택과</td>' +
+                    '<td>062-410-6033</td>' +
+                    '<td>공동주택과 업무전반</td>' +
+                  '</tr>' +
+                '</tbody>' +
+              '</table>'
+            :
+              '<div class="bg-dept-results__empty">' +
+                '검색어를 입력 후 검색해 주세요. (예: 공동주택)' +
+              '</div>'
+            ) +
+          '</div>' +
+        '</main>' +
+        '<footer class="bg-home-footer" aria-label="사이트 하단">' +
+          '<div class="bg-home-footer__inner">' +
+            '<nav class="bg-home-footer__nav" aria-label="하단 메뉴">' +
+              '<a href="#">누리집이용안내 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">개인정보처리방침 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">저작권 보호정책 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">이메일무단수집거부 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">영상정보처리기기 운영·관리방침 <span aria-hidden="true">⌃</span></a>' +
+            '</nav>' +
+            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
+          '</div>' +
+        '</footer>' +
+      '</div>'
+    );
+  }
+
+  // -----------------------------------------------------------------------
   // Shared render pieces
   // -----------------------------------------------------------------------
 
@@ -188,6 +384,10 @@
   }
 
   function _renderHome(state) {
+    var deptJourney = _resolveDeptJourneyState(typeof window !== "undefined" && window.location ? window.location.search : "");
+    var isDeptJourney = deptJourney.isDept;
+    var deptState = deptJourney.state;
+
     var assets = "/static/images/bukgu-current";
     var bannerFile = state === "R-HOME-02"
       ? "home-alert-banner-r-home-02.png"
@@ -218,7 +418,7 @@
     }
 
     return (
-      '<div class="bg-page bg-page--full bg-page--home" data-home-reference-state="' + state + '">' +
+      '<div class="bg-page bg-page--full bg-page--home" data-home-reference-state="' + state + '"' + (isDeptJourney ? ' data-dept-journey="true"' : '') + '>' +
         '<div class="bg-skip"><a href="#bg-content-main">본문으로 바로가기</a></div>' +
 
         '<div class="bg-home-gov-strip">' +
@@ -255,7 +455,11 @@
               '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
               '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
               '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
-              '<a href="#" class="bg-home-gnb__link">북구소개</a>' +
+              (isDeptJourney ?
+                '<a href="#" class="bg-home-gnb__link' + (deptState === 'menu' ? ' bg-home-gnb__link--active' : '') + '" data-dept-action="open-menu">북구소개</a>'
+              :
+                '<a href="#" class="bg-home-gnb__link">북구소개</a>'
+              ) +
             '</div>' +
             '</nav>' +
             '<div class="bg-home-header__actions">' +
@@ -265,6 +469,18 @@
           '</div>' +
         '</div>' +
         '</header>' +
+        (isDeptJourney && deptState === "menu" ?
+          '<div class="bg-dept-mega-menu">' +
+            '<div class="bg-dept-mega-menu__inner">' +
+              '<div class="bg-dept-mega-menu__col">' +
+                '<h3>구청안내</h3>' +
+                '<a href="#" data-dept-action="go-directory">업무 및 전화번호 안내</a>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+        :
+          ''
+        ) +
 
         '<section class="bg-home-search" aria-label="통합검색">' +
           '<div class="bg-home-search__inner">' +
@@ -966,18 +1182,33 @@
   // Route renderer dispatch
   // -----------------------------------------------------------------------
   function _renderRoute(routeId) {
+    var search = typeof window !== "undefined" && window.location ? window.location.search : "";
+    var deptJourney = _resolveDeptJourneyState(search);
+    var isDeptJourney = deptJourney.isDept;
+    var deptState = deptJourney.state;
+
+    if (isDeptJourney) {
+      _updateChatProgressForDept(deptState);
+    } else {
+      _restoreHistoricalChat();
+    }
+
     var route = _map.getRoute(routeId);
     if (!route) { return "<p>알 수 없는 경로입니다.</p>"; }
 
     var html = "";
-    switch (routeId) {
-      case "home":               html = _renderHome(_resolveHomeReferenceState(typeof window !== "undefined" && window.location ? window.location.search : "")); break;
-      case "civil-service":      html = _renderCivilService(route); break;
-      case "complaint-category": html = _renderCheongwon24(route); break;
-      case "complaint-intake":   html = _renderComplaintIntake(route); break;
-      case "complaint-review":   html = _renderComplaintReview(route); break;
-      case "handoff-stop":       html = _renderHandoffStop(route); break;
-      default:                   html = "<p>알 수 없는 경로입니다.</p>"; break;
+    if (isDeptJourney && (deptState === "directory" || deptState === "result")) {
+      html = _renderDeptDirectory(deptState);
+    } else {
+      switch (routeId) {
+        case "home":               html = _renderHome(_resolveHomeReferenceState(search)); break;
+        case "civil-service":      html = _renderCivilService(route); break;
+        case "complaint-category": html = _renderCheongwon24(route); break;
+        case "complaint-intake":   html = _renderComplaintIntake(route); break;
+        case "complaint-review":   html = _renderComplaintReview(route); break;
+        case "handoff-stop":       html = _renderHandoffStop(route); break;
+        default:                   html = "<p>알 수 없는 경로입니다.</p>"; break;
+      }
     }
 
     var ROUTE_METADATA = {
@@ -989,6 +1220,9 @@
       "handoff-stop": {title: "데모 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."}
     };
     var meta = ROUTE_METADATA[routeId] || {title: "", purpose: ""};
+    if (isDeptJourney && (deptState === "directory" || deptState === "result")) {
+      meta = {title: "업무 및 전화번호 안내", purpose: "북구청 업무 및 전화번호를 안내합니다."};
+    }
 
     var testScaffold = '<div class="bg-nav-bar" style="display:none !important;" aria-hidden="true"></div>' +
       '<div class="bg-poc-banner" style="display:none !important;" aria-hidden="true">공식 사이트가 아니며 로컬 개념 시연 (PoC) 안내</div>' +
@@ -1037,6 +1271,32 @@
     if (!_demoCanvas || _delegationAttached) { return; }
     _delegationAttached = true;
     _demoCanvas.addEventListener("click", function (e) {
+      var deptAction = e.target.closest("[data-dept-action]");
+      if (deptAction) {
+        var actionType = deptAction.getAttribute("data-dept-action");
+        if (typeof window !== "undefined" && window.location) {
+          var params = new URLSearchParams(window.location.search);
+          params.set("journey", "J-DEPT-01");
+          if (actionType === "open-menu") {
+            params.set("dept-state", "menu");
+            window.history.pushState({}, "", "?" + params.toString());
+            navigateToRoute("home");
+          } else if (actionType === "go-directory") {
+            params.set("dept-state", "directory");
+            window.history.pushState({}, "", "?" + params.toString());
+            navigateToRoute("home");
+          } else if (actionType === "trigger-search") {
+            var inputVal = _demoCanvas.querySelector(".bg-dept-search__input").value;
+            if (inputVal.trim() === "공동주택") {
+              params.set("dept-state", "result");
+              window.history.pushState({}, "", "?" + params.toString());
+              navigateToRoute("home");
+            }
+          }
+        }
+        return;
+      }
+
       var target = e.target.closest("[data-action-target]");
       if (!target) { return; }
       var targetId = target.getAttribute("data-action-target");
