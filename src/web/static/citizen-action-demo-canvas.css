@@ -1455,7 +1455,7 @@
 }
 
 .bg-page--home .bg-home-gov-strip__notice {
-  transform: translateY(-2px);
+  transform: none;
 }
 
 .bg-page--home .bg-home-header__identity img,
