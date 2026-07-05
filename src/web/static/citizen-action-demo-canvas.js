@@ -36,53 +36,6 @@
   }
 
   // -----------------------------------------------------------------------
-  // Inline SVG — Buk-gu multi-color flower/leaf logo (Green/Blue/Red)
-  // -----------------------------------------------------------------------
-  function _svgLogo(size) {
-    var s = size || 42;
-    var half = s / 2;
-    var r1 = s * 0.22;
-    var r2 = s * 0.15;
-    var cx = half;
-    var cy = half;
-    // Three overlapping circles as petals, center circle
-    var greenX = cx;
-    var greenY = cy - r1 * 0.5;
-    var blueX = cx + r1 * 0.6;
-    var blueY = cy + r1 * 0.5;
-    var redX = cx - r1 * 0.6;
-    var redY = cy + r1 * 0.5;
-    var centerR = r2;
-    return (
-      '<svg xmlns="http://www.w3.org/2000/svg" width="' + s + '" height="' + s + '" viewBox="0 0 ' + s + ' ' + s + '">' +
-        '<circle cx="' + greenX + '" cy="' + (cy - r1 * 0.4) + '" r="' + (r1 * 0.7) + '" fill="#00A651" opacity="0.85"/>' +
-        '<circle cx="' + (cx + r1 * 0.55) + '" cy="' + (cy + r1 * 0.4) + '" r="' + (r1 * 0.7) + '" fill="#0054A6" opacity="0.85"/>' +
-        '<circle cx="' + (cx - r1 * 0.55) + '" cy="' + (cy + r1 * 0.4) + '" r="' + (r1 * 0.7) + '" fill="#E60012" opacity="0.85"/>' +
-        '<circle cx="' + cx + '" cy="' + (cy - 2) + '" r="' + centerR + '" fill="#fff" stroke="#ddd" stroke-width="0.5"/>' +
-        '<circle cx="' + cx + '" cy="' + (cy - 2) + '" r="' + (centerR * 0.5) + '" fill="#FFC107"/>' +
-      '</svg>'
-    );
-  }
-
-  // Small white version of logo for footer
-  function _svgLogoWhite(size) {
-    var s = size || 32;
-    var half = s / 2;
-    var r1 = s * 0.22;
-    var r2 = s * 0.15;
-    var cx = half;
-    var cy = half;
-    return (
-      '<svg xmlns="http://www.w3.org/2000/svg" width="' + s + '" height="' + s + '" viewBox="0 0 ' + s + ' ' + s + '">' +
-        '<circle cx="' + cx + '" cy="' + (cy - r1 * 0.4) + '" r="' + (r1 * 0.7) + '" fill="#00A651" opacity="0.7"/>' +
-        '<circle cx="' + (cx + r1 * 0.55) + '" cy="' + (cy + r1 * 0.4) + '" r="' + (r1 * 0.7) + '" fill="#0054A6" opacity="0.7"/>' +
-        '<circle cx="' + (cx - r1 * 0.55) + '" cy="' + (cy + r1 * 0.4) + '" r="' + (r1 * 0.7) + '" fill="#E60012" opacity="0.7"/>' +
-        '<circle cx="' + cx + '" cy="' + (cy - 2) + '" r="' + r2 + '" fill="#fff" opacity="0.9"/>' +
-      '</svg>'
-    );
-  }
-
-  // -----------------------------------------------------------------------
   // Shared render pieces
   // -----------------------------------------------------------------------
 

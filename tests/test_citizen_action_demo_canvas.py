@@ -761,28 +761,37 @@ class TestFidelityAndSeparation:
             assert f'data-action-target="{target}"' in combined, f"Target '{target}' not present in rendered HTML"
 
     def test_official_identity_crop_provenance(self, rendered_routes):
-        """Verify the exact crop provenance using Pillow and check that inline SVGs are not used for identity."""
+        """Verify the exact crop provenance using Pillow, dynamically parsed from the crop-manifest.md file."""
         from PIL import Image
 
         home_png_path = os.path.join(STATIC, "images", "bukgu_home.png")
         assert os.path.exists(home_png_path), "bukgu_home.png missing"
 
-        # Coordinates of identity crops (from manifest)
-        # x, y, w, h
-        crops_to_check = {
-            "home-logo-identity.png": (95, 25, 460, 120),
-            "home-footer-identity.png": (95, 2395, 360, 130),
-        }
+        # Dynamically read and parse coordinate bbox from docs/artifacts/863-semantic/followup-3/crop-manifest.md
+        manifest_path = os.path.join(os.path.dirname(__file__), "..", "docs", "artifacts", "863-semantic", "followup-3", "crop-manifest.md")
+        assert os.path.exists(manifest_path), "crop-manifest.md missing"
+        with open(manifest_path, encoding="utf-8") as f:
+            manifest_content = f.read()
 
+        def parse_manifest_coords(filename):
+            # Matches: | `filename` | ... | (x, y, w, h) |
+            pattern = rf'\|\s*`{filename}`\s*\|\s*[^\|]*\|\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)'
+            match = re.search(pattern, manifest_content)
+            if not match:
+                raise ValueError(f"Could not find coordinates for {filename} in crop-manifest.md")
+            return tuple(map(int, match.groups()))
+
+        crops_to_check = ["home-logo-identity.png", "home-footer-identity.png"]
         orig_img = Image.open(home_png_path)
 
-        for name, bbox in crops_to_check.items():
+        for name in crops_to_check:
             crop_path = os.path.join(STATIC, "images", "bukgu-crops", name)
             assert os.path.exists(crop_path), f"crop {name} missing"
 
             crop_img = Image.open(crop_path)
 
-            x, y, w, h = bbox
+            # Get coordinates dynamically parsed from manifest
+            x, y, w, h = parse_manifest_coords(name)
             expected_crop = orig_img.crop((x, y, x + w, y + h))
 
             assert crop_img.size == expected_crop.size, f"size mismatch for {name}"
@@ -793,8 +802,8 @@ class TestFidelityAndSeparation:
 
         # 5. Check canvas.js has no active _svgLogo/White in identity rendering
         js = _read_static("citizen-action-demo-canvas.js")
-        assert 'class="bg-logo__svg"' not in js, "_svgLogo still in GNB header"
-        assert '_svgLogoWhite(32)' not in js, "_svgLogoWhite still in footer bottom"
+        assert '_svgLogo' not in js, "_svgLogo still in canvas.js"
+        assert '_svgLogoWhite' not in js, "_svgLogoWhite still in canvas.js"
 
         # 6. home rendered HTML has the image tag
         home_html = rendered_routes["home"]
