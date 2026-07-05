@@ -1447,6 +1447,22 @@
 
 
 
+/* #868 R-HOME-02 upper-band numeric alignment */
+.bg-page--home .bg-home-gov-strip__inner,
+.bg-page--home .bg-home-header__inner,
+.bg-page--home .bg-home-search__inner {
+  padding-left: 10px;
+}
+
+.bg-page--home .bg-home-gov-strip__notice {
+  transform: translateY(-2px);
+}
+
+.bg-page--home .bg-home-header__identity img,
+.bg-page--home .bg-home-search__brand {
+  transform: translateY(2px);
+}
+
 /* #868 current Buk-gu home top compatibility */
 .bg-page--home > .bg-header {
   background: #fff;
