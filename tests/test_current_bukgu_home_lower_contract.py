@@ -47,8 +47,24 @@ def test_lower_home_has_semantic_cards_field_info_partner_row_and_footer():
         "행정조직도",
         "온라인 민원발급(정부24)",
         "배너모음",
+        "대형폐기물 처리",
+        "취업지원프로그램안내",
+        "누리집이용안내",
+        "개인정보처리방침",
+        "저작권 보호정책",
+        "이메일무단수집거부",
+        "영상정보처리기기 운영·관리방침",
     ]:
         assert label in home
+
+    for old_label in [
+        "대형 폐기물 처리",
+        "취업알프로그램안내",
+        "부서안내",
+        "통합행정복지센터",
+        "유관기관",
+    ]:
+        assert old_label not in home
 
 
 def test_lower_home_css_is_scoped_and_does_not_promote_a_page_capture():

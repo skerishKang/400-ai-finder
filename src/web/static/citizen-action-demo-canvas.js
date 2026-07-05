@@ -204,7 +204,7 @@
       ["home-quick-work.png", "업무검색"],
       ["home-quick-office.png", "청사안내"],
       ["home-quick-donation.png", "고향사랑기부제"],
-      ["home-quick-money.png", "부꾸머니"],
+      ["home-quick-money.png", "부끄머니"],
       ["home-quick-reservation.png", "통합예약"],
       ["home-quick-waiting.png", "일반민원 대기현황"],
     ];
@@ -223,7 +223,7 @@
 
         '<div class="bg-home-gov-strip">' +
           '<div class="bg-home-gov-strip__inner">' +
-            '<img src="' + assets + '/home-government-notice.png" alt="이 누리집은 대한민국 공식 전자정부 누리집입니다." class="bg-home-gov-strip__notice" />' +
+            '<img src="' + assets + '/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
           '</div>' +
         '</div>' +
 
@@ -359,9 +359,9 @@
                 '<a href="#">주정차단속문자알림 <span aria-hidden="true">›</span></a>' +
                 '<a href="#">여권 발급 <span aria-hidden="true">›</span></a>' +
                 '<a href="#">보건증 발급 <span aria-hidden="true">›</span></a>' +
-                '<a href="#">대형 폐기물 처리 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">대형폐기물 처리 <span aria-hidden="true">›</span></a>' +
                 '<a href="#">온라인 민원발급(정부24) <span aria-hidden="true">›</span></a>' +
-                '<a href="#">취업알프로그램안내 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">취업지원프로그램안내 <span aria-hidden="true">›</span></a>' +
                 '<a href="#">소화기 사용법 <span aria-hidden="true">›</span></a>' +
                 '<a href="#">정보화교육 <span aria-hidden="true">›</span></a>' +
                 '<a href="#">공공데이터 <span aria-hidden="true">›</span></a>' +
@@ -383,10 +383,11 @@
         '<footer class="bg-home-footer" aria-label="사이트 하단">' +
           '<div class="bg-home-footer__inner">' +
             '<nav class="bg-home-footer__nav" aria-label="하단 메뉴">' +
-              '<a href="#">부서안내 <span aria-hidden="true">⌃</span></a>' +
-              '<a href="#">통합행정복지센터 <span aria-hidden="true">⌃</span></a>' +
-              '<a href="#">주요사이트 <span aria-hidden="true">⌃</span></a>' +
-              '<a href="#">유관기관 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">누리집이용안내 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">개인정보처리방침 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">저작권 보호정책 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">이메일무단수집거부 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">영상정보처리기기 운영·관리방침 <span aria-hidden="true">⌃</span></a>' +
             '</nav>' +
             '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
           '</div>' +

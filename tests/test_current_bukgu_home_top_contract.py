@@ -29,6 +29,21 @@ def test_current_home_uses_approved_identity_and_exact_gnb_order():
     offsets = [home.index(label) for label in expected]
     assert offsets == sorted(offsets)
 
+    # Validate quick service order and labels
+    expected_quick = [
+        "업무검색",
+        "청사안내",
+        "고향사랑기부제",
+        "부끄머니",
+        "통합예약",
+        "일반민원 대기현황",
+    ]
+    for label in expected_quick:
+        assert label in home
+    quick_offsets = [home.index(label) for label in expected_quick]
+    assert quick_offsets == sorted(quick_offsets)
+    assert "부꾸머니" not in home
+
 
 def test_current_home_top_uses_only_approved_derived_assets():
     home = _home_block()
