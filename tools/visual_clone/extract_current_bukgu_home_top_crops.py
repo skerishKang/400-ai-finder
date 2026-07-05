@@ -19,6 +19,7 @@ EXPECTED_SOURCE_SHA256 = "e851f990a710b13251700177e8355f18477fcceb5c5e8497a9504e
 EXPECTED_SOURCE_SIZE = (1344, 756)
 
 CROPS: tuple[tuple[str, tuple[int, int, int, int]], ...] = (
+    ("home-government-notice.png", (220, 5, 420, 25)),
     ("home-identity.png", (220, 70, 390, 112)),
     ("home-civic-brand.png", (220, 165, 505, 220)),
     ("home-mayor-card.png", (210, 258, 555, 555)),
