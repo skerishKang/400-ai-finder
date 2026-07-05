@@ -1278,6 +1278,9 @@
     _demoCanvas.addEventListener("click", function (e) {
       var deptAction = e.target.closest("[data-dept-action]");
       if (deptAction) {
+        if (e && typeof e.preventDefault === "function") {
+          e.preventDefault();
+        }
         var actionType = deptAction.getAttribute("data-dept-action");
         if (typeof window !== "undefined" && window.location) {
           var params = new URLSearchParams(window.location.search);

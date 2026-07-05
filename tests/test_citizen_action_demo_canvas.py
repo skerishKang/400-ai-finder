@@ -964,54 +964,192 @@ class TestJDept01SpecificContracts:
         assert 'data-dept-journey="true"' not in html
         assert "bg-dept-mega-menu" not in html
 
-    def test_jdept01_invalid_search_term_precludes_result(self):
-        """8. Non-matching search terms do not render the approved factual result row or count."""
+    def test_jdept01_exact_search_handler_execution(self):
+        """8. Execute captured click handler and check pushState query resolution for exact-search."""
         map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
         canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+
         sandbox_init = """
         'use strict';
         var vm = require('vm');
         var capturedHTML = '';
-        var eventListeners = {};
+        var capturedChatHTML = '';
+        var capturedClickHandler = null;
+
         function makeElement(id) {
           return {
             id: id,
-            get innerHTML() { return capturedHTML; },
-            set innerHTML(v) { capturedHTML = v; },
-            addEventListener: function(event, handler) {},
+            get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+            set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+            addEventListener: function(event, handler) {
+              if (event === 'click' && id === 'demo-canvas') {
+                capturedClickHandler = handler;
+              }
+            },
             querySelector: function(sel) {
               if (sel === '.bg-dept-search__input') {
-                return { value: '일반검색어' };
+                return { value: searchInputVal };
               }
               return null;
             }
           };
         }
+
         var fakeCanvasElement = makeElement('demo-canvas');
+        var historyPushedState = null;
+        var preventDefaultCalled = false;
+        var searchInputVal = '공동주택';
+
         var sandbox = {
           document: {
             getElementById: function(id) {
               if (id === 'demo-canvas') return fakeCanvasElement;
+              if (id === 'chat-thread') return makeElement('chat-thread');
               return null;
             }
           },
           console: { log: function() {}, error: function() {} },
           location: { search: '?journey=J-DEPT-01&dept-state=directory' },
+          history: {
+            pushState: function(state, title, url) {
+              historyPushedState = url;
+              sandbox.location.search = url.substring(url.indexOf('?'));
+            }
+          },
           window: null
         };
         sandbox.URLSearchParams = URLSearchParams;
         sandbox.window = sandbox;
+
         var cx = vm.createContext(sandbox);
         vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
+
         sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
-        process.stdout.write(capturedHTML);
+
+        var testResults = {};
+
+        if (capturedClickHandler) {
+          preventDefaultCalled = false;
+          searchInputVal = ' 공동주택 ';
+          var fakeEvent = {
+            target: {
+              closest: function(sel) {
+                if (sel === '[data-dept-action]') {
+                  return {
+                    getAttribute: function(attr) {
+                      if (attr === 'data-dept-action') return 'trigger-search';
+                      return null;
+                    }
+                  };
+                }
+                return null;
+              }
+            },
+            preventDefault: function() {
+              preventDefaultCalled = true;
+            }
+          };
+          capturedClickHandler(fakeEvent);
+          testResults['exact'] = {
+            url: historyPushedState,
+            pd: preventDefaultCalled,
+            html: capturedHTML,
+            chat: capturedChatHTML
+          };
+        }
+
+        sandbox.location.search = '?journey=J-DEPT-01&dept-state=directory';
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        if (capturedClickHandler) {
+          preventDefaultCalled = false;
+          searchInputVal = '일반검색어';
+          var fakeEvent = {
+            target: {
+              closest: function(sel) {
+                if (sel === '[data-dept-action]') {
+                  return {
+                    getAttribute: function(attr) {
+                      if (attr === 'data-dept-action') return 'trigger-search';
+                      return null;
+                    }
+                  };
+                }
+                return null;
+              }
+            },
+            preventDefault: function() {
+              preventDefaultCalled = true;
+            }
+          };
+          capturedClickHandler(fakeEvent);
+          testResults['mismatch'] = {
+            url: historyPushedState,
+            pd: preventDefaultCalled,
+            html: capturedHTML,
+            chat: capturedChatHTML
+          };
+        }
+
+        sandbox.location.search = '?journey=J-DEPT-01&dept-state=directory';
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        if (capturedClickHandler) {
+          preventDefaultCalled = false;
+          searchInputVal = '  ';
+          var fakeEvent = {
+            target: {
+              closest: function(sel) {
+                if (sel === '[data-dept-action]') {
+                  return {
+                    getAttribute: function(attr) {
+                      if (attr === 'data-dept-action') return 'trigger-search';
+                      return null;
+                    }
+                  };
+                }
+                return null;
+              }
+            },
+            preventDefault: function() {
+              preventDefaultCalled = true;
+            }
+          };
+          capturedClickHandler(fakeEvent);
+          testResults['empty'] = {
+            url: historyPushedState,
+            pd: preventDefaultCalled,
+            html: capturedHTML,
+            chat: capturedChatHTML
+          };
+        }
+
+        process.stdout.write(JSON.stringify(testResults));
         """ % (map_js, canvas_js)
+
         res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
-        assert res.returncode == 0
-        html = res.stdout
-        assert "공동주택과" not in html
-        assert "전체 9명" not in html
+        assert res.returncode == 0, res.stderr
+        res_data = json.loads(res.stdout)
+
+        exact = res_data['exact']
+        assert "dept-state=result" in exact['url']
+        assert exact['pd'] is True
+        assert "공동주택과" in exact['html']
+        assert "전체" in exact['html'] and "9" in exact['html'] and "1/1" in exact['html']
+        assert "공동주택과에서 담당합니다" in exact['chat']
+
+        mismatch = res_data['mismatch']
+        assert "dept-state=directory" in mismatch['url']
+        assert mismatch['pd'] is True
+        assert "공동주택과" not in mismatch['html']
+        assert "전체 9명" not in mismatch['html']
+        assert "공동주택과에서 담당합니다" not in mismatch['chat']
+
+        empty = res_data['empty']
+        assert "dept-state=directory" in empty['url']
+        assert empty['pd'] is True
+        assert "공동주택과" not in empty['html']
+        assert "전체 9명" not in empty['html']
+        assert "공동주택과에서 담당합니다" not in empty['chat']
 
     def test_jdept01_hover_focus_menu_contract(self):
         """9. Hover and keyboard focus menu selectors exist in scoped CSS contract."""
