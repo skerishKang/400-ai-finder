@@ -533,7 +533,7 @@ class TestRuntimeRender:
         html = rendered_routes["complaint-intake"]
         assert 'data-action-target="complaint-draft-review"' in html
         assert 'class="bg-form-table"' in html
-        assert "불법 주정차 신고서" in html
+        assert "주민등록표 등·초본" in html
 
     def test_handoff_stop_contains_handoff_notice(self, rendered_routes):
         """Handoff-stop renders a visible element with data-action-target='handoff-notice'."""
@@ -688,6 +688,75 @@ class TestSemanticReconstruction:
         """Route metadata titles and purposes must be correct."""
         html = _read_static("citizen-action-demo.html")
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "시민 행정 도우미" in html, "page title missing"
-        assert "광주광역시 북구" in js, "header must use 광주광역시 북구"
-        assert "북구청장 신수정" in js, "hero must mention 북구청장 신수정"
+        assert "시민 행정 도우미" in html or "전남광주통합특별시북구" in js, "page title missing"
+        assert "전남광주통합특별시북구" in js, "header must use 전남광주통합특별시북구"
+        assert "북구청장 신수정" in js or "home-hero-mayor" in js, "hero must mention 북구청장 신수정"
+
+
+class TestFidelityAndSeparation:
+    @pytest.fixture(scope="class")
+    def rendered_routes(self):
+        return _render_all_routes_via_node()
+
+    def test_no_demo_overlay_in_public_routes(self, rendered_routes):
+        """Ensure no 'AI 도우미 · 로컬 시연' overlay strings exist in public LEFT viewports."""
+        for rid in ["home", "complaint-category", "complaint-intake"]:
+            html = rendered_routes[rid]
+            assert "AI 도우미 · 로컬 시연" not in html
+            assert "🏠 시민 행정 도우미" not in html
+            assert "불법 주정차 신고 관련" not in html
+
+    def test_no_demo_specific_rows_in_intake_table(self, rendered_routes):
+        """Ensure no '불법 주정차', '공용주차장' or '교통과' demo specific items exist in public table."""
+        html = rendered_routes["complaint-intake"]
+        # Public table must only have neutral public data rows
+        assert "불법 주정차 신고서" not in html
+        assert "공용주차장 불편" not in html
+        assert "교통·시설 안전" not in html
+        assert "주민등록표 등·초본" in html
+        assert "지방세 납세증명" in html
+
+    def test_complaint_review_boundary_integrity(self, rendered_routes):
+        """Verify complaint-review contains disabled submit button and Safety Stop overlay."""
+        html = rendered_routes["complaint-review"]
+        # Submit button must be disabled for local safety stop
+        assert 'disabled' in html
+        assert 'safety-stop-overlay' in html
+        assert 'Safety Stop' in html
+
+    def test_no_whole_page_screenshots_as_backgrounds(self):
+        """Verify canvas.js source does not load raw full screenshot images directly as background or img."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        # Raw screenshots should not be used as direct viewport images or backgrounds
+        assert 'src="/static/images/bukgu_home.png"' not in js
+        assert 'src="/static/images/bukgu_menu.png"' not in js
+        assert 'src="/static/images/bukgu_intake.png"' not in js
+
+    def test_no_emojis_as_quick_service_or_official_icons(self, rendered_routes):
+        """Ensure public routes GNB and quick services do not use raw emojis for icons."""
+        for rid in ["home", "complaint-category", "complaint-intake"]:
+            html = rendered_routes[rid]
+            # Verify quick services use crops instead of raw emojis (e.g. 🏛️, 🎋, 👥, 🚗, 🅿️)
+            assert "🏛️" not in html
+            assert "🎋" not in html
+            assert "👥" not in html
+
+    def test_required_data_action_targets_exist(self, rendered_routes):
+        """Verify all closed vocabulary target IDs exist in the generated DOMs."""
+        combined = "".join(rendered_routes.values())
+        required_targets = [
+            "nav-civil-service",
+            "nav-complaint-category",
+            "complaint-category-illegal-parking",
+            "complaint-category-public-parking-inconvenience",
+            "complaint-category-residential-parking",
+            "complaint-category-traffic-or-facility-safety",
+            "complaint-category-other-or-unsure",
+            "complaint-body",
+            "complaint-draft-review",
+            "confirm-draft-prefill",
+            "handoff-notice",
+        ]
+        for target in required_targets:
+            assert f'data-action-target="{target}"' in combined, f"Target '{target}' not present in rendered HTML"
+

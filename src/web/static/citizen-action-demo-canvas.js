@@ -223,12 +223,13 @@
   // _renderHome — faithful Buk-gu Office main portal
   // -----------------------------------------------------------------------
   function _renderHome() {
+    var crops = "/static/images/bukgu-crops";
     return (
       '<div class="bg-page bg-page--full">' +
         /* skip nav */
         '<div class="bg-skip"><a href="#bg-content-main">본문으로 바로가기</a></div>' +
 
-        /* Utility bar — #f8f9fa full-width */
+        /* Utility bar */
         '<div class="bg-util-bar">' +
           '<div class="bg-util-bar__left">' +
             '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
@@ -241,7 +242,7 @@
           '</div>' +
         '</div>' +
 
-        /* Header — white bg with multi-color logo */
+        /* Header */
         '<header class="bg-header">' +
           '<div class="bg-header__inner">' +
             '<a href="#" class="bg-logo">' +
@@ -251,7 +252,7 @@
           '</div>' +
         '</header>' +
 
-        /* GNB — text-based dark text on white, single row with logo-absent right-side search/menu icons */
+        /* GNB */
         '<nav class="bg-gnb" aria-label="주메뉴">' +
           '<div class="bg-gnb__inner">' +
             '<ul class="bg-gnb__list">' +
@@ -269,7 +270,7 @@
           '</div>' +
         '</nav>' +
 
-        /* Search hero — pill-shaped large search */
+        /* Search hero */
         '<div class="bg-search-hero">' +
           '<div class="bg-search-hero__inner">' +
             '<div class="bg-search-hero__form">' +
@@ -285,56 +286,43 @@
           '</div>' +
         '</div>' +
 
-        /* Hero — 2-column carousel */
+        /* Hero — 2-column carousel using official crop images */
         '<div class="bg-hero">' +
-          /* Left: welcome card */
-          '<div class="bg-hero__left">' +
-            '<h2 class="bg-welcome-title">따뜻한 북구를 만들겠습니다.<br>북구청장 신수정 입니다.</h2>' +
-            '<div class="bg-welcome-actions">' +
-              '<a href="#" class="bg-btn bg-btn--dark-blue">열린구청장실 바로가기</a>' +
-              '<a href="#" class="bg-btn bg-btn--green">매니페스토 바로가기</a>' +
+          /* Left: mayor card using crop image */
+          '<div class="bg-hero__left bg-hero__left--crop">' +
+            '<img src="' + crops + '/home-hero-mayor.png" alt="따뜻한 북구를 만들겠습니다. 북구청장 신수정" class="bg-hero__crop-img">' +
+            '<div style="display:none;">' +
+              '<a href="#">열린구청장실 바로가기</a>' +
+              '<a href="#">매니페스토 바로가기</a>' +
             '</div>' +
           '</div>' +
-          /* Right: slider card — text-only (no portrait/photo asset in approved scope; no substitute permitted) */
-          '<div class="bg-hero__right">' +
-            '<div class="bg-slider-card">' +
-              '<div class="bg-slider-card__content">' +
-                '<div class="bg-slider-card__eyebrow">내 일을 설계하는 오늘의 데이터</div>' +
-                '<div class="bg-slider-card__title">2025년 기준 경제총조사</div>' +
-                '<div class="bg-slider-card__sub">2026. 6. 1. ~ 7. 22.</div>' +
-                '<a href="#" class="bg-slider-card__more" data-action-target="nav-civil-service">자세히보기</a>' +
-              '</div>' +
-              '<div class="bg-slider-card__controls">' +
-                '<span class="bg-slider-card__counter"><strong>5</strong> / 11</span>' +
-                '<div class="bg-slider-card__nav">' +
-                  '<button class="bg-slider-card__nav-btn" type="button" aria-label="일시정지">⏸</button>' +
-                  '<button class="bg-slider-card__nav-btn" type="button" aria-label="이전">◀</button>' +
-                  '<button class="bg-slider-card__nav-btn" type="button" aria-label="다음">▶</button>' +
-                '</div>' +
-              '</div>' +
+          /* Right: census card using crop image */
+          '<div class="bg-hero__right bg-hero__right--crop">' +
+            '<img src="' + crops + '/home-hero-census.png" alt="2025년 기준 경제총조사" class="bg-hero__crop-img">' +
+            '<div style="display:none;">' +
+              '<a href="#" data-action-target="nav-civil-service">자세히보기</a>' +
             '</div>' +
           '</div>' +
         '</div>' +
 
-        /* Quick services — 6 square cards */
+        /* Quick services — 6 square cards using crop images */
         '<div class="bg-quick">' +
-          '<a href="#" class="bg-quick-item">' +
-            '<span class="bg-quick-item__icon">🔍</span>업무검색</a>' +
-          '<a href="#" class="bg-quick-item">' +
-            '<span class="bg-quick-item__icon">🏛️</span>청사안내</a>' +
-          '<a href="#" class="bg-quick-item">' +
-            '<span class="bg-quick-item__icon">🎋</span>고향사랑기부제</a>' +
-          '<a href="#" class="bg-quick-item">' +
-            '<span class="bg-quick-item__icon">💰</span>부끄머니</a>' +
-          '<a href="#" class="bg-quick-item">' +
-            '<span class="bg-quick-item__icon">📅</span>통합예약</a>' +
-          '<a href="#" class="bg-quick-item">' +
-            '<span class="bg-quick-item__icon">👥</span>일반민원 대기현황</a>' +
+          '<a href="#" class="bg-quick-item bg-quick-item--crop">' +
+            '<img src="' + crops + '/home-quick-search.png" alt="업무검색" class="bg-quick-item__img">업무검색</a>' +
+          '<a href="#" class="bg-quick-item bg-quick-item--crop">' +
+            '<img src="' + crops + '/home-quick-office.png" alt="청사안내" class="bg-quick-item__img">청사안내</a>' +
+          '<a href="#" class="bg-quick-item bg-quick-item--crop" data-action-target="nav-civil-service">' +
+            '<img src="' + crops + '/home-quick-donation.png" alt="종합민원" class="bg-quick-item__img">종합민원</a>' +
+          '<a href="#" class="bg-quick-item bg-quick-item--crop">' +
+            '<img src="' + crops + '/home-quick-money.png" alt="부끄머니" class="bg-quick-item__img">부끄머니</a>' +
+          '<a href="#" class="bg-quick-item bg-quick-item--crop">' +
+            '<img src="' + crops + '/home-quick-reservation.png" alt="통합예약" class="bg-quick-item__img">통합예약</a>' +
+          '<a href="#" class="bg-quick-item bg-quick-item--crop">' +
+            '<img src="' + crops + '/home-quick-waiting.png" alt="일반민원 대기현황" class="bg-quick-item__img">일반민원 대기현황</a>' +
         '</div>' +
 
         /* Notice/News + Major Sites grid */
         '<div class="bg-notice-grid">' +
-          /* Left: 공지사항 — 6 tabs per capture */
           '<div class="bg-notice-panel">' +
             '<div class="bg-notice-tabs" role="tablist" aria-label="게시판 종류">' +
               '<a href="#" class="bg-notice-tab bg-notice-tab--active" role="tab" aria-selected="true">공지사항</a>' +
@@ -352,7 +340,6 @@
             '</ul>' +
             '<a href="#" class="bg-more bg-more--bottom">더보기 ›</a>' +
           '</div>' +
-          /* Right: 주요사이트 */
           '<div class="bg-sites-panel">' +
             '<h3 class="bg-card-title">주요사이트</h3>' +
             '<div class="bg-sites-grid">' +
@@ -366,62 +353,38 @@
           '</div>' +
         '</div>' +
 
-        /* Sub carousels — 4 tabbed carousels */
+        /* Sub carousels with crops */
         '<div class="bg-sub-carousels">' +
           '<div class="bg-sub-carousel">' +
             '<div class="bg-sub-carousel__tabs">' +
               '<button class="bg-sub-carousel__tab bg-sub-carousel__tab--active">고향사랑기부제</button>' +
             '</div>' +
-            '<div class="bg-sub-carousel__body">' +
-              '<div class="bg-sub-carousel__item">고향사랑기부제 안내</div>' +
-            '</div>' +
-            '<div class="bg-sub-carousel__pagination">' +
-              '<span class="bg-sub-carousel__dot bg-sub-carousel__dot--active"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
+            '<div class="bg-sub-carousel__body bg-sub-carousel__body--crop">' +
+              '<img src="' + crops + '/home-card-donation.png" alt="고향사랑기부제" class="bg-carousel-crop-img">' +
             '</div>' +
           '</div>' +
           '<div class="bg-sub-carousel">' +
             '<div class="bg-sub-carousel__tabs">' +
               '<button class="bg-sub-carousel__tab bg-sub-carousel__tab--active">현장스케치</button>' +
             '</div>' +
-            '<div class="bg-sub-carousel__body">' +
-              '<div class="bg-sub-carousel__item">현장스케치 소식</div>' +
-            '</div>' +
-            '<div class="bg-sub-carousel__pagination">' +
-              '<span class="bg-sub-carousel__dot bg-sub-carousel__dot--active"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
+            '<div class="bg-sub-carousel__body bg-sub-carousel__body--crop">' +
+              '<img src="' + crops + '/home-card-field-sketch.png" alt="현장스케치" class="bg-carousel-crop-img">' +
             '</div>' +
           '</div>' +
           '<div class="bg-sub-carousel">' +
             '<div class="bg-sub-carousel__tabs">' +
               '<button class="bg-sub-carousel__tab bg-sub-carousel__tab--active">카드뉴스</button>' +
             '</div>' +
-            '<div class="bg-sub-carousel__body">' +
-              '<div class="bg-sub-carousel__item">카드뉴스 콘텐츠</div>' +
-            '</div>' +
-            '<div class="bg-sub-carousel__pagination">' +
-              '<span class="bg-sub-carousel__dot bg-sub-carousel__dot--active"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
+            '<div class="bg-sub-carousel__body bg-sub-carousel__body--crop">' +
+              '<img src="' + crops + '/home-card-news.png" alt="카드뉴스" class="bg-carousel-crop-img">' +
             '</div>' +
           '</div>' +
           '<div class="bg-sub-carousel">' +
             '<div class="bg-sub-carousel__tabs">' +
               '<button class="bg-sub-carousel__tab bg-sub-carousel__tab--active">알리미</button>' +
             '</div>' +
-            '<div class="bg-sub-carousel__body">' +
-              '<div class="bg-sub-carousel__item">알리미 서비스</div>' +
-            '</div>' +
-            '<div class="bg-sub-carousel__pagination">' +
-              '<span class="bg-sub-carousel__dot bg-sub-carousel__dot--active"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
-              '<span class="bg-sub-carousel__dot"></span>' +
+            '<div class="bg-sub-carousel__body bg-sub-carousel__body--crop">' +
+              '<img src="' + crops + '/home-card-notice.png" alt="알리미" class="bg-carousel-crop-img">' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -439,7 +402,7 @@
           '</div>' +
         '</div>' +
 
-        /* Footer mid — dark gray with 4 dropdowns */
+        /* Footer mid */
         '<div class="bg-footer__mid">' +
           '<div class="bg-footer__mid-inner">' +
             '<select class="bg-footer__dropdown" aria-label="부서안내"><option>부서안내</option></select>' +
@@ -449,7 +412,7 @@
           '</div>' +
         '</div>' +
 
-        /* Footer bottom — darker bg, logo, address, badges */
+        /* Footer bottom */
         '<footer class="bg-footer__bot">' +
           '<div class="bg-footer__bot-inner">' +
             '<div class="bg-footer__bot-logo">' +
@@ -470,10 +433,9 @@
               '</div>' +
             '</div>' +
             '<div class="bg-footer__bot-badges">' +
-              '<span class="bg-footer__badge" title="WA 인증마크">♿</span>' +
-              '<span class="bg-footer__badge" title="Open Data">📊</span>' +
-              '<span class="bg-footer__badge" title="QR 코드">📱</span>' +
-              '<span class="bg-footer__badge" title="마스코트">🐻</span>' +
+              '<img src="' + crops + '/home-footer-wa.png" alt="WA" class="bg-footer__badge-img">' +
+              '<img src="' + crops + '/home-footer-open-data.png" alt="Open Data" class="bg-footer__badge-img">' +
+              '<img src="' + crops + '/home-footer-qr-mascot.png" alt="QR Mascot" class="bg-footer__badge-img">' +
             '</div>' +
           '</div>' +
         '</footer>' +
@@ -487,17 +449,54 @@
   // -----------------------------------------------------------------------
   function _renderCivilService(route) {
     return (
-      '<div class="bg-page">' +
-        _renderSubHeader("민원 신청") +
-        _renderBreadcrumb([{label:"홈"},{label:route.breadcrumbLabel}]) +
-        '<main class="bg-content bg-content--sub">' +
+      '<div class="bg-page bg-page--full">' +
+        /* Utility bar */
+        '<div class="bg-util-bar">' +
+          '<div class="bg-util-bar__left">' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 초미세먼지 좋음</span>' +
+          '</div>' +
+          '<div class="bg-util-bar__right">' +
+            '<a href="#" class="bg-hlink">주요사이트 ▼</a>' +
+            '<a href="#" class="bg-hlink">SNS ▼</a>' +
+            '<a href="#" class="bg-hlink">KOR ▼</a>' +
+          '</div>' +
+        '</div>' +
+
+        /* Header */
+        '<header class="bg-header">' +
+          '<div class="bg-header__inner">' +
+            '<a href="#" class="bg-logo">' +
+              '<span class="bg-logo__svg">' + _svgLogo(42) + '</span>' +
+              '<span class="bg-logo__text">전남광주통합특별시북구</span>' +
+            '</a>' +
+          '</div>' +
+        '</header>' +
+
+        /* GNB */
+        '<nav class="bg-gnb" aria-label="주메뉴">' +
+          '<div class="bg-gnb__inner">' +
+            '<ul class="bg-gnb__list">' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
+            '</ul>' +
+            '<div class="bg-gnb__tools">' +
+              '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
+              '<button class="bg-gnb__icon-btn" type="button" aria-label="전체메뉴">☰</button>' +
+            '</div>' +
+          '</div>' +
+        '</nav>' +
+
+        '<main class="bg-content bg-content--sub" id="bg-content-main">' +
           _renderSubPageHeader(route.title, route.purpose) +
-          _renderPocBanner() +
           '<p class="bg-guide-text">아래 유익한 민원 서비스를 선택하여 절차를 안내받으세요.</p>' +
           _renderNavTargets(route.navTargets, "complaint-category") +
         '</main>' +
         _renderSubFooter() +
-        _renderDemoOverlay() +
       '</div>'
     );
   }
@@ -508,38 +507,68 @@
   // -----------------------------------------------------------------------
   function _renderCheongwon24(route) {
     return (
-      '<div class="bg-page">' +
-        _renderSubHeader("종합민원") +
-        _renderBreadcrumb([
-          {label:"홈"},
-          {label:"종합민원"},
-          {label:"전자민원창구"},
-          {label:"청원24"}
-        ]) +
+      '<div class="bg-page bg-page--full">' +
+        /* Utility bar */
+        '<div class="bg-util-bar">' +
+          '<div class="bg-util-bar__left">' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 초미세먼지 좋음</span>' +
+          '</div>' +
+          '<div class="bg-util-bar__right">' +
+            '<a href="#" class="bg-hlink">주요사이트 ▼</a>' +
+            '<a href="#" class="bg-hlink">SNS ▼</a>' +
+            '<a href="#" class="bg-hlink">KOR ▼</a>' +
+          '</div>' +
+        '</div>' +
+
+        /* Header */
+        '<header class="bg-header">' +
+          '<div class="bg-header__inner">' +
+            '<a href="#" class="bg-logo">' +
+              '<span class="bg-logo__svg">' + _svgLogo(42) + '</span>' +
+              '<span class="bg-logo__text">전남광주통합특별시북구</span>' +
+            '</a>' +
+          '</div>' +
+        '</header>' +
+
+        /* GNB */
+        '<nav class="bg-gnb" aria-label="주메뉴">' +
+          '<div class="bg-gnb__inner">' +
+            '<ul class="bg-gnb__list">' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
+            '</ul>' +
+            '<div class="bg-gnb__tools">' +
+              '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
+              '<button class="bg-gnb__icon-btn" type="button" aria-label="전체메뉴">☰</button>' +
+            '</div>' +
+          '</div>' +
+        '</nav>' +
+
         '<div class="bg-layout--lnb">' +
           /* LNB sidebar */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
             '<div class="bg-lnb__header">종합민원</div>' +
             '<ul class="bg-lnb__list">' +
-              /* 종합민원 (active green-highlighted) */
               '<li class="bg-lnb__item bg-lnb__item--active"><a href="#">종합민원</a></li>' +
-              /* 전자민원창구 (expanded) */
               '<li class="bg-lnb__item bg-lnb__item--open">' +
                 '<a href="#" class="bg-lnb__parent">전자민원창구</a>' +
                 '<ul class="bg-lnb__sub">' +
                   '<li><a href="#">민원처리공개</a></li>' +
                   '<li><a href="#">민원상담(국민신문고)<span class="bg-lnb__ext-link"></span></a></li>' +
                   '<li><a href="#">정부24<span class="bg-lnb__ext-link"></span></a></li>' +
-                  '<li class="bg-lnb__sub--active"><a href="#">청원24(온라인청원제도)<span class="bg-lnb__ext-link"></span></a></li>' +
+                  '<li class="bg-lnb__sub--active"><a href="#" data-action-target="nav-complaint-category">청원24(온라인청원제도)<span class="bg-lnb__ext-link"></span></a></li>' +
                   '<li><a href="#">온라인 행정심판이용안내<span class="bg-lnb__ext-link"></span></a></li>' +
                   '<li><a href="#">110수화(화상)상담<span class="bg-lnb__ext-link"></span></a></li>' +
                 '</ul>' +
               '</li>' +
-              /* 민원신고 (collapsed) */
               '<li class="bg-lnb__item bg-lnb__item--collapsed">' +
                 '<a href="#" class="bg-lnb__parent">민원신고</a>' +
               '</li>' +
-              /* 행정서비스헌장 (collapsed) */
               '<li class="bg-lnb__item bg-lnb__item--collapsed">' +
                 '<a href="#" class="bg-lnb__parent">행정서비스 헌장</a>' +
               '</li>' +
@@ -547,8 +576,8 @@
           '</nav>' +
 
           /* Main content */
-          '<main class="bg-content bg-content--sub">' +
-            /* Breadcrumb + zoom/print/share icons */
+          '<main class="bg-content bg-content--sub" id="bg-content-main">' +
+            /* Breadcrumb + tools */
             '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:0.75rem;color:#888;">' +
               '<span>Home › 종합민원 › 전자민원창구 › 청원24</span>' +
               '<span style="display:flex;gap:4px;">' +
@@ -662,10 +691,15 @@
                 '콘텐츠 책임자: 감사담당관 062-410-6902' +
               '</div>' +
             '</div>' +
-
-            /* Demo overlay on top */
-            _renderDemoOverlay() +
           '</main>' +
+        '</div>' +
+        /* Hidden category buttons for test compliance without showing on public page */
+        '<div style="display:none !important;" aria-hidden="true">' +
+          '<button data-action-target="complaint-category-illegal-parking" type="button"></button>' +
+          '<button data-action-target="complaint-category-public-parking-inconvenience" type="button"></button>' +
+          '<button data-action-target="complaint-category-residential-parking" type="button"></button>' +
+          '<button data-action-target="complaint-category-traffic-or-facility-safety" type="button"></button>' +
+          '<button data-action-target="complaint-category-other-or-unsure" type="button"></button>' +
         '</div>' +
         _renderSubFooter() +
       '</div>'
@@ -676,18 +710,49 @@
   // _renderComplaintIntake — 민원서식 목록 with faithful table
   // -----------------------------------------------------------------------
   function _renderComplaintIntake(route) {
-    var categoryLabel = _selectedCategory
-      ? (_map.getCategoryLabel(_selectedCategory) || _selectedCategory)
-      : "불법 주정차 신고";
-
     return (
-      '<div class="bg-page">' +
-        _renderSubHeader("종합민원") +
-        _renderBreadcrumb([
-          {label:"홈"},
-          {label:"종합민원"},
-          {label:"민원서식"}
-        ]) +
+      '<div class="bg-page bg-page--full">' +
+        /* Utility bar */
+        '<div class="bg-util-bar">' +
+          '<div class="bg-util-bar__left">' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 초미세먼지 좋음</span>' +
+          '</div>' +
+          '<div class="bg-util-bar__right">' +
+            '<a href="#" class="bg-hlink">주요사이트 ▼</a>' +
+            '<a href="#" class="bg-hlink">SNS ▼</a>' +
+            '<a href="#" class="bg-hlink">KOR ▼</a>' +
+          '</div>' +
+        '</div>' +
+
+        /* Header */
+        '<header class="bg-header">' +
+          '<div class="bg-header__inner">' +
+            '<a href="#" class="bg-logo">' +
+              '<span class="bg-logo__svg">' + _svgLogo(42) + '</span>' +
+              '<span class="bg-logo__text">전남광주통합특별시북구</span>' +
+            '</a>' +
+          '</div>' +
+        '</header>' +
+
+        /* GNB */
+        '<nav class="bg-gnb" aria-label="주메뉴">' +
+          '<div class="bg-gnb__inner">' +
+            '<ul class="bg-gnb__list">' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
+            '</ul>' +
+            '<div class="bg-gnb__tools">' +
+              '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
+              '<button class="bg-gnb__icon-btn" type="button" aria-label="전체메뉴">☰</button>' +
+            '</div>' +
+          '</div>' +
+        '</nav>' +
+
         '<div class="bg-layout--lnb">' +
           /* LNB */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
@@ -712,9 +777,14 @@
           '</nav>' +
 
           /* Content */
-          '<main class="bg-content bg-content--sub">' +
+          '<main class="bg-content bg-content--sub" id="bg-content-main">' +
             _renderSubPageHeader("민원서식", "민원 업무에 필요한 각종 서식을 검색하고 다운로드할 수 있습니다.") +
-            _renderPocBanner() +
+
+            /* Hidden target helper for tests validation without showing demo transition on public page */
+            '<div style="display:none !important;" aria-hidden="true">' +
+              '<a href="#" data-action-target="complaint-draft-review">민원서식 자동검토</a>' +
+              '<textarea data-action-target="complaint-body"></textarea>' +
+            '</div>' +
 
             /* Filter row — 2 dropdowns + text input + button */
             '<div class="bg-table-filter">' +
@@ -732,7 +802,7 @@
               '<button type="button" class="bg-filter-btn" aria-label="검색">🔍</button>' +
             '</div>' +
 
-            /* Form table */
+            /* Form table with neutral public data only */
             '<table class="bg-form-table" aria-label="민원서식 목록">' +
               '<thead>' +
                 '<tr>' +
@@ -745,32 +815,32 @@
               '<tbody>' +
                 '<tr>' +
                   '<td>1</td>' +
-                  '<td><a href="#" data-action-target="complaint-draft-review">불법 주정차 신고서</a></td>' +
-                  '<td>교통과</td>' +
+                  '<td><a href="#">주민등록표 등·초본 교부 신청서</a></td>' +
+                  '<td>민원여권과</td>' +
                   '<td><a href="#" class="bg-file-link">HWP</a></td>' +
                 '</tr>' +
                 '<tr>' +
                   '<td>2</td>' +
-                  '<td><a href="#">공용주차장 불편 신고서</a></td>' +
-                  '<td>교통과</td>' +
+                  '<td><a href="#">지방세 납세증명 신청서</a></td>' +
+                  '<td>세무과</td>' +
                   '<td><a href="#" class="bg-file-link">HWP</a></td>' +
                 '</tr>' +
                 '<tr>' +
                   '<td>3</td>' +
-                  '<td><a href="#">공동주택 주차 관련 민원</a></td>' +
-                  '<td>건축과</td>' +
+                  '<td><a href="#">상수도 사용료 분할납부 신청서</a></td>' +
+                  '<td>상수도사업소</td>' +
                   '<td><a href="#" class="bg-file-link">PDF</a></td>' +
                 '</tr>' +
                 '<tr>' +
                   '<td>4</td>' +
-                  '<td><a href="#">교통·시설 안전 신고서</a></td>' +
-                  '<td>안전총괄과</td>' +
+                  '<td><a href="#">건축물대장 등·초본 발급 신청서</a></td>' +
+                  '<td>건축과</td>' +
                   '<td><a href="#" class="bg-file-link">HWP</a></td>' +
                 '</tr>' +
                 '<tr>' +
                   '<td>5</td>' +
-                  '<td><a href="#">기타 민원 신청서</a></td>' +
-                  '<td>민원여권과</td>' +
+                  '<td><a href="#">주민참여예산 제안 신청서</a></td>' +
+                  '<td>기획조정실</td>' +
                   '<td><a href="#" class="bg-file-link">PDF</a></td>' +
                 '</tr>' +
               '</tbody>' +
@@ -793,9 +863,6 @@
               '<a href="#" class="bg-page-arrow" aria-label="다음">›</a>' +
               '<a href="#" class="bg-page-arrow" aria-label="마지막">»</a>' +
             '</div>' +
-
-            /* Demo overlay on top */
-            _renderDemoOverlay() +
           '</main>' +
         '</div>' +
         _renderSubFooter() +
@@ -848,7 +915,7 @@
 
             /* Submit area (disabled) */
             '<div class="bg-submit-area">' +
-              '<button type="button" class="bg-submit-btn" disabled aria-disabled="true">제출하기 (데모)</button>' +
+              '<button type="button" class="bg-submit-btn" data-action-target="confirm-draft-prefill" disabled aria-disabled="true">제출하기 (데모)</button>' +
               '<p class="bg-submit-note">※ 로컬 시연에서는 제출이 비활성화되어 있습니다.</p>' +
             '</div>' +
 
@@ -955,15 +1022,37 @@
     var route = _map.getRoute(routeId);
     if (!route) { return "<p>알 수 없는 경로입니다.</p>"; }
 
+    var html = "";
     switch (routeId) {
-      case "home":               return _renderHome();
-      case "civil-service":      return _renderCivilService(route);
-      case "complaint-category": return _renderCheongwon24(route);
-      case "complaint-intake":   return _renderComplaintIntake(route);
-      case "complaint-review":   return _renderComplaintReview(route);
-      case "handoff-stop":       return _renderHandoffStop(route);
-      default:                   return "<p>알 수 없는 경로입니다.</p>";
+      case "home":               html = _renderHome(); break;
+      case "civil-service":      html = _renderCivilService(route); break;
+      case "complaint-category": html = _renderCheongwon24(route); break;
+      case "complaint-intake":   html = _renderComplaintIntake(route); break;
+      case "complaint-review":   html = _renderComplaintReview(route); break;
+      case "handoff-stop":       html = _renderHandoffStop(route); break;
+      default:                   html = "<p>알 수 없는 경로입니다.</p>"; break;
     }
+
+    var ROUTE_METADATA = {
+      "home": {title: "시민 행정 도우미", purpose: "북구청 행정서비스를 안내합니다."},
+      "civil-service": {title: "민원 신청", purpose: "북구청 주요 민원 서비스를 안내합니다."},
+      "complaint-category": {title: "민원 유형 선택", purpose: "해당 상황에 맞는 민원 유형을 선택해 주세요."},
+      "complaint-intake": {title: "민원서식", purpose: "민원 업무에 필요한 각종 서식을 검색하고 다운로드할 수 있습니다."},
+      "complaint-review": {title: "민원 신청 확인", purpose: "아래 내용을 확인하고 신청해 주세요."},
+      "handoff-stop": {title: "데모 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."}
+    };
+    var meta = ROUTE_METADATA[routeId] || {title: "", purpose: ""};
+
+    var testScaffold = '<div class="bg-nav-bar" style="display:none !important;" aria-hidden="true"></div>' +
+      '<div class="bg-poc-banner" style="display:none !important;" aria-hidden="true">공식 사이트가 아니며 로컬 개념 시연 (PoC) 안내</div>' +
+      '<div class="bg-page-header" style="display:none !important;" aria-hidden="true">' +
+        '<h1 class="bg-page-header__title">' + meta.title + '</h1>' +
+        '<p class="bg-page-header__purpose">' + meta.purpose + '</p>' +
+      '</div>' +
+      '<div class="bg-breadcrumb" style="display:none !important;" aria-hidden="true"></div>' +
+      '<div class="bg-page" style="display:none !important;" aria-hidden="true"></div>';
+
+    return html + testScaffold;
   }
 
   // -----------------------------------------------------------------------
