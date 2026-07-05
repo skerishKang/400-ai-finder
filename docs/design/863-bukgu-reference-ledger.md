@@ -68,6 +68,26 @@ The files must be imported unchanged into `docs/artifacts/863-reference/source/`
 | Footer navigation | R-HOME-02 | `누리집이용안내`, `개인정보처리방침`, `저작권 보호정책`, `이메일무단수집거부`, `영상정보처리기기 운영·관리방침` | Approved for #868 home-only reconstruction |
 | Footer legal/contact/badges | R-HOME-02 | contact/hours/copyright text block plus small certification badges | Legal text and badges require owner approval or higher-resolution source |
 
+### Candidate exact home transcriptions — no implementation authorization
+
+The following strings are candidate transcriptions from the already recorded
+R-HOME-01 and R-HOME-02 source captures. They are evidence for a later #867
+ledger review only and do not authorize a runtime implementation change.
+
+- Civic-brand candidate:
+  `빛나는 북구, 함께하는 북구 - 행복한 구민을 위한 따뜻한 변화`
+- Candidate hashtag order:
+  `#공동주택과` → `#위생과` → `#폐기물` → `#부끄머니`
+- Candidate notice-tab order:
+  `공지사항` → `보도자료` → `고시/공고`
+
+The search placeholder is intentionally unresolved because conflicting readings
+exist. Do not change, approve, or infer the runtime placeholder from this
+candidate section.
+
+Footer legal/contact/copyright wording and certification badges remain pending
+under the existing higher-resolution or owner-approval requirement.
+
 ### Initial static carousel rule
 
 The two supplied home captures show different carousel slides. The initial static local home state must select exactly one approved above-fold slide and keep it fixed. The lower-page capture controls lower-page layout and footer only; do not blend its carousel content into the initial viewport.
