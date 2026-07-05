@@ -268,13 +268,13 @@
 
         '<section class="bg-home-search" aria-label="통합검색">' +
           '<div class="bg-home-search__inner">' +
-            '<img src="' + assets + '/home-civic-brand.png" alt="내 삶이 행복한 주민주권도시 으뜸북구" class="bg-home-search__brand" />' +
+            '<img src="' + assets + '/home-civic-brand.png" alt="빛나는 북구, 함께하는 북구 - 행복한 구민을 위한 따뜻한 변화" class="bg-home-search__brand" />' +
             '<div class="bg-home-search__cluster">' +
               '<div class="bg-home-search__field">' +
                 '<input type="text" placeholder="검색어를 입력하세요." aria-label="검색어" disabled />' +
                 '<button type="button" aria-label="검색" disabled>' + searchIcon + '</button>' +
               '</div>' +
-              '<div class="bg-home-search__tags"><span>#폐기물</span><span>#주정차</span><span>#채용</span><span>#건축과</span></div>' +
+              '<div class="bg-home-search__tags"><span>#공동주택과</span><span>#위생과</span><span>#폐기물</span><span>#부끄머니</span></div>' +
             '</div>' +
           '</div>' +
         '</section>' +
@@ -299,11 +299,8 @@
             '<article class="bg-home-notice">' +
               '<div class="bg-home-notice__tabs" role="tablist" aria-label="게시판">' +
                 '<button type="button" role="tab" aria-selected="true">공지사항</button>' +
-                '<button type="button" role="tab">고시공고</button>' +
-                '<button type="button" role="tab">입찰공고</button>' +
-                '<button type="button" role="tab">채용공고</button>' +
                 '<button type="button" role="tab">보도자료</button>' +
-                '<button type="button" role="tab">문화행사</button>' +
+                '<button type="button" role="tab">고시/공고</button>' +
                 '<button type="button" class="bg-home-notice__more" aria-label="더보기">+</button>' +
               '</div>' +
               '<ul class="bg-home-notice__list">' +

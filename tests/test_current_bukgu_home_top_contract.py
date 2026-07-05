@@ -44,6 +44,34 @@ def test_current_home_uses_approved_identity_and_exact_gnb_order():
     assert quick_offsets == sorted(quick_offsets)
     assert "부꾸머니" not in home
 
+    assert 'alt="빛나는 북구, 함께하는 북구 - 행복한 구민을 위한 따뜻한 변화"' in home
+    assert 'alt="내 삶이 행복한 주민주권도시 으뜸북구"' not in home
+
+    expected_hashtags = [
+        "#공동주택과",
+        "#위생과",
+        "#폐기물",
+        "#부끄머니",
+    ]
+    for label in expected_hashtags:
+        assert label in home
+    hashtag_offsets = [home.index(label) for label in expected_hashtags]
+    assert hashtag_offsets == sorted(hashtag_offsets)
+    for legacy_tag in ["#주정차", "#채용", "#건축과"]:
+        assert legacy_tag not in home
+
+    expected_notice_tabs = [
+        "공지사항",
+        "보도자료",
+        "고시/공고",
+    ]
+    for label in expected_notice_tabs:
+        assert label in home
+    notice_offsets = [home.index(label) for label in expected_notice_tabs]
+    assert notice_offsets == sorted(notice_offsets)
+    for legacy_tab in ["고시공고", "입찰공고", "채용공고", "문화행사"]:
+        assert legacy_tab not in home
+
 
 def test_current_home_top_uses_only_approved_derived_assets():
     home = _home_block()
