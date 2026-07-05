@@ -91,7 +91,8 @@ Use only against the local fixture.
 5. Run the requested offline test, syntax check, and `git diff --check`.
 6. Report raw paths, dimensions, hashes where requested, commands, outputs, and `git status --short`.
 
-Do not declare a visual gate passed. The project owner reviews the actual images.
+    Do not declare a visual gate passed. The project owner reviews the actual images.
+    Any required check failure invokes the mandatory failure-stop rule; do not describe a render or comparison as passed after that failure.
 
 ## Mode: audit-handoff
 
@@ -124,6 +125,26 @@ Do not state that CI passed unless GitHub workflow and commit-status data are ac
 - Use DOM/CSS for containers, spacing, type, lines, tabs, lists, buttons, controls, and labels.
 - Treat differing carousel slides as distinct reference states; do not blend them.
 - In split-screen mode, retain a fixed desktop official canvas and scale it uniformly inside the left frame. Do not invent an unofficial responsive layout.
+
+## Mandatory failure-stop and executor control
+
+`execution-gates.md` is binding for every mode.
+
+If any owner-required command fails, exits non-zero, produces an unexpected
+result, or reveals an unapproved changed file, stop immediately. Do not make a
+workaround edit, commit, or push. Report the failed command, exit code, raw
+output, changed-file status, `git diff --check`, `git status --porcelain=v1
+--untracked-files=all`, and commit/push status.
+
+A local execution agent cannot classify a failure as expected, harmless,
+pre-existing, or acceptable. It cannot claim completion, visual approval, CI
+approval, release readiness, or merge readiness after a required failure.
+
+Use Gemma only for checksum, byte-for-byte copy, deterministic scripts, narrow
+one-file tests, or one explicit one-file contract correction. Use a
+higher-capability executor for diagnosis, multi-file edits, visual
+implementation, or scope ambiguity. A second failure to honor the required
+stop/report/commit/push protocol requires escalation for later code-edit work.
 
 ## Required stop conditions
 
