@@ -310,7 +310,72 @@
               '</div>' +
             '</article>' +
           '</section>' +
+          '<section class="bg-home-lower" aria-label="하단 소식과 분야별 정보">' +
+            '<section class="bg-home-lower-cards" aria-label="주요 소식">' +
+              '<article class="bg-home-lower-card bg-home-lower-card--donation">' +
+                '<div class="bg-home-lower-card__head"><h2>고향사랑기부제</h2><span aria-hidden="true">‹&nbsp;Ⅱ&nbsp;›&nbsp;+</span></div>' +
+                '<img src="' + assets + '/home-lower-hometown-donation.png" alt="고향사랑기부제 안내" />' +
+              '</article>' +
+              '<article class="bg-home-lower-card bg-home-lower-card--sketch">' +
+                '<div class="bg-home-lower-card__head"><h2>현장스케치</h2><span aria-hidden="true">‹&nbsp;<b>1</b> / 4&nbsp;Ⅱ&nbsp;›&nbsp;+</span></div>' +
+                '<img src="' + assets + '/home-lower-field-sketch.png" alt="현장스케치" />' +
+              '</article>' +
+              '<article class="bg-home-lower-card bg-home-lower-card--news">' +
+                '<div class="bg-home-lower-card__head"><h2>카드뉴스</h2><span aria-hidden="true">+</span></div>' +
+                '<img src="' + assets + '/home-lower-card-news.png" alt="카드뉴스" />' +
+              '</article>' +
+              '<article class="bg-home-lower-card bg-home-lower-card--notifier">' +
+                '<div class="bg-home-lower-card__head"><h2>알리미</h2><span aria-hidden="true">‹&nbsp;<b>1</b> / 4&nbsp;Ⅱ&nbsp;›&nbsp;+</span></div>' +
+                '<img src="' + assets + '/home-lower-notifier.png" alt="알리미" />' +
+              '</article>' +
+            '</section>' +
+
+            '<section class="bg-home-field-info" aria-labelledby="bg-home-field-info-title">' +
+              '<div class="bg-home-field-info__head">' +
+                '<div><h2 id="bg-home-field-info-title">분야별 정보</h2><p>각 분야별로 자주찾는 메뉴에 빠르게 이동할 수 있습니다.</p></div>' +
+                '<nav class="bg-home-field-info__tabs" aria-label="분야 선택">' +
+                  '<button type="button" aria-pressed="true"><span aria-hidden="true">☺</span>구민</button>' +
+                  '<button type="button" aria-pressed="false"><span aria-hidden="true">▦</span>기업/경제</button>' +
+                  '<button type="button" aria-pressed="false"><span aria-hidden="true">♜</span>관광</button>' +
+                '</nav>' +
+              '</div>' +
+              '<div class="bg-home-field-info__links">' +
+                '<a href="#">행정조직도 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">주정차단속문자알림 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">여권 발급 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">보건증 발급 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">대형 폐기물 처리 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">온라인 민원발급(정부24) <span aria-hidden="true">›</span></a>' +
+                '<a href="#">취업알프로그램안내 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">소화기 사용법 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">정보화교육 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">공공데이터 <span aria-hidden="true">›</span></a>' +
+              '</div>' +
+            '</section>' +
+
+            '<section class="bg-home-partners" aria-label="배너 모음">' +
+              '<div class="bg-home-partners__head"><h2>배너모음</h2><span aria-hidden="true">‹&nbsp;Ⅱ&nbsp;›&nbsp;+</span></div>' +
+              '<div class="bg-home-partners__items">' +
+                '<a href="#">농림축산식품부</a>' +
+                '<a href="#" class="bg-home-partners__smart">Smart K-Factory</a>' +
+                '<a href="#" class="bg-home-partners__pis">PIS <small>행정정보공동이용센터</small></a>' +
+                '<a href="#">소비자24</a>' +
+                '<a href="#">수유시설</a>' +
+              '</div>' +
+            '</section>' +
+          '</section>' +
         '</main>' +
+        '<footer class="bg-home-footer" aria-label="사이트 하단">' +
+          '<div class="bg-home-footer__inner">' +
+            '<nav class="bg-home-footer__nav" aria-label="하단 메뉴">' +
+              '<a href="#">부서안내 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">통합행정복지센터 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">주요사이트 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">유관기관 <span aria-hidden="true">⌃</span></a>' +
+            '</nav>' +
+            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
+          '</div>' +
+        '</footer>' +
         '<p class="bg-home-local-note">로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</p>' +
       '</div>'
     );
