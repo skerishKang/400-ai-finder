@@ -1692,13 +1692,29 @@
    --------------------------------------------------------------------------- */
 
 /* Home modifications inside J-DEPT-01 */
+.bg-page--home[data-dept-journey="true"] .bg-home-gnb__item--dept {
+  position: relative;
+  display: inline-block;
+}
 .bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
   background: #f8f9fa;
+  border: 1px solid #ddd;
   border-bottom: 2px solid #0054A6;
   padding: 20px 0;
-  width: 100%;
+  width: 320px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   animation: bgSlideDown 0.2s ease-out;
+}
+.bg-page--home[data-dept-journey="true"] .bg-home-gnb__item--dept:hover .bg-dept-mega-menu,
+.bg-page--home[data-dept-journey="true"] .bg-home-gnb__item--dept:focus-within .bg-dept-mega-menu,
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu--visible {
+  display: block;
 }
 .bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__inner {
   max-width: 1100px;

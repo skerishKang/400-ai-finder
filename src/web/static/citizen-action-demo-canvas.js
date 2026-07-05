@@ -40,13 +40,20 @@
   // -----------------------------------------------------------------------
   function _resolveDeptJourneyState(search) {
     var params = new URLSearchParams(search || "");
-    var journey = params.get("journey");
-    var deptState = params.get("dept-state");
-    if (journey === "J-DEPT-01") {
-      if (deptState === "menu" || deptState === "directory" || deptState === "result") {
-        return { isDept: true, state: deptState };
-      }
+    var journeys = params.getAll("journey");
+    if (journeys.length !== 1 || journeys[0] !== "J-DEPT-01") {
+      return { isDept: false, state: "" };
+    }
+    var deptStates = params.getAll("dept-state");
+    if (deptStates.length === 0) {
       return { isDept: true, state: "home" };
+    }
+    if (deptStates.length !== 1) {
+      return { isDept: false, state: "" };
+    }
+    var ds = deptStates[0];
+    if (ds === "menu" || ds === "directory" || ds === "result") {
+      return { isDept: true, state: ds };
     }
     return { isDept: false, state: "" };
   }
@@ -456,7 +463,17 @@
               '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
               '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
               (isDeptJourney ?
-                '<a href="#" class="bg-home-gnb__link' + (deptState === 'menu' ? ' bg-home-gnb__link--active' : '') + '" data-dept-action="open-menu">북구소개</a>'
+                '<div class="bg-home-gnb__item bg-home-gnb__item--dept' + (deptState === 'menu' ? ' bg-home-gnb__item--active' : '') + '">' +
+                  '<a href="#" class="bg-home-gnb__link' + (deptState === 'menu' ? ' bg-home-gnb__link--active' : '') + '" data-dept-action="open-menu" aria-haspopup="true">북구소개</a>' +
+                  '<div class="bg-dept-mega-menu' + (deptState === 'menu' ? ' bg-dept-mega-menu--visible' : '') + '" aria-label="북구소개 하위 메뉴">' +
+                    '<div class="bg-dept-mega-menu__inner">' +
+                      '<div class="bg-dept-mega-menu__col">' +
+                        '<h3>구청안내</h3>' +
+                        '<a href="#" data-dept-action="go-directory">업무 및 전화번호 안내</a>' +
+                      '</div>' +
+                    '</div>' +
+                  '</div>' +
+                '</div>'
               :
                 '<a href="#" class="bg-home-gnb__link">북구소개</a>'
               ) +
@@ -469,18 +486,6 @@
           '</div>' +
         '</div>' +
         '</header>' +
-        (isDeptJourney && deptState === "menu" ?
-          '<div class="bg-dept-mega-menu">' +
-            '<div class="bg-dept-mega-menu__inner">' +
-              '<div class="bg-dept-mega-menu__col">' +
-                '<h3>구청안내</h3>' +
-                '<a href="#" data-dept-action="go-directory">업무 및 전화번호 안내</a>' +
-              '</div>' +
-            '</div>' +
-          '</div>'
-        :
-          ''
-        ) +
 
         '<section class="bg-home-search" aria-label="통합검색">' +
           '<div class="bg-home-search__inner">' +
@@ -1289,6 +1294,10 @@
             var inputVal = _demoCanvas.querySelector(".bg-dept-search__input").value;
             if (inputVal.trim() === "공동주택") {
               params.set("dept-state", "result");
+              window.history.pushState({}, "", "?" + params.toString());
+              navigateToRoute("home");
+            } else {
+              params.set("dept-state", "directory");
               window.history.pushState({}, "", "?" + params.toString());
               navigateToRoute("home");
             }

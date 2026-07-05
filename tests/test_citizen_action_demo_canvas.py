@@ -945,3 +945,76 @@ class TestJDept01SpecificContracts:
                 assert (sel_part.startswith(".bg-page--dept-directory") or
                         sel_part.startswith(".bg-page--home[data-dept-journey=\"true\"]")), \
                     f"prohibited unscoped J-DEPT selector: {sel_part}"
+
+    def test_jdept01_duplicate_journey_fallback(self, dept_render):
+        """4. Duplicate journey parameters fall back to historical non-J-DEPT output."""
+        html = dept_render("?journey=J-DEPT-01&journey=J-DEPT-01")
+        assert 'data-dept-journey="true"' not in html
+        assert 'data-dept-action="open-menu"' not in html
+
+    def test_jdept01_duplicate_dept_state_fallback(self, dept_render):
+        """5. Duplicate dept-state parameters fall back to historical non-J-DEPT output."""
+        html = dept_render("?journey=J-DEPT-01&dept-state=menu&dept-state=menu")
+        assert 'data-dept-journey="true"' not in html
+        assert "bg-dept-mega-menu" not in html
+
+    def test_jdept01_unsupported_dept_state_fallback(self, dept_render):
+        """6. Unsupported dept-state parameter falls back to historical non-J-DEPT output."""
+        html = dept_render("?journey=J-DEPT-01&dept-state=invalidstate")
+        assert 'data-dept-journey="true"' not in html
+        assert "bg-dept-mega-menu" not in html
+
+    def test_jdept01_invalid_search_term_precludes_result(self):
+        """8. Non-matching search terms do not render the approved factual result row or count."""
+        map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+        canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+        sandbox_init = """
+        'use strict';
+        var vm = require('vm');
+        var capturedHTML = '';
+        var eventListeners = {};
+        function makeElement(id) {
+          return {
+            id: id,
+            get innerHTML() { return capturedHTML; },
+            set innerHTML(v) { capturedHTML = v; },
+            addEventListener: function(event, handler) {},
+            querySelector: function(sel) {
+              if (sel === '.bg-dept-search__input') {
+                return { value: '일반검색어' };
+              }
+              return null;
+            }
+          };
+        }
+        var fakeCanvasElement = makeElement('demo-canvas');
+        var sandbox = {
+          document: {
+            getElementById: function(id) {
+              if (id === 'demo-canvas') return fakeCanvasElement;
+              return null;
+            }
+          },
+          console: { log: function() {}, error: function() {} },
+          location: { search: '?journey=J-DEPT-01&dept-state=directory' },
+          window: null
+        };
+        sandbox.URLSearchParams = URLSearchParams;
+        sandbox.window = sandbox;
+        var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        process.stdout.write(capturedHTML);
+        """ % (map_js, canvas_js)
+        res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+        assert res.returncode == 0
+        html = res.stdout
+        assert "공동주택과" not in html
+        assert "전체 9명" not in html
+
+    def test_jdept01_hover_focus_menu_contract(self):
+        """9. Hover and keyboard focus menu selectors exist in scoped CSS contract."""
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert ".bg-home-gnb__item--dept:hover" in css
+        assert ".bg-home-gnb__item--dept:focus-within" in css
