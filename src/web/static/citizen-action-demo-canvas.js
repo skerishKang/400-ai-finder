@@ -176,223 +176,142 @@
   // _renderHome — faithful Buk-gu Office main portal
   // -----------------------------------------------------------------------
   function _renderHome() {
-    var crops = "/static/images/bukgu-crops";
+    var assets = "/static/images/bukgu-current";
+    var searchIcon =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.4 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var menuIcon =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var arrowLeft =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 5.5L8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var arrowRight =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.5 5.5L16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var quickItems = [
+      ["home-quick-work.png", "업무검색"],
+      ["home-quick-office.png", "청사안내"],
+      ["home-quick-donation.png", "고향사랑기부제"],
+      ["home-quick-money.png", "부꾸머니"],
+      ["home-quick-reservation.png", "통합예약"],
+      ["home-quick-waiting.png", "일반민원 대기현황"],
+    ];
+    var quickHtml = "";
+    for (var i = 0; i < quickItems.length; i++) {
+      quickHtml +=
+        '<a href="#" class="bg-home-quick-link">' +
+          '<img src="' + assets + '/' + quickItems[i][0] + '" alt="" class="bg-home-quick-link__icon" />' +
+          '<span class="bg-home-quick-link__label">' + _escHtml(quickItems[i][1]) + '</span>' +
+        '</a>';
+    }
+
     return (
       '<div class="bg-page bg-page--full bg-page--home">' +
-        /* skip nav */
         '<div class="bg-skip"><a href="#bg-content-main">본문으로 바로가기</a></div>' +
 
-        /* Utility bar */
-        '<div class="bg-util-bar">' +
-          '<div class="bg-util-bar__left">' +
-            '<a href="#" class="bg-hlink">Home</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">English</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">Chinese</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">Site Map</a>' +
-          '</div>' +
-          '<div class="bg-util-bar__right">' +
-            '<a href="#" class="bg-hlink">LOGIN</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">JOIN</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">Search</a>' +
+        '<div class="bg-home-gov-strip">' +
+          '<div class="bg-home-gov-strip__inner">' +
+            '<img src="' + assets + '/home-government-notice.png" alt="이 누리집은 대한민국 공식 전자정부 누리집입니다." class="bg-home-gov-strip__notice" />' +
           '</div>' +
         '</div>' +
 
-        /* Header */
-        '<header class="bg-header">' +
-          '<div class="bg-header__inner">' +
-            '<a href="#" class="bg-logo">' +
-              '<img src="/static/images/bukgu-crops/home-logo-identity.png" alt="광주광역시 북구 (전남광주통합특별시북구)" style="height:42px; width:auto; display:block;" />' +
-            '</a>' +
+        '<div class="bg-home-utility" aria-label="사이트 도구">' +
+          '<div class="bg-home-utility__inner">' +
+            '<div class="bg-home-utility__weather">' +
+              '<strong>26°C</strong>' +
+              '<span>미세먼지 <b>좋음</b></span>' +
+              '<span>초미세먼지 <b>좋음</b></span>' +
+            '</div>' +
+            '<div class="bg-home-utility__menus">' +
+              '<a href="#">주요사이트 <span aria-hidden="true">▾</span></a>' +
+              '<a href="#">SNS <span aria-hidden="true">▾</span></a>' +
+              '<a href="#">KOR <span aria-hidden="true">▾</span></a>' +
+            '</div>' +
           '</div>' +
+        '</div>' +
+
+        '<header class="bg-header">' +
+          '<div class="bg-home-header">' +
+          '<div class="bg-home-header__inner">' +
+            '<a href="#" class="bg-home-header__identity" aria-label="전남광주통합특별시북구 홈">' +
+              '<img src="' + assets + '/home-identity.png" alt="전남광주통합특별시북구" />' +
+            '</a>' +
+            '<nav class="bg-gnb" aria-label="주메뉴">' +
+              '<div class="bg-home-gnb">' +
+              '<a href="#" class="bg-home-gnb__link bg-home-gnb__link--active" data-action-target="nav-civil-service">종합민원</a>' +
+              '<a href="#" class="bg-home-gnb__link">소통광장</a>' +
+              '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
+              '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
+              '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
+              '<a href="#" class="bg-home-gnb__link">북구소개</a>' +
+            '</div>' +
+            '</nav>' +
+            '<div class="bg-home-header__actions">' +
+              '<button type="button" class="bg-home-header__icon" aria-label="통합검색">' + searchIcon + '<span>통합검색</span></button>' +
+              '<button type="button" class="bg-home-header__icon" aria-label="전체메뉴">' + menuIcon + '<span>전체메뉴</span></button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
         '</header>' +
 
-        /* GNB */
-        '<nav class="bg-gnb" aria-label="주메뉴">' +
-          '<div class="bg-gnb__inner">' +
-            '<ul class="bg-gnb__list">' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
-            '</ul>' +
-            '<div class="bg-gnb__tools">' +
-              '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
-              '<button class="bg-gnb__icon-btn" type="button" aria-label="전체메뉴">☰</button>' +
-            '</div>' +
-          '</div>' +
-        '</nav>' +
-
-        /* Search hero */
-        '<div class="bg-search-hero">' +
-          '<div class="bg-search-hero__inner">' +
-            '<div class="bg-search-hero__form">' +
-              '<input type="text" class="bg-search-hero__input" placeholder="검색어를 입력하세요." aria-label="통합검색" />' +
-              '<button class="bg-search-hero__btn" type="button" aria-label="검색">🔍</button>' +
-            '</div>' +
-            '<div class="bg-search-hero__tags">' +
-              '<a href="#" class="bg-search-hero__tag">#공동주택과</a>' +
-              '<a href="#" class="bg-search-hero__tag">#위생과</a>' +
-              '<a href="#" class="bg-search-hero__tag">#폐기물</a>' +
-              '<a href="#" class="bg-search-hero__tag">#부끄머니</a>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-
-        /* Hero — 2-column carousel using official crop images */
-        '<div class="bg-hero">' +
-          /* Left: mayor card using crop image */
-          '<div class="bg-hero__left bg-hero__left--crop">' +
-            '<img src="' + crops + '/home-hero-mayor.png" alt="따뜻한 북구를 만들겠습니다. 북구청장 신수정" class="bg-hero__crop-img">' +
-            '<div style="display:none;">' +
-              '<a href="#">열린구청장실 바로가기</a>' +
-              '<a href="#">매니페스토 바로가기</a>' +
-            '</div>' +
-          '</div>' +
-          /* Right: census card using crop image */
-          '<div class="bg-hero__right bg-hero__right--crop">' +
-            '<img src="' + crops + '/home-hero-census.png" alt="2025년 기준 경제총조사" class="bg-hero__crop-img">' +
-            '<div style="display:none;">' +
-              '<a href="#" data-action-target="nav-civil-service">자세히보기</a>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-
-        /* Quick services — 6 square cards using crop images */
-        '<div class="bg-quick">' +
-          '<a href="#" class="bg-quick-item bg-quick-item--crop">' +
-            '<img src="' + crops + '/home-quick-search.png" alt="업무검색" class="bg-quick-item__img">업무검색</a>' +
-          '<a href="#" class="bg-quick-item bg-quick-item--crop">' +
-            '<img src="' + crops + '/home-quick-office.png" alt="청사안내" class="bg-quick-item__img">청사안내</a>' +
-          '<a href="#" class="bg-quick-item bg-quick-item--crop" data-action-target="nav-civil-service">' +
-            '<img src="' + crops + '/home-quick-donation.png" alt="종합민원" class="bg-quick-item__img">종합민원</a>' +
-          '<a href="#" class="bg-quick-item bg-quick-item--crop">' +
-            '<img src="' + crops + '/home-quick-money.png" alt="부끄머니" class="bg-quick-item__img">부끄머니</a>' +
-          '<a href="#" class="bg-quick-item bg-quick-item--crop">' +
-            '<img src="' + crops + '/home-quick-reservation.png" alt="통합예약" class="bg-quick-item__img">통합예약</a>' +
-          '<a href="#" class="bg-quick-item bg-quick-item--crop">' +
-            '<img src="' + crops + '/home-quick-waiting.png" alt="일반민원 대기현황" class="bg-quick-item__img">일반민원 대기현황</a>' +
-        '</div>' +
-
-        /* Notice/News + Major Sites grid */
-        '<div class="bg-notice-grid">' +
-          '<div class="bg-notice-panel">' +
-            '<div class="bg-notice-tabs" role="tablist" aria-label="게시판 종류">' +
-              '<a href="#" class="bg-notice-tab bg-notice-tab--active" role="tab" aria-selected="true">공지사항</a>' +
-              '<a href="#" class="bg-notice-tab" role="tab">고시공고</a>' +
-              '<a href="#" class="bg-notice-tab" role="tab">입찰공고</a>' +
-              '<a href="#" class="bg-notice-tab" role="tab">채용공고</a>' +
-              '<a href="#" class="bg-notice-tab" role="tab">보도자료</a>' +
-              '<a href="#" class="bg-notice-tab" role="tab">문화행사</a>' +
-            '</div>' +
-            '<ul class="bg-card-list">' +
-              '<li><a href="#">2026.07.03 2026년 국적취득비용(수수료) 지원사업 진행 안내</a></li>' +
-              '<li><a href="#">2026.07.03 2026년 축산물이력제 식육포장처리업소 이력번호 표시 지원사업 안내</a></li>' +
-              '<li><a href="#">2026년 전남광주통합특별시 북구 소속 공무원 사칭 피해 주의 안내</a></li>' +
-              '<li><a href="#">2026년도 위기 청소년 특별지원 사업 대상자 추가 모집 안내</a></li>' +
-            '</ul>' +
-            '<a href="#" class="bg-more bg-more--bottom">더보기 ›</a>' +
-          '</div>' +
-          '<div class="bg-sites-panel">' +
-            '<h3 class="bg-card-title">주요사이트</h3>' +
-            '<div class="bg-sites-grid">' +
-              '<a href="#" class="bg-sites-item"><span class="bg-sites-item__icon">▸</span> 통계정보</a>' +
-              '<a href="#" class="bg-sites-item"><span class="bg-sites-item__icon">▸</span> 평생학습관</a>' +
-              '<a href="#" class="bg-sites-item"><span class="bg-sites-item__icon">▸</span> 청년센터</a>' +
-              '<a href="#" class="bg-sites-item"><span class="bg-sites-item__icon">▸</span> 문화센터</a>' +
-              '<a href="#" class="bg-sites-item"><span class="bg-sites-item__icon">▸</span> 공원시설 예약</a>' +
-              '<a href="#" class="bg-sites-item"><span class="bg-sites-item__icon">▸</span> 체육시설 예약</a>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-
-        /* Sub carousels with crops */
-        '<div class="bg-sub-carousels">' +
-          '<div class="bg-sub-carousel">' +
-            '<div class="bg-sub-carousel__tabs">' +
-              '<button class="bg-sub-carousel__tab bg-sub-carousel__tab--active">고향사랑기부제</button>' +
-            '</div>' +
-            '<div class="bg-sub-carousel__body bg-sub-carousel__body--crop">' +
-              '<img src="' + crops + '/home-card-donation.png" alt="고향사랑기부제" class="bg-carousel-crop-img">' +
-            '</div>' +
-          '</div>' +
-          '<div class="bg-sub-carousel">' +
-            '<div class="bg-sub-carousel__tabs">' +
-              '<button class="bg-sub-carousel__tab bg-sub-carousel__tab--active">현장스케치</button>' +
-            '</div>' +
-            '<div class="bg-sub-carousel__body bg-sub-carousel__body--crop">' +
-              '<img src="' + crops + '/home-card-field-sketch.png" alt="현장스케치" class="bg-carousel-crop-img">' +
-            '</div>' +
-          '</div>' +
-          '<div class="bg-sub-carousel">' +
-            '<div class="bg-sub-carousel__tabs">' +
-              '<button class="bg-sub-carousel__tab bg-sub-carousel__tab--active">카드뉴스</button>' +
-            '</div>' +
-            '<div class="bg-sub-carousel__body bg-sub-carousel__body--crop">' +
-              '<img src="' + crops + '/home-card-news.png" alt="카드뉴스" class="bg-carousel-crop-img">' +
-            '</div>' +
-          '</div>' +
-          '<div class="bg-sub-carousel">' +
-            '<div class="bg-sub-carousel__tabs">' +
-              '<button class="bg-sub-carousel__tab bg-sub-carousel__tab--active">알리미</button>' +
-            '</div>' +
-            '<div class="bg-sub-carousel__body bg-sub-carousel__body--crop">' +
-              '<img src="' + crops + '/home-card-notice.png" alt="알리미" class="bg-carousel-crop-img">' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-
-        /* Footer banners */
-        '<div class="bg-footer__banners">' +
-          '<div class="bg-footer__banners-inner">' +
-            '<a href="#" class="bg-footer__banner-link">🏛 Biennale</a>' +
-            '<a href="#" class="bg-footer__banner-link">🏦 NPS</a>' +
-            '<a href="#" class="bg-footer__banner-link">⚖️ 고용노동부</a>' +
-            '<div class="bg-footer__banner-controls">' +
-              '<button class="bg-footer__banner-btn" type="button">◀</button>' +
-              '<button class="bg-footer__banner-btn" type="button">▶</button>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-
-        /* Footer mid */
-        '<div class="bg-footer__mid">' +
-          '<div class="bg-footer__mid-inner">' +
-            '<select class="bg-footer__dropdown" aria-label="부서안내"><option>부서안내</option></select>' +
-            '<select class="bg-footer__dropdown" aria-label="동 행정복지센터"><option>동 행정복지센터</option></select>' +
-            '<select class="bg-footer__dropdown" aria-label="주요사이트"><option>주요사이트</option></select>' +
-            '<select class="bg-footer__dropdown" aria-label="유관기관"><option>유관기관</option></select>' +
-          '</div>' +
-        '</div>' +
-
-        /* Footer bottom */
-        '<footer class="bg-footer__bot">' +
-          '<div class="bg-footer__bot-inner">' +
-            '<div class="bg-footer__bot-logo">' +
-              '<img src="/static/images/bukgu-crops/home-footer-identity.png" alt="광주광역시 북구" style="height:32px; width:auto; display:block;" />' +
-            '</div>' +
-            '<div class="bg-footer__bot-text">' +
-              '<p>61187 전남광주통합특별시 북구 우치로 77 (용봉동) | 대표전화: 062-410-8000</p>' +
-              '<div class="bg-footer__bot-legal">' +
-                '<a href="#">누리집 이용안내</a> <span>|</span> ' +
-                '<a href="#">개인정보처리방침</a> <span>|</span> ' +
-                '<a href="#">저작권 보호정책</a> <span>|</span> ' +
-                '<a href="#">이메일무단수집거부</a> <span>|</span> ' +
-                '<a href="#">영상정보처리기기 운영·관리 방침</a>' +
+        '<section class="bg-home-search" aria-label="통합검색">' +
+          '<div class="bg-home-search__inner">' +
+            '<img src="' + assets + '/home-civic-brand.png" alt="내 삶이 행복한 주민주권도시 으뜸북구" class="bg-home-search__brand" />' +
+            '<div class="bg-home-search__cluster">' +
+              '<div class="bg-home-search__field">' +
+                '<input type="text" placeholder="검색어를 입력하세요." aria-label="검색어" disabled />' +
+                '<button type="button" aria-label="검색" disabled>' + searchIcon + '</button>' +
               '</div>' +
-              '<div class="bg-footer__bot-copy">' +
-                'Copyright © Jeonnam-Gwangju Special Metropolitan City BUKGU. all rights reserved.' +
-              '</div>' +
-            '</div>' +
-            '<div class="bg-footer__bot-badges">' +
-              '<img src="' + crops + '/home-footer-wa.png" alt="WA" class="bg-footer__badge-img">' +
-              '<img src="' + crops + '/home-footer-open-data.png" alt="Open Data" class="bg-footer__badge-img">' +
-              '<img src="' + crops + '/home-footer-qr-mascot.png" alt="QR Mascot" class="bg-footer__badge-img">' +
+              '<div class="bg-home-search__tags"><span>#폐기물</span><span>#주정차</span><span>#채용</span><span>#건축과</span></div>' +
             '</div>' +
           '</div>' +
-        '</footer>' +
+        '</section>' +
 
+        '<main id="bg-content-main" class="bg-home-main">' +
+          '<section class="bg-home-lead" aria-label="주요 안내">' +
+            '<article class="bg-home-lead__mayor">' +
+              '<img src="' + assets + '/home-mayor-card.png" alt="따뜻한 북구를 만들겠습니다. 북구청장 신수정입니다." />' +
+            '</article>' +
+            '<article class="bg-home-lead__banner" aria-label="소속 공무원 사칭 피해주의 알림">' +
+              '<img src="' + assets + '/home-alert-banner.png" alt="소속 공무원 사칭 피해주의 알림" />' +
+            '</article>' +
+          '</section>' +
+
+          '<nav class="bg-home-quick" aria-label="빠른 서비스">' +
+            '<button type="button" class="bg-home-quick__arrow" aria-label="이전" disabled>' + arrowLeft + '</button>' +
+            '<div class="bg-home-quick__items">' + quickHtml + '</div>' +
+            '<button type="button" class="bg-home-quick__arrow" aria-label="다음" disabled>' + arrowRight + '</button>' +
+          '</nav>' +
+
+          '<section class="bg-home-notice-sites" aria-label="공지와 주요 사이트">' +
+            '<article class="bg-home-notice">' +
+              '<div class="bg-home-notice__tabs" role="tablist" aria-label="게시판">' +
+                '<button type="button" role="tab" aria-selected="true">공지사항</button>' +
+                '<button type="button" role="tab">고시공고</button>' +
+                '<button type="button" role="tab">입찰공고</button>' +
+                '<button type="button" role="tab">채용공고</button>' +
+                '<button type="button" role="tab">보도자료</button>' +
+                '<button type="button" role="tab">문화행사</button>' +
+                '<button type="button" class="bg-home-notice__more" aria-label="더보기">+</button>' +
+              '</div>' +
+              '<ul class="bg-home-notice__list">' +
+                '<li><b>03</b><span>2026년 국적취득비용(수수료) 지원사업 진행 안내</span></li>' +
+                '<li><b>03</b><span>2026년 축산물이력제 식육포장처리업소 이력번호 표시 지원사업 안내</span></li>' +
+                '<li><b>03</b><span>전남광주통합특별시 북구 소속 공무원 사칭 피해 주의 안내</span></li>' +
+                '<li><b>03</b><span>2026년도 위기 청소년 특별지원 사업 대상자 추가 모집 안내</span></li>' +
+              '</ul>' +
+            '</article>' +
+            '<article class="bg-home-sites">' +
+              '<div class="bg-home-sites__head"><h2>주요사이트</h2><span>‹&nbsp;&nbsp;3 / 4&nbsp;&nbsp;Ⅱ&nbsp;&nbsp;›</span></div>' +
+              '<div class="bg-home-sites__grid">' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--chart"></i>통계정보</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--school"></i>평생학습관</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--sun"></i>청년센터</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--culture"></i>문화센터</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--park"></i>공원시설<br>예약</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--sport"></i>체육시설<br>예약</a>' +
+              '</div>' +
+            '</article>' +
+          '</section>' +
+        '</main>' +
+        '<p class="bg-home-local-note">로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</p>' +
       '</div>'
     );
   }
