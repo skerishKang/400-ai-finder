@@ -1316,13 +1316,10 @@ class TestJPark01SpecificContracts:
         # Active LNB item
         assert "bg-park-lnb-item--active" in html
 
-        # Facts table - parking spots
-        assert "130면" in html
-        assert "주차타워" in html
-        assert "111면" in html
-        assert "1층 42, 2층 29, 3층 40" in html
-        assert "기타" in html
-        assert "19면" in html
+        # Parking facts - exact colon-form contract strings
+        assert "주차면수: 130면" in html
+        assert "주차타워: 111면(1층 42, 2층 29, 3층 40)" in html
+        assert "기타: 19면" in html
 
         # Facts table - parking fee headers
         assert "무료주차" in html
@@ -1334,11 +1331,9 @@ class TestJPark01SpecificContracts:
         assert "30분 500원" in html
         assert "10분당 200원" in html
 
-        # Operating hours
-        assert "평일(월~금) 유료운영" in html
-        assert "08:00 ~ 19:00" in html
-        assert "야간 및 휴일" in html
-        assert "무료개방" in html
+        # Operating hours - exact colon-form contract strings
+        assert "평일(월~금) 유료운영: 08:00 ~ 19:00" in html
+        assert "야간 및 휴일 무료개방" in html
 
         # identity
         assert "전남광주통합특별시북구" in html
@@ -1359,11 +1354,14 @@ class TestJPark01SpecificContracts:
         assert "기본 30분 이후에는 10분당 200원" in chat
         assert "야간 및 휴일에는 무료개방합니다." in chat
 
-    # 3. data-action-target, data-park-action absence
+    # 3. No interactive elements or action attributes in J-PARK HTML
     def test_jpark01_no_forbidden_action_attributes(self, park_render):
-        """3. Rendered J-PARK HTML has no data-action-target or data-park-action."""
+        """3. Rendered J-PARK HTML has no <a>, href, <button>, data-action-target, data-park-action."""
         result = park_render("?journey=J-PARK-01")
         html = result["html"]
+        assert "<a " not in html, "J-PARK HTML must not contain <a> elements"
+        assert "href=" not in html, "J-PARK HTML must not contain href attributes"
+        assert "<button" not in html, "J-PARK HTML must not contain <button> elements"
         assert "data-action-target" not in html, "J-PARK HTML must not contain data-action-target"
         assert "data-park-action" not in html, "J-PARK HTML must not contain data-park-action"
 
@@ -1384,10 +1382,10 @@ class TestJPark01SpecificContracts:
 
     # 5. No forbidden words in rendered HTML
     def test_jpark01_no_forbidden_words_in_html(self, park_render):
-        """5. Rendered J-PARK HTML contains no forbidden words."""
+        """5. Rendered J-PARK HTML contains no forbidden words including unapproved live-like info."""
         result = park_render("?journey=J-PARK-01")
         html = result["html"]
-        forbidden = ["실시간", "예약", "결제", "지도", "빈자리", "CCTV"]
+        forbidden = ["실시간", "예약", "결제", "지도", "빈자리", "CCTV", "26°C", "미세먼지", "초미세먼지", "전체"]
         for word in forbidden:
             assert word not in html, f"forbidden word '{word}' found in J-PARK HTML"
 
@@ -1493,3 +1491,75 @@ class TestJPark01SpecificContracts:
         html_dept_alone = res.stdout
         assert 'data-dept-journey="true"' in html_dept_alone
         assert "bg-page--home" in html_dept_alone
+
+    # 14. Exact parking facts text contract with colons
+    def test_jpark01_exact_text_contract(self, park_render):
+        """14. J-PARK renders exact colon-form parking fact strings."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+        assert "주차면수: 130면" in html
+        assert "주차타워: 111면(1층 42, 2층 29, 3층 40)" in html
+        assert "기타: 19면" in html
+        assert "평일(월~금) 유료운영: 08:00 ~ 19:00" in html
+        assert "야간 및 휴일 무료개방" in html
+
+    # 15. No interactive markup at all in J-PARK HTML
+    def test_jpark01_no_interactive_markup(self, park_render):
+        """15. J-PARK HTML contains no <a>, href, <button> elements anywhere."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+        assert "<a " not in html
+        assert "href=" not in html
+        assert "<button" not in html
+
+    # 16. J-PARK does not call map route lookup / dispatcher
+    def test_jpark01_no_map_route_dispatcher_call(self, park_render):
+        """16. J-PARK render does not invoke map route lookup or dispatcher."""
+        map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+        canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+        sandbox_spy = """
+        'use strict';
+        var vm = require('vm');
+        var capturedHTML = '';
+        var capturedChatHTML = '';
+        var routeLookupCount = 0;
+        var dispatcherCallCount = 0;
+        function makeElement(id) {
+          return {
+            id: id,
+            get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+            set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+            addEventListener: function(event, handler) {}
+          };
+        }
+        var fakeCanvasElement = makeElement('demo-canvas');
+        var sandbox = {
+          document: {
+            getElementById: function(id) {
+              if (id === 'demo-canvas') return fakeCanvasElement;
+              if (id === 'chat-thread') return makeElement('chat-thread');
+              return null;
+            }
+          },
+          console: { log: function() {}, error: function() {} },
+          location: { search: '?journey=J-PARK-01' },
+          window: null
+        };
+        sandbox.URLSearchParams = URLSearchParams;
+        sandbox.window = sandbox;
+        var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        process.stdout.write(JSON.stringify({html: capturedHTML, chat: capturedChatHTML}));
+        """ % (map_js, canvas_js)
+        res = subprocess.run(["node", "-e", sandbox_spy], capture_output=True, text=True, timeout=10)
+        assert res.returncode == 0, res.stderr
+        data = json.loads(res.stdout)
+        html = data["html"]
+        # J-PARK must produce park page without referencing map route dispatch
+        assert "bg-page--park-info" in html
+        # Verify no data-dept-action (dept dispatcher) in J-PARK output
+        assert "data-dept-action" not in html
+        # Verify no data-action-target (route dispatcher) in J-PARK output
+        assert "data-action-target" not in html

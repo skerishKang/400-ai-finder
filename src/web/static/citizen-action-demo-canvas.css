@@ -1743,24 +1743,19 @@
   margin: 0;
   padding: 0;
 }
-.bg-page--park-info .bg-park-lnb-list li a {
+.bg-page--park-info .bg-park-lnb-list li .bg-park-lnb-link {
   display: block;
   padding: 8px 14px;
   font-size: 0.8125rem;
   color: #444;
-  text-decoration: none;
 }
-.bg-page--park-info .bg-park-lnb-list li a:hover {
-  background: #eaf2fb;
-  color: #0054a6;
-}
-.bg-page--park-info .bg-park-lnb-item--active > a {
+.bg-page--park-info .bg-park-lnb-item--active > .bg-park-lnb-link {
   background: #e3f0fe;
   color: #0054a6;
   font-weight: 600;
   position: relative;
 }
-.bg-page--park-info .bg-park-lnb-item--active > a::before {
+.bg-page--park-info .bg-park-lnb-item--active > .bg-park-lnb-link::before {
   content: '';
   position: absolute;
   left: 0;
@@ -1811,6 +1806,26 @@
 }
 .bg-page--park-info .bg-park-facts-table td {
   color: #444;
+}
+.bg-page--park-info .bg-park-facts-list {
+  border-top: 2px solid #0054a6;
+  font-size: 0.875rem;
+}
+.bg-page--park-info .bg-park-facts-row {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e9ecef;
+  color: #444;
+}
+.bg-page--park-info .bg-home-utility__menu-label {
+  font-size: 0.6875rem;
+  color: #5a6a7e;
+  padding: 4px 8px;
+}
+.bg-page--park-info .bg-home-footer__nav-item {
+  display: inline-block;
+  color: #bdc8d6;
+  font-size: 0.6875rem;
+  padding: 4px 8px;
 }
 
 /* ---------------------------------------------------------------------------
