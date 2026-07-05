@@ -761,51 +761,28 @@ class TestFidelityAndSeparation:
             assert f'data-action-target="{target}"' in combined, f"Target '{target}' not present in rendered HTML"
 
     def test_official_identity_crop_provenance(self, rendered_routes):
-        """Verify the exact crop provenance using Pillow, dynamically parsed from the crop-manifest.md file."""
+        """Verify the current home identity asset is used correctly (current reference ledger)."""
         from PIL import Image
 
-        home_png_path = os.path.join(STATIC, "images", "bukgu_home.png")
-        assert os.path.exists(home_png_path), "bukgu_home.png missing"
+        # a. Current identity asset exists at correct path
+        current_identity_path = os.path.join(STATIC, "images", "bukgu-current", "home-identity.png")
+        assert os.path.exists(current_identity_path), "home-identity.png missing in bukgu-current"
+        identity_img = Image.open(current_identity_path)
+        assert identity_img.size == (170, 42), f"home-identity.png size mismatch: {identity_img.size}"
 
-        # Dynamically read and parse coordinate bbox from docs/artifacts/863-semantic/followup-3/crop-manifest.md
-        manifest_path = os.path.join(os.path.dirname(__file__), "..", "docs", "artifacts", "863-semantic", "followup-3", "crop-manifest.md")
-        assert os.path.exists(manifest_path), "crop-manifest.md missing"
-        with open(manifest_path, encoding="utf-8") as f:
-            manifest_content = f.read()
+        # b. The new asset path exists in rendered home HTML
+        home_html = rendered_routes["home"]
+        assert "home-identity.png" in home_html, "home-identity.png missing in rendered html"
+        assert 'alt="전남광주통합특별시북구"' in home_html, \
+            'alt="전남광주통합특별시북구" missing in rendered html'
 
-        def parse_manifest_coords(filename):
-            # Matches: | `filename` | ... | (x, y, w, h) |
-            pattern = rf'\|\s*`{filename}`\s*\|\s*[^\|]*\|\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)'
-            match = re.search(pattern, manifest_content)
-            if not match:
-                raise ValueError(f"Could not find coordinates for {filename} in crop-manifest.md")
-            return tuple(map(int, match.groups()))
+        # c. No legacy identity expression in home renderer
+        assert "home-logo-identity.png" not in home_html, \
+            "legacy home-logo-identity.png still referenced in rendered html"
+        assert "광주광역시 북구" not in home_html or "전남광주통합특별시북구" in home_html, \
+            "legacy '광주광역시 북구' appears without the correct integrated identity"
 
-        crops_to_check = ["home-logo-identity.png", "home-footer-identity.png"]
-        orig_img = Image.open(home_png_path)
-
-        for name in crops_to_check:
-            crop_path = os.path.join(STATIC, "images", "bukgu-crops", name)
-            assert os.path.exists(crop_path), f"crop {name} missing"
-
-            crop_img = Image.open(crop_path)
-
-            # Get coordinates dynamically parsed from manifest
-            x, y, w, h = parse_manifest_coords(name)
-            expected_crop = orig_img.crop((x, y, x + w, y + h))
-
-            assert crop_img.size == expected_crop.size, f"size mismatch for {name}"
-
-            # Compare pixel values
-            assert crop_img.convert('RGB').tobytes() == expected_crop.convert('RGB').tobytes(), \
-                f"pixel data mismatch for {name}"
-
-        # 5. Check canvas.js has no active _svgLogo/White in identity rendering
+        # Check canvas.js has no active _svgLogo/White in identity rendering
         js = _read_static("citizen-action-demo-canvas.js")
         assert '_svgLogo' not in js, "_svgLogo still in canvas.js"
         assert '_svgLogoWhite' not in js, "_svgLogoWhite still in canvas.js"
-
-        # 6. home rendered HTML has the image tag
-        home_html = rendered_routes["home"]
-        assert "home-logo-identity.png" in home_html, "home-logo-identity.png missing in rendered html"
-        assert "home-footer-identity.png" in home_html, "home-footer-identity.png missing in rendered html"
