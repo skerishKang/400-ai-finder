@@ -760,3 +760,43 @@ class TestFidelityAndSeparation:
         for target in required_targets:
             assert f'data-action-target="{target}"' in combined, f"Target '{target}' not present in rendered HTML"
 
+    def test_official_identity_crop_provenance(self, rendered_routes):
+        """Verify the exact crop provenance using Pillow and check that inline SVGs are not used for identity."""
+        from PIL import Image
+
+        home_png_path = os.path.join(STATIC, "images", "bukgu_home.png")
+        assert os.path.exists(home_png_path), "bukgu_home.png missing"
+
+        # Coordinates of identity crops (from manifest)
+        # x, y, w, h
+        crops_to_check = {
+            "home-logo-identity.png": (95, 25, 460, 120),
+            "home-footer-identity.png": (95, 2395, 360, 130),
+        }
+
+        orig_img = Image.open(home_png_path)
+
+        for name, bbox in crops_to_check.items():
+            crop_path = os.path.join(STATIC, "images", "bukgu-crops", name)
+            assert os.path.exists(crop_path), f"crop {name} missing"
+
+            crop_img = Image.open(crop_path)
+
+            x, y, w, h = bbox
+            expected_crop = orig_img.crop((x, y, x + w, y + h))
+
+            assert crop_img.size == expected_crop.size, f"size mismatch for {name}"
+
+            # Compare pixel values
+            assert crop_img.convert('RGB').tobytes() == expected_crop.convert('RGB').tobytes(), \
+                f"pixel data mismatch for {name}"
+
+        # 5. Check canvas.js has no active _svgLogo/White in identity rendering
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert 'class="bg-logo__svg"' not in js, "_svgLogo still in GNB header"
+        assert '_svgLogoWhite(32)' not in js, "_svgLogoWhite still in footer bottom"
+
+        # 6. home rendered HTML has the image tag
+        home_html = rendered_routes["home"]
+        assert "home-logo-identity.png" in home_html, "home-logo-identity.png missing in rendered html"
+        assert "home-footer-identity.png" in home_html, "home-footer-identity.png missing in rendered html"

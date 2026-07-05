@@ -23,6 +23,8 @@ This manifest tracks individual visual assets cropped from `bukgu_home.png` to r
 | `home-footer-open-data.png` | `bukgu_home.png` | (1050, 2450, 80, 80) | `.bg-footer__bot-badges` > `<img>` | Individual `<img>` only |
 | `home-footer-wa.png` | `bukgu_home.png` | (1140, 2450, 80, 80) | `.bg-footer__bot-badges` > `<img>` | Individual `<img>` only |
 | `home-footer-qr-mascot.png` | `bukgu_home.png` | (1230, 2450, 150, 80) | `.bg-footer__bot-badges` > `<img>` | Individual `<img>` only |
+| `home-logo-identity.png` | `bukgu_home.png` | (95, 25, 460, 120) | `.bg-header` > `.bg-logo` > `<img>` | Individual `<img>` only |
+| `home-footer-identity.png` | `bukgu_home.png` | (95, 2395, 360, 130) | `.bg-footer__bot` > `.bg-footer__bot-logo` > `<img>` | Individual `<img>` only |
 
 ---
 

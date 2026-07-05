@@ -31,7 +31,7 @@
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
+      .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
   }
 
@@ -246,8 +246,7 @@
         '<header class="bg-header">' +
           '<div class="bg-header__inner">' +
             '<a href="#" class="bg-logo">' +
-              '<span class="bg-logo__svg">' + _svgLogo(42) + '</span>' +
-              '<span class="bg-logo__text">전남광주통합특별시북구</span>' +
+              '<img src="/static/images/bukgu-crops/home-logo-identity.png" alt="광주광역시 북구 (전남광주통합특별시북구)" style="height:42px; width:auto; display:block;" />' +
             '</a>' +
           '</div>' +
         '</header>' +
@@ -416,8 +415,7 @@
         '<footer class="bg-footer__bot">' +
           '<div class="bg-footer__bot-inner">' +
             '<div class="bg-footer__bot-logo">' +
-              _svgLogoWhite(32) +
-              '<span>북구</span>' +
+              '<img src="/static/images/bukgu-crops/home-footer-identity.png" alt="광주광역시 북구" style="height:32px; width:auto; display:block;" />' +
             '</div>' +
             '<div class="bg-footer__bot-text">' +
               '<p>61187 전남광주통합특별시 북구 우치로 77 (용봉동) | 대표전화: 062-410-8000</p>' +
@@ -467,8 +465,7 @@
         '<header class="bg-header">' +
           '<div class="bg-header__inner">' +
             '<a href="#" class="bg-logo">' +
-              '<span class="bg-logo__svg">' + _svgLogo(42) + '</span>' +
-              '<span class="bg-logo__text">전남광주통합특별시북구</span>' +
+              '<img src="/static/images/bukgu-crops/home-logo-identity.png" alt="광주광역시 북구 (전남광주통합특별시북구)" style="height:42px; width:auto; display:block;" />' +
             '</a>' +
           '</div>' +
         '</header>' +
@@ -525,8 +522,7 @@
         '<header class="bg-header">' +
           '<div class="bg-header__inner">' +
             '<a href="#" class="bg-logo">' +
-              '<span class="bg-logo__svg">' + _svgLogo(42) + '</span>' +
-              '<span class="bg-logo__text">전남광주통합특별시북구</span>' +
+              '<img src="/static/images/bukgu-crops/home-logo-identity.png" alt="광주광역시 북구 (전남광주통합특별시북구)" style="height:42px; width:auto; display:block;" />' +
             '</a>' +
           '</div>' +
         '</header>' +
@@ -729,8 +725,7 @@
         '<header class="bg-header">' +
           '<div class="bg-header__inner">' +
             '<a href="#" class="bg-logo">' +
-              '<span class="bg-logo__svg">' + _svgLogo(42) + '</span>' +
-              '<span class="bg-logo__text">전남광주통합특별시북구</span>' +
+              '<img src="/static/images/bukgu-crops/home-logo-identity.png" alt="광주광역시 북구 (전남광주통합특별시북구)" style="height:42px; width:auto; display:block;" />' +
             '</a>' +
           '</div>' +
         '</header>' +
