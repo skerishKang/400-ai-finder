@@ -270,7 +270,7 @@
               '<img src="' + assets + '/home-mayor-card.png" alt="따뜻한 북구를 만들겠습니다. 북구청장 신수정입니다." />' +
             '</article>' +
             '<article class="bg-home-lead__banner" aria-label="소속 공무원 사칭 피해주의 알림">' +
-              '<img src="' + assets + '/home-alert-banner.png" alt="소속 공무원 사칭 피해주의 알림" />' +
+              '<img src="' + assets + '/home-alert-banner-r-home-02.png" alt="주요 알림 배너" />' +
             '</article>' +
           '</section>' +
 

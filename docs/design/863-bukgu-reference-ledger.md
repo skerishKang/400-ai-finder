@@ -36,6 +36,14 @@ The files must be imported unchanged into `docs/artifacts/863-reference/source/`
 
 The two supplied home captures show different carousel slides. The initial static local home state must select exactly one approved above-fold slide and keep it fixed. The lower-page capture controls lower-page layout and footer only; do not blend its carousel content into the initial viewport.
 
+### Carousel state separation
+
+- R-HOME-01 (1344x756) provides the above-fold initial home state.
+- R-HOME-02 (1344x1833) provides the full-home state including lower modules and footer.
+- Full-home render evidence against R-HOME-02 must use a banner crop from R-HOME-02, not from R-HOME-01.
+- The banner crop is `src/web/static/images/bukgu-current/home-alert-banner-r-home-02.png` (box `[562, 258, 1123, 555)`, 561x297).
+- The above-fold viewport crop `home-alert-banner.png` (from R-HOME-01) is NOT used for full-home comparison.
+
 ## Implementation boundaries
 
 - Recreate layout, text containers, borders, spacing, typography, controls, and card surfaces using semantic HTML/CSS.

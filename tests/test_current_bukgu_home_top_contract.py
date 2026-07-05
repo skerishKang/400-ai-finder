@@ -30,7 +30,7 @@ def test_current_home_top_uses_only_approved_derived_assets():
         "home-identity.png",
         "home-civic-brand.png",
         "home-mayor-card.png",
-        "home-alert-banner.png",
+        "home-alert-banner-r-home-02.png",
         "home-quick-work.png",
         "home-quick-office.png",
         "home-quick-donation.png",
