@@ -983,7 +983,7 @@ class TestJDept01SpecificContracts:
                         sel_part.startswith(".bg-page--home[data-dept-journey=\"true\"]")), \
                     f"prohibited unscoped J-DEPT selector: {sel_part}"
 
-    def test_jdept01_shared_public_shell_css_contract(self):
+    def test_jdept01_shared_public_shell_css_contract(self, dept_render):
         """10. Verify that all 6 required public-shell GNB and header utility classes are mapped and scoped via the approved shared root selector contract."""
         css = _read_static("citizen-action-demo-canvas.css")
         required_classes = [
@@ -997,6 +997,20 @@ class TestJDept01SpecificContracts:
         for cls in required_classes:
             target_str = f":is(.bg-page--home, .bg-page--dept-directory) {cls}"
             assert any(target_str in line for line in css.split("\n")), f"Missing shared scoping contract for: {cls}"
+
+        # Assert the shared root selector defines --bg-home-width: 914px
+        assert any(":is(.bg-page--home, .bg-page--dept-directory)" in line for line in css.split("\n")), "Missing shared root selector in CSS"
+
+        # Verify custom property and outer strip scoped rules
+        assert any("--bg-home-width: 914px;" in line for line in css.split("\n")), "Missing shared home-width custom property"
+        assert any(":is(.bg-page--home, .bg-page--dept-directory) .bg-home-gov-strip" in line for line in css.split("\n")), "Missing shared gov-strip rule mapping"
+
+        # Assert directory/result renders contain the correct root class
+        html_dir = dept_render("?journey=J-DEPT-01&dept-state=directory")
+        assert "bg-page--dept-directory" in html_dir
+
+        html_res = dept_render("?journey=J-DEPT-01&dept-state=result")
+        assert "bg-page--dept-directory" in html_res
 
     def test_jdept01_duplicate_journey_fallback(self, dept_render):
         """4. Duplicate journey parameters fall back to historical non-J-DEPT output."""

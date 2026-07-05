@@ -1040,13 +1040,13 @@
 }
 
 /* #868 current Buk-gu home top viewport */
-.bg-page--home {
+:is(.bg-page--home, .bg-page--dept-directory) {
   --bg-home-width: 914px;
   background: #fff;
   color: #171717;
   min-width: 0;
 }
-.bg-page--home .bg-home-gov-strip {
+:is(.bg-page--home, .bg-page--dept-directory) .bg-home-gov-strip {
   height: 31px;
   background: #f5f5f5;
   border-bottom: 1px solid #e3e3e3;
