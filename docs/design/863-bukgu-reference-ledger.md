@@ -1,6 +1,6 @@
 # #863 Current Buk-gu Reference Ledger
 
-Status: approved for #868 home implementation and #869 J-DEPT-01 department-directory journey; #867 is completed; external-transaction journeys remain out of scope.
+Status: approved for #868 home implementation, #869 J-DEPT-01 department-directory journey, and #869 J-PARK-01 parking-information journey; #867 is completed; external-transaction journeys remain out of scope.
 
 ## Home-only approval scope
 
@@ -179,3 +179,42 @@ Before civil-service or pre-submit source work begins, collect:
 4. Implement only ledger-approved local information-finding journeys under #869; do not add civil-service submission, pre-submit form, or external-transaction states without a separate approved source set.
 5. Implement the separate chat shell under #870.
 6. Re-render matched viewports and review before any deployment or merge.
+
+## #869 approved second information journey — J-PARK-01
+
+### Scope
+
+J-PARK-01 is one local, source-backed parking-information journey only:
+
+- User question:
+  `북구청 청사부설주차장은 몇 시까지 유료이고 요금은 어떻게 되나요?`
+- Source-backed route:
+  `북구소개` → `구청안내` → `주차장 이용안내`
+- Page title:
+  `주차장 이용안내`
+- Approved facts only:
+  - `청사부설주차장 현황`
+  - `주차면수: 130면`
+  - `주차타워: 111면(1층 42, 2층 29, 3층 40)`
+  - `기타: 19면`
+  - `1시간(모든 민원인)`
+  - `30분 500원(무료시간 이후 최초 30분)`
+  - `10분당 200원(기본 30분 이후)`
+  - `평일(월~금) 유료운영: 08:00 ~ 19:00`
+  - `야간 및 휴일 무료개방`
+
+### Approved source inventory
+
+| ID | Filename | SHA-256 | Display size | Purpose | State |
+|---|---|---|---:|---|---|
+| R-PARK-01 | `CaptureX_2026-07-06_014330_bukgu.gwangju.kr_park.png` | f6a73282408faeb6e0fad54fe252d64bceb78f9e7e1137d03f5123ac39619837 | 1344×756 | desktop parking-info viewport | initial parking page |
+| R-PARK-02 | `CaptureX_2026-07-06_014332_bukgu.gwangju.kr_park_full.png` | c127c14eaa614c7383dcf74b3177100f896ef2dda1828bc992d3285284c947ff | 1344×1311 | full parking-info page and footer | full parking detail page |
+
+### Approval and boundaries
+
+- Implement semantic local DOM/CSS only. The two source captures are never runtime page surfaces, backgrounds, full-page images, or coordinate overlays.
+- Reconstruct only the static elements needed for J-PARK-01: GNB layout, breadcrumbs, content tables, and footer shell.
+- No menu-click choreography (such as sub-dropdown toggle animations) is required or approved, as no source capture confirms the route-entry menu transition item itself.
+- Do not show live parking availability counters or map integrations.
+- No reservation, payment, map, route guidance, login, personal-data entry, upload, submission, external navigation, or transaction is permitted.
+- `전남광주통합특별시북구` remains the authoritative identity baseline.
