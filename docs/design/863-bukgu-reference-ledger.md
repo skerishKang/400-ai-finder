@@ -1,6 +1,21 @@
 # #863 Current Buk-gu Reference Ledger
 
-Status: candidate ledger for owner approval under issue #867.
+Status: approved for issue #868 home-only implementation; issue #867 remains open for menu and pre-submit reference coverage.
+
+## Home-only approval scope
+
+The R-HOME-01 and R-HOME-02 source captures, their recorded hashes,
+the owner-confirmed identity baseline `전남광주통합특별시북구`, the candidate
+home inventory, and the separated carousel rules are approved solely for
+issue #868 home reconstruction.
+
+This approval does not authorize implementation of the `종합민원` menu/list,
+online civil-service, form-preparation, login, data-entry, upload, payment,
+or submission states. Those states remain blocked pending the missing
+reference captures recorded in this ledger and issue #869.
+
+The approved home scope remains local-fixture-only. Full-page captures are
+reference/comparison artifacts only and must never become runtime surfaces.
 
 ## Authority
 
@@ -33,24 +48,24 @@ The files must be imported unchanged into `docs/artifacts/863-reference/source/`
 7. Notice and major-site modules.
 8. Lower media, field-information, partner, and footer modules.
 
-### Candidate home inventory — owner approval pending
+### Approved home reference inventory for #868
 
 | Region | Source | Candidate visible labels / structure | Ledger status |
 |---|---|---|---|
 | Government notice strip | both | `본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다.` | Owner-confirmed identity text |
-| Utility/weather row | both | `26°C`, `미세먼지 좋음`, `초미세먼지 좋음`, `주요사이트`, `SNS`, `KOR` | Candidate transcription — owner approval pending |
+| Utility/weather row | both | `26°C`, `미세먼지 좋음`, `초미세먼지 좋음`, `주요사이트`, `SNS`, `KOR` | Approved for #868 home-only reconstruction |
 | Identity/logo treatment | both | approved local identity crop; authoritative identity text is `전남광주통합특별시북구` | Owner-confirmed baseline |
-| GNB | both | `종합민원` → `소통광장` → `더불어복지` → `분야별정보` → `정보공개` → `북구소개` | Candidate transcription — owner approval pending |
-| Civic-brand/search region | both | civic-brand copy, keyword search field, and hashtag row | Candidate transcription — owner approval pending |
-| Mayor card | both | portrait card, mayor-message region, two outbound-style action links | Candidate transcription — owner approval pending |
+| GNB | both | `종합민원` → `소통광장` → `더불어복지` → `분야별정보` → `정보공개` → `북구소개` | Approved for #868 home-only reconstruction |
+| Civic-brand/search region | both | civic-brand copy, keyword search field, and hashtag row | Approved for #868 home-only reconstruction |
+| Mayor card | both | portrait card, mayor-message region, two outbound-style action links | Approved for #868 home-only reconstruction |
 | Main carousel | R-HOME-01: `소속 공무원 사칭 피해주의 알림`<br>R-HOME-02: `노무사와 함께하는 무료 노동상담데스크` | N/A | Separate carousel states — do not combine |
-| Quick-service strip | both | `업무검색`, `청사안내`, `고향사랑기부제`, `부끄머니`, `통합예약`, `일반민원 대기현황` | Candidate transcription — owner approval pending |
-| Notice module | both | notice tabs and compact list module | Candidate transcription — owner approval pending |
-| Major-site module | both | `통계정보`, `평생학습관`, `청년센터`, `문화센터`, `공원시설 예약`, `체육시설 예약` | Candidate transcription — owner approval pending |
+| Quick-service strip | both | `업무검색`, `청사안내`, `고향사랑기부제`, `부끄머니`, `통합예약`, `일반민원 대기현황` | Approved for #868 home-only reconstruction |
+| Notice module | both | notice tabs and compact list module | Approved for #868 home-only reconstruction |
+| Major-site module | both | `통계정보`, `평생학습관`, `청년센터`, `문화센터`, `공원시설 예약`, `체육시설 예약` | Approved for #868 home-only reconstruction |
 | Lower media row | R-HOME-02 | `고향사랑기부제`, `현장스케치`, `카드뉴스`, `알리미` | Approved individual local crops where available |
-| Field-information module | R-HOME-02 | Heading/tabs: `분야별 정보`; `구민`, `기업/경제`, `관광`<br>Links: `행정조직도`, `주정차단속문자알림`, `여권 발급`, `보건증 발급`, `대형폐기물 처리`, `온라인 민원발급(정부24)`, `취업지원프로그램안내`, `소화기 사용법`, `정보화교육`, `공공데이터` | Candidate transcription — owner approval pending |
-| Partner strip | R-HOME-02 | `농림축산식품부`, `Smart K-Factory`, `PIS 행정정보공동이용센터`, `소비자24`, `수유시설` | Candidate transcription — owner approval pending |
-| Footer navigation | R-HOME-02 | `누리집이용안내`, `개인정보처리방침`, `저작권 보호정책`, `이메일무단수집거부`, `영상정보처리기기 운영·관리방침` | Candidate transcription — owner approval pending |
+| Field-information module | R-HOME-02 | Heading/tabs: `분야별 정보`; `구민`, `기업/경제`, `관광`<br>Links: `행정조직도`, `주정차단속문자알림`, `여권 발급`, `보건증 발급`, `대형폐기물 처리`, `온라인 민원발급(정부24)`, `취업지원프로그램안내`, `소화기 사용법`, `정보화교육`, `공공데이터` | Approved for #868 home-only reconstruction |
+| Partner strip | R-HOME-02 | `농림축산식품부`, `Smart K-Factory`, `PIS 행정정보공동이용센터`, `소비자24`, `수유시설` | Approved for #868 home-only reconstruction |
+| Footer navigation | R-HOME-02 | `누리집이용안내`, `개인정보처리방침`, `저작권 보호정책`, `이메일무단수집거부`, `영상정보처리기기 운영·관리방침` | Approved for #868 home-only reconstruction |
 | Footer legal/contact/badges | R-HOME-02 | contact/hours/copyright text block plus small certification badges | Legal text and badges require owner approval or higher-resolution source |
 
 ### Initial static carousel rule
