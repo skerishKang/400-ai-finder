@@ -1,6 +1,6 @@
 # #863 Current Buk-gu Reference Ledger
 
-Status: approved for #868 home implementation, #869 J-DEPT-01 department-directory journey, and #869 J-PARK-01 parking-information journey; #867 is completed; external-transaction journeys remain out of scope.
+Status: approved for #868 home implementation, #869 J-DEPT-01 department-directory journey, #869 J-PARK-01 parking-information journey, and J-KIOSK-01 source inventory recorded (pending remote source-gate approval); #867 is completed; external-transaction journeys remain out of scope.
 
 ## Home-only approval scope
 
@@ -218,3 +218,28 @@ J-PARK-01 is one local, source-backed parking-information journey only:
 - Do not show live parking availability counters or map integrations.
 - No reservation, payment, map, route guidance, login, personal-data entry, upload, submission, external navigation, or transaction is permitted.
 - `전남광주통합특별시북구` remains the authoritative identity baseline.
+
+## #869 candidate third information journey — J-KIOSK-01 (source gate pending)
+
+### Source-supported observations only
+
+- route/state: 종합민원 → 무인민원발급기 → 설치장소
+- page title: 무인민원발급기
+- visible tabs: 설치장소, 발급종류 및 처리순서, 발급가능 민원서류
+- visible table heading: 무인민원발급기 설치장소(50개소)
+- visible table columns: 구분, 시설명, 도로명주소, 운영시간, 발급종수, 발급기형태, 비고
+
+### Source records
+
+| ID | Filename | SHA-256 | Display size | Purpose |
+|---|---|---|---:|---|
+| J-KIOSK-01 | `jkiosk-01-installation-desktop.png` | 5a277039d723bf3010d4b4fc814aaf9fcf81179739cd29534af78c11cdb958d5 | 1536×864 | readable initial desktop installation-location viewport |
+| J-KIOSK-02 | `jkiosk-02-installation-full.png` | b7e6a53c57573e82ac508cad198446fbc89a3cef46fa3ec3de70fd8067739853 | 524×1536 | full table flow, lower explanatory regions, and footer |
+
+### Hard boundaries
+
+- Both captures are reference/comparison artifacts only; never runtime backgrounds, page surfaces, `<img>` page substitutes, or coordinate overlays.
+- No implementation is authorized by this source-import commit.
+- No login, personal-data entry, external navigation, form submission, payment, reservation, map, or live availability behavior.
+- Authoritative identity baseline remains 전남광주통합특별시북구.
+- Do not infer or add unreadable table rows, addresses, hours, certificate counts, or footer/legal wording.
