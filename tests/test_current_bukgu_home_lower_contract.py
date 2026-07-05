@@ -9,7 +9,7 @@ CSS = (STATIC / "citizen-action-demo-canvas.css").read_text(encoding="utf-8")
 
 
 def _home_block() -> str:
-    start = JS.index("  function _renderHome() {")
+    start = JS.index("  function _renderHome(")
     end = JS.index("  // -----------------------------------------------------------------------\n  // _renderCivilService", start)
     return JS[start:end]
 
