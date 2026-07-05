@@ -671,11 +671,11 @@ class TestSemanticReconstruction:
         assert "보내기" in html, "보내기 button missing"
 
     def test_home_has_gnb_with_data_action_target(self):
-        """Home route must have GNB with data-action-target on 종합민원."""
+        """Home route must have GNB with data-action-target on 민원/신고."""
         js = _read_static("citizen-action-demo-canvas.js")
         assert 'data-action-target="nav-civil-service"' in js, \
-            "GNB 종합민원 must have data-action-target"
-        assert "종합민원" in js
+            "GNB 민원/신고 must have data-action-target"
+        assert "민원/신고" in js
         assert "data-action-target" in js
 
     def test_complaint_review_has_disabled_submit(self):
