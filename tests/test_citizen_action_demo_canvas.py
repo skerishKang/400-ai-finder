@@ -947,14 +947,56 @@ class TestJDept01SpecificContracts:
                     selectors.append(sel)
 
         for selector in selectors:
-            for sel_part in [s.strip() for s in selector.split(",")]:
+            # Split by comma but ignore commas inside parentheses
+            in_paren = False
+            parts = []
+            current = []
+            for char in selector:
+                if char == '(':
+                    in_paren = True
+                elif char == ')':
+                    in_paren = False
+
+                if char == ',' and not in_paren:
+                    parts.append("".join(current).strip())
+                    current = []
+                else:
+                    current.append(char)
+            if current:
+                parts.append("".join(current).strip())
+
+            for sel_part in parts:
                 if not sel_part:
                     continue
                 if sel_part in ["from", "to"] or sel_part.startswith("@"):
                     continue
+                if sel_part.startswith(":is("):
+                    # Validate all sub-selectors inside :is(...)
+                    inner = sel_part[4:-1]
+                    for sub_sel in [s.strip() for s in inner.split(",")]:
+                        assert (sub_sel.startswith(".bg-page--dept-directory") or
+                                sub_sel.startswith(".bg-page--home[data-dept-journey=\"true\"]")), \
+                            f"prohibited inner is selector: {sub_sel}"
+                    continue
+
                 assert (sel_part.startswith(".bg-page--dept-directory") or
                         sel_part.startswith(".bg-page--home[data-dept-journey=\"true\"]")), \
                     f"prohibited unscoped J-DEPT selector: {sel_part}"
+
+    def test_jdept01_shared_public_shell_css_contract(self):
+        """10. Verify that all 6 required public-shell GNB and header utility classes are mapped and scoped via the approved shared root selector contract."""
+        css = _read_static("citizen-action-demo-canvas.css")
+        required_classes = [
+            ".bg-home-utility",
+            ".bg-home-header",
+            ".bg-home-gnb",
+            ".bg-home-gnb__link",
+            ".bg-home-header__actions",
+            ".bg-home-header__icon"
+        ]
+        for cls in required_classes:
+            target_str = f":is(.bg-page--home, .bg-page--dept-directory) {cls}"
+            assert any(target_str in line for line in css.split("\n")), f"Missing shared scoping contract for: {cls}"
 
     def test_jdept01_duplicate_journey_fallback(self, dept_render):
         """4. Duplicate journey parameters fall back to historical non-J-DEPT output."""
