@@ -772,15 +772,14 @@ class TestFidelityAndSeparation:
 
         # b. The new asset path exists in rendered home HTML
         home_html = rendered_routes["home"]
-        assert "home-identity.png" in home_html, "home-identity.png missing in rendered html"
+        assert "/static/images/bukgu-current/home-identity.png" in home_html, "home-identity.png missing in rendered html"
         assert 'alt="전남광주통합특별시북구"' in home_html, \
             'alt="전남광주통합특별시북구" missing in rendered html'
 
         # c. No legacy identity expression in home renderer
         assert "home-logo-identity.png" not in home_html, \
             "legacy home-logo-identity.png still referenced in rendered html"
-        assert "광주광역시 북구" not in home_html or "전남광주통합특별시북구" in home_html, \
-            "legacy '광주광역시 북구' appears without the correct integrated identity"
+        assert "광주광역시 북구" not in home_html, "광주광역시 북구 must not appear in home rendered html"
 
         # Check canvas.js has no active _svgLogo/White in identity rendering
         js = _read_static("citizen-action-demo-canvas.js")
