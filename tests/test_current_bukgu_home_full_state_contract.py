@@ -8,7 +8,6 @@ Verifies:
 """
 
 import json
-import re
 import subprocess
 from hashlib import sha256
 from pathlib import Path
@@ -32,7 +31,7 @@ EXPECTED_CROP_SIZE = (561, 297)
 OUTPUT = STATIC / "images" / "bukgu-current" / "home-alert-banner-r-home-02.png"
 
 
-# --- Runtime resolver VM test ---
+# --- Runtime resolver VM test (node:vm sandbox) ---
 
 RESOLVER_TEST_CASES = [
     ("", "R-HOME-01"),
@@ -47,48 +46,76 @@ RESOLVER_TEST_CASES = [
     ("?home-reference=R-HOME-01&home-reference=R-HOME-02", "R-HOME-01"),
     ("?home-reference=R-HOME-02&home-reference=R-HOME-02", "R-HOME-01"),
     ("?home-reference=R-HOME-02&home-reference=R-HOME-02&home-reference=R-HOME-02", "R-HOME-01"),
+    ("?home-reference=%E0%A4%A", "R-HOME-01"),
+    ("?foo=1&home-reference=R-HOME-02&bar=2", "R-HOME-02"),
 ]
-
-
-def _extract_resolver_source() -> str:
-    """Extract the _resolveHomeReferenceState function body from canvas.js."""
-    # Find the function and wrap it for standalone execution
-    pattern = r'(function _resolveHomeReferenceState\(search\) \{[^}]+\})'
-    match = re.search(pattern, JS)
-    assert match, "_resolveHomeReferenceState function not found in canvas.js"
-    return match.group(1)
 
 
 @pytest.fixture(scope="module")
 def resolver_results():
-    """Run the resolver function in Node.js against all test cases."""
-    fn_src = _extract_resolver_source()
+    """Run the resolver via node:vm with full canvas.js in a restricted sandbox."""
+    js_abs_path = str(STATIC / "citizen-action-demo-canvas.js")
     cases_json = json.dumps(RESOLVER_TEST_CASES)
+    # Build the Node.js test script with absolute path
     node_script = (
-        "var fn = " + fn_src + ";\n"
-        "var cases = " + cases_json + ";\n"
-        "var results = {};\n"
-        "for (var i = 0; i < cases.length; i++) {\n"
-        "  var input = cases[i][0];\n"
-        "  var expected = cases[i][1];\n"
-        "  var actual = fn(input);\n"
-        "  results[input] = {expected: expected, actual: actual, pass: actual === expected};\n"
-        "}\n"
-        "process.stdout.write(JSON.stringify(results));"
+        r'''
+const vm = require("vm");
+const fs = require("fs");
+
+// Read the full canvas.js source
+const jsPath = "''' + js_abs_path + r'''";
+let source = fs.readFileSync(jsPath, "utf-8");
+
+// Inject instrumentation: expose resolver before _renderHome
+const inject = 'window.__testResolveHomeReferenceState = _resolveHomeReferenceState;\n';
+const insertionPoint = source.indexOf("function _renderHome(");
+const instrumented = source.slice(0, insertionPoint) + inject + source.slice(insertionPoint);
+
+// Restricted sandbox — only allowed APIs
+const sandbox = {
+  window: {},
+  document: { getElementById: function() { return null; } },
+  CitizenActionDemoMap: {},
+  URLSearchParams: URLSearchParams,
+  console: { log: function() {}, error: function() {}, warn: function() {} },
+};
+sandbox.window.window = sandbox.window;
+
+vm.createContext(sandbox);
+vm.runInContext(instrumented, sandbox, { timeout: 5000 });
+
+const fn = sandbox.window.__testResolveHomeReferenceState;
+if (typeof fn !== "function") {
+  process.stderr.write("ERROR: resolver not exposed");
+  process.exit(1);
+}
+
+const cases = ''' + cases_json + r''';
+const results = {};
+for (var i = 0; i < cases.length; i++) {
+  var input = cases[i][0];
+  var expected = cases[i][1];
+  var actual = fn(input);
+  results[input] = {expected: expected, actual: actual, pass: actual === expected};
+}
+process.stdout.write(JSON.stringify(results));
+'''
     )
+
     result = subprocess.run(
         ["node", "-e", node_script],
         capture_output=True,
         text=True,
-        timeout=10,
+        timeout=15,
+        cwd=str(ROOT),
     )
     if result.returncode != 0:
-        raise RuntimeError(f"Node resolver test failed: {result.stderr}")
+        raise RuntimeError(f"Node VM resolver test failed:\nstderr: {result.stderr}\nstdout: {result.stdout}")
     return json.loads(result.stdout)
 
 
 class TestHomeReferenceStateResolver:
-    """Runtime Node.js VM tests for _resolveHomeReferenceState."""
+    """Runtime node:vm sandbox tests for _resolveHomeReferenceState."""
 
     def test_resolver_all_cases(self, resolver_results):
         """Every resolver input/output pair must match."""
@@ -97,28 +124,26 @@ class TestHomeReferenceStateResolver:
             assert r.get("pass"), f"FAIL: query={query!r} expected={expected} actual={r.get('actual')}"
 
     def test_resolver_duplicate_both_r_home_02(self, resolver_results):
-        """Two identical R-HOME-02 parameters → R-HOME-01 (ambiguous)."""
         assert resolver_results["?home-reference=R-HOME-02&home-reference=R-HOME-02"]["pass"]
 
     def test_resolver_duplicate_first_r_home_02_second_r_home_01(self, resolver_results):
-        """Mixed R-HOME-02 then R-HOME-01 → R-HOME-01 (ambiguous)."""
         assert resolver_results["?home-reference=R-HOME-02&home-reference=R-HOME-01"]["pass"]
 
     def test_resolver_duplicate_first_r_home_01_second_r_home_02(self, resolver_results):
-        """Mixed R-HOME-01 then R-HOME-02 → R-HOME-01 (ambiguous)."""
         assert resolver_results["?home-reference=R-HOME-01&home-reference=R-HOME-02"]["pass"]
 
     def test_resolver_single_r_home_02(self, resolver_results):
-        """Single ?home-reference=R-HOME-02 → R-HOME-02."""
         assert resolver_results["?home-reference=R-HOME-02"]["pass"]
 
     def test_resolver_no_query(self, resolver_results):
-        """Empty query → R-HOME-01."""
         assert resolver_results[""]["pass"]
 
     def test_resolver_unrelated_param(self, resolver_results):
-        """Unrelated param with valid R-HOME-02 key → R-HOME-02."""
         assert resolver_results["?foo=1&home-reference=R-HOME-02"]["pass"]
+
+    def test_resolver_malformed_encoding(self, resolver_results):
+        """Malformed percent-encoding must fall back to R-HOME-01."""
+        assert resolver_results["?home-reference=%E0%A4%A"]["pass"]
 
 
 # --- Static/offline tests ---
@@ -185,7 +210,7 @@ def test_home_state_resolver_function_exists():
 def test_home_state_resolver_r_home_02():
     """?home-reference=R-HOME-02 selects the R-HOME-02 state."""
     assert "_resolveHomeReferenceState(search)" in JS, "state resolver function defined"
-    assert '_resolveHomeReferenceState(typeof window !== "undefined"' in JS, "resolver called safely"
+    assert "_resolveHomeReferenceState(typeof window" in JS, "resolver called with fallback guard"
     # The resolver's R-HOME-02 detection and fallback logic
     assert 'R-HOME-02' in JS[JS.index("function _resolveHomeReferenceState"):JS.index("function _resolveHomeReferenceState") + 500], \
         "R-HOME-02/fallback logic in resolver"

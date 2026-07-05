@@ -180,12 +180,11 @@
    *  Only "?home-reference=R-HOME-02" selects the R-HOME-02 full-home state.
    *  Everything else falls back to R-HOME-01 (ordinary above-fold state). */
   function _resolveHomeReferenceState(search) {
-    search = search || "";
-    // Count all home-reference parameters; only exactly one with value R-HOME-02 is accepted
-    var matches = search.match(/[?&]home-reference=([^&]*)/g);
-    if (!matches || matches.length !== 1) return "R-HOME-01";
-    var value = decodeURIComponent(matches[0].split("=")[1]);
-    return value === "R-HOME-02" ? "R-HOME-02" : "R-HOME-01";
+    var params = new URLSearchParams(search || "");
+    var values = params.getAll("home-reference");
+    return values.length === 1 && values[0] === "R-HOME-02"
+      ? "R-HOME-02"
+      : "R-HOME-01";
   }
 
   function _renderHome(state) {

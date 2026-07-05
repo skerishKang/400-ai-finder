@@ -119,6 +119,7 @@ var sandbox = {
     error: function() {}
   }
 };
+sandbox.URLSearchParams = URLSearchParams;
 sandbox.window = sandbox;
 var cx = vm.createContext(sandbox);
 
