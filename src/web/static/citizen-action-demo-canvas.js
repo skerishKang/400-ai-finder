@@ -181,9 +181,10 @@
    *  Everything else falls back to R-HOME-01 (ordinary above-fold state). */
   function _resolveHomeReferenceState(search) {
     search = search || "";
-    // Simple query parser (no URLSearchParams dependency for Node sandbox compat)
-    var match = search.match(/[?&]home-reference=([^&]*)/);
-    var value = match ? decodeURIComponent(match[1]) : "";
+    // Count all home-reference parameters; only exactly one with value R-HOME-02 is accepted
+    var matches = search.match(/[?&]home-reference=([^&]*)/g);
+    if (!matches || matches.length !== 1) return "R-HOME-01";
+    var value = decodeURIComponent(matches[0].split("=")[1]);
     return value === "R-HOME-02" ? "R-HOME-02" : "R-HOME-01";
   }
 

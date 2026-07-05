@@ -7,9 +7,13 @@ Verifies:
 - Identity contract is preserved.
 """
 
+import json
+import re
+import subprocess
 from hashlib import sha256
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +30,98 @@ BOX = (562, 258, 1123, 555)
 EXPECTED_CROP_SIZE = (561, 297)
 
 OUTPUT = STATIC / "images" / "bukgu-current" / "home-alert-banner-r-home-02.png"
+
+
+# --- Runtime resolver VM test ---
+
+RESOLVER_TEST_CASES = [
+    ("", "R-HOME-01"),
+    ("?", "R-HOME-01"),
+    ("?home-reference=", "R-HOME-01"),
+    ("?home-reference=R-HOME-01", "R-HOME-01"),
+    ("?home-reference=other", "R-HOME-01"),
+    ("?foo=R-HOME-02", "R-HOME-01"),
+    ("?foo=1&home-reference=R-HOME-02", "R-HOME-02"),
+    ("?home-reference=R-HOME-02", "R-HOME-02"),
+    ("?home-reference=R-HOME-02&home-reference=R-HOME-01", "R-HOME-01"),
+    ("?home-reference=R-HOME-01&home-reference=R-HOME-02", "R-HOME-01"),
+    ("?home-reference=R-HOME-02&home-reference=R-HOME-02", "R-HOME-01"),
+    ("?home-reference=R-HOME-02&home-reference=R-HOME-02&home-reference=R-HOME-02", "R-HOME-01"),
+]
+
+
+def _extract_resolver_source() -> str:
+    """Extract the _resolveHomeReferenceState function body from canvas.js."""
+    # Find the function and wrap it for standalone execution
+    pattern = r'(function _resolveHomeReferenceState\(search\) \{[^}]+\})'
+    match = re.search(pattern, JS)
+    assert match, "_resolveHomeReferenceState function not found in canvas.js"
+    return match.group(1)
+
+
+@pytest.fixture(scope="module")
+def resolver_results():
+    """Run the resolver function in Node.js against all test cases."""
+    fn_src = _extract_resolver_source()
+    cases_json = json.dumps(RESOLVER_TEST_CASES)
+    node_script = (
+        "var fn = " + fn_src + ";\n"
+        "var cases = " + cases_json + ";\n"
+        "var results = {};\n"
+        "for (var i = 0; i < cases.length; i++) {\n"
+        "  var input = cases[i][0];\n"
+        "  var expected = cases[i][1];\n"
+        "  var actual = fn(input);\n"
+        "  results[input] = {expected: expected, actual: actual, pass: actual === expected};\n"
+        "}\n"
+        "process.stdout.write(JSON.stringify(results));"
+    )
+    result = subprocess.run(
+        ["node", "-e", node_script],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"Node resolver test failed: {result.stderr}")
+    return json.loads(result.stdout)
+
+
+class TestHomeReferenceStateResolver:
+    """Runtime Node.js VM tests for _resolveHomeReferenceState."""
+
+    def test_resolver_all_cases(self, resolver_results):
+        """Every resolver input/output pair must match."""
+        for query, expected in RESOLVER_TEST_CASES:
+            r = resolver_results.get(query, {})
+            assert r.get("pass"), f"FAIL: query={query!r} expected={expected} actual={r.get('actual')}"
+
+    def test_resolver_duplicate_both_r_home_02(self, resolver_results):
+        """Two identical R-HOME-02 parameters → R-HOME-01 (ambiguous)."""
+        assert resolver_results["?home-reference=R-HOME-02&home-reference=R-HOME-02"]["pass"]
+
+    def test_resolver_duplicate_first_r_home_02_second_r_home_01(self, resolver_results):
+        """Mixed R-HOME-02 then R-HOME-01 → R-HOME-01 (ambiguous)."""
+        assert resolver_results["?home-reference=R-HOME-02&home-reference=R-HOME-01"]["pass"]
+
+    def test_resolver_duplicate_first_r_home_01_second_r_home_02(self, resolver_results):
+        """Mixed R-HOME-01 then R-HOME-02 → R-HOME-01 (ambiguous)."""
+        assert resolver_results["?home-reference=R-HOME-01&home-reference=R-HOME-02"]["pass"]
+
+    def test_resolver_single_r_home_02(self, resolver_results):
+        """Single ?home-reference=R-HOME-02 → R-HOME-02."""
+        assert resolver_results["?home-reference=R-HOME-02"]["pass"]
+
+    def test_resolver_no_query(self, resolver_results):
+        """Empty query → R-HOME-01."""
+        assert resolver_results[""]["pass"]
+
+    def test_resolver_unrelated_param(self, resolver_results):
+        """Unrelated param with valid R-HOME-02 key → R-HOME-02."""
+        assert resolver_results["?foo=1&home-reference=R-HOME-02"]["pass"]
+
+
+# --- Static/offline tests ---
 
 
 def test_r_home_02_source_integrity():
