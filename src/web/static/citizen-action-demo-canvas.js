@@ -36,6 +36,172 @@
   }
 
   // -----------------------------------------------------------------------
+  // J-PARK-01 local-only utilities and renderers
+  // -----------------------------------------------------------------------
+  function _resolveParkJourneyState(search) {
+    var params = new URLSearchParams(search || "");
+    var journeys = params.getAll("journey");
+    if (journeys.length !== 1 || journeys[0] !== "J-PARK-01") {
+      return { isPark: false };
+    }
+    var parkStates = params.getAll("park-state");
+    if (parkStates.length > 0) {
+      return { isPark: false };
+    }
+    var allKeys = Array.from(params.keys());
+    var allowedKeys = ["journey"];
+    if (allKeys.length !== allowedKeys.length) {
+      return { isPark: false };
+    }
+    for (var i = 0; i < allKeys.length; i++) {
+      if (allowedKeys.indexOf(allKeys[i]) === -1) {
+        return { isPark: false };
+      }
+    }
+    var deptKeys = Array.from(params.keys());
+    for (var j = 0; j < deptKeys.length; j++) {
+      if (deptKeys[j] === "dept-state") {
+        return { isPark: false };
+      }
+    }
+    return { isPark: true };
+  }
+
+  function _updateChatForPark() {
+    var thread = document.getElementById("chat-thread");
+    if (!thread) return;
+    thread.innerHTML =
+      '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">북구청 청사부설주차장은 몇 시까지 유료이고 요금은 어떻게 되나요?</div></div>' +
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 주차장 이용안내에서 운영시간과 요금을 확인했습니다.</div></div>' +
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">평일(월~금) 08:00~19:00에 유료운영하며, 모든 민원인은 1시간 무료입니다. 이후 최초 30분은 500원, 기본 30분 이후에는 10분당 200원입니다. 야간 및 휴일에는 무료개방합니다.</div></div>';
+  }
+
+  function _renderParkInformation() {
+    var assets = "/static/images/bukgu-current";
+    var searchIcon =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.4 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var menuIcon =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    return (
+      '<div class="bg-page bg-page--full bg-page--park-info">' +
+        '<div class="bg-home-gov-strip">' +
+          '<div class="bg-home-gov-strip__inner">' +
+            '<img src="' + assets + '/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+          '</div>' +
+        '</div>' +
+        '<div class="bg-home-utility" aria-label="사이트 도구">' +
+          '<div class="bg-home-utility__inner">' +
+            '<div class="bg-home-utility__weather">' +
+              '<strong>26°C</strong>' +
+              '<span>미세먼지 <b>좋음</b></span>' +
+              '<span>초미세먼지 <b>좋음</b></span>' +
+            '</div>' +
+            '<div class="bg-home-utility__menus">' +
+              '<a href="#">주요사이트 <span aria-hidden="true">▾</span></a>' +
+              '<a href="#">SNS <span aria-hidden="true">▾</span></a>' +
+              '<a href="#">KOR <span aria-hidden="true">▾</span></a>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<header class="bg-header">' +
+          '<div class="bg-home-header">' +
+            '<div class="bg-home-header__inner">' +
+              '<a href="#" class="bg-home-header__identity" aria-label="전남광주통합특별시북구 홈">' +
+                '<img src="' + assets + '/home-identity.png" alt="전남광주통합특별시북구" />' +
+              '</a>' +
+              '<nav class="bg-gnb" aria-label="주메뉴">' +
+                '<div class="bg-home-gnb">' +
+                  '<a href="#" class="bg-home-gnb__link">종합민원</a>' +
+                  '<a href="#" class="bg-home-gnb__link">소통광장</a>' +
+                  '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
+                  '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
+                  '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
+                  '<a href="#" class="bg-home-gnb__link bg-home-gnb__link--active">북구소개</a>' +
+                '</div>' +
+              '</nav>' +
+              '<div class="bg-home-header__actions">' +
+                '<button type="button" class="bg-home-header__icon" aria-label="통합검색">' + searchIcon + '<span>통합검색</span></button>' +
+                '<button type="button" class="bg-home-header__icon" aria-label="전체메뉴">' + menuIcon + '<span>전체메뉴</span></button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</header>' +
+        '<main class="bg-park-main">' +
+          '<div class="bg-park-breadcrumb">홈 > 북구소개 > 구청안내 > <strong>주차장 이용안내</strong></div>' +
+          '<div class="bg-park-layout">' +
+            '<aside class="bg-park-left">' +
+              '<div class="bg-park-left-section">북구소개</div>' +
+              '<div class="bg-park-left-group bg-park-left-group--open">' +
+                '<div class="bg-park-left-group-header">구청안내</div>' +
+                '<ul class="bg-park-lnb-list">' +
+                  '<li><a href="#">행정조직</a></li>' +
+                  '<li><a href="#">업무 및 전화번호 안내</a></li>' +
+                  '<li><a href="#">부서 대표(전화번호, FAX)</a></li>' +
+                  '<li><a href="#">청사안내</a></li>' +
+                  '<li><a href="#">찾아오시는 길</a></li>' +
+                  '<li class="bg-park-lnb-item--active"><a href="#">주차장 이용안내</a></li>' +
+                '</ul>' +
+              '</div>' +
+            '</aside>' +
+            '<div class="bg-park-content">' +
+              '<h1 class="bg-park-content-title">주차장 이용안내</h1>' +
+              '<section class="bg-park-facts">' +
+                '<h2 class="bg-park-facts-heading">청사부설주차장 현황</h2>' +
+                '<table class="bg-park-facts-table">' +
+                  '<thead>' +
+                    '<tr><th>주차면수</th><th>세부사항</th></tr>' +
+                  '</thead>' +
+                  '<tbody>' +
+                    '<tr><td>130면</td><td>전체</td></tr>' +
+                    '<tr><td>주차타워</td><td>111면 (1층 42, 2층 29, 3층 40)</td></tr>' +
+                    '<tr><td>기타</td><td>19면</td></tr>' +
+                  '</tbody>' +
+                '</table>' +
+              '</section>' +
+              '<section class="bg-park-facts">' +
+                '<h2 class="bg-park-facts-heading">주차요금</h2>' +
+                '<table class="bg-park-facts-table">' +
+                  '<thead>' +
+                    '<tr><th>무료주차</th><th>기본</th><th>초과</th></tr>' +
+                  '</thead>' +
+                  '<tbody>' +
+                    '<tr>' +
+                      '<td>1시간(모든 민원인)</td>' +
+                      '<td>30분 500원(무료시간 이후 최초 30분)</td>' +
+                      '<td>10분당 200원(기본 30분 이후)</td>' +
+                    '</tr>' +
+                  '</tbody>' +
+                '</table>' +
+              '</section>' +
+              '<section class="bg-park-facts">' +
+                '<h2 class="bg-park-facts-heading">운영시간</h2>' +
+                '<table class="bg-park-facts-table">' +
+                  '<tbody>' +
+                    '<tr><td>평일(월~금) 유료운영</td><td>08:00 ~ 19:00</td></tr>' +
+                    '<tr><td>야간 및 휴일</td><td>무료개방</td></tr>' +
+                  '</tbody>' +
+                '</table>' +
+              '</section>' +
+            '</div>' +
+          '</div>' +
+        '</main>' +
+        '<footer class="bg-home-footer" aria-label="사이트 하단">' +
+          '<div class="bg-home-footer__inner">' +
+            '<nav class="bg-home-footer__nav" aria-label="하단 메뉴">' +
+              '<a href="#">누리집이용안내 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">개인정보처리방침 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">저작권 보호정책 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">이메일무단수집거부 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">영상정보처리기기 운영·관리방침 <span aria-hidden="true">⌃</span></a>' +
+            '</nav>' +
+            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
+          '</div>' +
+        '</footer>' +
+      '</div>'
+    );
+  }
+
+  // -----------------------------------------------------------------------
   // J-DEPT-01 local-only utilities and renderers
   // -----------------------------------------------------------------------
   function _resolveDeptJourneyState(search) {
@@ -1206,6 +1372,11 @@
   // -----------------------------------------------------------------------
   function _renderRoute(routeId) {
     var search = typeof window !== "undefined" && window.location ? window.location.search : "";
+    var parkJourney = _resolveParkJourneyState(search);
+    if (parkJourney.isPark) {
+      _updateChatForPark();
+      return _renderParkInformation();
+    }
     var deptJourney = _resolveDeptJourneyState(search);
     var isDeptJourney = deptJourney.isDept;
     var deptState = deptJourney.state;

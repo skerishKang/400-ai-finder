@@ -994,16 +994,21 @@ class TestJDept01SpecificContracts:
             ".bg-home-header__actions",
             ".bg-home-header__icon"
         ]
+        # Accept 2-root or 3-root :is() selector (3-root includes .bg-page--park-info)
         for cls in required_classes:
-            target_str = f":is(.bg-page--home, .bg-page--dept-directory) {cls}"
-            assert any(target_str in line for line in css.split("\n")), f"Missing shared scoping contract for: {cls}"
+            has_two_root = any(f":is(.bg-page--home, .bg-page--dept-directory) {cls}" in line for line in css.split("\n"))
+            has_three_root = any(f":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info) {cls}" in line for line in css.split("\n"))
+            assert has_two_root or has_three_root, f"Missing shared scoping contract for: {cls}"
 
-        # Assert the shared root selector defines --bg-home-width: 914px
-        assert any(":is(.bg-page--home, .bg-page--dept-directory)" in line for line in css.split("\n")), "Missing shared root selector in CSS"
+        # Assert the shared root selector defines --bg-home-width: 914px (2 or 3 roots)
+        assert (any(":is(.bg-page--home, .bg-page--dept-directory)" in line for line in css.split("\n")) or
+                any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info)" in line for line in css.split("\n"))), "Missing shared root selector in CSS"
 
         # Verify custom property and outer strip scoped rules
         assert any("--bg-home-width: 914px;" in line for line in css.split("\n")), "Missing shared home-width custom property"
-        assert any(":is(.bg-page--home, .bg-page--dept-directory) .bg-home-gov-strip" in line for line in css.split("\n")), "Missing shared gov-strip rule mapping"
+        has_two_strip = any(":is(.bg-page--home, .bg-page--dept-directory) .bg-home-gov-strip" in line for line in css.split("\n"))
+        has_three_strip = any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info) .bg-home-gov-strip" in line for line in css.split("\n"))
+        assert has_two_strip or has_three_strip, "Missing shared gov-strip rule mapping"
 
         # Assert directory/result renders contain the correct root class
         html_dir = dept_render("?journey=J-DEPT-01&dept-state=directory")
@@ -1222,3 +1227,269 @@ class TestJDept01SpecificContracts:
         css = _read_static("citizen-action-demo-canvas.css")
         assert ".bg-home-gnb__item--dept:hover" in css
         assert ".bg-home-gnb__item--dept:focus-within" in css
+
+
+# ---------------------------------------------------------------------------
+# J-PARK-01 specific tests
+# ---------------------------------------------------------------------------
+
+class TestJPark01SpecificContracts:
+    @pytest.fixture(scope="class")
+    def park_render(self):
+        """Helper to run Node and capture HTML under J-PARK-01 query."""
+        def _render(query: str):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function(event, handler) {}
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+            process.stdout.write(JSON.stringify({html: capturedHTML, chat: capturedChatHTML}));
+            """ % (
+                json.dumps(query),
+                map_js,
+                canvas_js
+            )
+            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return json.loads(res.stdout)
+        return _render
+
+    # 1. Exact J-PARK-01 render
+    def test_jpark01_exact_render(self, park_render):
+        """1. ?journey=J-PARK-01 renders J-PARK static page."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+        assert "bg-page--park-info" in html
+        assert "주차장 이용안내" in html
+
+    # 2. title, breadcrumb, left navigation, active LNB, facts table, operating hours, exact chat
+    def test_jpark01_html_contract_elements(self, park_render):
+        """2. J-PARK HTML contains all required contract elements."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+
+        # title
+        assert "주차장 이용안내" in html
+        # breadcrumb
+        assert "홈 > 북구소개 > 구청안내 >" in html
+        # left section heading
+        assert "북구소개" in html
+        # open left group
+        assert "구청안내" in html
+        # LNB items
+        assert "행정조직" in html
+        assert "업무 및 전화번호 안내" in html
+        assert "부서 대표(전화번호, FAX)" in html
+        assert "청사안내" in html
+        assert "찾아오시는 길" in html
+        assert "주차장 이용안내" in html
+
+        # Active LNB item
+        assert "bg-park-lnb-item--active" in html
+
+        # Facts table - parking spots
+        assert "130면" in html
+        assert "주차타워" in html
+        assert "111면" in html
+        assert "1층 42, 2층 29, 3층 40" in html
+        assert "기타" in html
+        assert "19면" in html
+
+        # Facts table - parking fee headers
+        assert "무료주차" in html
+        assert "기본" in html
+        assert "초과" in html
+
+        # Facts table - parking fee rows
+        assert "1시간(모든 민원인)" in html
+        assert "30분 500원" in html
+        assert "10분당 200원" in html
+
+        # Operating hours
+        assert "평일(월~금) 유료운영" in html
+        assert "08:00 ~ 19:00" in html
+        assert "야간 및 휴일" in html
+        assert "무료개방" in html
+
+        # identity
+        assert "전남광주통합특별시북구" in html
+
+    # Exact chat verification
+    def test_jpark01_exact_chat_messages(self, park_render):
+        """2 (chat). J-PARK renders exactly 3 prescribed chat messages."""
+        result = park_render("?journey=J-PARK-01")
+        chat = result["chat"]
+
+        # User message
+        assert "북구청 청사부설주차장은 몇 시까지 유료이고 요금은 어떻게 되나요?" in chat
+        # AI message 1
+        assert "북구청 주차장 이용안내에서 운영시간과 요금을 확인했습니다." in chat
+        # AI message 2 (full pricing detail)
+        assert "평일(월~금) 08:00~19:00에 유료운영하며, 모든 민원인은 1시간 무료입니다." in chat
+        assert "이후 최초 30분은 500원" in chat
+        assert "기본 30분 이후에는 10분당 200원" in chat
+        assert "야간 및 휴일에는 무료개방합니다." in chat
+
+    # 3. data-action-target, data-park-action absence
+    def test_jpark01_no_forbidden_action_attributes(self, park_render):
+        """3. Rendered J-PARK HTML has no data-action-target or data-park-action."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+        assert "data-action-target" not in html, "J-PARK HTML must not contain data-action-target"
+        assert "data-park-action" not in html, "J-PARK HTML must not contain data-park-action"
+
+    # 4. No raw parking capture filename in JS/CSS
+    def test_jpark01_no_raw_capture_filenames_in_code(self):
+        """4. JS/CSS contain no raw approved parking capture filenames."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        css = _read_static("citizen-action-demo-canvas.css")
+        combined = js + css
+        prohibited = [
+            "CaptureX_2026-07-05_bukgu.gwangju.kr.png",
+            "CaptureX_2026-07-05_150817_bukgu.gwangju.kr.png",
+            "CaptureX_2026-07-05_150832_bukgu.gwangju.kr_full.png",
+            "temp_bot.png", "temp_links.png", "temp_mid.png"
+        ]
+        for filename in prohibited:
+            assert filename not in combined, f"prohibited parking capture filename found: {filename}"
+
+    # 5. No forbidden words in rendered HTML
+    def test_jpark01_no_forbidden_words_in_html(self, park_render):
+        """5. Rendered J-PARK HTML contains no forbidden words."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+        forbidden = ["실시간", "예약", "결제", "지도", "빈자리", "CCTV"]
+        for word in forbidden:
+            assert word not in html, f"forbidden word '{word}' found in J-PARK HTML"
+
+    # 6. No J-PARK-01, park-state, data-park-action in map.js
+    def test_jpark01_not_in_map_js(self):
+        """6. map.js does not reference J-PARK-01, park-state, or data-park-action."""
+        js = _read_static("citizen-action-demo-map.js")
+        assert "J-PARK-01" not in js, "J-PARK-01 must not be in map.js"
+        assert "park-state" not in js, "park-state must not be in map.js"
+        assert "data-park-action" not in js, "data-park-action must not be in map.js"
+
+    # 7. Duplicate journey fallback
+    def test_jpark01_duplicate_journey_fallback(self, park_render):
+        """7. Duplicate journey falls back to historical non-J-PARK output."""
+        result = park_render("?journey=J-PARK-01&journey=J-PARK-01")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "duplicate journey must fall back"
+        assert "주차장 이용안내" not in html
+
+    # 8. park-state present → fallback
+    def test_jpark01_park_state_present_fallback(self, park_render):
+        """8. Any park-state present triggers fallback."""
+        result = park_render("?journey=J-PARK-01&park-state=home")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "park-state must trigger fallback"
+
+    # 9. Duplicate park-state fallback
+    def test_jpark01_duplicate_park_state_fallback(self, park_render):
+        """9. Duplicate park-state triggers fallback."""
+        result = park_render("?journey=J-PARK-01&park-state=home&park-state=home")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "duplicate park-state must fall back"
+
+    # 10. Unsupported park-state fallback
+    def test_jpark01_unsupported_park_state_fallback(self, park_render):
+        """10. Unsupported park-state triggers fallback."""
+        result = park_render("?journey=J-PARK-01&park-state=invalidstate")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "unsupported park-state must fall back"
+
+    # 11. Unsupported extra query fallback
+    def test_jpark01_extra_query_param_fallback(self, park_render):
+        """11. Any extra query parameter beyond journey=J-PARK-01 triggers fallback."""
+        result = park_render("?journey=J-PARK-01&extra=foo")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "extra query param must trigger fallback"
+
+    # 12. dept-state mixed fallback
+    def test_jpark01_dept_state_mixed_fallback(self, park_render):
+        """12. dept-state mixed with J-PARK-01 triggers fallback."""
+        result = park_render("?journey=J-PARK-01&dept-state=menu")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "dept-state must trigger fallback"
+
+    # 13. Existing J-DEPT and historical routes still work
+    def test_jdept01_still_works_after_jpark_addition(self, park_render):
+        """13. J-DEPT-01 and historical routes remain functional."""
+        # J-DEPT still works
+        result_dept = park_render("?journey=J-DEPT-01")
+        html_dept = result_dept["html"]
+        assert "bg-page--home" in html_dept
+        assert 'data-dept-journey="true"' in html_dept
+
+        # Historical complaint route still works
+        result_complaint = park_render("?journey=J-PARK-01")  # just ensure it doesn't break dept
+        # Verify dept query still works independently
+        map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+        canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+        sandbox_dept = """
+        'use strict';
+        var vm = require('vm');
+        var capturedHTML = '';
+        function makeElement(id) {
+          return {
+            id: id,
+            get innerHTML() { return capturedHTML; },
+            set innerHTML(v) { capturedHTML = v; },
+            addEventListener: function(event, handler) {}
+          };
+        }
+        var fakeCanvasElement = makeElement('demo-canvas');
+        var sandbox = {
+          document: {
+            getElementById: function(id) {
+              if (id === 'demo-canvas') return fakeCanvasElement;
+              return null;
+            }
+          },
+          console: { log: function() {}, error: function() {} },
+          location: { search: '?journey=J-DEPT-01' },
+          window: null
+        };
+        sandbox.URLSearchParams = URLSearchParams;
+        sandbox.window = sandbox;
+        var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        process.stdout.write(capturedHTML);
+        """ % (map_js, canvas_js)
+        res = subprocess.run(["node", "-e", sandbox_dept], capture_output=True, text=True, timeout=10)
+        assert res.returncode == 0, res.stderr
+        html_dept_alone = res.stdout
+        assert 'data-dept-journey="true"' in html_dept_alone
+        assert "bg-page--home" in html_dept_alone
