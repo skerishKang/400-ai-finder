@@ -1,6 +1,6 @@
 # #863 Current Buk-gu Reference Ledger
 
-Status: draft baseline for issue #867.
+Status: candidate ledger for owner approval under issue #867.
 
 ## Authority
 
@@ -10,27 +10,22 @@ Earlier conclusions based on legacy-looking or incomplete captures are supersede
 
 ## Current source captures
 
-| ID | Filename | Display size | Use |
-|---|---|---:|---|
-| R-HOME-01 | `CaptureX_2026-07-05_150817_bukgu.gwangju.kr.png` | 1344×756 | Canonical initial desktop home viewport |
-| R-HOME-02 | `CaptureX_2026-07-05_150832_bukgu.gwangju.kr_full.png` | 1344×1833 | Canonical lower-home and footer flow |
+| ID | Filename | SHA-256 | Display size | Use | Carousel |
+|---|---|---|---:|---|---|
+| R-HOME-01 | `CaptureX_2026-07-05_150817_bukgu.gwangju.kr.png` | e851f990a710b13251700177e8355f18477fcceb5c5e8497a9504e085e2d2397 | 1344×756 | initial desktop home viewport | `소속 공무원 사칭 피해주의 알림` |
+| R-HOME-02 | `CaptureX_2026-07-05_150832_bukgu.gwangju.kr_full.png` | e0c1d451312056a5314fa2dc5b77d62fb53ef6dc90352797d78e4bb57eae3c49 | 1344×1833 | full home flow and footer | `노무사와 함께하는 무료 노동상담데스크` |
 
 The files must be imported unchanged into `docs/artifacts/863-reference/source/`. Full captures are reference and comparison artifacts only. They must never be used as a runtime page background, canvas surface, or full-page image overlay.
 
 ## Home hierarchy observed in the current captures
 
-1. Government notice strip.
-2. Weather / air-quality / utility row.
-3. Current integrated logo and six-item desktop GNB.
-4. Civic-brand search region.
-5. Mayor card beside one selected carousel slide.
-6. Quick-service strip.
-7. Notice and major-site modules.
-8. Lower media, field-information, partner, and footer modules.
+* identity baseline: `전남광주통합특별시북구`
+* GNB: `종합민원` → `소통광장` → `더불어복지` → `분야별정보` → `정보공개` → `북구소개`
+* major sites: `평생학습관`
+* field-info link: `취업지원프로그램안내`
+* field-info links: `행정조직도`, `주정차단속문자알림`, `여권 발급`, `보건증 발급`, `대형폐기물 처리`, `온라인 민원발급(정부24)`, `취업지원프로그램안내`, `소화기 사용법`, `정보화교육`, `공공데이터`
 
-### Exact visible GNB order
-
-`종합민원` → `소통광장` → `더불어복지` → `분야별정보` → `정보공개` → `북구소개`
+*Note: government notice strip, footer legal, and small thumbnail text are pending owner approval.*
 
 ### Initial static carousel rule
 
@@ -38,11 +33,10 @@ The two supplied home captures show different carousel slides. The initial stati
 
 ### Carousel state separation
 
-- R-HOME-01: ordinary default local home state (above-fold comparison only). Default banner: `home-alert-banner.png`.
-- R-HOME-02: selectable via `?home-reference=R-HOME-02` only. Full-home comparison state. Banner: `home-alert-banner-r-home-02.png`.
-- R-HOME-01 and R-HOME-02 are different carousel states. A canvas rendered in one state must NOT be compared against the other state's source capture.
-- R-HOME-02 full-home evidence must render with `?home-reference=R-HOME-02`.
-- The banner crop is `src/web/static/images/bukgu-current/home-alert-banner-r-home-02.png` (box `[562, 258, 1123, 555)`, 561x297).
+- R-HOME-01과 R-HOME-02의 banner는 서로 다른 state다.
+- R-HOME-01 default state와 R-HOME-02 query state를 절대 한 화면 비교 기준으로 섞지 않는다.
+- mayor card는 carousel banner와 별도의 layout element다.
+- R-HOME-02 full-home evidence는 `?home-reference=R-HOME-02`일 때만 비교한다.
 
 ## Implementation boundaries
 
