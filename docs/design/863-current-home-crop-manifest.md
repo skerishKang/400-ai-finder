@@ -14,6 +14,7 @@ All coordinates use `[left, top, right, bottom)` pixels on the source canvas. Th
 
 | Output path | Box | Render role | Rule |
 |---|---:|---|---|
+| `src/web/static/images/bukgu-current/home-government-notice.png` | `[220, 5, 420, 25)` | Top government-notice mark | image only, visible at the official notice-strip position |
 | `src/web/static/images/bukgu-current/home-identity.png` | `[220, 70, 390, 112)` | Header official identity | image only, visible `<img>` at the official logo position |
 | `src/web/static/images/bukgu-current/home-civic-brand.png` | `[220, 165, 505, 220)` | Civic-brand line | image only, visible `<img>` in the branded search region |
 | `src/web/static/images/bukgu-current/home-mayor-card.png` | `[210, 258, 555, 555)` | Mayor card | semantic `<article>` with one approved card image; no duplicated overlay text/buttons |
