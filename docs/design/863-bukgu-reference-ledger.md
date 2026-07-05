@@ -1,6 +1,6 @@
 # #863 Current Buk-gu Reference Ledger
 
-Status: approved for issue #868 home-only implementation; issue #867 remains open for menu and pre-submit reference coverage.
+Status: approved for #868 home implementation and #869 J-DEPT-01 department-directory journey; #867 is completed; external-transaction journeys remain out of scope.
 
 ## Home-only approval scope
 
@@ -99,6 +99,54 @@ The two supplied home captures show different carousel slides. The initial stati
 - mayor card는 carousel banner와 별도의 layout element다.
 - R-HOME-02 full-home evidence는 `?home-reference=R-HOME-02`일 때만 비교한다.
 
+## #869 approved first information journey — J-DEPT-01
+
+### Scope
+
+J-DEPT-01 is one local, source-backed information-finding journey only:
+
+- User question:
+  `공동주택 관련 문의는 어느 부서에 해야 하나요?`
+- Source-backed route:
+  `북구소개` → `구청안내` → `업무 및 전화번호 안내`
+- Search term:
+  `공동주택`
+- Source-backed first result:
+  `공동주택과` / `062-410-6033` / `공동주택과 업무전반`
+- Search-result count:
+  `전체 9명, 현재 페이지 1/1`
+
+### Approved source inventory
+
+| ID | Source state | Purpose |
+|---|---|---|
+| R-DEPT-01 | `북구소개` mega-menu expanded | route discovery and visible `구청안내 → 업무 및 전화번호 안내` entry |
+| R-DEPT-02 | directory initial 1344×756 viewport | title, breadcrumb, LNB, filter/search bar, default table geometry |
+| R-DEPT-03 | directory full default page | pagination, feedback region, footer shell |
+| R-DEPT-04 | `공동주택` query 1344×756 viewport | entered search term, result count, visible result rows |
+| R-DEPT-05 | `공동주택` query full page | query-result table extent, pagination, feedback region, footer shell |
+
+### Approval and boundaries
+
+- Implement semantic local DOM/CSS only. The five source captures are never runtime
+  page surfaces, backgrounds, full-page images, or coordinate overlays.
+- Reconstruct only the visible route elements needed for J-DEPT-01:
+  desktop header/GNB, `북구소개` mega-menu state, directory LNB/breadcrumb,
+  search controls, result count, result table, pagination, and footer shell.
+- The local journey may animate or reveal the approved chat-copy progression:
+  1. User: `공동주택 관련 문의는 어느 부서에 해야 하나요?`
+  2. Assistant: `북구청 업무 및 전화번호 안내에서 담당 부서를 찾아보겠습니다.`
+  3. Assistant: `북구소개 메뉴에서 구청안내를 확인했습니다.`
+  4. Assistant: `업무 및 전화번호 안내에서 ‘공동주택’을 검색하고 있습니다.`
+  5. Assistant: `공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.`
+- The final answer must not invent a team, person, escalation path, submission
+  process, external link, or transaction.
+- No login, personal-data entry, upload, payment, electronic signature,
+  complaint filing, external navigation, or final submission behavior.
+- `전남광주통합특별시북구` remains the authoritative identity baseline.
+- R-DEPT-01, R-DEPT-02, R-DEPT-03, R-DEPT-04, and R-DEPT-05 are approved only
+  for J-DEPT-01. They do not approve a second journey.
+
 ## Implementation boundaries
 
 - Recreate layout, text containers, borders, spacing, typography, controls, and card surfaces using semantic HTML/CSS.
@@ -128,6 +176,6 @@ Before civil-service or pre-submit source work begins, collect:
 1. Import source PNGs unchanged and record file hashes.
 2. Confirm this ledger against uploaded screenshots.
 3. Implement home only under #868.
-4. Implement menu and pre-submit states under #869.
+4. Implement only ledger-approved local information-finding journeys under #869; do not add civil-service submission, pre-submit form, or external-transaction states without a separate approved source set.
 5. Implement the separate chat shell under #870.
 6. Re-render matched viewports and review before any deployment or merge.
