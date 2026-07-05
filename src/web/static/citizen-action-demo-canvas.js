@@ -141,6 +141,10 @@
 
   function _renderDeptDirectory(deptState) {
     var assets = "/static/images/bukgu-current";
+    var searchIcon =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.4 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var menuIcon =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
     return (
       '<div class="bg-page bg-page--full bg-page--dept-directory">' +
         '<div class="bg-home-gov-strip">' +
@@ -170,14 +174,28 @@
               '</a>' +
               '<nav class="bg-gnb" aria-label="주메뉴">' +
                 '<div class="bg-home-gnb">' +
-                  '<a href="#" class="bg-home-gnb__link">종합민원</a>' +
+                  '<a href="#" class="bg-home-gnb__link bg-home-gnb__link--active" data-action-target="nav-civil-service">종합민원</a>' +
                   '<a href="#" class="bg-home-gnb__link">소통광장</a>' +
                   '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
                   '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
                   '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
-                  '<a href="#" class="bg-home-gnb__link bg-home-gnb__link--active" data-dept-action="open-menu">북구소개</a>' +
+                  '<div class="bg-home-gnb__item bg-home-gnb__item--dept' + (deptState === 'menu' ? ' bg-home-gnb__item--active' : '') + '">' +
+                    '<a href="#" class="bg-home-gnb__link' + (deptState === 'menu' ? ' bg-home-gnb__link--active' : '') + '" data-dept-action="open-menu" aria-haspopup="true">북구소개</a>' +
+                    '<div class="bg-dept-mega-menu' + (deptState === 'menu' ? ' bg-dept-mega-menu--visible' : '') + '" aria-label="북구소개 하위 메뉴">' +
+                      '<div class="bg-dept-mega-menu__inner">' +
+                        '<div class="bg-dept-mega-menu__col">' +
+                          '<h3>구청안내</h3>' +
+                          '<a href="#" data-dept-action="go-directory">업무 및 전화번호 안내</a>' +
+                        '</div>' +
+                      '</div>' +
+                    '</div>' +
+                  '</div>' +
                 '</div>' +
               '</nav>' +
+              '<div class="bg-home-header__actions">' +
+                '<button type="button" class="bg-home-header__icon" aria-label="통합검색">' + searchIcon + '<span>통합검색</span></button>' +
+                '<button type="button" class="bg-home-header__icon" aria-label="전체메뉴">' + menuIcon + '<span>전체메뉴</span></button>' +
+              '</div>' +
             '</div>' +
           '</div>' +
         '</header>' +

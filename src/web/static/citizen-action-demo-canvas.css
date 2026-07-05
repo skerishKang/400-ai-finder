@@ -1692,11 +1692,13 @@
    --------------------------------------------------------------------------- */
 
 /* Home modifications inside J-DEPT-01 */
-.bg-page--home[data-dept-journey="true"] .bg-home-gnb__item--dept {
+.bg-page--home[data-dept-journey="true"] .bg-home-gnb__item--dept,
+.bg-page--dept-directory .bg-home-gnb__item--dept {
   position: relative;
   display: inline-block;
 }
-.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu {
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu,
+.bg-page--dept-directory .bg-dept-mega-menu {
   display: none;
   position: absolute;
   top: 100%;
@@ -1713,18 +1715,24 @@
 }
 .bg-page--home[data-dept-journey="true"] .bg-home-gnb__item--dept:hover .bg-dept-mega-menu,
 .bg-page--home[data-dept-journey="true"] .bg-home-gnb__item--dept:focus-within .bg-dept-mega-menu,
-.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu--visible {
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu--visible,
+.bg-page--dept-directory .bg-home-gnb__item--dept:hover .bg-dept-mega-menu,
+.bg-page--dept-directory .bg-home-gnb__item--dept:focus-within .bg-dept-mega-menu,
+.bg-page--dept-directory .bg-dept-mega-menu--visible {
   display: block;
 }
-.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__inner {
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__inner,
+.bg-page--dept-directory .bg-dept-mega-menu__inner {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 20px;
 }
-.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__col {
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__col,
+.bg-page--dept-directory .bg-dept-mega-menu__col {
   width: 250px;
 }
-.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__col h3 {
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__col h3,
+.bg-page--dept-directory .bg-dept-mega-menu__col h3 {
   font-size: 16px;
   color: #222;
   margin-bottom: 12px;
@@ -1732,7 +1740,8 @@
   border-bottom: 1px solid #ddd;
   padding-bottom: 6px;
 }
-.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__col a {
+.bg-page--home[data-dept-journey="true"] .bg-dept-mega-menu__col a,
+.bg-page--dept-directory .bg-dept-mega-menu__col a {
   display: block;
   font-size: 14px;
   color: #555;

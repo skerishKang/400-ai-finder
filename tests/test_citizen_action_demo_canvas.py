@@ -860,7 +860,7 @@ class TestJDept01SpecificContracts:
         assert "data-dept-action" not in js
 
     def test_jdept01_query_gated_states_render(self, dept_render):
-        """2. The four query states render successfully."""
+        """2. The four query states render successfully and preserve the public shell layout."""
         html_home = dept_render("?journey=J-DEPT-01")
         assert "bg-page--home" in html_home
         assert 'data-dept-journey="true"' in html_home
@@ -871,10 +871,20 @@ class TestJDept01SpecificContracts:
         html_dir = dept_render("?journey=J-DEPT-01&dept-state=directory")
         assert "bg-page--dept-directory" in html_dir
         assert "업무 및 전화번호 안내" in html_dir
+        # Public shell preservation checks on directory
+        assert "bg-home-utility" in html_dir
+        assert "bg-header" in html_dir
+        assert "bg-home-gnb__item--dept" in html_dir
+        assert "bg-dept-mega-menu" in html_dir
 
         html_res = dept_render("?journey=J-DEPT-01&dept-state=result")
         assert "bg-page--dept-directory" in html_res
         assert "공동주택과" in html_res
+        # Public shell preservation checks on result
+        assert "bg-home-utility" in html_res
+        assert "bg-header" in html_res
+        assert "bg-home-gnb__item--dept" in html_res
+        assert "bg-dept-mega-menu" in html_res
 
     def test_jdept01_exact_route_and_chat_progression(self, dept_render):
         """3. Output contains correct route navigation elements."""
