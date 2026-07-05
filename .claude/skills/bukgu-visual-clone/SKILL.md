@@ -91,31 +91,19 @@ Use only against the local fixture.
 5. Run the requested offline test, syntax check, and `git diff --check`.
 6. Report raw paths, dimensions, hashes where requested, commands, outputs, and `git status --short`.
 
-    Do not declare a visual gate passed. The project owner reviews the actual images.
-    Any required check failure invokes the mandatory failure-stop rule; do not describe a render or comparison as passed after that failure.
+Do not declare a visual gate passed. The project owner reviews the actual images.
+Any required check failure invokes the mandatory failure-stop rule; do not
+describe a render or comparison as passed after that failure.
 
 ## Mode: audit-handoff
 
-Use this report format exactly:
+Use `.claude/skills/bukgu-visual-clone/local-handoff-template.md` exactly.
+Fill every applicable field, including required command exit codes and raw
+outputs. On a required failure, fill the failure section and stop; do not
+summarize the failure as a success.
 
-```text
-Branch:
-Local HEAD before:
-Local HEAD after:
-Remote HEAD after push:
-Changed files:
-Reference capture IDs used:
-Asset hash checks:
-Viewport(s):
-Commands run and raw results:
-Console errors:
-External requests:
-Storage writes:
-Git status --short:
-Unresolved items:
-```
-
-Do not state that CI passed unless GitHub workflow and commit-status data are actually present. Local test success is local validation only.
+Do not state that CI passed unless GitHub workflow and commit-status data are
+actually present. Local test success is local validation only.
 
 ## Visual reconstruction rules
 
