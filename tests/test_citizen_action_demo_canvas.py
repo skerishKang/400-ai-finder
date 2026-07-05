@@ -1340,9 +1340,14 @@ class TestJPark01SpecificContracts:
 
     # Exact chat verification
     def test_jpark01_exact_chat_messages(self, park_render):
-        """2 (chat). J-PARK renders exactly 3 prescribed chat messages."""
+        """2 (chat). J-PARK renders exactly 3 prescribed chat messages: 1 user + 2 AI."""
         result = park_render("?journey=J-PARK-01")
         chat = result["chat"]
+
+        # Exact message count: 1 user + 2 AI = 3 total
+        assert chat.count('class="chat-msg') == 3, f"expected 3 chat messages, got {chat.count('class=\"chat-msg')}"
+        assert chat.count('class="chat-msg chat-msg--user"') == 1, "expected exactly 1 user message"
+        assert chat.count('class="chat-msg chat-msg--ai"') == 2, "expected exactly 2 AI messages"
 
         # User message
         assert "북구청 청사부설주차장은 몇 시까지 유료이고 요금은 어떻게 되나요?" in chat
@@ -1514,7 +1519,7 @@ class TestJPark01SpecificContracts:
 
     # 16. J-PARK does not call map route lookup / dispatcher
     def test_jpark01_no_map_route_dispatcher_call(self, park_render):
-        """16. J-PARK render does not invoke map route lookup or dispatcher."""
+        """16. J-PARK render bypasses map.getRoute() and history.pushState entirely."""
         map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
         canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
         sandbox_spy = """
@@ -1523,7 +1528,7 @@ class TestJPark01SpecificContracts:
         var capturedHTML = '';
         var capturedChatHTML = '';
         var routeLookupCount = 0;
-        var dispatcherCallCount = 0;
+        var pushStateCount = 0;
         function makeElement(id) {
           return {
             id: id,
@@ -1543,23 +1548,44 @@ class TestJPark01SpecificContracts:
           },
           console: { log: function() {}, error: function() {} },
           location: { search: '?journey=J-PARK-01' },
+          history: { pushState: function() { pushStateCount += 1; } },
           window: null
         };
         sandbox.URLSearchParams = URLSearchParams;
         sandbox.window = sandbox;
         var cx = vm.createContext(sandbox);
         vm.runInContext(%s, cx);
+        // Wrap CitizenActionDemoMap.getRoute with a spy that counts calls
+        var origGetRoute = sandbox.window.CitizenActionDemoMap.getRoute;
+        sandbox.window.CitizenActionDemoMap = Object.freeze({
+          getRouteIds: sandbox.window.CitizenActionDemoMap.getRouteIds,
+          getRoute: function(routeId) { routeLookupCount += 1; return origGetRoute(routeId); },
+          getCategoryLabel: sandbox.window.CitizenActionDemoMap.getCategoryLabel,
+          isValidRoute: sandbox.window.CitizenActionDemoMap.isValidRoute,
+          isValidTarget: sandbox.window.CitizenActionDemoMap.isValidTarget
+        });
         vm.runInContext(%s, cx);
         sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
-        process.stdout.write(JSON.stringify({html: capturedHTML, chat: capturedChatHTML}));
+        process.stdout.write(JSON.stringify({
+          html: capturedHTML,
+          chat: capturedChatHTML,
+          routeLookupCount: routeLookupCount,
+          pushStateCount: pushStateCount
+        }));
         """ % (map_js, canvas_js)
         res = subprocess.run(["node", "-e", sandbox_spy], capture_output=True, text=True, timeout=10)
         assert res.returncode == 0, res.stderr
         data = json.loads(res.stdout)
         html = data["html"]
-        # J-PARK must produce park page without referencing map route dispatch
+        route_lookup_count = data["routeLookupCount"]
+        push_state_count = data["pushStateCount"]
+        # J-PARK must produce park page
         assert "bg-page--park-info" in html
-        # Verify no data-dept-action (dept dispatcher) in J-PARK output
-        assert "data-dept-action" not in html
-        # Verify no data-action-target (route dispatcher) in J-PARK output
-        assert "data-action-target" not in html
+        # J-PARK must not call map.getRoute() at all — it returns early before route dispatch
+        assert route_lookup_count == 0, f"J-PARK must not call getRoute(), but got {route_lookup_count} call(s)"
+        # J-PARK must not call history.pushState
+        assert push_state_count == 0, f"J-PARK must not call pushState(), but got {push_state_count} call(s)"
+        # No dispatcher attributes in rendered HTML
+        assert "data-dept-action" not in html, "J-PARK HTML must not contain data-dept-action"
+        assert "data-action-target" not in html, "J-PARK HTML must not contain data-action-target"
+        assert "data-park-action" not in html, "J-PARK HTML must not contain data-park-action"
