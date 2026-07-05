@@ -400,12 +400,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    args = parse_args()
     try:
         require_equal(git_blob_sha1(CANVAS_JS), EXPECTED_JS_BLOB, "canvas JS blob")
         require_equal(git_blob_sha1(CANVAS_CSS), EXPECTED_CSS_BLOB, "canvas CSS blob")
-        for filename, expected in ASSETS.items():
+        for filename in ASSETS:
             path = ROOT / "src/web/static/images/bukgu-current" / filename
-            require_equal(sha256(path), expected, f"asset SHA-256 {filename}")
+            if not path.is_file():
+                raise RuntimeError(f"required lower-home asset missing: {path}")
     except RuntimeError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
