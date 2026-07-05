@@ -178,23 +178,22 @@
   function _renderHome() {
     var crops = "/static/images/bukgu-crops";
     return (
-      '<div class="bg-page bg-page--full">' +
+      '<div class="bg-page bg-page--full bg-page--home">' +
         /* skip nav */
         '<div class="bg-skip"><a href="#bg-content-main">본문으로 바로가기</a></div>' +
 
         /* Utility bar */
         '<div class="bg-util-bar">' +
           '<div class="bg-util-bar__left">' +
-            '<a href="#" class="bg-hlink">KR</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">EN</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">JP</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">CH</a>' +
+            '<a href="#" class="bg-hlink">Home</a><span class="bg-utility-sep">|</span>' +
+            '<a href="#" class="bg-hlink">English</a><span class="bg-utility-sep">|</span>' +
+            '<a href="#" class="bg-hlink">Chinese</a><span class="bg-utility-sep">|</span>' +
+            '<a href="#" class="bg-hlink">Site Map</a>' +
           '</div>' +
           '<div class="bg-util-bar__right">' +
-            '<a href="#" class="bg-hlink">로그인</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">회원가입</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">English</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">Sitemap</a>' +
+            '<a href="#" class="bg-hlink">LOGIN</a><span class="bg-utility-sep">|</span>' +
+            '<a href="#" class="bg-hlink">JOIN</a><span class="bg-utility-sep">|</span>' +
+            '<a href="#" class="bg-hlink">Search</a>' +
           '</div>' +
         '</div>' +
 
@@ -211,12 +210,12 @@
         '<nav class="bg-gnb" aria-label="주메뉴">' +
           '<div class="bg-gnb__inner">' +
             '<ul class="bg-gnb__list">' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">열린구정</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">민원/신고</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">행정/정보</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">복지/건강</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">문화/관광</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">구민마당</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
             '</ul>' +
             '<div class="bg-gnb__tools">' +
               '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
@@ -407,16 +406,13 @@
         /* Utility bar */
         '<div class="bg-util-bar">' +
           '<div class="bg-util-bar__left">' +
-            '<a href="#" class="bg-hlink">KR</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">EN</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">JP</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">CH</a>' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 초미세먼지 좋음</span>' +
           '</div>' +
           '<div class="bg-util-bar__right">' +
-            '<a href="#" class="bg-hlink">로그인</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">회원가입</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">English</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">Sitemap</a>' +
+            '<a href="#" class="bg-hlink">주요사이트 ▼</a>' +
+            '<a href="#" class="bg-hlink">SNS ▼</a>' +
+            '<a href="#" class="bg-hlink">KOR ▼</a>' +
           '</div>' +
         '</div>' +
 
@@ -433,12 +429,12 @@
         '<nav class="bg-gnb" aria-label="주메뉴">' +
           '<div class="bg-gnb__inner">' +
             '<ul class="bg-gnb__list">' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">열린구정</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">민원/신고</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">행정/정보</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">복지/건강</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">문화/관광</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">구민마당</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
             '</ul>' +
             '<div class="bg-gnb__tools">' +
               '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
@@ -467,16 +463,13 @@
         /* Utility bar */
         '<div class="bg-util-bar">' +
           '<div class="bg-util-bar__left">' +
-            '<a href="#" class="bg-hlink">KR</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">EN</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">JP</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">CH</a>' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 초미세먼지 좋음</span>' +
           '</div>' +
           '<div class="bg-util-bar__right">' +
-            '<a href="#" class="bg-hlink">로그인</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">회원가입</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">English</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">Sitemap</a>' +
+            '<a href="#" class="bg-hlink">주요사이트 ▼</a>' +
+            '<a href="#" class="bg-hlink">SNS ▼</a>' +
+            '<a href="#" class="bg-hlink">KOR ▼</a>' +
           '</div>' +
         '</div>' +
 
@@ -493,12 +486,12 @@
         '<nav class="bg-gnb" aria-label="주메뉴">' +
           '<div class="bg-gnb__inner">' +
             '<ul class="bg-gnb__list">' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">열린구정</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">민원/신고</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">행정/정보</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">복지/건강</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">문화/관광</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">구민마당</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
             '</ul>' +
             '<div class="bg-gnb__tools">' +
               '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
@@ -673,16 +666,13 @@
         /* Utility bar */
         '<div class="bg-util-bar">' +
           '<div class="bg-util-bar__left">' +
-            '<a href="#" class="bg-hlink">KR</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">EN</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">JP</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">CH</a>' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
+            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 초미세먼지 좋음</span>' +
           '</div>' +
           '<div class="bg-util-bar__right">' +
-            '<a href="#" class="bg-hlink">로그인</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">회원가입</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">English</a><span class="bg-utility-sep">|</span>' +
-            '<a href="#" class="bg-hlink">Sitemap</a>' +
+            '<a href="#" class="bg-hlink">주요사이트 ▼</a>' +
+            '<a href="#" class="bg-hlink">SNS ▼</a>' +
+            '<a href="#" class="bg-hlink">KOR ▼</a>' +
           '</div>' +
         '</div>' +
 
@@ -699,12 +689,12 @@
         '<nav class="bg-gnb" aria-label="주메뉴">' +
           '<div class="bg-gnb__inner">' +
             '<ul class="bg-gnb__list">' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">열린구정</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">민원/신고</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">행정/정보</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">복지/건강</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">문화/관광</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">구민마당</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
+              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
             '</ul>' +
             '<div class="bg-gnb__tools">' +
               '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +

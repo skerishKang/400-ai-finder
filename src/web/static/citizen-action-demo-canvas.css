@@ -924,3 +924,117 @@
   display: block;
 }
 
+/* ===== BUK-GU HOME SPECIFIC GEOMETRY OVERRIDES ===== */
+.bg-page--home {
+  background: #fff;
+}
+
+/* 1. Utility Bar Row Height & Layout */
+.bg-page--home .bg-util-bar {
+  height: 38px;
+  padding: 0 40px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9eef2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bg-page--home .bg-util-bar .bg-hlink {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+  text-decoration: none;
+}
+.bg-page--home .bg-util-bar .bg-utility-sep {
+  color: #ddd;
+  margin: 0 8px;
+  font-size: 10px;
+}
+
+/* 2. Header and Logo scale */
+.bg-page--home .bg-header {
+  border-bottom: 1px solid #eee;
+}
+.bg-page--home .bg-header__inner {
+  height: 80px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+}
+.bg-page--home .bg-logo img {
+  height: 48px; /* High fidelity exact scale */
+  width: auto;
+}
+
+/* 3. GNB Layout & Typo */
+.bg-page--home .bg-gnb {
+  border-bottom: 2px solid #0054a6;
+}
+.bg-page--home .bg-gnb__inner {
+  height: 52px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+}
+.bg-page--home .bg-gnb__link {
+  font-size: 16px;
+  font-weight: 700; /* Typo weight */
+  color: #333;
+  padding: 14px 22px; /* Spacing */
+}
+.bg-page--home .bg-gnb__link:hover,
+.bg-page--home .bg-gnb__link--active {
+  color: #0054a6;
+}
+.bg-page--home .bg-gnb__tools {
+  gap: 12px;
+}
+.bg-page--home .bg-gnb__icon-btn {
+  font-size: 18px;
+  color: #333;
+}
+
+/* 4. Search placement & whitespace */
+.bg-page--home .bg-search-hero {
+  background: #f4f7fb;
+  padding: 36px 0;
+  margin-bottom: 0;
+}
+.bg-page--home .bg-search-hero__form {
+  max-width: 580px;
+  height: 50px;
+  border: 2px solid #004a99;
+  border-radius: 25px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+.bg-page--home .bg-search-hero__input {
+  font-size: 15px;
+  padding-left: 24px;
+}
+.bg-page--home .bg-search-hero__btn {
+  width: 42px;
+  height: 42px;
+  background: #004a99;
+  font-size: 16px;
+}
+
+/* 5. Hero split proportion & whitespace */
+.bg-page--home .bg-hero {
+  max-width: 1200px;
+  padding: 24px 40px;
+  gap: 20px;
+}
+.bg-page--home .bg-hero__left {
+  flex: 1.1; /* slightly wider proportion for mayor banner */
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.bg-page--home .bg-hero__right {
+  flex: 0.9;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
