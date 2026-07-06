@@ -6,6 +6,7 @@ All tests use MockProvider — no real API calls.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 from typing import Any
@@ -519,3 +520,149 @@ class TestNoSourceGuidance:
         assert result["ok"] is True
         assert result["provider"] == "none"
         assert provider_calls == []
+
+
+# ======================================================================
+# Issue #891: terminal correlation events (offline, MockProvider only)
+# ======================================================================
+
+def _extract_pipeline_records(caplog) -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    for line in caplog.messages:
+        if not line.startswith("pipeline_event="):
+            continue
+        records.append(json.loads(line.split("=", 1)[1]))
+    return records
+
+
+class _FailingProvider(MockProvider):
+    """Provider that simulates a raw provider failure."""
+
+    RAW_ERROR = "Bearer sk-SUPERSECRET token expired api_key=abcdef1234567890"
+
+    def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+        return ProviderResult(
+            ok=False,
+            provider="mock",
+            model="mock",
+            content="",
+            error=self.RAW_ERROR,
+        )
+
+
+class TestAnswerComposerTerminalEvents:
+    def test_source_matched_emits_terminal_event(self, caplog):
+        """Non-empty correlation ID + source-matched compose emits stage_end."""
+        composer = AnswerComposer(provider=_SourceMatchProvider())
+        correlation_id = "0123456789abcdef0123456789abcdef"
+        with caplog.at_level(logging.INFO, logger="src.answer.answer_composer"):
+            result = composer.compose(SAMPLE_SEARCH_RESULTS, correlation_id=correlation_id)
+
+        assert result["ok"] is True
+        records = _extract_pipeline_records(caplog)
+        assert len(records) == 1
+        rec = records[0]
+        assert rec["event"] == "pipeline_stage_end"
+        assert rec["stage"] == "answer_composer"
+        assert rec["correlation_id"] == correlation_id
+        assert rec["ok"] is True
+        assert isinstance(rec["duration_ms"], int)
+        assert rec["duration_ms"] >= 0
+        allowed_keys = {"event", "correlation_id", "stage", "ok", "duration_ms"}
+        assert set(rec).issubset(allowed_keys)
+        joined = "\n".join(caplog.messages)
+        assert "신청서 제출서류" not in joined
+        assert "https://example.com" not in joined
+        assert "## 답변" not in joined
+
+    def test_empty_results_emits_terminal_event_no_llm(self, caplog):
+        """Empty results + correlation ID: no LLM call, stage_end, ok True."""
+        class SpyProvider(MockProvider):
+            def __init__(self):
+                super().__init__()
+                self.called = False
+
+            def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+                self.called = True
+                return super().complete(messages, temperature=temperature, max_tokens=max_tokens, timeout=timeout)
+
+        spy = SpyProvider()
+        composer = AnswerComposer(provider=spy)
+        correlation_id = "fedcba9876543210fedcba9876543210"
+        with caplog.at_level(logging.INFO, logger="src.answer.answer_composer"):
+            result = composer.compose(EMPTY_SEARCH_RESULTS, correlation_id=correlation_id)
+
+        assert spy.called is False
+        assert result["ok"] is True
+        records = _extract_pipeline_records(caplog)
+        assert len(records) == 1
+        rec = records[0]
+        assert rec["event"] == "pipeline_stage_end"
+        assert rec["stage"] == "answer_composer"
+        assert rec["ok"] is True
+        assert rec["correlation_id"] == correlation_id
+
+    def test_provider_failure_emits_stage_fail(self, caplog):
+        """Raw provider error emits stage_fail with answer_provider_failed."""
+        composer = AnswerComposer(provider=_FailingProvider())
+        correlation_id = "abcdef0123456789abcdef0123456789"
+        with caplog.at_level(logging.INFO, logger="src.answer.answer_composer"):
+            result = composer.compose(SAMPLE_SEARCH_RESULTS, correlation_id=correlation_id)
+
+        assert result["ok"] is False
+        records = _extract_pipeline_records(caplog)
+        assert len(records) == 1
+        rec = records[0]
+        assert rec["event"] == "pipeline_stage_fail"
+        assert rec["failure_code"] == "answer_provider_failed"
+        assert rec["ok"] is False
+        assert rec["correlation_id"] == correlation_id
+        joined = "\n".join(caplog.messages)
+        assert "Bearer" not in joined
+        assert "sk-SUPERSECRET" not in joined
+        assert "abcdef1234567890" not in joined
+
+    def test_untrusted_output_url_emits_stage_fail(self, caplog):
+        """Allowlist-blocked provider output emits stage_fail + answer_untrusted_output_url."""
+        composer = AnswerComposer(provider="mock")
+        correlation_id = "11223344556677881122334455667788"
+        with caplog.at_level(logging.INFO, logger="src.answer.answer_composer"):
+            result = composer.compose(SAMPLE_SEARCH_RESULTS, correlation_id=correlation_id)
+
+        assert result["ok"] is False
+        assert result["error"] == "untrusted_output_url"
+        records = _extract_pipeline_records(caplog)
+        assert len(records) == 1
+        rec = records[0]
+        assert rec["event"] == "pipeline_stage_fail"
+        assert rec["failure_code"] == "answer_untrusted_output_url"
+        assert rec["correlation_id"] == correlation_id
+        joined = "\n".join(caplog.messages)
+        assert "https://example.com" not in joined
+
+    def test_no_correlation_id_emits_no_events(self, caplog):
+        """Direct compose without correlation ID leaves no pipeline events."""
+        composer = AnswerComposer(provider=_SourceMatchProvider())
+        with caplog.at_level(logging.INFO, logger="src.answer.answer_composer"):
+            result = composer.compose(SAMPLE_SEARCH_RESULTS)
+
+        assert result["ok"] is True
+        records = _extract_pipeline_records(caplog)
+        assert records == []
+
+    def test_empty_correlation_id_emits_terminal_event(self, caplog):
+        """An explicitly supplied empty correlation ID must be preserved."""
+        composer = AnswerComposer(provider=_SourceMatchProvider())
+
+        with caplog.at_level(logging.INFO, logger="src.answer.answer_composer"):
+            result = composer.compose(SAMPLE_SEARCH_RESULTS, correlation_id="")
+
+        assert result["ok"] is True
+
+        records = _extract_pipeline_records(caplog)
+        assert len(records) == 1
+        assert records[0]["event"] == "pipeline_stage_end"
+        assert records[0]["stage"] == "answer_composer"
+        assert records[0]["ok"] is True
+        assert records[0]["correlation_id"] == ""
+        assert isinstance(records[0]["duration_ms"], int)
