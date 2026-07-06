@@ -72,7 +72,7 @@
 - 운영자 대시보드에서는 등록된 site profile 목록을 불러와 테스트 대상 기관을 선택하고 전환할 수 있습니다.
 - 모바일 사용자 화면은 서버 실행 시 지정된 기본 기관을 유지하며, 운영자용 site 선택 UI를 노출하지 않습니다.
 
-### 📱 모바일 ChatGPT형 사용자 UI (http://localhost:8400)
+### 📱 모바일 ChatGPT형 사용자 UI (통합 실행: http://localhost:8400, 개별 실행: http://localhost:8080)
 - ChatGPT 스타일의 1:1 대화형 채팅 인터페이스입니다.
 - 하단 고정 입력창, 메시지 누적, 추천 질문 Chip, 답변 하단 관련 홈페이지 카드 구조를 제공합니다.
 - 라이트모드 기본, 다크모드 토글 지원, 핑크색 포인트 버튼입니다.
@@ -167,7 +167,7 @@ PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
 ```
 *(네트워크가 필요합니다. `--provider stub`은 API 키 없이 동작합니다.)*
 
-실행 후 브라우저에서 접속:
+통합 실행 후 브라우저에서 접속:
 
 - **모바일 사용자 화면**: http://localhost:8400
 - **운영자 대시보드**: http://localhost:8090
@@ -176,13 +176,15 @@ PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
 
 ### 개별 실행
 
+개별 모바일 서버는 scripts/run_mobile_demo.py의 --port 기본값인 8080을 사용합니다.
+
 **모바일 사용자 화면만:**
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/run_mobile_demo.py \
     --site-id bukgu_gwangju \
     --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json \
-    --port 8400
+    --port 8080
 ```
 
 **광주광역시청 모바일 화면:**
@@ -192,7 +194,7 @@ PYTHONPATH=. .venv/bin/python scripts/run_mobile_demo.py \
     --site-id gwangju_go_kr \
     --provider stub \
     --fetch-provider requests \
-    --port 8401
+    --port 8080
 ```
 
 **운영자 대시보드만:**
