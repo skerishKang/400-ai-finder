@@ -11,6 +11,7 @@ import os
 from typing import Any
 
 from ..llm import LLMProvider, ProviderResult, get_provider
+from .url_guard import assess_url_allowlist
 
 # ------------------------------------------------------------------
 # System prompt template (fixed to enforce grounding)
@@ -163,6 +164,23 @@ class AnswerComposer:
                 "guard_reason": assessment.reason,
             }
 
+        # --- URL allowlist guard ---
+        url_assessment = assess_url_allowlist(provider_result.content, sources)
+
+        if not url_assessment["passed"]:
+            return {
+                "query": query,
+                "provider": provider_result.provider,
+                "model": provider_result.model,
+                "ok": False,
+                "answer_markdown": "",
+                "sources": sources,
+                "warnings": guard_warnings + ["untrusted_output_url"],
+                "error": "untrusted_output_url",
+                "guard_status": "blocked_untrusted_output_url",
+                "guard_reason": "Provider output contained a URL that is not an exact retrieved source URL.",
+            }
+
         return {
             "query": query,
             "provider": provider_result.provider,
@@ -198,6 +216,7 @@ class AnswerComposer:
                 "id": res.get("id", ""),
                 "title": res.get("title", ""),
                 "url": res.get("url", ""),
+                "canonical_url": res.get("canonical_url", ""),
                 "category": res.get("category", ""),
                 "content_type": res.get("content_type", ""),
                 "score": res.get("score", 0.0),
