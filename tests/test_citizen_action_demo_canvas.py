@@ -1348,7 +1348,8 @@ class TestJPark01SpecificContracts:
         chat = result["chat"]
 
         # Exact message count: 1 user + 2 AI = 3 total
-        assert chat.count('class="chat-msg') == 3, f"expected 3 chat messages, got {chat.count('class=\"chat-msg')}"
+        count = chat.count('class="chat-msg')
+        assert count == 3, f"expected 3 chat messages, got {count}"
         assert chat.count('class="chat-msg chat-msg--user"') == 1, "expected exactly 1 user message"
         assert chat.count('class="chat-msg chat-msg--ai"') == 2, "expected exactly 2 AI messages"
 
@@ -1706,7 +1707,8 @@ class TestJKiosk01SpecificContracts:
         chat = result["chat"]
 
         # Exact message count: 1 user + 2 AI = 3 total
-        assert chat.count('class="chat-msg') == 3, f"expected 3 chat messages, got {chat.count('class=\"chat-msg')}"
+        count = chat.count('class="chat-msg')
+        assert count == 3, f"expected 3 chat messages, got {count}"
         assert chat.count('class="chat-msg chat-msg--user"') == 1, "expected exactly 1 user message"
         assert chat.count('class="chat-msg chat-msg--ai"') == 2, "expected exactly 2 AI messages"
 
