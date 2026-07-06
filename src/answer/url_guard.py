@@ -93,7 +93,10 @@ def canonicalize_url(url: str) -> str | None:
     # Discard fragment.
     fragment = ""
 
-    return urlunparse((scheme, netloc_lower, path, params, query, fragment))
+    result_url = urlunparse((scheme, netloc_lower, path, params, query, fragment))
+    if url.endswith("?") and not result_url.endswith("?"):
+        result_url += "?"
+    return result_url
 
 
 # ------------------------------------------------------------------
@@ -101,11 +104,10 @@ def canonicalize_url(url: str) -> str | None:
 # ------------------------------------------------------------------
 
 # Bare HTTP(S) URL: standalone http/https URL.
-# Captures literal http/https URLs starting at word boundaries, after symbols like =, :, or brackets,
-# and terminates before trailing brackets, quotes, or standard trailing sentence punctuation.
+# Captures literal http/https URLs not preceded by URI scheme characters.
 _BARE_URL_RE = re.compile(
-    r'(?:^|[\surl=source:참고(\[{"\'‘“])'  # preceded by start, space, brackets, quotes, or separators like url=, source:
-    r'(https?://[^\s)\]>"\'’”\\]+)',  # the URL itself
+    r'(?<![A-Za-z0-9+.-])'
+    r'(https?://[^\s<>"\'\]\[(){}]+)',
     re.IGNORECASE,
 )
 
@@ -185,9 +187,16 @@ def extract_urls_from_markdown(markdown: str) -> list[dict[str, str]]:
         if any(s <= m.start(1) < e for s, e in link_spans):
             continue
         url = m.group(1)
-        # Strip trailing punctuation commonly appended in texts/sentences.
-        while url and url[-1] in ".,;:!?)]}*\"'":
+        # Strip trailing punctuation commonly used as sentence/phrase terminals,
+        # but do NOT strip query/path characters like ?, :, @, &, =, %, /, #.
+        # Strip trailing comma, semicolon, exclamation mark, single quotes, double quotes, period (if not part of IP/host/domain path/query dot).
+        # We strip period only if it's a trailing sentence dot (i.e. preceded by normal characters and not part of query/file extension or IP address).
+        while url and url[-1] in ",;!\"'":
             url = url[:-1]
+        if url and url.endswith("."):
+            # Strip trailing dot if it is not preceded by a slash or dot (like relative paths) and not part of query.
+            if "?" not in url and not url.endswith(("/.", "..")):
+                url = url[:-1]
         if url:
             candidates.append({"url": url, "kind": "bare"})
 

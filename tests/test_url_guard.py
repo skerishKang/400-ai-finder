@@ -100,6 +100,13 @@ class TestCanonicalizeUrl:
         """Normal @ symbols in path or query are allowed."""
         assert canonicalize_url("https://example.com/search?q=user@example.com") == "https://example.com/search?q=user@example.com"
         assert canonicalize_url("https://example.com/users/name@example.com") == "https://example.com/users/name@example.com"
+        assert canonicalize_url("https://example.com/search?a=1&b=2") == "https://example.com/search?a=1&b=2"
+        assert canonicalize_url("https://example.com/path?") == "https://example.com/path?"
+
+    def test_bare_url_extraction_preserves_query_characters(self):
+        """Extraction of bare URL does not strip query/path characters like ?, :, &, =."""
+        urls = extract_urls_from_markdown("url=https://example.com/search?q=user@example.com&a=1")
+        assert any(item["url"] == "https://example.com/search?q=user@example.com&a=1" for item in urls)
 
     def test_relative_url_rejected(self):
         """Relative URL (no scheme) returns None."""
@@ -171,23 +178,39 @@ class TestExtractUrlsFromMarkdown:
         links = [u for u in urls if u["kind"] == "markdown_link"]
         assert any(u["url"] == "https://example.com/files/form.pdf" for u in links)
 
-    def test_bare_url_after_equals_is_detected(self):
-        urls = extract_urls_from_markdown(
-            "url=https://untrusted.example/path"
-        )
+    @pytest.mark.parametrize(
+        "text",
+        [
+            ",https://untrusted.example/path",
+            "&https://untrusted.example/path",
+            "/https://untrusted.example/path",
+            "|https://untrusted.example/path",
+            ";https://untrusted.example/path",
+            "url=https://untrusted.example/path",
+            "source:https://untrusted.example/path",
+            "참고:https://untrusted.example/path",
+            "한국https://untrusted.example/path",
+        ],
+    )
+    def test_bare_url_detected_after_general_delimiters(self, text):
+        urls = extract_urls_from_markdown(text)
         assert any(
-            item["url"] == "https://untrusted.example/path"
-            and item["kind"] == "bare"
+            item["kind"] == "bare"
+            and item["url"] == "https://untrusted.example/path"
             for item in urls
         )
 
-    def test_bare_url_after_colon_is_detected(self):
-        urls = extract_urls_from_markdown(
-            "source:https://untrusted.example/path"
-        )
-        assert any(
-            item["url"] == "https://untrusted.example/path"
-            and item["kind"] == "bare"
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "evilhttps://example.com/path",
+            "portalhttps://example.com/path",
+        ],
+    )
+    def test_word_internal_http_marker_is_not_bare_url(self, text):
+        urls = extract_urls_from_markdown(text)
+        assert not any(
+            item["kind"] == "bare"
             for item in urls
         )
 
@@ -440,17 +463,22 @@ class TestAssessUrlAllowlist:
             ("https://example.com/allowed", "https://example.com/allowed"),
         ])
         assert assess_url_allowlist(
-            "url=https://untrusted.example/path",
+            ",https://untrusted.example/path",
             sources,
         )["passed"] is False
 
         assert assess_url_allowlist(
-            "source:https://untrusted.example/path",
+            "&https://untrusted.example/path",
             sources,
         )["passed"] is False
 
         assert assess_url_allowlist(
-            "url=https://example.com/allowed",
+            "/https://untrusted.example/path",
+            sources,
+        )["passed"] is False
+
+        assert assess_url_allowlist(
+            "source:https://example.com/allowed",
             sources,
         )["passed"] is True
 
@@ -624,7 +652,7 @@ class TestComposerUrlGuardIntegration:
         assert result["sources"][0]["url"] == "https://example.com/apply"
 
     def test_composer_blocked_result_untrusted_bare_url(self):
-        """untrusted bare URL with equals separator produces exact blocked-result contract."""
+        """untrusted bare URL with general separators produces exact blocked-result contract."""
         data = self._make_search_data("https://example.com/allowed")
         class ControlledProvider(MockProvider):
             def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
@@ -632,7 +660,7 @@ class TestComposerUrlGuardIntegration:
                     provider="controlled",
                     model="controlled",
                     ok=True,
-                    content="Check this: url=https://untrusted.example/path",
+                    content="참조,&https://untrusted.example/path",
                     error="",
                 )
 
