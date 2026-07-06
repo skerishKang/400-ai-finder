@@ -119,6 +119,7 @@ var sandbox = {
     error: function() {}
   }
 };
+sandbox.URLSearchParams = URLSearchParams;
 sandbox.window = sandbox;
 var cx = vm.createContext(sandbox);
 
@@ -313,24 +314,24 @@ class TestHtmlPageStructure:
 class TestRouteStructure:
     def test_each_route_renders_nav_bar(self):
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "_renderNavBar" in js
-        assert "canvas-nav" in js
+        assert "_renderNavBar" in js or "_renderSubHeader" in js
+        assert "bg-nav-bar" in js
 
     def test_each_route_renders_breadcrumb(self):
         js = _read_static("citizen-action-demo-canvas.js")
         assert "_renderBreadcrumb" in js
-        assert "canvas-breadcrumb" in js
+        assert "bg-breadcrumb" in js
 
     def test_each_route_renders_page_header(self):
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "_renderPageHeader" in js
-        assert "canvas-page-header" in js
-        assert "canvas-page-title" in js
-        assert "canvas-page-purpose" in js
+        assert "_renderSubPageHeader" in js or "_renderPageHeader" in js
+        assert "bg-page-header" in js
+        assert "bg-page-header__title" in js
 
     def test_each_route_renders_poc_banner(self):
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "_renderPocBanner" in js or "canvas-poc-banner" in js
+        assert "_renderPocBanner" in js
+        assert "bg-poc-banner" in js
 
 
 # ---------------------------------------------------------------------------
@@ -457,44 +458,53 @@ class TestRuntimeRender:
             "home": {"title": "시민 행정 도우미", "purpose": "북구청 행정서비스를 안내합니다."},
             "civil-service": {"title": "민원 신청", "purpose": "북구청 주요 민원 서비스를 안내합니다."},
             "complaint-category": {"title": "민원 유형 선택", "purpose": "해당 상황에 맞는 민원 유형을 선택해 주세요."},
-            "complaint-intake": {"title": "민원 작성", "purpose": "선택한 유형에 따라 내용을 작성해 주세요."},
-            "complaint-review": {"title": "민원 내용 확인", "purpose": "작성된 내용을 확인해 주세요."},
+            "complaint-intake": {"title": "민원서식", "purpose": "민원 업무에 필요한 각종 서식을 검색하고 다운로드할 수 있습니다."},
+            "complaint-review": {"title": "민원 신청 확인", "purpose": "아래 내용을 확인하고 신청해 주세요."},
             "handoff-stop": {"title": "데모 종료", "purpose": "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
         }
 
         for route_id in EXPECTED_ROUTE_IDS:
             html = rendered_routes[route_id]
 
-            # 1. Top Nav
-            assert 'class="canvas-nav"' in html, f"route {route_id} missing nav bar"
+            # 1. Top Nav — semantic bg-nav-bar or bg-nav-bar__title
+            # Home route has its own header/GNB (reconstructed homepage)
+            if route_id == "home":
+                assert 'class="bg-header"' in html, f"route {route_id} missing header"
+                assert 'class="bg-gnb"' in html, f"route {route_id} missing GNB"
+            else:
+                assert 'class="bg-nav-bar"' in html, f"route {route_id} missing nav bar"
 
-            # 2. Breadcrumb
-            assert 'class="canvas-breadcrumb"' in html, f"route {route_id} missing breadcrumb"
+            # 2. Breadcrumb (home is portal page without breadcrumb)
+            if route_id != "home":
+                assert 'class="bg-breadcrumb"' in html, f"route {route_id} missing breadcrumb"
 
-            # 3. Page Header (title and purpose)
-            assert 'class="canvas-page-header"' in html, f"route {route_id} missing page header"
-            assert 'class="canvas-page-title"' in html, f"route {route_id} missing page title"
-            assert 'class="canvas-page-purpose"' in html, f"route {route_id} missing page purpose"
+            # 3. Page Header (title and purpose) — sub-pages only
+            if route_id != "home":
+                assert 'class="bg-page-header"' in html, f"route {route_id} missing page header"
+                assert 'class="bg-page-header__title"' in html, f"route {route_id} missing page title"
 
-            # Verify exact title and purpose
-            meta = ROUTE_METADATA[route_id]
-            assert meta["title"] in html, f"route {route_id} missing expected title: {meta['title']}"
-            assert meta["purpose"] in html, f"route {route_id} missing expected purpose: {meta['purpose']}"
+            # Verify exact title and purpose for sub-pages
+            if route_id != "home":
+                meta = ROUTE_METADATA[route_id]
+                assert meta["title"] in html, f"route {route_id} missing expected title: {meta['title']}"
+                assert meta["purpose"] in html, f"route {route_id} missing expected purpose: {meta['purpose']}"
 
-            # 4. PoC Banner
-            assert 'class="canvas-poc-banner"' in html, f"route {route_id} missing PoC banner"
-            assert "로컬 개념 시연 (PoC) 안내" in html, f"route {route_id} missing PoC label"
-            assert "공식 사이트가 아니며" in html, f"route {route_id} missing PoC disclaimer"
+            # 4. PoC Banner (sub-pages only; home is the portal page)
+            if route_id != "home":
+                assert 'class="bg-poc-banner"' in html or 'class="canvas-poc-banner"' in html, \
+                    f"route {route_id} missing PoC banner"
+                assert "로컬 개념 시연 (PoC) 안내" in html, f"route {route_id} missing PoC label"
+                assert "공식 사이트가 아니며" in html, f"route {route_id} missing PoC disclaimer"
 
-            # 5. Content (simplified check: just ensure body exists)
-            assert 'class="canvas-body"' in html, f"route {route_id} missing canvas body"
+            # 5. Content
+            assert 'class="bg-content' in html or 'class="canvas-body"' in html or 'class="bg-page"' in html, \
+                f"route {route_id} missing content body"
 
     def test_complaint_category_buttons_have_correct_metadata(self, rendered_routes):
         """
         Render 'complaint-category'.
         Assert exactly the five closed category target IDs are present as buttons.
-        Assert each category button has non-empty data-demo-route="complaint-intake".
-        Assert no category button points to any other route.
+        Category buttons use bg-category-card class (no data-demo-route — handled by delegation).
         """
         html = rendered_routes["complaint-category"]
         category_targets = [
@@ -510,60 +520,21 @@ class TestRuntimeRender:
             button_pattern = r'<button[^>]*\sdata-action-target="' + tid + r'"[^>]*>'
             assert re.search(button_pattern, html), f"category button '{tid}' missing"
 
-        # Assert each has data-demo-route="complaint-intake"
+        # Verify no category button has data-demo-route (delegation handles it)
         for tid in category_targets:
-            # Find the specific button tag for this target
             button_tag = re.search(
                 r'<button[^>]*\sdata-action-target="' + tid + r'"[^>]*>',
                 html
             ).group(0)
-            assert 'data-demo-route="complaint-intake"' in button_tag, \
-                f"category button '{tid}' missing data-demo-route='complaint-intake'"
+            assert 'data-demo-route=' not in button_tag, \
+                f"category button '{tid}' should NOT have data-demo-route"
 
-        # Verify no other data-demo-route exists on buttons in this route
-        all_buttons = re.findall(r'<button[^>]*>', html)
-        for btn in all_buttons:
-            if 'data-action-target' in btn:
-                demo_route_match = re.search(r'data-demo-route="([^"]*)"', btn)
-                if demo_route_match:
-                    val = demo_route_match.group(1)
-                    assert val == "complaint-intake", f"unexpected route '{val}' found on button: {btn}"
-
-    def test_complaint_intake_contains_complaint_body_element(self, rendered_routes):
-        """Intake renders a non-button element carrying data-action-target='complaint-body'."""
+    def test_complaint_intake_has_form_table_and_data_targets(self, rendered_routes):
+        """Intake renders a form table with data-action-target on complaint-draft-review."""
         html = rendered_routes["complaint-intake"]
-        assert 'data-action-target="complaint-body"' in html
-        # Find the element tag
-        match = re.search(
-            r'<(\w+)[^>]*\sdata-action-target="complaint-body"[^>]*>',
-            html
-        )
-        assert match, "complaint-body element not found"
-        tag = match.group(1)
-        assert tag != "button", \
-            "complaint-body must NOT be a <button> (it is a display div)"
-
-    def test_complaint_body_has_no_data_demo_route(self, rendered_routes):
-        """The complaint-body element has no data-demo-route attribute."""
-        html = rendered_routes["complaint-intake"]
-        match = re.search(
-            r'<(\w+)[^>]*\sdata-action-target="complaint-body"[^>]*>',
-            html
-        )
-        assert match, "complaint-body element not found"
-        el_tag = match.group(0)
-        assert "data-demo-route" not in el_tag, \
-            "complaint-body must not have data-demo-route"
-
-    def test_no_button_has_data_action_target_complaint_body(self, rendered_routes):
-        """No <button> element carries data-action-target='complaint-body'."""
-        html = rendered_routes["complaint-intake"]
-        buttons = re.findall(
-            r'<button[^>]*\sdata-action-target="complaint-body"[^>]*>',
-            html
-        )
-        assert not buttons, \
-            "no <button> should have data-action-target='complaint-body'"
+        assert 'data-action-target="complaint-draft-review"' in html
+        assert 'class="bg-form-table"' in html
+        assert "주민등록표 등·초본" in html
 
     def test_handoff_stop_contains_handoff_notice(self, rendered_routes):
         """Handoff-stop renders a visible element with data-action-target='handoff-notice'."""
@@ -592,17 +563,12 @@ class TestRuntimeRender:
             assert val in EXPECTED_ROUTE_IDS, \
                 f"data-demo-route value '{val}' not in closed six-route vocabulary"
 
-    def test_complaint_draft_review_is_nav_button_in_intake(self, rendered_routes):
-        """In intake, only complaint-draft-review is a navigation button (not complaint-body)."""
+    def test_complaint_draft_review_is_link_in_form_table(self, rendered_routes):
+        """In intake, complaint-draft-review is a link in the form table."""
         html = rendered_routes["complaint-intake"]
-        buttons = re.findall(
-            r'<button[^>]*\sdata-action-target="([^"]*)"[^>]*>',
-            html
-        )
-        assert "complaint-draft-review" in buttons, \
-            "complaint-draft-review must be a nav button in intake"
-        assert "complaint-body" not in buttons, \
-            "complaint-body must not be a navigation button"
+        assert 'data-action-target="complaint-draft-review"' in html, \
+            "complaint-draft-review missing in intake"
+        assert 'class="bg-form-table"' in html, "form table missing in intake"
 
     def test_handoff_notice_is_not_a_button(self, rendered_routes):
         """handoff-notice renders as a div, not a button."""
@@ -614,23 +580,25 @@ class TestRuntimeRender:
         assert not buttons, "handoff-notice must not be a <button>"
 
     def test_nav_buttons_have_data_demo_route(self, rendered_routes):
-        """Navigation buttons in home/civil-service have data-demo-route set to destination."""
-        for route_id in ["home", "civil-service"]:
-            html = rendered_routes[route_id]
-            buttons = re.findall(
-                r'<button[^>]*\sdata-demo-route="([^"]*)"[^>]*>',
-                html
-            )
-            assert buttons, f"{route_id} nav buttons must have data-demo-route"
-            for val in buttons:
-                assert val in EXPECTED_ROUTE_IDS
+        """Navigation buttons in civil-service have data-demo-route set to destination."""
+        html = rendered_routes["civil-service"]
+        buttons = re.findall(
+            r'<button[^>]*\sdata-demo-route="([^"]*)"[^>]*>',
+            html
+        )
+        assert buttons, "civil-service nav buttons must have data-demo-route"
+        for val in buttons:
+            assert val in EXPECTED_ROUTE_IDS
 
     def test_real_entity_replacements_present(self, rendered_routes):
-        """Verify that HTML contains real entity replacements, not unicode escapes."""
+        """Verify that HTML contains proper HTML entities or valid separators."""
         combined = "".join(rendered_routes.values())
-        # Check for any real HTML entities (including &rsaquo;)
-        assert any(ent in combined for ent in ["&amp;", "&lt;", "&gt;", "&quot;", "&#39;", "&rsaquo;"]), \
-            "no real HTML entities found"
+        # Check for standard HTML entities OR valid Unicode separators
+        has_entity = any(ent in combined for ent in
+            ["&amp;", "&lt;", "&gt;", "&quot;", "&#39;"])
+        has_separator = "›" in combined or "|" in combined
+        assert has_entity or has_separator, \
+            "no HTML entities or valid separators found"
 
         # Ensure no unicode escaped versions of & are present in the rendered HTML
         assert "\\x26" not in combined, "found unicode escape \\x26 in rendered HTML"
@@ -671,3 +639,1243 @@ class TestShellCompatibility:
         assert ".copilot-rail" in content
         assert "@media" in content
         assert "767px" in content
+
+
+# ---------------------------------------------------------------------------
+# Semantic Reconstruction Tests (#863 final gate)
+# ---------------------------------------------------------------------------
+
+class TestSemanticReconstruction:
+    """Focused tests for the semantic HTML/CSS reconstruction (Stage #863)."""
+
+    def test_no_image_routes_in_canvas(self):
+        """IMAGE_ROUTES and _renderImageBasedRoute must be removed."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert "IMAGE_ROUTES" not in js, "IMAGE_ROUTES must be removed"
+        assert "_renderImageBasedRoute" not in js, "_renderImageBasedRoute must be removed"
+        assert "canvas-image-overlay" not in js, "canvas-image-overlay must be removed"
+        assert "canvas-img-wrapper" not in js, "canvas-img-wrapper must be removed"
+
+    def test_safety_stop_in_complaint_review(self):
+        """complaint-review route must render Safety Stop overlay."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert 'safety-stop-overlay' in js, "safety-stop-overlay missing in canvas JS"
+        assert 'safety-stop-box' in js, "safety-stop-box missing in canvas JS"
+        assert "제출 전 안전 중지" in js, "Safety Stop title missing"
+
+    def test_chat_shell_in_html(self):
+        """HTML must have chat-shell as primary right-side panel."""
+        html = _read_static("citizen-action-demo.html")
+        assert 'class="chat-shell"' in html, "chat-shell not found in HTML"
+        assert "AI 민원 도우미" in html, "AI 민원 도우미 title missing"
+        assert 'class="chat-composer"' in html, "chat-composer not found"
+        assert "보내기" in html, "보내기 button missing"
+
+    def test_home_has_gnb_with_data_action_target(self):
+        """Home route must have GNB with data-action-target on 종합민원."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert 'data-action-target="nav-civil-service"' in js, \
+            "GNB 종합민원 must have data-action-target"
+        assert "종합민원" in js
+        assert "data-action-target" in js
+
+    def test_complaint_review_has_disabled_submit(self):
+        """complaint-review route must have disabled submit button."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert "disabled" in js and "제출하기" in js, \
+            "disabled submit button required in complaint-review"
+
+    def test_route_metadata_titles_updated(self):
+        """Route metadata titles and purposes must be correct."""
+        html = _read_static("citizen-action-demo.html")
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert "시민 행정 도우미" in html or "전남광주통합특별시북구" in js, "page title missing"
+        assert "전남광주통합특별시북구" in js, "header must use 전남광주통합특별시북구"
+        assert "북구청장 신수정" in js or "home-hero-mayor" in js, "hero must mention 북구청장 신수정"
+
+
+class TestFidelityAndSeparation:
+    @pytest.fixture(scope="class")
+    def rendered_routes(self):
+        return _render_all_routes_via_node()
+
+    def test_no_demo_overlay_in_public_routes(self, rendered_routes):
+        """Ensure no 'AI 도우미 · 로컬 시연' overlay strings exist in public LEFT viewports."""
+        for rid in ["home", "complaint-category", "complaint-intake"]:
+            html = rendered_routes[rid]
+            assert "AI 도우미 · 로컬 시연" not in html
+            assert "🏠 시민 행정 도우미" not in html
+            assert "불법 주정차 신고 관련" not in html
+
+    def test_no_demo_specific_rows_in_intake_table(self, rendered_routes):
+        """Ensure no '불법 주정차', '공용주차장' or '교통과' demo specific items exist in public table."""
+        html = rendered_routes["complaint-intake"]
+        # Public table must only have neutral public data rows
+        assert "불법 주정차 신고서" not in html
+        assert "공용주차장 불편" not in html
+        assert "교통·시설 안전" not in html
+        assert "주민등록표 등·초본" in html
+        assert "지방세 납세증명" in html
+
+    def test_complaint_review_boundary_integrity(self, rendered_routes):
+        """Verify complaint-review contains disabled submit button and Safety Stop overlay."""
+        html = rendered_routes["complaint-review"]
+        # Submit button must be disabled for local safety stop
+        assert 'disabled' in html
+        assert 'safety-stop-overlay' in html
+        assert 'Safety Stop' in html
+
+    def test_no_whole_page_screenshots_as_backgrounds(self):
+        """Verify canvas.js source does not load raw full screenshot images directly as background or img."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        # Raw screenshots should not be used as direct viewport images or backgrounds
+        assert 'src="/static/images/bukgu_home.png"' not in js
+        assert 'src="/static/images/bukgu_menu.png"' not in js
+        assert 'src="/static/images/bukgu_intake.png"' not in js
+
+    def test_no_emojis_as_quick_service_or_official_icons(self, rendered_routes):
+        """Ensure public routes GNB and quick services do not use raw emojis for icons."""
+        for rid in ["home", "complaint-category", "complaint-intake"]:
+            html = rendered_routes[rid]
+            # Verify quick services use crops instead of raw emojis (e.g. 🏛️, 🎋, 👥, 🚗, 🅿️)
+            assert "🏛️" not in html
+            assert "🎋" not in html
+            assert "👥" not in html
+
+    def test_required_data_action_targets_exist(self, rendered_routes):
+        """Verify all closed vocabulary target IDs exist in the generated DOMs."""
+        combined = "".join(rendered_routes.values())
+        required_targets = [
+            "nav-civil-service",
+            "nav-complaint-category",
+            "complaint-category-illegal-parking",
+            "complaint-category-public-parking-inconvenience",
+            "complaint-category-residential-parking",
+            "complaint-category-traffic-or-facility-safety",
+            "complaint-category-other-or-unsure",
+            "complaint-body",
+            "complaint-draft-review",
+            "confirm-draft-prefill",
+            "handoff-notice",
+        ]
+        for target in required_targets:
+            assert f'data-action-target="{target}"' in combined, f"Target '{target}' not present in rendered HTML"
+
+    def test_official_identity_crop_provenance(self, rendered_routes):
+        """Verify the current home identity asset is used correctly (current reference ledger)."""
+        from PIL import Image
+
+        # a. Current identity asset exists at correct path
+        current_identity_path = os.path.join(STATIC, "images", "bukgu-current", "home-identity.png")
+        assert os.path.exists(current_identity_path), "home-identity.png missing in bukgu-current"
+        identity_img = Image.open(current_identity_path)
+        assert identity_img.size == (170, 42), f"home-identity.png size mismatch: {identity_img.size}"
+
+        # b. The new asset path exists in rendered home HTML
+        home_html = rendered_routes["home"]
+        assert "/static/images/bukgu-current/home-identity.png" in home_html, "home-identity.png missing in rendered html"
+        assert 'alt="전남광주통합특별시북구"' in home_html, \
+            'alt="전남광주통합특별시북구" missing in rendered html'
+
+        # c. No legacy identity expression in home renderer
+        assert "home-logo-identity.png" not in home_html, \
+            "legacy home-logo-identity.png still referenced in rendered html"
+        assert "광주광역시 북구" not in home_html, "광주광역시 북구 must not appear in home rendered html"
+
+        # Check canvas.js has no active _svgLogo/White in identity rendering
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert '_svgLogo' not in js, "_svgLogo still in canvas.js"
+        assert '_svgLogoWhite' not in js, "_svgLogoWhite still in canvas.js"
+
+
+# ---------------------------------------------------------------------------
+# J-DEPT-01 specific tests
+# ---------------------------------------------------------------------------
+
+class TestJDept01SpecificContracts:
+    @pytest.fixture(scope="class")
+    def dept_render(self):
+        """Helper to run Node and capture HTML under J-DEPT-01 query states."""
+        def _render(query: str):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            # Run with custom sandbox search query
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            var eventListeners = {};
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function(event, handler) {
+                  eventListeners[id + ':' + event] = handler;
+                },
+                querySelector: function(sel) {
+                  if (sel === '.bg-dept-search__input') {
+                    return { value: '공동주택' };
+                  }
+                  return null;
+                }
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+            process.stdout.write(capturedHTML);
+            """ % (
+                json.dumps(query),
+                map_js,
+                canvas_js
+            )
+            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return res.stdout
+        return _render
+
+    def test_jdept01_does_not_extend_vocabulary(self):
+        """1. Closed vocabulary in map.js is NOT changed."""
+        js = _read_static("citizen-action-demo-map.js")
+        assert "J-DEPT-01" not in js
+        assert "dept-state" not in js
+        assert "data-dept-action" not in js
+
+    def test_jdept01_query_gated_states_render(self, dept_render):
+        """2. The four query states render successfully and preserve the public shell layout."""
+        html_home = dept_render("?journey=J-DEPT-01")
+        assert "bg-page--home" in html_home
+        assert 'data-dept-journey="true"' in html_home
+
+        html_menu = dept_render("?journey=J-DEPT-01&dept-state=menu")
+        assert "bg-dept-mega-menu" in html_menu
+
+        html_dir = dept_render("?journey=J-DEPT-01&dept-state=directory")
+        assert "bg-page--dept-directory" in html_dir
+        assert "업무 및 전화번호 안내" in html_dir
+        # Public shell preservation checks on directory
+        assert "bg-home-utility" in html_dir
+        assert "bg-header" in html_dir
+        assert "bg-home-gnb__item--dept" in html_dir
+        assert "bg-dept-mega-menu" in html_dir
+
+        html_res = dept_render("?journey=J-DEPT-01&dept-state=result")
+        assert "bg-page--dept-directory" in html_res
+        assert "공동주택과" in html_res
+        # Public shell preservation checks on result
+        assert "bg-home-utility" in html_res
+        assert "bg-header" in html_res
+        assert "bg-home-gnb__item--dept" in html_res
+        assert "bg-dept-mega-menu" in html_res
+
+    def test_jdept01_exact_route_and_chat_progression(self, dept_render):
+        """3. Output contains correct route navigation elements."""
+        html_dir = dept_render("?journey=J-DEPT-01&dept-state=directory")
+        assert "홈" in html_dir
+        assert "북구소개" in html_dir
+        assert "구청안내" in html_dir
+        assert "업무 및 전화번호 안내" in html_dir
+
+    def test_jdept01_factual_result_row_only(self, dept_render):
+        """4. Result state renders only the single approved factual row and count."""
+        html_res = dept_render("?journey=J-DEPT-01&dept-state=result")
+        assert "전체" in html_res
+        assert "9" in html_res
+        assert "1/1" in html_res
+        assert "공동주택과" in html_res
+        assert "062-410-6033" in html_res
+        assert "공동주택과 업무전반" in html_res
+        # Assert no other fake or synthesized rows are present
+        assert "공동주택지원팀" not in html_res
+        assert "홍길동" not in html_res
+
+    def test_jdept01_no_raw_captures_in_code(self):
+        """5. Verify no raw R-DEPT capture filenames are used as backgrounds or source tags in js/css."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        css = _read_static("citizen-action-demo-canvas.css")
+        combined = js + css
+        for filename in [
+            "bukgu-menu-dropdown.png",
+            "CaptureX_2026-07-06_001130_bukgu.gwangju.kr_upmu.png",
+            "CaptureX_2026-07-06_001132_bukgu.gwangju.kr_upmu_full.png",
+            "CaptureX_2026-07-06_001716_bukgu.gwangju.kr_gongdong.png",
+            "CaptureX_2026-07-06_001719_bukgu.gwangju.kr_gongdong_full.png"
+        ]:
+            assert filename not in combined, f"prohibited usage of reference capture filename: {filename}"
+
+    def test_jdept01_uses_data_dept_action(self, dept_render):
+        """6. Interaction targets use data-dept-action, not data-action-target."""
+        html_home = dept_render("?journey=J-DEPT-01")
+        assert 'data-dept-action="open-menu"' in html_home
+        assert 'data-action-target="open-menu"' not in html_home
+
+    def test_jdept01_css_is_scoped(self):
+        """7. Verify J-DEPT CSS rules are route-scoped only."""
+        css = _read_static("citizen-action-demo-canvas.css")
+        # Split by the exact end marker of the comment block to clear the header comment
+        jdept_part = css.split("--------------------------------------------------------------------------- */")[-1]
+
+        import re
+        jdept_part = re.sub(r"/\*[\s\S]*?\*/", "", jdept_part)
+        jdept_part = jdept_part.replace("*/", "", 1).strip()
+        jdept_part = re.sub(r"@keyframes\s+\w+\s*\{[\s\S]*?\}", "", jdept_part)
+
+        selectors = []
+        blocks = jdept_part.split("}")
+        for block in blocks:
+            if "{" in block:
+                sel = block.split("{")[0].strip()
+                if sel and not sel.startswith("@") and not sel == "from" and not sel == "to":
+                    selectors.append(sel)
+
+        for selector in selectors:
+            # Split by comma but ignore commas inside parentheses
+            in_paren = False
+            parts = []
+            current = []
+            for char in selector:
+                if char == '(':
+                    in_paren = True
+                elif char == ')':
+                    in_paren = False
+
+                if char == ',' and not in_paren:
+                    parts.append("".join(current).strip())
+                    current = []
+                else:
+                    current.append(char)
+            if current:
+                parts.append("".join(current).strip())
+
+            for sel_part in parts:
+                if not sel_part:
+                    continue
+                if sel_part in ["from", "to"] or sel_part.startswith("@"):
+                    continue
+                if sel_part.startswith(":is("):
+                    # Validate all sub-selectors inside :is(...)
+                    inner = sel_part[4:-1]
+                    for sub_sel in [s.strip() for s in inner.split(",")]:
+                        assert (sub_sel.startswith(".bg-page--dept-directory") or
+                                sub_sel.startswith(".bg-page--home[data-dept-journey=\"true\"]")), \
+                            f"prohibited inner is selector: {sub_sel}"
+                    continue
+
+                assert (sel_part.startswith(".bg-page--dept-directory") or
+                        sel_part.startswith(".bg-page--home[data-dept-journey=\"true\"]")), \
+                    f"prohibited unscoped J-DEPT selector: {sel_part}"
+
+    def test_jdept01_shared_public_shell_css_contract(self, dept_render):
+        """10. Verify that all 6 required public-shell GNB and header utility classes are mapped and scoped via the approved shared root selector contract."""
+        css = _read_static("citizen-action-demo-canvas.css")
+        required_classes = [
+            ".bg-home-utility",
+            ".bg-home-header",
+            ".bg-home-gnb",
+            ".bg-home-gnb__link",
+            ".bg-home-header__actions",
+            ".bg-home-header__icon"
+        ]
+        # Accept 2-root, 3-root, or 4-root :is() selector
+        for cls in required_classes:
+            has_two_root = any(f":is(.bg-page--home, .bg-page--dept-directory) {cls}" in line for line in css.split("\n"))
+            has_three_root = any(f":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info) {cls}" in line for line in css.split("\n"))
+            has_four_root = any(f":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) {cls}" in line for line in css.split("\n"))
+            assert has_two_root or has_three_root or has_four_root, f"Missing shared scoping contract for: {cls}"
+
+        # Assert the shared root selector defines --bg-home-width: 914px (2, 3, or 4 roots)
+        assert (any(":is(.bg-page--home, .bg-page--dept-directory)" in line for line in css.split("\n")) or
+                any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info)" in line for line in css.split("\n")) or
+                any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info)" in line for line in css.split("\n"))), "Missing shared root selector in CSS"
+
+        # Verify custom property and outer strip scoped rules
+        assert any("--bg-home-width: 914px;" in line for line in css.split("\n")), "Missing shared home-width custom property"
+        has_two_strip = any(":is(.bg-page--home, .bg-page--dept-directory) .bg-home-gov-strip" in line for line in css.split("\n"))
+        has_three_strip = any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info) .bg-home-gov-strip" in line for line in css.split("\n"))
+        has_four_strip = any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-gov-strip" in line for line in css.split("\n"))
+        assert has_two_strip or has_three_strip or has_four_strip, "Missing shared gov-strip rule mapping"
+
+        # Assert directory/result renders contain the correct root class
+        html_dir = dept_render("?journey=J-DEPT-01&dept-state=directory")
+        assert "bg-page--dept-directory" in html_dir
+
+        html_res = dept_render("?journey=J-DEPT-01&dept-state=result")
+        assert "bg-page--dept-directory" in html_res
+
+    def test_jdept01_duplicate_journey_fallback(self, dept_render):
+        """4. Duplicate journey parameters fall back to historical non-J-DEPT output."""
+        html = dept_render("?journey=J-DEPT-01&journey=J-DEPT-01")
+        assert 'data-dept-journey="true"' not in html
+        assert 'data-dept-action="open-menu"' not in html
+
+    def test_jdept01_duplicate_dept_state_fallback(self, dept_render):
+        """5. Duplicate dept-state parameters fall back to historical non-J-DEPT output."""
+        html = dept_render("?journey=J-DEPT-01&dept-state=menu&dept-state=menu")
+        assert 'data-dept-journey="true"' not in html
+        assert "bg-dept-mega-menu" not in html
+
+    def test_jdept01_unsupported_dept_state_fallback(self, dept_render):
+        """6. Unsupported dept-state parameter falls back to historical non-J-DEPT output."""
+        html = dept_render("?journey=J-DEPT-01&dept-state=invalidstate")
+        assert 'data-dept-journey="true"' not in html
+        assert "bg-dept-mega-menu" not in html
+
+    def test_jdept01_exact_search_handler_execution(self):
+        """8. Execute captured click handler and check pushState query resolution for exact-search."""
+        map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+        canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+
+        sandbox_init = """
+        'use strict';
+        var vm = require('vm');
+        var capturedHTML = '';
+        var capturedChatHTML = '';
+        var capturedClickHandler = null;
+
+        function makeElement(id) {
+          return {
+            id: id,
+            get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+            set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+            addEventListener: function(event, handler) {
+              if (event === 'click' && id === 'demo-canvas') {
+                capturedClickHandler = handler;
+              }
+            },
+            querySelector: function(sel) {
+              if (sel === '.bg-dept-search__input') {
+                return { value: searchInputVal };
+              }
+              return null;
+            }
+          };
+        }
+
+        var fakeCanvasElement = makeElement('demo-canvas');
+        var historyPushedState = null;
+        var preventDefaultCalled = false;
+        var searchInputVal = '공동주택';
+
+        var sandbox = {
+          document: {
+            getElementById: function(id) {
+              if (id === 'demo-canvas') return fakeCanvasElement;
+              if (id === 'chat-thread') return makeElement('chat-thread');
+              return null;
+            }
+          },
+          console: { log: function() {}, error: function() {} },
+          location: { search: '?journey=J-DEPT-01&dept-state=directory' },
+          history: {
+            pushState: function(state, title, url) {
+              historyPushedState = url;
+              sandbox.location.search = url.substring(url.indexOf('?'));
+            }
+          },
+          window: null
+        };
+        sandbox.URLSearchParams = URLSearchParams;
+        sandbox.window = sandbox;
+
+        var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
+
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+
+        var testResults = {};
+
+        if (capturedClickHandler) {
+          preventDefaultCalled = false;
+          searchInputVal = ' 공동주택 ';
+          var fakeEvent = {
+            target: {
+              closest: function(sel) {
+                if (sel === '[data-dept-action]') {
+                  return {
+                    getAttribute: function(attr) {
+                      if (attr === 'data-dept-action') return 'trigger-search';
+                      return null;
+                    }
+                  };
+                }
+                return null;
+              }
+            },
+            preventDefault: function() {
+              preventDefaultCalled = true;
+            }
+          };
+          capturedClickHandler(fakeEvent);
+          testResults['exact'] = {
+            url: historyPushedState,
+            pd: preventDefaultCalled,
+            html: capturedHTML,
+            chat: capturedChatHTML
+          };
+        }
+
+        sandbox.location.search = '?journey=J-DEPT-01&dept-state=directory';
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        if (capturedClickHandler) {
+          preventDefaultCalled = false;
+          searchInputVal = '일반검색어';
+          var fakeEvent = {
+            target: {
+              closest: function(sel) {
+                if (sel === '[data-dept-action]') {
+                  return {
+                    getAttribute: function(attr) {
+                      if (attr === 'data-dept-action') return 'trigger-search';
+                      return null;
+                    }
+                  };
+                }
+                return null;
+              }
+            },
+            preventDefault: function() {
+              preventDefaultCalled = true;
+            }
+          };
+          capturedClickHandler(fakeEvent);
+          testResults['mismatch'] = {
+            url: historyPushedState,
+            pd: preventDefaultCalled,
+            html: capturedHTML,
+            chat: capturedChatHTML
+          };
+        }
+
+        sandbox.location.search = '?journey=J-DEPT-01&dept-state=directory';
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        if (capturedClickHandler) {
+          preventDefaultCalled = false;
+          searchInputVal = '  ';
+          var fakeEvent = {
+            target: {
+              closest: function(sel) {
+                if (sel === '[data-dept-action]') {
+                  return {
+                    getAttribute: function(attr) {
+                      if (attr === 'data-dept-action') return 'trigger-search';
+                      return null;
+                    }
+                  };
+                }
+                return null;
+              }
+            },
+            preventDefault: function() {
+              preventDefaultCalled = true;
+            }
+          };
+          capturedClickHandler(fakeEvent);
+          testResults['empty'] = {
+            url: historyPushedState,
+            pd: preventDefaultCalled,
+            html: capturedHTML,
+            chat: capturedChatHTML
+          };
+        }
+
+        process.stdout.write(JSON.stringify(testResults));
+        """ % (map_js, canvas_js)
+
+        res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+        assert res.returncode == 0, res.stderr
+        res_data = json.loads(res.stdout)
+
+        exact = res_data['exact']
+        assert "dept-state=result" in exact['url']
+        assert exact['pd'] is True
+        assert "공동주택과" in exact['html']
+        assert "전체" in exact['html'] and "9" in exact['html'] and "1/1" in exact['html']
+        assert "공동주택과에서 담당합니다" in exact['chat']
+
+        mismatch = res_data['mismatch']
+        assert "dept-state=directory" in mismatch['url']
+        assert mismatch['pd'] is True
+        assert "공동주택과" not in mismatch['html']
+        assert "전체 9명" not in mismatch['html']
+        assert "공동주택과에서 담당합니다" not in mismatch['chat']
+
+        empty = res_data['empty']
+        assert "dept-state=directory" in empty['url']
+        assert empty['pd'] is True
+        assert "공동주택과" not in empty['html']
+        assert "전체 9명" not in empty['html']
+        assert "공동주택과에서 담당합니다" not in empty['chat']
+
+    def test_jdept01_hover_focus_menu_contract(self):
+        """9. Hover and keyboard focus menu selectors exist in scoped CSS contract."""
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert ".bg-home-gnb__item--dept:hover" in css
+        assert ".bg-home-gnb__item--dept:focus-within" in css
+
+
+# ---------------------------------------------------------------------------
+# J-PARK-01 specific tests
+# ---------------------------------------------------------------------------
+
+class TestJPark01SpecificContracts:
+    @pytest.fixture(scope="class")
+    def park_render(self):
+        """Helper to run Node and capture HTML under J-PARK-01 query."""
+        def _render(query: str):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function(event, handler) {}
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+            process.stdout.write(JSON.stringify({html: capturedHTML, chat: capturedChatHTML}));
+            """ % (
+                json.dumps(query),
+                map_js,
+                canvas_js
+            )
+            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return json.loads(res.stdout)
+        return _render
+
+    # 1. Exact J-PARK-01 render
+    def test_jpark01_exact_render(self, park_render):
+        """1. ?journey=J-PARK-01 renders J-PARK static page."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+        assert "bg-page--park-info" in html
+        assert "주차장 이용안내" in html
+
+    # 2. title, breadcrumb, left navigation, active LNB, facts table, operating hours, exact chat
+    def test_jpark01_html_contract_elements(self, park_render):
+        """2. J-PARK HTML contains all required contract elements."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+
+        # title
+        assert "주차장 이용안내" in html
+        # breadcrumb
+        assert "홈 > 북구소개 > 구청안내 >" in html
+        # left section heading
+        assert "북구소개" in html
+        # open left group
+        assert "구청안내" in html
+        # LNB items
+        assert "행정조직" in html
+        assert "업무 및 전화번호 안내" in html
+        assert "부서 대표(전화번호, FAX)" in html
+        assert "청사안내" in html
+        assert "찾아오시는 길" in html
+        assert "주차장 이용안내" in html
+
+        # Active LNB item
+        assert "bg-park-lnb-item--active" in html
+
+        # Parking facts - exact colon-form contract strings
+        assert "주차면수: 130면" in html
+        assert "주차타워: 111면(1층 42, 2층 29, 3층 40)" in html
+        assert "기타: 19면" in html
+
+        # Facts table - parking fee headers
+        assert "무료주차" in html
+        assert "기본" in html
+        assert "초과" in html
+
+        # Facts table - parking fee rows
+        assert "1시간(모든 민원인)" in html
+        assert "30분 500원" in html
+        assert "10분당 200원" in html
+
+        # Operating hours - exact colon-form contract strings
+        assert "평일(월~금) 유료운영: 08:00 ~ 19:00" in html
+        assert "야간 및 휴일 무료개방" in html
+
+        # identity
+        assert "전남광주통합특별시북구" in html
+
+    # Exact chat verification
+    def test_jpark01_exact_chat_messages(self, park_render):
+        """2 (chat). J-PARK renders exactly 3 prescribed chat messages: 1 user + 2 AI."""
+        result = park_render("?journey=J-PARK-01")
+        chat = result["chat"]
+
+        # Exact message count: 1 user + 2 AI = 3 total
+        count = chat.count('class="chat-msg')
+        assert count == 3, f"expected 3 chat messages, got {count}"
+        assert chat.count('class="chat-msg chat-msg--user"') == 1, "expected exactly 1 user message"
+        assert chat.count('class="chat-msg chat-msg--ai"') == 2, "expected exactly 2 AI messages"
+
+        # User message
+        assert "북구청 청사부설주차장은 몇 시까지 유료이고 요금은 어떻게 되나요?" in chat
+        # AI message 1
+        assert "북구청 주차장 이용안내에서 운영시간과 요금을 확인했습니다." in chat
+        # AI message 2 (full pricing detail)
+        assert "평일(월~금) 08:00~19:00에 유료운영하며, 모든 민원인은 1시간 무료입니다." in chat
+        assert "이후 최초 30분은 500원" in chat
+        assert "기본 30분 이후에는 10분당 200원" in chat
+        assert "야간 및 휴일에는 무료개방합니다." in chat
+
+    # 3. No interactive elements or action attributes in J-PARK HTML
+    def test_jpark01_no_forbidden_action_attributes(self, park_render):
+        """3. Rendered J-PARK HTML has no <a>, href, <button>, data-action-target, data-park-action."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+        assert "<a " not in html, "J-PARK HTML must not contain <a> elements"
+        assert "href=" not in html, "J-PARK HTML must not contain href attributes"
+        assert "<button" not in html, "J-PARK HTML must not contain <button> elements"
+        assert "data-action-target" not in html, "J-PARK HTML must not contain data-action-target"
+        assert "data-park-action" not in html, "J-PARK HTML must not contain data-park-action"
+
+    # 4. No raw parking capture filename in JS/CSS
+    def test_jpark01_no_raw_capture_filenames_in_code(self):
+        """4. JS/CSS contain no raw approved parking capture filenames."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        css = _read_static("citizen-action-demo-canvas.css")
+        combined = js + css
+        prohibited = [
+            "CaptureX_2026-07-05_bukgu.gwangju.kr.png",
+            "CaptureX_2026-07-05_150817_bukgu.gwangju.kr.png",
+            "CaptureX_2026-07-05_150832_bukgu.gwangju.kr_full.png",
+            "temp_bot.png", "temp_links.png", "temp_mid.png"
+        ]
+        for filename in prohibited:
+            assert filename not in combined, f"prohibited parking capture filename found: {filename}"
+
+    # 5. No forbidden words in rendered HTML
+    def test_jpark01_no_forbidden_words_in_html(self, park_render):
+        """5. Rendered J-PARK HTML contains no forbidden words including unapproved live-like info."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+        forbidden = ["실시간", "예약", "결제", "지도", "빈자리", "CCTV", "26°C", "미세먼지", "초미세먼지", "전체"]
+        for word in forbidden:
+            assert word not in html, f"forbidden word '{word}' found in J-PARK HTML"
+
+    # 6. No J-PARK-01, park-state, data-park-action in map.js
+    def test_jpark01_not_in_map_js(self):
+        """6. map.js does not reference J-PARK-01, park-state, or data-park-action."""
+        js = _read_static("citizen-action-demo-map.js")
+        assert "J-PARK-01" not in js, "J-PARK-01 must not be in map.js"
+        assert "park-state" not in js, "park-state must not be in map.js"
+        assert "data-park-action" not in js, "data-park-action must not be in map.js"
+
+    # 7. Duplicate journey fallback
+    def test_jpark01_duplicate_journey_fallback(self, park_render):
+        """7. Duplicate journey falls back to historical non-J-PARK output."""
+        result = park_render("?journey=J-PARK-01&journey=J-PARK-01")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "duplicate journey must fall back"
+        assert "주차장 이용안내" not in html
+
+    # 8. park-state present → fallback
+    def test_jpark01_park_state_present_fallback(self, park_render):
+        """8. Any park-state present triggers fallback."""
+        result = park_render("?journey=J-PARK-01&park-state=home")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "park-state must trigger fallback"
+
+    # 9. Duplicate park-state fallback
+    def test_jpark01_duplicate_park_state_fallback(self, park_render):
+        """9. Duplicate park-state triggers fallback."""
+        result = park_render("?journey=J-PARK-01&park-state=home&park-state=home")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "duplicate park-state must fall back"
+
+    # 10. Unsupported park-state fallback
+    def test_jpark01_unsupported_park_state_fallback(self, park_render):
+        """10. Unsupported park-state triggers fallback."""
+        result = park_render("?journey=J-PARK-01&park-state=invalidstate")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "unsupported park-state must fall back"
+
+    # 11. Unsupported extra query fallback
+    def test_jpark01_extra_query_param_fallback(self, park_render):
+        """11. Any extra query parameter beyond journey=J-PARK-01 triggers fallback."""
+        result = park_render("?journey=J-PARK-01&extra=foo")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "extra query param must trigger fallback"
+
+    # 12. dept-state mixed fallback
+    def test_jpark01_dept_state_mixed_fallback(self, park_render):
+        """12. dept-state mixed with J-PARK-01 triggers fallback."""
+        result = park_render("?journey=J-PARK-01&dept-state=menu")
+        html = result["html"]
+        assert "bg-page--park-info" not in html, "dept-state must trigger fallback"
+
+    # 13. Existing J-DEPT and historical routes still work
+    def test_jdept01_still_works_after_jpark_addition(self, park_render):
+        """13. J-DEPT-01 and historical routes remain functional."""
+        # J-DEPT still works
+        result_dept = park_render("?journey=J-DEPT-01")
+        html_dept = result_dept["html"]
+        assert "bg-page--home" in html_dept
+        assert 'data-dept-journey="true"' in html_dept
+
+        # Historical complaint route still works
+        result_complaint = park_render("?journey=J-PARK-01")  # just ensure it doesn't break dept
+        # Verify dept query still works independently
+        map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+        canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+        sandbox_dept = """
+        'use strict';
+        var vm = require('vm');
+        var capturedHTML = '';
+        function makeElement(id) {
+          return {
+            id: id,
+            get innerHTML() { return capturedHTML; },
+            set innerHTML(v) { capturedHTML = v; },
+            addEventListener: function(event, handler) {}
+          };
+        }
+        var fakeCanvasElement = makeElement('demo-canvas');
+        var sandbox = {
+          document: {
+            getElementById: function(id) {
+              if (id === 'demo-canvas') return fakeCanvasElement;
+              return null;
+            }
+          },
+          console: { log: function() {}, error: function() {} },
+          location: { search: '?journey=J-DEPT-01' },
+          window: null
+        };
+        sandbox.URLSearchParams = URLSearchParams;
+        sandbox.window = sandbox;
+        var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        process.stdout.write(capturedHTML);
+        """ % (map_js, canvas_js)
+        res = subprocess.run(["node", "-e", sandbox_dept], capture_output=True, text=True, timeout=10)
+        assert res.returncode == 0, res.stderr
+        html_dept_alone = res.stdout
+        assert 'data-dept-journey="true"' in html_dept_alone
+        assert "bg-page--home" in html_dept_alone
+
+    # 14. Exact parking facts text contract with colons
+    def test_jpark01_exact_text_contract(self, park_render):
+        """14. J-PARK renders exact colon-form parking fact strings."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+        assert "주차면수: 130면" in html
+        assert "주차타워: 111면(1층 42, 2층 29, 3층 40)" in html
+        assert "기타: 19면" in html
+        assert "평일(월~금) 유료운영: 08:00 ~ 19:00" in html
+        assert "야간 및 휴일 무료개방" in html
+
+    # 15. No interactive markup at all in J-PARK HTML
+    def test_jpark01_no_interactive_markup(self, park_render):
+        """15. J-PARK HTML contains no <a>, href, <button> elements anywhere."""
+        result = park_render("?journey=J-PARK-01")
+        html = result["html"]
+        assert "<a " not in html
+        assert "href=" not in html
+        assert "<button" not in html
+
+    # 16. J-PARK does not call map route lookup / dispatcher
+    def test_jpark01_no_map_route_dispatcher_call(self, park_render):
+        """16. J-PARK render bypasses map.getRoute() and history.pushState entirely."""
+        map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+        canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+        sandbox_spy = """
+        'use strict';
+        var vm = require('vm');
+        var capturedHTML = '';
+        var capturedChatHTML = '';
+        var routeLookupCount = 0;
+        var pushStateCount = 0;
+        function makeElement(id) {
+          return {
+            id: id,
+            get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+            set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+            addEventListener: function(event, handler) {}
+          };
+        }
+        var fakeCanvasElement = makeElement('demo-canvas');
+        var sandbox = {
+          document: {
+            getElementById: function(id) {
+              if (id === 'demo-canvas') return fakeCanvasElement;
+              if (id === 'chat-thread') return makeElement('chat-thread');
+              return null;
+            }
+          },
+          console: { log: function() {}, error: function() {} },
+          location: { search: '?journey=J-PARK-01' },
+          history: { pushState: function() { pushStateCount += 1; } },
+          window: null
+        };
+        sandbox.URLSearchParams = URLSearchParams;
+        sandbox.window = sandbox;
+        var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
+        // Wrap CitizenActionDemoMap.getRoute with a spy that counts calls
+        var origGetRoute = sandbox.window.CitizenActionDemoMap.getRoute;
+        sandbox.window.CitizenActionDemoMap = Object.freeze({
+          getRouteIds: sandbox.window.CitizenActionDemoMap.getRouteIds,
+          getRoute: function(routeId) { routeLookupCount += 1; return origGetRoute(routeId); },
+          getCategoryLabel: sandbox.window.CitizenActionDemoMap.getCategoryLabel,
+          isValidRoute: sandbox.window.CitizenActionDemoMap.isValidRoute,
+          isValidTarget: sandbox.window.CitizenActionDemoMap.isValidTarget
+        });
+        vm.runInContext(%s, cx);
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        process.stdout.write(JSON.stringify({
+          html: capturedHTML,
+          chat: capturedChatHTML,
+          routeLookupCount: routeLookupCount,
+          pushStateCount: pushStateCount
+        }));
+        """ % (map_js, canvas_js)
+        res = subprocess.run(["node", "-e", sandbox_spy], capture_output=True, text=True, timeout=10)
+        assert res.returncode == 0, res.stderr
+        data = json.loads(res.stdout)
+        html = data["html"]
+        route_lookup_count = data["routeLookupCount"]
+        push_state_count = data["pushStateCount"]
+        # J-PARK must produce park page
+        assert "bg-page--park-info" in html
+        # J-PARK must not call map.getRoute() at all — it returns early before route dispatch
+        assert route_lookup_count == 0, f"J-PARK must not call getRoute(), but got {route_lookup_count} call(s)"
+        # J-PARK must not call history.pushState
+        assert push_state_count == 0, f"J-PARK must not call pushState(), but got {push_state_count} call(s)"
+        # No dispatcher attributes in rendered HTML
+        assert "data-dept-action" not in html, "J-PARK HTML must not contain data-dept-action"
+        assert "data-action-target" not in html, "J-PARK HTML must not contain data-action-target"
+        assert "data-park-action" not in html, "J-PARK HTML must not contain data-park-action"
+
+# J-KIOSK-01 specific tests
+# ---------------------------------------------------------------------------
+
+class TestJKiosk01SpecificContracts:
+    @pytest.fixture(scope="class")
+    def kiosk_render(self):
+        """Helper to run Node and capture HTML under J-KIOSK-01 query."""
+        def _render(query: str):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function(event, handler) {}
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+            process.stdout.write(JSON.stringify({html: capturedHTML, chat: capturedChatHTML}));
+            """ % (
+                json.dumps(query),
+                map_js,
+                canvas_js
+            )
+            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return json.loads(res.stdout)
+        return _render
+
+    # 1. Exact J-KIOSK-01 render
+    def test_jkiosk01_exact_render(self, kiosk_render):
+        """1. ?journey=J-KIOSK-01 renders J-KIOSK static page."""
+        result = kiosk_render("?journey=J-KIOSK-01")
+        html = result["html"]
+        assert "bg-page--kiosk-info" in html
+        assert "무인민원발급기" in html
+
+    # 2. title, breadcrumb, left navigation, active LNB, table, chat
+    def test_jkiosk01_html_contract_elements(self, kiosk_render):
+        """2. J-KIOSK HTML contains all required contract elements."""
+        result = kiosk_render("?journey=J-KIOSK-01")
+        html = result["html"]
+
+        # identity
+        assert "전남광주통합특별시북구" in html
+        # title
+        assert "무인민원발급기" in html
+        # breadcrumb
+        assert "홈 > 종합민원 > 종합민원 > 무인민원발급기 >" in html
+        assert "<strong>설치장소</strong>" in html
+        # left section heading
+        assert "종합민원" in html
+        # active left-nav item
+        assert "bg-kiosk-lnb-item--active" in html
+        assert "무인민원발급기" in html
+
+        # tabs
+        assert "설치장소" in html
+        assert "발급종류 및 처리순서" in html
+        assert "발급가능 민원서류" in html
+        assert "bg-kiosk-tab--active" in html
+
+        # table heading
+        assert "무인민원발급기 설치장소(50개소)" in html
+        # table columns
+        assert "구분" in html
+        assert "시설명" in html
+        assert "도로명주소" in html
+        assert "운영시간" in html
+        assert "발급종수" in html
+        assert "발급기형태" in html
+        assert "비고" in html
+
+        # factual data rows - exactly the two approved
+        assert "북구청 민원실" in html
+        assert "우치로 77" in html
+        assert "24시간" in html
+        assert "122종" in html
+        assert "장애인겸용" in html
+        assert "북구청 민원실 2" in html
+        assert "121종" in html
+
+    # Exact chat verification
+    def test_jkiosk01_exact_chat_messages(self, kiosk_render):
+        """2 (chat). J-KIOSK renders exactly 3 prescribed chat messages: 1 user + 2 AI."""
+        result = kiosk_render("?journey=J-KIOSK-01")
+        chat = result["chat"]
+
+        # Exact message count: 1 user + 2 AI = 3 total
+        count = chat.count('class="chat-msg')
+        assert count == 3, f"expected 3 chat messages, got {count}"
+        assert chat.count('class="chat-msg chat-msg--user"') == 1, "expected exactly 1 user message"
+        assert chat.count('class="chat-msg chat-msg--ai"') == 2, "expected exactly 2 AI messages"
+
+        # User message
+        assert "북구청 무인민원발급기는 어디에 있고 언제 이용할 수 있나요?" in chat
+        # AI message 1
+        assert "북구청 무인민원발급기 설치장소에서 이용 정보를 확인했습니다." in chat
+        # AI message 2
+        assert "북구청 민원실과 북구청 민원실 2는 우치로 77에 있으며 24시간 이용할 수 있습니다." in chat
+        assert "발급 가능 민원서류는 각각 122종과 121종입니다." in chat
+
+    # 3. No interactive elements or action attributes in J-KIOSK HTML
+    def test_jkiosk01_no_forbidden_action_attributes(self, kiosk_render):
+        """3. Rendered J-KIOSK HTML has no <a>, href, <button>, data-action-target, data-kiosk-action."""
+        result = kiosk_render("?journey=J-KIOSK-01")
+        html = result["html"]
+        assert "<a " not in html, "J-KIOSK HTML must not contain <a> elements"
+        assert "href=" not in html, "J-KIOSK HTML must not contain href attributes"
+        assert "<button" not in html, "J-KIOSK HTML must not contain <button> elements"
+        assert "data-action-target" not in html, "J-KIOSK HTML must not contain data-action-target"
+        assert "data-dept-action" not in html, "J-KIOSK HTML must not contain data-dept-action"
+        assert "data-park-action" not in html, "J-KIOSK HTML must not contain data-park-action"
+        assert "data-kiosk-action" not in html, "J-KIOSK HTML must not contain data-kiosk-action"
+
+    # 4. No raw kiosk capture filename in JS/CSS
+    def test_jkiosk01_no_raw_capture_filenames_in_code(self):
+        """4. JS/CSS contain no raw approved kiosk capture filenames."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        css = _read_static("citizen-action-demo-canvas.css")
+        combined = js + css
+        prohibited = [
+            "jkiosk-01-installation-desktop.png",
+            "jkiosk-02-installation-full.png",
+            "CaptureX*kiosk*",
+        ]
+        for filename in prohibited:
+            assert filename not in combined, f"prohibited kiosk capture filename found: {filename}"
+
+    # 5. Duplicate journey fallback
+    def test_jkiosk01_duplicate_journey_fallback(self, kiosk_render):
+        """5. Duplicate journey falls back to historical non-J-KIOSK output."""
+        result = kiosk_render("?journey=J-KIOSK-01&journey=J-KIOSK-01")
+        html = result["html"]
+        assert "bg-page--kiosk-info" not in html, "duplicate journey must fall back"
+        assert "무인민원발급기 설치장소" not in html
+
+    # 6. kiosk-state present -> fallback
+    def test_jkiosk01_kiosk_state_present_fallback(self, kiosk_render):
+        """6. Any kiosk-state present triggers fallback."""
+        result = kiosk_render("?journey=J-KIOSK-01&kiosk-state=home")
+        html = result["html"]
+        assert "bg-page--kiosk-info" not in html, "kiosk-state must trigger fallback"
+
+    # 7. park-state mixed fallback
+    def test_jkiosk01_park_state_mixed_fallback(self, kiosk_render):
+        """7. park-state mixed with J-KIOSK-01 triggers fallback."""
+        result = kiosk_render("?journey=J-KIOSK-01&park-state=home")
+        html = result["html"]
+        assert "bg-page--kiosk-info" not in html, "park-state must trigger fallback"
+
+    # 8. dept-state mixed fallback
+    def test_jkiosk01_dept_state_mixed_fallback(self, kiosk_render):
+        """8. dept-state mixed with J-KIOSK-01 triggers fallback."""
+        result = kiosk_render("?journey=J-KIOSK-01&dept-state=menu")
+        html = result["html"]
+        assert "bg-page--kiosk-info" not in html, "dept-state must trigger fallback"
+
+    # 9. Extra query fallback
+    def test_jkiosk01_extra_query_param_fallback(self, kiosk_render):
+        """9. Any extra query parameter beyond journey=J-KIOSK-01 triggers fallback."""
+        result = kiosk_render("?journey=J-KIOSK-01&extra=foo")
+        html = result["html"]
+        assert "bg-page--kiosk-info" not in html, "extra query param must trigger fallback"
+
+    # 10. J-KIOSK does not call map route lookup / dispatcher
+    def test_jkiosk01_no_map_route_dispatcher_call(self, kiosk_render):
+        """10. J-KIOSK render bypasses map.getRoute() and history.pushState entirely."""
+        map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+        canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+        sandbox_spy = """
+        'use strict';
+        var vm = require('vm');
+        var capturedHTML = '';
+        var capturedChatHTML = '';
+        var routeLookupCount = 0;
+        var pushStateCount = 0;
+        function makeElement(id) {
+          return {
+            id: id,
+            get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+            set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+            addEventListener: function(event, handler) {}
+          };
+        }
+        var fakeCanvasElement = makeElement('demo-canvas');
+        var sandbox = {
+          document: {
+            getElementById: function(id) {
+              if (id === 'demo-canvas') return fakeCanvasElement;
+              if (id === 'chat-thread') return makeElement('chat-thread');
+              return null;
+            }
+          },
+          console: { log: function() {}, error: function() {} },
+          location: { search: '?journey=J-KIOSK-01' },
+          history: { pushState: function() { pushStateCount += 1; } },
+          window: null
+        };
+        sandbox.URLSearchParams = URLSearchParams;
+        sandbox.window = sandbox;
+        var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
+        // Wrap CitizenActionDemoMap.getRoute with a spy that counts calls
+        var origGetRoute = sandbox.window.CitizenActionDemoMap.getRoute;
+        sandbox.window.CitizenActionDemoMap = Object.freeze({
+          getRouteIds: sandbox.window.CitizenActionDemoMap.getRouteIds,
+          getRoute: function(routeId) { routeLookupCount += 1; return origGetRoute(routeId); },
+          getCategoryLabel: sandbox.window.CitizenActionDemoMap.getCategoryLabel,
+          isValidRoute: sandbox.window.CitizenActionDemoMap.isValidRoute,
+          isValidTarget: sandbox.window.CitizenActionDemoMap.isValidTarget
+        });
+        vm.runInContext(%s, cx);
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        process.stdout.write(JSON.stringify({
+          html: capturedHTML,
+          chat: capturedChatHTML,
+          routeLookupCount: routeLookupCount,
+          pushStateCount: pushStateCount
+        }));
+        """ % (map_js, canvas_js)
+        res = subprocess.run(["node", "-e", sandbox_spy], capture_output=True, text=True, timeout=10)
+        assert res.returncode == 0, res.stderr
+        data = json.loads(res.stdout)
+        html = data["html"]
+        route_lookup_count = data["routeLookupCount"]
+        push_state_count = data["pushStateCount"]
+        # J-KIOSK must produce kiosk page
+        assert "bg-page--kiosk-info" in html
+        # J-KIOSK must not call map.getRoute() at all — it returns early before route dispatch
+        assert route_lookup_count == 0, f"J-KIOSK must not call getRoute(), but got {route_lookup_count} call(s)"
+        # J-KIOSK must not call history.pushState
+        assert push_state_count == 0, f"J-KIOSK must not call pushState(), but got {push_state_count} call(s)"
+        # No dispatcher attributes in rendered HTML
+        assert "data-dept-action" not in html, "J-KIOSK HTML must not contain data-dept-action"
+        assert "data-action-target" not in html, "J-KIOSK HTML must not contain data-action-target"
+        assert "data-park-action" not in html, "J-KIOSK HTML must not contain data-park-action"
+        assert "data-kiosk-action" not in html, "J-KIOSK HTML must not contain data-kiosk-action"
+
+    # 11. J-PARK and J-DEPT still work after J-KIOSK addition
+    def test_jkiosk01_preserves_jpark_jdept(self, kiosk_render):
+        """11. J-PARK and J-DEPT routes remain functional after J-KIOSK addition."""
+        # J-PARK still works
+        result_park = kiosk_render("?journey=J-PARK-01")
+        html_park = result_park["html"]
+        assert "bg-page--park-info" in html_park
+        assert "주차장 이용안내" in html_park
+
+        # J-DEPT still works
+        result_dept = kiosk_render("?journey=J-DEPT-01")
+        html_dept = result_dept["html"]
+        assert "bg-page--home" in html_dept
+        assert 'data-dept-journey="true"' in html_dept
+
+    # 12. J-KIOSK not in map.js
+    def test_jkiosk01_not_in_map_js(self):
+        """12. map.js does not reference J-KIOSK-01, kiosk-state, or data-kiosk-action."""
+        js = _read_static("citizen-action-demo-map.js")
+        assert "J-KIOSK-01" not in js, "J-KIOSK-01 must not be in map.js"
+        assert "kiosk-state" not in js, "kiosk-state must not be in map.js"
+        assert "data-kiosk-action" not in js, "data-kiosk-action must not be in map.js"

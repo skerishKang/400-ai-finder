@@ -1,0 +1,59 @@
+{
+  "fixture_url": "http://127.0.0.1:8765/static/citizen-action-demo.html",
+  "viewport": {
+    "width": 1644,
+    "height": 756
+  },
+  "expected": {
+    "canvasWidth": 1344,
+    "chatWidth": 300
+  },
+  "canvas": {
+    "x": 0,
+    "y": 0,
+    "width": 1344,
+    "height": 756,
+    "display": "flex",
+    "visibility": "visible"
+  },
+  "chat_shell": {
+    "x": 1344,
+    "y": 0,
+    "width": 300,
+    "height": 756,
+    "display": "flex",
+    "visibility": "visible"
+  },
+  "legacy_rail": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "display": "none",
+    "visibility": "visible"
+  },
+  "chat_text": "AI 민원 도우미 데모 불법 주정차 신고는 어디서 하나요? A 북구청 홈페이지에서 신고 경로를 확인하겠습니다. A 종합민원 메뉴에서 온라인 민원신청 경로를 찾고 있습니다. 진행 단계 ✓ 홈 ● 신청 ○ 확인 ○ 종료 보내기 로컬 시연 — 입력이 비활성화되어 있습니다.",
+  "turn_offsets": [
+    13,
+    35,
+    64
+  ],
+  "checks": {
+    "canvas_geometry": true,
+    "chat_geometry": true,
+    "approved_turns": true,
+    "forbidden_waiting_copy_absent": true,
+    "disabled_korean_send": true,
+    "legacy_rail_hidden": true
+  },
+  "storage": {
+    "localStorageKeys": [],
+    "sessionStorageKeys": [],
+    "writes": []
+  },
+  "console_errors": [],
+  "page_errors": [],
+  "external_requests": [],
+  "cookies": [],
+  "result": "passed"
+}
