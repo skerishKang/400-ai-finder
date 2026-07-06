@@ -975,12 +975,16 @@ class TestJDept01SpecificContracts:
                     inner = sel_part[4:-1]
                     for sub_sel in [s.strip() for s in inner.split(",")]:
                         assert (sub_sel.startswith(".bg-page--dept-directory") or
-                                sub_sel.startswith(".bg-page--home[data-dept-journey=\"true\"]")), \
+                                sub_sel.startswith(".bg-page--home[data-dept-journey=\"true\"]") or
+                                sub_sel.startswith(".bg-page--home[data-dept-replay=\"true\"]") or
+                                sub_sel.startswith(".bg-page--dept-replay")), \
                             f"prohibited inner is selector: {sub_sel}"
                     continue
 
                 assert (sel_part.startswith(".bg-page--dept-directory") or
-                        sel_part.startswith(".bg-page--home[data-dept-journey=\"true\"]")), \
+                        sel_part.startswith(".bg-page--home[data-dept-journey=\"true\"]") or
+                        sel_part.startswith(".bg-page--home[data-dept-replay=\"true\"]") or
+                        sel_part.startswith(".bg-page--dept-replay")), \
                     f"prohibited unscoped J-DEPT selector: {sel_part}"
 
     def test_jdept01_shared_public_shell_css_contract(self, dept_render):
@@ -1230,6 +1234,214 @@ class TestJDept01SpecificContracts:
         css = _read_static("citizen-action-demo-canvas.css")
         assert ".bg-home-gnb__item--dept:hover" in css
         assert ".bg-home-gnb__item--dept:focus-within" in css
+
+
+# ---------------------------------------------------------------------------
+class TestJDept01ReplayContracts:
+    @pytest.fixture(scope="class")
+    def replay_render(self):
+        def _render(query: str):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            var eventListeners = {};
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function(event, handler) { eventListeners[id + ':' + event] = handler; },
+                querySelector: function() { return null; }
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              history: { pushState: function(state, title, url) { sandbox.location.search = url.substring(url.indexOf('?')); } },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+            process.stdout.write(JSON.stringify({ html: capturedHTML, chat: capturedChatHTML }));
+            """ % (json.dumps(query), map_js, canvas_js)
+            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return json.loads(res.stdout)
+        return _render
+
+    def test_replay_gate_exact_opt_in_and_fail_closed(self, replay_render):
+        ready = replay_render("?replay=J-DEPT-01")
+        assert 'data-dept-replay="true"' in ready["html"]
+        assert 'data-dept-replay-step="ready"' in ready["html"]
+        assert "공동주택 관련 문의는 어느 부서에 해야 하나요?" in ready["chat"]
+        assert "북구청 업무 및 전화번호 안내에서 담당 부서를 찾겠습니다." in ready["chat"]
+
+        for query in [
+            "?replay=J-DEPT-01&journey=J-DEPT-01",
+            "?replay=J-DEPT-01&replay=J-DEPT-01",
+            "?replay=J-DEPT-01&replay-step=directory&replay-step=result",
+            "?replay=J-DEPT-01&replay-step=bogus",
+            "?replay=J-DEPT-01&extra=1",
+            "?replay=j-dept-01",
+        ]:
+            result = replay_render(query)
+            assert 'data-dept-replay="true"' not in result["html"], query
+            assert "공동주택 관련 문의는 공동주택과에서 담당합니다." not in result["chat"], query
+
+    def test_replay_state_ordering_and_exact_messages(self, replay_render):
+        directory = replay_render("?replay=J-DEPT-01&replay-step=directory")
+        assert 'data-dept-replay-step="directory"' in directory["html"]
+        assert "홈</span> &gt; <span>북구소개</span> &gt; <span>구청안내</span> &gt; <strong>업무 및 전화번호 안내</strong>" in directory["html"]
+        assert "북구소개 &gt; 구청안내 &gt; 업무 및 전화번호 안내에서 담당 부서를 확인하고 있습니다." in directory["chat"]
+        assert "공동주택과에서 담당합니다" not in directory["chat"]
+
+        result = replay_render("?replay=J-DEPT-01&replay-step=result")
+        assert 'data-dept-replay-step="result"' in result["html"]
+        assert 'value="공동주택"' in result["html"]
+        assert "전체 <strong>9</strong>명, 현재 페이지 <strong>1/1</strong>" in result["html"]
+        assert result["html"].count("<tbody>") == 1
+        assert "공동주택과</td>" in result["html"]
+        assert "062-410-6033" in result["html"]
+        assert "공동주택과 업무전반" in result["html"]
+        assert "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다." in result["chat"]
+
+    def test_replay_controls_are_user_advanced_and_local_only(self):
+        map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+        canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+        sandbox_init = """
+        'use strict';
+        var vm = require('vm');
+        var capturedHTML = '';
+        var capturedChatHTML = '';
+        var capturedClickHandler = null;
+        var pushed = [];
+        var fetched = 0;
+        var storageHits = 0;
+        function makeElement(id) {
+          return {
+            id: id,
+            get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+            set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+            addEventListener: function(event, handler) {
+              if (event === 'click' && id === 'demo-canvas') capturedClickHandler = handler;
+            },
+            querySelector: function() { return null; }
+          };
+        }
+        var fakeCanvasElement = makeElement('demo-canvas');
+        var sandbox = {
+          document: {
+            getElementById: function(id) {
+              if (id === 'demo-canvas') return fakeCanvasElement;
+              if (id === 'chat-thread') return makeElement('chat-thread');
+              return null;
+            }
+          },
+          console: { log: function() {}, error: function() {} },
+          location: { search: '?replay=J-DEPT-01' },
+          history: {
+            pushState: function(state, title, url) {
+              pushed.push(url);
+              sandbox.location.search = url.substring(url.indexOf('?'));
+            }
+          },
+          fetch: function() { fetched += 1; },
+          localStorage: { getItem: function() { storageHits += 1; }, setItem: function() { storageHits += 1; } },
+          sessionStorage: { getItem: function() { storageHits += 1; }, setItem: function() { storageHits += 1; } },
+          window: null
+        };
+        sandbox.URLSearchParams = URLSearchParams;
+        sandbox.window = sandbox;
+        var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+
+        function click(action) {
+          var preventDefaultCalled = false;
+          capturedClickHandler({
+            target: {
+              closest: function(sel) {
+                if (sel === '[data-dept-replay-action]') {
+                  return { getAttribute: function() { return action; } };
+                }
+                return null;
+              }
+            },
+            preventDefault: function() { preventDefaultCalled = true; }
+          });
+          return preventDefaultCalled;
+        }
+
+        var startPrevented = click('start');
+        var afterStart = { search: sandbox.location.search, html: capturedHTML, chat: capturedChatHTML };
+        var nextPrevented = click('next');
+        var afterNext = { search: sandbox.location.search, html: capturedHTML, chat: capturedChatHTML };
+        var restartPrevented = click('restart');
+        var afterRestart = { search: sandbox.location.search, html: capturedHTML, chat: capturedChatHTML };
+
+        process.stdout.write(JSON.stringify({
+          pushed: pushed,
+          fetched: fetched,
+          storageHits: storageHits,
+          startPrevented: startPrevented,
+          nextPrevented: nextPrevented,
+          restartPrevented: restartPrevented,
+          afterStart: afterStart,
+          afterNext: afterNext,
+          afterRestart: afterRestart
+        }));
+        """ % (map_js, canvas_js)
+        res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+        assert res.returncode == 0, res.stderr
+        data = json.loads(res.stdout)
+
+        assert data["pushed"] == [
+            "?replay=J-DEPT-01&replay-step=directory",
+            "?replay=J-DEPT-01&replay-step=result",
+            "?replay=J-DEPT-01",
+        ]
+        assert data["fetched"] == 0
+        assert data["storageHits"] == 0
+        assert data["startPrevented"] is True
+        assert data["nextPrevented"] is True
+        assert data["restartPrevented"] is True
+        assert 'data-dept-replay-step="directory"' in data["afterStart"]["html"]
+        assert "다음" in data["afterStart"]["html"]
+        assert "다시 시작" in data["afterStart"]["html"]
+        assert 'data-dept-replay-step="result"' in data["afterNext"]["html"]
+        assert "공동주택과 업무전반" in data["afterNext"]["html"]
+        assert 'data-dept-replay-step="ready"' in data["afterRestart"]["html"]
+        assert "시작" in data["afterRestart"]["html"]
+
+    def test_non_replay_journey_routes_remain_available(self, replay_render):
+        dept = replay_render("?journey=J-DEPT-01&dept-state=result")
+        assert "공동주택과 업무전반" in dept["html"]
+        assert 'data-dept-replay="true"' not in dept["html"]
+
+        park = replay_render("?journey=J-PARK-01")
+        assert "주차장 이용안내" in park["html"]
+        assert 'data-dept-replay="true"' not in park["html"]
+
+        kiosk = replay_render("?journey=J-KIOSK-01")
+        assert "무인민원발급기 설치장소(50개소)" in kiosk["html"]
+        assert 'data-dept-replay="true"' not in kiosk["html"]
 
 
 # ---------------------------------------------------------------------------
