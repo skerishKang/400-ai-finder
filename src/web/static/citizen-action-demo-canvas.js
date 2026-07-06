@@ -412,21 +412,50 @@
     return { isAuto: true, step: step };
   }
 
-  function _renderAutoReplayControls(step) {
+  function _resolveAutoReplayState(search) {
+    var params = new URLSearchParams(search || "");
+    var replayValues = params.getAll("replay");
+    if (replayValues.length !== 1 || replayValues[0] !== "J-DEPT-01") {
+      return { isAuto: false, step: "" };
+    }
+    var modeValues = params.getAll("replay-mode");
+    if (modeValues.length !== 1 || modeValues[0] !== "auto") {
+      return { isAuto: false, step: "" };
+    }
+    var replaySteps = params.getAll("replay-step");
+    if (replaySteps.length > 1) {
+      return { isAuto: false, step: "" };
+    }
+    var allKeys = Array.from(params.keys());
+    for (var i = 0; i < allKeys.length; i++) {
+      if (allKeys[i] !== "replay" && allKeys[i] !== "replay-mode" && allKeys[i] !== "replay-step") {
+        return { isAuto: false, step: "" };
+      }
+    }
+    var validSteps = ["", "route", "directory", "search", "result"];
+    var step = replaySteps.length === 0 ? "" : replaySteps[0];
+    if (validSteps.indexOf(step) === -1) {
+      return { isAuto: false, step: "" };
+    }
+    if (step === "") {
+      return { isAuto: true, step: "ready" };
+    }
+    return { isAuto: true, step: step };
+  }
+
+  // Auto-replay controls
+  function _renderAutoReplayControls(step, status) {
     var buttons = [];
-    if (step === "ready") {
-      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-dept-replay-action="start">시작</button>');
-    } else if (step === "route") {
-      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-replay-pause>일시정지</button>');
-      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-dept-replay-action="restart">다시 보기</button>');
-    } else if (step === "directory") {
-      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-replay-pause>일시정지</button>');
-      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-dept-replay-action="restart">다시 보기</button>');
-    } else if (step === "search") {
-      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-replay-pause>일시정지</button>');
-      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-dept-replay-action="restart">다시 보기</button>');
-    } else if (step === "result") {
-      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-dept-replay-action="restart">다시 보기</button>');
+    if (step === "ready" || step === "") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="start" data-auto-replay-status="ready">시연 시작</button>');
+    } else if (status === "running") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="pause" data-auto-replay-status="running">일시정지</button>');
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-auto-replay-action="restart" data-auto-replay-status="complete">다시 보기</button>');
+    } else if (status === "paused") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="resume" data-auto-replay-status="running">계속</button>');
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-auto-replay-action="restart" data-auto-replay-status="complete">다시 보기</button>');
+    } else if (status === "complete") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-auto-replay-action="restart" data-auto-replay-status="complete">다시 보기</button>');
     }
     return '<div class="bg-dept-replay-controls" aria-label="자동 재현 제어">' + buttons.join("") + '</div>';
   }
@@ -441,6 +470,35 @@
     var text = bubbles[step] || "";
     if (!text) return "";
     return '<div class="bg-dept-action-bubble" aria-live="polite">' + text + '</div>';
+  }
+
+  function _updateChatProgressForAutoReplay(step) {
+    var thread = document.getElementById("chat-thread");
+    if (!thread) return;
+    var approvedChat = [
+      '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">공동주택 관련 문의는 어느 부서에 해야 하나요?</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내 경로를 확인하겠습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구소소 메뉴에서 업무 및 전화번호 안내를 확인하고 있습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 담당 부서를 검색하고 있습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.</div></div>'
+    ];
+    var renderCount;
+    if (step === "ready" || step === "") {
+      renderCount = 2;
+    } else if (step === "route") {
+      renderCount = 3;
+    } else if (step === "directory") {
+      renderCount = 4;
+    } else if (step === "search" || step === "result") {
+      renderCount = 5;
+    } else {
+      renderCount = 2;
+    }
+    var html = "";
+    for (var i = 0; i < renderCount; i++) {
+      html += approvedChat[i];
+    }
+    thread.innerHTML = html;
   }
 
   function _renderDeptReplayControls(step) {
