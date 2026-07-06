@@ -2568,6 +2568,31 @@ class TestAutoReplayVisiblePhaseFeedback:
         result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
         assert result["timerCount"] == 0
 
+    def test_route_overlay_gnb_geometry(self):
+        """Verify the route-phase GNB overlay coordinates match the measured 북구소개 position."""
+        css = _read_static("citizen-action-demo-canvas.css")
+        # Extract the bg-auto-target--gnb-dept rule block
+        import re
+        target_match = re.search(
+            r'\[data-dept-auto-replay="true"\]\s*\.bg-auto-target--gnb-dept\s*\{([^}]+)\}',
+            css
+        )
+        assert target_match is not None, "bg-auto-target--gnb-dept rule not found"
+        target_block = target_match.group(1)
+        assert "top: 68px" in target_block, f"Expected top: 68px in target rule, got block: {target_block}"
+        assert "left: 828px" in target_block, f"Expected left: 828px in target rule"
+        assert "width: 90px" in target_block, f"Expected width: 90px in target rule"
+        assert "height: 38px" in target_block, f"Expected height: 38px in target rule"
+
+        cursor_match = re.search(
+            r'\[data-dept-auto-replay="true"\]\s*\.bg-auto-cursor--gnb\s*\{([^}]+)\}',
+            css
+        )
+        assert cursor_match is not None, "bg-auto-cursor--gnb rule not found"
+        cursor_block = cursor_match.group(1)
+        assert "top: 80px" in cursor_block, f"Expected top: 80px in cursor rule, got block: {cursor_block}"
+        assert "left: 900px" in cursor_block, f"Expected left: 900px in cursor rule"
+
 
 class TestAutoReplayDirectPhaseGate:
     @pytest.mark.parametrize("step", AUTO_PHASES)
