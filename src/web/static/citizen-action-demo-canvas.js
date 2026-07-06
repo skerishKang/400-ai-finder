@@ -381,6 +381,68 @@
     return { isReplay: false, step: "" };
   }
 
+  function _resolveAutoReplayState(search) {
+    var params = new URLSearchParams(search || "");
+    var replayValues = params.getAll("replay");
+    if (replayValues.length !== 1 || replayValues[0] !== "J-DEPT-01") {
+      return { isAuto: false, step: "" };
+    }
+    var modeValues = params.getAll("replay-mode");
+    if (modeValues.length !== 1 || modeValues[0] !== "auto") {
+      return { isAuto: false, step: "" };
+    }
+    var replaySteps = params.getAll("replay-step");
+    if (replaySteps.length > 1) {
+      return { isAuto: false, step: "" };
+    }
+    var allKeys = Array.from(params.keys());
+    for (var i = 0; i < allKeys.length; i++) {
+      if (allKeys[i] !== "replay" && allKeys[i] !== "replay-mode" && allKeys[i] !== "replay-step") {
+        return { isAuto: false, step: "" };
+      }
+    }
+    var validSteps = ["", "route", "directory", "search", "result"];
+    var step = replaySteps.length === 0 ? "" : replaySteps[0];
+    if (validSteps.indexOf(step) === -1) {
+      return { isAuto: false, step: "" };
+    }
+    if (step === "") {
+      return { isAuto: true, step: "ready" };
+    }
+    return { isAuto: true, step: step };
+  }
+
+  function _renderAutoReplayControls(step) {
+    var buttons = [];
+    if (step === "ready") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-dept-replay-action="start">시작</button>');
+    } else if (step === "route") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-replay-pause>일시정지</button>');
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-dept-replay-action="restart">다시 보기</button>');
+    } else if (step === "directory") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-replay-pause>일시정지</button>');
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-dept-replay-action="restart">다시 보기</button>');
+    } else if (step === "search") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-replay-pause>일시정지</button>');
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-dept-replay-action="restart">다시 보기</button>');
+    } else if (step === "result") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-dept-replay-action="restart">다시 보기</button>');
+    }
+    return '<div class="bg-dept-replay-controls" aria-label="자동 재현 제어">' + buttons.join("") + '</div>';
+  }
+
+  function _renderAutoActionBubble(step) {
+    var bubbles = {
+      "route": "업무 및 전화번호 안내 경로를 확인합니다",
+      "directory": "북구소개 메뉴를 선택합니다",
+      "search": "공동주택을 검색합니다",
+      "result": "담당 부서와 연락처를 확인했습니다"
+    };
+    var text = bubbles[step] || "";
+    if (!text) return "";
+    return '<div class="bg-dept-action-bubble" aria-live="polite">' + text + '</div>';
+  }
+
   function _renderDeptReplayControls(step) {
     var buttons = [];
     if (step === "ready") {
@@ -1582,6 +1644,17 @@
   // -----------------------------------------------------------------------
   function _renderRoute(routeId) {
     var search = typeof window !== "undefined" && window.location ? window.location.search : "";
+    var autoReplay = _resolveAutoReplayState(search);
+    if (autoReplay.isAuto) {
+      _updateChatProgressForAutoReplay(autoReplay.step);
+      var html = "";
+      if (autoReplay.step === "ready") {
+        html = _renderHome(_resolveHomeReferenceState(search));
+      } else {
+        html = _renderDeptReplay(autoReplay.step);
+      }
+      return html;
+    }
     var deptReplay = _resolveDeptReplayState(search);
     if (deptReplay.isReplay) {
       _updateChatProgressForDeptReplay(deptReplay.step);

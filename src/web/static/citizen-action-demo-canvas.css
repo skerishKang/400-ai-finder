@@ -1977,7 +1977,33 @@
    J-DEPT-01 specific scoped styles
    --------------------------------------------------------------------------- */
 
-/* Home & sub-route J-DEPT-01 shared public shell styles */
+/* Auto J-DEPT-01 replay action-bubble scoped styles. */
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-action-bubble {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0054A6;
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  z-index: 1000;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+  transition: opacity 0.4s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-action-bubble {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* Paused state — dim bubble */
+.bg-page--dept-replay[data-replay-paused] .bg-dept-action-bubble {
+  opacity: 0.4;
+}
 :is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-home-controls {
   max-width: 914px;
   margin: 18px auto 0;
