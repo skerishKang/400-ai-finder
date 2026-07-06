@@ -15,7 +15,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.llm import MockProvider
+from src.llm import MockProvider, ProviderResult
 from src.answer.answer_composer import AnswerComposer, compose_answer
 
 # ------------------------------------------------------------------
@@ -293,19 +293,48 @@ class TestNoSearchResults:
 # Full composition with mock provider
 # ======================================================================
 
+class _SourceMatchProvider(MockProvider):
+    """Provider that returns answer text referencing source URLs from context."""
+
+    def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+        # Extract source URLs from the user message to include in answer.
+        source_urls = []
+        for line in messages[1]["content"].splitlines():
+            if line.startswith("url: ") and line != "url: ":
+                source_urls.append(line[5:])
+        url_section = "\n".join(
+            f"- [자료](<{u}>)" for u in source_urls
+        )
+        content = (
+            "## 답변\n\n"
+            "검색 결과에 따르면 관련 정보를 찾았습니다.\n\n"
+            "## 관련 자료\n\n"
+            f"{url_section}\n\n"
+            "## 다음 단계\n\n"
+            "1. 관련 페이지를 확인합니다.\n\n"
+            "## 확인 필요\n\n"
+            "정확한 최신 내용은 연결된 공식 홈페이지에서 확인해 주세요."
+        )
+        return ProviderResult(
+            provider="source_match",
+            model="source_match",
+            ok=True,
+            content=content,
+            error="",
+        )
+
+
 class TestComposeWithMock:
     def test_mock_compose_returns_answer(self):
-        """Mock provider compose returns a valid answer."""
-        composer = AnswerComposer(provider="mock")
+        """Provider compose returns a valid answer with allowlisted URLs."""
+        composer = AnswerComposer(provider=_SourceMatchProvider())
         result = composer.compose(SAMPLE_SEARCH_RESULTS)
         assert result["ok"] is True
         assert result["answer_markdown"]  # non-empty
-        assert result["provider"] == "mock"
-        assert result["model"] == "mock"
 
     def test_sources_preserved(self):
         """Sources list is preserved in the output."""
-        composer = AnswerComposer(provider="mock")
+        composer = AnswerComposer(provider=_SourceMatchProvider())
         result = composer.compose(SAMPLE_SEARCH_RESULTS)
         assert len(result["sources"]) == 2
         assert result["sources"][0]["title"] == "신청서 양식"
@@ -313,7 +342,7 @@ class TestComposeWithMock:
 
     def test_sources_evidence_fields_preserved(self):
         """Evidence fields are preserved in output sources."""
-        composer = AnswerComposer(provider="mock")
+        composer = AnswerComposer(provider=_SourceMatchProvider())
         result = composer.compose(SAMPLE_SEARCH_RESULTS)
         s1 = result["sources"][0]
         assert s1["score"] == 15.0
@@ -325,7 +354,7 @@ class TestComposeWithMock:
 
     def test_query_preserved(self):
         """Query string is preserved in the output."""
-        composer = AnswerComposer(provider="mock")
+        composer = AnswerComposer(provider=_SourceMatchProvider())
         result = composer.compose(SAMPLE_SEARCH_RESULTS)
         assert result["query"] == "신청서 제출서류"
 
@@ -387,7 +416,7 @@ class TestComposeAnswerFunction:
     def test_compose_answer_returns_result(self):
         """compose_answer() convenience function works."""
         result = compose_answer(
-            SAMPLE_SEARCH_RESULTS, provider="mock",
+            SAMPLE_SEARCH_RESULTS, provider=_SourceMatchProvider(),
         )
         assert result["ok"] is True
         assert "답변" in result["answer_markdown"]
@@ -470,7 +499,7 @@ class TestNoSourceGuidance:
 
     def test_source_backed_answer_behavior_unchanged(self):
         """Composer still returns source-backed answer with sources."""
-        composer = AnswerComposer(provider="mock")
+        composer = AnswerComposer(provider=_SourceMatchProvider())
         result = composer.compose(SAMPLE_SEARCH_RESULTS)
         assert result["ok"] is True
         assert result["answer_markdown"]
