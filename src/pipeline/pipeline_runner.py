@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from datetime import datetime
 from typing import Any
 
@@ -21,6 +22,7 @@ from ..search.query_rewriter import rewrite_query_candidates
 from ..answer.answer_composer import AnswerComposer
 from ..analytics.question_logger import QuestionLogger, NoOpQuestionLogger
 from ..fetch.sanitization import safe_failure_message
+from ..observability import get_event_logger, log_pipeline_event, new_correlation_id
 
 
 class PipelineRunner:
@@ -56,7 +58,7 @@ class PipelineRunner:
     # Public API
     # ------------------------------------------------------------------
 
-    def run(self, url: str, query: str) -> dict[str, Any]:
+    def run(self, url: str, query: str, correlation_id: str | None = None) -> dict[str, Any]:
         """Execute the full pipeline.
 
         Steps:
@@ -69,50 +71,122 @@ class PipelineRunner:
         os.makedirs(self.output_dir, exist_ok=True)
 
         steps: list[dict[str, Any]] = []
-        overall_ok = True
+        event_logger = get_event_logger(__name__)
+        run_correlation_id = correlation_id if correlation_id is not None else new_correlation_id()
+        run_started_at = time.perf_counter()
+        final_result: dict[str, Any] | None = None
 
         # Stage 369: resolve site_id once per run so it can be forwarded
         # to query rewrite and question logging consistently.
         site_id = self._resolve_site_id(url)
 
-        # Step 1 — homepage map
-        step = self._step_homepage_map(url)
-        steps.append(step)
-        if not step["ok"]:
-            return self._final_result(url, query, steps, overall_ok=False)
+        def _duration_ms(started_at: float) -> int:
+            return int((time.perf_counter() - started_at) * 1000)
 
-        homepage_map = self._load_json(step["output"])
+        def _log_stage_start(stage: str) -> float:
+            started_at = time.perf_counter()
+            log_pipeline_event(
+                event_logger,
+                event="pipeline_stage_start",
+                correlation_id=run_correlation_id,
+                stage=stage,
+                site_id=site_id,
+            )
+            return started_at
 
-        # Step 2 — document index
-        step = self._step_document_index(homepage_map)
-        steps.append(step)
-        if not step["ok"]:
-            return self._final_result(url, query, steps, overall_ok=False)
+        def _log_stage_end(stage: str, started_at: float, ok: bool) -> None:
+            event_name = "pipeline_stage_end" if ok else "pipeline_stage_fail"
+            kwargs: dict[str, Any] = {}
+            if not ok:
+                kwargs["failure_code"] = "pipeline_step_failed"
+            log_pipeline_event(
+                event_logger,
+                event=event_name,
+                correlation_id=run_correlation_id,
+                stage=stage,
+                ok=ok,
+                duration_ms=_duration_ms(started_at),
+                site_id=site_id,
+                **kwargs,
+            )
 
-        # Step 3 — enriched index
-        step = self._step_enriched_index(step["output"])
-        steps.append(step)
-        if not step["ok"]:
-            return self._final_result(url, query, steps, overall_ok=False)
+        log_pipeline_event(
+            event_logger,
+            event="pipeline_run_start",
+            correlation_id=run_correlation_id,
+            site_id=site_id,
+        )
 
-        # Step 4 — search
-        step = self._step_search(query, step["output"], site_id=site_id)
-        steps.append(step)
-        if not step["ok"]:
-            return self._final_result(url, query, steps, overall_ok=False)
+        try:
+            # Step 1 — homepage map
+            stage_started_at = _log_stage_start("homepage_map")
+            step = self._step_homepage_map(url)
+            steps.append(step)
+            _log_stage_end("homepage_map", stage_started_at, step["ok"])
+            if not step["ok"]:
+                final_result = self._final_result(url, query, steps, overall_ok=False)
+                return final_result
 
-        # Step 5 — answer
-        step = self._step_answer(query, step["output"])
-        steps.append(step)
+            homepage_map = self._load_json(step["output"])
 
-        # Emit question log event
-        self._emit_question_log(url, query, steps, site_id=site_id)
+            # Step 2 — document index
+            stage_started_at = _log_stage_start("document_index")
+            step = self._step_document_index(homepage_map)
+            steps.append(step)
+            _log_stage_end("document_index", stage_started_at, step["ok"])
+            if not step["ok"]:
+                final_result = self._final_result(url, query, steps, overall_ok=False)
+                return final_result
 
-        if not step["ok"]:
-            return self._final_result(url, query, steps, overall_ok=False)
+            # Step 3 — enriched index
+            stage_started_at = _log_stage_start("enriched_index")
+            step = self._step_enriched_index(step["output"])
+            steps.append(step)
+            _log_stage_end("enriched_index", stage_started_at, step["ok"])
+            if not step["ok"]:
+                final_result = self._final_result(url, query, steps, overall_ok=False)
+                return final_result
 
-        answer_markdown = self._load_json(step["output"]).get("answer_markdown", "")
-        return self._final_result(url, query, steps, overall_ok=True, answer_markdown=answer_markdown)
+            # Step 4 — search
+            stage_started_at = _log_stage_start("search")
+            step = self._step_search(query, step["output"], site_id=site_id)
+            steps.append(step)
+            _log_stage_end("search", stage_started_at, step["ok"])
+            if not step["ok"]:
+                final_result = self._final_result(url, query, steps, overall_ok=False)
+                return final_result
+
+            # Step 5 — answer
+            stage_started_at = _log_stage_start("answer")
+            step = self._step_answer(query, step["output"])
+            steps.append(step)
+            _log_stage_end("answer", stage_started_at, step["ok"])
+
+            # Emit question log event
+            self._emit_question_log(url, query, steps, site_id=site_id)
+
+            if not step["ok"]:
+                final_result = self._final_result(url, query, steps, overall_ok=False)
+                return final_result
+
+            answer_markdown = self._load_json(step["output"]).get("answer_markdown", "")
+            final_result = self._final_result(
+                url,
+                query,
+                steps,
+                overall_ok=True,
+                answer_markdown=answer_markdown,
+            )
+            return final_result
+        finally:
+            ok = bool(final_result and final_result.get("ok"))
+            log_pipeline_event(
+                event_logger,
+                event="pipeline_run_end",
+                correlation_id=run_correlation_id,
+                ok=ok,
+                duration_ms=_duration_ms(run_started_at),
+            )
 
     def _emit_question_log(
         self,
