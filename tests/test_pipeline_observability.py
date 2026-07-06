@@ -238,6 +238,43 @@ def test_pipeline_run_uses_injected_correlation_id_unchanged(
     assert {record["correlation_id"] for record in event_records} == {injected_id}
 
 
+@patch("src.pipeline.pipeline_runner.AnswerComposer")
+@patch("src.pipeline.pipeline_runner.KeywordSearcher")
+@patch("src.pipeline.pipeline_runner.DocumentEnricher")
+@patch("src.pipeline.pipeline_runner.DocumentIndexer")
+@patch("src.pipeline.pipeline_runner.HomepageMapper")
+def test_pipeline_run_preserves_empty_injected_correlation_id(
+    MockMapper,
+    MockIndexer,
+    MockEnricher,
+    MockSearcher,
+    MockComposer,
+    tmp_output_dir: str,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch,
+) -> None:
+    _configure_successful_pipeline(
+        MockMapper, MockIndexer, MockEnricher, MockSearcher, MockComposer
+    )
+    runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+    monkeypatch.setattr(runner, "_resolve_site_id", lambda url: None)
+
+    with caplog.at_level(logging.INFO, logger="src.pipeline.pipeline_runner"):
+        with patch(
+            "src.pipeline.pipeline_runner.new_correlation_id",
+            side_effect=AssertionError("new correlation ID must not be generated"),
+        ):
+            runner.run(
+                url="https://example.com",
+                query="신청서 제출서류",
+                correlation_id="",
+            )
+
+    event_records = _extract_pipeline_records(caplog)
+    assert event_records
+    assert {record["correlation_id"] for record in event_records} == {""}
+
+
 def test_new_correlation_id_is_opaque_hex() -> None:
     from src.observability.event_logger import new_correlation_id
 
