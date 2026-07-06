@@ -2671,3 +2671,274 @@ class TestAutoReplayVisiblePhaseFeedback:
         assert 'class="bg-auto-cursor' not in html, "manual replay must not have auto cursor"
         assert 'class="bg-auto-target-highlight' not in html, "manual replay must not have auto target highlight"
         assert 'class="bg-auto-click-feedback' not in html, "manual replay must not have auto click feedback"
+
+
+# ---------------------------------------------------------------------------
+# Stage 864-A corrective: direct phase gate and restart semantics
+# ---------------------------------------------------------------------------
+
+class TestAutoReplayDirectPhaseGate:
+    """Tests that direct phase URLs are fail-closed static until user starts."""
+
+    @pytest.fixture(scope="class")
+    def auto_render_with_timers(self):
+        def _render(query: str):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            var timers = [];
+            var intervalCount = 0;
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function() {},
+                querySelector: function() { return null; }
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              history: { pushState: function() {} },
+              setTimeout: function(fn, ms) { timers.push({ms: ms}); return timers.length; },
+              clearTimeout: function(id) { if (id && timers[id - 1]) { timers[id - 1] = null; } },
+              setInterval: function() { intervalCount += 1; return -1; },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+            process.stdout.write(JSON.stringify({
+              html: capturedHTML,
+              chat: capturedChatHTML,
+              timerCount: timers.filter(function(t) { return t !== null; }).length,
+              intervalCount: intervalCount
+            }));
+            """ % (json.dumps(query), map_js, canvas_js)
+            res = _run_node_script_file(sandbox_init, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return json.loads(res.stdout)
+        return _render
+
+    @pytest.fixture(scope="class")
+    def auto_interact(self):
+        def _interact(query, actions):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            var capturedClickHandler = null;
+            var timers = [];
+            var intervalCount = 0;
+            var pushed = [];
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function(event, handler) {
+                  if (event === 'click' && id === 'demo-canvas') capturedClickHandler = handler;
+                },
+                querySelector: function() { return null; }
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              history: {
+                pushState: function(state, title, url) {
+                  pushed.push(url);
+                  sandbox.location.search = url.substring(url.indexOf('?'));
+                }
+              },
+              setTimeout: function(fn, ms) { timers.push({fn: fn, ms: ms}); return timers.length; },
+              clearTimeout: function(id) { if (id && timers[id - 1]) { timers[id - 1] = null; } },
+              setInterval: function() { intervalCount += 1; return -1; },
+              fetch: function() {},
+              localStorage: { getItem: function() {}, setItem: function() {} },
+              sessionStorage: { getItem: function() {}, setItem: function() {} },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+
+            var actionList = %s;
+            var results = [];
+            for (var a = 0; a < actionList.length; a++) {
+              var act = actionList[a];
+              if (act.type === 'click') {
+                capturedClickHandler({
+                  target: {
+                    closest: function(sel) {
+                      if (sel === '[data-auto-replay-action]') {
+                        return { getAttribute: function() { return act.action; } };
+                      }
+                      return null;
+                    }
+                  },
+                  preventDefault: function() {}
+                });
+              } else if (act.type === 'fire-timer') {
+                var pending = timers.filter(function(t) { return t !== null; });
+                if (pending.length > 0) {
+                  pending[pending.length - 1].fn();
+                  timers[timers.indexOf(pending[pending.length - 1])] = null;
+                }
+              }
+              results.push({
+                html: capturedHTML,
+                chat: capturedChatHTML,
+                search: sandbox.location.search,
+                pendingTimers: timers.filter(function(t) { return t !== null; }).length
+              });
+            }
+            process.stdout.write(JSON.stringify({
+              results: results,
+              pushed: pushed,
+              intervalCount: intervalCount
+            }));
+            """ % (json.dumps(query), map_js, canvas_js, json.dumps(actions))
+            res = _run_node_script_file(sandbox_init, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return json.loads(res.stdout)
+        return _interact
+
+    # 1. Direct phase URLs show step markup but zero pending timers before user start
+    def test_direct_phase_urls_no_timers_before_start(self, auto_render_with_timers):
+        for step in ["route", "directory", "search", "result"]:
+            result = auto_render_with_timers("?replay=J-DEPT-01&replay-mode=auto&replay-step=" + step)
+            assert result["timerCount"] == 0, \
+                f"direct step '{step}' must have 0 pending timers, got {result['timerCount']}"
+            assert 'data-auto-replay-step="' + step + '"' in result["html"], \
+                f"direct step '{step}' must still show step markup"
+
+    # 2. Direct phase URL shows ready status and 시연 시작 control
+    def test_direct_phase_shows_ready_status_and_start_button(self, auto_render_with_timers):
+        for step in ["route", "directory", "search", "result"]:
+            result = auto_render_with_timers("?replay=J-DEPT-01&replay-mode=auto&replay-step=" + step)
+            html = result["html"]
+            assert 'data-auto-replay-status="ready"' in html, \
+                f"direct step '{step}' must show ready status"
+            assert "시연 시작" in html, \
+                f"direct step '{step}' must show 시연 시작 button"
+
+    # 3. Pending timer appears only after start click
+    def test_timer_only_after_start(self, auto_interact):
+        # Start from ready — after click, there should be a pending timer
+        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+            {"type": "click", "action": "start"}
+        ])
+        last = data["results"][-1]
+        assert last["pendingTimers"] >= 1, "start must schedule at least one timer"
+
+    def test_direct_phase_no_timer(self, auto_render_with_timers):
+        # Direct phase URL — no timers
+        result = auto_render_with_timers("?replay=J-DEPT-01&replay-mode=auto&replay-step=directory")
+        assert result["timerCount"] == 0, "direct phase URL must have 0 timers"
+
+    # 4. Start → restart returns to ready URL, step/status ready, 0 timers, 시연 시작 only
+    def test_start_then_restart_returns_to_ready(self, auto_interact):
+        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+            {"type": "click", "action": "start"},
+            {"type": "click", "action": "restart"}
+        ])
+        last = data["results"][-1]
+        assert last["search"] == "?replay=J-DEPT-01&replay-mode=auto", \
+            f"restart must return URL to ready, got {last['search']}"
+        assert 'data-auto-replay-step="ready"' in last["html"], \
+            "restart must show step=ready"
+        assert 'data-auto-replay-status="ready"' in last["html"], \
+            "restart must show status=ready"
+        assert last["pendingTimers"] == 0, \
+            "restart must clear all timers"
+        assert "시연 시작" in last["html"], \
+            "restart must show 시연 시작"
+        # Verify no other auto-replay control buttons
+        assert "일시정지" not in last["html"], \
+            "restart must not show pause button"
+        assert "계속" not in last["html"], \
+            "restart must not show resume button"
+
+    # 5. Normal start playback, pause/resume, one-timer/no-setInterval preserved
+    def test_normal_playback_preserved(self, auto_interact):
+        # Full start → route → directory → search → result
+        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+        ])
+        assert data["intervalCount"] == 0, "no setInterval allowed"
+        final = data["results"][-1]
+        assert "공동주택과" in final["html"], "result phase must show data"
+        # Each running step should have at most 1 pending timer
+        for r in data["results"]:
+            assert r["pendingTimers"] <= 1, "at most 1 pending timer"
+
+    # 6. Pause/resume preserves current phase
+    def test_pause_resume_preserves_phase(self, auto_interact):
+        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "click", "action": "pause"},
+            {"type": "click", "action": "resume"},
+        ])
+        paused = data["results"][2]
+        resumed = data["results"][3]
+        assert 'data-auto-replay-status="paused"' in paused["html"]
+        assert 'data-auto-replay-status="running"' in resumed["html"]
+        # Same phase after resume
+        paused_step = re.search(r'data-auto-replay-step="([^"]*)"', paused["html"])
+        resumed_step = re.search(r'data-auto-replay-step="([^"]*)"', resumed["html"])
+        assert paused_step and resumed_step, "must have step attributes"
+        assert paused_step.group(1) == resumed_step.group(1), \
+            "resume must preserve current phase"
+
+    # 7. Direct ready URL also has zero timers
+    def test_ready_url_zero_timers(self, auto_render_with_timers):
+        result = auto_render_with_timers("?replay=J-DEPT-01&replay-mode=auto")
+        assert result["timerCount"] == 0, "ready URL must have 0 timers"
+        assert 'data-auto-replay-status="ready"' in result["html"]
+
+    # 8. Restart from running mid-phase clears timer and goes to ready
+    def test_restart_from_running_clears_timer(self, auto_interact):
+        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "click", "action": "restart"},
+        ])
+        after_restart = data["results"][-1]
+        assert after_restart["pendingTimers"] == 0, \
+            "restart from running must clear timer"
+        assert 'data-auto-replay-status="ready"' in after_restart["html"]

@@ -386,6 +386,7 @@
     phase: "",
     status: "idle",
     pendingTimer: null,
+    userStarted: false,
     phaseOrder: ["route", "directory", "search", "result"]
   };
 
@@ -426,7 +427,7 @@
   // Auto-replay controls
   function _renderAutoReplayControls(step, status) {
     var buttons = [];
-    if (step === "ready" || step === "") {
+    if (step === "ready" || step === "" || status === "ready") {
       buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="start">시연 시작</button>');
     } else if (status === "running") {
       buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="pause">일시정지</button>');
@@ -1806,14 +1807,25 @@
     var search = typeof window !== "undefined" && window.location ? window.location.search : "";
     var autoReplay = _resolveAutoReplayState(search);
     if (autoReplay.isAuto) {
-      var status = autoReplay.step === "ready" ? "ready" : _autoReplayState.status;
-      if (!status || status === "idle") {
-        status = autoReplay.step === "result" ? "complete" : "running";
+      var status;
+      if (_autoReplayState.userStarted && _autoReplayState.status === "running") {
+        status = "running";
+      } else if (_autoReplayState.userStarted && _autoReplayState.status === "paused") {
+        status = "paused";
+      } else if (_autoReplayState.userStarted && _autoReplayState.status === "complete") {
+        status = "complete";
+      } else {
+        status = "ready";
+        _autoReplayState.userStarted = false;
       }
       _autoReplayState.phase = autoReplay.step;
       _autoReplayState.status = status;
       _updateChatProgressForAutoReplay(autoReplay.step);
-      _scheduleAutoReplayAdvance(autoReplay.step);
+      if (status === "running") {
+        _scheduleAutoReplayAdvance(autoReplay.step);
+      } else {
+        _clearAutoReplayTimer();
+      }
       return _renderAutoReplay(autoReplay.step, status);
     }
     _clearAutoReplayTimer();
@@ -1929,10 +1941,20 @@
           e.preventDefault();
         }
         var action = autoReplayAction.getAttribute("data-auto-replay-action");
-        if (action === "start" || action === "restart") {
+        if (action === "start") {
           _clearAutoReplayTimer();
+          _autoReplayState.userStarted = true;
           _autoReplayState.status = "running";
           _advanceAutoReplay("route");
+        } else if (action === "restart") {
+          _clearAutoReplayTimer();
+          _autoReplayState.userStarted = false;
+          _autoReplayState.status = "ready";
+          _autoReplayState.phase = "";
+          if (typeof window !== "undefined" && window.history && typeof window.history.pushState === "function") {
+            window.history.pushState({}, "", "?replay=J-DEPT-01&replay-mode=auto");
+          }
+          navigateToRoute("home");
         } else if (action === "pause") {
           _clearAutoReplayTimer();
           _autoReplayState.status = "paused";
