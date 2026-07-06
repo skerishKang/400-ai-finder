@@ -200,6 +200,31 @@ class TestExtractUrlsFromMarkdown:
             for item in urls
         )
 
+    def test_bare_url_query_trailing_comma_is_preserved(self):
+        urls = extract_urls_from_markdown(
+            "참조 https://example.com/search?q=a,"
+        )
+        assert any(
+            item["kind"] == "bare"
+            and item["url"] == "https://example.com/search?q=a,"
+            for item in urls
+        )
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://example.com/files;v=1",
+            "https://example.com/path!",
+            "https://example.com/search?q=a;",
+        ],
+    )
+    def test_bare_url_valid_terminal_characters_preserved(self, url):
+        urls = extract_urls_from_markdown(f"참조 {url}")
+        assert any(
+            item["kind"] == "bare" and item["url"] == url
+            for item in urls
+        )
+
     @pytest.mark.parametrize(
         "text",
         [
@@ -445,6 +470,41 @@ class TestAssessUrlAllowlist:
         )
         assert result["passed"] is False
 
+    def test_bare_url_trailing_comma_does_not_match_base_source(self):
+        sources = self._make_sources([
+            ("https://example.com/search?q=a", "https://example.com/search?q=a"),
+        ])
+        result = assess_url_allowlist(
+            "https://example.com/search?q=a,",
+            sources,
+        )
+        assert result["passed"] is False
+
+    def test_bare_url_trailing_comma_exact_source_passes(self):
+        sources = self._make_sources([
+            ("https://example.com/search?q=a,", "https://example.com/search?q=a,"),
+        ])
+        result = assess_url_allowlist(
+            "https://example.com/search?q=a,",
+            sources,
+        )
+        assert result["passed"] is True
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://example.com/files;v=1",
+            "https://example.com/path!",
+            "https://example.com/search?q=a;",
+        ],
+    )
+    def test_bare_url_valid_terminal_characters_allowlist_pass(self, url):
+        sources = self._make_sources([
+            (url, url),
+        ])
+        result = assess_url_allowlist(url, sources)
+        assert result["passed"] is True
+
     def test_guard_malformed_authority_block(self):
         """Malformed authorities in output are blocked even if source is similar."""
         sources = self._make_sources([
@@ -661,6 +721,28 @@ class TestComposerUrlGuardIntegration:
                     model="controlled",
                     ok=True,
                     content="참조,&https://untrusted.example/path",
+                    error="",
+                )
+
+        composer = AnswerComposer(provider=ControlledProvider())
+        result = composer.compose(data)
+        assert result["ok"] is False
+        assert result["answer_markdown"] == ""
+        assert result["error"] == "untrusted_output_url"
+        assert result["guard_status"] == "blocked_untrusted_output_url"
+        assert result["guard_reason"] == "Provider output contained a URL that is not an exact retrieved source URL."
+        assert "untrusted_output_url" in result["warnings"]
+
+    def test_composer_blocked_result_trailing_comma(self):
+        """untrusted trailing comma URL produces exact blocked-result contract."""
+        data = self._make_search_data("https://untrusted.example/path")
+        class ControlledProvider(MockProvider):
+            def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+                return ProviderResult(
+                    provider="controlled",
+                    model="controlled",
+                    ok=True,
+                    content="참조 https://untrusted.example/path,",
                     error="",
                 )
 

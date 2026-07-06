@@ -187,18 +187,7 @@ def extract_urls_from_markdown(markdown: str) -> list[dict[str, str]]:
         if any(s <= m.start(1) < e for s, e in link_spans):
             continue
         url = m.group(1)
-        # Strip trailing punctuation commonly used as sentence/phrase terminals,
-        # but do NOT strip query/path characters like ?, :, @, &, =, %, /, #.
-        # Strip trailing comma, semicolon, exclamation mark, single quotes, double quotes, period (if not part of IP/host/domain path/query dot).
-        # We strip period only if it's a trailing sentence dot (i.e. preceded by normal characters and not part of query/file extension or IP address).
-        while url and url[-1] in ",;!\"'":
-            url = url[:-1]
-        if url and url.endswith("."):
-            # Strip trailing dot if it is not preceded by a slash or dot (like relative paths) and not part of query.
-            if "?" not in url and not url.endswith(("/.", "..")):
-                url = url[:-1]
-        if url:
-            candidates.append({"url": url, "kind": "bare"})
+        candidates.append({"url": url, "kind": "bare"})
 
     return candidates + untrusted
 
