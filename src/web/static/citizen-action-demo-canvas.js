@@ -356,6 +356,61 @@
     return { isDept: false, state: "" };
   }
 
+  function _resolveDeptReplayState(search) {
+    var params = new URLSearchParams(search || "");
+    var replayValues = params.getAll("replay");
+    if (replayValues.length !== 1 || replayValues[0] !== "J-DEPT-01") {
+      return { isReplay: false, step: "" };
+    }
+    var replaySteps = params.getAll("replay-step");
+    if (replaySteps.length > 1) {
+      return { isReplay: false, step: "" };
+    }
+    var allKeys = Array.from(params.keys());
+    for (var i = 0; i < allKeys.length; i++) {
+      if (allKeys[i] !== "replay" && allKeys[i] !== "replay-step") {
+        return { isReplay: false, step: "" };
+      }
+    }
+    if (replaySteps.length === 0) {
+      return { isReplay: true, step: "ready" };
+    }
+    if (replaySteps[0] === "directory" || replaySteps[0] === "result") {
+      return { isReplay: true, step: replaySteps[0] };
+    }
+    return { isReplay: false, step: "" };
+  }
+
+  function _renderDeptReplayControls(step) {
+    var buttons = [];
+    if (step === "ready") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-dept-replay-action="start">시작</button>');
+    } else if (step === "directory") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-dept-replay-action="next">다음</button>');
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-dept-replay-action="restart">다시 시작</button>');
+    } else if (step === "result") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-dept-replay-action="restart">다시 시작</button>');
+    }
+    return '<div class="bg-dept-replay-controls" aria-label="로컬 재현 제어">' + buttons.join("") + '</div>';
+  }
+
+  function _updateChatProgressForDeptReplay(step) {
+    var thread = document.getElementById("chat-thread");
+    if (!thread) return;
+    var messages = [
+      '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">공동주택 관련 문의는 어느 부서에 해야 하나요?</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내에서 담당 부서를 찾겠습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구소개 &gt; 구청안내 &gt; 업무 및 전화번호 안내에서 담당 부서를 확인하고 있습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.</div></div>'
+    ];
+    var renderCount = step === "ready" ? 2 : (step === "directory" ? 3 : 4);
+    var html = "";
+    for (var i = 0; i < renderCount; i++) {
+      html += messages[i];
+    }
+    thread.innerHTML = html;
+  }
+
   function _updateChatProgressForDept(deptState) {
     var thread = document.getElementById("chat-thread");
     if (!thread) return;
@@ -554,6 +609,27 @@
     );
   }
 
+  function _renderDeptReplay(step) {
+    if (step === "ready") {
+      return _renderHome(_resolveHomeReferenceState(typeof window !== "undefined" && window.location ? window.location.search : ""));
+    }
+    var html = _renderDeptDirectory(step === "result" ? "result" : "directory");
+    html = html.replace(
+      '<div class="bg-page bg-page--full bg-page--dept-directory">',
+      '<div class="bg-page bg-page--full bg-page--dept-directory bg-page--dept-replay" data-dept-replay="true" data-dept-replay-step="' + _escHtml(step) + '">'
+    );
+    html = html.replace(
+      '<div class="bg-dept-header">' +
+        '<h2>업무 및 전화번호 안내</h2>' +
+      '</div>',
+      '<div class="bg-dept-header">' +
+        '<h2>업무 및 전화번호 안내</h2>' +
+        _renderDeptReplayControls(step) +
+      '</div>'
+    );
+    return html;
+  }
+
   // -----------------------------------------------------------------------
   // Shared render pieces
   // -----------------------------------------------------------------------
@@ -708,6 +784,7 @@
 
   function _renderHome(state) {
     var deptJourney = _resolveDeptJourneyState(typeof window !== "undefined" && window.location ? window.location.search : "");
+    var deptReplay = _resolveDeptReplayState(typeof window !== "undefined" && window.location ? window.location.search : "");
     var isDeptJourney = deptJourney.isDept;
     var deptState = deptJourney.state;
 
@@ -741,7 +818,7 @@
     }
 
     return (
-      '<div class="bg-page bg-page--full bg-page--home" data-home-reference-state="' + state + '"' + (isDeptJourney ? ' data-dept-journey="true"' : '') + '>' +
+      '<div class="bg-page bg-page--full bg-page--home" data-home-reference-state="' + state + '"' + (isDeptJourney ? ' data-dept-journey="true"' : '') + (deptReplay.isReplay ? ' data-dept-replay="true" data-dept-replay-step="ready"' : '') + '>' +
         '<div class="bg-skip"><a href="#bg-content-main">본문으로 바로가기</a></div>' +
 
         '<div class="bg-home-gov-strip">' +
@@ -802,6 +879,7 @@
           '</div>' +
         '</div>' +
         '</header>' +
+        (deptReplay.isReplay ? '<div class="bg-dept-replay-home-controls">' + _renderDeptReplayControls("ready") + '</div>' : '') +
 
         '<section class="bg-home-search" aria-label="통합검색">' +
           '<div class="bg-home-search__inner">' +
@@ -1504,6 +1582,14 @@
   // -----------------------------------------------------------------------
   function _renderRoute(routeId) {
     var search = typeof window !== "undefined" && window.location ? window.location.search : "";
+    var deptReplay = _resolveDeptReplayState(search);
+    if (deptReplay.isReplay) {
+      _updateChatProgressForDeptReplay(deptReplay.step);
+      if (deptReplay.step === "ready") {
+        return _renderHome(_resolveHomeReferenceState(search));
+      }
+      return _renderDeptReplay(deptReplay.step);
+    }
     var kioskJourney = _resolveKioskJourneyState(search);
     if (kioskJourney.isKiosk) {
       _updateChatForKiosk();
@@ -1631,6 +1717,27 @@
               navigateToRoute("home");
             }
           }
+        }
+        return;
+      }
+
+      var deptReplayAction = e.target.closest("[data-dept-replay-action]");
+      if (deptReplayAction) {
+        if (e && typeof e.preventDefault === "function") {
+          e.preventDefault();
+        }
+        if (typeof window !== "undefined" && window.location && window.history && typeof window.history.pushState === "function") {
+          var replayAction = deptReplayAction.getAttribute("data-dept-replay-action");
+          var replayUrl = "?replay=J-DEPT-01";
+          if (replayAction === "start") {
+            replayUrl += "&replay-step=directory";
+          } else if (replayAction === "next") {
+            replayUrl += "&replay-step=result";
+          } else if (replayAction !== "restart") {
+            return;
+          }
+          window.history.pushState({}, "", replayUrl);
+          navigateToRoute("home");
         }
         return;
       }

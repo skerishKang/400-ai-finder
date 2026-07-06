@@ -1978,6 +1978,31 @@
    --------------------------------------------------------------------------- */
 
 /* Home & sub-route J-DEPT-01 shared public shell styles */
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-home-controls {
+  max-width: 914px;
+  margin: 18px auto 0;
+  padding: 0 20px;
+}
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+}
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-controls__button {
+  border: 1px solid #0054A6;
+  background: #0054A6;
+  color: #fff;
+  border-radius: 999px;
+  min-width: 88px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+}
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-controls__button--secondary {
+  background: #fff;
+  color: #0054A6;
+}
 :is(.bg-page--home[data-dept-journey="true"], .bg-page--dept-directory) .bg-home-gnb__item--dept {
   position: relative;
   display: inline-block;
