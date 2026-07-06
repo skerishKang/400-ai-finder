@@ -159,6 +159,7 @@ def test_pipeline_run_emits_consistent_stage_events_and_preserves_contract(
 
     correlation_ids = {record["correlation_id"] for record in event_records}
     assert len(correlation_ids) == 1
+    assert spy_logger.logged_events[0].correlation_id == next(iter(correlation_ids))
     assert next(iter(correlation_ids))
     stage_names = [
         record["stage"]
@@ -285,6 +286,77 @@ def test_pipeline_failure_emits_stage_fail_and_run_end_false(tmp_path: Path, cap
     assert fail_record["failure_code"] == "pipeline_step_failed"
     assert event_records[-1]["ok"] is False
     assert "stage" not in event_records[-1]
+
+
+def test_pipeline_run_links_question_log_to_correlation_id(
+    tmp_output_dir: str,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch,
+) -> None:
+    spy_logger = SpyQuestionLogger()
+    runner = PipelineRunner(
+        output_dir=tmp_output_dir,
+        provider="mock",
+        question_logger=spy_logger,
+    )
+    monkeypatch.setattr(runner, "_resolve_site_id", lambda url: "test_site")
+    injected_id = "abcdef0123456789abcdef0123456789"
+
+    with caplog.at_level(logging.INFO, logger="src.pipeline.pipeline_runner"):
+        runner.run(
+            url="https://example.com",
+            query="신청서 제출서류",
+            correlation_id=injected_id,
+        )
+
+    assert len(spy_logger.logged_events) == 1
+    assert spy_logger.logged_events[0].correlation_id == injected_id
+
+
+def test_pipeline_emit_question_log_defaults_correlation_id_none(
+    tmp_output_dir: str,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch,
+) -> None:
+    spy_logger = SpyQuestionLogger()
+    runner = PipelineRunner(
+        output_dir=tmp_output_dir,
+        provider="mock",
+        question_logger=spy_logger,
+    )
+    monkeypatch.setattr(runner, "_resolve_site_id", lambda url: "test_site")
+
+    with caplog.at_level(logging.INFO, logger="src.pipeline.pipeline_runner"):
+        runner.run(
+            url="https://example.com",
+            query="신청서 제출서류",
+        )
+
+    event_records = _extract_pipeline_records(caplog)
+    assert event_records
+    generated_id = next(iter({record["correlation_id"] for record in event_records}))
+    assert len(spy_logger.logged_events) == 1
+    assert spy_logger.logged_events[0].correlation_id == generated_id
+
+
+def test_pipeline_run_preserves_empty_injected_correlation_id(
+    tmp_output_dir: str,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch,
+) -> None:
+    runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+    monkeypatch.setattr(runner, "_resolve_site_id", lambda url: None)
+
+    with caplog.at_level(logging.INFO, logger="src.pipeline.pipeline_runner"):
+        runner.run(
+            url="https://example.com",
+            query="신청서 제출서류",
+            correlation_id="",
+        )
+
+    event_records = _extract_pipeline_records(caplog)
+    assert event_records
+    assert {record["correlation_id"] for record in event_records} == {""}
 
 
 def test_pipeline_step_answer_forwards_empty_correlation_id_to_composer(tmp_path: Path) -> None:

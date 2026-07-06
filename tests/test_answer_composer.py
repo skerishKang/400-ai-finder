@@ -649,3 +649,20 @@ class TestAnswerComposerTerminalEvents:
         assert result["ok"] is True
         records = _extract_pipeline_records(caplog)
         assert records == []
+
+    def test_empty_correlation_id_emits_terminal_event(self, caplog):
+        """An explicitly supplied empty correlation ID must be preserved."""
+        composer = AnswerComposer(provider=_SourceMatchProvider())
+
+        with caplog.at_level(logging.INFO, logger="src.answer.answer_composer"):
+            result = composer.compose(SAMPLE_SEARCH_RESULTS, correlation_id="")
+
+        assert result["ok"] is True
+
+        records = _extract_pipeline_records(caplog)
+        assert len(records) == 1
+        assert records[0]["event"] == "pipeline_stage_end"
+        assert records[0]["stage"] == "answer_composer"
+        assert records[0]["ok"] is True
+        assert records[0]["correlation_id"] == ""
+        assert isinstance(records[0]["duration_ms"], int)
