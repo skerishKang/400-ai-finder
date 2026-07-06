@@ -994,21 +994,24 @@ class TestJDept01SpecificContracts:
             ".bg-home-header__actions",
             ".bg-home-header__icon"
         ]
-        # Accept 2-root or 3-root :is() selector (3-root includes .bg-page--park-info)
+        # Accept 2-root, 3-root, or 4-root :is() selector
         for cls in required_classes:
             has_two_root = any(f":is(.bg-page--home, .bg-page--dept-directory) {cls}" in line for line in css.split("\n"))
             has_three_root = any(f":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info) {cls}" in line for line in css.split("\n"))
-            assert has_two_root or has_three_root, f"Missing shared scoping contract for: {cls}"
+            has_four_root = any(f":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) {cls}" in line for line in css.split("\n"))
+            assert has_two_root or has_three_root or has_four_root, f"Missing shared scoping contract for: {cls}"
 
-        # Assert the shared root selector defines --bg-home-width: 914px (2 or 3 roots)
+        # Assert the shared root selector defines --bg-home-width: 914px (2, 3, or 4 roots)
         assert (any(":is(.bg-page--home, .bg-page--dept-directory)" in line for line in css.split("\n")) or
-                any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info)" in line for line in css.split("\n"))), "Missing shared root selector in CSS"
+                any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info)" in line for line in css.split("\n")) or
+                any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info)" in line for line in css.split("\n"))), "Missing shared root selector in CSS"
 
         # Verify custom property and outer strip scoped rules
         assert any("--bg-home-width: 914px;" in line for line in css.split("\n")), "Missing shared home-width custom property"
         has_two_strip = any(":is(.bg-page--home, .bg-page--dept-directory) .bg-home-gov-strip" in line for line in css.split("\n"))
         has_three_strip = any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info) .bg-home-gov-strip" in line for line in css.split("\n"))
-        assert has_two_strip or has_three_strip, "Missing shared gov-strip rule mapping"
+        has_four_strip = any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-gov-strip" in line for line in css.split("\n"))
+        assert has_two_strip or has_three_strip or has_four_strip, "Missing shared gov-strip rule mapping"
 
         # Assert directory/result renders contain the correct root class
         html_dir = dept_render("?journey=J-DEPT-01&dept-state=directory")
@@ -1589,3 +1592,288 @@ class TestJPark01SpecificContracts:
         assert "data-dept-action" not in html, "J-PARK HTML must not contain data-dept-action"
         assert "data-action-target" not in html, "J-PARK HTML must not contain data-action-target"
         assert "data-park-action" not in html, "J-PARK HTML must not contain data-park-action"
+
+# J-KIOSK-01 specific tests
+# ---------------------------------------------------------------------------
+
+class TestJKiosk01SpecificContracts:
+    @pytest.fixture(scope="class")
+    def kiosk_render(self):
+        """Helper to run Node and capture HTML under J-KIOSK-01 query."""
+        def _render(query: str):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function(event, handler) {}
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+            process.stdout.write(JSON.stringify({html: capturedHTML, chat: capturedChatHTML}));
+            """ % (
+                json.dumps(query),
+                map_js,
+                canvas_js
+            )
+            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return json.loads(res.stdout)
+        return _render
+
+    # 1. Exact J-KIOSK-01 render
+    def test_jkiosk01_exact_render(self, kiosk_render):
+        """1. ?journey=J-KIOSK-01 renders J-KIOSK static page."""
+        result = kiosk_render("?journey=J-KIOSK-01")
+        html = result["html"]
+        assert "bg-page--kiosk-info" in html
+        assert "무인민원발급기" in html
+
+    # 2. title, breadcrumb, left navigation, active LNB, table, chat
+    def test_jkiosk01_html_contract_elements(self, kiosk_render):
+        """2. J-KIOSK HTML contains all required contract elements."""
+        result = kiosk_render("?journey=J-KIOSK-01")
+        html = result["html"]
+
+        # identity
+        assert "전남광주통합특별시북구" in html
+        # title
+        assert "무인민원발급기" in html
+        # breadcrumb
+        assert "홈 > 종합민원 > 종합민원 > 무인민원발급기 >" in html
+        assert "<strong>설치장소</strong>" in html
+        # left section heading
+        assert "종합민원" in html
+        # active left-nav item
+        assert "bg-kiosk-lnb-item--active" in html
+        assert "무인민원발급기" in html
+
+        # tabs
+        assert "설치장소" in html
+        assert "발급종류 및 처리순서" in html
+        assert "발급가능 민원서류" in html
+        assert "bg-kiosk-tab--active" in html
+
+        # table heading
+        assert "무인민원발급기 설치장소(50개소)" in html
+        # table columns
+        assert "구분" in html
+        assert "시설명" in html
+        assert "도로명주소" in html
+        assert "운영시간" in html
+        assert "발급종수" in html
+        assert "발급기형태" in html
+        assert "비고" in html
+
+        # factual data rows - exactly the two approved
+        assert "북구청 민원실" in html
+        assert "우치로 77" in html
+        assert "24시간" in html
+        assert "122종" in html
+        assert "장애인겸용" in html
+        assert "북구청 민원실 2" in html
+        assert "121종" in html
+
+    # Exact chat verification
+    def test_jkiosk01_exact_chat_messages(self, kiosk_render):
+        """2 (chat). J-KIOSK renders exactly 3 prescribed chat messages: 1 user + 2 AI."""
+        result = kiosk_render("?journey=J-KIOSK-01")
+        chat = result["chat"]
+
+        # Exact message count: 1 user + 2 AI = 3 total
+        assert chat.count('class="chat-msg') == 3, f"expected 3 chat messages, got {chat.count('class=\"chat-msg')}"
+        assert chat.count('class="chat-msg chat-msg--user"') == 1, "expected exactly 1 user message"
+        assert chat.count('class="chat-msg chat-msg--ai"') == 2, "expected exactly 2 AI messages"
+
+        # User message
+        assert "북구청 무인민원발급기는 어디에 있고 언제 이용할 수 있나요?" in chat
+        # AI message 1
+        assert "북구청 무인민원발급기 설치장소에서 이용 정보를 확인했습니다." in chat
+        # AI message 2
+        assert "북구청 민원실과 북구청 민원실 2는 우치로 77에 있으며 24시간 이용할 수 있습니다." in chat
+        assert "발급 가능 민원서류는 각각 122종과 121종입니다." in chat
+
+    # 3. No interactive elements or action attributes in J-KIOSK HTML
+    def test_jkiosk01_no_forbidden_action_attributes(self, kiosk_render):
+        """3. Rendered J-KIOSK HTML has no <a>, href, <button>, data-action-target, data-kiosk-action."""
+        result = kiosk_render("?journey=J-KIOSK-01")
+        html = result["html"]
+        assert "<a " not in html, "J-KIOSK HTML must not contain <a> elements"
+        assert "href=" not in html, "J-KIOSK HTML must not contain href attributes"
+        assert "<button" not in html, "J-KIOSK HTML must not contain <button> elements"
+        assert "data-action-target" not in html, "J-KIOSK HTML must not contain data-action-target"
+        assert "data-dept-action" not in html, "J-KIOSK HTML must not contain data-dept-action"
+        assert "data-park-action" not in html, "J-KIOSK HTML must not contain data-park-action"
+        assert "data-kiosk-action" not in html, "J-KIOSK HTML must not contain data-kiosk-action"
+
+    # 4. No raw kiosk capture filename in JS/CSS
+    def test_jkiosk01_no_raw_capture_filenames_in_code(self):
+        """4. JS/CSS contain no raw approved kiosk capture filenames."""
+        js = _read_static("citizen-action-demo-canvas.js")
+        css = _read_static("citizen-action-demo-canvas.css")
+        combined = js + css
+        prohibited = [
+            "jkiosk-01-installation-desktop.png",
+            "jkiosk-02-installation-full.png",
+            "CaptureX*kiosk*",
+        ]
+        for filename in prohibited:
+            assert filename not in combined, f"prohibited kiosk capture filename found: {filename}"
+
+    # 5. Duplicate journey fallback
+    def test_jkiosk01_duplicate_journey_fallback(self, kiosk_render):
+        """5. Duplicate journey falls back to historical non-J-KIOSK output."""
+        result = kiosk_render("?journey=J-KIOSK-01&journey=J-KIOSK-01")
+        html = result["html"]
+        assert "bg-page--kiosk-info" not in html, "duplicate journey must fall back"
+        assert "무인민원발급기 설치장소" not in html
+
+    # 6. kiosk-state present -> fallback
+    def test_jkiosk01_kiosk_state_present_fallback(self, kiosk_render):
+        """6. Any kiosk-state present triggers fallback."""
+        result = kiosk_render("?journey=J-KIOSK-01&kiosk-state=home")
+        html = result["html"]
+        assert "bg-page--kiosk-info" not in html, "kiosk-state must trigger fallback"
+
+    # 7. park-state mixed fallback
+    def test_jkiosk01_park_state_mixed_fallback(self, kiosk_render):
+        """7. park-state mixed with J-KIOSK-01 triggers fallback."""
+        result = kiosk_render("?journey=J-KIOSK-01&park-state=home")
+        html = result["html"]
+        assert "bg-page--kiosk-info" not in html, "park-state must trigger fallback"
+
+    # 8. dept-state mixed fallback
+    def test_jkiosk01_dept_state_mixed_fallback(self, kiosk_render):
+        """8. dept-state mixed with J-KIOSK-01 triggers fallback."""
+        result = kiosk_render("?journey=J-KIOSK-01&dept-state=menu")
+        html = result["html"]
+        assert "bg-page--kiosk-info" not in html, "dept-state must trigger fallback"
+
+    # 9. Extra query fallback
+    def test_jkiosk01_extra_query_param_fallback(self, kiosk_render):
+        """9. Any extra query parameter beyond journey=J-KIOSK-01 triggers fallback."""
+        result = kiosk_render("?journey=J-KIOSK-01&extra=foo")
+        html = result["html"]
+        assert "bg-page--kiosk-info" not in html, "extra query param must trigger fallback"
+
+    # 10. J-KIOSK does not call map route lookup / dispatcher
+    def test_jkiosk01_no_map_route_dispatcher_call(self, kiosk_render):
+        """10. J-KIOSK render bypasses map.getRoute() and history.pushState entirely."""
+        map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+        canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+        sandbox_spy = """
+        'use strict';
+        var vm = require('vm');
+        var capturedHTML = '';
+        var capturedChatHTML = '';
+        var routeLookupCount = 0;
+        var pushStateCount = 0;
+        function makeElement(id) {
+          return {
+            id: id,
+            get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+            set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+            addEventListener: function(event, handler) {}
+          };
+        }
+        var fakeCanvasElement = makeElement('demo-canvas');
+        var sandbox = {
+          document: {
+            getElementById: function(id) {
+              if (id === 'demo-canvas') return fakeCanvasElement;
+              if (id === 'chat-thread') return makeElement('chat-thread');
+              return null;
+            }
+          },
+          console: { log: function() {}, error: function() {} },
+          location: { search: '?journey=J-KIOSK-01' },
+          history: { pushState: function() { pushStateCount += 1; } },
+          window: null
+        };
+        sandbox.URLSearchParams = URLSearchParams;
+        sandbox.window = sandbox;
+        var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
+        // Wrap CitizenActionDemoMap.getRoute with a spy that counts calls
+        var origGetRoute = sandbox.window.CitizenActionDemoMap.getRoute;
+        sandbox.window.CitizenActionDemoMap = Object.freeze({
+          getRouteIds: sandbox.window.CitizenActionDemoMap.getRouteIds,
+          getRoute: function(routeId) { routeLookupCount += 1; return origGetRoute(routeId); },
+          getCategoryLabel: sandbox.window.CitizenActionDemoMap.getCategoryLabel,
+          isValidRoute: sandbox.window.CitizenActionDemoMap.isValidRoute,
+          isValidTarget: sandbox.window.CitizenActionDemoMap.isValidTarget
+        });
+        vm.runInContext(%s, cx);
+        sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+        process.stdout.write(JSON.stringify({
+          html: capturedHTML,
+          chat: capturedChatHTML,
+          routeLookupCount: routeLookupCount,
+          pushStateCount: pushStateCount
+        }));
+        """ % (map_js, canvas_js)
+        res = subprocess.run(["node", "-e", sandbox_spy], capture_output=True, text=True, timeout=10)
+        assert res.returncode == 0, res.stderr
+        data = json.loads(res.stdout)
+        html = data["html"]
+        route_lookup_count = data["routeLookupCount"]
+        push_state_count = data["pushStateCount"]
+        # J-KIOSK must produce kiosk page
+        assert "bg-page--kiosk-info" in html
+        # J-KIOSK must not call map.getRoute() at all — it returns early before route dispatch
+        assert route_lookup_count == 0, f"J-KIOSK must not call getRoute(), but got {route_lookup_count} call(s)"
+        # J-KIOSK must not call history.pushState
+        assert push_state_count == 0, f"J-KIOSK must not call pushState(), but got {push_state_count} call(s)"
+        # No dispatcher attributes in rendered HTML
+        assert "data-dept-action" not in html, "J-KIOSK HTML must not contain data-dept-action"
+        assert "data-action-target" not in html, "J-KIOSK HTML must not contain data-action-target"
+        assert "data-park-action" not in html, "J-KIOSK HTML must not contain data-park-action"
+        assert "data-kiosk-action" not in html, "J-KIOSK HTML must not contain data-kiosk-action"
+
+    # 11. J-PARK and J-DEPT still work after J-KIOSK addition
+    def test_jkiosk01_preserves_jpark_jdept(self, kiosk_render):
+        """11. J-PARK and J-DEPT routes remain functional after J-KIOSK addition."""
+        # J-PARK still works
+        result_park = kiosk_render("?journey=J-PARK-01")
+        html_park = result_park["html"]
+        assert "bg-page--park-info" in html_park
+        assert "주차장 이용안내" in html_park
+
+        # J-DEPT still works
+        result_dept = kiosk_render("?journey=J-DEPT-01")
+        html_dept = result_dept["html"]
+        assert "bg-page--home" in html_dept
+        assert 'data-dept-journey="true"' in html_dept
+
+    # 12. J-KIOSK not in map.js
+    def test_jkiosk01_not_in_map_js(self):
+        """12. map.js does not reference J-KIOSK-01, kiosk-state, or data-kiosk-action."""
+        js = _read_static("citizen-action-demo-map.js")
+        assert "J-KIOSK-01" not in js, "J-KIOSK-01 must not be in map.js"
+        assert "kiosk-state" not in js, "kiosk-state must not be in map.js"
+        assert "data-kiosk-action" not in js, "data-kiosk-action must not be in map.js"

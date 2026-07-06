@@ -182,6 +182,158 @@
   }
 
   // -----------------------------------------------------------------------
+  // J-KIOSK-01 local-only utilities and renderers
+  // -----------------------------------------------------------------------
+  function _resolveKioskJourneyState(search) {
+    var params = new URLSearchParams(search || "");
+    var journeys = params.getAll("journey");
+    if (journeys.length !== 1 || journeys[0] !== "J-KIOSK-01") {
+      return { isKiosk: false };
+    }
+    var allKeys = Array.from(params.keys());
+    var allowedKeys = ["journey"];
+    if (allKeys.length !== allowedKeys.length) {
+      return { isKiosk: false };
+    }
+    for (var i = 0; i < allKeys.length; i++) {
+      if (allowedKeys.indexOf(allKeys[i]) === -1) {
+        return { isKiosk: false };
+      }
+    }
+    // Reject if any disallowed state keys present
+    var disallowedKeys = ["kiosk-state", "park-state", "dept-state"];
+    for (var j = 0; j < allKeys.length; j++) {
+      if (disallowedKeys.indexOf(allKeys[j]) !== -1) {
+        return { isKiosk: false };
+      }
+    }
+    return { isKiosk: true };
+  }
+
+  function _updateChatForKiosk() {
+    var thread = document.getElementById("chat-thread");
+    if (!thread) return;
+    thread.innerHTML =
+      '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">북구청 무인민원발급기는 어디에 있고 언제 이용할 수 있나요?</div></div>' +
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 무인민원발급기 설치장소에서 이용 정보를 확인했습니다.</div></div>' +
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 민원실과 북구청 민원실 2는 우치로 77에 있으며 24시간 이용할 수 있습니다. 발급 가능 민원서류는 각각 122종과 121종입니다.</div></div>';
+  }
+
+  function _renderKioskInformation() {
+    var assets = "/static/images/bukgu-current";
+    return (
+      '<div class="bg-page bg-page--full bg-page--kiosk-info">' +
+        '<div class="bg-home-gov-strip">' +
+          '<div class="bg-home-gov-strip__inner">' +
+            '<img src="' + assets + '/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+          '</div>' +
+        '</div>' +
+        '<div class="bg-home-utility" aria-label="사이트 도구">' +
+          '<div class="bg-home-utility__inner">' +
+            '<div class="bg-home-utility__menus">' +
+              '<span class="bg-home-utility__menu-label">주요사이트</span>' +
+              '<span class="bg-home-utility__menu-label">SNS</span>' +
+              '<span class="bg-home-utility__menu-label">KOR</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<header class="bg-header">' +
+          '<div class="bg-home-header">' +
+            '<div class="bg-home-header__inner">' +
+              '<div class="bg-home-header__identity">' +
+                '<img src="' + assets + '/home-identity.png" alt="전남광주통합특별시북구" />' +
+              '</div>' +
+              '<nav class="bg-gnb" aria-label="주메뉴">' +
+                '<div class="bg-home-gnb">' +
+                  '<span class="bg-home-gnb__link bg-home-gnb__link--active">종합민원</span>' +
+                  '<span class="bg-home-gnb__link">소통광장</span>' +
+                  '<span class="bg-home-gnb__link">더불어복지</span>' +
+                  '<span class="bg-home-gnb__link">분야별정보</span>' +
+                  '<span class="bg-home-gnb__link">정보공개</span>' +
+                  '<span class="bg-home-gnb__link">북구소개</span>' +
+                '</div>' +
+              '</nav>' +
+            '</div>' +
+          '</div>' +
+        '</header>' +
+        '<main class="bg-kiosk-main">' +
+          '<div class="bg-kiosk-breadcrumb">홈 > 종합민원 > 종합민원 > 무인민원발급기 > <strong>설치장소</strong></div>' +
+          '<div class="bg-kiosk-layout">' +
+            '<aside class="bg-kiosk-left">' +
+              '<div class="bg-kiosk-left-section">종합민원</div>' +
+              '<div class="bg-kiosk-left-group bg-kiosk-left-group--open">' +
+                '<div class="bg-kiosk-left-group-header">종합민원</div>' +
+                '<ul class="bg-kiosk-lnb-list">' +
+                  '<li><span class="bg-kiosk-lnb-link">민원실배치도(창구안내)</span></li>' +
+                  '<li class="bg-kiosk-lnb-item--active"><span class="bg-kiosk-lnb-link">무인민원발급기</span></li>' +
+                  '<li><span class="bg-kiosk-lnb-link">민원사무편람</span></li>' +
+                  '<li><span class="bg-kiosk-lnb-link">민원서식</span></li>' +
+                  '<li><span class="bg-kiosk-lnb-link">여권민원</span></li>' +
+                  '<li><span class="bg-kiosk-lnb-link">제증명 수수료</span></li>' +
+                '</ul>' +
+              '</div>' +
+            '</aside>' +
+            '<div class="bg-kiosk-content">' +
+              '<div class="bg-kiosk-content-heading">무인민원발급기</div>' +
+              '<div class="bg-kiosk-tabs">' +
+                '<span class="bg-kiosk-tab bg-kiosk-tab--active">설치장소</span>' +
+                '<span class="bg-kiosk-tab">발급종류 및 처리순서</span>' +
+                '<span class="bg-kiosk-tab">발급가능 민원서류</span>' +
+              '</div>' +
+              '<h1 class="bg-kiosk-content-title">무인민원발급기 설치장소(50개소)</h1>' +
+              '<table class="bg-kiosk-table">' +
+                '<thead>' +
+                  '<tr>' +
+                    '<th>구분</th>' +
+                    '<th>시설명</th>' +
+                    '<th>도로명주소</th>' +
+                    '<th>운영시간</th>' +
+                    '<th>발급종수</th>' +
+                    '<th>발급기형태</th>' +
+                    '<th>비고</th>' +
+                  '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                  '<tr>' +
+                    '<td>구청</td>' +
+                    '<td>북구청 민원실</td>' +
+                    '<td>우치로 77</td>' +
+                    '<td>24시간</td>' +
+                    '<td>122종</td>' +
+                    '<td>장애인겸용</td>' +
+                    '<td></td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td>구청</td>' +
+                    '<td>북구청 민원실 2</td>' +
+                    '<td>우치로 77</td>' +
+                    '<td>24시간</td>' +
+                    '<td>121종</td>' +
+                    '<td>장애인겸용</td>' +
+                    '<td></td>' +
+                  '</tr>' +
+                '</tbody>' +
+              '</table>' +
+            '</div>' +
+          '</div>' +
+        '</main>' +
+        '<footer class="bg-home-footer" aria-label="사이트 하단">' +
+          '<div class="bg-home-footer__inner">' +
+            '<nav class="bg-home-footer__nav" aria-label="하단 메뉴">' +
+              '<span class="bg-home-footer__nav-item">누리집이용안내</span>' +
+              '<span class="bg-home-footer__nav-item">개인정보처리방침</span>' +
+              '<span class="bg-home-footer__nav-item">저작권 보호정책</span>' +
+              '<span class="bg-home-footer__nav-item">이메일무단수집거부</span>' +
+              '<span class="bg-home-footer__nav-item">영상정보처리기기 운영·관리방침</span>' +
+            '</nav>' +
+            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
+          '</div>' +
+        '</footer>' +
+      '</div>'
+    );
+  }
+
+  // -----------------------------------------------------------------------
   // J-DEPT-01 local-only utilities and renderers
   // -----------------------------------------------------------------------
   function _resolveDeptJourneyState(search) {
@@ -1352,6 +1504,11 @@
   // -----------------------------------------------------------------------
   function _renderRoute(routeId) {
     var search = typeof window !== "undefined" && window.location ? window.location.search : "";
+    var kioskJourney = _resolveKioskJourneyState(search);
+    if (kioskJourney.isKiosk) {
+      _updateChatForKiosk();
+      return _renderKioskInformation();
+    }
     var parkJourney = _resolveParkJourneyState(search);
     if (parkJourney.isPark) {
       _updateChatForPark();
@@ -1363,7 +1520,7 @@
 
     if (isDeptJourney) {
       _updateChatProgressForDept(deptState);
-    } else {
+    } else if (!kioskJourney.isKiosk) {
       _restoreHistoricalChat();
     }
 
