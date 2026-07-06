@@ -1,6 +1,6 @@
 # #863 Current Buk-gu Reference Ledger
 
-Status: approved for #868 home implementation, #869 J-DEPT-01 department-directory journey, #869 J-PARK-01 parking-information journey, and J-KIOSK-01 source inventory recorded (pending remote source-gate approval); #867 is completed; external-transaction journeys remain out of scope.
+Status: approved for #868 home implementation, #869 J-DEPT-01 department-directory journey, #869 J-PARK-01 parking-information journey, and #869 J-KIOSK-01 approved narrow static-information journey; #867 is completed; external-transaction journeys remain out of scope.
 
 ## Home-only approval scope
 
@@ -219,7 +219,29 @@ J-PARK-01 is one local, source-backed parking-information journey only:
 - No reservation, payment, map, route guidance, login, personal-data entry, upload, submission, external navigation, or transaction is permitted.
 - `전남광주통합특별시북구` remains the authoritative identity baseline.
 
-## #869 candidate third information journey — J-KIOSK-01 (source gate pending)
+## #869 approved third information journey — J-KIOSK-01
+
+### Scope
+
+J-KIOSK-01 is one local, source-backed narrow static-information journey only:
+
+- User question:
+  `북구청 무인민원발급기는 어디에 있고 언제 이용할 수 있나요?`
+- Direct local route:
+  `?journey=J-KIOSK-01`
+- Source-backed route:
+  `종합민원` → `무인민원발급기` → `설치장소`
+- Page title:
+  `무인민원발급기`
+- Visible tabs:
+  `설치장소` / `발급종류 및 처리순서` / `발급가능 민원서류`
+- Table heading:
+  `무인민원발급기 설치장소(50개소)`
+- Factual rendering allowed rows (exactly these two only):
+  1. `북구청 민원실` / `우치로 77` / `24시간` / `122종` / `장애인겸용`
+  2. `북구청 민원실 2` / `우치로 77` / `24시간` / `121종` / `장애인겸용`
+- Approved final answer:
+  `북구청 민원실과 북구청 민원실 2는 우치로 77에 있으며 24시간 이용할 수 있습니다. 발급 가능 민원서류는 각각 122종과 121종입니다.`
 
 ### Source-supported observations only
 
@@ -239,7 +261,9 @@ J-PARK-01 is one local, source-backed parking-information journey only:
 ### Hard boundaries
 
 - Both captures are reference/comparison artifacts only; never runtime backgrounds, page surfaces, `<img>` page substitutes, or coordinate overlays.
-- No implementation is authorized by this source-import commit.
-- No login, personal-data entry, external navigation, form submission, payment, reservation, map, or live availability behavior.
+- Full-page source is for table-extent and lower-structure reference only; rendering unreadable rows, small text, or footer wording is not approved.
+- Full 50-location reproduction is prohibited.
+- No implementation is authorized beyond the two approved factual rows and the approved final answer.
+- No search, menu-click choreography, map, route guidance, live availability, reservation, payment, login, personal-data entry, external navigation, or submission behavior.
 - Authoritative identity baseline remains 전남광주통합특별시북구.
 - Do not infer or add unreadable table rows, addresses, hours, certificate counts, or footer/legal wording.
