@@ -1977,19 +1977,115 @@
    J-DEPT-01 specific scoped styles
    --------------------------------------------------------------------------- */
 
+/* Auto J-DEPT-01 replay scoped styles — scoped to [data-dept-auto-replay="true"] only */
+[data-dept-auto-replay="true"] .bg-dept-action-bubble,
+[data-dept-auto-replay="true"] .bg-dept-replay-controls {
+  pointer-events: auto;
+}
+[data-dept-auto-replay="true"] .bg-dept-action-bubble {
+  position: absolute;
+  bottom: 28px;
+  left: 24px;
+  background: #0054A6;
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  z-index: 1000;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+  transition: opacity 0.4s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+[data-dept-auto-replay="true"] .bg-dept-action-bubble {
+  opacity: 1;
+  pointer-events: auto;
+}
+[data-dept-auto-replay="true"][data-auto-replay-status="paused"] .bg-dept-action-bubble {
+  opacity: 0.4;
+}
+
+/* Auto cursor — positioned relative to auto-replay root */
+[data-dept-auto-replay="true"] {
+  position: relative;
+}
+[data-dept-auto-replay="true"] .bg-auto-cursor {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #0054A6;
+  background: rgba(0, 84, 166, 0.15);
+  z-index: 1001;
+  pointer-events: none;
+  transition: top 0.3s ease, left 0.3s ease;
+}
+[data-dept-auto-replay="true"] .bg-auto-cursor--gnb { top: 80px; left: 900px; }
+[data-dept-auto-replay="true"] .bg-auto-cursor--menu-link { top: 200px; left: 320px; }
+[data-dept-auto-replay="true"] .bg-auto-cursor--search { top: 320px; left: 460px; }
+[data-dept-auto-replay="true"] .bg-auto-cursor--result-row { top: 380px; left: 200px; }
+
+/* Auto target highlight */
+[data-dept-auto-replay="true"] .bg-auto-target-highlight {
+  position: absolute;
+  border: 2px solid #E60012;
+  border-radius: 4px;
+  background: rgba(230, 0, 18, 0.08);
+  z-index: 999;
+  pointer-events: none;
+}
+[data-dept-auto-replay="true"] .bg-auto-target--gnb-dept { top: 68px; left: 828px; width: 90px; height: 38px; }
+[data-dept-auto-replay="true"] .bg-auto-target--directory-link { top: 190px; left: 280px; width: 200px; height: 32px; }
+[data-dept-auto-replay="true"] .bg-auto-target--search-input { top: 310px; left: 340px; width: 260px; height: 40px; }
+[data-dept-auto-replay="true"] .bg-auto-target--result-row { top: 370px; left: 160px; width: 540px; height: 40px; }
+
+/* Auto click feedback — pulse ring */
+[data-dept-auto-replay="true"] .bg-auto-click-feedback {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid #0054A6;
+  opacity: 0;
+  z-index: 1002;
+  pointer-events: none;
+  animation: bgAutoClickPulse 0.6s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-dept-auto-replay="true"] .bg-dept-action-bubble {
+    transition: none;
+  }
+  [data-dept-auto-replay="true"] .bg-auto-cursor {
+    transition: none;
+  }
+  [data-dept-auto-replay="true"] .bg-auto-click-feedback {
+    animation: none;
+    opacity: 0.5;
+    transform: scale(1);
+  }
+}
+
+@keyframes bgAutoClickPulse {
+  from { transform: scale(0.5); opacity: 0.8; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+
 /* Home & sub-route J-DEPT-01 shared public shell styles */
-:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-home-controls {
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--home[data-dept-auto-replay="true"], .bg-page--dept-replay, [data-dept-auto-replay="true"]) .bg-dept-replay-home-controls {
   max-width: 914px;
   margin: 18px auto 0;
   padding: 0 20px;
 }
-:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-controls {
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--home[data-dept-auto-replay="true"], .bg-page--dept-replay, [data-dept-auto-replay="true"]) .bg-dept-replay-controls {
   display: flex;
   gap: 10px;
   align-items: center;
   margin-top: 16px;
 }
-:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-controls__button {
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--home[data-dept-auto-replay="true"], .bg-page--dept-replay, [data-dept-auto-replay="true"]) .bg-dept-replay-controls__button {
   border: 1px solid #0054A6;
   background: #0054A6;
   color: #fff;
@@ -1999,7 +2095,7 @@
   font-size: 14px;
   font-weight: 700;
 }
-:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-controls__button--secondary {
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--home[data-dept-auto-replay="true"], .bg-page--dept-replay, [data-dept-auto-replay="true"]) .bg-dept-replay-controls__button--secondary {
   background: #fff;
   color: #0054A6;
 }

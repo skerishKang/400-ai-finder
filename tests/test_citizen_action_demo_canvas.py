@@ -10,6 +10,7 @@ import os
 import re
 import json
 import subprocess
+import tempfile
 
 import pytest
 
@@ -153,17 +154,27 @@ def _render_all_routes_via_node():
 
     script = _RUNTIME_SCRIPT % (map_js, canvas_js, routes_json)
 
-    result = subprocess.run(
-        ["node", "-e", script],
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
+    result = _run_node_script_file(script, timeout=30)
     if result.returncode != 0:
         raise RuntimeError(
             "Node runtime failed: " + result.stderr
         )
     return json.loads(result.stdout)
+
+
+def _run_node_script_file(script: str, timeout: int = 30):
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as f:
+        f.write(script)
+        script_path = f.name
+    try:
+        return subprocess.run(
+            ["node", script_path],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    finally:
+        os.unlink(script_path)
 
 
 # ---------------------------------------------------------------------------
@@ -847,7 +858,7 @@ class TestJDept01SpecificContracts:
                 map_js,
                 canvas_js
             )
-            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return res.stdout
         return _render
@@ -977,14 +988,18 @@ class TestJDept01SpecificContracts:
                         assert (sub_sel.startswith(".bg-page--dept-directory") or
                                 sub_sel.startswith(".bg-page--home[data-dept-journey=\"true\"]") or
                                 sub_sel.startswith(".bg-page--home[data-dept-replay=\"true\"]") or
-                                sub_sel.startswith(".bg-page--dept-replay")), \
+                                sub_sel.startswith(".bg-page--dept-replay") or
+                                sub_sel.startswith(".bg-page--home[data-dept-auto-replay=\"true\"]") or
+                                sub_sel.startswith("[data-dept-auto-replay=\"true\"]")), \
                             f"prohibited inner is selector: {sub_sel}"
                     continue
 
                 assert (sel_part.startswith(".bg-page--dept-directory") or
                         sel_part.startswith(".bg-page--home[data-dept-journey=\"true\"]") or
                         sel_part.startswith(".bg-page--home[data-dept-replay=\"true\"]") or
-                        sel_part.startswith(".bg-page--dept-replay")), \
+                        sel_part.startswith(".bg-page--dept-replay") or
+                        sel_part.startswith(".bg-page--home[data-dept-auto-replay=\"true\"]") or
+                        sel_part.startswith("[data-dept-auto-replay=\"true\"]")), \
                     f"prohibited unscoped J-DEPT selector: {sel_part}"
 
     def test_jdept01_shared_public_shell_css_contract(self, dept_render):
@@ -1204,7 +1219,7 @@ class TestJDept01SpecificContracts:
         process.stdout.write(JSON.stringify(testResults));
         """ % (map_js, canvas_js)
 
-        res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+        res = _run_node_script_file(sandbox_init, timeout=10)
         assert res.returncode == 0, res.stderr
         res_data = json.loads(res.stdout)
 
@@ -1280,7 +1295,7 @@ class TestJDept01ReplayContracts:
             sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
             process.stdout.write(JSON.stringify({ html: capturedHTML, chat: capturedChatHTML }));
             """ % (json.dumps(query), map_js, canvas_js)
-            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return json.loads(res.stdout)
         return _render
@@ -1408,7 +1423,7 @@ class TestJDept01ReplayContracts:
           afterRestart: afterRestart
         }));
         """ % (map_js, canvas_js)
-        res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+        res = _run_node_script_file(sandbox_init, timeout=10)
         assert res.returncode == 0, res.stderr
         data = json.loads(res.stdout)
 
@@ -1493,7 +1508,7 @@ class TestJPark01SpecificContracts:
                 map_js,
                 canvas_js
             )
-            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return json.loads(res.stdout)
         return _render
@@ -1707,7 +1722,7 @@ class TestJPark01SpecificContracts:
         sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
         process.stdout.write(capturedHTML);
         """ % (map_js, canvas_js)
-        res = subprocess.run(["node", "-e", sandbox_dept], capture_output=True, text=True, timeout=10)
+        res = _run_node_script_file(sandbox_dept, timeout=10)
         assert res.returncode == 0, res.stderr
         html_dept_alone = res.stdout
         assert 'data-dept-journey="true"' in html_dept_alone
@@ -1789,7 +1804,7 @@ class TestJPark01SpecificContracts:
           pushStateCount: pushStateCount
         }));
         """ % (map_js, canvas_js)
-        res = subprocess.run(["node", "-e", sandbox_spy], capture_output=True, text=True, timeout=10)
+        res = _run_node_script_file(sandbox_spy, timeout=10)
         assert res.returncode == 0, res.stderr
         data = json.loads(res.stdout)
         html = data["html"]
@@ -1854,7 +1869,7 @@ class TestJKiosk01SpecificContracts:
                 map_js,
                 canvas_js
             )
-            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return json.loads(res.stdout)
         return _render
@@ -2051,7 +2066,7 @@ class TestJKiosk01SpecificContracts:
           pushStateCount: pushStateCount
         }));
         """ % (map_js, canvas_js)
-        res = subprocess.run(["node", "-e", sandbox_spy], capture_output=True, text=True, timeout=10)
+        res = _run_node_script_file(sandbox_spy, timeout=10)
         assert res.returncode == 0, res.stderr
         data = json.loads(res.stdout)
         html = data["html"]
@@ -2091,3 +2106,644 @@ class TestJKiosk01SpecificContracts:
         assert "J-KIOSK-01" not in js, "J-KIOSK-01 must not be in map.js"
         assert "kiosk-state" not in js, "kiosk-state must not be in map.js"
         assert "data-kiosk-action" not in js, "data-kiosk-action must not be in map.js"
+
+
+# ---------------------------------------------------------------------------
+# Stage 864: Accelerated replay contract tests
+# ---------------------------------------------------------------------------
+
+AUTO_READY_QUERY = "?replay=J-DEPT-01&replay-mode=auto"
+AUTO_PHASES = ["route", "directory", "search", "result"]
+
+
+def _build_auto_replay_sandbox(initial_url: str, map_js: str, canvas_js: str, actions: list | None = None) -> str:
+    return """
+'use strict';
+var vm = require('vm');
+var capturedHTML = '';
+var capturedChatHTML = '';
+var capturedClickHandler = null;
+var timers = [];
+var intervalCount = 0;
+var pushed = [];
+
+function activeTimers() {
+  return timers.filter(function(t) { return t !== null; });
+}
+
+function snapshot() {
+  var pending = activeTimers();
+  return {
+    html: capturedHTML,
+    chat: capturedChatHTML,
+    search: sandbox.location.search,
+    pendingTimers: pending.length,
+    timerCount: pending.length,
+    pendingTimerDelays: pending.map(function(t) { return t.ms; }),
+    intervalCount: intervalCount,
+    pushed: pushed.slice()
+  };
+}
+
+function makeElement(id) {
+  return {
+    id: id,
+    get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+    set innerHTML(v) {
+      if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; }
+    },
+    addEventListener: function(event, handler) {
+      if (event === 'click' && id === 'demo-canvas') {
+        capturedClickHandler = handler;
+      }
+    },
+    querySelector: function() { return null; }
+  };
+}
+
+var fakeCanvasElement = makeElement('demo-canvas');
+var sandbox = {
+  document: {
+    getElementById: function(id) {
+      if (id === 'demo-canvas') return fakeCanvasElement;
+      if (id === 'chat-thread') return makeElement('chat-thread');
+      return null;
+    }
+  },
+  console: { log: function() {}, error: function() {} },
+  location: { search: %s },
+  history: {
+    pushState: function(state, title, url) {
+      pushed.push(url);
+      sandbox.location.search = url.substring(url.indexOf('?'));
+    }
+  },
+  setTimeout: function(fn, ms) {
+    timers.push({ fn: fn, ms: ms });
+    return timers.length;
+  },
+  clearTimeout: function(id) {
+    if (id && timers[id - 1]) {
+      timers[id - 1] = null;
+    }
+  },
+  setInterval: function() {
+    intervalCount += 1;
+    return -1;
+  },
+  clearInterval: function() {},
+  fetch: function() {},
+  localStorage: { getItem: function() {}, setItem: function() {}, removeItem: function() {} },
+  sessionStorage: { getItem: function() {}, setItem: function() {}, removeItem: function() {} },
+  window: null
+};
+sandbox.URLSearchParams = URLSearchParams;
+sandbox.window = sandbox;
+
+var cx = vm.createContext(sandbox);
+vm.runInContext(%s, cx);
+vm.runInContext(%s, cx);
+sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+
+var initial = snapshot();
+var actionList = %s;
+if (!actionList || actionList.length === 0) {
+  process.stdout.write(JSON.stringify(initial));
+} else {
+  var results = [];
+  for (var a = 0; a < actionList.length; a++) {
+    var act = actionList[a];
+    if (act.type === 'click' && capturedClickHandler) {
+      capturedClickHandler({
+        target: {
+          closest: function(sel) {
+            if (sel === '[data-auto-replay-action]') {
+              return {
+                getAttribute: function() { return act.action; }
+              };
+            }
+            return null;
+          }
+        },
+        preventDefault: function() {}
+      });
+    } else if (act.type === 'fire-timer') {
+      var pending = activeTimers();
+      if (pending.length > 0) {
+        var timer = pending[pending.length - 1];
+        timer.fn();
+        timers[timers.indexOf(timer)] = null;
+      }
+    } else if (act.type === 'change-url') {
+      sandbox.location.search = act.url;
+      sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+    }
+    results.push(snapshot());
+  }
+  process.stdout.write(JSON.stringify({
+    initial: initial,
+    results: results
+  }));
+}
+""" % (json.dumps(initial_url), map_js, canvas_js, json.dumps(actions or []))
+
+
+def _run_auto_replay(query: str, actions: list | None = None) -> dict:
+    map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+    canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+    script = _build_auto_replay_sandbox(query, map_js, canvas_js, actions)
+    res = _run_node_script_file(script, timeout=10)
+    assert res.returncode == 0, res.stderr
+    return json.loads(res.stdout)
+
+
+def _run_auto_replay_render(query: str) -> dict:
+    return _run_auto_replay(query)
+
+
+class TestAutoReplayContract:
+    @pytest.mark.parametrize("query", [
+        "?replay=J-DEPT-01&replay=J-DEPT-01&replay-mode=auto",
+        "?replay=J-DEPT-01&replay-mode=auto&replay-mode=auto",
+        "?replay=J-DEPT-01&replay-mode=auto&replay-step=route&replay-step=result",
+        "?replay=J-DEPT-01&replay-mode=manual",
+        "?replay=J-DEPT-01&replay-mode=auto&replay-step=bogus",
+        "?replay=J-DEPT-01&replay-mode=auto&extra=1",
+        "?replay=J-DEPT-01&replay-mode=auto&journey=J-DEPT-01",
+        "?replay=j-dept-01&replay-mode=auto",
+        "?replay=J-DEPT-01",
+        "?replay=J-DEPT-01&replay-mode=auto&dept-state=directory",
+        "?replay=J-DEPT-01&replay-mode=auto&park-state=home",
+        "?replay=J-DEPT-01&replay-mode=auto&kiosk-state=home",
+        "?replay=J-DEPT-01&replay-mode=AUTO",
+    ])
+    def test_exact_opt_in_query_gate(self, query):
+        result = _run_auto_replay_render(query)
+        assert 'data-dept-auto-replay="true"' not in result["html"]
+
+    def test_empty_replay_step_resolves_to_ready(self):
+        result = _run_auto_replay_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=")
+        assert 'data-dept-auto-replay="true"' in result["html"]
+        assert 'data-auto-replay-step="ready"' in result["html"]
+        assert 'data-auto-replay-status="ready"' in result["html"]
+
+    def test_valid_auto_ready_gate(self):
+        result = _run_auto_replay_render(AUTO_READY_QUERY)
+        assert 'data-dept-auto-replay="true"' in result["html"]
+        assert 'data-auto-replay-step="ready"' in result["html"]
+        assert 'data-auto-replay-status="ready"' in result["html"]
+        assert "시연 시작" in result["html"]
+        assert result["timerCount"] == 0
+
+    @pytest.mark.parametrize(("query", "needle"), [
+        ("?replay=J-DEPT-01", 'data-dept-replay="true"'),
+        ("?journey=J-DEPT-01", 'data-dept-journey="true"'),
+        ("?journey=J-PARK-01", "bg-page--park-info"),
+        ("?journey=J-KIOSK-01", "bg-page--kiosk-info"),
+    ])
+    def test_non_auto_routes_preserved(self, query, needle):
+        result = _run_auto_replay_render(query)
+        assert needle in result["html"]
+        assert 'data-dept-auto-replay="true"' not in result["html"]
+
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_markup_visible(self, step):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
+        assert f'data-auto-replay-step="{step}"' in result["html"]
+
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_root_ready(self, step):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
+        assert 'data-auto-replay-status="ready"' in result["html"]
+
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_start_only_control(self, step):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
+        html = result["html"]
+        assert "시연 시작" in html
+        assert "일시정지" not in html
+        assert "계속" not in html
+
+    @pytest.mark.parametrize(("query", "chat_snippets"), [
+        (AUTO_READY_QUERY, [
+            "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+            "북구청 업무 및 전화번호 안내 경로를 확인하겠습니다.",
+        ]),
+        (f"{AUTO_READY_QUERY}&replay-step=route", [
+            "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+            "북구청 업무 및 전화번호 안내 경로를 확인하겠습니다.",
+            "북구소개 메뉴에서 업무 및 전화번호 안내를 확인하고 있습니다.",
+        ]),
+        (f"{AUTO_READY_QUERY}&replay-step=directory", [
+            "북구소개 메뉴에서 업무 및 전화번호 안내를 확인하고 있습니다.",
+            "공동주택 관련 담당 부서를 검색하고 있습니다.",
+        ]),
+        (f"{AUTO_READY_QUERY}&replay-step=search", [
+            "공동주택 관련 담당 부서를 검색하고 있습니다.",
+            "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.",
+        ]),
+        (f"{AUTO_READY_QUERY}&replay-step=result", [
+            "공동주택 관련 담당 부서를 검색하고 있습니다.",
+            "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.",
+        ]),
+    ])
+    def test_exact_chat_strings(self, query, chat_snippets):
+        result = _run_auto_replay_render(query)
+        for snippet in chat_snippets:
+            assert snippet in result["chat"]
+
+    @pytest.mark.parametrize(("step", "bubble"), [
+        ("route", "업무 및 전화번호 안내 경로를 확인합니다"),
+        ("directory", "북구소개 메뉴를 선택합니다"),
+        ("search", "공동주택을 검색합니다"),
+        ("result", "담당 부서와 연락처를 확인했습니다"),
+    ])
+    def test_exact_action_bubble_strings(self, step, bubble):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
+        assert bubble in result["html"]
+
+    @pytest.mark.parametrize(("phase", "delay"), [
+        ("route", 2500),
+        ("directory", 3000),
+        ("search", 3000),
+    ])
+    def test_exact_delay_contract(self, phase, delay):
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert f'"{phase}": {delay}' in js
+
+    def test_start_to_result_ordering(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+        ])
+        searches = [item["search"] for item in data["results"]]
+        assert searches == [
+            f"{AUTO_READY_QUERY}&replay-step=route",
+            f"{AUTO_READY_QUERY}&replay-step=directory",
+            f"{AUTO_READY_QUERY}&replay-step=search",
+            f"{AUTO_READY_QUERY}&replay-step=result",
+        ]
+
+    def test_one_pending_timer_only(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+        ])
+        for item in data["results"]:
+            assert item["pendingTimers"] <= 1
+
+    def test_no_setinterval_on_render(self):
+        result = _run_auto_replay_render(AUTO_READY_QUERY)
+        assert result["intervalCount"] == 0
+
+    def test_no_setinterval_during_playback(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [{"type": "click", "action": "start"}])
+        assert data["results"][-1]["intervalCount"] == 0
+
+    def test_pause_clears_timer(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "click", "action": "pause"},
+        ])
+        assert data["results"][-1]["pendingTimers"] == 0
+
+    def test_pause_blocks_timer_progress(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "click", "action": "pause"},
+            {"type": "fire-timer"},
+        ])
+        assert data["results"][2]["search"] == data["results"][1]["search"]
+
+    def test_resume_preserves_phase_and_timer(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "click", "action": "pause"},
+            {"type": "click", "action": "resume"},
+        ])
+        paused = data["results"][2]
+        resumed = data["results"][3]
+        assert 'data-auto-replay-status="paused"' in paused["html"]
+        assert 'data-auto-replay-status="running"' in resumed["html"]
+        assert 'data-auto-replay-step="directory"' in paused["html"]
+        assert 'data-auto-replay-step="directory"' in resumed["html"]
+        assert resumed["pendingTimers"] == 1
+
+    def test_restart_returns_to_exact_ready_state(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "click", "action": "restart"},
+        ])
+        last = data["results"][-1]
+        assert last["search"] == AUTO_READY_QUERY
+        assert 'data-auto-replay-step="ready"' in last["html"]
+        assert 'data-auto-replay-status="ready"' in last["html"]
+        assert last["pendingTimers"] == 0
+        assert "시연 시작" in last["html"]
+        assert "일시정지" not in last["html"]
+        assert "계속" not in last["html"]
+
+    def test_exact_result_facts(self):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step=result")
+        html = result["html"]
+        assert "공동주택과" in html
+        assert "062-410-6033" in html
+        assert "공동주택과 업무전반" in html
+        assert "전체 <strong>9</strong>명, 현재 페이지 <strong>1/1</strong>" in html
+        assert "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다." in result["chat"]
+
+    @pytest.mark.parametrize("pattern", [
+        "fetch(",
+        "localStorage",
+        "sessionStorage",
+        "document.cookie",
+        "XMLHttpRequest",
+        "WebSocket",
+        "EventSource",
+    ])
+    def test_no_fetch_storage_cookie_external_origin_contract(self, pattern):
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert pattern not in _strip_all(js)
+
+    @pytest.mark.parametrize("selector", [
+        '[data-dept-auto-replay="true"]',
+        '[data-dept-auto-replay="true"] .bg-dept-action-bubble',
+        '[data-dept-auto-replay="true"] .bg-auto-cursor',
+        '[data-dept-auto-replay="true"] .bg-auto-click-feedback',
+    ])
+    def test_css_scope_contract(self, selector):
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert selector in css
+
+    @pytest.mark.parametrize("needle", [
+        "@media (prefers-reduced-motion: reduce)",
+        '[data-dept-auto-replay="true"] .bg-dept-action-bubble',
+        '[data-dept-auto-replay="true"] .bg-auto-cursor',
+        '[data-dept-auto-replay="true"] .bg-auto-click-feedback',
+    ])
+    def test_reduced_motion_contract_exists(self, needle):
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert needle in css
+
+
+class TestAutoReplayVisiblePhaseFeedback:
+    @pytest.mark.parametrize(("step", "cursor_class"), [
+        ("route", "bg-auto-cursor--gnb"),
+        ("directory", "bg-auto-cursor--menu-link"),
+        ("search", "bg-auto-cursor--search"),
+        ("result", "bg-auto-cursor--result-row"),
+    ])
+    def test_cursor_markup_by_phase(self, step, cursor_class):
+        html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
+        assert 'class="bg-auto-cursor' in html
+        assert cursor_class in html
+        assert f'data-auto-cursor-phase="{step}"' in html
+
+    @pytest.mark.parametrize(("step", "target_class"), [
+        ("route", "bg-auto-target--gnb-dept"),
+        ("directory", "bg-auto-target--directory-link"),
+        ("search", "bg-auto-target--search-input"),
+        ("result", "bg-auto-target--result-row"),
+    ])
+    def test_target_highlight_markup_by_phase(self, step, target_class):
+        html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
+        assert 'class="bg-auto-target-highlight' in html
+        assert target_class in html
+        assert f'data-auto-target-phase="{step}"' in html
+
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_click_feedback_markup_by_phase(self, step):
+        html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
+        assert 'class="bg-auto-click-feedback' in html
+        assert f'data-auto-click-phase="{step}"' in html
+
+    @pytest.mark.parametrize("marker", [
+        'class="bg-auto-cursor',
+        'class="bg-auto-target-highlight',
+        'class="bg-auto-click-feedback',
+    ])
+    def test_manual_replay_has_no_auto_feedback_markup(self, marker):
+        html = _run_auto_replay_render("?replay=J-DEPT-01&replay-step=directory")["html"]
+        assert marker not in html
+
+    def test_action_bubble_uses_lower_left_anchor(self):
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert "position: absolute;" in css
+        assert "left: 24px;" in css
+        assert "bottom: 28px;" in css
+
+    @pytest.mark.parametrize("needle", [
+        "left: 50%",
+        "left:50%",
+        "translateX(-50%)",
+    ])
+    def test_action_bubble_has_no_centered_positioning(self, needle):
+        css = _read_static("citizen-action-demo-canvas.css")
+        start = css.index('[data-dept-auto-replay="true"] .bg-dept-action-bubble')
+        end = css.index('[data-dept-auto-replay="true"][data-auto-replay-status="paused"] .bg-dept-action-bubble')
+        bubble_css = css[start:end]
+        assert needle not in bubble_css
+
+    @pytest.mark.parametrize("needle", [
+        "transition: none;",
+        "animation: none;",
+        "opacity: 0.5;",
+    ])
+    def test_reduced_motion_retains_visibility(self, needle):
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert needle in css
+
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_url_stays_ready(self, step):
+        html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
+        assert 'data-auto-replay-status="ready"' in html
+
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_url_has_zero_timers(self, step):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
+        assert result["timerCount"] == 0
+
+    def test_route_overlay_gnb_geometry(self):
+        """Verify the route-phase GNB overlay coordinates match the measured 북구소개 position."""
+        css = _read_static("citizen-action-demo-canvas.css")
+        # Extract the bg-auto-target--gnb-dept rule block
+        import re
+        target_match = re.search(
+            r'\[data-dept-auto-replay="true"\]\s*\.bg-auto-target--gnb-dept\s*\{([^}]+)\}',
+            css
+        )
+        assert target_match is not None, "bg-auto-target--gnb-dept rule not found"
+        target_block = target_match.group(1)
+        assert "top: 68px" in target_block, f"Expected top: 68px in target rule, got block: {target_block}"
+        assert "left: 828px" in target_block, f"Expected left: 828px in target rule"
+        assert "width: 90px" in target_block, f"Expected width: 90px in target rule"
+        assert "height: 38px" in target_block, f"Expected height: 38px in target rule"
+
+        cursor_match = re.search(
+            r'\[data-dept-auto-replay="true"\]\s*\.bg-auto-cursor--gnb\s*\{([^}]+)\}',
+            css
+        )
+        assert cursor_match is not None, "bg-auto-cursor--gnb rule not found"
+        cursor_block = cursor_match.group(1)
+        assert "top: 80px" in cursor_block, f"Expected top: 80px in cursor rule, got block: {cursor_block}"
+        assert "left: 900px" in cursor_block, f"Expected left: 900px in cursor rule"
+
+
+class TestAutoReplayDirectPhaseGate:
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_shows_start_button(self, step):
+        html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
+        assert "시연 시작" in html
+
+    @pytest.mark.parametrize("step", ["ready"] + AUTO_PHASES)
+    def test_start_from_static_phase_enters_route_running(self, step):
+        query = AUTO_READY_QUERY if step == "ready" else f"{AUTO_READY_QUERY}&replay-step={step}"
+        data = _run_auto_replay(query, [{"type": "click", "action": "start"}])
+        first = data["results"][0]
+        assert first["search"] == f"{AUTO_READY_QUERY}&replay-step=route"
+        assert 'data-auto-replay-step="route"' in first["html"]
+        assert 'data-auto-replay-status="running"' in first["html"]
+        assert first["pendingTimers"] == 1
+
+    def test_start_schedules_exact_first_delay(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [{"type": "click", "action": "start"}])
+        assert data["results"][0]["pendingTimerDelays"] == [2500]
+
+    def test_full_playback_reaches_result_complete(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+        ])
+        last = data["results"][-1]
+        assert last["search"] == f"{AUTO_READY_QUERY}&replay-step=result"
+        assert 'data-auto-replay-status="complete"' in last["html"]
+        assert "공동주택과" in last["html"]
+
+    def test_full_playback_uses_exact_timer_delay_sequence(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+        ])
+        assert data["results"][0]["pendingTimerDelays"] == [2500]
+        assert data["results"][1]["pendingTimerDelays"] == [3000]
+        assert data["results"][2]["pendingTimerDelays"] == [3000]
+        assert data["results"][3]["pendingTimerDelays"] == []
+
+    def test_complete_state_shows_restart_only(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+        ])
+        html = data["results"][-1]["html"]
+        assert "다시 보기" in html
+        assert "일시정지" not in html
+        assert "계속" not in html
+
+    def test_restart_from_running_clears_timer(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "click", "action": "restart"},
+        ])
+        last = data["results"][-1]
+        assert last["pendingTimers"] == 0
+        assert last["search"] == AUTO_READY_QUERY
+
+    def test_restart_from_running_restores_start_only(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "click", "action": "restart"},
+        ])
+        html = data["results"][-1]["html"]
+        assert 'data-auto-replay-status="ready"' in html
+        assert 'data-auto-replay-step="ready"' in html
+        assert "시연 시작" in html
+        assert "다시 보기" not in html
+
+
+class TestAutoReplayPhaseMismatchFailClosed:
+    @pytest.mark.parametrize("step", ["directory", "search", "result"])
+    def test_running_url_only_phase_change_fails_closed(self, step):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "change-url", "url": f"{AUTO_READY_QUERY}&replay-step={step}"},
+        ])
+        last = data["results"][-1]
+        assert f'data-auto-replay-step="{step}"' in last["html"]
+        assert 'data-auto-replay-status="ready"' in last["html"]
+        assert last["pendingTimers"] == 0
+        assert "시연 시작" in last["html"]
+        assert "일시정지" not in last["html"]
+        assert "계속" not in last["html"]
+
+    def test_running_same_phase_url_preserves_running(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "change-url", "url": f"{AUTO_READY_QUERY}&replay-step=route"},
+        ])
+        last = data["results"][-1]
+        assert 'data-auto-replay-step="route"' in last["html"]
+        assert 'data-auto-replay-status="running"' in last["html"]
+        assert last["pendingTimers"] == 1
+
+    @pytest.mark.parametrize("step", ["route", "search", "result"])
+    def test_paused_url_only_phase_change_fails_closed(self, step):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "click", "action": "pause"},
+            {"type": "change-url", "url": f"{AUTO_READY_QUERY}&replay-step={step}"},
+        ])
+        last = data["results"][-1]
+        assert f'data-auto-replay-step="{step}"' in last["html"]
+        assert 'data-auto-replay-status="ready"' in last["html"]
+        assert last["pendingTimers"] == 0
+        assert "시연 시작" in last["html"]
+        assert "다시 보기" not in last["html"]
+
+    def test_paused_same_phase_url_preserves_paused(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "click", "action": "pause"},
+            {"type": "change-url", "url": f"{AUTO_READY_QUERY}&replay-step=directory"},
+        ])
+        last = data["results"][-1]
+        assert 'data-auto-replay-step="directory"' in last["html"]
+        assert 'data-auto-replay-status="paused"' in last["html"]
+        assert last["pendingTimers"] == 0
+
+    def test_normal_internal_transition_preserves_running(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+        ])
+        after_timer = data["results"][-1]
+        assert 'data-auto-replay-status="running"' in after_timer["html"]
+        assert 'data-auto-replay-step="directory"' in after_timer["html"]
+        assert after_timer["pendingTimers"] == 1
+
+    def test_restart_semantics_preserved_after_mismatch_sequence(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "change-url", "url": f"{AUTO_READY_QUERY}&replay-step=result"},
+            {"type": "click", "action": "start"},
+            {"type": "click", "action": "restart"},
+        ])
+        last = data["results"][-1]
+        assert last["search"] == AUTO_READY_QUERY
+        assert 'data-auto-replay-status="ready"' in last["html"]
+        assert 'data-auto-replay-step="ready"' in last["html"]
+        assert last["pendingTimers"] == 0

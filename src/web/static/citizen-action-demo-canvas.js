@@ -381,6 +381,157 @@
     return { isReplay: false, step: "" };
   }
 
+  // Auto-replay runtime state — module-local, no storage/persistence
+  var _autoReplayState = {
+    phase: "",
+    status: "idle",
+    pendingTimer: null,
+    userStarted: false,
+    phaseOrder: ["route", "directory", "search", "result"]
+  };
+
+  function _resolveAutoReplayState(search) {
+    var params = new URLSearchParams(search || "");
+    var replayValues = params.getAll("replay");
+    if (replayValues.length !== 1 || replayValues[0] !== "J-DEPT-01") {
+      return { isAuto: false, step: "" };
+    }
+    var modeValues = params.getAll("replay-mode");
+    if (modeValues.length !== 1 || modeValues[0] !== "auto") {
+      return { isAuto: false, step: "" };
+    }
+    var replaySteps = params.getAll("replay-step");
+    if (replaySteps.length > 1) {
+      return { isAuto: false, step: "" };
+    }
+    var allKeys = Array.from(params.keys());
+    for (var i = 0; i < allKeys.length; i++) {
+      if (allKeys[i] !== "replay" && allKeys[i] !== "replay-mode" && allKeys[i] !== "replay-step") {
+        return { isAuto: false, step: "" };
+      }
+    }
+    var step = replaySteps.length === 0 ? "" : replaySteps[0];
+    if (step !== "" &&
+        step !== "route" &&
+        step !== "directory" &&
+        step !== "search" &&
+        step !== "result") {
+      return { isAuto: false, step: "" };
+    }
+    if (step === "") {
+      return { isAuto: true, step: "ready" };
+    }
+    return { isAuto: true, step: step };
+  }
+
+  // Auto-replay controls
+  function _renderAutoReplayControls(step, status) {
+    var buttons = [];
+    if (step === "ready" || step === "" || status === "ready") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="start">시연 시작</button>');
+    } else if (status === "running") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="pause">일시정지</button>');
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-auto-replay-action="restart">다시 보기</button>');
+    } else if (status === "paused") {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="resume">계속</button>');
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-auto-replay-action="restart">다시 보기</button>');
+    } else {
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-auto-replay-action="restart">다시 보기</button>');
+    }
+    return '<div class="bg-dept-replay-controls" aria-label="자동 재현 제어">' + buttons.join("") + '</div>';
+  }
+
+  function _renderAutoActionBubble(step) {
+    var bubbles = {
+      "route": "업무 및 전화번호 안내 경로를 확인합니다",
+      "directory": "북구소개 메뉴를 선택합니다",
+      "search": "공동주택을 검색합니다",
+      "result": "담당 부서와 연락처를 확인했습니다"
+    };
+    var text = bubbles[step] || "";
+    if (!text) return "";
+    return '<div class="bg-dept-action-bubble" aria-live="polite">' + text + '</div>';
+  }
+
+  function _updateChatProgressForAutoReplay(step) {
+    var thread = document.getElementById("chat-thread");
+    if (!thread) return;
+    var approvedChat = [
+      '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">공동주택 관련 문의는 어느 부서에 해야 하나요?</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내 경로를 확인하겠습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구소개 메뉴에서 업무 및 전화번호 안내를 확인하고 있습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 담당 부서를 검색하고 있습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.</div></div>'
+    ];
+    var renderCount;
+    if (step === "ready" || step === "") {
+      renderCount = 2;
+    } else if (step === "route") {
+      renderCount = 3;
+    } else if (step === "directory") {
+      renderCount = 4;
+    } else if (step === "search" || step === "result") {
+      renderCount = 5;
+    } else {
+      renderCount = 2;
+    }
+    var html = "";
+    for (var i = 0; i < renderCount; i++) {
+      html += approvedChat[i];
+    }
+    thread.innerHTML = html;
+  }
+
+  function _clearAutoReplayTimer() {
+    if (_autoReplayState.pendingTimer && typeof window !== "undefined" && typeof window.clearTimeout === "function") {
+      window.clearTimeout(_autoReplayState.pendingTimer);
+    }
+    _autoReplayState.pendingTimer = null;
+  }
+
+  function _setAutoReplayUrl(step) {
+    if (typeof window === "undefined" || !window.history || typeof window.history.pushState !== "function") {
+      return;
+    }
+    var url = "?replay=J-DEPT-01&replay-mode=auto";
+    if (step && step !== "ready") {
+      url += "&replay-step=" + encodeURIComponent(step);
+    }
+    window.history.pushState({}, "", url);
+  }
+
+  function _advanceAutoReplay(step) {
+    _autoReplayState.phase = step;
+    _autoReplayState.status = step === "result" ? "complete" : "running";
+    _setAutoReplayUrl(step);
+    navigateToRoute("home");
+  }
+
+  function _scheduleAutoReplayAdvance(step) {
+    _clearAutoReplayTimer();
+    if (_autoReplayState.status !== "running" || step === "result") {
+      return;
+    }
+    var delays = {
+      "route": 2500,
+      "directory": 3000,
+      "search": 3000
+    };
+    var currentIndex = _autoReplayState.phaseOrder.indexOf(step);
+    if (currentIndex === -1 || currentIndex === _autoReplayState.phaseOrder.length - 1) {
+      return;
+    }
+    var nextStep = _autoReplayState.phaseOrder[currentIndex + 1];
+    if (typeof window !== "undefined" && typeof window.setTimeout === "function") {
+      _autoReplayState.pendingTimer = window.setTimeout(function () {
+        _autoReplayState.pendingTimer = null;
+        if (_autoReplayState.status === "running") {
+          _advanceAutoReplay(nextStep);
+        }
+      }, delays[step] || 2000);
+    }
+  }
+
   function _renderDeptReplayControls(step) {
     var buttons = [];
     if (step === "ready") {
@@ -628,6 +779,78 @@
       '</div>'
     );
     return html;
+  }
+
+  function _renderAutoCursor(step) {
+    var positions = {
+      "route": "bg-auto-cursor--gnb",
+      "directory": "bg-auto-cursor--menu-link",
+      "search": "bg-auto-cursor--search",
+      "result": "bg-auto-cursor--result-row"
+    };
+    var posClass = positions[step] || "";
+    return '<div class="bg-auto-cursor ' + posClass + '" data-auto-cursor-phase="' + _escHtml(step) + '" aria-hidden="true"></div>';
+  }
+
+  function _renderAutoTargetHighlight(step) {
+    var targets = {
+      "route": "bg-auto-target--gnb-dept",
+      "directory": "bg-auto-target--directory-link",
+      "search": "bg-auto-target--search-input",
+      "result": "bg-auto-target--result-row"
+    };
+    var cls = targets[step] || "";
+    return '<div class="bg-auto-target-highlight ' + cls + '" data-auto-target-phase="' + _escHtml(step) + '" aria-hidden="true"></div>';
+  }
+
+  function _renderAutoClickFeedback(step) {
+    return '<div class="bg-auto-click-feedback" data-auto-click-phase="' + _escHtml(step) + '" aria-hidden="true"></div>';
+  }
+
+  function _renderAutoPhaseFeedback(step) {
+    if (step === "ready" || step === "") return "";
+    return _renderAutoCursor(step) + _renderAutoTargetHighlight(step) + _renderAutoClickFeedback(step);
+  }
+
+  function _renderAutoReplay(step, status) {
+    var normalizedStep = step === "ready" ? "route" : step;
+    var html;
+    if (step === "ready") {
+      html = _renderHome(_resolveHomeReferenceState(typeof window !== "undefined" && window.location ? window.location.search : ""));
+      html = html.replace(
+        '<div class="bg-page bg-page--full bg-page--home"',
+        '<div class="bg-page bg-page--full bg-page--home" data-dept-auto-replay="true" data-auto-replay-step="ready" data-auto-replay-status="' + _escHtml(status) + '"'
+      );
+      html = html.replace(
+        '<section class="bg-home-search" aria-label="통합검색">',
+        '<div class="bg-dept-replay-home-controls">' +
+          _renderAutoReplayControls("ready", status) +
+        '</div>' +
+        '<section class="bg-home-search" aria-label="통합검색">'
+      );
+      return html;
+    }
+
+    html = _renderDeptDirectory(step === "result" ? "result" : "directory");
+    html = html.replace(
+      '<div class="bg-page bg-page--full bg-page--dept-directory">',
+      '<div class="bg-page bg-page--full bg-page--dept-directory bg-page--dept-replay" data-dept-auto-replay="true" data-auto-replay-step="' + _escHtml(step) + '" data-auto-replay-status="' + _escHtml(status) + '">'
+    );
+    html = html.replace(
+      '<div class="bg-dept-header">' +
+        '<h2>업무 및 전화번호 안내</h2>' +
+      '</div>',
+      '<div class="bg-dept-header">' +
+        '<h2>업무 및 전화번호 안내</h2>' +
+        _renderAutoReplayControls(step, status) +
+      '</div>'
+    );
+    return html.replace(
+      '</footer>' +
+      '</div>',
+      _renderAutoActionBubble(normalizedStep) + _renderAutoPhaseFeedback(step) + '</footer>' +
+      '</div>'
+    );
   }
 
   // -----------------------------------------------------------------------
@@ -1582,6 +1805,35 @@
   // -----------------------------------------------------------------------
   function _renderRoute(routeId) {
     var search = typeof window !== "undefined" && window.location ? window.location.search : "";
+    var autoReplay = _resolveAutoReplayState(search);
+    if (autoReplay.isAuto) {
+      var status;
+      var _runnablePhases = ["route", "directory", "search"];
+      var _phaseMatch = _autoReplayState.phase === autoReplay.step;
+      if (autoReplay.step === "ready") {
+        status = "ready";
+        _autoReplayState.userStarted = false;
+      } else if (_autoReplayState.userStarted && _autoReplayState.status === "running" && _phaseMatch && _runnablePhases.indexOf(autoReplay.step) !== -1) {
+        status = "running";
+      } else if (_autoReplayState.userStarted && _autoReplayState.status === "paused" && _phaseMatch && _runnablePhases.indexOf(autoReplay.step) !== -1) {
+        status = "paused";
+      } else if (_autoReplayState.userStarted && _autoReplayState.status === "complete" && _autoReplayState.phase === "result" && autoReplay.step === "result") {
+        status = "complete";
+      } else {
+        status = "ready";
+        _autoReplayState.userStarted = false;
+      }
+      _autoReplayState.phase = autoReplay.step;
+      _autoReplayState.status = status;
+      _updateChatProgressForAutoReplay(autoReplay.step);
+      if (status === "running") {
+        _scheduleAutoReplayAdvance(autoReplay.step);
+      } else {
+        _clearAutoReplayTimer();
+      }
+      return _renderAutoReplay(autoReplay.step, status);
+    }
+    _clearAutoReplayTimer();
     var deptReplay = _resolveDeptReplayState(search);
     if (deptReplay.isReplay) {
       _updateChatProgressForDeptReplay(deptReplay.step);
@@ -1688,6 +1940,37 @@
     if (!_demoCanvas || _delegationAttached) { return; }
     _delegationAttached = true;
     _demoCanvas.addEventListener("click", function (e) {
+      var autoReplayAction = e.target.closest("[data-auto-replay-action]");
+      if (autoReplayAction) {
+        if (e && typeof e.preventDefault === "function") {
+          e.preventDefault();
+        }
+        var action = autoReplayAction.getAttribute("data-auto-replay-action");
+        if (action === "start") {
+          _clearAutoReplayTimer();
+          _autoReplayState.userStarted = true;
+          _autoReplayState.status = "running";
+          _advanceAutoReplay("route");
+        } else if (action === "restart") {
+          _clearAutoReplayTimer();
+          _autoReplayState.userStarted = false;
+          _autoReplayState.status = "ready";
+          _autoReplayState.phase = "";
+          if (typeof window !== "undefined" && window.history && typeof window.history.pushState === "function") {
+            window.history.pushState({}, "", "?replay=J-DEPT-01&replay-mode=auto");
+          }
+          navigateToRoute("home");
+        } else if (action === "pause") {
+          _clearAutoReplayTimer();
+          _autoReplayState.status = "paused";
+          navigateToRoute("home");
+        } else if (action === "resume") {
+          _autoReplayState.status = "running";
+          navigateToRoute("home");
+        }
+        return;
+      }
+
       var deptAction = e.target.closest("[data-dept-action]");
       if (deptAction) {
         if (e && typeof e.preventDefault === "function") {
