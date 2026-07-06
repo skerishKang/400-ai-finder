@@ -2470,3 +2470,204 @@ class TestAutoReplayContract:
     def test_prefers_reduced_motion_fallback_exists(self):
         css = _read_static("citizen-action-demo-canvas.css")
         assert "prefers-reduced-motion" in css
+
+
+# ---------------------------------------------------------------------------
+# Stage 864-A: Visible phase feedback and source-contract correction tests
+# ---------------------------------------------------------------------------
+
+class TestAutoReplayVisiblePhaseFeedback:
+    """Tests for the visible accelerated replay feedback contract (#864-A)."""
+
+    @pytest.fixture(scope="class")
+    def auto_render(self):
+        def _render(query: str):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function() {},
+                querySelector: function() { return null; }
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              history: { pushState: function() {} },
+              setTimeout: function() {},
+              clearTimeout: function() {},
+              setInterval: function() {},
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+            process.stdout.write(JSON.stringify({ html: capturedHTML, chat: capturedChatHTML }));
+            """ % (json.dumps(query), map_js, canvas_js)
+            res = _run_node_script_file(sandbox_init, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return json.loads(res.stdout)
+        return _render
+
+    # 1. all four advancing phases contain data-auto-replay-step
+    def test_all_phases_have_auto_replay_step(self, auto_render):
+        for step in ["route", "directory", "search", "result"]:
+            result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=" + step)
+            assert 'data-auto-replay-step="' + step + '"' in result["html"], \
+                f"step '{step}' missing data-auto-replay-step"
+
+    # 2. route HTML contains cursor, target-highlight, and click-feedback markup
+    def test_route_has_cursor_highlight_click_feedback(self, auto_render):
+        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=route")
+        html = result["html"]
+        assert 'class="bg-auto-cursor' in html, "route missing cursor"
+        assert 'bg-auto-cursor--gnb' in html, "route missing gnb cursor position"
+        assert 'data-auto-cursor-phase="route"' in html, "route missing cursor phase"
+        assert 'class="bg-auto-target-highlight' in html, "route missing target highlight"
+        assert 'bg-auto-target--gnb-dept' in html, "route missing gnb-dept target"
+        assert 'data-auto-target-phase="route"' in html, "route missing target phase"
+        assert 'class="bg-auto-click-feedback' in html, "route missing click feedback"
+        assert 'data-auto-click-phase="route"' in html, "route missing click phase"
+
+    # 3. directory HTML contains cursor, target-highlight, and click-feedback markup
+    def test_directory_has_cursor_highlight_click_feedback(self, auto_render):
+        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=directory")
+        html = result["html"]
+        assert 'class="bg-auto-cursor' in html, "directory missing cursor"
+        assert 'bg-auto-cursor--menu-link' in html, "directory missing menu-link cursor"
+        assert 'data-auto-cursor-phase="directory"' in html
+        assert 'class="bg-auto-target-highlight' in html, "directory missing target highlight"
+        assert 'bg-auto-target--directory-link' in html
+        assert 'data-auto-target-phase="directory"' in html
+        assert 'class="bg-auto-click-feedback' in html, "directory missing click feedback"
+        assert 'data-auto-click-phase="directory"' in html
+
+    # 4. search HTML contains cursor, target-highlight, and click-feedback markup
+    def test_search_has_cursor_highlight_click_feedback(self, auto_render):
+        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=search")
+        html = result["html"]
+        assert 'class="bg-auto-cursor' in html, "search missing cursor"
+        assert 'bg-auto-cursor--search' in html, "search missing search cursor"
+        assert 'data-auto-cursor-phase="search"' in html
+        assert 'class="bg-auto-target-highlight' in html, "search missing target highlight"
+        assert 'bg-auto-target--search-input' in html
+        assert 'data-auto-target-phase="search"' in html
+        assert 'class="bg-auto-click-feedback' in html, "search missing click feedback"
+        assert 'data-auto-click-phase="search"' in html
+
+    # 5. result HTML contains cursor, target-highlight, and click-feedback markup
+    def test_result_has_cursor_highlight_click_feedback(self, auto_render):
+        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=result")
+        html = result["html"]
+        assert 'class="bg-auto-cursor' in html, "result missing cursor"
+        assert 'bg-auto-cursor--result-row' in html, "result missing result-row cursor"
+        assert 'data-auto-cursor-phase="result"' in html
+        assert 'class="bg-auto-target-highlight' in html, "result missing target highlight"
+        assert 'bg-auto-target--result-row' in html
+        assert 'data-auto-target-phase="result"' in html
+        assert 'class="bg-auto-click-feedback' in html, "result missing click feedback"
+        assert 'data-auto-click-phase="result"' in html
+
+    # 6. action bubble is scoped to auto replay
+    def test_action_bubble_scoped_to_auto_replay(self):
+        css = _read_static("citizen-action-demo-canvas.css")
+        # The bubble style must be inside a [data-dept-auto-replay="true"] selector
+        assert '[data-dept-auto-replay="true"] .bg-dept-action-bubble' in css
+
+    # 7. action bubble does not use left:50% or translateX(-50%)
+    def test_action_bubble_no_centered_positioning(self):
+        css = _read_static("citizen-action-demo-canvas.css")
+        # Collect all bubble rule blocks
+        lines = css.split("\n")
+        in_bubble_block = False
+        all_bubble_props = []
+        current_block = []
+        for line in lines:
+            stripped = line.strip()
+            if '[data-dept-auto-replay="true"] .bg-dept-action-bubble' in stripped and '{' in stripped:
+                in_bubble_block = True
+                current_block = []
+            if in_bubble_block:
+                current_block.append(stripped)
+                if '}' in stripped:
+                    in_bubble_block = False
+                    all_bubble_props.append("\n".join(current_block))
+        bubble_text = "\n".join(all_bubble_props)
+        assert "left: 50%" not in bubble_text, "action bubble must not use left: 50%"
+        assert "left:50%" not in bubble_text, "action bubble must not use left:50%"
+        assert "translateX(-50%)" not in bubble_text, "action bubble must not use translateX(-50%)"
+        # Verify it uses left: 24px instead (anchored lower-left)
+        assert "left: 24px" in bubble_text, "action bubble should use left: 24px"
+
+    # 8. phase delays sum to at least 8000ms and no more than 15000ms
+    def test_phase_delays_sum_in_range(self):
+        js = _read_static("citizen-action-demo-canvas.js")
+        # Extract delay values from the delays object in _scheduleAutoReplayAdvance
+        delays_match = re.search(r'var delays = \{([^}]+)\}', js)
+        assert delays_match, "delays object not found in JS"
+        delays_text = delays_match.group(1)
+        delay_values = re.findall(r'"[^"]+":\s*(\d+)', delays_text)
+        assert len(delay_values) >= 3, "expected at least 3 delay entries"
+        total = sum(int(v) for v in delay_values)
+        assert total >= 8000, f"total delay {total}ms is less than 8000ms"
+        assert total <= 15000, f"total delay {total}ms is more than 15000ms"
+
+    # 9. reduced-motion CSS disables decorative animation while retaining visibility
+    def test_reduced_motion_disables_decoration_retains_visibility(self):
+        css = _read_static("citizen-action-demo-canvas.css")
+        # Must have prefers-reduced-motion block
+        assert "prefers-reduced-motion" in css
+        # Find the reduced-motion block content
+        rm_start = css.find("@media (prefers-reduced-motion: reduce)")
+        assert rm_start != -1, "missing @media (prefers-reduced-motion: reduce)"
+        rm_block = css[rm_start:]
+        # Find the matching closing brace for the media query
+        brace_count = 0
+        rm_end = 0
+        for i, ch in enumerate(rm_block):
+            if ch == '{':
+                brace_count += 1
+            elif ch == '}':
+                brace_count -= 1
+                if brace_count == 0:
+                    rm_end = i + 1
+                    break
+        rm_text = rm_block[:rm_end]
+        # Must disable cursor transition
+        assert "bg-auto-cursor" in rm_text, "reduced-motion must reference auto cursor"
+        assert "transition: none" in rm_text or "animation: none" in rm_text, \
+            "reduced-motion must disable animation/transition"
+        # Must retain cursor visibility (not display:none)
+        assert "display: none" not in rm_text, "reduced-motion must not hide cursor completely"
+        # Must disable click pulse animation
+        assert "bg-auto-click-feedback" in rm_text, "reduced-motion must reference click feedback"
+        # Click feedback must retain some visibility (opacity > 0)
+        assert "opacity: 0.5" in rm_text or "opacity: 1" in rm_text, \
+            "reduced-motion click feedback must retain visibility"
+
+    # 10. manual replay has none of the auto cursor/highlight/click-feedback markers
+    def test_manual_replay_no_auto_markers(self, auto_render):
+        result = auto_render("?replay=J-DEPT-01&replay-step=directory")
+        html = result["html"]
+        assert 'class="bg-auto-cursor' not in html, "manual replay must not have auto cursor"
+        assert 'class="bg-auto-target-highlight' not in html, "manual replay must not have auto target highlight"
+        assert 'class="bg-auto-click-feedback' not in html, "manual replay must not have auto click feedback"

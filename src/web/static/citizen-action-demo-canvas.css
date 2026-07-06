@@ -1983,10 +1983,9 @@
   pointer-events: auto;
 }
 [data-dept-auto-replay="true"] .bg-dept-action-bubble {
-  position: fixed;
+  position: absolute;
   bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 24px;
   background: #0054A6;
   color: #fff;
   padding: 10px 22px;
@@ -2008,10 +2007,70 @@
   opacity: 0.4;
 }
 
+/* Auto cursor — positioned relative to auto-replay root */
+[data-dept-auto-replay="true"] {
+  position: relative;
+}
+[data-dept-auto-replay="true"] .bg-auto-cursor {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #0054A6;
+  background: rgba(0, 84, 166, 0.15);
+  z-index: 1001;
+  pointer-events: none;
+  transition: top 0.3s ease, left 0.3s ease;
+}
+[data-dept-auto-replay="true"] .bg-auto-cursor--gnb { top: 160px; left: 420px; }
+[data-dept-auto-replay="true"] .bg-auto-cursor--menu-link { top: 200px; left: 320px; }
+[data-dept-auto-replay="true"] .bg-auto-cursor--search { top: 320px; left: 460px; }
+[data-dept-auto-replay="true"] .bg-auto-cursor--result-row { top: 380px; left: 200px; }
+
+/* Auto target highlight */
+[data-dept-auto-replay="true"] .bg-auto-target-highlight {
+  position: absolute;
+  border: 2px solid #E60012;
+  border-radius: 4px;
+  background: rgba(230, 0, 18, 0.08);
+  z-index: 999;
+  pointer-events: none;
+}
+[data-dept-auto-replay="true"] .bg-auto-target--gnb-dept { top: 150px; left: 380px; width: 120px; height: 36px; }
+[data-dept-auto-replay="true"] .bg-auto-target--directory-link { top: 190px; left: 280px; width: 200px; height: 32px; }
+[data-dept-auto-replay="true"] .bg-auto-target--search-input { top: 310px; left: 340px; width: 260px; height: 40px; }
+[data-dept-auto-replay="true"] .bg-auto-target--result-row { top: 370px; left: 160px; width: 540px; height: 40px; }
+
+/* Auto click feedback — pulse ring */
+[data-dept-auto-replay="true"] .bg-auto-click-feedback {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid #0054A6;
+  opacity: 0;
+  z-index: 1002;
+  pointer-events: none;
+  animation: bgAutoClickPulse 0.6s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-dept-auto-replay="true"] .bg-dept-action-bubble {
     transition: none;
   }
+  [data-dept-auto-replay="true"] .bg-auto-cursor {
+    transition: none;
+  }
+  [data-dept-auto-replay="true"] .bg-auto-click-feedback {
+    animation: none;
+    opacity: 0.5;
+    transform: scale(1);
+  }
+}
+
+@keyframes bgAutoClickPulse {
+  from { transform: scale(0.5); opacity: 0.8; }
+  to { transform: scale(1.6); opacity: 0; }
 }
 
 /* Home & sub-route J-DEPT-01 shared public shell styles */

@@ -512,9 +512,9 @@
       return;
     }
     var delays = {
-      "route": 2000,
-      "directory": 2500,
-      "search": 2500
+      "route": 2500,
+      "directory": 3000,
+      "search": 3000
     };
     var currentIndex = _autoReplayState.phaseOrder.indexOf(step);
     if (currentIndex === -1 || currentIndex === _autoReplayState.phaseOrder.length - 1) {
@@ -780,6 +780,37 @@
     return html;
   }
 
+  function _renderAutoCursor(step) {
+    var positions = {
+      "route": "bg-auto-cursor--gnb",
+      "directory": "bg-auto-cursor--menu-link",
+      "search": "bg-auto-cursor--search",
+      "result": "bg-auto-cursor--result-row"
+    };
+    var posClass = positions[step] || "";
+    return '<div class="bg-auto-cursor ' + posClass + '" data-auto-cursor-phase="' + _escHtml(step) + '" aria-hidden="true"></div>';
+  }
+
+  function _renderAutoTargetHighlight(step) {
+    var targets = {
+      "route": "bg-auto-target--gnb-dept",
+      "directory": "bg-auto-target--directory-link",
+      "search": "bg-auto-target--search-input",
+      "result": "bg-auto-target--result-row"
+    };
+    var cls = targets[step] || "";
+    return '<div class="bg-auto-target-highlight ' + cls + '" data-auto-target-phase="' + _escHtml(step) + '" aria-hidden="true"></div>';
+  }
+
+  function _renderAutoClickFeedback(step) {
+    return '<div class="bg-auto-click-feedback" data-auto-click-phase="' + _escHtml(step) + '" aria-hidden="true"></div>';
+  }
+
+  function _renderAutoPhaseFeedback(step) {
+    if (step === "ready" || step === "") return "";
+    return _renderAutoCursor(step) + _renderAutoTargetHighlight(step) + _renderAutoClickFeedback(step);
+  }
+
   function _renderAutoReplay(step, status) {
     var normalizedStep = step === "ready" ? "route" : step;
     var html;
@@ -787,7 +818,7 @@
       html = _renderHome(_resolveHomeReferenceState(typeof window !== "undefined" && window.location ? window.location.search : ""));
       html = html.replace(
         '<div class="bg-page bg-page--full bg-page--home"',
-        '<div class="bg-page bg-page--full bg-page--home" data-dept-auto-replay="true" data-auto-replay-status="' + _escHtml(status) + '"'
+        '<div class="bg-page bg-page--full bg-page--home" data-dept-auto-replay="true" data-auto-replay-step="ready" data-auto-replay-status="' + _escHtml(status) + '"'
       );
       html = html.replace(
         '<section class="bg-home-search" aria-label="통합검색">',
@@ -802,7 +833,7 @@
     html = _renderDeptDirectory(step === "result" ? "result" : "directory");
     html = html.replace(
       '<div class="bg-page bg-page--full bg-page--dept-directory">',
-      '<div class="bg-page bg-page--full bg-page--dept-directory bg-page--dept-replay" data-dept-auto-replay="true" data-auto-replay-status="' + _escHtml(status) + '" data-auto-replay-step="' + _escHtml(step) + '">'
+      '<div class="bg-page bg-page--full bg-page--dept-directory bg-page--dept-replay" data-dept-auto-replay="true" data-auto-replay-step="' + _escHtml(step) + '" data-auto-replay-status="' + _escHtml(status) + '">'
     );
     html = html.replace(
       '<div class="bg-dept-header">' +
@@ -816,7 +847,7 @@
     return html.replace(
       '</footer>' +
       '</div>',
-      _renderAutoActionBubble(normalizedStep) + '</footer>' +
+      _renderAutoActionBubble(normalizedStep) + _renderAutoPhaseFeedback(step) + '</footer>' +
       '</div>'
     );
   }
