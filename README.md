@@ -182,7 +182,7 @@ PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
 PYTHONPATH=. .venv/bin/python scripts/run_mobile_demo.py \
     --site-id bukgu_gwangju \
     --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json \
-    --port 8400
+    --port 8080
 ```
 
 **광주광역시청 모바일 화면:**
@@ -192,7 +192,7 @@ PYTHONPATH=. .venv/bin/python scripts/run_mobile_demo.py \
     --site-id gwangju_go_kr \
     --provider stub \
     --fetch-provider requests \
-    --port 8401
+    --port 8080
 ```
 
 **운영자 대시보드만:**
