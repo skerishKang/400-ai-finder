@@ -2112,803 +2112,315 @@ class TestJKiosk01SpecificContracts:
 # Stage 864: Accelerated replay contract tests
 # ---------------------------------------------------------------------------
 
+AUTO_READY_QUERY = "?replay=J-DEPT-01&replay-mode=auto"
+AUTO_PHASES = ["route", "directory", "search", "result"]
+
+
+def _build_auto_replay_sandbox(initial_url: str, map_js: str, canvas_js: str, actions: list | None = None) -> str:
+    return """
+'use strict';
+var vm = require('vm');
+var capturedHTML = '';
+var capturedChatHTML = '';
+var capturedClickHandler = null;
+var timers = [];
+var intervalCount = 0;
+var pushed = [];
+
+function activeTimers() {
+  return timers.filter(function(t) { return t !== null; });
+}
+
+function snapshot() {
+  var pending = activeTimers();
+  return {
+    html: capturedHTML,
+    chat: capturedChatHTML,
+    search: sandbox.location.search,
+    pendingTimers: pending.length,
+    timerCount: pending.length,
+    pendingTimerDelays: pending.map(function(t) { return t.ms; }),
+    intervalCount: intervalCount,
+    pushed: pushed.slice()
+  };
+}
+
+function makeElement(id) {
+  return {
+    id: id,
+    get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+    set innerHTML(v) {
+      if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; }
+    },
+    addEventListener: function(event, handler) {
+      if (event === 'click' && id === 'demo-canvas') {
+        capturedClickHandler = handler;
+      }
+    },
+    querySelector: function() { return null; }
+  };
+}
+
+var fakeCanvasElement = makeElement('demo-canvas');
+var sandbox = {
+  document: {
+    getElementById: function(id) {
+      if (id === 'demo-canvas') return fakeCanvasElement;
+      if (id === 'chat-thread') return makeElement('chat-thread');
+      return null;
+    }
+  },
+  console: { log: function() {}, error: function() {} },
+  location: { search: %s },
+  history: {
+    pushState: function(state, title, url) {
+      pushed.push(url);
+      sandbox.location.search = url.substring(url.indexOf('?'));
+    }
+  },
+  setTimeout: function(fn, ms) {
+    timers.push({ fn: fn, ms: ms });
+    return timers.length;
+  },
+  clearTimeout: function(id) {
+    if (id && timers[id - 1]) {
+      timers[id - 1] = null;
+    }
+  },
+  setInterval: function() {
+    intervalCount += 1;
+    return -1;
+  },
+  clearInterval: function() {},
+  fetch: function() {},
+  localStorage: { getItem: function() {}, setItem: function() {}, removeItem: function() {} },
+  sessionStorage: { getItem: function() {}, setItem: function() {}, removeItem: function() {} },
+  window: null
+};
+sandbox.URLSearchParams = URLSearchParams;
+sandbox.window = sandbox;
+
+var cx = vm.createContext(sandbox);
+vm.runInContext(%s, cx);
+vm.runInContext(%s, cx);
+sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+
+var initial = snapshot();
+var actionList = %s;
+if (!actionList || actionList.length === 0) {
+  process.stdout.write(JSON.stringify(initial));
+} else {
+  var results = [];
+  for (var a = 0; a < actionList.length; a++) {
+    var act = actionList[a];
+    if (act.type === 'click' && capturedClickHandler) {
+      capturedClickHandler({
+        target: {
+          closest: function(sel) {
+            if (sel === '[data-auto-replay-action]') {
+              return {
+                getAttribute: function() { return act.action; }
+              };
+            }
+            return null;
+          }
+        },
+        preventDefault: function() {}
+      });
+    } else if (act.type === 'fire-timer') {
+      var pending = activeTimers();
+      if (pending.length > 0) {
+        var timer = pending[pending.length - 1];
+        timer.fn();
+        timers[timers.indexOf(timer)] = null;
+      }
+    } else if (act.type === 'change-url') {
+      sandbox.location.search = act.url;
+      sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+    }
+    results.push(snapshot());
+  }
+  process.stdout.write(JSON.stringify({
+    initial: initial,
+    results: results
+  }));
+}
+""" % (json.dumps(initial_url), map_js, canvas_js, json.dumps(actions or []))
+
+
+def _run_auto_replay(query: str, actions: list | None = None) -> dict:
+    map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+    canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+    script = _build_auto_replay_sandbox(query, map_js, canvas_js, actions)
+    res = _run_node_script_file(script, timeout=10)
+    assert res.returncode == 0, res.stderr
+    return json.loads(res.stdout)
+
+
+def _run_auto_replay_render(query: str) -> dict:
+    return _run_auto_replay(query)
+
+
 class TestAutoReplayContract:
-    """Focused tests for the accelerated auto-replay contract (#864)."""
+    @pytest.mark.parametrize("query", [
+        "?replay=J-DEPT-01&replay=J-DEPT-01&replay-mode=auto",
+        "?replay=J-DEPT-01&replay-mode=auto&replay-mode=auto",
+        "?replay=J-DEPT-01&replay-mode=auto&replay-step=route&replay-step=result",
+        "?replay=J-DEPT-01&replay-mode=manual",
+        "?replay=J-DEPT-01&replay-mode=auto&replay-step=bogus",
+        "?replay=J-DEPT-01&replay-mode=auto&extra=1",
+        "?replay=J-DEPT-01&replay-mode=auto&journey=J-DEPT-01",
+        "?replay=j-dept-01&replay-mode=auto",
+        "?replay=J-DEPT-01",
+        "?replay=J-DEPT-01&replay-mode=auto&dept-state=directory",
+        "?replay=J-DEPT-01&replay-mode=auto&park-state=home",
+        "?replay=J-DEPT-01&replay-mode=auto&kiosk-state=home",
+        "?replay=J-DEPT-01&replay-mode=AUTO",
+    ])
+    def test_exact_opt_in_query_gate(self, query):
+        result = _run_auto_replay_render(query)
+        assert 'data-dept-auto-replay="true"' not in result["html"]
 
-    @pytest.fixture(scope="class")
-    def auto_render(self):
-        def _render(query: str):
-            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
-            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
-            sandbox_init = """
-            'use strict';
-            var vm = require('vm');
-            var capturedHTML = '';
-            var capturedChatHTML = '';
-            var eventListeners = {};
-            var timers = [];
-            var intervalCount = 0;
-            function makeElement(id) {
-              return {
-                id: id,
-                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
-                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
-                addEventListener: function(event, handler) { eventListeners[id + ':' + event] = handler; },
-                querySelector: function() { return null; }
-              };
-            }
-            var fakeCanvasElement = makeElement('demo-canvas');
-            var sandbox = {
-              document: {
-                getElementById: function(id) {
-                  if (id === 'demo-canvas') return fakeCanvasElement;
-                  if (id === 'chat-thread') return makeElement('chat-thread');
-                  return null;
-                }
-              },
-              console: { log: function() {}, error: function() {} },
-              location: { search: %s },
-              history: { pushState: function(state, title, url) { sandbox.location.search = url.substring(url.indexOf('?')); } },
-              setTimeout: function(fn, ms) { timers.push({fn: fn, ms: ms, type: 'timeout'}); return timers.length; },
-              clearTimeout: function(id) { if (id && timers[id - 1]) { timers[id - 1] = null; } },
-              setInterval: function() { intervalCount += 1; return -1; },
-              window: null
-            };
-            sandbox.URLSearchParams = URLSearchParams;
-            sandbox.window = sandbox;
-            var cx = vm.createContext(sandbox);
-            vm.runInContext(%s, cx);
-            vm.runInContext(%s, cx);
-            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
-            process.stdout.write(JSON.stringify({
-              html: capturedHTML,
-              chat: capturedChatHTML,
-              timers: timers.filter(function(t) { return t !== null; }).map(function(t) { return {ms: t.ms, type: t.type}; }),
-              intervalCount: intervalCount
-            }));
-            """ % (json.dumps(query), map_js, canvas_js)
-            res = _run_node_script_file(sandbox_init, timeout=10)
-            assert res.returncode == 0, res.stderr
-            return json.loads(res.stdout)
-        return _render
-
-    @pytest.fixture(scope="class")
-    def auto_interact(self):
-        def _interact(query, actions):
-            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
-            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
-            sandbox_init = """
-            'use strict';
-            var vm = require('vm');
-            var capturedHTML = '';
-            var capturedChatHTML = '';
-            var capturedClickHandler = null;
-            var timers = [];
-            var intervalCount = 0;
-            var pushed = [];
-            function makeElement(id) {
-              return {
-                id: id,
-                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
-                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
-                addEventListener: function(event, handler) {
-                  if (event === 'click' && id === 'demo-canvas') capturedClickHandler = handler;
-                },
-                querySelector: function() { return null; }
-              };
-            }
-            var fakeCanvasElement = makeElement('demo-canvas');
-            var sandbox = {
-              document: {
-                getElementById: function(id) {
-                  if (id === 'demo-canvas') return fakeCanvasElement;
-                  if (id === 'chat-thread') return makeElement('chat-thread');
-                  return null;
-                }
-              },
-              console: { log: function() {}, error: function() {} },
-              location: { search: %s },
-              history: {
-                pushState: function(state, title, url) {
-                  pushed.push(url);
-                  sandbox.location.search = url.substring(url.indexOf('?'));
-                }
-              },
-              setTimeout: function(fn, ms) { timers.push({fn: fn, ms: ms, type: 'timeout'}); return timers.length; },
-              clearTimeout: function(id) { if (id && timers[id - 1]) { timers[id - 1] = null; } },
-              setInterval: function() { intervalCount += 1; return -1; },
-              fetch: function() {},
-              localStorage: { getItem: function() {}, setItem: function() {} },
-              sessionStorage: { getItem: function() {}, setItem: function() {} },
-              window: null
-            };
-            sandbox.URLSearchParams = URLSearchParams;
-            sandbox.window = sandbox;
-            var cx = vm.createContext(sandbox);
-            vm.runInContext(%s, cx);
-            vm.runInContext(%s, cx);
-            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
-
-            var actionList = %s;
-            var results = [];
-            for (var a = 0; a < actionList.length; a++) {
-              var act = actionList[a];
-              if (act.type === 'click') {
-                capturedClickHandler({
-                  target: {
-                    closest: function(sel) {
-                      if (sel === '[data-auto-replay-action]') {
-                        return { getAttribute: function() { return act.action; } };
-                      }
-                      return null;
-                    }
-                  },
-                  preventDefault: function() {}
-                });
-              } else if (act.type === 'fire-timer') {
-                var pending = timers.filter(function(t) { return t !== null; });
-                if (pending.length > 0) {
-                  pending[pending.length - 1].fn();
-                  timers[timers.indexOf(pending[pending.length - 1])] = null;
-                }
-              }
-              results.push({
-                html: capturedHTML,
-                chat: capturedChatHTML,
-                search: sandbox.location.search,
-                pendingTimers: timers.filter(function(t) { return t !== null; }).length
-              });
-            }
-            process.stdout.write(JSON.stringify({
-              results: results,
-              pushed: pushed,
-              intervalCount: intervalCount
-            }));
-            """ % (json.dumps(query), map_js, canvas_js, json.dumps(actions))
-            res = _run_node_script_file(sandbox_init, timeout=10)
-            assert res.returncode == 0, res.stderr
-            return json.loads(res.stdout)
-        return _interact
-
-    # 1. valid auto ready gate
-    def test_valid_auto_ready_gate(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto")
+    def test_empty_replay_step_resolves_to_ready(self):
+        result = _run_auto_replay_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=")
         assert 'data-dept-auto-replay="true"' in result["html"]
-        assert '시연 시작' in result["html"]
-        assert "공동주택 관련 문의는 어느 부서에 해야 하나요?" in result["chat"]
+        assert 'data-auto-replay-step="ready"' in result["html"]
+        assert 'data-auto-replay-status="ready"' in result["html"]
 
-    # 2. duplicate replay rejected
-    def test_duplicate_replay_rejected(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay=J-DEPT-01&replay-mode=auto")
+    def test_valid_auto_ready_gate(self):
+        result = _run_auto_replay_render(AUTO_READY_QUERY)
+        assert 'data-dept-auto-replay="true"' in result["html"]
+        assert 'data-auto-replay-step="ready"' in result["html"]
+        assert 'data-auto-replay-status="ready"' in result["html"]
+        assert "시연 시작" in result["html"]
+        assert result["timerCount"] == 0
+
+    @pytest.mark.parametrize(("query", "needle"), [
+        ("?replay=J-DEPT-01", 'data-dept-replay="true"'),
+        ("?journey=J-DEPT-01", 'data-dept-journey="true"'),
+        ("?journey=J-PARK-01", "bg-page--park-info"),
+        ("?journey=J-KIOSK-01", "bg-page--kiosk-info"),
+    ])
+    def test_non_auto_routes_preserved(self, query, needle):
+        result = _run_auto_replay_render(query)
+        assert needle in result["html"]
         assert 'data-dept-auto-replay="true"' not in result["html"]
 
-    # 3. duplicate replay-mode rejected
-    def test_duplicate_replay_mode_rejected(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-mode=auto")
-        assert 'data-dept-auto-replay="true"' not in result["html"]
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_markup_visible(self, step):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
+        assert f'data-auto-replay-step="{step}"' in result["html"]
 
-    # 4. duplicate replay-step rejected
-    def test_duplicate_replay_step_rejected(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=directory&replay-step=result")
-        assert 'data-dept-auto-replay="true"' not in result["html"]
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_root_ready(self, step):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
+        assert 'data-auto-replay-status="ready"' in result["html"]
 
-    # 5. unknown replay-mode rejected
-    def test_unknown_replay_mode_rejected(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=manual")
-        assert 'data-dept-auto-replay="true"' not in result["html"]
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_start_only_control(self, step):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
+        html = result["html"]
+        assert "시연 시작" in html
+        assert "일시정지" not in html
+        assert "계속" not in html
 
-    # 6. unknown replay-step rejected
-    def test_unknown_replay_step_rejected(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=bogus")
-        assert 'data-dept-auto-replay="true"' not in result["html"]
+    @pytest.mark.parametrize(("query", "chat_snippets"), [
+        (AUTO_READY_QUERY, [
+            "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+            "북구청 업무 및 전화번호 안내 경로를 확인하겠습니다.",
+        ]),
+        (f"{AUTO_READY_QUERY}&replay-step=route", [
+            "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+            "북구청 업무 및 전화번호 안내 경로를 확인하겠습니다.",
+            "북구소개 메뉴에서 업무 및 전화번호 안내를 확인하고 있습니다.",
+        ]),
+        (f"{AUTO_READY_QUERY}&replay-step=directory", [
+            "북구소개 메뉴에서 업무 및 전화번호 안내를 확인하고 있습니다.",
+            "공동주택 관련 담당 부서를 검색하고 있습니다.",
+        ]),
+        (f"{AUTO_READY_QUERY}&replay-step=search", [
+            "공동주택 관련 담당 부서를 검색하고 있습니다.",
+            "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.",
+        ]),
+        (f"{AUTO_READY_QUERY}&replay-step=result", [
+            "공동주택 관련 담당 부서를 검색하고 있습니다.",
+            "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.",
+        ]),
+    ])
+    def test_exact_chat_strings(self, query, chat_snippets):
+        result = _run_auto_replay_render(query)
+        for snippet in chat_snippets:
+            assert snippet in result["chat"]
 
-    # 7. extra query key rejected
-    def test_extra_query_key_rejected(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&extra=1")
-        assert 'data-dept-auto-replay="true"' not in result["html"]
+    @pytest.mark.parametrize(("step", "bubble"), [
+        ("route", "업무 및 전화번호 안내 경로를 확인합니다"),
+        ("directory", "북구소개 메뉴를 선택합니다"),
+        ("search", "공동주택을 검색합니다"),
+        ("result", "담당 부서와 연락처를 확인했습니다"),
+    ])
+    def test_exact_action_bubble_strings(self, step, bubble):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
+        assert bubble in result["html"]
 
-    # 8. manual replay remains manual
-    def test_manual_replay_remains_manual(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01")
-        assert 'data-dept-replay="true"' in result["html"]
-        assert 'data-dept-auto-replay="true"' not in result["html"]
+    @pytest.mark.parametrize(("phase", "delay"), [
+        ("route", 2500),
+        ("directory", 3000),
+        ("search", 3000),
+    ])
+    def test_exact_delay_contract(self, phase, delay):
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert f'"{phase}": {delay}' in js
 
-    # 9. regular J-DEPT route remains unchanged
-    def test_regular_jdept_route_unchanged(self, auto_render):
-        result = auto_render("?journey=J-DEPT-01")
-        assert 'data-dept-journey="true"' in result["html"]
-        assert 'data-dept-auto-replay="true"' not in result["html"]
-        assert 'data-dept-replay="true"' not in result["html"]
-
-    # 10. J-PARK remains unchanged
-    def test_jpark_remains_unchanged(self, auto_render):
-        result = auto_render("?journey=J-PARK-01")
-        assert "bg-page--park-info" in result["html"]
-        assert 'data-dept-auto-replay="true"' not in result["html"]
-
-    # 11. J-KIOSK remains unchanged
-    def test_jkiosk_remains_unchanged(self, auto_render):
-        result = auto_render("?journey=J-KIOSK-01")
-        assert "bg-page--kiosk-info" in result["html"]
-        assert 'data-dept-auto-replay="true"' not in result["html"]
-
-    # 12. ready state has no pending timer
-    def test_ready_state_no_pending_timer(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto")
-        assert len(result["timers"]) == 0
-
-    # 13. start preserves replay-mode=auto
-    def test_start_preserves_auto_mode(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
-            {"type": "click", "action": "start"}
-        ])
-        assert "replay-mode=auto" in data["results"][0]["search"]
-
-    # 14. phase order route → directory → search → result
-    def test_phase_order(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+    def test_start_to_result_ordering(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
             {"type": "click", "action": "start"},
             {"type": "fire-timer"},
             {"type": "fire-timer"},
             {"type": "fire-timer"},
         ])
-        searches = [r["search"] for r in data["results"]]
-        assert any("replay-step=route" in s for s in searches)
-        assert any("replay-step=directory" in s for s in searches)
-        assert any("replay-step=search" in s for s in searches)
-        assert any("replay-step=result" in s for s in searches)
-        # Verify ordering: route before directory before search before result
-        route_idx = next(i for i, s in enumerate(searches) if "replay-step=route" in s)
-        dir_idx = next(i for i, s in enumerate(searches) if "replay-step=directory" in s)
-        search_idx = next(i for i, s in enumerate(searches) if "replay-step=search" in s)
-        result_idx = next(i for i, s in enumerate(searches) if "replay-step=result" in s)
-        assert route_idx < dir_idx < search_idx < result_idx
+        searches = [item["search"] for item in data["results"]]
+        assert searches == [
+            f"{AUTO_READY_QUERY}&replay-step=route",
+            f"{AUTO_READY_QUERY}&replay-step=directory",
+            f"{AUTO_READY_QUERY}&replay-step=search",
+            f"{AUTO_READY_QUERY}&replay-step=result",
+        ]
 
-    # 15. only one timer is pending at each step
-    def test_only_one_timer_pending(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+    def test_one_pending_timer_only(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
             {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
         ])
-        for r in data["results"]:
-            assert r["pendingTimers"] <= 1
+        for item in data["results"]:
+            assert item["pendingTimers"] <= 1
 
-    # 16. no setInterval usage
-    def test_no_setinterval_usage(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto")
+    def test_no_setinterval_on_render(self):
+        result = _run_auto_replay_render(AUTO_READY_QUERY)
         assert result["intervalCount"] == 0
 
-    # 17. pause clears timer
-    def test_pause_clears_timer(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+    def test_no_setinterval_during_playback(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [{"type": "click", "action": "start"}])
+        assert data["results"][-1]["intervalCount"] == 0
+
+    def test_pause_clears_timer(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
             {"type": "click", "action": "start"},
             {"type": "click", "action": "pause"},
         ])
-        last = data["results"][-1]
-        assert last["pendingTimers"] == 0
+        assert data["results"][-1]["pendingTimers"] == 0
 
-    # 18. paused state remains frozen
-    def test_paused_state_remains_frozen(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+    def test_pause_blocks_timer_progress(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
             {"type": "click", "action": "start"},
             {"type": "click", "action": "pause"},
             {"type": "fire-timer"},
         ])
-        paused_search = data["results"][1]["search"]
-        after_fire = data["results"][2]["search"]
-        assert after_fire == paused_search, "paused state must not advance on timer fire"
+        assert data["results"][2]["search"] == data["results"][1]["search"]
 
-    # 19. continue resumes the current phase
-    def test_continue_resumes_current_phase(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
-            {"type": "click", "action": "start"},
-            {"type": "click", "action": "pause"},
-            {"type": "click", "action": "resume"},
-        ])
-        after_resume = data["results"][2]
-        assert 'data-auto-replay-status="running"' in after_resume["html"]
-        assert after_resume["pendingTimers"] >= 1
-
-    # 20. restart restores auto-ready URL
-    def test_restart_restores_auto_ready_url(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
-            {"type": "click", "action": "start"},
-            {"type": "click", "action": "restart"},
-        ])
-        last_search = data["results"][-1]["search"]
-        assert "replay=J-DEPT-01" in last_search
-        assert "replay-mode=auto" in last_search
-
-    # 21. exact approved chat copy
-    def test_exact_approved_chat_copy(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
-            {"type": "click", "action": "start"},
-            {"type": "fire-timer"},
-            {"type": "fire-timer"},
-            {"type": "fire-timer"},
-        ])
-        final_chat = data["results"][-1]["chat"]
-        assert "공동주택 관련 문의는 어느 부서에 해야 하나요?" in final_chat
-        assert "북구청 업무 및 전화번호 안내 경로를 확인하겠습니다." in final_chat
-        assert "북구소개 메뉴에서 업무 및 전화번호 안내를 확인하고 있습니다." in final_chat
-        assert "공동주택 관련 담당 부서를 검색하고 있습니다." in final_chat
-        assert "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다." in final_chat
-
-    # 22. exact approved action-bubble copy
-    def test_exact_approved_action_bubble_copy(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=directory")
-        assert "북구소개 메뉴를 선택합니다" in result["html"]
-        result2 = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=search")
-        assert "공동주택을 검색합니다" in result2["html"]
-        result3 = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=result")
-        assert "담당 부서와 연락처를 확인했습니다" in result3["html"]
-        result4 = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=route")
-        assert "업무 및 전화번호 안내 경로를 확인합니다" in result4["html"]
-
-    # 23. exact result row/count/final answer
-    def test_exact_result_row_count_final_answer(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=result")
-        html = result["html"]
-        assert "공동주택과" in html
-        assert "062-410-6033" in html
-        assert "공동주택과 업무전반" in html
-        assert "전체" in html and "9" in html and "1/1" in html
-        assert "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다." in result["chat"]
-
-    # 24. no fetch/storage/cookies/external origin
-    def test_no_fetch_storage_cookies_external_origin(self, auto_interact):
-        js = _read_static("citizen-action-demo-canvas.js")
-        code_only = _strip_all(js)
-        for pattern in ["fetch(", "localStorage", "sessionStorage", "document.cookie", "XMLHttpRequest", "WebSocket", "EventSource"]:
-            assert pattern not in code_only, f"prohibited pattern {pattern} found in canvas.js"
-
-    # 25. CSS scope uses data-dept-auto-replay=true
-    def test_css_scope_uses_auto_replay_attribute(self):
-        css = _read_static("citizen-action-demo-canvas.css")
-        assert '[data-dept-auto-replay="true"]' in css
-
-    # 26. prefers-reduced-motion fallback exists
-    def test_prefers_reduced_motion_fallback_exists(self):
-        css = _read_static("citizen-action-demo-canvas.css")
-        assert "prefers-reduced-motion" in css
-
-
-# ---------------------------------------------------------------------------
-# Stage 864-A: Visible phase feedback and source-contract correction tests
-# ---------------------------------------------------------------------------
-
-class TestAutoReplayVisiblePhaseFeedback:
-    """Tests for the visible accelerated replay feedback contract (#864-A)."""
-
-    @pytest.fixture(scope="class")
-    def auto_render(self):
-        def _render(query: str):
-            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
-            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
-            sandbox_init = """
-            'use strict';
-            var vm = require('vm');
-            var capturedHTML = '';
-            var capturedChatHTML = '';
-            function makeElement(id) {
-              return {
-                id: id,
-                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
-                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
-                addEventListener: function() {},
-                querySelector: function() { return null; }
-              };
-            }
-            var fakeCanvasElement = makeElement('demo-canvas');
-            var sandbox = {
-              document: {
-                getElementById: function(id) {
-                  if (id === 'demo-canvas') return fakeCanvasElement;
-                  if (id === 'chat-thread') return makeElement('chat-thread');
-                  return null;
-                }
-              },
-              console: { log: function() {}, error: function() {} },
-              location: { search: %s },
-              history: { pushState: function() {} },
-              setTimeout: function() {},
-              clearTimeout: function() {},
-              setInterval: function() {},
-              window: null
-            };
-            sandbox.URLSearchParams = URLSearchParams;
-            sandbox.window = sandbox;
-            var cx = vm.createContext(sandbox);
-            vm.runInContext(%s, cx);
-            vm.runInContext(%s, cx);
-            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
-            process.stdout.write(JSON.stringify({ html: capturedHTML, chat: capturedChatHTML }));
-            """ % (json.dumps(query), map_js, canvas_js)
-            res = _run_node_script_file(sandbox_init, timeout=10)
-            assert res.returncode == 0, res.stderr
-            return json.loads(res.stdout)
-        return _render
-
-    # 1. all four advancing phases contain data-auto-replay-step
-    def test_all_phases_have_auto_replay_step(self, auto_render):
-        for step in ["route", "directory", "search", "result"]:
-            result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=" + step)
-            assert 'data-auto-replay-step="' + step + '"' in result["html"], \
-                f"step '{step}' missing data-auto-replay-step"
-
-    # 2. route HTML contains cursor, target-highlight, and click-feedback markup
-    def test_route_has_cursor_highlight_click_feedback(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=route")
-        html = result["html"]
-        assert 'class="bg-auto-cursor' in html, "route missing cursor"
-        assert 'bg-auto-cursor--gnb' in html, "route missing gnb cursor position"
-        assert 'data-auto-cursor-phase="route"' in html, "route missing cursor phase"
-        assert 'class="bg-auto-target-highlight' in html, "route missing target highlight"
-        assert 'bg-auto-target--gnb-dept' in html, "route missing gnb-dept target"
-        assert 'data-auto-target-phase="route"' in html, "route missing target phase"
-        assert 'class="bg-auto-click-feedback' in html, "route missing click feedback"
-        assert 'data-auto-click-phase="route"' in html, "route missing click phase"
-
-    # 3. directory HTML contains cursor, target-highlight, and click-feedback markup
-    def test_directory_has_cursor_highlight_click_feedback(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=directory")
-        html = result["html"]
-        assert 'class="bg-auto-cursor' in html, "directory missing cursor"
-        assert 'bg-auto-cursor--menu-link' in html, "directory missing menu-link cursor"
-        assert 'data-auto-cursor-phase="directory"' in html
-        assert 'class="bg-auto-target-highlight' in html, "directory missing target highlight"
-        assert 'bg-auto-target--directory-link' in html
-        assert 'data-auto-target-phase="directory"' in html
-        assert 'class="bg-auto-click-feedback' in html, "directory missing click feedback"
-        assert 'data-auto-click-phase="directory"' in html
-
-    # 4. search HTML contains cursor, target-highlight, and click-feedback markup
-    def test_search_has_cursor_highlight_click_feedback(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=search")
-        html = result["html"]
-        assert 'class="bg-auto-cursor' in html, "search missing cursor"
-        assert 'bg-auto-cursor--search' in html, "search missing search cursor"
-        assert 'data-auto-cursor-phase="search"' in html
-        assert 'class="bg-auto-target-highlight' in html, "search missing target highlight"
-        assert 'bg-auto-target--search-input' in html
-        assert 'data-auto-target-phase="search"' in html
-        assert 'class="bg-auto-click-feedback' in html, "search missing click feedback"
-        assert 'data-auto-click-phase="search"' in html
-
-    # 5. result HTML contains cursor, target-highlight, and click-feedback markup
-    def test_result_has_cursor_highlight_click_feedback(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-mode=auto&replay-step=result")
-        html = result["html"]
-        assert 'class="bg-auto-cursor' in html, "result missing cursor"
-        assert 'bg-auto-cursor--result-row' in html, "result missing result-row cursor"
-        assert 'data-auto-cursor-phase="result"' in html
-        assert 'class="bg-auto-target-highlight' in html, "result missing target highlight"
-        assert 'bg-auto-target--result-row' in html
-        assert 'data-auto-target-phase="result"' in html
-        assert 'class="bg-auto-click-feedback' in html, "result missing click feedback"
-        assert 'data-auto-click-phase="result"' in html
-
-    # 6. action bubble is scoped to auto replay
-    def test_action_bubble_scoped_to_auto_replay(self):
-        css = _read_static("citizen-action-demo-canvas.css")
-        # The bubble style must be inside a [data-dept-auto-replay="true"] selector
-        assert '[data-dept-auto-replay="true"] .bg-dept-action-bubble' in css
-
-    # 7. action bubble does not use left:50% or translateX(-50%)
-    def test_action_bubble_no_centered_positioning(self):
-        css = _read_static("citizen-action-demo-canvas.css")
-        # Collect all bubble rule blocks
-        lines = css.split("\n")
-        in_bubble_block = False
-        all_bubble_props = []
-        current_block = []
-        for line in lines:
-            stripped = line.strip()
-            if '[data-dept-auto-replay="true"] .bg-dept-action-bubble' in stripped and '{' in stripped:
-                in_bubble_block = True
-                current_block = []
-            if in_bubble_block:
-                current_block.append(stripped)
-                if '}' in stripped:
-                    in_bubble_block = False
-                    all_bubble_props.append("\n".join(current_block))
-        bubble_text = "\n".join(all_bubble_props)
-        assert "left: 50%" not in bubble_text, "action bubble must not use left: 50%"
-        assert "left:50%" not in bubble_text, "action bubble must not use left:50%"
-        assert "translateX(-50%)" not in bubble_text, "action bubble must not use translateX(-50%)"
-        # Verify it uses left: 24px instead (anchored lower-left)
-        assert "left: 24px" in bubble_text, "action bubble should use left: 24px"
-
-    # 8. phase delays sum to at least 8000ms and no more than 15000ms
-    def test_phase_delays_sum_in_range(self):
-        js = _read_static("citizen-action-demo-canvas.js")
-        # Extract delay values from the delays object in _scheduleAutoReplayAdvance
-        delays_match = re.search(r'var delays = \{([^}]+)\}', js)
-        assert delays_match, "delays object not found in JS"
-        delays_text = delays_match.group(1)
-        delay_values = re.findall(r'"[^"]+":\s*(\d+)', delays_text)
-        assert len(delay_values) >= 3, "expected at least 3 delay entries"
-        total = sum(int(v) for v in delay_values)
-        assert total >= 8000, f"total delay {total}ms is less than 8000ms"
-        assert total <= 15000, f"total delay {total}ms is more than 15000ms"
-
-    # 9. reduced-motion CSS disables decorative animation while retaining visibility
-    def test_reduced_motion_disables_decoration_retains_visibility(self):
-        css = _read_static("citizen-action-demo-canvas.css")
-        # Must have prefers-reduced-motion block
-        assert "prefers-reduced-motion" in css
-        # Find the reduced-motion block content
-        rm_start = css.find("@media (prefers-reduced-motion: reduce)")
-        assert rm_start != -1, "missing @media (prefers-reduced-motion: reduce)"
-        rm_block = css[rm_start:]
-        # Find the matching closing brace for the media query
-        brace_count = 0
-        rm_end = 0
-        for i, ch in enumerate(rm_block):
-            if ch == '{':
-                brace_count += 1
-            elif ch == '}':
-                brace_count -= 1
-                if brace_count == 0:
-                    rm_end = i + 1
-                    break
-        rm_text = rm_block[:rm_end]
-        # Must disable cursor transition
-        assert "bg-auto-cursor" in rm_text, "reduced-motion must reference auto cursor"
-        assert "transition: none" in rm_text or "animation: none" in rm_text, \
-            "reduced-motion must disable animation/transition"
-        # Must retain cursor visibility (not display:none)
-        assert "display: none" not in rm_text, "reduced-motion must not hide cursor completely"
-        # Must disable click pulse animation
-        assert "bg-auto-click-feedback" in rm_text, "reduced-motion must reference click feedback"
-        # Click feedback must retain some visibility (opacity > 0)
-        assert "opacity: 0.5" in rm_text or "opacity: 1" in rm_text, \
-            "reduced-motion click feedback must retain visibility"
-
-    # 10. manual replay has none of the auto cursor/highlight/click-feedback markers
-    def test_manual_replay_no_auto_markers(self, auto_render):
-        result = auto_render("?replay=J-DEPT-01&replay-step=directory")
-        html = result["html"]
-        assert 'class="bg-auto-cursor' not in html, "manual replay must not have auto cursor"
-        assert 'class="bg-auto-target-highlight' not in html, "manual replay must not have auto target highlight"
-        assert 'class="bg-auto-click-feedback' not in html, "manual replay must not have auto click feedback"
-
-
-# ---------------------------------------------------------------------------
-# Stage 864-A corrective: direct phase gate and restart semantics
-# ---------------------------------------------------------------------------
-
-class TestAutoReplayDirectPhaseGate:
-    """Tests that direct phase URLs are fail-closed static until user starts."""
-
-    @pytest.fixture(scope="class")
-    def auto_render_with_timers(self):
-        def _render(query: str):
-            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
-            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
-            sandbox_init = """
-            'use strict';
-            var vm = require('vm');
-            var capturedHTML = '';
-            var capturedChatHTML = '';
-            var timers = [];
-            var intervalCount = 0;
-            function makeElement(id) {
-              return {
-                id: id,
-                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
-                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
-                addEventListener: function() {},
-                querySelector: function() { return null; }
-              };
-            }
-            var fakeCanvasElement = makeElement('demo-canvas');
-            var sandbox = {
-              document: {
-                getElementById: function(id) {
-                  if (id === 'demo-canvas') return fakeCanvasElement;
-                  if (id === 'chat-thread') return makeElement('chat-thread');
-                  return null;
-                }
-              },
-              console: { log: function() {}, error: function() {} },
-              location: { search: %s },
-              history: { pushState: function() {} },
-              setTimeout: function(fn, ms) { timers.push({ms: ms}); return timers.length; },
-              clearTimeout: function(id) { if (id && timers[id - 1]) { timers[id - 1] = null; } },
-              setInterval: function() { intervalCount += 1; return -1; },
-              window: null
-            };
-            sandbox.URLSearchParams = URLSearchParams;
-            sandbox.window = sandbox;
-            var cx = vm.createContext(sandbox);
-            vm.runInContext(%s, cx);
-            vm.runInContext(%s, cx);
-            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
-            process.stdout.write(JSON.stringify({
-              html: capturedHTML,
-              chat: capturedChatHTML,
-              timerCount: timers.filter(function(t) { return t !== null; }).length,
-              intervalCount: intervalCount
-            }));
-            """ % (json.dumps(query), map_js, canvas_js)
-            res = _run_node_script_file(sandbox_init, timeout=10)
-            assert res.returncode == 0, res.stderr
-            return json.loads(res.stdout)
-        return _render
-
-    @pytest.fixture(scope="class")
-    def auto_interact(self):
-        def _interact(query, actions):
-            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
-            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
-            sandbox_init = """
-            'use strict';
-            var vm = require('vm');
-            var capturedHTML = '';
-            var capturedChatHTML = '';
-            var capturedClickHandler = null;
-            var timers = [];
-            var intervalCount = 0;
-            var pushed = [];
-            function makeElement(id) {
-              return {
-                id: id,
-                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
-                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
-                addEventListener: function(event, handler) {
-                  if (event === 'click' && id === 'demo-canvas') capturedClickHandler = handler;
-                },
-                querySelector: function() { return null; }
-              };
-            }
-            var fakeCanvasElement = makeElement('demo-canvas');
-            var sandbox = {
-              document: {
-                getElementById: function(id) {
-                  if (id === 'demo-canvas') return fakeCanvasElement;
-                  if (id === 'chat-thread') return makeElement('chat-thread');
-                  return null;
-                }
-              },
-              console: { log: function() {}, error: function() {} },
-              location: { search: %s },
-              history: {
-                pushState: function(state, title, url) {
-                  pushed.push(url);
-                  sandbox.location.search = url.substring(url.indexOf('?'));
-                }
-              },
-              setTimeout: function(fn, ms) { timers.push({fn: fn, ms: ms}); return timers.length; },
-              clearTimeout: function(id) { if (id && timers[id - 1]) { timers[id - 1] = null; } },
-              setInterval: function() { intervalCount += 1; return -1; },
-              fetch: function() {},
-              localStorage: { getItem: function() {}, setItem: function() {} },
-              sessionStorage: { getItem: function() {}, setItem: function() {} },
-              window: null
-            };
-            sandbox.URLSearchParams = URLSearchParams;
-            sandbox.window = sandbox;
-            var cx = vm.createContext(sandbox);
-            vm.runInContext(%s, cx);
-            vm.runInContext(%s, cx);
-            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
-
-            var actionList = %s;
-            var results = [];
-            for (var a = 0; a < actionList.length; a++) {
-              var act = actionList[a];
-              if (act.type === 'click') {
-                capturedClickHandler({
-                  target: {
-                    closest: function(sel) {
-                      if (sel === '[data-auto-replay-action]') {
-                        return { getAttribute: function() { return act.action; } };
-                      }
-                      return null;
-                    }
-                  },
-                  preventDefault: function() {}
-                });
-              } else if (act.type === 'fire-timer') {
-                var pending = timers.filter(function(t) { return t !== null; });
-                if (pending.length > 0) {
-                  pending[pending.length - 1].fn();
-                  timers[timers.indexOf(pending[pending.length - 1])] = null;
-                }
-              }
-              results.push({
-                html: capturedHTML,
-                chat: capturedChatHTML,
-                search: sandbox.location.search,
-                pendingTimers: timers.filter(function(t) { return t !== null; }).length
-              });
-            }
-            process.stdout.write(JSON.stringify({
-              results: results,
-              pushed: pushed,
-              intervalCount: intervalCount
-            }));
-            """ % (json.dumps(query), map_js, canvas_js, json.dumps(actions))
-            res = _run_node_script_file(sandbox_init, timeout=10)
-            assert res.returncode == 0, res.stderr
-            return json.loads(res.stdout)
-        return _interact
-
-    # 1. Direct phase URLs show step markup but zero pending timers before user start
-    def test_direct_phase_urls_no_timers_before_start(self, auto_render_with_timers):
-        for step in ["route", "directory", "search", "result"]:
-            result = auto_render_with_timers("?replay=J-DEPT-01&replay-mode=auto&replay-step=" + step)
-            assert result["timerCount"] == 0, \
-                f"direct step '{step}' must have 0 pending timers, got {result['timerCount']}"
-            assert 'data-auto-replay-step="' + step + '"' in result["html"], \
-                f"direct step '{step}' must still show step markup"
-
-    # 2. Direct phase URL shows ready status and 시연 시작 control
-    def test_direct_phase_shows_ready_status_and_start_button(self, auto_render_with_timers):
-        for step in ["route", "directory", "search", "result"]:
-            result = auto_render_with_timers("?replay=J-DEPT-01&replay-mode=auto&replay-step=" + step)
-            html = result["html"]
-            assert 'data-auto-replay-status="ready"' in html, \
-                f"direct step '{step}' must show ready status"
-            assert "시연 시작" in html, \
-                f"direct step '{step}' must show 시연 시작 button"
-
-    # 3. Pending timer appears only after start click
-    def test_timer_only_after_start(self, auto_interact):
-        # Start from ready — after click, there should be a pending timer
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
-            {"type": "click", "action": "start"}
-        ])
-        last = data["results"][-1]
-        assert last["pendingTimers"] >= 1, "start must schedule at least one timer"
-
-    def test_direct_phase_no_timer(self, auto_render_with_timers):
-        # Direct phase URL — no timers
-        result = auto_render_with_timers("?replay=J-DEPT-01&replay-mode=auto&replay-step=directory")
-        assert result["timerCount"] == 0, "direct phase URL must have 0 timers"
-
-    # 4. Start → restart returns to ready URL, step/status ready, 0 timers, 시연 시작 only
-    def test_start_then_restart_returns_to_ready(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
-            {"type": "click", "action": "start"},
-            {"type": "click", "action": "restart"}
-        ])
-        last = data["results"][-1]
-        assert last["search"] == "?replay=J-DEPT-01&replay-mode=auto", \
-            f"restart must return URL to ready, got {last['search']}"
-        assert 'data-auto-replay-step="ready"' in last["html"], \
-            "restart must show step=ready"
-        assert 'data-auto-replay-status="ready"' in last["html"], \
-            "restart must show status=ready"
-        assert last["pendingTimers"] == 0, \
-            "restart must clear all timers"
-        assert "시연 시작" in last["html"], \
-            "restart must show 시연 시작"
-        # Verify no other auto-replay control buttons
-        assert "일시정지" not in last["html"], \
-            "restart must not show pause button"
-        assert "계속" not in last["html"], \
-            "restart must not show resume button"
-
-    # 5. Normal start playback, pause/resume, one-timer/no-setInterval preserved
-    def test_normal_playback_preserved(self, auto_interact):
-        # Full start → route → directory → search → result
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
-            {"type": "click", "action": "start"},
-            {"type": "fire-timer"},
-            {"type": "fire-timer"},
-            {"type": "fire-timer"},
-        ])
-        assert data["intervalCount"] == 0, "no setInterval allowed"
-        final = data["results"][-1]
-        assert "공동주택과" in final["html"], "result phase must show data"
-        # Each running step should have at most 1 pending timer
-        for r in data["results"]:
-            assert r["pendingTimers"] <= 1, "at most 1 pending timer"
-
-    # 6. Pause/resume preserves current phase
-    def test_pause_resume_preserves_phase(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+    def test_resume_preserves_phase_and_timer(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
             {"type": "click", "action": "start"},
             {"type": "fire-timer"},
             {"type": "click", "action": "pause"},
@@ -2918,257 +2430,295 @@ class TestAutoReplayDirectPhaseGate:
         resumed = data["results"][3]
         assert 'data-auto-replay-status="paused"' in paused["html"]
         assert 'data-auto-replay-status="running"' in resumed["html"]
-        # Same phase after resume
-        paused_step = re.search(r'data-auto-replay-step="([^"]*)"', paused["html"])
-        resumed_step = re.search(r'data-auto-replay-step="([^"]*)"', resumed["html"])
-        assert paused_step and resumed_step, "must have step attributes"
-        assert paused_step.group(1) == resumed_step.group(1), \
-            "resume must preserve current phase"
+        assert 'data-auto-replay-step="directory"' in paused["html"]
+        assert 'data-auto-replay-step="directory"' in resumed["html"]
+        assert resumed["pendingTimers"] == 1
 
-    # 7. Direct ready URL also has zero timers
-    def test_ready_url_zero_timers(self, auto_render_with_timers):
-        result = auto_render_with_timers("?replay=J-DEPT-01&replay-mode=auto")
-        assert result["timerCount"] == 0, "ready URL must have 0 timers"
-        assert 'data-auto-replay-status="ready"' in result["html"]
+    def test_restart_returns_to_exact_ready_state(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "click", "action": "restart"},
+        ])
+        last = data["results"][-1]
+        assert last["search"] == AUTO_READY_QUERY
+        assert 'data-auto-replay-step="ready"' in last["html"]
+        assert 'data-auto-replay-status="ready"' in last["html"]
+        assert last["pendingTimers"] == 0
+        assert "시연 시작" in last["html"]
+        assert "일시정지" not in last["html"]
+        assert "계속" not in last["html"]
 
-    # 8. Restart from running mid-phase clears timer and goes to ready
-    def test_restart_from_running_clears_timer(self, auto_interact):
-        data = auto_interact("?replay=J-DEPT-01&replay-mode=auto", [
+    def test_exact_result_facts(self):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step=result")
+        html = result["html"]
+        assert "공동주택과" in html
+        assert "062-410-6033" in html
+        assert "공동주택과 업무전반" in html
+        assert "전체 <strong>9</strong>명, 현재 페이지 <strong>1/1</strong>" in html
+        assert "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다." in result["chat"]
+
+    @pytest.mark.parametrize("pattern", [
+        "fetch(",
+        "localStorage",
+        "sessionStorage",
+        "document.cookie",
+        "XMLHttpRequest",
+        "WebSocket",
+        "EventSource",
+    ])
+    def test_no_fetch_storage_cookie_external_origin_contract(self, pattern):
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert pattern not in _strip_all(js)
+
+    @pytest.mark.parametrize("selector", [
+        '[data-dept-auto-replay="true"]',
+        '[data-dept-auto-replay="true"] .bg-dept-action-bubble',
+        '[data-dept-auto-replay="true"] .bg-auto-cursor',
+        '[data-dept-auto-replay="true"] .bg-auto-click-feedback',
+    ])
+    def test_css_scope_contract(self, selector):
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert selector in css
+
+    @pytest.mark.parametrize("needle", [
+        "@media (prefers-reduced-motion: reduce)",
+        '[data-dept-auto-replay="true"] .bg-dept-action-bubble',
+        '[data-dept-auto-replay="true"] .bg-auto-cursor',
+        '[data-dept-auto-replay="true"] .bg-auto-click-feedback',
+    ])
+    def test_reduced_motion_contract_exists(self, needle):
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert needle in css
+
+
+class TestAutoReplayVisiblePhaseFeedback:
+    @pytest.mark.parametrize(("step", "cursor_class"), [
+        ("route", "bg-auto-cursor--gnb"),
+        ("directory", "bg-auto-cursor--menu-link"),
+        ("search", "bg-auto-cursor--search"),
+        ("result", "bg-auto-cursor--result-row"),
+    ])
+    def test_cursor_markup_by_phase(self, step, cursor_class):
+        html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
+        assert 'class="bg-auto-cursor' in html
+        assert cursor_class in html
+        assert f'data-auto-cursor-phase="{step}"' in html
+
+    @pytest.mark.parametrize(("step", "target_class"), [
+        ("route", "bg-auto-target--gnb-dept"),
+        ("directory", "bg-auto-target--directory-link"),
+        ("search", "bg-auto-target--search-input"),
+        ("result", "bg-auto-target--result-row"),
+    ])
+    def test_target_highlight_markup_by_phase(self, step, target_class):
+        html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
+        assert 'class="bg-auto-target-highlight' in html
+        assert target_class in html
+        assert f'data-auto-target-phase="{step}"' in html
+
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_click_feedback_markup_by_phase(self, step):
+        html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
+        assert 'class="bg-auto-click-feedback' in html
+        assert f'data-auto-click-phase="{step}"' in html
+
+    @pytest.mark.parametrize("marker", [
+        'class="bg-auto-cursor',
+        'class="bg-auto-target-highlight',
+        'class="bg-auto-click-feedback',
+    ])
+    def test_manual_replay_has_no_auto_feedback_markup(self, marker):
+        html = _run_auto_replay_render("?replay=J-DEPT-01&replay-step=directory")["html"]
+        assert marker not in html
+
+    def test_action_bubble_uses_lower_left_anchor(self):
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert "position: absolute;" in css
+        assert "left: 24px;" in css
+        assert "bottom: 28px;" in css
+
+    @pytest.mark.parametrize("needle", [
+        "left: 50%",
+        "left:50%",
+        "translateX(-50%)",
+    ])
+    def test_action_bubble_has_no_centered_positioning(self, needle):
+        css = _read_static("citizen-action-demo-canvas.css")
+        start = css.index('[data-dept-auto-replay="true"] .bg-dept-action-bubble')
+        end = css.index('[data-dept-auto-replay="true"][data-auto-replay-status="paused"] .bg-dept-action-bubble')
+        bubble_css = css[start:end]
+        assert needle not in bubble_css
+
+    @pytest.mark.parametrize("needle", [
+        "transition: none;",
+        "animation: none;",
+        "opacity: 0.5;",
+    ])
+    def test_reduced_motion_retains_visibility(self, needle):
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert needle in css
+
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_url_stays_ready(self, step):
+        html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
+        assert 'data-auto-replay-status="ready"' in html
+
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_url_has_zero_timers(self, step):
+        result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
+        assert result["timerCount"] == 0
+
+
+class TestAutoReplayDirectPhaseGate:
+    @pytest.mark.parametrize("step", AUTO_PHASES)
+    def test_direct_phase_shows_start_button(self, step):
+        html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
+        assert "시연 시작" in html
+
+    @pytest.mark.parametrize("step", ["ready"] + AUTO_PHASES)
+    def test_start_from_static_phase_enters_route_running(self, step):
+        query = AUTO_READY_QUERY if step == "ready" else f"{AUTO_READY_QUERY}&replay-step={step}"
+        data = _run_auto_replay(query, [{"type": "click", "action": "start"}])
+        first = data["results"][0]
+        assert first["search"] == f"{AUTO_READY_QUERY}&replay-step=route"
+        assert 'data-auto-replay-step="route"' in first["html"]
+        assert 'data-auto-replay-status="running"' in first["html"]
+        assert first["pendingTimers"] == 1
+
+    def test_start_schedules_exact_first_delay(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [{"type": "click", "action": "start"}])
+        assert data["results"][0]["pendingTimerDelays"] == [2500]
+
+    def test_full_playback_reaches_result_complete(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+        ])
+        last = data["results"][-1]
+        assert last["search"] == f"{AUTO_READY_QUERY}&replay-step=result"
+        assert 'data-auto-replay-status="complete"' in last["html"]
+        assert "공동주택과" in last["html"]
+
+    def test_full_playback_uses_exact_timer_delay_sequence(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+        ])
+        assert data["results"][0]["pendingTimerDelays"] == [2500]
+        assert data["results"][1]["pendingTimerDelays"] == [3000]
+        assert data["results"][2]["pendingTimerDelays"] == [3000]
+        assert data["results"][3]["pendingTimerDelays"] == []
+
+    def test_complete_state_shows_restart_only(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+            {"type": "fire-timer"},
+        ])
+        html = data["results"][-1]["html"]
+        assert "다시 보기" in html
+        assert "일시정지" not in html
+        assert "계속" not in html
+
+    def test_restart_from_running_clears_timer(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
             {"type": "click", "action": "start"},
             {"type": "fire-timer"},
             {"type": "click", "action": "restart"},
         ])
-        after_restart = data["results"][-1]
-        assert after_restart["pendingTimers"] == 0, \
-            "restart from running must clear timer"
-        assert 'data-auto-replay-status="ready"' in after_restart["html"]
+        last = data["results"][-1]
+        assert last["pendingTimers"] == 0
+        assert last["search"] == AUTO_READY_QUERY
 
-
-# ---------------------------------------------------------------------------
-# Stage 864-A final: phase mismatch fail-closed gate
-# ---------------------------------------------------------------------------
-
-class TestAutoReplayPhaseMismatchFailClosed:
-    """Tests that phase/URL mismatch or external history manipulation fails closed."""
-
-    @pytest.fixture(scope="class")
-    def auto_render_with_timers(self):
-        def _render(query: str):
-            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
-            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
-            sandbox_init = """
-            'use strict';
-            var vm = require('vm');
-            var capturedHTML = '';
-            var capturedChatHTML = '';
-            var timers = [];
-            var intervalCount = 0;
-            function makeElement(id) {
-              return {
-                id: id,
-                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
-                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
-                addEventListener: function() {},
-                querySelector: function() { return null; }
-              };
-            }
-            var fakeCanvasElement = makeElement('demo-canvas');
-            var sandbox = {
-              document: {
-                getElementById: function(id) {
-                  if (id === 'demo-canvas') return fakeCanvasElement;
-                  if (id === 'chat-thread') return makeElement('chat-thread');
-                  return null;
-                }
-              },
-              console: { log: function() {}, error: function() {} },
-              location: { search: %s },
-              history: { pushState: function() {} },
-              setTimeout: function(fn, ms) { timers.push({ms: ms}); return timers.length; },
-              clearTimeout: function(id) { if (id && timers[id - 1]) { timers[id - 1] = null; } },
-              setInterval: function() { intervalCount += 1; return -1; },
-              window: null
-            };
-            sandbox.URLSearchParams = URLSearchParams;
-            sandbox.window = sandbox;
-            var cx = vm.createContext(sandbox);
-            vm.runInContext(%s, cx);
-            vm.runInContext(%s, cx);
-            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
-            process.stdout.write(JSON.stringify({
-              html: capturedHTML,
-              chat: capturedChatHTML,
-              timerCount: timers.filter(function(t) { return t !== null; }).length,
-              intervalCount: intervalCount
-            }));
-            """ % (json.dumps(query), map_js, canvas_js)
-            res = _run_node_script_file(sandbox_init, timeout=10)
-            assert res.returncode == 0, res.stderr
-            return json.loads(res.stdout)
-        return _render
-
-    @pytest.fixture(scope="class")
-    def auto_interact_stateful(self):
-        """Interact fixture that manipulates runtime state and URL across renders."""
-        def _interact(scenarios):
-            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
-            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
-            sandbox_init = """
-            'use strict';
-            var vm = require('vm');
-            var capturedHTML = '';
-            var capturedChatHTML = '';
-            var capturedClickHandler = null;
-            var timers = [];
-            var intervalCount = 0;
-            function makeElement(id) {
-              return {
-                id: id,
-                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
-                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
-                addEventListener: function(event, handler) {
-                  if (event === 'click' && id === 'demo-canvas') capturedClickHandler = handler;
-                },
-                querySelector: function() { return null; }
-              };
-            }
-            var fakeCanvasElement = makeElement('demo-canvas');
-            var sandbox = {
-              document: {
-                getElementById: function(id) {
-                  if (id === 'demo-canvas') return fakeCanvasElement;
-                  if (id === 'chat-thread') return makeElement('chat-thread');
-                  return null;
-                }
-              },
-              console: { log: function() {}, error: function() {} },
-              location: { search: %s },
-              history: { pushState: function(state, title, url) { sandbox.location.search = url.substring(url.indexOf('?')); } },
-              setTimeout: function(fn, ms) { timers.push({fn: fn, ms: ms}); return timers.length; },
-              clearTimeout: function(id) { if (id && timers[id - 1]) { timers[id - 1] = null; } },
-              setInterval: function() { intervalCount += 1; return -1; },
-              fetch: function() {},
-              localStorage: { getItem: function() {}, setItem: function() {} },
-              sessionStorage: { getItem: function() {}, setItem: function() {} },
-              window: null
-            };
-            sandbox.URLSearchParams = URLSearchParams;
-            sandbox.window = sandbox;
-            var cx = vm.createContext(sandbox);
-            vm.runInContext(%s, cx);
-            vm.runInContext(%s, cx);
-            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
-
-            var scenarioList = %s;
-            var results = [];
-            for (var s = 0; s < scenarioList.length; s++) {
-              var sc = scenarioList[s];
-              if (sc.action === 'click') {
-                capturedClickHandler({
-                  target: { closest: function(sel) {
-                    if (sel === '[data-auto-replay-action]') return { getAttribute: function() { return sc.replayAction; } };
-                    return null;
-                  }},
-                  preventDefault: function() {}
-                });
-              } else if (sc.action === 'fire-timer') {
-                var pending = timers.filter(function(t) { return t !== null; });
-                if (pending.length > 0) {
-                  pending[pending.length - 1].fn();
-                  timers[timers.indexOf(pending[pending.length - 1])] = null;
-                }
-              } else if (sc.action === 'change-url') {
-                sandbox.location.search = sc.url;
-                sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
-              }
-              results.push({
-                html: capturedHTML,
-                chat: capturedChatHTML,
-                search: sandbox.location.search,
-                pendingTimers: timers.filter(function(t) { return t !== null; }).length
-              });
-            }
-            process.stdout.write(JSON.stringify({
-              results: results,
-              intervalCount: intervalCount
-            }));
-            """ % (json.dumps("?replay=J-DEPT-01&replay-mode=auto"), map_js, canvas_js, json.dumps(scenarios))
-            res = _run_node_script_file(sandbox_init, timeout=10)
-            assert res.returncode == 0, res.stderr
-            return json.loads(res.stdout)
-        return _interact
-
-    # 1. URL-only change to directory while route running → ready/static
-    def test_url_mismatch_directory_while_route_running(self, auto_interact_stateful):
-        data = auto_interact_stateful([
-            {"action": "click", "replayAction": "start"},
-            {"action": "change-url", "url": "?replay=J-DEPT-01&replay-mode=auto&replay-step=directory"}
+    def test_restart_from_running_restores_start_only(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "click", "action": "restart"},
         ])
-        after_mismatch = data["results"][-1]
-        html = after_mismatch["html"]
-        # directory markup is visible
-        assert "업무 및 전화번호 안내" in html
-        # but root status is ready
+        html = data["results"][-1]["html"]
         assert 'data-auto-replay-status="ready"' in html
-        # only 시연 시작 shown
-        assert "시연 시작" in html
-        assert "일시정지" not in html
-        assert "계속" not in html
-        # no pending timer
-        assert after_mismatch["pendingTimers"] == 0
-
-    # 2. URL-only change to result while route running → ready/static (no complete/restart-only)
-    def test_url_mismatch_result_while_route_running(self, auto_interact_stateful):
-        data = auto_interact_stateful([
-            {"action": "click", "replayAction": "start"},
-            {"action": "change-url", "url": "?replay=J-DEPT-01&replay-mode=auto&replay-step=result"}
-        ])
-        after_mismatch = data["results"][-1]
-        html = after_mismatch["html"]
-        # result markup visible
-        assert "공동주택과" in html
-        # root status is ready, not complete
-        assert 'data-auto-replay-status="ready"' in html
-        assert 'data-auto-replay-status="complete"' not in html
-        # no timer
-        assert after_mismatch["pendingTimers"] == 0
-        # restart-only control must not appear — only 시연 시작
+        assert 'data-auto-replay-step="ready"' in html
         assert "시연 시작" in html
         assert "다시 보기" not in html
 
-    # 3. Normal internal transition start → route → timer fire → directory preserves running + timer
-    def test_normal_internal_transition_preserves_running(self, auto_interact_stateful):
-        data = auto_interact_stateful([
-            {"action": "click", "replayAction": "start"},
-            {"action": "fire-timer"}
+
+class TestAutoReplayPhaseMismatchFailClosed:
+    @pytest.mark.parametrize("step", ["directory", "search", "result"])
+    def test_running_url_only_phase_change_fails_closed(self, step):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "change-url", "url": f"{AUTO_READY_QUERY}&replay-step={step}"},
+        ])
+        last = data["results"][-1]
+        assert f'data-auto-replay-step="{step}"' in last["html"]
+        assert 'data-auto-replay-status="ready"' in last["html"]
+        assert last["pendingTimers"] == 0
+        assert "시연 시작" in last["html"]
+        assert "일시정지" not in last["html"]
+        assert "계속" not in last["html"]
+
+    def test_running_same_phase_url_preserves_running(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "change-url", "url": f"{AUTO_READY_QUERY}&replay-step=route"},
+        ])
+        last = data["results"][-1]
+        assert 'data-auto-replay-step="route"' in last["html"]
+        assert 'data-auto-replay-status="running"' in last["html"]
+        assert last["pendingTimers"] == 1
+
+    @pytest.mark.parametrize("step", ["route", "search", "result"])
+    def test_paused_url_only_phase_change_fails_closed(self, step):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "click", "action": "pause"},
+            {"type": "change-url", "url": f"{AUTO_READY_QUERY}&replay-step={step}"},
+        ])
+        last = data["results"][-1]
+        assert f'data-auto-replay-step="{step}"' in last["html"]
+        assert 'data-auto-replay-status="ready"' in last["html"]
+        assert last["pendingTimers"] == 0
+        assert "시연 시작" in last["html"]
+        assert "다시 보기" not in last["html"]
+
+    def test_paused_same_phase_url_preserves_paused(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
+            {"type": "click", "action": "pause"},
+            {"type": "change-url", "url": f"{AUTO_READY_QUERY}&replay-step=directory"},
+        ])
+        last = data["results"][-1]
+        assert 'data-auto-replay-step="directory"' in last["html"]
+        assert 'data-auto-replay-status="paused"' in last["html"]
+        assert last["pendingTimers"] == 0
+
+    def test_normal_internal_transition_preserves_running(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "fire-timer"},
         ])
         after_timer = data["results"][-1]
         assert 'data-auto-replay-status="running"' in after_timer["html"]
-        assert after_timer["pendingTimers"] <= 1
+        assert 'data-auto-replay-step="directory"' in after_timer["html"]
+        assert after_timer["pendingTimers"] == 1
 
-    # 4. Pause then URL phase tampering → fail-closed ready/static
-    def test_pause_then_url_tampering_fail_closed(self, auto_interact_stateful):
-        data = auto_interact_stateful([
-            {"action": "click", "replayAction": "start"},
-            {"action": "fire-timer"},
-            {"action": "click", "replayAction": "pause"},
-            {"action": "change-url", "url": "?replay=J-DEPT-01&replay-mode=auto&replay-step=search"}
+    def test_restart_semantics_preserved_after_mismatch_sequence(self):
+        data = _run_auto_replay(AUTO_READY_QUERY, [
+            {"type": "click", "action": "start"},
+            {"type": "change-url", "url": f"{AUTO_READY_QUERY}&replay-step=result"},
+            {"type": "click", "action": "start"},
+            {"type": "click", "action": "restart"},
         ])
-        after_tamper = data["results"][-1]
-        html = after_tamper["html"]
-        assert 'data-auto-replay-status="ready"' in html
-        assert after_tamper["pendingTimers"] == 0
-        assert "시연 시작" in html
-
-    # 5. Existing restart semantics preserved: ready URL, 0 timer, 시연 시작 only
-    def test_restart_semantics_preserved(self, auto_interact_stateful):
-        data = auto_interact_stateful([
-            {"action": "click", "replayAction": "start"},
-            {"action": "click", "replayAction": "restart"}
-        ])
-        after_restart = data["results"][-1]
-        assert "?replay=J-DEPT-01&replay-mode=auto" in after_restart["search"]
-        assert 'data-auto-replay-status="ready"' in after_restart["html"]
-        assert 'data-auto-replay-step="ready"' in after_restart["html"]
-        assert after_restart["pendingTimers"] == 0
-        assert "시연 시작" in after_restart["html"]
+        last = data["results"][-1]
+        assert last["search"] == AUTO_READY_QUERY
+        assert 'data-auto-replay-status="ready"' in last["html"]
+        assert 'data-auto-replay-step="ready"' in last["html"]
+        assert last["pendingTimers"] == 0
