@@ -33,6 +33,7 @@ class QuestionLogEvent:
     guard_status: str | None = None
     guard_reason: str | None = None
     warnings: tuple[str, ...] = field(default_factory=tuple)
+    correlation_id: str | None = None
 
 
 # ------------------------------------------------------------------
@@ -127,6 +128,7 @@ def build_question_log_event(
     guard_status: str | None = None,
     guard_reason: str | None = None,
     warnings: Sequence[str] = (),
+    correlation_id: str | None = None,
 ) -> QuestionLogEvent:
     """Build a QuestionLogEvent safely with sanitization of all text fields."""
     timestamp = datetime.now(timezone.utc).isoformat()
@@ -186,6 +188,7 @@ def build_question_log_event(
         guard_status=san_guard_status,
         guard_reason=san_guard_reason,
         warnings=tuple(san_warnings),
+        correlation_id=correlation_id,
     )
 
 
@@ -221,13 +224,18 @@ class JsonlQuestionLogger(QuestionLogger):
         # Serialize dataclass to dictionary
         event_dict = asdict(event)
         
-        # Double-check redaction for all string values to ensure no leakage
-        def _recursive_sanitize(item: Any) -> Any:
+        # Double-check redaction for all string values to ensure no leakage.
+        # correlation_id is an opaque operational join key and must be preserved
+        # verbatim (never redacted) so pipeline events and question logs can
+        # be correlated.
+        def _recursive_sanitize(item: Any, key: str | None = None) -> Any:
             if isinstance(item, dict):
-                return {k: _recursive_sanitize(v) for k, v in item.items()}
+                return {k: _recursive_sanitize(v, k) for k, v in item.items()}
             elif isinstance(item, (list, tuple)):
                 return type(item)(_recursive_sanitize(x) for x in item)
             elif isinstance(item, str):
+                if key == "correlation_id":
+                    return item
                 return sanitize_text(item)
             return item
             
