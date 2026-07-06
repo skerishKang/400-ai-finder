@@ -72,7 +72,7 @@ class PipelineRunner:
 
         steps: list[dict[str, Any]] = []
         event_logger = get_event_logger(__name__)
-        run_correlation_id = correlation_id or new_correlation_id()
+        run_correlation_id = correlation_id if correlation_id is not None else new_correlation_id()
         run_started_at = time.perf_counter()
         final_result: dict[str, Any] | None = None
 

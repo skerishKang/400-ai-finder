@@ -181,14 +181,24 @@ def test_build_question_log_event_defaults_correlation_id_none():
     """Assert existing callers without correlation_id keep it None."""
     event = build_question_log_event(site_id="site1", question="no correlation")
     assert event.correlation_id is None
+
+
+def test_question_logger_imports_no_provider_or_network_modules():
     """Verify that question_logger.py is pure and imports no network/LLM modules."""
     logger_path = Path(__file__).parent.parent / "src" / "analytics" / "question_logger.py"
     with open(logger_path, "r", encoding="utf-8") as f:
         source = f.read()
-        
+
     tree = ast.parse(source)
-    banned_prefixes = ("src.llm", "src.fetch", "firecrawl", "requests", "httpx", "urllib3")
-    
+    banned_prefixes = (
+        "src.llm",
+        "src.fetch",
+        "firecrawl",
+        "requests",
+        "httpx",
+        "urllib3",
+    )
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
