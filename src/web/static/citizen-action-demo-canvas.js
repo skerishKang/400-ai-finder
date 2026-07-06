@@ -1808,11 +1808,16 @@
     var autoReplay = _resolveAutoReplayState(search);
     if (autoReplay.isAuto) {
       var status;
-      if (_autoReplayState.userStarted && _autoReplayState.status === "running") {
+      var _runnablePhases = ["route", "directory", "search"];
+      var _phaseMatch = _autoReplayState.phase === autoReplay.step;
+      if (autoReplay.step === "ready") {
+        status = "ready";
+        _autoReplayState.userStarted = false;
+      } else if (_autoReplayState.userStarted && _autoReplayState.status === "running" && _phaseMatch && _runnablePhases.indexOf(autoReplay.step) !== -1) {
         status = "running";
-      } else if (_autoReplayState.userStarted && _autoReplayState.status === "paused") {
+      } else if (_autoReplayState.userStarted && _autoReplayState.status === "paused" && _phaseMatch && _runnablePhases.indexOf(autoReplay.step) !== -1) {
         status = "paused";
-      } else if (_autoReplayState.userStarted && _autoReplayState.status === "complete") {
+      } else if (_autoReplayState.userStarted && _autoReplayState.status === "complete" && _autoReplayState.phase === "result" && autoReplay.step === "result") {
         status = "complete";
       } else {
         status = "ready";

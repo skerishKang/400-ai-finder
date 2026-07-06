@@ -2942,3 +2942,233 @@ class TestAutoReplayDirectPhaseGate:
         assert after_restart["pendingTimers"] == 0, \
             "restart from running must clear timer"
         assert 'data-auto-replay-status="ready"' in after_restart["html"]
+
+
+# ---------------------------------------------------------------------------
+# Stage 864-A final: phase mismatch fail-closed gate
+# ---------------------------------------------------------------------------
+
+class TestAutoReplayPhaseMismatchFailClosed:
+    """Tests that phase/URL mismatch or external history manipulation fails closed."""
+
+    @pytest.fixture(scope="class")
+    def auto_render_with_timers(self):
+        def _render(query: str):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            var timers = [];
+            var intervalCount = 0;
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function() {},
+                querySelector: function() { return null; }
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              history: { pushState: function() {} },
+              setTimeout: function(fn, ms) { timers.push({ms: ms}); return timers.length; },
+              clearTimeout: function(id) { if (id && timers[id - 1]) { timers[id - 1] = null; } },
+              setInterval: function() { intervalCount += 1; return -1; },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+            process.stdout.write(JSON.stringify({
+              html: capturedHTML,
+              chat: capturedChatHTML,
+              timerCount: timers.filter(function(t) { return t !== null; }).length,
+              intervalCount: intervalCount
+            }));
+            """ % (json.dumps(query), map_js, canvas_js)
+            res = _run_node_script_file(sandbox_init, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return json.loads(res.stdout)
+        return _render
+
+    @pytest.fixture(scope="class")
+    def auto_interact_stateful(self):
+        """Interact fixture that manipulates runtime state and URL across renders."""
+        def _interact(scenarios):
+            map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
+            canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
+            sandbox_init = """
+            'use strict';
+            var vm = require('vm');
+            var capturedHTML = '';
+            var capturedChatHTML = '';
+            var capturedClickHandler = null;
+            var timers = [];
+            var intervalCount = 0;
+            function makeElement(id) {
+              return {
+                id: id,
+                get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
+                set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
+                addEventListener: function(event, handler) {
+                  if (event === 'click' && id === 'demo-canvas') capturedClickHandler = handler;
+                },
+                querySelector: function() { return null; }
+              };
+            }
+            var fakeCanvasElement = makeElement('demo-canvas');
+            var sandbox = {
+              document: {
+                getElementById: function(id) {
+                  if (id === 'demo-canvas') return fakeCanvasElement;
+                  if (id === 'chat-thread') return makeElement('chat-thread');
+                  return null;
+                }
+              },
+              console: { log: function() {}, error: function() {} },
+              location: { search: %s },
+              history: { pushState: function(state, title, url) { sandbox.location.search = url.substring(url.indexOf('?')); } },
+              setTimeout: function(fn, ms) { timers.push({fn: fn, ms: ms}); return timers.length; },
+              clearTimeout: function(id) { if (id && timers[id - 1]) { timers[id - 1] = null; } },
+              setInterval: function() { intervalCount += 1; return -1; },
+              fetch: function() {},
+              localStorage: { getItem: function() {}, setItem: function() {} },
+              sessionStorage: { getItem: function() {}, setItem: function() {} },
+              window: null
+            };
+            sandbox.URLSearchParams = URLSearchParams;
+            sandbox.window = sandbox;
+            var cx = vm.createContext(sandbox);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+
+            var scenarioList = %s;
+            var results = [];
+            for (var s = 0; s < scenarioList.length; s++) {
+              var sc = scenarioList[s];
+              if (sc.action === 'click') {
+                capturedClickHandler({
+                  target: { closest: function(sel) {
+                    if (sel === '[data-auto-replay-action]') return { getAttribute: function() { return sc.replayAction; } };
+                    return null;
+                  }},
+                  preventDefault: function() {}
+                });
+              } else if (sc.action === 'fire-timer') {
+                var pending = timers.filter(function(t) { return t !== null; });
+                if (pending.length > 0) {
+                  pending[pending.length - 1].fn();
+                  timers[timers.indexOf(pending[pending.length - 1])] = null;
+                }
+              } else if (sc.action === 'change-url') {
+                sandbox.location.search = sc.url;
+                sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
+              }
+              results.push({
+                html: capturedHTML,
+                chat: capturedChatHTML,
+                search: sandbox.location.search,
+                pendingTimers: timers.filter(function(t) { return t !== null; }).length
+              });
+            }
+            process.stdout.write(JSON.stringify({
+              results: results,
+              intervalCount: intervalCount
+            }));
+            """ % (json.dumps("?replay=J-DEPT-01&replay-mode=auto"), map_js, canvas_js, json.dumps(scenarios))
+            res = _run_node_script_file(sandbox_init, timeout=10)
+            assert res.returncode == 0, res.stderr
+            return json.loads(res.stdout)
+        return _interact
+
+    # 1. URL-only change to directory while route running → ready/static
+    def test_url_mismatch_directory_while_route_running(self, auto_interact_stateful):
+        data = auto_interact_stateful([
+            {"action": "click", "replayAction": "start"},
+            {"action": "change-url", "url": "?replay=J-DEPT-01&replay-mode=auto&replay-step=directory"}
+        ])
+        after_mismatch = data["results"][-1]
+        html = after_mismatch["html"]
+        # directory markup is visible
+        assert "업무 및 전화번호 안내" in html
+        # but root status is ready
+        assert 'data-auto-replay-status="ready"' in html
+        # only 시연 시작 shown
+        assert "시연 시작" in html
+        assert "일시정지" not in html
+        assert "계속" not in html
+        # no pending timer
+        assert after_mismatch["pendingTimers"] == 0
+
+    # 2. URL-only change to result while route running → ready/static (no complete/restart-only)
+    def test_url_mismatch_result_while_route_running(self, auto_interact_stateful):
+        data = auto_interact_stateful([
+            {"action": "click", "replayAction": "start"},
+            {"action": "change-url", "url": "?replay=J-DEPT-01&replay-mode=auto&replay-step=result"}
+        ])
+        after_mismatch = data["results"][-1]
+        html = after_mismatch["html"]
+        # result markup visible
+        assert "공동주택과" in html
+        # root status is ready, not complete
+        assert 'data-auto-replay-status="ready"' in html
+        assert 'data-auto-replay-status="complete"' not in html
+        # no timer
+        assert after_mismatch["pendingTimers"] == 0
+        # restart-only control must not appear — only 시연 시작
+        assert "시연 시작" in html
+        assert "다시 보기" not in html
+
+    # 3. Normal internal transition start → route → timer fire → directory preserves running + timer
+    def test_normal_internal_transition_preserves_running(self, auto_interact_stateful):
+        data = auto_interact_stateful([
+            {"action": "click", "replayAction": "start"},
+            {"action": "fire-timer"}
+        ])
+        after_timer = data["results"][-1]
+        assert 'data-auto-replay-status="running"' in after_timer["html"]
+        assert after_timer["pendingTimers"] <= 1
+
+    # 4. Pause then URL phase tampering → fail-closed ready/static
+    def test_pause_then_url_tampering_fail_closed(self, auto_interact_stateful):
+        data = auto_interact_stateful([
+            {"action": "click", "replayAction": "start"},
+            {"action": "fire-timer"},
+            {"action": "click", "replayAction": "pause"},
+            {"action": "change-url", "url": "?replay=J-DEPT-01&replay-mode=auto&replay-step=search"}
+        ])
+        after_tamper = data["results"][-1]
+        html = after_tamper["html"]
+        assert 'data-auto-replay-status="ready"' in html
+        assert after_tamper["pendingTimers"] == 0
+        assert "시연 시작" in html
+
+    # 5. Existing restart semantics preserved: ready URL, 0 timer, 시연 시작 only
+    def test_restart_semantics_preserved(self, auto_interact_stateful):
+        data = auto_interact_stateful([
+            {"action": "click", "replayAction": "start"},
+            {"action": "click", "replayAction": "restart"}
+        ])
+        after_restart = data["results"][-1]
+        assert "?replay=J-DEPT-01&replay-mode=auto" in after_restart["search"]
+        assert 'data-auto-replay-status="ready"' in after_restart["html"]
+        assert 'data-auto-replay-step="ready"' in after_restart["html"]
+        assert after_restart["pendingTimers"] == 0
+        assert "시연 시작" in after_restart["html"]
