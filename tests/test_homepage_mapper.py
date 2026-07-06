@@ -1,3 +1,7 @@
+import json
+import logging
+from unittest.mock import patch
+
 import pytest
 from src.crawler.homepage_mapper import (
     get_base_url,
@@ -177,3 +181,97 @@ def test_mapper_fetch_content_with_mock_provider_error():
     assert content is None
     assert error is not None
     assert "Fetch error" in error
+
+
+def _extract_pipeline_records(caplog: pytest.LogCaptureFixture) -> list[dict[str, object]]:
+    records = []
+    for line in caplog.messages:
+        if line.startswith("pipeline_event="):
+            records.append(json.loads(line.split("=", 1)[1]))
+    return records
+
+
+def test_homepage_mapper_logs_terminal_success_event(caplog):
+    mapper = HomepageMapper()
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        return (
+            "<html><head><title>Home</title></head>"
+            "<body><nav><a href=\"/apply\">신청</a></nav></body></html>",
+            None,
+            200,
+            url,
+        )
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse", return_value={"error": "", "sitemaps": [], "urls": []}), \
+         caplog.at_level(logging.INFO, logger="src.crawler.homepage_mapper"):
+        result = mapper.build_map("https://example.com", correlation_id="corr-123")
+
+    records = _extract_pipeline_records(caplog)
+    assert result["homepage"]["title"] == "Home"
+    assert [record["event"] for record in records] == ["pipeline_stage_end"]
+    assert records[0]["stage"] == "homepage_mapper"
+    assert records[0]["ok"] is True
+    assert records[0]["correlation_id"] == "corr-123"
+    assert isinstance(records[0]["duration_ms"], int)
+
+
+def test_homepage_mapper_preserves_empty_correlation_id(caplog):
+    mapper = HomepageMapper()
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        return "<html><body></body></html>", None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse", return_value={"error": "", "sitemaps": [], "urls": []}), \
+         caplog.at_level(logging.INFO, logger="src.crawler.homepage_mapper"):
+        mapper.build_map("https://example.com", correlation_id="")
+
+    records = _extract_pipeline_records(caplog)
+    assert records
+    assert {record["correlation_id"] for record in records} == {""}
+
+
+def test_homepage_mapper_without_correlation_id_logs_nothing(caplog):
+    mapper = HomepageMapper()
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        return "<html><body></body></html>", None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse", return_value={"error": "", "sitemaps": [], "urls": []}), \
+         caplog.at_level(logging.INFO, logger="src.crawler.homepage_mapper"):
+        mapper.build_map("https://example.com")
+
+    assert "pipeline_event=" not in "\n".join(caplog.messages)
+
+
+def test_homepage_mapper_logs_static_failure_and_reraises(caplog):
+    mapper = HomepageMapper()
+
+    with patch.object(
+        mapper,
+        "fetch_content",
+        side_effect=RuntimeError("secret token failed for https://example.com"),
+    ):
+        with caplog.at_level(logging.INFO, logger="src.crawler.homepage_mapper"):
+            with pytest.raises(RuntimeError, match="secret token failed"):
+                mapper.build_map("https://example.com", correlation_id="corr-err")
+
+    records = _extract_pipeline_records(caplog)
+    assert [record["event"] for record in records] == ["pipeline_stage_fail"]
+    assert records[0]["stage"] == "homepage_mapper"
+    assert records[0]["ok"] is False
+    assert records[0]["failure_code"] == "homepage_mapper_exception"
+    joined_logs = "\n".join(caplog.messages)
+    assert "https://example.com" not in joined_logs
+    assert "secret" not in joined_logs
+    assert "token" not in joined_logs
+    assert "RuntimeError" not in joined_logs

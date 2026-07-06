@@ -314,7 +314,7 @@ def test_pipeline_failure_emits_stage_fail_and_run_end_false(tmp_path: Path, cap
     runner = PipelineRunner(output_dir=output_dir, provider="mock")
     caplog.set_level(logging.INFO, logger="src.pipeline.pipeline_runner")
 
-    def fake_homepage_map(url: str) -> dict[str, object]:
+    def fake_homepage_map(url: str, correlation_id: str | None = None) -> dict[str, object]:
         path = os.path.join(output_dir, "homepage-map.json")
         PipelineRunner._write_json(path, FAKE_HOMEPAGE_MAP)
         return {"name": "homepage_map", "ok": True, "output": path, "error": ""}
@@ -385,6 +385,22 @@ def test_pipeline_run_preserves_empty_injected_correlation_id(
     event_records = _extract_pipeline_records(caplog)
     assert event_records
     assert {record["correlation_id"] for record in event_records} == {""}
+
+
+@patch("src.pipeline.pipeline_runner.HomepageMapper")
+def test_step_homepage_map_passes_empty_correlation_id_to_mapper(
+    MockMapper,
+    tmp_output_dir: str,
+    monkeypatch,
+) -> None:
+    runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+    monkeypatch.setattr(runner, "_resolve_site_id", lambda url: None)
+    MockMapper.return_value.build_map.return_value = FAKE_HOMEPAGE_MAP
+
+    step = runner._step_homepage_map("https://example.com", correlation_id="")
+
+    assert step["ok"] is True
+    assert MockMapper.return_value.build_map.call_args.kwargs["correlation_id"] == ""
 
 
 def test_new_correlation_id_is_opaque_hex() -> None:
