@@ -25,15 +25,7 @@ def get_last_segment(url):
         return ""
     return path.split("/")[-1]
 
-CATEGORY_PRIORITY = {
-    "document": 7,
-    "apply": 6,
-    "notice": 5,
-    "board": 4,
-    "contact": 3,
-    "menu": 2,
-    "unknown": 1
-}
+from src.crawler.url_classifier import CATEGORY_PRIORITY
 
 class DocumentIndexer:
     def __init__(self):
