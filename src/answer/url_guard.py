@@ -35,8 +35,10 @@ def canonicalize_url(url: str) -> str | None:
 
     try:
         parsed = urlparse(url)
-        # Access parsed.port early inside try/except block because it can raise ValueError
-        # for malformed ports (e.g. non-integer or out of range).
+        netloc = parsed.netloc
+        hostname = parsed.hostname
+        username = parsed.username
+        password = parsed.password
         port = parsed.port
     except Exception:
         return None
@@ -45,15 +47,13 @@ def canonicalize_url(url: str) -> str | None:
     if scheme not in ("http", "https"):
         return None
 
-    hostname = parsed.hostname
     if not hostname:
         return None
 
     # Reject credentials in the authority.
-    if parsed.username or parsed.password:
+    if username or password:
         return None
 
-    netloc = parsed.netloc
     # Reject netloc with trailing colon (e.g. example.com:), missing host, or malformed characters.
     if netloc.endswith(":") or not netloc:
         return None
@@ -100,11 +100,12 @@ def canonicalize_url(url: str) -> str | None:
 # URL extraction from Markdown output
 # ------------------------------------------------------------------
 
-# Bare HTTP(S) URL: standalone http/https URL not inside Markdown link syntax.
+# Bare HTTP(S) URL: standalone http/https URL.
+# Captures literal http/https URLs starting at word boundaries, after symbols like =, :, or brackets,
+# and terminates before trailing brackets, quotes, or standard trailing sentence punctuation.
 _BARE_URL_RE = re.compile(
-    r'(?:^|[\s(\[{"\'‘“])'  # preceded by whitespace/open-bracket/quote
-    r'(https?://[^\s)\]>"\'’”\\]+)'  # the URL itself
-    r'(?:[\s)\]>"\'’”\\]|$)',  # terminated by whitespace/close-bracket/quote/end
+    r'(?:^|[\surl=source:참고(\[{"\'‘“])'  # preceded by start, space, brackets, quotes, or separators like url=, source:
+    r'(https?://[^\s)\]>"\'’”\\]+)',  # the URL itself
     re.IGNORECASE,
 )
 
@@ -184,7 +185,11 @@ def extract_urls_from_markdown(markdown: str) -> list[dict[str, str]]:
         if any(s <= m.start(1) < e for s, e in link_spans):
             continue
         url = m.group(1)
-        candidates.append({"url": url, "kind": "bare"})
+        # Strip trailing punctuation commonly appended in texts/sentences.
+        while url and url[-1] in ".,;:!?)]}*\"'":
+            url = url[:-1]
+        if url:
+            candidates.append({"url": url, "kind": "bare"})
 
     return candidates + untrusted
 

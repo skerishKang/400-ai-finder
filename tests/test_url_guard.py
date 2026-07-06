@@ -75,12 +75,20 @@ class TestCanonicalizeUrl:
 
     def test_missing_host_rejected(self):
         """URL with missing host or malformed authority is rejected."""
-        assert canonicalize_url("https:///path") is None
-        assert canonicalize_url("https://@example.com/path") is None
-        assert canonicalize_url("https://example.com:/path") is None
-        assert canonicalize_url("https://user@example.com/path") is None
-        assert canonicalize_url("https://user:pass@example.com/path") is None
-        assert canonicalize_url("https://example.com:80:90/path") is None
+        bad_urls = [
+            "https:///path",
+            "https://@example.com/path",
+            "https://example.com:/path",
+            "https://example.com:80:90/path",
+            "https://example.com:invalid_port/path",
+            "https://example.com:999999/path",
+            "https://[2001:db8::1",
+            "https://[example.com/path",
+            "https://user@example.com/path",
+            "https://user:pass@example.com/path",
+        ]
+        for bad_url in bad_urls:
+            assert canonicalize_url(bad_url) is None
 
     def test_valid_ipv6_preserved(self):
         """Valid IPv6 authorities are canonicalized correctly."""
@@ -162,6 +170,26 @@ class TestExtractUrlsFromMarkdown:
         urls = extract_urls_from_markdown(md)
         links = [u for u in urls if u["kind"] == "markdown_link"]
         assert any(u["url"] == "https://example.com/files/form.pdf" for u in links)
+
+    def test_bare_url_after_equals_is_detected(self):
+        urls = extract_urls_from_markdown(
+            "url=https://untrusted.example/path"
+        )
+        assert any(
+            item["url"] == "https://untrusted.example/path"
+            and item["kind"] == "bare"
+            for item in urls
+        )
+
+    def test_bare_url_after_colon_is_detected(self):
+        urls = extract_urls_from_markdown(
+            "source:https://untrusted.example/path"
+        )
+        assert any(
+            item["url"] == "https://untrusted.example/path"
+            and item["kind"] == "bare"
+            for item in urls
+        )
 
     def test_autolink(self):
         """Autolink <URL> is extracted."""
@@ -407,6 +435,25 @@ class TestAssessUrlAllowlist:
             result = assess_url_allowlist(f"<{bad_url}>", sources)
             assert result["passed"] is False
 
+    def test_guard_bare_url_delimiters(self):
+        sources = self._make_sources([
+            ("https://example.com/allowed", "https://example.com/allowed"),
+        ])
+        assert assess_url_allowlist(
+            "url=https://untrusted.example/path",
+            sources,
+        )["passed"] is False
+
+        assert assess_url_allowlist(
+            "source:https://untrusted.example/path",
+            sources,
+        )["passed"] is False
+
+        assert assess_url_allowlist(
+            "url=https://example.com/allowed",
+            sources,
+        )["passed"] is True
+
     def test_guard_normal_at_symbol_passes_when_matched(self):
         """Normal @ symbols in path/query pass allowlist assessment when exact matched."""
         sources = self._make_sources([
@@ -576,22 +623,27 @@ class TestComposerUrlGuardIntegration:
         assert len(result["sources"]) == 1
         assert result["sources"][0]["url"] == "https://example.com/apply"
 
-    def test_blocked_output_has_machine_readable_warning(self):
-        """Blocked output does not include custom warning but does not fail."""
-        data = self._make_search_data("https://example.com/apply")
+    def test_composer_blocked_result_untrusted_bare_url(self):
+        """untrusted bare URL with equals separator produces exact blocked-result contract."""
+        data = self._make_search_data("https://example.com/allowed")
         class ControlledProvider(MockProvider):
             def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
                 return ProviderResult(
                     provider="controlled",
                     model="controlled",
                     ok=True,
-                    content="[위험](https://evil.com/phish)",
+                    content="Check this: url=https://untrusted.example/path",
                     error="",
                 )
 
         composer = AnswerComposer(provider=ControlledProvider())
         result = composer.compose(data)
         assert result["ok"] is False
+        assert result["answer_markdown"] == ""
+        assert result["error"] == "untrusted_output_url"
+        assert result["guard_status"] == "blocked_untrusted_output_url"
+        assert result["guard_reason"] == "Provider output contained a URL that is not an exact retrieved source URL."
+        assert "untrusted_output_url" in result["warnings"]
 
     def test_no_url_output_passes_unchanged(self):
         """Provider output with no URLs passes guard unchanged."""
