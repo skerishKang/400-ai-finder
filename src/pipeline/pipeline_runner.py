@@ -163,7 +163,13 @@ class PipelineRunner:
             _log_stage_end("answer", stage_started_at, step["ok"])
 
             # Emit question log event
-            self._emit_question_log(url, query, steps, site_id=site_id)
+            self._emit_question_log(
+                url,
+                query,
+                steps,
+                site_id=site_id,
+                correlation_id=run_correlation_id,
+            )
 
             if not step["ok"]:
                 final_result = self._final_result(url, query, steps, overall_ok=False)
@@ -194,6 +200,7 @@ class PipelineRunner:
         query: str,
         steps: list[dict[str, Any]],
         site_id: str | None = None,
+        correlation_id: str | None = None,
     ) -> None:
         """Helper to build and log the QuestionLogEvent after a run."""
         try:
@@ -244,6 +251,7 @@ class PipelineRunner:
                 guard_status=answer_data.get("guard_status"),
                 guard_reason=answer_data.get("guard_reason"),
                 warnings=answer_data.get("warnings", []),
+                correlation_id=correlation_id,
             )
             self.question_logger.log(event)
         except Exception:

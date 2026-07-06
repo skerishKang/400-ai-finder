@@ -147,15 +147,58 @@ def test_jsonl_question_logger_redacts_secrets_before_writing(tmp_path):
 # Boundary / Offline / Integration Checks
 # ------------------------------------------------------------------
 
+def test_build_question_log_event_preserves_correlation_id():
+    """Assert correlation_id is passed through unchanged to the event."""
+    correlation_id = "0123456789abcdef0123456789abcdef"
+    event = build_question_log_event(
+        site_id="bukgu_gwangju",
+        question="구청장이 누구야?",
+        correlation_id=correlation_id,
+    )
+    assert event.correlation_id == correlation_id
+
+
+def test_jsonl_question_logger_preserves_correlation_id(tmp_path):
+    """Assert correlation_id survives JSONL serialization."""
+    log_file = tmp_path / "questions.jsonl"
+    logger = JsonlQuestionLogger(log_file)
+
+    correlation_id = "0123456789abcdef0123456789abcdef"
+    event = build_question_log_event(
+        site_id="site1",
+        question="First question?",
+        correlation_id=correlation_id,
+    )
+    logger.log(event)
+
+    lines = log_file.read_text(encoding="utf-8").strip().split("\n")
+    assert len(lines) == 1
+    data = json.loads(lines[0])
+    assert data["correlation_id"] == correlation_id
+
+
+def test_build_question_log_event_defaults_correlation_id_none():
+    """Assert existing callers without correlation_id keep it None."""
+    event = build_question_log_event(site_id="site1", question="no correlation")
+    assert event.correlation_id is None
+
+
 def test_question_logger_imports_no_provider_or_network_modules():
     """Verify that question_logger.py is pure and imports no network/LLM modules."""
     logger_path = Path(__file__).parent.parent / "src" / "analytics" / "question_logger.py"
     with open(logger_path, "r", encoding="utf-8") as f:
         source = f.read()
-        
+
     tree = ast.parse(source)
-    banned_prefixes = ("src.llm", "src.fetch", "firecrawl", "requests", "httpx", "urllib3")
-    
+    banned_prefixes = (
+        "src.llm",
+        "src.fetch",
+        "firecrawl",
+        "requests",
+        "httpx",
+        "urllib3",
+    )
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:

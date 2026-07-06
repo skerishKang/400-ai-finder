@@ -160,6 +160,7 @@ def test_pipeline_run_emits_consistent_stage_events_and_preserves_contract(
     correlation_ids = {record["correlation_id"] for record in event_records}
     assert len(correlation_ids) == 1
     assert next(iter(correlation_ids))
+    assert spy_logger.logged_events[0].correlation_id == next(iter(correlation_ids))
     stage_names = [
         record["stage"]
         for record in event_records
@@ -243,7 +244,7 @@ def test_pipeline_run_uses_injected_correlation_id_unchanged(
 @patch("src.pipeline.pipeline_runner.DocumentEnricher")
 @patch("src.pipeline.pipeline_runner.DocumentIndexer")
 @patch("src.pipeline.pipeline_runner.HomepageMapper")
-def test_pipeline_run_preserves_empty_injected_correlation_id(
+def test_pipeline_run_links_question_log_to_correlation_id(
     MockMapper,
     MockIndexer,
     MockEnricher,
@@ -256,31 +257,56 @@ def test_pipeline_run_preserves_empty_injected_correlation_id(
     _configure_successful_pipeline(
         MockMapper, MockIndexer, MockEnricher, MockSearcher, MockComposer
     )
-    runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
-    monkeypatch.setattr(runner, "_resolve_site_id", lambda url: None)
+    spy_logger = SpyQuestionLogger()
+    runner = PipelineRunner(
+        output_dir=tmp_output_dir,
+        provider="mock",
+        question_logger=spy_logger,
+    )
+    monkeypatch.setattr(runner, "_resolve_site_id", lambda url: "test_site")
+    injected_id = "0123456789abcdef0123456789abcdef"
 
     with caplog.at_level(logging.INFO, logger="src.pipeline.pipeline_runner"):
-        with patch(
-            "src.pipeline.pipeline_runner.new_correlation_id",
-            side_effect=AssertionError("new correlation ID must not be generated"),
-        ):
-            runner.run(
-                url="https://example.com",
-                query="신청서 제출서류",
-                correlation_id="",
-            )
+        runner.run(
+            url="https://example.com/path?token=abc123",
+            query="신청서 제출서류",
+            correlation_id=injected_id,
+        )
 
     event_records = _extract_pipeline_records(caplog)
     assert event_records
-    assert {record["correlation_id"] for record in event_records} == {""}
+    assert {record["correlation_id"] for record in event_records} == {injected_id}
+
+    assert len(spy_logger.logged_events) == 1
+    assert spy_logger.logged_events[0].correlation_id == injected_id
 
 
-def test_new_correlation_id_is_opaque_hex() -> None:
-    from src.observability.event_logger import new_correlation_id
+def test_pipeline_emit_question_log_defaults_correlation_id_none(tmp_path: Path) -> None:
+    """Direct _emit_question_log call without correlation_id keeps it None."""
+    output_dir = str(tmp_path / "emit-default")
+    os.makedirs(output_dir, exist_ok=True)
 
-    correlation_id = new_correlation_id()
-    assert len(correlation_id) == 32
-    assert all(ch in "0123456789abcdef" for ch in correlation_id)
+    enriched_path = os.path.join(output_dir, "enriched-index.jsonl")
+    with open(enriched_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps(FAKE_DOCS[0], ensure_ascii=False) + "\n")
+
+    runner = PipelineRunner(output_dir=output_dir, provider="mock")
+    spy_logger = SpyQuestionLogger()
+    runner.question_logger = spy_logger
+
+    search_step = runner._step_search("민원서식 어디서 받아?", enriched_path)
+    assert search_step["ok"] is True
+    answer_step = runner._step_answer("민원서식 어디서 받아?", search_step["output"])
+    assert answer_step["ok"] is True
+
+    runner._emit_question_log(
+        url="https://example.com",
+        query="신청서 제출서류",
+        steps=[search_step, answer_step],
+    )
+
+    assert len(spy_logger.logged_events) == 1
+    assert spy_logger.logged_events[0].correlation_id is None
 
 
 def test_pipeline_failure_emits_stage_fail_and_run_end_false(tmp_path: Path, caplog) -> None:
@@ -322,3 +348,48 @@ def test_pipeline_failure_emits_stage_fail_and_run_end_false(tmp_path: Path, cap
     assert fail_record["failure_code"] == "pipeline_step_failed"
     assert event_records[-1]["ok"] is False
     assert "stage" not in event_records[-1]
+
+
+@patch("src.pipeline.pipeline_runner.AnswerComposer")
+@patch("src.pipeline.pipeline_runner.KeywordSearcher")
+@patch("src.pipeline.pipeline_runner.DocumentEnricher")
+@patch("src.pipeline.pipeline_runner.DocumentIndexer")
+@patch("src.pipeline.pipeline_runner.HomepageMapper")
+def test_pipeline_run_preserves_empty_injected_correlation_id(
+    MockMapper,
+    MockIndexer,
+    MockEnricher,
+    MockSearcher,
+    MockComposer,
+    tmp_output_dir: str,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch,
+) -> None:
+    _configure_successful_pipeline(
+        MockMapper, MockIndexer, MockEnricher, MockSearcher, MockComposer
+    )
+    runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+    monkeypatch.setattr(runner, "_resolve_site_id", lambda url: None)
+
+    with caplog.at_level(logging.INFO, logger="src.pipeline.pipeline_runner"):
+        with patch(
+            "src.pipeline.pipeline_runner.new_correlation_id",
+            side_effect=AssertionError("new correlation ID must not be generated"),
+        ):
+            runner.run(
+                url="https://example.com",
+                query="신청서 제출서류",
+                correlation_id="",
+            )
+
+    event_records = _extract_pipeline_records(caplog)
+    assert event_records
+    assert {record["correlation_id"] for record in event_records} == {""}
+
+
+def test_new_correlation_id_is_opaque_hex() -> None:
+    from src.observability.event_logger import new_correlation_id
+
+    correlation_id = new_correlation_id()
+    assert len(correlation_id) == 32
+    assert all(ch in "0123456789abcdef" for ch in correlation_id)
