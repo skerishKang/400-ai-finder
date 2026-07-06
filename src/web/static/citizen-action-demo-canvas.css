@@ -1977,8 +1977,12 @@
    J-DEPT-01 specific scoped styles
    --------------------------------------------------------------------------- */
 
-/* Auto J-DEPT-01 replay action-bubble scoped styles. */
-:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-action-bubble {
+/* Auto J-DEPT-01 replay scoped styles — scoped to [data-dept-auto-replay="true"] only */
+[data-dept-auto-replay="true"] .bg-dept-action-bubble,
+[data-dept-auto-replay="true"] .bg-dept-replay-controls {
+  pointer-events: auto;
+}
+[data-dept-auto-replay="true"] .bg-dept-action-bubble {
   position: fixed;
   bottom: 28px;
   left: 50%;
@@ -1996,26 +2000,33 @@
   opacity: 0;
   pointer-events: none;
 }
-:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-action-bubble {
+[data-dept-auto-replay="true"] .bg-dept-action-bubble {
   opacity: 1;
   pointer-events: auto;
 }
-/* Paused state — dim bubble */
-.bg-page--dept-replay[data-replay-paused] .bg-dept-action-bubble {
+[data-dept-auto-replay="true"][data-auto-replay-status="paused"] .bg-dept-action-bubble {
   opacity: 0.4;
 }
-:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-home-controls {
+
+@media (prefers-reduced-motion: reduce) {
+  [data-dept-auto-replay="true"] .bg-dept-action-bubble {
+    transition: none;
+  }
+}
+
+/* Home & sub-route J-DEPT-01 shared public shell styles */
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--home[data-dept-auto-replay="true"], .bg-page--dept-replay, [data-dept-auto-replay="true"]) .bg-dept-replay-home-controls {
   max-width: 914px;
   margin: 18px auto 0;
   padding: 0 20px;
 }
-:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-controls {
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--home[data-dept-auto-replay="true"], .bg-page--dept-replay, [data-dept-auto-replay="true"]) .bg-dept-replay-controls {
   display: flex;
   gap: 10px;
   align-items: center;
   margin-top: 16px;
 }
-:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-controls__button {
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--home[data-dept-auto-replay="true"], .bg-page--dept-replay, [data-dept-auto-replay="true"]) .bg-dept-replay-controls__button {
   border: 1px solid #0054A6;
   background: #0054A6;
   color: #fff;
@@ -2025,7 +2036,7 @@
   font-size: 14px;
   font-weight: 700;
 }
-:is(.bg-page--home[data-dept-replay="true"], .bg-page--dept-replay) .bg-dept-replay-controls__button--secondary {
+:is(.bg-page--home[data-dept-replay="true"], .bg-page--home[data-dept-auto-replay="true"], .bg-page--dept-replay, [data-dept-auto-replay="true"]) .bg-dept-replay-controls__button--secondary {
   background: #fff;
   color: #0054A6;
 }

@@ -10,6 +10,7 @@ import os
 import re
 import json
 import subprocess
+import tempfile
 
 import pytest
 
@@ -153,17 +154,27 @@ def _render_all_routes_via_node():
 
     script = _RUNTIME_SCRIPT % (map_js, canvas_js, routes_json)
 
-    result = subprocess.run(
-        ["node", "-e", script],
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
+    result = _run_node_script_file(script, timeout=30)
     if result.returncode != 0:
         raise RuntimeError(
             "Node runtime failed: " + result.stderr
         )
     return json.loads(result.stdout)
+
+
+def _run_node_script_file(script: str, timeout: int = 30):
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as f:
+        f.write(script)
+        script_path = f.name
+    try:
+        return subprocess.run(
+            ["node", script_path],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    finally:
+        os.unlink(script_path)
 
 
 # ---------------------------------------------------------------------------
@@ -847,7 +858,7 @@ class TestJDept01SpecificContracts:
                 map_js,
                 canvas_js
             )
-            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return res.stdout
         return _render
@@ -977,14 +988,18 @@ class TestJDept01SpecificContracts:
                         assert (sub_sel.startswith(".bg-page--dept-directory") or
                                 sub_sel.startswith(".bg-page--home[data-dept-journey=\"true\"]") or
                                 sub_sel.startswith(".bg-page--home[data-dept-replay=\"true\"]") or
-                                sub_sel.startswith(".bg-page--dept-replay")), \
+                                sub_sel.startswith(".bg-page--dept-replay") or
+                                sub_sel.startswith(".bg-page--home[data-dept-auto-replay=\"true\"]") or
+                                sub_sel.startswith("[data-dept-auto-replay=\"true\"]")), \
                             f"prohibited inner is selector: {sub_sel}"
                     continue
 
                 assert (sel_part.startswith(".bg-page--dept-directory") or
                         sel_part.startswith(".bg-page--home[data-dept-journey=\"true\"]") or
                         sel_part.startswith(".bg-page--home[data-dept-replay=\"true\"]") or
-                        sel_part.startswith(".bg-page--dept-replay")), \
+                        sel_part.startswith(".bg-page--dept-replay") or
+                        sel_part.startswith(".bg-page--home[data-dept-auto-replay=\"true\"]") or
+                        sel_part.startswith("[data-dept-auto-replay=\"true\"]")), \
                     f"prohibited unscoped J-DEPT selector: {sel_part}"
 
     def test_jdept01_shared_public_shell_css_contract(self, dept_render):
@@ -1204,7 +1219,7 @@ class TestJDept01SpecificContracts:
         process.stdout.write(JSON.stringify(testResults));
         """ % (map_js, canvas_js)
 
-        res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+        res = _run_node_script_file(sandbox_init, timeout=10)
         assert res.returncode == 0, res.stderr
         res_data = json.loads(res.stdout)
 
@@ -1280,7 +1295,7 @@ class TestJDept01ReplayContracts:
             sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
             process.stdout.write(JSON.stringify({ html: capturedHTML, chat: capturedChatHTML }));
             """ % (json.dumps(query), map_js, canvas_js)
-            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return json.loads(res.stdout)
         return _render
@@ -1408,7 +1423,7 @@ class TestJDept01ReplayContracts:
           afterRestart: afterRestart
         }));
         """ % (map_js, canvas_js)
-        res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+        res = _run_node_script_file(sandbox_init, timeout=10)
         assert res.returncode == 0, res.stderr
         data = json.loads(res.stdout)
 
@@ -1493,7 +1508,7 @@ class TestJPark01SpecificContracts:
                 map_js,
                 canvas_js
             )
-            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return json.loads(res.stdout)
         return _render
@@ -1707,7 +1722,7 @@ class TestJPark01SpecificContracts:
         sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
         process.stdout.write(capturedHTML);
         """ % (map_js, canvas_js)
-        res = subprocess.run(["node", "-e", sandbox_dept], capture_output=True, text=True, timeout=10)
+        res = _run_node_script_file(sandbox_dept, timeout=10)
         assert res.returncode == 0, res.stderr
         html_dept_alone = res.stdout
         assert 'data-dept-journey="true"' in html_dept_alone
@@ -1789,7 +1804,7 @@ class TestJPark01SpecificContracts:
           pushStateCount: pushStateCount
         }));
         """ % (map_js, canvas_js)
-        res = subprocess.run(["node", "-e", sandbox_spy], capture_output=True, text=True, timeout=10)
+        res = _run_node_script_file(sandbox_spy, timeout=10)
         assert res.returncode == 0, res.stderr
         data = json.loads(res.stdout)
         html = data["html"]
@@ -1854,7 +1869,7 @@ class TestJKiosk01SpecificContracts:
                 map_js,
                 canvas_js
             )
-            res = subprocess.run(["node", "-e", sandbox_init], capture_output=True, text=True, timeout=10)
+            res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return json.loads(res.stdout)
         return _render
@@ -2051,7 +2066,7 @@ class TestJKiosk01SpecificContracts:
           pushStateCount: pushStateCount
         }));
         """ % (map_js, canvas_js)
-        res = subprocess.run(["node", "-e", sandbox_spy], capture_output=True, text=True, timeout=10)
+        res = _run_node_script_file(sandbox_spy, timeout=10)
         assert res.returncode == 0, res.stderr
         data = json.loads(res.stdout)
         html = data["html"]
