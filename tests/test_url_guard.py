@@ -74,8 +74,10 @@ class TestCanonicalizeUrl:
         assert canonicalize_url("https://user:pass@example.com/path") is None
 
     def test_missing_host_rejected(self):
-        """URL with missing host is rejected."""
+        """URL with missing host or malformed authority is rejected."""
         assert canonicalize_url("https:///path") is None
+        assert canonicalize_url("https://@example.com/path") is None
+        assert canonicalize_url("https://example.com:/path") is None
 
     def test_relative_url_rejected(self):
         """Relative URL (no scheme) returns None."""
@@ -175,6 +177,12 @@ class TestExtractUrlsFromMarkdown:
     def test_no_urls_returns_empty(self):
         """Markdown with no URLs returns empty list."""
         md = "이 페이지는 신청 방법을 안내합니다."
+        urls = extract_urls_from_markdown(md)
+        assert urls == []
+
+    def test_html_tag_ignored(self):
+        """Plain text inside angle brackets (HTML tags or strong) is ignored."""
+        md = "이것은 <strong>강조</strong> 및 <요소> 입니다."
         urls = extract_urls_from_markdown(md)
         assert urls == []
 

@@ -33,12 +33,22 @@ def canonicalize_url(url: str) -> str | None:
     if not url:
         return None
 
+    # Reject credentials or malformed authority symbols directly in raw URL representation
+    # before urlparse resolves or corrects them.
+    if "@" in url:
+        return None
+
     try:
         parsed = urlparse(url)
         # Access parsed.port early inside try/except block because it can raise ValueError
         # for malformed ports (e.g. non-integer or out of range).
         port = parsed.port
     except Exception:
+        return None
+
+    netloc = parsed.netloc
+    # Reject netloc with trailing colon (e.g. example.com:), missing host, or malformed characters.
+    if netloc.endswith(":") or not netloc:
         return None
 
     scheme = parsed.scheme.lower()
@@ -58,7 +68,7 @@ def canonicalize_url(url: str) -> str | None:
     if "/../" in path or "/./" in path or path.endswith("/..") or path.endswith("/."):
         return None
 
-    netloc_lower = parsed.netloc.lower()
+    netloc_lower = netloc.lower()
 
     # Remove explicit default port.
     if port is not None:
@@ -68,7 +78,7 @@ def canonicalize_url(url: str) -> str | None:
             netloc_lower = hostname.lower()
             # Preserve any non-default userinfo (already rejected above,
             # but defensive).
-    elif parsed.netloc != hostname.lower():
+    elif netloc != hostname.lower():
         # netloc may contain userinfo or other malformation without a port;
         # hostname already validated, but if netloc diverges without port it
         # likely has credentials we missed or is malformed.
@@ -102,9 +112,10 @@ _MARKDOWN_LINK_RE = re.compile(
     r'\[([^\]]*)\]\(([^)]+)\)',
 )
 
-# Markdown autolink: <URL> (including non-http/s schemas like mailto)
+# Markdown autolink: <URL> (URI scheme followed by colon, no whitespace, e.g. <https://...> or <mailto:...>)
+# Matches scheme starting with letter followed by letters/digits/+/./- then a colon, and no spaces inside <...>
 _AUTOLINK_RE = re.compile(
-    r'<([^>]+)>',
+    r'<([a-zA-Z][a-zA-Z0-9+.-]*:[^\s>]+)>',
 )
 
 
