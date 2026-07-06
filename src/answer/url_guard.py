@@ -33,22 +33,12 @@ def canonicalize_url(url: str) -> str | None:
     if not url:
         return None
 
-    # Reject credentials or malformed authority symbols directly in raw URL representation
-    # before urlparse resolves or corrects them.
-    if "@" in url:
-        return None
-
     try:
         parsed = urlparse(url)
         # Access parsed.port early inside try/except block because it can raise ValueError
         # for malformed ports (e.g. non-integer or out of range).
         port = parsed.port
     except Exception:
-        return None
-
-    netloc = parsed.netloc
-    # Reject netloc with trailing colon (e.g. example.com:), missing host, or malformed characters.
-    if netloc.endswith(":") or not netloc:
         return None
 
     scheme = parsed.scheme.lower()
@@ -63,6 +53,15 @@ def canonicalize_url(url: str) -> str | None:
     if parsed.username or parsed.password:
         return None
 
+    netloc = parsed.netloc
+    # Reject netloc with trailing colon (e.g. example.com:), missing host, or malformed characters.
+    if netloc.endswith(":") or not netloc:
+        return None
+
+    # Reject credentials or malformed authority symbols directly in netloc.
+    if "@" in netloc:
+        return None
+
     # Reject dot-segment paths ("/../", "/./", or path ending with "/..", "/.")
     path = parsed.path
     if "/../" in path or "/./" in path or path.endswith("/..") or path.endswith("/."):
@@ -74,16 +73,18 @@ def canonicalize_url(url: str) -> str | None:
     if port is not None:
         default_port = 80 if scheme == "http" else 443
         if port == default_port:
-            # Rebuild netloc without the port.
-            netloc_lower = hostname.lower()
-            # Preserve any non-default userinfo (already rejected above,
-            # but defensive).
-    elif netloc != hostname.lower():
-        # netloc may contain userinfo or other malformation without a port;
-        # hostname already validated, but if netloc diverges without port it
-        # likely has credentials we missed or is malformed.
-        # Re-derive from hostname only.
-        netloc_lower = hostname.lower()
+            # Rebuild netloc without the port, preserving IPv6 brackets if any.
+            # parsed.hostname returns raw address without brackets for IPv6.
+            # Check if netloc itself contains brackets to verify if it is IPv6.
+            if "[" in netloc and "]" in netloc:
+                netloc_lower = f"[{hostname.lower()}]"
+            else:
+                netloc_lower = hostname.lower()
+    else:
+        # If port is None but netloc has colons (like non-bracketed IPv6 or malformed colons),
+        # parse it carefully.
+        # Valid bracketed IPv6 netloc without port should be preserved.
+        pass
 
     # Preserve params (rare in practice but contract says keep structure).
     params = parsed.params
@@ -112,10 +113,15 @@ _MARKDOWN_LINK_RE = re.compile(
     r'\[([^\]]*)\]\(([^)]+)\)',
 )
 
-# Markdown autolink: <URL> (URI scheme followed by colon, no whitespace, e.g. <https://...> or <mailto:...>)
+# Markdown autolink: <URL> or <email> (URI scheme followed by colon, or standard email address)
 # Matches scheme starting with letter followed by letters/digits/+/./- then a colon, and no spaces inside <...>
+# OR matches email format containing @ but no angle brackets or spaces.
 _AUTOLINK_RE = re.compile(
-    r'<([a-zA-Z][a-zA-Z0-9+.-]*:[^\s>]+)>',
+    r'<('
+    r'(?:[a-zA-Z][a-zA-Z0-9+.-]*:[^\s>]+)'
+    r'|'
+    r'(?:[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)'
+    r')>'
 )
 
 

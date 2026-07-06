@@ -78,6 +78,20 @@ class TestCanonicalizeUrl:
         assert canonicalize_url("https:///path") is None
         assert canonicalize_url("https://@example.com/path") is None
         assert canonicalize_url("https://example.com:/path") is None
+        assert canonicalize_url("https://user@example.com/path") is None
+        assert canonicalize_url("https://user:pass@example.com/path") is None
+        assert canonicalize_url("https://example.com:80:90/path") is None
+
+    def test_valid_ipv6_preserved(self):
+        """Valid IPv6 authorities are canonicalized correctly."""
+        assert canonicalize_url("https://[2001:db8::1]/path") == "https://[2001:db8::1]/path"
+        assert canonicalize_url("https://[2001:db8::1]:8443/path") == "https://[2001:db8::1]:8443/path"
+        assert canonicalize_url("https://[2001:db8::1]:443/path") == "https://[2001:db8::1]/path"
+
+    def test_normal_at_symbol_allowed(self):
+        """Normal @ symbols in path or query are allowed."""
+        assert canonicalize_url("https://example.com/search?q=user@example.com") == "https://example.com/search?q=user@example.com"
+        assert canonicalize_url("https://example.com/users/name@example.com") == "https://example.com/users/name@example.com"
 
     def test_relative_url_rejected(self):
         """Relative URL (no scheme) returns None."""
@@ -161,6 +175,12 @@ class TestExtractUrlsFromMarkdown:
         md = "<mailto:admin@example.com>"
         urls = extract_urls_from_markdown(md)
         assert any(u["url"] == "mailto:admin@example.com" for u in urls)
+
+    def test_extract_email_autolink(self):
+        """Standard Markdown email autolink is extracted."""
+        md = "<admin@example.com>"
+        urls = extract_urls_from_markdown(md)
+        assert any(u["url"] == "admin@example.com" for u in urls)
 
     def test_relative_link_detected(self):
         """Non-empty relative link destination is detected as untrusted."""
@@ -364,6 +384,39 @@ class TestAssessUrlAllowlist:
         )
         assert result["passed"] is False
 
+    def test_guard_email_autolink(self):
+        """Standard email autolink in output is blocked."""
+        sources = self._make_sources([
+            ("https://example.com/apply", "https://example.com/apply"),
+        ])
+        result = assess_url_allowlist(
+            "<admin@example.com>", sources
+        )
+        assert result["passed"] is False
+
+    def test_guard_malformed_authority_block(self):
+        """Malformed authorities in output are blocked even if source is similar."""
+        sources = self._make_sources([
+            ("https://example.com/path", "https://example.com/path"),
+        ])
+        for bad_url in [
+            "https://@example.com/path",
+            "https://example.com:/path",
+            "https://example.com:80:90/path",
+        ]:
+            result = assess_url_allowlist(f"<{bad_url}>", sources)
+            assert result["passed"] is False
+
+    def test_guard_normal_at_symbol_passes_when_matched(self):
+        """Normal @ symbols in path/query pass allowlist assessment when exact matched."""
+        sources = self._make_sources([
+            ("https://example.com/search?q=user@example.com", "https://example.com/search?q=user@example.com"),
+        ])
+        result = assess_url_allowlist(
+            "<https://example.com/search?q=user@example.com>", sources
+        )
+        assert result["passed"] is True
+
     def test_guard_dot_segments(self):
         """dot segments in output are blocked."""
         sources = self._make_sources([
@@ -557,6 +610,25 @@ class TestComposerUrlGuardIntegration:
         result = composer.compose(data)
         assert result["ok"] is True
         assert "공식 홈페이지" in result["answer_markdown"]
+
+    def test_html_only_output_passes_through(self):
+        """HTML content with angle brackets but no URLs passes through unchanged."""
+        data = self._make_search_data("https://example.com/apply")
+        provider_content = "## 답변\n\n<strong>공식 안내</strong>"
+        class ControlledProvider(MockProvider):
+            def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+                return ProviderResult(
+                    provider="controlled",
+                    model="controlled",
+                    ok=True,
+                    content=provider_content,
+                    error="",
+                )
+
+        composer = AnswerComposer(provider=ControlledProvider())
+        result = composer.compose(data)
+        assert result["ok"] is True
+        assert result["answer_markdown"] == provider_content
 
     def test_exact_attachment_url_passes(self):
         """Exact attachment source URL passes guard."""
