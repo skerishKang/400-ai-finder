@@ -424,6 +424,10 @@ def build_index_html(profiles: list[dict]) -> str:
       <h2>🖥️ 운영자 화면</h2>
       <p>사이트 프로필 · 스냅샷 상태 · 질문 테스트</p>
     </a>
+    <a class="card" href="mvp/">
+      <h2>🧭 시민 첫 화면 시연</h2>
+      <p>질문 안내와 화면 전환을 체험하는 결정형 정적 시연 · 실제 AI·외부 API 연결 없음</p>
+    </a>
   </div>
   <div class="note">
     이 데모는 빌드 시점에 고정된 북구청 스냅샷(<code>bukgu_gwangju_demo_snapshot.json</code>)에서 생성된

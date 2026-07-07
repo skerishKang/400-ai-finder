@@ -212,6 +212,37 @@ def test_verifier_uses_dynamic_origin_for_request_filter():
     assert 'new URL(url).origin === BASE_ORIGIN' in verifier
 
 
+def test_landing_links_to_public_mvp(build_dir):
+    """#942: Root landing links to the backend-free public MVP entry at mvp/.
+
+    The card must use a relative `mvp/` path (no query string), preserve the
+    existing mobile/admin links, and carry copy that makes the deterministic,
+    backend-free nature of the demo explicit.
+    """
+    index = open(os.path.join(build_dir, "index.html"), encoding="utf-8").read()
+
+    # Relative-path link to the public MVP entry; no query param allowed.
+    assert 'href="mvp/"' in index, "landing must link to mvp/ (relative path)"
+    assert "mvp=1" not in index, "no query-string MVP link allowed"
+    assert "?mvp=" not in index, "no query-string MVP link allowed"
+
+    # User-facing wording must convey: citizen first screen, deterministic
+    # static demo, no real AI/external API.
+    assert "시민 첫 화면 시연" in index
+    assert "결정형 정적 시연" in index
+    assert "실제 AI·외부 API 연결 없음" in index
+
+    # Existing mobile/admin landing links are preserved.
+    assert 'href="mobile.html"' in index
+    assert 'href="admin.html"' in index
+
+    # Backend-free: the landing itself stays self-contained / no network.
+    assert _SCRIPT_SRC_RE.search(index) is None, "external <script src> in landing"
+    assert _LINK_HREF_RE.search(index) is None, "external <link href> in landing"
+    assert _FETCH_HTTP_RE.search(index) is None, "external fetch() in landing"
+    assert _CSS_URL_HTTP_RE.search(index) is None, "external url() in landing"
+
+
 def test_admin_model_preset_disabled(build_dir):
     admin = open(os.path.join(build_dir, "admin.html"), encoding="utf-8").read()
     assert "Snapshot 데모 · 모델 전환 없음" in admin
