@@ -1,11 +1,9 @@
-"""Static contract for the visible initial split-chat shell."""
+"""Static contract for the #919 first-use chat shell."""
 
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HTML = (ROOT / "src" / "web" / "static" / "citizen-action-demo.html").read_text(
-    encoding="utf-8"
-)
+HTML = (ROOT / "src" / "web" / "static" / "citizen-action-demo.html").read_text(encoding="utf-8")
 
 
 def _visible_chat_shell() -> str:
@@ -14,21 +12,23 @@ def _visible_chat_shell() -> str:
     return HTML[start:end]
 
 
-def test_initial_chat_shell_has_exact_approved_turns_and_composer():
+def test_fresh_document_declares_entry_state_and_inert_clone():
+    assert '<body data-first-use-state="entry">' in HTML
+    assert 'id="demo-canvas"' in HTML
+    assert 'aria-hidden="true" inert' in HTML
+    assert 'citizen-first-use-shell.css' in HTML
+    assert 'citizen-first-use-shell.js' in HTML
+
+
+def test_entry_chat_has_enabled_form_and_reset_control():
     shell = _visible_chat_shell()
-    expected_turns = [
-        "불법 주정차 신고는 어디서 하나요?",
-        "북구청 홈페이지에서 신고 경로를 확인하겠습니다.",
-        "종합민원 메뉴에서 온라인 민원신청 경로를 찾고 있습니다.",
-    ]
-    offsets = [shell.index(turn) for turn in expected_turns]
-    assert offsets == sorted(offsets)
-    assert 'class="chat-shell"' in shell
-    assert 'class="chat-thread"' in shell
-    assert 'class="chat-composer__send"' in shell
-    assert 'aria-label="보내기"' in shell
-    assert "보내기" in shell
+    assert 'id="chat-composer-form"' in shell
+    assert 'id="chat-composer-input"' in shell
+    assert 'id="chat-composer-send"' in shell
+    assert 'id="chat-reset"' in shell
+    assert 'disabled' not in shell
 
 
-def test_initial_chat_shell_excludes_unapproved_waiting_copy():
-    assert "잠시만 기다려 주세요." not in _visible_chat_shell()
+def test_entry_chat_does_not_embed_legacy_progress_widget():
+    shell = _visible_chat_shell()
+    assert 'chat-progress' not in shell
