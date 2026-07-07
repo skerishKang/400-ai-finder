@@ -16,6 +16,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.fetch import (
+    FetchConfig,
     FetchProvider,
     FetchResult,
     MockFetchProvider,
@@ -70,6 +71,39 @@ class TestFetchResultStructure:
         assert r.status_code == 200
         assert r.markdown == "# Hello"
         assert len(r.links) == 1
+
+
+class TestFetchConfig:
+    def test_defaults(self):
+        config = FetchConfig()
+        assert config.timeout == 15.0
+        assert config.max_retries == 0
+        assert config.retry_backoff == 0.0
+        assert config.retry_on_status == (408, 429, 500, 502, 503, 504)
+
+    @pytest.mark.parametrize(
+        ("kwargs", "exc_type", "message"),
+        [
+            ({"timeout": True}, TypeError, "timeout"),
+            ({"timeout": 0}, ValueError, "timeout"),
+            ({"timeout": float("nan")}, ValueError, "timeout"),
+            ({"timeout": float("inf")}, ValueError, "timeout"),
+            ({"timeout": float("-inf")}, ValueError, "timeout"),
+            ({"max_retries": True}, TypeError, "max_retries"),
+            ({"max_retries": -1}, ValueError, "max_retries"),
+            ({"retry_backoff": True}, TypeError, "retry_backoff"),
+            ({"retry_backoff": -0.1}, ValueError, "retry_backoff"),
+            ({"retry_backoff": float("nan")}, ValueError, "retry_backoff"),
+            ({"retry_backoff": float("inf")}, ValueError, "retry_backoff"),
+            ({"retry_backoff": float("-inf")}, ValueError, "retry_backoff"),
+            ({"retry_on_status": [503]}, TypeError, "retry_on_status"),
+            ({"retry_on_status": (99,)}, ValueError, "retry_on_status"),
+            ({"retry_on_status": (503, "504")}, TypeError, "retry_on_status"),
+        ],
+    )
+    def test_validation(self, kwargs, exc_type, message):
+        with pytest.raises(exc_type, match=message):
+            FetchConfig(**kwargs)
 
 
 # ======================================================================
@@ -495,6 +529,281 @@ class TestRequestsRetryOn400:
         assert call_count["n"] == 2
         assert result.ok is False
         assert "HTTP 400" in result.error
+
+
+class TestRequestsFetchProviderConfigRetry:
+    def test_retry_on_status_with_config_retries_once(self):
+        call_count = {"n": 0}
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+
+            class FakeResponse:
+                encoding = "utf-8"
+
+                def __init__(self, status_code):
+                    self.status_code = status_code
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body>ok</body></html>"
+
+            return FakeResponse(503 if call_count["n"] == 1 else 200)
+
+        with patch("requests.get", side_effect=fake_get), patch("time.sleep") as sleep_mock:
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=1, retry_on_status=(503,)),
+            )
+
+        assert result.ok is True
+        assert call_count["n"] == 2
+        sleep_mock.assert_not_called()
+
+    def test_timeout_with_config_retries_once_then_succeeds(self):
+        call_count = {"n": 0}
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                import requests
+
+                raise requests.exceptions.Timeout("timed out")
+
+            class FakeResponse:
+                status_code = 200
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body>ok</body></html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get), patch("time.sleep") as sleep_mock:
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=1, retry_on_status=(503,)),
+            )
+
+        assert result.ok is True
+        assert call_count["n"] == 2
+        sleep_mock.assert_not_called()
+
+    def test_max_retries_zero_keeps_retryable_status_single_attempt(self):
+        call_count = {"n": 0}
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+
+            class FakeResponse:
+                status_code = 503
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+                    self.text = ""
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get), patch("time.sleep") as sleep_mock:
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=0, retry_on_status=(503,)),
+            )
+
+        assert result.ok is False
+        assert result.status_code == 503
+        assert call_count["n"] == 1
+        sleep_mock.assert_not_called()
+
+    def test_config_none_preserves_legacy_400_retry(self):
+        call_count = {"n": 0}
+        captured_headers = []
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+            captured_headers.append(dict(headers))
+
+            class FakeResponse:
+                encoding = "utf-8"
+
+                def __init__(self, status_code):
+                    self.status_code = status_code
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body>ok</body></html>"
+
+            return FakeResponse(400 if call_count["n"] == 1 else 200)
+
+        with patch("requests.get", side_effect=fake_get), patch("time.sleep") as sleep_mock:
+            provider = RequestsFetchProvider()
+            result = provider.fetch("https://example.com/", config=None)
+
+        assert result.ok is True
+        assert call_count["n"] == 2
+        assert "Sec-Fetch-Dest" in captured_headers[1]
+        sleep_mock.assert_not_called()
+
+    def test_config_does_not_apply_legacy_400_retry_when_400_not_retryable(self):
+        call_count = {"n": 0}
+        captured_headers = []
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+            captured_headers.append(dict(headers))
+
+            class FakeResponse:
+                status_code = 400
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+                    self.text = ""
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get), patch("time.sleep") as sleep_mock:
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=0, retry_on_status=()),
+            )
+
+        assert result.ok is False
+        assert result.status_code == 400
+        assert "HTTP 400" in result.error
+        assert call_count["n"] == 1
+        assert "Sec-Fetch-Dest" not in captured_headers[0]
+        sleep_mock.assert_not_called()
+
+    def test_request_exception_is_not_retried_with_config(self):
+        call_count = {"n": 0}
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+            import requests
+
+            raise requests.exceptions.ConnectionError("Connection refused")
+
+        with patch("requests.get", side_effect=fake_get), patch("time.sleep") as sleep_mock:
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=3, retry_on_status=(503,), retry_backoff=1.0),
+            )
+
+        assert result.ok is False
+        assert "Connection refused" in result.error or "Network error" in result.error
+        assert call_count["n"] == 1
+        sleep_mock.assert_not_called()
+
+    def test_backoff_zero_does_not_sleep(self):
+        call_count = {"n": 0}
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+
+            class FakeResponse:
+                encoding = "utf-8"
+
+                def __init__(self, status_code):
+                    self.status_code = status_code
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body>ok</body></html>"
+
+            return FakeResponse(503 if call_count["n"] == 1 else 200)
+
+        with patch("requests.get", side_effect=fake_get), patch("time.sleep") as sleep_mock:
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=1, retry_on_status=(503,), retry_backoff=0.0),
+            )
+
+        assert result.ok is True
+        sleep_mock.assert_not_called()
+
+    def test_positive_backoff_sleeps_between_configured_retries_only(self):
+        call_count = {"n": 0}
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+
+            class FakeResponse:
+                encoding = "utf-8"
+
+                def __init__(self, status_code):
+                    self.status_code = status_code
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body>ok</body></html>"
+
+            return FakeResponse(503 if call_count["n"] < 3 else 200)
+
+        with patch("requests.get", side_effect=fake_get), patch("time.sleep") as sleep_mock:
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=2, retry_on_status=(503,), retry_backoff=0.25),
+            )
+
+        assert result.ok is True
+        assert call_count["n"] == 3
+        assert sleep_mock.call_count == 2
+        sleep_mock.assert_any_call(0.25)
+
+    def test_config_timeout_overrides_constructor_and_kwargs(self):
+        captured = {}
+
+        def fake_get(url, headers, timeout):
+            captured["timeout"] = timeout
+
+            class FakeResponse:
+                status_code = 200
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body>ok</body></html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider(timeout=99)
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(timeout=7.5),
+                timeout=1,
+            )
+
+        assert result.ok is True
+        assert captured["timeout"] == (5.0, 7.5)
 
 
 # ======================================================================

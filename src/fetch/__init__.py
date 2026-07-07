@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from .base import FetchProvider, FetchResult
+from .base import FetchConfig, FetchProvider, FetchResult
 from .mock_provider import MockFetchProvider
 from .requests_provider import RequestsFetchProvider
 from .firecrawl_provider import FirecrawlFetchProvider
@@ -92,6 +92,7 @@ def list_fetch_providers() -> list[dict[str, Any]]:
 
 __all__ = [
     "FetchProvider",
+    "FetchConfig",
     "FetchResult",
     "MockFetchProvider",
     "RequestsFetchProvider",

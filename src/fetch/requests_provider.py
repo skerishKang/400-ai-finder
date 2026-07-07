@@ -7,6 +7,7 @@ Stage 35: Enhanced header handling with browser-like defaults and 400 retry.
 from __future__ import annotations
 
 import os
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -17,7 +18,7 @@ except ImportError:
     req_lib = None  # type: ignore[assignment]
     BeautifulSoup = None  # type: ignore[assignment]
 
-from .base import FetchProvider, FetchResult
+from .base import FetchConfig, FetchProvider, FetchResult
 
 # ---------------------------------------------------------------------------
 # Default browser-like headers (Stage 35)
@@ -102,8 +103,36 @@ class RequestsFetchProvider(FetchProvider):
         read = total
         return (connect, read)
 
-    def fetch(self, url: str, **kwargs: Any) -> FetchResult:
-        raw_timeout = kwargs.get("timeout", self.timeout)
+    def _request_once(
+        self,
+        url: str,
+        timeout: tuple[float, float],
+        headers: dict[str, str] | None = None,
+    ) -> Any:
+        return req_lib.get(url, headers=headers or self.headers, timeout=timeout)
+
+    def _request_with_legacy_400_retry(
+        self,
+        url: str,
+        timeout: tuple[float, float],
+    ) -> Any:
+        resp = self._request_once(url, timeout, self.headers)
+        if resp.status_code != 400:
+            return resp
+
+        retry_headers = _build_retry_headers(self.user_agent)
+        try:
+            return self._request_once(url, timeout, retry_headers)
+        except Exception:
+            return resp
+
+    def fetch(
+        self,
+        url: str,
+        config: FetchConfig | None = None,
+        **kwargs: Any,
+    ) -> FetchResult:
+        raw_timeout = config.timeout if config is not None else kwargs.get("timeout", self.timeout)
         timeout = self._split_timeout(raw_timeout)
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -118,47 +147,80 @@ class RequestsFetchProvider(FetchProvider):
             )
 
         # --- HTTP request ---
-        try:
-            resp = req_lib.get(url, headers=self.headers, timeout=timeout)
-        except req_lib.exceptions.Timeout:
-            return FetchResult(
-                url=url,
-                ok=False,
-                provider=self.name,
-                fetched_at=now,
-                error=f"Request timed out after {timeout}s",
-            )
-        except req_lib.exceptions.RequestException as e:
-            return FetchResult(
-                url=url,
-                ok=False,
-                provider=self.name,
-                fetched_at=now,
-                error=f"Network error: {e}",
-            )
-        except Exception as e:
-            return FetchResult(
-                url=url,
-                ok=False,
-                provider=self.name,
-                fetched_at=now,
-                error=f"Unexpected error: {e}",
-            )
+        if config is None:
+            try:
+                resp = self._request_with_legacy_400_retry(url, timeout)
+            except req_lib.exceptions.Timeout:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error=f"Request timed out after {timeout}s",
+                )
+            except req_lib.exceptions.RequestException as e:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error=f"Network error: {e}",
+                )
+            except Exception as e:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error=f"Unexpected error: {e}",
+                )
+        else:
+            attempts = config.max_retries + 1
+            resp = None
+            for attempt_index in range(attempts):
+                try:
+                    resp = self._request_once(url, timeout, self.headers)
+                except req_lib.exceptions.Timeout:
+                    if attempt_index < config.max_retries:
+                        if config.retry_backoff > 0:
+                            time.sleep(config.retry_backoff)
+                        continue
+                    return FetchResult(
+                        url=url,
+                        ok=False,
+                        provider=self.name,
+                        fetched_at=now,
+                        error=f"Request timed out after {timeout}s",
+                    )
+                except req_lib.exceptions.RequestException as e:
+                    return FetchResult(
+                        url=url,
+                        ok=False,
+                        provider=self.name,
+                        fetched_at=now,
+                        error=f"Network error: {e}",
+                    )
+                except Exception as e:
+                    return FetchResult(
+                        url=url,
+                        ok=False,
+                        provider=self.name,
+                        fetched_at=now,
+                        error=f"Unexpected error: {e}",
+                    )
+
+                if (
+                    resp.status_code in config.retry_on_status
+                    and attempt_index < config.max_retries
+                ):
+                    if config.retry_backoff > 0:
+                        time.sleep(config.retry_backoff)
+                    continue
+                break
 
         status_code = resp.status_code
         content_type = resp.headers.get("Content-Type", "")
         final_url = resp.url
-
-        # --- Stage 35: Retry on 400 with enhanced headers ---
-        if status_code == 400:
-            retry_headers = _build_retry_headers(self.user_agent)
-            try:
-                resp = req_lib.get(url, headers=retry_headers, timeout=timeout)
-                status_code = resp.status_code
-                content_type = resp.headers.get("Content-Type", "")
-                final_url = resp.url
-            except Exception:
-                pass  # Keep original 400 response
 
         # --- Handle HTTP errors ---
         if status_code >= 400:
