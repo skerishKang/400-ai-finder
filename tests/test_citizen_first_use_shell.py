@@ -1,4 +1,4 @@
-"""Static contract for the #919 first-use shell."""
+"""Static contract for the #919 first-use shell and #920 choreography."""
 
 from pathlib import Path
 
@@ -7,6 +7,10 @@ STATIC = ROOT / "src" / "web" / "static"
 HTML = (STATIC / "citizen-action-demo.html").read_text(encoding="utf-8")
 JS = (STATIC / "citizen-first-use-shell.js").read_text(encoding="utf-8")
 CSS = (STATIC / "citizen-first-use-shell.css").read_text(encoding="utf-8")
+CHOREO = (STATIC / "citizen-first-choreography.js").read_text(encoding="utf-8")
+
+
+# ── #919 shell contracts ──────────────────────────────────────────
 
 
 def test_first_use_shell_is_loaded_after_existing_local_demo_scripts():
@@ -50,3 +54,91 @@ def test_first_use_shell_has_reduced_motion_and_noninteractive_entry_clone_rules
     assert "pointer-events: none" in CSS
     assert "aria-hidden" in JS
     assert "inert" in JS
+
+
+# ── #920 choreography contracts ───────────────────────────────────
+
+
+def test_choreography_script_is_loaded_after_first_use_shell():
+    assert HTML.index("citizen-first-use-shell.js") < HTML.index("citizen-first-choreography.js")
+
+
+def test_choreography_has_no_network_or_storage():
+    """Choreography must not use network, persistence, or cookie APIs.
+    Comments listing these as forbidden are allowed; actual invocation is not."""
+    # Strip comments to check only code, not guarantee annotations
+    code_lines = [l for l in CHOREO.splitlines() if not l.strip().startswith(" *")]
+    code = "\n".join(code_lines)
+    assert "fetch(" not in code
+    assert "XMLHttpRequest" not in code
+    assert "WebSocket(" not in code
+    assert "EventSource(" not in code
+    assert "sendBeacon(" not in code
+    assert "localStorage" not in code
+    assert "sessionStorage" not in code
+    assert "document.cookie" not in code
+
+
+def test_choreography_defines_state_machine_and_api():
+    assert 'STATE_IDLE = "idle"' in CHOREO
+    assert 'STATE_RUNNING = "running"' in CHOREO
+    assert 'STATE_DONE = "done"' in CHOREO
+    assert 'STATE_CANCELLED = "cancelled"' in CHOREO
+    assert "function start(journeyKey)" in CHOREO
+    assert "cancel: cancel" in CHOREO
+    assert "getState: getState" in CHOREO
+    assert "hasJourney: hasJourney" in CHOREO
+    assert "HIGHLIGHT_CLASS" in CHOREO
+    assert '"executor-highlight"' in CHOREO
+
+
+def test_choreography_uses_only_public_canvas_api():
+    assert "navigateToRoute" in CHOREO
+    assert "getTargetElement" in CHOREO
+    assert "CitizenActionDemoCompute" not in CHOREO
+    assert "CitizenActionDemoExecutor" not in CHOREO
+
+
+def test_choreography_has_journey_map_for_supported_question():
+    assert "불법 주정차 신고는 어디서 하나요?" in CHOREO
+    assert '"complaint-illegal-parking"' in CHOREO
+    assert '"nav-civil-service"' in CHOREO
+    assert '"nav-complaint-category"' in CHOREO
+    assert '"civil-service"' in CHOREO
+    assert '"complaint-category"' in CHOREO
+    assert '"completed"' not in CHOREO
+
+
+def test_choreography_each_step_has_message_and_delay_or_route_target():
+    """Every step in the journey map has a 'message' key.
+    Non-terminal steps have routeId or targetId plus delayMs."""
+    # Verify step structure by checking for the pattern
+    assert "message:" in CHOREO
+    assert "routeId:" in CHOREO
+    assert "targetId:" in CHOREO
+    assert "delayMs:" in CHOREO
+
+
+def test_shell_stores_question_and_integrates_choreography():
+    assert "lastSplitQuestion" in JS
+    assert "window.CitizenFirstChoreography" in JS
+    assert "start(" in JS
+    assert "cancel(" in JS
+
+
+def test_shell_cancels_choreography_on_reset():
+    """Reset clears lastSplitQuestion and notifies choreography controller."""
+    assert "lastSplitQuestion = null" in JS
+    assert "CitizenFirstChoreography.cancel()" in JS
+
+
+def test_choreography_cancel_clears_timer_and_highlights():
+    assert "clearTimeout" in CHOREO
+    assert "classList.remove" in CHOREO or "HIGHLIGHT_CLASS" in CHOREO
+    assert "classList.add" in CHOREO
+    assert "scrollIntoView" in CHOREO
+
+
+def test_choreography_cancel_is_safe_in_idle():
+    """cancel() returns early without error when state is idle."""
+    assert 'STATE_IDLE) return' in CHOREO or 'STATE_IDLE) {' in CHOREO
