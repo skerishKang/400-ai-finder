@@ -6,7 +6,7 @@ from urllib.parse import urlparse, urlunparse, urljoin
 from bs4 import BeautifulSoup
 from src.crawler.url_crawler import URLCrawler
 from src.crawler.sitemap_parser import SitemapParser
-from src.fetch import FetchProvider, get_fetch_provider
+from src.fetch import FetchConfig, FetchProvider, RequestsFetchProvider, get_fetch_provider
 from src.observability import get_event_logger, log_pipeline_event
 
 
@@ -34,13 +34,24 @@ def parse_robots_txt(content):
 from src.crawler.url_classifier import classify_url
 
 class HomepageMapper:
-    def __init__(self, timeout=15, max_sitemaps=10, max_sitemap_urls=500, user_agent=None, fetch_provider=None, crawl_filters: dict | None = None):
+    def __init__(
+        self,
+        timeout=15,
+        max_sitemaps=10,
+        max_sitemap_urls=500,
+        user_agent=None,
+        fetch_provider=None,
+        crawl_filters: dict | None = None,
+        fetch_config: FetchConfig | None = None,
+    ):
         self.fetch_provider = self._resolve_fetch_provider(fetch_provider)
+        self.fetch_config = fetch_config
         self.crawler = URLCrawler(
             timeout=timeout,
             user_agent=user_agent,
             fetch_provider=self.fetch_provider,
             crawl_filters=crawl_filters,
+            fetch_config=self.fetch_config,
         )
         self.max_sitemaps = max_sitemaps
         self.max_sitemap_urls = max_sitemap_urls
@@ -131,6 +142,16 @@ class HomepageMapper:
         Stage 36: public-sector sites (e.g. gwangju.go.kr) have intermittent
         timeouts.  A single retry with the same timeout usually succeeds.
         """
+        if self.fetch_config is not None and isinstance(self.fetch_provider, RequestsFetchProvider):
+            try:
+                result = self.fetch_provider.fetch(url, config=self.fetch_config)
+                if result.ok:
+                    content = result.html or result.markdown or result.text or ""
+                    return content, None, result.status_code, result.url or url
+                return None, result.error, None, url
+            except Exception as e:
+                return None, str(e), None, url
+
         last_err = None
         for attempt in range(1 + retries):
             # === If fetch_provider is set, use it ===

@@ -183,6 +183,196 @@ def test_mapper_fetch_content_with_mock_provider_error():
     assert "Fetch error" in error
 
 
+def test_mapper_fetch_config_propagates_to_inner_url_crawler():
+    from src.fetch import FetchConfig
+
+    config = FetchConfig(timeout=9.5, max_retries=2, retry_backoff=0.0, retry_on_status=(503,))
+    mapper = HomepageMapper(fetch_config=config)
+
+    assert mapper.fetch_config is config
+    assert mapper.crawler.fetch_config is config
+
+
+def test_mapper_fetch_content_without_fetch_config_preserves_outer_retry_and_timeout_kwarg():
+    from src.fetch import FetchResult, RequestsFetchProvider
+    from datetime import datetime, timezone
+
+    class FailingRequestsProvider(RequestsFetchProvider):
+        def __init__(self):
+            super().__init__(timeout=99)
+            self.calls = []
+
+        def fetch(self, url, **kwargs):
+            self.calls.append((url, dict(kwargs)))
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider="requests",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                error="provider failure",
+            )
+
+    provider = FailingRequestsProvider()
+    mapper = HomepageMapper(fetch_provider=provider, timeout=7)
+
+    content, error, status, final_url = mapper.fetch_content("https://example.com", retries=2)
+
+    assert content is None
+    assert error == "provider failure"
+    assert status is None
+    assert final_url == "https://example.com"
+    assert provider.calls == [
+        ("https://example.com", {"timeout": 7}),
+        ("https://example.com", {"timeout": 7}),
+        ("https://example.com", {"timeout": 7}),
+    ]
+
+
+def test_mapper_fetch_content_threads_fetch_config_to_requests_provider_once_without_timeout_kwarg():
+    from src.fetch import FetchConfig, FetchResult, RequestsFetchProvider
+    from datetime import datetime, timezone
+
+    class SpyRequestsProvider(RequestsFetchProvider):
+        def __init__(self):
+            super().__init__(timeout=99)
+            self.calls = []
+
+        def fetch(self, url, **kwargs):
+            self.calls.append((url, dict(kwargs)))
+            return FetchResult(
+                url="https://example.com/final",
+                ok=True,
+                provider="requests",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                status_code=200,
+                content_type="text/html",
+                html="<html><body>Configured success</body></html>",
+            )
+
+    provider = SpyRequestsProvider()
+    config = FetchConfig(timeout=12.5, max_retries=1, retry_backoff=0.0, retry_on_status=(503,))
+    mapper = HomepageMapper(fetch_provider=provider, timeout=7, fetch_config=config)
+
+    content, error, status, final_url = mapper.fetch_content("https://example.com", retries=5)
+
+    assert content == "<html><body>Configured success</body></html>"
+    assert error is None
+    assert status == 200
+    assert final_url == "https://example.com/final"
+    assert len(provider.calls) == 1
+    assert provider.calls[0][0] == "https://example.com"
+    assert provider.calls[0][1]["config"] is config
+    assert "timeout" not in provider.calls[0][1]
+
+
+def test_mapper_fetch_content_with_fetch_config_preserves_failure_tuple_shape():
+    from src.fetch import FetchConfig, FetchResult, RequestsFetchProvider
+    from datetime import datetime, timezone
+
+    class FailingRequestsProvider(RequestsFetchProvider):
+        def __init__(self):
+            super().__init__(timeout=99)
+            self.calls = []
+
+        def fetch(self, url, **kwargs):
+            self.calls.append((url, dict(kwargs)))
+            return FetchResult(
+                url="https://example.com/ignored",
+                ok=False,
+                provider="requests",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                error="configured failure",
+            )
+
+    provider = FailingRequestsProvider()
+    config = FetchConfig(timeout=8.0, max_retries=3, retry_backoff=0.0, retry_on_status=(503,))
+    mapper = HomepageMapper(fetch_provider=provider, fetch_config=config)
+
+    content, error, status, final_url = mapper.fetch_content("https://example.com", retries=5)
+
+    assert content is None
+    assert error == "configured failure"
+    assert status is None
+    assert final_url == "https://example.com"
+    assert len(provider.calls) == 1
+    assert provider.calls[0][1] == {"config": config}
+
+
+def test_mapper_fetch_content_with_fetch_config_returns_exception_string_without_retry():
+    from src.fetch import FetchConfig, RequestsFetchProvider
+
+    class RaisingRequestsProvider(RequestsFetchProvider):
+        def __init__(self):
+            super().__init__(timeout=99)
+            self.calls = []
+
+        def fetch(self, url, **kwargs):
+            self.calls.append((url, dict(kwargs)))
+            raise RuntimeError("provider boom")
+
+    provider = RaisingRequestsProvider()
+    config = FetchConfig(timeout=8.0, max_retries=1, retry_backoff=0.0, retry_on_status=(503,))
+    mapper = HomepageMapper(fetch_provider=provider, fetch_config=config)
+
+    content, error, status, final_url = mapper.fetch_content("https://example.com", retries=5)
+
+    assert content is None
+    assert error == "provider boom"
+    assert status is None
+    assert final_url == "https://example.com"
+    assert len(provider.calls) == 1
+
+
+def test_mapper_fetch_content_with_fetch_config_does_not_pass_config_to_mock_or_custom_provider():
+    from src.fetch import FetchConfig, FetchResult, MockFetchProvider
+    from src.fetch.base import FetchProvider
+    from datetime import datetime, timezone
+
+    class SpyMockProvider(MockFetchProvider):
+        def __init__(self):
+            super().__init__()
+            self.calls = []
+
+        def fetch(self, url, **kwargs):
+            self.calls.append((url, dict(kwargs)))
+            return super().fetch(url, **kwargs)
+
+    class CustomProvider(FetchProvider):
+        def __init__(self):
+            self.calls = []
+
+        @property
+        def name(self) -> str:
+            return "custom"
+
+        def fetch(self, url, **kwargs):
+            self.calls.append((url, dict(kwargs)))
+            return FetchResult(
+                url=url,
+                ok=True,
+                provider=self.name,
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                status_code=200,
+                content_type="text/html",
+                html="<html><body>custom</body></html>",
+            )
+
+    config = FetchConfig(timeout=10.0, max_retries=2, retry_backoff=0.0, retry_on_status=(503,))
+
+    mock_provider = SpyMockProvider()
+    mock_mapper = HomepageMapper(fetch_provider=mock_provider, timeout=5, fetch_config=config)
+    mock_result = mock_mapper.fetch_content("https://example.com", retries=1)
+
+    custom_provider = CustomProvider()
+    custom_mapper = HomepageMapper(fetch_provider=custom_provider, timeout=6, fetch_config=config)
+    custom_result = custom_mapper.fetch_content("https://example.com", retries=1)
+
+    assert mock_result[1] is None
+    assert custom_result[1] is None
+    assert mock_provider.calls == [("https://example.com", {"timeout": 5})]
+    assert custom_provider.calls == [("https://example.com", {"timeout": 6})]
+
+
 def _extract_pipeline_records(caplog: pytest.LogCaptureFixture) -> list[dict[str, object]]:
     records = []
     for line in caplog.messages:
