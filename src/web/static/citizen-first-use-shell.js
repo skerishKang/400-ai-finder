@@ -19,6 +19,8 @@
   var SUPPORTED_QUESTIONS = {
     "불법 주정차 신고는 어디서 하나요?": true
   };
+  var SPLIT_FOLLOW_UP_MESSAGE =
+    "현재 로컬 안내 화면을 준비했습니다. 메뉴 이동과 세부 안내는 다음 단계에서 순서대로 제공됩니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
 
   var body = document.body;
   var canvas = document.getElementById("demo-canvas");
@@ -183,12 +185,20 @@
       event.preventDefault();
     }
 
-    if (currentState !== STATE_ENTRY || !chatInput) {
+    if (currentState === STATE_TRANSITIONING || !chatInput) {
       return;
     }
 
     var question = normalizeQuestion(chatInput.value);
     if (!question) {
+      chatInput.focus();
+      return;
+    }
+
+    if (currentState === STATE_SPLIT) {
+      appendChatMessage("user", question);
+      chatInput.value = "";
+      appendChatMessage("ai", SPLIT_FOLLOW_UP_MESSAGE);
       chatInput.focus();
       return;
     }
