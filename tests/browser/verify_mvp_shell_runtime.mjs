@@ -451,7 +451,86 @@ async function scenarioDefaultModeRegression() {
   console.log("  [5] default static mode regression: OK");
 }
 
-// ── Entry point ───────────────────────────────────────────────────────────
+// ── Scenario: failure diagnostics must stay hidden from citizen shell ────
+// This scenario validates that when the MVP bridge returns a failure response
+// (ok=false) with additional diagnostic fields (failure_code, error, URL,
+// authorization), the citizen shell must:
+//   - show only the generic Korean failure answer (no diagnostic text)
+//   - NOT start choreography (choreo.startCalls.length === 0)
+//   - NOT split the shell (stay in entry state)
+//   - keep the canvas hidden/inert
+
+const FAILURE_DIAGNOSTIC_CANARIES = [
+  "timeout",
+  "CANARY_SECRET_MUST_NOT_RENDER",
+  "https://private.invalid/forbidden",
+  "Authorization: Bearer",
+  "CANARY_TOKEN_MUST_NOT_RENDER",
+];
+
+async function scenarioFailureDiagnosticHidden() {
+  const bridge = makeResolvingBridge({
+    ok: false,
+    question: "테스트 질문",
+    answer: "현재 AI 안내를 연결하지 못했습니다.",
+    action: "none",
+    confidence: 0.0,
+    failure_code: "timeout",
+    error: "CANARY_SECRET_MUST_NOT_RENDER",
+    upstream_url: "https://private.invalid/forbidden",
+    authorization: "Authorization: Bearer CANARY_TOKEN_MUST_NOT_RENDER",
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1",
+    reducedMotion: true,
+    bridge,
+    choreo,
+  });
+  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  await flush();
+
+  // (A) The generic Korean failure answer must be visible in the chat bubble.
+  const bubbles = aiBubbleTexts(s);
+  assert.ok(
+    bubbles.includes("현재 AI 안내를 연결하지 못했습니다."),
+    "failure: generic Korean answer must be shown despite diagnostics",
+  );
+
+  // (B) No diagnostic canary string may appear anywhere in the document body
+  // textContent. The shell must not render raw failure_code, error, URL,
+  // authorization, or any upstream diagnostic field.
+  const bodyText = s.doc.body.textContent || "";
+  for (const canary of FAILURE_DIAGNOSTIC_CANARIES) {
+    assert.ok(
+      !bodyText.includes(canary),
+      `failure: diagnostic canary '${canary}' must NOT appear in body text`,
+    );
+  }
+
+  // (C) action="none" failure must not start choreography.
+  assert.strictEqual(
+    choreo.startCalls.length,
+    0,
+    "failure: choreography must NOT start on failure",
+  );
+
+  // (D) Shell must stay in entry state (not split).
+  assert.strictEqual(
+    s.win.CitizenFirstUseShell.getState(),
+    "entry",
+    "failure: shell must stay in entry (no split)",
+  );
+
+  // (E) Left canvas must remain hidden/inert.
+  assert.strictEqual(
+    canvasAriaHidden(s),
+    "true",
+    "failure: left clone must remain hidden/inert",
+  );
+
+  console.log("  [6] failure diagnostics hidden: OK");
+}
 
 async function main() {
   console.log("Running MVP shell runtime scenarios (no network, no fetch):");
@@ -460,6 +539,7 @@ async function main() {
   await scenarioNone();
   await scenarioPendingThenReset();
   await scenarioDefaultModeRegression();
+  await scenarioFailureDiagnosticHidden();
   console.log("All MVP shell runtime scenarios passed.");
 }
 
