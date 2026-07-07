@@ -30,7 +30,7 @@ function makeEl(tag) {
     disabled: false,
     hidden: false,
     value: "",
-    textContent: "",
+    _textContent: "",
     _attrs: {},
     _children: [],
     _listeners: {},
@@ -94,22 +94,45 @@ function makeEl(tag) {
       if (v === "") this._children = [];
     },
   });
+  // textContent aggregates real-DOM-like: leaf text plus recursion over
+  // children, so a body that contains the chat-thread subtree will surface
+  // the actual rendered chat bubble text.
+  Object.defineProperty(el, "textContent", {
+    configurable: true,
+    get() {
+      if (this._children && this._children.length) {
+        let out = "";
+        for (const c of this._children) {
+          out += c.textContent || "";
+        }
+        return out;
+      }
+      return this._textContent || "";
+    },
+    set(v) {
+      this._textContent = String(v);
+      this._children = [];
+    },
+  });
   return el;
 }
 
 function buildDoc() {
   const ids = {};
+  const body = makeEl("body");
+  const head = makeEl("head");
   const ensure = (id) => {
     if (!ids[id]) {
       ids[id] = makeEl("div");
       ids[id].id = id;
+      body.appendChild(ids[id]);
     }
     return ids[id];
   };
   return {
     _ids: ids,
-    body: makeEl("body"),
-    head: makeEl("head"),
+    body,
+    head,
     getElementById(id) {
       return ensure(id);
     },
@@ -451,7 +474,101 @@ async function scenarioDefaultModeRegression() {
   console.log("  [5] default static mode regression: OK");
 }
 
-// ── Entry point ───────────────────────────────────────────────────────────
+// ── Scenario: failure diagnostics must stay hidden from citizen shell ────
+// This scenario validates that when the MVP bridge returns a failure response
+// (ok=false) with additional diagnostic fields (failure_code, error, URL,
+// authorization), the citizen shell must:
+//   - show only the generic Korean failure answer (no diagnostic text)
+//   - NOT start choreography (choreo.startCalls.length === 0)
+//   - NOT split the shell (stay in entry state)
+//   - keep the canvas hidden/inert
+
+const FAILURE_DIAGNOSTIC_CANARIES = [
+  "timeout",
+  "CANARY_SECRET_MUST_NOT_RENDER",
+  "https://private.invalid/forbidden",
+  "Authorization: Bearer",
+  "CANARY_TOKEN_MUST_NOT_RENDER",
+];
+
+async function scenarioFailureDiagnosticHidden(failureCode) {
+  const bridge = makeResolvingBridge({
+    ok: false,
+    question: "테스트 질문",
+    answer: "현재 AI 안내를 연결하지 못했습니다.",
+    action: "none",
+    confidence: 0.0,
+    failure_code: failureCode,
+    error: "CANARY_SECRET_MUST_NOT_RENDER",
+    upstream_url: "https://private.invalid/forbidden",
+    authorization: "Authorization: Bearer CANARY_TOKEN_MUST_NOT_RENDER",
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1",
+    reducedMotion: true,
+    bridge,
+    choreo,
+  });
+  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  await flush();
+
+  // (A) The generic Korean failure answer must be visible in the rendered
+  // shell. We inspect the real DOM aggregate (document.body.textContent) which
+  // now includes the chat-thread subtree, not the detached fake body.
+  const visibleText = s.doc.body.textContent;
+  assert.ok(
+    visibleText.includes("현재 AI 안내를 연결하지 못했습니다."),
+    `failure(${failureCode}): generic Korean answer must be visible in rendered body`,
+  );
+
+  // (B) No diagnostic canary string may appear in the rendered body text.
+  // The actual failure_code (e.g. "timeout"/"unknown") is itself forbidden so
+  // that each case cannot leak its own code into the rendered DOM.
+  const forbiddenDiagnostics = [failureCode, ...FAILURE_DIAGNOSTIC_CANARIES];
+  for (const canary of forbiddenDiagnostics) {
+    assert.ok(
+      !visibleText.includes(canary),
+      `failure(${failureCode}): diagnostic canary '${canary}' must NOT appear in body text`,
+    );
+  }
+
+  // (C) Same canary-absence check against the aggregated AI chat bubble text.
+  const aiText = aiBubbleTexts(s).join("");
+  assert.ok(
+    aiText.includes("현재 AI 안내를 연결하지 못했습니다."),
+    `failure(${failureCode}): generic Korean answer must be in AI bubble text`,
+  );
+  for (const canary of forbiddenDiagnostics) {
+    assert.ok(
+      !aiText.includes(canary),
+      `failure(${failureCode}): diagnostic canary '${canary}' must NOT appear in AI bubble text`,
+    );
+  }
+
+  // (D) action="none" failure must not start choreography.
+  assert.strictEqual(
+    choreo.startCalls.length,
+    0,
+    `failure(${failureCode}): choreography must NOT start on failure`,
+  );
+
+  // (E) Shell must stay in entry state (not split).
+  assert.strictEqual(
+    s.win.CitizenFirstUseShell.getState(),
+    "entry",
+    `failure(${failureCode}): shell must stay in entry (no split)`,
+  );
+
+  // (F) Left canvas must remain hidden/inert.
+  assert.strictEqual(
+    canvasAriaHidden(s),
+    "true",
+    `failure(${failureCode}): left clone must remain hidden/inert`,
+  );
+
+  console.log(`  [6] failure diagnostics hidden (${failureCode}): OK`);
+}
 
 async function main() {
   console.log("Running MVP shell runtime scenarios (no network, no fetch):");
@@ -460,6 +577,8 @@ async function main() {
   await scenarioNone();
   await scenarioPendingThenReset();
   await scenarioDefaultModeRegression();
+  await scenarioFailureDiagnosticHidden("timeout");
+  await scenarioFailureDiagnosticHidden("unknown");
   console.log("All MVP shell runtime scenarios passed.");
 }
 
