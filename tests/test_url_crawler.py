@@ -824,3 +824,142 @@ def test_url_crawler_fetch_config_preserves_failure_result_schema():
     assert result["errors"] == ["Configured failure"]
     assert result["status_code"] == ""
     assert result["links"] == {"internal": [], "external": [], "attachments": []}
+
+
+# ======================================================================
+# Stage 1: Lock crawler direct-fallback contracts (#834-stage1)
+# ======================================================================
+
+def test_url_crawler_direct_fallback_success(monkeypatch):
+    class FakeResponse:
+        status_code = 200
+        url = "https://example.com/final-url"
+        headers = {"Content-Type": "text/html; charset=utf-8"}
+        encoding = "ISO-8859-1"
+        apparent_encoding = "utf-8"
+        text = """
+        <html>
+            <head>
+                <title>Success Title</title>
+                <meta name="description" content="Success Description">
+            </head>
+            <body>
+                <a href="/internal">Internal Link</a>
+                <a href="https://external.com">External Link</a>
+                <a href="/doc.pdf">Attachment Link</a>
+            </body>
+        </html>
+        """
+
+    called_kwargs = {}
+    def mock_get(url, **kwargs):
+        called_kwargs["url"] = url
+        called_kwargs["headers"] = kwargs.get("headers")
+        called_kwargs["timeout"] = kwargs.get("timeout")
+        return FakeResponse()
+
+    import requests
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    crawler = URLCrawler(fetch_provider=None)
+    result = crawler.analyze("https://example.com/start-url")
+
+    assert called_kwargs["url"] == "https://example.com/start-url"
+    assert called_kwargs["headers"] == crawler.headers
+    assert called_kwargs["timeout"] == crawler.timeout
+
+    assert result["url"] == "https://example.com/final-url"
+    assert result["status_code"] == 200
+    assert "text/html" in result["content_type"]
+    assert result["title"] == "Success Title"
+    assert result["description"] == "Success Description"
+    assert "Internal Link" in result["text"]
+    assert len(result["links"]["internal"]) == 1
+    assert result["links"]["internal"][0]["url"] == "https://example.com/internal"
+    assert len(result["links"]["external"]) == 1
+    assert result["links"]["external"][0]["url"] == "https://external.com"
+    assert len(result["links"]["attachments"]) == 1
+    assert result["links"]["attachments"][0]["url"] == "https://example.com/doc.pdf"
+    assert result["errors"] == []
+
+
+def test_url_crawler_direct_fallback_timeout(monkeypatch):
+    import requests
+    def mock_get(url, **kwargs):
+        raise requests.exceptions.Timeout("Connection timed out")
+
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    crawler = URLCrawler(fetch_provider=None)
+    result = crawler.analyze("https://example.com/start-url")
+
+    assert result["errors"] == [f"Request timeout after {crawler.timeout} seconds."]
+    assert result["status_code"] is None
+    assert result["text"] == ""
+    assert result["links"] == {"internal": [], "external": [], "attachments": []}
+    assert result["stats"] == {
+        "text_length": 0,
+        "internal_link_count": 0,
+        "external_link_count": 0,
+        "attachment_count": 0,
+    }
+
+
+def test_url_crawler_direct_fallback_request_exception(monkeypatch):
+    import requests
+    def mock_get(url, **kwargs):
+        raise requests.exceptions.ConnectionError("offline")
+
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    crawler = URLCrawler(fetch_provider=None)
+    result = crawler.analyze("https://example.com/start-url")
+
+    assert result["errors"] == ["Network error: offline"]
+
+
+def test_url_crawler_direct_fallback_http_error_html(monkeypatch):
+    class FakeResponse:
+        status_code = 500
+        url = "https://example.com/error-url"
+        headers = {"Content-Type": "text/html"}
+        encoding = "utf-8"
+        apparent_encoding = "utf-8"
+        text = "<html><head><title>Error Page</title></head><body>Internal Server Error</body></html>"
+
+    import requests
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: FakeResponse())
+
+    crawler = URLCrawler(fetch_provider=None)
+    result = crawler.analyze("https://example.com/start-url")
+
+    assert "HTTP Error: Status code 500" in result["errors"]
+    assert result["title"] == "Error Page"
+    assert "Internal Server Error" in result["text"]
+
+
+def test_url_crawler_direct_fallback_non_html(monkeypatch):
+    class FakeResponse:
+        status_code = 200
+        url = "https://example.com/document.pdf"
+        headers = {"Content-Type": "application/pdf"}
+        encoding = "utf-8"
+        apparent_encoding = "utf-8"
+        text = "%PDF-1.4..."
+
+    import requests
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: FakeResponse())
+
+    crawler = URLCrawler(fetch_provider=None)
+    result = crawler.analyze("https://example.com/start-url")
+
+    assert result["errors"] == ["Response content type is not HTML: application/pdf"]
+    assert result["title"] == ""
+    assert result["text"] == ""
+    assert result["links"] == {"internal": [], "external": [], "attachments": []}
+    assert result["stats"] == {
+        "text_length": 0,
+        "internal_link_count": 0,
+        "external_link_count": 0,
+        "attachment_count": 0,
+    }

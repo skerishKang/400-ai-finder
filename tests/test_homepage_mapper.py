@@ -465,3 +465,97 @@ def test_homepage_mapper_logs_static_failure_and_reraises(caplog):
     assert "secret" not in joined_logs
     assert "token" not in joined_logs
     assert "RuntimeError" not in joined_logs
+
+
+# ======================================================================
+# Stage 1: Lock homepage mapper direct-fallback contracts (#834-stage1)
+# ======================================================================
+
+def test_homepage_mapper_direct_fallback_success(monkeypatch):
+    class FakeResponse:
+        status_code = 200
+        url = "https://example.com/final"
+        text = "Hello World"
+        encoding = "ISO-8859-1"
+        apparent_encoding = "utf-8"
+
+    called_kwargs = {}
+    def mock_get(url, **kwargs):
+        called_kwargs["url"] = url
+        called_kwargs["headers"] = kwargs.get("headers")
+        called_kwargs["timeout"] = kwargs.get("timeout")
+        return FakeResponse()
+
+    import requests
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    mapper = HomepageMapper(fetch_provider=None)
+    content, err, status, final_url = mapper.fetch_content("https://example.com/start")
+
+    assert called_kwargs["url"] == "https://example.com/start"
+    assert called_kwargs["headers"] == mapper.crawler.headers
+    assert called_kwargs["timeout"] == mapper.crawler.timeout
+    assert content == "Hello World"
+    assert err is None
+    assert status == 200
+    assert final_url == "https://example.com/final"
+
+
+def test_homepage_mapper_direct_fallback_http_error_retry(monkeypatch):
+    class FakeResponse:
+        status_code = 503
+        url = "https://example.com/start"
+
+    call_count = 0
+    def mock_get(url, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return FakeResponse()
+
+    import requests
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    mapper = HomepageMapper(fetch_provider=None)
+    content, err, status, final_url = mapper.fetch_content("https://example.com/start", retries=1)
+
+    assert call_count == 2
+    assert content is None
+    assert err == "HTTP Error: 503"
+    assert status is None
+    assert final_url == "https://example.com/start"
+
+
+def test_homepage_mapper_direct_fallback_timeout_retry(monkeypatch):
+    call_count = 0
+    import requests
+    def mock_get(url, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        raise requests.exceptions.Timeout("Timed out")
+
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    mapper = HomepageMapper(fetch_provider=None)
+    content, err, status, final_url = mapper.fetch_content("https://example.com/start", retries=1)
+
+    assert call_count == 2
+    assert content is None
+    assert err == f"Timeout after {mapper.crawler.timeout}s"
+    assert status is None
+    assert final_url == "https://example.com/start"
+
+
+def test_homepage_mapper_direct_fallback_generic_exception(monkeypatch):
+    import requests
+    def mock_get(url, **kwargs):
+        raise RuntimeError("fallback boom")
+
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    mapper = HomepageMapper(fetch_provider=None)
+    content, err, status, final_url = mapper.fetch_content("https://example.com/start", retries=0)
+
+    assert content is None
+    assert err == "fallback boom"
+    assert status is None
+    assert final_url == "https://example.com/start"
