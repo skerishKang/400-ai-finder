@@ -647,7 +647,7 @@ async function scenarioSuccessBlankAnswer() {
     ok: true,
     question: "테스트 질문",
     answer: "   ",
-    action: "none",
+    action: "illegal_parking",
     confidence: 0.5,
   });
   const choreo = makeChoreo();

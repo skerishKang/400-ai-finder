@@ -309,16 +309,25 @@
         // the generic Korean message so untrusted diagnostic/answer text never
         // reaches the citizen chat DOM.
         var isExplicitSuccess = result && result.ok === true;
-        var answer = (
+        var normalizedAnswer = (
           isExplicitSuccess &&
-          typeof result.answer === "string" &&
-          result.answer.trim()
+          typeof result.answer === "string"
         )
           ? result.answer.trim()
+          : "";
+
+        // A non-empty answer is the only signal that the result is usable. A
+        // blank (or missing/non-string) answer fails closed: no answer is
+        // rendered and the action is degraded to "none" so no split or
+        // choreography can start from an untrusted/blank success.
+        var hasUsableMvpResult = Boolean(normalizedAnswer);
+
+        var answer = hasUsableMvpResult
+          ? normalizedAnswer
           : "현재 AI 안내를 연결하지 못했습니다.";
         appendChatMessage("ai", answer);
         // 4. inspect action; only the two approved actions move the clone
-        var action = normalizeMvpAction(result);
+        var action = hasUsableMvpResult ? normalizeMvpAction(result) : "none";
         if (action === "illegal_parking") {
           beginMvpSplitThenChoreography(question, "illegal_parking");
         } else if (action === "housing_department") {
