@@ -1,11 +1,13 @@
 import os
 import re
+import time
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunparse, urljoin
 
 from src.fetch import FetchProvider, get_fetch_provider
 from src.crawler.crawl_path_filter import should_crawl_url
+from src.observability import get_event_logger, log_pipeline_event
 
 
 class URLCrawler:
@@ -155,13 +157,33 @@ class URLCrawler:
             "attachments": deduplicate_attachments(attachments)
         }
 
-    def analyze(self, url, max_chars=8000):
+    def analyze(self, url, max_chars=8000, correlation_id: str | None = None):
+        started_at = time.perf_counter()
+
         # === If fetch_provider is set, use it ===
         if self.fetch_provider is not None:
-            return self._analyze_with_provider(url, max_chars)
+            result = self._analyze_with_provider(url, max_chars)
+        else:
+            # === Original code path (no fetch_provider) ===
+            result = self._analyze_original(url, max_chars)
 
-        # === Original code path (no fetch_provider) ===
-        return self._analyze_original(url, max_chars)
+        if correlation_id is not None:
+            ok = not result["errors"]
+            event_name = "pipeline_stage_end" if ok else "pipeline_stage_fail"
+            kwargs = {}
+            if not ok:
+                kwargs["failure_code"] = "url_crawler_result_error"
+            log_pipeline_event(
+                get_event_logger(__name__),
+                event=event_name,
+                correlation_id=correlation_id,
+                stage="url_crawler",
+                ok=ok,
+                duration_ms=int((time.perf_counter() - started_at) * 1000),
+                **kwargs,
+            )
+
+        return result
 
     # ------------------------------------------------------------------
     # Original analyze path (unchanged)

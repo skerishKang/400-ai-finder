@@ -1,3 +1,6 @@
+import json
+import logging
+
 import pytest
 from bs4 import BeautifulSoup
 from src.crawler.url_crawler import URLCrawler
@@ -497,3 +500,167 @@ def test_non_html_provider_fallback_path_contract_explicit_deny():
     assert links_deny["external"][0]["url"] == "https://external.com/page?print=1"
     assert len(links_deny["attachments"]) == 1
     assert links_deny["attachments"][0]["url"] == "https://example.com/doc.pdf?print=1"
+
+
+def _extract_pipeline_records(caplog: pytest.LogCaptureFixture) -> list[dict[str, object]]:
+    records = []
+    for line in caplog.messages:
+        if line.startswith("pipeline_event="):
+            records.append(json.loads(line.split("=", 1)[1]))
+    return records
+
+
+def test_url_crawler_logs_terminal_success_event_for_provider(caplog):
+    from datetime import datetime, timezone
+
+    from src.fetch import MockFetchProvider
+    from src.fetch.base import FetchResult
+
+    class SuccessProvider(MockFetchProvider):
+        def fetch(self, url, **kwargs):
+            return FetchResult(
+                url=url,
+                ok=True,
+                provider="mock_success",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                status_code=200,
+                content_type="text/html",
+                html="<html><head><title>Title</title></head><body><a href='/inner'>go</a></body></html>",
+            )
+
+    crawler = URLCrawler(fetch_provider=SuccessProvider())
+
+    with caplog.at_level(logging.INFO, logger="src.crawler.url_crawler"):
+        result = crawler.analyze("https://example.com", correlation_id="corr-895")
+
+    records = _extract_pipeline_records(caplog)
+    assert result["errors"] == []
+    assert [record["event"] for record in records] == ["pipeline_stage_end"]
+    assert records[0]["stage"] == "url_crawler"
+    assert records[0]["ok"] is True
+    assert records[0]["correlation_id"] == "corr-895"
+    assert isinstance(records[0]["duration_ms"], int)
+
+
+def test_url_crawler_logs_terminal_fail_event_for_provider_result_error(caplog):
+    from datetime import datetime, timezone
+
+    from src.fetch import MockFetchProvider
+    from src.fetch.base import FetchResult
+
+    class FailingProvider(MockFetchProvider):
+        def fetch(self, url, **kwargs):
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider="mock_fail",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                error="Bearer secret token https://secret.example.com/fail",
+            )
+
+    crawler = URLCrawler(fetch_provider=FailingProvider())
+
+    with caplog.at_level(logging.INFO, logger="src.crawler.url_crawler"):
+        result = crawler.analyze("https://example.com", correlation_id="corr-fail")
+
+    records = _extract_pipeline_records(caplog)
+    assert result["errors"]
+    assert [record["event"] for record in records] == ["pipeline_stage_fail"]
+    assert records[0]["stage"] == "url_crawler"
+    assert records[0]["ok"] is False
+    assert records[0]["correlation_id"] == "corr-fail"
+    assert records[0]["failure_code"] == "url_crawler_result_error"
+    assert isinstance(records[0]["duration_ms"], int)
+
+
+def test_url_crawler_preserves_empty_correlation_id(caplog):
+    from datetime import datetime, timezone
+
+    from src.fetch import MockFetchProvider
+    from src.fetch.base import FetchResult
+
+    class SuccessProvider(MockFetchProvider):
+        def fetch(self, url, **kwargs):
+            return FetchResult(
+                url=url,
+                ok=True,
+                provider="mock_success",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                status_code=200,
+                content_type="text/html",
+                html="<html><body>Hello</body></html>",
+            )
+
+    crawler = URLCrawler(fetch_provider=SuccessProvider())
+
+    with caplog.at_level(logging.INFO, logger="src.crawler.url_crawler"):
+        crawler.analyze("https://example.com", correlation_id="")
+
+    records = _extract_pipeline_records(caplog)
+    assert records
+    assert {record["correlation_id"] for record in records} == {""}
+
+
+def test_url_crawler_without_correlation_id_logs_nothing(caplog):
+    from datetime import datetime, timezone
+
+    from src.fetch import MockFetchProvider
+    from src.fetch.base import FetchResult
+
+    class SuccessProvider(MockFetchProvider):
+        def fetch(self, url, **kwargs):
+            return FetchResult(
+                url=url,
+                ok=True,
+                provider="mock_success",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                status_code=200,
+                content_type="text/html",
+                html="<html><body>Hello</body></html>",
+            )
+
+    crawler = URLCrawler(fetch_provider=SuccessProvider())
+
+    with caplog.at_level(logging.INFO, logger="src.crawler.url_crawler"):
+        crawler.analyze("https://example.com")
+
+    assert "pipeline_event=" not in "\n".join(caplog.messages)
+
+
+def test_url_crawler_event_redacts_raw_failure_contents(caplog):
+    from datetime import datetime, timezone
+
+    from src.fetch import MockFetchProvider
+    from src.fetch.base import FetchResult
+
+    class FailingProvider(MockFetchProvider):
+        def fetch(self, url, **kwargs):
+            return FetchResult(
+                url="https://secret.example.com/private?token=abc123",
+                ok=False,
+                provider="mock_fail",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                error="Bearer sk-secret token leaked from https://secret.example.com/private?token=abc123",
+            )
+
+    crawler = URLCrawler(fetch_provider=FailingProvider())
+
+    with caplog.at_level(logging.INFO, logger="src.crawler.url_crawler"):
+        crawler.analyze("https://example.com", correlation_id="corr-redact")
+
+    records = _extract_pipeline_records(caplog)
+    assert [record["event"] for record in records] == ["pipeline_stage_fail"]
+    allowed_keys = {
+        "event",
+        "correlation_id",
+        "stage",
+        "ok",
+        "duration_ms",
+        "failure_code",
+    }
+    joined_logs = "\n".join(caplog.messages)
+    for record in records:
+        assert set(record).issubset(allowed_keys)
+    assert "Bearer" not in joined_logs
+    assert "token" not in joined_logs
+    assert "https://secret.example.com/private?token=abc123" not in joined_logs
