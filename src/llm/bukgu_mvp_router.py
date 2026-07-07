@@ -23,6 +23,11 @@ from dataclasses import dataclass
 from typing import Literal
 
 from .base import LLMProvider, ProviderResult
+from .openai_compatible_provider import (
+    FAILURE_INVALID_MVP_DECISION,
+    FAILURE_PROVIDER_EXCEPTION,
+    FAILURE_UNKNOWN,
+)
 
 MVP_ACTIONS = ("illegal_parking", "housing_department", "none")
 
@@ -61,16 +66,20 @@ MVP_SYSTEM_PROMPT = (
 @dataclass(frozen=True)
 class MvpActionDecision:
     """Frozen MVP decision contract returned by :func:`decide_mvp_action`."""
-
     answer: str
     action: Literal["illegal_parking", "housing_department", "none"]
     confidence: float
+    # Sanitized, closed-vocabulary failure classification. Empty string on a
+    # normal successful action; otherwise one of the fixed failure codes. Never
+    # carries raw exception text, URLs, API keys, headers, or upstream bodies.
+    failure_code: str = ""
 
     def to_dict(self) -> dict:
         return {
             "answer": self.answer,
             "action": self.action,
             "confidence": self.confidence,
+            "failure_code": self.failure_code,
         }
 
 
@@ -113,18 +122,38 @@ def parse_mvp_decision(raw: str) -> MvpActionDecision:
     try:
         data = json.loads(raw)
     except (json.JSONDecodeError, ValueError, TypeError):
-        return MvpActionDecision(answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0)
+        return MvpActionDecision(
+            answer=MVP_FAILURE_ANSWER,
+            action="none",
+            confidence=0.0,
+            failure_code=FAILURE_INVALID_MVP_DECISION,
+        )
 
     if not isinstance(data, dict):
-        return MvpActionDecision(answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0)
+        return MvpActionDecision(
+            answer=MVP_FAILURE_ANSWER,
+            action="none",
+            confidence=0.0,
+            failure_code=FAILURE_INVALID_MVP_DECISION,
+        )
 
     action = data.get("action")
     if action not in MVP_ACTIONS:
-        return MvpActionDecision(answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0)
+        return MvpActionDecision(
+            answer=MVP_FAILURE_ANSWER,
+            action="none",
+            confidence=0.0,
+            failure_code=FAILURE_INVALID_MVP_DECISION,
+        )
 
     answer = data.get("answer")
     if not isinstance(answer, str) or not answer.strip():
-        return MvpActionDecision(answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0)
+        return MvpActionDecision(
+            answer=MVP_FAILURE_ANSWER,
+            action="none",
+            confidence=0.0,
+            failure_code=FAILURE_INVALID_MVP_DECISION,
+        )
 
     return MvpActionDecision(
         answer=answer.strip(),
@@ -149,9 +178,20 @@ def decide_mvp_action(question: str, provider: LLMProvider) -> MvpActionDecision
     try:
         result: ProviderResult = provider.complete(messages)
     except Exception:
-        return MvpActionDecision(answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0)
+        return MvpActionDecision(
+            answer=MVP_FAILURE_ANSWER,
+            action="none",
+            confidence=0.0,
+            failure_code=FAILURE_PROVIDER_EXCEPTION,
+        )
     if not result.ok:
-        return MvpActionDecision(answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0)
+        failure_code = result.failure_code if result.failure_code else FAILURE_UNKNOWN
+        return MvpActionDecision(
+            answer=MVP_FAILURE_ANSWER,
+            action="none",
+            confidence=0.0,
+            failure_code=failure_code,
+        )
     return parse_mvp_decision(result.content)
 
 
@@ -163,4 +203,7 @@ __all__ = [
     "is_mvp_failure",
     "parse_mvp_decision",
     "decide_mvp_action",
+    "FAILURE_INVALID_MVP_DECISION",
+    "FAILURE_PROVIDER_EXCEPTION",
+    "FAILURE_UNKNOWN",
 ]

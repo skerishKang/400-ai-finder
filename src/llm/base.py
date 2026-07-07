@@ -16,6 +16,11 @@ class ProviderResult:
     content: str
     error: str = ""
     raw: dict[str, Any] = field(default_factory=dict)
+    # Sanitized, closed-vocabulary failure classification. Empty string on
+    # success. Never contains raw exception text, URLs, API keys, headers, or
+    # upstream response bodies. See the closed vocabulary in
+    # ``OpenAICompatibleProvider`` and ``bukgu_mvp_router``.
+    failure_code: str = ""
 
 
 class LLMProvider(ABC):
