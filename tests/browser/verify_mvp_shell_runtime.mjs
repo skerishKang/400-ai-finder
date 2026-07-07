@@ -196,6 +196,20 @@ function makeResolvingBridge(result) {
   };
 }
 
+function makeRejectingBridge(error) {
+  return {
+    askCalled: 0,
+    cancelCalled: 0,
+    ask() {
+      this.askCalled++;
+      return Promise.reject(error);
+    },
+    cancel() {
+      this.cancelCalled++;
+    },
+  };
+}
+
 function makePendingBridge() {
   return {
     askCalled: 0,
@@ -283,6 +297,21 @@ function aiBubbleTexts(scenario) {
 
 function canvasAriaHidden(scenario) {
   return scenario.doc.getElementById("demo-canvas").getAttribute("aria-hidden");
+}
+
+function assertComposerRecovered(scenario, label) {
+  const input = scenario.doc.getElementById("chat-composer-input");
+  const send = scenario.doc.getElementById("chat-composer-send");
+  assert.strictEqual(
+    input.disabled,
+    false,
+    `${label}: composer input must be re-enabled after resolution`,
+  );
+  assert.strictEqual(
+    send.disabled,
+    false,
+    `${label}: composer send must be re-enabled after resolution`,
+  );
 }
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -688,6 +717,154 @@ async function scenarioSuccessBlankAnswer() {
   console.log("  [8] success blank answer fails closed: OK");
 }
 
+// ── Scenario A: missing result must fail closed ──
+// The bridge resolves with `undefined`. The shell must never render anything
+// from a missing result; it must show the generic Korean failure message and
+// keep the shell in entry with the canvas inert, and recover the composer.
+
+async function scenarioMissingResult() {
+  const bridge = makeResolvingBridge(undefined);
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1",
+    reducedMotion: true,
+    bridge,
+    choreo,
+  });
+  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  await flush();
+
+  const visibleText = s.doc.body.textContent;
+  const aiText = aiBubbleTexts(s).join("");
+  assertFailureHidden(visibleText, aiText, [], "missing result");
+
+  assert.strictEqual(
+    choreo.startCalls.length,
+    0,
+    "missing result: choreography must NOT start",
+  );
+  assert.strictEqual(
+    s.win.CitizenFirstUseShell.getState(),
+    "entry",
+    "missing result: shell must stay in entry (no split)",
+  );
+  assert.strictEqual(
+    canvasAriaHidden(s),
+    "true",
+    "missing result: left clone must remain hidden/inert",
+  );
+  assertComposerRecovered(s, "missing result");
+
+  console.log("  [9] missing result fails closed: OK");
+}
+
+// ── Scenario B: malformed result must fail closed ──
+// A result that is missing `ok` or has a non-boolean `ok`, plus a subverted
+// `answer`/`action`/`error`, must not leak any diagnostic or approved-action
+// text into the citizen DOM.
+
+async function scenarioMalformedResult() {
+  const malformed = [
+    {},
+    {
+      ok: "true",
+      answer: "CANARY_MALFORMED_ANSWER_MUST_NOT_RENDER",
+      action: "illegal_parking",
+      error: "CANARY_MALFORMED_ERROR_MUST_NOT_RENDER",
+    },
+  ];
+  const forbidden = [
+    "CANARY_MALFORMED_ANSWER_MUST_NOT_RENDER",
+    "CANARY_MALFORMED_ERROR_MUST_NOT_RENDER",
+    "illegal_parking",
+  ];
+  let idx = 0;
+  for (const result of malformed) {
+    const label = `malformed result [${idx++}]`;
+    const bridge = makeResolvingBridge(result);
+    const choreo = makeChoreo();
+    const s = runScenario({
+      search: "?mvp=1",
+      reducedMotion: true,
+      bridge,
+      choreo,
+    });
+    submit(s, "불법 주정차 신고는 어디서 하나요?");
+    await flush();
+
+    const visibleText = s.doc.body.textContent;
+    const aiText = aiBubbleTexts(s).join("");
+    assertFailureHidden(visibleText, aiText, forbidden, label);
+
+    assert.strictEqual(
+      choreo.startCalls.length,
+      0,
+      `${label}: choreography must NOT start`,
+    );
+    assert.strictEqual(
+      s.win.CitizenFirstUseShell.getState(),
+      "entry",
+      `${label}: shell must stay in entry (no split)`,
+    );
+    assert.strictEqual(
+      canvasAriaHidden(s),
+      "true",
+      `${label}: left clone must remain hidden/inert`,
+    );
+    assertComposerRecovered(s, label);
+  }
+
+  console.log("  [10] malformed result fails closed: OK");
+}
+
+// ── Scenario C: rejected bridge request must fail closed ──
+// The bridge rejects its promise. The shell's catch handler must show the
+// generic Korean failure message (not the rejection error) and recover the
+// composer without touching the clone.
+
+async function scenarioRejectedBridge() {
+  const bridge = makeRejectingBridge(
+    new Error("CANARY_REJECTED_BRIDGE_ERROR_MUST_NOT_RENDER"),
+  );
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1",
+    reducedMotion: true,
+    bridge,
+    choreo,
+  });
+  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  await flush();
+
+  const visibleText = s.doc.body.textContent;
+  const aiText = aiBubbleTexts(s).join("");
+  assertFailureHidden(
+    visibleText,
+    aiText,
+    ["CANARY_REJECTED_BRIDGE_ERROR_MUST_NOT_RENDER"],
+    "rejected bridge",
+  );
+
+  assert.strictEqual(
+    choreo.startCalls.length,
+    0,
+    "rejected bridge: choreography must NOT start",
+  );
+  assert.strictEqual(
+    s.win.CitizenFirstUseShell.getState(),
+    "entry",
+    "rejected bridge: shell must stay in entry (no split)",
+  );
+  assert.strictEqual(
+    canvasAriaHidden(s),
+    "true",
+    "rejected bridge: left clone must remain hidden/inert",
+  );
+  assertComposerRecovered(s, "rejected bridge");
+
+  console.log("  [11] rejected bridge request fails closed: OK");
+}
+
 async function main() {
   console.log("Running MVP shell runtime scenarios (no network, no fetch):");
   await scenarioIllegalParking();
@@ -699,6 +876,9 @@ async function main() {
   await scenarioFailureDiagnosticHidden("unknown");
   await scenarioFailureUntrustedAnswer();
   await scenarioSuccessBlankAnswer();
+  await scenarioMissingResult();
+  await scenarioMalformedResult();
+  await scenarioRejectedBridge();
   console.log("All MVP shell runtime scenarios passed.");
 }
 
