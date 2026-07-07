@@ -27,6 +27,7 @@ from .openai_compatible_provider import (
     FAILURE_INVALID_MVP_DECISION,
     FAILURE_PROVIDER_EXCEPTION,
     FAILURE_UNKNOWN,
+    is_valid_failure_code,
 )
 
 MVP_ACTIONS = ("illegal_parking", "housing_department", "none")
@@ -185,7 +186,15 @@ def decide_mvp_action(question: str, provider: LLMProvider) -> MvpActionDecision
             failure_code=FAILURE_PROVIDER_EXCEPTION,
         )
     if not result.ok:
-        failure_code = result.failure_code if result.failure_code else FAILURE_UNKNOWN
+        # Only forward a failure_code that is part of the closed vocabulary.
+        # Anything else (empty string, None, numbers, arbitrary strings) is
+        # collapsed to FAILURE_UNKNOWN so an upstream/adversarial code can never
+        # leak or pollute the operator-facing contract.
+        code = result.failure_code
+        if isinstance(code, str) and is_valid_failure_code(code):
+            failure_code = code
+        else:
+            failure_code = FAILURE_UNKNOWN
         return MvpActionDecision(
             answer=MVP_FAILURE_ANSWER,
             action="none",

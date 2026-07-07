@@ -212,7 +212,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 error="LLM request could not be completed.",
                 failure_code=FAILURE_TRANSPORT_ERROR,
             )
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError):
             return ProviderResult(
                 ok=False,
                 provider=self._provider_label,
@@ -254,6 +254,18 @@ class OpenAICompatibleProvider(LLMProvider):
 
     def _parse_response(self, data: dict[str, Any]) -> ProviderResult:
         try:
+            # Guard against non-dict top-level payloads (e.g. a JSON list or
+            # scalar). These are malformed upstream responses, not provider
+            # runtime errors — never map them to provider_exception.
+            if not isinstance(data, dict):
+                return ProviderResult(
+                    ok=False,
+                    provider=self._provider_label,
+                    model=self._model_label,
+                    content="",
+                    error="LLM response is not a JSON object.",
+                    failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
+                )
             choices = data.get("choices", [])
             if not choices:
                 return ProviderResult(
@@ -263,7 +275,6 @@ class OpenAICompatibleProvider(LLMProvider):
                     content="",
                     error="LLM response has no choices.",
                     failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
-                    raw=data,
                 )
             content = choices[0].get("message", {}).get("content", "")
             if not content:
@@ -274,16 +285,17 @@ class OpenAICompatibleProvider(LLMProvider):
                     content="",
                     error="LLM response has empty content in choices[0].message.",
                     failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
-                    raw=data,
                 )
             return ProviderResult(
                 ok=True,
                 provider=self._provider_label,
                 model=self._model_label,
                 content=content,
-                raw=data,
             )
-        except (KeyError, IndexError, TypeError):
+        except (KeyError, IndexError, TypeError, AttributeError):
+            # Any unexpected structure error (including AttributeError from a
+            # malformed payload) is a sanitizable upstream-response failure,
+            # never a provider_exception that could carry raw context.
             return ProviderResult(
                 ok=False,
                 provider=self._provider_label,
@@ -291,7 +303,6 @@ class OpenAICompatibleProvider(LLMProvider):
                 content="",
                 error="LLM response has an unexpected structure.",
                 failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
-                raw=data,
             )
 
     @property

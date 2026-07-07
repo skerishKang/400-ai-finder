@@ -79,7 +79,7 @@ class TestProviderResultFailureCode:
 class _MockResponse:
     """Minimal stand-in for a requests.Response with a controllable status."""
 
-    def __init__(self, status_code: int, json_data: dict | None = None):
+    def __init__(self, status_code: int, json_data: object | None = None):
         self.status_code = status_code
         self._json_data = json_data if json_data is not None else {}
 
@@ -208,6 +208,44 @@ class TestOpenAICompatibleFailureMapping:
             r = p.complete([{"role": "user", "content": "hi"}])
         assert CANARY_SECRET not in r.error
         assert CANARY_URL not in r.error
+
+    def test_top_level_list_payload_is_invalid_upstream_response(self):
+        p = _provider_with_base_config()
+        resp = _MockResponse(200, json_data=[{"unexpected": "list"}])
+        with patch.object(requests, "post", return_value=resp):
+            r = p.complete([{"role": "user", "content": "hi"}])
+        assert r.ok is False
+        assert r.failure_code == FAILURE_INVALID_UPSTREAM_RESPONSE
+
+    def test_generic_value_error_json_decode_is_invalid_upstream_response(self):
+        # response.json() can raise a plain ValueError (not just JSONDecodeError)
+        # for malformed payloads — must still map to invalid_upstream_response.
+        p = _provider_with_base_config()
+
+        class _ValueErrorResponse:
+            status_code = 200
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                raise ValueError("Unexpected non-JSON payload")
+
+        with patch.object(requests, "post", return_value=_ValueErrorResponse()):
+            r = p.complete([{"role": "user", "content": "hi"}])
+        assert r.ok is False
+        assert r.failure_code == FAILURE_INVALID_UPSTREAM_RESPONSE
+
+    def test_unexpected_attribute_error_structure_is_invalid_upstream_response(self):
+        # If resp.json() returns a scalar that later triggers AttributeError
+        # inside _parse_response, it must map to invalid_upstream_response (not
+        # provider_exception).
+        p = _provider_with_base_config()
+        resp = _MockResponse(200, json_data="not-an-object")
+        with patch.object(requests, "post", return_value=resp):
+            r = p.complete([{"role": "user", "content": "hi"}])
+        assert r.ok is False
+        assert r.failure_code == FAILURE_INVALID_UPSTREAM_RESPONSE
 
 
 # ----------------------------------------------------------------------
@@ -451,6 +489,227 @@ class TestMvpAskEndpointContract:
         assert CANARY_SECRET not in raw_text
         assert CANARY_URL not in raw_text
         assert CANARY_AUTH_HEADER not in raw_text
+
+
+class _ProviderArbitraryCode(LLMProvider):
+    """Provider returns an arbitrary (non-closed) failure_code string."""
+
+    def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+        return ProviderResult(
+            ok=False, provider="fake", model="m", content="",
+            error="x", failure_code="arbitrary",
+        )
+
+    @property
+    def provider_name(self) -> str:
+        return "fake"
+
+    @property
+    def model_name(self) -> str:
+        return "m"
+
+
+class _ProviderNonStringCode(LLMProvider):
+    """Provider returns a non-string (int) failure_code."""
+
+    def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+        return ProviderResult(
+            ok=False, provider="fake", model="m", content="",
+            error="x", failure_code=123,  # type: ignore[arg-type]
+        )
+
+    @property
+    def provider_name(self) -> str:
+        return "fake"
+
+    @property
+    def model_name(self) -> str:
+        return "m"
+
+
+class _ProviderNoneCode(LLMProvider):
+    """Provider returns failure_code=None."""
+
+    def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+        return ProviderResult(
+            ok=False, provider="fake", model="m", content="",
+            error="x", failure_code=None,  # type: ignore[arg-type]
+        )
+
+    @property
+    def provider_name(self) -> str:
+        return "fake"
+
+    @property
+    def model_name(self) -> str:
+        return "m"
+
+
+class _ProviderUpstreamInvalid(LLMProvider):
+    """Provider already classifies an upstream structure error."""
+
+    def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+        return ProviderResult(
+            ok=False, provider="fake", model="m", content="",
+            error="x", failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
+        )
+
+    @property
+    def provider_name(self) -> str:
+        return "fake"
+
+    @property
+    def model_name(self) -> str:
+        return "m"
+
+
+@pytest.fixture
+def mvp_arbitrary_server():
+    port = _free_port()
+    server = create_app(
+        site_id="bukgu_gwangju", provider="mock", snapshot=None,
+        host="127.0.0.1", port=port, mvp_provider=_ProviderArbitraryCode(),
+    )
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    time.sleep(0.3)
+    yield {"port": port, "server": server}
+    server.shutdown()
+    server.server_close()
+
+
+@pytest.fixture
+def mvp_nonstring_server():
+    port = _free_port()
+    server = create_app(
+        site_id="bukgu_gwangju", provider="mock", snapshot=None,
+        host="127.0.0.1", port=port, mvp_provider=_ProviderNonStringCode(),
+    )
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    time.sleep(0.3)
+    yield {"port": port, "server": server}
+    server.shutdown()
+    server.server_close()
+
+
+@pytest.fixture
+def mvp_none_server():
+    port = _free_port()
+    server = create_app(
+        site_id="bukgu_gwangju", provider="mock", snapshot=None,
+        host="127.0.0.1", port=port, mvp_provider=_ProviderNoneCode(),
+    )
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    time.sleep(0.3)
+    yield {"port": port, "server": server}
+    server.shutdown()
+    server.server_close()
+
+
+@pytest.fixture
+def mvp_upstream_invalid_server():
+    port = _free_port()
+    server = create_app(
+        site_id="bukgu_gwangju", provider="mock", snapshot=None,
+        host="127.0.0.1", port=port, mvp_provider=_ProviderUpstreamInvalid(),
+    )
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    time.sleep(0.3)
+    yield {"port": port, "server": server}
+    server.shutdown()
+    server.server_close()
+
+
+class TestMvpEndpointSanitizedFailureCode:
+    def _post(self, port, question="불법 주정차 신고 어디서 해요?"):
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        body = json.dumps({"question": question}).encode()
+        conn.request("POST", "/api/mvp/ask", body=body,
+                     headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        data = json.loads(resp.read())
+        conn.close()
+        return resp, data
+
+    def test_outer_endpoint_fallback_is_provider_exception(self, mvp_failure_leak_server):
+        # Force decide_mvp_action itself to raise so the outer endpoint
+        # except fallback is exercised.
+        import src.llm.bukgu_mvp_router as router_mod
+        port = mvp_failure_leak_server["port"]
+        server = mvp_failure_leak_server["server"]
+        real_decide = router_mod.decide_mvp_action
+
+        def _boom(question, provider):
+            raise RuntimeError("endpoint-level boom")
+
+        try:
+            router_mod.decide_mvp_action = _boom
+            resp, data = self._post(port)
+        finally:
+            router_mod.decide_mvp_action = real_decide
+        assert resp.status == 200
+        assert data["ok"] is False
+        assert data["action"] == "none"
+        assert data["failure_code"] == FAILURE_PROVIDER_EXCEPTION
+
+    def test_arbitrary_code_collapses_to_unknown(self, mvp_arbitrary_server):
+        port = mvp_arbitrary_server["port"]
+        resp, data = self._post(port)
+        assert resp.status == 200
+        assert data["ok"] is False
+        assert data["failure_code"] == FAILURE_UNKNOWN
+
+    def test_nonstring_code_collapses_to_unknown(self, mvp_nonstring_server):
+        port = mvp_nonstring_server["port"]
+        resp, data = self._post(port)
+        assert resp.status == 200
+        assert data["ok"] is False
+        assert data["failure_code"] == FAILURE_UNKNOWN
+
+    def test_none_code_collapses_to_unknown(self, mvp_none_server):
+        port = mvp_none_server["port"]
+        resp, data = self._post(port)
+        assert resp.status == 200
+        assert data["ok"] is False
+        assert data["failure_code"] == FAILURE_UNKNOWN
+
+    def test_toplevel_list_is_invalid_upstream_response(self, mvp_upstream_invalid_server):
+        port = mvp_upstream_invalid_server["port"]
+        resp, data = self._post(port)
+        assert resp.status == 200
+        # A classified upstream structure error must pass through the endpoint
+        # unchanged (not re-mapped to unknown).
+        assert data["ok"] is False
+        assert data["action"] == "none"
+        assert data["failure_code"] == FAILURE_INVALID_UPSTREAM_RESPONSE
+
+    def test_every_ok_false_response_uses_closed_vocabulary(self, mvp_failure_leak_server):
+        # Exercise the provider failure path (timeout) and assert the code is
+        # part of the closed vocabulary.
+        port = mvp_failure_leak_server["port"]
+        resp, data = self._post(port)
+        assert resp.status == 200
+        assert data["ok"] is False
+        assert is_valid_failure_code(data["failure_code"])
+        # Also assert the closed vocabulary across a representative set of
+        # upstream-driven failures returned through the endpoint.
+        for code in (
+            FAILURE_CONFIGURATION,
+            FAILURE_TIMEOUT,
+            FAILURE_AUTH_OR_PERMISSION,
+            FAILURE_RATE_LIMITED,
+            FAILURE_UPSTREAM_4XX,
+            FAILURE_UPSTREAM_5XX,
+            FAILURE_TRANSPORT_ERROR,
+            FAILURE_INVALID_UPSTREAM_RESPONSE,
+            FAILURE_INVALID_MVP_DECISION,
+            FAILURE_PROVIDER_EXCEPTION,
+            FAILURE_UNKNOWN,
+        ):
+            assert is_valid_failure_code(code)
 
 
 class TestFailureVocabulary:

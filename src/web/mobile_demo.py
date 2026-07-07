@@ -266,6 +266,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
         )
         from src.llm.openai_compatible_provider import (
             FAILURE_CONFIGURATION,
+            FAILURE_PROVIDER_EXCEPTION,
         )
 
         provider = self.mvp_provider
@@ -295,7 +296,10 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             decision = decide_mvp_action(question, provider)
         except Exception:
             decision = MvpActionDecision(
-                answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0
+                answer=MVP_FAILURE_ANSWER,
+                action="none",
+                confidence=0.0,
+                failure_code=FAILURE_PROVIDER_EXCEPTION,
             )
 
         self._json_response({
