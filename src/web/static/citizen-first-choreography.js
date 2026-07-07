@@ -110,13 +110,15 @@
     _currentStep = index;
     var step = _steps[index];
 
-    // Clear highlights from previous step before executing this one
-    _clearHighlights();
-
     // Show chat message
     _appendChatMessage("ai", step.message);
 
     // Execute DOM action
+    // Clear previous highlights only for non-terminal steps that change the DOM.
+    // Terminal (message-only) steps preserve the previous highlight.
+    if (step.routeId || step.targetId) {
+      _clearHighlights();
+    }
     if (step.routeId) {
       var canvas = window.CitizenActionDemoCanvas;
       if (canvas && canvas.navigateToRoute) {

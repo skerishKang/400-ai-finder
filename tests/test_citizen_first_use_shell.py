@@ -158,3 +158,36 @@ def test_choreography_final_target_appears_after_route_and_before_completion():
     assert CHOREO.index("complaint-category-illegal-parking") < CHOREO.index(
         "안내가 완료되었습니다"
     )
+
+
+def test_choreography_terminal_step_preserves_highlight():
+    """The completion step (no routeId/targetId) must not call _clearHighlights.
+    _clearHighlights must be guarded by a routeId-or-targetId condition so
+    message-only terminal steps preserve the previous step's highlight."""
+    # Verify the guard: _clearHighlights only runs when step has routeId or targetId
+    assert "step.routeId || step.targetId" in CHOREO
+    # Verify that a line matching the guard is directly followed by _clearHighlights
+    choreo_lines = CHOREO.splitlines()
+    guard_found = False
+    for i, line in enumerate(choreo_lines):
+        if "step.routeId || step.targetId" in line and "{" in line:
+            for j in range(i + 1, min(i + 5, len(choreo_lines))):
+                stripped = choreo_lines[j].strip()
+                if stripped and not stripped.startswith("//") and not stripped.startswith("*"):
+                    assert "_clearHighlights" in stripped, (
+                        f"_clearHighlights must follow the guard; found '{stripped}'"
+                    )
+                    guard_found = True
+                    break
+            break
+    assert guard_found, "Guard condition for _clearHighlights not found"
+
+
+def test_choreography_cancel_still_clears_highlights():
+    """cancel() must still call _clearHighlights even though terminal steps
+    skip it. Verify _clearHighlights appears in the cancel function body."""
+    # Find the cancel function and check _clearHighlights is called inside it
+    cancel_start = CHOREO.index("function cancel()")
+    cancel_end = CHOREO.index("function getState()")
+    cancel_body = CHOREO[cancel_start:cancel_end]
+    assert "_clearHighlights" in cancel_body, "cancel() must call _clearHighlights"
