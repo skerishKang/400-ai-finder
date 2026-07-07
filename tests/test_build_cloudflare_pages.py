@@ -130,6 +130,40 @@ def test_snapshot_data_has_demo_profiles(build_dir):
     assert site_ids == ["bukgu_gwangju"], f"demo exposes more than one profile: {site_ids}"
 
 
+def test_static_first_use_shell_files_exist(build_dir):
+    """#921: First-use shell and choreography files must be present in the
+    emitted Pages artifact static directory after a build."""
+    static = os.path.join(build_dir, "static")
+    required = [
+        "citizen-action-demo.html",
+        "citizen-first-use-shell.js",
+        "citizen-first-use-shell.css",
+        "citizen-first-choreography.js",
+    ]
+    for name in required:
+        assert os.path.isfile(os.path.join(static, name)), f"missing static/{name}"
+
+
+def test_static_html_loads_first_use_shell_in_order(build_dir):
+    """#921: The emitted citizen-action-demo.html must load the first-use
+    shell script before the choreography script."""
+    html_path = os.path.join(build_dir, "static", "citizen-action-demo.html")
+    html = open(html_path, encoding="utf-8").read()
+    shell_idx = html.index("citizen-first-use-shell.js")
+    choreo_idx = html.index("citizen-first-choreography.js")
+    assert shell_idx < choreo_idx, (
+        "citizen-first-use-shell.js must load before citizen-first-choreography.js"
+    )
+
+
+def test_static_html_has_first_use_css(build_dir):
+    """#921: The emitted citizen-action-demo.html must reference the first-use
+    shell CSS."""
+    html_path = os.path.join(build_dir, "static", "citizen-action-demo.html")
+    html = open(html_path, encoding="utf-8").read()
+    assert "citizen-first-use-shell.css" in html
+
+
 def test_admin_model_preset_disabled(build_dir):
     admin = open(os.path.join(build_dir, "admin.html"), encoding="utf-8").read()
     assert "Snapshot 데모 · 모델 전환 없음" in admin
