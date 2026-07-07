@@ -491,6 +491,39 @@ const FAILURE_DIAGNOSTIC_CANARIES = [
   "CANARY_TOKEN_MUST_NOT_RENDER",
 ];
 
+// Untrusted answer text that a malicious/failure response might try to inject
+// into the citizen chat DOM despite ok:false.
+const FAILURE_ANSWER_CANARIES = [
+  "CANARY_FAILURE_ANSWER_MUST_NOT_RENDER",
+  "https://private.invalid/failure",
+  "CANARY_FAILURE_TOKEN",
+];
+
+// Shared assertion: the rendered shell must show the generic Korean failure
+// message and must NOT expose any of the supplied forbidden strings, checked
+// both against the whole rendered body aggregate and the aggregated AI bubble
+// text (the actual chat bubble path the shell produces).
+function assertFailureHidden(visibleText, aiText, forbidden, label) {
+  assert.ok(
+    visibleText.includes("현재 AI 안내를 연결하지 못했습니다."),
+    `${label}: generic Korean failure must be visible in rendered body`,
+  );
+  assert.ok(
+    aiText.includes("현재 AI 안내를 연결하지 못했습니다."),
+    `${label}: generic Korean failure must be in AI bubble text`,
+  );
+  for (const canary of forbidden) {
+    assert.ok(
+      !visibleText.includes(canary),
+      `${label}: forbidden string '${canary}' must NOT appear in body text`,
+    );
+    assert.ok(
+      !aiText.includes(canary),
+      `${label}: forbidden string '${canary}' must NOT appear in AI bubble text`,
+    );
+  }
+}
+
 async function scenarioFailureDiagnosticHidden(failureCode) {
   const bridge = makeResolvingBridge({
     ok: false,
@@ -513,54 +546,26 @@ async function scenarioFailureDiagnosticHidden(failureCode) {
   submit(s, "불법 주정차 신고는 어디서 하나요?");
   await flush();
 
-  // (A) The generic Korean failure answer must be visible in the rendered
-  // shell. We inspect the real DOM aggregate (document.body.textContent) which
-  // now includes the chat-thread subtree, not the detached fake body.
   const visibleText = s.doc.body.textContent;
-  assert.ok(
-    visibleText.includes("현재 AI 안내를 연결하지 못했습니다."),
-    `failure(${failureCode}): generic Korean answer must be visible in rendered body`,
-  );
-
-  // (B) No diagnostic canary string may appear in the rendered body text.
-  // The actual failure_code (e.g. "timeout"/"unknown") is itself forbidden so
-  // that each case cannot leak its own code into the rendered DOM.
-  const forbiddenDiagnostics = [failureCode, ...FAILURE_DIAGNOSTIC_CANARIES];
-  for (const canary of forbiddenDiagnostics) {
-    assert.ok(
-      !visibleText.includes(canary),
-      `failure(${failureCode}): diagnostic canary '${canary}' must NOT appear in body text`,
-    );
-  }
-
-  // (C) Same canary-absence check against the aggregated AI chat bubble text.
   const aiText = aiBubbleTexts(s).join("");
-  assert.ok(
-    aiText.includes("현재 AI 안내를 연결하지 못했습니다."),
-    `failure(${failureCode}): generic Korean answer must be in AI bubble text`,
-  );
-  for (const canary of forbiddenDiagnostics) {
-    assert.ok(
-      !aiText.includes(canary),
-      `failure(${failureCode}): diagnostic canary '${canary}' must NOT appear in AI bubble text`,
-    );
-  }
+  const forbiddenDiagnostics = [failureCode, ...FAILURE_DIAGNOSTIC_CANARIES];
+  assertFailureHidden(visibleText, aiText, forbiddenDiagnostics, `failure(${failureCode})`);
 
-  // (D) action="none" failure must not start choreography.
+  // action="none" failure must not start choreography.
   assert.strictEqual(
     choreo.startCalls.length,
     0,
     `failure(${failureCode}): choreography must NOT start on failure`,
   );
 
-  // (E) Shell must stay in entry state (not split).
+  // Shell must stay in entry state (not split).
   assert.strictEqual(
     s.win.CitizenFirstUseShell.getState(),
     "entry",
     `failure(${failureCode}): shell must stay in entry (no split)`,
   );
 
-  // (F) Left canvas must remain hidden/inert.
+  // Left canvas must remain hidden/inert.
   assert.strictEqual(
     canvasAriaHidden(s),
     "true",
@@ -568,6 +573,119 @@ async function scenarioFailureDiagnosticHidden(failureCode) {
   );
 
   console.log(`  [6] failure diagnostics hidden (${failureCode}): OK`);
+}
+
+// ── Scenario: untrusted failure answer must never reach the citizen DOM ──
+// A failure response (ok:false) that also carries a non-empty `answer` must
+// still fail closed to the generic Korean message. The attacker-controlled
+// answer text, raw URL, and token canaries must not appear in the rendered
+// shell nor in the AI chat bubble.
+
+async function scenarioFailureUntrustedAnswer() {
+  const failureCode = "unknown";
+  const bridge = makeResolvingBridge({
+    ok: false,
+    question: "테스트 질문",
+    answer:
+      "CANARY_FAILURE_ANSWER_MUST_NOT_RENDER https://private.invalid/failure Authorization: Bearer CANARY_FAILURE_TOKEN",
+    action: "none",
+    confidence: 0.0,
+    failure_code: failureCode,
+    error: "CANARY_SECRET_MUST_NOT_RENDER",
+    upstream_url: "https://private.invalid/forbidden",
+    authorization: "Authorization: Bearer CANARY_TOKEN_MUST_NOT_RENDER",
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1",
+    reducedMotion: true,
+    bridge,
+    choreo,
+  });
+  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  await flush();
+
+  const visibleText = s.doc.body.textContent;
+  const aiText = aiBubbleTexts(s).join("");
+  const forbidden = [
+    failureCode,
+    ...FAILURE_DIAGNOSTIC_CANARIES,
+    ...FAILURE_ANSWER_CANARIES,
+  ];
+  assertFailureHidden(visibleText, aiText, forbidden, "failure(untrusted answer)");
+
+  // action="none" failure must not start choreography.
+  assert.strictEqual(
+    choreo.startCalls.length,
+    0,
+    "failure(untrusted answer): choreography must NOT start on failure",
+  );
+
+  // Shell must stay in entry state (not split).
+  assert.strictEqual(
+    s.win.CitizenFirstUseShell.getState(),
+    "entry",
+    "failure(untrusted answer): shell must stay in entry (no split)",
+  );
+
+  // Left canvas must remain hidden/inert.
+  assert.strictEqual(
+    canvasAriaHidden(s),
+    "true",
+    "failure(untrusted answer): left clone must remain hidden/inert",
+  );
+
+  console.log("  [7] failure untrusted answer hidden: OK");
+}
+
+// ── Scenario: explicit success but blank answer must fail closed ──
+// An ok:true result with a blank/whitespace-only answer must NOT show the
+// empty answer; it must fall back to the generic Korean failure message.
+
+async function scenarioSuccessBlankAnswer() {
+  const bridge = makeResolvingBridge({
+    ok: true,
+    question: "테스트 질문",
+    answer: "   ",
+    action: "none",
+    confidence: 0.5,
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1",
+    reducedMotion: true,
+    bridge,
+    choreo,
+  });
+  submit(s, "오늘 날씨 어떠세요?");
+  await flush();
+
+  const visibleText = s.doc.body.textContent;
+  const aiText = aiBubbleTexts(s).join("");
+  assertFailureHidden(visibleText, aiText, [], "success(blank answer)");
+
+  // Blank-answer success (action=none) must not start choreography.
+  assert.strictEqual(
+    choreo.startCalls.length,
+    0,
+    "success(blank answer): choreography must NOT start",
+  );
+
+  // Shell must stay in entry state (not split).
+  assert.strictEqual(
+    s.win.CitizenFirstUseShell.getState(),
+    "entry",
+    "success(blank answer): shell must stay in entry (no split)",
+  );
+
+  // Left canvas must remain hidden/inert.
+  assert.strictEqual(
+    canvasAriaHidden(s),
+    "true",
+    "success(blank answer): left clone must remain hidden/inert",
+  );
+
+  console.log("  [8] success blank answer fails closed: OK");
 }
 
 async function main() {
@@ -579,6 +697,8 @@ async function main() {
   await scenarioDefaultModeRegression();
   await scenarioFailureDiagnosticHidden("timeout");
   await scenarioFailureDiagnosticHidden("unknown");
+  await scenarioFailureUntrustedAnswer();
+  await scenarioSuccessBlankAnswer();
   console.log("All MVP shell runtime scenarios passed.");
 }
 

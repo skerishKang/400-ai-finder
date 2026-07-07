@@ -303,9 +303,18 @@
       bridge.ask(question).then(function (result) {
         if (token !== _mvpRequestToken) return; // late/aborted response ignored
         setComposerDisabled(false);
-        // 5. assistant bubble MUST show the server's model answer
-        var answer = (result && result.answer)
-          ? result.answer
+        // 5. assistant bubble MUST show the server's model answer, but only
+        // for an explicit success. Any other result (ok:false, missing,
+        // malformed, rejected, or ok:true with a blank answer) fails closed to
+        // the generic Korean message so untrusted diagnostic/answer text never
+        // reaches the citizen chat DOM.
+        var isExplicitSuccess = result && result.ok === true;
+        var answer = (
+          isExplicitSuccess &&
+          typeof result.answer === "string" &&
+          result.answer.trim()
+        )
+          ? result.answer.trim()
           : "현재 AI 안내를 연결하지 못했습니다.";
         appendChatMessage("ai", answer);
         // 4. inspect action; only the two approved actions move the clone
