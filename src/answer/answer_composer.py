@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from typing import Any
 
 from ..llm import LLMProvider, ProviderResult, get_provider
+from ..observability import get_event_logger, log_pipeline_event
 from .url_guard import assess_url_allowlist
 
 # ------------------------------------------------------------------
@@ -90,6 +92,7 @@ class AnswerComposer:
         self,
         search_result_json: str | dict[str, Any],
         max_sources: int | None = None,
+        correlation_id: str | None = None,
     ) -> dict[str, Any]:
         """Run the full composition pipeline.
 
@@ -97,6 +100,9 @@ class AnswerComposer:
             search_result_json: Either a JSON string or a parsed dict
                                 from the Stage 5 keyword search output.
             max_sources: Override the default max_sources for this call.
+            correlation_id: Optional opaque operational join key. When
+                provided (including an empty string), a terminal
+                pipeline_stage_end / pipeline_stage_fail event is emitted.
 
         Returns:
             A result dict with keys:
@@ -107,6 +113,34 @@ class AnswerComposer:
         query = data.get("query", "")
         results = data.get("results", [])
 
+        # --- Terminal event helper ---
+        event_logger = None
+        started_at = None
+        if correlation_id is not None:
+            event_logger = get_event_logger(__name__)
+            started_at = time.perf_counter()
+
+        def _finish(
+            result: dict[str, Any],
+            failure_code: str | None = None,
+        ) -> dict[str, Any]:
+            if event_logger is not None:
+                event_name = "pipeline_stage_end" if result.get("ok") else "pipeline_stage_fail"
+                kwargs: dict[str, Any] = {
+                    "duration_ms": int((time.perf_counter() - started_at) * 1000),
+                }
+                if failure_code is not None:
+                    kwargs["failure_code"] = failure_code
+                log_pipeline_event(
+                    event_logger,
+                    event=event_name,
+                    correlation_id=correlation_id,
+                    stage="answer_composer",
+                    ok=bool(result.get("ok")),
+                    **kwargs,
+                )
+            return result
+
         # --- Extract sources ---
         sources = self._extract_sources(results, max_sources or self._max_sources)
 
@@ -115,7 +149,7 @@ class AnswerComposer:
             guidance = self._build_no_source_guidance(query)
             guidance["guard_status"] = "no_results"
             guidance["guard_reason"] = "No sources retrieved"
-            return guidance
+            return _finish(guidance)
 
         # --- Source match guard ---
         from ..search.source_match_guard import assess_source_match
@@ -132,7 +166,7 @@ class AnswerComposer:
             no_res["warnings"] = [assessment.reason]
             no_res["guard_status"] = assessment.status
             no_res["guard_reason"] = assessment.reason
-            return no_res
+            return _finish(no_res)
 
         guard_warnings = []
         if assessment.status == "warn":
@@ -151,7 +185,7 @@ class AnswerComposer:
 
         # --- Build output ---
         if not provider_result.ok:
-            return {
+            return _finish({
                 "query": query,
                 "provider": provider_result.provider,
                 "model": provider_result.model,
@@ -162,13 +196,13 @@ class AnswerComposer:
                 "error": provider_result.error,
                 "guard_status": assessment.status,
                 "guard_reason": assessment.reason,
-            }
+            }, failure_code="answer_provider_failed")
 
         # --- URL allowlist guard ---
         url_assessment = assess_url_allowlist(provider_result.content, sources)
 
         if not url_assessment["passed"]:
-            return {
+            return _finish({
                 "query": query,
                 "provider": provider_result.provider,
                 "model": provider_result.model,
@@ -179,9 +213,9 @@ class AnswerComposer:
                 "error": "untrusted_output_url",
                 "guard_status": "blocked_untrusted_output_url",
                 "guard_reason": "Provider output contained a URL that is not an exact retrieved source URL.",
-            }
+            }, failure_code="answer_untrusted_output_url")
 
-        return {
+        return _finish({
             "query": query,
             "provider": provider_result.provider,
             "model": provider_result.model,
@@ -192,7 +226,7 @@ class AnswerComposer:
             "error": "",
             "guard_status": assessment.status,
             "guard_reason": assessment.reason,
-        }
+        })
 
     # ------------------------------------------------------------------
     # Internal helpers

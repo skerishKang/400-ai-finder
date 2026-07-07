@@ -374,7 +374,7 @@ class HomepageMapper:
             # 6. Set stats
             result["stats"]["sitemap_url_count"] = result["sitemap"]["url_count"]
             result["stats"]["navigation_link_count"] = len(result["homepage"]["navigation_links"])
-                result["stats"]["attachment_count"] = len(result["homepage"]["attachment_links"])
+            result["stats"]["attachment_count"] = len(result["homepage"]["attachment_links"])
 
             for cat_val in result["stats"]["category_counts"]:
                 result["stats"]["category_counts"][cat_val] = len(result["categories"][cat_val])

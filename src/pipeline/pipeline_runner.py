@@ -158,7 +158,7 @@ class PipelineRunner:
 
             # Step 5 — answer
             stage_started_at = _log_stage_start("answer")
-            step = self._step_answer(query, step["output"])
+            step = self._step_answer(query, step["output"], correlation_id=run_correlation_id)
             steps.append(step)
             _log_stage_end("answer", stage_started_at, step["ok"])
 
@@ -415,7 +415,12 @@ class PipelineRunner:
 
         return all_results
 
-    def _step_answer(self, query: str, search_path: str) -> dict[str, Any]:
+    def _step_answer(
+        self,
+        query: str,
+        search_path: str,
+        correlation_id: str | None = None,
+    ) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "answer.json")
         md_output = os.path.join(self.output_dir, "answer.md")
         try:
@@ -425,7 +430,11 @@ class PipelineRunner:
                 max_sources=self.max_sources,
                 model=self.model,
             )
-            result = composer.compose(search_data, max_sources=self.max_sources)
+            result = composer.compose(
+                search_data,
+                max_sources=self.max_sources,
+                correlation_id=correlation_id,
+            )
             self._write_json(output, result)
             with open(md_output, "w", encoding="utf-8") as f:
                 f.write(result.get("answer_markdown", ""))
