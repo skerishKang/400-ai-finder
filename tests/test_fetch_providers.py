@@ -338,8 +338,278 @@ class TestRequestsFetchProvider:
 
 
 # ======================================================================
-# Stage 35: Header handling tests
+# Issue #905: RequestsFetchProvider compatibility (legacy) controls
 # ======================================================================
+
+class TestRequestsCompatMode:
+    """Opt-in legacy-compat path: forward caller headers/timeout, preserve
+    HTTP-error payload, and suppress the provider's HTTP-400 Sec-Fetch retry.
+
+    Default fetch behavior must remain unchanged (see TestRequestsHeaderDefaults,
+    TestRequestsRetryOn400, TestRequestsFetchProviderConfigRetry above).
+    """
+
+    # --- A. default behavior regression (compat is truly opt-in) ---
+    def test_default_error_does_not_preserve_payload(self):
+        """Absent opt-in, an HTTP error returns a lean result without body."""
+
+        def fake_get(url, headers, timeout):
+            class FakeResponse:
+                status_code = 500
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html; charset=utf-8"}
+                    self.url = url
+                    self.text = "<html><body>failure body</body></html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            result = provider.fetch("https://example.com/")
+
+        assert result.ok is False
+        assert result.status_code == 500
+        # Default path keeps the empty-body contract.
+        assert result.html == ""
+        assert result.text == ""
+
+    def test_default_400_still_retries(self):
+        """Default path still performs the Sec-Fetch retry on HTTP 400."""
+
+        def fake_get(url, headers, timeout):
+            class FakeResponse:
+                status_code = 400
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+                    self.text = ""
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            result = provider.fetch("https://example.com/")
+
+        # Default behavior: 400 -> single attempt, no retry, error result.
+        assert result.ok is False
+        assert "HTTP 400" in result.error
+
+    # --- B. compatibility headers / timeout forwarding ---
+    def test_compat_forwards_caller_headers_and_timeout(self):
+        captured = {}
+
+        def fake_get(url, headers, timeout):
+            captured["headers"] = dict(headers)
+            captured["timeout"] = timeout
+
+            class FakeResponse:
+                status_code = 200
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html; charset=utf-8"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body>ok</body></html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            provider.fetch(
+                "https://example.com/",
+                headers={"User-Agent": "compat-agent", "X-Compat": "1"},
+                timeout=7,
+                disable_status_retry=True,
+            )
+
+        h = captured["headers"]
+        # Caller values win on collision (User-Agent overridden).
+        assert h["User-Agent"] == "compat-agent"
+        assert h["X-Compat"] == "1"
+        # Base required default headers are preserved.
+        assert "Accept" in h
+        assert "Accept-Language" in h
+        assert "Accept-Encoding" in h
+        assert h.get("Connection") == "keep-alive"
+        assert h.get("Upgrade-Insecure-Requests") == "1"
+        # Caller timeout is reflected in the actual request.
+        assert captured["timeout"] == (5.0, 7)
+
+    def test_compat_user_agent_caller_priority(self):
+        """Caller-provided User-Agent overrides the provider default."""
+        captured = {}
+
+        def fake_get(url, headers, timeout):
+            captured["headers"] = dict(headers)
+
+            class FakeResponse:
+                status_code = 200
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html></html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider(user_agent="DefaultBot/1.0")
+            provider.fetch(
+                "https://example.com/",
+                headers={"User-Agent": "compat-agent"},
+                preserve_http_error_payload=True,
+            )
+
+        assert captured["headers"]["User-Agent"] == "compat-agent"
+
+    # --- C. HTTP error payload preservation ---
+    def test_compat_preserves_error_payload(self):
+        error_html = "<html><title>Error page</title><body>failure body</body></html>"
+
+        def fake_get(url, headers, timeout):
+            class FakeResponse:
+                status_code = 500
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html; charset=utf-8"}
+                    self.url = "https://example.com/final-error"
+                    self.text = error_html
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/start",
+                disable_status_retry=True,
+            )
+
+        assert result.ok is False
+        assert result.status_code == 500
+        assert result.url == "https://example.com/final-error"
+        assert "text/html" in result.content_type
+        # Raw body preserved for later parsing (e.g. URLCrawler adapter).
+        assert result.html != ""
+        assert "failure body" in result.html
+        assert result.text != ""
+        assert "failure body" in result.text
+
+    def test_compat_preserves_payload_via_explicit_flag(self):
+        """preserve_http_error_payload alone (without disable_status_retry) also keeps the body."""
+        error_html = "<html><body>payload</body></html>"
+
+        def fake_get(url, headers, timeout):
+            class FakeResponse:
+                status_code = 404
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+                    self.text = error_html
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/missing",
+                preserve_http_error_payload=True,
+            )
+
+        assert result.ok is False
+        assert result.status_code == 404
+        assert "payload" in result.html
+
+    # --- D. HTTP 400 retry suppression ---
+    def test_compat_suppresses_400_status_retry(self):
+        call_count = {"n": 0}
+        captured_headers = []
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+            captured_headers.append(dict(headers))
+
+            class FakeResponse:
+                status_code = 400
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html; charset=utf-8"}
+                    self.url = url
+                    self.text = "<html><body>bad request</body></html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                disable_status_retry=True,
+            )
+
+        # Exactly one request, no provider-managed Sec-Fetch retry.
+        assert call_count["n"] == 1
+        assert "Sec-Fetch-Dest" not in captured_headers[0]
+        assert result.ok is False
+        assert result.status_code == 400
+        # Status and payload preserved.
+        assert "bad request" in result.html
+
+    # --- E. explicit FetchConfig regression ---
+    def test_config_plus_compat_raises_clear_error(self):
+        """Unsupported combo (FetchConfig + compat opts) is rejected clearly, not silently ignored."""
+        provider = RequestsFetchProvider()
+        with pytest.raises(ValueError, match="Compatibility options"):
+            provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=1),
+                disable_status_retry=True,
+            )
+
+    def test_config_without_compat_keeps_retry_behavior(self):
+        """A plain FetchConfig call (no compat opts) retains its retry behavior."""
+        call_count = {"n": 0}
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+
+            class FakeResponse:
+                encoding = "utf-8"
+
+                def __init__(self, sc):
+                    self.status_code = sc
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html>ok</html>"
+
+            return FakeResponse(503 if call_count["n"] == 1 else 200)
+
+        with patch("requests.get", side_effect=fake_get), patch("time.sleep"):
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=1, retry_on_status=(503,)),
+            )
+
+        assert result.ok is True
+        assert call_count["n"] == 2
+
 
 class TestRequestsHeaderDefaults:
     """Stage 35: Browser-like default headers for RequestsFetchProvider."""

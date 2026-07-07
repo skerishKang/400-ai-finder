@@ -132,6 +132,22 @@ class RequestsFetchProvider(FetchProvider):
         config: FetchConfig | None = None,
         **kwargs: Any,
     ) -> FetchResult:
+        # --- Compatibility (legacy) opt-in controls ---
+        # Narrow, explicit opt-ins used when a caller (e.g. a future
+        # URLCrawler/HomepageMapper adapter) wants to forward its own
+        # headers/timeout, preserve the raw HTTP-error body, and suppress the
+        # provider's HTTP-400 Sec-Fetch retry. They never change default fetch
+        # behavior. Either flag activates the compatibility request path.
+        caller_headers = kwargs.get("headers")
+        preserve_http_error_payload = bool(kwargs.get("preserve_http_error_payload", False))
+        disable_status_retry = bool(kwargs.get("disable_status_retry", False))
+        compat_mode = preserve_http_error_payload or disable_status_retry
+        if compat_mode and config is not None:
+            raise ValueError(
+                "Compatibility options (preserve_http_error_payload/disable_status_retry) "
+                "cannot be combined with FetchConfig; choose one request path."
+            )
+
         raw_timeout = config.timeout if config is not None else kwargs.get("timeout", self.timeout)
         timeout = self._split_timeout(raw_timeout)
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -147,7 +163,41 @@ class RequestsFetchProvider(FetchProvider):
             )
 
         # --- HTTP request ---
-        if config is None:
+        if compat_mode:
+            # Compatibility path: caller-managed, single request. No HTTP-400
+            # Sec-Fetch retry, and caller headers/timeout are forwarded as-is.
+            if caller_headers:
+                request_headers = dict(self.headers)
+                request_headers.update(caller_headers)
+            else:
+                request_headers = dict(self.headers)
+            try:
+                resp = self._request_once(url, timeout, request_headers)
+            except req_lib.exceptions.Timeout:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error=f"Request timed out after {timeout}s",
+                )
+            except req_lib.exceptions.RequestException as e:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error=f"Network error: {e}",
+                )
+            except Exception as e:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error=f"Unexpected error: {e}",
+                )
+        elif config is None:
             try:
                 resp = self._request_with_legacy_400_retry(url, timeout)
             except req_lib.exceptions.Timeout:
@@ -224,6 +274,21 @@ class RequestsFetchProvider(FetchProvider):
 
         # --- Handle HTTP errors ---
         if status_code >= 400:
+            # Compatibility path preserves the raw HTML/text body so a caller
+            # (e.g. URLCrawler adapter) can parse the error page without losing
+            # the payload. Default path keeps the lean error result intact.
+            if compat_mode:
+                return FetchResult(
+                    url=final_url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    status_code=status_code,
+                    content_type=content_type,
+                    html=resp.text,
+                    text=resp.text,
+                    error=f"HTTP {status_code}",
+                )
             return FetchResult(
                 url=final_url,
                 ok=False,
