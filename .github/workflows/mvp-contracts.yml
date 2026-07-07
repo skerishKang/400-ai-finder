@@ -38,6 +38,9 @@ jobs:
             tests/test_citizen_action_demo_chat_shell_contract.py \
             tests/test_citizen_action_demo_canvas.py
 
+      - name: Run crawler fallback contract tests
+        run: python -m pytest -q tests/test_crawler_fetch_fallback_contracts.py
+
       - name: Run static Pages build contract tests
         run: python -m pytest -q tests/test_build_cloudflare_pages.py
 
