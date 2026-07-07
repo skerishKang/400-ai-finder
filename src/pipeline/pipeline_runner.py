@@ -120,7 +120,7 @@ class PipelineRunner:
         try:
             # Step 1 — homepage map
             stage_started_at = _log_stage_start("homepage_map")
-            step = self._step_homepage_map(url)
+            step = self._step_homepage_map(url, correlation_id=run_correlation_id)
             steps.append(step)
             _log_stage_end("homepage_map", stage_started_at, step["ok"])
             if not step["ok"]:
@@ -282,7 +282,7 @@ class PipelineRunner:
             return None
         return None
 
-    def _step_homepage_map(self, url: str) -> dict[str, Any]:
+    def _step_homepage_map(self, url: str, correlation_id: str | None = None) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "homepage-map.json")
         try:
             # Stage 391: Resolve site profile to pass crawl_filters to HomepageMapper
@@ -307,7 +307,7 @@ class PipelineRunner:
                     fetch_provider=self.fetch_provider,
                     crawl_filters=crawl_filters,
                 )
-                result = mapper.build_map(url)
+                result = mapper.build_map(url, correlation_id=correlation_id)
                 nav_count = len(result.get("homepage", {}).get("navigation_links", []))
                 if nav_count > 0 or attempt == max_retries - 1:
                     break
