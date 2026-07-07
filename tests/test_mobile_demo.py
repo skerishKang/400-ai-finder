@@ -178,6 +178,41 @@ class TestMobileDemoHTTP:
         assert data["site_id"] == "bukgu_gwangju"
         conn.close()
 
+    def test_get_mvp_route_serves_first_use_demo(self, demo_server):
+        """GET /mvp must serve citizen-action-demo.html (the first-use shell)."""
+        port = demo_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/mvp")
+        resp = conn.getresponse()
+        body = resp.read().decode("utf-8")
+        assert resp.status == 200
+        assert "text/html" in resp.getheader("Content-Type", "")
+        assert "citizen-first-use-shell.js" in body
+        assert "citizen-first-choreography.js" in body
+        conn.close()
+
+    def test_get_mvp_route_serves_static_asset_for_query(self, demo_server):
+        """GET /mvp?mvp=1 still serves the first-use demo HTML (query ignored)."""
+        port = demo_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/mvp?mvp=1")
+        resp = conn.getresponse()
+        body = resp.read().decode("utf-8")
+        assert resp.status == 200
+        assert "citizen-first-choreography.js" in body
+        conn.close()
+
+    def test_default_root_still_mobile_demo(self, demo_server):
+        """The default static entry (GET /) must remain the mobile demo."""
+        port = demo_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/")
+        resp = conn.getresponse()
+        body = resp.read().decode("utf-8")
+        assert resp.status == 200
+        assert "composer" in body
+        conn.close()
+
     def test_get_static_base_css(self, demo_server):
         port = demo_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=5)

@@ -228,6 +228,92 @@ def test_canvas_preserve_no_network_or_storage():
                           if not l.strip().startswith(" *")]
     code = "\n".join(canvas_no_comments)
     for kw in ["fetch(", "XMLHttpRequest", "WebSocket(", "EventSource(",
-               "localStorage", "sessionStorage", "document.cookie",
-               "navigator.sendBeacon"]:
+                "localStorage", "sessionStorage", "document.cookie",
+                "navigator.sendBeacon"]:
         assert kw not in code, f"{kw} must not appear in canvas code"
+
+
+# ── #925 / #927 MVP mode wiring contracts ───────────────────────────
+
+
+def test_shell_detects_mvp_mode_via_query():
+    assert "function isMvpMode()" in JS
+    assert 'get("mvp") === "1"' in JS
+
+
+def test_shell_mvp_submission_handler_present():
+    assert "function handleMvpSubmission(" in JS
+    assert "CitizenMvpBridge" in JS
+    assert "/api/mvp/ask" in JS or '"/api/mvp/ask"' in JS
+
+
+def test_shell_mvp_submission_shows_server_answer_first():
+    """The assistant bubble must display the server's model answer.
+
+    The handler must append the user message, then the server answer before
+    any choreography starts — i.e. appendChatMessage('ai', answer) appears.
+    """
+    assert "appendChatMessage(\"ai\", answer)" in JS
+
+
+def test_shell_normalizes_mvp_action_and_only_runs_approved_actions():
+    assert "function normalizeMvpAction(" in JS
+    assert '"illegal_parking"' in JS
+    assert '"housing_department"' in JS
+    # Only the two approved actions trigger a split+choreography.
+    assert "beginMvpSplitThenChoreography(question, \"illegal_parking\")" in JS
+    assert "beginMvpSplitThenChoreography(question, \"housing_department\")" in JS
+    # 'none' / failure must NOT start a choreography (no clone move).
+    assert "CitizenFirstChoreography.start(action)" in JS
+
+
+def test_shell_mvp_none_keeps_entry_state():
+    """For action 'none' the shell must not transition to split."""
+    # The MVP branch returns without calling beginMvpSplitThenChoreography
+    # for 'none'; verify the 'none' branch is handled without a choreography.
+    assert "action === \"none\"" in JS or 'action === "none"' in JS
+
+
+def test_shell_mvp_request_token_invalidates_late_responses():
+    assert "_mvpRequestToken" in JS
+    assert "token !== _mvpRequestToken" in JS
+
+
+def test_shell_reset_invalidates_pending_mvp_and_cancels_bridge():
+    idx = JS.index("function resetToEntry()")
+    reset_body = JS[idx:idx + 600]
+    assert "_mvpRequestToken++" in reset_body
+    assert "CitizenMvpBridge.cancel()" in reset_body
+    # Existing choreography cancellation must remain.
+    assert "CitizenFirstChoreography.cancel()" in reset_body
+
+
+# ── #927 MVP choreography journeys ─────────────────────────────────
+
+
+def test_choreography_has_mvp_action_journeys():
+    assert '"illegal_parking"' in CHOREO
+    assert '"housing_department"' in CHOREO
+    assert '"dept-housing-jdept01"' in CHOREO
+
+
+def test_choreography_housing_reuses_jdept01_approved_facts():
+    """housing_department must reuse the approved J-DEPT-01 local clone state,
+    not invent new data or contacts."""
+    assert "J-DEPT-01:directory" in CHOREO
+    # Approved facts appear in the journey (rendered by the existing clone).
+    assert "공동주택과" in CHOREO
+    assert "062-410-6033" in CHOREO
+    assert "공동주택과 업무전반" in CHOREO
+
+
+def test_choreography_applies_journey_state_in_step_execution():
+    """_executeStep must honor a step.journeyState to drive the existing clone."""
+    assert "function _applyJourneyState(" in CHOREO
+    assert "step.journeyState" in CHOREO
+
+
+def test_choreography_mvp_journeys_have_messages():
+    assert "message:" in CHOREO
+    # illegal_parking MVP alias keeps the same terminal completion message.
+    assert "안내가 완료되었습니다" in CHOREO

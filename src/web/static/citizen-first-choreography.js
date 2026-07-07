@@ -54,6 +54,37 @@
         Object.freeze({ message: "안내가 완료되었습니다. 새로운 문의는 '새 대화'를 선택해 주세요." }),
       ]),
     }),
+    // #927 MVP action aliases — same deterministic local clone as above.
+    "illegal_parking": Object.freeze({
+      id: "complaint-illegal-parking",
+      description: "불법 주정차 신고 민원 신청 경로 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "민원 신청 경로를 안내해 드리겠습니다.", delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
+        Object.freeze({ message: "민원 안내를 위해 유형 선택 버튼을 안내합니다.", targetId: "nav-complaint-category", delayMs: 2000 }),
+        Object.freeze({ message: "민원 유형 선택 페이지로 이동합니다.", routeId: "complaint-category", delayMs: 1200 }),
+        Object.freeze({ message: "불법 주정차 신고 항목을 확인합니다.", targetId: "complaint-category-illegal-parking", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 새로운 문의는 '새 대화'를 선택해 주세요." }),
+      ]),
+    }),
+    // #927 MVP action — reuse the approved J-DEPT-01 local clone state
+    // (북구소개 > 구청안내 > 업무 및 전화번호 안내, 검색어 공동주택 →
+    // 공동주택과 / 062-410-6033 / 공동주택과 업무전반). No new external data.
+    "housing_department": Object.freeze({
+      id: "dept-housing-jdept01",
+      description: "공동주택과 담당 부서·전화번호 안내 (J-DEPT-01 재사용)",
+      steps: Object.freeze([
+        Object.freeze({
+          message: "공동주택 담당 부서 안내 경로를 안내해 드리겠습니다.",
+          journeyState: "J-DEPT-01:directory",
+          delayMs: 1500,
+        }),
+        Object.freeze({
+          message: "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.",
+        }),
+      ]),
+    }),
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -100,6 +131,29 @@
     _body.setAttribute("data-choreography-state", nextState);
   }
 
+  // #927: drive an existing local clone journey state through the public
+  // canvas API. Currently supports the approved J-DEPT-01 directory state,
+  // which renders the 공동주택과 / 062-410-6033 / 공동주택과 업무전반 facts.
+  function _applyJourneyState(journeyState) {
+    if (!journeyState || typeof journeyState !== "string") return;
+    var parts = journeyState.split(":");
+    var journey = parts[0];
+    var state = parts[1] || "";
+    if (journey === "J-DEPT-01" && (state === "directory" || state === "result" || state === "menu")) {
+      if (typeof window !== "undefined" && window.location && window.history
+          && typeof window.history.pushState === "function") {
+        var params = new URLSearchParams(window.location.search);
+        params.set("journey", "J-DEPT-01");
+        params.set("dept-state", state);
+        window.history.pushState({}, "", "?" + params.toString());
+      }
+      var canvas = window.CitizenActionDemoCanvas;
+      if (canvas && canvas.navigateToRoute) {
+        canvas.navigateToRoute("home");
+      }
+    }
+  }
+
   function _executeStep(index) {
     if (_state !== STATE_RUNNING) return;
     if (index >= _steps.length) {
@@ -134,6 +188,10 @@
           _highlightedEls.push(el);
         }
       }
+    } else if (step.journeyState) {
+      // #927: reuse an existing local clone journey state (e.g. J-DEPT-01) by
+      // driving the public canvas navigateToRoute API. No new external data.
+      _applyJourneyState(step.journeyState);
     }
 
     // Schedule next step or terminate

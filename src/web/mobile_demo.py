@@ -66,6 +66,8 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path in ("/", ""):
             self._serve_html()
+        elif parsed.path == "/mvp":
+            self._serve_citizen_demo_html()
         elif parsed.path == "/health":
             self._json_response({"ok": True, "site_id": self.site_id})
         else:
@@ -88,6 +90,19 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _serve_citizen_demo_html(self):
+        """Serve the first-use local demo page (citizen-action-demo.html).
+
+        Clients normally open this with ``?mvp=1`` to enable the model-action
+        wiring; the query string is preserved by the browser and read
+        client-side. The default static flow is unchanged when ``?mvp=1`` is
+        absent.
+        """
+        self.path = "/static/citizen-action-demo.html"
+        from .static_server import serve_static
+
+        serve_static(self)
 
     def _handle_ask(self):
         try:
