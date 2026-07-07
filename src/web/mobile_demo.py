@@ -264,6 +264,10 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             decide_mvp_action,
             is_mvp_failure,
         )
+        from src.llm.openai_compatible_provider import (
+            FAILURE_CONFIGURATION,
+            FAILURE_PROVIDER_EXCEPTION,
+        )
 
         provider = self.mvp_provider
         if provider is None:
@@ -274,7 +278,8 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             except Exception:
                 # Provider resolution failure must not 500 or traceback; return
                 # a stable HTTP 200 failure contract that can never trigger the
-                # local choreography.
+                # local choreography. The failure_code is a sanitized fixed
+                # string — never the raw ValueError text.
                 self._json_response({
                     "ok": False,
                     "question": question,
@@ -283,6 +288,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                     "confidence": 0.0,
                     "provider": self.provider,
                     "model": self.model or "",
+                    "failure_code": FAILURE_CONFIGURATION,
                 })
                 return
 
@@ -290,7 +296,10 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             decision = decide_mvp_action(question, provider)
         except Exception:
             decision = MvpActionDecision(
-                answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0
+                answer=MVP_FAILURE_ANSWER,
+                action="none",
+                confidence=0.0,
+                failure_code=FAILURE_PROVIDER_EXCEPTION,
             )
 
         self._json_response({
@@ -301,6 +310,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             "confidence": decision.confidence,
             "provider": getattr(provider, "provider_name", self.provider),
             "model": getattr(provider, "model_name", self.model or ""),
+            "failure_code": decision.failure_code,
         })
 
     def _json_response(self, data: dict, status: int = 200):

@@ -18,6 +18,45 @@ except ImportError:
 from .base import LLMProvider, ProviderResult
 
 
+# ------------------------------------------------------------------
+# Closed-vocabulary failure classification
+# ------------------------------------------------------------------
+# Every failure path maps to exactly one of these sanitized codes. None of
+# these values ever contain raw exception text, URLs, API keys, authorization
+# headers, or upstream response bodies. The operator-facing endpoint only ever
+# surfaces these fixed strings (never the ``error`` text).
+FAILURE_CONFIGURATION = "configuration"
+FAILURE_TIMEOUT = "timeout"
+FAILURE_AUTH_OR_PERMISSION = "auth_or_permission"
+FAILURE_RATE_LIMITED = "rate_limited"
+FAILURE_UPSTREAM_4XX = "upstream_4xx"
+FAILURE_UPSTREAM_5XX = "upstream_5xx"
+FAILURE_TRANSPORT_ERROR = "transport_error"
+FAILURE_INVALID_UPSTREAM_RESPONSE = "invalid_upstream_response"
+FAILURE_INVALID_MVP_DECISION = "invalid_mvp_decision"
+FAILURE_PROVIDER_EXCEPTION = "provider_exception"
+FAILURE_UNKNOWN = "unknown"
+
+_FAILURE_VOCABULARY = frozenset({
+    FAILURE_CONFIGURATION,
+    FAILURE_TIMEOUT,
+    FAILURE_AUTH_OR_PERMISSION,
+    FAILURE_RATE_LIMITED,
+    FAILURE_UPSTREAM_4XX,
+    FAILURE_UPSTREAM_5XX,
+    FAILURE_TRANSPORT_ERROR,
+    FAILURE_INVALID_UPSTREAM_RESPONSE,
+    FAILURE_INVALID_MVP_DECISION,
+    FAILURE_PROVIDER_EXCEPTION,
+    FAILURE_UNKNOWN,
+})
+
+
+def is_valid_failure_code(code: str) -> bool:
+    """Return True if ``code`` is part of the closed failure vocabulary."""
+    return code in _FAILURE_VOCABULARY
+
+
 class OpenAICompatibleProvider(LLMProvider):
     """Generic provider for OpenAI-compatible chat completion APIs.
 
@@ -95,8 +134,8 @@ class OpenAICompatibleProvider(LLMProvider):
                 provider=self._provider_label,
                 model=self._model_label,
                 content="",
-                error="LLM base URL is not configured. "
-                      "Set AI_FINDER_LLM_BASE_URL or pass base_url to the provider.",
+                error="LLM base URL is not configured.",
+                failure_code=FAILURE_CONFIGURATION,
             )
         if not self._api_key:
             return ProviderResult(
@@ -104,8 +143,8 @@ class OpenAICompatibleProvider(LLMProvider):
                 provider=self._provider_label,
                 model=self._model_label,
                 content="",
-                error="LLM API key is not configured. "
-                      "Set AI_FINDER_LLM_API_KEY or pass api_key to the provider.",
+                error="LLM API key is not configured.",
+                failure_code=FAILURE_CONFIGURATION,
             )
         if not self._model:
             return ProviderResult(
@@ -113,8 +152,8 @@ class OpenAICompatibleProvider(LLMProvider):
                 provider=self._provider_label,
                 model=self._model_label,
                 content="",
-                error="LLM model is not configured. "
-                      "Set AI_FINDER_LLM_MODEL or pass model to the provider.",
+                error="LLM model is not configured.",
+                failure_code=FAILURE_CONFIGURATION,
             )
 
         # --- Build request ---
@@ -138,35 +177,49 @@ class OpenAICompatibleProvider(LLMProvider):
                 provider=self._provider_label,
                 model=self._model_label,
                 content="",
-                error=f"LLM request timed out after {req_timeout}s. "
-                      "Try increasing AI_FINDER_LLM_TIMEOUT.",
+                error="LLM request timed out.",
+                failure_code=FAILURE_TIMEOUT,
             )
         except requests.exceptions.HTTPError as e:
             status = e.response.status_code if e.response is not None else "?"
+            try:
+                status_int = int(status)
+            except (TypeError, ValueError):
+                status_int = None
+            if status_int == 401 or status_int == 403:
+                code = FAILURE_AUTH_OR_PERMISSION
+            elif status_int == 429:
+                code = FAILURE_RATE_LIMITED
+            elif status_int is not None and 500 <= status_int <= 599:
+                code = FAILURE_UPSTREAM_5XX
+            else:
+                code = FAILURE_UPSTREAM_4XX
             return ProviderResult(
                 ok=False,
                 provider=self._provider_label,
                 model=self._model_label,
                 content="",
-                error=f"LLM API returned HTTP {status}. "
-                      "Check your API key and endpoint URL.",
+                error="LLM API returned an HTTP error.",
+                failure_code=code,
                 raw={"http_status": status},
             )
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             return ProviderResult(
                 ok=False,
                 provider=self._provider_label,
                 model=self._model_label,
                 content="",
-                error=f"LLM request failed: {e}",
+                error="LLM request could not be completed.",
+                failure_code=FAILURE_TRANSPORT_ERROR,
             )
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError):
             return ProviderResult(
                 ok=False,
                 provider=self._provider_label,
                 model=self._model_label,
                 content="",
-                error="LLM returned invalid JSON response.",
+                error="LLM returned an unparseable response.",
+                failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
             )
 
         # --- Parse response ---
@@ -201,6 +254,18 @@ class OpenAICompatibleProvider(LLMProvider):
 
     def _parse_response(self, data: dict[str, Any]) -> ProviderResult:
         try:
+            # Guard against non-dict top-level payloads (e.g. a JSON list or
+            # scalar). These are malformed upstream responses, not provider
+            # runtime errors — never map them to provider_exception.
+            if not isinstance(data, dict):
+                return ProviderResult(
+                    ok=False,
+                    provider=self._provider_label,
+                    model=self._model_label,
+                    content="",
+                    error="LLM response is not a JSON object.",
+                    failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
+                )
             choices = data.get("choices", [])
             if not choices:
                 return ProviderResult(
@@ -209,7 +274,7 @@ class OpenAICompatibleProvider(LLMProvider):
                     model=self._model_label,
                     content="",
                     error="LLM response has no choices.",
-                    raw=data,
+                    failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
                 )
             content = choices[0].get("message", {}).get("content", "")
             if not content:
@@ -219,23 +284,25 @@ class OpenAICompatibleProvider(LLMProvider):
                     model=self._model_label,
                     content="",
                     error="LLM response has empty content in choices[0].message.",
-                    raw=data,
+                    failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
                 )
             return ProviderResult(
                 ok=True,
                 provider=self._provider_label,
                 model=self._model_label,
                 content=content,
-                raw=data,
             )
-        except (KeyError, IndexError, TypeError) as e:
+        except (KeyError, IndexError, TypeError, AttributeError):
+            # Any unexpected structure error (including AttributeError from a
+            # malformed payload) is a sanitizable upstream-response failure,
+            # never a provider_exception that could carry raw context.
             return ProviderResult(
                 ok=False,
                 provider=self._provider_label,
                 model=self._model_label,
                 content="",
-                error=f"Unexpected LLM response structure: {e}",
-                raw=data,
+                error="LLM response has an unexpected structure.",
+                failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
             )
 
     @property
