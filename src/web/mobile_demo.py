@@ -244,9 +244,24 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
 
         provider = self.mvp_provider
         if provider is None:
-            from src.llm import get_provider
+            try:
+                from src.llm import get_provider
 
-            provider = get_provider(self.provider, model=self.model)
+                provider = get_provider(self.provider, model=self.model)
+            except Exception:
+                # Provider resolution failure must not 500 or traceback; return
+                # a stable HTTP 200 failure contract that can never trigger the
+                # local choreography.
+                self._json_response({
+                    "ok": False,
+                    "question": question,
+                    "answer": MVP_FAILURE_ANSWER,
+                    "action": "none",
+                    "confidence": 0.0,
+                    "provider": self.provider,
+                    "model": self.model or "",
+                })
+                return
 
         try:
             decision = decide_mvp_action(question, provider)

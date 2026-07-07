@@ -143,6 +143,21 @@ class _EmptyAnswerProvider(LLMProvider):
         return "fake-model"
 
 
+class _RaisingProvider(LLMProvider):
+    """Provider whose complete() raises — exercises exception absorption."""
+
+    def complete(self, messages, temperature=0.2, max_tokens=1200, timeout=60):
+        raise RuntimeError("injected provider exception")
+
+    @property
+    def provider_name(self) -> str:
+        return "fake"
+
+    @property
+    def model_name(self) -> str:
+        return "fake-model"
+
+
 # ----------------------------------------------------------------------
 # Parser / decision unit tests
 # ----------------------------------------------------------------------
@@ -220,6 +235,13 @@ class TestMvpActionDecision:
     def test_empty_answer_forced_none(self):
         decision = decide_mvp_action("anything", _EmptyAnswerProvider())
         assert decision.action == "none"
+        assert is_mvp_failure(decision)
+
+    def test_provider_complete_exception_forced_none(self):
+        decision = decide_mvp_action("anything", _RaisingProvider())
+        assert decision.action == "none"
+        assert decision.answer == MVP_FAILURE_ANSWER
+        assert decision.confidence == 0.0
         assert is_mvp_failure(decision)
 
 
@@ -348,3 +370,88 @@ class TestMvpAskEndpoint:
         assert data["ok"] is False
         assert data["action"] == "none"
         assert data["answer"] == MVP_FAILURE_ANSWER
+
+
+class TestMvpActionConfidenceNormalization:
+    def _decision_for_confidence(self, raw_confidence):
+        payload = {
+            "answer": "정상 답변",
+            "action": "none",
+            "confidence": raw_confidence,
+        }
+        return parse_mvp_decision(json.dumps(payload, ensure_ascii=False))
+
+    def test_none_confidence_clamped_to_zero(self):
+        assert self._decision_for_confidence(None).confidence == 0.0
+
+    def test_nan_string_clamped_to_zero(self):
+        assert self._decision_for_confidence("NaN").confidence == 0.0
+
+    def test_infinity_clamped_to_zero(self):
+        assert self._decision_for_confidence("Infinity").confidence == 0.0
+
+    def test_negative_infinity_clamped_to_zero(self):
+        assert self._decision_for_confidence("-Infinity").confidence == 0.0
+
+    def test_nonnumeric_string_clamped_to_zero(self):
+        assert self._decision_for_confidence("high").confidence == 0.0
+
+    def test_negative_clamped_to_zero(self):
+        assert self._decision_for_confidence(-0.5).confidence == 0.0
+
+    def test_over_one_clamped_to_one(self):
+        assert self._decision_for_confidence(1.5).confidence == 1.0
+
+    def test_valid_confidence_preserved(self):
+        assert self._decision_for_confidence(0.73).confidence == 0.73
+
+    def test_nan_float_clamped_to_zero(self):
+        assert self._decision_for_confidence(float("nan")).confidence == 0.0
+
+    def test_inf_float_clamped_to_zero(self):
+        assert self._decision_for_confidence(float("inf")).confidence == 0.0
+
+    def test_valid_answer_action_not_failed_by_confidence(self):
+        d = self._decision_for_confidence(0.0)
+        assert d.action == "none"
+        assert not is_mvp_failure(d)
+
+
+@pytest.fixture
+def mvp_provider_resolution_error_server():
+    """Server whose configured provider triggers a get_provider() failure."""
+    port = _free_port()
+    server = create_app(
+        site_id="bukgu_gwangju",
+        provider="opencode-go",  # pending-config provider → get_provider raises
+        snapshot=None,
+        host="127.0.0.1",
+        port=port,
+        mvp_provider=None,  # force the get_provider() path
+    )
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    time.sleep(0.3)
+    yield {"port": port, "server": server}
+    server.shutdown()
+    server.server_close()
+
+
+class TestMvpAskProviderResolutionFailure:
+    def test_get_provider_exception_returns_stable_200(self, mvp_provider_resolution_error_server):
+        port = mvp_provider_resolution_error_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        body = json.dumps({"question": "불법 주정차 신고 어디서 해요?"}).encode()
+        conn.request("POST", "/api/mvp/ask", body=body,
+                     headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        data = json.loads(resp.read())
+        conn.close()
+        assert resp.status == 200
+        assert data["ok"] is False
+        assert data["question"] == "불법 주정차 신고 어디서 해요?"
+        assert data["answer"] == MVP_FAILURE_ANSWER
+        assert data["action"] == "none"
+        assert data["confidence"] == 0.0
+        assert data["provider"] == "opencode-go"
+        assert data["model"] == ""

@@ -18,6 +18,7 @@ local choreography.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from typing import Literal
 
@@ -79,10 +80,25 @@ def is_mvp_failure(decision: MvpActionDecision) -> bool:
 
 
 def _as_confidence(value: object) -> float:
+    """Normalize a model-supplied confidence into a safe [0.0, 1.0] float.
+
+    - ``None``, non-numeric strings, and non-finite values (``NaN``,
+      ``Infinity``, ``-Infinity``) -> ``0.0``
+    - negative values -> ``0.0``
+    - values above ``1.0`` -> ``1.0``
+    - otherwise the value is clamped to ``[0.0, 1.0]``
+    """
     try:
-        return float(value)  # type: ignore[arg-type]
+        f = float(value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return 0.0
+    if not math.isfinite(f):
+        return 0.0
+    if f < 0.0:
+        return 0.0
+    if f > 1.0:
+        return 1.0
+    return f
 
 
 def parse_mvp_decision(raw: str) -> MvpActionDecision:
@@ -121,23 +137,19 @@ def decide_mvp_action(question: str, provider: LLMProvider) -> MvpActionDecision
     """Run a model-backed MVP action decision for ``question`` via ``provider``.
 
     The provider is injected by the caller; no network call is made here except
-    through the provider's ``complete()``. Any provider failure degrades safely
-    to ``action="none"``.
-
-    Args:
-        question: The user's natural-language question (already stripped).
-        provider: An injectable :class:`LLMProvider` (e.g. ``MockProvider`` in
-            tests or ``OpenAICompatibleProvider`` in production).
-
-    Returns:
-        A :class:`MvpActionDecision`. On provider error or unparseable output the
-        decision is ``action="none"`` with the honest failure message.
+    through the provider's ``complete()``. Any provider exception, provider
+    error, or unparseable output degrades safely to ``action="none"`` with the
+    honest failure message. This guarantees the endpoint never raises or returns
+    a partial result that could launch the local choreography.
     """
     messages = [
         {"role": "system", "content": MVP_SYSTEM_PROMPT},
         {"role": "user", "content": question},
     ]
-    result: ProviderResult = provider.complete(messages)
+    try:
+        result: ProviderResult = provider.complete(messages)
+    except Exception:
+        return MvpActionDecision(answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0)
     if not result.ok:
         return MvpActionDecision(answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0)
     return parse_mvp_decision(result.content)
