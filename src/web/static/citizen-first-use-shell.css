@@ -12,6 +12,8 @@
 }
 
 .first-use-layout {
+  width: 100%;
+  flex: 1 1 auto;
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, var(--first-use-entry-chat-width)) minmax(0, 1fr);
