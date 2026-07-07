@@ -34,6 +34,60 @@
   var lastSplitQuestion = null;
   var currentState = STATE_ENTRY;
 
+  // ── MVP mode (#925 / #927) ──────────────────────────────────────
+  // Enabled only with ?mvp=1. In MVP mode the shell calls the model-backed
+  // /api/mvp/ask endpoint (via citizen-mvp-bridge.js) and uses the returned
+  // action to drive the EXISTING local choreography. The default static flow
+  // below is completely unchanged when ?mvp=1 is absent, and this file performs
+  // no fetch itself (the bridge file does, and is loaded only in MVP mode).
+  var _mvpRequestToken = 0;
+
+  function isMvpMode() {
+    if (!window.location || !window.location.search) return false;
+    try {
+      return new URLSearchParams(window.location.search).get("mvp") === "1";
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function normalizeMvpAction(result) {
+    if (!result || result.ok !== true) return "none";
+    var a = result.action;
+    if (a === "illegal_parking" || a === "housing_department" || a === "none") {
+      return a;
+    }
+    return "none";
+  }
+
+  function _withMvpBridge(onReady) {
+    if (window.CitizenMvpBridge && typeof window.CitizenMvpBridge.ask === "function") {
+      onReady(window.CitizenMvpBridge);
+      return;
+    }
+    var existing = document.querySelector('script[data-mvp-bridge="1"]');
+    if (!existing) {
+      var s = document.createElement("script");
+      s.src = "/static/citizen-mvp-bridge.js";
+      s.setAttribute("data-mvp-bridge", "1");
+      s.onload = function () { onReady(window.CitizenMvpBridge); };
+      s.onerror = function () { onReady(null); };
+      document.head.appendChild(s);
+    } else {
+      var tries = 0;
+      var iv = window.setInterval(function () {
+        tries++;
+        if (window.CitizenMvpBridge && typeof window.CitizenMvpBridge.ask === "function") {
+          window.clearInterval(iv);
+          onReady(window.CitizenMvpBridge);
+        } else if (tries > 20) {
+          window.clearInterval(iv);
+          onReady(null);
+        }
+      }, 50);
+    }
+  }
+
   function normalizeQuestion(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
   }
@@ -201,6 +255,11 @@
       return;
     }
 
+    if (isMvpMode()) {
+      handleMvpSubmission(question);
+      return;
+    }
+
     if (currentState === STATE_SPLIT) {
       appendChatMessage("user", question);
       chatInput.value = "";
@@ -223,7 +282,84 @@
     chatInput.focus();
   }
 
+  // ── MVP submission (#925 / #927) ───────────────────────────────
+
+  function handleMvpSubmission(question) {
+    // 1. echo user message
+    appendChatMessage("user", question);
+    if (chatInput) chatInput.value = "";
+    // 2. lock composer against duplicate submission
+    setComposerDisabled(true);
+
+    var token = ++_mvpRequestToken;
+
+    _withMvpBridge(function (bridge) {
+      if (token !== _mvpRequestToken) return; // superseded by a newer submit/reset
+      if (!bridge || typeof bridge.ask !== "function") {
+        setComposerDisabled(false);
+        appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+        return;
+      }
+      bridge.ask(question).then(function (result) {
+        if (token !== _mvpRequestToken) return; // late/aborted response ignored
+        setComposerDisabled(false);
+        // 5. assistant bubble MUST show the server's model answer
+        var answer = (result && result.answer)
+          ? result.answer
+          : "현재 AI 안내를 연결하지 못했습니다.";
+        appendChatMessage("ai", answer);
+        // 4. inspect action; only the two approved actions move the clone
+        var action = normalizeMvpAction(result);
+        if (action === "illegal_parking") {
+          beginMvpSplitThenChoreography(question, "illegal_parking");
+        } else if (action === "housing_department") {
+          beginMvpSplitThenChoreography(question, "housing_department");
+        } else if (action === "none") {
+          // Keep the entry chat; do not move the clone or start a choreography.
+        }
+        // Any other value: treated as none (no split, no clone move).
+      }).catch(function () {
+        if (token !== _mvpRequestToken) return;
+        setComposerDisabled(false);
+        appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+      });
+    });
+  }
+
+  function beginMvpSplitThenChoreography(question, action) {
+    lastSplitQuestion = question;
+    setState(STATE_TRANSITIONING);
+    if (prefersReducedMotion()) {
+      completeMvpSplit(action);
+      return;
+    }
+    splitTimer = window.setTimeout(function () {
+      splitTimer = null;
+      completeMvpSplit(action);
+    }, TRANSITION_DURATION_MS);
+  }
+
+  function completeMvpSplit(action) {
+    splitTimer = null;
+    setState(STATE_SPLIT);
+    appendChatMessage(
+      "ai",
+      "질문을 확인했습니다. 왼쪽의 로컬 안내 화면을 준비했습니다."
+    );
+    // 6. run the existing local choreography for the resolved action
+    if (window.CitizenFirstChoreography && action) {
+      window.CitizenFirstChoreography.start(action);
+    }
+    if (chatInput) chatInput.focus();
+  }
+
   function resetToEntry() {
+    // Invalidate any in-flight MVP response so a late answer cannot re-open the
+    // clone or restart an action after the user reset.
+    _mvpRequestToken++;
+    if (window.CitizenMvpBridge && typeof window.CitizenMvpBridge.cancel === "function") {
+      window.CitizenMvpBridge.cancel();
+    }
     if (window.CitizenFirstChoreography) {
       window.CitizenFirstChoreography.cancel();
     }
