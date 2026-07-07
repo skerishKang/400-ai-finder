@@ -30,7 +30,7 @@ function makeEl(tag) {
     disabled: false,
     hidden: false,
     value: "",
-    textContent: "",
+    _textContent: "",
     _attrs: {},
     _children: [],
     _listeners: {},
@@ -94,22 +94,45 @@ function makeEl(tag) {
       if (v === "") this._children = [];
     },
   });
+  // textContent aggregates real-DOM-like: leaf text plus recursion over
+  // children, so a body that contains the chat-thread subtree will surface
+  // the actual rendered chat bubble text.
+  Object.defineProperty(el, "textContent", {
+    configurable: true,
+    get() {
+      if (this._children && this._children.length) {
+        let out = "";
+        for (const c of this._children) {
+          out += c.textContent || "";
+        }
+        return out;
+      }
+      return this._textContent || "";
+    },
+    set(v) {
+      this._textContent = String(v);
+      this._children = [];
+    },
+  });
   return el;
 }
 
 function buildDoc() {
   const ids = {};
+  const body = makeEl("body");
+  const head = makeEl("head");
   const ensure = (id) => {
     if (!ids[id]) {
       ids[id] = makeEl("div");
       ids[id].id = id;
+      body.appendChild(ids[id]);
     }
     return ids[id];
   };
   return {
     _ids: ids,
-    body: makeEl("body"),
-    head: makeEl("head"),
+    body,
+    head,
     getElementById(id) {
       return ensure(id);
     },
@@ -468,14 +491,14 @@ const FAILURE_DIAGNOSTIC_CANARIES = [
   "CANARY_TOKEN_MUST_NOT_RENDER",
 ];
 
-async function scenarioFailureDiagnosticHidden() {
+async function scenarioFailureDiagnosticHidden(failureCode) {
   const bridge = makeResolvingBridge({
     ok: false,
     question: "테스트 질문",
     answer: "현재 AI 안내를 연결하지 못했습니다.",
     action: "none",
     confidence: 0.0,
-    failure_code: "timeout",
+    failure_code: failureCode,
     error: "CANARY_SECRET_MUST_NOT_RENDER",
     upstream_url: "https://private.invalid/forbidden",
     authorization: "Authorization: Bearer CANARY_TOKEN_MUST_NOT_RENDER",
@@ -490,46 +513,58 @@ async function scenarioFailureDiagnosticHidden() {
   submit(s, "불법 주정차 신고는 어디서 하나요?");
   await flush();
 
-  // (A) The generic Korean failure answer must be visible in the chat bubble.
-  const bubbles = aiBubbleTexts(s);
+  // (A) The generic Korean failure answer must be visible in the rendered
+  // shell. We inspect the real DOM aggregate (document.body.textContent) which
+  // now includes the chat-thread subtree, not the detached fake body.
+  const visibleText = s.doc.body.textContent;
   assert.ok(
-    bubbles.includes("현재 AI 안내를 연결하지 못했습니다."),
-    "failure: generic Korean answer must be shown despite diagnostics",
+    visibleText.includes("현재 AI 안내를 연결하지 못했습니다."),
+    `failure(${failureCode}): generic Korean answer must be visible in rendered body`,
   );
 
-  // (B) No diagnostic canary string may appear anywhere in the document body
-  // textContent. The shell must not render raw failure_code, error, URL,
-  // authorization, or any upstream diagnostic field.
-  const bodyText = s.doc.body.textContent || "";
+  // (B) No diagnostic canary string may appear in the rendered body text.
   for (const canary of FAILURE_DIAGNOSTIC_CANARIES) {
     assert.ok(
-      !bodyText.includes(canary),
-      `failure: diagnostic canary '${canary}' must NOT appear in body text`,
+      !visibleText.includes(canary),
+      `failure(${failureCode}): diagnostic canary '${canary}' must NOT appear in body text`,
     );
   }
 
-  // (C) action="none" failure must not start choreography.
+  // (C) Same canary-absence check against the aggregated AI chat bubble text.
+  const aiText = aiBubbleTexts(s).join("");
+  assert.ok(
+    aiText.includes("현재 AI 안내를 연결하지 못했습니다."),
+    `failure(${failureCode}): generic Korean answer must be in AI bubble text`,
+  );
+  for (const canary of FAILURE_DIAGNOSTIC_CANARIES) {
+    assert.ok(
+      !aiText.includes(canary),
+      `failure(${failureCode}): diagnostic canary '${canary}' must NOT appear in AI bubble text`,
+    );
+  }
+
+  // (D) action="none" failure must not start choreography.
   assert.strictEqual(
     choreo.startCalls.length,
     0,
-    "failure: choreography must NOT start on failure",
+    `failure(${failureCode}): choreography must NOT start on failure`,
   );
 
-  // (D) Shell must stay in entry state (not split).
+  // (E) Shell must stay in entry state (not split).
   assert.strictEqual(
     s.win.CitizenFirstUseShell.getState(),
     "entry",
-    "failure: shell must stay in entry (no split)",
+    `failure(${failureCode}): shell must stay in entry (no split)`,
   );
 
-  // (E) Left canvas must remain hidden/inert.
+  // (F) Left canvas must remain hidden/inert.
   assert.strictEqual(
     canvasAriaHidden(s),
     "true",
-    "failure: left clone must remain hidden/inert",
+    `failure(${failureCode}): left clone must remain hidden/inert`,
   );
 
-  console.log("  [6] failure diagnostics hidden: OK");
+  console.log(`  [6] failure diagnostics hidden (${failureCode}): OK`);
 }
 
 async function main() {
@@ -539,7 +574,8 @@ async function main() {
   await scenarioNone();
   await scenarioPendingThenReset();
   await scenarioDefaultModeRegression();
-  await scenarioFailureDiagnosticHidden();
+  await scenarioFailureDiagnosticHidden("timeout");
+  await scenarioFailureDiagnosticHidden("unknown");
   console.log("All MVP shell runtime scenarios passed.");
 }
 
