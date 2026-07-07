@@ -142,3 +142,19 @@ def test_choreography_cancel_clears_timer_and_highlights():
 def test_choreography_cancel_is_safe_in_idle():
     """cancel() returns early without error when state is idle."""
     assert 'STATE_IDLE) return' in CHOREO or 'STATE_IDLE) {' in CHOREO
+
+
+def test_choreography_final_target_highlight_present():
+    """The illegal-parking journey map includes complaint-category-illegal-parking
+    as a target highlight step before the completion message."""
+    assert '"complaint-category-illegal-parking"' in CHOREO
+    assert "불법 주정차 신고 항목을 확인합니다" in CHOREO
+
+
+def test_choreography_final_target_appears_after_route_and_before_completion():
+    """complaint-category route appears before complaint-category-illegal-parking target,
+    which appears before the terminal completion message."""
+    assert CHOREO.index("complaint-category") < CHOREO.index("complaint-category-illegal-parking")
+    assert CHOREO.index("complaint-category-illegal-parking") < CHOREO.index(
+        "안내가 완료되었습니다"
+    )

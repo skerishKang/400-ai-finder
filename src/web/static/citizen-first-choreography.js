@@ -50,6 +50,7 @@
         Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
         Object.freeze({ message: "민원 안내를 위해 유형 선택 버튼을 안내합니다.", targetId: "nav-complaint-category", delayMs: 2000 }),
         Object.freeze({ message: "민원 유형 선택 페이지로 이동합니다.", routeId: "complaint-category", delayMs: 1200 }),
+        Object.freeze({ message: "불법 주정차 신고 항목을 확인합니다.", targetId: "complaint-category-illegal-parking", delayMs: 2000 }),
         Object.freeze({ message: "안내가 완료되었습니다. 새로운 문의는 '새 대화'를 선택해 주세요." }),
       ]),
     }),
