@@ -36,6 +36,14 @@ def test_first_use_shell_is_local_only_and_fail_closed():
     assert "document.cookie" not in JS
 
 
+def test_first_use_shell_split_follow_up_is_bounded_and_keeps_transition_guard():
+    assert "currentState === STATE_TRANSITIONING || !chatInput" in JS
+    assert "currentState === STATE_SPLIT" in JS
+    assert "SPLIT_FOLLOW_UP_MESSAGE" in JS
+    assert "메뉴 이동과 세부 안내는 다음 단계에서 순서대로 제공됩니다" in JS
+    assert "beginSupportedTransition(question)" in JS
+
+
 def test_first_use_shell_has_reduced_motion_and_noninteractive_entry_clone_rules():
     assert "prefers-reduced-motion: reduce" in CSS
     assert "first-use-shell--no-motion" in CSS
