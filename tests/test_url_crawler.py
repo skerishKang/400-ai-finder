@@ -882,6 +882,31 @@ def test_url_crawler_direct_fallback_success(monkeypatch):
     assert result["links"]["attachments"][0]["url"] == "https://example.com/doc.pdf"
     assert result["errors"] == []
 
+    assert set(result) == {
+        "url",
+        "status_code",
+        "content_type",
+        "title",
+        "description",
+        "text",
+        "links",
+        "stats",
+        "errors",
+    }
+    assert set(result["links"]) == {"internal", "external", "attachments"}
+    assert set(result["stats"]) == {
+        "text_length",
+        "internal_link_count",
+        "external_link_count",
+        "attachment_count",
+    }
+    assert result["stats"] == {
+        "text_length": len(result["text"]),
+        "internal_link_count": 1,
+        "external_link_count": 1,
+        "attachment_count": 1,
+    }
+
 
 def test_url_crawler_direct_fallback_timeout(monkeypatch):
     import requests
