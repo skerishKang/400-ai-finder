@@ -67,7 +67,15 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
         if parsed.path in ("/", ""):
             self._serve_html()
         elif parsed.path == "/mvp":
-            self._serve_citizen_demo_html()
+            # /mvp alone redirects to /mvp?mvp=1 so the demo opens in real MVP
+            # mode. /mvp?mvp=1 (already tagged) serves the page directly to
+            # avoid a redirect loop.
+            if parsed.query == "mvp=1":
+                self._serve_citizen_demo_html()
+            else:
+                self.send_response(302)
+                self.send_header("Location", "/mvp?mvp=1")
+                self.end_headers()
         elif parsed.path == "/health":
             self._json_response({"ok": True, "site_id": self.site_id})
         else:
