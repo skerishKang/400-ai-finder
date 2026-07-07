@@ -1,0 +1,45 @@
+name: MVP Contract Checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  mvp-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Run MVP contract pytest suite
+        run: |
+          python -m pytest -q \
+            tests/test_mvp_failure_codes.py \
+            tests/test_mobile_demo.py \
+            tests/test_citizen_first_use_shell.py \
+            tests/test_citizen_action_demo_chat_shell_contract.py \
+            tests/test_citizen_action_demo_canvas.py
+
+      - name: Run MVP shell runtime harness
+        run: node tests/browser/verify_mvp_shell_runtime.mjs
+
+      - name: Check whitespace errors
+        run: git diff --check
