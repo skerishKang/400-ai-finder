@@ -49,6 +49,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
     model: str | None = None
     snapshot_path: str | None = None
     pipeline_timeout_s: float | None = None
+    mvp_provider: Any = None
     _runner: Any = None
     _site_name: str = ""
 
@@ -74,6 +75,8 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/api/ask":
             self._handle_ask()
+        elif parsed.path == "/api/mvp/ask":
+            self._handle_mvp_ask()
         else:
             self.send_error(404)
 
@@ -206,6 +209,77 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 )
             self._json_response(response_data)
 
+    def _handle_mvp_ask(self):
+        """MVP-only action decision endpoint (decoupled from the search pipeline).
+
+        Accepts ``{"question": "..."}`` and returns a stable JSON contract:
+          success -> {"ok": true, "question", "answer", "action",
+                      "confidence", "provider", "model"}
+          failure -> {"ok": false, "answer": "<honest ko message>", "action": "none"}
+
+        The model call is made only through an injectable provider
+        (``self.mvp_provider`` if set, otherwise the configured factory
+        provider). Any error degrades to ``action="none"``. This endpoint never
+        touches the retrieval/search pipeline or SiteDemoRunner.
+        """
+        try:
+            content_len = int(self.headers.get("Content-Length", 0))
+            raw = self.rfile.read(content_len)
+            data = json.loads(raw) if raw else {}
+        except (json.JSONDecodeError, ValueError):
+            self._json_response({"error": "Invalid JSON"}, 400)
+            return
+
+        question = (data.get("question") or "").strip()
+        if not question:
+            self._json_response({"error": "질문을 입력해 주세요."}, 400)
+            return
+
+        from src.llm.bukgu_mvp_router import (
+            MVP_FAILURE_ANSWER,
+            MvpActionDecision,
+            decide_mvp_action,
+            is_mvp_failure,
+        )
+
+        provider = self.mvp_provider
+        if provider is None:
+            try:
+                from src.llm import get_provider
+
+                provider = get_provider(self.provider, model=self.model)
+            except Exception:
+                # Provider resolution failure must not 500 or traceback; return
+                # a stable HTTP 200 failure contract that can never trigger the
+                # local choreography.
+                self._json_response({
+                    "ok": False,
+                    "question": question,
+                    "answer": MVP_FAILURE_ANSWER,
+                    "action": "none",
+                    "confidence": 0.0,
+                    "provider": self.provider,
+                    "model": self.model or "",
+                })
+                return
+
+        try:
+            decision = decide_mvp_action(question, provider)
+        except Exception:
+            decision = MvpActionDecision(
+                answer=MVP_FAILURE_ANSWER, action="none", confidence=0.0
+            )
+
+        self._json_response({
+            "ok": not is_mvp_failure(decision),
+            "question": question,
+            "answer": decision.answer,
+            "action": decision.action,
+            "confidence": decision.confidence,
+            "provider": getattr(provider, "provider_name", self.provider),
+            "model": getattr(provider, "model_name", self.model or ""),
+        })
+
     def _json_response(self, data: dict, status: int = 200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -223,6 +297,7 @@ def create_app(
     port: int = 8080,
     model: str | None = None,
     pipeline_timeout_s: float | None = None,
+    mvp_provider: Any = None,
 ) -> HTTPServer:
     """Create and return an HTTPServer for the mobile chat demo."""
     try:
@@ -238,6 +313,7 @@ def create_app(
         "model": model,
         "snapshot_path": snapshot,
         "pipeline_timeout_s": pipeline_timeout_s,
+        "mvp_provider": mvp_provider,
         "_runner": None,
         "_site_name": site_name,
     })
