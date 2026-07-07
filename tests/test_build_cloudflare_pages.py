@@ -218,6 +218,47 @@ def test_admin_model_preset_disabled(build_dir):
     assert 'id="modelPresetSelect" disabled' in admin
 
 
+def test_mvp_entry_generated(build_dir):
+    """#940: A public first-use MVP entry must be emitted at /mvp/index.html."""
+    mvp_index = os.path.join(build_dir, "mvp", "index.html")
+    assert os.path.isfile(mvp_index), "mvp/index.html not generated"
+    html = open(mvp_index, encoding="utf-8").read()
+
+    # First-use shell + choreography assets are present in the entry.
+    assert "citizen-first-use-shell.js" in html
+    assert "citizen-first-choreography.js" in html
+
+    # Query sanitizer is present and runs before the shell script.
+    assert "history.replaceState" in html
+    assert html.index("history.replaceState") < html.index("citizen-first-use-shell.js")
+    # Sanitizer preserves pathname + hash, drops only the query.
+    assert "window.location.pathname + window.location.hash" in html
+
+    # The live bridge script must never be referenced from the public entry.
+    assert '<script src="/static/citizen-mvp-bridge.js"' not in html
+
+
+def test_mvp_entry_is_backend_free(build_dir):
+    """#940: The public MVP entry must not auto-call any network/provider."""
+    mvp_index = os.path.join(build_dir, "mvp", "index.html")
+    html = open(mvp_index, encoding="utf-8").read()
+    assert _SCRIPT_SRC_RE.search(html) is None, "external <script src> in mvp entry"
+    assert _LINK_HREF_RE.search(html) is None, "external <link href> in mvp entry"
+    assert _FETCH_HTTP_RE.search(html) is None, "external fetch() in mvp entry"
+    assert _CSS_URL_HTTP_RE.search(html) is None, "external url() in mvp entry"
+
+
+def test_mvp_entry_source_untouched(build_dir):
+    """#940: The source first-use template must be unchanged by the build."""
+    source = open(
+        os.path.join(_REPO_ROOT, "src", "web", "static", "citizen-action-demo.html"),
+        encoding="utf-8",
+    ).read()
+    # The build only reads the source; the repo copy must not be modified.
+    assert "history.replaceState" not in source, "source template was modified by build"
+    assert '<script src="/static/citizen-mvp-bridge.js"' not in source
+
+
 def _node_available() -> bool:
     import shutil
 

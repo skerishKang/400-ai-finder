@@ -108,6 +108,25 @@ def list_all_profiles() -> list[dict]:
 # ---------------------------------------------------------------------------
 BODY_OPEN = "<body>"
 
+# Public first-use MVP entry (/mvp/) boots into the deterministic default flow
+# only. If anyone opens it with a query string (e.g. ?mvp=1), strip the query
+# with replaceState BEFORE citizen-first-use-shell.js runs, so the shell never
+# enters live bridge/API mode. No network/redirect/provider call is made.
+MVP_QUERY_SANITIZER = (
+    '<script>\n'
+    '(function () {\n'
+    '  "use strict";\n'
+    "  if (window.location.search && window.history && window.history.replaceState) {\n"
+    "    window.history.replaceState(\n"
+    "      null,\n"
+    '      "",\n'
+    "      window.location.pathname + window.location.hash\n"
+    "    );\n"
+    "  }\n"
+    "})();\n"
+    "</script>"
+)
+
 
 def _inject_after_body_open(html: str, snippet: str) -> str:
     """Insert *snippet* immediately after the first ``<body ...>`` tag.
@@ -465,6 +484,24 @@ def build_404_html(site_name: str) -> str:
 """
 
 
+def build_mvp_entry_html() -> str:
+    """Build the public first-use MVP entry at ``/mvp/``.
+
+    This is the existing ``citizen-action-demo.html`` first-use demo, copied
+    into the build output verbatim except for a query sanitizer injected
+    immediately after ``<body>`` open (before the shell scripts run). The
+    source template is never modified.
+
+    The sanitizer strips any query string (e.g. ``?mvp=1``) via
+    ``history.replaceState`` so the shell can never enter live bridge/API mode
+    from the public entry. The copied ``/static/...`` asset paths and the
+    existing choreography assets are preserved, and no ``citizen-mvp-bridge.js``
+    tag is added.
+    """
+    source = _read_file(os.path.join(STATIC_DIR, "citizen-action-demo.html"))
+    return _inject_after_body_open(source, MVP_QUERY_SANITIZER)
+
+
 def _disable_model_preset_select(html: str) -> str:
     """Replace the model preset <select> with a disabled, honest demo label.
 
@@ -598,6 +635,11 @@ def build(out_dir: str | None = None) -> None:
     _write_file(os.path.join(dist_root, "mobile.html"), mobile_out)
     _write_file(os.path.join(dist_root, "admin.html"), admin_out)
     print("[build] wrote mobile.html + admin.html (templates copied, shim injected)")
+
+    # 8. Emit a public first-use MVP entry at /mvp/ (backend-free, query-sanitized).
+    mvp_index = os.path.join(dist_root, "mvp", "index.html")
+    _write_file(mvp_index, build_mvp_entry_html())
+    print(f"[build] wrote mvp/index.html (public first-use entry)")
 
     print(f"[build] done -> {dist_root}")
 
