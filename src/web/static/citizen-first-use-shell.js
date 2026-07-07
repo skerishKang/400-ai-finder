@@ -6,7 +6,7 @@
  * - no fetch/XHR/WebSocket/EventSource/sendBeacon;
  * - no browser persistence or cookie access;
  * - no provider, runner, live-site, or external-origin behavior;
- * - no clone route/choreography actions (reserved for #920).
+ * - choreography delegation to CitizenFirstChoreography (no direct clone actions).
  */
 
 (function () {
@@ -31,6 +31,7 @@
   var chatSend = document.getElementById("chat-composer-send");
   var resetButton = document.getElementById("chat-reset");
   var splitTimer = null;
+  var lastSplitQuestion = null;
   var currentState = STATE_ENTRY;
 
   function normalizeQuestion(value) {
@@ -159,12 +160,17 @@
       "ai",
       "질문을 확인했습니다. 왼쪽의 로컬 안내 화면을 준비했습니다. 다음 단계의 메뉴 안내는 이 데모에서 순서대로 보여드릴 예정입니다."
     );
+    if (window.CitizenFirstChoreography && lastSplitQuestion) {
+      window.CitizenFirstChoreography.start(lastSplitQuestion);
+    }
+    lastSplitQuestion = null;
     if (chatInput) {
       chatInput.focus();
     }
   }
 
   function beginSupportedTransition(question) {
+    lastSplitQuestion = question;
     appendChatMessage("user", question);
     if (chatInput) {
       chatInput.value = "";
@@ -218,6 +224,10 @@
   }
 
   function resetToEntry() {
+    if (window.CitizenFirstChoreography) {
+      window.CitizenFirstChoreography.cancel();
+    }
+    lastSplitQuestion = null;
     if (splitTimer !== null) {
       window.clearTimeout(splitTimer);
       splitTimer = null;
