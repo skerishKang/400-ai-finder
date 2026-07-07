@@ -68,7 +68,7 @@ class TestAdminDemoUnit:
     def test_create_admin_app_resolves_site_name(self):
         server = create_admin_app(site_id="bukgu_gwangju", port=40902)
         handler = server.RequestHandlerClass
-        assert handler._site_name == "광주광역시 북구청"
+        assert handler._site_name == "전남광주통합특별시 북구"
         server.server_close()
 
     def test_resolve_effective_snapshot_does_not_cross_site_boundaries(self):
@@ -206,8 +206,8 @@ class TestAdminDemoHTTP:
         data = json.loads(resp.read())
         assert resp.status == 200
         assert data["summary"]["site_id"] == "bukgu_gwangju"
-        assert data["summary"]["site_name"] == "광주광역시 북구청"
-        assert data["profile"]["name"] == "광주광역시 북구청"
+        assert data["summary"]["site_name"] == "전남광주통합특별시 북구"
+        assert data["profile"]["name"] == "전남광주통합특별시 북구"
         assert data["snapshot"]["loaded"] is True
         assert data["snapshot"]["nav_link_count"] >= 1
         assert data["summary"]["llm_live"] is False
@@ -404,7 +404,7 @@ class TestAdminDemoHTTP:
         data = json.loads(resp.read())
         assert resp.status == 200
         assert data["site_id"] == "bukgu_gwangju"
-        assert "북구청" in data.get("site_name", "")
+        assert data.get("site_name", "") == "전남광주통합특별시 북구"
         assert len(data["sources"]) >= 1
         conn.close()
 

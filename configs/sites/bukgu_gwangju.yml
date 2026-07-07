@@ -3,7 +3,7 @@
 # Stage 10D 진단 결과 기반
 
 site_id: bukgu_gwangju
-name: "광주광역시 북구청"
+name: "전남광주통합특별시 북구"
 base_url: "https://bukgu.gwangju.kr/"
 allowed_domains:
   - bukgu.gwangju.kr
