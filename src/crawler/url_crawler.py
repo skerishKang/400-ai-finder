@@ -5,13 +5,20 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunparse, urljoin
 
-from src.fetch import FetchProvider, get_fetch_provider
+from src.fetch import FetchConfig, FetchProvider, RequestsFetchProvider, get_fetch_provider
 from src.crawler.crawl_path_filter import should_crawl_url
 from src.observability import get_event_logger, log_pipeline_event
 
 
 class URLCrawler:
-    def __init__(self, timeout=15, user_agent=None, fetch_provider=None, crawl_filters: dict | None = None):
+    def __init__(
+        self,
+        timeout=15,
+        user_agent=None,
+        fetch_provider=None,
+        crawl_filters: dict | None = None,
+        fetch_config: FetchConfig | None = None,
+    ):
         self.timeout = timeout
         self.user_agent = user_agent or (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -22,6 +29,7 @@ class URLCrawler:
         self.attachment_extensions = {'pdf', 'hwp', 'hwpx', 'docx', 'xlsx'}
         self.fetch_provider = self._resolve_fetch_provider(fetch_provider)
         self.crawl_filters = crawl_filters
+        self.fetch_config = fetch_config
 
     @staticmethod
     def _resolve_fetch_provider(fp):
@@ -314,7 +322,10 @@ class URLCrawler:
 
         # Use fetch_provider
         try:
-            fetch_result = self.fetch_provider.fetch(url, timeout=self.timeout)
+            if self.fetch_config is not None and isinstance(self.fetch_provider, RequestsFetchProvider):
+                fetch_result = self.fetch_provider.fetch(url, config=self.fetch_config)
+            else:
+                fetch_result = self.fetch_provider.fetch(url, timeout=self.timeout)
         except Exception as e:
             result["errors"].append(f"Fetch provider error: {str(e)}")
             return result

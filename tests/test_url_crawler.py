@@ -664,3 +664,163 @@ def test_url_crawler_event_redacts_raw_failure_contents(caplog):
     assert "Bearer" not in joined_logs
     assert "token" not in joined_logs
     assert "https://secret.example.com/private?token=abc123" not in joined_logs
+
+
+def test_url_crawler_requests_provider_without_fetch_config_preserves_fetch_kwargs():
+    from datetime import datetime, timezone
+
+    from src.fetch import FetchResult, RequestsFetchProvider
+
+    class SpyRequestsProvider(RequestsFetchProvider):
+        def __init__(self):
+            super().__init__(timeout=99)
+            self.calls = []
+
+        def fetch(self, url, **kwargs):
+            self.calls.append((url, dict(kwargs)))
+            return FetchResult(
+                url=url,
+                ok=True,
+                provider="requests",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                status_code=200,
+                content_type="text/html",
+                html="<html><head><title>T</title></head><body>Hello</body></html>",
+            )
+
+    provider = SpyRequestsProvider()
+    crawler = URLCrawler(fetch_provider=provider, timeout=7)
+
+    result = crawler.analyze("https://example.com")
+
+    assert result["status_code"] == 200
+    assert result["errors"] == []
+    assert provider.calls == [("https://example.com", {"timeout": 7})]
+
+
+def test_url_crawler_threads_fetch_config_to_requests_provider_without_timeout_kwarg():
+    from datetime import datetime, timezone
+
+    from src.fetch import FetchConfig, FetchResult, RequestsFetchProvider
+
+    class SpyRequestsProvider(RequestsFetchProvider):
+        def __init__(self):
+            super().__init__(timeout=99)
+            self.calls = []
+
+        def fetch(self, url, **kwargs):
+            self.calls.append((url, dict(kwargs)))
+            return FetchResult(
+                url=url,
+                ok=True,
+                provider="requests",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                status_code=200,
+                content_type="text/html",
+                html="<html><head><title>T</title></head><body>Hello</body></html>",
+            )
+
+    provider = SpyRequestsProvider()
+    config = FetchConfig(timeout=12.5, max_retries=1, retry_backoff=0.0, retry_on_status=(503,))
+    crawler = URLCrawler(fetch_provider=provider, timeout=7, fetch_config=config)
+
+    result = crawler.analyze("https://example.com")
+
+    assert result["status_code"] == 200
+    assert result["errors"] == []
+    assert len(provider.calls) == 1
+    assert provider.calls[0][0] == "https://example.com"
+    assert provider.calls[0][1]["config"] is config
+    assert "timeout" not in provider.calls[0][1]
+
+
+def test_url_crawler_does_not_pass_fetch_config_to_mock_or_custom_provider():
+    from datetime import datetime, timezone
+
+    from src.fetch import FetchConfig, FetchResult, MockFetchProvider
+    from src.fetch.base import FetchProvider
+
+    class SpyMockProvider(MockFetchProvider):
+        def __init__(self):
+            super().__init__()
+            self.calls = []
+
+        def fetch(self, url, **kwargs):
+            self.calls.append((url, dict(kwargs)))
+            return super().fetch(url, **kwargs)
+
+    class CustomProvider(FetchProvider):
+        def __init__(self):
+            self.calls = []
+
+        @property
+        def name(self) -> str:
+            return "custom"
+
+        def fetch(self, url, **kwargs):
+            self.calls.append((url, dict(kwargs)))
+            return FetchResult(
+                url=url,
+                ok=True,
+                provider=self.name,
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                status_code=200,
+                content_type="text/html",
+                html="<html><head><title>Custom</title></head><body>Body</body></html>",
+            )
+
+    config = FetchConfig(timeout=9.5, max_retries=2, retry_backoff=0.1, retry_on_status=(503,))
+
+    mock_provider = SpyMockProvider()
+    mock_crawler = URLCrawler(fetch_provider=mock_provider, timeout=5, fetch_config=config)
+    mock_result = mock_crawler.analyze("https://example.com")
+
+    custom_provider = CustomProvider()
+    custom_crawler = URLCrawler(fetch_provider=custom_provider, timeout=6, fetch_config=config)
+    custom_result = custom_crawler.analyze("https://example.com")
+
+    assert mock_result["status_code"] == 200
+    assert custom_result["status_code"] == 200
+    assert mock_provider.calls == [("https://example.com", {"timeout": 5})]
+    assert custom_provider.calls == [("https://example.com", {"timeout": 6})]
+
+
+def test_url_crawler_fetch_config_preserves_failure_result_schema():
+    from datetime import datetime, timezone
+
+    from src.fetch import FetchConfig, FetchResult, RequestsFetchProvider
+
+    class FailingRequestsProvider(RequestsFetchProvider):
+        def __init__(self):
+            super().__init__(timeout=99)
+
+        def fetch(self, url, **kwargs):
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider="requests",
+                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                error="Configured failure",
+            )
+
+    crawler = URLCrawler(
+        fetch_provider=FailingRequestsProvider(),
+        fetch_config=FetchConfig(timeout=8.0, max_retries=1, retry_backoff=0.0, retry_on_status=(503,)),
+    )
+
+    result = crawler.analyze("https://example.com")
+
+    assert set(result.keys()) == {
+        "url",
+        "status_code",
+        "content_type",
+        "title",
+        "description",
+        "text",
+        "links",
+        "stats",
+        "errors",
+    }
+    assert result["errors"] == ["Configured failure"]
+    assert result["status_code"] == ""
+    assert result["links"] == {"internal": [], "external": [], "attachments": []}
