@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+import math
 from typing import Any
 
 
@@ -38,7 +39,7 @@ class FetchConfig:
             raise TypeError("timeout must be an int or float, not bool")
         if not isinstance(self.timeout, (int, float)):
             raise TypeError("timeout must be an int or float")
-        if self.timeout <= 0:
+        if not math.isfinite(self.timeout) or self.timeout <= 0:
             raise ValueError("timeout must be > 0")
 
         if isinstance(self.max_retries, bool):
@@ -52,7 +53,7 @@ class FetchConfig:
             raise TypeError("retry_backoff must be an int or float, not bool")
         if not isinstance(self.retry_backoff, (int, float)):
             raise TypeError("retry_backoff must be an int or float")
-        if self.retry_backoff < 0:
+        if not math.isfinite(self.retry_backoff) or self.retry_backoff < 0:
             raise ValueError("retry_backoff must be >= 0")
 
         if not isinstance(self.retry_on_status, tuple):
