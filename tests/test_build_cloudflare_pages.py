@@ -72,8 +72,8 @@ def test_mobile_has_no_jinja_site_name(build_dir):
     content = open(mobile, encoding="utf-8").read()
     assert "{{site_name}}" not in content, "{{site_name}} token leaked into mobile.html"
     # SITE_NAME JS var must be the real Buk-gu name, not the token.
-    assert "var SITE_NAME = '광주광역시 북구청';" in content
-    assert "광주광역시 북구청 AI 안내" in content
+    assert "var SITE_NAME = '전남광주통합특별시 북구';" in content
+    assert "전남광주통합특별시 북구 AI 안내" in content
 
 
 def test_shim_blocks_unapproved_fetch(build_dir):

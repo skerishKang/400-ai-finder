@@ -138,6 +138,6 @@ def test_mobile_api_presets():
     server.server_close()
     
     # Verify that the loaded template does NOT contain provider, model or preset values directly
-    html = _load_template("광주광역시 북구청")
+    html = _load_template("전남광주통합특별시 북구")
     assert "opengateway" not in html
     assert "mimo-v2.5-pro" not in html

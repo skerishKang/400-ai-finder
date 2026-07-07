@@ -18,7 +18,7 @@ FIXTURE_SNAPSHOT = os.path.join(
 )
 
 # Load the mobile HTML template once for unit tests
-_MOBILE_HTML = _load_template("광주광역시 북구청")
+_MOBILE_HTML = _load_template("전남광주통합특별시 북구")
 
 
 @pytest.fixture
@@ -87,7 +87,7 @@ class TestMobileDemoUnit:
     """Unit tests — no HTTP server needed."""
 
     def test_mobile_html_has_site_name(self):
-        assert "광주광역시 북구청" in _MOBILE_HTML
+        assert "전남광주통합특별시 북구" in _MOBILE_HTML
 
     def test_mobile_html_has_quick_question_chips(self):
         assert "민원서식 어디서 받아?" in _MOBILE_HTML
