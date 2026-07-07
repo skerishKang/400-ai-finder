@@ -616,6 +616,20 @@
     thread.innerHTML = html + progressIndicator;
   }
 
+  /**
+   * First-use choreography presence check.
+   * When the first-use shell is in split state and choreography is active,
+   * route transitions must not overwrite the chat thread with the default
+   * historical chat HTML. Returns true when chat should be preserved.
+   */
+  function _shouldPreserveFirstUseChat() {
+    if (!document.body) return false;
+    var firstUseState = document.body.getAttribute("data-first-use-state");
+    var choreographyState = document.body.getAttribute("data-choreography-state");
+    return firstUseState === "split" &&
+      (choreographyState === "running" || choreographyState === "done");
+  }
+
   function _restoreHistoricalChat() {
     var thread = document.getElementById("chat-thread");
     if (!thread) return;
@@ -1858,7 +1872,7 @@
 
     if (isDeptJourney) {
       _updateChatProgressForDept(deptState);
-    } else if (!kioskJourney.isKiosk) {
+    } else if (!kioskJourney.isKiosk && !_shouldPreserveFirstUseChat()) {
       _restoreHistoricalChat();
     }
 

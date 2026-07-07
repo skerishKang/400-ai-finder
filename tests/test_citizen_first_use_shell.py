@@ -8,6 +8,7 @@ HTML = (STATIC / "citizen-action-demo.html").read_text(encoding="utf-8")
 JS = (STATIC / "citizen-first-use-shell.js").read_text(encoding="utf-8")
 CSS = (STATIC / "citizen-first-use-shell.css").read_text(encoding="utf-8")
 CHOREO = (STATIC / "citizen-first-choreography.js").read_text(encoding="utf-8")
+CANVAS = (STATIC / "citizen-action-demo-canvas.js").read_text(encoding="utf-8")
 
 
 # ── #919 shell contracts ──────────────────────────────────────────
@@ -191,3 +192,42 @@ def test_choreography_cancel_still_clears_highlights():
     cancel_end = CHOREO.index("function getState()")
     cancel_body = CHOREO[cancel_start:cancel_end]
     assert "_clearHighlights" in cancel_body, "cancel() must call _clearHighlights"
+
+
+# ── Chat preservation contract ─────────────────────────────────
+
+
+def test_canvas_has_preserve_first_use_chat_helper():
+    """Canvas must define _shouldPreserveFirstUseChat() helper."""
+    assert "function _shouldPreserveFirstUseChat()" in CANVAS
+
+
+def test_canvas_preserve_helper_checks_split_and_choreography_state():
+    """Helper returns true only when data-first-use-state=split
+    and data-choreography-state is running or done."""
+    assert '"split"' in CANVAS
+    assert 'choreographyState === "running"' in CANVAS or 'choreographyState === "running"' in CANVAS
+    assert 'choreographyState === "done"' in CANVAS
+
+
+def test_canvas_preserve_helper_is_noop_for_entry():
+    """Helper returns false when first-use-state is entry (no split yet)."""
+    assert 'firstUseState === "split"' in CANVAS
+
+
+def test_canvas_restore_historical_is_guarded_by_preserve_helper():
+    """_restoreHistoricalChat call must be guarded by !_shouldPreserveFirstUseChat()
+    so that choreography chat messages survive route transitions."""
+    assert "!_shouldPreserveFirstUseChat()" in CANVAS
+    assert "_restoreHistoricalChat()" in CANVAS
+
+
+def test_canvas_preserve_no_network_or_storage():
+    """The canvas preserve helper must not add network/storage access."""
+    canvas_no_comments = [l for l in CANVAS.splitlines()
+                          if not l.strip().startswith(" *")]
+    code = "\n".join(canvas_no_comments)
+    for kw in ["fetch(", "XMLHttpRequest", "WebSocket(", "EventSource(",
+               "localStorage", "sessionStorage", "document.cookie",
+               "navigator.sendBeacon"]:
+        assert kw not in code, f"{kw} must not appear in canvas code"
