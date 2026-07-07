@@ -179,7 +179,7 @@ class RequestsFetchProvider(FetchProvider):
             resp = None
             for attempt_index in range(attempts):
                 try:
-                    resp = self._request_with_legacy_400_retry(url, timeout)
+                    resp = self._request_once(url, timeout, self.headers)
                 except req_lib.exceptions.Timeout:
                     if attempt_index < config.max_retries:
                         if config.retry_backoff > 0:

@@ -658,6 +658,39 @@ class TestRequestsFetchProviderConfigRetry:
         assert "Sec-Fetch-Dest" in captured_headers[1]
         sleep_mock.assert_not_called()
 
+    def test_config_does_not_apply_legacy_400_retry_when_400_not_retryable(self):
+        call_count = {"n": 0}
+        captured_headers = []
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+            captured_headers.append(dict(headers))
+
+            class FakeResponse:
+                status_code = 400
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+                    self.text = ""
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get), patch("time.sleep") as sleep_mock:
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=0, retry_on_status=()),
+            )
+
+        assert result.ok is False
+        assert result.status_code == 400
+        assert "HTTP 400" in result.error
+        assert call_count["n"] == 1
+        assert "Sec-Fetch-Dest" not in captured_headers[0]
+        sleep_mock.assert_not_called()
+
     def test_request_exception_is_not_retried_with_config(self):
         call_count = {"n": 0}
 
