@@ -10,6 +10,8 @@ the Issue #906 hardening requirements:
     snapshot answer masquerading as an answer to any question).
   * No external script/link/fetch auto-calls are emitted (human-clickable
     source URL data is allowed).
+  * #921 first-use shell/choreography files exist in the build output.
+  * #921 browser verifier enforces a localhost-only origin boundary.
 
 No network, no live site, no LLM, no Firecrawl, no API calls.
 """
@@ -162,6 +164,46 @@ def test_static_html_has_first_use_css(build_dir):
     html_path = os.path.join(build_dir, "static", "citizen-action-demo.html")
     html = open(html_path, encoding="utf-8").read()
     assert "citizen-first-use-shell.css" in html
+
+
+_REPO_ROOT_FOR_VERIFIER = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_VERIFIER_PATH = os.path.join(
+    _REPO_ROOT_FOR_VERIFIER, "tests", "browser", "verify_citizen_first_use_pages.mjs"
+)
+
+
+def test_verifier_rejects_non_localhost_origin():
+    """#921: The browser verifier must statically define a localhost-only
+    allowlist and reject any external or credentialed base URL before any
+    browser interaction."""
+    assert os.path.isfile(_VERIFIER_PATH), f"verifier not found at {_VERIFIER_PATH}"
+    verifier = open(_VERIFIER_PATH, encoding="utf-8").read()
+
+    # Must have a hostname allowlist
+    assert 'LOCAL_HOSTS' in verifier or '"127.0.0.1"' in verifier
+    assert '"127.0.0.1"' in verifier
+    assert '"localhost"' in verifier
+    assert '"::1"' in verifier
+
+    # Must validate protocol, credentials, query, hash, and path
+    assert 'parsed.protocol' in verifier or 'protocol' in verifier
+    assert 'parsed.username' in verifier or 'parsed.password' in verifier
+    assert 'parsed.search' in verifier
+    assert 'parsed.hash' in verifier
+    assert 'parsed.pathname' in verifier
+
+    # Must throw or reject on invalid input
+    assert 'throw new Error' in verifier
+
+
+def test_verifier_uses_dynamic_origin_for_request_filter():
+    """#921: The verifier must filter requests by the validated BASE_ORIGIN,
+    not a hard-coded origin string."""
+    assert os.path.isfile(_VERIFIER_PATH)
+    verifier = open(_VERIFIER_PATH, encoding="utf-8").read()
+    # Must define a function that checks origin vs BASE_ORIGIN
+    assert 'isLocalRequest' in verifier or 'BASE_ORIGIN' in verifier
+    assert 'new URL(url).origin === BASE_ORIGIN' in verifier
 
 
 def test_admin_model_preset_disabled(build_dir):

@@ -10,20 +10,65 @@
  *
  * Default baseUrl: http://127.0.0.1:8765
  *
+ * Security: baseUrl is strictly validated — only a plain localhost HTTP
+ * origin is accepted. Any external, HTTPS, or credentialed URL is rejected
+ * before any browser interaction.
+ *
  * Screenshots: /tmp/400-ai-finder-stage921/
  * Exit code: 0 (all pass) or 1 (any fail)
  */
 
 import { chromium } from "playwright";
-import { mkdirSync, writeFileSync } from "fs";
+import { mkdirSync } from "fs";
 import { join } from "path";
 
-const BASE_URL = (process.argv[2] || "http://127.0.0.1:8765").replace(/\/+$/, "");
-const STATIC_URL = `${BASE_URL}/static/citizen-action-demo.html`;
+// ═══════════════════════════════════════════════════════════════════
+// Base-URL validation — reject any non-localhost origin up front
+// ═══════════════════════════════════════════════════════════════════
+const requestedBase = process.argv[2] || "http://127.0.0.1:8765";
+
+function validateOrigin(raw) {
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error(`Invalid URL: "${raw}" — static verifier requires a plain localhost HTTP origin.`);
+  }
+
+  const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
+
+  if (parsed.protocol !== "http:") {
+    throw new Error(
+      `Protocol "${parsed.protocol}" is not allowed. Static verifier requires http:// on localhost.`
+    );
+  }
+  if (!LOCAL_HOSTS.has(parsed.hostname)) {
+    throw new Error(
+      `Hostname "${parsed.hostname}" is not allowed. Static verifier requires 127.0.0.1, localhost, or ::1.`
+    );
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error("Credentials in base URL are not allowed.");
+  }
+  if (parsed.search) {
+    throw new Error("Query string in base URL is not allowed.");
+  }
+  if (parsed.hash) {
+    throw new Error("Hash fragment in base URL is not allowed.");
+  }
+  if (parsed.pathname && parsed.pathname !== "/") {
+    throw new Error(`Path "${parsed.pathname}" in base URL is not allowed. Use "/" or omit.`);
+  }
+
+  return parsed.origin;
+}
+
+const BASE_ORIGIN = validateOrigin(requestedBase);
+const STATIC_URL = `${BASE_ORIGIN}/static/citizen-action-demo.html`;
 const SCREENSHOT_DIR = "/tmp/400-ai-finder-stage921";
 mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
-// ── Results aggregator ─────────────────────────────────────────────
+// ── Results & boundary aggregator ─────────────────────────────────
 const results = [];
 const allRequests = [];
 const allErrors = [];
@@ -93,6 +138,16 @@ function chatText(page) {
   return page.evaluate(() =>
     Array.from(document.querySelectorAll(".chat-bubble")).map((b) => b.textContent)
   );
+}
+
+/** True for requests that are local or data: URIs. */
+function isLocalRequest(url) {
+  if (url.startsWith("data:")) return true;
+  try {
+    return new URL(url).origin === BASE_ORIGIN;
+  } catch {
+    return false;
+  }
 }
 
 // ── Main ────────────────────────────────────────────────────────────
@@ -375,15 +430,12 @@ async function main() {
   await pageE.click("#chat-composer-send");
   await pageE.waitForTimeout(200);
 
-  // Should be split immediately (no animation delay)
   const rmSplit = await getFirstUse(pageE);
   record("E1. reduced-motion → split", rmSplit === "split", `got "${rmSplit}"`);
 
-  // choreography should start and progress
   const rmRunning = await getChoreo(pageE);
   record("E2. reduced-motion choreography running or done", rmRunning === "running" || rmRunning === "done", `state="${rmRunning}"`);
 
-  // Wait for the navigation sequence to complete
   const rmDone = await poll(pageE, "reduced-motion done", async (p) => {
     const s = await getChoreo(p);
     return s === "done" ? s : null;
@@ -404,12 +456,21 @@ async function main() {
     const ctxLeg = await bLeg.newContext({ viewport: { width: 1280, height: 900 } });
     const pLeg = await ctxLeg.newPage();
     const legErrors = [];
-    pLeg.on("pageerror", (e) => legErrors.push(e.message));
-    pLeg.on("console", (msg) => {
-      if (msg.type() === "error") legErrors.push(msg.text());
-    });
 
-    await pLeg.goto(`${BASE_URL}/static/citizen-action-demo.html?journey=${journey}`, {
+    // Track requests/errors for both per-journey and global aggregates
+    pLeg.on("pageerror", (e) => {
+      legErrors.push(e.message);
+      allErrors.push({ type: "pageerror", msg: e.message, journey });
+    });
+    pLeg.on("console", (msg) => {
+      if (msg.type() === "error") {
+        legErrors.push(msg.text());
+        allErrors.push({ type: "console-error", msg: msg.text(), journey });
+      }
+    });
+    pLeg.on("request", (r) => allRequests.push(r.url()));
+
+    await pLeg.goto(`${BASE_ORIGIN}/static/citizen-action-demo.html?journey=${journey}`, {
       waitUntil: "networkidle",
       timeout: 15000,
     });
@@ -441,9 +502,8 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════
   console.log("\n=== G. Safety boundary ===");
 
-  const nonLocal = allRequests.filter(
-    (u) => !u.startsWith("http://127.0.0.1:8765") && !u.startsWith("data:")
-  );
+  // Filter using BASE_ORIGIN instead of a hard-coded string
+  const nonLocal = allRequests.filter((url) => !isLocalRequest(url));
   record("G1. all requests from localhost", nonLocal.length === 0, nonLocal.join(", ") || "0 external");
 
   const pageErrs = allErrors.filter((e) => e.type === "pageerror");
@@ -451,11 +511,12 @@ async function main() {
   record("G2. pageerrors 0", pageErrs.length === 0, pageErrs.map((e) => e.msg).join(" | ") || "0");
   record("G3. console errors 0", consoleErrs.length === 0, consoleErrs.map((e) => e.msg).join(" | ") || "0");
 
-  // Check storage/cookie on the last open page (pageD — unsupported context)
-  // But pageD is closed. Let's open a fresh one for safety check.
+  // Check storage/cookie — use a fresh browser, also tracked globally
   const browserG = await chromium.launch({ headless: true });
   const ctxG = await browserG.newContext({ viewport: { width: 1280, height: 900 } });
   const pageG = await ctxG.newPage();
+  onRequest(pageG);
+  onError(pageG);
   await gotoStatic(pageG);
 
   const cookieEmpty = await pageG.evaluate(() => document.cookie === "");
@@ -491,6 +552,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("FATAL:", err);
+  console.error("FATAL:", err.message);
   process.exit(1);
 });
