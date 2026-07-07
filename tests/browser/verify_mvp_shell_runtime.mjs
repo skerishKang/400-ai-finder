@@ -523,7 +523,10 @@ async function scenarioFailureDiagnosticHidden(failureCode) {
   );
 
   // (B) No diagnostic canary string may appear in the rendered body text.
-  for (const canary of FAILURE_DIAGNOSTIC_CANARIES) {
+  // The actual failure_code (e.g. "timeout"/"unknown") is itself forbidden so
+  // that each case cannot leak its own code into the rendered DOM.
+  const forbiddenDiagnostics = [failureCode, ...FAILURE_DIAGNOSTIC_CANARIES];
+  for (const canary of forbiddenDiagnostics) {
     assert.ok(
       !visibleText.includes(canary),
       `failure(${failureCode}): diagnostic canary '${canary}' must NOT appear in body text`,
@@ -536,7 +539,7 @@ async function scenarioFailureDiagnosticHidden(failureCode) {
     aiText.includes("현재 AI 안내를 연결하지 못했습니다."),
     `failure(${failureCode}): generic Korean answer must be in AI bubble text`,
   );
-  for (const canary of FAILURE_DIAGNOSTIC_CANARIES) {
+  for (const canary of forbiddenDiagnostics) {
     assert.ok(
       !aiText.includes(canary),
       `failure(${failureCode}): diagnostic canary '${canary}' must NOT appear in AI bubble text`,
