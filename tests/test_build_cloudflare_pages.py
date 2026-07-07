@@ -185,6 +185,12 @@ def test_verifier_rejects_non_localhost_origin():
     assert '"localhost"' in verifier
     assert '"::1"' in verifier
 
+    # IPv6 bracket normalization (defense-in-depth against hostname
+    # representation differences across Node.js versions / environments)
+    assert (
+        r'.replace(/^\[|\]$/g' in verifier or '"[::1]"' in verifier
+    ), "verifier must strip IPv6 brackets or explicitly accept [::1]"
+
     # Must validate protocol, credentials, query, hash, and path
     assert 'parsed.protocol' in verifier or 'protocol' in verifier
     assert 'parsed.username' in verifier or 'parsed.password' in verifier

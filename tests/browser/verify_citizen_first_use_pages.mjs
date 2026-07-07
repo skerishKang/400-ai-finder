@@ -35,6 +35,10 @@ function validateOrigin(raw) {
     throw new Error(`Invalid URL: "${raw}" — static verifier requires a plain localhost HTTP origin.`);
   }
 
+  // Strip IPv6 brackets for consistent allowlist comparison.
+  // new URL("http://[::1]:8765").hostname returns "::1" in modern Node,
+  // but we normalize explicitly as defense-in-depth.
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
   const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
 
   if (parsed.protocol !== "http:") {
@@ -42,7 +46,7 @@ function validateOrigin(raw) {
       `Protocol "${parsed.protocol}" is not allowed. Static verifier requires http:// on localhost.`
     );
   }
-  if (!LOCAL_HOSTS.has(parsed.hostname)) {
+  if (!LOCAL_HOSTS.has(hostname)) {
     throw new Error(
       `Hostname "${parsed.hostname}" is not allowed. Static verifier requires 127.0.0.1, localhost, or ::1.`
     );
@@ -502,16 +506,9 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════
   console.log("\n=== G. Safety boundary ===");
 
-  // Filter using BASE_ORIGIN instead of a hard-coded string
-  const nonLocal = allRequests.filter((url) => !isLocalRequest(url));
-  record("G1. all requests from localhost", nonLocal.length === 0, nonLocal.join(", ") || "0 external");
-
-  const pageErrs = allErrors.filter((e) => e.type === "pageerror");
-  const consoleErrs = allErrors.filter((e) => e.type === "console-error");
-  record("G2. pageerrors 0", pageErrs.length === 0, pageErrs.map((e) => e.msg).join(" | ") || "0");
-  record("G3. console errors 0", consoleErrs.length === 0, consoleErrs.map((e) => e.msg).join(" | ") || "0");
-
-  // Check storage/cookie — use a fresh browser, also tracked globally
+  // Check storage/cookie — use a fresh browser, tracked globally
+  // (storage/cookie checks must complete BEFORE the aggregate calculation
+  // so that pageG's requests/errors are included in G1–G3.)
   const browserG = await chromium.launch({ headless: true });
   const ctxG = await browserG.newContext({ viewport: { width: 1280, height: 900 } });
   const pageG = await ctxG.newPage();
@@ -529,6 +526,16 @@ async function main() {
   record("G6. sessionStorage empty", ssEmpty, `length=${await pageG.evaluate(() => sessionStorage.length)}`);
 
   await browserG.close();
+
+  // Aggregate safety checks — computed AFTER all pages (A, C, D, E, legacy, G)
+  // have run, so allRequests / allErrors include every browser's activity.
+  const nonLocal = allRequests.filter((url) => !isLocalRequest(url));
+  record("G1. all requests from localhost", nonLocal.length === 0, nonLocal.join(", ") || "0 external");
+
+  const pageErrs = allErrors.filter((e) => e.type === "pageerror");
+  const consoleErrs = allErrors.filter((e) => e.type === "console-error");
+  record("G2. pageerrors 0", pageErrs.length === 0, pageErrs.map((e) => e.msg).join(" | ") || "0");
+  record("G3. console errors 0", consoleErrs.length === 0, consoleErrs.map((e) => e.msg).join(" | ") || "0");
 
   // ═════════════════════════════════════════════════════════════════
   // Summary
