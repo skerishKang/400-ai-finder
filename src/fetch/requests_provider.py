@@ -109,7 +109,10 @@ class RequestsFetchProvider(FetchProvider):
         timeout: tuple[float, float],
         headers: dict[str, str] | None = None,
     ) -> Any:
-        return req_lib.get(url, headers=headers or self.headers, timeout=timeout)
+        # Pass headers verbatim. ``None`` falls back to the browser-like
+        # defaults; an explicit (possibly empty) dict is sent as-is so that
+        # ``headers={}`` does NOT merge with or replace defaults.
+        return req_lib.get(url, headers=self.headers if headers is None else headers, timeout=timeout)
 
     def _request_with_legacy_400_retry(
         self,
@@ -132,7 +135,14 @@ class RequestsFetchProvider(FetchProvider):
         config: FetchConfig | None = None,
         **kwargs: Any,
     ) -> FetchResult:
-        raw_timeout = config.timeout if config is not None else kwargs.get("timeout", self.timeout)
+        compatibility_mode = kwargs.get("compatibility_mode", False)
+        if compatibility_mode:
+            # Call-arg timeout > config.timeout > constructor timeout.
+            raw_timeout = kwargs.get(
+                "timeout", config.timeout if config is not None else self.timeout
+            )
+        else:
+            raw_timeout = config.timeout if config is not None else kwargs.get("timeout", self.timeout)
         timeout = self._split_timeout(raw_timeout)
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -145,6 +155,11 @@ class RequestsFetchProvider(FetchProvider):
                 fetched_at=now,
                 error=f"Invalid URL: must start with http:// or https://",
             )
+
+        if compatibility_mode:
+            # forwarding kwargs minus timeout (passed positionally above)
+            kwargs.pop("timeout", None)
+            return self._fetch_compatibility(url, timeout, now, **kwargs)
 
         # --- HTTP request ---
         if config is None:
@@ -280,6 +295,150 @@ class RequestsFetchProvider(FetchProvider):
             clean_text = "\n".join(line for line in text_lines if line)
 
             # Links
+            links = []
+            seen_urls = set()
+            for a_tag in soup.find_all("a"):
+                href = a_tag.get("href")
+                if not href:
+                    continue
+                href_lower = href.lower().strip()
+                if href_lower.startswith(
+                    ("javascript:", "mailto:", "tel:", "sms:")
+                ) or href_lower == "#":
+                    continue
+                if href not in seen_urls:
+                    seen_urls.add(href)
+                    links.append({"text": a_tag.get_text().strip() or href, "url": href})
+
+            return FetchResult(
+                url=final_url,
+                ok=True,
+                provider=self.name,
+                fetched_at=now,
+                status_code=status_code,
+                content_type=content_type,
+                html=resp.text,
+                text=clean_text,
+                title=title,
+                description=description,
+                links=links,
+                error="",
+            )
+
+        except Exception as e:
+            return FetchResult(
+                url=final_url,
+                ok=True,
+                provider=self.name,
+                fetched_at=now,
+                status_code=status_code,
+                content_type=content_type,
+                html=resp.text,
+                text=resp.text,
+                error=f"HTML parsing error: {e}",
+            )
+
+    def _fetch_compatibility(
+        self,
+        url: str,
+        timeout: tuple[float, float],
+        now: str,
+        **kwargs: Any,
+    ) -> FetchResult:
+        """Opt-in compatibility path (``compatibility_mode=True``).
+
+        Honors the caller's ``headers`` verbatim (no default merge, ``{}`` sent
+        as-is) and performs a single GET with NO legacy 400 retry and NO
+        FetchConfig status-code retries. HTTP 4xx/5xx are returned as
+        ``ok=False`` / ``error="HTTP <status>"`` while still preserving the
+        body (html/text), url, status_code and content_type.
+        """
+        headers = kwargs.get("headers", {})
+        try:
+            resp = self._request_once(url, timeout, headers)
+        except req_lib.exceptions.Timeout:
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider=self.name,
+                fetched_at=now,
+                error=f"Request timed out after {timeout}s",
+            )
+        except req_lib.exceptions.RequestException as e:
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider=self.name,
+                fetched_at=now,
+                error=f"Network error: {e}",
+            )
+        except Exception as e:
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider=self.name,
+                fetched_at=now,
+                error=f"Unexpected error: {e}",
+            )
+
+        status_code = resp.status_code
+        content_type = resp.headers.get("Content-Type", "")
+        final_url = resp.url
+
+        if status_code >= 400:
+            return FetchResult(
+                url=final_url,
+                ok=False,
+                provider=self.name,
+                fetched_at=now,
+                status_code=status_code,
+                content_type=content_type,
+                html=resp.text,
+                text=resp.text,
+                error=f"HTTP {status_code}",
+            )
+
+        # Success: parse HTML. Non-HTML keeps text only (matches base path).
+        if "text/html" not in content_type.lower():
+            return FetchResult(
+                url=final_url,
+                ok=True,
+                provider=self.name,
+                fetched_at=now,
+                status_code=status_code,
+                content_type=content_type,
+                text=resp.text,
+                error="",
+            )
+
+        if resp.encoding == "ISO-8859-1":
+            resp.encoding = resp.apparent_encoding
+
+        try:
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            title = ""
+            title_tag = soup.title
+            if title_tag:
+                title = title_tag.get_text().strip()
+
+            description = ""
+            desc_tag = soup.find(
+                "meta", attrs={"name": lambda x: x and x.lower() == "description"}
+            )
+            if desc_tag and desc_tag.get("content"):
+                description = desc_tag.get("content").strip()
+            else:
+                og_desc = soup.find("meta", attrs={"property": "og:description"})
+                if og_desc and og_desc.get("content"):
+                    description = og_desc.get("content").strip()
+
+            for tag in soup(["script", "style", "noscript"]):
+                tag.decompose()
+            raw_text = soup.get_text(separator="\n")
+            text_lines = [line.strip() for line in raw_text.splitlines()]
+            clean_text = "\n".join(line for line in text_lines if line)
+
             links = []
             seen_urls = set()
             for a_tag in soup.find_all("a"):

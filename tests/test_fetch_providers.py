@@ -807,6 +807,286 @@ class TestRequestsFetchProviderConfigRetry:
 
 
 # ======================================================================
+# Issue #905: compatibility_mode opt-in path
+# ======================================================================
+
+class TestRequestsCompatibilityMode:
+    """Issue #905: opt-in compatibility_mode=True path on RequestsFetchProvider.
+
+    This path must NOT apply the legacy 400 retry, must NOT apply FetchConfig
+    status-code retries, must pass caller headers verbatim (no default merge),
+    and must preserve body/url/status/content-type on HTTP errors.
+    """
+
+    def test_custom_headers_and_timeout_are_used(self):
+        """compatibility_mode passes headers verbatim and honors call-arg timeout.
+
+        Verifies the full precedence: call-arg timeout > config.timeout >
+        constructor timeout. With provider(timeout=99), config(timeout=7.5) and
+        a call-arg timeout=9, the call-arg must win -> (5.0, 9.0).
+        """
+        captured = {}
+
+        def fake_get(url, headers, timeout):
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["timeout"] = timeout
+
+            class FakeResponse:
+                status_code = 200
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body>ok</body></html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider(timeout=99)
+            result = provider.fetch(
+                "https://example.com/",
+                compatibility_mode=True,
+                config=FetchConfig(timeout=7.5),
+                headers={"User-Agent": "LegacyCrawler/1.0"},
+                timeout=9,
+            )
+
+        assert result.ok is True
+        # Custom header passed verbatim (no default merge).
+        assert captured["headers"] == {"User-Agent": "LegacyCrawler/1.0"}
+        # Call-arg timeout (9) wins over config (7.5) and constructor (99).
+        assert captured["timeout"] == (5.0, 9.0)
+
+    def test_compat_timeout_falls_back_to_config_when_no_call_arg(self):
+        """Without an explicit call-arg timeout, config.timeout is used ((5.0, 7.5))."""
+        captured = {}
+
+        def fake_get(url, headers, timeout):
+            captured["timeout"] = timeout
+
+            class FakeResponse:
+                status_code = 200
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body>ok</body></html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider(timeout=99)
+            result = provider.fetch(
+                "https://example.com/",
+                compatibility_mode=True,
+                config=FetchConfig(timeout=7.5),
+                headers={},
+            )
+
+        assert result.ok is True
+        # No call-arg timeout -> config.timeout (7.5) applies, not constructor (99).
+        assert captured["timeout"] == (5.0, 7.5)
+
+    def test_http_error_preserves_body_without_retry(self):
+        """400/404/500 with a real FetchConfig: single request, no retry at all.
+
+        The FetchConfig requests several retries on those exact statuses with a
+        backoff; the compatibility path must ignore FetchConfig status-code
+        retries (and the legacy 400 retry) entirely: exactly one GET, no
+        time.sleep, no Sec-Fetch-* headers, and body/url/status/ct preserved.
+        """
+
+        def make_case(status_code):
+            call_count = {"n": 0}
+            captured = {}
+
+            def fake_get(url, headers, timeout):
+                call_count["n"] += 1
+                captured["headers"] = dict(headers)
+
+                class FakeResponse:
+                    encoding = "utf-8"
+
+                    def __init__(self):
+                        self.status_code = status_code
+                        self.headers = {"Content-Type": "text/html; charset=utf-8"}
+                        self.url = url
+
+                    @property
+                    def text(self):
+                        return f"<html><body>err {status_code}</body></html>"
+
+                return FakeResponse()
+
+            with patch("requests.get", side_effect=fake_get), patch("time.sleep") as sleep_mock:
+                provider = RequestsFetchProvider()
+                result = provider.fetch(
+                    "https://example.com/page",
+                    compatibility_mode=True,
+                    config=FetchConfig(
+                        max_retries=3,
+                        retry_on_status=(400, 404, 500),
+                        retry_backoff=1.0,
+                    ),
+                    headers={},
+                    timeout=5,
+                )
+
+            assert call_count["n"] == 1, f"status {status_code}: expected single request"
+            assert sleep_mock.call_count == 0, \
+                f"status {status_code}: compatibility path must not sleep/retry"
+            assert "Sec-Fetch-Dest" not in captured["headers"], \
+                f"status {status_code}: compatibility path must not add retry headers"
+            assert result.ok is False
+            assert result.error == f"HTTP {status_code}"
+            assert result.status_code == status_code
+            assert result.url == "https://example.com/page"
+            assert "text/html" in result.content_type
+            assert f"err {status_code}" in result.html
+            assert f"err {status_code}" in result.text
+
+        for status in (400, 404, 500):
+            make_case(status)
+
+    def test_empty_headers_passed_verbatim(self):
+        """headers={} must reach requests.get as an empty dict, not default headers."""
+
+        def fake_get(url, headers, timeout):
+            class FakeResponse:
+                status_code = 200
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html><head><title>T</title></head><body>ok</body></html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get) as get_mock:
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                compatibility_mode=True,
+                headers={},
+                timeout=5,
+            )
+
+        assert result.ok is True
+        # The single call received an empty dict, not the default UA/Accept headers.
+        sent_headers = get_mock.call_args.kwargs["headers"]
+        assert sent_headers == {}, f"expected empty dict, got {sent_headers}"
+
+    def test_default_path_no_body_preservation_and_legacy_400_retry(self):
+        """Default fetch preserves legacy 400 retry + FetchConfig retry (unchanged)."""
+
+        # --- legacy 400 retry still applies on the default path ---
+        call_count = {"n": 0}
+        captured = {}
+
+        def fake_get(url, headers, timeout):
+            call_count["n"] += 1
+            captured["headers"] = dict(headers)
+
+            class FakeResponse:
+                encoding = "utf-8"
+
+                def __init__(self, sc):
+                    self.status_code = sc
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return ""
+
+            return FakeResponse(400 if call_count["n"] == 1 else 200)
+
+        with patch("requests.get", side_effect=fake_get):
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                compatibility_mode=False,
+                timeout=5,
+            )
+
+        assert call_count["n"] == 2, "default path must still retry on 400"
+        assert "Sec-Fetch-Dest" in captured["headers"], \
+            "default path retry must use Sec-Fetch headers"
+        assert result.ok is True
+
+        # --- default path HTTP 4xx error does NOT preserve body ---
+        def fake_get_err(url, headers, timeout):
+            class FakeResponse:
+                status_code = 404
+                encoding = "utf-8"
+
+                def __init__(self):
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+                    self.text = "<html>not kept</html>"
+
+            return FakeResponse()
+
+        with patch("requests.get", side_effect=fake_get_err):
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/missing",
+                compatibility_mode=False,
+                timeout=5,
+            )
+
+        assert result.ok is False
+        assert result.status_code == 404
+        assert result.html == "" and result.text == "", \
+            "default path must not preserve body on HTTP error"
+
+        # --- FetchConfig status-code retry still applies on the default path ---
+        retry_count = {"n": 0}
+
+        def fake_get_retry(url, headers, timeout):
+            retry_count["n"] += 1
+
+            class FakeResponse:
+                encoding = "utf-8"
+
+                def __init__(self, sc):
+                    self.status_code = sc
+                    self.headers = {"Content-Type": "text/html"}
+                    self.url = url
+
+                @property
+                def text(self):
+                    return "<html>retry</html>"
+
+            return FakeResponse(503 if retry_count["n"] == 1 else 200)
+
+        with patch("requests.get", side_effect=fake_get_retry), patch("time.sleep"):
+            provider = RequestsFetchProvider()
+            result = provider.fetch(
+                "https://example.com/",
+                config=FetchConfig(max_retries=1, retry_on_status=(503,)),
+                compatibility_mode=False,
+                timeout=5,
+            )
+
+        assert retry_count["n"] == 2, "FetchConfig retry must apply on default path"
+        assert result.ok is True
+
+
+# ======================================================================
 # FirecrawlFetchProvider
 # ======================================================================
 
