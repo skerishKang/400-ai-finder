@@ -602,3 +602,40 @@ def test_homepage_mapper_direct_fallback_timeout_then_success(monkeypatch):
     assert err is None
     assert status == 200
     assert final_url == "https://example.com/final"
+
+
+# ------------------------------------------------------------------
+# #949: Lock that extract_menu_links follows classify_url behavior.
+# Inside a nav area a .pdf is a document attachment; .doc/.zip are NOT
+# extension-only documents in the classifier, so they stay on the nav/menu
+# side (no document keyword anywhere in href/text). HomepageMapper keeps no
+# separate extension list — it defers to classify_url.
+# ------------------------------------------------------------------
+def test_extract_menu_links_follows_classifier_taxonomy():
+    """#949 / no network. pdf -> attachment; doc/zip -> nav/menu (not doc)."""
+    mapper = HomepageMapper()
+    html = """
+    <html>
+      <body>
+        <nav>
+          <a href="https://example.com/assets/sample.pdf">파일</a>
+          <a href="https://example.com/assets/sample.doc">문서</a>
+          <a href="https://example.com/assets/sample.zip">압축</a>
+        </nav>
+      </body>
+    </html>
+    """
+    nav_links, att_links = mapper.extract_menu_links(html, "https://example.com")
+
+    att_urls = {a["url"] for a in att_links}
+    nav_urls = {n["url"] for n in nav_links}
+
+    assert "https://example.com/assets/sample.pdf" in att_urls
+    assert att_urls == {"https://example.com/assets/sample.pdf"}
+
+    assert "https://example.com/assets/sample.doc" in nav_urls
+    assert "https://example.com/assets/sample.zip" in nav_urls
+    # doc/zip are classified as menu (navigation) by the shared classifier.
+    categories = {n["url"]: n["category"] for n in nav_links}
+    assert categories["https://example.com/assets/sample.doc"] == "menu"
+    assert categories["https://example.com/assets/sample.zip"] == "menu"

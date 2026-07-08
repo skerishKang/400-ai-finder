@@ -52,3 +52,51 @@ def test_classify_url_precedence():
     assert classify_url("https://example.com/contact", text="청사") == "contact"
     # location > menu (navigation flag)
     assert classify_url("https://example.com/parking", text="", is_navigation=True) == "location"
+
+
+# ------------------------------------------------------------------
+# #949: Lock the classifier document-extension taxonomy.
+# The classifier's extension-only document set is exactly 5 values; doc/xls/
+# ppt/pptx/zip are profile-default documents but NOT extension-only documents
+# in the classifier. Keyword-driven matches are covered separately so the two
+# mechanisms are never conflated. URLs here avoid document keywords entirely.
+# ------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://example.com/assets/sample.pdf",
+        "https://example.com/assets/sample.hwp",
+        "https://example.com/assets/sample.hwpx",
+        "https://example.com/assets/sample.docx",
+        "https://example.com/assets/sample.xlsx",
+    ],
+)
+def test_classify_url_extension_only_document(url):
+    """#949 / no network. The 5 classifier document extensions classify by
+    extension alone (no document keyword in the URL or text)."""
+    assert classify_url(url, text="") == "document"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://example.com/assets/sample.doc",
+        "https://example.com/assets/sample.xls",
+        "https://example.com/assets/sample.ppt",
+        "https://example.com/assets/sample.pptx",
+        "https://example.com/assets/sample.zip",
+    ],
+)
+def test_classify_url_extension_only_broad_profile_only(url):
+    """#949 / no network. These are profile-default documents but NOT
+    classifier extension-only documents — by extension alone they must NOT be
+    classified as "document"."""
+    assert classify_url(url, text="") != "document"
+
+
+def test_classify_url_keyword_driven_document():
+    """#949 / no network. Keyword-driven document classification is distinct
+    from extension classification. Uses a real document keyword but no document
+    extension, and must still classify as document."""
+    assert classify_url("https://example.com/section/page-1", text="첨부파일 안내") == "document"
+    assert classify_url("https://example.com/section/page-2", text="신청서식 다운로드") == "document"
