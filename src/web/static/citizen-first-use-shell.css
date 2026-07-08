@@ -19,6 +19,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(360px, var(--first-use-entry-chat-width)) minmax(0, 1fr);
   grid-template-areas: "canvas chat spacer";
   align-items: stretch;
+  background: #eef3f8;
   overflow: hidden;
   transition: grid-template-columns var(--first-use-motion) var(--first-use-ease);
 }
@@ -46,7 +47,9 @@
   border-left: 1px solid #dde2ec;
   box-shadow: 0 18px 50px rgba(39, 57, 75, 0.08);
   transition:
+    height var(--first-use-motion) var(--first-use-ease),
     width var(--first-use-motion) var(--first-use-ease),
+    border-radius var(--first-use-motion) ease,
     box-shadow var(--first-use-motion) ease;
 }
 
@@ -55,7 +58,11 @@
 }
 
 body[data-first-use-state="entry"] .chat-shell {
-  border-left: 1px solid #dde2ec;
+  align-self: center;
+  height: min(720px, calc(100vh - 64px));
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  box-shadow: 0 22px 70px rgba(44, 62, 80, 0.16);
 }
 
 body[data-first-use-state="entry"] .chat-shell__header {
@@ -66,6 +73,16 @@ body[data-first-use-state="entry"] .chat-shell__header {
 body[data-first-use-state="transitioning"] .first-use-layout,
 body[data-first-use-state="split"] .first-use-layout {
   grid-template-columns: minmax(0, 1fr) var(--first-use-chat-width) 0;
+}
+
+body[data-first-use-state="transitioning"] .chat-shell,
+body[data-first-use-state="split"] .chat-shell {
+  align-self: stretch;
+  height: 100vh;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
 }
 
 body[data-first-use-state="transitioning"] .demo-canvas,

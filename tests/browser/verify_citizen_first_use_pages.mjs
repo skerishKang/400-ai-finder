@@ -114,6 +114,32 @@ async function getRoute(page) {
   );
 }
 
+async function getSplitSurfaceState(page) {
+  return page.evaluate(() => {
+    function surfaceState(selector) {
+      const el = document.querySelector(selector);
+      if (!el) return { exists: false };
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      return {
+        exists: true,
+        width: rect.width,
+        height: rect.height,
+        visibility: style.visibility,
+        opacity: style.opacity,
+        display: style.display,
+      };
+    }
+    const canvas = document.getElementById("demo-canvas");
+    return {
+      canvas: surfaceState("#demo-canvas"),
+      chat: surfaceState("#chat-shell"),
+      canvasAriaHidden: canvas ? canvas.getAttribute("aria-hidden") : "NO-ELEMENT",
+      canvasInert: canvas ? canvas.hasAttribute("inert") : "NO-ELEMENT",
+    };
+  });
+}
+
 async function hasHighlight(page, targetId) {
   return page.evaluate(
     (tid) =>
@@ -200,6 +226,11 @@ async function main() {
   });
   record("A6. composer input focusable", inputTypeable, "");
 
+  const entryGreeting = await pageA.evaluate(() =>
+    document.body.textContent.includes("북구청 민원 안내 AI입니다")
+  );
+  record("A7. chat-first greeting shown", entryGreeting, "");
+
   // ═════════════════════════════════════════════════════════════════
   // B. Full first-use flow
   // ═════════════════════════════════════════════════════════════════
@@ -215,6 +246,39 @@ async function main() {
     return s === "split" ? s : null;
   }, 2000);
   record("B1. state → split", splitState === "split", `got "${splitState}"`);
+
+  const splitSurfaces = await getSplitSurfaceState(pageA);
+  record(
+    "B1a. split canvas aria visible",
+    splitSurfaces.canvasAriaHidden === "false" && splitSurfaces.canvasInert === false,
+    `aria-hidden=${splitSurfaces.canvasAriaHidden}, inert=${splitSurfaces.canvasInert}`
+  );
+  const canvasVisible = (
+    splitSurfaces.canvas.exists &&
+    splitSurfaces.canvas.width > 320 &&
+    splitSurfaces.canvas.height > 480 &&
+    splitSurfaces.canvas.visibility !== "hidden" &&
+    Number(splitSurfaces.canvas.opacity) > 0.9 &&
+    splitSurfaces.canvas.display !== "none"
+  );
+  record(
+    "B1b. split left clone visible",
+    canvasVisible,
+    `canvas=${Math.round(splitSurfaces.canvas.width || 0)}x${Math.round(splitSurfaces.canvas.height || 0)}, visibility=${splitSurfaces.canvas.visibility}, opacity=${splitSurfaces.canvas.opacity}`
+  );
+  const chatVisible = (
+    splitSurfaces.chat.exists &&
+    splitSurfaces.chat.width >= 360 &&
+    splitSurfaces.chat.height > 480 &&
+    splitSurfaces.chat.visibility !== "hidden" &&
+    Number(splitSurfaces.chat.opacity) > 0.9 &&
+    splitSurfaces.chat.display !== "none"
+  );
+  record(
+    "B1c. split right chat visible",
+    chatVisible,
+    `chat=${Math.round(splitSurfaces.chat.width || 0)}x${Math.round(splitSurfaces.chat.height || 0)}, visibility=${splitSurfaces.chat.visibility}, opacity=${splitSurfaces.chat.opacity}`
+  );
 
   const runningChoreo = await getChoreo(pageA);
   record("B2. choreography running", runningChoreo === "running", `state="${runningChoreo}"`);
@@ -410,7 +474,7 @@ async function main() {
   record("D3. canvas inert", dInert === true, "");
 
   const dUnsupMsg = await pageD.evaluate(() =>
-    document.body.textContent.includes("지원 범위의 질문으로 다시 입력해 주세요")
+    document.body.textContent.includes("예시 질문으로 다시 입력해 주세요")
   );
   record("D4. unsupported guidance shown", dUnsupMsg, "");
 

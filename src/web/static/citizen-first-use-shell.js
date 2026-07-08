@@ -16,11 +16,12 @@
   var STATE_TRANSITIONING = "transitioning";
   var STATE_SPLIT = "split";
   var TRANSITION_DURATION_MS = 360;
+  var DEFAULT_SUPPORTED_ACTION = "illegal_parking";
   var SUPPORTED_QUESTIONS = {
     "불법 주정차 신고는 어디서 하나요?": true
   };
   var SPLIT_FOLLOW_UP_MESSAGE =
-    "현재 로컬 안내 화면을 준비했습니다. 메뉴 이동과 세부 안내는 다음 단계에서 순서대로 제공됩니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
+    "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
 
   var body = document.body;
   var canvas = document.getElementById("demo-canvas");
@@ -57,6 +58,14 @@
     if (a === "illegal_parking" || a === "housing_department" || a === "none") {
       return a;
     }
+    return "none";
+  }
+
+  function resolveMvpActionForQuestion(question, result, hasUsableMvpResult) {
+    if (!hasUsableMvpResult) return "none";
+    var action = normalizeMvpAction(result);
+    if (action !== "none") return action;
+    if (isSupportedQuestion(question)) return DEFAULT_SUPPORTED_ACTION;
     return "none";
   }
 
@@ -203,7 +212,7 @@
     chatThread.innerHTML = "";
     appendChatMessage(
       "ai",
-      "안녕하세요. 북구청 정보 안내 로컬 시연입니다. 지원되는 질문을 입력하면 안내 화면을 함께 보여드립니다."
+      "안녕하세요. 북구청 민원 안내 AI입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다."
     );
   }
 
@@ -212,7 +221,7 @@
     setState(STATE_SPLIT);
     appendChatMessage(
       "ai",
-      "질문을 확인했습니다. 왼쪽의 로컬 안내 화면을 준비했습니다. 다음 단계의 메뉴 안내는 이 데모에서 순서대로 보여드릴 예정입니다."
+      "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다. 이제 메뉴 이동과 확인 위치를 순서대로 보여드리겠습니다."
     );
     if (window.CitizenFirstChoreography && lastSplitQuestion) {
       window.CitizenFirstChoreography.start(lastSplitQuestion);
@@ -277,7 +286,7 @@
     chatInput.value = "";
     appendChatMessage(
       "ai",
-      "현재 이 로컬 시연에서 준비된 안내 질문이 아닙니다. 지원 범위의 질문으로 다시 입력해 주세요."
+      "현재 첫 화면에서는 불법 주정차 신고 경로 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요."
     );
     chatInput.focus();
   }
@@ -326,8 +335,11 @@
           ? normalizedAnswer
           : "현재 AI 안내를 연결하지 못했습니다.";
         appendChatMessage("ai", answer);
-        // 4. inspect action; only the two approved actions move the clone
-        var action = hasUsableMvpResult ? normalizeMvpAction(result) : "none";
+        // 4. inspect action; only approved local actions move the clone. If a
+        // usable MVP answer misses the action for the supported first question,
+        // fall back to the existing deterministic local journey instead of
+        // leaving the citizen-facing MVP stuck in chat-only mode.
+        var action = resolveMvpActionForQuestion(question, result, hasUsableMvpResult);
         if (action === "illegal_parking") {
           beginMvpSplitThenChoreography(question, "illegal_parking");
         } else if (action === "housing_department") {
@@ -362,7 +374,7 @@
     setState(STATE_SPLIT);
     appendChatMessage(
       "ai",
-      "질문을 확인했습니다. 왼쪽의 로컬 안내 화면을 준비했습니다."
+      "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
     );
     // 6. run the existing local choreography for the resolved action
     if (window.CitizenFirstChoreography && action) {
@@ -411,6 +423,7 @@
     setState(STATE_SPLIT);
   } else {
     setState(STATE_ENTRY);
+    renderEntryConversation();
   }
 
   window.CitizenFirstUseShell = Object.freeze({

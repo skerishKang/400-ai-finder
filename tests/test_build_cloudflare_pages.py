@@ -258,6 +258,9 @@ def test_mvp_entry_generated(build_dir):
     # First-use shell + choreography assets are present in the entry.
     assert "citizen-first-use-shell.js" in html
     assert "citizen-first-choreography.js" in html
+    assert 'data-first-use-state="entry"' in html
+    assert "북구청 AI 민원 안내" in html
+    assert "첫 질문 후 북구청 안내 화면과 함께 경로를 보여드립니다." in html
 
     # Query sanitizer is present and runs before the shell script.
     assert "history.replaceState" in html
@@ -341,4 +344,3 @@ def test_shim_execution_boundary(build_dir):
         assert "INFO_PROFILES:bukgu_gwangju" in text, text
     finally:
         os.unlink(harness_path)
-

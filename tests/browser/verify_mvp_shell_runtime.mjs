@@ -44,6 +44,9 @@ function makeEl(tag) {
         ? this._attrs[k]
         : null;
     },
+    hasAttribute(k) {
+      return Object.prototype.hasOwnProperty.call(this._attrs, k);
+    },
     removeAttribute(k) {
       delete this._attrs[k];
     },
@@ -299,6 +302,28 @@ function canvasAriaHidden(scenario) {
   return scenario.doc.getElementById("demo-canvas").getAttribute("aria-hidden");
 }
 
+function canvasInert(scenario) {
+  return scenario.doc.getElementById("demo-canvas").hasAttribute("inert");
+}
+
+function assertSplitCloneVisible(scenario, label) {
+  assert.strictEqual(
+    scenario.win.CitizenFirstUseShell.getState(),
+    "split",
+    `${label}: shell must transition to split`,
+  );
+  assert.strictEqual(
+    canvasAriaHidden(scenario),
+    "false",
+    `${label}: left clone must be exposed to the accessibility tree`,
+  );
+  assert.strictEqual(
+    canvasInert(scenario),
+    false,
+    `${label}: left clone must not remain inert after split`,
+  );
+}
+
 function assertComposerRecovered(scenario, label) {
   const input = scenario.doc.getElementById("chat-composer-input");
   const send = scenario.doc.getElementById("chat-composer-send");
@@ -345,6 +370,7 @@ async function scenarioIllegalParking() {
     "split",
     "illegal_parking: shell must transition to split (reduced motion)",
   );
+  assertSplitCloneVisible(s, "illegal_parking");
   assert.deepStrictEqual(
     choreo.startCalls,
     ["illegal_parking"],
@@ -377,12 +403,44 @@ async function scenarioHousingDepartment() {
     ),
     "housing_department: server answer must be shown",
   );
+  assertSplitCloneVisible(s, "housing_department");
   assert.deepStrictEqual(
     choreo.startCalls,
     ["housing_department"],
     "housing_department: choreography.start('housing_department') once",
   );
   console.log("  [2] housing_department: OK");
+}
+
+async function scenarioSupportedQuestionActionNoneFallback() {
+  const bridge = makeResolvingBridge({
+    ok: true,
+    answer: "불법 주정차 신고 경로를 안내하겠습니다.",
+    action: "none",
+    confidence: 0.75,
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1",
+    reducedMotion: true,
+    bridge,
+    choreo,
+  });
+  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  await flush();
+
+  const bubbles = aiBubbleTexts(s);
+  assert.ok(
+    bubbles.includes("불법 주정차 신고 경로를 안내하겠습니다."),
+    "supported none fallback: server answer must still be shown",
+  );
+  assertSplitCloneVisible(s, "supported none fallback");
+  assert.deepStrictEqual(
+    choreo.startCalls,
+    ["illegal_parking"],
+    "supported none fallback: exact supported question opens existing illegal_parking clone journey",
+  );
+  console.log("  [3] supported question action=none fallback: OK");
 }
 
 async function scenarioNone() {
@@ -422,7 +480,12 @@ async function scenarioNone() {
     "true",
     "none: left clone must remain hidden/inert",
   );
-  console.log("  [3] none: OK");
+  assert.strictEqual(
+    canvasInert(s),
+    true,
+    "none: left clone must remain inert",
+  );
+  console.log("  [4] none: OK");
 }
 
 async function scenarioPendingThenReset() {
@@ -464,7 +527,7 @@ async function scenarioPendingThenReset() {
   const send = s.doc.getElementById("chat-composer-send");
   assert.strictEqual(input.disabled, false, "pending: composer input enabled");
   assert.strictEqual(send.disabled, false, "pending: composer send enabled");
-  console.log("  [4] pending + reset: OK");
+  console.log("  [5] pending + reset: OK");
 }
 
 async function scenarioDefaultModeRegression() {
@@ -500,7 +563,8 @@ async function scenarioDefaultModeRegression() {
     "불법 주정차 신고는 어디서 하나요?",
     "default mode: existing exact-question journey key is used",
   );
-  console.log("  [5] default static mode regression: OK");
+  assertSplitCloneVisible(s, "default mode");
+  console.log("  [6] default static mode regression: OK");
 }
 
 // ── Scenario: failure diagnostics must stay hidden from citizen shell ────
@@ -600,8 +664,13 @@ async function scenarioFailureDiagnosticHidden(failureCode) {
     "true",
     `failure(${failureCode}): left clone must remain hidden/inert`,
   );
+  assert.strictEqual(
+    canvasInert(s),
+    true,
+    `failure(${failureCode}): left clone must remain inert`,
+  );
 
-  console.log(`  [6] failure diagnostics hidden (${failureCode}): OK`);
+  console.log(`  [7] failure diagnostics hidden (${failureCode}): OK`);
 }
 
 // ── Scenario: untrusted failure answer must never reach the citizen DOM ──
@@ -663,8 +732,13 @@ async function scenarioFailureUntrustedAnswer() {
     "true",
     "failure(untrusted answer): left clone must remain hidden/inert",
   );
+  assert.strictEqual(
+    canvasInert(s),
+    true,
+    "failure(untrusted answer): left clone must remain inert",
+  );
 
-  console.log("  [7] failure untrusted answer hidden: OK");
+  console.log("  [8] failure untrusted answer hidden: OK");
 }
 
 // ── Scenario: explicit success but blank answer must fail closed ──
@@ -713,8 +787,13 @@ async function scenarioSuccessBlankAnswer() {
     "true",
     "success(blank answer): left clone must remain hidden/inert",
   );
+  assert.strictEqual(
+    canvasInert(s),
+    true,
+    "success(blank answer): left clone must remain inert",
+  );
 
-  console.log("  [8] success blank answer fails closed: OK");
+  console.log("  [9] success blank answer fails closed: OK");
 }
 
 // ── Scenario A: missing result must fail closed ──
@@ -753,9 +832,14 @@ async function scenarioMissingResult() {
     "true",
     "missing result: left clone must remain hidden/inert",
   );
+  assert.strictEqual(
+    canvasInert(s),
+    true,
+    "missing result: left clone must remain inert",
+  );
   assertComposerRecovered(s, "missing result");
 
-  console.log("  [9] missing result fails closed: OK");
+  console.log("  [10] missing result fails closed: OK");
 }
 
 // ── Scenario B: malformed result must fail closed ──
@@ -811,10 +895,15 @@ async function scenarioMalformedResult() {
       "true",
       `${label}: left clone must remain hidden/inert`,
     );
+    assert.strictEqual(
+      canvasInert(s),
+      true,
+      `${label}: left clone must remain inert`,
+    );
     assertComposerRecovered(s, label);
   }
 
-  console.log("  [10] malformed result fails closed: OK");
+  console.log("  [11] malformed result fails closed: OK");
 }
 
 // ── Scenario C: rejected bridge request must fail closed ──
@@ -860,15 +949,21 @@ async function scenarioRejectedBridge() {
     "true",
     "rejected bridge: left clone must remain hidden/inert",
   );
+  assert.strictEqual(
+    canvasInert(s),
+    true,
+    "rejected bridge: left clone must remain inert",
+  );
   assertComposerRecovered(s, "rejected bridge");
 
-  console.log("  [11] rejected bridge request fails closed: OK");
+  console.log("  [12] rejected bridge request fails closed: OK");
 }
 
 async function main() {
   console.log("Running MVP shell runtime scenarios (no network, no fetch):");
   await scenarioIllegalParking();
   await scenarioHousingDepartment();
+  await scenarioSupportedQuestionActionNoneFallback();
   await scenarioNone();
   await scenarioPendingThenReset();
   await scenarioDefaultModeRegression();
