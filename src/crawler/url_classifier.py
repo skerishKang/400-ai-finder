@@ -1,6 +1,8 @@
 import os
 from urllib.parse import urlparse
 
+from src.config.constants import CLASSIFIER_DOCUMENT_EXTENSIONS
+
 CATEGORY_PRIORITY = {
     "document": 7,
     "apply": 6,
@@ -20,7 +22,7 @@ def classify_url(url, text="", is_navigation=False):
     parsed = urlparse(url)
     _, ext = os.path.splitext(parsed.path)
     ext = ext.lower().lstrip('.')
-    document_extensions = {'pdf', 'hwp', 'hwpx', 'docx', 'xlsx'}
+    document_extensions = CLASSIFIER_DOCUMENT_EXTENSIONS
 
     document_keywords = {'data', 'download', 'file', '자료', '서식', '양식', '첨부', 'document', 'docs'}
     if ext in document_extensions or any(k in url_lower or k in text_lower for k in document_keywords):

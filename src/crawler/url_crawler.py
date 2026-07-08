@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunparse, urljoin
 
 from src.fetch import FetchConfig, FetchProvider, RequestsFetchProvider, get_fetch_provider
+from src.config.constants import CRAWLER_ATTACHMENT_EXTENSIONS
 from src.crawler.crawl_path_filter import should_crawl_url
 from src.observability import get_event_logger, log_pipeline_event
 
@@ -26,7 +27,7 @@ class URLCrawler:
             "Chrome/120.0.0.0 Safari/537.36"
         )
         self.headers = {"User-Agent": self.user_agent}
-        self.attachment_extensions = {'pdf', 'hwp', 'hwpx', 'docx', 'xlsx'}
+        self.attachment_extensions = set(CRAWLER_ATTACHMENT_EXTENSIONS)
         self.fetch_provider = self._resolve_fetch_provider(fetch_provider)
         self.crawl_filters = crawl_filters
         self.fetch_config = fetch_config
