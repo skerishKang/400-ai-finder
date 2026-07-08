@@ -26,6 +26,10 @@
     "매트리스 폐기 신청은 어디서 하나요?": true,
     "이사 왔는데 전입신고는 어떻게 해요?": true,
     "전입신고 어디서 하나요?": true,
+    "보건소 어디에 있어요?": true,
+    "북구 보건소 진료는 어떻게 확인해요?": true,
+    "보건소 위치랑 진료 안내 알려줘": true,
+    "예방접종이나 진료 보려면 어디로 가야 해요?": true,
   };
   var SPLIT_FOLLOW_UP_MESSAGE =
     "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
@@ -64,7 +68,7 @@
   function normalizeMvpAction(result) {
     if (!result || result.ok !== true) return "none";
     var a = result.action;
-    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "move_in_report" || a === "none") {
+    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "move_in_report" || a === "public_health_center" || a === "none") {
       return a;
     }
     return "none";
@@ -475,7 +479,7 @@
     chatInput.value = "";
     appendChatMessage(
       "ai",
-      "현재 첫 화면에서는 불법 주정차 신고 경로 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요."
+      "현재 첫 화면에서는 불법 주정차 신고, 공동주택 문의, 대형폐기물 처리, 전입신고, 보건소 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요."
     );
     chatInput.focus();
   }
@@ -543,6 +547,8 @@
           beginMvpSplitThenChoreography(question, "bulky_waste");
         } else if (action === "move_in_report") {
           beginMvpSplitThenChoreography(question, "move_in_report");
+        } else if (action === "public_health_center") {
+          beginMvpSplitThenChoreography(question, "public_health_center");
         } else if (action === "none") {
           // Keep the entry chat; do not move the clone or start a choreography.
         }

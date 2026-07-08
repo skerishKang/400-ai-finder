@@ -40,13 +40,14 @@ def _base_registry_payload():
     }
 
 
-def test_default_registry_loads_three_phase1_quests_only():
+def test_default_registry_loads_five_phase1_quests_only():
     registry = load_default_bukgu_registry()
     assert [quest.quest_id for quest in registry.quests] == [
         "housing_department_lookup",
         "illegal_parking_report_guidance",
         "bulky_waste_disposal_guidance",
         "move_in_report_guidance",
+        "public_health_center_guidance",
     ]
     quest = registry.get("housing_department_lookup")
     assert quest is not None
@@ -107,6 +108,17 @@ def test_illegal_parking_questions_match_report_guidance(question):
     assert result.status == "matched"
     assert result.quest_id == "illegal_parking_report_guidance"
     assert result.confidence >= 0.72
+
+
+def test_public_health_center_questions_match_guidance():
+    for question in [
+        "보건소 어디에 있어요?",
+        "보건소 위치랑 진료 안내 알려줘",
+    ]:
+        result = match_quest(question, load_default_bukgu_registry())
+        assert result.status == "matched"
+        assert result.quest_id == "public_health_center_guidance"
+        assert result.confidence >= 0.72
 
 
 def test_unknown_question_is_unsupported_or_needs_confirmation():

@@ -141,6 +141,62 @@ def test_move_in_report_quest_stops_for_user_confirmation_with_warning():
     assert "주민센터" in warning_text
 
 
+def _public_health_center_quest():
+    quest = load_default_bukgu_registry().get("public_health_center_guidance")
+    assert quest is not None
+    return quest
+
+
+def test_public_health_center_quest_converts_to_valid_action_plan():
+    plan = build_quest_action_plan(_public_health_center_quest())
+    assert plan.plan_status == "guided"
+    assert plan.quest_id == "public_health_center_guidance"
+    assert plan.quest_name == "보건소 위치·진료 안내"
+    assert plan.client_action == "public_health_center"
+    assert plan.official_path == (
+        "북구청 홈",
+        "보건소",
+        "보건소소개",
+        "찾아오시는 길",
+    )
+    assert plan.result["service"] == "보건소 위치·진료 안내"
+    assert plan.result["surface"] == "보건소 위치·진료 안내 카드"
+    labels = [action.label for action in plan.browser_actions]
+    assert "보건소 위치·진료 안내 화면 이동" in labels
+    assert "보건소 위치·진료 안내 카드 확인" in labels
+
+
+def test_public_health_center_quest_stops_for_user_confirmation_with_warning():
+    plan = build_quest_action_plan(_public_health_center_quest())
+    assert plan.stop_condition == "STOP_FOR_USER_CONFIRMATION"
+    assert plan.browser_actions[-1].action_type == "STOP_FOR_USER_CONFIRMATION"
+    assert plan.requires_user_confirmation is True
+    assert plan.final_warning is not None
+    assert plan.final_warning["requires_user_confirmation"] is True
+    warning_text = plan.final_warning["warning_text"]
+    assert "의료 판단" in warning_text
+    assert "진단" in warning_text
+    assert "처방" in warning_text
+    assert "응급 판단" in warning_text
+    assert "예약" in warning_text
+    assert "본인인증" in warning_text
+    assert "건강정보 입력" in warning_text
+    assert "제출" in warning_text
+
+
+def test_decide_bukgu_quest_action_returns_local_static_public_health_center_decision():
+    decision = decide_bukgu_quest_action("보건소 어디에 있어요?")
+    assert decision is not None
+    assert decision.action == "public_health_center"
+    assert decision.quest is not None
+    assert decision.quest["quest_id"] == "public_health_center_guidance"
+    assert decision.quest["source_mode"] == "local_static"
+    assert decision.action_plan is not None
+    assert decision.action_plan["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
+    assert decision.action_plan["requires_user_confirmation"] is True
+    assert decision.action_plan["final_warning"]["requires_user_confirmation"] is True
+
+
 def test_decide_bukgu_quest_action_returns_local_static_move_in_report_decision():
     decision = decide_bukgu_quest_action("이사 왔는데 전입신고는 어떻게 해요?")
     assert decision is not None

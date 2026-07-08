@@ -1441,6 +1441,80 @@
     );
   }
 
+  function _renderPublicHealthCenterGuidance(route) {
+    return (
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--public-health-center">' +
+        _renderDenseHeader('intro') +
+
+        '<div class="bg-layout--lnb">' +
+          /* LNB — 보건소 사이트 메뉴 구조 */
+          '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
+            '<div class="bg-lnb__header">북구보건소</div>' +
+            '<ul class="bg-lnb__list">' +
+              '<li class="bg-lnb__item bg-lnb__item--open">' +
+                '<a href="#" class="bg-lnb__parent">보건소소개</a>' +
+                '<ul class="bg-lnb__sub">' +
+                  '<li><a href="#">인사말</a></li>' +
+                  '<li><a href="#">조직 및 업무</a></li>' +
+                  '<li class="bg-lnb__item--active"><a href="#">찾아오시는 길</a></li>' +
+                '</ul>' +
+              '</li>' +
+              '<li class="bg-lnb__item bg-lnb__item--open">' +
+                '<a href="#" class="bg-lnb__parent">민원·안내</a>' +
+                '<ul class="bg-lnb__sub">' +
+                  '<li class="bg-lnb__item--open">' +
+                    '<a href="#">진료 및 검사</a>' +
+                    '<ul class="bg-lnb__sub bg-lnb__sub--lv3">' +
+                      '<li class="bg-lnb__item--active"><a href="#">일반진료</a></li>' +
+                      '<li><a href="#">진료과목</a></li>' +
+                      '<li><a href="#">검사안내</a></li>' +
+                    '</ul>' +
+                  '</li>' +
+                  '<li class="bg-lnb__item--active"><a href="#">예방접종</a></li>' +
+                  '<li><a href="#">건강검진</a></li>' +
+                '</ul>' +
+              '</li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">건강정보</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">자료실</a></li>' +
+            '</ul>' +
+          '</nav>' +
+
+          /* Main content — 보건소 guidance card */
+          '<main class="bg-content bg-content--sub" id="bg-content-main">' +
+            _renderSubPageHeader(route.title, route.purpose) +
+
+            '<div class="bg-illegal-parking-card" data-action-target="health-center-guidance-card" tabindex="0">' +
+              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🏥</div>' +
+              '<div class="bg-illegal-parking-card__body">' +
+                '<h2 class="bg-illegal-parking-card__title">보건소 위치·진료 안내</h2>' +
+                '<p class="bg-illegal-parking-card__desc">북구 보건소 위치, 운영시간, 진료과목, 예방접종, 검사 정보를 안내합니다.</p>' +
+                '<ul class="bg-illegal-parking-card__meta">' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">위치</span> 광주광역시 북구 우치로 65 (중흥동)</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">전화</span> 062-410-8119, 8112</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">운영시간</span> 평일 09:00 ~ 18:00</li>' +
+                '</ul>' +
+              '</div>' +
+              '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
+            '</div>' +
+
+            '<div class="bg-health-notice-box">' +
+              '<h3>⚠️ 확인 사항</h3>' +
+              '<ul>' +
+                '<li>보건소 위치, 운영시간, 진료과목, 예방접종, 검사, 예약 가능 여부 등 실제 이용 정보는 <strong>북구청·보건소 공식 채널</strong>에서 직접 확인해야 합니다.</li>' +
+                '<li>이 데모는 <strong>의료 판단, 진단, 처방, 응급 판단</strong>을 제공하지 않습니다.</li>' +
+                '<li>예약, 본인인증, 건강정보 입력, 제출은 공식 채널에서 직접 진행해야 합니다.</li>' +
+                '<li>증상별 상담·약물 안내·응급 상황 대응은 <strong>의료기관·약국·119</strong>에 문의하세요.</li>' +
+              '</ul>' +
+            '</div>' +
+
+            '<p class="bg-illegal-parking-note">※ 본 데모는 로컬 개념 시연(PoC)입니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다.</p>' +
+          '</main>' +
+        '</div>' +
+        _renderSubFooter() +
+      '</div>'
+    );
+  }
+
   // -----------------------------------------------------------------------
   // _renderCheongwon24 — 청원24 info page (replaces complaint-category)
   // Faithful reproduction of bukgu_menu.png
@@ -2005,6 +2079,7 @@
         case "complaint-illegal-parking": html = _renderIllegalParking(route); break;
         case "bulky-waste-disposal": html = _renderBulkyWasteDisposal(route); break;
         case "move-in-report-guidance": html = _renderMoveInReportGuidance(route); break;
+        case "public-health-center-guidance": html = _renderPublicHealthCenterGuidance(route); break;
         case "complaint-intake":   html = _renderComplaintIntake(route); break;
         case "complaint-review":   html = _renderComplaintReview(route); break;
         case "handoff-stop":       html = _renderHandoffStop(route); break;
@@ -2021,7 +2096,8 @@
       "handoff-stop": {title: "데모 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
       "complaint-illegal-parking": {title: "불법 주정차 신고", purpose: "불법 주정차 차량을 안전신문고 등을 통해 신고하실 수 있습니다."},
       "bulky-waste-disposal": {title: "대형폐기물 처리", purpose: "대형폐기물 배출 방법을 안내하고 온라인 신청을 지원합니다."},
-      "move-in-report-guidance": {title: "전입신고 안내", purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."}
+      "move-in-report-guidance": {title: "전입신고 안내", purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."},
+      "public-health-center-guidance": {title: "보건소 위치·진료 안내", purpose: "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다."}
     };
     var meta = ROUTE_METADATA[routeId] || {title: "", purpose: ""};
     if (isDeptJourney && (deptState === "directory" || deptState === "result")) {

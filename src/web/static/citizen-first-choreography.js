@@ -191,6 +191,61 @@
         Object.freeze({ message: "안내가 완료되었습니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
+    "public_health_center": Object.freeze({
+      id: "public-health-center-guidance",
+      description: "보건소 위치·진료 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200 }),
+        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
+    "보건소 어디에 있어요?": Object.freeze({
+      id: "public-health-center-guidance",
+      description: "보건소 위치·진료 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200 }),
+        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
+    "북구 보건소 진료는 어떻게 확인해요?": Object.freeze({
+      id: "public-health-center-guidance",
+      description: "보건소 위치·진료 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200 }),
+        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
+    "보건소 위치랑 진료 안내 알려줘": Object.freeze({
+      id: "public-health-center-guidance",
+      description: "보건소 위치·진료 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200 }),
+        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
+    "예방접종이나 진료 보려면 어디로 가야 해요?": Object.freeze({
+      id: "public-health-center-guidance",
+      description: "보건소 위치·진료 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200 }),
+        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
     "전입신고 어디서 하나요?": Object.freeze({
       id: "move-in-report-guidance",
       description: "전입신고 안내 (MVP action)",
