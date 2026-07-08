@@ -831,13 +831,12 @@ def test_url_crawler_fetch_config_preserves_failure_result_schema():
 # ======================================================================
 
 def test_url_crawler_direct_fallback_success(monkeypatch):
-    class FakeResponse:
-        status_code = 200
+    class FakeResult:
+        ok = True
         url = "https://example.com/final-url"
-        headers = {"Content-Type": "text/html; charset=utf-8"}
-        encoding = "ISO-8859-1"
-        apparent_encoding = "utf-8"
-        text = """
+        status_code = 200
+        content_type = "text/html; charset=utf-8"
+        html = """
         <html>
             <head>
                 <title>Success Title</title>
@@ -850,23 +849,32 @@ def test_url_crawler_direct_fallback_success(monkeypatch):
             </body>
         </html>
         """
+        text = html
+        error = ""
 
     called_kwargs = {}
-    def mock_get(url, **kwargs):
+    def mock_fetch(self, url, **kwargs):
         called_kwargs["url"] = url
         called_kwargs["headers"] = kwargs.get("headers")
         called_kwargs["timeout"] = kwargs.get("timeout")
-        return FakeResponse()
+        called_kwargs["compatibility_mode"] = kwargs.get("compatibility_mode")
+        called_kwargs["legacy_transport"] = kwargs.get("legacy_transport")
+        return FakeResult()
 
-    import requests
-    monkeypatch.setattr(requests, "get", mock_get)
+    import unittest.mock
+    monkeypatch.setattr(
+        "src.crawler.url_crawler.RequestsFetchProvider.fetch", mock_fetch
+    )
 
     crawler = URLCrawler(fetch_provider=None)
     result = crawler.analyze("https://example.com/start-url")
 
+    # Routed through the legacy requests transport with the expected flags.
     assert called_kwargs["url"] == "https://example.com/start-url"
     assert called_kwargs["headers"] == crawler.headers
     assert called_kwargs["timeout"] == crawler.timeout
+    assert called_kwargs["compatibility_mode"] is True
+    assert called_kwargs["legacy_transport"] is True
 
     assert result["url"] == "https://example.com/final-url"
     assert result["status_code"] == 200
@@ -909,11 +917,22 @@ def test_url_crawler_direct_fallback_success(monkeypatch):
 
 
 def test_url_crawler_direct_fallback_timeout(monkeypatch):
-    import requests
-    def mock_get(url, **kwargs):
-        raise requests.exceptions.Timeout("Connection timed out")
+    class FakeResult:
+        ok = False
+        url = "https://example.com/start-url"
+        status_code = None
+        content_type = ""
+        html = ""
+        text = ""
+        error = "Request timed out after 7s"
 
-    monkeypatch.setattr(requests, "get", mock_get)
+    def mock_fetch(self, url, **kwargs):
+        return FakeResult()
+
+    import unittest.mock
+    monkeypatch.setattr(
+        "src.crawler.url_crawler.RequestsFetchProvider.fetch", mock_fetch
+    )
 
     crawler = URLCrawler(fetch_provider=None)
     result = crawler.analyze("https://example.com/start-url")
@@ -931,11 +950,22 @@ def test_url_crawler_direct_fallback_timeout(monkeypatch):
 
 
 def test_url_crawler_direct_fallback_request_exception(monkeypatch):
-    import requests
-    def mock_get(url, **kwargs):
-        raise requests.exceptions.ConnectionError("offline")
+    class FakeResult:
+        ok = False
+        url = "https://example.com/start-url"
+        status_code = None
+        content_type = ""
+        html = ""
+        text = ""
+        error = "Network error: offline"
 
-    monkeypatch.setattr(requests, "get", mock_get)
+    def mock_fetch(self, url, **kwargs):
+        return FakeResult()
+
+    import unittest.mock
+    monkeypatch.setattr(
+        "src.crawler.url_crawler.RequestsFetchProvider.fetch", mock_fetch
+    )
 
     crawler = URLCrawler(fetch_provider=None)
     result = crawler.analyze("https://example.com/start-url")
@@ -944,16 +974,22 @@ def test_url_crawler_direct_fallback_request_exception(monkeypatch):
 
 
 def test_url_crawler_direct_fallback_http_error_html(monkeypatch):
-    class FakeResponse:
-        status_code = 500
+    class FakeResult:
+        ok = False
         url = "https://example.com/error-url"
-        headers = {"Content-Type": "text/html"}
-        encoding = "utf-8"
-        apparent_encoding = "utf-8"
-        text = "<html><head><title>Error Page</title></head><body>Internal Server Error</body></html>"
+        status_code = 500
+        content_type = "text/html"
+        html = "<html><head><title>Error Page</title></head><body>Internal Server Error</body></html>"
+        text = html
+        error = "HTTP 500"
 
-    import requests
-    monkeypatch.setattr(requests, "get", lambda *a, **kw: FakeResponse())
+    def mock_fetch(self, url, **kwargs):
+        return FakeResult()
+
+    import unittest.mock
+    monkeypatch.setattr(
+        "src.crawler.url_crawler.RequestsFetchProvider.fetch", mock_fetch
+    )
 
     crawler = URLCrawler(fetch_provider=None)
     result = crawler.analyze("https://example.com/start-url")
@@ -964,6 +1000,13 @@ def test_url_crawler_direct_fallback_http_error_html(monkeypatch):
 
 
 def test_url_crawler_direct_fallback_non_html(monkeypatch):
+    """legacy transport / no network.
+
+    A non-HTML 200 still surfaces the same crawler contract after routing
+    through the legacy requests transport (single request, body not parsed).
+    """
+    from src.fetch.requests_provider import req_lib, RequestsFetchProvider
+
     class FakeResponse:
         status_code = 200
         url = "https://example.com/document.pdf"
@@ -972,11 +1015,27 @@ def test_url_crawler_direct_fallback_non_html(monkeypatch):
         apparent_encoding = "utf-8"
         text = "%PDF-1.4..."
 
-    import requests
-    monkeypatch.setattr(requests, "get", lambda *a, **kw: FakeResponse())
+    def mock_get(url, headers=None, timeout=None):
+        return FakeResponse()
+
+    monkeypatch.setattr(req_lib, "get", mock_get)
+
+    called_kwargs = {}
+    real_fetch = RequestsFetchProvider.fetch
+
+    def spy_fetch(self, url, **kwargs):
+        called_kwargs.update(kwargs)
+        return real_fetch(self, url, **kwargs)
+
+    monkeypatch.setattr(RequestsFetchProvider, "fetch", spy_fetch)
 
     crawler = URLCrawler(fetch_provider=None)
     result = crawler.analyze("https://example.com/start-url")
+
+    assert called_kwargs.get("compatibility_mode") is True
+    assert called_kwargs.get("legacy_transport") is True
+    assert called_kwargs.get("headers") == crawler.headers
+    assert called_kwargs.get("timeout") == crawler.timeout
 
     assert result["errors"] == ["Response content type is not HTML: application/pdf"]
     assert result["title"] == ""

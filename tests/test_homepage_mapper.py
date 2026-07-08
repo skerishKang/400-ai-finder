@@ -475,15 +475,16 @@ def test_homepage_mapper_direct_fallback_success(monkeypatch):
     class FakeResponse:
         status_code = 200
         url = "https://example.com/final"
+        headers = {"Content-Type": "text/html; charset=utf-8"}
         text = "Hello World"
         encoding = "ISO-8859-1"
         apparent_encoding = "utf-8"
 
-    called_kwargs = {}
+    captured = {}
     def mock_get(url, **kwargs):
-        called_kwargs["url"] = url
-        called_kwargs["headers"] = kwargs.get("headers")
-        called_kwargs["timeout"] = kwargs.get("timeout")
+        captured["url"] = url
+        captured["headers"] = kwargs.get("headers")
+        captured["timeout"] = kwargs.get("timeout")
         return FakeResponse()
 
     import requests
@@ -492,9 +493,11 @@ def test_homepage_mapper_direct_fallback_success(monkeypatch):
     mapper = HomepageMapper(fetch_provider=None)
     content, err, status, final_url = mapper.fetch_content("https://example.com/start")
 
-    assert called_kwargs["url"] == "https://example.com/start"
-    assert called_kwargs["headers"] == mapper.crawler.headers
-    assert called_kwargs["timeout"] == mapper.crawler.timeout
+    # Routed through legacy requests transport: caller headers verbatim and the
+    # scalar timeout (not a split tuple) forwarded to requests.get.
+    assert captured["url"] == "https://example.com/start"
+    assert captured["headers"] == mapper.crawler.headers
+    assert captured["timeout"] == mapper.crawler.timeout
     assert content == "Hello World"
     assert err is None
     assert status == 200
@@ -505,6 +508,10 @@ def test_homepage_mapper_direct_fallback_http_error_retry(monkeypatch):
     class FakeResponse:
         status_code = 503
         url = "https://example.com/start"
+        headers = {"Content-Type": "text/html; charset=utf-8"}
+        text = "<html><body>unavailable</body></html>"
+        encoding = "utf-8"
+        apparent_encoding = "utf-8"
 
     call_count = 0
     def mock_get(url, **kwargs):
@@ -570,12 +577,12 @@ def test_homepage_mapper_direct_fallback_timeout_then_success(monkeypatch):
     class FakeResponse:
         status_code = 200
         url = "https://example.com/final"
+        headers = {"Content-Type": "text/html; charset=utf-8"}
         text = "Recovered content"
         encoding = "utf-8"
         apparent_encoding = "utf-8"
 
     calls = []
-
     def mock_get(url, **kwargs):
         calls.append((url, kwargs))
         if len(calls) == 1:
