@@ -12,7 +12,11 @@ import re
 from pathlib import Path
 from typing import Any
 
-from src.config.constants import PROFILE_DOCUMENT_EXTENSIONS
+from src.config.constants import (
+    PROFILE_DOCUMENT_EXTENSIONS,
+    PROFILE_DEFAULT_BOARD_PATTERNS,
+    PROFILE_DEFAULT_CRAWL_RULES,
+)
 
 try:
     import yaml
@@ -32,18 +36,11 @@ REQUIRED_FIELDS = {
     "base_url": str,
 }
 
-DEFAULT_CRAWL_RULES: dict[str, Any] = {
-    "max_depth": 3,
-    "max_pages": 200,
-    "include_documents": True,
-    "respect_robots": True,
-}
+DEFAULT_CRAWL_RULES: dict[str, Any] = dict(PROFILE_DEFAULT_CRAWL_RULES)
 
 DEFAULT_DOCUMENT_EXTENSIONS: list[str] = list(PROFILE_DOCUMENT_EXTENSIONS)
 
-DEFAULT_BOARD_PATTERNS: list[str] = [
-    "board", "bbs", "list", "view", "article", "notice",
-]
+DEFAULT_BOARD_PATTERNS: list[str] = list(PROFILE_DEFAULT_BOARD_PATTERNS)
 
 
 # ------------------------------------------------------------------
