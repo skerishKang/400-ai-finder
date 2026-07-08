@@ -309,8 +309,16 @@ class TestMvpAskEndpoint:
         assert data["action"] == "illegal_parking"
         assert "answer" in data and data["answer"]
         assert isinstance(data["confidence"], float)
-        assert data["provider"] == "fake"
-        assert data["model"] == "fake-model"
+        assert data["provider"] == "local_static"
+        assert data["model"] == "quest-engine-v1"
+        assert data["quest"]["quest_id"] == "illegal_parking_report_guidance"
+        assert data["quest"]["source_mode"] == "local_static"
+        assert data["action_plan"]["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
+        assert data["action_plan"]["requires_user_confirmation"] is True
+        assert data["action_plan"]["final_warning"]["requires_user_confirmation"] is True
+        labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
+        assert "불법 주정차 신고 화면 이동" in labels
+        assert "불법 주정차 신고 카드 확인" in labels
 
     def test_mvp_ask_housing_department(self, mvp_server):
         port = mvp_server["port"]
@@ -368,7 +376,7 @@ class TestMvpAskEndpoint:
     def test_mvp_ask_provider_failure_contract(self, mvp_failure_server):
         port = mvp_failure_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=5)
-        body = json.dumps({"question": "불법 주정차 신고 어디서 해요?"}).encode()
+        body = json.dumps({"question": "오늘 북구 날씨 알려줘"}).encode()
         conn.request("POST", "/api/mvp/ask", body=body,
                      headers={"Content-Type": "application/json"})
         resp = conn.getresponse()
@@ -449,7 +457,7 @@ class TestMvpAskProviderResolutionFailure:
     def test_get_provider_exception_returns_stable_200(self, mvp_provider_resolution_error_server):
         port = mvp_provider_resolution_error_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=5)
-        body = json.dumps({"question": "불법 주정차 신고 어디서 해요?"}).encode()
+        body = json.dumps({"question": "오늘 북구 날씨 알려줘"}).encode()
         conn.request("POST", "/api/mvp/ask", body=body,
                      headers={"Content-Type": "application/json"})
         resp = conn.getresponse()
@@ -457,7 +465,7 @@ class TestMvpAskProviderResolutionFailure:
         conn.close()
         assert resp.status == 200
         assert data["ok"] is False
-        assert data["question"] == "불법 주정차 신고 어디서 해요?"
+        assert data["question"] == "오늘 북구 날씨 알려줘"
         assert data["answer"] == MVP_FAILURE_ANSWER
         assert data["action"] == "none"
         assert data["confidence"] == 0.0

@@ -158,7 +158,8 @@ def test_choreography_final_target_highlight_present():
     """The illegal-parking journey map includes complaint-illegal-parking-report
     as a target highlight step before the completion message."""
     assert '"complaint-illegal-parking-report"' in CHOREO
-    assert "온라인으로 신고를 접수할 수 있습니다" in CHOREO
+    assert "STOP_FOR_USER_CONFIRMATION" in CHOREO
+    assert "본인인증" in CHOREO
 
 
 def test_choreography_final_target_appears_after_route_and_before_completion():
@@ -272,6 +273,7 @@ def test_shell_has_generic_action_plan_quest_card_renderer():
     assert "final_warning" in JS
     assert "textContent = payload.questName" in JS
     assert "data-quest-card\", \"action_plan\"" in JS
+    assert "appendQuestProgressCard(chatThread)" in JS
 
 
 def test_canvas_delegates_quest_card_to_shell_renderer():

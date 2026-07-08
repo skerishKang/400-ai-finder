@@ -94,7 +94,9 @@
     } else if (typeof quest.stop_condition === "string") {
       body.setAttribute("data-quest-stop-condition", quest.stop_condition);
     }
-    if (typeof quest.source_mode === "string") {
+    if (typeof plan.source_mode === "string") {
+      body.setAttribute("data-quest-source-mode", plan.source_mode);
+    } else if (typeof quest.source_mode === "string") {
       body.setAttribute("data-quest-source-mode", quest.source_mode);
     }
   }
@@ -563,6 +565,7 @@
       "ai",
       "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
     );
+    appendQuestProgressCard(chatThread);
     // 6. run the existing local choreography for the resolved action
     if (window.CitizenFirstChoreography && action) {
       window.CitizenFirstChoreography.start(action);

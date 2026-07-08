@@ -58,8 +58,8 @@
         Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
         Object.freeze({ message: "민원신고 메뉴에서 불법 주정차 신고 항목을 안내합니다.", targetId: "nav-complaint-category", delayMs: 2000 }),
         Object.freeze({ message: "불법 주정차 신고 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200 }),
-        Object.freeze({ message: "불법 주정차 신고 카드를 안내합니다. 이 카드에서 위치·사진·내용을 입력해 접수합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
-        Object.freeze({ message: "안내가 완료되었습니다. '불법 주정차 신고' 카드에서 온라인으로 신고를 접수할 수 있습니다. 새로운 문의는 '새 대화'를 선택해 주세요." }),
+        Object.freeze({ message: "불법 주정차 신고 카드를 안내합니다. 실제 입력·접수 전 사용자 확인이 필요합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 신고 제출, 본인인증, 차량번호·사진·위치정보 입력은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     // #927 MVP action aliases — same deterministic local clone as above.
@@ -72,8 +72,8 @@
         Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
         Object.freeze({ message: "민원신고 메뉴에서 불법 주정차 신고 항목을 안내합니다.", targetId: "nav-complaint-category", delayMs: 2000 }),
         Object.freeze({ message: "불법 주정차 신고 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200 }),
-        Object.freeze({ message: "불법 주정차 신고 카드를 안내합니다. 이 카드에서 위치·사진·내용을 입력해 접수합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
-        Object.freeze({ message: "안내가 완료되었습니다. '불법 주정차 신고' 카드에서 온라인으로 신고를 접수할 수 있습니다. 새로운 문의는 '새 대화'를 선택해 주세요." }),
+        Object.freeze({ message: "불법 주정차 신고 카드를 안내합니다. 실제 입력·접수 전 사용자 확인이 필요합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 신고 제출, 본인인증, 차량번호·사진·위치정보 입력은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     // #965 — 공동주택 search choreography 강화

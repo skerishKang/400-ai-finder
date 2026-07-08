@@ -349,6 +349,32 @@ async function scenarioIllegalParking() {
     answer: "불법 주정차 신고는 종합민원에서 안내합니다.",
     action: "illegal_parking",
     confidence: 0.9,
+    quest: {
+      quest_id: "illegal_parking_report_guidance",
+      quest_name: "불법 주정차 신고 안내",
+      source_mode: "local_static",
+      match_status: "matched",
+    },
+    action_plan: {
+      quest_id: "illegal_parking_report_guidance",
+      quest_name: "불법 주정차 신고 안내",
+      official_path: ["종합민원", "민원신고", "불법 주정차 신고"],
+      source_mode: "local_static",
+      stop_condition: "STOP_FOR_USER_CONFIRMATION",
+      result: {
+        service: "불법 주정차 신고",
+        surface: "불법 주정차 신고 카드",
+      },
+      browser_actions: [
+        { label: "종합민원 메뉴 확인" },
+        { label: "불법 주정차 신고 화면 이동" },
+        { label: "불법 주정차 신고 카드 확인" },
+      ],
+      final_warning: {
+        warning_text: "실제 신고 제출과 본인인증은 사용자가 직접 확인해야 합니다.",
+        requires_user_confirmation: true,
+      },
+    },
   });
   const choreo = makeChoreo();
   const s = runScenario({
@@ -376,6 +402,20 @@ async function scenarioIllegalParking() {
     ["illegal_parking"],
     "illegal_parking: choreography.start('illegal_parking') called exactly once",
   );
+  const card = s.doc.getElementById("chat-thread")._children.find((node) => {
+    return (node.className || "").includes("chat-quest-card");
+  });
+  assert.ok(card, "illegal_parking: quest card must be appended from metadata");
+  assert.strictEqual(card.getAttribute("data-quest-card"), "action_plan");
+  assert.strictEqual(card.getAttribute("data-quest-id"), "illegal_parking_report_guidance");
+  const cardText = card.textContent;
+  assert.ok(cardText.includes("불법 주정차 신고 안내"));
+  assert.ok(cardText.includes("종합민원 > 민원신고 > 불법 주정차 신고"));
+  assert.ok(cardText.includes("불법 주정차 신고 / 불법 주정차 신고 카드"));
+  assert.ok(cardText.includes("STOP_FOR_USER_CONFIRMATION"));
+  assert.ok(cardText.includes("local_static"));
+  assert.ok(cardText.includes("불법 주정차 신고 화면 이동"));
+  assert.ok(cardText.includes("실제 신고 제출과 본인인증"));
   console.log("  [1] illegal_parking: OK");
 }
 
