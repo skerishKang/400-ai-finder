@@ -1378,6 +1378,69 @@
     );
   }
 
+  function _renderMoveInReportGuidance(route) {
+    return (
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--move-in-report">' +
+        _renderDenseHeader('civil-service') +
+
+        '<div class="bg-layout--lnb">' +
+          /* LNB */
+          '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
+            '<div class="bg-lnb__header">종합민원</div>' +
+            '<ul class="bg-lnb__list">' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">종합민원</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--open">' +
+                '<a href="#" class="bg-lnb__parent">전자민원창구</a>' +
+                '<ul class="bg-lnb__sub">' +
+                  '<li><a href="#">민원처리공개</a></li>' +
+                  '<li><a href="#">민원상담(국민신문고)</a></li>' +
+                  '<li class="bg-lnb__item--active"><a href="#">정부24</a></li>' +
+                  '<li><a href="#">전입신고</a></li>' +
+                  '<li><a href="#">주민등록등·초본</a></li>' +
+                '</ul>' +
+              '</li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민원신고</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민원서식</a></li>' +
+            '</ul>' +
+          '</nav>' +
+
+          /* Main content — 전입신고 guidance card */
+          '<main class="bg-content bg-content--sub" id="bg-content-main">' +
+            _renderSubPageHeader(route.title, route.purpose) +
+
+            '<div class="bg-illegal-parking-card" data-action-target="move-in-guidance-card" tabindex="0">' +
+              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🏠</div>' +
+              '<div class="bg-illegal-parking-card__body">' +
+                '<h2 class="bg-illegal-parking-card__title">전입신고 안내</h2>' +
+                '<p class="bg-illegal-parking-card__desc">이사 후 새로운 주소로 전입신고(주소 옮기기) 경로를 안내합니다.</p>' +
+                '<ul class="bg-illegal-parking-card__meta">' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">신고방법</span> 정부24 온라인 또는 주민센터 방문</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">필요정보</span> 본인인증, 주소, 세대주, 가족관계</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">신고기한</span> 이사한 날부터 14일 이내</li>' +
+                '</ul>' +
+              '</div>' +
+              '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
+            '</div>' +
+
+            '<div class="bg-move-in-notice-box">' +
+              '<h3>⚠️ 제출 전 확인 사항</h3>' +
+              '<ul>' +
+                '<li>전입신고는 <strong>정부24</strong> 온라인 또는 거주지 관할 <strong>주민센터</strong> 방문을 통해 직접 신고해야 합니다.</li>' +
+                '<li>신고 시 <strong>본인인증</strong>(공동인증서, 간편인증)이 필요합니다.</li>' +
+                '<li>신고하려는 <strong>주소</strong>(새로운 거주지), <strong>세대주</strong> 정보, <strong>가족관계</strong> 정보를 확인해야 합니다.</li>' +
+                '<li>이사일부터 <strong>14일 이내</strong>에 신고하지 않으면 과태료가 부과될 수 있습니다.</li>' +
+                '<li>본 데모는 안내만 제공하며, 실제 인증·입력·제출은 사용자가 공식 채널에서 직접 진행해야 합니다.</li>' +
+              '</ul>' +
+            '</div>' +
+
+            '<p class="bg-illegal-parking-note">※ 본 데모는 로컬 개념 시연(PoC)입니다. 실제 전입신고, 본인인증, 개인정보 입력, 정부24/주민센터 제출은 사용자가 직접 확인해야 합니다.</p>' +
+          '</main>' +
+        '</div>' +
+        _renderSubFooter() +
+      '</div>'
+    );
+  }
+
   // -----------------------------------------------------------------------
   // _renderCheongwon24 — 청원24 info page (replaces complaint-category)
   // Faithful reproduction of bukgu_menu.png
@@ -1941,6 +2004,7 @@
         case "complaint-category": html = _renderCheongwon24(route); break;
         case "complaint-illegal-parking": html = _renderIllegalParking(route); break;
         case "bulky-waste-disposal": html = _renderBulkyWasteDisposal(route); break;
+        case "move-in-report-guidance": html = _renderMoveInReportGuidance(route); break;
         case "complaint-intake":   html = _renderComplaintIntake(route); break;
         case "complaint-review":   html = _renderComplaintReview(route); break;
         case "handoff-stop":       html = _renderHandoffStop(route); break;
@@ -1956,7 +2020,8 @@
       "complaint-review": {title: "민원 신청 확인", purpose: "아래 내용을 확인하고 신청해 주세요."},
       "handoff-stop": {title: "데모 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
       "complaint-illegal-parking": {title: "불법 주정차 신고", purpose: "불법 주정차 차량을 안전신문고 등을 통해 신고하실 수 있습니다."},
-      "bulky-waste-disposal": {title: "대형폐기물 처리", purpose: "대형폐기물 배출 방법을 안내하고 온라인 신청을 지원합니다."}
+      "bulky-waste-disposal": {title: "대형폐기물 처리", purpose: "대형폐기물 배출 방법을 안내하고 온라인 신청을 지원합니다."},
+      "move-in-report-guidance": {title: "전입신고 안내", purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."}
     };
     var meta = ROUTE_METADATA[routeId] || {title: "", purpose: ""};
     if (isDeptJourney && (deptState === "directory" || deptState === "result")) {

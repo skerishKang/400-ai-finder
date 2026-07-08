@@ -30,12 +30,13 @@
   var CLOSED_ROUTE_IDS = Object.freeze([
     "home",
     "civil-service",
-    "bulky-waste-disposal",
     "complaint-category",
     "complaint-illegal-parking",
     "complaint-intake",
-    "complaint-review",
     "handoff-stop",
+    "complaint-review",
+"bulky-waste-disposal",
+    "move-in-report-guidance",
   ]);
 
   var CLOSED_TARGET_IDS = Object.freeze([
@@ -47,11 +48,12 @@
     "complaint-category-traffic-or-facility-safety",
     "complaint-category-other-or-unsure",
     "complaint-illegal-parking-report",
-    "bulky-waste-guidance-card",
     "complaint-body",
     "complaint-draft-review",
     "confirm-draft-prefill",
     "handoff-notice",
+    "bulky-waste-guidance-card",
+    "move-in-guidance-card",
   ]);
 
   // -----------------------------------------------------------------------
@@ -72,14 +74,6 @@
       purpose: "북구청 주요 민원 서비스를 안내합니다.",
       navTargets: Object.freeze(["nav-complaint-category"]),
       breadcrumbLabel: "민원 신청",
-    }),
-
-    "bulky-waste-disposal": Object.freeze({
-      id: "bulky-waste-disposal",
-      title: "대형폐기물 처리",
-      purpose: "대형폐기물 배출 방법을 안내하고 온라인 신청을 지원합니다.",
-      navTargets: Object.freeze([]),
-      breadcrumbLabel: "대형폐기물 처리",
     }),
 
     "complaint-category": Object.freeze({
@@ -128,6 +122,22 @@
       purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요.",
       navTargets: Object.freeze([]),
       breadcrumbLabel: "종료",
+    }),
+
+    "bulky-waste-disposal": Object.freeze({
+      id: "bulky-waste-disposal",
+      title: "대형폐기물 처리",
+      purpose: "대형폐기물 배출 방법을 안내하고 온라인 신청을 지원합니다.",
+      navTargets: Object.freeze([]),
+      breadcrumbLabel: "대형폐기물 처리",
+    }),
+
+    "move-in-report-guidance": Object.freeze({
+      id: "move-in-report-guidance",
+      title: "전입신고 안내",
+      purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다.",
+      navTargets: Object.freeze(["move-in-guidance-card"]),
+      breadcrumbLabel: "전입신고 안내",
     }),
   });
 

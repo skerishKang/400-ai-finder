@@ -30,13 +30,13 @@ from .openai_compatible_provider import (
     is_valid_failure_code,
 )
 
-MVP_ACTIONS = ("illegal_parking", "housing_department", "bulky_waste", "none")
+MVP_ACTIONS = ("illegal_parking", "housing_department", "bulky_waste", "move_in_report", "none")
 
 MVP_FAILURE_ANSWER = "현재 AI 안내를 연결하지 못했습니다."
 
 MVP_SYSTEM_PROMPT = (
     "당신은 광주광역시 북구청 정보 안내 로컬 데모의 안내 결정 모델입니다. "
-    "사용자의 한국어 질문을 받고, 아래 네 가지 안내 범위 중 하나로만 분류하세요. "
+    "사용자의 한국어 질문을 받고, 아래 다섯 가지 안내 범위 중 하나로만 분류하세요. "
     "반드시 JSON 객체 하나만 출력하세요. 다른 설명이나 마크다운 코드 블록(```)을 "
     "절대 포함하지 마세요.\n"
     "\n"
@@ -55,7 +55,12 @@ MVP_SYSTEM_PROMPT = (
     "   - 로컬 데모가 대형폐기물 배출 안내 화면을 시각적으로 안내할 수 있음을 "
     "안내하세요.\n"
     "   - 실제 결제·제출·개인정보 입력은 데모에서 수행하지 않음을 명확히 하세요.\n"
-    "4. none — 그 밖의 질문\n"
+    "4. move_in_report — 전입신고 안내\n"
+    "   - 이사 후 전입신고(주소 옮기기) 경로를 안내하세요.\n"
+    "   - 로컬 데모가 전입신고 안내 화면을 시각적으로 안내할 수 있음을 안내하세요.\n"
+    "   - 실제 본인인증, 세대주·주소·가족관계 정보 입력, 정부24 또는 주민센터 "
+    "제출은 데모에서 수행하지 않음을 명확히 하세요.\n"
+    "5. none — 그 밖의 질문\n"
     "   - 북구청 정보 안내 로컬 데모의 범위를 자연스럽게 설명하고, 북구청 민원·"
     "부서·시설·공고 등 질문을 안내할 수 있다고 제안하세요.\n"
     "   - 좌측 화면 이동은 필요 없음을 의미합니다.\n"
@@ -63,7 +68,7 @@ MVP_SYSTEM_PROMPT = (
     "[출력 형식] 반드시 아래 JSON만 출력:\n"
     '{\n'
     '  "answer": "사용자에게 보여줄 자연스러운 한국어 답변",\n'
-    '  "action": "illegal_parking | housing_department | bulky_waste | none 중 하나",\n'
+    '  "action": "illegal_parking | housing_department | bulky_waste | move_in_report | none 중 하나",\n'
     '  "confidence": 0.0\n'
     "}\n"
 )
@@ -73,7 +78,7 @@ MVP_SYSTEM_PROMPT = (
 class MvpActionDecision:
     """Frozen MVP decision contract returned by :func:`decide_mvp_action`."""
     answer: str
-    action: Literal["illegal_parking", "housing_department", "bulky_waste", "none"]
+    action: Literal["illegal_parking", "housing_department", "bulky_waste", "move_in_report", "none"]
     confidence: float
     # Sanitized, closed-vocabulary failure classification. Empty string on a
     # normal successful action; otherwise one of the fixed failure codes. Never

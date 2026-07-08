@@ -241,6 +241,86 @@
         "어디서"
       ],
       "source_mode": "local_static"
+    },
+    {
+      "quest_id": "move_in_report_guidance",
+      "quest_name": "전입신고 안내",
+      "status": "phase1_golden",
+      "category": "application_guidance",
+      "risk_level": "high",
+      "user_phrases": [
+        "이사 왔는데 전입신고는 어떻게 해요?",
+        "전입신고 어디서 하나요?",
+        "주소 옮기려면 어디로 가야 해요?",
+        "전입신고 하려면 북구청에서 뭘 해야 하나요?"
+      ],
+      "required_slots": [],
+      "official_path": [
+        "종합민원",
+        "전자민원창구",
+        "정부24",
+        "전입신고 안내"
+      ],
+      "browser_actions": [
+        {
+          "action_type": "OPEN_ALLOWLISTED_ROUTE",
+          "route_id": "civil-service",
+          "label": "종합민원 메뉴 확인"
+        },
+        {
+          "action_type": "OPEN_ALLOWLISTED_ROUTE",
+          "route_id": "move-in-report-guidance",
+          "label": "전입신고 안내 화면 이동"
+        },
+        {
+          "action_type": "SHOW_ALLOWLISTED_RESULT",
+          "target_id": "move-in-guidance-card",
+          "label": "전입신고 안내 카드 확인"
+        },
+        {
+          "action_type": "STOP_FOR_USER_CONFIRMATION",
+          "label": "사용자 확인 대기"
+        }
+      ],
+      "ai_can_answer": true,
+      "ai_can_click": true,
+      "ai_can_prefill": false,
+      "ai_can_submit": false,
+      "stop_condition": "STOP_FOR_USER_CONFIRMATION",
+      "final_warning": {
+        "warning_text": "실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 민원 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. 이 데모는 신고/제출 전 안내에서 멈춥니다.",
+        "requires_user_confirmation": true
+      },
+      "client_action": "move_in_report",
+      "answer": "전입신고 경로를 안내해 드립니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다.",
+      "result": {
+        "service": "전입신고 안내",
+        "surface": "전입신고 안내 카드",
+        "stop": "사용자 확인 후 정부24/주민센터에서 직접 진행"
+      },
+      "match_terms": [
+        "전입신고",
+        "이사",
+        "주소",
+        "주소 옮기",
+        "주민등록",
+        "옮기",
+        "등록"
+      ],
+      "domain_terms": [
+        "전입신고",
+        "이사",
+        "주소",
+        "주민등록"
+      ],
+      "intent_terms": [
+        "신고",
+        "어디",
+        "어떻게",
+        "옮기",
+        "해야"
+      ],
+      "source_mode": "local_static"
     }
   ]
 }

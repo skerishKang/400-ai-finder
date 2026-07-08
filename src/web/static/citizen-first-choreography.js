@@ -167,6 +167,42 @@
         Object.freeze({ message: "안내가 완료되었습니다. 실제 대형폐기물 신청, 품목·주소·연락처 입력, 수수료 결제, 스티커 출력은 사용자가 공식 페이지에서 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
+    "move_in_report": Object.freeze({
+      id: "move-in-report-guidance",
+      description: "전입신고 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "전입신고 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
+        Object.freeze({ message: "전입신고 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200 }),
+        Object.freeze({ message: "전입신고 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 정부24/주민센터 제출 전 사용자 확인이 필요합니다.", targetId: "move-in-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
+    "이사 왔는데 전입신고는 어떻게 해요?": Object.freeze({
+      id: "move-in-report-guidance",
+      description: "전입신고 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "전입신고 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
+        Object.freeze({ message: "전입신고 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200 }),
+        Object.freeze({ message: "전입신고 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 정부24/주민센터 제출 전 사용자 확인이 필요합니다.", targetId: "move-in-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
+    "전입신고 어디서 하나요?": Object.freeze({
+      id: "move-in-report-guidance",
+      description: "전입신고 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "전입신고 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
+        Object.freeze({ message: "전입신고 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200 }),
+        Object.freeze({ message: "전입신고 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 정부24/주민센터 제출 전 사용자 확인이 필요합니다.", targetId: "move-in-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
   });
 
   // ═══════════════════════════════════════════════════════════════════

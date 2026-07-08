@@ -555,6 +555,80 @@ async function scenarioBulkyWaste() {
   console.log("  [2.5] bulky_waste: OK");
 }
 
+async function scenarioMoveInReport() {
+  const bridge = makeResolvingBridge({
+    ok: true,
+    answer: "전입신고 경로를 안내해 드립니다.",
+    action: "move_in_report",
+    confidence: 0.92,
+    quest: {
+      quest_id: "move_in_report_guidance",
+      quest_name: "전입신고 안내",
+      source_mode: "local_static",
+      match_status: "matched",
+    },
+    action_plan: {
+      quest_id: "move_in_report_guidance",
+      quest_name: "전입신고 안내",
+      official_path: ["종합민원", "전자민원창구", "정부24", "전입신고 안내"],
+      source_mode: "local_static",
+      stop_condition: "STOP_FOR_USER_CONFIRMATION",
+      result: {
+        service: "전입신고 안내",
+        surface: "전입신고 안내 카드",
+      },
+      browser_actions: [
+        { label: "종합민원 메뉴 확인" },
+        { label: "전입신고 안내 화면 이동" },
+        { label: "전입신고 안내 카드 확인" },
+        { label: "사용자 확인 대기" },
+      ],
+      final_warning: {
+        warning_text: "실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 민원 제출은 사용자가 공식 채널에서 직접 확인해야 합니다.",
+        requires_user_confirmation: true,
+      },
+    },
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1",
+    reducedMotion: true,
+    bridge,
+    choreo,
+  });
+  submit(s, "이사 왔는데 전입신고는 어떻게 해요?");
+  await flush();
+
+  const bubbles = aiBubbleTexts(s);
+  assert.ok(
+    bubbles.includes("전입신고 경로를 안내해 드립니다."),
+    "move_in_report: server answer must be shown",
+  );
+  assertSplitCloneVisible(s, "move_in_report");
+  assert.deepStrictEqual(
+    choreo.startCalls,
+    ["move_in_report"],
+    "move_in_report: choreography.start('move_in_report') once",
+  );
+  const card = s.doc.getElementById("chat-thread")._children.find((node) => {
+    return (node.className || "").includes("chat-quest-card");
+  });
+  assert.ok(card, "move_in_report: quest card must be appended from metadata");
+  assert.strictEqual(card.getAttribute("data-quest-card"), "action_plan");
+  assert.strictEqual(card.getAttribute("data-quest-id"), "move_in_report_guidance");
+  const cardText = card.textContent;
+  assert.ok(cardText.includes("전입신고 안내"));
+  assert.ok(cardText.includes("종합민원 > 전자민원창구 > 정부24 > 전입신고 안내"));
+  assert.ok(cardText.includes("전입신고 안내 / 전입신고 안내 카드"));
+  assert.ok(cardText.includes("STOP_FOR_USER_CONFIRMATION"));
+  assert.ok(cardText.includes("local_static"));
+  assert.ok(cardText.includes("전입신고 안내 화면 이동"));
+  assert.ok(cardText.includes("본인인증"));
+  assert.ok(cardText.includes("세대주"));
+  assert.ok(cardText.includes("가족관계"));
+  console.log("  [2.75] move_in_report: OK");
+}
+
 async function scenarioSupportedQuestionActionNoneFallback() {
   const bridge = makeResolvingBridge({
     ok: true,
@@ -1107,6 +1181,7 @@ async function main() {
   await scenarioIllegalParking();
   await scenarioHousingDepartment();
   await scenarioBulkyWaste();
+  await scenarioMoveInReport();
   await scenarioSupportedQuestionActionNoneFallback();
   await scenarioNone();
   await scenarioPendingThenReset();
