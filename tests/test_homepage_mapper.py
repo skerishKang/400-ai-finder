@@ -559,3 +559,39 @@ def test_homepage_mapper_direct_fallback_generic_exception(monkeypatch):
     assert err == "fallback boom"
     assert status is None
     assert final_url == "https://example.com/start"
+
+
+def test_homepage_mapper_direct_fallback_timeout_then_success(monkeypatch):
+    """legacy fallback / fetch_provider=None / no network / compatibility baseline."""
+
+    from src.crawler.homepage_mapper import HomepageMapper
+    import requests
+
+    class FakeResponse:
+        status_code = 200
+        url = "https://example.com/final"
+        text = "Recovered content"
+        encoding = "utf-8"
+        apparent_encoding = "utf-8"
+
+    calls = []
+
+    def mock_get(url, **kwargs):
+        calls.append((url, kwargs))
+        if len(calls) == 1:
+            raise requests.exceptions.Timeout("timed out")
+        return FakeResponse()
+
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    mapper = HomepageMapper(timeout=7, fetch_provider=None)
+    content, err, status, final_url = mapper.fetch_content(
+        "https://example.com/start",
+        retries=1,
+    )
+
+    assert len(calls) == 2
+    assert content == "Recovered content"
+    assert err is None
+    assert status == 200
+    assert final_url == "https://example.com/final"
