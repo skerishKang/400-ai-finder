@@ -38,6 +38,9 @@ jobs:
             tests/test_citizen_action_demo_chat_shell_contract.py \
             tests/test_citizen_action_demo_canvas.py
 
+      - name: Run legacy requests transport contract tests
+        run: python -m pytest -q tests/test_legacy_requests_transport.py
+
       - name: Run legacy crawler fallback contract suites
         run: |
           python -m pytest -q \
