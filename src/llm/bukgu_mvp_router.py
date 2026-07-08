@@ -74,14 +74,21 @@ class MvpActionDecision:
     # normal successful action; otherwise one of the fixed failure codes. Never
     # carries raw exception text, URLs, API keys, headers, or upstream bodies.
     failure_code: str = ""
+    quest: dict | None = None
+    action_plan: dict | None = None
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "answer": self.answer,
             "action": self.action,
             "confidence": self.confidence,
             "failure_code": self.failure_code,
         }
+        if self.quest is not None:
+            payload["quest"] = self.quest
+        if self.action_plan is not None:
+            payload["action_plan"] = self.action_plan
+        return payload
 
 
 def is_mvp_failure(decision: MvpActionDecision) -> bool:
@@ -109,6 +116,39 @@ def _as_confidence(value: object) -> float:
     if f > 1.0:
         return 1.0
     return f
+
+
+def decide_bukgu_quest_action(question: str) -> MvpActionDecision | None:
+    """Return a deterministic local quest decision when the question matches.
+
+    This is intentionally registry-backed and contains no provider, crawler, or
+    live-origin call. Unsupported or invalid registry state returns ``None`` so
+    the existing provider-backed MVP router can handle non-quest questions.
+    """
+    try:
+        from src.agent.quest_registry import load_default_bukgu_registry
+        from src.agent.quest_router import match_quest
+        from src.agent.quest_to_action_plan import build_quest_action_plan
+
+        registry = load_default_bukgu_registry()
+        route = match_quest(question, registry)
+        if route.status != "matched" or route.quest is None:
+            return None
+        plan = build_quest_action_plan(route.quest)
+        if plan.client_action not in MVP_ACTIONS:
+            return None
+        return MvpActionDecision(
+            answer=plan.answer,
+            action=plan.client_action,  # type: ignore[arg-type]
+            confidence=route.confidence,
+            quest=route.quest.to_public_dict() | {
+                "match_status": route.status,
+                "match_reason": route.reason,
+            },
+            action_plan=plan.to_dict(),
+        )
+    except Exception:
+        return None
 
 
 def parse_mvp_decision(raw: str) -> MvpActionDecision:
@@ -172,6 +212,10 @@ def decide_mvp_action(question: str, provider: LLMProvider) -> MvpActionDecision
     honest failure message. This guarantees the endpoint never raises or returns
     a partial result that could launch the local choreography.
     """
+    quest_decision = decide_bukgu_quest_action(question)
+    if quest_decision is not None:
+        return quest_decision
+
     messages = [
         {"role": "system", "content": MVP_SYSTEM_PROMPT},
         {"role": "user", "content": question},
@@ -209,6 +253,7 @@ __all__ = [
     "MVP_FAILURE_ANSWER",
     "MVP_SYSTEM_PROMPT",
     "MvpActionDecision",
+    "decide_bukgu_quest_action",
     "is_mvp_failure",
     "parse_mvp_decision",
     "decide_mvp_action",

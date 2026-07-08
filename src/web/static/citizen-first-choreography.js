@@ -87,22 +87,24 @@
       id: "dept-housing-jdept01-search",
       description: "공동주택과 담당 부서·전화번호 검색 안내 (J-DEPT-01 재사용 + typing choreography)",
       steps: Object.freeze([
-        Object.freeze({ message: "공동주택 관련 부서를 찾기 위해 업무 및 전화번호 안내를 엽니다.", journeyState: "J-DEPT-01:directory", focusSearch: true, delayMs: 1500 }),
+        Object.freeze({ message: "Quest: 공동주택 담당부서 찾기. 공동주택 관련 부서를 찾기 위해 업무 및 전화번호 안내를 엽니다.", journeyState: "J-DEPT-01:directory", focusSearch: true, delayMs: 1500 }),
+        Object.freeze({ message: "공식 경로: 북구소개 > 구청안내 > 업무 및 전화번호 안내.", delayMs: 1000 }),
         Object.freeze({ message: "검색창에 '공동주택'을 입력합니다.", typeQuery: "공동주택", delayMs: 2500 }),
         Object.freeze({ message: "검색을 실행합니다.", submitSearch: true, delayMs: 2000 }),
         Object.freeze({ message: "공동주택과 항목을 확인합니다.", delayMs: 1200 }),
-        Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.", delayMs: 0 }),
+        Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다. STOP_AFTER_RESULT", delayMs: 0 }),
       ]),
     }),
     "housing_department": Object.freeze({
       id: "dept-housing-jdept01-search",
       description: "공동주택과 담당 부서·전화번호 검색 안내 (J-DEPT-01 재사용 + typing choreography)",
       steps: Object.freeze([
-        Object.freeze({ message: "공동주택 관련 부서를 찾기 위해 업무 및 전화번호 안내를 엽니다.", journeyState: "J-DEPT-01:directory", focusSearch: true, delayMs: 1500 }),
+        Object.freeze({ message: "Quest: 공동주택 담당부서 찾기. 공동주택 관련 부서를 찾기 위해 업무 및 전화번호 안내를 엽니다.", journeyState: "J-DEPT-01:directory", focusSearch: true, delayMs: 1500 }),
+        Object.freeze({ message: "공식 경로: 북구소개 > 구청안내 > 업무 및 전화번호 안내.", delayMs: 1000 }),
         Object.freeze({ message: "검색창에 '공동주택'을 입력합니다.", typeQuery: "공동주택", delayMs: 2500 }),
         Object.freeze({ message: "검색을 실행합니다.", submitSearch: true, delayMs: 2000 }),
         Object.freeze({ message: "공동주택과 항목을 확인합니다.", delayMs: 1200 }),
-        Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.", delayMs: 0 }),
+        Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다. STOP_AFTER_RESULT", delayMs: 0 }),
       ]),
     }),
   });

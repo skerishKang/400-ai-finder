@@ -28,6 +28,8 @@
       confidence: 0.0,
       provider: "",
       model: "",
+      quest: null,
+      action_plan: null,
     };
   }
 
@@ -60,6 +62,8 @@
             confidence: data ? data.confidence : 0.0,
             provider: data ? data.provider : "",
             model: data ? data.model : "",
+            quest: data && data.quest ? data.quest : null,
+            action_plan: data && data.action_plan ? data.action_plan : null,
           };
         }, function () {
           // JSON parse failure → treat as malformed model response.
