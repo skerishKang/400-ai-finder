@@ -55,6 +55,33 @@
   box-shadow: 0 0 8px rgba(49, 130, 206, 0.5) !important;
 }
 
+/* #965: typing simulation highlight for search input */
+.executor-typing {
+  outline: 3px solid #e67e22 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 8px rgba(230, 126, 34, 0.5) !important;
+  transition: box-shadow 0.1s;
+}
+
+/* #965: focus-search highlight (search input focused) */
+.executor-highlight.bg-dept-search__input {
+  outline: 3px solid #3182ce !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 8px rgba(49, 130, 206, 0.5) !important;
+}
+
+/* #965: pulse animation for illegal-parking report card */
+.executor-highlight[data-action-target="complaint-illegal-parking-report"] {
+  outline: 3px solid #3182ce !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(49, 130, 206, 0.25), 0 0 12px rgba(49, 130, 206, 0.4) !important;
+  animation: executor-pulse 1.5s ease-in-out infinite;
+}
+@keyframes executor-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(49, 130, 206, 0.25), 0 0 12px rgba(49, 130, 206, 0.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(49, 130, 206, 0.35), 0 0 18px rgba(49, 130, 206, 0.5); }
+}
+
 .executor-pending-click {
   background-color: #bee3f8 !important;
   transform: scale(0.98);

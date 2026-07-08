@@ -318,31 +318,31 @@ async function main() {
   );
   record("B5. nav-complaint-category highlight", hlNavCategory === true, `${hlNavCategory}`);
 
-  // B6: complaint-category route
-  const routeCategory = await poll(
+  // B6: complaint-illegal-parking route
+  const routeIllegalParking = await poll(
     pageA,
-    "complaint-category route",
+    "complaint-illegal-parking route",
     async (p) => {
       const r = await getRoute(p);
-      return r === "complaint-category" ? r : null;
+      return r === "complaint-illegal-parking" ? r : null;
     },
-    4000
+    6000
   );
-  record("B6. route → complaint-category", routeCategory === "complaint-category", `got "${routeCategory}"`);
+  record("B6. route → complaint-illegal-parking", routeIllegalParking === "complaint-illegal-parking", `got "${routeIllegalParking}"`);
 
   // Check chat messages preserved after second route transition
-  const chatAfterCategory = await chatText(pageA);
-  const hasRouteMsg = chatAfterCategory.some((t) => t.includes("민원 유형 선택 페이지로 이동합니다"));
-  record("B6a. chat retained after complaint-category", hasRouteMsg, "");
+  const chatAfterIllegalParking = await chatText(pageA);
+  const hasIllegalParkingMsg = chatAfterIllegalParking.some((t) => t.includes("불법 주정차 신고 화면으로 이동합니다"));
+  record("B6a. chat retained after complaint-illegal-parking", hasIllegalParkingMsg, "");
 
-  // B7: complaint-category-illegal-parking highlight
-  const hlIllegal = await poll(
+  // B7: complaint-illegal-parking-report highlight
+  const hlIllegalReport = await poll(
     pageA,
-    "illegal-parking highlight",
-    async (p) => (await hasHighlight(p, "complaint-category-illegal-parking")) === true || null,
-    4000
+    "illegal-parking-report highlight",
+    async (p) => (await hasHighlight(p, "complaint-illegal-parking-report")) === true || null,
+    6000
   );
-  record("B7. illegal-parking highlight", hlIllegal === true, `${hlIllegal}`);
+  record("B7. illegal-parking-report highlight", hlIllegalReport === true, `${hlIllegalReport}`);
 
   await pageA.screenshot({ path: join(SCREENSHOT_DIR, "final-highlight.png") });
   console.log(`  [SCREENSHOT] ${join(SCREENSHOT_DIR, "final-highlight.png")}`);
@@ -355,7 +355,7 @@ async function main() {
       const s = await getChoreo(p);
       return s === "done" ? s : null;
     },
-    4000
+    6000
   );
   record("B8. choreography done", doneState === "done", `state="${doneState}"`);
 
@@ -364,7 +364,7 @@ async function main() {
   record("B8a. completion message shown", hasDoneMsg, "");
 
   // B9: final highlight preserved after completion
-  const hlAfterDone = await hasHighlight(pageA, "complaint-category-illegal-parking");
+  const hlAfterDone = await hasHighlight(pageA, "complaint-illegal-parking-report");
   record("B9. final highlight preserved in done", hlAfterDone === true, `${hlAfterDone}`);
 
   // ── B9a: final-route high-fidelity civic shell regression guard ──
@@ -459,7 +459,7 @@ async function main() {
       t.includes("이동합니다") ||
       t.includes("안내합니다") ||
       t.includes("완료되었습니다") ||
-      t.includes("항목을 확인합니다")
+      t.includes("접수할 수 있습니다")
   ).length;
   record("B10. choreography messages retained after route transitions", choreoMsgCount >= 6, `count=${choreoMsgCount}`);
 
@@ -594,7 +594,7 @@ async function main() {
   }, 12000);
   record("E3. reduced-motion reaches done", rmDone === "done", `state="${rmDone}"`);
 
-  const rmHighlight = await hasHighlight(pageE, "complaint-category-illegal-parking");
+  const rmHighlight = await hasHighlight(pageE, "complaint-illegal-parking-report");
   record("E4. reduced-motion final highlight preserved", rmHighlight === true, `${rmHighlight}`);
 
   await browserE.close();
