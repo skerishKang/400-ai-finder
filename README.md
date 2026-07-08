@@ -343,7 +343,7 @@ Cloudflare Pages는 GitHub `main` push 시 **자동으로** `python3 scripts/bui
 `.github/workflows/mvp-contracts.yml`의 **"MVP Contract Checks"**는 배포 워크플로가 **아닙니다**. 이 workflow는 다음만 수행합니다:
 
 - pytest contract 테스트 실행
-- `tests/test_build_cloudflare_pages.py` — 빌드 산출물 contract 테스트 (빌드는 **하지 않고** 이미 생성된 산출물 검증)
+- `tests/test_build_cloudflare_pages.py` — 임시 출력 디렉터리에 정적 Pages build를 실행하고 산출물 contract를 검증
 - `node tests/browser/verify_mvp_shell_runtime.mjs` — 브라우저 런타임 시나리오 검증
 
 배포는 **Cloudflare Pages Git integration이 자동**으로 담당하며, GitHub Actions workflow 내에서 `wrangler`, `cloudflare/pages-action`, publish 명령 등을 사용하지 않습니다.
