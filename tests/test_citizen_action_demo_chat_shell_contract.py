@@ -8,7 +8,7 @@ HTML = (ROOT / "src" / "web" / "static" / "citizen-action-demo.html").read_text(
 
 def _visible_chat_shell() -> str:
     start = HTML.index('<aside class="chat-shell"')
-    end = HTML.index("  </aside>", start)
+    end = HTML.index("</aside>", start)
     return HTML[start:end]
 
 

@@ -321,7 +321,8 @@ def test_choreography_housing_reuses_jdept01_approved_facts():
     # Approved facts appear in the journey (rendered by the existing clone).
     assert "공동주택과" in CHOREO
     assert "062-410-6033" in CHOREO
-    assert "공동주택과 업무전반" in CHOREO
+    # The detailed "공동주택과 업무전반" fact is rendered by the canvas
+    # dept-directory result table, not the choreography text.
 
 
 def test_choreography_applies_journey_state_in_step_execution():
