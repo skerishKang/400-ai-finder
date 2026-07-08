@@ -106,12 +106,13 @@ class RequestsFetchProvider(FetchProvider):
     def _request_once(
         self,
         url: str,
-        timeout: tuple[float, float],
+        timeout: tuple[float, float] | float | int,
         headers: dict[str, str] | None = None,
     ) -> Any:
         # Pass headers verbatim. ``None`` falls back to the browser-like
         # defaults; an explicit (possibly empty) dict is sent as-is so that
-        # ``headers={}`` does NOT merge with or replace defaults.
+        # ``headers={}`` does NOT merge with or replace defaults. ``timeout``
+        # may be a scalar (legacy transport) or a (connect, read) tuple.
         return req_lib.get(url, headers=self.headers if headers is None else headers, timeout=timeout)
 
     def _request_with_legacy_400_retry(
@@ -136,6 +137,7 @@ class RequestsFetchProvider(FetchProvider):
         **kwargs: Any,
     ) -> FetchResult:
         compatibility_mode = kwargs.get("compatibility_mode", False)
+        legacy_transport = bool(kwargs.get("legacy_transport", False))
         if compatibility_mode:
             # Call-arg timeout > config.timeout > constructor timeout.
             raw_timeout = kwargs.get(
@@ -143,7 +145,14 @@ class RequestsFetchProvider(FetchProvider):
             )
         else:
             raw_timeout = config.timeout if config is not None else kwargs.get("timeout", self.timeout)
-        timeout = self._split_timeout(raw_timeout)
+        # The legacy transport is an opt-in refinement of the compatibility path
+        # only: it keeps the caller's scalar timeout verbatim (mirroring the
+        # original direct-requests fallback) instead of the split (connect, read)
+        # tuple. When not set, the existing split-timeout behavior is preserved.
+        if compatibility_mode and legacy_transport:
+            timeout = raw_timeout
+        else:
+            timeout = self._split_timeout(raw_timeout)
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # --- Validate URL ---
@@ -157,9 +166,13 @@ class RequestsFetchProvider(FetchProvider):
             )
 
         if compatibility_mode:
-            # forwarding kwargs minus timeout (passed positionally above)
+            # forwarding kwargs minus timeout (passed positionally above) and
+            # legacy_transport (already consumed as a positional flag).
             kwargs.pop("timeout", None)
-            return self._fetch_compatibility(url, timeout, now, **kwargs)
+            kwargs.pop("legacy_transport", None)
+            return self._fetch_compatibility(
+                url, timeout, now, legacy_transport=legacy_transport, **kwargs
+            )
 
         # --- HTTP request ---
         if config is None:
@@ -341,8 +354,9 @@ class RequestsFetchProvider(FetchProvider):
     def _fetch_compatibility(
         self,
         url: str,
-        timeout: tuple[float, float],
+        timeout: tuple[float, float] | float | int,
         now: str,
+        legacy_transport: bool = False,
         **kwargs: Any,
     ) -> FetchResult:
         """Opt-in compatibility path (``compatibility_mode=True``).
@@ -352,6 +366,13 @@ class RequestsFetchProvider(FetchProvider):
         FetchConfig status-code retries. HTTP 4xx/5xx are returned as
         ``ok=False`` / ``error="HTTP <status>"`` while still preserving the
         body (html/text), url, status_code and content_type.
+
+        The additional ``legacy_transport=True`` opt-in (crawler/mapper
+        migration only) keeps the caller's scalar ``timeout`` verbatim instead
+        of the split (connect, read) tuple, mirroring the original direct
+        ``requests.get`` fallback. It does not change retries, encoding, or the
+        error-shape behavior. It is only effective when ``compatibility_mode``
+        is also set.
         """
         headers = kwargs.get("headers", {})
         try:
@@ -386,6 +407,11 @@ class RequestsFetchProvider(FetchProvider):
         final_url = resp.url
 
         if status_code >= 400:
+            # Before handing the error body back, normalize ISO-8859-1 responses
+            # to their apparent encoding (same rule as the success path) so the
+            # preserved html/text are correctly decoded for the caller.
+            if legacy_transport and resp.encoding == "ISO-8859-1":
+                resp.encoding = resp.apparent_encoding
             return FetchResult(
                 url=final_url,
                 ok=False,
