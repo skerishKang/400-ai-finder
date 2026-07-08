@@ -76,3 +76,45 @@ Cloudflare Pages 콘솔에서 다음과 같이 설정한다.
 - 실제 북구청 사이트·LLM provider·Firecrawl·requests fetch 등 live/network 호출 금지
 - `ssj-bukku` Worker 변경·삭제 금지
 - 원본 `src/web/templates`, `src/web/static` 이동·삭제·재구성 금지
+
+## Production Verification Checklist (read-only)
+
+Cloudflare Pages dashboard에서 read-only로만 확인합니다. 설정 변경·재배포·secret 열람은 하지 않습니다.
+
+### 1. Deployment 상태 확인
+
+- Cloudflare Pages dashboard → `cgbukku` 프로젝트 → **Deployments** 탭
+- Latest production deployment의 **status / SHA / time**을 확인
+- SHA가 `origin/main` (`786b38e99a3b2b8aef878337e09d933609e5fbcc`) 또는 해당 PR merge commit과 일치하는지 비교
+
+### 2. public URL 확인
+
+```bash
+curl -sI https://cgbukku.pages.dev/       # HTTP 200
+curl -sI https://cgbukku.pages.dev/mvp/   # HTTP 200
+curl -sI https://cgbukku.pages.dev/mobile  # HTTP 200 (from /mobile.html 308)
+curl -sI https://cgbukku.pages.dev/admin   # HTTP 200 (from /admin.html 308)
+```
+
+각 경로의 `<title>` 태그로 올바른 아티팩트인지 확인:
+
+| 경로 | title |
+|---|---|
+| `/` | `400 AI 파인더 — 정적 시연 (Cloudflare Pages)` |
+| `/mvp/` | `시민 행정 도우미 — 로컬 시연용` |
+| `/mobile` | `400 AI 파인더` |
+| `/admin` | `운영자 화면 — AI 홈페이지 파인더` |
+
+### 3. public URL만으로 deployed SHA 확정 불가
+
+public 정적 HTML은 빌드 커밋 SHA를 노출하지 않습니다. 정확한 SHA는 Cloudflare dashboard의 deployment metadata에서만 확인할 수 있습니다.
+
+## Boundaries
+
+- 이 배포는 **백엔드 없는 결정형 정적 시연**입니다. 실제 AI/LLM/외부API/Firecrawl/live-site crawling과 완전히 별개입니다.
+- **Retry deployment / Redeploy / Create deployment 클릭 금지**
+- **secrets / env 열람 금지**
+- **live provider / API / Firecrawl 테스트 금지**
+- `ssj-bukku` Worker 변경·삭제 금지
+- 원본 `src/web/templates`, `src/web/static` 이동·삭제·재구성 금지
+- `dist/cloudflare-pages` Git 커밋 금지 (.gitignore로 추적 제외)

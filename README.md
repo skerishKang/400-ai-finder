@@ -298,6 +298,83 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 - `tests/fixtures/bukgu_gwangju_demo_snapshot.json` 파일을 스냅샷 테스트에 활용합니다.
 - Provider live-only tests are opt-in and skipped by default. They require explicit `RUN_LIVE_*_TESTS=1` flags in addition to API keys. See `docs/provider-fetch-network-boundary.md` for details.
 
+## Cloudflare Pages 정적 시연 배포
+
+400-ai-finder는 **두 가지 배포 방식**을 지원합니다. 이 둘은 완전히 독립적이며, 각각 다른 목적에 사용됩니다.
+
+### 배포 방식 구분
+
+| 구분 | 설명 |
+|------|------|
+| **Python 로컬/서버 데모** | `src/web` 기반 Python 서버. 실제 AI·API·크롤링 사용 가능 (→ [`docs/operator-quickstart.md`](docs/operator-quickstart.md)) |
+| **Cloudflare Pages 정적 시연** | `dist/cloudflare-pages/` 빌드 산출물. 백엔드 없음, 결정형 스냅샷 기반, 네트워크 호출 없음 |
+
+### 정적 Pages 시연 개요
+
+Cloudflare Pages는 GitHub `main` push 시 **자동으로** `python3 scripts/build_cloudflare_pages.py`를 실행하여 정적 시연 산출물(`dist/cloudflare-pages/`)을 프로덕션에 배포합니다. 자세한 설정값은 [`docs/cloudflare-pages-bukgu-mvp.md`](docs/cloudflare-pages-bukgu-mvp.md)를 참고하세요.
+
+| 항목 | 값 |
+|---|---|
+| Project name | `cgbukku` |
+| Connected repository | `skerishKang/400-ai-finder` |
+| Production branch | `main` |
+| Build command | `python3 scripts/build_cloudflare_pages.py` |
+| Build output directory | `dist/cloudflare-pages` |
+| Framework preset | None |
+| Root directory | _(empty)_ |
+
+**Production URL:** `https://cgbukku.pages.dev/`
+
+### public 경로
+
+| 경로 | 설명 |
+|---|---|
+| `/` | 정적 랜딩 페이지 (MVP 카드 포함) |
+| `/mvp/` | 시민 첫 화면 시연 entry (백엔드 없음) |
+| `/mobile` | 모바일 챗 데모 (`/mobile.html` → 308 redirect) |
+| `/admin` | 운영자 화면 (`/admin.html` → 308 redirect) |
+
+### 생성된 `dist/` 디렉토리
+
+`dist/cloudflare-pages/`는 빌드 산출물이며 **Git에 커밋하지 않습니다** (`.gitignore`에 의해 추적 제외). 배포 시 Cloudflare Pages 빌드 단계에서 직접 생성합니다.
+
+### GitHub Actions: Deploy가 아닌 Contract/Test입니다
+
+`.github/workflows/mvp-contracts.yml`의 **"MVP Contract Checks"**는 배포 워크플로가 **아닙니다**. 이 workflow는 다음만 수행합니다:
+
+- pytest contract 테스트 실행
+- `tests/test_build_cloudflare_pages.py` — 빌드 산출물 contract 테스트 (빌드는 **하지 않고** 이미 생성된 산출물 검증)
+- `node tests/browser/verify_mvp_shell_runtime.mjs` — 브라우저 런타임 시나리오 검증
+
+배포는 **Cloudflare Pages Git integration이 자동**으로 담당하며, GitHub Actions workflow 내에서 `wrangler`, `cloudflare/pages-action`, publish 명령 등을 사용하지 않습니다.
+
+### 정적 시연 확인 (read-only)
+
+Cloudflare Pages dashboard에서 read-only로 확인:
+
+1. Latest production deployment status / SHA / time
+2. SHA가 `origin/main` 또는 해당 PR merge commit과 일치하는지 비교
+
+public URL read-only 확인:
+
+```
+curl -sI https://cgbukku.pages.dev/         # 200
+curl -sI https://cgbukku.pages.dev/mvp/     # 200
+curl -sI https://cgbukku.pages.dev/mobile    # 200
+curl -sI https://cgbukku.pages.dev/admin     # 200
+```
+
+**주의**: public URL만으로 latest deployed commit SHA는 확정할 수 없습니다. 정확한 SHA는 Cloudflare dashboard deployment metadata에서만 확인 가능합니다.
+
+### Boundaries
+
+- 이 정적 시연은 **백엔드 없는 결정형 데모**입니다. 실제 AI/LLM, 외부 API, Firecrawl, live site 크롤링과 완전히 별개입니다.
+- "Retry deployment", "Redeploy", "Create deployment" 클릭 금지
+- secrets / env 열람 금지
+- live provider/API/Firecrawl 테스트 금지
+
+더 자세한 내용은 [`docs/cloudflare-pages-bukgu-mvp.md`](docs/cloudflare-pages-bukgu-mvp.md)를 참고하세요.
+
 ### Operator quickstart
 
 실행 흐름, 데모, smoke eval, live provider 사용법은 다음 문서를 참고하십시오:
