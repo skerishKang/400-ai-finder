@@ -198,3 +198,30 @@ def test_compatibility_mode_unchanged_without_legacy_transport(monkeypatch):
 
     # Existing split timeout behavior is preserved: (connect=5.0, read=7.0).
     assert captured["timeout"] == (5.0, 7.0)
+
+
+def test_legacy_transport_is_ignored_outside_compatibility_mode(monkeypatch):
+    """legacy transport / default path isolation / no network.
+
+    legacy_transport is only effective with compatibility_mode=True.
+    Without compatibility mode, the existing default provider path must keep
+    its split (connect, read) timeout behavior.
+    """
+
+    captured = {}
+
+    def mock_get(url, headers=None, timeout=None):
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(req_lib, "get", mock_get)
+
+    provider = RequestsFetchProvider(timeout=15)
+    result = provider.fetch(
+        "https://example.test/default",
+        legacy_transport=True,
+        timeout=7,
+    )
+
+    assert result.ok is True
+    assert captured["timeout"] == (5.0, 7.0)
