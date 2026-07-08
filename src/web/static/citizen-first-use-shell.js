@@ -63,6 +63,39 @@
     return "none";
   }
 
+  function clearQuestRuntimeState() {
+    if (!body) return;
+    body.removeAttribute("data-quest-id");
+    body.removeAttribute("data-quest-name");
+    body.removeAttribute("data-quest-match-status");
+    body.removeAttribute("data-quest-stop-condition");
+    body.removeAttribute("data-quest-source-mode");
+  }
+
+  function applyQuestRuntimeState(result) {
+    clearQuestRuntimeState();
+    if (!body || !result || !result.quest) return;
+    var quest = result.quest || {};
+    var plan = result.action_plan || {};
+    if (typeof quest.quest_id === "string") {
+      body.setAttribute("data-quest-id", quest.quest_id);
+    }
+    if (typeof quest.quest_name === "string") {
+      body.setAttribute("data-quest-name", quest.quest_name);
+    }
+    if (typeof quest.match_status === "string") {
+      body.setAttribute("data-quest-match-status", quest.match_status);
+    }
+    if (typeof plan.stop_condition === "string") {
+      body.setAttribute("data-quest-stop-condition", plan.stop_condition);
+    } else if (typeof quest.stop_condition === "string") {
+      body.setAttribute("data-quest-stop-condition", quest.stop_condition);
+    }
+    if (typeof quest.source_mode === "string") {
+      body.setAttribute("data-quest-source-mode", quest.source_mode);
+    }
+  }
+
   function resolveMvpActionForQuestion(question, result, hasUsableMvpResult) {
     if (!hasUsableMvpResult) return "none";
     var action = normalizeMvpAction(result);
@@ -305,6 +338,7 @@
   // ── MVP submission (#925 / #927) ───────────────────────────────
 
   function handleMvpSubmission(question) {
+    clearQuestRuntimeState();
     // 1. echo user message
     appendChatMessage("user", question);
     if (chatInput) chatInput.value = "";
@@ -346,6 +380,11 @@
           ? normalizedAnswer
           : "현재 AI 안내를 연결하지 못했습니다.";
         appendChatMessage("ai", answer);
+        if (hasUsableMvpResult) {
+          applyQuestRuntimeState(result);
+        } else {
+          clearQuestRuntimeState();
+        }
         // 4. inspect action; only approved local actions move the clone. If a
         // usable MVP answer misses the action for the supported first question,
         // fall back to the existing deterministic local journey instead of
@@ -398,6 +437,7 @@
     // Invalidate any in-flight MVP response so a late answer cannot re-open the
     // clone or restart an action after the user reset.
     _mvpRequestToken++;
+    clearQuestRuntimeState();
     if (window.CitizenMvpBridge && typeof window.CitizenMvpBridge.cancel === "function") {
       window.CitizenMvpBridge.cancel();
     }

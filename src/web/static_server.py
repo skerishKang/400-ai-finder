@@ -32,6 +32,11 @@ mimetypes.add_type("text/css", ".css")
 mimetypes.add_type("text/javascript", ".js")
 
 
+def _url_path_only(path: str) -> str:
+    """Return the URL path without query string or fragment."""
+    return path.split("?", 1)[0].split("#", 1)[0]
+
+
 def is_static_request(path: str) -> bool:
     """Return True if *path* is a static-file request (``/static/...``).
 
@@ -40,7 +45,8 @@ def is_static_request(path: str) -> bool:
     resolution, so an attempted traversal is blocked even if this helper were
     bypassed.
     """
-    return path.startswith("/static/") and ".." not in path
+    url_path = _url_path_only(path)
+    return url_path.startswith("/static/") and ".." not in url_path
 
 
 def _is_within_base(requested_real: str, base_real: str) -> bool:
@@ -61,7 +67,7 @@ def serve_static(handler) -> None:
     Sends 200 with the correct Content-Type on success, 404 on missing file
     or on any path that resolves outside ``STATIC_ROOT``.
     """
-    path = handler.path
+    path = _url_path_only(handler.path)
     # Strip the /static/ prefix and neutralize any leading slashes so that an
     # injected absolute path (e.g. "/etc/passwd") is treated as relative.
     relative = path[len("/static/"):].lstrip("/")

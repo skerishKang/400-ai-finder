@@ -1,0 +1,91 @@
+{
+  "site_id": "bukgu_gwangju",
+  "version": 1,
+  "quests": [
+    {
+      "quest_id": "housing_department_lookup",
+      "quest_name": "공동주택 담당부서 찾기",
+      "status": "phase1_golden",
+      "category": "department_lookup",
+      "risk_level": "low",
+      "user_phrases": [
+        "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+        "공동주택 문의는 어디로 해요?",
+        "아파트 관련 문의 담당부서 알려줘",
+        "공동주택 문의 전화번호 알려줘",
+        "공동주택과 전화번호 알려줘"
+      ],
+      "required_slots": [],
+      "official_path": [
+        "북구소개",
+        "구청안내",
+        "업무 및 전화번호 안내",
+        "공동주택과"
+      ],
+      "browser_actions": [
+        {
+          "action_type": "OPEN_ALLOWLISTED_ROUTE",
+          "route_id": "home",
+          "journey_state": "J-DEPT-01:menu",
+          "label": "북구소개 메뉴 확인"
+        },
+        {
+          "action_type": "OPEN_ALLOWLISTED_ROUTE",
+          "route_id": "dept-directory",
+          "journey_state": "J-DEPT-01:directory",
+          "label": "업무 및 전화번호 안내 이동"
+        },
+        {
+          "action_type": "SEARCH_ALLOWLISTED_QUERY",
+          "target_id": "dept-search-input",
+          "query": "공동주택",
+          "label": "공동주택 검색"
+        },
+        {
+          "action_type": "SHOW_ALLOWLISTED_RESULT",
+          "target_id": "dept-result-row",
+          "journey_state": "J-DEPT-01:result",
+          "label": "공동주택과 결과 표시"
+        },
+        {
+          "action_type": "STOP_AFTER_RESULT",
+          "label": "결과 표시 후 정지"
+        }
+      ],
+      "ai_can_answer": true,
+      "ai_can_click": true,
+      "ai_can_prefill": false,
+      "ai_can_submit": false,
+      "stop_condition": "STOP_AFTER_RESULT",
+      "final_warning": null,
+      "client_action": "housing_department",
+      "answer": "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.",
+      "result": {
+        "department": "공동주택과",
+        "phone": "062-410-6033",
+        "task": "공동주택과 업무전반"
+      },
+      "match_terms": [
+        "공동주택",
+        "아파트",
+        "문의",
+        "부서",
+        "담당",
+        "전화",
+        "어디"
+      ],
+      "domain_terms": [
+        "공동주택",
+        "아파트"
+      ],
+      "intent_terms": [
+        "문의",
+        "부서",
+        "담당",
+        "전화",
+        "어디"
+      ],
+      "source_mode": "local_static"
+    }
+  ]
+}

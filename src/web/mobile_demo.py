@@ -261,6 +261,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
         from src.llm.bukgu_mvp_router import (
             MVP_FAILURE_ANSWER,
             MvpActionDecision,
+            decide_bukgu_quest_action,
             decide_mvp_action,
             is_mvp_failure,
         )
@@ -268,6 +269,25 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             FAILURE_CONFIGURATION,
             FAILURE_PROVIDER_EXCEPTION,
         )
+
+        quest_decision = decide_bukgu_quest_action(question)
+        if quest_decision is not None:
+            payload = {
+                "ok": True,
+                "question": question,
+                "answer": quest_decision.answer,
+                "action": quest_decision.action,
+                "confidence": quest_decision.confidence,
+                "provider": "local_static",
+                "model": "quest-engine-v1",
+                "failure_code": "",
+            }
+            if quest_decision.quest is not None:
+                payload["quest"] = quest_decision.quest
+            if quest_decision.action_plan is not None:
+                payload["action_plan"] = quest_decision.action_plan
+            self._json_response(payload)
+            return
 
         provider = self.mvp_provider
         if provider is None:
@@ -302,7 +322,7 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 failure_code=FAILURE_PROVIDER_EXCEPTION,
             )
 
-        self._json_response({
+        payload = {
             "ok": not is_mvp_failure(decision),
             "question": question,
             "answer": decision.answer,
@@ -311,7 +331,12 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             "provider": getattr(provider, "provider_name", self.provider),
             "model": getattr(provider, "model_name", self.model or ""),
             "failure_code": decision.failure_code,
-        })
+        }
+        if decision.quest is not None:
+            payload["quest"] = decision.quest
+        if decision.action_plan is not None:
+            payload["action_plan"] = decision.action_plan
+        self._json_response(payload)
 
     def _json_response(self, data: dict, status: int = 200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")

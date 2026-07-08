@@ -324,6 +324,10 @@ class TestMvpAskEndpoint:
         assert resp.status == 200
         assert data["action"] == "housing_department"
         assert data["ok"] is True
+        assert data["provider"] == "local_static"
+        assert data["model"] == "quest-engine-v1"
+        assert data["quest"]["quest_id"] == "housing_department_lookup"
+        assert data["action_plan"]["stop_condition"] == "STOP_AFTER_RESULT"
 
     def test_mvp_ask_none_unrelated(self, mvp_server):
         port = mvp_server["port"]
