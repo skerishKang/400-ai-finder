@@ -449,7 +449,7 @@ class TestMvpAskEndpointContract:
     def test_failure_response_includes_failure_code(self, mvp_failure_leak_server):
         port = mvp_failure_leak_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=5)
-        body = json.dumps({"question": "불법 주정차 신고 어디서 해요?"}).encode()
+        body = json.dumps({"question": "오늘 북구 날씨 알려줘"}).encode()
         conn.request("POST", "/api/mvp/ask", body=body,
                      headers={"Content-Type": "application/json"})
         resp = conn.getresponse()
@@ -480,7 +480,7 @@ class TestMvpAskEndpointContract:
     def test_no_secret_leak_in_failure_response(self, mvp_failure_leak_server):
         port = mvp_failure_leak_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=5)
-        body = json.dumps({"question": "불법 주정차 신고 어디서 해요?"}).encode()
+        body = json.dumps({"question": "오늘 북구 날씨 알려줘"}).encode()
         conn.request("POST", "/api/mvp/ask", body=body,
                      headers={"Content-Type": "application/json"})
         resp = conn.getresponse()
@@ -624,7 +624,7 @@ def mvp_upstream_invalid_server():
 
 
 class TestMvpEndpointSanitizedFailureCode:
-    def _post(self, port, question="불법 주정차 신고 어디서 해요?"):
+    def _post(self, port, question="오늘 북구 날씨 알려줘"):
         conn = HTTPConnection("127.0.0.1", port, timeout=5)
         body = json.dumps({"question": question}).encode()
         conn.request("POST", "/api/mvp/ask", body=body,

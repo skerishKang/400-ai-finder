@@ -40,9 +40,12 @@ def _base_registry_payload():
     }
 
 
-def test_default_registry_loads_housing_quest_only_for_phase1_scope():
+def test_default_registry_loads_two_phase1_quests_only():
     registry = load_default_bukgu_registry()
-    assert [quest.quest_id for quest in registry.quests] == ["housing_department_lookup"]
+    assert [quest.quest_id for quest in registry.quests] == [
+        "housing_department_lookup",
+        "illegal_parking_report_guidance",
+    ]
     quest = registry.get("housing_department_lookup")
     assert quest is not None
     assert quest.status == "phase1_golden"
@@ -51,6 +54,18 @@ def test_default_registry_loads_housing_quest_only_for_phase1_scope():
     assert quest.ai_can_click is True
     assert quest.ai_can_prefill is False
     assert quest.ai_can_submit is False
+
+    illegal_quest = registry.get("illegal_parking_report_guidance")
+    assert illegal_quest is not None
+    assert illegal_quest.status == "phase1_golden"
+    assert illegal_quest.risk_level == "high"
+    assert illegal_quest.stop_condition == "STOP_FOR_USER_CONFIRMATION"
+    assert illegal_quest.ai_can_answer is True
+    assert illegal_quest.ai_can_click is True
+    assert illegal_quest.ai_can_prefill is False
+    assert illegal_quest.ai_can_submit is False
+    assert illegal_quest.final_warning is not None
+    assert illegal_quest.final_warning.requires_user_confirmation is True
 
 
 def test_duplicate_quest_id_is_rejected():
@@ -76,6 +91,19 @@ def test_housing_questions_match_housing_department_lookup(question):
     result = match_quest(question, load_default_bukgu_registry())
     assert result.status == "matched"
     assert result.quest_id == "housing_department_lookup"
+    assert result.confidence >= 0.72
+
+
+@pytest.mark.parametrize("question", [
+    "불법 주정차 신고는 어디서 하나요?",
+    "불법주정차 신고하고 싶어요",
+    "차가 불법으로 주차되어 있어요",
+    "주정차 위반 신고 어디서 해요?",
+])
+def test_illegal_parking_questions_match_report_guidance(question):
+    result = match_quest(question, load_default_bukgu_registry())
+    assert result.status == "matched"
+    assert result.quest_id == "illegal_parking_report_guidance"
     assert result.confidence >= 0.72
 
 

@@ -86,6 +86,84 @@
         "어디"
       ],
       "source_mode": "local_static"
+    },
+    {
+      "quest_id": "illegal_parking_report_guidance",
+      "quest_name": "불법 주정차 신고 안내",
+      "status": "phase1_golden",
+      "category": "report_guidance",
+      "risk_level": "high",
+      "user_phrases": [
+        "불법 주정차 신고는 어디서 하나요?",
+        "불법주정차 신고하고 싶어요",
+        "차가 불법으로 주차되어 있어요",
+        "주정차 위반 신고 어디서 해요?"
+      ],
+      "required_slots": [],
+      "official_path": [
+        "종합민원",
+        "민원신고",
+        "불법 주정차 신고"
+      ],
+      "browser_actions": [
+        {
+          "action_type": "OPEN_ALLOWLISTED_ROUTE",
+          "route_id": "civil-service",
+          "label": "종합민원 메뉴 확인"
+        },
+        {
+          "action_type": "OPEN_ALLOWLISTED_ROUTE",
+          "route_id": "complaint-illegal-parking",
+          "label": "불법 주정차 신고 화면 이동"
+        },
+        {
+          "action_type": "SHOW_ALLOWLISTED_RESULT",
+          "target_id": "complaint-illegal-parking-report",
+          "label": "불법 주정차 신고 카드 확인"
+        },
+        {
+          "action_type": "STOP_FOR_USER_CONFIRMATION",
+          "label": "사용자 확인 대기"
+        }
+      ],
+      "ai_can_answer": true,
+      "ai_can_click": true,
+      "ai_can_prefill": false,
+      "ai_can_submit": false,
+      "stop_condition": "STOP_FOR_USER_CONFIRMATION",
+      "final_warning": {
+        "warning_text": "실제 신고 제출, 본인인증, 차량번호·사진·위치정보 입력, 첨부파일 업로드는 사용자가 직접 확인해야 합니다. 이 데모는 신고 경로 안내에서 멈춥니다.",
+        "requires_user_confirmation": true
+      },
+      "client_action": "illegal_parking",
+      "answer": "불법 주정차 신고는 북구청 민원신고의 불법 주정차 신고 경로에서 안내됩니다. 실제 신고 제출과 본인인증, 차량번호·사진·위치정보 입력은 사용자가 직접 확인해야 합니다.",
+      "result": {
+        "service": "불법 주정차 신고",
+        "surface": "불법 주정차 신고 카드",
+        "stop": "사용자 확인 후 공식 신고 채널에서 직접 진행"
+      },
+      "match_terms": [
+        "불법주정차",
+        "불법 주정차",
+        "주정차",
+        "주차",
+        "신고",
+        "위반",
+        "차"
+      ],
+      "domain_terms": [
+        "불법주정차",
+        "불법 주정차",
+        "주정차",
+        "주차"
+      ],
+      "intent_terms": [
+        "신고",
+        "위반",
+        "어디",
+        "하고"
+      ],
+      "source_mode": "local_static"
     }
   ]
 }
