@@ -609,20 +609,15 @@
 
     progressIndicator += progressHtml + '</div></div>';
 
-    var questSummary =
-      '<div class="chat-quest-card" data-quest-card="housing_department_lookup">' +
-        '<div class="chat-quest-card__title">공동주택 담당부서 찾기</div>' +
-        '<div class="chat-quest-card__row"><span>quest_id</span><strong>housing_department_lookup</strong></div>' +
-        '<div class="chat-quest-card__row"><span>공식 경로</span><strong>북구소개 &gt; 구청안내 &gt; 업무 및 전화번호 안내 &gt; 공동주택과</strong></div>' +
-        '<div class="chat-quest-card__row"><span>결과</span><strong>공동주택과 · 062-410-6033</strong></div>' +
-        '<div class="chat-quest-card__row"><span>상태</span><strong>STOP_AFTER_RESULT</strong></div>' +
-      '</div>';
-
     var html = '';
     for (var i = 0; i < renderCount; i++) {
       html += messages[i];
     }
-    thread.innerHTML = html + progressIndicator + questSummary;
+    thread.innerHTML = html + progressIndicator;
+    if (window.CitizenFirstUseShell &&
+        typeof window.CitizenFirstUseShell.appendQuestProgressCard === "function") {
+      window.CitizenFirstUseShell.appendQuestProgressCard(thread);
+    }
   }
 
   /**

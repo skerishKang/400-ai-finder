@@ -193,6 +193,35 @@ body[data-first-use-state="split"] .demo-canvas {
   overflow-wrap: anywhere;
 }
 
+.chat-quest-card__actions {
+  border-top: 1px solid #e2e9f2;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.chat-quest-card__actions-label {
+  color: #607086;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.chat-quest-card__action-list {
+  display: grid;
+  gap: 4px;
+  list-style: decimal;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.chat-quest-card__action {
+  color: #1f2d3d;
+  overflow-wrap: anywhere;
+}
+
+.chat-quest-card__row--warning strong {
+  color: #a13a1f;
+}
+
 body.first-use-shell--no-motion .first-use-layout,
 body.first-use-shell--no-motion .first-use-layout .demo-canvas,
 body.first-use-shell--no-motion .first-use-layout .chat-shell {
