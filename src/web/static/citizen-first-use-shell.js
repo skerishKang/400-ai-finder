@@ -44,6 +44,7 @@
   // below is completely unchanged when ?mvp=1 is absent, and this file performs
   // no fetch itself (the bridge file does, and is loaded only in MVP mode).
   var _mvpRequestToken = 0;
+  var _questRuntimeResult = null;
 
   function isMvpMode() {
     if (!window.location || !window.location.search) return false;
@@ -65,6 +66,7 @@
 
   function clearQuestRuntimeState() {
     if (!body) return;
+    _questRuntimeResult = null;
     body.removeAttribute("data-quest-id");
     body.removeAttribute("data-quest-name");
     body.removeAttribute("data-quest-match-status");
@@ -75,6 +77,7 @@
   function applyQuestRuntimeState(result) {
     clearQuestRuntimeState();
     if (!body || !result || !result.quest) return;
+    _questRuntimeResult = result;
     var quest = result.quest || {};
     var plan = result.action_plan || {};
     if (typeof quest.quest_id === "string") {
@@ -94,6 +97,140 @@
     if (typeof quest.source_mode === "string") {
       body.setAttribute("data-quest-source-mode", quest.source_mode);
     }
+  }
+
+  function asObject(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    return value;
+  }
+
+  function asArray(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function textValue(value) {
+    if (typeof value === "string") return value.trim();
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    return "";
+  }
+
+  function resultSummary(value) {
+    var obj = asObject(value);
+    var parts = [];
+    Object.keys(obj).forEach(function (key) {
+      var text = textValue(obj[key]);
+      if (text) parts.push(text);
+    });
+    return parts.join(" / ");
+  }
+
+  function actionLabels(actions) {
+    var labels = [];
+    asArray(actions).forEach(function (action) {
+      var label = textValue(asObject(action).label);
+      if (label) labels.push(label);
+    });
+    return labels;
+  }
+
+  function normalizeQuestCardPayload(result) {
+    var source = asObject(result || _questRuntimeResult);
+    var quest = asObject(source.quest);
+    var plan = asObject(source.action_plan);
+    var planResult = Object.keys(asObject(plan.result)).length ? plan.result : quest.result;
+    var finalWarning = asObject(plan.final_warning || quest.final_warning);
+    var payload = {
+      questName: textValue(quest.quest_name || plan.quest_name),
+      questId: textValue(quest.quest_id || plan.quest_id),
+      officialPath: asArray(plan.official_path || quest.official_path).map(textValue).filter(Boolean).join(" > "),
+      actionLabels: actionLabels(plan.browser_actions),
+      resultText: resultSummary(planResult),
+      sourceMode: textValue(plan.source_mode || quest.source_mode),
+      stopCondition: textValue(plan.stop_condition || quest.stop_condition),
+      finalWarningText: textValue(finalWarning.warning_text),
+    };
+    if (!payload.questName && !payload.questId && !payload.officialPath && !payload.resultText) {
+      return null;
+    }
+    return payload;
+  }
+
+  function makeQuestCardRow(label, value, modifier) {
+    if (!value) return null;
+    var row = document.createElement("div");
+    row.className = "chat-quest-card__row" + (modifier ? " " + modifier : "");
+
+    var labelEl = document.createElement("span");
+    labelEl.textContent = label;
+    row.appendChild(labelEl);
+
+    var valueEl = document.createElement("strong");
+    valueEl.textContent = value;
+    row.appendChild(valueEl);
+    return row;
+  }
+
+  function renderQuestProgressCard(result) {
+    var payload = normalizeQuestCardPayload(result);
+    if (!payload) return null;
+
+    var card = document.createElement("div");
+    card.className = "chat-quest-card";
+    card.setAttribute("data-quest-card", "action_plan");
+    if (payload.questId) {
+      card.setAttribute("data-quest-id", payload.questId);
+    }
+    if (payload.sourceMode) {
+      card.setAttribute("data-source-mode", payload.sourceMode);
+    }
+
+    var title = document.createElement("div");
+    title.className = "chat-quest-card__title";
+    title.textContent = payload.questName || "Quest";
+    card.appendChild(title);
+
+    [
+      makeQuestCardRow("quest_id", payload.questId),
+      makeQuestCardRow("공식 경로", payload.officialPath),
+      makeQuestCardRow("결과", payload.resultText),
+      makeQuestCardRow("source", payload.sourceMode),
+      makeQuestCardRow("상태", payload.stopCondition),
+    ].forEach(function (row) {
+      if (row) card.appendChild(row);
+    });
+
+    if (payload.actionLabels.length) {
+      var actions = document.createElement("div");
+      actions.className = "chat-quest-card__actions";
+      var actionsLabel = document.createElement("span");
+      actionsLabel.className = "chat-quest-card__actions-label";
+      actionsLabel.textContent = "진행 동작";
+      actions.appendChild(actionsLabel);
+
+      var list = document.createElement("ol");
+      list.className = "chat-quest-card__action-list";
+      payload.actionLabels.forEach(function (label) {
+        var item = document.createElement("li");
+        item.className = "chat-quest-card__action";
+        item.textContent = label;
+        list.appendChild(item);
+      });
+      actions.appendChild(list);
+      card.appendChild(actions);
+    }
+
+    var warningRow = makeQuestCardRow("주의", payload.finalWarningText, "chat-quest-card__row--warning");
+    if (warningRow) card.appendChild(warningRow);
+
+    return card;
+  }
+
+  function appendQuestProgressCard(container, result) {
+    if (!container || typeof container.appendChild !== "function") return false;
+    var card = renderQuestProgressCard(result);
+    if (!card) return false;
+    container.appendChild(card);
+    return true;
   }
 
   function resolveMvpActionForQuestion(question, result, hasUsableMvpResult) {
@@ -496,7 +633,10 @@
 
   window.CitizenFirstUseShell = Object.freeze({
     getState: function () { return currentState; },
+    getQuestRuntimeResult: function () { return _questRuntimeResult; },
     isSupportedQuestion: isSupportedQuestion,
+    renderQuestProgressCard: renderQuestProgressCard,
+    appendQuestProgressCard: appendQuestProgressCard,
     reset: resetToEntry,
     states: Object.freeze({
       entry: STATE_ENTRY,

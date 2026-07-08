@@ -327,7 +327,11 @@ class TestMvpAskEndpoint:
         assert data["provider"] == "local_static"
         assert data["model"] == "quest-engine-v1"
         assert data["quest"]["quest_id"] == "housing_department_lookup"
+        assert data["quest"]["source_mode"] == "local_static"
         assert data["action_plan"]["stop_condition"] == "STOP_AFTER_RESULT"
+        labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
+        assert "업무 및 전화번호 안내 이동" in labels
+        assert "공동주택 검색" in labels
 
     def test_mvp_ask_none_unrelated(self, mvp_server):
         port = mvp_server["port"]

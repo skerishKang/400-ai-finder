@@ -265,6 +265,21 @@ def test_shell_mvp_submission_shows_server_answer_first():
     assert "appendChatMessage(\"ai\", answer)" in JS
 
 
+def test_shell_has_generic_action_plan_quest_card_renderer():
+    assert "function renderQuestProgressCard(" in JS
+    assert "function appendQuestProgressCard(" in JS
+    assert "plan.browser_actions" in JS
+    assert "final_warning" in JS
+    assert "textContent = payload.questName" in JS
+    assert "data-quest-card\", \"action_plan\"" in JS
+
+
+def test_canvas_delegates_quest_card_to_shell_renderer():
+    assert "appendQuestProgressCard(thread)" in CANVAS
+    assert 'data-quest-card="housing_department_lookup"' not in CANVAS
+    assert "housing_department_lookup" not in CANVAS
+
+
 def test_shell_normalizes_mvp_action_and_only_runs_approved_actions():
     assert "function normalizeMvpAction(" in JS
     assert "function resolveMvpActionForQuestion(" in JS

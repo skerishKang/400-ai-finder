@@ -385,6 +385,24 @@ async function scenarioHousingDepartment() {
     answer: "공동주택 관련 문의는 공동주택과(062-410-6033)에서 담당합니다.",
     action: "housing_department",
     confidence: 0.9,
+    quest: {
+      quest_id: "housing_department_lookup",
+      quest_name: "공동주택 담당부서 찾기",
+      official_path: ["북구소개", "구청안내", "업무 및 전화번호 안내", "공동주택과"],
+      result: { department: "공동주택과", phone: "062-410-6033" },
+      source_mode: "local_static",
+    },
+    action_plan: {
+      official_path: ["북구소개", "구청안내", "업무 및 전화번호 안내", "공동주택과"],
+      browser_actions: [
+        { label: "업무 및 전화번호 안내 이동" },
+        { label: "공동주택 검색" },
+      ],
+      result: { department: "공동주택과", phone: "062-410-6033" },
+      source_mode: "local_static",
+      stop_condition: "STOP_AFTER_RESULT",
+      final_warning: null,
+    },
   });
   const choreo = makeChoreo();
   const s = runScenario({
@@ -409,6 +427,18 @@ async function scenarioHousingDepartment() {
     ["housing_department"],
     "housing_department: choreography.start('housing_department') once",
   );
+  const card = s.win.CitizenFirstUseShell.renderQuestProgressCard();
+  assert.ok(card, "housing_department: quest card must render from stored metadata");
+  assert.strictEqual(card.getAttribute("data-quest-card"), "action_plan");
+  const cardText = card.textContent;
+  assert.ok(cardText.includes("공동주택 담당부서 찾기"));
+  assert.ok(cardText.includes("housing_department_lookup"));
+  assert.ok(cardText.includes("북구소개 > 구청안내 > 업무 및 전화번호 안내 > 공동주택과"));
+  assert.ok(cardText.includes("공동주택과 / 062-410-6033"));
+  assert.ok(cardText.includes("업무 및 전화번호 안내 이동"));
+  assert.ok(cardText.includes("공동주택 검색"));
+  assert.ok(cardText.includes("local_static"));
+  assert.ok(cardText.includes("STOP_AFTER_RESULT"));
   console.log("  [2] housing_department: OK");
 }
 

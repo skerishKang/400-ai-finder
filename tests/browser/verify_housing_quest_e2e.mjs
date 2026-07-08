@@ -104,6 +104,27 @@ async function main() {
   await waitForText(page, "#chat-thread", "공동주택 담당부서 찾기");
   await waitForText(page, "#chat-thread", "북구소개 > 구청안내 > 업무 및 전화번호 안내 > 공동주택과");
   await waitForText(page, "#chat-thread", "STOP_AFTER_RESULT");
+  await waitForText(page, "#chat-thread", "local_static");
+
+  const card = await page.evaluate(() => {
+    const el = document.querySelector("#chat-thread .chat-quest-card");
+    if (!el) return null;
+    return {
+      questCardType: el.getAttribute("data-quest-card"),
+      questId: el.getAttribute("data-quest-id"),
+      sourceMode: el.getAttribute("data-source-mode"),
+      actionLabels: Array.from(el.querySelectorAll(".chat-quest-card__action")).map((node) => node.textContent.trim()),
+      text: el.textContent,
+    };
+  });
+  assert.ok(card, "quest card must exist in the right panel");
+  assert.strictEqual(card.questCardType, "action_plan");
+  assert.strictEqual(card.questId, "housing_department_lookup");
+  assert.strictEqual(card.sourceMode, "local_static");
+  assert.ok(card.actionLabels.length >= 2, `expected at least 2 action labels, got ${card.actionLabels.length}`);
+  assert.ok(card.actionLabels.includes("업무 및 전화번호 안내 이동"));
+  assert.ok(card.actionLabels.includes("공동주택 검색"));
+  assert.ok(card.text.includes("공동주택과 / 062-410-6033"));
 
   const currentUrl = page.url();
   assert.ok(currentUrl.includes("journey=J-DEPT-01"), `expected J-DEPT-01 URL, got ${currentUrl}`);
