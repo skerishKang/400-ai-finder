@@ -1047,3 +1047,49 @@ def test_url_crawler_direct_fallback_non_html(monkeypatch):
         "external_link_count": 0,
         "attachment_count": 0,
     }
+
+
+# ------------------------------------------------------------------
+# #949: Lock the crawler attachment-extension taxonomy.
+# URLCrawler.attachment_extensions is exactly 5 values; doc/xls/ppt/pptx/zip are
+# NOT extracted as attachments (they remain internal links). Link text/URLs here
+# carry no document keyword so the classifier does not intervene.
+# ------------------------------------------------------------------
+def test_url_crawler_attachment_extensions_exact_set():
+    """#949 / no network. Default crawler attachment set is exactly 5 values."""
+    crawler = URLCrawler()
+    assert crawler.attachment_extensions == {"pdf", "hwp", "hwpx", "docx", "xlsx"}
+
+
+def test_url_crawler_extract_links_attachments_narrow_set():
+    """#949 / no network. The 5 narrow extensions are attachments; doc/xls/
+    ppt/pptx/zip remain internal links (no document keyword in any href/text)."""
+    crawler = URLCrawler()
+    html = """
+    <html>
+      <body>
+        <a href="https://example.com/assets/sample.pdf">파일</a>
+        <a href="https://example.com/assets/sample.hwp">파일</a>
+        <a href="https://example.com/assets/sample.hwpx">파일</a>
+        <a href="https://example.com/assets/sample.docx">파일</a>
+        <a href="https://example.com/assets/sample.xlsx">파일</a>
+        <a href="https://example.com/assets/sample.doc">문서</a>
+        <a href="https://example.com/assets/sample.xls">문서</a>
+        <a href="https://example.com/assets/sample.ppt">문서</a>
+        <a href="https://example.com/assets/sample.pptx">문서</a>
+        <a href="https://example.com/assets/sample.zip">문서</a>
+      </body>
+    </html>
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    links = crawler.extract_links(soup, "https://example.com")
+
+    att_urls = {a["url"] for a in links["attachments"]}
+    internal_urls = {a["url"] for a in links["internal"]}
+
+    for ext in ("pdf", "hwp", "hwpx", "docx", "xlsx"):
+        assert f"https://example.com/assets/sample.{ext}" in att_urls
+    assert len(links["attachments"]) == 5
+
+    for ext in ("doc", "xls", "ppt", "pptx", "zip"):
+        assert f"https://example.com/assets/sample.{ext}" in internal_urls

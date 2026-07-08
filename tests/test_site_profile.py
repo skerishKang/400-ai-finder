@@ -745,3 +745,56 @@ class TestGwangjuGoKrCrawlFiltersConfig:
 
         # 5c. Check that pageNo survives (pagination deferred)
         assert "https://www.gwangju.go.kr/board.es?pageNo=2" in urls
+
+
+# ------------------------------------------------------------------
+# #949: Lock the document-extension taxonomy before constants consolidation.
+# These tests pin the *profiles* view of document extensions: the 10-value
+# DEFAULT_DOCUMENT_EXTENSIONS profile default and that a profile-provided
+# override is returned verbatim (not narrowed to the crawler/classifier 5).
+# Source behavior is intentionally NOT changed by this PR.
+# ------------------------------------------------------------------
+class TestDocumentExtensionTaxonomy:
+    """#949 / no network.
+
+    Lock the profile-side document extension taxonomy ahead of the #833
+    constants consolidation so a later move cannot silently reorder or
+    narrow the default set.
+    """
+
+    EXPECTED_DEFAULT_ORDER = [
+        "pdf", "hwp", "hwpx", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip",
+    ]
+
+    def test_default_document_extensions_exact_order(self):
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+        })
+        assert p.document_extensions == self.EXPECTED_DEFAULT_ORDER
+
+    def test_profile_override_not_narrowed_to_five(self):
+        # A profile-provided list must be returned verbatim. The crawler/
+        # classifier 5-extension policy must not narrow or reorder it.
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+            "document_extensions": ["custom", "pdf"],
+        })
+        assert p.document_extensions == ["custom", "pdf"]
+
+    def test_default_includes_broad_only_extensions(self):
+        # doc/xls/ppt/pptx/zip are profile-default documents even though the
+        # crawler attachment / classifier policy only treats 5 of them as
+        # attachments/documents by extension. This asymmetry is intentional
+        # and must stay locked.
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+        })
+        exts = set(p.document_extensions)
+        for ext in ("doc", "xls", "ppt", "pptx", "zip"):
+            assert ext in exts
