@@ -37,6 +37,7 @@
     "complaint-review",
 "bulky-waste-disposal",
     "move-in-report-guidance",
+    "public-health-center-guidance",
   ]);
 
   var CLOSED_TARGET_IDS = Object.freeze([
@@ -54,6 +55,7 @@
     "handoff-notice",
     "bulky-waste-guidance-card",
     "move-in-guidance-card",
+    "health-center-guidance-card",
   ]);
 
   // -----------------------------------------------------------------------
@@ -138,6 +140,14 @@
       purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다.",
       navTargets: Object.freeze(["move-in-guidance-card"]),
       breadcrumbLabel: "전입신고 안내",
+    }),
+
+    "public-health-center-guidance": Object.freeze({
+      id: "public-health-center-guidance",
+      title: "보건소 위치·진료 안내",
+      purpose: "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다.",
+      navTargets: Object.freeze(["health-center-guidance-card"]),
+      breadcrumbLabel: "보건소 위치·진료 안내",
     }),
   });
 

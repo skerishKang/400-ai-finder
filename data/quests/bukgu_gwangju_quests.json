@@ -321,6 +321,90 @@
         "해야"
       ],
       "source_mode": "local_static"
+    },
+    {
+      "quest_id": "public_health_center_guidance",
+      "quest_name": "보건소 위치·진료 안내",
+      "status": "phase1_golden",
+      "category": "public_health_guidance",
+      "risk_level": "high",
+      "user_phrases": [
+        "보건소 어디에 있어요?",
+        "북구 보건소 진료는 어떻게 확인해요?",
+        "보건소 위치랑 진료 안내 알려줘",
+        "예방접종이나 진료 보려면 어디로 가야 해요?"
+      ],
+      "required_slots": [],
+      "official_path": [
+        "북구청 홈",
+        "보건소",
+        "보건소소개",
+        "찾아오시는 길"
+      ],
+      "browser_actions": [
+        {
+          "action_type": "OPEN_ALLOWLISTED_ROUTE",
+          "route_id": "home",
+          "label": "북구청 홈 화면 확인"
+        },
+        {
+          "action_type": "OPEN_ALLOWLISTED_ROUTE",
+          "route_id": "public-health-center-guidance",
+          "label": "보건소 위치·진료 안내 화면 이동"
+        },
+        {
+          "action_type": "SHOW_ALLOWLISTED_RESULT",
+          "target_id": "health-center-guidance-card",
+          "label": "보건소 위치·진료 안내 카드 확인"
+        },
+        {
+          "action_type": "STOP_FOR_USER_CONFIRMATION",
+          "label": "사용자 확인 대기"
+        }
+      ],
+      "ai_can_answer": true,
+      "ai_can_click": true,
+      "ai_can_prefill": false,
+      "ai_can_submit": false,
+      "stop_condition": "STOP_FOR_USER_CONFIRMATION",
+      "final_warning": {
+        "warning_text": "보건소 위치, 운영시간, 진료과목, 예방접종, 검사, 예약 가능 여부 등 실제 이용 정보는 사용자가 북구청·보건소 공식 채널에서 직접 확인해야 합니다. 이 데모는 의료 판단, 진단, 처방, 응급 판단, 예약, 본인인증, 건강정보 입력, 제출 전 안내에서 멈춥니다.",
+        "requires_user_confirmation": true
+      },
+      "client_action": "public_health_center",
+      "answer": "보건소 위치·진료 경로를 안내해 드립니다. 위치, 운영시간, 진료과목, 예방접종, 검사, 예약 가능 여부 등 실제 정보는 북구청·보건소 공식 채널에서 사용자가 직접 확인해야 합니다. 이 데모는 의료 판단, 진단, 처방, 응급 판단, 예약, 본인인증, 건강정보 입력, 제출 전 안내에서 멈춥니다.",
+      "result": {
+        "service": "보건소 위치·진료 안내",
+        "surface": "보건소 위치·진료 안내 카드",
+        "stop": "사용자 확인 후 공식 채널에서 직접 확인"
+      },
+      "match_terms": [
+        "보건소",
+        "진료",
+        "예방접종",
+        "검사",
+        "건강",
+        "병원",
+        "의료",
+        "위치",
+        "안내"
+      ],
+      "domain_terms": [
+        "보건소",
+        "진료",
+        "예방접종",
+        "검사",
+        "건강",
+        "의료"
+      ],
+      "intent_terms": [
+        "위치",
+        "어디",
+        "안내",
+        "가야",
+        "확인"
+      ],
+      "source_mode": "local_static"
     }
   ]
 }
