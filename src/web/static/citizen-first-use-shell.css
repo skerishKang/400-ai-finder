@@ -16,11 +16,12 @@
   flex: 1 1 auto;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, var(--first-use-entry-chat-width)) minmax(0, 1fr);
-  grid-template-areas: "canvas chat spacer";
+  grid-template-columns: minmax(0, 1fr) var(--first-use-chat-width);
+  grid-template-areas: "canvas chat";
   align-items: stretch;
   background: #eef3f8;
   overflow: hidden;
+  position: relative;
   transition: grid-template-columns var(--first-use-motion) var(--first-use-ease);
 }
 
@@ -29,14 +30,9 @@
   min-width: 0;
   max-width: none;
   width: 100%;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateX(-18px) scale(0.992);
+  opacity: 1;
+  visibility: visible;
   pointer-events: none;
-  transition:
-    opacity var(--first-use-motion) ease,
-    transform var(--first-use-motion) var(--first-use-ease),
-    visibility 0s linear var(--first-use-motion);
 }
 
 .first-use-layout .chat-shell {
@@ -46,6 +42,7 @@
   width: 100%;
   border-left: 1px solid #dde2ec;
   box-shadow: 0 18px 50px rgba(39, 57, 75, 0.08);
+  z-index: 10;
   transition:
     height var(--first-use-motion) var(--first-use-ease),
     width var(--first-use-motion) var(--first-use-ease),
@@ -53,12 +50,35 @@
     box-shadow var(--first-use-motion) ease;
 }
 
-.first-use-layout .first-use-layout__spacer {
-  grid-area: spacer;
+/* Overlay for entry state */
+.first-use-layout::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--first-use-motion) ease;
+}
+
+body[data-first-use-state="entry"] .first-use-layout {
+  grid-template-columns: 1fr 0;
+}
+
+body[data-first-use-state="entry"] .first-use-layout::after {
+  opacity: 1;
+}
+
+body[data-first-use-state="entry"] .demo-canvas {
+  grid-area: 1 / 1 / -1 / -1;
+  pointer-events: none;
 }
 
 body[data-first-use-state="entry"] .chat-shell {
-  align-self: center;
+  grid-area: 1 / 1 / -1 / -1;
+  place-self: center;
+  width: var(--first-use-entry-chat-width);
   height: min(720px, calc(100vh - 64px));
   border: 1px solid #d7e1ec;
   border-radius: 8px;
@@ -72,25 +92,19 @@ body[data-first-use-state="entry"] .chat-shell__header {
 
 body[data-first-use-state="transitioning"] .first-use-layout,
 body[data-first-use-state="split"] .first-use-layout {
-  grid-template-columns: minmax(0, 1fr) var(--first-use-chat-width) 0;
+  grid-template-columns: minmax(0, 1fr) var(--first-use-chat-width);
 }
 
 body[data-first-use-state="transitioning"] .chat-shell,
 body[data-first-use-state="split"] .chat-shell {
+  grid-area: chat;
   align-self: stretch;
+  width: var(--first-use-chat-width);
   height: 100vh;
   border-top: 0;
   border-right: 0;
   border-bottom: 0;
   border-radius: 0;
-}
-
-body[data-first-use-state="transitioning"] .demo-canvas,
-body[data-first-use-state="split"] .demo-canvas {
-  visibility: visible;
-  opacity: 1;
-  transform: translateX(0) scale(1);
-  transition-delay: 0s;
 }
 
 body[data-first-use-state="transitioning"] .demo-canvas {

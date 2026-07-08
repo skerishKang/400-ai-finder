@@ -18,7 +18,8 @@
   var TRANSITION_DURATION_MS = 360;
   var DEFAULT_SUPPORTED_ACTION = "illegal_parking";
   var SUPPORTED_QUESTIONS = {
-    "불법 주정차 신고는 어디서 하나요?": true
+    "불법 주정차 신고는 어디서 하나요?": true,
+    "공동주택 관련 문의는 어느 부서에 해야 하나요?": true
   };
   var SPLIT_FOLLOW_UP_MESSAGE =
     "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
