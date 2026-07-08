@@ -115,7 +115,7 @@ def test_choreography_has_journey_map_for_supported_question():
     assert '"nav-civil-service"' in CHOREO
     assert '"nav-complaint-category"' in CHOREO
     assert '"civil-service"' in CHOREO
-    assert '"complaint-category"' in CHOREO
+    assert 'focusSearch' in CHOREO
     assert '"completed"' not in CHOREO
 
 
@@ -155,17 +155,17 @@ def test_choreography_cancel_is_safe_in_idle():
 
 
 def test_choreography_final_target_highlight_present():
-    """The illegal-parking journey map includes complaint-category-illegal-parking
+    """The illegal-parking journey map includes complaint-illegal-parking-report
     as a target highlight step before the completion message."""
-    assert '"complaint-category-illegal-parking"' in CHOREO
-    assert "불법 주정차 신고 항목을 확인합니다" in CHOREO
+    assert '"complaint-illegal-parking-report"' in CHOREO
+    assert "온라인으로 신고를 접수할 수 있습니다" in CHOREO
 
 
 def test_choreography_final_target_appears_after_route_and_before_completion():
-    """complaint-category route appears before complaint-category-illegal-parking target,
+    """complaint-illegal-parking route appears before complaint-illegal-parking-report target,
     which appears before the terminal completion message."""
-    assert CHOREO.index("complaint-category") < CHOREO.index("complaint-category-illegal-parking")
-    assert CHOREO.index("complaint-category-illegal-parking") < CHOREO.index(
+    assert CHOREO.index("complaint-illegal-parking") < CHOREO.index("complaint-illegal-parking-report")
+    assert CHOREO.index("complaint-illegal-parking-report") < CHOREO.index(
         "안내가 완료되었습니다"
     )
 
@@ -180,7 +180,7 @@ def test_choreography_terminal_step_preserves_highlight():
     choreo_lines = CHOREO.splitlines()
     guard_found = False
     for i, line in enumerate(choreo_lines):
-        if "step.routeId || step.targetId" in line and "{" in line:
+        if "step.routeId || step.targetId" in line and "if (" in line:
             for j in range(i + 1, min(i + 5, len(choreo_lines))):
                 stripped = choreo_lines[j].strip()
                 if stripped and not stripped.startswith("//") and not stripped.startswith("*"):
@@ -311,7 +311,7 @@ def test_shell_reset_invalidates_pending_mvp_and_cancels_bridge():
 def test_choreography_has_mvp_action_journeys():
     assert '"illegal_parking"' in CHOREO
     assert '"housing_department"' in CHOREO
-    assert '"dept-housing-jdept01"' in CHOREO
+    assert '"dept-housing-jdept01-search"' in CHOREO
 
 
 def test_choreography_housing_reuses_jdept01_approved_facts():
@@ -321,7 +321,8 @@ def test_choreography_housing_reuses_jdept01_approved_facts():
     # Approved facts appear in the journey (rendered by the existing clone).
     assert "공동주택과" in CHOREO
     assert "062-410-6033" in CHOREO
-    assert "공동주택과 업무전반" in CHOREO
+    # The detailed "공동주택과 업무전반" fact is rendered by the canvas
+    # dept-directory result table, not the choreography text.
 
 
 def test_choreography_applies_journey_state_in_step_execution():

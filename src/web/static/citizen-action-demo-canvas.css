@@ -2269,3 +2269,73 @@
   font-weight: 700;
   color: #0054A6;
 }
+
+/* ═══════════════════════════════════════════════════════
+   #965 — Illegal parking report card (visible target)
+   ═══════════════════════════════════════════════════════ */
+.bg-page--illegal-parking .bg-illegal-parking-card {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  margin: 16px 0;
+  background: #fff;
+  border: 2px solid #e5e9ef;
+  border-radius: 10px;
+  cursor: default;
+  align-items: flex-start;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.bg-page--illegal-parking .bg-illegal-parking-card:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+}
+.bg-page--illegal-parking .bg-illegal-parking-card__icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.bg-page--illegal-parking .bg-illegal-parking-card__body {
+  flex: 1;
+  min-width: 0;
+}
+.bg-page--illegal-parking .bg-illegal-parking-card__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 6px 0;
+}
+.bg-page--illegal-parking .bg-illegal-parking-card__desc {
+  font-size: 0.875rem;
+  color: #555;
+  line-height: 1.5;
+  margin: 0 0 10px 0;
+}
+.bg-page--illegal-parking .bg-illegal-parking-card__meta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.bg-page--illegal-parking .bg-illegal-parking-card__meta li {
+  font-size: 0.8125rem;
+  color: #666;
+  margin-bottom: 3px;
+}
+.bg-page--illegal-parking .bg-illegal-parking-card__meta-label {
+  font-weight: 600;
+  color: #4a5568;
+  display: inline-block;
+  min-width: 80px;
+}
+.bg-page--illegal-parking .bg-illegal-parking-card__arrow {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  color: #cbd5e0;
+  margin-top: 16px;
+}
+.bg-page--illegal-parking .bg-illegal-parking-note {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: -8px;
+}
+

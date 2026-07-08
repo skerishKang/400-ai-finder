@@ -1265,6 +1265,65 @@
   }
 
   // -----------------------------------------------------------------------
+  // _renderIllegalParking — 불법 주정차 신고 전용 surface (청원24 아님)
+  // Directly tied to 불법 주정차 신고 / 민원신고. The final highlight target
+  // (complaint-illegal-parking-report) is rendered VISIBLE here so the
+  // executor highlight reads as a real selected card, not a generic menu focus.
+  // -----------------------------------------------------------------------
+  function _renderIllegalParking(route) {
+    return (
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--illegal-parking">' +
+        _renderDenseHeader('civil-service') +
+
+        '<div class="bg-layout--lnb">' +
+          /* LNB */
+          '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
+            '<div class="bg-lnb__header">종합민원</div>' +
+            '<ul class="bg-lnb__list">' +
+              '<li class="bg-lnb__item bg-lnb__item--active"><a href="#">종합민원</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--open">' +
+                '<a href="#" class="bg-lnb__parent">민원신고</a>' +
+                '<ul class="bg-lnb__sub">' +
+                  '<li><a href="#">불법 주정차 신고</a></li>' +
+                  '<li><a href="#">도로 및 교통시설 물의 시설 파손</a></li>' +
+                  '<li><a href="#">공용주차장 이용 불편</a></li>' +
+                  '<li><a href="#">각종 안전 위험 시설</a></li>' +
+                  '<li><a href="#">기타 민원</a></li>' +
+                '</ul>' +
+              '</li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">전자민원창구</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민원서식</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">행정서비스 헌장</a></li>' +
+            '</ul>' +
+          '</nav>' +
+
+          /* Main content — the directly relevant target card */
+          '<main class="bg-content bg-content--sub" id="bg-content-main">' +
+            _renderSubPageHeader("불법 주정차 신고", "불법 주정차 신고는 민원신고를 통해 온라인으로 접수할 수 있습니다.") +
+
+            '<div class="bg-illegal-parking-card" data-action-target="complaint-illegal-parking-report" tabindex="0">' +
+              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🚗</div>' +
+              '<div class="bg-illegal-parking-card__body">' +
+                '<h2 class="bg-illegal-parking-card__title">불법 주정차 신고</h2>' +
+                '<p class="bg-illegal-parking-card__desc">민원신고 &gt; 불법 주정차 신고 메뉴에서 위치·사진·내용을 입력해 접수합니다.</p>' +
+                '<ul class="bg-illegal-parking-card__meta">' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">접수처</span> 북구청 민원신고 (교통과)</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">처리기간</span> 접수 즉시 지자체 통보</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">신고방법</span> 온라인 / 북구청 민원신고</li>' +
+                '</ul>' +
+              '</div>' +
+              '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
+            '</div>' +
+
+            '<p class="bg-illegal-parking-note">※ 본 카드는 로컬 시연용이며 실제 신고는 북구청 공식 민원신고 채널을 이용하세요.</p>' +
+          '</main>' +
+        '</div>' +
+        _renderSubFooter() +
+      '</div>'
+    );
+  }
+
+  // -----------------------------------------------------------------------
   // _renderCheongwon24 — 청원24 info page (replaces complaint-category)
   // Faithful reproduction of bukgu_menu.png
   // -----------------------------------------------------------------------
@@ -1825,6 +1884,7 @@
         case "home":               html = _renderHome(_resolveHomeReferenceState(search)); break;
         case "civil-service":      html = _renderCivilService(route); break;
         case "complaint-category": html = _renderCheongwon24(route); break;
+        case "complaint-illegal-parking": html = _renderIllegalParking(route); break;
         case "complaint-intake":   html = _renderComplaintIntake(route); break;
         case "complaint-review":   html = _renderComplaintReview(route); break;
         case "handoff-stop":       html = _renderHandoffStop(route); break;
@@ -2018,6 +2078,7 @@
       "complaint-category-residential-parking":           "complaint-intake",
       "complaint-category-traffic-or-facility-safety":    "complaint-intake",
       "complaint-category-other-or-unsure":               "complaint-intake",
+      "complaint-illegal-parking-report":                  "handoff-stop",
       "complaint-body":               null,
       "complaint-draft-review":       "complaint-review",
       "confirm-draft-prefill":        "handoff-stop",

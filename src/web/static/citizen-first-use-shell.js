@@ -32,6 +32,7 @@
   var chatInput = document.getElementById("chat-composer-input");
   var chatSend = document.getElementById("chat-composer-send");
   var resetButton = document.getElementById("chat-reset");
+  var chipsContainer = document.getElementById("chat-chips");
   var splitTimer = null;
   var lastSplitQuestion = null;
   var currentState = STATE_ENTRY;
@@ -157,6 +158,9 @@
       if (resetButton) {
         resetButton.hidden = true;
       }
+      if (chipsContainer) {
+        chipsContainer.hidden = false;
+      }
       return;
     }
 
@@ -166,6 +170,9 @@
       if (resetButton) {
         resetButton.hidden = true;
       }
+      if (chipsContainer) {
+        chipsContainer.hidden = true;
+      }
       return;
     }
 
@@ -173,6 +180,9 @@
     setComposerDisabled(false);
     if (resetButton) {
       resetButton.hidden = false;
+    }
+    if (chipsContainer) {
+      chipsContainer.hidden = true;
     }
   }
 
@@ -418,6 +428,23 @@
 
   if (resetButton) {
     resetButton.addEventListener("click", resetToEntry);
+  }
+
+  // #965: chip click → submit question
+  if (chipsContainer) {
+    chipsContainer.addEventListener("click", function (e) {
+      var chip = e.target.closest("[data-chip-question]");
+      if (!chip) return;
+      var question = chip.getAttribute("data-chip-question");
+      if (!question) return;
+      if (chatInput) {
+        chatInput.value = question;
+      }
+      // Trigger submission
+      if (chatForm) {
+        chatForm.dispatchEvent(new Event("submit", { cancelable: true }));
+      }
+    });
   }
 
   if (isLegacyJourneyLoad()) {

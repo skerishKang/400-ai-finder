@@ -28,6 +28,7 @@
     "home",
     "civil-service",
     "complaint-category",
+    "complaint-illegal-parking",
     "complaint-intake",
     "complaint-review",
     "handoff-stop",
@@ -41,6 +42,7 @@
     "complaint-category-residential-parking",
     "complaint-category-traffic-or-facility-safety",
     "complaint-category-other-or-unsure",
+    "complaint-illegal-parking-report",
     "complaint-body",
     "complaint-draft-review",
     "confirm-draft-prefill",
@@ -79,6 +81,16 @@
         "complaint-category-other-or-unsure",
       ]),
       breadcrumbLabel: "유형 선택",
+    }),
+
+    "complaint-illegal-parking": Object.freeze({
+      id: "complaint-illegal-parking",
+      title: "불법 주정차 신고",
+      purpose: "불법 주정차 신고는 민원신고를 통해 접수할 수 있습니다.",
+      navTargets: Object.freeze([
+        "complaint-illegal-parking-report",
+      ]),
+      breadcrumbLabel: "불법 주정차 신고",
     }),
 
     "complaint-intake": Object.freeze({
