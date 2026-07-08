@@ -364,14 +364,14 @@ curl -sI https://cgbukku.pages.dev/mobile    # 200
 curl -sI https://cgbukku.pages.dev/admin     # 200
 ```
 
-**주의**: public URL만으로 latest deployed commit SHA는 확정할 수 없습니다. 정확한 SHA는 Cloudflare dashboard deployment metadata에서만 확인 가능합니다.
+**참고**: public URL만으로 latest deployed commit SHA는 확정할 수 없습니다. 정확한 SHA는 Cloudflare Pages deployment metadata에서 확인하세요.
 
 ### Boundaries
 
-- 이 정적 시연은 **백엔드 없는 결정형 데모**입니다. 실제 AI/LLM, 외부 API, Firecrawl, live site 크롤링과 완전히 별개입니다.
-- "Retry deployment", "Redeploy", "Create deployment" 클릭 금지
-- secrets / env 열람 금지
-- live provider/API/Firecrawl 테스트 금지
+- 이 정적 시연은 **백엔드 없는 결정형 데모**입니다. 기본 검증 흐름은 이 로컬 정적 아티팩트만으로 충분합니다.
+- 북구청 공식 사이트 참고·클릭·검색·스크린샷 비교, route/content inventory, crawling/scraping, 그리고 Firecrawl·외부 API·live provider reference 수집은 현재 제품 방향에서 **허용되는 참고·수집 작업**입니다.
+- live-dependent 실험 경로(Firecrawl/외부 API/live provider 호출)는 별도 operational stage로 분리되어 있으며, 명시적 opt-in과 자격 증명(env) 설정 하에 실행됩니다. 자세한 경계는 [`docs/provider-fetch-network-boundary.md`](docs/provider-fetch-network-boundary.md)를 참고하세요.
+- Cloudflare 배포 제어는 운영자 전용입니다. 배포 재실행(Retry/Redeploy/Create deployment)은 배포 권한 보유 운영자만 수행하며, secrets/env는 해당 운영자 책임 하에 다룹니다.
 
 더 자세한 내용은 [`docs/cloudflare-pages-bukgu-mvp.md`](docs/cloudflare-pages-bukgu-mvp.md)를 참고하세요.
 

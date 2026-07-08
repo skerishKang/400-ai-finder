@@ -69,17 +69,19 @@ Cloudflare Pages 콘솔에서 다음과 같이 설정한다.
 > 빌드 산출물(`dist/cloudflare-pages`)은 Git에 추적되지 않으므로,
 > Cloudflare Pages 빌드 단계에서 위 Build command 가 산출물을 직접 생성한다.
 
-## 금지 사항 (준수)
+## 배포 운영 경계 (운영자 전용)
 
-- `wrangler.toml` / `wrangler.jsonc` / Worker 코드 추가 금지
-- API Key, 실제 외부 API 호출 금지
-- 실제 북구청 사이트·LLM provider·Firecrawl·requests fetch 등 live/network 호출 금지
-- `ssj-bukku` Worker 변경·삭제 금지
-- 원본 `src/web/templates`, `src/web/static` 이동·삭제·재구성 금지
+배포 파이프라인의 무결성을 보호하기 위한 경계입니다. 일반 개발·검증 작업은 로컬 정적 아티팩트로 수행하며 배포 제어는 운영자 책임입니다.
+
+- `wrangler.toml` / `wrangler.jsonc` / Worker 코드: 이 정적 Pages 배포에서는 추가하지 않습니다 (프레임워크 preset `None`, 빌드 명령만 사용).
+- 원본 `src/web/templates`, `src/web/static` 이동·삭제·재구조화는 배포 산출물 정합성을 위해 피합니다.
+- `ssj-bukku` Worker 변경·삭제는 운영 승인 하에만 진행합니다.
+- 실제 외부 API Key는 소스코드·설정에 하드코딩하지 않습니다 (`.env` + `.gitignore` 방식).
+- 북구청 공식 사이트 참고·크롤링·스크린샷 비교, Firecrawl·외부 API·live provider reference 수집은 현재 제품 방향에서 허용되는 참고·수집 작업입니다. live-dependent 실험 실행은 별도 operational stage(명시적 opt-in + 자격 증명)로 분리되어 있습니다.
 
 ## Production Verification Checklist (read-only)
 
-Cloudflare Pages dashboard에서 read-only로만 확인합니다. 설정 변경·재배포·secret 열람은 하지 않습니다.
+Cloudflare Pages dashboard는 read-only로 확인하는 것을 권장합니다. 설정 변경·재배포는 배포 권한 보유 운영자만 수행하며, secrets/env는 해당 운영자 책임 하에 다룹니다.
 
 ### 1. Deployment 상태 확인
 
@@ -107,14 +109,11 @@ curl -sI https://cgbukku.pages.dev/admin   # HTTP 200 (from /admin.html 308)
 
 ### 3. public URL만으로 deployed SHA 확정 불가
 
-public 정적 HTML은 빌드 커밋 SHA를 노출하지 않습니다. 정확한 SHA는 Cloudflare dashboard의 deployment metadata에서만 확인할 수 있습니다.
+public 정적 HTML은 빌드 커밋 SHA를 노출하지 않습니다. 정확한 SHA는 Cloudflare Pages deployment metadata에서 확인하세요.
 
 ## Boundaries
 
-- 이 배포는 **백엔드 없는 결정형 정적 시연**입니다. 실제 AI/LLM/외부API/Firecrawl/live-site crawling과 완전히 별개입니다.
-- **Retry deployment / Redeploy / Create deployment 클릭 금지**
-- **secrets / env 열람 금지**
-- **live provider / API / Firecrawl 테스트 금지**
-- `ssj-bukku` Worker 변경·삭제 금지
-- 원본 `src/web/templates`, `src/web/static` 이동·삭제·재구성 금지
-- `dist/cloudflare-pages` Git 커밋 금지 (.gitignore로 추적 제외)
+- 이 배포는 **백엔드 없는 결정형 정적 시연**입니다. 기본 검증 흐름은 이 로컬 정적 아티팩트만으로 충분합니다.
+- 배포 제어(Retry deployment / Redeploy / Create deployment)는 배포 권한 보유 운영자 전용이며, secrets/env는 해당 운영자 책임 하에 다룹니다.
+- live-dependent 실험 경로(Firecrawl/외부 API/live provider 호출)는 별도 operational stage로 분리되어 있으며, 명시적 opt-in과 자격 증명(env) 설정 하에 실행됩니다. 자세한 경계는 [`provider-fetch-network-boundary.md`](provider-fetch-network-boundary.md)를 참고하세요.
+- `dist/cloudflare-pages`는 `.gitignore`로 추적 제외되어 Git에 커밋하지 않습니다 (빌드 산출물).
