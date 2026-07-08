@@ -25,6 +25,7 @@ ASSET_ALLOWLIST = [
     "citizen-action-demo-map.js",
     "citizen-action-demo-canvas.js",
     "citizen-action-demo-canvas.css",
+    "citizen-action-demo-home-decor.css",
     "citizen-action-executor.js",
     "citizen-action-executor.css",
     "citizen-copilot-shell.js",
@@ -32,6 +33,9 @@ ASSET_ALLOWLIST = [
     "citizen-complaint-journey.js",
     "citizen-complaint-journey-ui.js",
     "citizen-complaint-journey.css",
+    "citizen-first-choreography.js",
+    "citizen-first-use-shell.js",
+    "citizen-first-use-shell.css",
 ]
 
 
