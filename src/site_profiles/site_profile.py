@@ -12,6 +12,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from src.config.constants import PROFILE_DOCUMENT_EXTENSIONS
+
 try:
     import yaml
 except ImportError:  # pragma: no cover
@@ -37,9 +39,7 @@ DEFAULT_CRAWL_RULES: dict[str, Any] = {
     "respect_robots": True,
 }
 
-DEFAULT_DOCUMENT_EXTENSIONS: list[str] = [
-    "pdf", "hwp", "hwpx", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip",
-]
+DEFAULT_DOCUMENT_EXTENSIONS: list[str] = list(PROFILE_DOCUMENT_EXTENSIONS)
 
 DEFAULT_BOARD_PATTERNS: list[str] = [
     "board", "bbs", "list", "view", "article", "notice",
