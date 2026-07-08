@@ -1272,46 +1272,8 @@
   // -----------------------------------------------------------------------
   function _renderIllegalParking(route) {
     return (
-      '<div class="bg-page bg-page--full bg-page--illegal-parking">' +
-        /* Utility bar */
-        '<div class="bg-util-bar">' +
-          '<div class="bg-util-bar__left">' +
-            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
-            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 초미세먼지 좋음</span>' +
-          '</div>' +
-          '<div class="bg-util-bar__right">' +
-            '<a href="#" class="bg-hlink">주요사이트 ▼</a>' +
-            '<a href="#" class="bg-hlink">SNS ▼</a>' +
-            '<a href="#" class="bg-hlink">KOR ▼</a>' +
-          '</div>' +
-        '</div>' +
-
-        /* Header */
-        '<header class="bg-header">' +
-          '<div class="bg-header__inner">' +
-            '<a href="#" class="bg-logo">' +
-              '<img src="/static/images/bukgu-crops/home-logo-identity.png" alt="광주광역시 북구 (전남광주통합특별시북구)" style="height:42px; width:auto; display:block;" />' +
-            '</a>' +
-          '</div>' +
-        '</header>' +
-
-        /* GNB */
-        '<nav class="bg-gnb" aria-label="주메뉴">' +
-          '<div class="bg-gnb__inner">' +
-            '<ul class="bg-gnb__list">' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
-            '</ul>' +
-            '<div class="bg-gnb__tools">' +
-              '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
-              '<button class="bg-gnb__icon-btn" type="button" aria-label="전체메뉴">☰</button>' +
-            '</div>' +
-          '</div>' +
-        '</nav>' +
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--illegal-parking">' +
+        _renderDenseHeader('civil-service') +
 
         '<div class="bg-layout--lnb">' +
           /* LNB */
