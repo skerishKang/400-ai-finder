@@ -434,3 +434,4 @@ Based on Stage 333 results:
 | `docs/smoke-eval-flow.md` | Smoke eval CLI 흐름 상세 |
 | `docs/provider-fetch-network-boundary.md` | Live provider/fetch/network 경계 정책 |
 | `docs/smoke-scenario-matrix.md` | Scenario matrix 스키마 및 검증 정책 |
+| `docs/cloudflare-pages-bukgu-mvp.md` | Cloudflare Pages 정적 시연 배포 설정 및 verification checklist |
