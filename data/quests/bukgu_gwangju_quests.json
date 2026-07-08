@@ -164,6 +164,83 @@
         "하고"
       ],
       "source_mode": "local_static"
+    },
+    {
+      "quest_id": "bulky_waste_disposal_guidance",
+      "quest_name": "대형폐기물 배출 안내",
+      "status": "phase1_golden",
+      "category": "application_guidance",
+      "risk_level": "high",
+      "user_phrases": [
+        "침대 매트리스 버리고 싶어요",
+        "대형폐기물은 어떻게 버리나요?",
+        "가구 버리려면 어디서 신청해요?",
+        "매트리스 폐기 신청은 어디서 하나요?"
+      ],
+      "required_slots": [],
+      "official_path": [
+        "종합민원",
+        "분야별정보",
+        "대형폐기물 처리"
+      ],
+      "browser_actions": [
+        {
+          "action_type": "OPEN_ALLOWLISTED_ROUTE",
+          "route_id": "civil-service",
+          "label": "종합민원 메뉴 확인"
+        },
+        {
+          "action_type": "OPEN_ALLOWLISTED_ROUTE",
+          "route_id": "bulky-waste-disposal",
+          "label": "대형폐기물 배출 안내 화면 이동"
+        },
+        {
+          "action_type": "SHOW_ALLOWLISTED_RESULT",
+          "target_id": "bulky-waste-guidance-card",
+          "label": "대형폐기물 배출/신청 안내 확인"
+        },
+        {
+          "action_type": "STOP_FOR_USER_CONFIRMATION",
+          "label": "사용자 확인 대기"
+        }
+      ],
+      "ai_can_answer": true,
+      "ai_can_click": true,
+      "ai_can_prefill": false,
+      "ai_can_submit": false,
+      "stop_condition": "STOP_FOR_USER_CONFIRMATION",
+      "final_warning": {
+        "warning_text": "실제 대형폐기물 신청, 품목·주소·연락처 입력, 수수료 결제, 스티커 출력 또는 배출신고 제출은 사용자가 공식 페이지에서 직접 확인해야 합니다. 이 데모는 신청/결제 전 안내에서 멈춥니다.",
+        "requires_user_confirmation": true
+      },
+      "client_action": "bulky_waste",
+      "answer": "대형폐기물 배출 신청 경로를 안내해 드립니다. 실제 대형폐기물 신청 및 수수료 결제는 공식 페이지에서 사용자가 직접 진행해야 합니다.",
+      "result": {
+        "service": "대형폐기물 배출 안내",
+        "surface": "대형폐기물 신청 안내 카드",
+        "stop": "사용자 확인 후 결제/신청 단계에서 멈춤"
+      },
+      "match_terms": [
+        "대형폐기물",
+        "매트리스",
+        "가구",
+        "버리",
+        "폐기",
+        "신청"
+      ],
+      "domain_terms": [
+        "대형폐기물",
+        "매트리스",
+        "가구",
+        "폐기"
+      ],
+      "intent_terms": [
+        "버리",
+        "신청",
+        "어떻게",
+        "어디서"
+      ],
+      "source_mode": "local_static"
     }
   ]
 }

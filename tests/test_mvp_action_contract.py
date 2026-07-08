@@ -341,6 +341,29 @@ class TestMvpAskEndpoint:
         assert "업무 및 전화번호 안내 이동" in labels
         assert "공동주택 검색" in labels
 
+    def test_mvp_ask_bulky_waste(self, mvp_server):
+        port = mvp_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        body = json.dumps({"question": "침대 매트리스 버리고 싶어요"}).encode()
+        conn.request("POST", "/api/mvp/ask", body=body,
+                     headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        data = json.loads(resp.read())
+        conn.close()
+        assert resp.status == 200
+        assert data["ok"] is True
+        assert data["action"] == "bulky_waste"
+        assert data["provider"] == "local_static"
+        assert data["model"] == "quest-engine-v1"
+        assert data["quest"]["quest_id"] == "bulky_waste_disposal_guidance"
+        assert data["quest"]["source_mode"] == "local_static"
+        assert data["action_plan"]["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
+        assert data["action_plan"]["requires_user_confirmation"] is True
+        assert data["action_plan"]["final_warning"]["requires_user_confirmation"] is True
+        labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
+        assert "대형폐기물 배출 안내 화면 이동" in labels
+        assert "대형폐기물 배출/신청 안내 확인" in labels
+
     def test_mvp_ask_none_unrelated(self, mvp_server):
         port = mvp_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=5)

@@ -482,6 +482,79 @@ async function scenarioHousingDepartment() {
   console.log("  [2] housing_department: OK");
 }
 
+async function scenarioBulkyWaste() {
+  const bridge = makeResolvingBridge({
+    ok: true,
+    answer: "대형폐기물 배출 신청 경로를 안내해 드립니다.",
+    action: "bulky_waste",
+    confidence: 0.92,
+    quest: {
+      quest_id: "bulky_waste_disposal_guidance",
+      quest_name: "대형폐기물 배출 안내",
+      source_mode: "local_static",
+      match_status: "matched",
+    },
+    action_plan: {
+      quest_id: "bulky_waste_disposal_guidance",
+      quest_name: "대형폐기물 배출 안내",
+      official_path: ["종합민원", "분야별정보", "대형폐기물 처리"],
+      source_mode: "local_static",
+      stop_condition: "STOP_FOR_USER_CONFIRMATION",
+      result: {
+        service: "대형폐기물 배출 안내",
+        surface: "대형폐기물 신청 안내 카드",
+      },
+      browser_actions: [
+        { label: "종합민원 메뉴 확인" },
+        { label: "대형폐기물 배출 안내 화면 이동" },
+        { label: "대형폐기물 배출/신청 안내 확인" },
+        { label: "사용자 확인 대기" },
+      ],
+      final_warning: {
+        warning_text: "실제 대형폐기물 신청, 품목·주소·연락처 입력, 수수료 결제, 스티커 출력 또는 배출신고 제출은 사용자가 공식 페이지에서 직접 확인해야 합니다.",
+        requires_user_confirmation: true,
+      },
+    },
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1",
+    reducedMotion: true,
+    bridge,
+    choreo,
+  });
+  submit(s, "침대 매트리스 버리고 싶어요");
+  await flush();
+
+  const bubbles = aiBubbleTexts(s);
+  assert.ok(
+    bubbles.includes("대형폐기물 배출 신청 경로를 안내해 드립니다."),
+    "bulky_waste: server answer must be shown",
+  );
+  assertSplitCloneVisible(s, "bulky_waste");
+  assert.deepStrictEqual(
+    choreo.startCalls,
+    ["bulky_waste"],
+    "bulky_waste: choreography.start('bulky_waste') once",
+  );
+  const card = s.doc.getElementById("chat-thread")._children.find((node) => {
+    return (node.className || "").includes("chat-quest-card");
+  });
+  assert.ok(card, "bulky_waste: quest card must be appended from metadata");
+  assert.strictEqual(card.getAttribute("data-quest-card"), "action_plan");
+  assert.strictEqual(card.getAttribute("data-quest-id"), "bulky_waste_disposal_guidance");
+  const cardText = card.textContent;
+  assert.ok(cardText.includes("대형폐기물 배출 안내"));
+  assert.ok(cardText.includes("종합민원 > 분야별정보 > 대형폐기물 처리"));
+  assert.ok(cardText.includes("대형폐기물 배출 안내 / 대형폐기물 신청 안내 카드"));
+  assert.ok(cardText.includes("STOP_FOR_USER_CONFIRMATION"));
+  assert.ok(cardText.includes("local_static"));
+  assert.ok(cardText.includes("대형폐기물 배출 안내 화면 이동"));
+  assert.ok(cardText.includes("수수료 결제"));
+  assert.ok(cardText.includes("스티커 출력"));
+  console.log("  [2.5] bulky_waste: OK");
+}
+
 async function scenarioSupportedQuestionActionNoneFallback() {
   const bridge = makeResolvingBridge({
     ok: true,
@@ -1033,6 +1106,7 @@ async function main() {
   console.log("Running MVP shell runtime scenarios (no network, no fetch):");
   await scenarioIllegalParking();
   await scenarioHousingDepartment();
+  await scenarioBulkyWaste();
   await scenarioSupportedQuestionActionNoneFallback();
   await scenarioNone();
   await scenarioPendingThenReset();

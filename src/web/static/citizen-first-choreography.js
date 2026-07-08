@@ -107,6 +107,66 @@
         Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다. STOP_AFTER_RESULT", delayMs: 0 }),
       ]),
     }),
+    "bulky_waste": Object.freeze({
+      id: "bulky-waste-disposal-guidance",
+      description: "대형폐기물 배출 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "대형폐기물 배출 신청 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
+        Object.freeze({ message: "대형폐기물 처리 안내 화면으로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
+        Object.freeze({ message: "대형폐기물 배출 안내를 확인합니다. 신청 전 주의사항을 읽어주세요.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 대형폐기물 신청, 품목·주소·연락처 입력, 수수료 결제, 스티커 출력은 사용자가 공식 페이지에서 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
+    "침대 매트리스 버리고 싶어요": Object.freeze({
+      id: "bulky-waste-disposal-guidance",
+      description: "대형폐기물 배출 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "대형폐기물 배출 신청 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
+        Object.freeze({ message: "대형폐기물 처리 안내 화면으로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
+        Object.freeze({ message: "대형폐기물 배출 안내를 확인합니다. 신청 전 주의사항을 읽어주세요.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 대형폐기물 신청, 품목·주소·연락처 입력, 수수료 결제, 스티커 출력은 사용자가 공식 페이지에서 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
+    "대형폐기물은 어떻게 버리나요?": Object.freeze({
+      id: "bulky-waste-disposal-guidance",
+      description: "대형폐기물 배출 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "대형폐기물 배출 신청 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
+        Object.freeze({ message: "대형폐기물 처리 안내 화면으로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
+        Object.freeze({ message: "대형폐기물 배출 안내를 확인합니다. 신청 전 주의사항을 읽어주세요.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 대형폐기물 신청, 품목·주소·연락처 입력, 수수료 결제, 스티커 출력은 사용자가 공식 페이지에서 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
+    "가구 버리려면 어디서 신청해요?": Object.freeze({
+      id: "bulky-waste-disposal-guidance",
+      description: "대형폐기물 배출 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "대형폐기물 배출 신청 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
+        Object.freeze({ message: "대형폐기물 처리 안내 화면으로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
+        Object.freeze({ message: "대형폐기물 배출 안내를 확인합니다. 신청 전 주의사항을 읽어주세요.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 대형폐기물 신청, 품목·주소·연락처 입력, 수수료 결제, 스티커 출력은 사용자가 공식 페이지에서 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
+    "매트리스 폐기 신청은 어디서 하나요?": Object.freeze({
+      id: "bulky-waste-disposal-guidance",
+      description: "대형폐기물 배출 안내 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "대형폐기물 배출 신청 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
+        Object.freeze({ message: "대형폐기물 처리 안내 화면으로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
+        Object.freeze({ message: "대형폐기물 배출 안내를 확인합니다. 신청 전 주의사항을 읽어주세요.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "안내가 완료되었습니다. 실제 대형폐기물 신청, 품목·주소·연락처 입력, 수수료 결제, 스티커 출력은 사용자가 공식 페이지에서 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+      ]),
+    }),
   });
 
   // ═══════════════════════════════════════════════════════════════════

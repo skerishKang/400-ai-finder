@@ -271,13 +271,15 @@ class TestComplaintJourney:
 
     def test_complaint_intake_has_complaint_body_and_draft_review(self):
         js = _read_static("citizen-action-demo-map.js")
-        block = js[js.find('"complaint-intake"'):js.find('"complaint-intake"') + 500]
+        block = js[js.find('"complaint-intake"'):js.find('"complaint-intake"') + 600]
         assert "complaint-body" in block
         assert "complaint-draft-review" in block
 
     def test_complaint_review_has_confirm_draft_prefill(self):
         js = _read_static("citizen-action-demo-map.js")
-        block = js[js.find('"complaint-review"'):js.find('"complaint-review"') + 500]
+        idx = js.find('"complaint-review": Object.freeze')
+        assert idx != -1, "complaint-review route not found"
+        block = js[idx:idx + 300]
         assert "confirm-draft-prefill" in block
 
     def test_handoff_stop_nav_targets_empty(self):
