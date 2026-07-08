@@ -40,11 +40,12 @@ def _base_registry_payload():
     }
 
 
-def test_default_registry_loads_two_phase1_quests_only():
+def test_default_registry_loads_three_phase1_quests_only():
     registry = load_default_bukgu_registry()
     assert [quest.quest_id for quest in registry.quests] == [
         "housing_department_lookup",
         "illegal_parking_report_guidance",
+        "bulky_waste_disposal_guidance",
     ]
     quest = registry.get("housing_department_lookup")
     assert quest is not None

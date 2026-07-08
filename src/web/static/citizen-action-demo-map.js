@@ -6,14 +6,17 @@
  * No arbitrary route, target, selector, URL, or executable command input.
  *
  * Vocabulary source (read-only, not modified):
- *   Route IDs:  home, civil-service, complaint-category,
- *               complaint-intake, complaint-review, handoff-stop
+ *   Route IDs:  home, civil-service, bulky-waste-disposal,
+ *               complaint-category, complaint-intake,
+ *               complaint-review, handoff-stop
  *   Target IDs: nav-civil-service, nav-complaint-category,
  *               complaint-category-illegal-parking,
  *               complaint-category-public-parking-inconvenience,
  *               complaint-category-residential-parking,
  *               complaint-category-traffic-or-facility-safety,
  *               complaint-category-other-or-unsure,
+ *               complaint-illegal-parking-report,
+ *               bulky-waste-guidance-card,
  *               complaint-body, complaint-draft-review,
  *               confirm-draft-prefill, handoff-notice
  */
@@ -27,6 +30,7 @@
   var CLOSED_ROUTE_IDS = Object.freeze([
     "home",
     "civil-service",
+    "bulky-waste-disposal",
     "complaint-category",
     "complaint-illegal-parking",
     "complaint-intake",
@@ -43,6 +47,7 @@
     "complaint-category-traffic-or-facility-safety",
     "complaint-category-other-or-unsure",
     "complaint-illegal-parking-report",
+    "bulky-waste-guidance-card",
     "complaint-body",
     "complaint-draft-review",
     "confirm-draft-prefill",
@@ -67,6 +72,14 @@
       purpose: "북구청 주요 민원 서비스를 안내합니다.",
       navTargets: Object.freeze(["nav-complaint-category"]),
       breadcrumbLabel: "민원 신청",
+    }),
+
+    "bulky-waste-disposal": Object.freeze({
+      id: "bulky-waste-disposal",
+      title: "대형폐기물 처리",
+      purpose: "대형폐기물 배출 방법을 안내하고 온라인 신청을 지원합니다.",
+      navTargets: Object.freeze([]),
+      breadcrumbLabel: "대형폐기물 처리",
     }),
 
     "complaint-category": Object.freeze({

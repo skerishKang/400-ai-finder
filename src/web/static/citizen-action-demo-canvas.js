@@ -1327,6 +1327,57 @@
     );
   }
 
+  function _renderBulkyWasteDisposal(route) {
+    return (
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--bulky-waste">' +
+        _renderDenseHeader('civil-service') +
+
+        '<div class="bg-layout--lnb">' +
+          /* LNB */
+          '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
+            '<div class="bg-lnb__header">종합민원</div>' +
+            '<ul class="bg-lnb__list">' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">종합민원</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--open">' +
+                '<a href="#" class="bg-lnb__parent">분야별정보</a>' +
+                '<ul class="bg-lnb__sub">' +
+                  '<li><a href="#">환경/청소</a></li>' +
+                  '<li class="bg-lnb__item--active"><a href="#">대형폐기물 처리</a></li>' +
+                  '<li><a href="#">재활용품 분리배출</a></li>' +
+                  '<li><a href="#">음식물류폐기물</a></li>' +
+                '</ul>' +
+              '</li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민원신고</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">전자민원창구</a></li>' +
+            '</ul>' +
+          '</nav>' +
+
+          /* Main content — the directly relevant target card */
+          '<main class="bg-content bg-content--sub" id="bg-content-main">' +
+            _renderSubPageHeader(route.title, route.purpose) +
+
+            '<div class="bg-illegal-parking-card" data-action-target="bulky-waste-guidance-card" tabindex="0">' +
+              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🛏️</div>' +
+              '<div class="bg-illegal-parking-card__body">' +
+                '<h2 class="bg-illegal-parking-card__title">대형폐기물 배출 신청</h2>' +
+                '<p class="bg-illegal-parking-card__desc">가구, 가전제품 등 종량제 봉투에 담기 어려운 폐기물 배출을 신청합니다.</p>' +
+                '<ul class="bg-illegal-parking-card__meta">' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">수수료결제</span> 온라인 결제 (카드, 계좌이체 등)</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">배출방법</span> 스티커 출력 부착 후 배출</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">문의사항</span> 북구청 청소행정과</li>' +
+                '</ul>' +
+              '</div>' +
+              '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
+            '</div>' +
+
+            '<p class="bg-illegal-parking-note">※ 본 카드는 로컬 시연용이며 실제 신청, 결제, 개인정보 입력 등은 공식 채널에서 직접 진행해야 합니다.</p>' +
+          '</main>' +
+        '</div>' +
+        _renderSubFooter() +
+      '</div>'
+    );
+  }
+
   // -----------------------------------------------------------------------
   // _renderCheongwon24 — 청원24 info page (replaces complaint-category)
   // Faithful reproduction of bukgu_menu.png
@@ -1889,6 +1940,7 @@
         case "civil-service":      html = _renderCivilService(route); break;
         case "complaint-category": html = _renderCheongwon24(route); break;
         case "complaint-illegal-parking": html = _renderIllegalParking(route); break;
+        case "bulky-waste-disposal": html = _renderBulkyWasteDisposal(route); break;
         case "complaint-intake":   html = _renderComplaintIntake(route); break;
         case "complaint-review":   html = _renderComplaintReview(route); break;
         case "handoff-stop":       html = _renderHandoffStop(route); break;
@@ -1902,7 +1954,9 @@
       "complaint-category": {title: "민원 유형 선택", purpose: "해당 상황에 맞는 민원 유형을 선택해 주세요."},
       "complaint-intake": {title: "민원서식", purpose: "민원 업무에 필요한 각종 서식을 검색하고 다운로드할 수 있습니다."},
       "complaint-review": {title: "민원 신청 확인", purpose: "아래 내용을 확인하고 신청해 주세요."},
-      "handoff-stop": {title: "데모 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."}
+      "handoff-stop": {title: "데모 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
+      "complaint-illegal-parking": {title: "불법 주정차 신고", purpose: "불법 주정차 차량을 안전신문고 등을 통해 신고하실 수 있습니다."},
+      "bulky-waste-disposal": {title: "대형폐기물 처리", purpose: "대형폐기물 배출 방법을 안내하고 온라인 신청을 지원합니다."}
     };
     var meta = ROUTE_METADATA[routeId] || {title: "", purpose: ""};
     if (isDeptJourney && (deptState === "directory" || deptState === "result")) {
