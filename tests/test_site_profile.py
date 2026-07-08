@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from src.site_profiles import SiteProfile, SiteProfileLoader, load_profile
+from src.site_profiles.site_profile import DEFAULT_BOARD_PATTERNS, DEFAULT_CRAWL_RULES
 
 # ------------------------------------------------------------------
 # Fixtures
@@ -111,6 +112,104 @@ class TestSiteProfile:
         patterns = p.board_patterns
         assert "board" in patterns
         assert "notice" in patterns
+
+    # ------------------------------------------------------------------
+    # #955: lock board-pattern and crawl-rule defaults before extraction.
+    # These pin the exact default values and the defensive-copy / merge /
+    # replace semantics so the later constants refactor (#833) cannot change
+    # observable behavior. Source behavior is intentionally NOT changed.
+    # ------------------------------------------------------------------
+    def test_default_board_patterns_exact_order(self):
+        """#955 / no network. Lock the exact ordered default board patterns."""
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+        })
+        assert p.board_patterns == ["board", "bbs", "list", "view", "article", "notice"]
+        assert p.board_patterns == list(DEFAULT_BOARD_PATTERNS)
+
+    def test_board_patterns_returns_defensive_copy(self):
+        """#955 / no network. board_patterns must not leak mutations back to
+        the property or the module-level default."""
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+        })
+        first = p.board_patterns
+        first.append("mutated")
+        second = p.board_patterns
+        assert "mutated" not in second
+        assert second == ["board", "bbs", "list", "view", "article", "notice"]
+        # Module-level default is untouched, too.
+        assert "mutated" not in DEFAULT_BOARD_PATTERNS
+
+    def test_board_patterns_override_replaces_defaults(self):
+        """#955 / no network. A profile-provided board_patterns fully replaces
+        (not merges with) the defaults, preserving the override order."""
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+            "board_patterns": ["custom", "notice"],
+        })
+        assert p.board_patterns == ["custom", "notice"]
+        assert "board" not in p.board_patterns
+
+    def test_default_crawl_rules_exact_values(self):
+        """#955 / no network. Lock the exact default crawl rules dict."""
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+        })
+        assert p.crawl_rules == {
+            "max_depth": 3,
+            "max_pages": 200,
+            "include_documents": True,
+            "respect_robots": True,
+        }
+        assert p.crawl_rules == dict(DEFAULT_CRAWL_RULES)
+
+    def test_crawl_rules_returns_defensive_copy(self):
+        """#955 / no network. crawl_rules must not leak mutations back to the
+        property or the module-level default."""
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+        })
+        first = p.crawl_rules
+        first["max_depth"] = 999
+        first["new_key"] = "mutated"
+        second = p.crawl_rules
+        assert second == {
+            "max_depth": 3,
+            "max_pages": 200,
+            "include_documents": True,
+            "respect_robots": True,
+        }
+        assert "new_key" not in second
+        # Module-level default is untouched, too.
+        assert DEFAULT_CRAWL_RULES.get("new_key") != "mutated"
+        assert DEFAULT_CRAWL_RULES["max_depth"] == 3
+
+    def test_crawl_rules_partial_override_merges_defaults(self):
+        """#955 / no network. A partial crawl_rules override merges with the
+        defaults: given keys are replaced, missing keys keep their defaults."""
+        p = SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://example.com/",
+            "crawl_rules": {"max_depth": 5, "include_documents": False},
+        })
+        assert p.crawl_rules == {
+            "max_depth": 5,
+            "max_pages": 200,
+            "include_documents": False,
+            "respect_robots": True,
+        }
 
     def test_match_url(self):
         """match_url checks allowed_domains."""
