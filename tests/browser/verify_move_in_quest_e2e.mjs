@@ -98,7 +98,7 @@ async function main() {
     { timeout: 12000 },
   );
 
-  await waitForText(page, "#demo-canvas", "전입신고 안내");
+  await waitForText(page, "#demo-canvas", "정부24 전입신고 연결 안내");
   await waitForText(page, "#demo-canvas", "본인인증");
   await waitForText(page, "#demo-canvas", "정부24");
   await waitForText(page, "#demo-canvas", "주소");
@@ -106,8 +106,8 @@ async function main() {
   await waitForText(page, "#demo-canvas", "가족관계");
   await waitForText(page, "#chat-thread", "전입신고 안내");
   await waitForText(page, "#chat-thread", "move_in_report_guidance");
-  await waitForText(page, "#chat-thread", "종합민원 > 전자민원창구 > 정부24 > 전입신고 안내");
-  await waitForText(page, "#chat-thread", "전입신고 안내 / 전입신고 안내 카드");
+  await waitForText(page, "#chat-thread", "북구청 홈 > 종합민원 > 전자민원창구 > 정부24");
+  await waitForText(page, "#chat-thread", "정부24 전입신고 연결 안내");
   await waitForText(page, "#chat-thread", "STOP_FOR_USER_CONFIRMATION");
   await waitForText(page, "#chat-thread", "local_static");
   await waitForText(page, "#chat-thread", "본인인증");
@@ -145,8 +145,8 @@ async function main() {
   assert.strictEqual(evidence.card.questId, "move_in_report_guidance");
   assert.strictEqual(evidence.card.sourceMode, "local_static");
   assert.ok(evidence.card.actionLabels.length >= 2, `expected at least 2 action labels, got ${evidence.card.actionLabels.length}`);
-  assert.ok(evidence.card.actionLabels.includes("전입신고 안내 화면 이동"));
-  assert.ok(evidence.card.actionLabels.includes("전입신고 안내 카드 확인"));
+  assert.ok(evidence.card.actionLabels.includes("정부24 전입신고 연결 안내 화면 이동"));
+  assert.ok(evidence.card.actionLabels.includes("정부24 전입신고 연결 안내 카드 확인"));
   assert.ok(evidence.card.text.includes("STOP_FOR_USER_CONFIRMATION"));
 
   const nonLocal = requests.filter((url) => !isLocalRequest(url));

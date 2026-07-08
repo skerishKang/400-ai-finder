@@ -1395,7 +1395,6 @@
                   '<li><a href="#">민원처리공개</a></li>' +
                   '<li><a href="#">민원상담(국민신문고)</a></li>' +
                   '<li class="bg-lnb__item--active"><a href="#">정부24</a></li>' +
-                  '<li><a href="#">전입신고</a></li>' +
                   '<li><a href="#">주민등록등·초본</a></li>' +
                 '</ul>' +
               '</li>' +
@@ -1411,11 +1410,11 @@
             '<div class="bg-illegal-parking-card" data-action-target="move-in-guidance-card" tabindex="0">' +
               '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🏠</div>' +
               '<div class="bg-illegal-parking-card__body">' +
-                '<h2 class="bg-illegal-parking-card__title">전입신고 안내</h2>' +
-                '<p class="bg-illegal-parking-card__desc">이사 후 새로운 주소로 전입신고(주소 옮기기) 경로를 안내합니다.</p>' +
+                '<h2 class="bg-illegal-parking-card__title">정부24 전입신고 연결 안내</h2>' +
+                '<p class="bg-illegal-parking-card__desc">북구청 종합민원 &gt; 전자민원창구 &gt; 정부24 경로로 전입신고 연결을 안내합니다.</p>' +
                 '<ul class="bg-illegal-parking-card__meta">' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">신고방법</span> 정부24 온라인 또는 주민센터 방문</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">필요정보</span> 본인인증, 주소, 세대주, 가족관계</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">연결경로</span> 종합민원 &gt; 전자민원창구 &gt; 정부24</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">처리방법</span> 정부24 온라인 또는 주민센터 방문</li>' +
                   '<li><span class="bg-illegal-parking-card__meta-label">신고기한</span> 이사한 날부터 14일 이내</li>' +
                 '</ul>' +
               '</div>' +
@@ -1423,17 +1422,16 @@
             '</div>' +
 
             '<div class="bg-move-in-notice-box">' +
-              '<h3>⚠️ 제출 전 확인 사항</h3>' +
+              '<h3>⚠️ 정부24 연결 안내</h3>' +
               '<ul>' +
-                '<li>전입신고는 <strong>정부24</strong> 온라인 또는 거주지 관할 <strong>주민센터</strong> 방문을 통해 직접 신고해야 합니다.</li>' +
-                '<li>신고 시 <strong>본인인증</strong>(공동인증서, 간편인증)이 필요합니다.</li>' +
-                '<li>신고하려는 <strong>주소</strong>(새로운 거주지), <strong>세대주</strong> 정보, <strong>가족관계</strong> 정보를 확인해야 합니다.</li>' +
+                '<li>본 화면은 북구청 메뉴에서 <strong>정부24</strong> 연결 경로를 안내하는 데서 멈춥니다.</li>' +
+                '<li>실제 전입신고, <strong>본인인증</strong>(공동인증서, 간편인증), <strong>주소·세대주·가족관계</strong> 정보 입력, <strong>제출</strong>은 사용자가 정부24 또는 주민센터에서 직접 진행해야 합니다.</li>' +
                 '<li>이사일부터 <strong>14일 이내</strong>에 신고하지 않으면 과태료가 부과될 수 있습니다.</li>' +
-                '<li>본 데모는 안내만 제공하며, 실제 인증·입력·제출은 사용자가 공식 채널에서 직접 진행해야 합니다.</li>' +
+                '<li>정부24 접속, 본인인증, 개인정보 입력 및 제출은 사용자가 공식 채널에서 직접 확인·진행해야 합니다.</li>' +
               '</ul>' +
             '</div>' +
 
-            '<p class="bg-illegal-parking-note">※ 본 데모는 로컬 개념 시연(PoC)입니다. 실제 전입신고, 본인인증, 개인정보 입력, 정부24/주민센터 제출은 사용자가 직접 확인해야 합니다.</p>' +
+            '<p class="bg-illegal-parking-note">※ 본 데모는 로컬 개념 시연(PoC)입니다. 북구청 메뉴에서 정부24 연결 경로를 안내하는 데서 멈춥니다. 실제 전입신고, 본인인증, 개인정보 입력, 제출은 사용자가 정부24 또는 주민센터에서 직접 확인·진행해야 합니다.</p>' +
           '</main>' +
         '</div>' +
         _renderSubFooter() +

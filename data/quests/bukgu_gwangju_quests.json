@@ -256,10 +256,10 @@
       ],
       "required_slots": [],
       "official_path": [
+        "북구청 홈",
         "종합민원",
         "전자민원창구",
-        "정부24",
-        "전입신고 안내"
+        "정부24"
       ],
       "browser_actions": [
         {
@@ -270,12 +270,12 @@
         {
           "action_type": "OPEN_ALLOWLISTED_ROUTE",
           "route_id": "move-in-report-guidance",
-          "label": "전입신고 안내 화면 이동"
+          "label": "정부24 전입신고 연결 안내 화면 이동"
         },
         {
           "action_type": "SHOW_ALLOWLISTED_RESULT",
           "target_id": "move-in-guidance-card",
-          "label": "전입신고 안내 카드 확인"
+          "label": "정부24 전입신고 연결 안내 카드 확인"
         },
         {
           "action_type": "STOP_FOR_USER_CONFIRMATION",
@@ -294,8 +294,8 @@
       "client_action": "move_in_report",
       "answer": "전입신고 경로를 안내해 드립니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다.",
       "result": {
-        "service": "전입신고 안내",
-        "surface": "전입신고 안내 카드",
+        "service": "정부24 전입신고 연결 안내",
+        "surface": "정부24 전입신고 연결 안내",
         "stop": "사용자 확인 후 정부24/주민센터에서 직접 진행"
       },
       "match_terms": [
