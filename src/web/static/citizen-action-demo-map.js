@@ -136,10 +136,10 @@
 
     "move-in-report-guidance": Object.freeze({
       id: "move-in-report-guidance",
-      title: "전입신고 안내",
-      purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다.",
+      title: "정부24 전입신고 연결 안내",
+      purpose: "북구청 종합민원 → 전자민원창구 → 정부24 경로로 전입신고 연결을 안내합니다.",
       navTargets: Object.freeze(["move-in-guidance-card"]),
-      breadcrumbLabel: "전입신고 안내",
+      breadcrumbLabel: "정부24 전입신고 연결 안내",
     }),
 
     "public-health-center-guidance": Object.freeze({

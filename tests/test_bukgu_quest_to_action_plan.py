@@ -113,16 +113,16 @@ def test_move_in_report_quest_converts_to_valid_action_plan():
     assert plan.quest_name == "전입신고 안내"
     assert plan.client_action == "move_in_report"
     assert plan.official_path == (
+        "북구청 홈",
         "종합민원",
         "전자민원창구",
         "정부24",
-        "전입신고 안내",
     )
-    assert plan.result["service"] == "전입신고 안내"
-    assert plan.result["surface"] == "전입신고 안내 카드"
+    assert plan.result["service"] == "정부24 전입신고 연결 안내"
+    assert plan.result["surface"] == "정부24 전입신고 연결 안내"
     labels = [action.label for action in plan.browser_actions]
-    assert "전입신고 안내 화면 이동" in labels
-    assert "전입신고 안내 카드 확인" in labels
+    assert "정부24 전입신고 연결 안내 화면 이동" in labels
+    assert "정부24 전입신고 연결 안내 카드 확인" in labels
 
 
 def test_move_in_report_quest_stops_for_user_confirmation_with_warning():
