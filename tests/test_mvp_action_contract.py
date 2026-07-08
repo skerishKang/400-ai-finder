@@ -45,6 +45,8 @@ class _QuestionRoutedProvider(LLMProvider):
             action = "illegal_parking"
         elif "공동주택" in question or "아파트" in question:
             action = "housing_department"
+        elif "전입신고" in question or "이사" in question:
+            action = "move_in_report"
         else:
             action = "none"
         payload = {
@@ -363,6 +365,29 @@ class TestMvpAskEndpoint:
         labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
         assert "대형폐기물 배출 안내 화면 이동" in labels
         assert "대형폐기물 배출/신청 안내 확인" in labels
+
+    def test_mvp_ask_move_in_report(self, mvp_server):
+        port = mvp_server["port"]
+        conn = HTTPConnection("127.0.0.1", port, timeout=5)
+        body = json.dumps({"question": "이사 왔는데 전입신고는 어떻게 해요?"}).encode()
+        conn.request("POST", "/api/mvp/ask", body=body,
+                     headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        data = json.loads(resp.read())
+        conn.close()
+        assert resp.status == 200
+        assert data["ok"] is True
+        assert data["action"] == "move_in_report"
+        assert data["provider"] == "local_static"
+        assert data["model"] == "quest-engine-v1"
+        assert data["quest"]["quest_id"] == "move_in_report_guidance"
+        assert data["quest"]["source_mode"] == "local_static"
+        assert data["action_plan"]["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
+        assert data["action_plan"]["requires_user_confirmation"] is True
+        assert data["action_plan"]["final_warning"]["requires_user_confirmation"] is True
+        labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
+        assert "전입신고 안내 화면 이동" in labels
+        assert "전입신고 안내 카드 확인" in labels
 
     def test_mvp_ask_none_unrelated(self, mvp_server):
         port = mvp_server["port"]

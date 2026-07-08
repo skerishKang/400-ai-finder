@@ -23,7 +23,9 @@
     "침대 매트리스 버리고 싶어요": true,
     "대형폐기물은 어떻게 버리나요?": true,
     "가구 버리려면 어디서 신청해요?": true,
-    "매트리스 폐기 신청은 어디서 하나요?": true
+    "매트리스 폐기 신청은 어디서 하나요?": true,
+    "이사 왔는데 전입신고는 어떻게 해요?": true,
+    "전입신고 어디서 하나요?": true,
   };
   var SPLIT_FOLLOW_UP_MESSAGE =
     "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
@@ -62,7 +64,7 @@
   function normalizeMvpAction(result) {
     if (!result || result.ok !== true) return "none";
     var a = result.action;
-    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "none") {
+    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "move_in_report" || a === "none") {
       return a;
     }
     return "none";
@@ -539,6 +541,8 @@
           beginMvpSplitThenChoreography(question, "housing_department");
         } else if (action === "bulky_waste") {
           beginMvpSplitThenChoreography(question, "bulky_waste");
+        } else if (action === "move_in_report") {
+          beginMvpSplitThenChoreography(question, "move_in_report");
         } else if (action === "none") {
           // Keep the entry chat; do not move the clone or start a choreography.
         }

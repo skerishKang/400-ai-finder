@@ -46,6 +46,7 @@ def test_default_registry_loads_three_phase1_quests_only():
         "housing_department_lookup",
         "illegal_parking_report_guidance",
         "bulky_waste_disposal_guidance",
+        "move_in_report_guidance",
     ]
     quest = registry.get("housing_department_lookup")
     assert quest is not None
@@ -113,6 +114,19 @@ def test_unknown_question_is_unsupported_or_needs_confirmation():
     assert result.status == "unsupported"
     assert result.quest is None
     assert result.reason == "unsupported_or_needs_confirmation"
+
+
+@pytest.mark.parametrize("question", [
+    "이사 왔는데 전입신고는 어떻게 해요?",
+    "전입신고 어디서 하나요?",
+    "주소 옮기려면 어디로 가야 해요?",
+    "전입신고 하려면 북구청에서 뭘 해야 하나요?",
+])
+def test_move_in_questions_match_move_in_report_guidance(question):
+    result = match_quest(question, load_default_bukgu_registry())
+    assert result.status == "matched"
+    assert result.quest_id == "move_in_report_guidance"
+    assert result.confidence >= 0.72
 
 
 def test_browser_actions_use_allowed_action_types_only():
