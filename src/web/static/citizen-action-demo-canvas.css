@@ -1040,44 +1040,44 @@
 }
 
 /* #868 current Buk-gu home top viewport */
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) {
   --bg-home-width: 914px;
   background: #fff;
   color: #171717;
   min-width: 0;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-gov-strip {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-gov-strip {
   height: 31px;
   background: #f5f5f5;
   border-bottom: 1px solid #e3e3e3;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-gov-strip__inner,
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-utility__inner,
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-header__inner,
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-gov-strip__inner,
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-utility__inner,
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__inner,
 .bg-page--home .bg-home-search__inner,
 .bg-page--home .bg-home-main {
   width: min(var(--bg-home-width), calc(100% - 32px));
   margin: 0 auto;
   box-sizing: border-box;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-gov-strip__inner {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-gov-strip__inner {
   height: 100%;
   display: flex;
   align-items: center;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-gov-strip__notice {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-gov-strip__notice {
   width: 200px;
   height: 20px;
   display: block;
   object-fit: contain;
   object-position: left center;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-utility {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-utility {
   height: 24px;
   border-bottom: 1px solid #ececec;
   background: #fff;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-utility__inner {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-utility__inner {
   height: 100%;
   display: flex;
   align-items: center;
@@ -1086,18 +1086,18 @@
   font-size: 11px;
   color: #5f5f5f;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-utility__weather {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-utility__weather {
   display: flex;
   align-items: center;
   gap: 10px;
   white-space: nowrap;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-utility__weather strong {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-utility__weather strong {
   color: #152c64;
   font-size: 14px;
   font-weight: 700;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-utility__weather b {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-utility__weather b {
   display: inline-block;
   margin-left: 2px;
   padding: 1px 6px;
@@ -1107,12 +1107,12 @@
   font-size: 9px;
   font-weight: 600;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-utility__menus {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-utility__menus {
   display: flex;
   height: 100%;
   border-left: 1px solid #ededed;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-utility__menus a {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-utility__menus a {
   min-width: 84px;
   display: inline-flex;
   align-items: center;
@@ -1121,30 +1121,30 @@
   text-decoration: none;
   border-right: 1px solid #ededed;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-utility__menus span { margin-left: 3px; font-size: 9px; }
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-utility__menus span { margin-left: 3px; font-size: 9px; }
 
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-header {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header {
   height: 68px;
   background: #fff;
   border: 0;
   border-bottom: 1px solid #e7e7e7;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-header__inner {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__inner {
   height: 100%;
   display: grid;
   grid-template-columns: 188px minmax(0, 1fr) 108px;
   align-items: center;
   gap: 18px;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-header__identity { display: block; line-height: 0; }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-header__identity img {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__identity { display: block; line-height: 0; }
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__identity img {
   display: block;
   width: 170px;
   height: 42px;
   object-fit: contain;
   object-position: left center;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-gnb {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-gnb {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1152,7 +1152,7 @@
   background: transparent;
   border: 0;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-gnb__link {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-gnb__link {
   color: #101010;
   font-size: 15px;
   font-weight: 700;
@@ -1160,13 +1160,13 @@
   text-decoration: none;
   white-space: nowrap;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-gnb__link--active { color: #101010; }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-header__actions {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-gnb__link--active { color: #101010; }
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__actions {
   display: flex;
   justify-content: flex-end;
   gap: 14px;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-header__icon {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__icon {
   width: 38px;
   border: 0;
   padding: 0;
@@ -1178,7 +1178,7 @@
   font-size: 8px;
   cursor: default;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-header__icon svg { width: 20px; height: 20px; }
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__icon svg { width: 20px; height: 20px; }
 
 .bg-page--home .bg-home-search {
   min-height: 135px;
@@ -1642,22 +1642,22 @@
 .bg-page--home .bg-home-partners__items .bg-home-partners__pis { color: #345b91; font-size: 20px; }
 .bg-page--home .bg-home-partners__pis small { color: #777; font-size: 9px; font-weight: 500; }
 
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-footer {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-footer {
   width: 100%;
   color: #f7f9fb;
   background: #33445c;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-footer__inner {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-footer__inner {
   width: min(var(--bg-home-width), calc(100% - 32px));
   margin: 0 auto;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-footer__nav {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-footer__nav {
   min-height: 62px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   border-right: 1px solid rgba(255, 255, 255, 0.16);
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-footer__nav a {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-footer__nav a {
   min-height: 62px;
   display: flex;
   align-items: center;
@@ -1669,8 +1669,8 @@
   font-size: 12px;
   font-weight: 700;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-footer__nav span { color: #bdc8d6; }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-footer__legal {
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-footer__nav span { color: #bdc8d6; }
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-footer__legal {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -1678,13 +1678,13 @@
   color: #d6dee6;
   font-size: 10px;
 }
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-footer__legal strong { color: #fff; font-size: 12px; }
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-footer__legal strong { color: #fff; font-size: 12px; }
 
 @media (max-width: 940px) {
   .bg-page--home .bg-home-lower-cards,
   .bg-page--home .bg-home-field-info__links,
   .bg-page--home .bg-home-partners,
-  :is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info) .bg-home-footer__inner { min-width: var(--bg-home-width); }
+  :is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-footer__inner { min-width: var(--bg-home-width); }
 }
 
 /* ---------------------------------------------------------------------------

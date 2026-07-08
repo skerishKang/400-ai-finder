@@ -114,6 +114,32 @@ async function getRoute(page) {
   );
 }
 
+async function getSplitSurfaceState(page) {
+  return page.evaluate(() => {
+    function surfaceState(selector) {
+      const el = document.querySelector(selector);
+      if (!el) return { exists: false };
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      return {
+        exists: true,
+        width: rect.width,
+        height: rect.height,
+        visibility: style.visibility,
+        opacity: style.opacity,
+        display: style.display,
+      };
+    }
+    const canvas = document.getElementById("demo-canvas");
+    return {
+      canvas: surfaceState("#demo-canvas"),
+      chat: surfaceState("#chat-shell"),
+      canvasAriaHidden: canvas ? canvas.getAttribute("aria-hidden") : "NO-ELEMENT",
+      canvasInert: canvas ? canvas.hasAttribute("inert") : "NO-ELEMENT",
+    };
+  });
+}
+
 async function hasHighlight(page, targetId) {
   return page.evaluate(
     (tid) =>
@@ -200,6 +226,11 @@ async function main() {
   });
   record("A6. composer input focusable", inputTypeable, "");
 
+  const entryGreeting = await pageA.evaluate(() =>
+    document.body.textContent.includes("북구청 민원 안내 AI입니다")
+  );
+  record("A7. chat-first greeting shown", entryGreeting, "");
+
   // ═════════════════════════════════════════════════════════════════
   // B. Full first-use flow
   // ═════════════════════════════════════════════════════════════════
@@ -215,6 +246,39 @@ async function main() {
     return s === "split" ? s : null;
   }, 2000);
   record("B1. state → split", splitState === "split", `got "${splitState}"`);
+
+  const splitSurfaces = await getSplitSurfaceState(pageA);
+  record(
+    "B1a. split canvas aria visible",
+    splitSurfaces.canvasAriaHidden === "false" && splitSurfaces.canvasInert === false,
+    `aria-hidden=${splitSurfaces.canvasAriaHidden}, inert=${splitSurfaces.canvasInert}`
+  );
+  const canvasVisible = (
+    splitSurfaces.canvas.exists &&
+    splitSurfaces.canvas.width > 320 &&
+    splitSurfaces.canvas.height > 480 &&
+    splitSurfaces.canvas.visibility !== "hidden" &&
+    Number(splitSurfaces.canvas.opacity) > 0.9 &&
+    splitSurfaces.canvas.display !== "none"
+  );
+  record(
+    "B1b. split left clone visible",
+    canvasVisible,
+    `canvas=${Math.round(splitSurfaces.canvas.width || 0)}x${Math.round(splitSurfaces.canvas.height || 0)}, visibility=${splitSurfaces.canvas.visibility}, opacity=${splitSurfaces.canvas.opacity}`
+  );
+  const chatVisible = (
+    splitSurfaces.chat.exists &&
+    splitSurfaces.chat.width >= 360 &&
+    splitSurfaces.chat.height > 480 &&
+    splitSurfaces.chat.visibility !== "hidden" &&
+    Number(splitSurfaces.chat.opacity) > 0.9 &&
+    splitSurfaces.chat.display !== "none"
+  );
+  record(
+    "B1c. split right chat visible",
+    chatVisible,
+    `chat=${Math.round(splitSurfaces.chat.width || 0)}x${Math.round(splitSurfaces.chat.height || 0)}, visibility=${splitSurfaces.chat.visibility}, opacity=${splitSurfaces.chat.opacity}`
+  );
 
   const runningChoreo = await getChoreo(pageA);
   record("B2. choreography running", runningChoreo === "running", `state="${runningChoreo}"`);
@@ -302,6 +366,90 @@ async function main() {
   // B9: final highlight preserved after completion
   const hlAfterDone = await hasHighlight(pageA, "complaint-category-illegal-parking");
   record("B9. final highlight preserved in done", hlAfterDone === true, `${hlAfterDone}`);
+
+  // ── B9a: final-route high-fidelity civic shell regression guard ──
+  // Catches the PR #964 regression where sub-routes (complaint-category etc.)
+  // used the dense header markup but missed the stylesheet scope, collapsing
+  // header/nav into raw stacked text. The final/highlight route MUST keep a
+  // polished civic header: grid layout, white header, sane GNB + icon sizing.
+  const headerContract = await pageA.evaluate(() => {
+    const page = document.querySelector(".bg-page--dense");
+    const header = document.querySelector(".bg-page--dense .bg-header");
+    const inner = document.querySelector(".bg-page--dense .bg-home-header__inner");
+    const gnb = document.querySelector(".bg-page--dense .bg-home-gnb");
+    const icons = [...document.querySelectorAll(".bg-page--dense .bg-home-header__icon")];
+    const weather = document.querySelector(".bg-page--dense .bg-home-utility__weather strong");
+    const out = { hasDense: !!page, checks: {} };
+    if (header) {
+      const hs = getComputedStyle(header);
+      out.checks.headerBg = hs.backgroundColor;
+      out.checks.headerHeight = hs.height;
+    }
+    if (inner) {
+      const is = getComputedStyle(inner);
+      out.checks.innerDisplay = is.display;
+      out.checks.innerHeight = is.height;
+    }
+    if (gnb) {
+      const gs = getComputedStyle(gnb);
+      const link = gnb.querySelector(".bg-home-gnb__link");
+      out.checks.gnbDisplay = gs.display;
+      out.checks.gnbLinkFont = link ? getComputedStyle(link).fontSize : null;
+      out.checks.gnbLinkCount = gnb.querySelectorAll(".bg-home-gnb__link").length;
+    }
+    out.checks.iconCount = icons.length;
+    out.checks.iconSizes = icons.map((el) => {
+      const svg = el.querySelector("svg");
+      const scs = svg ? getComputedStyle(svg) : null;
+      return { svgW: scs ? scs.width : null, svgH: scs ? scs.height : null, elW: getComputedStyle(el).width };
+    });
+    out.checks.weatherFont = weather ? getComputedStyle(weather).fontSize : null;
+    return out;
+  });
+
+  const hc = headerContract;
+  const hk = hc.checks || {};
+  record(
+    "B9a-1. dense page present",
+    hc.hasDense === true,
+    `hasDense=${hc.hasDense}`
+  );
+  record(
+    "B9a-2. header is white + sized (polished, not collapsed)",
+    hk.headerBg === "rgb(255, 255, 255)" && parseFloat(hk.headerHeight) >= 48 && parseFloat(hk.headerHeight) <= 90,
+    `bg=${hk.headerBg}, height=${hk.headerHeight}`
+  );
+  record(
+    "B9a-3. header inner uses grid layout (not raw stacked text)",
+    hk.innerDisplay === "grid" && parseFloat(hk.innerHeight) >= 48 && parseFloat(hk.innerHeight) <= 90,
+    `display=${hk.innerDisplay}, height=${hk.innerHeight}`
+  );
+  record(
+    "B9a-4. GNB is a flex/inline row with sane font + 6 links",
+    (hk.gnbDisplay === "flex" || hk.gnbDisplay === "block") &&
+      hk.gnbLinkCount === 6 &&
+      parseFloat(hk.gnbLinkFont) >= 12 && parseFloat(hk.gnbLinkFont) <= 20,
+    `display=${hk.gnbDisplay}, links=${hk.gnbLinkCount}, font=${hk.gnbLinkFont}`
+  );
+  const iconOk =
+    hk.iconCount === 2 &&
+    hk.iconSizes.every(
+      (s) =>
+        s.svgW &&
+        s.svgH &&
+        parseFloat(s.svgW) >= 12 && parseFloat(s.svgW) <= 32 &&
+        parseFloat(s.svgH) >= 12 && parseFloat(s.svgH) <= 32
+    );
+  record(
+    "B9a-5. header icons sized normally (not oversized)",
+    iconOk,
+    `count=${hc.iconCount}, sizes=${JSON.stringify(hk.iconSizes)}`
+  );
+  record(
+    "B9a-6. weather label sized normally",
+    hk.weatherFont && parseFloat(hk.weatherFont) >= 12 && parseFloat(hk.weatherFont) <= 20,
+    `26°C font=${hk.weatherFont}`
+  );
 
   // Count choreography messages in thread
   const choreoMsgCount = chatAfterDone.filter(
@@ -410,7 +558,7 @@ async function main() {
   record("D3. canvas inert", dInert === true, "");
 
   const dUnsupMsg = await pageD.evaluate(() =>
-    document.body.textContent.includes("지원 범위의 질문으로 다시 입력해 주세요")
+    document.body.textContent.includes("예시 질문으로 다시 입력해 주세요")
   );
   record("D4. unsupported guidance shown", dUnsupMsg, "");
 

@@ -31,10 +31,19 @@ def test_first_use_shell_defines_entry_transition_split_and_reset_contract():
     assert "setCanvasAvailability(true)" in JS
 
 
+def test_first_use_shell_rerenders_entry_conversation_after_canvas_boot():
+    """The canvas script loads before the first-use shell and may touch the
+    chat thread; the shell must re-render the chat-first greeting on fresh
+    entry loads."""
+    fresh_entry_init = JS[JS.index("if (isLegacyJourneyLoad())"):]
+    assert "setState(STATE_ENTRY)" in fresh_entry_init
+    assert "renderEntryConversation()" in fresh_entry_init
+
+
 def test_first_use_shell_is_local_only_and_fail_closed():
     assert '"불법 주정차 신고는 어디서 하나요?": true' in JS
     assert "isSupportedQuestion(question)" in JS
-    assert "지원 범위의 질문으로 다시 입력해 주세요." in JS
+    assert "예시 질문으로 다시 입력해 주세요." in JS
     assert "fetch(" not in JS
     assert "localStorage" not in JS
     assert "sessionStorage" not in JS
@@ -45,7 +54,7 @@ def test_first_use_shell_split_follow_up_is_bounded_and_keeps_transition_guard()
     assert "currentState === STATE_TRANSITIONING || !chatInput" in JS
     assert "currentState === STATE_SPLIT" in JS
     assert "SPLIT_FOLLOW_UP_MESSAGE" in JS
-    assert "메뉴 이동과 세부 안내는 다음 단계에서 순서대로 제공됩니다" in JS
+    assert "메뉴 이동과 세부 안내를 이어서 보여드리겠습니다" in JS
     assert "beginSupportedTransition(question)" in JS
 
 
@@ -258,20 +267,28 @@ def test_shell_mvp_submission_shows_server_answer_first():
 
 def test_shell_normalizes_mvp_action_and_only_runs_approved_actions():
     assert "function normalizeMvpAction(" in JS
+    assert "function resolveMvpActionForQuestion(" in JS
+    assert 'DEFAULT_SUPPORTED_ACTION = "illegal_parking"' in JS
     assert '"illegal_parking"' in JS
     assert '"housing_department"' in JS
     # Only the two approved actions trigger a split+choreography.
     assert "beginMvpSplitThenChoreography(question, \"illegal_parking\")" in JS
     assert "beginMvpSplitThenChoreography(question, \"housing_department\")" in JS
-    # 'none' / failure must NOT start a choreography (no clone move).
+    # Unsupported 'none' / failure must NOT start a choreography (no clone move).
     assert "CitizenFirstChoreography.start(action)" in JS
 
 
-def test_shell_mvp_none_keeps_entry_state():
-    """For action 'none' the shell must not transition to split."""
-    # The MVP branch returns without calling beginMvpSplitThenChoreography
-    # for 'none'; verify the 'none' branch is handled without a choreography.
+def test_shell_mvp_none_keeps_entry_state_for_unsupported_question():
+    """For an unsupported question, action 'none' must not transition to split."""
     assert "action === \"none\"" in JS or 'action === "none"' in JS
+
+
+def test_shell_mvp_supported_question_none_falls_back_to_existing_clone_action():
+    """A usable answer to the first supported question must not leave the
+    MVP shell in chat-only mode just because the action field is none."""
+    assert "if (action !== \"none\") return action" in JS
+    assert "if (isSupportedQuestion(question)) return DEFAULT_SUPPORTED_ACTION" in JS
+    assert "fall back to the existing deterministic local journey" in JS
 
 
 def test_shell_mvp_request_token_invalidates_late_responses():

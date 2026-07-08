@@ -85,6 +85,20 @@
         }),
       ]),
     }),
+    "공동주택 관련 문의는 어느 부서에 해야 하나요?": Object.freeze({
+      id: "dept-housing-jdept01",
+      description: "공동주택과 담당 부서·전화번호 안내 (J-DEPT-01 재사용)",
+      steps: Object.freeze([
+        Object.freeze({
+          message: "공동주택 담당 부서 안내 경로를 안내해 드리겠습니다.",
+          journeyState: "J-DEPT-01:directory",
+          delayMs: 1500,
+        }),
+        Object.freeze({
+          message: "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.",
+        }),
+      ]),
+    }),
   });
 
   // ═══════════════════════════════════════════════════════════════════

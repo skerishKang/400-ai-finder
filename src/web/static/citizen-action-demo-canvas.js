@@ -1251,46 +1251,8 @@
   // -----------------------------------------------------------------------
   function _renderCivilService(route) {
     return (
-      '<div class="bg-page bg-page--full">' +
-        /* Utility bar */
-        '<div class="bg-util-bar">' +
-          '<div class="bg-util-bar__left">' +
-            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
-            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 초미세먼지 좋음</span>' +
-          '</div>' +
-          '<div class="bg-util-bar__right">' +
-            '<a href="#" class="bg-hlink">주요사이트 ▼</a>' +
-            '<a href="#" class="bg-hlink">SNS ▼</a>' +
-            '<a href="#" class="bg-hlink">KOR ▼</a>' +
-          '</div>' +
-        '</div>' +
-
-        /* Header */
-        '<header class="bg-header">' +
-          '<div class="bg-header__inner">' +
-            '<a href="#" class="bg-logo">' +
-              '<img src="/static/images/bukgu-crops/home-logo-identity.png" alt="광주광역시 북구 (전남광주통합특별시북구)" style="height:42px; width:auto; display:block;" />' +
-            '</a>' +
-          '</div>' +
-        '</header>' +
-
-        /* GNB */
-        '<nav class="bg-gnb" aria-label="주메뉴">' +
-          '<div class="bg-gnb__inner">' +
-            '<ul class="bg-gnb__list">' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
-            '</ul>' +
-            '<div class="bg-gnb__tools">' +
-              '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
-              '<button class="bg-gnb__icon-btn" type="button" aria-label="전체메뉴">☰</button>' +
-            '</div>' +
-          '</div>' +
-        '</nav>' +
+      '<div class="bg-page bg-page--full bg-page--dense">' +
+        _renderDenseHeader('civil-service') +
 
         '<main class="bg-content bg-content--sub" id="bg-content-main">' +
           _renderSubPageHeader(route.title, route.purpose) +
@@ -1308,46 +1270,8 @@
   // -----------------------------------------------------------------------
   function _renderCheongwon24(route) {
     return (
-      '<div class="bg-page bg-page--full">' +
-        /* Utility bar */
-        '<div class="bg-util-bar">' +
-          '<div class="bg-util-bar__left">' +
-            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
-            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 초미세먼지 좋음</span>' +
-          '</div>' +
-          '<div class="bg-util-bar__right">' +
-            '<a href="#" class="bg-hlink">주요사이트 ▼</a>' +
-            '<a href="#" class="bg-hlink">SNS ▼</a>' +
-            '<a href="#" class="bg-hlink">KOR ▼</a>' +
-          '</div>' +
-        '</div>' +
-
-        /* Header */
-        '<header class="bg-header">' +
-          '<div class="bg-header__inner">' +
-            '<a href="#" class="bg-logo">' +
-              '<img src="/static/images/bukgu-crops/home-logo-identity.png" alt="광주광역시 북구 (전남광주통합특별시북구)" style="height:42px; width:auto; display:block;" />' +
-            '</a>' +
-          '</div>' +
-        '</header>' +
-
-        /* GNB */
-        '<nav class="bg-gnb" aria-label="주메뉴">' +
-          '<div class="bg-gnb__inner">' +
-            '<ul class="bg-gnb__list">' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
-            '</ul>' +
-            '<div class="bg-gnb__tools">' +
-              '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
-              '<button class="bg-gnb__icon-btn" type="button" aria-label="전체메뉴">☰</button>' +
-            '</div>' +
-          '</div>' +
-        '</nav>' +
+      '<div class="bg-page bg-page--full bg-page--dense">' +
+        _renderDenseHeader('civil-service') +
 
         '<div class="bg-layout--lnb">' +
           /* LNB sidebar */
@@ -1511,46 +1435,8 @@
   // -----------------------------------------------------------------------
   function _renderComplaintIntake(route) {
     return (
-      '<div class="bg-page bg-page--full">' +
-        /* Utility bar */
-        '<div class="bg-util-bar">' +
-          '<div class="bg-util-bar__left">' +
-            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 미세먼지 좋음</span>' +
-            '<span class="bg-dust-pill"><span class="bg-dust-pill__dot"></span> 초미세먼지 좋음</span>' +
-          '</div>' +
-          '<div class="bg-util-bar__right">' +
-            '<a href="#" class="bg-hlink">주요사이트 ▼</a>' +
-            '<a href="#" class="bg-hlink">SNS ▼</a>' +
-            '<a href="#" class="bg-hlink">KOR ▼</a>' +
-          '</div>' +
-        '</div>' +
-
-        /* Header */
-        '<header class="bg-header">' +
-          '<div class="bg-header__inner">' +
-            '<a href="#" class="bg-logo">' +
-              '<img src="/static/images/bukgu-crops/home-logo-identity.png" alt="광주광역시 북구 (전남광주통합특별시북구)" style="height:42px; width:auto; display:block;" />' +
-            '</a>' +
-          '</div>' +
-        '</header>' +
-
-        /* GNB */
-        '<nav class="bg-gnb" aria-label="주메뉴">' +
-          '<div class="bg-gnb__inner">' +
-            '<ul class="bg-gnb__list">' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link bg-gnb__link--active" data-action-target="nav-civil-service">종합민원</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">소통광장</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">더불어복지</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">분야별정보</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">정보공개</a></li>' +
-              '<li class="bg-gnb__item"><a href="#" class="bg-gnb__link">북구소개</a></li>' +
-            '</ul>' +
-            '<div class="bg-gnb__tools">' +
-              '<button class="bg-gnb__icon-btn" type="button" aria-label="검색">🔍</button>' +
-              '<button class="bg-gnb__icon-btn" type="button" aria-label="전체메뉴">☰</button>' +
-            '</div>' +
-          '</div>' +
-        '</nav>' +
+      '<div class="bg-page bg-page--full bg-page--dense">' +
+        _renderDenseHeader('civil-service') +
 
         '<div class="bg-layout--lnb">' +
           /* LNB */
@@ -1678,13 +1564,8 @@
       : "선택된 유형 없음";
 
     return (
-      '<div class="bg-page">' +
-        _renderSubHeader("종합민원") +
-        _renderBreadcrumb([
-          {label:"홈"},
-          {label:"종합민원"},
-          {label:"민원 신청"}
-        ]) +
+      '<div class="bg-page bg-page--full bg-page--dense">' +
+        _renderDenseHeader('civil-service') +
         '<div class="bg-layout--lnb">' +
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
             '<div class="bg-lnb__header">종합민원</div>' +
@@ -1745,10 +1626,9 @@
   // -----------------------------------------------------------------------
   function _renderHandoffStop(route) {
     return (
-      '<div class="bg-page">' +
-        _renderNavBar() +
-        _renderBreadcrumb([{label:"홈"},{label:"데모 종료"}]) +
-        '<main class="bg-content bg-content--sub">' +
+      '<div class="bg-page bg-page--full bg-page--dense">' +
+        _renderDenseHeader('civil-service') +
+        '<main class="bg-content bg-content--sub" id="bg-content-main">' +
           _renderSubPageHeader(route.title, route.purpose) +
           _renderPocBanner() +
           '<div class="bg-handoff-box">' +
@@ -1764,6 +1644,7 @@
             '이 페이지는 개념 시연용으로, 실제 행정 서비스에 연결되지 않습니다.' +
           '</div>' +
         '</main>' +
+        _renderSubFooter() +
       '</div>'
     );
   }
@@ -1803,14 +1684,71 @@
     return labels[targetId] || targetId;
   }
 
+  function _renderDenseHeader(activeMenu) {
+    var assets = "/static/images/bukgu-current";
+    var searchIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.4 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var menuIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    return (
+      '<div class="bg-home-gov-strip">' +
+        '<div class="bg-home-gov-strip__inner">' +
+          '<img src="' + assets + '/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+        '</div>' +
+      '</div>' +
+      '<div class="bg-home-utility" aria-label="사이트 도구">' +
+        '<div class="bg-home-utility__inner">' +
+          '<div class="bg-home-utility__weather">' +
+            '<strong>26°C</strong>' +
+            '<span>미세먼지 <b>좋음</b></span>' +
+            '<span>초미세먼지 <b>좋음</b></span>' +
+          '</div>' +
+          '<div class="bg-home-utility__menus">' +
+            '<a href="#">주요사이트 <span aria-hidden="true">▾</span></a>' +
+            '<a href="#">SNS <span aria-hidden="true">▾</span></a>' +
+            '<a href="#">KOR <span aria-hidden="true">▾</span></a>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<header class="bg-header">' +
+        '<div class="bg-home-header">' +
+        '<div class="bg-home-header__inner">' +
+          '<a href="#" class="bg-home-header__identity" aria-label="전남광주통합특별시북구 홈">' +
+            '<img src="' + assets + '/home-identity.png" alt="전남광주통합특별시북구" />' +
+          '</a>' +
+          '<nav class="bg-gnb" aria-label="주메뉴">' +
+            '<div class="bg-home-gnb">' +
+            '<a href="#" class="bg-home-gnb__link' + (activeMenu === 'civil-service' ? ' bg-home-gnb__link--active' : '') + '" data-action-target="nav-civil-service">종합민원</a>' +
+            '<a href="#" class="bg-home-gnb__link">소통광장</a>' +
+            '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
+            '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
+            '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
+            '<a href="#" class="bg-home-gnb__link' + (activeMenu === 'intro' ? ' bg-home-gnb__link--active' : '') + '">북구소개</a>' +
+          '</div>' +
+          '</nav>' +
+          '<div class="bg-home-header__actions">' +
+            '<button type="button" class="bg-home-header__icon" aria-label="통합검색">' + searchIcon + '<span>통합검색</span></button>' +
+            '<button type="button" class="bg-home-header__icon" aria-label="전체메뉴">' + menuIcon + '<span>전체메뉴</span></button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '</header>'
+    );
+  }
+
   function _renderSubFooter() {
     return (
-      '<footer class="bg-footer--sub">' +
-        '<p style="margin-bottom:4px;">61187 전남광주통합특별시 북구 우치로 77 (용봉동) | 대표전화: 062-410-8000</p>' +
-        '<p style="font-size:0.6875rem;color:#7f8c9a;">' +
-          'Copyright © Jeonnam-Gwangju Special Metropolitan City BUKGU. all rights reserved.' +
-        '</p>' +
-      '</footer>'
+      '<footer class="bg-home-footer" aria-label="사이트 하단">' +
+        '<div class="bg-home-footer__inner">' +
+          '<nav class="bg-home-footer__nav" aria-label="하단 메뉴">' +
+            '<a href="#">누리집이용안내 <span aria-hidden="true">⌃</span></a>' +
+            '<a href="#">개인정보처리방침 <span aria-hidden="true">⌃</span></a>' +
+            '<a href="#">저작권 보호정책 <span aria-hidden="true">⌃</span></a>' +
+            '<a href="#">이메일무단수집거부 <span aria-hidden="true">⌃</span></a>' +
+            '<a href="#">영상정보처리기기 운영·관리방침 <span aria-hidden="true">⌃</span></a>' +
+          '</nav>' +
+          '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
+        '</div>' +
+      '</footer>' +
+      '<p class="bg-home-local-note">로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</p>'
     );
   }
 
