@@ -367,6 +367,90 @@ async function main() {
   const hlAfterDone = await hasHighlight(pageA, "complaint-category-illegal-parking");
   record("B9. final highlight preserved in done", hlAfterDone === true, `${hlAfterDone}`);
 
+  // ── B9a: final-route high-fidelity civic shell regression guard ──
+  // Catches the PR #964 regression where sub-routes (complaint-category etc.)
+  // used the dense header markup but missed the stylesheet scope, collapsing
+  // header/nav into raw stacked text. The final/highlight route MUST keep a
+  // polished civic header: grid layout, white header, sane GNB + icon sizing.
+  const headerContract = await pageA.evaluate(() => {
+    const page = document.querySelector(".bg-page--dense");
+    const header = document.querySelector(".bg-page--dense .bg-header");
+    const inner = document.querySelector(".bg-page--dense .bg-home-header__inner");
+    const gnb = document.querySelector(".bg-page--dense .bg-home-gnb");
+    const icons = [...document.querySelectorAll(".bg-page--dense .bg-home-header__icon")];
+    const weather = document.querySelector(".bg-page--dense .bg-home-utility__weather strong");
+    const out = { hasDense: !!page, checks: {} };
+    if (header) {
+      const hs = getComputedStyle(header);
+      out.checks.headerBg = hs.backgroundColor;
+      out.checks.headerHeight = hs.height;
+    }
+    if (inner) {
+      const is = getComputedStyle(inner);
+      out.checks.innerDisplay = is.display;
+      out.checks.innerHeight = is.height;
+    }
+    if (gnb) {
+      const gs = getComputedStyle(gnb);
+      const link = gnb.querySelector(".bg-home-gnb__link");
+      out.checks.gnbDisplay = gs.display;
+      out.checks.gnbLinkFont = link ? getComputedStyle(link).fontSize : null;
+      out.checks.gnbLinkCount = gnb.querySelectorAll(".bg-home-gnb__link").length;
+    }
+    out.checks.iconCount = icons.length;
+    out.checks.iconSizes = icons.map((el) => {
+      const svg = el.querySelector("svg");
+      const scs = svg ? getComputedStyle(svg) : null;
+      return { svgW: scs ? scs.width : null, svgH: scs ? scs.height : null, elW: getComputedStyle(el).width };
+    });
+    out.checks.weatherFont = weather ? getComputedStyle(weather).fontSize : null;
+    return out;
+  });
+
+  const hc = headerContract;
+  const hk = hc.checks || {};
+  record(
+    "B9a-1. dense page present",
+    hc.hasDense === true,
+    `hasDense=${hc.hasDense}`
+  );
+  record(
+    "B9a-2. header is white + sized (polished, not collapsed)",
+    hk.headerBg === "rgb(255, 255, 255)" && parseFloat(hk.headerHeight) >= 48 && parseFloat(hk.headerHeight) <= 90,
+    `bg=${hk.headerBg}, height=${hk.headerHeight}`
+  );
+  record(
+    "B9a-3. header inner uses grid layout (not raw stacked text)",
+    hk.innerDisplay === "grid" && parseFloat(hk.innerHeight) >= 48 && parseFloat(hk.innerHeight) <= 90,
+    `display=${hk.innerDisplay}, height=${hk.innerHeight}`
+  );
+  record(
+    "B9a-4. GNB is a flex/inline row with sane font + 6 links",
+    (hk.gnbDisplay === "flex" || hk.gnbDisplay === "block") &&
+      hk.gnbLinkCount === 6 &&
+      parseFloat(hk.gnbLinkFont) >= 12 && parseFloat(hk.gnbLinkFont) <= 20,
+    `display=${hk.gnbDisplay}, links=${hk.gnbLinkCount}, font=${hk.gnbLinkFont}`
+  );
+  const iconOk =
+    hk.iconCount === 2 &&
+    hk.iconSizes.every(
+      (s) =>
+        s.svgW &&
+        s.svgH &&
+        parseFloat(s.svgW) >= 12 && parseFloat(s.svgW) <= 32 &&
+        parseFloat(s.svgH) >= 12 && parseFloat(s.svgH) <= 32
+    );
+  record(
+    "B9a-5. header icons sized normally (not oversized)",
+    iconOk,
+    `count=${hc.iconCount}, sizes=${JSON.stringify(hk.iconSizes)}`
+  );
+  record(
+    "B9a-6. weather label sized normally",
+    hk.weatherFont && parseFloat(hk.weatherFont) >= 12 && parseFloat(hk.weatherFont) <= 20,
+    `26°C font=${hk.weatherFont}`
+  );
+
   // Count choreography messages in thread
   const choreoMsgCount = chatAfterDone.filter(
     (t) =>

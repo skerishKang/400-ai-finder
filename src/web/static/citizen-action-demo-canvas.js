@@ -1251,7 +1251,7 @@
   // -----------------------------------------------------------------------
   function _renderCivilService(route) {
     return (
-      '<div class="bg-page bg-page--full">' +
+      '<div class="bg-page bg-page--full bg-page--dense">' +
         _renderDenseHeader('civil-service') +
 
         '<main class="bg-content bg-content--sub" id="bg-content-main">' +
@@ -1270,7 +1270,7 @@
   // -----------------------------------------------------------------------
   function _renderCheongwon24(route) {
     return (
-      '<div class="bg-page bg-page--full">' +
+      '<div class="bg-page bg-page--full bg-page--dense">' +
         _renderDenseHeader('civil-service') +
 
         '<div class="bg-layout--lnb">' +
@@ -1435,7 +1435,7 @@
   // -----------------------------------------------------------------------
   function _renderComplaintIntake(route) {
     return (
-      '<div class="bg-page bg-page--full">' +
+      '<div class="bg-page bg-page--full bg-page--dense">' +
         _renderDenseHeader('civil-service') +
 
         '<div class="bg-layout--lnb">' +
@@ -1564,7 +1564,7 @@
       : "선택된 유형 없음";
 
     return (
-      '<div class="bg-page bg-page--full">' +
+      '<div class="bg-page bg-page--full bg-page--dense">' +
         _renderDenseHeader('civil-service') +
         '<div class="bg-layout--lnb">' +
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
@@ -1626,7 +1626,7 @@
   // -----------------------------------------------------------------------
   function _renderHandoffStop(route) {
     return (
-      '<div class="bg-page bg-page--full">' +
+      '<div class="bg-page bg-page--full bg-page--dense">' +
         _renderDenseHeader('civil-service') +
         '<main class="bg-content bg-content--sub" id="bg-content-main">' +
           _renderSubPageHeader(route.title, route.purpose) +
