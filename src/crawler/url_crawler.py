@@ -194,8 +194,26 @@ class URLCrawler:
         return result
 
     # ------------------------------------------------------------------
-    # Original analyze path (unchanged)
+    # Original analyze path (routed through legacy requests transport)
     # ------------------------------------------------------------------
+
+    def _legacy_fetch(self, url):
+        """Fetch *url* through the opt-in legacy requests transport.
+
+        This keeps the observable behavior of the former direct
+        ``requests.get`` fallback (caller headers verbatim, scalar timeout,
+        single request, HTTP-error body preserved, ISO-8859-1 normalized to
+        apparent encoding) while routing through ``RequestsFetchProvider`` so
+        the crawler shares one HTTP path.
+        """
+        provider = RequestsFetchProvider()
+        return provider.fetch(
+            url,
+            compatibility_mode=True,
+            legacy_transport=True,
+            headers=self.headers,
+            timeout=self.timeout,
+        )
 
     def _analyze_original(self, url, max_chars):
         result = {
@@ -225,40 +243,49 @@ class URLCrawler:
             return result
 
         try:
-            response = requests.get(url, headers=self.headers, timeout=self.timeout)
-            result["status_code"] = response.status_code
-            result["url"] = response.url  # 리디렉션 반영 최종 URL
-            
-            content_type = response.headers.get('Content-Type', '')
+            fetch_result = self._legacy_fetch(url)
+            error = fetch_result.error or ""
+            # Map provider diagnostic strings back to the legacy crawler error
+            # shape so existing callers/contracts are unaffected.
+            if error.startswith("HTTP "):
+                code = error.split(" ", 1)[1]
+                result["errors"].append(f"HTTP Error: Status code {code}")
+            elif error.startswith("Request timed out after"):
+                result["errors"].append(f"Request timeout after {self.timeout} seconds.")
+                return result
+            elif error:
+                # Network / unexpected provider error (e.g. "Network error: ...").
+                result["errors"].append(error)
+                return result
+
+            result["status_code"] = fetch_result.status_code
+            result["url"] = fetch_result.url or url  # 리디렉션 반영 최종 URL
+
+            content_type = fetch_result.content_type or ""
             result["content_type"] = content_type
-            
-            if response.status_code >= 400:
-                result["errors"].append(f"HTTP Error: Status code {response.status_code}")
-            
+
             # HTML 여부 검사
             if 'text/html' not in content_type.lower():
                 result["errors"].append(f"Response content type is not HTML: {content_type}")
                 return result
-                
-            # 인코딩 문제 처리 (특히 한글)
-            if response.encoding == 'ISO-8859-1':
-                response.encoding = response.apparent_encoding
-                
-        except requests.exceptions.Timeout:
-            result["errors"].append(f"Request timeout after {self.timeout} seconds.")
-            return result
+
         except requests.exceptions.RequestException as e:
+            # Defensive: the provider raised instead of returning a result.
             result["errors"].append(f"Network error: {str(e)}")
             return result
 
+        # The legacy transport already normalized ISO-8859-1 to apparent
+        # encoding, so no further response-object encoding handling here.
+        fetch_text = fetch_result.html or fetch_result.text
+
         try:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
+            soup = BeautifulSoup(fetch_text, 'html.parser')
+
             # title 추출
             title_tag = soup.title
             if title_tag:
                 result["title"] = title_tag.get_text().strip()
-                
+
             # meta description 추출
             desc_tag = soup.find('meta', attrs={'name': lambda x: x and x.lower() == 'description'})
             if desc_tag and desc_tag.get('content'):
@@ -272,17 +299,17 @@ class URLCrawler:
             # 본문 텍스트 정리
             clean_txt = self.clean_text(soup)
             result["text"] = clean_txt[:max_chars]
-            
+
             # 링크 추출 및 분류
             links = self.extract_links(soup, result["url"])
             result["links"] = links
-            
+
             # 통계 데이터
             result["stats"]["text_length"] = len(clean_txt)
             result["stats"]["internal_link_count"] = len(links["internal"])
             result["stats"]["external_link_count"] = len(links["external"])
             result["stats"]["attachment_count"] = len(links["attachments"])
-            
+
         except Exception as e:
             result["errors"].append(f"HTML parsing error: {str(e)}")
 

@@ -166,15 +166,34 @@ class HomepageMapper:
                 except Exception as e:
                     last_err = str(e)
             else:
-                # === Original code path ===
+                # === Original code path (routed through legacy requests transport) ===
                 try:
-                    res = requests.get(url, headers=self.crawler.headers, timeout=self.crawler.timeout)
-                    if res.status_code >= 400:
-                        last_err = f"HTTP Error: {res.status_code}"
+                    fr = RequestsFetchProvider().fetch(
+                        url,
+                        compatibility_mode=True,
+                        legacy_transport=True,
+                        headers=self.crawler.headers,
+                        timeout=self.crawler.timeout,
+                    )
+                    if fr.ok:
+                        # The legacy transport already normalized ISO-8859-1 to
+                        # apparent encoding, so the preserved body is ready.
+                        content = fr.html or fr.text or ""
+                        return content, None, fr.status_code, fr.url or url
+                    # Map the provider diagnostic string back to the legacy
+                    # crawler error shape so existing callers/contracts match.
+                    error = fr.error or ""
+                    if error.startswith("HTTP "):
+                        last_err = f"HTTP Error: {error.split(' ', 1)[1]}"
+                    elif error.startswith("Request timed out after"):
+                        last_err = f"Timeout after {self.crawler.timeout}s"
                     else:
-                        if res.encoding == 'ISO-8859-1':
-                            res.encoding = res.apparent_encoding
-                        return res.text, None, res.status_code, res.url
+                        # "Network error: ..." is kept verbatim; the provider may
+                        # wrap unexpected exceptions as "Unexpected error: ...",
+                        # which we unwrap to preserve the original error text.
+                        if error.startswith("Unexpected error: "):
+                            error = error[len("Unexpected error: "):]
+                        last_err = error
                 except requests.exceptions.Timeout:
                     last_err = f"Timeout after {self.crawler.timeout}s"
                 except Exception as e:
