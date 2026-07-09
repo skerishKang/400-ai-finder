@@ -605,35 +605,39 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 }
 .chat-composer__row {
   display: flex;
-  gap: 6px;
+  border: 1px solid #d0d0d5;
+  border-radius: 22px;
+  background: #fff;
+  padding: 4px;
   align-items: center;
+  gap: 4px;
 }
 .chat-composer__input {
   flex: 1;
-  border: 1px solid #c8d5e6;
-  border-radius: 22px;
-  padding: 10px 14px;
+  border: none;
+  border-radius: 18px;
+  padding: 8px 12px;
   font-size: 0.9rem;
   color: #0d0d0f;
-  background: #fff;
+  background: transparent;
   outline: none;
   font-family: inherit;
 }
-.chat-composer__input:focus {
-  border-color: #0d0d0f;
-  background: #fff;
+.chat-composer__input::placeholder {
+  color: #9b9ba5;
 }
 .chat-composer__send {
   background: #ef6a4c;
   color: #fff;
   border: none;
-  border-radius: 22px;
-  padding: 10px 18px;
-  font-size: 0.9rem;
+  border-radius: 18px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
+  flex-shrink: 0;
 }
 .chat-composer__send:disabled,
 .chat-composer__input:disabled {

@@ -314,8 +314,11 @@ body.first-use-shell--no-motion .first-use-layout .chat-shell {
   outline-offset: 2px;
 }
 .chat-chip__icon {
-  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  line-height: 0;
 }
 .chat-chip__label {
   flex: 0 1 auto;
