@@ -382,6 +382,7 @@ curl -sI https://cgbukku.pages.dev/admin     # 200
 - [MVP demo milestone snapshot](docs/mvp-demo-milestone-snapshot.md) — one-page closeout summary of the completed local/static MVP scope, locked quest set, verification references, and deferred live/production epics.
 - [Live transition decision record](docs/live-transition-decision-record.md) — decision gate for any future live/provider/API/network, operational integration, or production rebuild work; this document is not live-work authorization.
 - [Official-site route inventory plan](docs/official-site-route-inventory-plan.md) — planning-only schema and classification guide for future #862 route/content inventory; no live collection or inventory dataset is included.
+- [Official-site route inventory workflow index](docs/official-site-route-inventory-workflow-index.md) — planning-only index tying together the route inventory planning docs and workflow order; does not authorize live work.
 
 ### Operator quickstart
 
