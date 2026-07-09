@@ -39,6 +39,10 @@ Follow these steps for any future route/content inventory planning:
 5. **Open** future work from [`docs/scoped-route-inventory-issue-template.md`](scoped-route-inventory-issue-template.md) — a scoped issue with all required fields.
 6. **Attach** the required post-action report (per the plan's §7) before any future inventory data PR merge.
 
+When the planning package is complete, see the
+[`docs/official-site-route-inventory-planning-closeout.md`](official-site-route-inventory-planning-closeout.md)
+for the planning package closeout.
+
 ---
 
 ## Mode-selection summary
@@ -84,3 +88,5 @@ For any public issue, PR, or report:
 
 This index does not authorize live work by itself; each future step still
 requires the linked gates and a separately scoped, explicitly approved issue.
+See [`docs/official-site-route-inventory-planning-closeout.md`](official-site-route-inventory-planning-closeout.md)
+for the planning package closeout.
