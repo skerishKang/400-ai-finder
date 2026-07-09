@@ -101,25 +101,21 @@
       ],
       "required_slots": [],
       "official_path": [
-        "종합민원",
-        "민원신고",
-        "불법 주정차 신고"
+        "북구청 홈",
+        "분야별정보",
+        "차량교통",
+        "지도단속"
       ],
       "browser_actions": [
         {
           "action_type": "OPEN_ALLOWLISTED_ROUTE",
-          "route_id": "civil-service",
-          "label": "종합민원 메뉴 확인"
-        },
-        {
-          "action_type": "OPEN_ALLOWLISTED_ROUTE",
           "route_id": "complaint-illegal-parking",
-          "label": "불법 주정차 신고 화면 이동"
+          "label": "지도단속 안내 화면 이동"
         },
         {
           "action_type": "SHOW_ALLOWLISTED_RESULT",
           "target_id": "complaint-illegal-parking-report",
-          "label": "불법 주정차 신고 카드 확인"
+          "label": "안전신문고 신고 경로 안내 확인"
         },
         {
           "action_type": "STOP_FOR_USER_CONFIRMATION",
@@ -132,15 +128,15 @@
       "ai_can_submit": false,
       "stop_condition": "STOP_FOR_USER_CONFIRMATION",
       "final_warning": {
-        "warning_text": "실제 신고 제출, 본인인증, 차량번호·사진·위치정보 입력, 첨부파일 업로드는 사용자가 직접 확인해야 합니다. 이 데모는 신고 경로 안내에서 멈춥니다.",
+        "warning_text": "실제 신고 제출, 본인인증, 사진·위치·차량번호 입력, 제출은 사용자가 공식 신고 채널(안전신문고 등)에서 직접 진행해야 합니다. 이 데모는 지도단속 안내와 안전신문고 handoff 안내에서 멈춥니다.",
         "requires_user_confirmation": true
       },
       "client_action": "illegal_parking",
-      "answer": "불법 주정차 신고는 북구청 민원신고의 불법 주정차 신고 경로에서 안내됩니다. 실제 신고 제출과 본인인증, 차량번호·사진·위치정보 입력은 사용자가 직접 확인해야 합니다.",
+      "answer": "불법 주정차 신고 경로를 안내해 드립니다. 북구청 분야별정보의 차량교통 > 지도단속 페이지에서 단속 안내를 확인할 수 있으며, 실제 신고 제출은 안전신문고 등 공식 신고 채널에서 사용자가 직접 진행해야 합니다.",
       "result": {
-        "service": "불법 주정차 신고",
-        "surface": "불법 주정차 신고 카드",
-        "stop": "사용자 확인 후 공식 신고 채널에서 직접 진행"
+        "service": "지도단속 안내 / 안전신문고 신고 경로",
+        "surface": "지도단속 안내 / 공식 신고 채널 handoff",
+        "stop": "사용자 확인 후 안전신문고 등 공식 채널에서 직접 진행"
       },
       "match_terms": [
         "불법주정차",
