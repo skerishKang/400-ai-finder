@@ -78,6 +78,10 @@ To move from planning to a future collection:
 3. Apply [`docs/official-site-route-inventory-prioritization-rubric.md`](official-site-route-inventory-prioritization-rubric.md).
 4. Attach the required post-action report before any future inventory data PR merge.
 
+A concrete first example of this step is
+[`docs/official-site-route-inventory-first-scope-selection.md`](official-site-route-inventory-first-scope-selection.md)
+— a repo-local/static first-scope selection plan (planning-only, no live collection).
+
 ---
 
 ## Relationship to #862 and #873
