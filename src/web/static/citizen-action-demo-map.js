@@ -39,6 +39,7 @@
     "move-in-report-guidance",
     "public-health-center-guidance",
     "apartment-info",
+    "apartment-dept",
   ]);
 
   var CLOSED_TARGET_IDS = Object.freeze([
@@ -58,6 +59,7 @@
     "move-in-guidance-card",
     "health-center-guidance-card",
     "apartment-guidance-card",
+    "apartment-dept-card",
     "apartment-life-card",
   ]);
 
@@ -156,9 +158,17 @@
     "apartment-info": Object.freeze({
       id: "apartment-info",
       title: "아파트정보",
-      purpose: "북구청 분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다.",
-      navTargets: Object.freeze(["apartment-guidance-card"]),
+      purpose: "분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다.",
+      navTargets: Object.freeze(["apartment-guidance-card", "apartment-life-card"]),
       breadcrumbLabel: "아파트정보",
+    }),
+
+    "apartment-dept": Object.freeze({
+      id: "apartment-dept",
+      title: "공동주택과",
+      purpose: "도시관리국 공동주택과 업무 및 연락처 정보를 안내합니다.",
+      navTargets: Object.freeze(["apartment-dept-card"]),
+      breadcrumbLabel: "공동주택과",
     }),
   });
 
