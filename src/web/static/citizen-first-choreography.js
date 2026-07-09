@@ -75,15 +75,13 @@
         Object.freeze({ message: "안내를 마쳤습니다. 실제 신고는 안전신문고(safetyreport.go.kr)에서 가능합니다." }),
       ]),
     }),
-    // #1041 — 공동주택과 부서 정보 안내 choreography
+    // #1041 — 공동주택과 부서 정보 안내 choreography (compacted to 4 steps)
     "공동주택 관련 문의는 어느 부서에 해야 하나요?": Object.freeze({
       id: "apartment-dept",
       description: "도시관리국 공동주택과 업무 및 연락처 안내",
       steps: Object.freeze([
-        Object.freeze({ message: "북구소개 메뉴로 이동합니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1200 }),
-        Object.freeze({ message: "구청안내를 확인합니다.", thinkingText: "구청 정보를 불러오는 중입니다...", thinkingMs: 600, delayMs: 1400 }),
-        Object.freeze({ message: "업무 및 전화번호 안내 화면으로 이동합니다.", thinkingText: "페이지를 탐색 중입니다...", thinkingMs: 600, delayMs: 1400 }),
-        Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
+        Object.freeze({ message: "공동주택 부서 정보를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
+        Object.freeze({ message: "도시관리국 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
         Object.freeze({ message: "공동주택과 담당자 연락처입니다. 공동주택팀 062-410-6831~6834", targetId: "apartment-dept-card", delayMs: 2800, thinkingText: "연락처 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내를 마쳤습니다. 공동주택과(062-410-6831~6834)로 연락하시면 됩니다." }),
       ]),
@@ -92,11 +90,9 @@
       id: "apartment-dept",
       description: "도시관리국 공동주택과 업무 및 연락처 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "북구소개 메뉴로 이동합니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1200 }),
-        Object.freeze({ message: "구청안내를 확인합니다.", thinkingText: "구청 정보를 불러오는 중입니다...", thinkingMs: 600, delayMs: 1400 }),
-        Object.freeze({ message: "업무 및 전화번호 안내 화면으로 이동합니다.", thinkingText: "페이지를 탐색 중입니다...", thinkingMs: 600, delayMs: 1400 }),
-        Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
-        Object.freeze({ message: "공동주택과는 공동주택 관리 지원, 하자분쟁조정, 보조금 지원 업무를 담당합니다.", targetId: "apartment-dept-card", delayMs: 2000, thinkingText: "담당 업무를 확인 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "공동주택 부서 정보를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
+        Object.freeze({ message: "도시관리국 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
+        Object.freeze({ message: "공동주택과 담당자 연락처입니다. 공동주택팀 062-410-6831~6834", targetId: "apartment-dept-card", delayMs: 2800, thinkingText: "연락처 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내를 마쳤습니다. 공동주택과(062-410-6831~6834)로 연락하시면 됩니다." }),
       ]),
     }),

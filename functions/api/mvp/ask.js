@@ -9,9 +9,12 @@ export async function onRequest(context) {
   const { request, env } = context;
 
   // CORS headers
-  // TODO: production 시 CORS를 cgbukku.pages.dev로 제한
+  // CORS: cgbukku.pages.dev만 허용, 개발환경(localhost)도 허용
+  const ALLOWED_ORIGINS = ['https://cgbukku.pages.dev', 'http://localhost:8000', 'http://127.0.0.1:8000'];
+  const origin = request.headers.get('Origin') || '';
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : 'https://cgbukku.pages.dev';
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': corsOrigin,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',

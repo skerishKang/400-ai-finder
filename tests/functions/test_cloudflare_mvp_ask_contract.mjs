@@ -135,7 +135,9 @@ await assert('OPTIONS preflight returns 200 with CORS headers', async () => {
   const res = await getResponse('OPTIONS', null);
   if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
   const cors = res.headers.get('Access-Control-Allow-Origin');
-  if (cors !== '*') throw new Error(`Expected Access-Control-Allow-Origin: *, got ${cors}`);
+  // CORS is now restricted — no Origin header in mock means the fallback is used
+  if (!cors || cors === '*') throw new Error(`Expected restricted CORS, got ${cors}`);
+  if (cors !== 'https://cgbukku.pages.dev') throw new Error(`Expected https://cgbukku.pages.dev, got ${cors}`);
   const methods = res.headers.get('Access-Control-Allow-Methods');
   if (!methods || !methods.includes('POST')) throw new Error(`Missing POST in Allow-Methods: ${methods}`);
 });
