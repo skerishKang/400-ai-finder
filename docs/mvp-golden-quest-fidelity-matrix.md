@@ -5,12 +5,19 @@ in the Buk-gu Gwangju MVP. It exists so that future PRs cannot silently
 regress these quests back to generic pages, invented internal submission forms,
 or unsafe submission-like behavior.
 
-> **Boundary:** The MVP is a **local / static** surface. It never performs
-> live, provider-dependent, or site-affecting actions. It does not navigate to
-> or request the real Buk-gu site, Government24, SafetyReport, or 여기로. It does
-> not collect personal data, authenticate, submit searches, file complaints /
-> reports / defects / payments, initiate phone calls, or perform any action
-> that affects an external system.
+> **Boundary (five golden quests):** These five golden quests are a **local /
+> static** surface. They never perform live, provider-dependent, or
+> site-affecting actions. They do not navigate to or request the real Buk-gu
+> site, Government24, SafetyReport, or 여기로. They do not collect personal data,
+> authenticate, submit searches, file complaints / reports / defects / payments,
+> initiate phone calls, or perform any action that affects an external system.
+>
+> This contract locks the five known golden quests only. It does **not** fix the
+> entire product as permanently bounded-demo: unknown questions are intended to
+> use an LLM fallback (see
+> [`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md)).
+> The current static demo has no LLM/API/network in its build, which is a
+> deployment constraint rather than the final product intent.
 
 ## Locked golden quest set
 

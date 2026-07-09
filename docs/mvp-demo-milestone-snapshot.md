@@ -18,6 +18,12 @@ live/production tracks.
 | Not live integration | The demo is **not** a live official-site integration. |
 | What it is | A **local/static, high-fidelity demonstration surface** for five locked resident-task flows. |
 
+> **Scope note:** this milestone closes out the local/static demo surface only.
+> It is **not** the entire product. The intended product also answers unknown
+> questions via an LLM fallback (see
+> [`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md));
+> the current static demo simply has no LLM/API/network in its build.
+
 ---
 
 ## 2. Completed capabilities
@@ -59,7 +65,7 @@ matrix update.
 
 This MVP demo surface is intentionally constrained:
 
-- **local/static only**
+- **local/static only** (for the five golden quests in this milestone)
 - **no** live / provider-dependent behavior
 - **no** external request / navigation (real Buk-gu, Government24, SafetyReport, 여기로, etc.)
 - **no** personal-data input
@@ -67,9 +73,12 @@ This MVP demo surface is intentionally constrained:
 - **no** submission / payment / receipt / completion simulation
 - **no** confidential business / client / person details in public docs, issues, or PRs
 
-If a path would require any of the above, stop and open a new issue on the
-appropriate deferred track. Do **not** treat this demo as production or live
-integration.
+These constraints describe the **current local/static demo surface**. They are
+not a statement that the whole product is permanently local/static-only: unknown
+questions are intended to use an LLM fallback (see
+[`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md)).
+If a path would require live/provider behavior, stop and open a new issue on the
+appropriate track. Do **not** treat this demo as production or live integration.
 
 ---
 
@@ -97,12 +106,16 @@ integration.
 
 ## 6. Deferred work
 
-Live/production/integration work is **explicitly deferred**. It is **not**
-part of this local/static MVP closeout.
+Live/production/integration work that is **not** part of this local/static MVP
+closeout is tracked on the broad epics. Note that an **LLM fallback for unknown
+questions** is an **intended product path** (see
+[`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md)),
+not an exclusion — it is gated by the live-transition decision record, not
+forbidden.
 
 | Epic | Track |
 |------|--------|
-| [#862](https://github.com/skerishKang/400-ai-finder/issues/862) | official-site action navigator and live integration track |
+| [#862](https://github.com/skerishKang/400-ai-finder/issues/862) | official-site action navigator and live integration track (includes the intended LLM fallback path) |
 | [#873](https://github.com/skerishKang/400-ai-finder/issues/873) | full Buk-gu website rebuild planning and integration track |
 
 **Deferred scope (belongs on #862 / #873, not this closeout):**
