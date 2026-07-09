@@ -141,6 +141,24 @@ MVP_QUERY_SANITIZER = (
     "</script>"
 )
 
+# Live mode MVP entry injects ?mvp=1 via replaceState so that
+# citizen-first-use-shell.js loads the MVP bridge even when the user
+# arrives without the query string.
+MVP_MODE_INJECTOR = (
+    '<script>\n'
+    '(function () {\n'
+    '  "use strict";\n'
+    "  if (window.history && window.history.replaceState) {\n"
+    "    window.history.replaceState(\n"
+    "      null,\n"
+    '      "",\n'
+    "      window.location.pathname + \"?mvp=1\" + window.location.hash\n"
+    "    );\n"
+    "  }\n"
+    "})();\n"
+    "</script>\n"
+)
+
 
 def _inject_after_body_open(html: str, snippet: str) -> str:
     """Insert *snippet* immediately after the first ``<body ...>`` tag.
@@ -498,21 +516,22 @@ def build_404_html(site_name: str) -> str:
 """
 
 
-def build_mvp_entry_html() -> str:
+def build_mvp_entry_html(is_live: bool = False) -> str:
     """Build the public first-use MVP entry at ``/mvp/``.
 
-    This is the existing ``citizen-action-demo.html`` first-use demo, copied
-    into the build output verbatim except for a query sanitizer injected
-    immediately after ``<body>`` open (before the shell scripts run). The
-    source template is never modified.
+    In **static** mode (default): injects a query sanitizer that strips any
+    query string (e.g. ``?mvp=1``) via ``history.replaceState`` so the shell
+    can never enter live bridge/API mode from the public entry.
 
-    The sanitizer strips any query string (e.g. ``?mvp=1``) via
-    ``history.replaceState`` so the shell can never enter live bridge/API mode
-    from the public entry. The copied ``/static/...`` asset paths and the
-    existing choreography assets are preserved, and no ``citizen-mvp-bridge.js``
-    tag is added.
+    In **live** mode: injects a script that forces ``?mvp=1`` in the URL via
+    ``history.replaceState`` so that ``citizen-first-use-shell.js`` loads the
+    MVP bridge even when the user arrives without the query string.
+
+    The source template is never modified.
     """
     source = _read_file(os.path.join(STATIC_DIR, "citizen-action-demo.html"))
+    if is_live:
+        return _inject_after_body_open(source, MVP_MODE_INJECTOR)
     return _inject_after_body_open(source, MVP_QUERY_SANITIZER)
 
 
@@ -672,18 +691,14 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
 
     # 8. Emit a public first-use MVP entry at /mvp/.
     #    In static mode: backend-free, query-sanitized (strips ?mvp=1).
-    #    In live mode: keeps ?mvp=1 so the shell loads the MVP bridge.
-    if mode == "static":
-        mvp_index = os.path.join(dist_root, "mvp", "index.html")
-        _write_file(mvp_index, build_mvp_entry_html())
-        print(f"[build] wrote mvp/index.html (public first-use entry, query-sanitized)")
-    else:
-        # Live mode: copy the source template as-is (no query sanitizer) so that
-        # ?mvp=1 persists and citizen-first-use-shell.js loads the live bridge.
-        source = _read_file(os.path.join(STATIC_DIR, "citizen-action-demo.html"))
-        mvp_index = os.path.join(dist_root, "mvp", "index.html")
-        _write_file(mvp_index, source)
-        print(f"[build] wrote mvp/index.html (live entry, ?mvp=1 preserved)")
+    #    In live mode: forces ?mvp=1 so the shell loads the MVP bridge
+    #    even when the user arrives without the query string.
+    mvp_index = os.path.join(dist_root, "mvp", "index.html")
+    _write_file(mvp_index, build_mvp_entry_html(mode == "live"))
+    print(
+        f"[build] wrote mvp/index.html "
+        f"({'live, ?mvp=1 forced' if mode == 'live' else 'public entry, query-sanitized'})"
+    )
 
     print(f"[build] done -> {dist_root}")
 
