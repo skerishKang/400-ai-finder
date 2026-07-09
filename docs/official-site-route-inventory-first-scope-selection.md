@@ -125,7 +125,10 @@ future inventory data PR merge.
 
 A ready-to-copy draft of the first local/static scope is in
 [`docs/official-site-route-inventory-first-scope-issue-draft.md`](official-site-route-inventory-first-scope-issue-draft.md)
-(planning-only, no live collection).
+(planning-only, no live collection). The resulting local/static seed records are
+in [`docs/official-site-route-inventory-first-local-static-records.md`](official-site-route-inventory-first-local-static-records.md)
+— local/static placeholders only; no route URLs were collected and no live step
+was performed.
 
 ---
 

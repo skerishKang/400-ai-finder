@@ -73,6 +73,11 @@ Selected local/static candidate labels from the first-scope selection plan:
 Constraint: **no** route URLs, selectors, screenshots, or live facts are added
 here. The golden quests and their metadata are **not** changed by this draft.
 
+The resulting local/static seed records for these candidates are in
+[`docs/official-site-route-inventory-first-local-static-records.md`](official-site-route-inventory-first-local-static-records.md)
+— local/static placeholders only; this does **not** authorize live/provider work
+and no route URLs were collected.
+
 ---
 
 ## PR / report requirements for the future real issue
