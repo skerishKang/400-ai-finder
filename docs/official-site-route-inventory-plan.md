@@ -142,6 +142,7 @@ the default path.
 | [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md) | Locks the five golden quests; inventory must not regress them |
 | [#862](https://github.com/skerishKang/400-ai-finder/issues/862) | **Primary parent track** — official-site action navigator and live integration |
 | [#873](https://github.com/skerishKang/400-ai-finder/issues/873) | Applies **only** when inventory findings imply production / full-site rebuild decisions |
+| [`docs/official-site-route-inventory-authorization-checklist.md`](official-site-route-inventory-authorization-checklist.md) | Pre-flight authorization checklist to confirm **before** any future inventory collection |
 
 **Summary:**
 
@@ -172,6 +173,9 @@ Template for a **future** controlled inventory collection issue/report.
 
 **After any future collection:** report must be attached to the authorizing issue
 before merge of inventory data. Unreported live collection is out of process.
+
+Before opening such a collection issue/PR, also complete
+[`docs/official-site-route-inventory-authorization-checklist.md`](official-site-route-inventory-authorization-checklist.md).
 
 ---
 
