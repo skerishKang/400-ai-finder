@@ -15,7 +15,8 @@
   var STATE_ENTRY = "entry";
   var STATE_TRANSITIONING = "transitioning";
   var STATE_SPLIT = "split";
-  var TRANSITION_DURATION_MS = 360;
+  var TRANSITION_DURATION_MS = 400;
+  var FADE_IN_DURATION_MS = 500;
   var DEFAULT_SUPPORTED_ACTION = "illegal_parking";
   var SUPPORTED_QUESTIONS = {
     "불법 주정차 신고는 어디서 하나요?": true,
@@ -697,14 +698,17 @@
     splitTimer = null;
     _renderBukguHomeFixture();
     setState(STATE_SPLIT);
-    appendChatMessage(
-      "ai",
-      "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
-    );
-    if (lastSplitQuestion) {
-      showConfirmRun(lastSplitQuestion);
-    }
-    lastSplitQuestion = null;
+    // Delay chat message slightly so the canvas fade-in is visible first
+    setTimeout(function () {
+      appendChatMessage(
+        "ai",
+        "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
+      );
+      if (lastSplitQuestion) {
+        showConfirmRun(lastSplitQuestion);
+      }
+      lastSplitQuestion = null;
+    }, 120);
   }
 
   function beginSupportedTransition(question) {
@@ -874,16 +878,19 @@
     splitTimer = null;
     _renderBukguHomeFixture();
     setState(STATE_SPLIT);
-    appendChatMessage(
-      "ai",
-      "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
-    );
-    appendQuestProgressCard(chatThread);
-    // 6. run the existing local choreography for the resolved action
-    if (window.CitizenFirstChoreography && action) {
-      window.CitizenFirstChoreography.start(action);
-    }
-    if (chatInput) chatInput.focus();
+    // Delay chat message slightly so the canvas fade-in is visible first
+    setTimeout(function () {
+      appendChatMessage(
+        "ai",
+        "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
+      );
+      appendQuestProgressCard(chatThread);
+      // run the existing local choreography for the resolved action
+      if (window.CitizenFirstChoreography && action) {
+        window.CitizenFirstChoreography.start(action);
+      }
+      if (chatInput) chatInput.focus();
+    }, 120);
   }
 
   function resetToEntry() {

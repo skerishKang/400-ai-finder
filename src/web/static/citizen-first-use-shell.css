@@ -113,6 +113,7 @@ body[data-first-use-state="split"] .chat-shell {
 }
 
 body[data-first-use-state="transitioning"] .demo-canvas {
+  opacity: 0;
   pointer-events: none;
 }
 
@@ -369,8 +370,9 @@ body.first-use-shell--no-motion .first-use-layout .chat-shell {
   80%, 100% { opacity: 0; }
 }
 
-/* Choreography cursor click ripple */
+/* Choreography cursor click ripple — enhanced with smooth expand + fade */
 @keyframes choreoClick {
-  0% { transform: scale(0.5); opacity: 1; }
-  100% { transform: scale(2); opacity: 0; }
+  0% { transform: scale(0.3); opacity: 0.6; }
+  40% { transform: scale(1.3); opacity: 0.5; }
+  100% { transform: scale(2.2); opacity: 0; }
 }

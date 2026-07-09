@@ -14,6 +14,7 @@
   // -----------------------------------------------------------------------
   var _currentRouteId = "home";
   var _selectedCategory = null;
+  var _navFadeTimer = null;
 
   // DOM references
   var _demoCanvas = document.getElementById("demo-canvas");
@@ -2697,15 +2698,26 @@
     }
     _currentRouteId = routeId;
     if (_demoCanvas) {
-      // route content fade: fade out, swap html, fade in
-      if (_demoCanvas.style) _demoCanvas.style.opacity = "0";
-      _demoCanvas.innerHTML = '<div class="demo-canvas__inner">' + _renderRoute(routeId) + '</div>';
-      // force reflow
-      if (_demoCanvas.style) {
-        void _demoCanvas.offsetHeight;
-        _demoCanvas.style.opacity = "1";
+      // Clear any pending navigation timer
+      if (_navFadeTimer) {
+        clearTimeout(_navFadeTimer);
+        _navFadeTimer = null;
       }
-      _attachDelegation();
+      // Route content fade: fade out, swap html while invisible, fade in
+      // Use a micro-sequence for smoother visual transition
+      _demoCanvas.style.transition = "opacity 280ms ease";
+      _demoCanvas.style.opacity = "0";
+      var navTimer = setTimeout(function () {
+        // HTML swap happens while opacity is 0 (invisible)
+        _demoCanvas.innerHTML = '<div class="demo-canvas__inner">' + _renderRoute(routeId) + '</div>';
+        _attachDelegation();
+        // Force reflow then fade in
+        void _demoCanvas.offsetHeight;
+        _demoCanvas.style.transition = "opacity 350ms ease";
+        _demoCanvas.style.opacity = "1";
+      }, 300);
+      // Store timer reference for cleanup on rapid navigation
+      _navFadeTimer = navTimer;
     }
   }
 
@@ -2719,15 +2731,26 @@
     return _demoCanvas.querySelector('[data-action-target="' + targetId + '"]');
   }
 
-  // Cursor for choreography click animation
+  // Cursor for choreography click animation — enhanced with smooth movement,
+  // shadow/bounce easing, and polished click ripple.
   var _cursorEl = null;
+  // Internal counter to deduplicate rapid cursor moves
+  var _cursorMoveToken = 0;
 
   function _ensureCursor() {
     if (_cursorEl) return _cursorEl;
     _cursorEl = document.createElement("div");
     _cursorEl.className = "choreo-cursor";
-    _cursorEl.innerHTML = '<svg width="20" height="26" viewBox="0 0 20 26" fill="none"><path d="M2 2l5 20 3-9 8-3Z" fill="#ef6a4c" stroke="#fff" stroke-width="1.5"/></svg>';
-    _cursorEl.style.cssText = "position:fixed;z-index:99999;pointer-events:none;opacity:0;transition:opacity 300ms,left 700ms ease,top 700ms ease;transform:translate(-4px,-4px);";
+    // Pointer cursor SVG with subtle shadow
+    _cursorEl.innerHTML =
+      '<svg width="22" height="28" viewBox="0 0 22 28" fill="none" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35));">' +
+        '<path d="M3 2l5 22 3-10 9-3Z" fill="#ef6a4c" stroke="#fff" stroke-width="1.8"/>' +
+      '</svg>';
+    // Use CSS cubic-bezier with slight overshoot (bounce) for natural feel
+    _cursorEl.style.cssText =
+      "position:fixed;z-index:99999;pointer-events:none;opacity:0;" +
+      "transition:opacity 250ms ease,left 750ms cubic-bezier(0.22,0.9,0.36,1.08),top 750ms cubic-bezier(0.22,0.9,0.36,1.08);" +
+      "transform:translate(-4px,-4px);";
     document.body.appendChild(_cursorEl);
     return _cursorEl;
   }
@@ -2738,39 +2761,71 @@
     var cursor = _ensureCursor();
     if (!cursor) return;
     var rect = el.getBoundingClientRect();
-    cursor.style.left = (rect.left + rect.width / 2) + "px";
-    cursor.style.top = (rect.top + 4) + "px";
-    cursor.style.opacity = "1";
+    // Guard: skip if element has zero dimensions (hidden, not yet laid out)
+    if (!rect || (rect.width === 0 && rect.height === 0)) return;
+    var token = ++_cursorMoveToken;
+    // Slight delay to allow layout to settle, then position
+    setTimeout(function () {
+      if (token !== _cursorMoveToken) return; // superseded
+      var freshRect = el.getBoundingClientRect();
+      if (!freshRect || (freshRect.width === 0 && freshRect.height === 0)) return;
+      cursor.style.left = (freshRect.left + freshRect.width / 2) + "px";
+      cursor.style.top = (freshRect.top + 4) + "px";
+      cursor.style.opacity = "1";
+    }, 40);
   }
 
   function hideCursor() {
-    if (_cursorEl) _cursorEl.style.opacity = "0";
+    if (_cursorEl) {
+      _cursorEl.style.opacity = "0";
+      _cursorMoveToken++; // cancel any pending show
+    }
+  }
+
+  function _createRipple(cx, cy, color, duration) {
+    var ripple = document.createElement("div");
+    var size = 24;
+    var half = size / 2;
+    ripple.style.cssText =
+      "position:fixed;width:" + size + "px;height:" + size + "px;" +
+      "border-radius:50%;background:" + color + ";pointer-events:none;" +
+      "animation:choreoClick " + duration + "ms ease forwards;" +
+      "z-index:99999;opacity:0.6;";
+    ripple.style.left = (cx - half) + "px";
+    ripple.style.top = (cy - half) + "px";
+    document.body.appendChild(ripple);
+    var cleanup = setTimeout(function () {
+      if (ripple.parentNode) ripple.parentNode.removeChild(ripple);
+    }, duration + 100);
+    // Store cleanup reference for potential cancel
+    ripple._cleanupTimer = cleanup;
+    return ripple;
   }
 
   function clickAnimation(selectorOrEl) {
     var el = (typeof selectorOrEl === "string") ? document.querySelector(selectorOrEl) : selectorOrEl;
     if (!el) {
-      // eslint-disable-next-line no-console
       if (typeof console !== "undefined" && console.warn) console.warn("[clickAnimation] element not found:", selectorOrEl);
       return;
     }
     var rect = el.getBoundingClientRect();
     // Guard: skip if element has zero dimensions (hidden, not yet laid out)
     if (!rect || (rect.width === 0 && rect.height === 0)) {
-      // eslint-disable-next-line no-console
       if (typeof console !== "undefined" && console.warn) console.warn("[clickAnimation] element has zero dimensions:", selectorOrEl, rect);
       return;
     }
+    // Step 1: move cursor to target
     showCursorAt(el);
-    var cursor = _ensureCursor();
-    if (!cursor) return;
-    // click ripple
-    var ripple = document.createElement("div");
-    ripple.style.cssText = "position:fixed;width:20px;height:20px;border-radius:50%;border:2.5px solid #ef6a4c;pointer-events:none;animation:choreoClick 600ms ease forwards;z-index:99999;";
-    ripple.style.left = (rect.left + rect.width / 2 - 10) + "px";
-    ripple.style.top = (rect.top + rect.height / 2 - 10) + "px";
-    document.body.appendChild(ripple);
-    setTimeout(function () { if (ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 700);
+    var cx = rect.left + rect.width / 2;
+    var cy = rect.top + rect.height / 2;
+    // Step 2: after cursor arrives (slightly less than transition time),
+    // fire a double ripple: outer (faster fade) + inner (slower)
+    setTimeout(function () {
+      _createRipple(cx, cy, "rgba(239,106,76,0.45)", 500);
+      setTimeout(function () {
+        _createRipple(cx, cy, "rgba(239,106,76,0.25)", 350);
+      }, 80);
+    }, 380);
   }
   // -----------------------------------------------------------------------
   var _delegationAttached = false;
