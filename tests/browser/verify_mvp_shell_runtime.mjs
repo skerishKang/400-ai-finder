@@ -772,15 +772,20 @@ async function scenarioDefaultModeRegression() {
   );
   assert.strictEqual(
     choreo.startCalls.length,
-    1,
-    "default mode: existing deterministic flow must start choreography",
-  );
-  assert.strictEqual(
-    choreo.startCalls[0],
-    "불법 주정차 신고는 어디서 하나요?",
-    "default mode: existing exact-question journey key is used",
+    0,
+    "default mode: choreography must wait for user confirm before starting",
   );
   assertSplitCloneVisible(s, "default mode");
+  // Confirm-run message must be present in the chat thread
+  var thread = s.doc.getElementById("chat-thread");
+  var hasConfirmRun = false;
+  for (var ci = 0; ci < (thread._children || []).length; ci++) {
+    if ((thread._children[ci].getAttribute("data-msg-type") || "") === "confirm-run") {
+      hasConfirmRun = true;
+      break;
+    }
+  }
+  assert.ok(hasConfirmRun, "default mode: confirm-run UI must be shown after split");
   console.log("  [6] default static mode regression: OK");
 }
 

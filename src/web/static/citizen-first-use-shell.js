@@ -409,20 +409,92 @@
     );
   }
 
+  function _questDisplayName(question) {
+    if (!question) return "이 안내";
+    if (question.indexOf("불법 주정차") !== -1) return "불법 주정차 신고";
+    if (question.indexOf("공동주택") !== -1) return "공동주택 부서 문의";
+    if (question.indexOf("침대") !== -1 || question.indexOf("매트리스") !== -1) return "대형폐기물 배출";
+    if (question.indexOf("대형폐기물") !== -1 || question.indexOf("가구") !== -1) return "대형폐기물 배출";
+    if (question.indexOf("전입신고") !== -1 || question.indexOf("이사") !== -1) return "전입신고";
+    if (question.indexOf("보건소") !== -1 || question.indexOf("진료") !== -1 || question.indexOf("예방접종") !== -1) return "보건소 위치·진료 안내";
+    return "이 안내";
+  }
+
+  function startChoreography(question) {
+    if (window.CitizenFirstChoreography && question) {
+      window.CitizenFirstChoreography.start(question);
+    }
+    if (chatInput) {
+      chatInput.focus();
+    }
+  }
+
+  function showConfirmRun(question) {
+    var displayName = _questDisplayName(question);
+    var msgDiv = document.createElement("div");
+    msgDiv.className = "chat-msg chat-msg--ai";
+    msgDiv.setAttribute("data-msg-type", "confirm-run");
+
+    var bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bubble--ai";
+
+    var text = document.createElement("p");
+    text.style.margin = "0 0 10px 0";
+    text.textContent = displayName + "에 대해 안내해 드릴까요?";
+    bubble.appendChild(text);
+
+    var btnRow = document.createElement("div");
+    btnRow.style.display = "flex";
+    btnRow.style.gap = "8px";
+
+    var yesBtn = document.createElement("button");
+    yesBtn.type = "button";
+    yesBtn.textContent = "예, 안내해 주세요";
+    yesBtn.style.cssText = "padding:8px 16px;border:0;border-radius:18px;background:#ef6a4c;color:#fff;font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;";
+    yesBtn.addEventListener("click", function () {
+      msgDiv.removeAttribute("data-msg-type");
+      var btns = bubble.querySelectorAll("button");
+      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      startChoreography(question);
+    });
+
+    var noBtn = document.createElement("button");
+    noBtn.type = "button";
+    noBtn.textContent = "아니요";
+    noBtn.style.cssText = "padding:8px 16px;border:1px solid #d0d0d5;border-radius:18px;background:#fff;color:#0d0d0f;font:inherit;font-size:0.85rem;cursor:pointer;";
+    noBtn.addEventListener("click", function () {
+      msgDiv.removeAttribute("data-msg-type");
+      var btns = bubble.querySelectorAll("button");
+      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      if (chatInput) chatInput.focus();
+    });
+
+    btnRow.appendChild(yesBtn);
+    btnRow.appendChild(noBtn);
+    bubble.appendChild(btnRow);
+
+    var avatar = document.createElement("div");
+    avatar.className = "chat-avatar";
+    avatar.setAttribute("aria-label", "AI");
+    avatar.textContent = "A";
+    msgDiv.appendChild(avatar);
+    msgDiv.appendChild(bubble);
+
+    chatThread.appendChild(msgDiv);
+    chatThread.scrollTop = chatThread.scrollHeight;
+  }
+
   function completeSplit() {
     splitTimer = null;
     setState(STATE_SPLIT);
     appendChatMessage(
       "ai",
-      "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다. 이제 메뉴 이동과 확인 위치를 순서대로 보여드리겠습니다."
+      "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
     );
-    if (window.CitizenFirstChoreography && lastSplitQuestion) {
-      window.CitizenFirstChoreography.start(lastSplitQuestion);
+    if (lastSplitQuestion) {
+      showConfirmRun(lastSplitQuestion);
     }
     lastSplitQuestion = null;
-    if (chatInput) {
-      chatInput.focus();
-    }
   }
 
   function beginSupportedTransition(question) {
