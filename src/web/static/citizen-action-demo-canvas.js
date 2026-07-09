@@ -1330,47 +1330,54 @@
   function _renderBulkyWasteDisposal(route) {
     return (
       '<div class="bg-page bg-page--full bg-page--dense bg-page--bulky-waste">' +
-        _renderDenseHeader('civil-service') +
+        _renderDenseHeader('home') +
 
         '<div class="bg-layout--lnb">' +
-          /* LNB */
+          /* LNB — 북구청 홈 > 분야별정보 > 환경재활용 > 대형폐기물 배출방법 */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
-            '<div class="bg-lnb__header">종합민원</div>' +
+            '<div class="bg-lnb__header">분야별정보</div>' +
             '<ul class="bg-lnb__list">' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">종합민원</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">북구 소개</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">행정</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">경제</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">복지</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">문화/관광</a></li>' +
               '<li class="bg-lnb__item bg-lnb__item--open">' +
-                '<a href="#" class="bg-lnb__parent">분야별정보</a>' +
+                '<a href="#" class="bg-lnb__parent">환경재활용</a>' +
                 '<ul class="bg-lnb__sub">' +
-                  '<li><a href="#">환경/청소</a></li>' +
-                  '<li class="bg-lnb__item--active"><a href="#">대형폐기물 처리</a></li>' +
+                  '<li><a href="#">환경정책</a></li>' +
+                  '<li class="bg-lnb__item--active"><a href="#">대형폐기물 배출방법</a></li>' +
                   '<li><a href="#">재활용품 분리배출</a></li>' +
                   '<li><a href="#">음식물류폐기물</a></li>' +
                 '</ul>' +
               '</li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민원신고</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">전자민원창구</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">교통</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">건설/안전</a></li>' +
             '</ul>' +
           '</nav>' +
 
-          /* Main content — the directly relevant target card */
+          /* Main content — 실제 북구청 대형폐기물 배출방법 페이지 fidelity */
           '<main class="bg-content bg-content--sub" id="bg-content-main">' +
             _renderSubPageHeader(route.title, route.purpose) +
 
             '<div class="bg-illegal-parking-card" data-action-target="bulky-waste-guidance-card" tabindex="0">' +
-              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🛏️</div>' +
+              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🗑️</div>' +
               '<div class="bg-illegal-parking-card__body">' +
-                '<h2 class="bg-illegal-parking-card__title">대형폐기물 배출 신청</h2>' +
-                '<p class="bg-illegal-parking-card__desc">가구, 가전제품 등 종량제 봉투에 담기 어려운 폐기물 배출을 신청합니다.</p>' +
+                '<h2 class="bg-illegal-parking-card__title">대형폐기물 배출방법</h2>' +
+                '<p class="bg-illegal-parking-card__desc">배출방법: 수탁업체(녹색환경)에 직접 전화 또는 구두로 신고후 배출 (월요일~금요일 수거 가능)</p>' +
                 '<ul class="bg-illegal-parking-card__meta">' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">수수료결제</span> 온라인 결제 (카드, 계좌이체 등)</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">배출방법</span> 스티커 출력 부착 후 배출</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">문의사항</span> 북구청 청소행정과</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">신고전화</span> 062-572-1336, 1337</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">어플신청</span> 「여기로」어플 및 홈페이지에서 신청 가능</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">인터넷 배출하기</span> 공식 페이지에서 직접 진행 (데모 안내)</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">수수료 납부 방법</span> 신용카드, 무통장 입금(입금 수수료 신고자 부담), 현금 납부 / 상생카드 결제 불가</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">배출변경 · 취소</span> 전화 또는 인터넷으로 변경/취소 가능</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">폐가전 배출방법 안내</span> 별도 페이지 참조</li>' +
                 '</ul>' +
               '</div>' +
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
             '</div>' +
 
-            '<p class="bg-illegal-parking-note">※ 본 카드는 로컬 시연용이며 실제 신청, 결제, 개인정보 입력 등은 공식 채널에서 직접 진행해야 합니다.</p>' +
+            '<p class="bg-illegal-parking-note">※ 본 카드는 로컬 시연용입니다. 실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널(여기로 또는 전화)에서 사용자가 직접 진행해야 합니다.</p>' +
           '</main>' +
         '</div>' +
         _renderSubFooter() +
@@ -2093,7 +2100,7 @@
       "complaint-review": {title: "민원 신청 확인", purpose: "아래 내용을 확인하고 신청해 주세요."},
       "handoff-stop": {title: "데모 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
       "complaint-illegal-parking": {title: "불법 주정차 신고", purpose: "불법 주정차 차량을 안전신문고 등을 통해 신고하실 수 있습니다."},
-      "bulky-waste-disposal": {title: "대형폐기물 처리", purpose: "대형폐기물 배출 방법을 안내하고 온라인 신청을 지원합니다."},
+      "bulky-waste-disposal": {title: "대형폐기물 배출방법", purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
       "move-in-report-guidance": {title: "전입신고 안내", purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."},
       "public-health-center-guidance": {title: "보건소 위치·진료 안내", purpose: "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다."}
     };
