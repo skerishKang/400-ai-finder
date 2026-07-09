@@ -364,7 +364,7 @@
       resetButton.hidden = false;
     }
     if (chipsContainer) {
-      chipsContainer.hidden = true;
+      chipsContainer.hidden = false;
     }
   }
 
@@ -537,8 +537,22 @@
     if (currentState === STATE_SPLIT) {
       appendChatMessage("user", question);
       chatInput.value = "";
-      appendChatMessage("ai", SPLIT_FOLLOW_UP_MESSAGE);
-      chatInput.focus();
+      if (isSupportedQuestion(question)) {
+        // Cancel current choreography and start new quest (no duplicate message)
+        if (window.CitizenFirstChoreography) {
+          window.CitizenFirstChoreography.cancel();
+        }
+        lastSplitQuestion = question;
+        setState(STATE_TRANSITIONING);
+        if (prefersReducedMotion()) {
+          completeSplit();
+        } else {
+          splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
+        }
+      } else {
+        appendChatMessage("ai", SPLIT_FOLLOW_UP_MESSAGE);
+        chatInput.focus();
+      }
       return;
     }
 
