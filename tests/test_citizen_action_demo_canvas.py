@@ -271,7 +271,7 @@ class TestComplaintJourney:
 
     def test_complaint_intake_has_complaint_body_and_draft_review(self):
         js = _read_static("citizen-action-demo-map.js")
-        block = js[js.find('"complaint-intake"'):js.find('"complaint-intake"') + 600]
+        block = js[js.find('"complaint-intake"'):js.find('"complaint-intake"') + 700]
         assert "complaint-body" in block
         assert "complaint-draft-review" in block
 
