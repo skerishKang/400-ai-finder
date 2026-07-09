@@ -917,6 +917,10 @@
 
     body.classList.add("first-use-shell--no-motion");
     setState(STATE_ENTRY);
+    // Reset scroll position to top
+    if (chatThread) {
+      chatThread.scrollTop = 0;
+    }
     renderEntryConversation();
     if (chatInput) {
       chatInput.value = "";
