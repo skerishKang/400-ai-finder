@@ -1,11 +1,11 @@
 /**
- * Browser E2E verifier for #976 bulky_waste_disposal_guidance.
+ * Browser E2E verifier for #984 bulky_waste_disposal_guidance real-page fidelity.
  *
  * Usage:
  *   node tests/browser/verify_bulky_waste_quest_e2e.mjs http://127.0.0.1:<port>
  *
  * Screenshots:
- *   /tmp/400-ai-finder-976/bulky-waste-quest-e2e.png
+ *   /tmp/400-ai-finder-984/bulky-waste-quest-e2e.png
  */
 
 import assert from "assert";
@@ -14,7 +14,7 @@ import { join } from "path";
 import { chromium } from "playwright";
 
 const requestedBase = process.argv[2] || "http://127.0.0.1:8080";
-const SCREENSHOT_DIR = "/tmp/400-ai-finder-976";
+const SCREENSHOT_DIR = "/tmp/400-ai-finder-984";
 mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
 function validateOrigin(raw) {
@@ -98,19 +98,24 @@ async function main() {
     { timeout: 12000 },
   );
 
-  await waitForText(page, "#demo-canvas", "대형폐기물 배출 신청");
-  await waitForText(page, "#demo-canvas", "종량제 봉투에 담기 어려운 폐기물 배출을 신청합니다.");
-  await waitForText(page, "#demo-canvas", "온라인 결제 (카드, 계좌이체 등)");
-  await waitForText(page, "#chat-thread", "대형폐기물 배출 안내");
+  await waitForText(page, "#demo-canvas", "대형폐기물 배출방법");
+  await waitForText(page, "#demo-canvas", "재활용");
+  await waitForText(page, "#demo-canvas", "수탁업체(녹색환경)");
+  await waitForText(page, "#demo-canvas", "062-572-1336, 1337");
+  await waitForText(page, "#demo-canvas", "여기로");
+  await waitForText(page, "#demo-canvas", "인터넷 배출하기");
+  await waitForText(page, "#demo-canvas", "수수료 납부 방법");
+  await waitForText(page, "#demo-canvas", "배출변경");
+  await waitForText(page, "#demo-canvas", "폐가전");
+  await waitForText(page, "#chat-thread", "대형폐기물 배출방법 안내");
   await waitForText(page, "#chat-thread", "bulky_waste_disposal_guidance");
-  await waitForText(page, "#chat-thread", "종합민원 > 분야별정보 > 대형폐기물 처리");
-  await waitForText(page, "#chat-thread", "대형폐기물 배출 안내 / 대형폐기물 신청 안내 카드");
+  await waitForText(page, "#chat-thread", "북구청 홈 > 분야별정보 > 환경재활용 > 대형폐기물 배출방법");
+  await waitForText(page, "#chat-thread", "대형폐기물 배출방법 안내 / 대형폐기물 배출방법 안내");
   await waitForText(page, "#chat-thread", "STOP_FOR_USER_CONFIRMATION");
   await waitForText(page, "#chat-thread", "local_static");
-  await waitForText(page, "#chat-thread", "품목·주소·연락처 입력");
+  await waitForText(page, "#chat-thread", "품목 선택");
   await waitForText(page, "#chat-thread", "수수료 결제");
-  await waitForText(page, "#chat-thread", "스티커 출력");
-  await waitForText(page, "#chat-thread", "배출신고 제출");
+  await waitForText(page, "#chat-thread", "배출번호 발급");
 
   const evidence = await page.evaluate(() => {
     const card = document.querySelector("#chat-thread .chat-quest-card");
@@ -141,8 +146,8 @@ async function main() {
   assert.strictEqual(evidence.card.questId, "bulky_waste_disposal_guidance");
   assert.strictEqual(evidence.card.sourceMode, "local_static");
   assert.ok(evidence.card.actionLabels.length >= 2, `expected at least 2 action labels, got ${evidence.card.actionLabels.length}`);
-  assert.ok(evidence.card.actionLabels.includes("대형폐기물 배출 안내 화면 이동"));
-  assert.ok(evidence.card.actionLabels.includes("대형폐기물 배출/신청 안내 확인"));
+  assert.ok(evidence.card.actionLabels.includes("대형폐기물 배출방법 화면 이동"));
+  assert.ok(evidence.card.actionLabels.includes("대형폐기물 배출방법 안내 확인"));
   assert.ok(evidence.card.text.includes("STOP_FOR_USER_CONFIRMATION"));
 
   const nonLocal = requests.filter((url) => !isLocalRequest(url));

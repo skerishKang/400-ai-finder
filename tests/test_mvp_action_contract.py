@@ -365,8 +365,8 @@ class TestMvpAskEndpoint:
         assert data["action_plan"]["requires_user_confirmation"] is True
         assert data["action_plan"]["final_warning"]["requires_user_confirmation"] is True
         labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
-        assert "대형폐기물 배출 안내 화면 이동" in labels
-        assert "대형폐기물 배출/신청 안내 확인" in labels
+        assert "대형폐기물 배출방법 화면 이동" in labels
+        assert "대형폐기물 배출방법 안내 확인" in labels
 
     def test_mvp_ask_public_health_center(self, mvp_server):
         port = mvp_server["port"]

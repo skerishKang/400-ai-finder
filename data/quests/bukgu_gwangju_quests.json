@@ -179,25 +179,21 @@
       ],
       "required_slots": [],
       "official_path": [
-        "종합민원",
+        "북구청 홈",
         "분야별정보",
-        "대형폐기물 처리"
+        "환경재활용",
+        "대형폐기물 배출방법"
       ],
       "browser_actions": [
         {
           "action_type": "OPEN_ALLOWLISTED_ROUTE",
-          "route_id": "civil-service",
-          "label": "종합민원 메뉴 확인"
-        },
-        {
-          "action_type": "OPEN_ALLOWLISTED_ROUTE",
           "route_id": "bulky-waste-disposal",
-          "label": "대형폐기물 배출 안내 화면 이동"
+          "label": "대형폐기물 배출방법 화면 이동"
         },
         {
           "action_type": "SHOW_ALLOWLISTED_RESULT",
           "target_id": "bulky-waste-guidance-card",
-          "label": "대형폐기물 배출/신청 안내 확인"
+          "label": "대형폐기물 배출방법 안내 확인"
         },
         {
           "action_type": "STOP_FOR_USER_CONFIRMATION",
@@ -214,11 +210,11 @@
         "requires_user_confirmation": true
       },
       "client_action": "bulky_waste",
-      "answer": "대형폐기물 배출 신청 경로를 안내해 드립니다. 실제 대형폐기물 신청 및 수수료 결제는 공식 페이지에서 사용자가 직접 진행해야 합니다.",
+      "answer": "대형폐기물 배출방법 경로를 안내해 드립니다. 실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다.",
       "result": {
-        "service": "대형폐기물 배출 안내",
-        "surface": "대형폐기물 신청 안내 카드",
-        "stop": "사용자 확인 후 결제/신청 단계에서 멈춤"
+        "service": "대형폐기물 배출방법 안내",
+        "surface": "대형폐기물 배출방법 안내",
+        "stop": "사용자 확인 후 전화/여기로 신청 안내에서 멈춤"
       },
       "match_terms": [
         "대형폐기물",

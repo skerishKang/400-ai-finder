@@ -128,10 +128,10 @@
 
     "bulky-waste-disposal": Object.freeze({
       id: "bulky-waste-disposal",
-      title: "대형폐기물 처리",
-      purpose: "대형폐기물 배출 방법을 안내하고 온라인 신청을 지원합니다.",
-      navTargets: Object.freeze([]),
-      breadcrumbLabel: "대형폐기물 처리",
+      title: "대형폐기물 배출방법",
+      purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다.",
+      navTargets: Object.freeze(["bulky-waste-guidance-card"]),
+      breadcrumbLabel: "대형폐기물 배출방법",
     }),
 
     "move-in-report-guidance": Object.freeze({
