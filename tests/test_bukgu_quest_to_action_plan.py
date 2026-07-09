@@ -23,23 +23,24 @@ def test_housing_quest_converts_to_valid_action_plan():
     plan = build_quest_action_plan(_housing_quest())
     assert plan.plan_status == "guided"
     assert plan.quest_id == "housing_department_lookup"
-    assert plan.quest_name == "공동주택 담당부서 찾기"
+    assert plan.quest_name == "아파트 정보 안내"
     assert plan.client_action == "housing_department"
     assert plan.official_path == (
-        "북구소개",
-        "구청안내",
-        "업무 및 전화번호 안내",
-        "공동주택과",
+        "북구청 홈",
+        "분야별정보",
+        "건축",
+        "아파트정보",
+        "아파트현황",
     )
-    assert plan.result["department"] == "공동주택과"
-    assert plan.result["phone"] == "062-410-6033"
+    assert plan.result["service"] == "아파트정보 아파트현황 / 아파트생활정보 관련 안내"
+    assert "아파트정보" in plan.result["surface"]
 
 
-def test_housing_quest_ends_with_stop_after_result():
+def test_housing_quest_ends_with_stop_for_user_confirmation():
     plan = build_quest_action_plan(_housing_quest())
-    assert plan.stop_condition == "STOP_AFTER_RESULT"
-    assert plan.browser_actions[-1].action_type == "STOP_AFTER_RESULT"
-    assert plan.requires_user_confirmation is False
+    assert plan.stop_condition == "STOP_FOR_USER_CONFIRMATION"
+    assert plan.browser_actions[-1].action_type == "STOP_FOR_USER_CONFIRMATION"
+    assert plan.requires_user_confirmation is True
 
 
 def test_illegal_parking_quest_converts_to_valid_action_plan():
@@ -80,12 +81,13 @@ def test_decide_bukgu_quest_action_returns_local_static_housing_decision():
     decision = decide_bukgu_quest_action("공동주택 문의는 어디로 해요?")
     assert decision is not None
     assert decision.action == "housing_department"
-    assert decision.answer == "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다."
+    assert "아파트 정보" in decision.answer
+    assert "아파트명" in decision.answer
     assert decision.quest is not None
     assert decision.quest["quest_id"] == "housing_department_lookup"
     assert decision.quest["source_mode"] == "local_static"
     assert decision.action_plan is not None
-    assert decision.action_plan["stop_condition"] == "STOP_AFTER_RESULT"
+    assert decision.action_plan["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
 
 
 def test_decide_bukgu_quest_action_returns_local_static_illegal_parking_decision():

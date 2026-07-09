@@ -4,9 +4,9 @@
   "quests": [
     {
       "quest_id": "housing_department_lookup",
-      "quest_name": "공동주택 담당부서 찾기",
+      "quest_name": "아파트 정보 안내",
       "status": "phase1_golden",
-      "category": "department_lookup",
+      "category": "application_guidance",
       "risk_level": "low",
       "user_phrases": [
         "공동주택 관련 문의는 어느 부서에 해야 하나요?",
@@ -17,53 +17,48 @@
       ],
       "required_slots": [],
       "official_path": [
-        "북구소개",
-        "구청안내",
-        "업무 및 전화번호 안내",
-        "공동주택과"
+        "북구청 홈",
+        "분야별정보",
+        "건축",
+        "아파트정보",
+        "아파트현황"
       ],
       "browser_actions": [
         {
           "action_type": "OPEN_ALLOWLISTED_ROUTE",
-          "route_id": "home",
-          "journey_state": "J-DEPT-01:menu",
-          "label": "북구소개 메뉴 확인"
-        },
-        {
-          "action_type": "OPEN_ALLOWLISTED_ROUTE",
-          "route_id": "dept-directory",
-          "journey_state": "J-DEPT-01:directory",
-          "label": "업무 및 전화번호 안내 이동"
-        },
-        {
-          "action_type": "SEARCH_ALLOWLISTED_QUERY",
-          "target_id": "dept-search-input",
-          "query": "공동주택",
-          "label": "공동주택 검색"
+          "route_id": "apartment-info",
+          "label": "아파트정보 화면 이동"
         },
         {
           "action_type": "SHOW_ALLOWLISTED_RESULT",
-          "target_id": "dept-result-row",
-          "journey_state": "J-DEPT-01:result",
-          "label": "공동주택과 결과 표시"
+          "target_id": "apartment-guidance-card",
+          "label": "아파트현황 정보 확인"
         },
         {
-          "action_type": "STOP_AFTER_RESULT",
-          "label": "결과 표시 후 정지"
+          "action_type": "SHOW_ALLOWLISTED_RESULT",
+          "target_id": "apartment-life-card",
+          "label": "아파트생활정보 관련 안내 확인"
+        },
+        {
+          "action_type": "STOP_FOR_USER_CONFIRMATION",
+          "label": "사용자 확인 대기"
         }
       ],
       "ai_can_answer": true,
       "ai_can_click": true,
       "ai_can_prefill": false,
       "ai_can_submit": false,
-      "stop_condition": "STOP_AFTER_RESULT",
-      "final_warning": null,
+      "stop_condition": "STOP_FOR_USER_CONFIRMATION",
+      "final_warning": {
+        "warning_text": "본 데모는 북구청 분야별정보 > 건축 > 아파트정보 > 아파트현황 페이지 정보를 안내합니다. 실제 아파트 정보 확인, 민원 제출, 하자 신청은 사용자가 공식 채널에서 직접 진행해야 합니다. 이 데모는 정보 안내 단계에서 멈춥니다.",
+        "requires_user_confirmation": true
+      },
       "client_action": "housing_department",
-      "answer": "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.",
+      "answer": "아파트 정보를 안내해 드립니다. 분야별정보 > 건축 > 아파트정보에서 아파트명, 주소, 세대수, 관리사무소 등 아파트현황을 확인할 수 있습니다. 하자나 관리비 등 생활정보는 아파트생활정보에서 확인 가능합니다.",
       "result": {
-        "department": "공동주택과",
-        "phone": "062-410-6033",
-        "task": "공동주택과 업무전반"
+        "service": "아파트정보 아파트현황 / 아파트생활정보 관련 안내",
+        "surface": "아파트정보 아파트현황 / 아파트생활정보 생활요령",
+        "stop": "사용자 확인 후 공식 채널에서 직접 진행"
       },
       "match_terms": [
         "공동주택",

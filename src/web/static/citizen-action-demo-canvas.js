@@ -1450,6 +1450,117 @@
     );
   }
 
+  function _renderApartmentInfo(route) {
+    return (
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--apartment-info">' +
+        _renderDenseHeader('home') +
+
+        '<div class="bg-layout--lnb">' +
+          /* LNB — 분야별정보 > 건축 > 아파트정보 */
+          '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
+            '<div class="bg-lnb__header">분야별정보</div>' +
+            '<ul class="bg-lnb__list">' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">북구 소개</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">행정</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">경제</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">복지</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">문화/관광</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--open">' +
+                '<a href="#" class="bg-lnb__parent">건축</a>' +
+                '<ul class="bg-lnb__sub">' +
+                  '<li><a href="#">건축민원</a></li>' +
+                  '<li><a href="#">기계설비법</a></li>' +
+                  '<li class="bg-lnb__item--active"><a href="#">아파트정보</a></li>' +
+                  '<li><a href="#">건축물대장말소신고</a></li>' +
+                  '<li><a href="#">아파트생활정보</a></li>' +
+                  '<li><a href="#">정비사업(재개발재건축)</a></li>' +
+                '</ul>' +
+              '</li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">환경재활용</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">교통</a></li>' +
+            '</ul>' +
+          '</nav>' +
+
+          /* Main content — 아파트정보 > 아파트현황 */
+          '<main class="bg-content bg-content--sub" id="bg-content-main">' +
+            _renderSubPageHeader(route.title, route.purpose) +
+
+            /* Search area (static — no live request) */
+            '<div class="bg-apartment-search">' +
+              '<div class="bg-apartment-search__box">' +
+                '<input type="text" class="bg-apartment-search__input" placeholder="아파트명, 주소를 입력하세요." disabled aria-disabled="true" value="" />' +
+                '<button type="button" class="bg-apartment-search__btn" disabled aria-disabled="true">검색</button>' +
+              '</div>' +
+              '<p class="bg-apartment-search__note">※ 검색은 실제 북구청 아파트정보 페이지에서 가능합니다. 데모에서는 대표 목록을 표시합니다.</p>' +
+            '</div>' +
+
+            /* Results table — static representative rows */
+            '<div class="bg-apartment-results">' +
+              '<div class="bg-apartment-results__count">전체 <strong>428</strong> 건, 현재 페이지 <strong>1/43</strong></div>' +
+              '<table class="bg-apartment-table">' +
+                '<thead>' +
+                  '<tr>' +
+                    '<th>번호</th>' +
+                    '<th>아파트명</th>' +
+                    '<th>새주소명</th>' +
+                    '<th>사용검사</th>' +
+                    '<th>동수</th>' +
+                    '<th>층수</th>' +
+                    '<th>세대수</th>' +
+                    '<th>관리사무소</th>' +
+                  '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                  '<tr>' +
+                    '<td>1</td><td>제일맨션</td><td>광주 북구 오치동</td><td>1997-07-16</td><td>3</td><td>7</td><td>72</td><td>-</td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td>2</td><td>오치아파트</td><td>광주 북구 오치동</td><td>1988-02-22</td><td>5</td><td>5</td><td>120</td><td>-</td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td>3</td><td>송광아파트</td><td>광주 북구 두암동</td><td>1990-05-10</td><td>4</td><td>10</td><td>160</td><td>-</td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td>4</td><td>두암아파트</td><td>광주 북구 두암동</td><td>1985-12-30</td><td>6</td><td>5</td><td>180</td><td>-</td>' +
+                  '</tr>' +
+                '</tbody>' +
+              '</table>' +
+            '</div>' +
+
+            /* Guidance card for apartment info */
+            '<div class="bg-illegal-parking-card" data-action-target="apartment-guidance-card" tabindex="0">' +
+              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🏢</div>' +
+              '<div class="bg-illegal-parking-card__body">' +
+                '<h2 class="bg-illegal-parking-card__title">아파트정보 안내</h2>' +
+                '<p class="bg-illegal-parking-card__desc">분야별정보 &gt; 건축 &gt; 아파트정보 &gt; 아파트현황 페이지입니다. 아파트명, 주소, 사용검사, 세대수, 관리사무소 정보를 확인할 수 있습니다.</p>' +
+              '</div>' +
+              '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
+            '</div>' +
+
+            /* Related life information card */
+            '<div class="bg-illegal-parking-card" data-action-target="apartment-life-card" tabindex="0">' +
+              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">📋</div>' +
+              '<div class="bg-illegal-parking-card__body">' +
+                '<h2 class="bg-illegal-parking-card__title">아파트생활정보</h2>' +
+                '<p class="bg-illegal-parking-card__desc">하자발생, 생활요령, 생활수칙, 관리비 정보를 확인할 수 있습니다.</p>' +
+                '<ul class="bg-illegal-parking-card__meta">' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">하자발생시 조치요령</span> 하자 신청 및 보수 절차 안내</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">생활요령</span> 공동주택 생활 관련 유용한 정보</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">생활수칙</span> 입주민 생활수칙 안내</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">관리비</span> 관리비 납부 및 관련 안내</li>' +
+                '</ul>' +
+              '</div>' +
+              '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
+            '</div>' +
+
+            '<p class="bg-illegal-parking-note">※ 본 데모는 로컬 개념 시연(PoC)입니다. 실제 아파트 정보 확인, 민원 제출, 하자 신청은 사용자가 공식 채널에서 직접 진행해야 합니다. 하자보수 신청은 아파트생활정보 &gt; 하자발생에서 확인 가능합니다.</p>' +
+          '</main>' +
+        '</div>' +
+        _renderSubFooter() +
+      '</div>'
+    );
+  }
+
   function _renderPublicHealthCenterGuidance(route) {
     return (
       '<div class="bg-page bg-page--full bg-page--dense bg-page--public-health-center">' +
@@ -2089,6 +2200,7 @@
         case "bulky-waste-disposal": html = _renderBulkyWasteDisposal(route); break;
         case "move-in-report-guidance": html = _renderMoveInReportGuidance(route); break;
         case "public-health-center-guidance": html = _renderPublicHealthCenterGuidance(route); break;
+        case "apartment-info": html = _renderApartmentInfo(route); break;
         case "complaint-intake":   html = _renderComplaintIntake(route); break;
         case "complaint-review":   html = _renderComplaintReview(route); break;
         case "handoff-stop":       html = _renderHandoffStop(route); break;
@@ -2106,7 +2218,8 @@
       "complaint-illegal-parking": {title: "지도단속", purpose: "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
       "bulky-waste-disposal": {title: "대형폐기물 배출방법", purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
       "move-in-report-guidance": {title: "전입신고 안내", purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."},
-      "public-health-center-guidance": {title: "보건소 위치·진료 안내", purpose: "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다."}
+      "public-health-center-guidance": {title: "보건소 위치·진료 안내", purpose: "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다."},
+      "apartment-info": {title: "아파트정보", purpose: "분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다."}
     };
     var meta = ROUTE_METADATA[routeId] || {title: "", purpose: ""};
     if (isDeptJourney && (deptState === "directory" || deptState === "result")) {

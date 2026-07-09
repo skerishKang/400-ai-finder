@@ -70,35 +70,27 @@
         Object.freeze({ message: "실제 외부 신고, 본인인증, 사진·위치·차량번호 입력, 제출은 사용자가 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
-    // #965 — 공동주택 search choreography 강화
-    // 1) focus directory search field
-    // 2) type "공동주택" one char at a time (visible typing)
-    // 3) submit search
-    // 4) results list shown
-    // 5) specific result/contact highlighted
-    // 6) assistant final answer grounded in the left-pane result
+    // #988 — 아파트정보/아파트생활정보 안내 choreography
     "공동주택 관련 문의는 어느 부서에 해야 하나요?": Object.freeze({
-      id: "dept-housing-jdept01-search",
-      description: "공동주택과 담당 부서·전화번호 검색 안내 (J-DEPT-01 재사용 + typing choreography)",
+      id: "apartment-info",
+      description: "아파트정보 아파트현황 및 아파트생활정보 안내 (아파트정보 페이지)",
       steps: Object.freeze([
-        Object.freeze({ message: "Quest: 공동주택 담당부서 찾기. 공동주택 관련 부서를 찾기 위해 업무 및 전화번호 안내를 엽니다.", journeyState: "J-DEPT-01:directory", focusSearch: true, delayMs: 1500 }),
-        Object.freeze({ message: "공식 경로: 북구소개 > 구청안내 > 업무 및 전화번호 안내.", delayMs: 1000 }),
-        Object.freeze({ message: "검색창에 '공동주택'을 입력합니다.", typeQuery: "공동주택", delayMs: 2500 }),
-        Object.freeze({ message: "검색을 실행합니다.", submitSearch: true, delayMs: 2000 }),
-        Object.freeze({ message: "공동주택과 항목을 확인합니다.", delayMs: 1200 }),
-        Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다. STOP_AFTER_RESULT", delayMs: 0 }),
+        Object.freeze({ message: "아파트 정보를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "아파트정보 아파트현황 화면으로 이동합니다.", routeId: "apartment-info", delayMs: 1200 }),
+        Object.freeze({ message: "아파트명, 주소, 세대수, 관리사무소 정보를 확인합니다.", targetId: "apartment-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "하자나 관리비 등 생활정보는 아파트생활정보에서 추가로 확인할 수 있습니다.", targetId: "apartment-life-card", delayMs: 2000 }),
+        Object.freeze({ message: "실제 아파트 정보 확인, 민원 제출, 하자 신청은 사용자가 공식 채널에서 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     "housing_department": Object.freeze({
-      id: "dept-housing-jdept01-search",
-      description: "공동주택과 담당 부서·전화번호 검색 안내 (J-DEPT-01 재사용 + typing choreography)",
+      id: "apartment-info",
+      description: "아파트정보 아파트현황 및 아파트생활정보 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "Quest: 공동주택 담당부서 찾기. 공동주택 관련 부서를 찾기 위해 업무 및 전화번호 안내를 엽니다.", journeyState: "J-DEPT-01:directory", focusSearch: true, delayMs: 1500 }),
-        Object.freeze({ message: "공식 경로: 북구소개 > 구청안내 > 업무 및 전화번호 안내.", delayMs: 1000 }),
-        Object.freeze({ message: "검색창에 '공동주택'을 입력합니다.", typeQuery: "공동주택", delayMs: 2500 }),
-        Object.freeze({ message: "검색을 실행합니다.", submitSearch: true, delayMs: 2000 }),
-        Object.freeze({ message: "공동주택과 항목을 확인합니다.", delayMs: 1200 }),
-        Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다. STOP_AFTER_RESULT", delayMs: 0 }),
+        Object.freeze({ message: "아파트 정보를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "아파트정보 아파트현황 화면으로 이동합니다.", routeId: "apartment-info", delayMs: 1200 }),
+        Object.freeze({ message: "아파트명, 주소, 세대수, 관리사무소 정보를 확인합니다.", targetId: "apartment-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "하자나 관리비 등 생활정보는 아파트생활정보에서 추가로 확인할 수 있습니다.", targetId: "apartment-life-card", delayMs: 2000 }),
+        Object.freeze({ message: "실제 아파트 정보 확인, 민원 제출, 하자 신청은 사용자가 공식 채널에서 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     "bulky_waste": Object.freeze({
