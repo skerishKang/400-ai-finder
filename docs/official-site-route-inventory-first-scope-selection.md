@@ -123,6 +123,10 @@ If an external step is requested, state **allowed hosts/providers** explicitly;
 everything else is deny-by-default. A post-action report is required before any
 future inventory data PR merge.
 
+A ready-to-copy draft of the first local/static scope is in
+[`docs/official-site-route-inventory-first-scope-issue-draft.md`](official-site-route-inventory-first-scope-issue-draft.md)
+(planning-only, no live collection).
+
 ---
 
 ## Relationship to #862 and #873
