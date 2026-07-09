@@ -903,6 +903,11 @@
       splitTimer = null;
     }
 
+    // Clear canvas content so split-state HTML isn't left behind
+    if (canvas) {
+      canvas.innerHTML = '<div class="demo-canvas__inner"><div class="demo-canvas__loading" aria-live="polite">북구청 안내 화면을 준비하는 중…</div></div>';
+    }
+
     body.classList.add("first-use-shell--no-motion");
     setState(STATE_ENTRY);
     renderEntryConversation();

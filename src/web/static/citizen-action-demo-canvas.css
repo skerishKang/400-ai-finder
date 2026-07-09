@@ -1,21 +1,27 @@
 /**
  * citizen-action-demo-canvas.css
  * High-fidelity HTML/CSS reconstruction of Buk-gu Office portal.
- * Reference: actual screenshots (bukgu_home.png, bukgu_menu.png, bukgu_intake.png)
- * Colors: Green #00A651, Blue #0054A6, Red #E60012, DarkBlue #004a99
- * Footer dark: #2c3e50, Utility: #f8f9fa
+ * Font/styling aligned with actual bukgu.gwangju.kr (analyzed 2026-07-10).
+ *
+ * Real site uses self-hosted NotoKR (Noto Sans KR 400/500) + gmk (GmarketSans).
+ * We use Google Fonts Noto Sans KR as the equivalent; nav headings are
+ * rendered at the same sizes/weights/colors as the live portal.
  */
+
+/* Google Fonts: Noto Sans KR (equiv. to site's self-hosted NotoKR) */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
 /* ---------------------------------------------------------------------------
    Base
 --------------------------------------------------------------------------- */
 .bg-page {
-  font-family: 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
-  color: #222;
+  font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  color: #000;
   background: #fff;
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  letter-spacing: -0.3px;
 }
 .bg-page--full {
   margin: -24px -32px;
@@ -54,7 +60,7 @@
 }
 .bg-breadcrumb__sep { color: #aaa; margin: 0 2px; }
 .bg-breadcrumb__item { color: #555; }
-.bg-breadcrumb__item:last-child { color: #222; font-weight: 600; }
+.bg-breadcrumb__item:last-child { color: #000; font-weight: 600; }
 
 /* ---------------------------------------------------------------------------
    Page header (kept from existing)
@@ -149,9 +155,10 @@
 }
 .bg-gnb__item { position: relative; }
 .bg-gnb__link {
-  display: block; padding: 11px 18px; color: #222;
+  display: block; padding: 11px 18px; color: #000;
   text-decoration: none; font-size: 0.875rem; font-weight: 500;
   transition: color 0.12s; white-space: nowrap;
+  letter-spacing: -0.3px;
 }
 .bg-gnb__link:hover { color: #0054a6; }
 .bg-gnb__link--active { color: #0054a6; font-weight: 700; }
@@ -224,8 +231,9 @@
   overflow: hidden; display: flex; flex-direction: column;
 }
 .bg-welcome-title {
-  font-size: 1.375rem; font-weight: 700; color: #1a252f;
+  font-size: 1.375rem; font-weight: 700; color: #000;
   margin: 0 0 4px; line-height: 1.3;
+  letter-spacing: -0.3px;
 }
 .bg-welcome-mayor {
   font-size: 0.8125rem; color: #777; margin: 0 0 14px;
@@ -985,6 +993,8 @@
   font-weight: 700; /* Typo weight */
   color: #333;
   padding: 14px 22px; /* Spacing */
+  font-family: 'Noto Sans KR', sans-serif;
+  letter-spacing: -0.3px;
 }
 .bg-page--home .bg-gnb__link:hover,
 .bg-page--home .bg-gnb__link--active {
@@ -1159,6 +1169,7 @@
   letter-spacing: -0.75px;
   text-decoration: none;
   white-space: nowrap;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 :is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-gnb__link--active { color: #101010; }
 :is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__actions {
@@ -3034,5 +3045,11 @@
 }
 .bg-page--public-health-center .bg-health-footer strong {
   color: #eee;
+}
+
+/* Safety: when inert is set on the demo canvas, hide it visually */
+#demo-canvas[inert] {
+  display: none !important;
+  visibility: hidden;
 }
 
