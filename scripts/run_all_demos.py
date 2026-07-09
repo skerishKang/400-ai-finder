@@ -33,6 +33,16 @@ import sys
 import os
 import threading
 
+# Load environment variables from .env files before any imports that need them.
+# python-dotenv handles both "KEY=value" and "export KEY=value" formats.
+# Load Hermes env first (actual API keys), then project env (resolves ${VAR} refs).
+from dotenv import load_dotenv
+
+_load_dotenv_hermes = load_dotenv('/root/.hermes/.env')
+_load_dotenv_project = load_dotenv(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+)
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
