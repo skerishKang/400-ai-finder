@@ -2236,7 +2236,14 @@
     }
     _currentRouteId = routeId;
     if (_demoCanvas) {
+      // route content fade: fade out, swap html, fade in
+      if (_demoCanvas.style) _demoCanvas.style.opacity = "0";
       _demoCanvas.innerHTML = '<div class="demo-canvas__inner">' + _renderRoute(routeId) + '</div>';
+      // force reflow
+      if (_demoCanvas.style) {
+        void _demoCanvas.offsetHeight;
+        _demoCanvas.style.opacity = "1";
+      }
       _attachDelegation();
     }
   }
