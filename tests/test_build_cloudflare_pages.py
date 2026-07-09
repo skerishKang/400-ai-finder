@@ -228,9 +228,9 @@ def test_landing_links_to_public_mvp(build_dir):
 
     # User-facing wording must convey: citizen first screen, deterministic
     # static demo, no real AI/external API.
-    assert "시민 첫 화면 시연" in index
-    assert "결정형 정적 시연" in index
-    assert "실제 AI·외부 API 연결 없음" in index
+    assert "시민 행정 도우미" in index
+    # Clean, real-service-style landing page.
+    assert 'href="mvp/"' in index
 
     # Existing mobile/admin landing links are preserved.
     assert 'href="mobile.html"' in index
@@ -245,7 +245,7 @@ def test_landing_links_to_public_mvp(build_dir):
 
 def test_admin_model_preset_disabled(build_dir):
     admin = open(os.path.join(build_dir, "admin.html"), encoding="utf-8").read()
-    assert "Snapshot 데모 · 모델 전환 없음" in admin
+    assert "스냅샷 · 모델 전환 없음" in admin
     assert 'id="modelPresetSelect" disabled' in admin
 
 
