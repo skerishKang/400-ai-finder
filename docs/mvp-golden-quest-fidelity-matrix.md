@@ -84,7 +84,7 @@ or unsafe submission-like behavior.
 - **primary official_path**
   `북구청 홈 > 분야별정보 > 환경재활용 > 대형폐기물 배출방법`
 - **related / handoff path**
-  `여기로` app / 북구청 홁페이지 신청 (reflected as handoff note, not a live action)
+  `여기로` app / 북구청 홈페이지 신청 (reflected as handoff note, not a live action)
 - **source_mode**: `local_static`
 - **stop_condition**: `STOP_FOR_USER_CONFIRMATION`
 - **left surface fidelity**
