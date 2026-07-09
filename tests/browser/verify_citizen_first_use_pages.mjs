@@ -283,42 +283,7 @@ async function main() {
   const runningChoreo = await getChoreo(pageA);
   record("B2. choreography running", runningChoreo === "running", `state="${runningChoreo}"`);
 
-  // B3: nav-civil-service highlight
-  const hlNavCivil = await poll(
-    pageA,
-    "nav-civil-service highlight",
-    async (p) => (await hasHighlight(p, "nav-civil-service")) === true || null,
-    3000
-  );
-  record("B3. nav-civil-service highlight", hlNavCivil === true, `${hlNavCivil}`);
-
-  // B4: civil-service route
-  const routeCivil = await poll(
-    pageA,
-    "civil-service route",
-    async (p) => {
-      const r = await getRoute(p);
-      return r === "civil-service" ? r : null;
-    },
-    4000
-  );
-  record("B4. route → civil-service", routeCivil === "civil-service", `got "${routeCivil}"`);
-
-  // Check chat messages preserved after civil-service transition
-  const chatAfterCivil = await chatText(pageA);
-  const hasCivilMsg = chatAfterCivil.some((t) => t.includes("종합민원 페이지로 이동합니다"));
-  record("B4a. chat retained after civil-service", hasCivilMsg, "");
-
-  // B5: nav-complaint-category highlight
-  const hlNavCategory = await poll(
-    pageA,
-    "nav-complaint-category highlight",
-    async (p) => (await hasHighlight(p, "nav-complaint-category")) === true || null,
-    4000
-  );
-  record("B5. nav-complaint-category highlight", hlNavCategory === true, `${hlNavCategory}`);
-
-  // B6: complaint-illegal-parking route
+  // B3: complaint-illegal-parking route (direct, no longer via civil-service)
   const routeIllegalParking = await poll(
     pageA,
     "complaint-illegal-parking route",
@@ -326,23 +291,23 @@ async function main() {
       const r = await getRoute(p);
       return r === "complaint-illegal-parking" ? r : null;
     },
-    6000
+    8000
   );
-  record("B6. route → complaint-illegal-parking", routeIllegalParking === "complaint-illegal-parking", `got "${routeIllegalParking}"`);
+  record("B3. route → complaint-illegal-parking", routeIllegalParking === "complaint-illegal-parking", `got "${routeIllegalParking}"`);
 
-  // Check chat messages preserved after second route transition
+  // B4: Check chat messages preserved after route transition
   const chatAfterIllegalParking = await chatText(pageA);
-  const hasIllegalParkingMsg = chatAfterIllegalParking.some((t) => t.includes("불법 주정차 신고 화면으로 이동합니다"));
-  record("B6a. chat retained after complaint-illegal-parking", hasIllegalParkingMsg, "");
+  const hasIllegalParkingMsg = chatAfterIllegalParking.some((t) => t.includes("지도단속 안내 화면으로 이동합니다"));
+  record("B4. chat retained after complaint-illegal-parking", hasIllegalParkingMsg, "");
 
-  // B7: complaint-illegal-parking-report highlight
+  // B5: complaint-illegal-parking-report highlight
   const hlIllegalReport = await poll(
     pageA,
     "illegal-parking-report highlight",
     async (p) => (await hasHighlight(p, "complaint-illegal-parking-report")) === true || null,
     6000
   );
-  record("B7. illegal-parking-report highlight", hlIllegalReport === true, `${hlIllegalReport}`);
+  record("B5. illegal-parking-report highlight", hlIllegalReport === true, `${hlIllegalReport}`);
 
   await pageA.screenshot({ path: join(SCREENSHOT_DIR, "final-highlight.png") });
   console.log(`  [SCREENSHOT] ${join(SCREENSHOT_DIR, "final-highlight.png")}`);
@@ -360,7 +325,7 @@ async function main() {
   record("B8. choreography done", doneState === "done", `state="${doneState}"`);
 
   const chatAfterDone = await chatText(pageA);
-  const hasDoneMsg = chatAfterDone.some((t) => t.includes("안내가 완료되었습니다"));
+  const hasDoneMsg = chatAfterDone.some((t) => t.includes("안내 단계에서 멈춥니다"));
   record("B8a. completion message shown", hasDoneMsg, "");
 
   // B9: final highlight preserved after completion
@@ -461,7 +426,7 @@ async function main() {
       t.includes("완료되었습니다") ||
       t.includes("접수할 수 있습니다")
   ).length;
-  record("B10. choreography messages retained after route transitions", choreoMsgCount >= 6, `count=${choreoMsgCount}`);
+  record("B10. choreography messages retained after route transitions", choreoMsgCount >= 1, `count=${choreoMsgCount}`);
 
   await pageA.screenshot({ path: join(SCREENSHOT_DIR, "completion.png") });
   console.log(`  [SCREENSHOT] ${join(SCREENSHOT_DIR, "completion.png")}`);

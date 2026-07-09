@@ -49,15 +49,16 @@ def test_illegal_parking_quest_converts_to_valid_action_plan():
     assert plan.quest_name == "불법 주정차 신고 안내"
     assert plan.client_action == "illegal_parking"
     assert plan.official_path == (
-        "종합민원",
-        "민원신고",
-        "불법 주정차 신고",
+        "북구청 홈",
+        "분야별정보",
+        "차량교통",
+        "지도단속",
     )
-    assert plan.result["service"] == "불법 주정차 신고"
-    assert plan.result["surface"] == "불법 주정차 신고 카드"
+    assert plan.result["service"] == "지도단속 안내 / 안전신문고 신고 경로"
+    assert plan.result["surface"] == "지도단속 안내 / 공식 신고 채널 handoff"
     labels = [action.label for action in plan.browser_actions]
-    assert "불법 주정차 신고 화면 이동" in labels
-    assert "불법 주정차 신고 카드 확인" in labels
+    assert "지도단속 안내 화면 이동" in labels
+    assert "안전신문고 신고 경로 안내 확인" in labels
 
 
 def test_illegal_parking_quest_stops_for_user_confirmation_with_warning():
@@ -71,8 +72,8 @@ def test_illegal_parking_quest_stops_for_user_confirmation_with_warning():
     assert "본인인증" in warning_text
     assert "차량번호" in warning_text
     assert "사진" in warning_text
-    assert "위치정보" in warning_text
-    assert "첨부파일" in warning_text
+    assert "위치" in warning_text
+    assert "제출" in warning_text
 
 
 def test_decide_bukgu_quest_action_returns_local_static_housing_decision():

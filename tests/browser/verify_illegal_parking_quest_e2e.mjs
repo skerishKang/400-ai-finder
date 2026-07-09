@@ -1,11 +1,11 @@
 /**
- * Browser E2E verifier for #974 illegal_parking_report_guidance.
+ * Browser E2E verifier for #986 illegal_parking_report_guidance realsite handoff.
  *
  * Usage:
  *   node tests/browser/verify_illegal_parking_quest_e2e.mjs http://127.0.0.1:<port>
  *
  * Screenshots:
- *   /tmp/400-ai-finder-974/illegal-parking-quest-e2e.png
+ *   /tmp/400-ai-finder-986/illegal-parking-quest-e2e.png
  */
 
 import assert from "assert";
@@ -14,7 +14,7 @@ import { join } from "path";
 import { chromium } from "playwright";
 
 const requestedBase = process.argv[2] || "http://127.0.0.1:8080";
-const SCREENSHOT_DIR = "/tmp/400-ai-finder-974";
+const SCREENSHOT_DIR = "/tmp/400-ai-finder-986";
 mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
 function validateOrigin(raw) {
@@ -98,19 +98,23 @@ async function main() {
     { timeout: 12000 },
   );
 
-  await waitForText(page, "#demo-canvas", "불법 주정차 신고");
-  await waitForText(page, "#demo-canvas", "민원신고 > 불법 주정차 신고");
-  await waitForText(page, "#demo-canvas", "북구청 민원신고 (교통과)");
+  await waitForText(page, "#demo-canvas", "차량교통");
+  await waitForText(page, "#demo-canvas", "지도단속");
+  await waitForText(page, "#demo-canvas", "안전신문고");
+  await waitForText(page, "#demo-canvas", "공식 신고 채널");
+  await waitForText(page, "#demo-canvas", "본인인증");
+  await waitForText(page, "#demo-canvas", "사진");
+  await waitForText(page, "#demo-canvas", "위치");
+  await waitForText(page, "#demo-canvas", "차량번호");
   await waitForText(page, "#chat-thread", "불법 주정차 신고 안내");
   await waitForText(page, "#chat-thread", "illegal_parking_report_guidance");
-  await waitForText(page, "#chat-thread", "종합민원 > 민원신고 > 불법 주정차 신고");
-  await waitForText(page, "#chat-thread", "불법 주정차 신고 / 불법 주정차 신고 카드");
+  await waitForText(page, "#chat-thread", "북구청 홈 > 분야별정보 > 차량교통 > 지도단속");
+  await waitForText(page, "#chat-thread", "지도단속 안내 / 안전신문고 신고 경로");
   await waitForText(page, "#chat-thread", "STOP_FOR_USER_CONFIRMATION");
   await waitForText(page, "#chat-thread", "local_static");
   await waitForText(page, "#chat-thread", "본인인증");
   await waitForText(page, "#chat-thread", "차량번호");
-  await waitForText(page, "#chat-thread", "위치정보");
-  await waitForText(page, "#chat-thread", "첨부파일");
+  await waitForText(page, "#chat-thread", "제출");
 
   const evidence = await page.evaluate(() => {
     const card = document.querySelector("#chat-thread .chat-quest-card");
@@ -141,8 +145,8 @@ async function main() {
   assert.strictEqual(evidence.card.questId, "illegal_parking_report_guidance");
   assert.strictEqual(evidence.card.sourceMode, "local_static");
   assert.ok(evidence.card.actionLabels.length >= 2, `expected at least 2 action labels, got ${evidence.card.actionLabels.length}`);
-  assert.ok(evidence.card.actionLabels.includes("불법 주정차 신고 화면 이동"));
-  assert.ok(evidence.card.actionLabels.includes("불법 주정차 신고 카드 확인"));
+  assert.ok(evidence.card.actionLabels.includes("지도단속 안내 화면 이동"));
+  assert.ok(evidence.card.actionLabels.includes("안전신문고 신고 경로 안내 확인"));
   assert.ok(evidence.card.text.includes("STOP_FOR_USER_CONFIRMATION"));
 
   const nonLocal = requests.filter((url) => !isLocalRequest(url));

@@ -1277,49 +1277,53 @@
   function _renderIllegalParking(route) {
     return (
       '<div class="bg-page bg-page--full bg-page--dense bg-page--illegal-parking">' +
-        _renderDenseHeader('civil-service') +
+        _renderDenseHeader('home') +
 
         '<div class="bg-layout--lnb">' +
-          /* LNB */
+          /* LNB — 분야별정보 > 차량교통 > 지도단속 */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
-            '<div class="bg-lnb__header">종합민원</div>' +
+            '<div class="bg-lnb__header">분야별정보</div>' +
             '<ul class="bg-lnb__list">' +
-              '<li class="bg-lnb__item bg-lnb__item--active"><a href="#">종합민원</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">북구 소개</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">행정</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">경제</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">복지</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">문화/관광</a></li>' +
               '<li class="bg-lnb__item bg-lnb__item--open">' +
-                '<a href="#" class="bg-lnb__parent">민원신고</a>' +
+                '<a href="#" class="bg-lnb__parent">차량교통</a>' +
                 '<ul class="bg-lnb__sub">' +
-                  '<li><a href="#">불법 주정차 신고</a></li>' +
-                  '<li><a href="#">도로 및 교통시설 물의 시설 파손</a></li>' +
-                  '<li><a href="#">공용주차장 이용 불편</a></li>' +
-                  '<li><a href="#">각종 안전 위험 시설</a></li>' +
-                  '<li><a href="#">기타 민원</a></li>' +
+                  '<li><a href="#">등록변경민원</a></li>' +
+                  '<li class="bg-lnb__item--active"><a href="#">지도단속</a></li>' +
+                  '<li><a href="#">기타민원</a></li>' +
+                  '<li><a href="#">화물운송신고</a></li>' +
+                  '<li><a href="#">공영주차장</a></li>' +
+                  '<li><a href="#">차량등록민원 대기현황</a></li>' +
                 '</ul>' +
               '</li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">전자민원창구</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민원서식</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">행정서비스 헌장</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">환경재활용</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">건설/안전</a></li>' +
             '</ul>' +
           '</nav>' +
 
-          /* Main content — the directly relevant target card */
+          /* Main content — 지도단속 안내 + 안전신문고 handoff */
           '<main class="bg-content bg-content--sub" id="bg-content-main">' +
-            _renderSubPageHeader("불법 주정차 신고", "불법 주정차 신고는 민원신고를 통해 온라인으로 접수할 수 있습니다.") +
+            _renderSubPageHeader("지도단속", "차량교통 분야의 지도단속 정보를 안내합니다. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다.") +
 
             '<div class="bg-illegal-parking-card" data-action-target="complaint-illegal-parking-report" tabindex="0">' +
               '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🚗</div>' +
               '<div class="bg-illegal-parking-card__body">' +
-                '<h2 class="bg-illegal-parking-card__title">불법 주정차 신고</h2>' +
-                '<p class="bg-illegal-parking-card__desc">민원신고 &gt; 불법 주정차 신고 메뉴에서 위치·사진·내용을 입력해 접수합니다.</p>' +
+                '<h2 class="bg-illegal-parking-card__title">지도단속 안내</h2>' +
+                '<p class="bg-illegal-parking-card__desc">북구청 분야별정보 &gt; 차량교통 &gt; 지도단속 페이지입니다. 실제 불법 주정차 신고 제출은 안전신문고(safetyreport.go.kr) 등 공식 신고 채널에서 사용자가 직접 진행해야 합니다.</p>' +
                 '<ul class="bg-illegal-parking-card__meta">' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">접수처</span> 북구청 민원신고 (교통과)</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">처리기간</span> 접수 즉시 지자체 통보</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">신고방법</span> 온라인 / 북구청 민원신고</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">공식 신고 채널</span> 안전신문고 (safetyreport.go.kr) / 북구청 민원신고</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">신고 필요정보</span> 본인인증, 사진, 위치정보, 차량번호 입력</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">데모 안내</span> 본 데모는 지도단속 경로 안내에서 멈추며, 신고 제출은 사용자가 직접 진행</li>' +
                 '</ul>' +
               '</div>' +
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
             '</div>' +
 
-            '<p class="bg-illegal-parking-note">※ 본 카드는 로컬 시연용이며 실제 신고는 북구청 공식 민원신고 채널을 이용하세요.</p>' +
+            '<p class="bg-illegal-parking-note">※ 본 데모는 로컬 개념 시연(PoC)입니다. 실제 신고 제출, 본인인증, 사진·위치·차량번호 입력, 제출은 사용자가 공식 신고 채널(안전신문고 등)에서 직접 진행해야 합니다. 실제 safetyreport.go.kr 요청은 발생하지 않습니다.</p>' +
           '</main>' +
         '</div>' +
         _renderSubFooter() +
@@ -2099,7 +2103,7 @@
       "complaint-intake": {title: "민원서식", purpose: "민원 업무에 필요한 각종 서식을 검색하고 다운로드할 수 있습니다."},
       "complaint-review": {title: "민원 신청 확인", purpose: "아래 내용을 확인하고 신청해 주세요."},
       "handoff-stop": {title: "데모 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
-      "complaint-illegal-parking": {title: "불법 주정차 신고", purpose: "불법 주정차 차량을 안전신문고 등을 통해 신고하실 수 있습니다."},
+      "complaint-illegal-parking": {title: "지도단속", purpose: "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
       "bulky-waste-disposal": {title: "대형폐기물 배출방법", purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
       "move-in-report-guidance": {title: "전입신고 안내", purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."},
       "public-health-center-guidance": {title: "보건소 위치·진료 안내", purpose: "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다."}

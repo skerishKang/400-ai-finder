@@ -94,12 +94,12 @@
 
     "complaint-illegal-parking": Object.freeze({
       id: "complaint-illegal-parking",
-      title: "불법 주정차 신고",
-      purpose: "불법 주정차 신고는 민원신고를 통해 접수할 수 있습니다.",
+      title: "지도단속",
+      purpose: "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다.",
       navTargets: Object.freeze([
         "complaint-illegal-parking-report",
       ]),
-      breadcrumbLabel: "불법 주정차 신고",
+      breadcrumbLabel: "지도단속",
     }),
 
     "complaint-intake": Object.freeze({

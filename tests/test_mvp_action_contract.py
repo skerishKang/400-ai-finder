@@ -321,8 +321,8 @@ class TestMvpAskEndpoint:
         assert data["action_plan"]["requires_user_confirmation"] is True
         assert data["action_plan"]["final_warning"]["requires_user_confirmation"] is True
         labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
-        assert "불법 주정차 신고 화면 이동" in labels
-        assert "불법 주정차 신고 카드 확인" in labels
+        assert "지도단속 안내 화면 이동" in labels
+        assert "안전신문고 신고 경로 안내 확인" in labels
 
     def test_mvp_ask_housing_department(self, mvp_server):
         port = mvp_server["port"]

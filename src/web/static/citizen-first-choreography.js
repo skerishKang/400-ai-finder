@@ -51,29 +51,23 @@
   var JOURNEY_MAP = Object.freeze({
     "불법 주정차 신고는 어디서 하나요?": Object.freeze({
       id: "complaint-illegal-parking",
-      description: "불법 주정차 신고 민원신고 경로 안내",
+      description: "불법 주정차 신고 경로 안내 (지도단속/안전신문고)",
       steps: Object.freeze([
-        Object.freeze({ message: "민원 신고 경로를 안내해 드리겠습니다.", delayMs: 600 }),
-        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
-        Object.freeze({ message: "민원신고 메뉴에서 불법 주정차 신고 항목을 안내합니다.", targetId: "nav-complaint-category", delayMs: 2000 }),
-        Object.freeze({ message: "불법 주정차 신고 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200 }),
-        Object.freeze({ message: "불법 주정차 신고 카드를 안내합니다. 실제 입력·접수 전 사용자 확인이 필요합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
-        Object.freeze({ message: "안내가 완료되었습니다. 실제 신고 제출, 본인인증, 차량번호·사진·위치정보 입력은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "불법 주정차 신고 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200 }),
+        Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
+        Object.freeze({ message: "실제 외부 신고, 본인인증, 사진·위치·차량번호 입력, 제출은 사용자가 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     // #927 MVP action aliases — same deterministic local clone as above.
     "illegal_parking": Object.freeze({
       id: "complaint-illegal-parking",
-      description: "불법 주정차 신고 민원신고 경로 안내 (MVP action)",
+      description: "불법 주정차 신고 경로 안내 (지도단속/안전신문고, MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "민원 신고 경로를 안내해 드리겠습니다.", delayMs: 600 }),
-        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
-        Object.freeze({ message: "민원신고 메뉴에서 불법 주정차 신고 항목을 안내합니다.", targetId: "nav-complaint-category", delayMs: 2000 }),
-        Object.freeze({ message: "불법 주정차 신고 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200 }),
-        Object.freeze({ message: "불법 주정차 신고 카드를 안내합니다. 실제 입력·접수 전 사용자 확인이 필요합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
-        Object.freeze({ message: "안내가 완료되었습니다. 실제 신고 제출, 본인인증, 차량번호·사진·위치정보 입력은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "불법 주정차 신고 경로를 안내해 드립니다.", delayMs: 600 }),
+        Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200 }),
+        Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
+        Object.freeze({ message: "실제 외부 신고, 본인인증, 사진·위치·차량번호 입력, 제출은 사용자가 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     // #965 — 공동주택 search choreography 강화

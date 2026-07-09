@@ -113,7 +113,6 @@ def test_choreography_has_journey_map_for_supported_question():
     assert "불법 주정차 신고는 어디서 하나요?" in CHOREO
     assert '"complaint-illegal-parking"' in CHOREO
     assert '"nav-civil-service"' in CHOREO
-    assert '"nav-complaint-category"' in CHOREO
     assert '"civil-service"' in CHOREO
     assert 'focusSearch' in CHOREO
     assert '"completed"' not in CHOREO
