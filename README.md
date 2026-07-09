@@ -375,6 +375,11 @@ curl -sI https://cgbukku.pages.dev/admin     # 200
 
 더 자세한 내용은 [`docs/cloudflare-pages-bukgu-mvp.md`](docs/cloudflare-pages-bukgu-mvp.md)를 참고하세요.
 
+### MVP demo docs
+
+- [MVP demo operator runbook](docs/mvp-demo-operator-runbook.md) — how to run, verify, and present the five locked local/static resident-task flows.
+- [MVP golden quest fidelity matrix](docs/mvp-golden-quest-fidelity-matrix.md) — locked quest IDs, official paths, local/static boundaries, stop behavior, E2E verifier references, and prohibited regressions.
+
 ### Operator quickstart
 
 실행 흐름, 데모, smoke eval, live provider 사용법은 다음 문서를 참고하십시오:
