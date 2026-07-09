@@ -54,6 +54,8 @@ jobs:
         run: node tests/browser/verify_mvp_shell_runtime.mjs
 
       - name: Run Cloudflare MVP Function contract test
+        env:
+          RUN_CLOUDFLARE_FUNCTION_CONTRACTS: "1"
         run: node tests/functions/test_cloudflare_mvp_ask_contract.mjs
 
       - name: Check whitespace errors

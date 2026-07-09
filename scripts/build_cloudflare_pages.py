@@ -396,8 +396,14 @@ def build_static_api_shim(snapshot: dict, profile: dict | None, profiles: list[d
     )
 
 
-def build_index_html(profiles: list[dict]) -> str:
-    """Build a static landing page linking to the two demos."""
+def build_index_html(profiles: list[dict], is_live: bool = False) -> str:
+    """Build a static landing page linking to the two demos.
+
+    If *is_live* is True, the MVP card link includes ``?mvp=1`` so that
+    the shell loads the live MVP bridge instead of the query-sanitized
+    static entry.
+    """
+    mvp_href = "mvp/?mvp=1" if is_live else "mvp/"
     profile_items = "".join(
         f"<li><code>{p.get('site_id', '-')}</code> — {p.get('name', '-')}</li>"
         for p in profiles
@@ -427,7 +433,7 @@ def build_index_html(profiles: list[dict]) -> str:
   <h1>400 AI 파인더</h1>
   <div class="sub">북구청 AI 안내 서비스</div>
   <div class="cards">
-    <a class="card" href="mvp/">
+    <a class="card" href="{mvp_href}">
       <h2>시민 행정 도우미</h2>
       <p>질문하면 북구청 안내 화면을 함께 열어 경로를 안내합니다.</p>
     </a>
@@ -612,7 +618,7 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
         print("[build] live mode: skipping snapshot-data.js + static-api-shim.js")
 
     # 5. Emit the landing page.
-    index_html = build_index_html(demo_profiles)
+    index_html = build_index_html(demo_profiles, is_live=(mode == "live"))
     _write_file(os.path.join(dist_root, "index.html"), index_html)
     print("[build] wrote index.html")
 

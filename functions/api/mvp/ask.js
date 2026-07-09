@@ -91,22 +91,26 @@ export async function onRequest(context) {
 
     // Try to parse JSON from the response
     let action = 'none', answer = '', confidence = 0.0;
-    try {
-      const parsed = JSON.parse(content);
+    if (!content) {
+      answer = '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.';
+    } else {
+      try {
+        const parsed = JSON.parse(content);
 
-      // Action allowlist validation — 알 수 없는 action은 'none'으로 강제
-      action = VALID_ACTIONS.includes(parsed.action) ? parsed.action : 'none';
+        // Action allowlist validation — 알 수 없는 action은 'none'으로 강제
+        action = VALID_ACTIONS.includes(parsed.action) ? parsed.action : 'none';
 
-      // Answer blank fail-closed
-      answer = (parsed.answer || '').trim();
-      if (!answer) {
-        answer = '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.';
+        // Answer blank fail-closed
+        answer = (parsed.answer || '').trim();
+        if (!answer) {
+          answer = '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.';
+        }
+
+        // Confidence clamp (0.0 ~ 1.0)
+        confidence = typeof parsed.confidence === 'number' ? Math.max(0, Math.min(1, parsed.confidence)) : 0.0;
+      } catch {
+        answer = content;
       }
-
-      // Confidence clamp (0.0 ~ 1.0)
-      confidence = typeof parsed.confidence === 'number' ? Math.max(0, Math.min(1, parsed.confidence)) : 0.0;
-    } catch {
-      answer = content;
     }
 
     return new Response(JSON.stringify({

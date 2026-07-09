@@ -9,15 +9,15 @@
  * Cloudflare Workers environment via a lightweight mock.
  *
  * Run:
- *   RUN_LIVE_CLOUDFLARE_TESTS=true node tests/functions/test_cloudflare_mvp_ask_contract.mjs
+ *   RUN_CLOUDFLARE_FUNCTION_CONTRACTS=1 node tests/functions/test_cloudflare_mvp_ask_contract.mjs
  *
- * Without the env gate, tests are skipped silently.
+ * Without the env gate, tests are skipped silently (CI sets the flag).
  */
 
-const RUN_LIVE = process.env.RUN_LIVE_CLOUDFLARE_TESTS === 'true';
+const RUN_LIVE = process.env.RUN_CLOUDFLARE_FUNCTION_CONTRACTS === '1';
 
 if (!RUN_LIVE) {
-  console.log('[SKIP] RUN_LIVE_CLOUDFLARE_TESTS not set — skipping Cloudflare Function contract test');
+  console.log('[SKIP] RUN_CLOUDFLARE_FUNCTION_CONTRACTS not set — skipping Cloudflare Function contract test');
   process.exit(0);
 }
 
@@ -32,6 +32,7 @@ function createMockContext(method, body, envOverrides) {
     method,
     headers: new Map(Object.entries(headers)),
     json: async () => (body ? JSON.parse(body) : {}),
+    text: async () => (body ? String(body) : ''),
   };
   const env = { KILOCODE_API_KEY: '', ...envOverrides };
   return { request, env };
@@ -100,6 +101,31 @@ async function assertJsonResponse(description, method, body, expectedChecks, env
 }
 
 // ---------------------------------------------------------------------------
+// Mock fetch helper — replaces globalThis.fetch so the function's upstream
+// LLM API call is intercepted. Each call returns a canned response.
+// ---------------------------------------------------------------------------
+let _originalFetch = null;
+
+function mockFetch(status, body) {
+  _originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
+      json: async () => (typeof body === 'string' ? JSON.parse(body) : body),
+    };
+  };
+}
+
+function restoreFetch() {
+  if (_originalFetch !== null) {
+    globalThis.fetch = _originalFetch;
+    _originalFetch = null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 console.log('\n=== Cloudflare Pages Function /api/mvp/ask Contract Test ===\n');
@@ -149,28 +175,16 @@ await assertJsonResponse('Question over 300 chars returns invalid_input', 'POST'
   confidence: 0.0,
 }, { KILOCODE_API_KEY: 'test-key' });
 
-// 6. action allowlist — the function uses VALID_ACTIONS at parse time;
-//    we verify the allowlist exists by checking the module's behavior.
-//    Since we can't easily test llm output parsing without mocking fetch,
-//    we verify the VALID_ACTIONS list is properly defined.
+// 6. action allowlist — verify the allowlist exists by checking the module's behavior.
 await assert('VALID_ACTIONS constant is defined in module', async () => {
-  // Re-import to check the static constant
   const mod = await import(`file://${FUNCTION_PATH}`);
-  // If the module exports VALID_ACTIONS, check it; otherwise verify via contract
   if (mod.VALID_ACTIONS) {
     if (!Array.isArray(mod.VALID_ACTIONS)) throw new Error('VALID_ACTIONS must be an array');
     if (mod.VALID_ACTIONS.length < 5) throw new Error('VALID_ACTIONS has too few entries');
-  } else {
-    // VALID_ACTIONS is not exported — that's fine, it's file-private.
-    // Just verify the function loads without error.
   }
 });
 
-// 7. confidence clamp — verify the function doesn't crash on extreme values
-//    (LLM output parsing is tested via the python tests; here we just verify
-//     the function contract shape for the known failure modes)
-
-// 8. API key not configured — returns config_error
+// 7. API key not configured — returns config_error
 await assertJsonResponse('No API key returns config_error', 'POST', JSON.stringify({ question: 'test' }), {
   ok: false,
   failure_code: 'config_error',
@@ -180,14 +194,13 @@ await assertJsonResponse('No API key returns config_error', 'POST', JSON.stringi
   model: 'tencent/hy3:free',
 });
 
-// 9. Response shape contract — check all known failure modes return proper JSON
+// 8. Response shape contract — check all known failure modes return proper JSON
 await assertJsonResponse('Invalid JSON body returns ok:false', 'POST', '{invalid json}', {
   ok: false,
 }, { KILOCODE_API_KEY: 'test-key' });
 
-// 10. Question length exact boundary — 300 chars should pass (not block)
+// 9. Question length exact boundary — 300 chars should pass (not block)
 const exact300 = 'a'.repeat(300);
-// With no valid API key, this should hit config_error, not invalid_input
 await assertJsonResponse('Question exactly 300 chars is accepted (not blocked)', 'POST', JSON.stringify({ question: exact300 }), {
   ok: false,
   failure_code: 'config_error',
@@ -198,6 +211,113 @@ await assertJsonResponse('Question 301 chars returns invalid_input', 'POST', JSO
   ok: false,
   failure_code: 'invalid_input',
 }, {});
+
+// ---------------------------------------------------------------------------
+// Mock fetch tests — intercept upstream LLM API calls and verify parsing
+// ---------------------------------------------------------------------------
+console.log('\n--- Mock upstream response tests ---\n');
+
+// 10. Invalid action from LLM is clamped to 'none'
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: JSON.stringify({ action: 'DROP_DATABASE', answer: 'test answer', confidence: 0.8 }) } }],
+  });
+  await assertJsonResponse('Invalid action "DROP_DATABASE" is clamped to none', 'POST', JSON.stringify({ question: 'test' }), {
+    ok: true,
+    action: 'none',
+  }, { KILOCODE_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// 11. Confidence > 1.0 is clamped to 1.0
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: 'test answer', confidence: 999 }) } }],
+  });
+  await assertJsonResponse('Confidence 999 is clamped to 1.0', 'POST', JSON.stringify({ question: 'test' }), {
+    ok: true,
+    confidence: 1.0,
+  }, { KILOCODE_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// 12. Negative confidence is clamped to 0.0
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: 'test answer', confidence: -5 }) } }],
+  });
+  await assertJsonResponse('Confidence -5 is clamped to 0.0', 'POST', JSON.stringify({ question: 'test' }), {
+    ok: true,
+    confidence: 0.0,
+  }, { KILOCODE_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// 13. Empty answer returns fallback message
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: '', confidence: 0.5 }) } }],
+  });
+  await assertJsonResponse('Empty answer returns fallback message', 'POST', JSON.stringify({ question: 'test' }), {
+    ok: true,
+    answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
+  }, { KILOCODE_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// 14. Whitespace-only answer returns fallback message
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: '   ', confidence: 0.5 }) } }],
+  });
+  await assertJsonResponse('Whitespace-only answer returns fallback message', 'POST', JSON.stringify({ question: 'test' }), {
+    ok: true,
+    answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
+  }, { KILOCODE_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// 15. Non-JSON content from LLM is passed through as answer (no crash)
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: 'Hello, I am a helpful assistant. The answer is...' } }],
+  });
+  await assertJsonResponse('Non-JSON LLM response is handled without crash', 'POST', JSON.stringify({ question: 'test' }), {
+    ok: true,
+    provider: 'kilocode',
+  }, { KILOCODE_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// 16. Upstream HTTP error returns upstream_error failure_code
+try {
+  mockFetch(500, { error: 'Internal Server Error' });
+  await assertJsonResponse('Upstream HTTP 500 returns upstream_error', 'POST', JSON.stringify({ question: 'test' }), {
+    ok: false,
+    failure_code: 'upstream_error',
+    action: 'none',
+    confidence: 0.0,
+  }, { KILOCODE_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// 17. No content field in upstream response
+try {
+  mockFetch(200, { choices: [{ message: {} }] });
+  await assertJsonResponse('Empty message content returns fallback answer', 'POST', JSON.stringify({ question: 'test' }), {
+    ok: true,
+    answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
+  }, { KILOCODE_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
 
 // ---------------------------------------------------------------------------
 // Summary

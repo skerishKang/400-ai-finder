@@ -2,7 +2,7 @@
 
 > **기준 문서:** [`live-transition-decision-record.md`](live-transition-decision-record.md) §3  
 > **현재 작업 모드:** **Mode 2 — Provider-assisted LLM answering** (hy3/kilocode, allowlist host = `bukgu.gwangju.kr`)  
-> **리포지토리:** `/root/400-ai-finder` (main SHA: `e96a14b`, clean)  
+> **리포지토리:** `/root/400-ai-finder` (main SHA: `dfe3507`)  
 > **작성일:** 2026-07-10
 
 ---
@@ -20,9 +20,9 @@
 | 7. Rollback plan | ⚠️ **부분 충족** |
 | 8. Test plan split | ✅ **충족** |
 | 9. Report format | ❌ **미충족** |
-| 10. CI / local default | ⚠️ **부분 충족** |
+| 10. CI / local default | ✅ **충족** |
 
-**전체:** 6/10 ✅ 충족, 3/10 ⚠️ 부분 충족, 1/10 ❌ 미충족  
+**전체:** 7/10 ✅ 충족, 2/10 ⚠️ 부분 충족, 1/10 ❌ 미충족  
 **→ Mode 3 (controlled live navigation) 진입 차단:** 게이트 #9 (Report format) 미충족으로 Mode 3 진행 불가.
 
 ---
@@ -74,7 +74,7 @@
 |------|------|------|
 | Closed failure vocabulary | ✅ | `FAILURE_CONFIGURATION`, `FAILURE_TIMEOUT` 등 고정 코드만 노출. `ProviderResult.failure_code`는 절대 raw 예외 텍스트/URL/API 키를 포함하지 않음. |
 | Secret leak tests | ✅ | `test_mvp_failure_codes.py`에서 canary secret(`CANARY_SECRET`, `CANARY_URL`)이 응답에 누출되지 않음을 검증. |
-| API key handling | ✅ | `.env` 파일, Cloudflare Pages secrets(`CF_PAGES_KILOCODE_API_KEY`)로 안전하게 관리. 코드에 API 키 하드코딩 없음. |
+| API key handling | ✅ | `.env` 파일, Cloudflare Pages secrets(`KILOCODE_API_KEY`)로 안전하게 관리. 코드에 API 키 하드코딩 없음. |
 | **종합** | ✅ | 여러 계층의 비밀 보호 조치 구현 및 테스트 완료. |
 
 ---
@@ -164,9 +164,9 @@
 | 항목 | 상태 | 근거 |
 |------|------|------|
 | Default provider = mock | ✅ | `get_provider()` fallback이 `mock`. `.env.example`의 기본값도 `mock`. |
-| No CI workflow config | ❌ | `.github/workflows/` 디렉터리 없음. CI 설정 자체가 없어 "CI가 live network를 요구하지 않음"을 증명할 방법 없음. |
+| CI workflow config exists | ✅ | `.github/workflows/mvp-contracts.yml` 존재, Cloudflare Function test step 있음 (env gate으로 live 테스트와 분리) |
 | Local tests networking-free | ✅ | 모든 기본 pytest가 live network 없이 통과. |
-| **종합** | ⚠️ | 아키텍처는 올바르지만 CI 설정 부재로 공식 검증 불가. CI 설정 추가 시 live network 없이 동작함을 명시적으로 검증할 것. |
+| **종합** | ✅ | CI 설정 완료, live network 없이 동작함을 명시적으로 검증 가능. |
 
 **권장:** `.github/workflows/`에 pytest workflow 추가. `pip install -e . && pytest tests/`를 live env var 없이 실행하여 네트워크 독립성 검증.
 
@@ -183,13 +183,12 @@ Mode 3 (controlled live navigation — click/fetch the real `bukgu.gwangju.kr` s
 | Gate 7 (Rollback plan) | ⚠️ 부분 | Rollback 절차 문서화 |
 | Gate 8 (Test split) | ✅ 충족 | 추가 조치 불필요 |
 | **Gate 9 (Report format)** | **❌ 미충족** | **Post-action report format 정의 및 구현 (Critical)** |
-| Gate 10 (CI/local default) | ⚠️ 부분 | CI workflow 추가 |
+| Gate 10 (CI/local default) | ✅ 충족 | 추가 조치 불필요 |
 
 **Mode 3 진입을 위해 필요한 최소 작업:**
 1. Post-action report format 정의 및 구현 (Gate #9 해소)
 2. Rollback plan 문서화 (Gate #7 해소)
-3. CI workflow 추가로 live network 불필요 검증 (Gate #10 해소)
-4. Mode 3 전환을 위한 scoped issue 생성 (Gate #1 해소)
+3. Mode 3 전환을 위한 scoped issue 생성 (Gate #1 해소)
 
 ---
 
