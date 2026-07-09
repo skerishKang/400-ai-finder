@@ -50,6 +50,9 @@ action navigator work, while staying **resident-task-relevant**.
 | Preserve MVP boundary | Keep the five locked golden quests as **local/static**; inventory does not unlock live demo by default |
 | Decision support | Use collected records later to judge **demo eligibility**, **external handoff**, and **site-affecting risk** |
 
+How to rank and select candidate routes is defined separately in
+[`docs/official-site-route-inventory-prioritization-rubric.md`](official-site-route-inventory-prioritization-rubric.md).
+
 **Illustrative only (already locked in MVP docs — not newly verified here):**
 
 The fidelity matrix already names five primary paths such as
@@ -112,6 +115,9 @@ allowed next steps; they do not authorize execution by themselves.
 Default when unsure: **do-not-demo / unsafe candidate** until reclassified under an
 approved issue.
 
+See [`docs/official-site-route-inventory-prioritization-rubric.md`](official-site-route-inventory-prioritization-rubric.md)
+for the scoring dimensions and bucket assignment that feed this classification.
+
 ---
 
 ## 5. Safety and confidentiality boundary
@@ -143,6 +149,7 @@ the default path.
 | [#862](https://github.com/skerishKang/400-ai-finder/issues/862) | **Primary parent track** — official-site action navigator and live integration |
 | [#873](https://github.com/skerishKang/400-ai-finder/issues/873) | Applies **only** when inventory findings imply production / full-site rebuild decisions |
 | [`docs/official-site-route-inventory-authorization-checklist.md`](official-site-route-inventory-authorization-checklist.md) | Pre-flight authorization checklist to confirm **before** any future inventory collection |
+| [`docs/official-site-route-inventory-prioritization-rubric.md`](official-site-route-inventory-prioritization-rubric.md) | Scoring dimensions and candidate buckets for prioritizing future inventory |
 
 **Summary:**
 
