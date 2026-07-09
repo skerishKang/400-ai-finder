@@ -117,7 +117,7 @@ export async function onRequest(context) {
           { role: 'user', content: q }
         ],
         temperature: 0.1,
-        max_tokens: 300,
+        max_tokens: 500,
       }),
     });
 
