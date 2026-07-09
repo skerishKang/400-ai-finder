@@ -267,7 +267,7 @@ def build_static_api_shim(snapshot: dict, profile: dict | None, profiles: list[d
         "      fallback_used: false,\n"
         "      llm_live: false,\n"
         "      llm_status: 'snapshot',\n"
-        "      llm_label: 'Snapshot 데모',\n"
+        "      llm_label: '스냅샷',\n"
         "      warnings: [],\n"
         "      route: 'site_search',\n"
         "      should_search_site: true,\n"
@@ -285,7 +285,7 @@ def build_static_api_shim(snapshot: dict, profile: dict | None, profiles: list[d
         "      site_id: SNAP.site_id,\n"
         "      site_name: SITE_NAME,\n"
         "      question: question,\n"
-        "      answer: '현재 Cloudflare Pages 정적 시연본은 북구청 스냅샷 기반의 제한된 안내 흐름입니다. 시연 데이터에 포함된 질문으로 다시 확인해 주세요.',\n"
+        "      answer: '현재 북구청 스냅샷 기반 안내입니다. 준비된 질문으로 다시 확인해 주세요.',\n"
         "      sources: [],\n"
         "      search_results: [],\n"
         "      ok: false,\n"
@@ -297,8 +297,8 @@ def build_static_api_shim(snapshot: dict, profile: dict | None, profiles: list[d
         "      fallback_used: false,\n"
         "      llm_live: false,\n"
         "      llm_status: 'snapshot',\n"
-        "      llm_label: 'Snapshot 데모',\n"
-        "      warnings: ['정적 시연 범위 외 질문입니다. (데모 데이터에 포함된 질문만 응답)'],\n"
+        "      llm_label: '스냅샷',\n"
+        "      warnings: ['범위 외 질문입니다. 준비된 질문만 응답 가능합니다.'],\n"
         "      route: 'bounded_demo',\n"
         "      should_search_site: false,\n"
         "      route_confidence: 0.0,\n"
@@ -328,7 +328,7 @@ def build_static_api_shim(snapshot: dict, profile: dict | None, profiles: list[d
         "        llm_label: 'Snapshot 데모',\n"
         "        fetch_provider: PROFILE ? (PROFILE.preferred_fetch_provider || '-') : '-',\n"
         "        demo_fixed: true,\n"
-        "        demo_note: '북구청 단일 정적 시연본 (모델 전환 없음)',\n"
+        "        demo_note: '북구청 단일 스냅샷 (모델 전환 없음)',\n"
         "        snapshot_path: 'tests/fixtures/bukgu_gwangju_demo_snapshot.json'\n"
         "      },\n"
         "      profile: PROFILE || {},\n"
@@ -393,46 +393,38 @@ def build_index_html(profiles: list[dict]) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>400 AI 파인더 — 정적 시연 (Cloudflare Pages)</title>
+<title>400 AI 파인더</title>
 <style>
-  :root {{ --bg:#0f172a; --card:#1e293b; --fg:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; }}
+  :root {{ --bg:#fff; --card:#fafafb; --fg:#0d0d0f; --muted:#9b9ba5; --line:#e6e6ea; }}
   * {{ box-sizing: border-box; }}
-  body {{ margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--fg); }}
-  .wrap {{ max-width: 760px; margin: 0 auto; padding: 48px 20px; }}
-  h1 {{ font-size: 1.8rem; margin: 0 0 8px; }}
-  .sub {{ color: var(--muted); margin-bottom: 32px; }}
-  .cards {{ display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }}
-  .card {{ display:block; background:var(--card); border-radius:14px; padding:22px; text-decoration:none; color:var(--fg); border:1px solid #334155; transition: transform .15s, border-color .15s; }}
-  .card:hover {{ transform: translateY(-3px); border-color: var(--accent); }}
-  .card h2 {{ margin: 0 0 6px; font-size:1.15rem; }}
-  .card p {{ margin:0; color: var(--muted); font-size:.9rem; }}
-  .note {{ margin-top: 32px; padding: 16px; background: var(--card); border-radius:12px; font-size:.85rem; color: var(--muted); }}
-  ul {{ margin: 8px 0 0; padding-left: 18px; }}
-  code {{ color: var(--accent); }}
+  body {{ margin:0; font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR","Apple SD Gothic Neo",sans-serif; background:var(--bg); color:var(--fg); -webkit-font-smoothing:antialiased; }}
+  .wrap {{ max-width: 680px; margin: 0 auto; padding: 60px 20px; }}
+  h1 {{ font-size: 1.6rem; font-weight: 600; letter-spacing:-.02em; margin: 0 0 6px; }}
+  .sub {{ color: var(--muted); margin-bottom: 36px; font-size:.92rem; }}
+  .cards {{ display: grid; gap: 12px; }}
+  .card {{ display:block; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 22px; text-decoration:none; color:var(--fg); transition:background .15s,border-color .15s; }}
+  .card:hover {{ background:#f5f5f7; border-color:#d0d0d5; }}
+  .card h2 {{ margin: 0 0 4px; font-size:1.05rem; font-weight:600; }}
+  .card p {{ margin:0; color: var(--muted); font-size:.88rem; line-height:1.45; }}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🏛️ 400 AI 파인더 — 정적 시연</h1>
-  <div class="sub">북구청 MVP 정적 배포본 · 빌드 시점 스냅샷 기반 · 네트워크 호출 없음</div>
+  <h1>400 AI 파인더</h1>
+  <div class="sub">북구청 AI 안내 서비스</div>
   <div class="cards">
+    <a class="card" href="mvp/">
+      <h2>시민 행정 도우미</h2>
+      <p>질문하면 북구청 안내 화면을 함께 열어 경로를 안내합니다.</p>
+    </a>
     <a class="card" href="mobile.html">
-      <h2>📱 모바일 챗 데모</h2>
-      <p>자연어 질문 → 관련 메뉴 안내</p>
+      <h2>모바일 챗 데모</h2>
+      <p>자연어 질문으로 관련 메뉴를 찾습니다.</p>
     </a>
     <a class="card" href="admin.html">
-      <h2>🖥️ 운영자 화면</h2>
-      <p>사이트 프로필 · 스냅샷 상태 · 질문 테스트</p>
+      <h2>운영자 화면</h2>
+      <p>사이트 프로필 · 질문 테스트 · 상태 확인</p>
     </a>
-    <a class="card" href="mvp/">
-      <h2>🧭 시민 첫 화면 시연</h2>
-      <p>질문 안내와 화면 전환을 체험하는 결정형 정적 시연 · 실제 AI·외부 API 연결 없음</p>
-    </a>
-  </div>
-  <div class="note">
-    이 데모는 빌드 시점에 고정된 북구청 스냅샷(<code>bukgu_gwangju_demo_snapshot.json</code>)에서 생성된
-    결정형 정적 시연입니다. 실제 북구청 사이트·LLM·외부 API 호출은 발생하지 않습니다.
-    <ul>{profile_items}</ul>
   </div>
 </div>
 </body>
@@ -460,27 +452,25 @@ def build_404_html(site_name: str) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>404 — 페이지를 찾을 수 없습니다</title>
 <style>
-  :root {{ --bg:#0f172a; --card:#1e293b; --fg:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; }}
+  :root {{ --bg:#fff; --fg:#0d0d0f; --muted:#9b9ba5; --line:#e6e6ea; }}
   * {{ box-sizing: border-box; }}
-  body {{ margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--fg); }}
-  .wrap {{ max-width: 560px; margin: 0 auto; padding: 80px 20px; text-align:center; }}
-  h1 {{ font-size: 4rem; margin: 0 0 8px; color: var(--accent); }}
+  body {{ margin:0; font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR","Apple SD Gothic Neo",sans-serif; background:var(--bg); color:var(--fg); -webkit-font-smoothing:antialiased; }}
+  .wrap {{ max-width: 480px; margin: 0 auto; padding: 100px 20px; text-align:center; }}
+  h1 {{ font-size: 3.6rem; margin: 0 0 8px; font-weight:600; color:var(--muted); }}
   p {{ color: var(--muted); }}
-  .note {{ margin: 16px 0 32px; font-size:.9rem; }}
-  .btns {{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }}
-  .btn {{ display:inline-block; padding:12px 18px; border-radius:10px; text-decoration:none; color:var(--fg); background:var(--card); border:1px solid #334155; }}
-  .btn:hover {{ border-color: var(--accent); }}
+  .btns {{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:24px; }}
+  .btn {{ display:inline-block; padding:10px 18px; border-radius:18px; text-decoration:none; color:var(--fg); background:var(--bg); border:1px solid var(--line); font-size:.9rem; }}
+  .btn:hover {{ background:#f5f5f7; border-color:#d0d0d5; }}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>404</h1>
   <p>요청하신 페이지를 찾을 수 없습니다.</p>
-  <p class="note">이 페이지는 빌드 시점에 고정된 {site_name} 정적 시연본입니다. 외부 API 호출은 발생하지 않습니다.</p>
   <div class="btns">
-    <a class="btn" href="index.html">시연 홈으로</a>
-    <a class="btn" href="mobile.html">모바일 데모</a>
-    <a class="btn" href="admin.html">운영자 화면</a>
+    <a class="btn" href="index.html">홈으로</a>
+    <a class="btn" href="mobile.html">모바일</a>
+    <a class="btn" href="admin.html">운영자</a>
   </div>
 </div>
 </body>
@@ -520,7 +510,7 @@ def _disable_model_preset_select(html: str) -> str:
         '<select id="modelPresetSelect" disabled '
         'style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); '
         'border-radius: 8px; font-size: .85rem; outline: none; background: #f1f5f9; color: #475569;">'
-        '<option value="snapshot-demo" selected>Snapshot 데모 · 모델 전환 없음</option>'
+        '<option value="snapshot-demo" selected>스냅샷 · 모델 전환 없음</option>'
         "</select>"
     )
     return pattern.sub(replacement, html)
