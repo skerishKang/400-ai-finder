@@ -53,6 +53,10 @@ Fill every field before opening the issue:
 
 If the work mode is unset, the default is **local/static demo replay**.
 
+A concrete filled example for the first local/static scope is in
+[`docs/official-site-route-inventory-first-scope-issue-draft.md`](official-site-route-inventory-first-scope-issue-draft.md)
+(planning-only, no live collection).
+
 ---
 
 ## Checklist block
