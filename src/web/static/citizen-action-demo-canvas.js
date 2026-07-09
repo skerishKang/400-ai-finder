@@ -1980,6 +1980,59 @@
   }
 
   // -----------------------------------------------------------------------
+  // _renderApartmentDept — 공동주택과 (도시관리국) 부서 정보
+  // -----------------------------------------------------------------------
+  function _renderApartmentDept(route) {
+    return (
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--dept-directory">' +
+        _renderDenseHeader("home") +
+
+        '<div class="bg-layout--lnb">' +
+          /* LNB — 북구소개 > 구청안내 > 업무 및 전화번호 안내 */
+          '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
+            '<div class="bg-lnb__header">북구소개</div>' +
+            '<ul class="bg-lnb__list">' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">북구안내</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--expanded">' +
+                '<a href="#" class="bg-lnb__parent">구청안내 <span class="bg-lnb__toggle">−</span></a>' +
+                '<ul class="bg-lnb__sub">' +
+                  '<li class="bg-lnb__item"><a href="#">행정조직</a></li>' +
+                  '<li class="bg-lnb__item bg-lnb__item--active"><a href="#">업무 및 전화번호 안내</a></li>' +
+                  '<li class="bg-lnb__item"><a href="#">부서 대표번호</a></li>' +
+                  '<li class="bg-lnb__item"><a href="#">청사안내</a></li>' +
+                '</ul>' +
+              '</li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">(재)광주북구장학회</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">동 행정복지센터</a></li>' +
+            '</ul>' +
+          '</nav>' +
+
+          /* Main content — 부서 정보 카드 */
+          '<main class="bg-content" role="main">' +
+            '<div class="bg-page-header">' +
+              '<h1 class="bg-page-header__title">업무 및 전화번호 안내</h1>' +
+            '</div>' +
+            '<div class="bg-dept-result" role="region" aria-label="부서 검색 결과">' +
+              '<div class="bg-dept-result__breadcrumb">도시관리국 &gt; 공동주택과</div>' +
+              '<div class="bg-dept-result__card" data-action-target="apartment-dept-card">' +
+                '<h3 class="bg-dept-result__card-title">🏢 공동주택과</h3>' +
+                '<table class="bg-dept-result__table">' +
+                  '<tr><td class="bg-dept-result__label">소속</td><td>도시관리국</td></tr>' +
+                  '<tr><td class="bg-dept-result__label">주요 업무</td><td>공동주택 관리 지원, 하자분쟁조정, 공동주택 보조금 지원, 공동주택 감사</td></tr>' +
+                  '<tr><td class="bg-dept-result__label">위치</td><td>북구청 본관 4층</td></tr>' +
+                  '<tr><td class="bg-dept-result__label">민원 안내</td><td>공동주택 관련 문의 및 상담</td></tr>' +
+                '</table>' +
+              '</div>' +
+              '<p class="bg-dept-result__help">부서 선택 및 직원 검색은 실제 북구청 사이트에서 가능합니다.</p>' +
+            '</div>' +
+          '</main>' +
+        '</div>' +
+        _renderSubFooter() +
+      '</div>'
+    );
+  }
+
+  // -----------------------------------------------------------------------
   // _renderHandoffStop — demo end screen
   // -----------------------------------------------------------------------
   function _renderHandoffStop(route) {
@@ -2187,6 +2240,7 @@
         case "bulky-waste-disposal": html = _renderBulkyWasteDisposal(route); break;
         case "move-in-report-guidance": html = _renderMoveInReportGuidance(route); break;
         case "public-health-center-guidance": html = _renderPublicHealthCenterGuidance(route); break;
+        case "apartment-dept": html = _renderApartmentDept(route); break;
         case "apartment-info": html = _renderApartmentInfo(route); break;
         case "complaint-intake":   html = _renderComplaintIntake(route); break;
         case "complaint-review":   html = _renderComplaintReview(route); break;
@@ -2204,6 +2258,7 @@
       "handoff-stop": {title: "안내 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
       "complaint-illegal-parking": {title: "지도단속", purpose: "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
       "bulky-waste-disposal": {title: "대형폐기물 배출방법", purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
+      "apartment-dept": {title: "공동주택과", purpose: "도시관리국 공동주택과 업무 및 연락처 정보를 안내합니다."},
       "move-in-report-guidance": {title: "전입신고 안내", purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."},
       "public-health-center-guidance": {title: "보건소 위치·진료 안내", purpose: "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다."},
       "apartment-info": {title: "아파트정보", purpose: "분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다."}
