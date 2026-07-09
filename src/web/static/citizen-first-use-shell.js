@@ -803,12 +803,14 @@
       if (token !== _mvpRequestToken) return; // superseded by a newer submit/reset
       if (!bridge || typeof bridge.ask !== "function") {
         setComposerDisabled(false);
+        if (chatInput) chatInput.focus();
         appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
         return;
       }
       bridge.ask(question).then(function (result) {
         if (token !== _mvpRequestToken) return; // late/aborted response ignored
         setComposerDisabled(false);
+        if (chatInput) chatInput.focus();
         // 5. assistant bubble MUST show the server's model answer, but only
         // for an explicit success. Any other result (ok:false, missing,
         // malformed, rejected, or ok:true with a blank answer) fails closed to
@@ -859,6 +861,7 @@
       }).catch(function () {
         if (token !== _mvpRequestToken) return;
         setComposerDisabled(false);
+        if (chatInput) chatInput.focus();
         appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
       });
     });

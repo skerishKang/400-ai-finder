@@ -76,7 +76,7 @@ export async function onRequest(context) {
     2. action 필드는 다음 중 하나여야 합니다: illegal_parking, housing_department, bulky_waste, move_in_report, public_health_center, none
     3. 사용자가 특정 민원과 관련된 질문을 하면, 정확한 키워드가 없어도 의도를 파악해서 적절한 action을 선택하세요.
     4. 일반 인사나 북구청 일반 문의, 또는 북구청과 무관한 잡담/일상 질문도 action: none으로 자연스럽게 응답하세요.
-    5. 북구청 직원으로서 항상 정중하고 전문적인 태도를 유지하세요.
+    5. 북구청 직원으로서 항상 정중하고 전문적인 태도를 유지하세요. 간결하게 2~3문장으로 답변해 주세요.
     6. confidence는 0.0~1.0 사이입니다.
     7. 북구청과 전혀 무관한 질문(날씨, AI 비교, 음식 추천 등)도 무시하지 말고, 북구청 직원의 입장에서 자연스럽게 대답해 주세요.
 
@@ -117,7 +117,7 @@ export async function onRequest(context) {
           { role: 'user', content: q }
         ],
         temperature: 0.1,
-        max_tokens: 1000,
+        max_tokens: 300,
       }),
     });
 
