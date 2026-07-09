@@ -18,8 +18,14 @@ The current MVP demo surface is intentionally narrow:
 |------|----------|
 | Left surface | Buk-gu website-like resident path (menu LNB, breadcrumb-style path, body content that mirrors the official local/static page shape) |
 | Right surface | AI assistant / quest card / action choreography (action-plan quest card) |
-| Flows | Five locked local/static resident-task golden quests (see §2) |
-| Runtime mode | Local / static only |
+| Flows | Five locked local/static resident-task golden quests — the deterministic scripted tier (see §2) |
+| Runtime mode | Local / static only (for the current demo artifact) |
+
+> **Product direction:** the five golden quests are the deterministic scripted
+> tier. The intended product also answers **unknown natural-language questions
+> via an LLM fallback**; the current static artifact does not because its build
+> has no LLM/API/network. That is a deployment constraint, not the final intent.
+> See [`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md).
 
 **Explicitly out of scope for this demo:**
 

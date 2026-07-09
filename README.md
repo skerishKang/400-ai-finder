@@ -379,7 +379,8 @@ curl -sI https://cgbukku.pages.dev/admin     # 200
 
 - [MVP demo operator runbook](docs/mvp-demo-operator-runbook.md) — how to run, verify, and present the five locked local/static resident-task flows.
 - [MVP golden quest fidelity matrix](docs/mvp-golden-quest-fidelity-matrix.md) — locked quest IDs, official paths, local/static boundaries, stop behavior, E2E verifier references, and prohibited regressions.
-- [MVP demo milestone snapshot](docs/mvp-demo-milestone-snapshot.md) — one-page closeout summary of the completed local/static MVP scope, locked quest set, verification references, and deferred live/production epics.
+- [MVP demo milestone snapshot](docs/mvp-demo-milestone-snapshot.md) — one-page closeout summary of the completed local/static MVP scope, locked quest set, verification references, and deferred live/production epics (local/static is the demo surface, not the whole product).
+- [Hybrid scripted + LLM fallback architecture intent](docs/hybrid-scripted-llm-architecture-intent.md) — intended product architecture: five scripted golden quests plus LLM fallback for unknown questions; current static artifact vs intended hybrid product.
 - [Live transition decision record](docs/live-transition-decision-record.md) — decision gate for any future live/provider/API/network, operational integration, or production rebuild work; this document is not live-work authorization.
 - [Official-site route inventory plan](docs/official-site-route-inventory-plan.md) — planning-only schema and classification guide for future #862 route/content inventory; no live collection or inventory dataset is included.
 - [Official-site route inventory workflow index](docs/official-site-route-inventory-workflow-index.md) — planning-only index tying together the route inventory planning docs and workflow order; does not authorize live work.

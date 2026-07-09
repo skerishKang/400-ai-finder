@@ -111,6 +111,17 @@ curl -sI https://cgbukku.pages.dev/admin   # HTTP 200 (from /admin.html 308)
 
 public 정적 HTML은 빌드 커밋 SHA를 노출하지 않습니다. 정확한 SHA는 Cloudflare Pages deployment metadata에서 확인하세요.
 
+## 현재 정적 아티팩트 vs 의도된 제품 아키텍처
+
+이 문서는 **현재 정적 배포본**(빌드 시점 스냅샷, LLM/API/network 없음)을 설명한다.
+범위를 벗어난 질문에 대해 "정적 시연본은 … 제한된 안내 흐름" 응답(bounded-demo)을
+반환하는 것은 **현재 배포 제약**이며, 최종 제품 의도가 아니다. 의도된 제품은
+정해지지 않은 자연어 질문에 대해 **LLM fallback**으로 답하고 가능하면 known
+resident-task flow로 연결한다. 상세는
+[`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md) 참고.
+이 정적 아티팩트가 LLM/API/network를 쓰지 않는다는 사실은 유지되며, 그것이
+제품 전체를 local/static-only로 고정하는 뜻으로 읽혀서는 안 된다.
+
 ## Boundaries
 
 - 이 배포는 **백엔드 없는 결정형 정적 시연**입니다. 기본 검증 흐름은 이 로컬 정적 아티팩트만으로 충분합니다.

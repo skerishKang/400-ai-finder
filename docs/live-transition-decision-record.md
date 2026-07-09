@@ -19,6 +19,7 @@ future live / provider-assisted / operational / production work.
 | Local/static MVP demo milestone | **Complete** (stakeholder-review surface) |
 | Golden quests | Remain **local/static** and **locked** (five quests) |
 | README discoverability | MVP demo docs are exposed under `### MVP demo docs` |
+| LLM fallback intent | Unknown questions are intended to use an LLM fallback (gated intended path, not forbidden) — see [`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md) |
 
 **Entry docs:**
 
@@ -47,7 +48,7 @@ Before any live/provider/API/network work starts, record answers to at least:
 
 **Work modes (pick exactly one per issue):**
 
-1. **local/static demo replay** — no live network (default; current MVP)
+1. **local/static demo replay** — no live network (default; current MVP). The five golden quests stay here permanently.
 2. **provider-assisted reference / inventory** — limited, allowlisted reference collection
 3. **controlled live-dependent experiment** — opt-in live path with stop conditions
 4. **operational integration** — integration against real operational systems (high bar)
@@ -55,6 +56,14 @@ Before any live/provider/API/network work starts, record answers to at least:
 
 Unset mode defaults to **local/static demo replay**. Live modes never become the
 default for CI or unattended runs.
+
+> **LLM fallback is a gated intended path, not a prohibition.** Answering unknown
+> questions via an LLM (e.g. DeepSeek as an intended provider option, placeholders
+> only) is part of the intended product architecture under
+> [#862](https://github.com/skerishKang/400-ai-finder/issues/862). It still
+> requires a separately scoped issue and the gates below; it is simply not part
+> of the local/static demo replay mode. See
+> [`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md).
 
 ---
 
