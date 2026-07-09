@@ -2258,8 +2258,52 @@
     return _demoCanvas.querySelector('[data-action-target="' + targetId + '"]');
   }
 
-  // -----------------------------------------------------------------------
-  // Event delegation
+  // Cursor for choreography click animation
+  var _cursorEl = null;
+
+  function _ensureCursor() {
+    if (_cursorEl) return _cursorEl;
+    if (!_demoCanvas) return null;
+    _cursorEl = document.createElement("div");
+    _cursorEl.className = "choreo-cursor";
+    _cursorEl.innerHTML = '<svg width="18" height="24" viewBox="0 0 18 24" fill="none"><path d="M2 2l4 18 3-8 7-3Z" fill="#ef6a4c" stroke="#fff" stroke-width="1.5"/></svg>';
+    _cursorEl.style.cssText = "position:absolute;z-index:9999;pointer-events:none;opacity:0;transition:opacity 200ms,left 500ms ease,top 500ms ease;";
+    _demoCanvas.appendChild(_cursorEl);
+    return _cursorEl;
+  }
+
+  function showCursorAt(selectorOrEl) {
+    var el = (typeof selectorOrEl === "string") ? _demoCanvas.querySelector(selectorOrEl) : selectorOrEl;
+    if (!el) return;
+    var cursor = _ensureCursor();
+    if (!cursor) return;
+    var rect = el.getBoundingClientRect();
+    var canvasRect = _demoCanvas.getBoundingClientRect();
+    cursor.style.left = (rect.left - canvasRect.left + 4) + "px";
+    cursor.style.top = (rect.top - canvasRect.top - 8) + "px";
+    cursor.style.opacity = "1";
+  }
+
+  function hideCursor() {
+    if (_cursorEl) _cursorEl.style.opacity = "0";
+  }
+
+  function clickAnimation(selectorOrEl) {
+    var el = (typeof selectorOrEl === "string") ? _demoCanvas.querySelector(selectorOrEl) : selectorOrEl;
+    if (!el) return;
+    showCursorAt(el);
+    var cursor = _ensureCursor();
+    if (!cursor) return;
+    // click ripple
+    var ripple = document.createElement("div");
+    ripple.style.cssText = "position:absolute;width:16px;height:16px;border-radius:50%;border:2px solid #ef6a4c;pointer-events:none;animation:choreoClick 600ms ease forwards;";
+    var rect = el.getBoundingClientRect();
+    var canvasRect = _demoCanvas.getBoundingClientRect();
+    ripple.style.left = (rect.left - canvasRect.left + rect.width / 2 - 8) + "px";
+    ripple.style.top = (rect.top - canvasRect.top + rect.height / 2 - 8) + "px";
+    cursor.parentNode.appendChild(ripple);
+    setTimeout(function () { if (ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 700);
+  }
   // -----------------------------------------------------------------------
   var _delegationAttached = false;
 
@@ -2409,6 +2453,9 @@
     navigateToRoute: navigateToRoute,
     getCurrentRouteId: getCurrentRouteId,
     getTargetElement: getTargetElement,
+    showCursorAt: showCursorAt,
+    hideCursor: hideCursor,
+    clickAnimation: clickAnimation,
   });
 
   // -----------------------------------------------------------------------

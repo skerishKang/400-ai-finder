@@ -46,6 +46,8 @@
   //   focusSearch    — true: focus + highlight the directory search input
   //   typeQuery      — string: set value of the directory search input
   //   submitSearch   — true: click the directory search button
+  //   cursorTarget   — CSS selector: move cursor arrow to this element
+  //   clickTarget    — CSS selector: show cursor + click ripple at element
   //   delayMs        — pause before next step; omitted/0 = terminal
   // ═══════════════════════════════════════════════════════════════════
   var JOURNEY_MAP = Object.freeze({
@@ -54,9 +56,9 @@
       description: "불법 주정차 신고 경로 안내 (지도단속/안전신문고)",
       steps: Object.freeze([
         Object.freeze({ message: "불법 주정차 신고 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200 }),
-        Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
-                Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200, cursorTarget: ".bg-illegal-parking-card" }),
+        Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000, clickTarget: ".bg-illegal-parking-card__arrow" }),
+        Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     // #927 MVP action aliases — same deterministic local clone as above.
@@ -65,7 +67,7 @@
       description: "불법 주정차 신고 경로 안내 (지도단속/안전신문고, MVP action)",
       steps: Object.freeze([
         Object.freeze({ message: "불법 주정차 신고 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200 }),
+        Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200, cursorTarget: ".bg-illegal-parking-card" }),
         Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
         Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
       ]),
@@ -398,6 +400,30 @@
         if (btn) {
           btn.click();
         }
+      }
+    }
+
+    // Cursor animation: move cursor to target element
+    if (step.cursorTarget) {
+      var canvas = window.CitizenActionDemoCanvas;
+      if (canvas) {
+        if (canvas.hideCursor) canvas.hideCursor();
+        if (canvas.showCursorAt) {
+          // small delay so route renders before cursor appears
+          setTimeout(function () {
+            canvas.showCursorAt(step.cursorTarget);
+          }, 100);
+        }
+      }
+    }
+
+    // Click animation: show cursor + ripple at target
+    if (step.clickTarget) {
+      var canvas = window.CitizenActionDemoCanvas;
+      if (canvas && canvas.clickAnimation) {
+        setTimeout(function () {
+          canvas.clickAnimation(step.clickTarget);
+        }, 200);
       }
     }
 
