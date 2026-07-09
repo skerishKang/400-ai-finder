@@ -68,6 +68,7 @@ From [`docs/live-transition-decision-record.md`](live-transition-decision-record
 | Full production rebuild / #873 escalation | [#873](https://github.com/skerishKang/400-ai-finder/issues/873) when findings imply production / full-site rebuild |
 | Do-not-demo / unsafe candidate | Document as out-of-demo; do not add golden quest or live demo path |
 | First-scope selection example | [`docs/official-site-route-inventory-first-scope-selection.md`](official-site-route-inventory-first-scope-selection.md) — repo-local/static planning-only selection plan |
+| First local/static seed records | [`docs/official-site-route-inventory-first-local-static-records.md`](official-site-route-inventory-first-local-static-records.md) — local/static seed-record artifact (not live collection; route URLs not collected) |
 
 ---
 

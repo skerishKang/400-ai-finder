@@ -152,6 +152,7 @@ the default path.
 | [`docs/official-site-route-inventory-prioritization-rubric.md`](official-site-route-inventory-prioritization-rubric.md) | Scoring dimensions and candidate buckets for prioritizing future inventory |
 | [`docs/scoped-route-inventory-issue-template.md`](scoped-route-inventory-issue-template.md) | Template for opening a scoped future inventory issue under #862 |
 | [`docs/official-site-route-inventory-workflow-index.md`](official-site-route-inventory-workflow-index.md) | Planning-only index tying together the route inventory planning docs and workflow order |
+| [`docs/official-site-route-inventory-first-local-static-records.md`](official-site-route-inventory-first-local-static-records.md) | First local/static seed records — local/static placeholders; route URLs were not collected |
 
 **Summary:**
 

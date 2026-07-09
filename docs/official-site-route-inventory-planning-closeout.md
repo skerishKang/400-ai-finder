@@ -39,6 +39,7 @@ The planning package is now complete. Each artifact's role:
 | [`docs/official-site-route-inventory-prioritization-rubric.md`](official-site-route-inventory-prioritization-rubric.md) | Scoring dimensions and candidate buckets for prioritizing future inventory |
 | [`docs/scoped-route-inventory-issue-template.md`](scoped-route-inventory-issue-template.md) | Template for opening a scoped future inventory issue under #862 |
 | [`docs/official-site-route-inventory-workflow-index.md`](official-site-route-inventory-workflow-index.md) | Planning-only index tying together the planning docs and workflow order |
+| [`docs/official-site-route-inventory-first-local-static-records.md`](official-site-route-inventory-first-local-static-records.md) | First local/static seed-record artifact (not live inventory collection; route URLs not collected) |
 
 The planning package is **preparation** that lets a future scoped issue be opened
 correctly. It is **not** authorization to execute live work.
