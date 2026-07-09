@@ -82,7 +82,8 @@ For the future real issue opened from this draft:
 - report **changed files** explicitly,
 - keep default tests **offline-capable** (no live network required),
 - allow **no** live/provider/API/network unless explicitly approved and scoped,
-- any future inventory data PR must include the **post-action report**.
+- any future inventory data PR must include the **post-action report** (use
+  [`docs/official-site-route-inventory-post-action-report-template.md`](official-site-route-inventory-post-action-report-template.md)).
 
 ---
 
