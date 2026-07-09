@@ -56,7 +56,7 @@
         Object.freeze({ message: "불법 주정차 신고 경로를 안내해 드립니다.", delayMs: 600 }),
         Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200 }),
         Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
-        Object.freeze({ message: "실제 외부 신고, 본인인증, 사진·위치·차량번호 입력, 제출은 사용자가 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
+                Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     // #927 MVP action aliases — same deterministic local clone as above.
@@ -67,7 +67,7 @@
         Object.freeze({ message: "불법 주정차 신고 경로를 안내해 드립니다.", delayMs: 600 }),
         Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 1200 }),
         Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2000 }),
-        Object.freeze({ message: "실제 외부 신고, 본인인증, 사진·위치·차량번호 입력, 제출은 사용자가 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     // #988 — 아파트정보/아파트생활정보 안내 choreography
@@ -79,7 +79,7 @@
         Object.freeze({ message: "아파트정보 아파트현황 화면으로 이동합니다.", routeId: "apartment-info", delayMs: 1200 }),
         Object.freeze({ message: "아파트명, 주소, 세대수, 관리사무소 정보를 확인합니다.", targetId: "apartment-guidance-card", delayMs: 2000 }),
         Object.freeze({ message: "하자나 관리비 등 생활정보는 아파트생활정보에서 추가로 확인할 수 있습니다.", targetId: "apartment-life-card", delayMs: 2000 }),
-        Object.freeze({ message: "실제 아파트 정보 확인, 민원 제출, 하자 신청은 사용자가 공식 채널에서 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "실제 아파트 정보 확인, 민원 제출, 하자 신청은 사용자가 공식 채널에서 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     "housing_department": Object.freeze({
@@ -90,7 +90,7 @@
         Object.freeze({ message: "아파트정보 아파트현황 화면으로 이동합니다.", routeId: "apartment-info", delayMs: 1200 }),
         Object.freeze({ message: "아파트명, 주소, 세대수, 관리사무소 정보를 확인합니다.", targetId: "apartment-guidance-card", delayMs: 2000 }),
         Object.freeze({ message: "하자나 관리비 등 생활정보는 아파트생활정보에서 추가로 확인할 수 있습니다.", targetId: "apartment-life-card", delayMs: 2000 }),
-        Object.freeze({ message: "실제 아파트 정보 확인, 민원 제출, 하자 신청은 사용자가 공식 채널에서 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "실제 아파트 정보 확인, 민원 제출, 하자 신청은 사용자가 공식 채널에서 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     "bulky_waste": Object.freeze({
@@ -100,7 +100,7 @@
         Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", delayMs: 600 }),
         Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
         Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
-        Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     "침대 매트리스 버리고 싶어요": Object.freeze({
@@ -110,7 +110,7 @@
         Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", delayMs: 600 }),
         Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
         Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
-        Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     "대형폐기물은 어떻게 버리나요?": Object.freeze({
@@ -120,7 +120,7 @@
         Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", delayMs: 600 }),
         Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
         Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
-        Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     "가구 버리려면 어디서 신청해요?": Object.freeze({
@@ -130,7 +130,7 @@
         Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", delayMs: 600 }),
         Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
         Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
-        Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     "매트리스 폐기 신청은 어디서 하나요?": Object.freeze({
@@ -140,7 +140,7 @@
         Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", delayMs: 600 }),
         Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
         Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
-        Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 하므로 데모는 안내 단계에서 멈춥니다. STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
 "move_in_report": Object.freeze({

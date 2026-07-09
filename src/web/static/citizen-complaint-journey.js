@@ -155,7 +155,7 @@
     if (!locLabel || !timeLabel || !sitLabel || !remLabel) { return null; }
 
     var lines = [];
-    lines.push("[검토용 초안 — 로컬 개념 시연]");
+    lines.push("[검토용 초안]");
     lines.push("");
     lines.push("유형: " + catLabel);
     lines.push("");
@@ -164,7 +164,6 @@
     lines.push("- 상황: " + sitLabel);
     lines.push("- 요청: " + remLabel);
     lines.push("");
-    lines.push("(위 내용은 로컬 시연을 위한 검토 초안입니다. 제출 전 확인이 필요합니다.)");
 
     return lines.join("\n");
   }

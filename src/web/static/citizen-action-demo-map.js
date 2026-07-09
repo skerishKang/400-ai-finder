@@ -123,7 +123,7 @@
 
     "handoff-stop": Object.freeze({
       id: "handoff-stop",
-      title: "데모 종료",
+      title: "안내 종료",
       purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요.",
       navTargets: Object.freeze([]),
       breadcrumbLabel: "종료",
