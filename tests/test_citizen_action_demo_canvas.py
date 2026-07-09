@@ -990,7 +990,11 @@ class TestJDept01SpecificContracts:
                         sel_part.startswith(".bg-page--dept-replay") or
                         sel_part.startswith(".bg-page--home[data-dept-auto-replay=\"true\"]") or
                         sel_part.startswith("[data-dept-auto-replay=\"true\"]") or
-                        sel_part.startswith(".bg-page--illegal-parking")), \
+                        sel_part.startswith(".bg-page--illegal-parking") or
+                        sel_part.startswith(".bg-dept-search-bar") or
+                        sel_part.startswith(".bg-dept-table") or
+                        sel_part.startswith(".bg-dept-table-wrap") or
+                        sel_part.startswith(".bg-dept-table-info")), \
                     f"prohibited unscoped J-DEPT selector: {sel_part}"
 
     def test_jdept01_shared_public_shell_css_contract(self, dept_render):

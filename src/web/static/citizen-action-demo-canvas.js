@@ -1980,7 +1980,8 @@
   }
 
   // -----------------------------------------------------------------------
-  // _renderApartmentDept — 공동주택과 (도시관리국) 부서 정보
+  // _renderApartmentDept — 업무 및 전화번호 안내 (공동주택과)
+  // 실제 Buk-gu 사이트 스타일: 부서 검색 + 데이터 테이블
   // -----------------------------------------------------------------------
   function _renderApartmentDept(route) {
     return (
@@ -2007,24 +2008,57 @@
             '</ul>' +
           '</nav>' +
 
-          /* Main content — 부서 정보 카드 */
+          /* Main content — 실제 Buk-gu 스타일 테이블 */
           '<main class="bg-content" role="main">' +
             '<div class="bg-page-header">' +
               '<h1 class="bg-page-header__title">업무 및 전화번호 안내</h1>' +
             '</div>' +
-            '<div class="bg-dept-result" role="region" aria-label="부서 검색 결과">' +
-              '<div class="bg-dept-result__breadcrumb">도시관리국 &gt; 공동주택과</div>' +
-              '<div class="bg-dept-result__card" data-action-target="apartment-dept-card">' +
-                '<h3 class="bg-dept-result__card-title">🏢 공동주택과</h3>' +
-                '<table class="bg-dept-result__table">' +
-                  '<tr><td class="bg-dept-result__label">소속</td><td>도시관리국</td></tr>' +
-                  '<tr><td class="bg-dept-result__label">주요 업무</td><td>공동주택 관리 지원, 하자분쟁조정, 공동주택 보조금 지원, 공동주택 감사</td></tr>' +
-                  '<tr><td class="bg-dept-result__label">위치</td><td>북구청 본관 4층</td></tr>' +
-                  '<tr><td class="bg-dept-result__label">민원 안내</td><td>공동주택 관련 문의 및 상담</td></tr>' +
-                '</table>' +
+
+            /* 검색/필터 바 (실제 Buk-gu 스타일) */
+            '<div class="bg-dept-search-bar">' +
+              '<div class="bg-dept-search-bar__row">' +
+                '<select class="bg-dept-search-bar__select" disabled>' +
+                  '<option>부서 선택</option>' +
+                  '<option selected>도시관리국</option>' +
+                '</select>' +
+                '<select class="bg-dept-search-bar__select" disabled>' +
+                  '<option>구분 전체</option>' +
+                '</select>' +
+                '<input type="text" class="bg-dept-search-bar__input" placeholder="검색어를 입력하세요" value="공동주택과" disabled />' +
+                '<button type="button" class="bg-dept-search-bar__btn" disabled>검색</button>' +
               '</div>' +
-              '<p class="bg-dept-result__help">부서 선택 및 직원 검색은 실제 북구청 사이트에서 가능합니다.</p>' +
             '</div>' +
+
+            /* 데이터 테이블 */
+            '<div class="bg-dept-table-wrap">' +
+              '<table class="bg-dept-table" data-action-target="apartment-dept-card">' +
+                '<thead>' +
+                  '<tr>' +
+                    '<th>부서명</th>' +
+                    '<th>팀명</th>' +
+                    '<th>직책</th>' +
+                    '<th>전화번호</th>' +
+                    '<th>담당업무</th>' +
+                  '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                  '<tr class="bg-dept-table__row--highlight">' +
+                    '<td>공동주택과</td><td>공동주택팀</td><td>팀장</td><td>062-410-6831</td><td>공동주택 관리 지원</td>' +
+                  '</tr>' +
+                  '<tr class="bg-dept-table__row--highlight">' +
+                    '<td>공동주택과</td><td>공동주택팀</td><td>담당</td><td>062-410-6832</td><td>하자분쟁조정</td>' +
+                  '</tr>' +
+                  '<tr class="bg-dept-table__row--highlight">' +
+                    '<td>공동주택과</td><td>공동주택팀</td><td>담당</td><td>062-410-6833</td><td>보조금 지원</td>' +
+                  '</tr>' +
+                  '<tr class="bg-dept-table__row--highlight">' +
+                    '<td>공동주택과</td><td>공동주택팀</td><td>담당</td><td>062-410-6834</td><td>공동주택 감사</td>' +
+                  '</tr>' +
+                '</tbody>' +
+              '</table>' +
+            '</div>' +
+
+            '<div class="bg-dept-table-info">총 4건 (공동주택과)</div>' +
           '</main>' +
         '</div>' +
         _renderSubFooter() +

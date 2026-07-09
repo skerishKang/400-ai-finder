@@ -2339,3 +2339,82 @@
   margin-top: -8px;
 }
 
+/* 업무 및 전화번호 안내 테이블 (Buk-gu real-site style) */
+.bg-dept-search-bar {
+  background: #f5f7fa;
+  border: 1px solid #dce1e8;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+.bg-dept-search-bar__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.bg-dept-search-bar__select {
+  padding: 7px 10px;
+  border: 1px solid #c8d5e6;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.82rem;
+  color: #333;
+  min-width: 110px;
+}
+.bg-dept-search-bar__input {
+  flex: 1;
+  min-width: 140px;
+  padding: 7px 10px;
+  border: 1px solid #c8d5e6;
+  border-radius: 4px;
+  font-size: 0.82rem;
+}
+.bg-dept-search-bar__btn {
+  padding: 7px 16px;
+  background: #2c3e50;
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.bg-dept-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #dce1e8;
+  border-radius: 4px;
+}
+.bg-dept-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.bg-dept-table th {
+  background: #f0f3f7;
+  border-bottom: 2px solid #c8d5e6;
+  padding: 9px 10px;
+  text-align: center;
+  font-weight: 700;
+  color: #333;
+  white-space: nowrap;
+}
+.bg-dept-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e6eaef;
+  text-align: center;
+  color: #444;
+}
+.bg-dept-table__row--highlight {
+  background: #fff8e6;
+}
+.bg-dept-table__row--highlight td {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+.bg-dept-table-info {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #888;
+  text-align: right;
+}
+

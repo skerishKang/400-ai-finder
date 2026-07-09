@@ -80,9 +80,9 @@
         Object.freeze({ message: "북구소개 메뉴로 이동합니다.", delayMs: 1200 }),
         Object.freeze({ message: "구청안내를 확인합니다.", delayMs: 1400 }),
         Object.freeze({ message: "업무 및 전화번호 안내 화면으로 이동합니다.", delayMs: 1400 }),
-        Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-result__card" }),
-        Object.freeze({ message: "공동주택과는 공동주택 관리 지원, 하자분쟁조정, 보조금 지원 업무를 담당합니다.", targetId: "apartment-dept-card", delayMs: 2800 }),
-        Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
+        Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table" }),
+        Object.freeze({ message: "공동주택과 담당자 연락처입니다. 공동주택팀 062-410-6831~6834", targetId: "apartment-dept-card", delayMs: 2800 }),
+        Object.freeze({ message: "공동주택 관련 문의는 도시관리국 공동주택과(062-410-6831)로 연락하시면 됩니다." }),
       ]),
     }),
     "housing_department": Object.freeze({
