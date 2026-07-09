@@ -90,7 +90,7 @@ action 목록: illegal_parking(불법주정차/주차단속), housing_department
           { role: 'user', content: q }
         ],
         temperature: 0.1,
-        max_tokens: 200,
+        max_tokens: 500,
       }),
     });
 
@@ -129,11 +129,8 @@ action 목록: illegal_parking(불법주정차/주차단속), housing_department
         // Confidence clamp (0.0 ~ 1.0)
         confidence = typeof parsed.confidence === 'number' ? Math.max(0, Math.min(1, parsed.confidence)) : 0.0;
       } catch {
-        // JSON 파싱 실패 → fail-closed
-        action = 'none';
-        answer = '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.';
-        confidence = 0.0;
-        failureCode = 'parse_error';
+        // Non-JSON response: use raw content (hy3 may not always output valid JSON)
+        answer = content || '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.';
       }
     }
 
