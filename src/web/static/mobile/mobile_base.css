@@ -1,6 +1,6 @@
 /* ===== CSS Variables ===== */
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Helvetica Neue", sans-serif;
+  --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --font-mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
 
   /* Light theme (DEFAULT) */

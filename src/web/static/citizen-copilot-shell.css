@@ -39,13 +39,14 @@
 }
 
 body {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: 'Noto Sans KR', 'Segoe UI', system-ui, -apple-system, sans-serif;
   background: var(--copilot-canvas-bg);
   color: var(--copilot-text);
   min-height: 100vh;
   display: flex;
   flex-direction: row;
   align-items: stretch;
+  letter-spacing: -0.3px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -478,7 +479,7 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
   background: #fff;
   border-left: 1px solid #e6e6ea;
   overflow: hidden;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  font-family: 'Noto Sans KR', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", sans-serif;
 }
 
 .chat-shell__header {
