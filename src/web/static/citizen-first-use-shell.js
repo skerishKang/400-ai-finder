@@ -58,6 +58,9 @@
   var _questRuntimeResult = null;
 
   function isMvpMode() {
+    // Always enabled when body has data-mvp="1" (set in HTML template for live mode)
+    if (document.body && document.body.getAttribute("data-mvp") === "1") return true;
+    // Fallback: check URL parameter
     if (!window.location || !window.location.search) return false;
     try {
       return new URLSearchParams(window.location.search).get("mvp") === "1";
