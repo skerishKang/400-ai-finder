@@ -1,19 +1,7 @@
-/* #868 current Buk-gu home decorative layer.
+/* #868 current Buk-gu home decorative layer — disabled per 박사님 instruction.
  * Individual approved crop only; never a page-surface screenshot.
  */
 .bg-page--home {
   position: relative;
   isolation: isolate;
-}
-
-.bg-page--home::after {
-  position: absolute;
-  top: 123px;
-  right: 0;
-  z-index: 1;
-  width: 221px;
-  height: 590px;
-  content: "";
-  pointer-events: none;
-  background: url("/static/images/bukgu-current/home-right-building.png") right top / 221px 590px no-repeat;
 }
