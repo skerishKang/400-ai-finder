@@ -239,7 +239,7 @@
   function _runNextAction() {
     if (_index >= _queue.length) {
       _state = "ready";
-      _updateStatus("대기 중");
+      _updateStatus("준비");
       return;
     }
 

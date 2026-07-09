@@ -1,31 +1,45 @@
-"""Build a static Cloudflare Pages demo from the existing Buk-gu MVP.
+"""Build a Cloudflare Pages deployment from the existing Buk-gu MVP.
 
-This script produces ``dist/cloudflare-pages/`` containing a fully static,
-backend-free demo that mirrors the live Python ``src/web`` demos. It is the
-*only* producer of that directory — originals under ``src/web`` are copied
-verbatim and never moved, deleted, or restructured.
+Two modes (``--mode``):
 
-Deterministic by design: the demo answers are baked from the committed Buk-gu
-snapshot fixture (``tests/fixtures/bukgu_gwangju_demo_snapshot.json``) at build
-time. No network, no LLM, no Firecrawl, no requests fetch, no live site call.
+**static** (default)
+    Produces ``dist/cloudflare-pages/`` containing a fully static, backend-free
+    demo that mirrors the live Python ``src/web`` demos. It is the *only*
+    producer of that directory — originals under ``src/web`` are copied verbatim
+    and never moved, deleted, or restructured.
 
-Output layout (all under ``dist/cloudflare-pages/``):
-    index.html            # static landing page linking to the two demos
-    admin.html            # admin_demo.html (template copied + shim injected)
-    mobile.html           # mobile_demo.html (template copied + shim injected)
-    static/               # verbatim copy of src/web/static/
-    snapshot-data.js      # baked snapshot used by the shim
-    static-api-shim.js    # deterministic client-side replacement for /api/*
+    Deterministic by design: the demo answers are baked from the committed
+    Buk-gu snapshot fixture at build time. No network, no LLM, no Firecrawl,
+    no requests fetch, no live site call.
 
-The shim re-declares ``fetch`` so the existing UI code keeps calling
-``/api/ask`` / ``/api/info`` / ``/api/test`` unchanged, but responses come from
-the inlined snapshot. Because the shim is injected immediately after the
-``<body>`` open tag (before the page's own <script> tags), the override is in
-place before any module calls ``fetch``.
+    Output layout (all under ``dist/cloudflare-pages/``):
+        index.html            # static landing page linking to the two demos
+        admin.html            # admin_demo.html (template copied + shim injected)
+        mobile.html           # mobile_demo.html (template copied + shim injected)
+        static/               # verbatim copy of src/web/static/
+        snapshot-data.js      # baked snapshot used by the shim
+        static-api-shim.js    # deterministic client-side replacement for /api/*
 
-Usage::
+    Usage::
 
-    python3 scripts/build_cloudflare_pages.py
+        python3 scripts/build_cloudflare_pages.py
+
+**live**
+    Produces ``dist/cloudflare-pages/`` optimised for deployment behind
+    Cloudflare Pages Functions (``functions/api/mvp/ask.js``). All chat
+    interfaces use the live ``POST /api/mvp/ask`` endpoint instead of the
+    static shim:
+
+      * No ``snapshot-data.js`` or ``static-api-shim.js`` are generated.
+      * The ``?mvp=1`` query string is preserved in the MVP entry so that
+        ``citizen-first-use-shell.js`` loads the MVP bridge.
+      * Mobile chat uses ``/api/mvp/ask`` as its API endpoint.
+      * Neither mobile nor admin pages inject the static shim scripts.
+
+    Usage::
+
+        python3 scripts/build_cloudflare_pages.py --mode live
+
 """
 
 from __future__ import annotations
@@ -267,7 +281,7 @@ def build_static_api_shim(snapshot: dict, profile: dict | None, profiles: list[d
         "      fallback_used: false,\n"
         "      llm_live: false,\n"
         "      llm_status: 'snapshot',\n"
-        "      llm_label: '스냅샷',\n"
+        "      llm_label: '정적 안내',\n"
         "      warnings: [],\n"
         "      route: 'site_search',\n"
         "      should_search_site: true,\n"
@@ -285,7 +299,7 @@ def build_static_api_shim(snapshot: dict, profile: dict | None, profiles: list[d
         "      site_id: SNAP.site_id,\n"
         "      site_name: SITE_NAME,\n"
         "      question: question,\n"
-        "      answer: '현재 북구청 스냅샷 기반 안내입니다. 준비된 질문으로 다시 확인해 주세요.',\n"
+        "      answer: '현재 북구청 안내 정보를 바탕으로 답변드립니다. 준비된 질문으로 다시 확인해 주세요.',\n"
         "      sources: [],\n"
         "      search_results: [],\n"
         "      ok: false,\n"
@@ -297,8 +311,8 @@ def build_static_api_shim(snapshot: dict, profile: dict | None, profiles: list[d
         "      fallback_used: false,\n"
         "      llm_live: false,\n"
         "      llm_status: 'snapshot',\n"
-        "      llm_label: '스냅샷',\n"
-        "      warnings: ['범위 외 질문입니다. 준비된 질문만 응답 가능합니다.'],\n"
+        "      llm_label: '정적 안내',\n"
+        "      warnings: ['준비된 질문 외에는 답변이 어렵습니다. 준비된 질문으로 다시 확인해 주세요.'],\n"
         "      route: 'bounded_demo',\n"
         "      should_search_site: false,\n"
         "      route_confidence: 0.0,\n"
@@ -325,10 +339,10 @@ def build_static_api_shim(snapshot: dict, profile: dict | None, profiles: list[d
         "        recommended_order: '-',\n"
         "        llm_live: false,\n"
         "        llm_status: 'snapshot',\n"
-        "        llm_label: 'Snapshot 데모',\n"
+        "        llm_label: '정적 데이터',\n"
         "        fetch_provider: PROFILE ? (PROFILE.preferred_fetch_provider || '-') : '-',\n"
         "        demo_fixed: true,\n"
-        "        demo_note: '북구청 단일 스냅샷 (모델 전환 없음)',\n"
+        "        demo_note: '북구청 단일 안내 데이터 고정',\n"
         "        snapshot_path: 'tests/fixtures/bukgu_gwangju_demo_snapshot.json'\n"
         "      },\n"
         "      profile: PROFILE || {},\n"
@@ -418,7 +432,7 @@ def build_index_html(profiles: list[dict]) -> str:
       <p>질문하면 북구청 안내 화면을 함께 열어 경로를 안내합니다.</p>
     </a>
     <a class="card" href="mobile.html">
-      <h2>모바일 챗 데모</h2>
+      <h2>모바일 챗 안내</h2>
       <p>자연어 질문으로 관련 메뉴를 찾습니다.</p>
     </a>
     <a class="card" href="admin.html">
@@ -510,7 +524,7 @@ def _disable_model_preset_select(html: str) -> str:
         '<select id="modelPresetSelect" disabled '
         'style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); '
         'border-radius: 8px; font-size: .85rem; outline: none; background: #f1f5f9; color: #475569;">'
-        '<option value="snapshot-demo" selected>스냅샷 · 모델 전환 없음</option>'
+        '<option value="snapshot-demo" selected>정적 안내 · 데이터 고정</option>'
         "</select>"
     )
     return pattern.sub(replacement, html)
@@ -546,7 +560,7 @@ def _write_file(path: str, content: str) -> None:
 # ---------------------------------------------------------------------------
 # Main build
 # ---------------------------------------------------------------------------
-def build(out_dir: str | None = None) -> None:
+def build(out_dir: str | None = None, mode: str = "static") -> None:
     # 1. Refresh dist/cloudflare-pages (build-time only output).
     dist_root = out_dir if out_dir else DIST_ROOT
     if os.path.isdir(dist_root):
@@ -587,12 +601,15 @@ def build(out_dir: str | None = None) -> None:
     site_name = _safe_static_text(site_name)
     print(f"[build] snapshot site_id={site_id}, profile={'loaded' if profile else 'missing'}, site_name={site_name}")
 
-    # 4. Bake snapshot data + shim.
-    snapshot_js = build_snapshot_data_js(snapshot, profile, demo_profiles, site_name)
-    shim_js = build_static_api_shim(snapshot, profile, demo_profiles, site_name)
-    _write_file(os.path.join(dist_root, "snapshot-data.js"), snapshot_js)
-    _write_file(os.path.join(dist_root, "static-api-shim.js"), shim_js)
-    print("[build] wrote snapshot-data.js + static-api-shim.js")
+    # 4. Bake snapshot data + shim (only in static mode).
+    if mode == "static":
+        snapshot_js = build_snapshot_data_js(snapshot, profile, demo_profiles, site_name)
+        shim_js = build_static_api_shim(snapshot, profile, demo_profiles, site_name)
+        _write_file(os.path.join(dist_root, "snapshot-data.js"), snapshot_js)
+        _write_file(os.path.join(dist_root, "static-api-shim.js"), shim_js)
+        print("[build] wrote snapshot-data.js + static-api-shim.js")
+    else:
+        print("[build] live mode: skipping snapshot-data.js + static-api-shim.js")
 
     # 5. Emit the landing page.
     index_html = build_index_html(demo_profiles)
@@ -603,40 +620,79 @@ def build(out_dir: str | None = None) -> None:
     _write_file(os.path.join(dist_root, "404.html"), build_404_html(site_name))
     print("[build] wrote 404.html")
 
-    # 7. Copy + adapt the two demo templates (inject shim, keep originals intact).
+    # 7. Copy + adapt the two demo templates (inject shim in static mode, or
+    #    adapt for live API in live mode; keep originals intact).
     mobile_html = _read_file(os.path.join(TEMPLATES_DIR, "mobile_demo.html"))
     admin_html = _read_file(os.path.join(TEMPLATES_DIR, "admin_demo.html"))
 
-    mobile_snippet = (
-        '<script src="snapshot-data.js"></script>\n'
-        '<script src="static-api-shim.js"></script>'
-    )
-    admin_snippet = (
-        '<script src="snapshot-data.js"></script>\n'
-        '<script src="static-api-shim.js"></script>'
-    )
+    if mode == "static":
+        # Static mode: inject the shim scripts after <body> open.
+        mobile_snippet = (
+            '<script src="snapshot-data.js"></script>\n'
+            '<script src="static-api-shim.js"></script>'
+        )
+        admin_snippet = (
+            '<script src="snapshot-data.js"></script>\n'
+            '<script src="static-api-shim.js"></script>'
+        )
 
-    # Honesty fix: statically substitute the Jinja {{site_name}} token so the
-    # published mobile page shows the real site name, not the literal token.
-    mobile_out = substitute_site_name(mobile_html, site_name)
-    mobile_out = _inject_after_body_open(mobile_out, mobile_snippet)
+        # Honesty fix: statically substitute the Jinja {{site_name}} token so the
+        # published mobile page shows the real site name, not the literal token.
+        mobile_out = substitute_site_name(mobile_html, site_name)
+        mobile_out = _inject_after_body_open(mobile_out, mobile_snippet)
 
-    # Honesty fix: the admin demo is fixed to a single Buk-gu snapshot. Disable
-    # the model-preset select and relabel it (no model switching in static demo).
-    admin_out = _disable_model_preset_select(admin_html)
-    admin_out = _inject_after_body_open(admin_out, admin_snippet)
+        # Honesty fix: the admin demo is fixed to a single Buk-gu snapshot. Disable
+        # the model-preset select and relabel it (no model switching in static demo).
+        admin_out = _disable_model_preset_select(admin_html)
+        admin_out = _inject_after_body_open(admin_out, admin_snippet)
+    else:
+        # Live mode: no shim, use live /api/mvp/ask endpoint.
+        # Substitute {{site_name}} in mobile template.
+        mobile_out = substitute_site_name(mobile_html, site_name)
+        # Change API_ENDPOINT from /api/ask to /api/mvp/ask.
+        mobile_out = mobile_out.replace(
+            "var API_ENDPOINT = '/api/ask';",
+            "var API_ENDPOINT = '/api/mvp/ask';",
+        )
+        # Admin: substitute {{site_name}} and keep model select enabled for live use.
+        admin_out = substitute_site_name(admin_html, site_name)
+        # No shim injection. Admin fetches /api/info and /api/test will fail on
+        # Cloudflare Pages (only /api/mvp/ask is proxied), but that is acceptable
+        # for a developer tool in live mode.
 
     _write_file(os.path.join(dist_root, "mobile.html"), mobile_out)
     _write_file(os.path.join(dist_root, "admin.html"), admin_out)
     print("[build] wrote mobile.html + admin.html (templates copied, shim injected)")
 
-    # 8. Emit a public first-use MVP entry at /mvp/ (backend-free, query-sanitized).
-    mvp_index = os.path.join(dist_root, "mvp", "index.html")
-    _write_file(mvp_index, build_mvp_entry_html())
-    print(f"[build] wrote mvp/index.html (public first-use entry)")
+    # 8. Emit a public first-use MVP entry at /mvp/.
+    #    In static mode: backend-free, query-sanitized (strips ?mvp=1).
+    #    In live mode: keeps ?mvp=1 so the shell loads the MVP bridge.
+    if mode == "static":
+        mvp_index = os.path.join(dist_root, "mvp", "index.html")
+        _write_file(mvp_index, build_mvp_entry_html())
+        print(f"[build] wrote mvp/index.html (public first-use entry, query-sanitized)")
+    else:
+        # Live mode: copy the source template as-is (no query sanitizer) so that
+        # ?mvp=1 persists and citizen-first-use-shell.js loads the live bridge.
+        source = _read_file(os.path.join(STATIC_DIR, "citizen-action-demo.html"))
+        mvp_index = os.path.join(dist_root, "mvp", "index.html")
+        _write_file(mvp_index, source)
+        print(f"[build] wrote mvp/index.html (live entry, ?mvp=1 preserved)")
 
     print(f"[build] done -> {dist_root}")
 
 
 if __name__ == "__main__":
-    build()
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Build Cloudflare Pages deployment from Buk-gu MVP."
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["static", "live"],
+        default="static",
+        help="Build mode: static (offline snapshot, default) or live (LLM-backed)",
+    )
+    args = parser.parse_args()
+    build(mode=args.mode)

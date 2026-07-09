@@ -53,5 +53,8 @@ jobs:
       - name: Run MVP shell runtime harness
         run: node tests/browser/verify_mvp_shell_runtime.mjs
 
+      - name: Run Cloudflare MVP Function contract test
+        run: node tests/functions/test_cloudflare_mvp_ask_contract.mjs
+
       - name: Check whitespace errors
         run: git diff --check

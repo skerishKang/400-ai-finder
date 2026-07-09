@@ -428,7 +428,7 @@
   function _renderAutoReplayControls(step, status) {
     var buttons = [];
     if (step === "ready" || step === "" || status === "ready") {
-      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="start">시연 시작</button>');
+      buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="start">안내 시작</button>');
     } else if (status === "running") {
       buttons.push('<button type="button" class="bg-dept-replay-controls__button" data-auto-replay-action="pause">일시정지</button>');
       buttons.push('<button type="button" class="bg-dept-replay-controls__button bg-dept-replay-controls__button--secondary" data-auto-replay-action="restart">다시 보기</button>');

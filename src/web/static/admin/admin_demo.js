@@ -45,7 +45,7 @@ async function init(){
     const st = d.status || {};
     let statusHtml = '';
     if(s.llm_status) statusHtml += '<span class="tag ' + ((s.llm_live ? 'green' : 'yellow')) + '">' + esc(s.llm_label || s.llm_status) + '</span> ';
-    if(st.snapshot_mode) statusHtml += '<span class="tag blue">Snapshot 모드</span> ';
+    if(st.snapshot_mode) statusHtml += '<span class="tag blue">오프라인 모드</span> ';
     if(st.fallback_used) statusHtml += '<span class="tag yellow">Fallback 사용</span> ';
     if(!st.snapshot_mode && !st.fallback_used) statusHtml += '<span class="tag green">정상</span>';
     document.getElementById('statusInfo').innerHTML = statusHtml || '<span class="tag green">정상</span>';
