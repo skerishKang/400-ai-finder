@@ -7,7 +7,7 @@
 :root {
   --first-use-chat-width: 400px;
   --first-use-entry-chat-width: 640px;
-  --first-use-motion: 360ms;
+  --first-use-motion: 700ms;
   --first-use-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
@@ -33,6 +33,10 @@
   opacity: 1;
   visibility: visible;
   pointer-events: none;
+  transition: opacity 400ms ease;
+}
+.first-use-layout .demo-canvas .demo-canvas__inner {
+  transition: opacity 300ms ease;
 }
 
 .first-use-layout .chat-shell {
@@ -47,7 +51,8 @@
     height var(--first-use-motion) var(--first-use-ease),
     width var(--first-use-motion) var(--first-use-ease),
     border-radius var(--first-use-motion) ease,
-    box-shadow var(--first-use-motion) ease;
+    box-shadow var(--first-use-motion) ease,
+    opacity 400ms ease;
 }
 
 /* Overlay for entry state */
@@ -326,4 +331,16 @@ body.first-use-shell--no-motion .first-use-layout .chat-shell {
 
 .chat-chips[hidden] {
   display: none;
+}
+
+/* Fade-in for chat messages */
+@keyframes chatFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.chat-msg {
+  animation: chatFadeIn 400ms ease both;
+}
+.chat-msg--confirm-run .chat-bubble--ai {
+  animation: chatFadeIn 400ms ease 600ms both;
 }

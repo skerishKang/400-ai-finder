@@ -432,7 +432,7 @@
   function showConfirmRun(question) {
     var displayName = _questDisplayName(question);
     var msgDiv = document.createElement("div");
-    msgDiv.className = "chat-msg chat-msg--ai";
+    msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
     msgDiv.setAttribute("data-msg-type", "confirm-run");
 
     var bubble = document.createElement("div");
