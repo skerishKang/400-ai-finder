@@ -120,7 +120,11 @@ public 정적 HTML은 빌드 커밋 SHA를 노출하지 않습니다. 정확한 
 resident-task flow로 연결한다. 상세는
 [`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md) 참고.
 이 정적 아티팩트가 LLM/API/network를 쓰지 않는다는 사실은 유지되며, 그것이
-제품 전체를 local/static-only로 고정하는 뜻으로 읽혀서는 안 된다.
+제품 전체를 local/static-only로 고정하는 뜻으로 읽혀서는 안 된다. 현재의 exact/static/
+bounded-demo 매칭 동작은 **현재 배포 제약**이고, 의도된 routing model은
+**LLM intent router + fallback**이다. 상세는
+[`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md)
+의 "Question entry and routing model" 섹션 참고.
 
 ## Boundaries
 

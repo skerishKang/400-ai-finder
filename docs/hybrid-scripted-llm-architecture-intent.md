@@ -41,6 +41,34 @@ questions are permanently bounded-demo only.
 
 ---
 
+## Question entry and routing model
+
+The intended product accepts questions through **two entry paths**, but both
+resolve through the **same routing contract**:
+
+| Entry path | How it arrives |
+|------------|----------------|
+| Preset / example button | A resident taps a predefined example/preset question (e.g. one of the five golden quests or a suggested prompt) |
+| Free-form chat input | A resident types an arbitrary natural-language question into the chat shell |
+
+**Both entry paths apply the same routing contract:**
+
+1. **LLM intent understanding / routing** — the question is interpreted by the
+   LLM intent router, not by exact string matching alone.
+2. **Known resident-task intent** → routed to the **deterministic scripted
+   simulation** (the five local/static golden quests, `STOP_FOR_USER_CONFIRMATION`).
+3. **Unknown / general intent** → routed to a **direct LLM answer fallback**,
+   which answers and, where possible, connects the resident to a known
+   resident-task flow or a Run / confirm approval step.
+
+The current static Cloudflare artifact does **not** run this LLM intent router:
+its exact/static/bounded-demo matching is a **current deployment constraint**
+(the static build has no LLM / API / network). The **intended routing model is
+the LLM intent router + fallback**, gated under
+[#862](https://github.com/skerishKang/400-ai-finder/issues/862).
+
+---
+
 ## Provider intent (DeepSeek)
 
 - **DeepSeek is an intended provider option** and may be documented as such.
