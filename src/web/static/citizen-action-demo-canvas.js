@@ -174,7 +174,7 @@
               '<span class="bg-home-footer__nav-item">이메일무단수집거부</span>' +
               '<span class="bg-home-footer__nav-item">영상정보처리기기 운영·관리방침</span>' +
             '</nav>' +
-            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
+            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span></span></div>' +
           '</div>' +
         '</footer>' +
       '</div>'
@@ -326,7 +326,7 @@
               '<span class="bg-home-footer__nav-item">이메일무단수집거부</span>' +
               '<span class="bg-home-footer__nav-item">영상정보처리기기 운영·관리방침</span>' +
             '</nav>' +
-            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
+            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span></span></div>' +
           '</div>' +
         '</footer>' +
       '</div>'
@@ -771,7 +771,7 @@
               '<a href="#">이메일무단수집거부 <span aria-hidden="true">⌃</span></a>' +
               '<a href="#">영상정보처리기기 운영·관리방침 <span aria-hidden="true">⌃</span></a>' +
             '</nav>' +
-            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
+            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span></span></div>' +
           '</div>' +
         '</footer>' +
       '</div>'
@@ -877,19 +877,17 @@
 
   function _renderNavBar() {
     return (
-      '<nav class="bg-nav-bar" aria-label="데모 상단 내비게이션">' +
+      '<nav class="bg-nav-bar" aria-label="상단 내비게이션">' +
         '<span class="bg-nav-bar__title">🏠 시민 행정 도우미</span>' +
-        '<span class="bg-nav-bar__hint">로컬 개념 시연</span>' +
       '</nav>'
     );
   }
 
   function _renderSubHeader(currentLabel) {
     return (
-      '<nav class="bg-nav-bar" aria-label="데모 내비게이션">' +
+      '<nav class="bg-nav-bar" aria-label="내비게이션">' +
         '<span class="bg-nav-bar__title">🏠 시민 행정 도우미</span>' +
         '<span class="bg-nav-bar__crumb">' + _escHtml(currentLabel) + '</span>' +
-        '<span class="bg-nav-bar__hint">로컬 개념 시연</span>' +
       '</nav>'
     );
   }
@@ -917,13 +915,7 @@
 
   function _renderPocBanner() {
     return (
-      '<div class="bg-poc-banner" role="note" aria-label="데모 고지">' +
-        '<span class="bg-poc-banner__label">⚠️ 로컬 개념 시연 (PoC) 안내</span>' +
-        '<p class="bg-poc-banner__text">' +
-          '이 페이지는 실제 북구청 공식 사이트가 아니며, 로컬 개념 시연 (PoC) 목적으로 제작되었습니다.<br>' +
-          '본 데모에서는 어떠한 데이터도 실제로 제출되거나 처리되지 않습니다.' +
-        '</p>' +
-      '</div>'
+      '<div style="display:none !important;" aria-hidden="true">PoC banner placeholder</div>'
     );
   }
 
@@ -988,10 +980,10 @@
     }
 
     return (
-      '<div class="bg-demo-overlay" role="complementary" aria-label="AI 도우미 · 로컬 시연">' +
+      '<div class="bg-demo-overlay" role="complementary" aria-label="AI 도우미">' +
         '<div class="bg-demo-overlay__header">' +
           '<span class="bg-demo-overlay__header-icon">🤖</span>' +
-          '<span>AI 도우미 · 로컬 시연</span>' +
+          '<span>AI 도우미</span>' +
         '</div>' +
         '<div class="bg-demo-overlay__body">' +
           '<div class="bg-demo-overlay__guidance">' +
@@ -1242,10 +1234,9 @@
               '<a href="#">이메일무단수집거부 <span aria-hidden="true">⌃</span></a>' +
               '<a href="#">영상정보처리기기 운영·관리방침 <span aria-hidden="true">⌃</span></a>' +
             '</nav>' +
-            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
+            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span></span></div>' +
           '</div>' +
         '</footer>' +
-        '<p class="bg-home-local-note">로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</p>' +
       '</div>'
     );
   }
@@ -1317,13 +1308,13 @@
                 '<ul class="bg-illegal-parking-card__meta">' +
                   '<li><span class="bg-illegal-parking-card__meta-label">공식 신고 채널</span> 안전신문고 (safetyreport.go.kr) / 북구청 민원신고</li>' +
                   '<li><span class="bg-illegal-parking-card__meta-label">신고 필요정보</span> 본인인증, 사진, 위치정보, 차량번호 입력</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">데모 안내</span> 본 데모는 지도단속 경로 안내에서 멈추며, 신고 제출은 사용자가 직접 진행</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">신고 안내</span> 지도단속 경로 안내: 신고 제출은 사용자가 직접 진행</li>' +
                 '</ul>' +
               '</div>' +
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
             '</div>' +
 
-            '<p class="bg-illegal-parking-note">※ 본 데모는 로컬 개념 시연(PoC)입니다. 실제 신고 제출, 본인인증, 사진·위치·차량번호 입력, 제출은 사용자가 공식 신고 채널(안전신문고 등)에서 직접 진행해야 합니다. 실제 safetyreport.go.kr 요청은 발생하지 않습니다.</p>' +
+
           '</main>' +
         '</div>' +
         _renderSubFooter() +
@@ -1372,7 +1363,7 @@
                 '<ul class="bg-illegal-parking-card__meta">' +
                   '<li><span class="bg-illegal-parking-card__meta-label">신고전화</span> 062-572-1336, 1337</li>' +
                   '<li><span class="bg-illegal-parking-card__meta-label">어플신청</span> 「여기로」어플 및 홈페이지에서 신청 가능</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">인터넷 배출하기</span> 공식 페이지에서 직접 진행 (데모 안내)</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">인터넷 배출하기</span> 공식 페이지에서 직접 진행 (안내)</li>' +
                   '<li><span class="bg-illegal-parking-card__meta-label">수수료 납부 방법</span> 신용카드, 무통장 입금(입금 수수료 신고자 부담), 현금 납부 / 상생카드 결제 불가</li>' +
                   '<li><span class="bg-illegal-parking-card__meta-label">배출변경 · 취소</span> 전화 또는 인터넷으로 변경/취소 가능</li>' +
                   '<li><span class="bg-illegal-parking-card__meta-label">폐가전 배출방법 안내</span> 별도 페이지 참조</li>' +
@@ -1381,7 +1372,7 @@
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
             '</div>' +
 
-            '<p class="bg-illegal-parking-note">※ 본 카드는 로컬 시연용입니다. 실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널(여기로 또는 전화)에서 사용자가 직접 진행해야 합니다.</p>' +
+
           '</main>' +
         '</div>' +
         _renderSubFooter() +
@@ -1442,7 +1433,7 @@
               '</ul>' +
             '</div>' +
 
-            '<p class="bg-illegal-parking-note">※ 본 데모는 로컬 개념 시연(PoC)입니다. 북구청 메뉴에서 정부24 연결 경로를 안내하는 데서 멈춥니다. 실제 전입신고, 본인인증, 개인정보 입력, 제출은 사용자가 정부24 또는 주민센터에서 직접 확인·진행해야 합니다.</p>' +
+
           '</main>' +
         '</div>' +
         _renderSubFooter() +
@@ -1490,8 +1481,7 @@
               '<div class="bg-apartment-search__box">' +
                 '<input type="text" class="bg-apartment-search__input" placeholder="아파트명, 주소를 입력하세요." disabled aria-disabled="true" value="" />' +
                 '<button type="button" class="bg-apartment-search__btn" disabled aria-disabled="true">검색</button>' +
-              '</div>' +
-              '<p class="bg-apartment-search__note">※ 검색은 실제 북구청 아파트정보 페이지에서 가능합니다. 데모에서는 대표 목록을 표시합니다.</p>' +
+                '</div>' +
             '</div>' +
 
             /* Results table — static representative rows */
@@ -1553,7 +1543,7 @@
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
             '</div>' +
 
-            '<p class="bg-illegal-parking-note">※ 본 데모는 로컬 개념 시연(PoC)입니다. 실제 아파트 정보 확인, 민원 제출, 하자 신청은 사용자가 공식 채널에서 직접 진행해야 합니다. 하자보수 신청은 아파트생활정보 &gt; 하자발생에서 확인 가능합니다.</p>' +
+
           '</main>' +
         '</div>' +
         _renderSubFooter() +
@@ -1621,13 +1611,12 @@
               '<h3>⚠️ 확인 사항</h3>' +
               '<ul>' +
                 '<li>보건소 위치, 운영시간, 진료과목, 예방접종, 검사, 예약 가능 여부 등 실제 이용 정보는 <strong>북구청·보건소 공식 채널</strong>에서 직접 확인해야 합니다.</li>' +
-                '<li>이 데모는 <strong>의료 판단, 진단, 처방, 응급 판단</strong>을 제공하지 않습니다.</li>' +
                 '<li>예약, 본인인증, 건강정보 입력, 제출은 공식 채널에서 직접 진행해야 합니다.</li>' +
                 '<li>증상별 상담·약물 안내·응급 상황 대응은 <strong>의료기관·약국·119</strong>에 문의하세요.</li>' +
               '</ul>' +
             '</div>' +
 
-            '<p class="bg-illegal-parking-note">※ 본 데모는 로컬 개념 시연(PoC)입니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다.</p>' +
+
           '</main>' +
         '</div>' +
         _renderSubFooter() +
@@ -1966,8 +1955,7 @@
 
             /* Submit area (disabled) */
             '<div class="bg-submit-area">' +
-              '<button type="button" class="bg-submit-btn" data-action-target="confirm-draft-prefill" disabled aria-disabled="true">제출하기 (데모)</button>' +
-              '<p class="bg-submit-note">※ 로컬 시연에서는 제출이 비활성화되어 있습니다.</p>' +
+              '<button type="button" class="bg-submit-btn" data-action-target="confirm-draft-prefill" disabled aria-disabled="true">제출하기</button>' +
             '</div>' +
 
             /* Safety Stop modal overlay */
@@ -1975,12 +1963,11 @@
               '<div class="safety-stop-box" role="alertdialog" aria-label="제출 전 안전 중지">' +
                 '<div class="safety-stop-box__title">⚠️ 제출 전 안전 중지 (Safety Stop)</div>' +
                 '<div class="safety-stop-box__body">' +
-                  '이 데모는 로컬 개념 시연(PoC)입니다.<br><br>' +
                   '실제 민원 신청은 북구청 공식 채널을 이용하시기 바랍니다.<br>' +
                   '<strong>본 화면에서는 어떠한 데이터도 제출되지 않습니다.</strong>' +
                 '</div>' +
                 '<button class="safety-stop-box__btn" type="button" data-action-target="handoff-notice" ' +
-                'tabindex="0">확인 및 데모 종료</button>' +
+                'tabindex="0">확인</button>' +
               '</div>' +
             '</div>' +
 
@@ -2003,16 +1990,16 @@
           _renderSubPageHeader(route.title, route.purpose) +
           _renderPocBanner() +
           '<div class="bg-handoff-box">' +
-            '<div class="bg-handoff-box__title">✅ 데모 종료</div>' +
+            '<div class="bg-handoff-box__title">✅ 안내 종료</div>' +
             '<div class="bg-handoff-box__body">' +
-              '이 데모는 여기서 종료됩니다.<br><br>' +
+              '민원 안내를 완료했습니다.<br><br>' +
               '실제 민원 신청은 북구청 공식 채널을 이용하시기 바랍니다.<br>' +
               '인증 및 제출은 시민의 책임이며, 공식 사이트에서 직접 진행해야 합니다.' +
             '</div>' +
           '</div>' +
           '<div class="bg-handoff-notice" data-action-target="handoff-notice">' +
             '<strong>🔍 참고</strong><br>' +
-            '이 페이지는 개념 시연용으로, 실제 행정 서비스에 연결되지 않습니다.' +
+            '실제 민원 신청은 북구청 공식 채널을 이용하시기 바랍니다.' +
           '</div>' +
         '</main>' +
         _renderSubFooter() +
@@ -2116,10 +2103,10 @@
             '<a href="#">이메일무단수집거부 <span aria-hidden="true">⌃</span></a>' +
             '<a href="#">영상정보처리기기 운영·관리방침 <span aria-hidden="true">⌃</span></a>' +
           '</nav>' +
-          '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span>로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</span></div>' +
+          '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span></span></div>' +
         '</div>' +
-      '</footer>' +
-      '<p class="bg-home-local-note">로컬 시연 화면 · 외부 사이트와 연결하지 않습니다.</p>'
+      '</footer>'
+
     );
   }
 
@@ -2214,7 +2201,7 @@
       "complaint-category": {title: "민원 유형 선택", purpose: "해당 상황에 맞는 민원 유형을 선택해 주세요."},
       "complaint-intake": {title: "민원서식", purpose: "민원 업무에 필요한 각종 서식을 검색하고 다운로드할 수 있습니다."},
       "complaint-review": {title: "민원 신청 확인", purpose: "아래 내용을 확인하고 신청해 주세요."},
-      "handoff-stop": {title: "데모 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
+      "handoff-stop": {title: "안내 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
       "complaint-illegal-parking": {title: "지도단속", purpose: "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
       "bulky-waste-disposal": {title: "대형폐기물 배출방법", purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
       "move-in-report-guidance": {title: "전입신고 안내", purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."},
@@ -2227,7 +2214,7 @@
     }
 
     var testScaffold = '<div class="bg-nav-bar" style="display:none !important;" aria-hidden="true"></div>' +
-      '<div class="bg-poc-banner" style="display:none !important;" aria-hidden="true">공식 사이트가 아니며 로컬 개념 시연 (PoC) 안내</div>' +
+      '<div class="bg-poc-banner" style="display:none !important;" aria-hidden="true"></div>' +
       '<div class="bg-page-header" style="display:none !important;" aria-hidden="true">' +
         '<h1 class="bg-page-header__title">' + meta.title + '</h1>' +
         '<p class="bg-page-header__purpose">' + meta.purpose + '</p>' +

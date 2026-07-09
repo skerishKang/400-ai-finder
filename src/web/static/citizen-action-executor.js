@@ -36,7 +36,7 @@
     "stop_for_confirmation": "사용자의 확인이 필요하여 동작을 멈춥니다.",
   });
 
-  var PREFILL_TEXT = "본 시연을 위해 자동으로 생성된 민원 초안 내용입니다. 실제 제출 시에는 상세 내용을 직접 입력하셔야 합니다.";
+  var PREFILL_TEXT = "자동으로 생성된 민원 초안 내용입니다. 실제 제출 시에는 상세 내용을 직접 입력하셔야 합니다.";
   var EXECUTION_DELAY = 1200;
 
   // -----------------------------------------------------------------------
@@ -269,7 +269,7 @@
     }
 
     if (action.action_type === ACTION_TYPES.STOP) {
-      _updateStatus("시연 종료");
+      _updateStatus("안내 종료");
       _markTraceDone(li);
       _markTraceOutcome(li, "stopped");
       _index++;
@@ -401,7 +401,7 @@
 
     var plan = _normalizePlan(rawPlan);
     if (!plan) {
-      _handleBlocked("시연 계획을 실행할 수 없습니다.");
+      _handleBlocked("실행할 수 없습니다.");
       return;
     }
 
@@ -446,9 +446,9 @@
     _queue = [];
     _index = 0;
     _state = "cancelled";
-    _updateStatus("시연이 취소되었습니다.");
+    _updateStatus("취소되었습니다.");
     if (_dom.trace) {
-      var li = _appendTrace(-1, "취소", "사용자에 의해 시연이 취소되었습니다.", "cancelled");
+      var li = _appendTrace(-1, "취소", "사용자에 의해 취소되었습니다.", "cancelled");
       if (li) _markTraceDone(li);
     }
     if (_dom.btnPause) _dom.btnPause.style.display = "inline-block";

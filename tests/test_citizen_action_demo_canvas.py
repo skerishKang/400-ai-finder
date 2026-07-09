@@ -348,19 +348,11 @@ class TestRouteStructure:
 
 
 # ---------------------------------------------------------------------------
-# PoC disclosure content
+# Safety disclosure content (removed PoC/demo explicit language per 박사님
+# instruction; should still mention authentication responsibility)
 # ---------------------------------------------------------------------------
 
-class TestPocDisclosure:
-    def test_disclosure_mentions_not_official(self):
-        html = _read_static("citizen-action-demo.html")
-        js = _read_static("citizen-action-demo-canvas.js")
-        css = _read_static("citizen-action-demo-canvas.css")
-        combined = html + js + css
-        assert "공식" in combined or "official" in combined.lower()
-        assert "데모" in combined
-        assert "PoC" in combined or "로컬" in combined or "시연" in combined
-
+class TestSafetyDisclosure:
     def test_disclosure_mentions_authentication_responsibility(self):
         html = _read_static("citizen-action-demo.html")
         js = _read_static("citizen-action-demo-canvas.js")
@@ -473,7 +465,7 @@ class TestRuntimeRender:
             "complaint-category": {"title": "민원 유형 선택", "purpose": "해당 상황에 맞는 민원 유형을 선택해 주세요."},
             "complaint-intake": {"title": "민원서식", "purpose": "민원 업무에 필요한 각종 서식을 검색하고 다운로드할 수 있습니다."},
             "complaint-review": {"title": "민원 신청 확인", "purpose": "아래 내용을 확인하고 신청해 주세요."},
-            "handoff-stop": {"title": "데모 종료", "purpose": "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
+            "handoff-stop": {"title": "안내 종료", "purpose": "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
         }
 
         for route_id in EXPECTED_ROUTE_IDS:
@@ -502,12 +494,8 @@ class TestRuntimeRender:
                 assert meta["title"] in html, f"route {route_id} missing expected title: {meta['title']}"
                 assert meta["purpose"] in html, f"route {route_id} missing expected purpose: {meta['purpose']}"
 
-            # 4. PoC Banner (sub-pages only; home is the portal page)
-            if route_id != "home":
-                assert 'class="bg-poc-banner"' in html or 'class="canvas-poc-banner"' in html, \
-                    f"route {route_id} missing PoC banner"
-                assert "로컬 개념 시연 (PoC) 안내" in html, f"route {route_id} missing PoC label"
-                assert "공식 사이트가 아니며" in html, f"route {route_id} missing PoC disclaimer"
+            # 4. PoC Banner removed per 박사님 instruction (real-site look)
+            # No longer present — sub-pages render without PoC banner.
 
             # 5. Content
             assert 'class="bg-content' in html or 'class="canvas-body"' in html or 'class="bg-page"' in html, \
@@ -716,7 +704,7 @@ class TestFidelityAndSeparation:
         """Ensure no 'AI 도우미 · 로컬 시연' overlay strings exist in public LEFT viewports."""
         for rid in ["home", "complaint-category", "complaint-intake"]:
             html = rendered_routes[rid]
-            assert "AI 도우미 · 로컬 시연" not in html
+            assert "AI 도우미" not in html
             assert "🏠 시민 행정 도우미" not in html
             assert "불법 주정차 신고 관련" not in html
 
