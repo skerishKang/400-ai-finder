@@ -2377,14 +2377,24 @@
 
   function clickAnimation(selectorOrEl) {
     var el = (typeof selectorOrEl === "string") ? document.querySelector(selectorOrEl) : selectorOrEl;
-    if (!el) return;
+    if (!el) {
+      // eslint-disable-next-line no-console
+      if (typeof console !== "undefined" && console.warn) console.warn("[clickAnimation] element not found:", selectorOrEl);
+      return;
+    }
+    var rect = el.getBoundingClientRect();
+    // Guard: skip if element has zero dimensions (hidden, not yet laid out)
+    if (!rect || (rect.width === 0 && rect.height === 0)) {
+      // eslint-disable-next-line no-console
+      if (typeof console !== "undefined" && console.warn) console.warn("[clickAnimation] element has zero dimensions:", selectorOrEl, rect);
+      return;
+    }
     showCursorAt(el);
     var cursor = _ensureCursor();
     if (!cursor) return;
     // click ripple
     var ripple = document.createElement("div");
     ripple.style.cssText = "position:fixed;width:20px;height:20px;border-radius:50%;border:2.5px solid #ef6a4c;pointer-events:none;animation:choreoClick 600ms ease forwards;z-index:99999;";
-    var rect = el.getBoundingClientRect();
     ripple.style.left = (rect.left + rect.width / 2 - 10) + "px";
     ripple.style.top = (rect.top + rect.height / 2 - 10) + "px";
     document.body.appendChild(ripple);
