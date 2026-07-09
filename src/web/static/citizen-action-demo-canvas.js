@@ -1292,10 +1292,12 @@
               '<li class="bg-lnb__item bg-lnb__item--open">' +
                 '<a href="#" class="bg-lnb__parent">차량교통</a>' +
                 '<ul class="bg-lnb__sub">' +
-                  '<li><a href="#">교통안전</a></li>' +
+                  '<li><a href="#">등록변경민원</a></li>' +
                   '<li class="bg-lnb__item--active"><a href="#">지도단속</a></li>' +
-                  '<li><a href="#">주차장 안내</a></li>' +
-                  '<li><a href="#">불법 주정차 신고</a></li>' +
+                  '<li><a href="#">기타민원</a></li>' +
+                  '<li><a href="#">화물운송신고</a></li>' +
+                  '<li><a href="#">공영주차장</a></li>' +
+                  '<li><a href="#">차량등록민원 대기현황</a></li>' +
                 '</ul>' +
               '</li>' +
               '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">환경재활용</a></li>' +
