@@ -1977,7 +1977,7 @@
                 '<div class="safety-stop-box__body">' +
                   '이 데모는 로컬 개념 시연(PoC)입니다.<br><br>' +
                   '실제 민원 신청은 북구청 공식 채널을 이용하시기 바랍니다.<br>' +
-                  '<strong>본 화면에서는 어떠한 데이터도 제출되지 않습니다.</strong>' +
+                  '<strong>민원 내용을 확인한 뒤 공식 채널에서 신청을 진행하세요.</strong>' +
                 '</div>' +
                 '<button class="safety-stop-box__btn" type="button" data-action-target="handoff-notice" ' +
                 'tabindex="0">확인 및 데모 종료</button>' +
