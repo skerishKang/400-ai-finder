@@ -327,16 +327,15 @@ def test_shell_reset_invalidates_pending_mvp_and_cancels_bridge():
 def test_choreography_has_mvp_action_journeys():
     assert '"illegal_parking"' in CHOREO
     assert '"housing_department"' in CHOREO
-    assert '"apartment-info"' in CHOREO
+    assert '"apartment-dept"' in CHOREO
 
 
 def test_choreography_housing_reuses_approved_facts():
-    """housing_department must provide apartment info guidance,
+    """housing_department must provide 공동주택과 guidance,
     not invent new data or contacts."""
-    assert "아파트명" in CHOREO
-    assert "세대수" in CHOREO
-    assert "관리사무소" in CHOREO
-    assert "아파트생활정보" in CHOREO
+    assert "공동주택과" in CHOREO
+    assert "도시관리국" in CHOREO
+    assert "하자분쟁조정" in CHOREO
 
 
 def test_choreography_applies_journey_state_in_step_execution():
