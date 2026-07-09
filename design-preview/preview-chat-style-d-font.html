@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatGPT톤 · 단색 · 폰트 맞춤</title>
+<style>
+  :root{
+    --ink:#0d0d0f; --muted:#9b9ba5; --line:#e6e6ea;
+    --bub:#f4f4f6; --voice:#ef6a4c;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  /* ChatGPT 윈도우 폴백과 동일 순서: Segoe UI 우선 */
+  body{margin:0;background:#fff;
+    font-family:ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    color:var(--ink);display:flex;flex-direction:column;
+    -webkit-font-smoothing:antialiased;}
+  .topbar{display:flex;align-items:center;gap:10px;padding:14px 20px;
+    border-bottom:1px solid #f0f0f3;}
+  .topbar .name{font-weight:600;font-size:.95rem;}
+  .topbar .tag{margin-left:auto;font-size:.72rem;color:var(--muted);}
+
+  .center{flex:1;display:grid;place-items:center;padding:24px;}
+  .stage{width:100%;max-width:680px;}
+  .greet{text-align:center;font-size:1.6rem;font-weight:600;
+    letter-spacing:-.02em;margin-bottom:26px;color:var(--ink);}
+  .box{border:1px solid var(--line);border-radius:26px;padding:14px 16px;
+    background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.04);}
+  .box .row{display:flex;align-items:center;gap:10px;}
+  .box .add{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);
+    display:grid;place-items:center;cursor:pointer;font-size:1.1rem;color:var(--ink);flex:0 0 auto;}
+  .box .inp{flex:1;border:0;outline:none;font:inherit;font-size:1rem;
+    color:var(--ink);background:transparent;padding:8px 4px;}
+  .box .inp::placeholder{color:var(--muted);}
+  .box .tools{display:flex;align-items:center;gap:8px;margin-left:auto;}
+  .box .chip-tool{border:1px solid var(--line);border-radius:14px;padding:6px 10px;
+    font-size:.78rem;color:var(--muted);cursor:pointer;background:#fff;}
+  .box .voice{width:32px;height:32px;border-radius:50%;border:0;cursor:pointer;
+    background:var(--voice);color:#fff;display:grid;place-items:center;font-size:.8rem;}
+
+  .actions{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+  .act{border:1px solid var(--line);border-radius:20px;padding:9px 15px;
+    font-size:.85rem;color:var(--ink);background:#fff;cursor:pointer;}
+  .act:hover{background:#fafafb;}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="name">북구청 AI 민원 안내</div>
+    <div class="tag">정적 시연 · 안내</div>
+  </div>
+
+  <div class="center">
+    <div class="stage">
+      <div class="greet">무엇이든 편하게 시작해 보세요.</div>
+
+      <div class="box">
+        <div class="row">
+          <div class="add">+</div>
+          <input class="inp" placeholder="민원에 대해 물어보세요">
+          <div class="tools">
+            <span class="chip-tool">높음</span>
+            <span class="chip-tool">음성</span>
+            <button class="voice">●</button>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="act">불법 주정차 신고</div>
+        <div class="act">공동주택 부서 문의</div>
+        <div class="act">대형폐기물 배출</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
