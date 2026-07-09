@@ -13,14 +13,14 @@
 --------------------------------------------------------------------------- */
 :root {
   --copilot-rail-width: 280px;
-  --copilot-bg: #f8f9fc;
-  --copilot-header-bg: #2c3e50;
-  --copilot-header-color: #ecf0f1;
-  --copilot-section-border: #dde2ec;
-  --copilot-text: #2c3e50;
-  --copilot-muted: #7f8c9a;
-  --copilot-active: #2980b9;
-  --copilot-active-bg: #eaf3fb;
+  --copilot-bg: #fff;
+  --copilot-header-bg: #fff;
+  --copilot-header-color: #0d0d0f;
+  --copilot-section-border: #e6e6ea;
+  --copilot-text: #0d0d0f;
+  --copilot-muted: #9b9ba5;
+  --copilot-active: #0d0d0f;
+  --copilot-active-bg: #f4f4f6;
   --copilot-confirm-approve-bg: #27ae60;
   --copilot-confirm-cancel-bg: #c0392b;
   --copilot-choice-btn-bg: #ecf0f1;
@@ -475,32 +475,34 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f8f9fc;
-  border-left: 1px solid #dde2ec;
+  background: #fff;
+  border-left: 1px solid #e6e6ea;
   overflow: hidden;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
 }
 
 .chat-shell__header {
-  background: #2c3e50;
-  color: #ecf0f1;
-  padding: 12px 16px;
+  background: #fff;
+  color: #0d0d0f;
+  padding: 14px 18px;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  border-bottom: 1px solid #e6e6ea;
 }
 .chat-shell__title {
-  font-weight: 700;
-  font-size: 0.9375rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
 }
 .chat-shell__badge {
-  background: #27ae60;
-  color: #fff;
-  font-size: 0.625rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 3px;
-  text-transform: uppercase;
+  background: #eef0f3;
+  color: #8e8ea0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
 }
 
 /* Conversation thread */
@@ -526,10 +528,10 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 }
 
 .chat-avatar {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: #2c3e50;
+  background: #0d0d0f;
   color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -541,22 +543,22 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 }
 
 .chat-bubble {
-  padding: 10px 14px;
-  font-size: 0.8125rem;
-  line-height: 1.5;
+  padding: 12px 15px;
+  font-size: 0.95rem;
+  line-height: 1.55;
   max-width: 85%;
   word-break: break-word;
 }
 .chat-bubble--user {
-  background: #d4e6f7;
-  color: #1a252f;
-  border-radius: 14px 14px 4px 14px;
+  background: #f4f4f6;
+  color: #0d0d0f;
+  border-radius: 18px 18px 4px 18px;
 }
 .chat-bubble--ai {
-  background: #fff;
-  color: #2c3e50;
-  border: 1px solid #e0e4ec;
-  border-radius: 14px 14px 14px 4px;
+  background: #f4f4f6;
+  color: #0d0d0f;
+  border: 0;
+  border-radius: 18px 18px 18px 4px;
 }
 
 /* Compact progress indicator */
@@ -596,8 +598,8 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 
 /* Chat composer */
 .chat-composer {
-  border-top: 1px solid #dde2ec;
-  padding: 10px 12px;
+  border-top: 1px solid #e6e6ea;
+  padding: 12px 14px 14px;
   background: #fff;
   flex-shrink: 0;
 }
@@ -609,27 +611,29 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 .chat-composer__input {
   flex: 1;
   border: 1px solid #c8d5e6;
-  border-radius: 20px;
-  padding: 8px 14px;
-  font-size: 0.8125rem;
-  color: #2c3e50;
-  background: #f8f9fc;
+  border-radius: 22px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  color: #0d0d0f;
+  background: #fff;
   outline: none;
+  font-family: inherit;
 }
 .chat-composer__input:focus {
-  border-color: #2980b9;
+  border-color: #0d0d0f;
   background: #fff;
 }
 .chat-composer__send {
-  background: #2980b9;
+  background: #ef6a4c;
   color: #fff;
   border: none;
-  border-radius: 20px;
-  padding: 8px 18px;
-  font-size: 0.8125rem;
+  border-radius: 22px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  font-family: inherit;
 }
 .chat-composer__send:disabled,
 .chat-composer__input:disabled {
@@ -638,7 +642,7 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 }
 .chat-composer__hint {
   margin: 6px 0 0;
-  font-size: 0.6875rem;
-  color: #aab8c2;
+  font-size: 0.72rem;
+  color: #9b9ba5;
   text-align: center;
 }
