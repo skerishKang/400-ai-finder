@@ -37,7 +37,7 @@ Follow these steps for any future route/content inventory planning:
 3. **Use** [`docs/official-site-route-inventory-prioritization-rubric.md`](official-site-route-inventory-prioritization-rubric.md) — score and bucket candidates.
 4. **Complete** [`docs/official-site-route-inventory-authorization-checklist.md`](official-site-route-inventory-authorization-checklist.md) — pre-flight authorization before any collection.
 5. **Open** future work from [`docs/scoped-route-inventory-issue-template.md`](scoped-route-inventory-issue-template.md) — a scoped issue with all required fields.
-6. **Attach** the required post-action report (per the plan's §7) before any future inventory data PR merge.
+6. **Attach** the required post-action report (use [`docs/official-site-route-inventory-post-action-report-template.md`](official-site-route-inventory-post-action-report-template.md)) before any future inventory data PR merge.
 
 When the planning package is complete, see the
 [`docs/official-site-route-inventory-planning-closeout.md`](official-site-route-inventory-planning-closeout.md)

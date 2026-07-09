@@ -100,8 +100,9 @@ do-not-demo / unsafe candidate until reclassified under an approved issue.
 - Default CI / local tests remain **offline-capable**.
 - Live/provider validation is **separate and opt-in only**.
 - A **post-action report** (per
-  [`docs/official-site-route-inventory-plan.md`](official-site-route-inventory-plan.md) §7) is
-  required before any future inventory data PR merge.
+  [`docs/official-site-route-inventory-plan.md`](official-site-route-inventory-plan.md) §7, using
+  [`docs/official-site-route-inventory-post-action-report-template.md`](official-site-route-inventory-post-action-report-template.md))
+  is required before any future inventory data PR merge.
 
 ---
 
