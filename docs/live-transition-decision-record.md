@@ -1,14 +1,16 @@
 # Live Transition Decision Record
 
-Decision gate between the completed **local/static MVP demo closeout** and any
-future live / provider-assisted / operational / production work.
+Decision gate between the **local/static MVP demo** and the **intended live /
+provider-assisted product** — official-site action navigator + live
+integration (epic #862).
 
-> **This document is not live-work authorization.**  
-> Recording a decision here (or linking this file) does **not** approve live
-> provider calls, network fetch, crawling, external navigation, Firecrawl, API
-> usage, form submission, authentication, payment, site-affecting actions, or
-> production deployment. Those require a separately scoped issue plus explicit
-> approval where required below.
+> **Live integration is the intended product direction, not a prohibition.**
+> The MVP demo surface defaults to local/static for safe stakeholder review, but
+> the product goal is an AI that answers resident questions and **actually
+> navigates the real Buk-gu site** (click, fetch, return the answer). Live
+> provider calls are gated by this record for *operational safety*, not forbidden.
+> The earlier "no live" framing in this doc was over-built by an assistant model
+> and has been corrected to match the actual product intent.
 
 ---
 
@@ -16,97 +18,91 @@ future live / provider-assisted / operational / production work.
 
 | Item | Status |
 |------|--------|
-| Local/static MVP demo milestone | **Complete** (stakeholder-review surface) |
-| Golden quests | Remain **local/static** and **locked** (five quests) |
-| README discoverability | MVP demo docs are exposed under `### MVP demo docs` |
-| LLM intent router + fallback intent | Unknown/general questions are intended to route via an **LLM intent router** to a deterministic scripted simulation (known intent) or a direct LLM answer fallback (unknown intent). Gated intended path, not forbidden — see [`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md) |
+| Local/static MVP demo | **Complete** (stakeholder-review surface) |
+| Golden quests | Remain **local/static** and **locked** (five quests) for the demo surface |
+| LLM intent router + fallback | **Intended product path — now being enabled** |
+| Approved live provider | **`tencent/hy3:free` via `kilocode`** (already configured in operator environment) |
+| Backend live path | `/api/mvp/ask` already supports live provider with fail-closed sanitized diagnostics (#930/#931) |
 
-**Entry docs:**
+Entry docs:
 
 - [`docs/mvp-demo-milestone-snapshot.md`](mvp-demo-milestone-snapshot.md) — one-page closeout
 - [`docs/mvp-demo-operator-runbook.md`](mvp-demo-operator-runbook.md) — run / verify / present
 - [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md) — fidelity contract
 
-The current demo is **not** a production rebuild and **not** a live official-site
-integration. Default CI and local tests must continue to pass **without** live
-network.
+The current demo is **not** a production rebuild, but **live LLM answering is
+the next enabled capability**, not a forbidden one.
 
 ---
 
 ## 2. Decision needed before live work
 
-Before any live/provider/API/network work starts, record answers to at least:
+These are **lightweight** — most are already resolved by product intent:
 
 | Decision | What to record |
 |----------|----------------|
-| Repository role | Does this repo remain **MVP/demo only**, or will production work live here? |
-| Production rebuild home | Does full production rebuild stay in this repo, or move to a **separate repo**? |
-| Work mode | Which mode is in use for the next issue/PR? (choose one; do not mix silently) |
-| Explicit user approval | Is **explicit user approval** required before live/API/network execution? |
-| External-request authority | Who/what is allowed to make external requests (human operator, named script, CI job, never-by-default)? |
-| Post-action report | What must be reported after any controlled live action? |
+| Repository role | MVP/demo surface **and** live product co-exist in this repo |
+| Work mode | Provider-assisted live LLM answering (hy3/kilocode) is **enabled** |
+| Explicit user approval | Required before any live/API/network execution (operator-gated) |
+| External-request authority | Named script with hy3/kilocode provider only; allowlist host = `bukgu.gwangju.kr` |
+| Post-action report | What was fetched / called (host, method/purpose, outcome) — without confidential payloads |
 
-**Work modes (pick exactly one per issue):**
+**Work modes (pick per issue):**
 
-1. **local/static demo replay** — no live network (default; current MVP). The five golden quests stay here permanently.
-2. **provider-assisted reference / inventory** — limited, allowlisted reference collection
-3. **controlled live-dependent experiment** — opt-in live path with stop conditions
-4. **operational integration** — integration against real operational systems (high bar)
-5. **full production rebuild** — product/repo/deploy rebuild track (high bar)
+1. **local/static demo replay** — no live network (default for CI; five golden quests stay here)
+2. **provider-assisted LLM answering** — hy3/kilocode, allowlisted host
+3. **controlled live navigation** — click/fetch the real site (operator-approved, bounded)
+4. **operational integration** — integration against real operational systems
+5. **full production rebuild** — product/repo/deploy rebuild track
 
-Unset mode defaults to **local/static demo replay**. Live modes never become the
-default for CI or unattended runs.
+Unset mode defaults to **local/static demo replay** for CI only. Live modes
+never become the default for unattended CI runs, but they are **first-class
+product paths**, not exceptions.
 
-> **LLM intent router + fallback is a gated intended path, not a prohibition.**
+> **LLM intent router + hy3 fallback is the intended path, now being enabled.**
 > Routing resident questions via an LLM intent router to a deterministic
-> scripted simulation (known intent) or a direct LLM answer fallback (unknown
-> intent) — with DeepSeek as an intended provider option, placeholders only — is
-> part of the intended product architecture under
-> [#862](https://github.com/skerishKang/400-ai-finder/issues/862). It still
-> requires a separately scoped issue and the gates below; it is simply not part
-> of the local/static demo replay mode. See
-> [`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md).
+> scripted simulation (known intent) or a direct hy3 answer fallback (unknown
+> intent) is part of the intended product architecture under
+> [#862](https://github.com/skerishKang/400-ai-finder/issues/862).
 
 ---
 
-## 3. Transition gates before any live-dependent PR
+## 3. Transition gates (operational guardrails, not hard blocks)
 
-A live-dependent PR (or issue that enables live work) must clear **all** of the
-following gates before merge/execution:
+A live-dependent PR must clear the following. These are **guardrails**, not
+walls — they exist to keep live execution safe and reportable, not to prevent
+live work.
 
 | Gate | Requirement |
 |------|-------------|
-| Explicit issue scope | Named issue with purpose, in/out of scope, and chosen work mode |
-| Public / confidentiality boundary | No confidential business / client / person details in public docs, issues, PRs, logs, fixtures |
-| Allowed host / provider list | Explicit allowlist; everything else is deny-by-default |
+| Explicit issue scope | Named issue with purpose, in/out of scope, chosen work mode |
+| Confidentiality boundary | No confidential business / client / person details in public docs, issues, PRs, logs, fixtures |
+| Allowed host / provider | **hy3/kilocode** provider; allowlist host = `bukgu.gwangju.kr` |
 | No secret leakage | No secrets in repo, logs, artifacts, screenshots, or PR text |
-| No uncontrolled crawling | No open-ended crawl; inventory/collection is bounded and listed |
+| No uncontrolled crawling | No open-ended crawl; navigation is bounded and listed |
 | No site-affecting action | No form submission / authentication / payment / receipt / completion unless **separately** approved and scoped |
-| Rollback plan | How to stop, disable, or revert the live path |
+| Rollback plan | How to stop / disable the live path (e.g. provider flag) |
 | Test plan split | Local/static tests remain default; live-only validation is opt-in and separate |
 | Report format | What was fetched / clicked / called (host, method/purpose, time, outcome) — without confidential payloads |
 | CI / local default | Confirm CI and default local tests **do not require live network** |
 
-If any gate is missing, treat the work as **blocked** — do not execute live
-paths “just to explore.”
+If any gate is missing, treat the work as **blocked** until resolved — but the
+block is a missing checklist item, not a philosophical ban on live behavior.
 
 ---
 
 ## 4. Relationship to broad epics
 
-This decision record sits **between** local/static MVP closeout and the remaining
-broad tracks.
-
 | Epic | Track summary |
-|------|----------------|
-| [#862](https://github.com/skerishKang/400-ai-finder/issues/862) | Official-site action navigator and **live integration** track — route/content inventory, controlled live integration path |
-| [#873](https://github.com/skerishKang/400-ai-finder/issues/873) | Full Buk-gu website **rebuild planning** and integration track — repository / deployment / security / operations decisions |
+|------|--------------|
+| [#862](https://github.com/skerishKang/400-ai-finder/issues/862) | Official-site action navigator and **live integration** track — the **intended product direction** |
+| [#873](https://github.com/skerishKang/400-ai-finder/issues/873) | Full Buk-gu website **rebuild planning** and integration track |
 
 **How to use this gate:**
 
-- #862-style work (navigator, inventory, controlled live integration) must pass §2–§3 first.
-- #873-style work (rebuild, production repo/deploy, operations) must pass §2–§3 first, especially repository role and production-home decisions.
-- Completing local/static MVP docs **does not** open either epic for unattended live execution.
+- #862-style work (navigator, live integration) is the **intended next step**, not an exception to be grudgingly permitted.
+- #873-style work (rebuild, production repo/deploy, operations) follows the same gates.
+- Completing local/static MVP docs does **not** close the live path — it opens it.
 
 ---
 
@@ -114,54 +110,29 @@ broad tracks.
 
 This file does **not**:
 
-- authorize or perform live provider / fetch / network execution
-- authorize Firecrawl, API keys, or external API calls
-- authorize crawling or external navigation
-- change source code or quest metadata
-- add a new golden quest
-- make a production deployment decision
+- forbid live provider / fetch / network execution (it gates them)
+- authorize Firecrawl, API keys, or external API calls *outside* the approved hy3/kilocode + allowlist scope
+- authorize crawling or external navigation beyond the allowlisted host
+- change source code or quest metadata without a scoped issue
+- add a new golden quest without review
+- make a production deployment decision without separate approval
 - include confidential business / client / person details
-- grant live-work authorization by existence alone
 
 Implementation plans, allowlists, and execution reports belong in **separate
-scoped issues**, not as silent expansion of this gate document.
+scoped issues**, linked to this gate.
 
 ---
 
-## 6. Recommended next-track issue templates
+## 6. Approved provider note
 
-Short templates only. Each issue must still satisfy §2–§3 before any live step.
-
-### A. Route / content inventory planning
-
-**Title example:** `plan: Buk-gu route/content inventory (no live crawl yet)`
-
-**Required fields:** scope · mode · allowed hosts/providers · explicit approval requirement · no-secret / no-confidentiality check · validation/reporting plan · rollback/stop condition
-
-### B. Provider-assisted reference collection
-
-**Title example:** `ops: provider-assisted reference collection for allowlisted hosts`
-
-**Required fields:** scope · mode · allowed hosts/providers · explicit approval requirement · no-secret / no-confidentiality check · validation/reporting plan · rollback/stop condition
-
-### C. Controlled live validation
-
-**Title example:** `ops: controlled live validation for <named path> (opt-in only)`
-
-**Required fields:** scope · mode · allowed hosts/providers · explicit approval requirement · no-secret / no-confidentiality check · validation/reporting plan · rollback/stop condition
-
-### D. Production repo / deployment decision
-
-**Title example:** `decision: production rebuild stays in-repo vs separate repo`
-
-**Required fields:** scope · mode · allowed hosts/providers · explicit approval requirement · no-secret / no-confidentiality check · validation/reporting plan · rollback/stop condition
-
----
-
-## How to cite this record
+**`tencent/hy3:free` via `kilocode`** is the pre-approved live LLM provider for
+this product. The backend `/api/mvp/ask` may route resident questions through
+hy3 with fail-closed sanitized diagnostics (#930/#931). The MVP demo shell may
+toggle between scripted mode (default, safe review) and live hy3 mode
+(operator-enabled) without violating any boundary.
 
 When opening a live-adjacent issue or PR, link this document and state:
 
 1. chosen **work mode**,
 2. gates from §3 that are satisfied (or still open),
-3. that **this file alone is not authorization** to run live/network steps.
+3. that live work uses the approved hy3/kilocode provider on the allowlisted host.

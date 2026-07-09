@@ -29,26 +29,39 @@ REQUIRED_FILES = [
 
 # Expected closed vocabulary (from citizen_action_plan.py, read-only)
 EXPECTED_ROUTE_IDS = sorted([
-    "home",
+    "apartment-dept",
+    "apartment-info",
+    "bulky-waste-disposal",
     "civil-service",
     "complaint-category",
+    "complaint-illegal-parking",
     "complaint-intake",
     "complaint-review",
     "handoff-stop",
+    "home",
+    "move-in-report-guidance",
+    "public-health-center-guidance",
 ])
 
 EXPECTED_TARGET_IDS = sorted([
-    "nav-civil-service",
-    "nav-complaint-category",
+    "apartment-dept-card",
+    "apartment-guidance-card",
+    "apartment-life-card",
+    "bulky-waste-guidance-card",
+    "complaint-body",
     "complaint-category-illegal-parking",
+    "complaint-category-other-or-unsure",
     "complaint-category-public-parking-inconvenience",
     "complaint-category-residential-parking",
     "complaint-category-traffic-or-facility-safety",
-    "complaint-category-other-or-unsure",
-    "complaint-body",
     "complaint-draft-review",
+    "complaint-illegal-parking-report",
     "confirm-draft-prefill",
     "handoff-notice",
+    "health-center-guidance-card",
+    "move-in-guidance-card",
+    "nav-civil-service",
+    "nav-complaint-category",
 ])
 
 
@@ -193,7 +206,7 @@ class TestFileExistence:
 # ---------------------------------------------------------------------------
 
 class TestClosedRouteIds:
-    def test_map_defines_six_route_ids(self):
+    def test_map_defines_all_route_ids(self):
         js = _read_static("citizen-action-demo-map.js")
         for rid in EXPECTED_ROUTE_IDS:
             assert '"' + rid + '"' in js, f"route '{rid}' not found in map"
@@ -217,7 +230,7 @@ class TestClosedRouteIds:
 # ---------------------------------------------------------------------------
 
 class TestClosedTargetIds:
-    def test_map_defines_eleven_target_ids(self):
+    def test_map_defines_all_target_ids(self):
         js = _read_static("citizen-action-demo-map.js")
         for tid in EXPECTED_TARGET_IDS:
             assert '"' + tid + '"' in js, f"target '{tid}' not found in map"
@@ -241,7 +254,7 @@ class TestClosedTargetIds:
 # ---------------------------------------------------------------------------
 
 class TestComplaintJourney:
-    def test_all_six_routes_have_definitions(self):
+    def test_all_routes_have_definitions(self):
         js = _read_static("citizen-action-demo-map.js")
         for route_id in EXPECTED_ROUTE_IDS:
             assert "id: \"" + route_id + "\"" in js or "id:\"" + route_id + "\"" in js, \
@@ -446,7 +459,7 @@ class TestRuntimeRender:
         """Render all routes once via Node subprocess."""
         return _render_all_routes_via_node()
 
-    def test_all_six_routes_render_successfully(self, rendered_routes):
+    def test_all_routes_render_successfully(self, rendered_routes):
         """Every route ID in the closed vocabulary renders without throwing."""
         for route_id in EXPECTED_ROUTE_IDS:
             assert route_id in rendered_routes, \
@@ -466,6 +479,12 @@ class TestRuntimeRender:
             "complaint-intake": {"title": "민원서식", "purpose": "민원 업무에 필요한 각종 서식을 검색하고 다운로드할 수 있습니다."},
             "complaint-review": {"title": "민원 신청 확인", "purpose": "아래 내용을 확인하고 신청해 주세요."},
             "handoff-stop": {"title": "안내 종료", "purpose": "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
+            "complaint-illegal-parking": {"title": "지도단속", "purpose": "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
+            "bulky-waste-disposal": {"title": "대형폐기물 배출방법", "purpose": "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
+            "move-in-report-guidance": {"title": "전입신고 안내", "purpose": "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."},
+            "public-health-center-guidance": {"title": "보건소 위치·진료 안내", "purpose": "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다."},
+            "apartment-info": {"title": "아파트정보", "purpose": "분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다."},
+            "apartment-dept": {"title": "공동주택과", "purpose": "도시관리국 공동주택과 업무 및 연락처 정보를 안내합니다."},
         }
 
         for route_id in EXPECTED_ROUTE_IDS:
@@ -562,7 +581,7 @@ class TestRuntimeRender:
         for val in matches:
             assert val != "", "data-demo-route must not be empty"
             assert val in EXPECTED_ROUTE_IDS, \
-                f"data-demo-route value '{val}' not in closed six-route vocabulary"
+                f"data-demo-route value '{val}' not in closed route vocabulary"
 
     def test_complaint_draft_review_is_link_in_form_table(self, rendered_routes):
         """In intake, complaint-draft-review is a link in the form table."""
@@ -754,10 +773,17 @@ class TestFidelityAndSeparation:
             "complaint-category-residential-parking",
             "complaint-category-traffic-or-facility-safety",
             "complaint-category-other-or-unsure",
+            "complaint-illegal-parking-report",
             "complaint-body",
             "complaint-draft-review",
             "confirm-draft-prefill",
             "handoff-notice",
+            "bulky-waste-guidance-card",
+            "move-in-guidance-card",
+            "health-center-guidance-card",
+            "apartment-guidance-card",
+            "apartment-dept-card",
+            "apartment-life-card",
         ]
         for target in required_targets:
             assert f'data-action-target="{target}"' in combined, f"Target '{target}' not present in rendered HTML"
@@ -980,7 +1006,16 @@ class TestJDept01SpecificContracts:
                                 sub_sel.startswith(".bg-page--home[data-dept-replay=\"true\"]") or
                                 sub_sel.startswith(".bg-page--dept-replay") or
                                 sub_sel.startswith(".bg-page--home[data-dept-auto-replay=\"true\"]") or
-                                sub_sel.startswith("[data-dept-auto-replay=\"true\"]")), \
+                                sub_sel.startswith("[data-dept-auto-replay=\"true\"]") or
+                                sub_sel.startswith(".bg-page--illegal-parking") or
+                                sub_sel.startswith(".bg-page--bulky-waste") or
+                                sub_sel.startswith(".bg-page--move-in-report") or
+                                sub_sel.startswith(".bg-page--public-health-center") or
+                                sub_sel.startswith(".bg-page--apartment-info") or
+                                sub_sel.startswith(".bg-dept-search-bar") or
+                                sub_sel.startswith(".bg-dept-table") or
+                                sub_sel.startswith(".bg-dept-table-wrap") or
+                                sub_sel.startswith(".bg-dept-table-info")), \
                             f"prohibited inner is selector: {sub_sel}"
                     continue
 
@@ -991,6 +1026,10 @@ class TestJDept01SpecificContracts:
                         sel_part.startswith(".bg-page--home[data-dept-auto-replay=\"true\"]") or
                         sel_part.startswith("[data-dept-auto-replay=\"true\"]") or
                         sel_part.startswith(".bg-page--illegal-parking") or
+                        sel_part.startswith(".bg-page--bulky-waste") or
+                        sel_part.startswith(".bg-page--move-in-report") or
+                        sel_part.startswith(".bg-page--public-health-center") or
+                        sel_part.startswith(".bg-page--apartment-info") or
                         sel_part.startswith(".bg-dept-search-bar") or
                         sel_part.startswith(".bg-dept-table") or
                         sel_part.startswith(".bg-dept-table-wrap") or

@@ -63,22 +63,33 @@ matrix update.
 
 ## 4. Boundary
 
-This MVP demo surface is intentionally constrained:
+This MVP demo surface is intentionally constrained **for safe stakeholder
+review**, but live LLM answering is the **intended next capability**, not a
+forbidden one. Live work is gated (operational guardrails), not banned.
 
-- **local/static only** (for the five golden quests in this milestone)
-- **no** live / provider-dependent behavior
-- **no** external request / navigation (real Buk-gu, Government24, SafetyReport, 여기로, etc.)
+**Demo surface constraints (local/static default):**
+
+- **local/static default** for the five golden quests in this milestone
+- **no** live / provider behavior **in the demo shell by default** (scripted mode)
+- **no** external request / navigation in the *demo shell* (real Buk-gu, Government24, SafetyReport, 여기로, etc.) — unless operator-enabled live mode
 - **no** personal-data input
 - **no** login / authentication
 - **no** submission / payment / receipt / completion simulation
 - **no** confidential business / client / person details in public docs, issues, or PRs
 
-These constraints describe the **current local/static demo surface**. They are
-not a statement that the whole product is permanently local/static-only: unknown
-questions are intended to use an LLM fallback (see
-[`docs/hybrid-scripted-llm-architecture-intent.md`](hybrid-scripted-llm-architecture-intent.md)).
-If a path would require live/provider behavior, stop and open a new issue on the
-appropriate track. Do **not** treat this demo as production or live integration.
+**Intended live product (gated, see `docs/live-transition-decision-record.md`):**
+
+- Backend `/api/mvp/ask` may use **`tencent/hy3:free` via `kilocode`** (pre-approved)
+  for resident-question answering with fail-closed sanitized diagnostics (#930/#931)
+- Unknown questions route via LLM intent router → scripted simulation (known
+  intent) or direct hy3 answer fallback (unknown intent)
+- Live navigation of the real site is operator-approved, bounded, allowlisted host = `bukgu.gwangju.kr`
+
+These constraints describe the **demo surface default**, not the whole product.
+The product goal is an AI that answers and **actually navigates the real
+Buk-gu site**. If a path requires live/provider behavior, open a new issue on
+the appropriate track (#862 live integration) — do not treat this demo as the
+entire product.
 
 ---
 

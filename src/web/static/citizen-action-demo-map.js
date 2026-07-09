@@ -6,9 +6,12 @@
  * No arbitrary route, target, selector, URL, or executable command input.
  *
  * Vocabulary source (read-only, not modified):
- *   Route IDs:  home, civil-service, bulky-waste-disposal,
- *               complaint-category, complaint-intake,
- *               complaint-review, handoff-stop
+ *   Route IDs:  home, civil-service, complaint-category,
+ *               complaint-illegal-parking, complaint-intake,
+ *               handoff-stop, complaint-review,
+ *               bulky-waste-disposal, move-in-report-guidance,
+ *               public-health-center-guidance, apartment-info,
+ *               apartment-dept
  *   Target IDs: nav-civil-service, nav-complaint-category,
  *               complaint-category-illegal-parking,
  *               complaint-category-public-parking-inconvenience,

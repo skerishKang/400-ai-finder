@@ -1,5 +1,5 @@
-requests
-beautifulsoup4
-pytest
-pyyaml
-Pillow
+requests>=2.33
+beautifulsoup4>=4.14
+pytest>=9.0
+pyyaml>=6.0
+Pillow>=12.2

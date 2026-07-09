@@ -85,7 +85,7 @@
         Object.freeze({ message: "업무 및 전화번호 안내 화면으로 이동합니다.", thinkingText: "페이지를 탐색 중입니다...", thinkingMs: 600, delayMs: 1400 }),
         Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
         Object.freeze({ message: "공동주택과 담당자 연락처입니다. 공동주택팀 062-410-6831~6834", targetId: "apartment-dept-card", delayMs: 2800, thinkingText: "연락처 정보를 확인 중입니다...", thinkingMs: 600 }),
-        Object.freeze({ message: "공동주택 관련 문의는 도시관리국 공동주택과(062-410-6831)로 연락하시면 됩니다." }),
+        Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     "housing_department": Object.freeze({
@@ -95,7 +95,7 @@
         Object.freeze({ message: "북구소개 메뉴로 이동합니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1200 }),
         Object.freeze({ message: "구청안내를 확인합니다.", thinkingText: "구청 정보를 불러오는 중입니다...", thinkingMs: 600, delayMs: 1400 }),
         Object.freeze({ message: "업무 및 전화번호 안내 화면으로 이동합니다.", thinkingText: "페이지를 탐색 중입니다...", thinkingMs: 600, delayMs: 1400 }),
-        Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-result__card", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
+        Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
         Object.freeze({ message: "공동주택과는 공동주택 관리 지원, 하자분쟁조정, 보조금 지원 업무를 담당합니다.", targetId: "apartment-dept-card", delayMs: 2000, thinkingText: "담당 업무를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
       ]),
@@ -432,30 +432,6 @@
       }
     }
 
-    // Cursor animation: move cursor to target element
-    if (step.cursorTarget) {
-      var canvas = window.CitizenActionDemoCanvas;
-      if (canvas) {
-        if (canvas.hideCursor) canvas.hideCursor();
-        if (canvas.showCursorAt) {
-          // small delay so route renders before cursor appears
-          setTimeout(function () {
-            canvas.showCursorAt(step.cursorTarget);
-          }, 100);
-        }
-      }
-    }
-
-    // Click animation: show cursor + ripple at target
-    if (step.clickTarget) {
-      var canvas = window.CitizenActionDemoCanvas;
-      if (canvas && canvas.clickAnimation) {
-        setTimeout(function () {
-          canvas.clickAnimation(step.clickTarget);
-        }, 200);
-      }
-    }
-
     // ── AI-style thinking/searching indicator ──────────────────────
     // If the step has a thinkingText, show a temporary indicator before
     // the permanent message, simulating AI "thinking" / "searching".
@@ -465,6 +441,29 @@
       // Show chat message AFTER DOM actions so the left-pane state is visible
       // before the explanation text.
       _appendChatMessage("ai", step.message);
+
+      // Cursor/click animation plays AFTER the message, during the delayMs period,
+      // so the user reads the explanation before seeing the visual action.
+      if (step.cursorTarget) {
+        var cCanvas = window.CitizenActionDemoCanvas;
+        if (cCanvas) {
+          if (cCanvas.hideCursor) cCanvas.hideCursor();
+          if (cCanvas.showCursorAt) {
+            window.setTimeout(function () {
+              cCanvas.showCursorAt(step.cursorTarget);
+            }, 100);
+          }
+        }
+      }
+      if (step.clickTarget) {
+        var kCanvas = window.CitizenActionDemoCanvas;
+        if (kCanvas && kCanvas.clickAnimation) {
+          window.setTimeout(function () {
+            kCanvas.clickAnimation(step.clickTarget);
+          }, 200);
+        }
+      }
+
       // Schedule next step or terminate
       if (typeof step.delayMs === "number" && step.delayMs > 0) {
         _timer = window.setTimeout(function () {

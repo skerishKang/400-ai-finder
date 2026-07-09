@@ -1266,20 +1266,19 @@
   // executor highlight reads as a real selected card, not a generic menu focus.
   // -----------------------------------------------------------------------
   function _renderIllegalParking(route) {
+    var assets = "/static/images/bukgu-current";
     return (
       '<div class="bg-page bg-page--full bg-page--dense bg-page--illegal-parking">' +
-        _renderDenseHeader('home') +
+        _renderDenseHeader('field-info') +
 
         '<div class="bg-layout--lnb">' +
           /* LNB — 분야별정보 > 차량교통 > 지도단속 */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
             '<div class="bg-lnb__header">분야별정보</div>' +
             '<ul class="bg-lnb__list">' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">북구 소개</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">행정</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">경제</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">복지</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">문화/관광</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">경제정보</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">일자리 정보</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">세무민원</a></li>' +
               '<li class="bg-lnb__item bg-lnb__item--open">' +
                 '<a href="#" class="bg-lnb__parent">차량교통</a>' +
                 '<ul class="bg-lnb__sub">' +
@@ -1291,15 +1290,67 @@
                   '<li><a href="#">차량등록민원 대기현황</a></li>' +
                 '</ul>' +
               '</li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">건축</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">부동산</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">재난재해</a></li>' +
               '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">환경재활용</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">건설/안전</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민방위</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">옥외광고물</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">동물복지</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">위생</a></li>' +
             '</ul>' +
           '</nav>' +
 
-          /* Main content — 지도단속 안내 + 안전신문고 handoff */
+          /* Main content — 지도단속 안내 */
           '<main class="bg-content bg-content--sub" id="bg-content-main">' +
-            _renderSubPageHeader("지도단속", "차량교통 분야의 지도단속 정보를 안내합니다. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다.") +
+            /* Breadcrumb */
+            '<div class="bg-sub-breadcrumb">' +
+              '<a href="#">홈</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">분야별정보</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">차량교통</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<strong>지도단속</strong>' +
+            '</div>' +
 
+            /* Page title */
+            '<h1 class="bg-sub-page-title">지도단속</h1>' +
+
+            /* Tabs */
+            '<div class="bg-sub-tabs">' +
+              '<button type="button" class="bg-sub-tab bg-sub-tab--active">자동차의무보험가입</button>' +
+              '<button type="button" class="bg-sub-tab">불법주정차 무인카메라(CCTV)운영</button>' +
+            '</div>' +
+
+            /* Content section — 법령 안내 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">자동차의무보험 가입 안내</h2>' +
+              '<p class="bg-sub-section-desc">「자동차손해배상 보장법」 제5조(의무보험 가입의무 등)에 따라 자동차를 소유하는 자는 자동차보험에 가입하여야 합니다. 의무보험에 가입하지 않고 자동차를 운행할 경우 과태료가 부과됩니다.</p>' +
+            '</div>' +
+
+            /* 과태료 기준 테이블 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">과태료 기준</h2>' +
+              '<table class="bg-sub-table">' +
+                '<thead>' +
+                  '<tr>' +
+                    '<th>구분</th>' +
+                    '<th>의무보험 미가입 기간</th>' +
+                    '<th>과태료(승용차 기준)</th>' +
+                  '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                  '<tr><td rowspan="4">자가용</td><td>10일 이하</td><td>10,000원</td></tr>' +
+                  '<tr><td>11일 ~ 30일</td><td>20,000원</td></tr>' +
+                  '<tr><td>31일 ~ 60일</td><td>30,000원</td></tr>' +
+                  '<tr><td>61일 초과</td><td>40,000원</td></tr>' +
+                  '<tr><td rowspan="4">영업용</td><td>10일 이하</td><td>20,000원</td></tr>' +
+                  '<tr><td>11일 ~ 30일</td><td>30,000원</td></tr>' +
+                  '<tr><td>31일 ~ 60일</td><td>50,000원</td></tr>' +
+                  '<tr><td>61일 초과</td><td>80,000원</td></tr>' +
+                '</tbody>' +
+              '</table>' +
+            '</div>' +
+
+            /* 신고 채널 guidance card */
             '<div class="bg-illegal-parking-card" data-action-target="complaint-illegal-parking-report" tabindex="0">' +
               '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🚗</div>' +
               '<div class="bg-illegal-parking-card__body">' +
@@ -1314,6 +1365,21 @@
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
             '</div>' +
 
+            /* 만족도 조사 */
+            '<div class="bg-sub-satisfaction">' +
+              '<h3 class="bg-sub-satisfaction__title">이 페이지에서 제공하는 정보에 만족하십니까?</h3>' +
+              '<div class="bg-sub-satisfaction__stars">' +
+                '<label><input type="radio" name="sat" disabled /> 매우만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 보통</label>' +
+                '<label><input type="radio" name="sat" disabled /> 불만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 매우불만족</label>' +
+              '</div>' +
+              '<div class="bg-sub-satisfaction__opinion">' +
+                '<input type="text" placeholder="의견을 입력해 주세요." disabled />' +
+                '<button type="button" disabled>확인</button>' +
+              '</div>' +
+            '</div>' +
 
           '</main>' +
         '</div>' +
@@ -1325,36 +1391,133 @@
   function _renderBulkyWasteDisposal(route) {
     return (
       '<div class="bg-page bg-page--full bg-page--dense bg-page--bulky-waste">' +
-        _renderDenseHeader('home') +
+        _renderDenseHeader('field-info') +
 
         '<div class="bg-layout--lnb">' +
-          /* LNB — 북구청 홈 > 분야별정보 > 환경재활용 > 대형폐기물 배출방법 */
+          /* LNB — 환경재활용 > 대형폐기물 배출방법 */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
             '<div class="bg-lnb__header">분야별정보</div>' +
             '<ul class="bg-lnb__list">' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">북구 소개</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">행정</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">경제</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">복지</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">문화/관광</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">경제정보</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">일자리 정보</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">세무민원</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">차량교통</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">건축</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">부동산</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">재난재해</a></li>' +
               '<li class="bg-lnb__item bg-lnb__item--open">' +
                 '<a href="#" class="bg-lnb__parent">환경재활용</a>' +
                 '<ul class="bg-lnb__sub">' +
-                  '<li><a href="#">환경정책</a></li>' +
+                  '<li><a href="#">환경분야</a></li>' +
+                  '<li><a href="#">음식물쓰레기 줄이기</a></li>' +
+                  '<li><a href="#">청소행정</a></li>' +
                   '<li class="bg-lnb__item--active"><a href="#">대형폐기물 배출방법</a></li>' +
-                  '<li><a href="#">재활용품 분리배출</a></li>' +
-                  '<li><a href="#">음식물류폐기물</a></li>' +
+                  '<li><a href="#">재활용품종류 및 수거</a></li>' +
+                  '<li><a href="#">쓰레기 배출요령</a></li>' +
                 '</ul>' +
               '</li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">교통</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">건설/안전</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민방위</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">옥외광고물</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">동물복지</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">위생</a></li>' +
             '</ul>' +
           '</nav>' +
 
-          /* Main content — 실제 북구청 대형폐기물 배출방법 페이지 fidelity */
+          /* Main content — 대형폐기물 배출방법 */
           '<main class="bg-content bg-content--sub" id="bg-content-main">' +
-            _renderSubPageHeader(route.title, route.purpose) +
+            /* Breadcrumb */
+            '<div class="bg-sub-breadcrumb">' +
+              '<a href="#">홈</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">분야별정보</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">환경재활용</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<strong>대형폐기물 배출방법</strong>' +
+            '</div>' +
 
+            /* Page title */
+            '<h1 class="bg-sub-page-title">대형폐기물 배출방법</h1>' +
+
+            /* 1. 배출방법 안내 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">배출방법 안내</h2>' +
+              '<div class="bg-sub-info-card">' +
+                '<p><strong>수탁업체</strong> : 녹색환경 (062-572-1336, 1337)</p>' +
+                '<p><strong>배출방법</strong> : 수탁업체에 직접 전화 또는 구두로 신고 후 배출 (월요일~금요일 수거 가능)</p>' +
+                '<p><strong>어플 신청</strong> : 「여기로」 어플 및 홈페이지에서 신청 가능</p>' +
+                '<div class="bg-sub-info-card__actions">' +
+                  '<a href="#" class="bg-sub-btn bg-sub-btn--primary">인터넷 배출하기</a>' +
+                  '<a href="#" class="bg-sub-btn bg-sub-btn--secondary">상세 안내 PDF 다운로드</a>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+
+            /* 2. 수수료 납부 방법 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">수수료 납부 방법</h2>' +
+              '<ul class="bg-sub-info-list">' +
+                '<li><strong>신용카드</strong> : 인터넷 신청 시 카드결제 가능</li>' +
+                '<li><strong>무통장 입금</strong> : 입금 수수료 신고자 부담</li>' +
+                '<li><strong>현금 납부</strong> : 수탁업체 방문 현금 납부</li>' +
+                '<li><strong>상생카드</strong> : 결제 불가</li>' +
+              '</ul>' +
+            '</div>' +
+
+            /* 3. 폐가전 배출방법 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">폐가전제품 배출방법</h2>' +
+              '<p class="bg-sub-section-desc">폐가전제품은 대형폐기물 배출 신청과 별도로 무상 수거가 가능합니다. 인터넷 또는 전화로 수거 예약 후 배출해 주세요.</p>' +
+            '</div>' +
+
+            /* 4. 대형 품목별 수수료 테이블 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">대형 품목별 수수료</h2>' +
+
+              '<h3 class="bg-sub-table-caption">가전제품류</h3>' +
+              '<table class="bg-sub-table bg-sub-table--fee">' +
+                '<thead><tr><th>품목</th><th>수수료</th><th>비고</th></tr></thead>' +
+                '<tbody>' +
+                  '<tr><td>냉장고 (소형)</td><td>5,000원</td><td>300L 미만</td></tr>' +
+                  '<tr><td>냉장고 (대형)</td><td>8,000원</td><td>300L 이상</td></tr>' +
+                  '<tr><td>세탁기</td><td>5,000원</td><td></td></tr>' +
+                  '<tr><td>TV (소형)</td><td>3,000원</td><td>32인치 미만</td></tr>' +
+                  '<tr><td>TV (대형)</td><td>5,000원</td><td>32인치 이상</td></tr>' +
+                  '<tr><td>에어컨</td><td>8,000원</td><td></td></tr>' +
+                  '<tr><td>전자레인지</td><td>2,000원</td><td></td></tr>' +
+                  '<tr><td>가스레인지</td><td>3,000원</td><td></td></tr>' +
+                '</tbody>' +
+              '</table>' +
+
+              '<h3 class="bg-sub-table-caption">가구류</h3>' +
+              '<table class="bg-sub-table bg-sub-table--fee">' +
+                '<thead><tr><th>품목</th><th>수수료</th><th>비고</th></tr></thead>' +
+                '<tbody>' +
+                  '<tr><td>침대 (프레임)</td><td>5,000원</td><td></td></tr>' +
+                  '<tr><td>침대 매트리스</td><td>5,000원</td><td></td></tr>' +
+                  '<tr><td>소파 (1인용)</td><td>3,000원</td><td></td></tr>' +
+                  '<tr><td>소파 (3인용 이상)</td><td>8,000원</td><td></td></tr>' +
+                  '<tr><td>식탁 (4인용)</td><td>5,000원</td><td></td></tr>' +
+                  '<tr><td>옷장</td><td>8,000원</td><td></td></tr>' +
+                  '<tr><td>책상</td><td>3,000원</td><td></td></tr>' +
+                  '<tr><td>서랍장</td><td>3,000원</td><td></td></tr>' +
+                '</tbody>' +
+              '</table>' +
+
+              '<h3 class="bg-sub-table-caption">생활용품 및 기타</h3>' +
+              '<table class="bg-sub-table bg-sub-table--fee">' +
+                '<thead><tr><th>품목</th><th>수수료</th><th>비고</th></tr></thead>' +
+                '<tbody>' +
+                  '<tr><td>자전거</td><td>5,000원</td><td></td></tr>' +
+                  '<tr><td>피아노</td><td>20,000원</td><td>업체 방문 수거</td></tr>' +
+                  '<tr><td>보일러</td><td>5,000원</td><td></td></tr>' +
+                  '<tr><td>문짝</td><td>3,000원</td><td></td></tr>' +
+                  '<tr><td>욕조</td><td>10,000원</td><td></td></tr>' +
+                  '<tr><td>장판 (대량)</td><td>5,000원</td><td>10평 이상</td></tr>' +
+                  '<tr><td>기타 (소형)</td><td>2,000원</td><td>1m 미만</td></tr>' +
+                  '<tr><td>기타 (대형)</td><td>5,000원</td><td>1m 이상</td></tr>' +
+                '</tbody>' +
+              '</table>' +
+            '</div>' +
+
+            /* Guidance card */
             '<div class="bg-illegal-parking-card" data-action-target="bulky-waste-guidance-card" tabindex="0">' +
               '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🗑️</div>' +
               '<div class="bg-illegal-parking-card__body">' +
@@ -1372,6 +1535,21 @@
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
             '</div>' +
 
+            /* 만족도 조사 */
+            '<div class="bg-sub-satisfaction">' +
+              '<h3 class="bg-sub-satisfaction__title">이 페이지에서 제공하는 정보에 만족하십니까?</h3>' +
+              '<div class="bg-sub-satisfaction__stars">' +
+                '<label><input type="radio" name="sat" disabled /> 매우만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 보통</label>' +
+                '<label><input type="radio" name="sat" disabled /> 불만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 매우불만족</label>' +
+              '</div>' +
+              '<div class="bg-sub-satisfaction__opinion">' +
+                '<input type="text" placeholder="의견을 입력해 주세요." disabled />' +
+                '<button type="button" disabled>확인</button>' +
+              '</div>' +
+            '</div>' +
 
           '</main>' +
         '</div>' +
@@ -1386,7 +1564,7 @@
         _renderDenseHeader('civil-service') +
 
         '<div class="bg-layout--lnb">' +
-          /* LNB */
+          /* LNB — 종합민원 > 전자민원창구 > 정부24 */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
             '<div class="bg-lnb__header">종합민원</div>' +
             '<ul class="bg-lnb__list">' +
@@ -1397,22 +1575,50 @@
                   '<li><a href="#">민원처리공개</a></li>' +
                   '<li><a href="#">민원상담(국민신문고)</a></li>' +
                   '<li class="bg-lnb__item--active"><a href="#">정부24</a></li>' +
-                  '<li><a href="#">주민등록등·초본</a></li>' +
+                  '<li><a href="#">청원24(온라인청원제도)</a></li>' +
+                  '<li><a href="#">온라인 행정심판이용안내</a></li>' +
+                  '<li><a href="#">110수화(화상)상담</a></li>' +
                 '</ul>' +
               '</li>' +
               '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민원신고</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민원서식</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">행정서비스 헌장</a></li>' +
             '</ul>' +
           '</nav>' +
 
-          /* Main content — 전입신고 guidance card */
+          /* Main content — 정부24 바로가기 안내 handoff */
           '<main class="bg-content bg-content--sub" id="bg-content-main">' +
-            _renderSubPageHeader(route.title, route.purpose) +
+            /* Breadcrumb */
+            '<div class="bg-sub-breadcrumb">' +
+              '<a href="#">홈</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">종합민원</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">전자민원창구</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<strong>정부24</strong>' +
+            '</div>' +
 
+            /* Page title */
+            '<h1 class="bg-sub-page-title">정부24</h1>' +
+
+            /* 정부24 바로가기 card */
+            '<div class="bg-gov24-card">' +
+              '<div class="bg-gov24-card__badge">정부24</div>' +
+              '<h2 class="bg-gov24-card__title">정부24 바로가기</h2>' +
+              '<p class="bg-gov24-card__desc">정부24는 정부의 각종 서비스를 온라인으로 신청·조회·발급할 수 있는 정부 대표 포털입니다. 북구청 전자민원창구에서 정부24로 연결됩니다.</p>' +
+              '<div class="bg-gov24-card__info">' +
+                '<div class="bg-gov24-card__row"><span class="bg-gov24-card__label">연결경로</span> 종합민원 &gt; 전자민원창구 &gt; 정부24</div>' +
+                '<div class="bg-gov24-card__row"><span class="bg-gov24-card__label">바로가기</span> <a href="#" class="bg-gov24-card__link">www.gov.kr/portal/main <span aria-hidden="true">↗</span></a></div>' +
+                '<div class="bg-gov24-card__row"><span class="bg-gov24-card__label">주요서비스</span> 전입신고, 주민등록등·초본, 건축물대장, 자동차 관련 등</div>' +
+              '</div>' +
+              '<div class="bg-gov24-card__actions">' +
+                '<a href="#" class="bg-sub-btn bg-sub-btn--primary">정부24 바로가기 <span aria-hidden="true">→</span></a>' +
+                '<a href="#" class="bg-sub-btn bg-sub-btn--secondary">전입신고 안내</a>' +
+              '</div>' +
+            '</div>' +
+
+            /* 전입신고 안내 card (data-action-target for choreography) */
             '<div class="bg-illegal-parking-card" data-action-target="move-in-guidance-card" tabindex="0">' +
               '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🏠</div>' +
               '<div class="bg-illegal-parking-card__body">' +
-                '<h2 class="bg-illegal-parking-card__title">정부24 전입신고 연결 안내</h2>' +
+                '<h2 class="bg-illegal-parking-card__title">전입신고 안내</h2>' +
                 '<p class="bg-illegal-parking-card__desc">북구청 종합민원 &gt; 전자민원창구 &gt; 정부24 경로로 전입신고 연결을 안내합니다.</p>' +
                 '<ul class="bg-illegal-parking-card__meta">' +
                   '<li><span class="bg-illegal-parking-card__meta-label">연결경로</span> 종합민원 &gt; 전자민원창구 &gt; 정부24</li>' +
@@ -1423,8 +1629,9 @@
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
             '</div>' +
 
+            /* 유의사항 */
             '<div class="bg-move-in-notice-box">' +
-              '<h3>⚠️ 정부24 연결 안내</h3>' +
+              '<h3>⚠️ 정부24 연결 유의사항</h3>' +
               '<ul>' +
                 '<li>본 화면은 북구청 메뉴에서 <strong>정부24</strong> 연결 경로를 안내하는 데서 멈춥니다.</li>' +
                 '<li>실제 전입신고, <strong>본인인증</strong>(공동인증서, 간편인증), <strong>주소·세대주·가족관계</strong> 정보 입력, <strong>제출</strong>은 사용자가 정부24 또는 주민센터에서 직접 진행해야 합니다.</li>' +
@@ -1433,6 +1640,21 @@
               '</ul>' +
             '</div>' +
 
+            /* 만족도 조사 */
+            '<div class="bg-sub-satisfaction">' +
+              '<h3 class="bg-sub-satisfaction__title">이 페이지에서 제공하는 정보에 만족하십니까?</h3>' +
+              '<div class="bg-sub-satisfaction__stars">' +
+                '<label><input type="radio" name="sat" disabled /> 매우만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 보통</label>' +
+                '<label><input type="radio" name="sat" disabled /> 불만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 매우불만족</label>' +
+              '</div>' +
+              '<div class="bg-sub-satisfaction__opinion">' +
+                '<input type="text" placeholder="의견을 입력해 주세요." disabled />' +
+                '<button type="button" disabled>확인</button>' +
+              '</div>' +
+            '</div>' +
 
           '</main>' +
         '</div>' +
@@ -1442,20 +1664,45 @@
   }
 
   function _renderApartmentInfo(route) {
+    // Sample apartment data rows
+    var rows = [
+      {no:1, name:"제일맨션", addr:"광주 북구 오치동", date:"1997-07-16", dong:3, floor:7, hh:72, mgmt:"-"},
+      {no:2, name:"오치아파트", addr:"광주 북구 오치동", date:"1988-02-22", dong:5, floor:5, hh:120, mgmt:"-"},
+      {no:3, name:"송광아파트", addr:"광주 북구 두암동", date:"1990-05-10", dong:4, floor:10, hh:160, mgmt:"-"},
+      {no:4, name:"두암아파트", addr:"광주 북구 두암동", date:"1985-12-30", dong:6, floor:5, hh:180, mgmt:"-"},
+      {no:5, name:"삼익아파트", addr:"광주 북구 문흥동", date:"1993-08-20", dong:8, floor:12, hh:320, mgmt:"062-123-4567"},
+      {no:6, name:"일신아파트", addr:"광주 북구 운암동", date:"1995-03-15", dong:7, floor:15, hh:280, mgmt:"062-234-5678"},
+      {no:7, name:"현대아파트", addr:"광주 북구 두암동", date:"1998-11-01", dong:10, floor:18, hh:450, mgmt:"062-345-6789"},
+      {no:8, name:"신동아파트", addr:"광주 북구 신용동", date:"2000-06-25", dong:9, floor:20, hh:540, mgmt:"062-456-7890"},
+      {no:9, name:"대주아파트", addr:"광주 북구 양산동", date:"2003-09-30", dong:12, floor:22, hh:680, mgmt:"062-567-8901"},
+      {no:10, name:"중흥아파트", addr:"광주 북구 중흥동", date:"2005-04-18", dong:11, floor:25, hh:720, mgmt:"062-678-9012"},
+    ];
+    var tbody = "";
+    for (var r = 0; r < rows.length; r++) {
+      tbody += '<tr>' +
+        '<td>' + rows[r].no + '</td>' +
+        '<td class="bg-apartment-table__name">' + rows[r].name + '</td>' +
+        '<td>' + rows[r].addr + '</td>' +
+        '<td>' + rows[r].date + '</td>' +
+        '<td>' + rows[r].dong + '</td>' +
+        '<td>' + rows[r].floor + '</td>' +
+        '<td>' + rows[r].hh + '</td>' +
+        '<td>' + rows[r].mgmt + '</td>' +
+      '</tr>';
+    }
     return (
       '<div class="bg-page bg-page--full bg-page--dense bg-page--apartment-info">' +
-        _renderDenseHeader('home') +
+        _renderDenseHeader('field-info') +
 
         '<div class="bg-layout--lnb">' +
-          /* LNB — 분야별정보 > 건축 > 아파트정보 */
+          /* LNB — 분야별정보 > 건축 > 아파트정보 > 아파트현황 */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
             '<div class="bg-lnb__header">분야별정보</div>' +
             '<ul class="bg-lnb__list">' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">북구 소개</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">행정</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">경제</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">복지</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">문화/관광</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">경제정보</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">일자리 정보</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">세무민원</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">차량교통</a></li>' +
               '<li class="bg-lnb__item bg-lnb__item--open">' +
                 '<a href="#" class="bg-lnb__parent">건축</a>' +
                 '<ul class="bg-lnb__sub">' +
@@ -1467,24 +1714,49 @@
                   '<li><a href="#">정비사업(재개발재건축)</a></li>' +
                 '</ul>' +
               '</li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">부동산</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">재난재해</a></li>' +
               '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">환경재활용</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">교통</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민방위</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">옥외광고물</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">동물복지</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">위생</a></li>' +
             '</ul>' +
           '</nav>' +
 
           /* Main content — 아파트정보 > 아파트현황 */
           '<main class="bg-content bg-content--sub" id="bg-content-main">' +
-            _renderSubPageHeader(route.title, route.purpose) +
+            /* Breadcrumb */
+            '<div class="bg-sub-breadcrumb">' +
+              '<a href="#">홈</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">분야별정보</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">건축</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">아파트정보</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<strong>아파트현황</strong>' +
+            '</div>' +
 
-            /* Search area (static — no live request) */
+            /* Page title */
+            '<h1 class="bg-sub-page-title">아파트현황</h1>' +
+
+            /* Tabs */
+            '<div class="bg-sub-tabs">' +
+              '<button type="button" class="bg-sub-tab bg-sub-tab--active">아파트현황</button>' +
+              '<button type="button" class="bg-sub-tab">주택임대차</button>' +
+            '</div>' +
+
+            /* Search area */
             '<div class="bg-apartment-search">' +
               '<div class="bg-apartment-search__box">' +
+                '<select class="bg-apartment-search__select" disabled>' +
+                  '<option>아파트명</option>' +
+                  '<option>주소</option>' +
+                '</select>' +
                 '<input type="text" class="bg-apartment-search__input" placeholder="아파트명, 주소를 입력하세요." disabled aria-disabled="true" value="" />' +
                 '<button type="button" class="bg-apartment-search__btn" disabled aria-disabled="true">검색</button>' +
                 '</div>' +
             '</div>' +
 
-            /* Results table — static representative rows */
+            /* Results table */
             '<div class="bg-apartment-results">' +
               '<div class="bg-apartment-results__count">전체 <strong>428</strong> 건, 현재 페이지 <strong>1/43</strong></div>' +
               '<table class="bg-apartment-table">' +
@@ -1500,21 +1772,24 @@
                     '<th>관리사무소</th>' +
                   '</tr>' +
                 '</thead>' +
-                '<tbody>' +
-                  '<tr>' +
-                    '<td>1</td><td>제일맨션</td><td>광주 북구 오치동</td><td>1997-07-16</td><td>3</td><td>7</td><td>72</td><td>-</td>' +
-                  '</tr>' +
-                  '<tr>' +
-                    '<td>2</td><td>오치아파트</td><td>광주 북구 오치동</td><td>1988-02-22</td><td>5</td><td>5</td><td>120</td><td>-</td>' +
-                  '</tr>' +
-                  '<tr>' +
-                    '<td>3</td><td>송광아파트</td><td>광주 북구 두암동</td><td>1990-05-10</td><td>4</td><td>10</td><td>160</td><td>-</td>' +
-                  '</tr>' +
-                  '<tr>' +
-                    '<td>4</td><td>두암아파트</td><td>광주 북구 두암동</td><td>1985-12-30</td><td>6</td><td>5</td><td>180</td><td>-</td>' +
-                  '</tr>' +
-                '</tbody>' +
+                '<tbody>' + tbody + '</tbody>' +
               '</table>' +
+
+              /* Pagination */
+              '<div class="bg-apartment-pagination">' +
+                '<button type="button" class="bg-apartment-pagination__btn" disabled>〈</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn bg-apartment-pagination__btn--active">1</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn">2</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn">3</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn">4</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn">5</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn">6</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn">7</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn">8</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn">9</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn">10</button>' +
+                '<button type="button" class="bg-apartment-pagination__btn">〉</button>' +
+              '</div>' +
             '</div>' +
 
             /* Guidance card for apartment info */
@@ -1543,6 +1818,21 @@
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
             '</div>' +
 
+            /* 만족도 조사 */
+            '<div class="bg-sub-satisfaction">' +
+              '<h3 class="bg-sub-satisfaction__title">이 페이지에서 제공하는 정보에 만족하십니까?</h3>' +
+              '<div class="bg-sub-satisfaction__stars">' +
+                '<label><input type="radio" name="sat" disabled /> 매우만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 보통</label>' +
+                '<label><input type="radio" name="sat" disabled /> 불만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 매우불만족</label>' +
+              '</div>' +
+              '<div class="bg-sub-satisfaction__opinion">' +
+                '<input type="text" placeholder="의견을 입력해 주세요." disabled />' +
+                '<button type="button" disabled>확인</button>' +
+              '</div>' +
+            '</div>' +
 
           '</main>' +
         '</div>' +
@@ -1554,45 +1844,103 @@
   function _renderPublicHealthCenterGuidance(route) {
     return (
       '<div class="bg-page bg-page--full bg-page--dense bg-page--public-health-center">' +
-        _renderDenseHeader('intro') +
+        /* 보건소 서브사이트 스타일 헤더 (메인 사이트와 다른 GNB) */
+        '<div class="bg-home-gov-strip">' +
+          '<div class="bg-home-gov-strip__inner">' +
+            '<img src="/static/images/bukgu-current/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+          '</div>' +
+        '</div>' +
+        '<div class="bg-health-header">' +
+          '<div class="bg-health-header__inner">' +
+            '<div class="bg-health-header__logo">' +
+              '<span class="bg-health-header__logo-emblem">❤️</span>' +
+              '<div class="bg-health-header__logo-text">' +
+                '<strong>전남광주통합특별시 북구</strong>' +
+                '<span>보건소</span>' +
+              '</div>' +
+            '</div>' +
+            '<nav class="bg-health-gnb" aria-label="보건소 주메뉴">' +
+              '<a href="#" class="bg-health-gnb__link bg-health-gnb__link--active">보건소소개</a>' +
+              '<a href="#" class="bg-health-gnb__link">민원·안내</a>' +
+              '<a href="#" class="bg-health-gnb__link">사업안내</a>' +
+              '<a href="#" class="bg-health-gnb__link">정보마당</a>' +
+              '<a href="#" class="bg-health-gnb__link">치매안심센터</a>' +
+              '<a href="#" class="bg-health-gnb__link">북구건강생활지원센터</a>' +
+            '</nav>' +
+          '</div>' +
+        '</div>' +
 
         '<div class="bg-layout--lnb">' +
-          /* LNB — 보건소 사이트 메뉴 구조 */
+          /* LNB — 보건소 > 보건소소개 > 찾아오시는 길 */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
-            '<div class="bg-lnb__header">북구보건소</div>' +
+            '<div class="bg-lnb__header">보건소소개</div>' +
             '<ul class="bg-lnb__list">' +
-              '<li class="bg-lnb__item bg-lnb__item--open">' +
-                '<a href="#" class="bg-lnb__parent">보건소소개</a>' +
-                '<ul class="bg-lnb__sub">' +
-                  '<li><a href="#">인사말</a></li>' +
-                  '<li><a href="#">조직 및 업무</a></li>' +
-                  '<li class="bg-lnb__item--active"><a href="#">찾아오시는 길</a></li>' +
-                '</ul>' +
-              '</li>' +
-              '<li class="bg-lnb__item bg-lnb__item--open">' +
-                '<a href="#" class="bg-lnb__parent">민원·안내</a>' +
-                '<ul class="bg-lnb__sub">' +
-                  '<li class="bg-lnb__item--open">' +
-                    '<a href="#">진료 및 검사</a>' +
-                    '<ul class="bg-lnb__sub bg-lnb__sub--lv3">' +
-                      '<li class="bg-lnb__item--active"><a href="#">일반진료</a></li>' +
-                      '<li><a href="#">진료과목</a></li>' +
-                      '<li><a href="#">검사안내</a></li>' +
-                    '</ul>' +
-                  '</li>' +
-                  '<li class="bg-lnb__item--active"><a href="#">예방접종</a></li>' +
-                  '<li><a href="#">건강검진</a></li>' +
-                '</ul>' +
-              '</li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">건강정보</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">자료실</a></li>' +
+              '<li><a href="#">인사말</a></li>' +
+              '<li><a href="#">조직 및 업무안내</a></li>' +
+              '<li><a href="#">층별안내</a></li>' +
+              '<li class="bg-lnb__item--active"><a href="#">찾아오시는 길</a></li>' +
             '</ul>' +
           '</nav>' +
 
-          /* Main content — 보건소 guidance card */
+          /* Main content — 찾아오시는 길 */
           '<main class="bg-content bg-content--sub" id="bg-content-main">' +
-            _renderSubPageHeader(route.title, route.purpose) +
+            /* Breadcrumb */
+            '<div class="bg-sub-breadcrumb">' +
+              '<a href="#">홈</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">보건소</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<a href="#">보건소소개</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<strong>찾아오시는 길</strong>' +
+            '</div>' +
 
+            /* Page title */
+            '<h1 class="bg-sub-page-title">찾아오시는 길</h1>' +
+
+            /* Kakao map static placeholder (실제 iframe 사용 금지) */
+            '<div class="bg-health-map-placeholder">' +
+              '<div class="bg-health-map-placeholder__inner">' +
+                '<div class="bg-health-map-placeholder__icon" aria-hidden="true">🗺️</div>' +
+                '<div class="bg-health-map-placeholder__text">' +
+                  '<p><strong>카카오맵</strong></p>' +
+                  '<p>광주 북구 우치로 65 (중흥동)</p>' +
+                  '<p><a href="#" class="bg-health-map-placeholder__link">자세히 보기 <span aria-hidden="true">↗</span></a></p>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+
+            /* 주소/연락처 정보 */
+            '<div class="bg-health-info-section">' +
+              '<table class="bg-health-info-table">' +
+                '<tbody>' +
+                  '<tr><th>주소</th><td>61217 전남광주통합특별시 북구 우치로 65 (중흥동)</td></tr>' +
+                  '<tr><th>대표전화</th><td>062-410-8112</td></tr>' +
+                  '<tr><th>팩스</th><td>062-410-8119</td></tr>' +
+                  '<tr><th>운영시간</th><td>평일 09:00 ~ 18:00 (점심 12:00 ~ 13:00)</td></tr>' +
+                '</tbody>' +
+              '</table>' +
+            '</div>' +
+
+            /* 버스 노선 정보 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">버스 노선</h2>' +
+              '<div class="bg-sub-info-card">' +
+                '<h3 class="bg-sub-info-card__title">주변 정류장</h3>' +
+                '<ul class="bg-sub-info-list">' +
+                  '<li><strong>간선</strong> : 20, 25, 30, 35, 40, 45</li>' +
+                  '<li><strong>지선</strong> : 100, 105, 110, 115, 120</li>' +
+                  '<li><strong>광역</strong> : 1000, 2000</li>' +
+                  '<li><strong>마을</strong> : 북구01, 북구02, 북구03</li>' +
+                  '<li><strong>급행간선</strong> : 500, 600</li>' +
+                '</ul>' +
+              '</div>' +
+            '</div>' +
+
+            /* 보건소 슬로건 */
+            '<div class="bg-health-slogan">' +
+              '<p>밝은미소! 환한웃음! 건강한 삶!</p>' +
+              '<span>전남광주통합특별시 북구 보건소</span>' +
+            '</div>' +
+
+            /* Guidance card */
             '<div class="bg-illegal-parking-card" data-action-target="health-center-guidance-card" tabindex="0">' +
               '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🏥</div>' +
               '<div class="bg-illegal-parking-card__body">' +
@@ -1616,10 +1964,33 @@
               '</ul>' +
             '</div>' +
 
+            /* 만족도 조사 */
+            '<div class="bg-sub-satisfaction">' +
+              '<h3 class="bg-sub-satisfaction__title">이 페이지에서 제공하는 정보에 만족하십니까?</h3>' +
+              '<div class="bg-sub-satisfaction__stars">' +
+                '<label><input type="radio" name="sat" disabled /> 매우만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 보통</label>' +
+                '<label><input type="radio" name="sat" disabled /> 불만족</label>' +
+                '<label><input type="radio" name="sat" disabled /> 매우불만족</label>' +
+              '</div>' +
+              '<div class="bg-sub-satisfaction__opinion">' +
+                '<input type="text" placeholder="의견을 입력해 주세요." disabled />' +
+                '<button type="button" disabled>확인</button>' +
+              '</div>' +
+            '</div>' +
 
           '</main>' +
         '</div>' +
-        _renderSubFooter() +
+
+        /* 보건소 푸터 */
+        '<footer class="bg-health-footer">' +
+          '<div class="bg-health-footer__inner">' +
+            '<p><strong>전남광주통합특별시 북구 보건소</strong></p>' +
+            '<p>61217 광주 북구 우치로 65 (중흥동) | 대표전화 062-410-8112</p>' +
+            '<p>평일 09:00 ~ 18:00 (점심 12:00 ~ 13:00) | 토·일요일·공휴일 휴무</p>' +
+          '</div>' +
+        '</footer>' +
       '</div>'
     );
   }
@@ -2133,6 +2504,7 @@
     var assets = "/static/images/bukgu-current";
     var searchIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.4 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
     var menuIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    function _gnbActive(m) { return activeMenu === m ? ' bg-home-gnb__link--active' : ''; }
     return (
       '<div class="bg-home-gov-strip">' +
         '<div class="bg-home-gov-strip__inner">' +
@@ -2161,12 +2533,12 @@
           '</a>' +
           '<nav class="bg-gnb" aria-label="주메뉴">' +
             '<div class="bg-home-gnb">' +
-            '<a href="#" class="bg-home-gnb__link' + (activeMenu === 'civil-service' ? ' bg-home-gnb__link--active' : '') + '" data-action-target="nav-civil-service">종합민원</a>' +
-            '<a href="#" class="bg-home-gnb__link">소통광장</a>' +
-            '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
-            '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
-            '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
-            '<a href="#" class="bg-home-gnb__link' + (activeMenu === 'intro' ? ' bg-home-gnb__link--active' : '') + '">북구소개</a>' +
+            '<a href="#" class="bg-home-gnb__link' + _gnbActive('civil-service') + '" data-action-target="nav-civil-service">종합민원</a>' +
+            '<a href="#" class="bg-home-gnb__link' + _gnbActive('communication') + '">소통광장</a>' +
+            '<a href="#" class="bg-home-gnb__link' + _gnbActive('welfare') + '">더불어복지</a>' +
+            '<a href="#" class="bg-home-gnb__link' + _gnbActive('field-info') + '">분야별정보</a>' +
+            '<a href="#" class="bg-home-gnb__link' + _gnbActive('info-open') + '">정보공개</a>' +
+            '<a href="#" class="bg-home-gnb__link' + _gnbActive('intro') + '">북구소개</a>' +
           '</div>' +
           '</nav>' +
           '<div class="bg-home-header__actions">' +

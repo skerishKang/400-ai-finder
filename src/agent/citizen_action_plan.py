@@ -37,9 +37,15 @@ _VALID_ROUTE_IDS: frozenset[str] = frozenset({
     "home",
     "civil-service",
     "complaint-category",
+    "complaint-illegal-parking",
     "complaint-intake",
-    "complaint-review",
     "handoff-stop",
+    "complaint-review",
+    "bulky-waste-disposal",
+    "move-in-report-guidance",
+    "public-health-center-guidance",
+    "apartment-info",
+    "apartment-dept",
 })
 
 _VALID_TARGET_IDS: frozenset[str] = frozenset({
@@ -50,10 +56,17 @@ _VALID_TARGET_IDS: frozenset[str] = frozenset({
     "complaint-category-residential-parking",
     "complaint-category-traffic-or-facility-safety",
     "complaint-category-other-or-unsure",
+    "complaint-illegal-parking-report",
     "complaint-body",
     "complaint-draft-review",
     "confirm-draft-prefill",
     "handoff-notice",
+    "bulky-waste-guidance-card",
+    "move-in-guidance-card",
+    "health-center-guidance-card",
+    "apartment-guidance-card",
+    "apartment-dept-card",
+    "apartment-life-card",
 })
 
 _VALID_CHOICE_IDS: frozenset[str] = frozenset({
