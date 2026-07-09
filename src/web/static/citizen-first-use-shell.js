@@ -317,6 +317,215 @@
     }
   }
 
+  // ── Static Bukgu Homepage Fixture ───────────────────────────────────
+  // Renders the Bukgu Office main portal layout as a static fixture for the
+  // initial left surface (first visible canvas content on split).
+  // Uses existing CSS classes from citizen-action-demo-canvas.css and
+  // existing image assets from /static/images/bukgu-current/.
+
+  function _bukguSearchIcon() {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.4 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  }
+  function _bukguMenuIcon() {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  }
+  function _bukguArrowLeft() {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 5.5L8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  function _bukguArrowRight() {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.5 5.5L16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  function _renderBukguHomeFixture() {
+    if (!canvas) return;
+    var assets = "/static/images/bukgu-current";
+    var searchIcon = _bukguSearchIcon();
+    var menuIcon = _bukguMenuIcon();
+    var arrowLeft = _bukguArrowLeft();
+    var arrowRight = _bukguArrowRight();
+
+    // Quick links
+    var quickItems = [
+      ["home-quick-work.png", "업무검색"],
+      ["home-quick-office.png", "청사안내"],
+      ["home-quick-donation.png", "고향사랑기부제"],
+      ["home-quick-money.png", "부끄머니"],
+      ["home-quick-reservation.png", "통합예약"],
+      ["home-quick-waiting.png", "일반민원 대기현황"],
+    ];
+    var quickHtml = "";
+    for (var i = 0; i < quickItems.length; i++) {
+      quickHtml +=
+        '<a href="#" class="bg-home-quick-link">' +
+          '<img src="' + assets + '/' + quickItems[i][0] + '" alt="" class="bg-home-quick-link__icon" />' +
+          '<span class="bg-home-quick-link__label">' + quickItems[i][1] + '</span>' +
+        '</a>';
+    }
+
+    var html =
+      '<div class="bg-page bg-page--full bg-page--home" data-home-reference-state="R-HOME-01">' +
+
+        // Skip navigation
+        '<div class="bg-skip"><a href="#bg-content-main">본문으로 바로가기</a></div>' +
+
+        // Government strip
+        '<div class="bg-home-gov-strip">' +
+          '<div class="bg-home-gov-strip__inner">' +
+            '<img src="' + assets + '/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+          '</div>' +
+        '</div>' +
+
+        // Utility bar (weather, major sites)
+        '<div class="bg-home-utility" aria-label="사이트 도구">' +
+          '<div class="bg-home-utility__inner">' +
+            '<div class="bg-home-utility__weather">' +
+              '<strong>26\u00B0C</strong>' +
+              '<span>\uBBF8\uC138\uBA3C\uC9C0 <b>\uC88B\uC74C</b></span>' +
+              '<span>\uCD08\uBBF8\uC138\uBA3C\uC9C0 <b>\uC88B\uC74C</b></span>' +
+            '</div>' +
+            '<div class="bg-home-utility__menus">' +
+              '<a href="#">\uC8FC\uC694\uC0AC\uC774\uD2B8 <span aria-hidden="true">\u25BE</span></a>' +
+              '<a href="#">SNS <span aria-hidden="true">\u25BE</span></a>' +
+              '<a href="#">KOR <span aria-hidden="true">\u25BE</span></a>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+        // Header + Logo + GNB
+        '<header class="bg-header">' +
+          '<div class="bg-home-header">' +
+          '<div class="bg-home-header__inner">' +
+            '<a href="#" class="bg-home-header__identity" aria-label="\uC804\uB0A8\uAD11\uC8FC\uD1B5\uD569\uD2B9\uBCC4\uC2DC\uBD81\uAD6C \uD648">' +
+              '<img src="' + assets + '/home-identity.png" alt="\uC804\uB0A8\uAD11\uC8FC\uD1B5\uD569\uD2B9\uBCC4\uC2DC\uBD81\uAD6C" />' +
+            '</a>' +
+            '<nav class="bg-gnb" aria-label="\uC8FC\uBA54\uB274">' +
+              '<div class="bg-home-gnb">' +
+              '<a href="#" class="bg-home-gnb__link bg-home-gnb__link--active">\uC885\uD569\uBBFC\uC6D0</a>' +
+              '<a href="#" class="bg-home-gnb__link">\uC18C\uD1B5\uAD11\uC7A5</a>' +
+              '<a href="#" class="bg-home-gnb__link">\uB354\uBD88\uC5B4\uBCF5\uC9C0</a>' +
+              '<a href="#" class="bg-home-gnb__link">\uBD84\uC57C\uBCC4\uC815\uBCF4</a>' +
+              '<a href="#" class="bg-home-gnb__link">\uC815\uBCF4\uACF5\uAC1C</a>' +
+              '<a href="#" class="bg-home-gnb__link">\uBD81\uAD6C\uC18C\uAC1C</a>' +
+            '</div>' +
+            '</nav>' +
+            '<div class="bg-home-header__actions">' +
+              '<button type="button" class="bg-home-header__icon" aria-label="\uD1B5\uD569\uAC80\uC0C9">' + searchIcon + '<span>\uD1B5\uD569\uAC80\uC0C9</span></button>' +
+              '<button type="button" class="bg-home-header__icon" aria-label="\uC804\uCCB4\uBA54\uB274">' + menuIcon + '<span>\uC804\uCCB4\uBA54\uB274</span></button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '</header>' +
+
+        // Search section
+        '<section class="bg-home-search" aria-label="\uD1B5\uD569\uAC80\uC0C9">' +
+          '<div class="bg-home-search__inner">' +
+            '<img src="' + assets + '/home-civic-brand.png" alt="\uBE5B\uB098\uB294 \uBD81\uAD6C, \uD568\uAED8\uD558\uB294 \uBD81\uAD6C - \uD589\uBCF5\uD55C \uAD6C\uBBFC\uC744 \uC704\uD55C \uB530\uB73B\uD55C \uBCC0\uD654" class="bg-home-search__brand" />' +
+            '<div class="bg-home-search__cluster">' +
+              '<div class="bg-home-search__field">' +
+                '<input type="text" placeholder="\uAC80\uC0C9\uC5B4\uB97C \uC785\uB825\uD558\uC138\uC694." aria-label="\uAC80\uC0C9\uC5B4" disabled />' +
+                '<button type="button" aria-label="\uAC80\uC0C9" disabled>' + searchIcon + '</button>' +
+              '</div>' +
+              '<div class="bg-home-search__tags"><span>#\uACF5\uB3D9\uC8FC\uD0DD\uACFC</span><span>#\uC704\uC0DD\uACFC</span><span>#\uD3D0\uAE30\uBB3C</span><span>#\uBD80\uAF34\uBA38\uB2C8</span></div>' +
+            '</div>' +
+          '</div>' +
+        '</section>' +
+
+        // Main content
+        '<main id="bg-content-main" class="bg-home-main">' +
+
+          // Lead banners (sliding visual area)
+          '<section class="bg-home-lead" aria-label="\uC8FC\uC694 \uC548\uB0B4">' +
+            '<article class="bg-home-lead__mayor">' +
+              '<img src="' + assets + '/home-mayor-card.png" alt="\uB530\uB73B\uD55C \uBD81\uAD6C\uB97C \uB9CC\uB4E4\uACA0\uC2B5\uB2C8\uB2E4. \uBD81\uAD6C\uCCAD\uC7A5 \uC2E0\uC218\uC815\uC785\uB2C8\uB2E4." />' +
+            '</article>' +
+            '<article class="bg-home-lead__banner" aria-label="\uC18C\uC18D \uACF5\uBB34\uC6D0 \uC0AC\uCE6D \uD53C\uD574\uC8FC\uC758 \uC54C\uB9BC">' +
+              '<img src="' + assets + '/home-alert-banner.png" alt="\uC8FC\uC694 \uC54C\uB9BC \uBC30\uB108" />' +
+            '</article>' +
+          '</section>' +
+
+          // Quick links
+          '<nav class="bg-home-quick" aria-label="\uBE60\uB978 \uC11C\uBE44\uC2A4">' +
+            '<button type="button" class="bg-home-quick__arrow" aria-label="\uC774\uC804" disabled>' + arrowLeft + '</button>' +
+            '<div class="bg-home-quick__items">' + quickHtml + '</div>' +
+            '<button type="button" class="bg-home-quick__arrow" aria-label="\uB2E4\uC74C" disabled>' + arrowRight + '</button>' +
+          '</nav>' +
+
+          // Notice board + Major sites
+          '<section class="bg-home-notice-sites" aria-label="\uACF5\uC9C0\uC640 \uC8FC\uC694 \uC0AC\uC774\uD2B8">' +
+            '<article class="bg-home-notice">' +
+              '<div class="bg-home-notice__tabs" role="tablist" aria-label="\uAC8C\uC2DC\uD310">' +
+                '<button type="button" role="tab" aria-selected="true">\uACF5\uC9C0\uC0AC\uD56D</button>' +
+                '<button type="button" role="tab">\uACE0\uC2DC/\uACF5\uACE0</button>' +
+                '<button type="button" role="tab">\uC785\uCC30\uACF5\uACE0</button>' +
+                '<button type="button" role="tab">\uCDE4\uC6A9\uACF5\uACE0</button>' +
+                '<button type="button" class="bg-home-notice__more" aria-label="\uB354\uBCF4\uAE30">+</button>' +
+              '</div>' +
+              '<ul class="bg-home-notice__list">' +
+                '<li><b>07</b><span>\uCCAD\uC0AC \uC2B9\uAC15\uAE30 \uC815\uAE30\uC810\uAC80 \uC548\uB0B4</span></li>' +
+                '<li><b>07</b><span>2026\uB144 \uD558\uBC18\uAE30 \uAD6C\uBBFC \uAD50\uC721 \uD504\uB85C\uADF8\uB7A8 \uC548\uB0B4</span></li>' +
+                '<li><b>07</b><span>\uC5EC\uB984\uCCA0 \uC548\uC804\uC218\uC808 \uC2DC\uC124 \uD655\uBCF4 \uC0AC\uC5C5 \uC548\uB0B4</span></li>' +
+                '<li><b>07</b><span>\uD3D0\uAE30\uBB3C \uBC30\uCD9C \uC2E0\uCCAD \uC77C\uC790 \uBCC0\uACBD \uC548\uB0B4</span></li>' +
+              '</ul>' +
+            '</article>' +
+            '<article class="bg-home-sites">' +
+              '<div class="bg-home-sites__head"><h2>\uC8FC\uC694\uC0AC\uC774\uD2B8</h2><span>\u2039&nbsp;&nbsp;1 / 4&nbsp;&nbsp;\u2161&nbsp;&nbsp;\u203A</span></div>' +
+              '<div class="bg-home-sites__grid">' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--chart"></i>\uD1B5\uACC4\uC815\uBCF4</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--school"></i>\uD3C9\uC0DD\uD559\uC2B5\uAD00</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--sun"></i>\uCCAD\uB144\uC13C\uD130</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--culture"></i>\uBB38\uD654\uC13C\uD130</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--park"></i>\uACF5\uC6D0\uC2DC\uC124 \uC608\uC57D</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--sport"></i>\uCCB4\uC721\uC2DC\uC124 \uC608\uC57D</a>' +
+              '</div>' +
+            '</article>' +
+          '</section>' +
+
+          // Lower section
+          '<section class="bg-home-lower" aria-label="\uD558\uB2E8 \uC18C\uC2DD\uACFC \uBD84\uC57C\uBCC4 \uC815\uBCF4">' +
+            '<section class="bg-home-lower-cards" aria-label="\uC8FC\uC694 \uC18C\uC2DD">' +
+              '<article class="bg-home-lower-card">' +
+                '<div class="bg-home-lower-card__head"><h2>\uACE0\uD5A5\uC0AC\uB791\uAE30\uBD80\uC81C</h2><span aria-hidden="true">\u2039&nbsp;\u2161&nbsp;\u203A&nbsp;+</span></div>' +
+                '<img src="' + assets + '/home-lower-hometown-donation.png" alt="\uACE0\uD5A5\uC0AC\uB791\uAE30\uBD80\uC81C \uC548\uB0B4" />' +
+              '</article>' +
+              '<article class="bg-home-lower-card">' +
+                '<div class="bg-home-lower-card__head"><h2>\uD604\uC7A5\uC2A4\uCF00\uCE58</h2><span aria-hidden="true">\u2039&nbsp;<b>1</b> / 4&nbsp;\u2161&nbsp;\u203A&nbsp;+</span></div>' +
+                '<img src="' + assets + '/home-lower-field-sketch.png" alt="\uD604\uC7A5\uC2A4\uCF00\uCE58" />' +
+              '</article>' +
+              '<article class="bg-home-lower-card">' +
+                '<div class="bg-home-lower-card__head"><h2>\uCE74\uB4DC\uB274\uC2A4</h2><span aria-hidden="true">+</span></div>' +
+                '<img src="' + assets + '/home-lower-card-news.png" alt="\uCE74\uB4DC\uB274\uC2A4" />' +
+              '</article>' +
+              '<article class="bg-home-lower-card">' +
+                '<div class="bg-home-lower-card__head"><h2>\uC54C\uB9AC\uBBF8</h2><span aria-hidden="true">\u2039&nbsp;<b>1</b> / 4&nbsp;\u2161&nbsp;\u203A&nbsp;+</span></div>' +
+                '<img src="' + assets + '/home-lower-notifier.png" alt="\uC54C\uB9AC\uBBF8" />' +
+              '</article>' +
+            '</section>' +
+          '</section>' +
+
+        '</main>' +
+
+        // Footer
+        '<footer class="bg-home-footer" aria-label="\uC0AC\uC774\uD2B8 \uD558\uB2E8">' +
+          '<div class="bg-home-footer__inner">' +
+            '<nav class="bg-home-footer__nav" aria-label="\uD558\uB2E8 \uBA54\uB274">' +
+              '<a href="#">\uBD80\uC11C\uC548\uB0B4 <span aria-hidden="true">\u2303</span></a>' +
+              '<a href="#">\uB3D9 \uD589\uC815\uBCF5\uC9C0\uC13C\uD130 <span aria-hidden="true">\u2303</span></a>' +
+              '<a href="#">\uC8FC\uC694 \uC0AC\uC774\uD2B8 <span aria-hidden="true">\u2303</span></a>' +
+              '<a href="#">\uC720\uAD00\uAE30\uAD00 <span aria-hidden="true">\u2303</span></a>' +
+            '</nav>' +
+            '<div class="bg-home-footer__legal">' +
+              '<p><strong>\uC804\uB0A8\uAD11\uC8FC\uD1B5\uD569\uD2B9\uBCC4\uC2DC \uBD81\uAD6C</strong></p>' +
+              '<p>61118 \uAD11\uC8FC \uBD81\uAD6C \uC6B0\uCE58\uB85C 77 (\uD50C\uB9BC\uB3D9)</p>' +
+              '<p>\uB300\uD45C\uC804\uD654 062-410-8114 | \uD64D\uBCF4\uAD00\uB780\uBA54\uC77C webmaster@bukgu.gwangju.kr</p>' +
+              '<p>\uD3C9\uC77C 09:00 ~ 18:00 (\uC811\uC218\uC2DC\uAC04 09:00 ~ 17:30) / \uD1A0/\uC77C\uC694\uC77C \uAD6C\uAD6C\uC815\uC0AC\uBB34\uC548\uB0B4 \uD655\uC778</p>' +
+            '</div>' +
+          '</div>' +
+        '</footer>' +
+      '</div>';
+
+    canvas.innerHTML = '<div class="demo-canvas__inner">' + html + '</div>';
+  }
+
   function setComposerDisabled(isDisabled) {
     if (chatInput) {
       chatInput.disabled = isDisabled;
@@ -486,6 +695,7 @@
 
   function completeSplit() {
     splitTimer = null;
+    _renderBukguHomeFixture();
     setState(STATE_SPLIT);
     appendChatMessage(
       "ai",
@@ -662,6 +872,7 @@
 
   function completeMvpSplit(action) {
     splitTimer = null;
+    _renderBukguHomeFixture();
     setState(STATE_SPLIT);
     appendChatMessage(
       "ai",

@@ -2418,3 +2418,621 @@
   text-align: right;
 }
 
+/* ═══════════════════════════════════════════════════════
+   Sub-page common elements (breadcrumb, title, tabs)
+   ═══════════════════════════════════════════════════════ */
+/* J-DEPT scope: breadcrumb is used on every route page; scope per route wrapper */
+.bg-page--illegal-parking .bg-sub-breadcrumb,
+.bg-page--bulky-waste .bg-sub-breadcrumb,
+.bg-page--move-in-report .bg-sub-breadcrumb,
+.bg-page--public-health-center .bg-sub-breadcrumb,
+.bg-page--apartment-info .bg-sub-breadcrumb {
+  font-size: 0.8125rem;
+  color: #666;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 12px;
+}
+.bg-page--illegal-parking .bg-sub-breadcrumb a,
+.bg-page--bulky-waste .bg-sub-breadcrumb a,
+.bg-page--move-in-report .bg-sub-breadcrumb a,
+.bg-page--public-health-center .bg-sub-breadcrumb a,
+.bg-page--apartment-info .bg-sub-breadcrumb a {
+  color: #149896;
+  text-decoration: none;
+}
+.bg-page--illegal-parking .bg-sub-breadcrumb a:hover,
+.bg-page--bulky-waste .bg-sub-breadcrumb a:hover,
+.bg-page--move-in-report .bg-sub-breadcrumb a:hover,
+.bg-page--public-health-center .bg-sub-breadcrumb a:hover,
+.bg-page--apartment-info .bg-sub-breadcrumb a:hover {
+  text-decoration: underline;
+}
+.bg-page--illegal-parking .bg-sub-breadcrumb__sep,
+.bg-page--bulky-waste .bg-sub-breadcrumb__sep,
+.bg-page--move-in-report .bg-sub-breadcrumb__sep,
+.bg-page--public-health-center .bg-sub-breadcrumb__sep,
+.bg-page--apartment-info .bg-sub-breadcrumb__sep {
+  color: #bbb;
+  margin: 0 4px;
+}
+.bg-page--illegal-parking .bg-sub-breadcrumb strong,
+.bg-page--bulky-waste .bg-sub-breadcrumb strong,
+.bg-page--move-in-report .bg-sub-breadcrumb strong,
+.bg-page--public-health-center .bg-sub-breadcrumb strong,
+.bg-page--apartment-info .bg-sub-breadcrumb strong {
+  color: #222;
+  font-weight: 700;
+}
+
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a252f;
+  margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #149896;
+}
+
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #149896;
+  margin-bottom: 20px;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-tab {
+  padding: 10px 24px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #666;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-bottom: none;
+  cursor: default;
+  border-radius: 4px 4px 0 0;
+  margin-bottom: -2px;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-tab--active {
+  color: #fff;
+  background: #149896;
+  border-color: #149896;
+}
+
+/* Content sections */
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-content-section {
+  margin-bottom: 24px;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 10px;
+  padding-left: 10px;
+  border-left: 3px solid #149896;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-section-desc {
+  font-size: 0.875rem;
+  color: #555;
+  line-height: 1.6;
+  margin: 0 0 8px;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-table-caption {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #333;
+  margin: 16px 0 8px;
+}
+
+/* Info card */
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-info-card {
+  background: #f8fafc;
+  border: 1px solid #e0e4ec;
+  border-radius: 6px;
+  padding: 16px;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-info-card p {
+  margin: 4px 0;
+  font-size: 0.875rem;
+  color: #444;
+  line-height: 1.6;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-info-card__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-info-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+/* Info list */
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-info-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-info-list li {
+  padding: 4px 0;
+  font-size: 0.875rem;
+  color: #444;
+  line-height: 1.5;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-info-list li::before {
+  content: '•';
+  color: #149896;
+  font-weight: bold;
+  margin-right: 6px;
+}
+
+/* Buttons */
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 20px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: default;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-btn--primary {
+  background: #149896;
+  color: #fff;
+  border: 1px solid #149896;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-btn--secondary {
+  background: #fff;
+  color: #149896;
+  border: 1px solid #149896;
+}
+
+/* Sub-page table (과태료, 수수료) */
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 0.8125rem;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-table th {
+  background: #f0f3f7;
+  border-bottom: 2px solid #c8d5e6;
+  padding: 9px 10px;
+  text-align: center;
+  font-weight: 700;
+  color: #333;
+  white-space: nowrap;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e6eaef;
+  text-align: center;
+  color: #444;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-table--fee td:first-child {
+  text-align: left;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-table--fee td:nth-child(2) {
+  font-weight: 600;
+  color: #e74c3c;
+}
+
+/* Apartment search enhancement */
+.bg-page--apartment-info .bg-apartment-search__select {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px 0 0 4px;
+  background: #fff;
+  font-size: 0.8125rem;
+  color: #444;
+}
+
+/* Apartment pagination */
+.bg-page--apartment-info .bg-apartment-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.bg-page--apartment-info .bg-apartment-pagination__btn {
+  min-width: 32px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #555;
+  font-size: 0.8125rem;
+  cursor: default;
+  border-radius: 3px;
+}
+.bg-page--apartment-info .bg-apartment-pagination__btn--active {
+  background: #149896;
+  color: #fff;
+  border-color: #149896;
+  font-weight: 700;
+}
+.bg-page--apartment-info .bg-apartment-pagination__btn:disabled {
+  color: #ccc;
+  border-color: #eee;
+}
+
+/* Satisfaction survey */
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-satisfaction {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e0e4ec;
+  border-radius: 6px;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-satisfaction__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 10px;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-satisfaction__stars {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-satisfaction__stars label {
+  font-size: 0.8125rem;
+  color: #555;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-satisfaction__stars input[type="radio"] {
+  margin: 0;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-satisfaction__opinion {
+  display: flex;
+  gap: 8px;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-satisfaction__opinion input[type="text"] {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+}
+:is(.bg-page--illegal-parking,
+    .bg-page--bulky-waste,
+    .bg-page--move-in-report,
+    .bg-page--public-health-center,
+    .bg-page--apartment-info) .bg-sub-satisfaction__opinion button {
+  padding: 6px 16px;
+  background: #149896;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  cursor: default;
+}
+
+/* 정부24 card */
+.bg-page--move-in-report .bg-gov24-card {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 100%);
+  border: 2px solid #149896;
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.bg-page--move-in-report .bg-gov24-card__badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #149896;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.bg-page--move-in-report .bg-gov24-card__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a252f;
+  margin: 0 0 8px;
+}
+.bg-page--move-in-report .bg-gov24-card__desc {
+  font-size: 0.875rem;
+  color: #555;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+.bg-page--move-in-report .bg-gov24-card__info {
+  margin-bottom: 16px;
+}
+.bg-page--move-in-report .bg-gov24-card__row {
+  font-size: 0.875rem;
+  color: #444;
+  padding: 4px 0;
+}
+.bg-page--move-in-report .bg-gov24-card__label {
+  font-weight: 600;
+  color: #2c3e50;
+  display: inline-block;
+  min-width: 90px;
+}
+.bg-page--move-in-report .bg-gov24-card__link {
+  color: #149896;
+  text-decoration: none;
+  font-weight: 600;
+}
+.bg-page--move-in-report .bg-gov24-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 보건소 전용 헤더 */
+.bg-page--public-health-center .bg-health-header {
+  background: #fff;
+  border-bottom: 2px solid #149896;
+}
+.bg-page--public-health-center .bg-health-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.bg-page--public-health-center .bg-health-header__logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.bg-page--public-health-center .bg-health-header__logo-emblem {
+  font-size: 2rem;
+}
+.bg-page--public-health-center .bg-health-header__logo-text strong {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+}
+.bg-page--public-health-center .bg-health-header__logo-text span {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #149896;
+}
+.bg-page--public-health-center .bg-health-gnb {
+  display: flex;
+  gap: 0;
+  flex: 1;
+}
+.bg-page--public-health-center .bg-health-gnb__link {
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #555;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.bg-page--public-health-center .bg-health-gnb__link--active {
+  color: #149896;
+  border-bottom: 3px solid #149896;
+}
+
+/* 보건소 map placeholder */
+.bg-page--public-health-center .bg-health-map-placeholder {
+  background: #f0f4f8;
+  border: 2px dashed #c8d5e6;
+  border-radius: 8px;
+  padding: 40px 24px;
+  margin: 16px 0;
+  text-align: center;
+}
+.bg-page--public-health-center .bg-health-map-placeholder__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.bg-page--public-health-center .bg-health-map-placeholder__icon {
+  font-size: 3rem;
+}
+.bg-page--public-health-center .bg-health-map-placeholder__text p {
+  margin: 2px 0;
+  font-size: 0.875rem;
+  color: #555;
+}
+.bg-page--public-health-center .bg-health-map-placeholder__link {
+  color: #149896;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* 보건소 info table */
+.bg-page--public-health-center .bg-health-info-section {
+  margin: 16px 0;
+}
+.bg-page--public-health-center .bg-health-info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.bg-page--public-health-center .bg-health-info-table th {
+  width: 140px;
+  padding: 10px 12px;
+  background: #f5f7fa;
+  border: 1px solid #e0e4ec;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #333;
+  text-align: left;
+}
+.bg-page--public-health-center .bg-health-info-table td {
+  padding: 10px 12px;
+  border: 1px solid #e0e4ec;
+  font-size: 0.875rem;
+  color: #444;
+}
+
+/* 보건소 슬로건 */
+.bg-page--public-health-center .bg-health-slogan {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #e8f5e9 0%, #e0f2f1 100%);
+  border-radius: 8px;
+  margin: 16px 0;
+}
+.bg-page--public-health-center .bg-health-slogan p {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #009944;
+  margin: 0 0 4px;
+}
+.bg-page--public-health-center .bg-health-slogan span {
+  font-size: 0.8125rem;
+  color: #666;
+}
+
+/* 보건소 푸터 */
+.bg-page--public-health-center .bg-health-footer {
+  background: #354152;
+  color: #ccc;
+  padding: 24px;
+  text-align: center;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.bg-page--public-health-center .bg-health-footer__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.bg-page--public-health-center .bg-health-footer p {
+  margin: 2px 0;
+}
+.bg-page--public-health-center .bg-health-footer strong {
+  color: #eee;
+}
+

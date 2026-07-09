@@ -276,14 +276,14 @@ class OpenAICompatibleProvider(LLMProvider):
                     error="LLM response has no choices.",
                     failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
                 )
-            content = choices[0].get("message", {}).get("content", "")
+            content = choices[0].get("message", {}).get("content") or ""
             if not content:
                 return ProviderResult(
                     ok=False,
                     provider=self._provider_label,
                     model=self._model_label,
                     content="",
-                    error="LLM response has empty content in choices[0].message.",
+                    error="LLM response content is empty or null (reasoning model may have exhausted token budget).",
                     failure_code=FAILURE_INVALID_UPSTREAM_RESPONSE,
                 )
             return ProviderResult(

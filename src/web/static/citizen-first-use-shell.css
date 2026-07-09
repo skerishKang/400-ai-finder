@@ -346,6 +346,29 @@ body.first-use-shell--no-motion .first-use-layout .chat-shell {
   animation: chatFadeIn 400ms ease 600ms both;
 }
 
+/* AI thinking/searching indicator — temporary chat message styling */
+.chat-msg--temp .chat-bubble--ai {
+  font-style: italic;
+  color: #888;
+  background: #f0f4f8;
+  border-color: #dde2ec;
+}
+.chat-msg--temp .chat-bubble--ai::after {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin-left: 4px;
+  background: #888;
+  border-radius: 50%;
+  animation: chatThinkingDot 1.2s ease-in-out infinite;
+}
+@keyframes chatThinkingDot {
+  0%, 20% { opacity: 0; }
+  50% { opacity: 1; }
+  80%, 100% { opacity: 0; }
+}
+
 /* Choreography cursor click ripple */
 @keyframes choreoClick {
   0% { transform: scale(0.5); opacity: 1; }

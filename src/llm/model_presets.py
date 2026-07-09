@@ -102,11 +102,16 @@ def resolve_provider_model(
 ) -> tuple[str, str]:
     """Resolve model, provider, and preset into a final (provider, model) combination.
 
-    If no model/provider/preset are provided, defaults to deepseek-primary.
+    If no model/provider/preset are provided, uses AI_FINDER_LLM_PROVIDER /
+    AI_FINDER_LLM_MODEL env vars, or falls back to the deepseek-primary preset.
     """
-    # 0. If all are None, default to deepseek-primary preset
+    # 0. If all are None, check env vars before falling back to default preset
     if model is None and provider is None and preset is None:
-        preset = "deepseek-primary"
+        env_provider = os.environ.get("AI_FINDER_LLM_PROVIDER")
+        if env_provider:
+            provider = env_provider
+        else:
+            preset = "deepseek-primary"
 
     # 1. Resolve from preset first
     if preset:
@@ -133,7 +138,13 @@ def resolve_provider_model(
                     found = True
                     break
 
-    # 3. Fallbacks
+    # 3. Final: check env var fallbacks for anything still unset, then
+    #    fall back to defaults (mock provider, empty model).
+    if provider is None:
+        provider = os.environ.get("AI_FINDER_LLM_PROVIDER")
+    if not model:
+        model = os.environ.get("AI_FINDER_LLM_MODEL")
+
     final_provider = (provider or "mock").strip().lower()
     final_model = (model or "").strip()
 

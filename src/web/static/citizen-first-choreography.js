@@ -47,7 +47,10 @@
   //   typeQuery      — string: set value of the directory search input
   //   submitSearch   — true: click the directory search button
   //   cursorTarget   — CSS selector: move cursor arrow to this element
-  //   clickTarget    — CSS selector: show cursor + click ripple at element
+  //   clickTarget    — CSS selector: show cursor + click ripple at target element
+  //   thinkingText   — (new) temporary AI "thinking" indicator shown before message (optional)
+  //   searchingText  — (new) second-phase "searching" indicator after thinking (optional)
+  //   thinkingMs     — duration in ms for thinking/searching indicator (default 800)
   //   delayMs        — pause before next step; omitted/0 = terminal
   // ═══════════════════════════════════════════════════════════════════
   var JOURNEY_MAP = Object.freeze({
@@ -55,9 +58,9 @@
       id: "complaint-illegal-parking",
       description: "불법 주정차 신고 경로 안내 (지도단속/안전신문고)",
       steps: Object.freeze([
-        Object.freeze({ message: "불법 주정차 신고 경로를 안내해 드립니다.", delayMs: 1000 }),
-        Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 2500, cursorTarget: ".bg-illegal-parking-card" }),
-        Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2800, clickTarget: ".bg-illegal-parking-card__arrow" }),
+        Object.freeze({ message: "불법 주정차 신고 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
+        Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 2500, cursorTarget: ".bg-illegal-parking-card", thinkingText: "북구청 사이트에 접속 중입니다...", thinkingMs: 700 }),
+        Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2800, clickTarget: ".bg-illegal-parking-card", thinkingText: "신고 채널 정보를 확인 중입니다...", searchingText: "안전신문고 사이트를 검색 중입니다...", thinkingMs: 800 }),
         Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -66,9 +69,9 @@
       id: "complaint-illegal-parking",
       description: "불법 주정차 신고 경로 안내 (지도단속/안전신문고, MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "불법 주정차 신고 경로를 안내해 드립니다.", delayMs: 1000 }),
-        Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 2500, cursorTarget: ".bg-illegal-parking-card" }),
-        Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2800 }),
+        Object.freeze({ message: "불법 주정차 신고 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
+        Object.freeze({ message: "지도단속 안내 화면으로 이동합니다.", routeId: "complaint-illegal-parking", delayMs: 2500, cursorTarget: ".bg-illegal-parking-card", thinkingText: "북구청 사이트에 접속 중입니다...", thinkingMs: 700 }),
+        Object.freeze({ message: "안전신문고 등 공식 신고 채널을 안내합니다.", targetId: "complaint-illegal-parking-report", delayMs: 2800, clickTarget: ".bg-illegal-parking-card", thinkingText: "신고 채널 정보를 확인 중입니다...", searchingText: "안전신문고 사이트를 검색 중입니다...", thinkingMs: 800 }),
         Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -77,23 +80,23 @@
       id: "apartment-dept",
       description: "도시관리국 공동주택과 업무 및 연락처 안내",
       steps: Object.freeze([
-        Object.freeze({ message: "북구소개 메뉴로 이동합니다.", delayMs: 1200 }),
-        Object.freeze({ message: "구청안내를 확인합니다.", delayMs: 1400 }),
-        Object.freeze({ message: "업무 및 전화번호 안내 화면으로 이동합니다.", delayMs: 1400 }),
-        Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table" }),
-        Object.freeze({ message: "공동주택과 담당자 연락처입니다. 공동주택팀 062-410-6831~6834", targetId: "apartment-dept-card", delayMs: 2800 }),
-        Object.freeze({ message: "공동주택 관련 문의는 도시관리국 공동주택과(062-410-6831)로 연락하시면 됩니다." }),
+        Object.freeze({ message: "북구소개 메뉴로 이동합니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1200 }),
+        Object.freeze({ message: "구청안내를 확인합니다.", thinkingText: "구청 정보를 불러오는 중입니다...", thinkingMs: 600, delayMs: 1400 }),
+        Object.freeze({ message: "업무 및 전화번호 안내 화면으로 이동합니다.", thinkingText: "페이지를 탐색 중입니다...", thinkingMs: 600, delayMs: 1400 }),
+        Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
+        Object.freeze({ message: "공동주택과 담당자 연락처입니다. 공동주택팀 062-410-6831~6834", targetId: "apartment-dept-card", delayMs: 2800, thinkingText: "연락처 정보를 확인 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
     "housing_department": Object.freeze({
       id: "apartment-dept",
       description: "도시관리국 공동주택과 업무 및 연락처 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "북구소개 메뉴로 이동합니다.", delayMs: 1200 }),
-        Object.freeze({ message: "구청안내를 확인합니다.", delayMs: 1400 }),
-        Object.freeze({ message: "업무 및 전화번호 안내 화면으로 이동합니다.", delayMs: 1400 }),
-        Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-result__card" }),
-        Object.freeze({ message: "공동주택과는 공동주택 관리 지원, 하자분쟁조정, 보조금 지원 업무를 담당합니다.", targetId: "apartment-dept-card", delayMs: 2000 }),
+        Object.freeze({ message: "북구소개 메뉴로 이동합니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1200 }),
+        Object.freeze({ message: "구청안내를 확인합니다.", thinkingText: "구청 정보를 불러오는 중입니다...", thinkingMs: 600, delayMs: 1400 }),
+        Object.freeze({ message: "업무 및 전화번호 안내 화면으로 이동합니다.", thinkingText: "페이지를 탐색 중입니다...", thinkingMs: 600, delayMs: 1400 }),
+        Object.freeze({ message: "도시관리국 > 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
+        Object.freeze({ message: "공동주택과는 공동주택 관리 지원, 하자분쟁조정, 보조금 지원 업무를 담당합니다.", targetId: "apartment-dept-card", delayMs: 2000, thinkingText: "담당 업무를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -101,9 +104,9 @@
       id: "bulky-waste-disposal-guidance",
       description: "대형폐기물 배출방법 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
-        Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200, thinkingText: "대형폐기물 페이지를 불러오는 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000, thinkingText: "배출 방법 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -111,9 +114,9 @@
       id: "bulky-waste-disposal-guidance",
       description: "대형폐기물 배출방법 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
-        Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200, thinkingText: "대형폐기물 페이지를 불러오는 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000, thinkingText: "배출 방법 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -121,9 +124,9 @@
       id: "bulky-waste-disposal-guidance",
       description: "대형폐기물 배출방법 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
-        Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200, thinkingText: "대형폐기물 페이지를 불러오는 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000, thinkingText: "배출 방법 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -131,9 +134,9 @@
       id: "bulky-waste-disposal-guidance",
       description: "대형폐기물 배출방법 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
-        Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200, thinkingText: "대형폐기물 페이지를 불러오는 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000, thinkingText: "배출 방법 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -141,9 +144,9 @@
       id: "bulky-waste-disposal-guidance",
       description: "대형폐기물 배출방법 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200 }),
-        Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "대형폐기물 배출방법 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "대형폐기물 배출방법 페이지로 이동합니다.", routeId: "bulky-waste-disposal", delayMs: 1200, thinkingText: "대형폐기물 페이지를 불러오는 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "전화 신고와 여기로 신청 경로를 안내합니다.", targetId: "bulky-waste-guidance-card", delayMs: 2000, thinkingText: "배출 방법 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "실제 품목 선택, 주소·연락처 입력, 수수료 결제, 배출번호 발급은 공식 채널에서 사용자가 직접 진행해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -151,11 +154,11 @@
       id: "move-in-report-guidance",
       description: "정부24 전입신고 연결 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "정부24 전입신고 연결 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
-        Object.freeze({ message: "전자민원창구의 정부24 연결 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200 }),
-        Object.freeze({ message: "정부24 전입신고 연결 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 제출은 사용자가 정부24/주민센터에서 직접 진행해야 합니다.", targetId: "move-in-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "정부24 전입신고 연결 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500, thinkingText: "메뉴를 탐색 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200, thinkingText: "종합민원 페이지로 이동 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "전자민원창구의 정부24 연결 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200, thinkingText: "정부24 안내 화면을 찾는 중입니다...", searchingText: "전입신고 관련 정보를 검색 중입니다...", thinkingMs: 800 }),
+        Object.freeze({ message: "정부24 전입신고 연결 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 제출은 사용자가 정부24/주민센터에서 직접 진행해야 합니다.", targetId: "move-in-guidance-card", delayMs: 2000, thinkingText: "안내 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내가 완료되었습니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -163,11 +166,11 @@
       id: "move-in-report-guidance",
       description: "정부24 전입신고 연결 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "정부24 전입신고 연결 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
-        Object.freeze({ message: "전자민원창구의 정부24 연결 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200 }),
-        Object.freeze({ message: "정부24 전입신고 연결 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 제출은 사용자가 정부24/주민센터에서 직접 진행해야 합니다.", targetId: "move-in-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "정부24 전입신고 연결 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500, thinkingText: "메뉴를 탐색 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200, thinkingText: "종합민원 페이지로 이동 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "전자민원창구의 정부24 연결 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200, thinkingText: "정부24 안내 화면을 찾는 중입니다...", searchingText: "전입신고 관련 정보를 검색 중입니다...", thinkingMs: 800 }),
+        Object.freeze({ message: "정부24 전입신고 연결 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 제출은 사용자가 정부24/주민센터에서 직접 진행해야 합니다.", targetId: "move-in-guidance-card", delayMs: 2000, thinkingText: "안내 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내가 완료되었습니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -175,11 +178,11 @@
       id: "move-in-report-guidance",
       description: "정부24 전입신고 연결 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "정부24 전입신고 연결 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
-        Object.freeze({ message: "전자민원창구의 정부24 연결 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200 }),
-        Object.freeze({ message: "정부24 전입신고 연결 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 제출은 사용자가 정부24/주민센터에서 직접 진행해야 합니다.", targetId: "move-in-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "정부24 전입신고 연결 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500, thinkingText: "메뉴를 탐색 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200, thinkingText: "종합민원 페이지로 이동 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "전자민원창구의 정부24 연결 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200, thinkingText: "정부24 안내 화면을 찾는 중입니다...", searchingText: "전입신고 관련 정보를 검색 중입니다...", thinkingMs: 800 }),
+        Object.freeze({ message: "정부24 전입신고 연결 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 제출은 사용자가 정부24/주민센터에서 직접 진행해야 합니다.", targetId: "move-in-guidance-card", delayMs: 2000, thinkingText: "안내 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내가 완료되었습니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -199,10 +202,10 @@
       id: "public-health-center-guidance",
       description: "보건소 위치·진료 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200 }),
-        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500, thinkingText: "메뉴를 탐색 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200, thinkingText: "보건소 정보 페이지를 불러오는 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000, thinkingText: "진료 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내가 완료되었습니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -210,10 +213,10 @@
       id: "public-health-center-guidance",
       description: "보건소 위치·진료 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200 }),
-        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500, thinkingText: "메뉴를 탐색 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200, thinkingText: "보건소 정보 페이지를 불러오는 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000, thinkingText: "진료 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내가 완료되었습니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -221,10 +224,10 @@
       id: "public-health-center-guidance",
       description: "보건소 위치·진료 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200 }),
-        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500, thinkingText: "메뉴를 탐색 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200, thinkingText: "보건소 정보 페이지를 불러오는 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000, thinkingText: "진료 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내가 완료되었습니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -232,10 +235,10 @@
       id: "public-health-center-guidance",
       description: "보건소 위치·진료 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200 }),
-        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500, thinkingText: "메뉴를 탐색 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200, thinkingText: "보건소 정보 페이지를 불러오는 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000, thinkingText: "진료 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내가 완료되었습니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -243,10 +246,10 @@
       id: "public-health-center-guidance",
       description: "보건소 위치·진료 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200 }),
-        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "보건소 위치·진료 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "북구청 홈의 주요사이트에서 보건소로 이동합니다.", targetId: "nav-civil-service", delayMs: 1500, thinkingText: "메뉴를 탐색 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "보건소 위치·진료 안내 화면으로 이동합니다.", routeId: "public-health-center-guidance", delayMs: 1200, thinkingText: "보건소 정보 페이지를 불러오는 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "보건소 위치·진료 안내를 확인합니다. 실제 이용 정보는 공식 채널에서 직접 확인해야 합니다.", targetId: "health-center-guidance-card", delayMs: 2000, thinkingText: "진료 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내가 완료되었습니다. 실제 보건소 이용, 진료 예약, 본인인증, 건강정보 입력, 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -254,11 +257,11 @@
       id: "move-in-report-guidance",
       description: "전입신고 안내 (MVP action)",
       steps: Object.freeze([
-        Object.freeze({ message: "전입신고 경로를 안내해 드립니다.", delayMs: 600 }),
-        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500 }),
-        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200 }),
-        Object.freeze({ message: "전입신고 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200 }),
-        Object.freeze({ message: "전입신고 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 정부24/주민센터 제출 전 사용자 확인이 필요합니다.", targetId: "move-in-guidance-card", delayMs: 2000 }),
+        Object.freeze({ message: "전입신고 경로를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 600 }),
+        Object.freeze({ message: "종합민원 메뉴를 확인합니다.", targetId: "nav-civil-service", delayMs: 1500, thinkingText: "메뉴를 탐색 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "종합민원 페이지로 이동합니다.", routeId: "civil-service", delayMs: 1200, thinkingText: "종합민원 페이지로 이동 중입니다...", thinkingMs: 600 }),
+        Object.freeze({ message: "전입신고 안내 화면으로 이동합니다.", routeId: "move-in-report-guidance", delayMs: 1200, thinkingText: "전입신고 안내 화면을 찾는 중입니다...", searchingText: "전입신고 관련 정보를 검색 중입니다...", thinkingMs: 800 }),
+        Object.freeze({ message: "전입신고 안내를 확인합니다. 실제 본인인증, 주소·세대주·가족관계 정보 입력, 정부24/주민센터 제출 전 사용자 확인이 필요합니다.", targetId: "move-in-guidance-card", delayMs: 2000, thinkingText: "안내 정보를 확인 중입니다...", thinkingMs: 600 }),
         Object.freeze({ message: "안내가 완료되었습니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다. STOP_FOR_USER_CONFIRMATION" }),
       ]),
     }),
@@ -268,10 +271,13 @@
   // Internal helpers
   // ═══════════════════════════════════════════════════════════════════
 
-  function _appendChatMessage(role, text) {
+  function _appendChatMessage(role, text, isTemp) {
     if (!_chatThread) return;
     var messageEl = document.createElement("div");
     messageEl.className = "chat-msg chat-msg--" + role;
+    if (isTemp) {
+      messageEl.className += " chat-msg--temp";
+    }
     if (role === "ai") {
       var avatar = document.createElement("div");
       avatar.className = "chat-avatar";
@@ -285,6 +291,27 @@
     messageEl.appendChild(bubble);
     _chatThread.appendChild(messageEl);
     _chatThread.scrollTop = _chatThread.scrollHeight;
+    return messageEl;
+  }
+
+  /** Remove all temporary chat messages (for cleaning up thinking/searching indicators) */
+  function _removeTempMessages() {
+    if (!_chatThread) return;
+    var temps = _chatThread.querySelectorAll(".chat-msg--temp");
+    for (var i = temps.length - 1; i >= 0; i--) {
+      if (temps[i].parentNode) temps[i].parentNode.removeChild(temps[i]);
+    }
+  }
+
+  /** Show a temporary thinking/searching indicator, then remove it after delayMs */
+  function _showTempIndicator(text, delayMs) {
+    var el = _appendChatMessage("ai", text, true);
+    if (el && delayMs > 0) {
+      window.setTimeout(function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }, delayMs);
+    }
+    return el;
   }
 
   function _clearHighlights() {
@@ -405,43 +432,75 @@
       }
     }
 
-    // Cursor animation: move cursor to target element
-    if (step.cursorTarget) {
-      var canvas = window.CitizenActionDemoCanvas;
-      if (canvas) {
-        if (canvas.hideCursor) canvas.hideCursor();
-        if (canvas.showCursorAt) {
-          // small delay so route renders before cursor appears
-          setTimeout(function () {
-            canvas.showCursorAt(step.cursorTarget);
-          }, 100);
+    // ── AI-style thinking/searching indicator ──────────────────────
+    // If the step has a thinkingText, show a temporary indicator before
+    // the permanent message, simulating AI "thinking" / "searching".
+    function _showPermanentAndSchedule() {
+      // Remove any stale temp indicators
+      _removeTempMessages();
+      // Show chat message AFTER DOM actions so the left-pane state is visible
+      // before the explanation text.
+      _appendChatMessage("ai", step.message);
+
+      // Cursor/click animation plays AFTER the message, during the delayMs period,
+      // so the user reads the explanation before seeing the visual action.
+      if (step.cursorTarget) {
+        var cCanvas = window.CitizenActionDemoCanvas;
+        if (cCanvas) {
+          if (cCanvas.hideCursor) cCanvas.hideCursor();
+          if (cCanvas.showCursorAt) {
+            window.setTimeout(function () {
+              cCanvas.showCursorAt(step.cursorTarget);
+            }, 100);
+          }
         }
       }
-    }
+      if (step.clickTarget) {
+        var kCanvas = window.CitizenActionDemoCanvas;
+        if (kCanvas && kCanvas.clickAnimation) {
+          window.setTimeout(function () {
+            kCanvas.clickAnimation(step.clickTarget);
+          }, 200);
+        }
+      }
 
-    // Click animation: show cursor + ripple at target
-    if (step.clickTarget) {
-      var canvas = window.CitizenActionDemoCanvas;
-      if (canvas && canvas.clickAnimation) {
-        setTimeout(function () {
-          canvas.clickAnimation(step.clickTarget);
-        }, 200);
+      // Schedule next step or terminate
+      if (typeof step.delayMs === "number" && step.delayMs > 0) {
+        _timer = window.setTimeout(function () {
+          _timer = null;
+          _executeStep(index + 1);
+        }, step.delayMs);
+      } else {
+        // No delay → terminal step (done message)
+        _setState(STATE_DONE);
       }
     }
 
-    // Show chat message AFTER DOM actions so the left-pane state is visible
-    // before the explanation text.
-    _appendChatMessage("ai", step.message);
-
-    // Schedule next step or terminate
-    if (typeof step.delayMs === "number" && step.delayMs > 0) {
-      _timer = window.setTimeout(function () {
-        _timer = null;
-        _executeStep(index + 1);
-      }, step.delayMs);
+    if (step.thinkingText) {
+      // Show thinking/searching indicator, then replace with permanent message
+      var thinkMs = (typeof step.thinkingMs === "number") ? step.thinkingMs : 800;
+      var tempEl;
+      if (step.searchingText) {
+        // Two-phase: show thinking, then searching, then permanent
+        tempEl = _showTempIndicator(step.thinkingText, thinkMs);
+        window.setTimeout(function () {
+          if (tempEl && tempEl.parentNode) tempEl.parentNode.removeChild(tempEl);
+          var searchEl = _showTempIndicator(step.searchingText, thinkMs);
+          window.setTimeout(function () {
+            if (searchEl && searchEl.parentNode) searchEl.parentNode.removeChild(searchEl);
+            _showPermanentAndSchedule();
+          }, thinkMs);
+        }, thinkMs);
+      } else {
+        // Single-phase: show thinking, then permanent
+        tempEl = _showTempIndicator(step.thinkingText, thinkMs);
+        window.setTimeout(function () {
+          if (tempEl && tempEl.parentNode) tempEl.parentNode.removeChild(tempEl);
+          _showPermanentAndSchedule();
+        }, thinkMs);
+      }
     } else {
-      // No delay → terminal step (done message)
-      _setState(STATE_DONE);
+      _showPermanentAndSchedule();
     }
   }
 
