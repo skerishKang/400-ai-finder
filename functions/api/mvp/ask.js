@@ -17,6 +17,7 @@ export async function onRequest(context) {
     'Access-Control-Allow-Origin': corsOrigin,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
     'Content-Type': 'application/json',
   };
 
@@ -33,6 +34,15 @@ export async function onRequest(context) {
 
   try {
     const body = await request.json();
+
+    // Body 타입 검증 — object가 아니면 fail-closed
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return new Response(JSON.stringify({
+        ok: false, answer: '잘못된 요청 형식입니다.',
+        action: 'none', confidence: 0.0,
+        provider: 'kilocode', model: 'tencent/hy3:free', failure_code: 'invalid_input'
+      }), { status: 200, headers });
+    }
 
     // 질문 길이 제한 (300자 초과 시 fail-closed)
     const q = (body.question || '').trim();
@@ -59,7 +69,19 @@ export async function onRequest(context) {
       }), { status: 200, headers });
     }
 
-    const systemPrompt = `당신은 광주광역시 북구청 정보 안내 도우미입니다. 사용자의 질문에 친절하게 한국어로 답변하세요. 답변은 JSON 형식으로만 출력하세요: {"action": "none", "answer": "한국어 답변", "confidence": 0.0}. action은 illegal_parking, housing_department, bulky_waste, move_in_report, public_health_center, none 중 하나입니다. confidence는 0.0~1.0입니다. JSON 외의 텍스트를 출력하지 마세요. 모르면 action: none, confidence: 0.0으로 응답하세요.`;
+    const systemPrompt = `당신은 광주광역시 북구청 민원 안내 직원입니다. 북구청에 관한 모든 문의에 친절하고 전문적으로 답변해 주세요.
+
+응답 규칙:
+1. 반드시 JSON 형식으로만 출력하세요: {"action": "...", "answer": "...", "confidence": 0.0}
+2. action 필드는 다음 중 하나여야 합니다: illegal_parking, housing_department, bulky_waste, move_in_report, public_health_center, none
+3. 사용자가 특정 민원(불법주정차 신고, 공동주택 문의, 대형폐기물 배출, 전입신고, 보건소 안내)을 문의하면 해당 action을 선택하고 관련 정보를 안내해 주세요.
+4. 일반 인사("안녕하세요", "하이" 등)나 북구청 관련 일반 질문(업무시간, 위치, 팩스번호 등)은 action: none으로 답변하되, 북구청 직원처럼 자연스럽고 친절하게 응답해 주세요.
+5. 북구청 직원으로서 항상 정중하고 전문적인 태도를 유지하세요.
+6. confidence는 0.0~1.0 사이의 숫자입니다. 일반 대화는 confidence: 1.0으로 설정하세요.
+
+예시:
+- 사용자: "안녕하세요" → {"action": "none", "answer": "안녕하세요! 북구청 민원 안내입니다. 불법주정차, 공동주택, 대형폐기물, 전입신고, 보건소 관련 문의를 도와드릴 수 있습니다.", "confidence": 1.0}
+- 사용자: "불법 주정차 신고는 어디서 하나요?" → {"action": "illegal_parking", "answer": "불법 주정차 신고는 북구청 홈페이지 지도단속 페이지나 안전신문고(safetyreport.go.kr)에서 가능합니다.", "confidence": 0.95}`;
 
     const response = await fetch('https://api.kilo.ai/api/gateway/v1/chat/completions', {
       method: 'POST',
@@ -94,6 +116,7 @@ export async function onRequest(context) {
 
     // Try to parse JSON from the response
     let action = 'none', answer = '', confidence = 0.0;
+    let failureCode = '';
     if (!content) {
       answer = '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.';
     } else {
@@ -112,13 +135,17 @@ export async function onRequest(context) {
         // Confidence clamp (0.0 ~ 1.0)
         confidence = typeof parsed.confidence === 'number' ? Math.max(0, Math.min(1, parsed.confidence)) : 0.0;
       } catch {
-        answer = content;
+        // JSON 파싱 실패 → fail-closed
+        action = 'none';
+        answer = '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.';
+        confidence = 0.0;
+        failureCode = 'parse_error';
       }
     }
 
     return new Response(JSON.stringify({
       ok: true, question: q, answer, action, confidence,
-      provider: 'kilocode', model: 'tencent/hy3:free', failure_code: ''
+      provider: 'kilocode', model: 'tencent/hy3:free', failure_code: failureCode
     }), { status: 200, headers });
 
   } catch (error) {

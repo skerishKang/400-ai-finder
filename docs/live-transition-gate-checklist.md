@@ -2,7 +2,7 @@
 
 > **기준 문서:** [`live-transition-decision-record.md`](live-transition-decision-record.md) §3  
 > **현재 작업 모드:** **Mode 2 — Provider-assisted LLM answering** (hy3/kilocode, allowlist host = `bukgu.gwangju.kr`)  
-> **리포지토리:** `/root/400-ai-finder` (main SHA: `dfe3507`)  
+> **리포지토리:** `/root/400-ai-finder` (main SHA: `703dbf6`)
 > **작성일:** 2026-07-10
 
 ---
@@ -115,7 +115,7 @@
 **권장:** 다음 내용을 문서에 추가:
 - `KILOCODE_API_KEY` env var 제거 또는 빈 값 설정 → live provider 비활성화
 - `AI_FINDER_LLM_PROVIDER=mock` 설정 → 모든 LLM 호출을 mock으로 전환
-- Cloudflare Pages: `CF_PAGES_KILOCODE_API_KEY` secret 삭제
+- Cloudflare Pages: `KILOCODE_API_KEY` secret 관리 (CF_PAGES_KILOCODE_API_KEY에서 KILOCODE_API_KEY로 통일 완료)
 - quest registry에 등록된 quest만 응답, 미등록 질문은 모두 `none` 처리
 
 ---
@@ -168,7 +168,7 @@
 | Local tests networking-free | ✅ | 모든 기본 pytest가 live network 없이 통과. |
 | **종합** | ✅ | CI 설정 완료, live network 없이 동작함을 명시적으로 검증 가능. |
 
-**권장:** `.github/workflows/`에 pytest workflow 추가. `pip install -e . && pytest tests/`를 live env var 없이 실행하여 네트워크 독립성 검증.
+**권장:** 현재 workflow 유지 중 (mvp-contracts.yml) Cloudflare Function test 포함. 향후 추가 workflow가 필요하면 `.github/workflows/`에 추가 가능.
 
 ---
 
