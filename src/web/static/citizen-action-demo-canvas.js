@@ -1343,7 +1343,7 @@
               '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">복지</a></li>' +
               '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">문화/관광</a></li>' +
               '<li class="bg-lnb__item bg-lnb__item--open">' +
-                '<a href="#" class="bg-lnb__parent">환경/재활용</a>' +
+                '<a href="#" class="bg-lnb__parent">환경재활용</a>' +
                 '<ul class="bg-lnb__sub">' +
                   '<li><a href="#">환경정책</a></li>' +
                   '<li class="bg-lnb__item--active"><a href="#">대형폐기물 배출방법</a></li>' +
@@ -1369,7 +1369,7 @@
                   '<li><span class="bg-illegal-parking-card__meta-label">신고전화</span> 062-572-1336, 1337</li>' +
                   '<li><span class="bg-illegal-parking-card__meta-label">어플신청</span> 「여기로」어플 및 홈페이지에서 신청 가능</li>' +
                   '<li><span class="bg-illegal-parking-card__meta-label">인터넷 배출하기</span> 공식 페이지에서 직접 진행 (데모 안내)</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">수수료 납부 방법</span> 인터넷 또는 무통장 입금</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">수수료 납부 방법</span> 신용카드, 무통장 입금(입금 수수료 신고자 부담), 현금 납부 / 상생카드 결제 불가</li>' +
                   '<li><span class="bg-illegal-parking-card__meta-label">배출변경 · 취소</span> 전화 또는 인터넷으로 변경/취소 가능</li>' +
                   '<li><span class="bg-illegal-parking-card__meta-label">폐가전 배출방법 안내</span> 별도 페이지 참조</li>' +
                 '</ul>' +

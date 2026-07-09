@@ -99,7 +99,7 @@ async function main() {
   );
 
   await waitForText(page, "#demo-canvas", "대형폐기물 배출방법");
-  await waitForText(page, "#demo-canvas", "재활용");
+  await waitForText(page, "#demo-canvas", "환경재활용");
   await waitForText(page, "#demo-canvas", "수탁업체(녹색환경)");
   await waitForText(page, "#demo-canvas", "062-572-1336, 1337");
   await waitForText(page, "#demo-canvas", "여기로");
