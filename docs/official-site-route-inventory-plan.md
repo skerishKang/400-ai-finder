@@ -150,6 +150,7 @@ the default path.
 | [#873](https://github.com/skerishKang/400-ai-finder/issues/873) | Applies **only** when inventory findings imply production / full-site rebuild decisions |
 | [`docs/official-site-route-inventory-authorization-checklist.md`](official-site-route-inventory-authorization-checklist.md) | Pre-flight authorization checklist to confirm **before** any future inventory collection |
 | [`docs/official-site-route-inventory-prioritization-rubric.md`](official-site-route-inventory-prioritization-rubric.md) | Scoring dimensions and candidate buckets for prioritizing future inventory |
+| [`docs/scoped-route-inventory-issue-template.md`](scoped-route-inventory-issue-template.md) | Template for opening a scoped future inventory issue under #862 |
 
 **Summary:**
 
@@ -182,7 +183,10 @@ Template for a **future** controlled inventory collection issue/report.
 before merge of inventory data. Unreported live collection is out of process.
 
 Before opening such a collection issue/PR, also complete
-[`docs/official-site-route-inventory-authorization-checklist.md`](official-site-route-inventory-authorization-checklist.md).
+[`docs/official-site-route-inventory-authorization-checklist.md`](official-site-route-inventory-authorization-checklist.md)
+and use
+[`docs/scoped-route-inventory-issue-template.md`](scoped-route-inventory-issue-template.md)
+to structure the scoped issue.
 
 ---
 
