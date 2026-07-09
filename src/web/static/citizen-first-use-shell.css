@@ -344,3 +344,9 @@ body.first-use-shell--no-motion .first-use-layout .chat-shell {
 .chat-msg--confirm-run .chat-bubble--ai {
   animation: chatFadeIn 400ms ease 600ms both;
 }
+
+/* Choreography cursor click ripple */
+@keyframes choreoClick {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
