@@ -340,10 +340,11 @@ class TestMvpAskEndpoint:
         assert data["model"] == "quest-engine-v1"
         assert data["quest"]["quest_id"] == "housing_department_lookup"
         assert data["quest"]["source_mode"] == "local_static"
-        assert data["action_plan"]["stop_condition"] == "STOP_AFTER_RESULT"
+        assert data["action_plan"]["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
+        assert data["action_plan"]["requires_user_confirmation"] is True
         labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
-        assert "업무 및 전화번호 안내 이동" in labels
-        assert "공동주택 검색" in labels
+        assert "아파트정보 화면 이동" in labels
+        assert "아파트생활정보 관련 안내 확인" in labels
 
     def test_mvp_ask_bulky_waste(self, mvp_server):
         port = mvp_server["port"]

@@ -327,18 +327,16 @@ def test_shell_reset_invalidates_pending_mvp_and_cancels_bridge():
 def test_choreography_has_mvp_action_journeys():
     assert '"illegal_parking"' in CHOREO
     assert '"housing_department"' in CHOREO
-    assert '"dept-housing-jdept01-search"' in CHOREO
+    assert '"apartment-info"' in CHOREO
 
 
-def test_choreography_housing_reuses_jdept01_approved_facts():
-    """housing_department must reuse the approved J-DEPT-01 local clone state,
+def test_choreography_housing_reuses_approved_facts():
+    """housing_department must provide apartment info guidance,
     not invent new data or contacts."""
-    assert "J-DEPT-01:directory" in CHOREO
-    # Approved facts appear in the journey (rendered by the existing clone).
-    assert "공동주택과" in CHOREO
-    assert "062-410-6033" in CHOREO
-    # The detailed "공동주택과 업무전반" fact is rendered by the canvas
-    # dept-directory result table, not the choreography text.
+    assert "아파트명" in CHOREO
+    assert "세대수" in CHOREO
+    assert "관리사무소" in CHOREO
+    assert "아파트생활정보" in CHOREO
 
 
 def test_choreography_applies_journey_state_in_step_execution():

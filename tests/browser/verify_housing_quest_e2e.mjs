@@ -1,11 +1,11 @@
 /**
- * Browser E2E verifier for #970 housing_department_lookup.
+ * Browser E2E verifier for #988 apartment quest real-page fidelity.
  *
  * Usage:
  *   node tests/browser/verify_housing_quest_e2e.mjs http://127.0.0.1:<port>
  *
  * Screenshots:
- *   /tmp/400-ai-finder-970/housing-quest-e2e.png
+ *   /tmp/400-ai-finder-988/housing-quest-e2e.png
  */
 
 import assert from "assert";
@@ -14,7 +14,7 @@ import { join } from "path";
 import { chromium } from "playwright";
 
 const requestedBase = process.argv[2] || "http://127.0.0.1:8080";
-const SCREENSHOT_DIR = "/tmp/400-ai-finder-970";
+const SCREENSHOT_DIR = "/tmp/400-ai-finder-988";
 mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
 function validateOrigin(raw) {
@@ -84,7 +84,7 @@ async function main() {
     { timeout: 10000 },
   );
   assert.strictEqual(await page.getAttribute("body", "data-quest-match-status"), "matched");
-  assert.strictEqual(await page.getAttribute("body", "data-quest-stop-condition"), "STOP_AFTER_RESULT");
+  assert.strictEqual(await page.getAttribute("body", "data-quest-stop-condition"), "STOP_FOR_USER_CONFIRMATION");
   assert.strictEqual(await page.getAttribute("body", "data-quest-source-mode"), "local_static");
 
   await page.waitForFunction(
@@ -98,12 +98,23 @@ async function main() {
     { timeout: 12000 },
   );
 
-  await waitForText(page, "#demo-canvas", "업무 및 전화번호 안내");
-  await waitForText(page, "#demo-canvas", "공동주택과");
-  await waitForText(page, "#demo-canvas", "062-410-6033");
-  await waitForText(page, "#chat-thread", "공동주택 담당부서 찾기");
-  await waitForText(page, "#chat-thread", "북구소개 > 구청안내 > 업무 및 전화번호 안내 > 공동주택과");
-  await waitForText(page, "#chat-thread", "STOP_AFTER_RESULT");
+  await waitForText(page, "#demo-canvas", "분야별정보");
+  await waitForText(page, "#demo-canvas", "건축");
+  await waitForText(page, "#demo-canvas", "아파트정보");
+  await waitForText(page, "#demo-canvas", "아파트명");
+  await waitForText(page, "#demo-canvas", "새주소명");
+  await waitForText(page, "#demo-canvas", "사용검사");
+  await waitForText(page, "#demo-canvas", "세대수");
+  await waitForText(page, "#demo-canvas", "관리사무소");
+  await waitForText(page, "#demo-canvas", "전체 428 건");
+  await waitForText(page, "#demo-canvas", "아파트생활정보");
+  await waitForText(page, "#demo-canvas", "하자발생");
+  await waitForText(page, "#demo-canvas", "생활요령");
+  await waitForText(page, "#demo-canvas", "생활수칙");
+  await waitForText(page, "#demo-canvas", "관리비");
+  await waitForText(page, "#chat-thread", "아파트 정보 안내");
+  await waitForText(page, "#chat-thread", "북구청 홈 > 분야별정보 > 건축 > 아파트정보 > 아파트현황");
+  await waitForText(page, "#chat-thread", "STOP_FOR_USER_CONFIRMATION");
   await waitForText(page, "#chat-thread", "local_static");
 
   const card = await page.evaluate(() => {
@@ -122,13 +133,8 @@ async function main() {
   assert.strictEqual(card.questId, "housing_department_lookup");
   assert.strictEqual(card.sourceMode, "local_static");
   assert.ok(card.actionLabels.length >= 2, `expected at least 2 action labels, got ${card.actionLabels.length}`);
-  assert.ok(card.actionLabels.includes("업무 및 전화번호 안내 이동"));
-  assert.ok(card.actionLabels.includes("공동주택 검색"));
-  assert.ok(card.text.includes("공동주택과 / 062-410-6033"));
-
-  const currentUrl = page.url();
-  assert.ok(currentUrl.includes("journey=J-DEPT-01"), `expected J-DEPT-01 URL, got ${currentUrl}`);
-  assert.ok(currentUrl.includes("dept-state=result"), `expected result state URL, got ${currentUrl}`);
+  assert.ok(card.actionLabels.includes("아파트정보 화면 이동"));
+  assert.ok(card.actionLabels.includes("아파트생활정보 관련 안내 확인"));
 
   const nonLocal = requests.filter((url) => !isLocalRequest(url));
   assert.deepStrictEqual(nonLocal, [], `non-local requests: ${nonLocal.join(", ")}`);

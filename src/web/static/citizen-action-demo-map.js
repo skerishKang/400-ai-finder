@@ -38,6 +38,7 @@
 "bulky-waste-disposal",
     "move-in-report-guidance",
     "public-health-center-guidance",
+    "apartment-info",
   ]);
 
   var CLOSED_TARGET_IDS = Object.freeze([
@@ -56,6 +57,8 @@
     "bulky-waste-guidance-card",
     "move-in-guidance-card",
     "health-center-guidance-card",
+    "apartment-guidance-card",
+    "apartment-life-card",
   ]);
 
   // -----------------------------------------------------------------------
@@ -148,6 +151,14 @@
       purpose: "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다.",
       navTargets: Object.freeze(["health-center-guidance-card"]),
       breadcrumbLabel: "보건소 위치·진료 안내",
+    }),
+
+    "apartment-info": Object.freeze({
+      id: "apartment-info",
+      title: "아파트정보",
+      purpose: "북구청 분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다.",
+      navTargets: Object.freeze(["apartment-guidance-card"]),
+      breadcrumbLabel: "아파트정보",
     }),
   });
 
