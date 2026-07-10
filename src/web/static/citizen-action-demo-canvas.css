@@ -4,11 +4,9 @@
  * Font/styling aligned with actual bukgu.gwangju.kr (analyzed 2026-07-10).
  *
  * Real site uses self-hosted NotoKR (Noto Sans KR 400/500) + gmk (GmarketSans).
- * We use Google Fonts Noto Sans KR as the equivalent; nav headings are
- * rendered at the same sizes/weights/colors as the live portal.
+ * Canvas uses system/local font stack (Noto Sans KR via local/system fallback);
+ * nav headings are rendered at the same sizes/weights/colors as the live portal.
  */
-
-/* Google Fonts: Noto Sans KR (equiv. to site's self-hosted NotoKR) */
 
 /* ---------------------------------------------------------------------------
    Base

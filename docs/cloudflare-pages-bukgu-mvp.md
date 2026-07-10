@@ -129,7 +129,7 @@ python3 scripts/build_cloudflare_pages.py
 
 ### 호출 제한 관련 주의사항
 
-- Pages Function 요청 수는 Cloudflare Free plan에서 **하루 100,000회**까지 무료.
+- Cloudflare Pages Functions와 Gemini API의 현재 요청 한도·비용은 배포 시점의 공식 요금제와 quota 문서를 확인한다.
 - 과도한 호출 방지를 위해 클라이언트 측에서 디바운스(예: 1초 간격) 적용을 권장.
 - 구체적인 비용 및 rate limit 수치는 Gemini API 공식 문서와 Cloudflare Pages 요금제를 직접 확인해야 한다.
 

@@ -243,10 +243,18 @@ def test_landing_links_to_public_mvp(build_dir):
     assert _CSS_URL_HTTP_RE.search(index) is None, "external url() in landing"
 
 
-def test_admin_model_preset_disabled(build_dir):
+def test_admin_model_presets_enabled(build_dir):
     admin = open(os.path.join(build_dir, "admin.html"), encoding="utf-8").read()
-    assert "스냅샷 · 모델 전환 없음" in admin
-    assert 'id="modelPresetSelect" disabled' in admin
+    assert 'id="modelPresetSelect"' in admin
+    # The select tag itself must NOT have disabled attribute.
+    idx = admin.index('id="modelPresetSelect"')
+    tag_start = admin.rindex("<", 0, idx)
+    tag_end = admin.index(">", idx)
+    select_tag = admin[tag_start:tag_end + 1]
+    assert "disabled" not in select_tag, "modelPresetSelect must not be disabled"
+    assert 'value="deepseek-primary"' in admin
+    assert 'value="mimo-primary"' in admin
+    assert 'value="step-primary"' in admin
 
 
 def test_mvp_entry_generated(build_dir):
@@ -342,10 +350,12 @@ def test_mvp_live_has_injector():
         shell_idx = html.find("citizen-first-use-shell.js")
         assert injector_idx >= 0 and injector_idx < shell_idx, \
             "live injector must run before shell script"
-        # Live output must NOT have static query sanitizer
-        assert "window.location.pathname + window.location.hash" not in html or \
-               '"\\u003Fmvp=1"' in html, \
+        # Live output must NOT have static query sanitizer (pathname+hash).
+        assert "window.location.pathname + window.location.hash" not in html, \
             "live mode must NOT have static query sanitizer"
+        # Live output must NOT have data-mvp="1".
+        assert 'data-mvp="1"' not in html, \
+            "live mode must NOT have data-mvp=1"
 
 
 def test_mvp_live_has_no_static_sanitizer():
@@ -356,7 +366,12 @@ def test_mvp_live_has_no_static_sanitizer():
         mod.build(out_dir=out, mode="live")
         mvp_index = os.path.join(out, "mvp", "index.html")
         html = open(mvp_index, encoding="utf-8").read()
-        assert '"?mvp=1"' in html, "live mode must force ?mvp=1"
+        # Live output must NOT have the static query sanitizer pattern.
+        assert "window.location.pathname + window.location.hash" not in html, \
+            "live mode must NOT have static query sanitizer"
+        # Live output must have the ?mvp=1 injector.
+        assert '"?mvp=1"' in html or '"\\u003Fmvp=1"' in html, \
+            "live mode must have ?mvp=1 injector"
 
 
 def test_mvp_build_does_not_modify_source():

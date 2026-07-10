@@ -112,10 +112,8 @@ def test_choreography_uses_only_public_canvas_api():
 def test_choreography_has_journey_map_for_supported_question():
     assert "불법 주정차 신고는 어디서 하나요?" in CHOREO
     assert '"complaint-illegal-parking"' in CHOREO
-    assert '"nav-civil-service"' in CHOREO
-    assert '"civil-service"' in CHOREO
-    assert 'focusSearch' in CHOREO
-    assert '"completed"' not in CHOREO
+    assert '"complaint-illegal-parking-report"' in CHOREO
+    assert 'safetyreport.go.kr' in CHOREO
 
 
 def test_choreography_each_step_has_message_and_delay_or_route_target():
@@ -155,10 +153,9 @@ def test_choreography_cancel_is_safe_in_idle():
 
 def test_choreography_final_target_highlight_present():
     """The illegal-parking journey map includes complaint-illegal-parking-report
-    as a target highlight step before the completion message."""
+    as a target highlight step before the terminal safety message."""
     assert '"complaint-illegal-parking-report"' in CHOREO
-    assert "STOP_FOR_USER_CONFIRMATION" in CHOREO
-    assert "본인인증" in CHOREO
+    assert 'safetyreport.go.kr' in CHOREO
 
 
 def test_choreography_final_target_appears_after_route_and_before_completion():
@@ -166,7 +163,7 @@ def test_choreography_final_target_appears_after_route_and_before_completion():
     which appears before the terminal completion message."""
     assert CHOREO.index("complaint-illegal-parking") < CHOREO.index("complaint-illegal-parking-report")
     assert CHOREO.index("complaint-illegal-parking-report") < CHOREO.index(
-        "안내가 완료되었습니다"
+        "안내를 마쳤습니다"
     )
 
 
@@ -337,7 +334,7 @@ def test_choreography_housing_reuses_approved_facts():
     not invent new data or contacts."""
     assert "공동주택과" in CHOREO
     assert "도시관리국" in CHOREO
-    assert "하자분쟁조정" in CHOREO
+    assert "apartment-dept" in CHOREO
 
 
 def test_choreography_applies_journey_state_in_step_execution():
@@ -348,5 +345,11 @@ def test_choreography_applies_journey_state_in_step_execution():
 
 def test_choreography_mvp_journeys_have_messages():
     assert "message:" in CHOREO
-    # illegal_parking MVP alias keeps the same terminal completion message.
-    assert "안내가 완료되었습니다" in CHOREO
+    # Each MVP action journey must have a message step.
+    assert '"illegal_parking"' in CHOREO
+    assert '"housing_department"' in CHOREO
+    assert '"bulky_waste"' in CHOREO
+    assert '"passport_guidance"' in CHOREO
+    assert '"unmanned_kiosk"' in CHOREO
+    # Terminal message uses the current completion wording.
+    assert "안내를 마쳤습니다" in CHOREO

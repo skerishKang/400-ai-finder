@@ -22,6 +22,18 @@ if (!RUN_LIVE) {
 }
 
 // ---------------------------------------------------------------------------
+// Fail-fast no-network stub — any unexpected fetch call throws immediately.
+// ---------------------------------------------------------------------------
+const _ORIGINAL_FETCH = globalThis.fetch;
+
+function noNetworkStub() {
+  throw new Error('NETWORK_BLOCKED: unexpected upstream call in contract test');
+}
+
+// Replace with no-network stub upfront.
+globalThis.fetch = noNetworkStub;
+
+// ---------------------------------------------------------------------------
 // Lightweight Cloudflare Workers environment mock
 // ---------------------------------------------------------------------------
 function createMockContext(method, body, envOverrides) {
@@ -105,7 +117,6 @@ async function assertJsonResponse(description, method, body, expectedChecks, env
 // LLM API call is intercepted. Each call returns a canned response and
 // records the last call info (url, method, headers, body) for assertion.
 // ---------------------------------------------------------------------------
-let _originalFetch = null;
 let _lastCall = null;
 
 function getLastCall() {
@@ -113,7 +124,6 @@ function getLastCall() {
 }
 
 function mockFetch(status, body) {
-  _originalFetch = globalThis.fetch;
   _lastCall = null;
   globalThis.fetch = async (url, options) => {
     const reqBody = options && options.body ? options.body : '';
@@ -133,9 +143,20 @@ function mockFetch(status, body) {
 }
 
 function restoreFetch() {
-  if (_originalFetch !== null) {
-    globalThis.fetch = _originalFetch;
-    _originalFetch = null;
+  globalThis.fetch = noNetworkStub;
+  _lastCall = null;
+}
+
+// Helper: assert that no upstream call was made.
+async function assertNoUpstreamCall(description, fn) {
+  const prior = _lastCall;
+  try {
+    await fn();
+  } finally {
+    const callCount = _lastCall !== prior ? 1 : 0;
+    if (callCount > 0) {
+      throw new Error(`Unexpected upstream call: count=1, url=${_lastCall.url}`);
+    }
   }
 }
 
@@ -310,14 +331,14 @@ try {
   restoreFetch();
 }
 
-// 11. Confidence > 1.0 is clamped to 1.0
+// 12. Whitespace-only answer returns fallback message
 try {
   mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: 'test answer', confidence: 999 }) } }],
+    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: '   ', confidence: 0.5 }) } }],
   });
-  await assertJsonResponse('Confidence 999 is clamped to 1.0', 'POST', JSON.stringify({ question: 'test' }), {
+  await assertJsonResponse('Whitespace-only answer returns fallback message', 'POST', JSON.stringify({ question: 'test' }), {
     ok: true,
-    confidence: 1.0,
+    answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
   }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
@@ -336,7 +357,7 @@ try {
   restoreFetch();
 }
 
-// 12. Negative confidence is clamped to 0.0
+// 14. Negative confidence is clamped to 0.0
 try {
   mockFetch(200, {
     choices: [{ message: { content: JSON.stringify({ action: 'none', answer: 'test answer', confidence: -5 }) } }],
@@ -349,7 +370,7 @@ try {
   restoreFetch();
 }
 
-// 15. Non-JSON content from LLM is passed through as answer (no crash)
+// 15. Non-JSON LLM response is handled without crash
 try {
   mockFetch(200, {
     choices: [{ message: { content: 'Hello, I am a helpful assistant. The answer is...' } }],
@@ -485,6 +506,10 @@ try {
 // Summary
 // ---------------------------------------------------------------------------
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
+
+// Restore original fetch so process exit doesn't leave a stub behind.
+globalThis.fetch = _ORIGINAL_FETCH;
+
 if (failed > 0) {
   console.error('Failures:');
   for (const f of failures) {

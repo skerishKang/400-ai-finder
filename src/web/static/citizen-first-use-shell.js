@@ -57,7 +57,8 @@
   var _questRuntimeResult = null;
 
   function isMvpMode() {
-    // Enabled when the build injects data-mvp="1" via ?mvp=1 injector (live mode)
+    // Live build injects ?mvp=1 into URL before shell init.
+    // body data-mvp check is a compatibility path — not the current build activation method.
     if (document.body && document.body.getAttribute("data-mvp") === "1") return true;
     // Fallback: check URL parameter
     if (!window.location || !window.location.search) return false;

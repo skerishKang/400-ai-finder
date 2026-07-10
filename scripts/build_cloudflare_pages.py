@@ -666,10 +666,8 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
         mobile_out = substitute_site_name(mobile_html, site_name)
         mobile_out = _inject_after_body_open(mobile_out, mobile_snippet)
 
-        # Honesty fix: the admin demo is fixed to a single Buk-gu snapshot. Disable
-        # the model-preset select and relabel it (no model switching in static demo).
-        admin_out = _disable_model_preset_select(admin_html)
-        admin_out = _inject_after_body_open(admin_out, admin_snippet)
+        # The admin demo keeps the model-preset select enabled for testing.
+        admin_out = _inject_after_body_open(admin_html, admin_snippet)
     else:
         # Live mode: no shim, use live /api/mvp/ask endpoint.
         # Substitute {{site_name}} in mobile template.
