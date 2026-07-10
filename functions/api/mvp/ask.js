@@ -3,7 +3,7 @@
 // API 키는 GEMINI_API_KEY secrets에 저장
 
 /** 허용된 action 값 목록 (src/llm/bukgu_mvp_router.py의 MVP_ACTIONS와 동일) */
-var VALID_ACTIONS = ['illegal_parking', 'housing_department', 'bulky_waste', 'move_in_report', 'public_health_center', 'none'];
+var VALID_ACTIONS = ['illegal_parking', 'housing_department', 'bulky_waste', 'passport_guidance', 'unmanned_kiosk', 'none'];
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -73,7 +73,7 @@ export async function onRequest(context) {
 
 {"action": "(action)", "answer": "(간결한 한국어 1~2문장)", "confidence": (0.0~1.0)}
 
-action 목록: illegal_parking(불법주정차/주차단속), housing_department(공동주택/아파트), bulky_waste(대형폐기물/폐기물), move_in_report(전입신고/이사), public_health_center(보건소/진료), none(기타/인사/일반)
+action 목록: illegal_parking(불법주정차/주차단속), housing_department(공동주택/아파트), bulky_waste(대형폐기물/폐기물), passport_guidance(여권발급/여권), unmanned_kiosk(무인민원발급기/민원서류), none(기타/인사/일반)
 
 규칙: 북구청 직원처럼 친절하고 정중하게. answer는 간결하게 1~2문장. JSON 외 텍스트 금지.`;
 
