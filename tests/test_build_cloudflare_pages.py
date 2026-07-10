@@ -430,18 +430,27 @@ def _walk_files(live_build_dir, exts=(".html", ".js", ".css", ".json")):
 
 def test_live_output_has_no_static_runtime_assets(live_build_dir):
     """#1054 A: Live output must NOT generate or reference the static runtime
-    assets snapshot-data.js / static-api-shim.js (file existence + refs)."""
-    for asset in STATIC_RUNTIME_ASSETS:
-        path = os.path.join(live_build_dir, asset)
-        assert not os.path.isfile(path), f"live build must NOT emit {asset}"
+    assets snapshot-data.js / static-api-shim.js anywhere in the whole tree
+    (file existence + any textual reference, path-form independent)."""
+    # 1. Recursive scan: no file with a forbidden basename anywhere in the tree.
+    forbidden_basenames = []
+    for root, _dirs, files in os.walk(live_build_dir):
+        for filename in files:
+            if filename in STATIC_RUNTIME_ASSETS:
+                forbidden_basenames.append(os.path.join(root, filename))
+    assert not forbidden_basenames, \
+        f"live build emitted forbidden static asset file(s): {forbidden_basenames}"
 
+    # 2. Recursive scan: no file references the asset name in any path form
+    #    (./asset, /asset, nested path, query suffix; src=, href=, import, etc.).
     referenced = []
     for fpath in _walk_files(live_build_dir):
         text = open(fpath, encoding="utf-8", errors="replace").read()
         for asset in STATIC_RUNTIME_ASSETS:
-            if f'src="{asset}"' in text or f"src='{asset}'" in text:
+            if asset in text:
                 referenced.append((fpath, asset))
-    assert not referenced, f"live output references static runtime asset: {referenced}"
+    assert not referenced, \
+        f"live output references static runtime asset: {referenced}"
 
 
 def test_live_mobile_uses_mvp_endpoint(live_build_dir):
