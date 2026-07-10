@@ -256,8 +256,8 @@
       description: "가로등 고장 신고 - 민원게시판 글쓰기 (MVP action)",
       steps: Object.freeze([
         Object.freeze({ message: "가로등 고장 신고를 도와드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
-        Object.freeze({ message: "민원게시판으로 이동합니다.", routeId: "complaint-board", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
-        Object.freeze({ message: "새로운 신고 글쓰기 양식을 엽니다.", clickTarget: "#btn-board-write", delayMs: 2000, routeId: "complaint-write", thinkingText: "양식을 준비 중입니다...", thinkingMs: 700 }),
+        Object.freeze({ message: "민원게시판으로 이동합니다.", routeId: "complaint-intake", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
+        Object.freeze({ message: "새로운 신고 글쓰기 양식을 엽니다.", clickTarget: "#btn-board-write", delayMs: 2000, routeId: "complaint-intake", thinkingText: "양식을 준비 중입니다...", thinkingMs: 700 }),
         Object.freeze({ message: "가로등 고장 신고 내용을 초안으로 작성했습니다.", focusSearch: true, typeQuery: "가로등 고장 신고", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "내용을 작성하는 중입니다...", thinkingMs: 800 }),
         Object.freeze({ message: "작성된 내용을 확인하시고 제출해 주세요.", requiresConfirmation: true, delayMs: 1000 }),
         Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다. 처리 결과는 민원게시판에서 확인 가능합니다." })
@@ -268,7 +268,7 @@
       description: "쓰레기 무단투기 신고 - AI 폼 자동 완성 보조",
       steps: Object.freeze([
         Object.freeze({ message: "쓰레기 무단투기 신고 작성을 도와드립니다.", thinkingText: "안내를 준비 중입니다...", thinkingMs: 500, delayMs: 1000 }),
-        Object.freeze({ message: "민원게시판의 글쓰기 양식으로 이동합니다.", routeId: "complaint-write", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
+        Object.freeze({ message: "민원게시판의 글쓰기 양식으로 이동합니다.", routeId: "complaint-intake", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
         Object.freeze({ message: "직접 작성하시겠습니까, 아니면 AI가 초안 작성을 도와드릴까요?", requiresChoice: true, delayMs: 1000 }),
         Object.freeze({ message: "[사용자 선택: AI 도움 받기] 어떤 불편사항이 있으신지 편하게 말씀해 주세요.", delayMs: 1500, thinkingText: "답변을 기다리는 중입니다...", thinkingMs: 800 }),
         Object.freeze({ message: "집 앞 공원에 쓰레기가 너무 많고 냄새가 나요. 빨리 치워주세요.", isUserSimulated: true, delayMs: 2500 }),
@@ -729,7 +729,7 @@
       
       window.CitizenContentAdapter.submitBoardPost(data).then(function() {
         if (cCanvas && cCanvas.navigateToRoute) {
-          cCanvas.navigateToRoute("complaint-board");
+          cCanvas.navigateToRoute("complaint-review");
         }
         _executeStep(index + 1);
       });
