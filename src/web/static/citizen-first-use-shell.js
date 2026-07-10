@@ -29,6 +29,8 @@
     "무인민원발급기로 뭘 발급받을 수 있어요?": "unmanned_kiosk",
     "무인민원발급기 이용방법 알려줘": "unmanned_kiosk",
     "민원서류 발급받으려면 어디로 가야 해요?": "unmanned_kiosk",
+    "가로등이 고장났어요. 신고할게요": "streetlight_report",
+    "쓰레기 무단투기 신고할래 (AI 도움)": "litter_ai_assist",
   };
   var SPLIT_FOLLOW_UP_MESSAGE =
     "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
@@ -701,6 +703,8 @@
     if (question.indexOf("대형폐기물") !== -1 || question.indexOf("가구") !== -1) return "대형폐기물 배출";
     if (question.indexOf("여권") !== -1) return "여권 발급 안내";
     if (question.indexOf("무인민원발급기") !== -1 || question.indexOf("민원서류") !== -1) return "무인민원발급기 안내";
+    if (question.indexOf("가로등") !== -1) return "가로등 고장 신고";
+    if (question.indexOf("쓰레기") !== -1) return "쓰레기 무단투기 신고";
     return "이 안내";
   }
 
@@ -710,6 +714,8 @@
     if (action === "bulky_waste") return "대형폐기물 배출";
     if (action === "passport_guidance") return "여권 발급 안내";
     if (action === "unmanned_kiosk") return "무인민원발급기 안내";
+    if (action === "streetlight_report") return "가로등 고장 신고";
+    if (action === "litter_ai_assist") return "쓰레기 무단투기 신고";
     return "이 안내";
   }
 
