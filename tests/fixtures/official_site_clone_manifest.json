@@ -1,0 +1,38 @@
+{
+  "manifest_version": "1.0.0",
+  "canonical_invariant": "docs/product/exact-official-site-clone-invariant.md",
+  "policy": "exact official-site clone — public Gwangju Buk-gu portal (https://bukgu.gwangju.kr) rendered verbatim, no summary/redesign/approximation",
+  "forbidden_content_modes": [
+    "partial",
+    "summary",
+    "representative",
+    "simplified",
+    "approximate",
+    "synthetic"
+  ],
+  "required_source_metadata_fields": [
+    "page_id",
+    "route_id",
+    "page_title",
+    "source_url",
+    "captured_at",
+    "verified_at",
+    "source_updated_at",
+    "fixture_path",
+    "render_target",
+    "content_mode",
+    "network_required_at_runtime"
+  ],
+  "source_url_domain_policy": "source_url must be under https://bukgu.gwangju.kr (official public Buk-gu portal). Any other host is rejected.",
+  "network_required_at_runtime_policy": "normal tests must not require external lookup; network_required_at_runtime must be false for all registered pages.",
+  "pages": [],
+  "completeness_note": "No complete official content fixtures are committed in this repository as of base SHA afa40dd6f9f0edfd4127ae9fbb542dba73c1c880. The MVP left surface renders official page structure from committed source-derived render functions and approved image crops, but no full-row / full-cell official page fixture file exists yet. Per the invariant (fixture-less official-page renderer is prohibited, and synthetic data must not be disguised as official fixture), no page is registered here until a complete official fixture is committed. Pages requiring complete capture are tracked in the final report under 'complete capture required'.",
+  "complete_capture_required": [
+    "home (북구청 홈)",
+    "housing_department_lookup (아파트정보 / 아파트현황)",
+    "illegal_parking_report_guidance (지도단속)",
+    "bulky_waste_disposal_guidance (대형폐기물 배출방법)",
+    "move_in_report_guidance (전자민원창구 / 정부24)",
+    "public_health_center_guidance (보건소소개 / 찾아오시는 길)"
+  ]
+}
