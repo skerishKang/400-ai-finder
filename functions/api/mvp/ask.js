@@ -1,6 +1,6 @@
 // functions/api/mvp/ask.js
-// hy3 LLM 프록시 — Cloudflare Pages Functions
-// API 키는 KILOCODE_API_KEY secrets에 저장
+// Gemini 3.1 Flash Lite LLM 프록시 — Cloudflare Pages Functions
+// API 키는 GEMINI_API_KEY secrets에 저장
 
 /** 허용된 action 값 목록 (src/llm/bukgu_mvp_router.py의 MVP_ACTIONS와 동일) */
 var VALID_ACTIONS = ['illegal_parking', 'housing_department', 'bulky_waste', 'move_in_report', 'public_health_center', 'none'];
@@ -40,7 +40,7 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({
         ok: false, answer: '잘못된 요청 형식입니다.',
         action: 'none', confidence: 0.0,
-        provider: 'kilocode', model: 'tencent/hy3:free', failure_code: 'invalid_input'
+        provider: 'gemini', model: 'gemini-3.1-flash-lite', failure_code: 'invalid_input'
       }), { status: 200, headers });
     }
 
@@ -50,7 +50,7 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({
         ok: false, answer: '질문이 너무 깁니다. 300자 이내로 입력해 주세요.',
         action: 'none', confidence: 0.0,
-        provider: 'kilocode', model: 'tencent/hy3:free', failure_code: 'invalid_input'
+        provider: 'gemini', model: 'gemini-3.1-flash-lite', failure_code: 'invalid_input'
       }), { status: 200, headers });
     }
 
@@ -60,12 +60,12 @@ export async function onRequest(context) {
       });
     }
 
-    const apiKey = env.KILOCODE_API_KEY;
+    const apiKey = env.GEMINI_API_KEY;
     if (!apiKey) {
       return new Response(JSON.stringify({
         ok: false, answer: 'API key not configured.',
         action: 'none', confidence: 0.0,
-        provider: 'kilocode', model: 'tencent/hy3:free', failure_code: 'config_error'
+        provider: 'gemini', model: 'gemini-3.1-flash-lite', failure_code: 'config_error'
       }), { status: 200, headers });
     }
 
@@ -77,14 +77,14 @@ action 목록: illegal_parking(불법주정차/주차단속), housing_department
 
 규칙: 북구청 직원처럼 친절하고 정중하게. answer는 간결하게 1~2문장. JSON 외 텍스트 금지.`;
 
-    const response = await fetch('https://api.kilo.ai/api/gateway/v1/chat/completions', {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'tencent/hy3:free',
+        model: 'gemini-3.1-flash-lite',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: q }
@@ -100,7 +100,7 @@ action 목록: illegal_parking(불법주정차/주차단속), housing_department
       return new Response(JSON.stringify({
         ok: false, answer: 'AI 응답을 가져오지 못했습니다.',
         action: 'none', confidence: 0.0,
-        provider: 'kilocode', model: 'tencent/hy3:free',
+        provider: 'gemini', model: 'gemini-3.1-flash-lite',
         failure_code: 'upstream_error'
       }), { status: 200, headers });
     }
@@ -136,14 +136,14 @@ action 목록: illegal_parking(불법주정차/주차단속), housing_department
 
     return new Response(JSON.stringify({
       ok: true, question: q, answer, action, confidence,
-      provider: 'kilocode', model: 'tencent/hy3:free', failure_code: failureCode
+      provider: 'gemini', model: 'gemini-3.1-flash-lite', failure_code: failureCode
     }), { status: 200, headers });
 
   } catch (error) {
     return new Response(JSON.stringify({
       ok: false, answer: '서버 오류가 발생했습니다.',
       action: 'none', confidence: 0.0,
-      provider: 'kilocode', model: 'tencent/hy3:free', failure_code: 'internal_error'
+      provider: 'gemini', model: 'gemini-3.1-flash-lite', failure_code: 'internal_error'
     }), { status: 200, headers });
   }
 }
