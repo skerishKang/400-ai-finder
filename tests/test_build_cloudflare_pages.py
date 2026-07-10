@@ -51,6 +51,35 @@ def build_dir():
         yield out
 
 
+@pytest.fixture()
+def live_build_dir():
+    """Dedicated LIVE-mode build into a separate temp dir.
+
+    Never shares output with the static ``build_dir`` fixture so the
+    static/live boundary stays explicit.
+    """
+    mod = _load_build_module()
+    with tempfile.TemporaryDirectory() as tmp:
+        out = os.path.join(tmp, "cloudflare-pages-live")
+        mod.build(out_dir=out, mode="live")
+        yield out
+
+
+# ---------------------------------------------------------------------------
+# Live-mode activation / artifact markers
+# ---------------------------------------------------------------------------
+# Live MVP entry activates the MVP bridge via a single ?mvp=1 query injector.
+LIVE_INJECTOR = 'window.location.pathname + "?mvp=1"'
+# Static public entry strips any query via pathname+hash replaceState.
+STATIC_SANITIZER = "window.location.pathname + window.location.hash"
+# Static runtime assets that must NOT exist/be referenced in live output.
+STATIC_RUNTIME_ASSETS = ("snapshot-data.js", "static-api-shim.js")
+# Live mobile endpoint.
+LIVE_MOBILE_ENDPOINT = "var API_ENDPOINT = '/api/mvp/ask';"
+STATIC_MOBILE_ENDPOINT = "var API_ENDPOINT = '/api/ask';"
+SHELL_SCRIPT = "citizen-first-use-shell.js"
+
+
 def test_required_files_exist(build_dir):
     required = [
         "index.html",
@@ -387,6 +416,100 @@ def test_mvp_build_does_not_modify_source():
         mod.build(out_dir=out_live, mode="live")
     after = hashlib.sha256(open(source_path, "rb").read()).hexdigest()
     assert before == after, "build must not modify source template"
+
+
+def _walk_files(live_build_dir, exts=(".html", ".js", ".css", ".json")):
+    found = []
+    for root, _dirs, files in os.walk(live_build_dir):
+        for fn in files:
+            if not fn.endswith(exts):
+                continue
+            found.append(os.path.join(root, fn))
+    return found
+
+
+def test_live_output_has_no_static_runtime_assets(live_build_dir):
+    """#1054 A: Live output must NOT generate or reference the static runtime
+    assets snapshot-data.js / static-api-shim.js (file existence + refs)."""
+    for asset in STATIC_RUNTIME_ASSETS:
+        path = os.path.join(live_build_dir, asset)
+        assert not os.path.isfile(path), f"live build must NOT emit {asset}"
+
+    referenced = []
+    for fpath in _walk_files(live_build_dir):
+        text = open(fpath, encoding="utf-8", errors="replace").read()
+        for asset in STATIC_RUNTIME_ASSETS:
+            if f'src="{asset}"' in text or f"src='{asset}'" in text:
+                referenced.append((fpath, asset))
+    assert not referenced, f"live output references static runtime asset: {referenced}"
+
+
+def test_live_mobile_uses_mvp_endpoint(live_build_dir):
+    """#1054 B: Live mobile uses exactly /api/mvp/ask and no static endpoint."""
+    mobile = open(os.path.join(live_build_dir, "mobile.html"), encoding="utf-8").read()
+    assert LIVE_MOBILE_ENDPOINT in mobile, "live mobile must use /api/mvp/ask"
+    assert STATIC_MOBILE_ENDPOINT not in mobile, "live mobile must not keep /api/ask"
+    assert "static-api-shim.js" not in mobile, "live mobile must not use static shim"
+
+
+def test_live_mvp_activation_is_single_injector(live_build_dir):
+    """#1054 C: Live /mvp/index.html has exactly one ?mvp=1 injector that runs
+    before the shell script, and no static sanitizer / data-mvp marker."""
+    mvp_index = os.path.join(live_build_dir, "mvp", "index.html")
+    html = open(mvp_index, encoding="utf-8").read()
+
+    # Exactly one live injector.
+    assert html.count(LIVE_INJECTOR) == 1, "live mvp must have exactly one ?mvp=1 injector"
+
+    # Injector runs before the first-use shell script.
+    injector_idx = html.index(LIVE_INJECTOR)
+    shell_idx = html.index(SHELL_SCRIPT)
+    assert injector_idx >= 0 and injector_idx < shell_idx, \
+        "live injector must run before the shell script"
+
+    # No static query sanitizer and no data-mvp activation marker.
+    assert STATIC_SANITIZER not in html, "live mvp must NOT have static query sanitizer"
+    assert 'data-mvp="1"' not in html, "live mvp must NOT have data-mvp=1 marker"
+
+
+def test_live_entries_have_no_static_shim(live_build_dir):
+    """#1054 D: No live entry (mobile / admin / mvp) injects static-api-shim.js."""
+    for entry in ("mobile.html", "admin.html", os.path.join("mvp", "index.html")):
+        html = open(os.path.join(live_build_dir, entry), encoding="utf-8").read()
+        assert "static-api-shim.js" not in html, f"live {entry} must not inject static-api-shim.js"
+
+
+def test_live_root_links_to_live_mvp(live_build_dir):
+    """#1054 E: Live root connects the citizen MVP entry as the default path
+    (mvp/?mvp=1) while preserving mobile/admin links (no root redesign)."""
+    index = open(os.path.join(live_build_dir, "index.html"), encoding="utf-8").read()
+
+    # Live root points to the live MVP entry.
+    assert 'href="mvp/?mvp=1"' in index, "live root must link to mvp/?mvp=1"
+    # Mobile/admin links preserved.
+    assert 'href="mobile.html"' in index, "live root must keep mobile link"
+    assert 'href="admin.html"' in index, "live root must keep admin link"
+    # Not reverted to the static-only framing.
+    assert 'href="mvp/"' not in index, "live root must not use static mvp/ link"
+
+
+def test_live_build_keeps_source_templates_byte_identical():
+    """#1054 F: Source templates are byte-for-byte unchanged after static+live build."""
+    sources = [
+        os.path.join(_REPO_ROOT, "src", "web", "static", "citizen-action-demo.html"),
+        os.path.join(_REPO_ROOT, "src", "web", "templates", "mobile_demo.html"),
+        os.path.join(_REPO_ROOT, "src", "web", "templates", "admin_demo.html"),
+    ]
+    before = {s: open(s, "rb").read() for s in sources}
+    mod = _load_build_module()
+    with tempfile.TemporaryDirectory() as tmp:
+        out_static = os.path.join(tmp, "static_out")
+        mod.build(out_dir=out_static, mode="static")
+        out_live = os.path.join(tmp, "live_out")
+        mod.build(out_dir=out_live, mode="live")
+    after = {s: open(s, "rb").read() for s in sources}
+    for s in sources:
+        assert before[s] == after[s], f"source template modified by build: {s}"
 
 
 def _node_available() -> bool:
