@@ -9,6 +9,7 @@ JS = (STATIC / "citizen-first-use-shell.js").read_text(encoding="utf-8")
 CSS = (STATIC / "citizen-first-use-shell.css").read_text(encoding="utf-8")
 CHOREO = (STATIC / "citizen-first-choreography.js").read_text(encoding="utf-8")
 CANVAS = (STATIC / "citizen-action-demo-canvas.js").read_text(encoding="utf-8")
+COPILOT_CSS = (STATIC / "citizen-copilot-shell.css").read_text(encoding="utf-8")
 DIRECTIVE = (ROOT / "docs" / "design" / "bukgu-ai-agent-product-directive.md").read_text(
     encoding="utf-8"
 )
@@ -416,3 +417,77 @@ def test_mobile_split_uniformly_scales_the_official_canvas():
     assert "fitToViewport: fitToViewport" in CANVAS
     assert 'body[data-first-use-state="split"] .chat-shell' in CSS
     assert "overflow-x: hidden" in CSS
+
+
+# ── #1064 narrow-viewport overflow regression contract ──────────────
+# These are static-source contracts that lock the responsive geometry
+# invariants the real-browser test (tests/browser/verify_first_use_responsive.mjs)
+# enforces. They must NOT rely on a single `overflow-x: hidden` substring —
+# that hides overflow without proving layout safety.
+
+class TestResponsiveViewportContract:
+    def test_entry_chat_width_is_viewport_based(self):
+        # entry chat width is a viewport-relative min(), not a fixed 640px.
+        assert "--first-use-entry-chat-width: min(650px, calc(100vw - 80px))" in CSS
+        assert "640px" not in CSS.split("--first-use-entry-chat-width")[1].split(";")[0]
+
+    def test_mobile_entry_selector_has_sufficient_specificity(self):
+        # A mobile override for the entry chat-shell exists with high enough
+        # specificity to beat the base rule (body[data-...] + .chat-shell).
+        assert 'body[data-first-use-state="entry"] .chat-shell' in CSS
+        assert "@media (max-width: 767px)" in CSS
+        # mobile entry chat uses viewport-relative width + symmetric margins
+        block = CSS[CSS.index("@media (max-width: 767px)"):]
+        entry_block = block[block.index('body[data-first-use-state="entry"] .chat-shell'):]
+        entry_block = entry_block[: entry_block.index("}") + 1]
+        assert "width: calc(100% - 24px)" in entry_block
+        # left+right margin (12px each) must not exceed the 24px width reduction
+        assert "margin: 82px 12px 12px" in entry_block
+
+    def test_mobile_entry_margin_plus_width_stays_within_viewport(self):
+        # width calc(100% - 24px) + 12px*2 margins == 100% of viewport.
+        # Mirror the invariant the browser test asserts for 320/390px.
+        block = CSS[CSS.index("@media (max-width: 767px)"):]
+        entry_block = block[block.index('body[data-first-use-state="entry"] .chat-shell'):]
+        entry_block = entry_block[: entry_block.index("}") + 1]
+        assert "width: calc(100% - 24px)" in entry_block
+        assert "12px 12px" in entry_block or "margin: 82px 12px 12px" in entry_block
+
+    def test_split_mobile_chat_and_canvas_use_full_width_with_min_width_zero(self):
+        block = CSS[CSS.index("@media (max-width: 767px)"):]
+        split_block = block[block.index('body[data-first-use-state="split"] .chat-shell'):]
+        split_block = split_block[: split_block.index("}") + 1]
+        assert "width: 100%" in split_block
+        assert "min-width: 0" in split_block
+        assert "max-width: 100%" in split_block
+        # canvas must also be full width and allowed to shrink on mobile split
+        canvas_block = block[block.index(".first-use-layout .demo-canvas"):]
+        canvas_block = canvas_block[: canvas_block.index("}") + 1]
+        assert "width: 100%" in canvas_block
+
+    def test_chips_wrap_and_long_chip_cannot_exceed_container(self):
+        # chat-chips must wrap so they never force a horizontal overflow.
+        assert ".chat-chips {" in CSS
+        chips_block = CSS[CSS.index(".chat-chips {"):]
+        chips_block = chips_block[: chips_block.index("}") + 1]
+        assert "flex-wrap: wrap" in chips_block
+        # the shared composer input must allow shrinking (real 320px overflow fix)
+        assert ".chat-composer__input {" in COPILOT_CSS
+        input_block = COPILOT_CSS[COPILOT_CSS.index(".chat-composer__input {"):]
+        input_block = input_block[: input_block.index("}") + 1]
+        assert "min-width: 0" in input_block
+
+    def test_composer_send_button_does_not_shrink(self):
+        # send button keeps its size (flex-shrink: 0) so it is never clipped.
+        assert ".chat-composer__send {" in COPILOT_CSS
+        send_block = COPILOT_CSS[COPILOT_CSS.index(".chat-composer__send {"):]
+        send_block = send_block[: send_block.index("}") + 1]
+        assert "flex-shrink: 0" in send_block
+
+    def test_768_breakpoint_meaning_is_recorded(self):
+        # The 768px boundary is the desktop/split vs mobile split switch.
+        # Assert the exact breakpoint token appears so the contract is explicit.
+        assert "@media (max-width: 767px)" in CSS
+        assert "@media (max-width: 1180px)" in CSS
+        # 768 is the first width above the 767px mobile cap → desktop split layout
+        assert 'body[data-first-use-state="split"] .first-use-layout' in CSS
