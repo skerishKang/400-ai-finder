@@ -1,5 +1,12 @@
 # #863 Current Buk-gu Reference Ledger
 
+> Product-scope notice (2026-07-10): the project owner has superseded the
+> narrow local/static scope restrictions in this ledger with
+> `docs/design/bukgu-ai-agent-product-directive.md`. This ledger remains
+> authoritative for capture provenance, hashes, and reference-backed visual
+> facts. It no longer prohibits authorized interactive MVP routes, live public
+> content synchronization, agent typing, form preparation, or rich motion.
+
 Status: approved for #868 home implementation, #869 J-DEPT-01 department-directory journey, #869 J-PARK-01 parking-information journey, and #869 J-KIOSK-01 approved narrow static-information journey; #867 is completed; external-transaction journeys remain out of scope.
 
 ## Home-only approval scope

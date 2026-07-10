@@ -2688,6 +2688,39 @@
   // Navigation API
   // -----------------------------------------------------------------------
 
+  function fitToViewport() {
+    if (!_demoCanvas || typeof _demoCanvas.querySelector !== "function") return;
+    var inner = _demoCanvas.querySelector(".demo-canvas__inner");
+    if (!inner) return;
+    var isCompact = Boolean(
+      window.matchMedia && window.matchMedia("(max-width: 767px)").matches
+    );
+
+    if (!isCompact) {
+      inner.style.removeProperty("width");
+      inner.style.removeProperty("height");
+      inner.style.removeProperty("transform");
+      inner.style.removeProperty("transform-origin");
+      _demoCanvas.style.removeProperty("height");
+      _demoCanvas.removeAttribute("data-official-fit");
+      return;
+    }
+
+    var page = inner.firstElementChild;
+    if (!page) return;
+    var availableWidth = _demoCanvas.clientWidth || window.innerWidth || 1;
+    var naturalWidth = Math.max(page.scrollWidth || 0, 914);
+    var naturalHeight = Math.max(page.scrollHeight || 0, 1);
+    var scale = Math.min(1, availableWidth / naturalWidth);
+
+    inner.style.width = naturalWidth + "px";
+    inner.style.height = naturalHeight + "px";
+    inner.style.transformOrigin = "top left";
+    inner.style.transform = "scale(" + scale + ")";
+    _demoCanvas.style.height = Math.ceil(naturalHeight * scale) + "px";
+    _demoCanvas.setAttribute("data-official-fit", "scaled");
+  }
+
   function navigateToRoute(routeId) {
     if (!_map.isValidRoute(routeId)) {
       _assert(false, "invalid routeId: " + routeId);
@@ -2708,6 +2741,7 @@
         // HTML swap happens while opacity is 0 (invisible)
         _demoCanvas.innerHTML = '<div class="demo-canvas__inner">' + _renderRoute(routeId) + '</div>';
         _attachDelegation();
+        fitToViewport();
         // Force reflow then fade in
         void _demoCanvas.offsetHeight;
         _demoCanvas.style.transition = "opacity 350ms ease";
@@ -2733,27 +2767,40 @@
   var _cursorEl = null;
   // Internal counter to deduplicate rapid cursor moves
   var _cursorMoveToken = 0;
+  var _cursorTransition =
+    "opacity 220ms ease,left 760ms cubic-bezier(0.16,1,0.3,1)," +
+    "top 760ms cubic-bezier(0.16,1,0.3,1),transform 220ms ease";
 
   function _ensureCursor() {
     if (_cursorEl) return _cursorEl;
     _cursorEl = document.createElement("div");
     _cursorEl.className = "choreo-cursor";
-    // Pointer cursor SVG with subtle shadow
+    _cursorEl.setAttribute("data-agent-cursor", "true");
+    _cursorEl.setAttribute("data-agent-status", "idle");
     _cursorEl.innerHTML =
-      '<svg width="22" height="28" viewBox="0 0 22 28" fill="none" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35));">' +
-        '<path d="M3 2l5 22 3-10 9-3Z" fill="#ef6a4c" stroke="#fff" stroke-width="1.8"/>' +
-      '</svg>';
-    // Use CSS cubic-bezier with slight overshoot (bounce) for natural feel
+      '<span class="choreo-cursor__halo"></span>' +
+      '<svg class="choreo-cursor__arrow" width="24" height="31" viewBox="0 0 24 31" fill="none" aria-hidden="true">' +
+        '<path d="M3 2l5.7 25 3.7-11.2 9.6-4.2Z" fill="#ff7654" stroke="#fff" stroke-width="2"/>' +
+      '</svg>' +
+      '<span class="choreo-cursor__label">AI</span>';
     _cursorEl.style.cssText =
       "position:fixed;z-index:99999;pointer-events:none;opacity:0;" +
-      "transition:opacity 250ms ease,left 750ms cubic-bezier(0.22,0.9,0.36,1.08),top 750ms cubic-bezier(0.22,0.9,0.36,1.08);" +
-      "transform:translate(-4px,-4px);";
+      "transition:" + _cursorTransition + ";transform:translate(-4px,-4px);";
     document.body.appendChild(_cursorEl);
     return _cursorEl;
   }
 
+  function _resolveCursorTarget(selectorOrEl) {
+    if (typeof selectorOrEl !== "string") return selectorOrEl;
+    if (_demoCanvas && typeof _demoCanvas.querySelector === "function") {
+      var canvasTarget = _demoCanvas.querySelector(selectorOrEl);
+      if (canvasTarget) return canvasTarget;
+    }
+    return document.querySelector(selectorOrEl);
+  }
+
   function showCursorAt(selectorOrEl) {
-    var el = (typeof selectorOrEl === "string") ? document.querySelector(selectorOrEl) : selectorOrEl;
+    var el = _resolveCursorTarget(selectorOrEl);
     if (!el) return;
     var cursor = _ensureCursor();
     if (!cursor) return;
@@ -2761,20 +2808,37 @@
     // Guard: skip if element has zero dimensions (hidden, not yet laid out)
     if (!rect || (rect.width === 0 && rect.height === 0)) return;
     var token = ++_cursorMoveToken;
-    // Slight delay to allow layout to settle, then position
+    var isEntering = cursor.style.opacity !== "1";
+    if (isEntering) {
+      var chat = document.getElementById("chat-shell");
+      var chatRect = chat && chat.getBoundingClientRect ? chat.getBoundingClientRect() : null;
+      var startLeft = chatRect ? chatRect.left - 34 : window.innerWidth - 70;
+      var startTop = chatRect ? chatRect.top + (chatRect.height * 0.56) : window.innerHeight * 0.56;
+      cursor.style.transition = "none";
+      cursor.style.left = startLeft + "px";
+      cursor.style.top = startTop + "px";
+      cursor.getBoundingClientRect();
+      cursor.style.transition = _cursorTransition;
+    }
+
     setTimeout(function () {
       if (token !== _cursorMoveToken) return; // superseded
       var freshRect = el.getBoundingClientRect();
       if (!freshRect || (freshRect.width === 0 && freshRect.height === 0)) return;
+      cursor.setAttribute("data-agent-status", "moving");
       cursor.style.left = (freshRect.left + freshRect.width / 2) + "px";
       cursor.style.top = (freshRect.top + 4) + "px";
       cursor.style.opacity = "1";
+      setTimeout(function () {
+        if (token === _cursorMoveToken) cursor.setAttribute("data-agent-status", "ready");
+      }, 780);
     }, 40);
   }
 
   function hideCursor() {
     if (_cursorEl) {
       _cursorEl.style.opacity = "0";
+      _cursorEl.setAttribute("data-agent-status", "idle");
       _cursorMoveToken++; // cancel any pending show
     }
   }
@@ -2799,16 +2863,20 @@
     return ripple;
   }
 
-  function clickAnimation(selectorOrEl) {
-    var el = (typeof selectorOrEl === "string") ? document.querySelector(selectorOrEl) : selectorOrEl;
+  function clickAnimation(selectorOrEl, retryCount) {
+    var el = _resolveCursorTarget(selectorOrEl);
     if (!el) {
-      if (typeof console !== "undefined" && console.warn) console.warn("[clickAnimation] element not found:", selectorOrEl);
+      if (typeof selectorOrEl === "string" && !retryCount) {
+        setTimeout(function () { clickAnimation(selectorOrEl, 1); }, 180);
+      }
       return;
     }
     var rect = el.getBoundingClientRect();
     // Guard: skip if element has zero dimensions (hidden, not yet laid out)
     if (!rect || (rect.width === 0 && rect.height === 0)) {
-      if (typeof console !== "undefined" && console.warn) console.warn("[clickAnimation] element has zero dimensions:", selectorOrEl, rect);
+      if (typeof selectorOrEl === "string" && !retryCount) {
+        setTimeout(function () { clickAnimation(selectorOrEl, 1); }, 180);
+      }
       return;
     }
     // Step 1: move cursor to target
@@ -2818,10 +2886,14 @@
     // Step 2: after cursor arrives (slightly less than transition time),
     // fire a double ripple: outer (faster fade) + inner (slower)
     setTimeout(function () {
+      if (_cursorEl) _cursorEl.setAttribute("data-agent-status", "clicking");
       _createRipple(cx, cy, "rgba(239,106,76,0.45)", 500);
       setTimeout(function () {
         _createRipple(cx, cy, "rgba(239,106,76,0.25)", 350);
       }, 80);
+      setTimeout(function () {
+        if (_cursorEl) _cursorEl.setAttribute("data-agent-status", "ready");
+      }, 520);
     }, 380);
   }
   // -----------------------------------------------------------------------
@@ -2976,6 +3048,7 @@
     showCursorAt: showCursorAt,
     hideCursor: hideCursor,
     clickAnimation: clickAnimation,
+    fitToViewport: fitToViewport,
   });
 
   // -----------------------------------------------------------------------
@@ -2984,6 +3057,10 @@
   if (_demoCanvas) {
     _demoCanvas.innerHTML = '<div class="demo-canvas__inner">' + _renderRoute(_currentRouteId) + '</div>';
     _attachDelegation();
+    fitToViewport();
+    if (typeof window.addEventListener === "function") {
+      window.addEventListener("resize", fitToViewport);
+    }
   }
 
 })();

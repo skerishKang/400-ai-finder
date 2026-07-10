@@ -31,6 +31,7 @@
   var _chatThread = document.getElementById("chat-thread");
   var _state = STATE_IDLE;
   var _timer = null;
+  var _auxTimers = [];
   var _currentStep = -1;
   var _currentJourneyId = null;
   var _steps = [];
@@ -43,6 +44,7 @@
   //   routeId        — call navigateToRoute(routeId) (optional)
   //   targetId       — call getTargetElement(targetId) + highlight (optional)
   //   journeyState   — push J-DEPT-01 state via URL params (optional)
+  //   journeyStateAfterClick — apply a journey state after the cursor click lands
   //   focusSearch    — true: focus + highlight the directory search input
   //   typeQuery      — string: set value of the directory search input
   //   submitSearch   — true: click the directory search button
@@ -75,15 +77,19 @@
         Object.freeze({ message: "안내를 마쳤습니다. 실제 신고는 안전신문고(safetyreport.go.kr)에서 가능합니다." }),
       ]),
     }),
-    // #1041 — 공동주택과 부서 정보 안내 choreography (compacted to 4 steps)
+    // Owner-approved flagship flow: show the full menu, search, typing, and
+    // grounded-result sequence instead of jumping directly to the answer.
     "공동주택 관련 문의는 어느 부서에 해야 하나요?": Object.freeze({
       id: "apartment-dept",
       description: "도시관리국 공동주택과 업무 및 연락처 안내",
       steps: Object.freeze([
         Object.freeze({ message: "공동주택 부서 정보를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
-        Object.freeze({ message: "도시관리국 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
-        Object.freeze({ message: "공동주택과 담당자 연락처입니다. 공동주택팀 062-410-6831~6834", targetId: "apartment-dept-card", delayMs: 2800, thinkingText: "연락처 정보를 확인 중입니다...", thinkingMs: 600 }),
-        Object.freeze({ message: "안내를 마쳤습니다. 공동주택과(062-410-6831~6834)로 연락하시면 됩니다." }),
+        Object.freeze({ message: "먼저 북구소개 메뉴를 열겠습니다.", journeyState: "J-DEPT-01:home", clickTarget: '[data-dept-action="open-menu"]', journeyStateAfterClick: "J-DEPT-01:menu", delayMs: 2400, thinkingText: "북구청 메뉴를 살펴보는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "구청안내에서 업무 및 전화번호 안내를 선택합니다.", clickTarget: '[data-dept-action="go-directory"]', journeyStateAfterClick: "J-DEPT-01:directory", delayMs: 2500, thinkingText: "담당 부서 경로를 찾는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "검색창에 공동주택을 입력하겠습니다.", focusSearch: true, typeQuery: "공동주택", cursorTarget: ".bg-dept-search__input", delayMs: 2500, thinkingText: "부서 검색을 준비하는 중입니다...", thinkingMs: 550 }),
+        Object.freeze({ message: "입력한 검색어로 담당 부서를 조회합니다.", submitSearch: true, clickTarget: ".bg-dept-search__btn", delayMs: 2500, searchingText: "공동주택 관련 부서를 검색 중입니다...", thinkingText: "검색 조건을 확인하는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "검색 결과에서 공동주택과와 대표 연락처를 확인했습니다.", cursorTarget: ".bg-dept-table tbody tr:first-child", delayMs: 2400, thinkingText: "공식 결과를 확인하는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당하며, 대표 연락처는 062-410-6033입니다." }),
       ]),
     }),
     "housing_department": Object.freeze({
@@ -91,9 +97,12 @@
       description: "도시관리국 공동주택과 업무 및 연락처 안내 (MVP action)",
       steps: Object.freeze([
         Object.freeze({ message: "공동주택 부서 정보를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
-        Object.freeze({ message: "도시관리국 공동주택과 정보를 확인합니다.", routeId: "apartment-dept", delayMs: 2500, cursorTarget: ".bg-dept-table", thinkingText: "공동주택과 정보를 찾는 중입니다...", searchingText: "부서 정보를 검색 중입니다...", thinkingMs: 800 }),
-        Object.freeze({ message: "공동주택과 담당자 연락처입니다. 공동주택팀 062-410-6831~6834", targetId: "apartment-dept-card", delayMs: 2800, thinkingText: "연락처 정보를 확인 중입니다...", thinkingMs: 600 }),
-        Object.freeze({ message: "안내를 마쳤습니다. 공동주택과(062-410-6831~6834)로 연락하시면 됩니다." }),
+        Object.freeze({ message: "먼저 북구소개 메뉴를 열겠습니다.", journeyState: "J-DEPT-01:home", clickTarget: '[data-dept-action="open-menu"]', journeyStateAfterClick: "J-DEPT-01:menu", delayMs: 2400, thinkingText: "북구청 메뉴를 살펴보는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "구청안내에서 업무 및 전화번호 안내를 선택합니다.", clickTarget: '[data-dept-action="go-directory"]', journeyStateAfterClick: "J-DEPT-01:directory", delayMs: 2500, thinkingText: "담당 부서 경로를 찾는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "검색창에 공동주택을 입력하겠습니다.", focusSearch: true, typeQuery: "공동주택", cursorTarget: ".bg-dept-search__input", delayMs: 2500, thinkingText: "부서 검색을 준비하는 중입니다...", thinkingMs: 550 }),
+        Object.freeze({ message: "입력한 검색어로 담당 부서를 조회합니다.", submitSearch: true, clickTarget: ".bg-dept-search__btn", delayMs: 2500, searchingText: "공동주택 관련 부서를 검색 중입니다...", thinkingText: "검색 조건을 확인하는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "검색 결과에서 공동주택과와 대표 연락처를 확인했습니다.", cursorTarget: ".bg-dept-table tbody tr:first-child", delayMs: 2400, thinkingText: "공식 결과를 확인하는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당하며, 대표 연락처는 062-410-6033입니다." }),
       ]),
     }),
     "bulky_waste": Object.freeze({
@@ -295,6 +304,11 @@
     for (var i = 0; i < _highlightedEls.length; i++) {
       if (_highlightedEls[i]) {
         _highlightedEls[i].classList.remove(HIGHLIGHT_CLASS);
+        _highlightedEls[i].classList.remove(TYPING_CLASS);
+        _highlightedEls[i].classList.remove(SEARCH_BUSY_CLASS);
+        if (_highlightedEls[i].removeAttribute) {
+          _highlightedEls[i].removeAttribute("data-agent-typing");
+        }
       }
     }
     _highlightedEls = [];
@@ -305,6 +319,68 @@
       window.clearTimeout(_timer);
       _timer = null;
     }
+  }
+
+  function _scheduleAux(callback, delayMs) {
+    var timerId = window.setTimeout(function () {
+      var timerIndex = _auxTimers.indexOf(timerId);
+      if (timerIndex !== -1) _auxTimers.splice(timerIndex, 1);
+      if (_state === STATE_RUNNING) callback();
+    }, delayMs);
+    _auxTimers.push(timerId);
+    return timerId;
+  }
+
+  function _clearAuxTimers() {
+    for (var i = 0; i < _auxTimers.length; i++) {
+      window.clearTimeout(_auxTimers[i]);
+    }
+    _auxTimers = [];
+  }
+
+  function _prefersReducedMotion() {
+    return Boolean(
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
+  function _dispatchInputEvent(input) {
+    if (!input || typeof input.dispatchEvent !== "function" || typeof Event !== "function") return;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function _typeIntoSearch(input, value, startDelayMs) {
+    if (!input) return 0;
+    var text = String(value || "");
+    var charDelayMs = _prefersReducedMotion() ? 0 : 115;
+    var startDelay = _prefersReducedMotion() ? 0 : startDelayMs;
+
+    input.value = "";
+    input.classList.add(TYPING_CLASS);
+    input.setAttribute("data-agent-typing", "true");
+    _highlightedEls.push(input);
+
+    if (!charDelayMs) {
+      input.value = text;
+      input.removeAttribute("data-agent-typing");
+      _dispatchInputEvent(input);
+      return 0;
+    }
+
+    for (var i = 0; i < text.length; i++) {
+      (function (characterIndex) {
+        _scheduleAux(function () {
+          input.value = text.slice(0, characterIndex + 1);
+          _dispatchInputEvent(input);
+          if (characterIndex === text.length - 1) {
+            input.removeAttribute("data-agent-typing");
+          }
+        }, startDelay + (characterIndex * charDelayMs));
+      })(i);
+    }
+
+    return startDelay + (text.length * charDelayMs) + 160;
   }
 
   function _setState(nextState) {
@@ -387,28 +463,6 @@
       }
     }
 
-    if (step.typeQuery) {
-      var demoEl = _getCanvasEl();
-      if (demoEl) {
-        var input = demoEl.querySelector(".bg-dept-search__input");
-        if (input) {
-          input.value = step.typeQuery;
-          input.classList.add(TYPING_CLASS);
-          _highlightedEls.push(input);
-        }
-      }
-    }
-
-    if (step.submitSearch) {
-      var demoEl = _getCanvasEl();
-      if (demoEl) {
-        var btn = demoEl.querySelector(".bg-dept-search__btn");
-        if (btn) {
-          btn.click();
-        }
-      }
-    }
-
     // ── AI-style thinking/searching indicator ──────────────────────
     // If the step has a thinkingText, show a temporary indicator before
     // the permanent message, simulating AI "thinking" / "searching".
@@ -419,34 +473,72 @@
       // before the explanation text.
       _appendChatMessage("ai", step.message);
 
-      // Cursor/click animation plays AFTER the message, during the delayMs period,
-      // so the user reads the explanation before seeing the visual action.
+      // Cursor, click, typing, and state changes play after the narration so the
+      // resident can watch the agent act instead of seeing a finished state pop in.
+      var visualActionDelay = 0;
+      var cursorDelay = _prefersReducedMotion() ? 0 : 120;
+      var clickDelay = _prefersReducedMotion() ? 0 : 180;
+      var actionCommitDelay = _prefersReducedMotion() ? 0 : 1080;
+
       if (step.cursorTarget) {
         var cCanvas = window.CitizenActionDemoCanvas;
         if (cCanvas) {
           if (cCanvas.hideCursor) cCanvas.hideCursor();
           if (cCanvas.showCursorAt) {
-            window.setTimeout(function () {
+            _scheduleAux(function () {
               cCanvas.showCursorAt(step.cursorTarget);
-            }, 100);
+            }, cursorDelay);
+            visualActionDelay = Math.max(visualActionDelay, cursorDelay + 780);
           }
         }
       }
       if (step.clickTarget) {
         var kCanvas = window.CitizenActionDemoCanvas;
         if (kCanvas && kCanvas.clickAnimation) {
-          window.setTimeout(function () {
+          _scheduleAux(function () {
             kCanvas.clickAnimation(step.clickTarget);
-          }, 200);
+          }, clickDelay);
+          visualActionDelay = Math.max(visualActionDelay, actionCommitDelay);
+        }
+      }
+
+      if (step.typeQuery) {
+        var typeDemoEl = _getCanvasEl();
+        var typeInput = typeDemoEl && typeDemoEl.querySelector(".bg-dept-search__input");
+        var typingStartDelay = step.cursorTarget ? 850 : 160;
+        visualActionDelay = Math.max(
+          visualActionDelay,
+          _typeIntoSearch(typeInput, step.typeQuery, typingStartDelay)
+        );
+      }
+
+      if (step.journeyStateAfterClick) {
+        _scheduleAux(function () {
+          _applyJourneyState(step.journeyStateAfterClick);
+        }, actionCommitDelay);
+        visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 320);
+      }
+
+      if (step.submitSearch) {
+        var submitDemoEl = _getCanvasEl();
+        var submitButton = submitDemoEl && submitDemoEl.querySelector(".bg-dept-search__btn");
+        if (submitButton) {
+          submitButton.classList.add(SEARCH_BUSY_CLASS);
+          _highlightedEls.push(submitButton);
+          _scheduleAux(function () {
+            submitButton.click();
+          }, actionCommitDelay);
+          visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 420);
         }
       }
 
       // Schedule next step or terminate
       if (typeof step.delayMs === "number" && step.delayMs > 0) {
+        var effectiveDelay = Math.max(step.delayMs, visualActionDelay + 320);
         _timer = window.setTimeout(function () {
           _timer = null;
           _executeStep(index + 1);
-        }, step.delayMs);
+        }, effectiveDelay);
       } else {
         // No delay → terminal step (done message)
         _setState(STATE_DONE);
@@ -460,10 +552,10 @@
       if (step.searchingText) {
         // Two-phase: show thinking, then searching, then permanent
         tempEl = _showTempIndicator(step.thinkingText, thinkMs);
-        window.setTimeout(function () {
+        _scheduleAux(function () {
           if (tempEl && tempEl.parentNode) tempEl.parentNode.removeChild(tempEl);
           var searchEl = _showTempIndicator(step.searchingText, thinkMs);
-          window.setTimeout(function () {
+          _scheduleAux(function () {
             if (searchEl && searchEl.parentNode) searchEl.parentNode.removeChild(searchEl);
             _showPermanentAndSchedule();
           }, thinkMs);
@@ -471,7 +563,7 @@
       } else {
         // Single-phase: show thinking, then permanent
         tempEl = _showTempIndicator(step.thinkingText, thinkMs);
-        window.setTimeout(function () {
+        _scheduleAux(function () {
           if (tempEl && tempEl.parentNode) tempEl.parentNode.removeChild(tempEl);
           _showPermanentAndSchedule();
         }, thinkMs);
@@ -508,6 +600,7 @@
   function cancel() {
     if (_state === STATE_IDLE) return;
     _clearTimer();
+    _clearAuxTimers();
     _clearHighlights();
     _steps = [];
     _currentStep = -1;

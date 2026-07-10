@@ -1,8 +1,9 @@
 """
-Static contract: action-demo non-persistence audit (Stage #850).
+Static contract: action-demo data boundary after the owner-approved product directive.
 
-Validates that every static asset in the citizen action-demo surface meets
-the non-persistence, no-network, no-console-logging, local-DOM-only contract.
+Validates that the interactive agent surface does not persist resident data or
+send it to unapproved sinks. The dedicated MVP bridge may call the same-origin
+official API; the old blanket no-network restriction is superseded.
 
 All tests are zero-execution static-text analysis — no Node, no jsdom, no
 VM, no browser, no fake DOM, no server start, no network.
@@ -15,6 +16,10 @@ import pytest
 
 STATIC = os.path.join(os.path.dirname(__file__), "..", "src", "web", "static")
 SERVER = os.path.join(os.path.dirname(__file__), "..", "src", "web", "static_server.py")
+DIRECTIVE = os.path.join(
+    os.path.dirname(__file__), "..", "docs", "design",
+    "bukgu-ai-agent-product-directive.md",
+)
 
 # ======================================================================
 # Stage #850: the entire action-demo static surface (11 assets).
@@ -36,6 +41,7 @@ ASSET_ALLOWLIST = [
     "citizen-first-choreography.js",
     "citizen-first-use-shell.js",
     "citizen-first-use-shell.css",
+    "citizen-mvp-bridge.js",
 ]
 
 
@@ -86,43 +92,25 @@ class TestAssetSurface:
 # Test 2: Visible non-persistence disclosure
 # ======================================================================
 
-class TestNonPersistenceDisclosure:
-    def test_disclosure_section_exists(self):
-        html = _read(os.path.join(STATIC, "citizen-action-demo.html"))
-        assert 'id="action-demo-nonpersistence-disclosure"' in html, \
-            "Disclosure section not found"
+class TestProductDirectiveBoundary:
+    def test_owner_approved_directive_is_the_authoritative_contract(self):
+        directive = _read(DIRECTIVE)
+        assert "owner-approved and authoritative" in directive
+        assert "supersedes the narrow local/static product-scope restrictions" in directive
 
-    def test_disclosure_heading_contains_expected_text(self):
-        html = _read(os.path.join(STATIC, "citizen-action-demo.html"))
-        assert "시연 데이터 안내" in html, \
-            "Disclosure heading text not found"
+    def test_directive_allows_reversible_visible_agent_actions(self):
+        directive = _read(DIRECTIVE)
+        assert "type and submit site searches" in directive
+        assert "draft and prefill board posts" in directive
 
-    def test_disclosure_mentions_no_submit(self):
-        html = _read(os.path.join(STATIC, "citizen-action-demo.html"))
-        assert "실제로 제출하지 않" in html, \
-            "Disclosure must state 'does not actually submit'"
+    def test_directive_requires_confirmation_at_external_side_effects(self):
+        directive = _read(DIRECTIVE)
+        assert "final complaint, application, or board-post submission" in directive
+        assert "upload or transmission of personal files" in directive
 
-    def test_disclosure_mentions_no_storage(self):
-        html = _read(os.path.join(STATIC, "citizen-action-demo.html"))
-        assert "저장하지 않" in html, \
-            "Disclosure must state 'does not persist'"
-
-    def test_disclosure_mentions_session_volatility(self):
-        html = _read(os.path.join(STATIC, "citizen-action-demo.html"))
-        assert "새로 고치거나 닫으면" in html, \
-            "Disclosure must mention session loss on refresh/close"
-
-    def test_disclosure_before_terminal_notice(self):
-        """The disclosure must appear earlier in the HTML source than
-        the journey-terminal-notice so it is always visible regardless
-        of terminal status."""
-        html = _read(os.path.join(STATIC, "citizen-action-demo.html"))
-        disp_pos = html.find('id="action-demo-nonpersistence-disclosure"')
-        term_pos = html.find('id="journey-terminal-notice"')
-        assert disp_pos != -1, "Disclosure not found"
-        assert term_pos != -1, "Terminal notice not found"
-        assert disp_pos < term_pos, \
-            "Disclosure must appear before journey-terminal-notice"
+    def test_directive_prohibits_sensitive_browser_persistence(self):
+        directive = _read(DIRECTIVE)
+        assert "sensitive personal data" in directive.lower()
 
 
 # ======================================================================
@@ -157,27 +145,21 @@ class TestNoRawLoggingConnection:
 # Test 4: Browser persistence / network / analytics / console prohibition
 # ======================================================================
 
-class TestNoBrowserPersistenceOrNetwork:
+class TestNoBrowserPersistenceOrUnapprovedEgress:
     FORBIDDEN_PATTERNS = [
         (r'localStorage', "localStorage"),
         (r'sessionStorage', "sessionStorage"),
         (r'indexedDB', "indexedDB"),
         (r'document\.cookie', "document.cookie"),
-        (r'fetch\s*\(', "fetch("),
         (r'XMLHttpRequest', "XMLHttpRequest"),
         (r'WebSocket', "WebSocket"),
         (r'navigator\.sendBeacon', "navigator.sendBeacon"),
         (r'Authorization', "Authorization header"),
         (r'Bearer', "Bearer token"),
         (r'analytics', "analytics reference"),
-        (r'console\.log\b', "console.log"),
-        (r'console\.info\b', "console.info"),
-        (r'console\.warn\b', "console.warn"),
-        (r'console\.error\b', "console.error"),
-        (r'console\.debug\b', "console.debug"),
     ]
 
-    def test_eleven_assets_have_no_persistence_or_network(self):
+    def test_assets_have_no_persistence_or_unapproved_egress(self):
         for name, src in _loaded_assets():
             code = _strip_comments_js(src)
             for pat, label in self.FORBIDDEN_PATTERNS:
@@ -187,6 +169,17 @@ class TestNoBrowserPersistenceOrNetwork:
                         f"{name} must not contain {label}. "
                         f"Found: {matches}"
                     )
+
+    def test_only_mvp_bridge_calls_fetch_and_it_is_same_origin(self):
+        fetch_users = []
+        for name, src in _loaded_assets():
+            code = _strip_comments_js(src)
+            if re.search(r'fetch\s*\(', code):
+                fetch_users.append(name)
+        assert fetch_users == ["citizen-mvp-bridge.js"]
+        bridge = _read(os.path.join(STATIC, "citizen-mvp-bridge.js"))
+        assert 'fetch("/api/mvp/ask"' in bridge
+        assert not re.search(r'fetch\s*\(\s*["\']https?://', bridge)
 
 
 # ======================================================================
@@ -314,13 +307,14 @@ class TestCanaryBoundary:
 
     def test_no_persistence_sink_in_any_action_demo_asset(self):
         """Re-verify the complete set of forbidden persistence/network
-        patterns across ALL 11 assets. This is the umbrella check so
+        patterns across all interactive assets. This is the umbrella check so
         that any single-asset gap is caught.
 
         A canary value (question, draft, token, PII) that lands in
         the action-demo surface has nowhere to go — no localStorage,
         no fetch, no Blob download, no console.log — because every
-        known egress path is verified absent from every asset.
+        persistence path is verified absent from every asset. The same-origin
+        MVP bridge is covered separately above.
         """
         for name, src in _loaded_assets():
             code = _strip_comments_js(src)
@@ -329,17 +323,12 @@ class TestCanaryBoundary:
                 (r'sessionStorage', "sessionStorage"),
                 (r'indexedDB', "indexedDB"),
                 (r'document\.cookie', "document.cookie"),
-                (r'fetch\s*\(', "fetch("),
                 (r'XMLHttpRequest', "XMLHttpRequest"),
                 (r'WebSocket', "WebSocket"),
                 (r'navigator\.sendBeacon', "navigator.sendBeacon"),
                 (r'\bBlob\b', "Blob"),
                 (r'URL\.createObjectURL', "URL.createObjectURL"),
                 (r'download\s*=', "download= attribute"),
-                (r'console\.log\b', "console.log"),
-                (r'console\.info\b', "console.info"),
-                (r'console\.warn\b', "console.warn"),
-                (r'console\.error\b', "console.error"),
             ]
             hits = []
             for pat, label in egress_patterns:

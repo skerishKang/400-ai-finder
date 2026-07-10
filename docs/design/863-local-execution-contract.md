@@ -1,5 +1,11 @@
 # Local Execution Contract for #867–#870
 
+> Historical status (2026-07-10): this narrow executor contract is retained for
+> provenance and reproducible reference-import work only. It is superseded for
+> product development by `docs/design/bukgu-ai-agent-product-directive.md`.
+> Authorized MVP implementation may include live public-content inspection,
+> interactive routes, visible cursor/typing behavior, and form preparation.
+
 The assistant owns product decisions, visual analysis, issue scope, source edits, test design, PR review, and merge decisions.
 
 The local model performs only explicitly assigned mechanical work:

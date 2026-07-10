@@ -15,8 +15,7 @@
   var STATE_ENTRY = "entry";
   var STATE_TRANSITIONING = "transitioning";
   var STATE_SPLIT = "split";
-  var TRANSITION_DURATION_MS = 400;
-  var FADE_IN_DURATION_MS = 500;
+  var TRANSITION_DURATION_MS = 1100;
   var SUPPORTED_QUESTION_ACTIONS = {
     "불법 주정차 신고는 어디서 하나요?": "illegal_parking",
     "공동주택 관련 문의는 어느 부서에 해야 하나요?": "housing_department",
@@ -130,6 +129,22 @@
     return "";
   }
 
+  function sourceModeLabel(value) {
+    var sourceMode = textValue(value);
+    if (sourceMode === "local_static") return "북구청 공식 화면 기준";
+    if (sourceMode === "live_official" || sourceMode === "live") return "북구청 최신 공식 데이터";
+    if (sourceMode === "cached_official" || sourceMode === "cache") return "북구청 공식 데이터 사본";
+    return sourceMode ? "공식 자료 확인" : "";
+  }
+
+  function stopConditionLabel(value) {
+    var stopCondition = textValue(value);
+    if (stopCondition === "STOP_FOR_USER_CONFIRMATION") return "사용자 확인 후 진행";
+    if (stopCondition === "COMPLETE" || stopCondition === "DONE") return "안내 완료";
+    if (stopCondition === "RUNNING") return "AI가 안내 중";
+    return stopCondition ? "안내 준비 완료" : "";
+  }
+
   function resultSummary(value) {
     var obj = asObject(value);
     var parts = [];
@@ -162,7 +177,9 @@
       actionLabels: actionLabels(plan.browser_actions),
       resultText: resultSummary(planResult),
       sourceMode: textValue(plan.source_mode || quest.source_mode),
+      sourceModeLabel: sourceModeLabel(plan.source_mode || quest.source_mode),
       stopCondition: textValue(plan.stop_condition || quest.stop_condition),
+      stopConditionLabel: stopConditionLabel(plan.stop_condition || quest.stop_condition),
       finalWarningText: textValue(finalWarning.warning_text),
     };
     if (!payload.questName && !payload.questId && !payload.officialPath && !payload.resultText) {
@@ -206,11 +223,10 @@
     card.appendChild(title);
 
     [
-      makeQuestCardRow("quest_id", payload.questId),
       makeQuestCardRow("공식 경로", payload.officialPath),
-      makeQuestCardRow("결과", payload.resultText),
-      makeQuestCardRow("source", payload.sourceMode),
-      makeQuestCardRow("상태", payload.stopCondition),
+      makeQuestCardRow("확인 결과", payload.resultText),
+      makeQuestCardRow("정보 기준", payload.sourceModeLabel),
+      makeQuestCardRow("진행 상태", payload.stopConditionLabel),
     ].forEach(function (row) {
       if (row) card.appendChild(row);
     });
@@ -220,7 +236,7 @@
       actions.className = "chat-quest-card__actions";
       var actionsLabel = document.createElement("span");
       actionsLabel.className = "chat-quest-card__actions-label";
-      actionsLabel.textContent = "진행 동작";
+      actionsLabel.textContent = "AI가 수행할 작업";
       actions.appendChild(actionsLabel);
 
       var list = document.createElement("ol");
@@ -235,7 +251,7 @@
       card.appendChild(actions);
     }
 
-    var warningRow = makeQuestCardRow("주의", payload.finalWarningText, "chat-quest-card__row--warning");
+    var warningRow = makeQuestCardRow("확인 사항", payload.finalWarningText, "chat-quest-card__row--warning");
     if (warningRow) card.appendChild(warningRow);
 
     return card;
@@ -583,6 +599,59 @@
     }
   }
 
+  function clearChatMotionStyles() {
+    if (!chatShell) return;
+    chatShell.style.removeProperty("transition");
+    chatShell.style.removeProperty("transform");
+    chatShell.style.removeProperty("transform-origin");
+    body.removeAttribute("data-split-motion");
+  }
+
+  function fitOfficialCanvas() {
+    if (window.CitizenActionDemoCanvas &&
+        typeof window.CitizenActionDemoCanvas.fitToViewport === "function") {
+      window.CitizenActionDemoCanvas.fitToViewport();
+    }
+  }
+
+  function startCinematicSplit() {
+    // Paint the official canvas before the reveal starts so the animation
+    // exposes a complete page rather than a loading placeholder.
+    _renderBukguHomeFixture();
+
+    if (prefersReducedMotion() || !chatShell || !window.requestAnimationFrame) {
+      setState(STATE_TRANSITIONING);
+      fitOfficialCanvas();
+      return;
+    }
+
+    var firstRect = chatShell.getBoundingClientRect();
+    setState(STATE_TRANSITIONING);
+    fitOfficialCanvas();
+    var lastRect = chatShell.getBoundingClientRect();
+    var scaleX = lastRect.width ? firstRect.width / lastRect.width : 1;
+    var scaleY = lastRect.height ? firstRect.height / lastRect.height : 1;
+    var translateX = firstRect.left - lastRect.left;
+    var translateY = firstRect.top - lastRect.top;
+
+    body.setAttribute("data-split-motion", "active");
+    chatShell.style.transition = "none";
+    chatShell.style.transformOrigin = "top left";
+    chatShell.style.transform =
+      "translate(" + translateX + "px," + translateY + "px) " +
+      "scale(" + scaleX + "," + scaleY + ")";
+    chatShell.getBoundingClientRect();
+
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(function () {
+        chatShell.style.transition =
+          "transform " + TRANSITION_DURATION_MS + "ms cubic-bezier(0.16, 1, 0.3, 1), " +
+          "border-radius 900ms ease, box-shadow 900ms ease";
+        chatShell.style.transform = "translate(0,0) scale(1,1)";
+      });
+    });
+  }
+
   function scrollChatToLatest() {
     if (chatThread) {
       chatThread.scrollTop = chatThread.scrollHeight;
@@ -770,8 +839,9 @@
 
   function completeSplit() {
     splitTimer = null;
-    _renderBukguHomeFixture();
     setState(STATE_SPLIT);
+    clearChatMotionStyles();
+    fitOfficialCanvas();
     // Delay chat message slightly so the canvas fade-in is visible first
     setTimeout(function () {
       appendChatMessage(
@@ -782,7 +852,7 @@
         showConfirmRun(lastSplitQuestion);
       }
       lastSplitQuestion = null;
-    }, 120);
+    }, 220);
   }
 
   function beginSupportedTransition(question) {
@@ -792,7 +862,7 @@
       chatInput.value = "";
     }
 
-    setState(STATE_TRANSITIONING);
+    startCinematicSplit();
 
     if (prefersReducedMotion()) {
       completeSplit();
@@ -831,7 +901,7 @@
           window.CitizenFirstChoreography.cancel();
         }
         lastSplitQuestion = question;
-        setState(STATE_TRANSITIONING);
+        startCinematicSplit();
         if (prefersReducedMotion()) {
           completeSplit();
         } else {
@@ -940,7 +1010,7 @@
 
   function beginMvpSplitThenChoreography(question, action) {
     lastSplitQuestion = question;
-    setState(STATE_TRANSITIONING);
+    startCinematicSplit();
     if (prefersReducedMotion()) {
       completeMvpSplit(action);
       return;
@@ -953,8 +1023,9 @@
 
   function completeMvpSplit(action) {
     splitTimer = null;
-    _renderBukguHomeFixture();
     setState(STATE_SPLIT);
+    clearChatMotionStyles();
+    fitOfficialCanvas();
     // Delay chat message slightly so the canvas fade-in is visible first
     setTimeout(function () {
       appendChatMessage(
@@ -971,7 +1042,7 @@
         showConfirmRunForAction(action);
       }
       if (chatInput) chatInput.focus();
-    }, 120);
+    }, 220);
   }
 
   function resetToEntry() {
@@ -990,6 +1061,7 @@
       window.clearTimeout(splitTimer);
       splitTimer = null;
     }
+    clearChatMotionStyles();
 
     // Clear canvas content so split-state HTML isn't left behind
     if (canvas) {

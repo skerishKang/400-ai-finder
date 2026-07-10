@@ -9,6 +9,9 @@ JS = (STATIC / "citizen-first-use-shell.js").read_text(encoding="utf-8")
 CSS = (STATIC / "citizen-first-use-shell.css").read_text(encoding="utf-8")
 CHOREO = (STATIC / "citizen-first-choreography.js").read_text(encoding="utf-8")
 CANVAS = (STATIC / "citizen-action-demo-canvas.js").read_text(encoding="utf-8")
+DIRECTIVE = (ROOT / "docs" / "design" / "bukgu-ai-agent-product-directive.md").read_text(
+    encoding="utf-8"
+)
 
 
 # ── #919 shell contracts ──────────────────────────────────────────
@@ -64,6 +67,35 @@ def test_first_use_shell_has_reduced_motion_and_noninteractive_entry_clone_rules
     assert "pointer-events: none" in CSS
     assert "aria-hidden" in JS
     assert "inert" in JS
+
+
+def test_owner_approved_product_directive_supersedes_static_scope():
+    assert "owner-approved and authoritative" in DIRECTIVE
+    assert "supersedes the narrow local/static product-scope restrictions" in DIRECTIVE
+    assert "on-screen AI cursor" in DIRECTIVE
+    assert "final complaint, application, or board-post submission" in DIRECTIVE
+
+
+def test_entry_stage_uses_bukgu_identity_and_mayor_media():
+    assert 'class="entry-stage"' in HTML
+    assert "BUKGU AI CIVIC BROWSER" in HTML
+    assert "home-identity.png" in HTML
+    assert "home-mayor-card.png" in HTML
+    assert "북구의 모든 행정" in HTML
+
+
+def test_split_transition_prepaints_canvas_and_uses_cinematic_motion():
+    assert "function startCinematicSplit()" in JS
+    transition_body = JS[JS.index("function startCinematicSplit()"):
+                         JS.index("function scrollChatToLatest()")]
+    assert transition_body.index("_renderBukguHomeFixture()") < transition_body.index(
+        "setState(STATE_TRANSITIONING)"
+    )
+    assert "TRANSITION_DURATION_MS = 1100" in JS
+    assert "firstUseCanvasReveal" in CSS
+    assert "firstUseChatArrive" in CSS
+    assert 'body[data-first-use-state="transitioning"] #demo-canvas[inert]' in CSS
+    assert "display: flex !important" in CSS
 
 
 # ── #920 choreography contracts ───────────────────────────────────
@@ -270,6 +302,10 @@ def test_shell_has_generic_action_plan_quest_card_renderer():
     assert "textContent = payload.questName" in JS
     assert "data-quest-card\", \"action_plan\"" in JS
     assert "appendQuestProgressCard(chatThread)" in JS
+    assert 'makeQuestCardRow("quest_id"' not in JS
+    assert 'makeQuestCardRow("정보 기준", payload.sourceModeLabel)' in JS
+    assert 'makeQuestCardRow("진행 상태", payload.stopConditionLabel)' in JS
+    assert 'actionsLabel.textContent = "AI가 수행할 작업"' in JS
 
 
 def test_canvas_delegates_quest_card_to_shell_renderer():
@@ -353,3 +389,30 @@ def test_choreography_mvp_journeys_have_messages():
     assert '"unmanned_kiosk"' in CHOREO
     # Terminal message uses the current completion wording.
     assert "안내를 마쳤습니다" in CHOREO
+
+
+def test_housing_journey_visibly_clicks_types_and_searches():
+    assert 'journeyStateAfterClick: "J-DEPT-01:menu"' in CHOREO
+    assert 'journeyStateAfterClick: "J-DEPT-01:directory"' in CHOREO
+    assert 'typeQuery: "공동주택"' in CHOREO
+    assert 'clickTarget: ".bg-dept-search__btn"' in CHOREO
+    assert "function _typeIntoSearch(" in CHOREO
+    assert 'setAttribute("data-agent-typing", "true")' in CHOREO
+    assert "062-410-6033" in CHOREO
+
+
+def test_canvas_cursor_has_visible_ai_identity_and_canvas_scoped_targeting():
+    assert 'class="choreo-cursor__label">AI</span>' in CANVAS
+    assert 'setAttribute("data-agent-cursor", "true")' in CANVAS
+    assert "function _resolveCursorTarget(" in CANVAS
+    assert "_demoCanvas.querySelector(selectorOrEl)" in CANVAS
+
+
+def test_mobile_split_uniformly_scales_the_official_canvas():
+    assert "function fitToViewport()" in CANVAS
+    assert 'window.matchMedia("(max-width: 767px)")' in CANVAS
+    assert 'inner.style.transform = "scale(" + scale + ")"' in CANVAS
+    assert 'data-official-fit", "scaled"' in CANVAS
+    assert "fitToViewport: fitToViewport" in CANVAS
+    assert 'body[data-first-use-state="split"] .chat-shell' in CSS
+    assert "overflow-x: hidden" in CSS
