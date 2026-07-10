@@ -251,6 +251,18 @@
         Object.freeze({ message: "안내를 마쳤습니다. 실제 이용은 북구청 및 각 행정복지센터에 설치된 무인민원발급기에서 가능합니다." }),
       ]),
     }),
+    "가로등이 고장났어요. 신고할게요": Object.freeze({
+      id: "complaint-board-write",
+      description: "가로등 고장 신고 - 민원게시판 글쓰기 (MVP action)",
+      steps: Object.freeze([
+        Object.freeze({ message: "가로등 고장 신고를 도와드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
+        Object.freeze({ message: "민원게시판으로 이동합니다.", routeId: "complaint-board", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
+        Object.freeze({ message: "새로운 신고 글쓰기 양식을 엽니다.", clickTarget: "#btn-board-write", delayMs: 2000, routeId: "complaint-write", thinkingText: "양식을 준비 중입니다...", thinkingMs: 700 }),
+        Object.freeze({ message: "가로등 고장 신고 내용을 초안으로 작성했습니다.", focusSearch: true, typeQuery: "가로등 고장 신고", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "내용을 작성하는 중입니다...", thinkingMs: 800 }),
+        Object.freeze({ message: "작성된 내용을 확인하시고 제출해 주세요.", requiresConfirmation: true, delayMs: 1000 }),
+        Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다. 처리 결과는 민원게시판에서 확인 가능합니다." })
+      ]),
+    }),
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -533,7 +545,14 @@
       }
 
       // Schedule next step or terminate
-      if (typeof step.delayMs === "number" && step.delayMs > 0) {
+      if (step.requiresConfirmation) {
+        var effectiveDelayConfirm = Math.max(step.delayMs || 0, visualActionDelay + 320);
+        _timer = window.setTimeout(function () {
+          _timer = null;
+          _setState("waiting_confirmation");
+          _renderConfirmationPrompt(index);
+        }, effectiveDelayConfirm);
+      } else if (typeof step.delayMs === "number" && step.delayMs > 0) {
         var effectiveDelay = Math.max(step.delayMs, visualActionDelay + 320);
         _timer = window.setTimeout(function () {
           _timer = null;
@@ -623,12 +642,59 @@
     return Boolean(JOURNEY_MAP[journeyKey]);
   }
 
+  function _renderConfirmationPrompt(index) {
+    if (!_chatThread) return;
+    var messageEl = document.createElement("div");
+    messageEl.className = "chat-msg chat-msg--ai";
+    messageEl.innerHTML = '<div class="chat-avatar" aria-label="AI">A</div>' +
+      '<div class="chat-bubble chat-bubble--ai" style="display:flex; flex-direction:column; gap:10px;">' +
+        '<span>이대로 제출할까요? (실제 제출 전 확인)</span>' +
+        '<div style="display:flex; gap:10px;">' +
+          '<button type="button" class="bg-dept-search__btn" style="padding:5px 10px; font-size:14px;" onclick="window.CitizenFirstChoreography.confirmSubmission(' + index + ')">제출하기</button>' +
+          '<button type="button" class="bg-dept-search__btn" style="background:#666; padding:5px 10px; font-size:14px;" onclick="window.CitizenFirstChoreography.cancel()">취소하기</button>' +
+        '</div>' +
+      '</div>';
+    _chatThread.appendChild(messageEl);
+    _chatThread.scrollTop = _chatThread.scrollHeight;
+  }
+
+  function confirmSubmission(index) {
+    _setState(STATE_RUNNING);
+    
+    // Simulate submission through the adapter
+    if (window.CitizenContentAdapter) {
+      var demoEl = document.getElementById("demo-canvas");
+      var title = demoEl.querySelector("#board-write-title");
+      var contentEl = demoEl.querySelector("#board-write-content");
+      var data = {
+        title: title ? title.value : "가로등 고장 신고",
+        content: contentEl ? contentEl.value : "가로등 고장을 신고합니다.",
+        author: "주민"
+      };
+      
+      var cCanvas = window.CitizenActionDemoCanvas;
+      if (cCanvas && cCanvas.clickAnimation) {
+         cCanvas.clickAnimation("#btn-board-submit");
+      }
+      
+      window.CitizenContentAdapter.submitBoardPost(data).then(function() {
+        if (cCanvas && cCanvas.navigateToRoute) {
+          cCanvas.navigateToRoute("complaint-board");
+        }
+        _executeStep(index + 1);
+      });
+    } else {
+       _executeStep(index + 1);
+    }
+  }
+
   window.CitizenFirstChoreography = Object.freeze({
     start: start,
     cancel: cancel,
     getState: getState,
     getCurrentJourneyId: getCurrentJourneyId,
     hasJourney: hasJourney,
+    confirmSubmission: confirmSubmission,
     states: Object.freeze({
       idle: STATE_IDLE,
       running: STATE_RUNNING,

@@ -2438,6 +2438,86 @@
   // -----------------------------------------------------------------------
   // _renderHandoffStop — demo end screen
   // -----------------------------------------------------------------------
+
+  function _renderComplaintBoard() {
+    // Schedule fetch after DOM update
+    if (typeof window !== "undefined" && window.setTimeout) {
+      window.setTimeout(_fetchAndRenderBoardPosts, 50);
+    }
+    return (
+      '<div class="bg-page bg-page--full">' +
+        '<div class="bg-home-gov-strip">' +
+          '<div class="bg-home-gov-strip__inner">' +
+            '<img src="/static/images/bukgu-current/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+          '</div>' +
+        '</div>' +
+        '<header class="bg-header"><div class="bg-home-header"><div class="bg-home-header__inner">' +
+          '<div class="bg-home-header__identity"><img src="/static/images/bukgu-current/home-identity.png" alt="북구청" /></div>' +
+          '<nav class="bg-gnb"><div class="bg-home-gnb"><span class="bg-home-gnb__link">소통광장</span></div></nav>' +
+        '</div></div></header>' +
+        '<main class="bg-dept-main">' +
+          '<div class="bg-dept-header"><h2>민원게시판</h2></div>' +
+          '<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">' +
+            '<button type="button" class="bg-dept-search__btn" data-action-target="complaint-write" id="btn-board-write">글쓰기</button>' +
+          '</div>' +
+          '<table class="bg-dept-table" id="board-list-table">' +
+            '<thead><tr><th>번호</th><th>제목</th><th>작성자</th><th>작성일</th><th>상태</th></tr></thead>' +
+            '<tbody id="board-list-body">' +
+              '<tr><td colspan="5" style="text-align:center;">게시글을 불러오는 중...</td></tr>' +
+            '</tbody>' +
+          '</table>' +
+        '</main>' +
+      '</div>'
+    );
+  }
+
+  function _renderComplaintWrite() {
+    return (
+      '<div class="bg-page bg-page--full">' +
+        '<div class="bg-home-gov-strip">' +
+          '<div class="bg-home-gov-strip__inner">' +
+            '<img src="/static/images/bukgu-current/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+          '</div>' +
+        '</div>' +
+        '<header class="bg-header"><div class="bg-home-header"><div class="bg-home-header__inner">' +
+          '<div class="bg-home-header__identity"><img src="/static/images/bukgu-current/home-identity.png" alt="북구청" /></div>' +
+          '<nav class="bg-gnb"><div class="bg-home-gnb"><span class="bg-home-gnb__link">소통광장</span></div></nav>' +
+        '</div></div></header>' +
+        '<main class="bg-dept-main">' +
+          '<div class="bg-dept-header"><h2>민원 글쓰기</h2></div>' +
+          '<div class="bg-form-group" style="margin-top:20px;">' +
+            '<label style="display:block;margin-bottom:5px;font-weight:bold;">제목</label>' +
+            '<input type="text" class="bg-dept-search__input" id="board-write-title" style="width:100%;max-width:600px;" />' +
+          '</div>' +
+          '<div class="bg-form-group" style="margin-top:15px;">' +
+            '<label style="display:block;margin-bottom:5px;font-weight:bold;">내용</label>' +
+            '<textarea id="board-write-content" style="width:100%;height:200px;padding:10px;border:1px solid #ccc;resize:none;"></textarea>' +
+          '</div>' +
+          '<div style="display:flex;justify-content:center;gap:10px;margin-top:20px;">' +
+            '<button type="button" class="bg-dept-search__btn" id="btn-board-submit" data-action-target="complaint-board">제출하기</button>' +
+            '<button type="button" class="bg-dept-search__btn" style="background:#666;" data-action-target="complaint-board">취소</button>' +
+          '</div>' +
+        '</main>' +
+      '</div>'
+    );
+  }
+
+  function _fetchAndRenderBoardPosts() {
+    if (window.CitizenContentAdapter) {
+      window.CitizenContentAdapter.getBoardPosts().then(function(posts) {
+        var tbody = document.getElementById("board-list-body");
+        if (tbody) {
+          var html = "";
+          for (var i = 0; i < posts.length; i++) {
+            var p = posts[i];
+            html += "<tr><td>" + p.id + "</td><td>" + p.title + "</td><td>" + p.author + "</td><td>" + p.date + "</td><td>" + p.status + "</td></tr>";
+          }
+          tbody.innerHTML = html;
+        }
+      });
+    }
+  }
+
   function _renderHandoffStop(route) {
     return (
       '<div class="bg-page bg-page--full bg-page--dense">' +
@@ -3030,6 +3110,8 @@
       "complaint-category-traffic-or-facility-safety":    "complaint-intake",
       "complaint-category-other-or-unsure":               "complaint-intake",
       "complaint-illegal-parking-report":                  "handoff-stop",
+      "complaint-board":                              "complaint-write",
+      "btn-board-submit":                             "complaint-board",
       "complaint-body":               null,
       "complaint-draft-review":       "complaint-review",
       "confirm-draft-prefill":        "handoff-stop",
