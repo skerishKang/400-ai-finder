@@ -240,6 +240,53 @@ class TestUnknownInputs:
 
 
 # ---------------------------------------------------------------------------
+# Complaint-board route vocabulary sync (#1069 / PR #1074)
+# ---------------------------------------------------------------------------
+
+class TestComplaintBoardRouteVocabulary:
+    def test_complaint_board_is_valid_route(self):
+        """approved complaint-board route must validate as a guided action."""
+        plan = build_citizen_action_plan([
+            make_action("OPEN_ALLOWLISTED_ROUTE", route_id="complaint-board"),
+            stop_action(),
+        ])
+        assert plan.plan_status == "guided"
+
+    def test_unknown_route_still_invalid(self):
+        """an unknown route id must still be rejected (no over-permissiveness)."""
+        plan = build_citizen_action_plan([
+            make_action("OPEN_ALLOWLISTED_ROUTE", route_id="nonexistent-route"),
+            stop_action(),
+        ])
+        assert plan.plan_status == "blocked"
+
+    def test_existing_route_vocabulary_maintained(self):
+        """pre-existing approved routes must remain valid after the sync."""
+        for rid in (
+            "home", "civil-service", "complaint-category",
+            "complaint-illegal-parking", "complaint-intake", "handoff-stop",
+            "complaint-review", "bulky-waste-disposal", "passport-guidance",
+            "unmanned-kiosk-guidance", "apartment-info", "apartment-dept",
+        ):
+            plan = build_citizen_action_plan([
+                make_action("OPEN_ALLOWLISTED_ROUTE", route_id=rid),
+                stop_action(),
+            ])
+            assert plan.plan_status == "guided", f"route '{rid}' must remain valid"
+
+    def test_forbidden_submit_payment_auth_unchanged(self):
+        """forbidden submit/payment/auth action types must remain blocked."""
+        for atype in ("SUBMIT", "PAY", "ENTER_IDENTITY"):
+            plan = build_citizen_action_plan([
+                make_action(atype, route_id="complaint-board"),
+                stop_action(),
+            ])
+            assert plan.plan_status == "blocked", f"forbidden {atype} must be blocked"
+
+
+# ---------------------------------------------------------------------------
+# Type coercion (1류 validation)
+# ---------------------------------------------------------------------------
 # Type coercion (1류 validation)
 # ---------------------------------------------------------------------------
 

@@ -39,6 +39,7 @@ _VALID_ROUTE_IDS: frozenset[str] = frozenset({
     "complaint-category",
     "complaint-illegal-parking",
     "complaint-intake",
+    "complaint-board",
     "handoff-stop",
     "complaint-review",
     "bulky-waste-disposal",
