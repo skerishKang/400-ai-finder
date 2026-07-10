@@ -2439,8 +2439,8 @@
 /* J-DEPT scope: breadcrumb is used on every route page; scope per route wrapper */
 .bg-page--illegal-parking .bg-sub-breadcrumb,
 .bg-page--bulky-waste .bg-sub-breadcrumb,
-.bg-page--move-in-report .bg-sub-breadcrumb,
-.bg-page--public-health-center .bg-sub-breadcrumb,
+.bg-page--passport-guidance .bg-sub-breadcrumb,
+.bg-page--unmanned-kiosk-guidance .bg-sub-breadcrumb,
 .bg-page--apartment-info .bg-sub-breadcrumb {
   font-size: 0.8125rem;
   color: #666;
@@ -2450,31 +2450,31 @@
 }
 .bg-page--illegal-parking .bg-sub-breadcrumb a,
 .bg-page--bulky-waste .bg-sub-breadcrumb a,
-.bg-page--move-in-report .bg-sub-breadcrumb a,
-.bg-page--public-health-center .bg-sub-breadcrumb a,
+.bg-page--passport-guidance .bg-sub-breadcrumb a,
+.bg-page--unmanned-kiosk-guidance .bg-sub-breadcrumb a,
 .bg-page--apartment-info .bg-sub-breadcrumb a {
   color: #0054a6;
   text-decoration: none;
 }
 .bg-page--illegal-parking .bg-sub-breadcrumb a:hover,
 .bg-page--bulky-waste .bg-sub-breadcrumb a:hover,
-.bg-page--move-in-report .bg-sub-breadcrumb a:hover,
-.bg-page--public-health-center .bg-sub-breadcrumb a:hover,
+.bg-page--passport-guidance .bg-sub-breadcrumb a:hover,
+.bg-page--unmanned-kiosk-guidance .bg-sub-breadcrumb a:hover,
 .bg-page--apartment-info .bg-sub-breadcrumb a:hover {
   text-decoration: underline;
 }
 .bg-page--illegal-parking .bg-sub-breadcrumb__sep,
 .bg-page--bulky-waste .bg-sub-breadcrumb__sep,
-.bg-page--move-in-report .bg-sub-breadcrumb__sep,
-.bg-page--public-health-center .bg-sub-breadcrumb__sep,
+.bg-page--passport-guidance .bg-sub-breadcrumb__sep,
+.bg-page--unmanned-kiosk-guidance .bg-sub-breadcrumb__sep,
 .bg-page--apartment-info .bg-sub-breadcrumb__sep {
   color: #bbb;
   margin: 0 4px;
 }
 .bg-page--illegal-parking .bg-sub-breadcrumb strong,
 .bg-page--bulky-waste .bg-sub-breadcrumb strong,
-.bg-page--move-in-report .bg-sub-breadcrumb strong,
-.bg-page--public-health-center .bg-sub-breadcrumb strong,
+.bg-page--passport-guidance .bg-sub-breadcrumb strong,
+.bg-page--unmanned-kiosk-guidance .bg-sub-breadcrumb strong,
 .bg-page--apartment-info .bg-sub-breadcrumb strong {
   color: #222;
   font-weight: 700;
@@ -2482,8 +2482,8 @@
 
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-page-title {
   font-size: 1.4rem;
   font-weight: 600;
@@ -2495,8 +2495,8 @@
 
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-tabs {
   display: flex;
   gap: 0;
@@ -2505,8 +2505,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-tab {
   padding: 10px 24px;
   font-size: 0.875rem;
@@ -2521,8 +2521,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-tab--active {
   color: #fff;
   background: #0054a6;
@@ -2532,15 +2532,15 @@
 /* Content sections */
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-content-section {
   margin-bottom: 24px;
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-section-title {
   font-size: 1.05rem;
   font-weight: 600;
@@ -2552,8 +2552,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-section-desc {
   font-size: 0.875rem;
   color: #555;
@@ -2562,8 +2562,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-table-caption {
   font-size: 0.9375rem;
   font-weight: 600;
@@ -2574,8 +2574,8 @@
 /* Info card */
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-info-card {
   background: #f8fafc;
   border: 1px solid #e0e4ec;
@@ -2584,8 +2584,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-info-card p {
   margin: 4px 0;
   font-size: 0.875rem;
@@ -2594,8 +2594,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-info-card__title {
   font-size: 0.9375rem;
   font-weight: 600;
@@ -2604,8 +2604,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-info-card__actions {
   display: flex;
   gap: 8px;
@@ -2616,8 +2616,8 @@
 /* Info list */
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-info-list {
   list-style: none;
   margin: 0;
@@ -2625,8 +2625,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-info-list li {
   padding: 4px 0;
   font-size: 0.9375rem;
@@ -2635,8 +2635,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-info-list li::before {
   content: '';
   margin-right: 0;
@@ -2645,8 +2645,8 @@
 /* Buttons */
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-btn {
   display: inline-flex;
   align-items: center;
@@ -2661,26 +2661,26 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-btn--primary {
   background: #0054a6;
   color: #fff;
   border: 1px solid #0054a6;
 }
 /* 시나리오4 (정부24/전입신고): 실제 정부24 네이비(#0A325A) 테마 */
-.bg-page--move-in-report .bg-sub-btn--primary {
+.bg-page--passport-guidance .bg-sub-btn--primary {
   background: #0A325A;
   border-color: #0A325A;
 }
-.bg-page--move-in-report .bg-sub-btn--secondary {
+.bg-page--passport-guidance .bg-sub-btn--secondary {
   color: #0A325A;
   border-color: #0A325A;
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-btn--secondary {
   background: #fff;
   color: #0054a6;
@@ -2690,8 +2690,8 @@
 /* Sub-page table (과태료, 수수료) */
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-table {
   width: 100%;
   border-collapse: collapse;
@@ -2700,8 +2700,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-table th {
   background: #eef4fb;
   border-bottom: 1px solid #cad0d6;
@@ -2713,8 +2713,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-table td {
   padding: 8px 10px;
   border-bottom: 1px solid #e6eaef;
@@ -2724,15 +2724,15 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-table--fee td:first-child {
   text-align: left;
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-table--fee td:nth-child(2) {
   font-weight: 600;
   color: #e74c3c;
@@ -2780,8 +2780,8 @@
 /* Satisfaction survey */
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-satisfaction {
   margin-top: 24px;
   padding: 16px;
@@ -2791,8 +2791,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-satisfaction__title {
   font-size: 0.9375rem;
   font-weight: 600;
@@ -2801,8 +2801,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-satisfaction__stars {
   display: flex;
   gap: 16px;
@@ -2811,8 +2811,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-satisfaction__stars label {
   font-size: 0.8125rem;
   color: #555;
@@ -2823,23 +2823,23 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-satisfaction__stars input[type="radio"] {
   margin: 0;
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-satisfaction__opinion {
   display: flex;
   gap: 8px;
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-satisfaction__opinion input[type="text"] {
   flex: 1;
   padding: 6px 10px;
@@ -2849,8 +2849,8 @@
 }
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
-    .bg-page--move-in-report,
-    .bg-page--public-health-center,
+    .bg-page--passport-guidance,
+    .bg-page--unmanned-kiosk-guidance,
     .bg-page--apartment-info) .bg-sub-satisfaction__opinion button {
   padding: 6px 16px;
   background: #149896;
@@ -2862,14 +2862,14 @@
 }
 
 /* 정부24 card */
-.bg-page--move-in-report .bg-gov24-card {
+.bg-page--passport-guidance .bg-gov24-card {
   background: linear-gradient(135deg, #eaf0fb 0%, #dde6f3 100%);
   border: 2px solid #0A325A;
   border-radius: 10px;
   padding: 24px;
   margin-bottom: 20px;
 }
-.bg-page--move-in-report .bg-gov24-card__badge {
+.bg-page--passport-guidance .bg-gov24-card__badge {
   display: inline-block;
   padding: 4px 12px;
   background: #0A325A;
@@ -2879,49 +2879,49 @@
   font-weight: 700;
   margin-bottom: 12px;
 }
-.bg-page--move-in-report .bg-gov24-card__title {
+.bg-page--passport-guidance .bg-gov24-card__title {
   font-size: 1.25rem;
   font-weight: 700;
   color: #1a252f;
   margin: 0 0 8px;
 }
-.bg-page--move-in-report .bg-gov24-card__desc {
+.bg-page--passport-guidance .bg-gov24-card__desc {
   font-size: 0.875rem;
   color: #555;
   line-height: 1.5;
   margin: 0 0 16px;
 }
-.bg-page--move-in-report .bg-gov24-card__info {
+.bg-page--passport-guidance .bg-gov24-card__info {
   margin-bottom: 16px;
 }
-.bg-page--move-in-report .bg-gov24-card__row {
+.bg-page--passport-guidance .bg-gov24-card__row {
   font-size: 0.875rem;
   color: #444;
   padding: 4px 0;
 }
-.bg-page--move-in-report .bg-gov24-card__label {
+.bg-page--passport-guidance .bg-gov24-card__label {
   font-weight: 600;
   color: #2c3e50;
   display: inline-block;
   min-width: 90px;
 }
-.bg-page--move-in-report .bg-gov24-card__link {
+.bg-page--passport-guidance .bg-gov24-card__link {
   color: #0A325A;
   text-decoration: none;
   font-weight: 600;
 }
-.bg-page--move-in-report .bg-gov24-card__actions {
+.bg-page--passport-guidance .bg-gov24-card__actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
 /* 보건소 전용 헤더 */
-.bg-page--public-health-center .bg-health-header {
+.bg-page--unmanned-kiosk-guidance .bg-health-header {
   background: #fff;
   border-bottom: 2px solid #BEBEAA;
 }
-.bg-page--public-health-center .bg-health-header__inner {
+.bg-page--unmanned-kiosk-guidance .bg-health-header__inner {
   max-width: 1200px;
   margin: 0 auto;
   padding: 12px 24px;
@@ -2929,32 +2929,32 @@
   align-items: center;
   gap: 24px;
 }
-.bg-page--public-health-center .bg-health-header__logo {
+.bg-page--unmanned-kiosk-guidance .bg-health-header__logo {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
-.bg-page--public-health-center .bg-health-header__logo-emblem {
+.bg-page--unmanned-kiosk-guidance .bg-health-header__logo-emblem {
   font-size: 2rem;
 }
-.bg-page--public-health-center .bg-health-header__logo-text strong {
+.bg-page--unmanned-kiosk-guidance .bg-health-header__logo-text strong {
   display: block;
   font-size: 0.75rem;
   color: #666;
 }
-.bg-page--public-health-center .bg-health-header__logo-text span {
+.bg-page--unmanned-kiosk-guidance .bg-health-header__logo-text span {
   display: block;
   font-size: 1.25rem;
   font-weight: 700;
   color: #BEBEAA;
 }
-.bg-page--public-health-center .bg-health-gnb {
+.bg-page--unmanned-kiosk-guidance .bg-health-gnb {
   display: flex;
   gap: 0;
   flex: 1;
 }
-.bg-page--public-health-center .bg-health-gnb__link {
+.bg-page--unmanned-kiosk-guidance .bg-health-gnb__link {
   padding: 8px 14px;
   font-size: 0.875rem;
   font-weight: 600;
@@ -2962,13 +2962,13 @@
   text-decoration: none;
   white-space: nowrap;
 }
-.bg-page--public-health-center .bg-health-gnb__link--active {
+.bg-page--unmanned-kiosk-guidance .bg-health-gnb__link--active {
   color: #BEBEAA;
   border-bottom: 3px solid #BEBEAA;
 }
 
 /* 보건소 map placeholder */
-.bg-page--public-health-center .bg-health-map-placeholder {
+.bg-page--unmanned-kiosk-guidance .bg-health-map-placeholder {
   background: #f0f4f8;
   border: 2px dashed #c8d5e6;
   border-radius: 8px;
@@ -2976,35 +2976,35 @@
   margin: 16px 0;
   text-align: center;
 }
-.bg-page--public-health-center .bg-health-map-placeholder__inner {
+.bg-page--unmanned-kiosk-guidance .bg-health-map-placeholder__inner {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
 }
-.bg-page--public-health-center .bg-health-map-placeholder__icon {
+.bg-page--unmanned-kiosk-guidance .bg-health-map-placeholder__icon {
   font-size: 3rem;
 }
-.bg-page--public-health-center .bg-health-map-placeholder__text p {
+.bg-page--unmanned-kiosk-guidance .bg-health-map-placeholder__text p {
   margin: 2px 0;
   font-size: 0.875rem;
   color: #555;
 }
-.bg-page--public-health-center .bg-health-map-placeholder__link {
+.bg-page--unmanned-kiosk-guidance .bg-health-map-placeholder__link {
   color: #149896;
   text-decoration: none;
   font-weight: 600;
 }
 
 /* 보건소 info table */
-.bg-page--public-health-center .bg-health-info-section {
+.bg-page--unmanned-kiosk-guidance .bg-health-info-section {
   margin: 16px 0;
 }
-.bg-page--public-health-center .bg-health-info-table {
+.bg-page--unmanned-kiosk-guidance .bg-health-info-table {
   width: 100%;
   border-collapse: collapse;
 }
-.bg-page--public-health-center .bg-health-info-table th {
+.bg-page--unmanned-kiosk-guidance .bg-health-info-table th {
   width: 140px;
   padding: 10px 12px;
   background: #f5f7fa;
@@ -3014,7 +3014,7 @@
   color: #333;
   text-align: left;
 }
-.bg-page--public-health-center .bg-health-info-table td {
+.bg-page--unmanned-kiosk-guidance .bg-health-info-table td {
   padding: 10px 12px;
   border: 1px solid #e0e4ec;
   font-size: 0.875rem;
@@ -3022,26 +3022,26 @@
 }
 
 /* 보건소 슬로건 */
-.bg-page--public-health-center .bg-health-slogan {
+.bg-page--unmanned-kiosk-guidance .bg-health-slogan {
   text-align: center;
   padding: 20px;
   background: linear-gradient(135deg, #e8f5e9 0%, #e0f2f1 100%);
   border-radius: 8px;
   margin: 16px 0;
 }
-.bg-page--public-health-center .bg-health-slogan p {
+.bg-page--unmanned-kiosk-guidance .bg-health-slogan p {
   font-size: 1.125rem;
   font-weight: 700;
   color: #009944;
   margin: 0 0 4px;
 }
-.bg-page--public-health-center .bg-health-slogan span {
+.bg-page--unmanned-kiosk-guidance .bg-health-slogan span {
   font-size: 0.8125rem;
   color: #666;
 }
 
 /* 보건소 푸터 */
-.bg-page--public-health-center .bg-health-footer {
+.bg-page--unmanned-kiosk-guidance .bg-health-footer {
   background: #354152;
   color: #ccc;
   padding: 24px;
@@ -3049,14 +3049,14 @@
   font-size: 0.8125rem;
   line-height: 1.6;
 }
-.bg-page--public-health-center .bg-health-footer__inner {
+.bg-page--unmanned-kiosk-guidance .bg-health-footer__inner {
   max-width: 1200px;
   margin: 0 auto;
 }
-.bg-page--public-health-center .bg-health-footer p {
+.bg-page--unmanned-kiosk-guidance .bg-health-footer p {
   margin: 2px 0;
 }
-.bg-page--public-health-center .bg-health-footer strong {
+.bg-page--unmanned-kiosk-guidance .bg-health-footer strong {
   color: #eee;
 }
 

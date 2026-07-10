@@ -9,8 +9,8 @@
  *   Route IDs:  home, civil-service, complaint-category,
  *               complaint-illegal-parking, complaint-intake,
  *               handoff-stop, complaint-review,
- *               bulky-waste-disposal, move-in-report-guidance,
- *               public-health-center-guidance, apartment-info,
+ *               bulky-waste-disposal, passport-guidance,
+ *               unmanned-kiosk-guidance, apartment-info,
  *               apartment-dept
  *   Target IDs: nav-civil-service, nav-complaint-category,
  *               complaint-category-illegal-parking,
@@ -39,8 +39,8 @@
     "handoff-stop",
     "complaint-review",
 "bulky-waste-disposal",
-    "move-in-report-guidance",
-    "public-health-center-guidance",
+    "passport-guidance",
+    "unmanned-kiosk-guidance",
     "apartment-info",
     "apartment-dept",
   ]);
@@ -59,8 +59,8 @@
     "confirm-draft-prefill",
     "handoff-notice",
     "bulky-waste-guidance-card",
-    "move-in-guidance-card",
-    "health-center-guidance-card",
+    "passport-guidance-card",
+    "unmanned-kiosk-card",
     "apartment-guidance-card",
     "apartment-dept-card",
     "apartment-life-card",
@@ -142,20 +142,20 @@
       breadcrumbLabel: "대형폐기물 배출방법",
     }),
 
-    "move-in-report-guidance": Object.freeze({
-      id: "move-in-report-guidance",
-      title: "정부24 전입신고 연결 안내",
-      purpose: "북구청 종합민원 → 전자민원창구 → 정부24 경로로 전입신고 연결을 안내합니다.",
-      navTargets: Object.freeze(["move-in-guidance-card"]),
-      breadcrumbLabel: "정부24 전입신고 연결 안내",
+    "passport-guidance": Object.freeze({
+      id: "passport-guidance",
+      title: "여권민원 안내",
+      purpose: "여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 안내합니다.",
+      navTargets: Object.freeze(["passport-guidance-card"]),
+      breadcrumbLabel: "여권민원 안내",
     }),
 
-    "public-health-center-guidance": Object.freeze({
-      id: "public-health-center-guidance",
-      title: "보건소 위치·진료 안내",
-      purpose: "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다.",
-      navTargets: Object.freeze(["health-center-guidance-card"]),
-      breadcrumbLabel: "보건소 위치·진료 안내",
+    "unmanned-kiosk-guidance": Object.freeze({
+      id: "unmanned-kiosk-guidance",
+      title: "무인민원발급기 안내",
+      purpose: "무인민원발급기 설치장소, 발급종류, 이용방법을 안내합니다.",
+      navTargets: Object.freeze(["unmanned-kiosk-card"]),
+      breadcrumbLabel: "무인민원발급기 안내",
     }),
 
     "apartment-info": Object.freeze({

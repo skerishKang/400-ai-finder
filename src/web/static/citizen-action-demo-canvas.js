@@ -1559,26 +1559,24 @@
     );
   }
 
-  function _renderMoveInReportGuidance(route) {
+  function _renderPassportGuidance(route) {
     return (
-      '<div class="bg-page bg-page--full bg-page--dense bg-page--move-in-report">' +
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--passport-guidance">' +
         _renderDenseHeader('civil-service') +
 
         '<div class="bg-layout--lnb">' +
-          /* LNB — 종합민원 > 전자민원창구 > 정부24 */
+          /* LNB — 종합민원 > 여권민원 */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
             '<div class="bg-lnb__header">종합민원</div>' +
             '<ul class="bg-lnb__list">' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">종합민원</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">전자민원창구</a></li>' +
               '<li class="bg-lnb__item bg-lnb__item--open">' +
-                '<a href="#" class="bg-lnb__parent">전자민원창구</a>' +
+                '<a href="#" class="bg-lnb__parent">여권민원</a>' +
                 '<ul class="bg-lnb__sub">' +
-                  '<li><a href="#">민원처리공개</a></li>' +
-                  '<li><a href="#">민원상담(국민신문고)</a></li>' +
-                  '<li class="bg-lnb__item--active"><a href="#">정부24</a></li>' +
-                  '<li><a href="#">청원24(온라인청원제도)</a></li>' +
-                  '<li><a href="#">온라인 행정심판이용안내</a></li>' +
-                  '<li><a href="#">110수화(화상)상담</a></li>' +
+                  '<li class="bg-lnb__item--active"><a href="#">여권안내</a></li>' +
+                  '<li><a href="#">여권신청 안내</a></li>' +
+                  '<li><a href="#">여권 발급 수수료</a></li>' +
+                  '<li><a href="#">여권 접수·수령</a></li>' +
                 '</ul>' +
               '</li>' +
               '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민원신고</a></li>' +
@@ -1586,45 +1584,80 @@
             '</ul>' +
           '</nav>' +
 
-          /* Main content — 정부24 바로가기 안내 handoff */
+          /* Main content — 여권민원 */
           '<main class="bg-content bg-content--sub" id="bg-content-main">' +
             /* Breadcrumb */
             '<div class="bg-sub-breadcrumb">' +
               '<a href="#">홈</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
               '<a href="#">종합민원</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
-              '<a href="#">전자민원창구</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
-              '<strong>정부24</strong>' +
+              '<strong>여권민원</strong>' +
             '</div>' +
 
             /* Page title */
-            '<h1 class="bg-sub-page-title">정부24</h1>' +
+            '<h1 class="bg-sub-page-title">여권민원</h1>' +
 
-            /* 정부24 바로가기 card */
-            '<div class="bg-gov24-card">' +
-              '<div class="bg-gov24-card__badge">정부24</div>' +
-              '<h2 class="bg-gov24-card__title">정부24 바로가기</h2>' +
-              '<p class="bg-gov24-card__desc">정부24는 정부의 각종 서비스를 온라인으로 신청·조회·발급할 수 있는 정부 대표 포털입니다. 북구청 전자민원창구에서 정부24로 연결됩니다.</p>' +
-              '<div class="bg-gov24-card__info">' +
-                '<div class="bg-gov24-card__row"><span class="bg-gov24-card__label">연결경로</span> 종합민원 &gt; 전자민원창구 &gt; 정부24</div>' +
-                '<div class="bg-gov24-card__row"><span class="bg-gov24-card__label">바로가기</span> <a href="#" class="bg-gov24-card__link">www.gov.kr/portal/main <span aria-hidden="true">↗</span></a></div>' +
-                '<div class="bg-gov24-card__row"><span class="bg-gov24-card__label">주요서비스</span> 전입신고, 주민등록등·초본, 건축물대장, 자동차 관련 등</div>' +
-              '</div>' +
-              '<div class="bg-gov24-card__actions">' +
-                '<a href="#" class="bg-sub-btn bg-sub-btn--primary">정부24 바로가기 <span aria-hidden="true">→</span></a>' +
-                '<a href="#" class="bg-sub-btn bg-sub-btn--secondary">전입신고 안내</a>' +
+            /* 여권안내 섹션 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">여권안내</h2>' +
+              '<div class="bg-sub-info-card">' +
+                '<p class="bg-sub-info-card__lead">여권은 대한민국 국민임을 증명하고 국외 여행을 허가하는 국가 공문서입니다. 북구청 종합민원실 여권민원 창구에서 신청할 수 있습니다.</p>' +
+                '<ul class="bg-sub-info-list">' +
+                  '<li><strong>여권 종류</strong> : 전자여권(복수·단수), 긴급여권(비전자)</li>' +
+                  '<li><strong>유효기간</strong> : 10년(만 18세 이상), 5년(만 8세~18세 미만), 5년 미만(만 8세 미만)</li>' +
+                  '<li><strong>발급형태</strong> : 58면(일반), 26면(알뜰)</li>' +
+                '</ul>' +
               '</div>' +
             '</div>' +
 
-            /* 전입신고 안내 card (data-action-target for choreography) */
-            '<div class="bg-illegal-parking-card" data-action-target="move-in-guidance-card" tabindex="0">' +
-              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🏠</div>' +
+            /* 여권신청 안내 섹션 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">여권신청 안내</h2>' +
+              '<div class="bg-sub-info-card">' +
+                '<h3 class="bg-sub-info-card__title">접수 시간</h3>' +
+                '<ul class="bg-sub-info-list">' +
+                  '<li><strong>근무시간</strong> : 평일 09:00 ~ 18:00 (점심 12:00 ~ 13:00)</li>' +
+                  '<li><strong>토·일요일·공휴일</strong> : 휴무</li>' +
+                '</ul>' +
+                '<h3 class="bg-sub-info-card__title">구비서류</h3>' +
+                '<ul class="bg-sub-info-list">' +
+                  '<li>여권발급 신청서 1부 (창구 비치)</li>' +
+                  '<li>여권용 사진 1매 (6개월 이내 촬영, 가로 3.5cm × 세로 4.5cm)</li>' +
+                  '<li>신분증 (주민등록증, 운전면허증 등)</li>' +
+                  '<li>병역관계 서류 (해당자에 한함)</li>' +
+                  '<li>미성년자 : 기본증명서·가족관계증명서, 법정대리인 동의서 및 인감(서명)</li>' +
+                '</ul>' +
+              '</div>' +
+            '</div>' +
+
+            /* 여권 발급 수수료 표 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">여권 발급 수수료</h2>' +
+              '<table class="bg-sub-table">' +
+                '<thead>' +
+                  '<tr><th>종류</th><th>유효기간</th><th>면수</th><th>국내 수수료</th><th>재외공관 수수료</th></tr>' +
+                '</thead>' +
+                '<tbody>' +
+                  '<tr><td rowspan="2">전자여권<br/>(복수)</td><td>10년</td><td>58면</td><td>53,000원</td><td>50,000원</td></tr>' +
+                  '<tr><td>10년</td><td>26면</td><td>50,000원</td><td>47,000원</td></tr>' +
+                  '<tr><td rowspan="2">전자여권<br/>(만 8~18세)</td><td>5년</td><td>58면</td><td>45,000원</td><td>42,000원</td></tr>' +
+                  '<tr><td>5년</td><td>26면</td><td>42,000원</td><td>39,000원</td></tr>' +
+                  '<tr><td>전자여권<br/>(만 8세 미만)</td><td>5년 미만</td><td>26면</td><td>33,000원</td><td>30,000원</td></tr>' +
+                  '<tr><td>긴급여권<br/>(비전자)</td><td>1년 이내</td><td>-</td><td>53,000원</td><td>50,000원</td></tr>' +
+                '</tbody>' +
+              '</table>' +
+              '<p class="bg-sub-table-note">※ 수수료는 정책에 따라 변동될 수 있으며, 정확한 금액은 북구청 여권민원 창구 또는 외교부에서 확인하시기 바랍니다.</p>' +
+            '</div>' +
+
+            /* 여권민원 안내 card (data-action-target for choreography) */
+            '<div class="bg-illegal-parking-card" data-action-target="passport-guidance-card" tabindex="0">' +
+              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🛂</div>' +
               '<div class="bg-illegal-parking-card__body">' +
-                '<h2 class="bg-illegal-parking-card__title">전입신고 안내</h2>' +
-                '<p class="bg-illegal-parking-card__desc">북구청 종합민원 &gt; 전자민원창구 &gt; 정부24 경로로 전입신고 연결을 안내합니다.</p>' +
+                '<h2 class="bg-illegal-parking-card__title">여권민원 안내</h2>' +
+                '<p class="bg-illegal-parking-card__desc">여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 안내합니다.</p>' +
                 '<ul class="bg-illegal-parking-card__meta">' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">연결경로</span> 종합민원 &gt; 전자민원창구 &gt; 정부24</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">처리방법</span> 정부24 온라인 또는 주민센터 방문</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">신고기한</span> 이사한 날부터 14일 이내</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">접수처</span> 북구청 종합민원실 여권민원 창구</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">근무시간</span> 평일 09:00 ~ 18:00</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">구비서류</span> 신청서, 여권용 사진, 신분증</li>' +
                 '</ul>' +
               '</div>' +
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
@@ -1632,12 +1665,12 @@
 
             /* 유의사항 */
             '<div class="bg-move-in-notice-box">' +
-              '<h3>⚠️ 정부24 연결 유의사항</h3>' +
+              '<h3>⚠️ 여권 발급 유의사항</h3>' +
               '<ul>' +
-                '<li>본 화면은 북구청 메뉴에서 <strong>정부24</strong> 연결 경로를 안내하는 데서 멈춥니다.</li>' +
-                '<li>실제 전입신고, <strong>본인인증</strong>(공동인증서, 간편인증), <strong>주소·세대주·가족관계</strong> 정보 입력, <strong>제출</strong>은 사용자가 정부24 또는 주민센터에서 직접 진행해야 합니다.</li>' +
-                '<li>이사일부터 <strong>14일 이내</strong>에 신고하지 않으면 과태료가 부과될 수 있습니다.</li>' +
-                '<li>정부24 접속, 본인인증, 개인정보 입력 및 제출은 사용자가 공식 채널에서 직접 확인·진행해야 합니다.</li>' +
+                '<li>본 화면은 북구청 종합민원 <strong>여권민원</strong> 안내에서 멈춥니다.</li>' +
+                '<li>실제 여권 신청, <strong>본인확인</strong>, 사진·구비서류 제출, 수수료 납부는 사용자가 북구청 민원실을 방문하여 직접 진행해야 합니다.</li>' +
+                '<li>여권 발급 소요기간은 접수 후 <strong>통상 7~10일</strong>(공휴일 제외)이며, 신청 시 창구에서 확인하시기 바랍니다.</li>' +
+                '<li>여권 정보 및 온라인 재발급 신청은 <strong>정부24</strong> 및 외교부 여권안내에서 확인·진행할 수 있습니다.</li>' +
               '</ul>' +
             '</div>' +
 
@@ -1842,126 +1875,98 @@
     );
   }
 
-  function _renderPublicHealthCenterGuidance(route) {
+  function _renderUnmannedKioskGuidance(route) {
     return (
-      '<div class="bg-page bg-page--full bg-page--dense bg-page--public-health-center">' +
-        /* 보건소 서브사이트 스타일 헤더 (메인 사이트와 다른 GNB) */
-        '<div class="bg-home-gov-strip">' +
-          '<div class="bg-home-gov-strip__inner">' +
-            '<img src="/static/images/bukgu-current/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
-          '</div>' +
-        '</div>' +
-        '<div class="bg-health-header">' +
-          '<div class="bg-health-header__inner">' +
-            '<div class="bg-health-header__logo">' +
-              '<span class="bg-health-header__logo-emblem">❤️</span>' +
-              '<div class="bg-health-header__logo-text">' +
-                '<strong>전남광주통합특별시 북구</strong>' +
-                '<span>보건소</span>' +
-              '</div>' +
-            '</div>' +
-            '<nav class="bg-health-gnb" aria-label="보건소 주메뉴">' +
-              '<a href="#" class="bg-health-gnb__link bg-health-gnb__link--active">보건소소개</a>' +
-              '<a href="#" class="bg-health-gnb__link">민원·안내</a>' +
-              '<a href="#" class="bg-health-gnb__link">사업안내</a>' +
-              '<a href="#" class="bg-health-gnb__link">정보마당</a>' +
-              '<a href="#" class="bg-health-gnb__link">치매안심센터</a>' +
-              '<a href="#" class="bg-health-gnb__link">북구건강생활지원센터</a>' +
-            '</nav>' +
-          '</div>' +
-        '</div>' +
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--unmanned-kiosk-guidance">' +
+        _renderDenseHeader('civil-service') +
 
         '<div class="bg-layout--lnb">' +
-          /* LNB — 보건소 > 보건소소개 > 찾아오시는 길 */
+          /* LNB — 종합민원 > 무인민원발급기 */
           '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
-            '<div class="bg-lnb__header">보건소소개</div>' +
+            '<div class="bg-lnb__header">종합민원</div>' +
             '<ul class="bg-lnb__list">' +
-              '<li><a href="#">인사말</a></li>' +
-              '<li><a href="#">조직 및 업무안내</a></li>' +
-              '<li><a href="#">층별안내</a></li>' +
-              '<li class="bg-lnb__item--active"><a href="#">찾아오시는 길</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">전자민원창구</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--open">' +
+                '<a href="#" class="bg-lnb__parent">무인민원발급기</a>' +
+                '<ul class="bg-lnb__sub">' +
+                  '<li class="bg-lnb__item--active"><a href="#">이용안내</a></li>' +
+                  '<li><a href="#">설치장소</a></li>' +
+                  '<li><a href="#">발급종류</a></li>' +
+                '</ul>' +
+              '</li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">민원신고</a></li>' +
+              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">행정서비스 헌장</a></li>' +
             '</ul>' +
           '</nav>' +
 
-          /* Main content — 찾아오시는 길 */
+          /* Main content — 무인민원발급기 */
           '<main class="bg-content bg-content--sub" id="bg-content-main">' +
             /* Breadcrumb */
             '<div class="bg-sub-breadcrumb">' +
               '<a href="#">홈</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
-              '<a href="#">보건소</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
-              '<a href="#">보건소소개</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
-              '<strong>찾아오시는 길</strong>' +
+              '<a href="#">종합민원</a> <span class="bg-sub-breadcrumb__sep">&gt;</span> ' +
+              '<strong>무인민원발급기</strong>' +
             '</div>' +
 
             /* Page title */
-            '<h1 class="bg-sub-page-title">찾아오시는 길</h1>' +
+            '<h1 class="bg-sub-page-title">무인민원발급기</h1>' +
 
-            /* Kakao map static placeholder (실제 iframe 사용 금지) */
-            '<div class="bg-health-map-placeholder">' +
-              '<div class="bg-health-map-placeholder__inner">' +
-                '<div class="bg-health-map-placeholder__icon" aria-hidden="true">🗺️</div>' +
-                '<div class="bg-health-map-placeholder__text">' +
-                  '<p><strong>카카오맵</strong></p>' +
-                  '<p>광주 북구 우치로 65 (중흥동)</p>' +
-                  '<p><a href="#" class="bg-health-map-placeholder__link">자세히 보기 <span aria-hidden="true">↗</span></a></p>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-
-            /* 주소/연락처 정보 */
-            '<div class="bg-health-info-section">' +
-              '<table class="bg-health-info-table">' +
-                '<tbody>' +
-                  '<tr><th>주소</th><td>61217 전남광주통합특별시 북구 우치로 65 (중흥동)</td></tr>' +
-                  '<tr><th>대표전화</th><td>062-410-8112</td></tr>' +
-                  '<tr><th>팩스</th><td>062-410-8119</td></tr>' +
-                  '<tr><th>운영시간</th><td>평일 09:00 ~ 18:00 (점심 12:00 ~ 13:00)</td></tr>' +
-                '</tbody>' +
-              '</table>' +
-            '</div>' +
-
-            /* 버스 노선 정보 */
+            /* 무인민원발급기 안내문 */
             '<div class="bg-sub-content-section">' +
-              '<h2 class="bg-sub-section-title">버스 노선</h2>' +
+              '<h2 class="bg-sub-section-title">무인민원발급기 안내</h2>' +
               '<div class="bg-sub-info-card">' +
-                '<h3 class="bg-sub-info-card__title">주변 정류장</h3>' +
+                '<p class="bg-sub-info-card__lead">무인민원발급기는 창구 방문 없이 주민등록등·초본, 가족관계증명서 등 각종 민원서류를 24시간(설치 장소별 운영시간 상이) 직접 발급받을 수 있는 자동화 기기입니다.</p>' +
                 '<ul class="bg-sub-info-list">' +
-                  '<li><strong>간선</strong> : 20, 25, 30, 35, 40, 45</li>' +
-                  '<li><strong>지선</strong> : 100, 105, 110, 115, 120</li>' +
-                  '<li><strong>광역</strong> : 1000, 2000</li>' +
-                  '<li><strong>마을</strong> : 북구01, 북구02, 북구03</li>' +
-                  '<li><strong>급행간선</strong> : 500, 600</li>' +
+                  '<li><strong>발급종류</strong> : 주민등록등·초본, 가족관계등록부, 토지(임야)대장, 건축물대장, 지방세 납세증명 등</li>' +
+                  '<li><strong>이용방법</strong> : 지문(본인인증) 또는 주민등록증 인식 → 서류 선택 → 수수료 납부 → 출력</li>' +
+                  '<li><strong>수수료</strong> : 서류별 상이 (주민등록등본 무인 발급 시 감면 적용)</li>' +
+                  '<li><strong>결제수단</strong> : 현금, 신용·체크카드 (기기별 상이)</li>' +
                 '</ul>' +
               '</div>' +
             '</div>' +
 
-            /* 보건소 슬로건 */
-            '<div class="bg-health-slogan">' +
-              '<p>밝은미소! 환한웃음! 건강한 삶!</p>' +
-              '<span>전남광주통합특별시 북구 보건소</span>' +
+            /* 설치장소 표 */
+            '<div class="bg-sub-content-section">' +
+              '<h2 class="bg-sub-section-title">설치장소</h2>' +
+              '<table class="bg-sub-table">' +
+                '<thead>' +
+                  '<tr><th>구분</th><th>설치장소</th><th>운영시간</th></tr>' +
+                '</thead>' +
+                '<tbody>' +
+                  '<tr><td>구청</td><td>북구청 종합민원실 1층</td><td>평일 09:00 ~ 18:00</td></tr>' +
+                  '<tr><td rowspan="3">행정복지센터</td><td>중흥동 행정복지센터</td><td>평일 09:00 ~ 18:00</td></tr>' +
+                  '<tr><td>문흥1동·문흥2동 행정복지센터</td><td>평일 09:00 ~ 18:00</td></tr>' +
+                  '<tr><td>두암1동·오치동 행정복지센터</td><td>평일 09:00 ~ 18:00</td></tr>' +
+                  '<tr><td rowspan="2">다중이용시설</td><td>광주종합버스터미널(유스퀘어)</td><td>매일 06:00 ~ 24:00</td></tr>' +
+                  '<tr><td>북구 관내 지하철역·대형마트</td><td>시설 운영시간에 따름</td></tr>' +
+                '</tbody>' +
+              '</table>' +
+              '<p class="bg-sub-table-note">※ 설치장소 및 운영시간은 변경될 수 있으며, 정확한 정보는 북구청 및 각 행정복지센터에서 확인하시기 바랍니다.</p>' +
             '</div>' +
 
-            /* Guidance card */
-            '<div class="bg-illegal-parking-card" data-action-target="health-center-guidance-card" tabindex="0">' +
-              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🏥</div>' +
+            /* 무인민원발급기 안내 card (data-action-target for choreography) */
+            '<div class="bg-illegal-parking-card" data-action-target="unmanned-kiosk-card" tabindex="0">' +
+              '<div class="bg-illegal-parking-card__icon" aria-hidden="true">🖨️</div>' +
               '<div class="bg-illegal-parking-card__body">' +
-                '<h2 class="bg-illegal-parking-card__title">보건소 위치·진료 안내</h2>' +
-                '<p class="bg-illegal-parking-card__desc">북구 보건소 위치, 운영시간, 진료과목, 예방접종, 검사 정보를 안내합니다.</p>' +
+                '<h2 class="bg-illegal-parking-card__title">무인민원발급기 안내</h2>' +
+                '<p class="bg-illegal-parking-card__desc">무인민원발급기 설치장소, 발급종류, 이용방법을 안내합니다.</p>' +
                 '<ul class="bg-illegal-parking-card__meta">' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">위치</span> 광주광역시 북구 우치로 65 (중흥동)</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">전화</span> 062-410-8119, 8112</li>' +
-                  '<li><span class="bg-illegal-parking-card__meta-label">운영시간</span> 평일 09:00 ~ 18:00</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">설치장소</span> 북구청, 각 행정복지센터, 다중이용시설</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">발급종류</span> 주민등록등·초본, 가족관계증명서 등</li>' +
+                  '<li><span class="bg-illegal-parking-card__meta-label">이용방법</span> 본인인증 후 서류 선택·출력</li>' +
                 '</ul>' +
               '</div>' +
               '<span class="bg-illegal-parking-card__arrow" aria-hidden="true">›</span>' +
             '</div>' +
 
-            '<div class="bg-health-notice-box">' +
-              '<h3>⚠️ 확인 사항</h3>' +
+            /* 유의사항 */
+            '<div class="bg-move-in-notice-box">' +
+              '<h3>⚠️ 무인민원발급기 이용 유의사항</h3>' +
               '<ul>' +
-                '<li>보건소 위치, 운영시간, 진료과목, 예방접종, 검사, 예약 가능 여부 등 실제 이용 정보는 <strong>북구청·보건소 공식 채널</strong>에서 직접 확인해야 합니다.</li>' +
-                '<li>예약, 본인인증, 건강정보 입력, 제출은 공식 채널에서 직접 진행해야 합니다.</li>' +
-                '<li>증상별 상담·약물 안내·응급 상황 대응은 <strong>의료기관·약국·119</strong>에 문의하세요.</li>' +
+                '<li>본 화면은 북구청 종합민원 <strong>무인민원발급기</strong> 이용 안내에서 멈춥니다.</li>' +
+                '<li>실제 서류 발급은 사용자가 무인민원발급기 현장에서 <strong>본인인증</strong> 후 직접 진행해야 합니다.</li>' +
+                '<li>일부 서류는 무인민원발급기로 발급되지 않으며, 창구 방문이 필요할 수 있습니다.</li>' +
+                '<li>발급종류, 수수료, 운영시간 등 정확한 정보는 <strong>북구청 및 각 행정복지센터</strong>에서 확인하시기 바랍니다.</li>' +
               '</ul>' +
             '</div>' +
 
@@ -1983,15 +1988,7 @@
 
           '</main>' +
         '</div>' +
-
-        /* 보건소 푸터 */
-        '<footer class="bg-health-footer">' +
-          '<div class="bg-health-footer__inner">' +
-            '<p><strong>전남광주통합특별시 북구 보건소</strong></p>' +
-            '<p>61217 광주 북구 우치로 65 (중흥동) | 대표전화 062-410-8112</p>' +
-            '<p>평일 09:00 ~ 18:00 (점심 12:00 ~ 13:00) | 토·일요일·공휴일 휴무</p>' +
-          '</div>' +
-        '</footer>' +
+        _renderSubFooter() +
       '</div>'
     );
   }
@@ -2645,8 +2642,8 @@
         case "complaint-category": html = _renderCheongwon24(route); break;
         case "complaint-illegal-parking": html = _renderIllegalParking(route); break;
         case "bulky-waste-disposal": html = _renderBulkyWasteDisposal(route); break;
-        case "move-in-report-guidance": html = _renderMoveInReportGuidance(route); break;
-        case "public-health-center-guidance": html = _renderPublicHealthCenterGuidance(route); break;
+        case "passport-guidance": html = _renderPassportGuidance(route); break;
+        case "unmanned-kiosk-guidance": html = _renderUnmannedKioskGuidance(route); break;
         case "apartment-dept": html = _renderApartmentDept(route); break;
         case "apartment-info": html = _renderApartmentInfo(route); break;
         case "complaint-intake":   html = _renderComplaintIntake(route); break;
@@ -2666,8 +2663,8 @@
       "complaint-illegal-parking": {title: "지도단속", purpose: "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
       "bulky-waste-disposal": {title: "대형폐기물 배출방법", purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
       "apartment-dept": {title: "공동주택과", purpose: "도시관리국 공동주택과 업무 및 연락처 정보를 안내합니다."},
-      "move-in-report-guidance": {title: "전입신고 안내", purpose: "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."},
-      "public-health-center-guidance": {title: "보건소 위치·진료 안내", purpose: "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다."},
+      "passport-guidance": {title: "여권민원 안내", purpose: "여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 안내합니다."},
+      "unmanned-kiosk-guidance": {title: "무인민원발급기 안내", purpose: "무인민원발급기 설치장소, 발급종류, 이용방법을 안내합니다."},
       "apartment-info": {title: "아파트정보", purpose: "분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다."}
     };
     var meta = ROUTE_METADATA[routeId] || {title: "", purpose: ""};

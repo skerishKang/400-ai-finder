@@ -72,7 +72,7 @@
   function normalizeMvpAction(result) {
     if (!result || result.ok !== true) return "none";
     var a = result.action;
-    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "move_in_report" || a === "public_health_center" || a === "none") {
+    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "passport_guidance" || a === "unmanned_kiosk" || a === "none") {
       return a;
     }
     return "none";
@@ -637,8 +637,8 @@
     if (action === "illegal_parking") return "불법 주정차 신고";
     if (action === "housing_department") return "공동주택 부서 문의";
     if (action === "bulky_waste") return "대형폐기물 배출";
-    if (action === "move_in_report") return "전입신고";
-    if (action === "public_health_center") return "보건소 위치·진료 안내";
+    if (action === "passport_guidance") return "여권 발급 안내";
+    if (action === "unmanned_kiosk") return "무인민원발급기 안내";
     return "이 안내";
   }
 
@@ -919,10 +919,10 @@
           beginMvpSplitThenChoreography(question, "housing_department");
         } else if (action === "bulky_waste") {
           beginMvpSplitThenChoreography(question, "bulky_waste");
-        } else if (action === "move_in_report") {
-          beginMvpSplitThenChoreography(question, "move_in_report");
-        } else if (action === "public_health_center") {
-          beginMvpSplitThenChoreography(question, "public_health_center");
+        } else if (action === "passport_guidance") {
+          beginMvpSplitThenChoreography(question, "passport_guidance");
+        } else if (action === "unmanned_kiosk") {
+          beginMvpSplitThenChoreography(question, "unmanned_kiosk");
         } else if (action === "none") {
           // Keep the entry chat; do not move the clone or start a choreography.
         }

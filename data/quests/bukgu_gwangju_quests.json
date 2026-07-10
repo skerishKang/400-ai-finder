@@ -226,23 +226,22 @@
       "source_mode": "local_static"
     },
     {
-      "quest_id": "move_in_report_guidance",
-      "quest_name": "전입신고 안내",
+      "quest_id": "passport_guidance",
+      "quest_name": "여권 발급 안내",
       "status": "phase1_golden",
       "category": "application_guidance",
       "risk_level": "high",
       "user_phrases": [
-        "이사 왔는데 전입신고는 어떻게 해요?",
-        "전입신고 어디서 하나요?",
-        "주소 옮기려면 어디로 가야 해요?",
-        "전입신고 하려면 북구청에서 뭘 해야 하나요?"
+        "여권 발급은 어디서 하나요?",
+        "여권 재발급은 어떻게 하나요?",
+        "여권 만들려면 뭐가 필요해요?",
+        "여권 발급 수수료는 얼마예요?"
       ],
       "required_slots": [],
       "official_path": [
         "북구청 홈",
         "종합민원",
-        "전자민원창구",
-        "정부24"
+        "여권민원"
       ],
       "browser_actions": [
         {
@@ -252,13 +251,13 @@
         },
         {
           "action_type": "OPEN_ALLOWLISTED_ROUTE",
-          "route_id": "move-in-report-guidance",
-          "label": "정부24 전입신고 연결 안내 화면 이동"
+          "route_id": "passport-guidance",
+          "label": "여권민원 안내 화면 이동"
         },
         {
           "action_type": "SHOW_ALLOWLISTED_RESULT",
-          "target_id": "move-in-guidance-card",
-          "label": "정부24 전입신고 연결 안내 카드 확인"
+          "target_id": "passport-guidance-card",
+          "label": "여권민원 안내 카드 확인"
         },
         {
           "action_type": "STOP_FOR_USER_CONFIRMATION",
@@ -271,74 +270,73 @@
       "ai_can_submit": false,
       "stop_condition": "STOP_FOR_USER_CONFIRMATION",
       "final_warning": {
-        "warning_text": "실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 민원 제출은 사용자가 공식 채널에서 직접 확인해야 합니다. 이 데모는 신고/제출 전 안내에서 멈춥니다.",
+        "warning_text": "여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류 등 실제 정보는 사용자가 북구청 민원실 또는 정부24 공식 채널에서 직접 확인해야 합니다. 실제 여권 신청, 본인확인, 사진·서류 제출은 민원실 방문을 통해 직접 진행해야 합니다. 이 데모는 신청 전 안내에서 멈춥니다.",
         "requires_user_confirmation": true
       },
-      "client_action": "move_in_report",
-      "answer": "전입신고 경로를 안내해 드립니다. 실제 전입신고, 본인인증, 세대주·주소·가족관계 정보 입력, 정부24 또는 주민센터 제출은 사용자가 직접 확인해야 합니다.",
+      "client_action": "passport_guidance",
+      "answer": "여권 발급 경로를 안내해 드립니다. 여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류는 북구청 종합민원 여권민원 안내에서 확인할 수 있습니다. 실제 여권 신청, 본인확인, 사진·서류 제출은 사용자가 북구청 민원실 방문 또는 정부24에서 직접 진행해야 합니다.",
       "result": {
-        "service": "정부24 전입신고 연결 안내",
-        "surface": "정부24 전입신고 연결 안내",
-        "stop": "사용자 확인 후 정부24/주민센터에서 직접 진행"
+        "service": "여권민원 안내",
+        "surface": "여권 종류·수수료·구비서류 안내 카드",
+        "stop": "사용자 확인 후 민원실 방문 또는 정부24에서 직접 진행"
       },
       "match_terms": [
-        "전입신고",
-        "이사",
-        "주소",
-        "주소 옮기",
-        "주민등록",
-        "옮기",
-        "등록"
+        "여권",
+        "여권발급",
+        "여권 발급",
+        "여권재발급",
+        "재발급",
+        "전자여권",
+        "발급"
       ],
       "domain_terms": [
-        "전입신고",
-        "이사",
-        "주소",
-        "주민등록"
+        "여권",
+        "여권발급",
+        "전자여권",
+        "재발급"
       ],
       "intent_terms": [
-        "신고",
+        "발급",
         "어디",
         "어떻게",
-        "옮기",
-        "해야"
+        "수수료",
+        "필요"
       ],
       "source_mode": "local_static"
     },
     {
-      "quest_id": "public_health_center_guidance",
-      "quest_name": "보건소 위치·진료 안내",
+      "quest_id": "unmanned_kiosk_guidance",
+      "quest_name": "무인민원발급기 안내",
       "status": "phase1_golden",
-      "category": "public_health_guidance",
-      "risk_level": "high",
+      "category": "application_guidance",
+      "risk_level": "low",
       "user_phrases": [
-        "보건소 어디에 있어요?",
-        "북구 보건소 진료는 어떻게 확인해요?",
-        "보건소 위치랑 진료 안내 알려줘",
-        "예방접종이나 진료 보려면 어디로 가야 해요?"
+        "무인민원발급기 어디 있어요?",
+        "무인민원발급기로 뭘 발급받을 수 있어요?",
+        "무인민원발급기 이용방법 알려줘",
+        "민원서류 발급받으려면 어디로 가야 해요?"
       ],
       "required_slots": [],
       "official_path": [
         "북구청 홈",
-        "보건소",
-        "보건소소개",
-        "찾아오시는 길"
+        "종합민원",
+        "무인민원발급기"
       ],
       "browser_actions": [
         {
           "action_type": "OPEN_ALLOWLISTED_ROUTE",
-          "route_id": "home",
-          "label": "북구청 홈 화면 확인"
+          "route_id": "civil-service",
+          "label": "종합민원 메뉴 확인"
         },
         {
           "action_type": "OPEN_ALLOWLISTED_ROUTE",
-          "route_id": "public-health-center-guidance",
-          "label": "보건소 위치·진료 안내 화면 이동"
+          "route_id": "unmanned-kiosk-guidance",
+          "label": "무인민원발급기 안내 화면 이동"
         },
         {
           "action_type": "SHOW_ALLOWLISTED_RESULT",
-          "target_id": "health-center-guidance-card",
-          "label": "보건소 위치·진료 안내 카드 확인"
+          "target_id": "unmanned-kiosk-card",
+          "label": "무인민원발급기 안내 카드 확인"
         },
         {
           "action_type": "STOP_FOR_USER_CONFIRMATION",
@@ -351,41 +349,38 @@
       "ai_can_submit": false,
       "stop_condition": "STOP_FOR_USER_CONFIRMATION",
       "final_warning": {
-        "warning_text": "보건소 위치, 운영시간, 진료과목, 예방접종, 검사, 예약 가능 여부 등 실제 이용 정보는 사용자가 북구청·보건소 공식 채널에서 직접 확인해야 합니다. 이 데모는 의료 판단, 진단, 처방, 응급 판단, 예약, 본인인증, 건강정보 입력, 제출 전 안내에서 멈춥니다.",
+        "warning_text": "무인민원발급기 설치장소, 발급종류, 이용방법 등 실제 정보는 사용자가 북구청 및 각 행정복지센터 공식 채널에서 직접 확인해야 합니다. 실제 서류 발급은 무인민원발급기 현장에서 본인인증 후 직접 진행해야 합니다. 이 데모는 이용 안내에서 멈춥니다.",
         "requires_user_confirmation": true
       },
-      "client_action": "public_health_center",
-      "answer": "보건소 위치·진료 경로를 안내해 드립니다. 위치, 운영시간, 진료과목, 예방접종, 검사, 예약 가능 여부 등 실제 정보는 북구청·보건소 공식 채널에서 사용자가 직접 확인해야 합니다. 이 데모는 의료 판단, 진단, 처방, 응급 판단, 예약, 본인인증, 건강정보 입력, 제출 전 안내에서 멈춥니다.",
+      "client_action": "unmanned_kiosk",
+      "answer": "무인민원발급기 이용 경로를 안내해 드립니다. 무인민원발급기 설치장소, 발급종류, 이용방법은 북구청 종합민원 무인민원발급기 안내에서 확인할 수 있습니다. 실제 서류 발급은 사용자가 북구청 및 각 행정복지센터에 설치된 무인민원발급기에서 본인인증 후 직접 진행해야 합니다.",
       "result": {
-        "service": "보건소 위치·진료 안내",
-        "surface": "보건소 위치·진료 안내 카드",
-        "stop": "사용자 확인 후 공식 채널에서 직접 확인"
+        "service": "무인민원발급기 안내",
+        "surface": "무인민원발급기 설치장소·발급종류·이용방법 안내 카드",
+        "stop": "사용자 확인 후 무인민원발급기 현장에서 직접 진행"
       },
       "match_terms": [
-        "보건소",
-        "진료",
-        "예방접종",
-        "검사",
-        "건강",
-        "병원",
-        "의료",
-        "위치",
-        "안내"
+        "무인민원발급기",
+        "무인발급기",
+        "무인민원",
+        "발급기",
+        "민원서류",
+        "발급",
+        "키오스크"
       ],
       "domain_terms": [
-        "보건소",
-        "진료",
-        "예방접종",
-        "검사",
-        "건강",
-        "의료"
+        "무인민원발급기",
+        "무인발급기",
+        "무인민원",
+        "발급기",
+        "키오스크"
       ],
       "intent_terms": [
-        "위치",
+        "발급",
         "어디",
-        "안내",
-        "가야",
-        "확인"
+        "이용",
+        "이용방법",
+        "가야"
       ],
       "source_mode": "local_static"
     }
