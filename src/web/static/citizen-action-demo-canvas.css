@@ -142,7 +142,7 @@
    GNB (white bg, dark text menu)
 --------------------------------------------------------------------------- */
 .bg-gnb {
-  background: #fff;
+  background: linear-gradient(90deg, #32966E 0%, #466EAA 100%);
   border-bottom: 3px solid transparent;
   border-image: linear-gradient(90deg, #32966E 0%, #466EAA 100%) 1;
   flex-shrink: 0;
@@ -158,21 +158,21 @@
 }
 .bg-gnb__item { position: relative; }
 .bg-gnb__link {
-  display: block; padding: 11px 18px; color: #000;
+  display: block; padding: 11px 18px; color: #fff;
   text-decoration: none; font-size: 0.875rem; font-weight: 500;
   transition: color 0.12s; white-space: nowrap;
   letter-spacing: -0.3px;
 }
-.bg-gnb__link:hover { color: #466EAA; }
-.bg-gnb__link--active { color: #466EAA; font-weight: 700; }
+.bg-gnb__link:hover { color: rgba(255,255,255,0.85); }
+.bg-gnb__link--active { color: #fff; font-weight: 700; }
 .bg-gnb__tools {
   display: flex; align-items: center; gap: 4px; margin-left: auto;
 }
 .bg-gnb__icon-btn {
   background: none; border: none; cursor: pointer;
-  padding: 8px 10px; font-size: 1rem; color: #555; line-height: 1;
+  padding: 8px 10px; font-size: 1rem; color: #fff; line-height: 1;
 }
-.bg-gnb__icon-btn:hover { color: #466EAA; }
+.bg-gnb__icon-btn:hover { color: rgba(255,255,255,0.85); }
 
 /* ---------------------------------------------------------------------------
    Search hero (pill-shaped large search)
@@ -981,6 +981,7 @@
 
 /* 3. GNB Layout & Typo */
 .bg-page--home .bg-gnb {
+  background: linear-gradient(90deg, #32966E 0%, #466EAA 100%);
   border-bottom: 3px solid transparent;
   border-image: linear-gradient(90deg, #32966E 0%, #466EAA 100%) 1;
 }
@@ -991,25 +992,24 @@
   padding: 0 40px;
   display: flex;
   align-items: center;
-}
 .bg-page--home .bg-gnb__link {
   font-size: 16px;
   font-weight: 700; /* Typo weight */
-  color: #333;
+  color: #fff;
   padding: 14px 22px; /* Spacing */
   font-family: 'Noto Sans KR', sans-serif;
   letter-spacing: -0.3px;
 }
 .bg-page--home .bg-gnb__link:hover,
 .bg-page--home .bg-gnb__link--active {
-  color: #466EAA;
+  color: rgba(255,255,255,0.85);
 }
 .bg-page--home .bg-gnb__tools {
   gap: 12px;
 }
 .bg-page--home .bg-gnb__icon-btn {
   font-size: 18px;
-  color: #333;
+  color: #fff;
 }
 
 /* 4. Search placement & whitespace */
