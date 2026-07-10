@@ -37,6 +37,7 @@
     "complaint-category",
     "complaint-illegal-parking",
     "complaint-intake",
+    "complaint-board",
     "handoff-stop",
     "complaint-review",
 "bulky-waste-disposal",
@@ -117,6 +118,14 @@
       purpose: "선택한 유형에 따라 내용을 작성해 주세요.",
       navTargets: Object.freeze(["complaint-draft-review"]),
       breadcrumbLabel: "민원 작성",
+    }),
+
+    "complaint-board": Object.freeze({
+      id: "complaint-board",
+      title: "민원게시판",
+      purpose: "북구청 민원게시판에서 민원을 조회하고 새 글을 작성할 수 있습니다.",
+      navTargets: Object.freeze(["complaint-write"]),
+      breadcrumbLabel: "민원게시판",
     }),
 
     "complaint-review": Object.freeze({

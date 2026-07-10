@@ -1001,6 +1001,10 @@
           beginMvpSplitThenChoreography(question, "passport_guidance");
         } else if (action === "unmanned_kiosk") {
           beginMvpSplitThenChoreography(question, "unmanned_kiosk");
+        } else if (action === "streetlight_report") {
+          beginMvpSplitThenChoreography(question, "streetlight_report");
+        } else if (action === "litter_ai_assist") {
+          beginMvpSplitThenChoreography(question, "litter_ai_assist");
         } else if (action === "none") {
           // Keep the entry chat; do not move the clone or start a choreography.
         }
