@@ -155,9 +155,16 @@ async function assertNoUpstreamCall(description, fn) {
   } finally {
     const callCount = _lastCall !== prior ? 1 : 0;
     if (callCount > 0) {
-      throw new Error(`Unexpected upstream call: count=1, url=${_lastCall.url}`);
+      throw new Error(`${description}: unexpected upstream call: count=1, url=${_lastCall.url}`);
     }
   }
+}
+
+// Wrapper around assertJsonResponse that also verifies zero upstream calls.
+async function assertNoCallJsonResponse(description, method, body, expectedChecks, envOverrides) {
+  await assertNoUpstreamCall(description, async () => {
+    await assertJsonResponse(description, method, body, expectedChecks, envOverrides);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -183,28 +190,28 @@ await assertStatus('PUT request returns 405', 'PUT', null, 405);
 await assertStatus('DELETE request returns 405', 'DELETE', null, 405);
 
 // 3. invalid JSON does not 500
-await assertJsonResponse('Invalid JSON body returns ok:false (not 500)', 'POST', 'not json at all', {
+await assertNoCallJsonResponse('Invalid JSON body returns ok:false (not 500)', 'POST', 'not json at all', {
   ok: false,
 }, { GEMINI_API_KEY: 'test-key' });
 
 // 4. missing question returns 400
-await assertJsonResponse('Missing question field returns 400 with ok:false', 'POST', JSON.stringify({}), {
+await assertNoCallJsonResponse('Missing question field returns 400 with ok:false', 'POST', JSON.stringify({}), {
   ok: false,
   error: 'Missing question',
 }, { GEMINI_API_KEY: 'test-key' });
 
-await assertJsonResponse('Empty question string returns 400', 'POST', JSON.stringify({ question: '' }), {
+await assertNoCallJsonResponse('Empty question string returns 400', 'POST', JSON.stringify({ question: '' }), {
   ok: false,
   error: 'Missing question',
 }, { GEMINI_API_KEY: 'test-key' });
 
-await assertJsonResponse('Whitespace-only question returns 400', 'POST', JSON.stringify({ question: '   ' }), {
+await assertNoCallJsonResponse('Whitespace-only question returns 400', 'POST', JSON.stringify({ question: '   ' }), {
   ok: false,
   error: 'Missing question',
 }, { GEMINI_API_KEY: 'test-key' });
 
 // 4a. Non-string question type validation
-await assertJsonResponse('Question null returns invalid_input (not internal_error)', 'POST', JSON.stringify({ question: null }), {
+await assertNoCallJsonResponse('Question null returns invalid_input (not internal_error)', 'POST', JSON.stringify({ question: null }), {
   ok: false,
   answer: '잘못된 요청 형식입니다.',
   action: 'none',
@@ -214,7 +221,7 @@ await assertJsonResponse('Question null returns invalid_input (not internal_erro
   model: 'gemini-3.1-flash-lite',
 }, { GEMINI_API_KEY: 'test-key' });
 
-await assertJsonResponse('Question number returns invalid_input', 'POST', JSON.stringify({ question: 123 }), {
+await assertNoCallJsonResponse('Question number returns invalid_input', 'POST', JSON.stringify({ question: 123 }), {
   ok: false,
   answer: '잘못된 요청 형식입니다.',
   action: 'none',
@@ -222,7 +229,7 @@ await assertJsonResponse('Question number returns invalid_input', 'POST', JSON.s
   failure_code: 'invalid_input',
 }, { GEMINI_API_KEY: 'test-key' });
 
-await assertJsonResponse('Question array returns invalid_input', 'POST', JSON.stringify({ question: [] }), {
+await assertNoCallJsonResponse('Question array returns invalid_input', 'POST', JSON.stringify({ question: [] }), {
   ok: false,
   answer: '잘못된 요청 형식입니다.',
   action: 'none',
@@ -230,7 +237,7 @@ await assertJsonResponse('Question array returns invalid_input', 'POST', JSON.st
   failure_code: 'invalid_input',
 }, { GEMINI_API_KEY: 'test-key' });
 
-await assertJsonResponse('Question object returns invalid_input', 'POST', JSON.stringify({ question: {} }), {
+await assertNoCallJsonResponse('Question object returns invalid_input', 'POST', JSON.stringify({ question: {} }), {
   ok: false,
   answer: '잘못된 요청 형식입니다.',
   action: 'none',
@@ -238,7 +245,7 @@ await assertJsonResponse('Question object returns invalid_input', 'POST', JSON.s
   failure_code: 'invalid_input',
 }, { GEMINI_API_KEY: 'test-key' });
 
-await assertJsonResponse('Question boolean true returns invalid_input', 'POST', JSON.stringify({ question: true }), {
+await assertNoCallJsonResponse('Question boolean true returns invalid_input', 'POST', JSON.stringify({ question: true }), {
   ok: false,
   answer: '잘못된 요청 형식입니다.',
   action: 'none',
@@ -246,7 +253,7 @@ await assertJsonResponse('Question boolean true returns invalid_input', 'POST', 
   failure_code: 'invalid_input',
 }, { GEMINI_API_KEY: 'test-key' });
 
-await assertJsonResponse('Question boolean false returns invalid_input', 'POST', JSON.stringify({ question: false }), {
+await assertNoCallJsonResponse('Question boolean false returns invalid_input', 'POST', JSON.stringify({ question: false }), {
   ok: false,
   answer: '잘못된 요청 형식입니다.',
   action: 'none',
@@ -256,7 +263,7 @@ await assertJsonResponse('Question boolean false returns invalid_input', 'POST',
 
 // 5. question too long returns safe invalid_input
 const longQuestion = 'x'.repeat(301);
-await assertJsonResponse('Question over 300 chars returns invalid_input', 'POST', JSON.stringify({ question: longQuestion }), {
+await assertNoCallJsonResponse('Question over 300 chars returns invalid_input', 'POST', JSON.stringify({ question: longQuestion }), {
   ok: false,
   failure_code: 'invalid_input',
   action: 'none',
@@ -273,7 +280,7 @@ await assert('VALID_ACTIONS constant is defined in module', async () => {
 });
 
 // 7. API key not configured — returns config_error
-await assertJsonResponse('No API key returns config_error with gemini provider', 'POST', JSON.stringify({ question: 'test' }), {
+await assertNoCallJsonResponse('No API key returns config_error with gemini provider', 'POST', JSON.stringify({ question: 'test' }), {
   ok: false,
   failure_code: 'config_error',
   action: 'none',
@@ -283,26 +290,24 @@ await assertJsonResponse('No API key returns config_error with gemini provider',
 });
 
 // 8. Response shape contract — check all known failure modes return proper JSON
-await assertJsonResponse('Invalid JSON body returns ok:false', 'POST', '{invalid json}', {
+await assertNoCallJsonResponse('Invalid JSON body returns ok:false', 'POST', '{invalid json}', {
   ok: false,
 }, { GEMINI_API_KEY: 'test-key' });
 
 // 9. Question length exact boundary — 300 chars should pass (not block)
 const exact300 = 'a'.repeat(300);
-await assertJsonResponse('Question exactly 300 chars is accepted (not blocked)', 'POST', JSON.stringify({ question: exact300 }), {
+await assertNoCallJsonResponse('Question exactly 300 chars is accepted (not blocked)', 'POST', JSON.stringify({ question: exact300 }), {
   ok: false,
   failure_code: 'config_error',
 }, {});
 
 const exact301 = 'b'.repeat(301);
-await assertJsonResponse('Question 301 chars returns invalid_input', 'POST', JSON.stringify({ question: exact301 }), {
+await assertNoCallJsonResponse('Question 301 chars returns invalid_input', 'POST', JSON.stringify({ question: exact301 }), {
   ok: false,
   failure_code: 'invalid_input',
 }, {});
 
-// ---------------------------------------------------------------------------
-// Mock fetch tests — intercept upstream LLM API calls and verify parsing
-// ---------------------------------------------------------------------------
+// All tests below this line use canned mock fetch for upstream responses.
 console.log('\n--- Mock upstream response tests ---\n');
 
 // 10. Invalid action from LLM is clamped to 'none'

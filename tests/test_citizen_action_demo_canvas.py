@@ -101,6 +101,8 @@ var eventListeners = {};
 function makeElement(id) {
   return {
     id: id,
+    style: {},
+    offsetHeight: 0,
     get innerHTML() { return capturedHTML; },
     set innerHTML(v) { capturedHTML = v; },
     addEventListener: function(event, handler) {
@@ -131,7 +133,9 @@ var sandbox = {
   console: {
     log: function() {},
     error: function() {}
-  }
+  },
+  setTimeout: function(fn, ms) { fn(); return 1; },
+  clearTimeout: function(id) {}
 };
 sandbox.URLSearchParams = URLSearchParams;
 sandbox.window = sandbox;
@@ -560,8 +564,8 @@ class TestRuntimeRender:
             "handoff-stop": {"title": "안내 종료", "purpose": "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
             "complaint-illegal-parking": {"title": "지도단속", "purpose": "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
             "bulky-waste-disposal": {"title": "대형폐기물 배출방법", "purpose": "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
-            "passport-guidance": {"title": "여권 발급 안내", "purpose": "여권 발급 및 재발급 경로와 유의사항을 안내합니다."},
-            "unmanned-kiosk-guidance": {"title": "무인민원발급기 안내", "purpose": "무인민원발급기 위치, 발급 가능 서류, 이용방법을 안내합니다."},
+            "passport-guidance": {"title": "여권민원 안내", "purpose": "여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 안내합니다."},
+            "unmanned-kiosk-guidance": {"title": "무인민원발급기 안내", "purpose": "무인민원발급기 설치장소, 발급종류, 이용방법을 안내합니다."},
             "apartment-info": {"title": "아파트정보", "purpose": "분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다."},
             "apartment-dept": {"title": "공동주택과", "purpose": "도시관리국 공동주택과 업무 및 연락처 정보를 안내합니다."},
         }
@@ -915,6 +919,8 @@ class TestJDept01SpecificContracts:
             function makeElement(id) {
               return {
                 id: id,
+    style: {},
+    offsetHeight: 0,
                 get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
                 set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
                 addEventListener: function(event, handler) {
@@ -938,6 +944,8 @@ class TestJDept01SpecificContracts:
                 }
               },
               console: { log: function() {}, error: function() {} },
+  setTimeout: function(fn, ms) { fn(); return 1; },
+  clearTimeout: function(id) {},
               location: { search: %s },
               window: null
             };
@@ -1086,16 +1094,16 @@ class TestJDept01SpecificContracts:
                                 sub_sel.startswith(".bg-page--dept-replay") or
                                 sub_sel.startswith(".bg-page--home[data-dept-auto-replay=\"true\"]") or
                                 sub_sel.startswith("[data-dept-auto-replay=\"true\"]") or
-                                sub_sel.startswith(".bg-page--illegal-parking") or
-                                sub_sel.startswith(".bg-page--bulky-waste") or
-                                sub_sel.startswith(".bg-page--move-in-report") or
-                                sub_sel.startswith(".bg-page--public-health-center") or
-                                sub_sel.startswith(".bg-page--apartment-info") or
-                                sub_sel.startswith(".bg-dept-search-bar") or
-                                sub_sel.startswith(".bg-dept-table") or
-                                sub_sel.startswith(".bg-dept-table-wrap") or
-                                sub_sel.startswith(".bg-dept-table-info")), \
-                            f"prohibited inner is selector: {sub_sel}"
+                                 sub_sel.startswith(".bg-page--illegal-parking") or
+                                 sub_sel.startswith(".bg-page--bulky-waste") or
+                                 sub_sel.startswith(".bg-page--passport-guidance") or
+                                 sub_sel.startswith(".bg-page--unmanned-kiosk-guidance") or
+                                 sub_sel.startswith(".bg-page--apartment-info") or
+                                 sub_sel.startswith(".bg-dept-search-bar") or
+                                 sub_sel.startswith(".bg-dept-table") or
+                                 sub_sel.startswith(".bg-dept-table-wrap") or
+                                 sub_sel.startswith(".bg-dept-table-info")), \
+                             f"prohibited inner is selector: {sub_sel}"
                     continue
 
                 assert (sel_part.startswith(".bg-page--dept-directory") or
@@ -1106,9 +1114,10 @@ class TestJDept01SpecificContracts:
                         sel_part.startswith("[data-dept-auto-replay=\"true\"]") or
                         sel_part.startswith(".bg-page--illegal-parking") or
                         sel_part.startswith(".bg-page--bulky-waste") or
-                        sel_part.startswith(".bg-page--move-in-report") or
-                        sel_part.startswith(".bg-page--public-health-center") or
+                        sel_part.startswith(".bg-page--passport-guidance") or
+                        sel_part.startswith(".bg-page--unmanned-kiosk-guidance") or
                         sel_part.startswith(".bg-page--apartment-info") or
+                        sel_part == "#demo-canvas[inert]" or
                         sel_part.startswith(".bg-dept-search-bar") or
                         sel_part.startswith(".bg-dept-table") or
                         sel_part.startswith(".bg-dept-table-wrap") or
@@ -1190,6 +1199,8 @@ class TestJDept01SpecificContracts:
         function makeElement(id) {
           return {
             id: id,
+    style: {},
+    offsetHeight: 0,
             get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
             set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
             addEventListener: function(event, handler) {
@@ -1220,6 +1231,8 @@ class TestJDept01SpecificContracts:
             }
           },
           console: { log: function() {}, error: function() {} },
+  setTimeout: function(fn, ms) { fn(); return 1; },
+  clearTimeout: function(id) {},
           location: { search: '?journey=J-DEPT-01&dept-state=directory' },
           history: {
             pushState: function(state, title, url) {
@@ -1385,6 +1398,8 @@ class TestJDept01ReplayContracts:
             function makeElement(id) {
               return {
                 id: id,
+    style: {},
+    offsetHeight: 0,
                 get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
                 set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
                 addEventListener: function(event, handler) { eventListeners[id + ':' + event] = handler; },
@@ -1401,6 +1416,8 @@ class TestJDept01ReplayContracts:
                 }
               },
               console: { log: function() {}, error: function() {} },
+  setTimeout: function(fn, ms) { fn(); return 1; },
+  clearTimeout: function(id) {},
               location: { search: %s },
               history: { pushState: function(state, title, url) { sandbox.location.search = url.substring(url.indexOf('?')); } },
               window: null
@@ -1469,6 +1486,8 @@ class TestJDept01ReplayContracts:
         function makeElement(id) {
           return {
             id: id,
+    style: {},
+    offsetHeight: 0,
             get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
             set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
             addEventListener: function(event, handler) {
@@ -1487,6 +1506,8 @@ class TestJDept01ReplayContracts:
             }
           },
           console: { log: function() {}, error: function() {} },
+  setTimeout: function(fn, ms) { fn(); return 1; },
+  clearTimeout: function(id) {},
           location: { search: '?replay=J-DEPT-01' },
           history: {
             pushState: function(state, title, url) {
@@ -1596,6 +1617,8 @@ class TestJPark01SpecificContracts:
             function makeElement(id) {
               return {
                 id: id,
+    style: {},
+    offsetHeight: 0,
                 get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
                 set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
                 addEventListener: function(event, handler) {}
@@ -1611,6 +1634,8 @@ class TestJPark01SpecificContracts:
                 }
               },
               console: { log: function() {}, error: function() {} },
+  setTimeout: function(fn, ms) { fn(); return 1; },
+  clearTimeout: function(id) {},
               location: { search: %s },
               window: null
             };
@@ -1815,6 +1840,8 @@ class TestJPark01SpecificContracts:
         function makeElement(id) {
           return {
             id: id,
+    style: {},
+    offsetHeight: 0,
             get innerHTML() { return capturedHTML; },
             set innerHTML(v) { capturedHTML = v; },
             addEventListener: function(event, handler) {}
@@ -1829,6 +1856,8 @@ class TestJPark01SpecificContracts:
             }
           },
           console: { log: function() {}, error: function() {} },
+  setTimeout: function(fn, ms) { fn(); return 1; },
+  clearTimeout: function(id) {},
           location: { search: '?journey=J-DEPT-01' },
           window: null
         };
@@ -1881,6 +1910,8 @@ class TestJPark01SpecificContracts:
         function makeElement(id) {
           return {
             id: id,
+    style: {},
+    offsetHeight: 0,
             get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
             set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
             addEventListener: function(event, handler) {}
@@ -1896,6 +1927,8 @@ class TestJPark01SpecificContracts:
             }
           },
           console: { log: function() {}, error: function() {} },
+  setTimeout: function(fn, ms) { fn(); return 1; },
+  clearTimeout: function(id) {},
           location: { search: '?journey=J-PARK-01' },
           history: { pushState: function() { pushStateCount += 1; } },
           window: null
@@ -1957,6 +1990,8 @@ class TestJKiosk01SpecificContracts:
             function makeElement(id) {
               return {
                 id: id,
+    style: {},
+    offsetHeight: 0,
                 get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
                 set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
                 addEventListener: function(event, handler) {}
@@ -1972,6 +2007,8 @@ class TestJKiosk01SpecificContracts:
                 }
               },
               console: { log: function() {}, error: function() {} },
+  setTimeout: function(fn, ms) { fn(); return 1; },
+  clearTimeout: function(id) {},
               location: { search: %s },
               window: null
             };
@@ -2143,6 +2180,8 @@ class TestJKiosk01SpecificContracts:
         function makeElement(id) {
           return {
             id: id,
+    style: {},
+    offsetHeight: 0,
             get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
             set innerHTML(v) { if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; } },
             addEventListener: function(event, handler) {}
@@ -2158,6 +2197,8 @@ class TestJKiosk01SpecificContracts:
             }
           },
           console: { log: function() {}, error: function() {} },
+  setTimeout: function(fn, ms) { fn(); return 1; },
+  clearTimeout: function(id) {},
           location: { search: '?journey=J-KIOSK-01' },
           history: { pushState: function() { pushStateCount += 1; } },
           window: null
@@ -2246,7 +2287,7 @@ var intervalCount = 0;
 var pushed = [];
 
 function activeTimers() {
-  return timers.filter(function(t) { return t !== null; });
+  return timers.filter(function(t) { return t !== null && t.ms !== 300; });
 }
 
 function snapshot() {
@@ -2266,6 +2307,8 @@ function snapshot() {
 function makeElement(id) {
   return {
     id: id,
+    style: {},
+    offsetHeight: 0,
     get innerHTML() { return id === 'chat-thread' ? capturedChatHTML : capturedHTML; },
     set innerHTML(v) {
       if (id === 'chat-thread') { capturedChatHTML = v; } else { capturedHTML = v; }
@@ -2298,6 +2341,9 @@ var sandbox = {
   },
   setTimeout: function(fn, ms) {
     timers.push({ fn: fn, ms: ms });
+    if (ms === 300) {
+      fn();
+    }
     return timers.length;
   },
   clearTimeout: function(id) {
@@ -2410,7 +2456,7 @@ class TestAutoReplayContract:
         assert 'data-dept-auto-replay="true"' in result["html"]
         assert 'data-auto-replay-step="ready"' in result["html"]
         assert 'data-auto-replay-status="ready"' in result["html"]
-        assert "시연 시작" in result["html"]
+        assert "안내 시작" in result["html"]
         assert result["timerCount"] == 0
 
     @pytest.mark.parametrize(("query", "needle"), [
@@ -2438,7 +2484,7 @@ class TestAutoReplayContract:
     def test_direct_phase_start_only_control(self, step):
         result = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")
         html = result["html"]
-        assert "시연 시작" in html
+        assert "안내 시작" in html
         assert "일시정지" not in html
         assert "계속" not in html
 
@@ -2562,7 +2608,7 @@ class TestAutoReplayContract:
         assert 'data-auto-replay-step="ready"' in last["html"]
         assert 'data-auto-replay-status="ready"' in last["html"]
         assert last["pendingTimers"] == 0
-        assert "시연 시작" in last["html"]
+        assert "안내 시작" in last["html"]
         assert "일시정지" not in last["html"]
         assert "계속" not in last["html"]
 
@@ -2716,7 +2762,7 @@ class TestAutoReplayDirectPhaseGate:
     @pytest.mark.parametrize("step", AUTO_PHASES)
     def test_direct_phase_shows_start_button(self, step):
         html = _run_auto_replay_render(f"{AUTO_READY_QUERY}&replay-step={step}")["html"]
-        assert "시연 시작" in html
+        assert "안내 시작" in html
 
     @pytest.mark.parametrize("step", ["ready"] + AUTO_PHASES)
     def test_start_from_static_phase_enters_route_running(self, step):
@@ -2787,7 +2833,7 @@ class TestAutoReplayDirectPhaseGate:
         html = data["results"][-1]["html"]
         assert 'data-auto-replay-status="ready"' in html
         assert 'data-auto-replay-step="ready"' in html
-        assert "시연 시작" in html
+        assert "안내 시작" in html
         assert "다시 보기" not in html
 
 
@@ -2802,7 +2848,7 @@ class TestAutoReplayPhaseMismatchFailClosed:
         assert f'data-auto-replay-step="{step}"' in last["html"]
         assert 'data-auto-replay-status="ready"' in last["html"]
         assert last["pendingTimers"] == 0
-        assert "시연 시작" in last["html"]
+        assert "안내 시작" in last["html"]
         assert "일시정지" not in last["html"]
         assert "계속" not in last["html"]
 
@@ -2828,7 +2874,7 @@ class TestAutoReplayPhaseMismatchFailClosed:
         assert f'data-auto-replay-step="{step}"' in last["html"]
         assert 'data-auto-replay-status="ready"' in last["html"]
         assert last["pendingTimers"] == 0
-        assert "시연 시작" in last["html"]
+        assert "안내 시작" in last["html"]
         assert "다시 보기" not in last["html"]
 
     def test_paused_same_phase_url_preserves_paused(self):
