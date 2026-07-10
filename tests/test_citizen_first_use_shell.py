@@ -41,7 +41,7 @@ def test_first_use_shell_rerenders_entry_conversation_after_canvas_boot():
 
 
 def test_first_use_shell_is_local_only_and_fail_closed():
-    assert '"불법 주정차 신고는 어디서 하나요?": true' in JS
+    assert '"불법 주정차 신고는 어디서 하나요?": "illegal_parking"' in JS
     assert "isSupportedQuestion(question)" in JS
     assert "예시 질문으로 다시 입력해 주세요." in JS
     assert "fetch(" not in JS
@@ -112,10 +112,8 @@ def test_choreography_uses_only_public_canvas_api():
 def test_choreography_has_journey_map_for_supported_question():
     assert "불법 주정차 신고는 어디서 하나요?" in CHOREO
     assert '"complaint-illegal-parking"' in CHOREO
-    assert '"nav-civil-service"' in CHOREO
-    assert '"civil-service"' in CHOREO
-    assert 'focusSearch' in CHOREO
-    assert '"completed"' not in CHOREO
+    assert '"complaint-illegal-parking-report"' in CHOREO
+    assert 'safetyreport.go.kr' in CHOREO
 
 
 def test_choreography_each_step_has_message_and_delay_or_route_target():
@@ -155,10 +153,9 @@ def test_choreography_cancel_is_safe_in_idle():
 
 def test_choreography_final_target_highlight_present():
     """The illegal-parking journey map includes complaint-illegal-parking-report
-    as a target highlight step before the completion message."""
+    as a target highlight step before the terminal safety message."""
     assert '"complaint-illegal-parking-report"' in CHOREO
-    assert "STOP_FOR_USER_CONFIRMATION" in CHOREO
-    assert "본인인증" in CHOREO
+    assert 'safetyreport.go.kr' in CHOREO
 
 
 def test_choreography_final_target_appears_after_route_and_before_completion():
@@ -166,7 +163,7 @@ def test_choreography_final_target_appears_after_route_and_before_completion():
     which appears before the terminal completion message."""
     assert CHOREO.index("complaint-illegal-parking") < CHOREO.index("complaint-illegal-parking-report")
     assert CHOREO.index("complaint-illegal-parking-report") < CHOREO.index(
-        "안내가 완료되었습니다"
+        "안내를 마쳤습니다"
     )
 
 
@@ -284,12 +281,14 @@ def test_canvas_delegates_quest_card_to_shell_renderer():
 def test_shell_normalizes_mvp_action_and_only_runs_approved_actions():
     assert "function normalizeMvpAction(" in JS
     assert "function resolveMvpActionForQuestion(" in JS
-    assert 'DEFAULT_SUPPORTED_ACTION = "illegal_parking"' in JS
+    assert "SUPPORTED_QUESTION_ACTIONS" in JS
     assert '"illegal_parking"' in JS
     assert '"housing_department"' in JS
-    # Only the two approved actions trigger a split+choreography.
+    # Actions trigger a split+choreography (all five plus none).
     assert "beginMvpSplitThenChoreography(question, \"illegal_parking\")" in JS
     assert "beginMvpSplitThenChoreography(question, \"housing_department\")" in JS
+    assert "beginMvpSplitThenChoreography(question, \"passport_guidance\")" in JS
+    assert "beginMvpSplitThenChoreography(question, \"unmanned_kiosk\")" in JS
     # Unsupported 'none' / failure must NOT start a choreography (no clone move).
     assert "CitizenFirstChoreography.start(action)" in JS
 
@@ -303,7 +302,7 @@ def test_shell_mvp_supported_question_none_falls_back_to_existing_clone_action()
     """A usable answer to the first supported question must not leave the
     MVP shell in chat-only mode just because the action field is none."""
     assert "if (action !== \"none\") return action" in JS
-    assert "if (isSupportedQuestion(question)) return DEFAULT_SUPPORTED_ACTION" in JS
+    assert "SUPPORTED_QUESTION_ACTIONS[normalized]" in JS
     assert "fall back to the existing deterministic local journey" in JS
 
 
@@ -335,7 +334,7 @@ def test_choreography_housing_reuses_approved_facts():
     not invent new data or contacts."""
     assert "공동주택과" in CHOREO
     assert "도시관리국" in CHOREO
-    assert "하자분쟁조정" in CHOREO
+    assert "apartment-dept" in CHOREO
 
 
 def test_choreography_applies_journey_state_in_step_execution():
@@ -346,5 +345,11 @@ def test_choreography_applies_journey_state_in_step_execution():
 
 def test_choreography_mvp_journeys_have_messages():
     assert "message:" in CHOREO
-    # illegal_parking MVP alias keeps the same terminal completion message.
-    assert "안내가 완료되었습니다" in CHOREO
+    # Each MVP action journey must have a message step.
+    assert '"illegal_parking"' in CHOREO
+    assert '"housing_department"' in CHOREO
+    assert '"bulky_waste"' in CHOREO
+    assert '"passport_guidance"' in CHOREO
+    assert '"unmanned_kiosk"' in CHOREO
+    # Terminal message uses the current completion wording.
+    assert "안내를 마쳤습니다" in CHOREO

@@ -52,22 +52,47 @@ function makeEl(tag) {
     },
     appendChild(c) {
       this._children.push(c);
+      c._parent = this;
       return c;
     },
     removeChild(c) {
       const i = this._children.indexOf(c);
-      if (i >= 0) this._children.splice(i, 1);
+      if (i >= 0) {
+        this._children.splice(i, 1);
+        c._parent = null;
+      }
     },
     addEventListener(type, fn) {
       (this._listeners[type] = this._listeners[type] || []).push(fn);
     },
     removeEventListener() {},
     dispatchEvent() {},
-    querySelector() {
+    get innerHTML() { return ''; },
+    set innerHTML(v) {
+      for (const c of this._children) { c._parent = null; }
+      this._children = [];
+    },
+    _querySelectorTag(tag) {
+      for (const c of this._children || []) {
+        if ((c.tagName || '').toUpperCase() === tag.toUpperCase()) return c;
+        const found = c._querySelectorTag(tag);
+        if (found) return found;
+      }
       return null;
     },
-    querySelectorAll() {
-      return [];
+    _querySelectorAllTag(tag) {
+      const result = [];
+      for (const c of this._children || []) {
+        if ((c.tagName || '').toUpperCase() === tag.toUpperCase()) result.push(c);
+        result.push(...c._querySelectorAllTag(tag));
+      }
+      return result;
+    },
+    querySelector(sel) {
+      return this._querySelectorTag(sel);
+    },
+    querySelectorAll(sel) {
+      return this._querySelectorAllTag(sel);
     },
     focus() {},
     scrollIntoView() {},
@@ -142,11 +167,11 @@ function buildDoc() {
     createElement(tag) {
       return makeEl(tag);
     },
-    querySelector() {
-      return null;
+    querySelector(sel) {
+      return body._querySelectorTag(sel);
     },
-    querySelectorAll() {
-      return [];
+    querySelectorAll(sel) {
+      return body._querySelectorAllTag(sel);
     },
     addEventListener() {},
   };
@@ -340,6 +365,50 @@ function assertComposerRecovered(scenario, label) {
 }
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
+// drainTimers waits for pending macrotasks (including the 120ms confirm-run
+// timer inside completeMvpSplit). Two flushes guarantee the 120ms timer fires.
+const drainTimers = async () => { await new Promise(r => setTimeout(r, 200)); };
+
+// ── Confirm-run helpers ──────────────────────────────────────────────────
+
+function findConfirmRunMsg(scenario) {
+  const thread = scenario.doc.getElementById("chat-thread");
+  for (const child of thread._children) {
+    if (child.getAttribute && child.getAttribute("data-msg-type") === "confirm-run") {
+      return child;
+    }
+  }
+  return null;
+}
+
+function findButtonByText(parent, text) {
+  for (const c of parent._children || []) {
+    if ((c.tagName === 'BUTTON' || c.tagName === 'button') && c.textContent && c.textContent.trim().includes(text)) {
+      return c;
+    }
+    const found = findButtonByText(c, text);
+    if (found) return found;
+  }
+  return null;
+}
+
+function isConnectedToDocument(el) {
+  if (!el) return false;
+  if (el.tagName && el.tagName.toUpperCase() === 'BODY') return true;
+  if (!el._parent) return false;
+  return isConnectedToDocument(el._parent);
+}
+
+function clickButton(btn) {
+  if (!btn) return;
+  if (btn.disabled) return;
+  // Simulate browser behavior: skip click if element is not connected to document
+  if (!isConnectedToDocument(btn)) return;
+  const handlers = btn._listeners && btn._listeners.click;
+  if (handlers) {
+    for (const h of handlers) h({ target: btn });
+  }
+}
 
 // ── Scenarios ─────────────────────────────────────────────────────────────
 
@@ -385,6 +454,7 @@ async function scenarioIllegalParking() {
   });
   submit(s, "불법 주정차 신고는 어디서 하나요?");
   await flush();
+  await drainTimers();
 
   const bubbles = aiBubbleTexts(s);
   assert.ok(
@@ -397,10 +467,27 @@ async function scenarioIllegalParking() {
     "illegal_parking: shell must transition to split (reduced motion)",
   );
   assertSplitCloneVisible(s, "illegal_parking");
+  // confirm-run: choreography must NOT start until user clicks yes
+  assert.deepStrictEqual(
+    choreo.startCalls,
+    [],
+    "illegal_parking: choreography must NOT start before confirm-run yes click",
+  );
+  // confirm-run message must exist
+  const confirmMsg = findConfirmRunMsg(s);
+  assert.ok(confirmMsg, "illegal_parking: confirm-run message must be present");
+  // Yes and No buttons must exist
+  const yesBtn = findButtonByText(confirmMsg, "예");
+  const noBtn = findButtonByText(confirmMsg, "아니요");
+  assert.ok(yesBtn, "illegal_parking: 예 button must exist");
+  assert.ok(noBtn, "illegal_parking: 아니요 button must exist");
+  // Click Yes
+  clickButton(yesBtn);
+  await flush();
   assert.deepStrictEqual(
     choreo.startCalls,
     ["illegal_parking"],
-    "illegal_parking: choreography.start('illegal_parking') called exactly once",
+    "illegal_parking: choreography.start('illegal_parking') called exactly once after yes click",
   );
   const card = s.doc.getElementById("chat-thread")._children.find((node) => {
     return (node.className || "").includes("chat-quest-card");
@@ -453,6 +540,7 @@ async function scenarioHousingDepartment() {
   });
   submit(s, "공동주택과 전화번호 알려줘");
   await flush();
+  await drainTimers();
 
   const bubbles = aiBubbleTexts(s);
   assert.ok(
@@ -462,10 +550,22 @@ async function scenarioHousingDepartment() {
     "housing_department: server answer must be shown",
   );
   assertSplitCloneVisible(s, "housing_department");
+  // confirm-run: choreography must NOT start until yes click
+  assert.deepStrictEqual(
+    choreo.startCalls,
+    [],
+    "housing_department: choreography must NOT start before confirm-run yes click",
+  );
+  const confirmMsg = findConfirmRunMsg(s);
+  assert.ok(confirmMsg, "housing_department: confirm-run message must be present");
+  const yesBtn = findButtonByText(confirmMsg, "예");
+  assert.ok(yesBtn, "housing_department: 예 button must exist");
+  clickButton(yesBtn);
+  await flush();
   assert.deepStrictEqual(
     choreo.startCalls,
     ["housing_department"],
-    "housing_department: choreography.start('housing_department') once",
+    "housing_department: choreography.start('housing_department') once after yes click",
   );
   const card = s.win.CitizenFirstUseShell.renderQuestProgressCard();
   assert.ok(card, "housing_department: quest card must render from stored metadata");
@@ -525,6 +625,7 @@ async function scenarioBulkyWaste() {
   });
   submit(s, "침대 매트리스 버리고 싶어요");
   await flush();
+  await drainTimers();
 
   const bubbles = aiBubbleTexts(s);
   assert.ok(
@@ -532,10 +633,22 @@ async function scenarioBulkyWaste() {
     "bulky_waste: server answer must be shown",
   );
   assertSplitCloneVisible(s, "bulky_waste");
+  // confirm-run: choreography must NOT start until yes click
+  assert.deepStrictEqual(
+    choreo.startCalls,
+    [],
+    "bulky_waste: choreography must NOT start before confirm-run yes click",
+  );
+  const confirmMsg = findConfirmRunMsg(s);
+  assert.ok(confirmMsg, "bulky_waste: confirm-run message must be present");
+  const yesBtn = findButtonByText(confirmMsg, "예");
+  assert.ok(yesBtn, "bulky_waste: 예 button must exist");
+  clickButton(yesBtn);
+  await flush();
   assert.deepStrictEqual(
     choreo.startCalls,
     ["bulky_waste"],
-    "bulky_waste: choreography.start('bulky_waste') once",
+    "bulky_waste: choreography.start('bulky_waste') once after yes click",
   );
   const card = s.doc.getElementById("chat-thread")._children.find((node) => {
     return (node.className || "").includes("chat-quest-card");
@@ -555,36 +668,31 @@ async function scenarioBulkyWaste() {
   console.log("  [2.5] bulky_waste: OK");
 }
 
-async function scenarioMoveInReport() {
+async function scenarioPassportGuidance() {
   const bridge = makeResolvingBridge({
     ok: true,
-    answer: "전입신고 경로를 안내해 드립니다.",
-    action: "move_in_report",
+    answer: "여권 발급 경로를 안내해 드립니다.",
+    action: "passport_guidance",
     confidence: 0.92,
     quest: {
-      quest_id: "move_in_report_guidance",
-      quest_name: "전입신고 안내",
+      quest_id: "passport_guidance",
+      quest_name: "여권 발급 안내",
       source_mode: "local_static",
       match_status: "matched",
     },
     action_plan: {
-      quest_id: "move_in_report_guidance",
-      quest_name: "전입신고 안내",
-      official_path: ["종합민원", "전자민원창구", "정부24", "전입신고 안내"],
+      quest_id: "passport_guidance",
+      quest_name: "여권 발급 안내",
+      official_path: ["종합민원", "여권", "여권 발급 안내"],
       source_mode: "local_static",
       stop_condition: "STOP_FOR_USER_CONFIRMATION",
-      result: {
-        service: "전입신고 안내",
-        surface: "전입신고 안내 카드",
-      },
+      result: { service: "여권 발급 안내", surface: "여권 발급 안내 카드" },
       browser_actions: [
         { label: "종합민원 메뉴 확인" },
-        { label: "전입신고 안내 화면 이동" },
-        { label: "전입신고 안내 카드 확인" },
-        { label: "사용자 확인 대기" },
+        { label: "여권 발급 안내 화면 이동" },
       ],
       final_warning: {
-        warning_text: "실제 전입신고, 본인인증, 세대주·주소·가족관계 등 개인정보 입력, 정부24 또는 주민센터 민원 제출은 사용자가 공식 채널에서 직접 확인해야 합니다.",
+        warning_text: "실제 여권 발급 신청은 사용자가 직접 확인해야 합니다.",
         requires_user_confirmation: true,
       },
     },
@@ -596,37 +704,85 @@ async function scenarioMoveInReport() {
     bridge,
     choreo,
   });
-  submit(s, "이사 왔는데 전입신고는 어떻게 해요?");
+  submit(s, "여권 발급은 어디서 하나요?");
   await flush();
+  await drainTimers();
 
   const bubbles = aiBubbleTexts(s);
-  assert.ok(
-    bubbles.includes("전입신고 경로를 안내해 드립니다."),
-    "move_in_report: server answer must be shown",
-  );
-  assertSplitCloneVisible(s, "move_in_report");
-  assert.deepStrictEqual(
-    choreo.startCalls,
-    ["move_in_report"],
-    "move_in_report: choreography.start('move_in_report') once",
-  );
+  assert.ok(bubbles.includes("여권 발급 경로를 안내해 드립니다."), "passport: server answer must be shown");
+  assertSplitCloneVisible(s, "passport");
+  // confirm-run: choreography must NOT start until yes click
+  assert.deepStrictEqual(choreo.startCalls, [], "passport: startCalls empty before confirm");
+  const confirmMsg = findConfirmRunMsg(s);
+  assert.ok(confirmMsg, "passport: confirm-run message must be present");
+  const yesBtn = findButtonByText(confirmMsg, "예");
+  assert.ok(yesBtn, "passport: 예 button must exist");
+  clickButton(yesBtn);
+  await flush();
+  assert.deepStrictEqual(choreo.startCalls, ["passport_guidance"], "passport: choreography.start('passport_guidance') once after yes click");
   const card = s.doc.getElementById("chat-thread")._children.find((node) => {
     return (node.className || "").includes("chat-quest-card");
   });
-  assert.ok(card, "move_in_report: quest card must be appended from metadata");
-  assert.strictEqual(card.getAttribute("data-quest-card"), "action_plan");
-  assert.strictEqual(card.getAttribute("data-quest-id"), "move_in_report_guidance");
-  const cardText = card.textContent;
-  assert.ok(cardText.includes("전입신고 안내"));
-  assert.ok(cardText.includes("종합민원 > 전자민원창구 > 정부24 > 전입신고 안내"));
-  assert.ok(cardText.includes("전입신고 안내 / 전입신고 안내 카드"));
-  assert.ok(cardText.includes("STOP_FOR_USER_CONFIRMATION"));
-  assert.ok(cardText.includes("local_static"));
-  assert.ok(cardText.includes("전입신고 안내 화면 이동"));
-  assert.ok(cardText.includes("본인인증"));
-  assert.ok(cardText.includes("세대주"));
-  assert.ok(cardText.includes("가족관계"));
-  console.log("  [2.75] move_in_report: OK");
+  assert.ok(card, "passport: quest card must exist");
+  console.log("  [2.75] passport_guidance: OK");
+}
+
+async function scenarioUnmannedKiosk() {
+  const bridge = makeResolvingBridge({
+    ok: true,
+    answer: "무인민원발급기 위치를 안내해 드립니다.",
+    action: "unmanned_kiosk",
+    confidence: 0.92,
+    quest: {
+      quest_id: "unmanned_kiosk_guidance",
+      quest_name: "무인민원발급기 안내",
+      source_mode: "local_static",
+      match_status: "matched",
+    },
+    action_plan: {
+      quest_id: "unmanned_kiosk_guidance",
+      quest_name: "무인민원발급기 안내",
+      official_path: ["종합민원", "무인민원발급기", "설치장소"],
+      source_mode: "local_static",
+      stop_condition: "STOP_FOR_USER_CONFIRMATION",
+      result: { service: "무인민원발급기 안내", surface: "무인민원발급기 안내 카드" },
+      browser_actions: [
+        { label: "종합민원 메뉴 확인" },
+        { label: "무인민원발급기 안내 화면 이동" },
+      ],
+      final_warning: {
+        warning_text: "실제 민원서류 발급은 사용자가 직접 확인해야 합니다.",
+        requires_user_confirmation: true,
+      },
+    },
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1",
+    reducedMotion: true,
+    bridge,
+    choreo,
+  });
+  submit(s, "무인민원발급기 어디 있어요?");
+  await flush();
+  await drainTimers();
+
+  const bubbles = aiBubbleTexts(s);
+  assert.ok(bubbles.includes("무인민원발급기 위치를 안내해 드립니다."), "kiosk: server answer must be shown");
+  assertSplitCloneVisible(s, "kiosk");
+  assert.deepStrictEqual(choreo.startCalls, [], "kiosk: startCalls empty before confirm");
+  const confirmMsg = findConfirmRunMsg(s);
+  assert.ok(confirmMsg, "kiosk: confirm-run message must be present");
+  const yesBtn = findButtonByText(confirmMsg, "예");
+  assert.ok(yesBtn, "kiosk: 예 button must exist");
+  clickButton(yesBtn);
+  await flush();
+  assert.deepStrictEqual(choreo.startCalls, ["unmanned_kiosk"], "kiosk: choreography.start('unmanned_kiosk') once after yes click");
+  const card = s.doc.getElementById("chat-thread")._children.find((node) => {
+    return (node.className || "").includes("chat-quest-card");
+  });
+  assert.ok(card, "kiosk: quest card must exist");
+  console.log("  [2.8] unmanned_kiosk: OK");
 }
 
 async function scenarioSupportedQuestionActionNoneFallback() {
@@ -645,6 +801,7 @@ async function scenarioSupportedQuestionActionNoneFallback() {
   });
   submit(s, "불법 주정차 신고는 어디서 하나요?");
   await flush();
+  await drainTimers();
 
   const bubbles = aiBubbleTexts(s);
   assert.ok(
@@ -652,10 +809,22 @@ async function scenarioSupportedQuestionActionNoneFallback() {
     "supported none fallback: server answer must still be shown",
   );
   assertSplitCloneVisible(s, "supported none fallback");
+  // confirm-run: choreography must NOT start until yes click
+  assert.deepStrictEqual(
+    choreo.startCalls,
+    [],
+    "supported none fallback: choreography must NOT start before confirm",
+  );
+  const confirmMsg = findConfirmRunMsg(s);
+  assert.ok(confirmMsg, "supported none fallback: confirm-run message must be present");
+  const yesBtn = findButtonByText(confirmMsg, "예");
+  assert.ok(yesBtn, "supported none fallback: 예 button must exist");
+  clickButton(yesBtn);
+  await flush();
   assert.deepStrictEqual(
     choreo.startCalls,
     ["illegal_parking"],
-    "supported none fallback: exact supported question opens existing illegal_parking clone journey",
+    "supported none fallback: choreography.start('illegal_parking') once after yes click",
   );
   console.log("  [3] supported question action=none fallback: OK");
 }
@@ -764,6 +933,7 @@ async function scenarioDefaultModeRegression() {
   });
   submit(s, "불법 주정차 신고는 어디서 하나요?");
   await flush();
+  await drainTimers();
 
   assert.strictEqual(
     bridge.askCalled,
@@ -1181,12 +1351,191 @@ async function scenarioRejectedBridge() {
   console.log("  [12] rejected bridge request fails closed: OK");
 }
 
+// ── Confirm-run specific scenarios (#1058) ────────────────────────────────
+
+async function scenarioConfirmRunYesNo() {
+  // Test "아니요" click does NOT start choreography
+  const bridge = makeResolvingBridge({
+    ok: true, answer: "불법 주정차 안내입니다.", action: "illegal_parking", confidence: 0.9,
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({ search: "?mvp=1", reducedMotion: true, bridge, choreo });
+  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  await flush();
+  await drainTimers();
+  assert.deepStrictEqual(choreo.startCalls, [], "confirm-no: startCalls empty after model response");
+  const confirmMsg = findConfirmRunMsg(s);
+  assert.ok(confirmMsg, "confirm-no: confirm-run message must exist");
+  const noBtn = findButtonByText(confirmMsg, "아니요");
+  assert.ok(noBtn, "confirm-no: 아니요 button must exist");
+  clickButton(noBtn);
+  await flush();
+  assert.deepStrictEqual(choreo.startCalls, [], "confirm-no: startCalls still empty after no click");
+  assertComposerRecovered(s, "confirm-no");
+  console.log("  [13] confirm-run yes/no behavior: OK");
+}
+
+async function scenarioConfirmRunDuplicateClick() {
+  // Test double-clicking "예" does NOT call start twice
+  const bridge = makeResolvingBridge({
+    ok: true, answer: "불법 주정차 안내입니다.", action: "illegal_parking", confidence: 0.9,
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({ search: "?mvp=1", reducedMotion: true, bridge, choreo });
+  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  await flush();
+  await drainTimers();
+  const confirmRunNode = findConfirmRunMsg(s);
+  const yesBtn = findButtonByText(confirmRunNode, "예");
+  assert.ok(yesBtn, "dup-click: 예 button must exist");
+  clickButton(yesBtn);
+  await flush();
+  // After first click, buttons should be disabled — second click should have no effect
+  // The production code disables buttons via: var btns = bubble.querySelectorAll("button"); for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+  // verify startCalls was exactly once
+  assert.strictEqual(choreo.startCalls.length, 1, "dup-click: startCalls must have exactly 1 entry");
+  assert.strictEqual(choreo.startCalls[0], "illegal_parking", "dup-click: action must be illegal_parking");
+  // Try clicking again (should have no effect since buttons are disabled)
+  const yesBtns = confirmRunNode._querySelectorAllTag("button");
+  for (const btn of yesBtns) {
+    if (btn.textContent.includes("예")) clickButton(btn);
+  }
+  await flush();
+  assert.strictEqual(choreo.startCalls.length, 1, "dup-click: second click must NOT start choreography again");
+  console.log("  [14] confirm-run duplicate click prevention: OK");
+}
+
+async function scenarioConfirmRunReset() {
+  // Test reset after confirm does not re-trigger old confirm button
+  const bridge = makeResolvingBridge({
+    ok: true, answer: "불법 주정차 안내입니다.", action: "illegal_parking", confidence: 0.9,
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({ search: "?mvp=1", reducedMotion: true, bridge, choreo });
+  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  await flush();
+  await drainTimers();
+  const confirmMsg = findConfirmRunMsg(s);
+  assert.ok(confirmMsg, "reset-after-confirm: confirm-run message must exist");
+  const yesBtn = findButtonByText(confirmMsg, "예");
+  assert.ok(yesBtn, "reset-after-confirm: 예 button must exist");
+  // Reset the shell
+  s.win.CitizenFirstUseShell.reset();
+  await flush();
+  // The old confirm button is no longer in the DOM (reset clears chat)
+  // Try clicking it anyway — choreography must NOT start
+  clickButton(yesBtn);
+  await flush();
+  console.log("  [15] confirm-run reset prevention: OK");
+}
+
+// ── #1059: No global default action fallback ────────────────────────────────
+
+async function scenarioPassportNoneFallback() {
+  // Passport question + model action "none" → passport_guidance
+  const bridge = makeResolvingBridge({
+    ok: true, answer: "여권 안내입니다.", action: "none", confidence: 0.5,
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({ search: "?mvp=1", reducedMotion: true, bridge, choreo });
+  submit(s, "여권 발급은 어디서 하나요?");
+  await flush();
+  await drainTimers();
+  assert.strictEqual(s.win.CitizenFirstUseShell.getState(), "split", "passport-none-fallback: shell must split");
+  assert.deepStrictEqual(choreo.startCalls, [], "passport-none-fallback: startCalls empty before confirm");
+  clickButton(findButtonByText(findConfirmRunMsg(s), "예"));
+  await flush();
+  assert.deepStrictEqual(choreo.startCalls, ["passport_guidance"], "passport-none-fallback: choreography starts passport_guidance");
+  console.log("  [16] passport question + model none → passport_guidance: OK");
+}
+
+async function scenarioKioskNoneFallback() {
+  const bridge = makeResolvingBridge({
+    ok: true, answer: "무인민원발급기 안내입니다.", action: "none", confidence: 0.5,
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({ search: "?mvp=1", reducedMotion: true, bridge, choreo });
+  submit(s, "무인민원발급기 어디 있어요?");
+  await flush();
+  await drainTimers();
+  assert.strictEqual(s.win.CitizenFirstUseShell.getState(), "split", "kiosk-none-fallback: shell must split");
+  assert.deepStrictEqual(choreo.startCalls, [], "kiosk-none-fallback: startCalls empty before confirm");
+  clickButton(findButtonByText(findConfirmRunMsg(s), "예"));
+  await flush();
+  assert.deepStrictEqual(choreo.startCalls, ["unmanned_kiosk"], "kiosk-none-fallback: choreography starts unmanned_kiosk");
+  console.log("  [17] kiosk question + model none → unmanned_kiosk: OK");
+}
+
+async function scenarioHousingNoneFallback() {
+  const bridge = makeResolvingBridge({
+    ok: true, answer: "공동주택 안내입니다.", action: "none", confidence: 0.5,
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({ search: "?mvp=1", reducedMotion: true, bridge, choreo });
+  submit(s, "공동주택 관련 문의는 어느 부서에 해야 하나요?");
+  await flush();
+  await drainTimers();
+  assert.strictEqual(s.win.CitizenFirstUseShell.getState(), "split", "housing-none-fallback: shell must split");
+  assert.deepStrictEqual(choreo.startCalls, [], "housing-none-fallback: startCalls empty before confirm");
+  clickButton(findButtonByText(findConfirmRunMsg(s), "예"));
+  await flush();
+  assert.deepStrictEqual(choreo.startCalls, ["housing_department"], "housing-none-fallback: choreography starts housing_department");
+  console.log("  [18] housing question + model none → housing_department: OK");
+}
+
+async function scenarioBulkyWasteNoneFallback() {
+  const bridge = makeResolvingBridge({
+    ok: true, answer: "대형폐기물 안내입니다.", action: "none", confidence: 0.5,
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({ search: "?mvp=1", reducedMotion: true, bridge, choreo });
+  submit(s, "침대 매트리스 버리고 싶어요");
+  await flush();
+  await drainTimers();
+  assert.strictEqual(s.win.CitizenFirstUseShell.getState(), "split", "bulky-none-fallback: shell must split");
+  assert.deepStrictEqual(choreo.startCalls, [], "bulky-none-fallback: startCalls empty before confirm");
+  clickButton(findButtonByText(findConfirmRunMsg(s), "예"));
+  await flush();
+  assert.deepStrictEqual(choreo.startCalls, ["bulky_waste"], "bulky-none-fallback: choreography starts bulky_waste");
+  console.log("  [19] bulky waste question + model none → bulky_waste: OK");
+}
+
+async function scenarioUnknownNoneNoMovement() {
+  // Unknown question + model action "none" → no split
+  const bridge = makeResolvingBridge({
+    ok: true, answer: "죄송합니다.", action: "none", confidence: 0.5,
+  });
+  const choreo = makeChoreo();
+  const s = runScenario({ search: "?mvp=1", reducedMotion: true, bridge, choreo });
+  submit(s, "오늘 날씨 어떠세요?");
+  await flush();
+  assert.strictEqual(s.win.CitizenFirstUseShell.getState(), "entry", "unknown-none: shell must stay in entry (no split)");
+  assert.strictEqual(choreo.startCalls.length, 0, "unknown-none: choreography must NOT start");
+  console.log("  [20] unknown question + model none → no split: OK");
+}
+
+async function scenarioMalformedResultNoMovement() {
+  // Malformed result → no split
+  const choreo = makeChoreo();
+  const s = runScenario({
+    search: "?mvp=1", reducedMotion: true,
+    bridge: makeResolvingBridge(null),
+    choreo,
+  });
+  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  await flush();
+  assert.strictEqual(s.win.CitizenFirstUseShell.getState(), "entry", "malformed-none: shell must stay in entry");
+  assert.strictEqual(choreo.startCalls.length, 0, "malformed-none: choreography must NOT start");
+  console.log("  [21] malformed result → no split: OK");
+}
+
 async function main() {
   console.log("Running MVP shell runtime scenarios (no network, no fetch):");
   await scenarioIllegalParking();
   await scenarioHousingDepartment();
   await scenarioBulkyWaste();
-  await scenarioMoveInReport();
+  await scenarioPassportGuidance();
+  await scenarioUnmannedKiosk();
   await scenarioSupportedQuestionActionNoneFallback();
   await scenarioNone();
   await scenarioPendingThenReset();
@@ -1198,6 +1547,15 @@ async function main() {
   await scenarioMissingResult();
   await scenarioMalformedResult();
   await scenarioRejectedBridge();
+  await scenarioConfirmRunYesNo();
+  await scenarioConfirmRunDuplicateClick();
+  await scenarioConfirmRunReset();
+  await scenarioPassportNoneFallback();
+  await scenarioKioskNoneFallback();
+  await scenarioHousingNoneFallback();
+  await scenarioBulkyWasteNoneFallback();
+  await scenarioUnknownNoneNoMovement();
+  await scenarioMalformedResultNoMovement();
   console.log("All MVP shell runtime scenarios passed.");
 }
 

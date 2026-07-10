@@ -243,10 +243,18 @@ def test_landing_links_to_public_mvp(build_dir):
     assert _CSS_URL_HTTP_RE.search(index) is None, "external url() in landing"
 
 
-def test_admin_model_preset_disabled(build_dir):
+def test_admin_model_presets_enabled(build_dir):
     admin = open(os.path.join(build_dir, "admin.html"), encoding="utf-8").read()
-    assert "스냅샷 · 모델 전환 없음" in admin
-    assert 'id="modelPresetSelect" disabled' in admin
+    assert 'id="modelPresetSelect"' in admin
+    # The select tag itself must NOT have disabled attribute.
+    idx = admin.index('id="modelPresetSelect"')
+    tag_start = admin.rindex("<", 0, idx)
+    tag_end = admin.index(">", idx)
+    select_tag = admin[tag_start:tag_end + 1]
+    assert "disabled" not in select_tag, "modelPresetSelect must not be disabled"
+    assert 'value="deepseek-primary"' in admin
+    assert 'value="mimo-primary"' in admin
+    assert 'value="step-primary"' in admin
 
 
 def test_mvp_entry_generated(build_dir):
@@ -291,6 +299,94 @@ def test_mvp_entry_source_untouched(build_dir):
     # The build only reads the source; the repo copy must not be modified.
     assert "history.replaceState" not in source, "source template was modified by build"
     assert '<script src="/static/citizen-mvp-bridge.js"' not in source
+
+
+def test_mvp_source_html_no_data_mvp():
+    """#1053: The source HTML must not have data-mvp='1' marker."""
+    source = open(
+        os.path.join(_REPO_ROOT, "src", "web", "static", "citizen-action-demo.html"),
+        encoding="utf-8",
+    ).read()
+    assert 'data-mvp="1"' not in source, "source template must not contain unconditional data-mvp=1"
+
+
+def test_mvp_static_output_has_no_data_mvp(build_dir):
+    """#1053: Static mvp/index.html must not have data-mvp='1'."""
+    mvp_index = os.path.join(build_dir, "mvp", "index.html")
+    html = open(mvp_index, encoding="utf-8").read()
+    assert 'data-mvp="1"' not in html, "static mvp/index.html must not have data-mvp=1"
+
+
+def test_mvp_static_has_query_sanitizer(build_dir):
+    """#1053: Static output must have query sanitizer."""
+    mvp_index = os.path.join(build_dir, "mvp", "index.html")
+    html = open(mvp_index, encoding="utf-8").read()
+    assert "history.replaceState" in html, "static mvp must have query sanitizer"
+    assert html.index("history.replaceState") < html.index("citizen-first-use-shell.js")
+    assert "window.location.pathname + window.location.hash" in html
+
+
+def test_mvp_static_has_no_live_injector(build_dir):
+    """#1053: Static output must NOT have live ?mvp=1 injector."""
+    mvp_index = os.path.join(build_dir, "mvp", "index.html")
+    html = open(mvp_index, encoding="utf-8").read()
+    assert '"?mvp=1"' not in html, "static mvp must NOT have ?mvp=1 injector"
+    assert '"?mvp=1" + window.location.hash' not in html
+
+
+def test_mvp_live_has_injector():
+    """#1053: Live mode build must have ?mvp=1 injector before first shell script."""
+    mod = _load_build_module()
+    with tempfile.TemporaryDirectory() as tmp:
+        out = os.path.join(tmp, "out")
+        mod.build(out_dir=out, mode="live")
+        mvp_index = os.path.join(out, "mvp", "index.html")
+        html = open(mvp_index, encoding="utf-8").read()
+        # Live injector must be present
+        assert '"?mvp=1"' in html or '"\\u003Fmvp=1"' in html, \
+            "live mode mvp must have ?mvp=1 injector"
+        # Live injector runs before citizen-first-use-shell.js
+        injector_idx = html.find("history.replaceState")
+        shell_idx = html.find("citizen-first-use-shell.js")
+        assert injector_idx >= 0 and injector_idx < shell_idx, \
+            "live injector must run before shell script"
+        # Live output must NOT have static query sanitizer (pathname+hash).
+        assert "window.location.pathname + window.location.hash" not in html, \
+            "live mode must NOT have static query sanitizer"
+        # Live output must NOT have data-mvp="1".
+        assert 'data-mvp="1"' not in html, \
+            "live mode must NOT have data-mvp=1"
+
+
+def test_mvp_live_has_no_static_sanitizer():
+    """#1053: Live output must NOT have static query sanitizer (pathname+hash only)."""
+    mod = _load_build_module()
+    with tempfile.TemporaryDirectory() as tmp:
+        out = os.path.join(tmp, "out")
+        mod.build(out_dir=out, mode="live")
+        mvp_index = os.path.join(out, "mvp", "index.html")
+        html = open(mvp_index, encoding="utf-8").read()
+        # Live output must NOT have the static query sanitizer pattern.
+        assert "window.location.pathname + window.location.hash" not in html, \
+            "live mode must NOT have static query sanitizer"
+        # Live output must have the ?mvp=1 injector.
+        assert '"?mvp=1"' in html or '"\\u003Fmvp=1"' in html, \
+            "live mode must have ?mvp=1 injector"
+
+
+def test_mvp_build_does_not_modify_source():
+    """#1053: Static/live build must not modify the source template."""
+    import hashlib
+    source_path = os.path.join(_REPO_ROOT, "src", "web", "static", "citizen-action-demo.html")
+    before = hashlib.sha256(open(source_path, "rb").read()).hexdigest()
+    mod = _load_build_module()
+    with tempfile.TemporaryDirectory() as tmp:
+        out_static = os.path.join(tmp, "static_out")
+        mod.build(out_dir=out_static, mode="static")
+        out_live = os.path.join(tmp, "live_out")
+        mod.build(out_dir=out_live, mode="live")
+    after = hashlib.sha256(open(source_path, "rb").read()).hexdigest()
+    assert before == after, "build must not modify source template"
 
 
 def _node_available() -> bool:

@@ -17,20 +17,19 @@
   var STATE_SPLIT = "split";
   var TRANSITION_DURATION_MS = 400;
   var FADE_IN_DURATION_MS = 500;
-  var DEFAULT_SUPPORTED_ACTION = "illegal_parking";
-  var SUPPORTED_QUESTIONS = {
-    "불법 주정차 신고는 어디서 하나요?": true,
-    "공동주택 관련 문의는 어느 부서에 해야 하나요?": true,
-    "침대 매트리스 버리고 싶어요": true,
-    "대형폐기물은 어떻게 버리나요?": true,
-    "가구 버리려면 어디서 신청해요?": true,
-    "매트리스 폐기 신청은 어디서 하나요?": true,
-    "여권 발급은 어디서 하나요?": true,
-    "여권 재발급은 어떻게 하나요?": true,
-    "무인민원발급기 어디 있어요?": true,
-    "무인민원발급기로 뭘 발급받을 수 있어요?": true,
-    "무인민원발급기 이용방법 알려줘": true,
-    "민원서류 발급받으려면 어디로 가야 해요?": true,
+  var SUPPORTED_QUESTION_ACTIONS = {
+    "불법 주정차 신고는 어디서 하나요?": "illegal_parking",
+    "공동주택 관련 문의는 어느 부서에 해야 하나요?": "housing_department",
+    "침대 매트리스 버리고 싶어요": "bulky_waste",
+    "대형폐기물은 어떻게 버리나요?": "bulky_waste",
+    "가구 버리려면 어디서 신청해요?": "bulky_waste",
+    "매트리스 폐기 신청은 어디서 하나요?": "bulky_waste",
+    "여권 발급은 어디서 하나요?": "passport_guidance",
+    "여권 재발급은 어떻게 하나요?": "passport_guidance",
+    "무인민원발급기 어디 있어요?": "unmanned_kiosk",
+    "무인민원발급기로 뭘 발급받을 수 있어요?": "unmanned_kiosk",
+    "무인민원발급기 이용방법 알려줘": "unmanned_kiosk",
+    "민원서류 발급받으려면 어디로 가야 해요?": "unmanned_kiosk",
   };
   var SPLIT_FOLLOW_UP_MESSAGE =
     "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
@@ -58,7 +57,8 @@
   var _questRuntimeResult = null;
 
   function isMvpMode() {
-    // Always enabled when body has data-mvp="1" (set in HTML template for live mode)
+    // Live build injects ?mvp=1 into URL before shell init.
+    // body data-mvp check is a compatibility path — not the current build activation method.
     if (document.body && document.body.getAttribute("data-mvp") === "1") return true;
     // Fallback: check URL parameter
     if (!window.location || !window.location.search) return false;
@@ -253,7 +253,9 @@
     if (!hasUsableMvpResult) return "none";
     var action = normalizeMvpAction(result);
     if (action !== "none") return action;
-    if (isSupportedQuestion(question)) return DEFAULT_SUPPORTED_ACTION;
+    var normalized = normalizeQuestion(question);
+    var mapped = SUPPORTED_QUESTION_ACTIONS[normalized];
+    if (mapped) return mapped;
     return "none";
   }
 
@@ -290,7 +292,7 @@
   }
 
   function isSupportedQuestion(value) {
-    return Boolean(SUPPORTED_QUESTIONS[normalizeQuestion(value)]);
+    return Boolean(SUPPORTED_QUESTION_ACTIONS[normalizeQuestion(value)]);
   }
 
   function prefersReducedMotion() {

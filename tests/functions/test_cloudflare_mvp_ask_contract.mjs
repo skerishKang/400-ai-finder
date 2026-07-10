@@ -22,6 +22,18 @@ if (!RUN_LIVE) {
 }
 
 // ---------------------------------------------------------------------------
+// Fail-fast no-network stub — any unexpected fetch call throws immediately.
+// ---------------------------------------------------------------------------
+const _ORIGINAL_FETCH = globalThis.fetch;
+
+function noNetworkStub() {
+  throw new Error('NETWORK_BLOCKED: unexpected upstream call in contract test');
+}
+
+// Replace with no-network stub upfront.
+globalThis.fetch = noNetworkStub;
+
+// ---------------------------------------------------------------------------
 // Lightweight Cloudflare Workers environment mock
 // ---------------------------------------------------------------------------
 function createMockContext(method, body, envOverrides) {
@@ -34,7 +46,7 @@ function createMockContext(method, body, envOverrides) {
     json: async () => (body ? JSON.parse(body) : {}),
     text: async () => (body ? String(body) : ''),
   };
-  const env = { KILOCODE_API_KEY: '', ...envOverrides };
+  const env = { GEMINI_API_KEY: '', ...envOverrides };
   return { request, env };
 }
 
@@ -102,13 +114,25 @@ async function assertJsonResponse(description, method, body, expectedChecks, env
 
 // ---------------------------------------------------------------------------
 // Mock fetch helper — replaces globalThis.fetch so the function's upstream
-// LLM API call is intercepted. Each call returns a canned response.
+// LLM API call is intercepted. Each call returns a canned response and
+// records the last call info (url, method, headers, body) for assertion.
 // ---------------------------------------------------------------------------
-let _originalFetch = null;
+let _lastCall = null;
+
+function getLastCall() {
+  return _lastCall;
+}
 
 function mockFetch(status, body) {
-  _originalFetch = globalThis.fetch;
+  _lastCall = null;
   globalThis.fetch = async (url, options) => {
+    const reqBody = options && options.body ? options.body : '';
+    _lastCall = {
+      url: typeof url === 'string' ? url : url.toString(),
+      method: (options && options.method) || 'GET',
+      headers: (options && options.headers) || {},
+      body: reqBody,
+    };
     return {
       ok: status >= 200 && status < 300,
       status,
@@ -119,10 +143,28 @@ function mockFetch(status, body) {
 }
 
 function restoreFetch() {
-  if (_originalFetch !== null) {
-    globalThis.fetch = _originalFetch;
-    _originalFetch = null;
+  globalThis.fetch = noNetworkStub;
+  _lastCall = null;
+}
+
+// Helper: assert that no upstream call was made.
+async function assertNoUpstreamCall(description, fn) {
+  const prior = _lastCall;
+  try {
+    await fn();
+  } finally {
+    const callCount = _lastCall !== prior ? 1 : 0;
+    if (callCount > 0) {
+      throw new Error(`${description}: unexpected upstream call: count=1, url=${_lastCall.url}`);
+    }
   }
+}
+
+// Wrapper around assertJsonResponse that also verifies zero upstream calls.
+async function assertNoCallJsonResponse(description, method, body, expectedChecks, envOverrides) {
+  await assertNoUpstreamCall(description, async () => {
+    await assertJsonResponse(description, method, body, expectedChecks, envOverrides);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -148,34 +190,85 @@ await assertStatus('PUT request returns 405', 'PUT', null, 405);
 await assertStatus('DELETE request returns 405', 'DELETE', null, 405);
 
 // 3. invalid JSON does not 500
-await assertJsonResponse('Invalid JSON body returns ok:false (not 500)', 'POST', 'not json at all', {
+await assertNoCallJsonResponse('Invalid JSON body returns ok:false (not 500)', 'POST', 'not json at all', {
   ok: false,
-}, { KILOCODE_API_KEY: 'test-key' });
+}, { GEMINI_API_KEY: 'test-key' });
 
 // 4. missing question returns 400
-await assertJsonResponse('Missing question field returns 400 with ok:false', 'POST', JSON.stringify({}), {
+await assertNoCallJsonResponse('Missing question field returns 400 with ok:false', 'POST', JSON.stringify({}), {
   ok: false,
   error: 'Missing question',
-}, { KILOCODE_API_KEY: 'test-key' });
+}, { GEMINI_API_KEY: 'test-key' });
 
-await assertJsonResponse('Empty question string returns 400', 'POST', JSON.stringify({ question: '' }), {
+await assertNoCallJsonResponse('Empty question string returns 400', 'POST', JSON.stringify({ question: '' }), {
   ok: false,
   error: 'Missing question',
-}, { KILOCODE_API_KEY: 'test-key' });
+}, { GEMINI_API_KEY: 'test-key' });
 
-await assertJsonResponse('Whitespace-only question returns 400', 'POST', JSON.stringify({ question: '   ' }), {
+await assertNoCallJsonResponse('Whitespace-only question returns 400', 'POST', JSON.stringify({ question: '   ' }), {
   ok: false,
   error: 'Missing question',
-}, { KILOCODE_API_KEY: 'test-key' });
+}, { GEMINI_API_KEY: 'test-key' });
+
+// 4a. Non-string question type validation
+await assertNoCallJsonResponse('Question null returns invalid_input (not internal_error)', 'POST', JSON.stringify({ question: null }), {
+  ok: false,
+  answer: '잘못된 요청 형식입니다.',
+  action: 'none',
+  confidence: 0.0,
+  failure_code: 'invalid_input',
+  provider: 'gemini',
+  model: 'gemini-3.1-flash-lite',
+}, { GEMINI_API_KEY: 'test-key' });
+
+await assertNoCallJsonResponse('Question number returns invalid_input', 'POST', JSON.stringify({ question: 123 }), {
+  ok: false,
+  answer: '잘못된 요청 형식입니다.',
+  action: 'none',
+  confidence: 0.0,
+  failure_code: 'invalid_input',
+}, { GEMINI_API_KEY: 'test-key' });
+
+await assertNoCallJsonResponse('Question array returns invalid_input', 'POST', JSON.stringify({ question: [] }), {
+  ok: false,
+  answer: '잘못된 요청 형식입니다.',
+  action: 'none',
+  confidence: 0.0,
+  failure_code: 'invalid_input',
+}, { GEMINI_API_KEY: 'test-key' });
+
+await assertNoCallJsonResponse('Question object returns invalid_input', 'POST', JSON.stringify({ question: {} }), {
+  ok: false,
+  answer: '잘못된 요청 형식입니다.',
+  action: 'none',
+  confidence: 0.0,
+  failure_code: 'invalid_input',
+}, { GEMINI_API_KEY: 'test-key' });
+
+await assertNoCallJsonResponse('Question boolean true returns invalid_input', 'POST', JSON.stringify({ question: true }), {
+  ok: false,
+  answer: '잘못된 요청 형식입니다.',
+  action: 'none',
+  confidence: 0.0,
+  failure_code: 'invalid_input',
+}, { GEMINI_API_KEY: 'test-key' });
+
+await assertNoCallJsonResponse('Question boolean false returns invalid_input', 'POST', JSON.stringify({ question: false }), {
+  ok: false,
+  answer: '잘못된 요청 형식입니다.',
+  action: 'none',
+  confidence: 0.0,
+  failure_code: 'invalid_input',
+}, { GEMINI_API_KEY: 'test-key' });
 
 // 5. question too long returns safe invalid_input
 const longQuestion = 'x'.repeat(301);
-await assertJsonResponse('Question over 300 chars returns invalid_input', 'POST', JSON.stringify({ question: longQuestion }), {
+await assertNoCallJsonResponse('Question over 300 chars returns invalid_input', 'POST', JSON.stringify({ question: longQuestion }), {
   ok: false,
   failure_code: 'invalid_input',
   action: 'none',
   confidence: 0.0,
-}, { KILOCODE_API_KEY: 'test-key' });
+}, { GEMINI_API_KEY: 'test-key' });
 
 // 6. action allowlist — verify the allowlist exists by checking the module's behavior.
 await assert('VALID_ACTIONS constant is defined in module', async () => {
@@ -187,36 +280,34 @@ await assert('VALID_ACTIONS constant is defined in module', async () => {
 });
 
 // 7. API key not configured — returns config_error
-await assertJsonResponse('No API key returns config_error', 'POST', JSON.stringify({ question: 'test' }), {
+await assertNoCallJsonResponse('No API key returns config_error with gemini provider', 'POST', JSON.stringify({ question: 'test' }), {
   ok: false,
   failure_code: 'config_error',
   action: 'none',
   confidence: 0.0,
-  provider: 'kilocode',
-  model: 'tencent/hy3:free',
+  provider: 'gemini',
+  model: 'gemini-3.1-flash-lite',
 });
 
 // 8. Response shape contract — check all known failure modes return proper JSON
-await assertJsonResponse('Invalid JSON body returns ok:false', 'POST', '{invalid json}', {
+await assertNoCallJsonResponse('Invalid JSON body returns ok:false', 'POST', '{invalid json}', {
   ok: false,
-}, { KILOCODE_API_KEY: 'test-key' });
+}, { GEMINI_API_KEY: 'test-key' });
 
 // 9. Question length exact boundary — 300 chars should pass (not block)
 const exact300 = 'a'.repeat(300);
-await assertJsonResponse('Question exactly 300 chars is accepted (not blocked)', 'POST', JSON.stringify({ question: exact300 }), {
+await assertNoCallJsonResponse('Question exactly 300 chars is accepted (not blocked)', 'POST', JSON.stringify({ question: exact300 }), {
   ok: false,
   failure_code: 'config_error',
 }, {});
 
 const exact301 = 'b'.repeat(301);
-await assertJsonResponse('Question 301 chars returns invalid_input', 'POST', JSON.stringify({ question: exact301 }), {
+await assertNoCallJsonResponse('Question 301 chars returns invalid_input', 'POST', JSON.stringify({ question: exact301 }), {
   ok: false,
   failure_code: 'invalid_input',
 }, {});
 
-// ---------------------------------------------------------------------------
-// Mock fetch tests — intercept upstream LLM API calls and verify parsing
-// ---------------------------------------------------------------------------
+// All tests below this line use canned mock fetch for upstream responses.
 console.log('\n--- Mock upstream response tests ---\n');
 
 // 10. Invalid action from LLM is clamped to 'none'
@@ -227,7 +318,7 @@ try {
   await assertJsonResponse('Invalid action "DROP_DATABASE" is clamped to none', 'POST', JSON.stringify({ question: 'test' }), {
     ok: true,
     action: 'none',
-  }, { KILOCODE_API_KEY: 'test-key' });
+  }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
 }
@@ -240,20 +331,20 @@ try {
   await assertJsonResponse('Confidence 999 is clamped to 1.0', 'POST', JSON.stringify({ question: 'test' }), {
     ok: true,
     confidence: 1.0,
-  }, { KILOCODE_API_KEY: 'test-key' });
+  }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
 }
 
-// 12. Negative confidence is clamped to 0.0
+// 12. Whitespace-only answer returns fallback message
 try {
   mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: 'test answer', confidence: -5 }) } }],
+    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: '   ', confidence: 0.5 }) } }],
   });
-  await assertJsonResponse('Confidence -5 is clamped to 0.0', 'POST', JSON.stringify({ question: 'test' }), {
+  await assertJsonResponse('Whitespace-only answer returns fallback message', 'POST', JSON.stringify({ question: 'test' }), {
     ok: true,
-    confidence: 0.0,
-  }, { KILOCODE_API_KEY: 'test-key' });
+    answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
+  }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
 }
@@ -266,33 +357,33 @@ try {
   await assertJsonResponse('Empty answer returns fallback message', 'POST', JSON.stringify({ question: 'test' }), {
     ok: true,
     answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
-  }, { KILOCODE_API_KEY: 'test-key' });
+  }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
 }
 
-// 14. Whitespace-only answer returns fallback message
+// 14. Negative confidence is clamped to 0.0
 try {
   mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: '   ', confidence: 0.5 }) } }],
+    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: 'test answer', confidence: -5 }) } }],
   });
-  await assertJsonResponse('Whitespace-only answer returns fallback message', 'POST', JSON.stringify({ question: 'test' }), {
+  await assertJsonResponse('Confidence -5 is clamped to 0.0', 'POST', JSON.stringify({ question: 'test' }), {
     ok: true,
-    answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
-  }, { KILOCODE_API_KEY: 'test-key' });
+    confidence: 0.0,
+  }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
 }
 
-// 15. Non-JSON content from LLM is passed through as answer (no crash)
+// 15. Non-JSON LLM response is handled without crash
 try {
   mockFetch(200, {
     choices: [{ message: { content: 'Hello, I am a helpful assistant. The answer is...' } }],
   });
   await assertJsonResponse('Non-JSON LLM response is handled without crash', 'POST', JSON.stringify({ question: 'test' }), {
     ok: true,
-    provider: 'kilocode',
-  }, { KILOCODE_API_KEY: 'test-key' });
+    provider: 'gemini',
+  }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
 }
@@ -305,7 +396,7 @@ try {
     failure_code: 'upstream_error',
     action: 'none',
     confidence: 0.0,
-  }, { KILOCODE_API_KEY: 'test-key' });
+  }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
 }
@@ -316,7 +407,102 @@ try {
   await assertJsonResponse('Empty message content returns fallback answer', 'POST', JSON.stringify({ question: 'test' }), {
     ok: true,
     answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
-  }, { KILOCODE_API_KEY: 'test-key' });
+  }, { GEMINI_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// ---------------------------------------------------------------------------
+// Upstream fetch verification tests
+// ---------------------------------------------------------------------------
+console.log('\n--- Upstream fetch verification ---\n');
+
+// 18. Verify upstream fetch URL, method, headers, and request body model
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: 'test', confidence: 0.5 }) } }],
+  });
+  await getResponse('POST', JSON.stringify({ question: '테스트 질문' }), { GEMINI_API_KEY: 'test-key' });
+  const call = getLastCall();
+  await assert('Upstream fetch URL matches Gemini endpoint', async () => {
+    if (!call) throw new Error('No upstream call recorded');
+    if (call.url !== 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions') {
+      throw new Error(`Expected Gemini URL, got ${call.url}`);
+    }
+  });
+  await assert('Upstream fetch uses POST method', async () => {
+    if (!call || call.method !== 'POST') throw new Error(`Expected POST, got ${call ? call.method : 'none'}`);
+  });
+  await assert('Upstream Authorization header uses Bearer test-key', async () => {
+    const auth = call && call.headers && call.headers['Authorization'];
+    if (!auth || auth !== 'Bearer test-key') throw new Error(`Expected Bearer test-key, got ${auth}`);
+  });
+  await assert('Upstream Content-Type is application/json', async () => {
+    const ct = call && call.headers && call.headers['Content-Type'];
+    if (!ct || ct !== 'application/json') throw new Error(`Expected application/json, got ${ct}`);
+  });
+  await assert('Upstream request body contains model gemini-3.1-flash-lite', async () => {
+    if (!call || !call.body) throw new Error('No request body');
+    const parsed = JSON.parse(call.body);
+    if (parsed.model !== 'gemini-3.1-flash-lite') throw new Error(`Expected model gemini-3.1-flash-lite, got ${parsed.model}`);
+  });
+} finally {
+  restoreFetch();
+}
+
+// ---------------------------------------------------------------------------
+// Action allowlist behavior tests
+// ---------------------------------------------------------------------------
+console.log('\n--- Action behavior tests ---\n');
+
+// 19. Allowed action: passport_guidance
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: JSON.stringify({ action: 'passport_guidance', answer: '여권 발급 안내입니다.', confidence: 0.9 }) } }],
+  });
+  await assertJsonResponse('Action passport_guidance is allowed', 'POST', JSON.stringify({ question: '여권 발급' }), {
+    ok: true,
+    action: 'passport_guidance',
+  }, { GEMINI_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// 20. Allowed action: unmanned_kiosk
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: JSON.stringify({ action: 'unmanned_kiosk', answer: '무인민원발급기 안내입니다.', confidence: 0.85 }) } }],
+  });
+  await assertJsonResponse('Action unmanned_kiosk is allowed', 'POST', JSON.stringify({ question: '무인민원발급기' }), {
+    ok: true,
+    action: 'unmanned_kiosk',
+  }, { GEMINI_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// 21. Rejected action: move_in_report is clamped to none
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: JSON.stringify({ action: 'move_in_report', answer: '전입신고 안내입니다.', confidence: 0.9 }) } }],
+  });
+  await assertJsonResponse('Action move_in_report is clamped to none', 'POST', JSON.stringify({ question: '전입신고' }), {
+    ok: true,
+    action: 'none',
+  }, { GEMINI_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+// 22. Rejected action: public_health_center is clamped to none
+try {
+  mockFetch(200, {
+    choices: [{ message: { content: JSON.stringify({ action: 'public_health_center', answer: '보건소 안내입니다.', confidence: 0.9 }) } }],
+  });
+  await assertJsonResponse('Action public_health_center is clamped to none', 'POST', JSON.stringify({ question: '보건소' }), {
+    ok: true,
+    action: 'none',
+  }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
 }
@@ -325,6 +511,10 @@ try {
 // Summary
 // ---------------------------------------------------------------------------
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
+
+// Restore original fetch so process exit doesn't leave a stub behind.
+globalThis.fetch = _ORIGINAL_FETCH;
+
 if (failed > 0) {
   console.error('Failures:');
   for (const f of failures) {

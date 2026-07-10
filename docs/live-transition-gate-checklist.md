@@ -1,7 +1,8 @@
 # 라이브 전환 게이트 검증 체크리스트
 
 > **기준 문서:** [`live-transition-decision-record.md`](live-transition-decision-record.md) §3  
-> **현재 작업 모드:** **Mode 2 — Provider-assisted LLM answering** (hy3/kilocode, allowlist host = `bukgu.gwangju.kr`)  
+> **2026-07-10 업데이트:** 현재 Cloudflare MVP Function은 **Gemini**(`gemini-3.1-flash-lite`)를 사용합니다.
+> 아래 hy3/kilocode 참조는 이전 결정 기록입니다.  
 > **리포지토리:** `/root/400-ai-finder` (main SHA: `703dbf6`)
 > **작성일:** 2026-07-10
 

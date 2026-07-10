@@ -62,14 +62,14 @@ python3 scripts/build_cloudflare_pages.py
 
 ## 2. Live LLM 모드 (MVP Mode)
 
-`functions/api/mvp/ask.js` Cloudflare Pages Function을 통해 **실제 KiloCode/hy3 LLM**에
+`functions/api/mvp/ask.js` Cloudflare Pages Function을 통해 **실제 Gemini LLM**에
 연결하여 질문-답변을 처리할 수 있다.
 
 ### 활성화 조건
 
-- Cloudflare Pages에 `KILOCODE_API_KEY` secret이 설정되어 있어야 한다.
+- Cloudflare Pages에 `GEMINI_API_KEY` secret이 설정되어 있어야 한다.
 - 프론트엔드에서 `/api/mvp/ask`로 POST 요청을 보내면 Function이 동작한다.
-- 정적 시연과 달리 **네트워크 호출이 발생**하며, **KiloCode 사용량에 따른 비용**이 발생한다.
+- 정적 시연과 달리 **네트워크 호출이 발생**한다.
 
 ### API contract
 
@@ -90,8 +90,8 @@ python3 scripts/build_cloudflare_pages.py
   "answer": "북구청 교통과...",
   "action": "illegal_parking",
   "confidence": 0.95,
-  "provider": "kilocode",
-  "model": "tencent/hy3:free",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite",
   "failure_code": ""
 }
 ```
@@ -103,7 +103,7 @@ python3 scripts/build_cloudflare_pages.py
 | `action` (LLM 응답) | `VALID_ACTIONS` 중 하나로 강제 | 알 수 없는 action → `'none'` |
 | `confidence` (LLM 응답) | 0.0 ~ 1.0으로 clamp | `Math.max(0, Math.min(1, parsed.confidence))` |
 | `answer` (LLM 응답) | 빈 값 fail-closed | `'죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.'` |
-| CORS | `*` (TODO: production 시 제한) | |
+| CORS | origin allowlist (`cgbukku.pages.dev`, `localhost:8000`, `127.0.0.1:8000`) + `Vary: Origin` | |
 
 ### 실패 모드
 
@@ -123,14 +123,15 @@ python3 scripts/build_cloudflare_pages.py
 
 | 변수 | 설명 | 설정 위치 |
 |---|---|---|
-| `KILOCODE_API_KEY` | KiloCode API 인증 키 | Cloudflare Pages → Secrets |
-| `CF_PAGES_KILOCODE_API_KEY` | (legacy, 미사용) | — |
+| `GEMINI_API_KEY` | Gemini API 인증 키 | Cloudflare Pages → Secrets |
 
-### 비용 / 호출 제한
+> 참고: 저장소 전체에는 `KILOCODE_API_KEY` 등 다른 provider의 환경변수도 존재한다. 위 표는 Cloudflare MVP Function 설정에만 해당한다.
 
-- KiloCode `tencent/hy3:free` 모델은 무료 티어이나 **Rate limit**이 존재할 수 있다.
-- Pages Function 요청 수는 Cloudflare Free plan에서 **하루 100,000회**까지 무료.
+### 호출 제한 관련 주의사항
+
+- Cloudflare Pages Functions와 Gemini API의 현재 요청 한도·비용은 배포 시점의 공식 요금제와 quota 문서를 확인한다.
 - 과도한 호출 방지를 위해 클라이언트 측에서 디바운스(예: 1초 간격) 적용을 권장.
+- 구체적인 비용 및 rate limit 수치는 Gemini API 공식 문서와 Cloudflare Pages 요금제를 직접 확인해야 한다.
 
 ---
 
@@ -146,7 +147,7 @@ Cloudflare Pages 콘솔에서 다음과 같이 설정한다.
 | Build command | `python3 scripts/build_cloudflare_pages.py` |
 | Build output directory | `dist/cloudflare-pages` |
 | Root directory | _(비움)_ |
-| Environment variables | `KILOCODE_API_KEY` (secret) |
+| Environment variables | `GEMINI_API_KEY` (secret) |
 
 > 빌드 산출물(`dist/cloudflare-pages`)은 Git에 추적되지 않으므로,
 > Cloudflare Pages 빌드 단계에서 위 Build command 가 산출물을 직접 생성한다.
@@ -162,7 +163,7 @@ Cloudflare Pages 콘솔에서 다음과 같이 설정한다.
 - `ssj-bukku` Worker 변경·삭제는 운영 승인 하에만 진행합니다.
 - 실제 외부 API Key는 소스코드·설정에 하드코딩하지 않습니다 (`.env` + `.gitignore` 방식, Cloudflare Pages Secrets 사용).
 - 북구청 공식 사이트 참고·크롤링·스크린샷 비교, Firecrawl·외부 API·live provider reference 수집은 현재 제품 방향에서 허용되는 참고·수집 작업입니다. live-dependent 실험 실행은 별도 operational stage(명시적 opt-in + 자격 증명)로 분리되어 있습니다.
-- **Live LLM 모드** 사용 시 KiloCode API 호출 비용이 발생합니다. 개발·테스트 목적으로만 사용하고, 프로덕션 트래픽은 별도 승인을 받으세요.
+- **Live LLM 모드** 사용 시 Gemini API 호출이 발생합니다. 개발·테스트 목적으로만 사용하고, 프로덕션 트래픽은 별도 승인을 받으세요.
 
 ---
 
@@ -197,14 +198,14 @@ curl -sI https://cgbukku.pages.dev/admin   # HTTP 200 (from /admin.html 308)
 ### 5.3. Live LLM 모드 확인
 
 ```bash
-# KILOCODE_API_KEY가 설정된 배포에서만 동작
+# GEMINI_API_KEY가 설정된 배포에서만 동작
 curl -s -X POST https://cgbukku.pages.dev/api/mvp/ask \
   -H 'Content-Type: application/json' \
   -d '{"question":"불법주차 신고하려면?"}' | jq .
 ```
 
 - 응답에 `ok: true`, `answer` (비어 있지 않음), `action`, `confidence`가 포함되어야 함.
-- `KILOCODE_API_KEY` 미설정 시 `ok: false`, `failure_code: "config_error"` 응답.
+- `GEMINI_API_KEY` 미설정 시 `ok: false`, `failure_code: "config_error"` 응답.
 
 ### 5.4. public URL만으로 deployed SHA 확정 불가
 
@@ -230,7 +231,7 @@ bounded-demo 매칭 동작은 **현재 배포 제약**이고, 의도된 routing 
 
 ## Boundaries
 
-- 이 배포는 **백엔드 없는 결정형 정적 시연**을 기본으로 하며, Live LLM 모드는 `KILOCODE_API_KEY` secret 설정 시 선택적으로 활성화된다.
+- 이 배포는 **백엔드 없는 결정형 정적 시연**을 기본으로 하며, Live LLM 모드는 `GEMINI_API_KEY` secret 설정 시 선택적으로 활성화된다.
 - 기본 검증 흐름은 로컬 정적 아티팩트만으로 충분하다.
 - 배포 제어(Retry deployment / Redeploy / Create deployment)는 배포 권한 보유 운영자 전용이며, secrets/env는 해당 운영자 책임 하에 다룹니다.
 - live-dependent 실험 경로(Firecrawl/외부 API/live provider 호출)는 별도 operational stage로 분리되어 있으며, 명시적 opt-in과 자격 증명(env) 설정 하에 실행됩니다. 자세한 경계는 [`provider-fetch-network-boundary.md`](provider-fetch-network-boundary.md)를 참고하세요.
