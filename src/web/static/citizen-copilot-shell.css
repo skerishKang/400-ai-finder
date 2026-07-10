@@ -615,6 +615,7 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 }
 .chat-composer__input {
   flex: 1;
+  min-width: 0; /* allow the input to shrink inside the flex composer row on narrow viewports */
   border: none;
   border-radius: 18px;
   padding: 8px 12px;
