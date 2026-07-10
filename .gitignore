@@ -49,3 +49,6 @@ Thumbs.db
 
 # Tools
 .antigravitycli/
+
+# Cloudflare Wrangler local runtime state
+.wrangler/
