@@ -5,6 +5,9 @@ language question, a model decides one of three actions:
 
   - ``illegal_parking``   : illegal parking report / complaint guidance
   - ``housing_department``: apartment (공동주택) department & phone guidance
+  - ``bulky_waste``       : large waste disposal guidance
+  - ``passport_guidance``  : passport issuance guidance
+  - ``unmanned_kiosk``     : unmanned kiosk guidance
   - ``none``              : unrelated / no left-pane navigation needed
 
 The model call is performed only through an *injectable* ``LLMProvider`` so the
@@ -30,7 +33,7 @@ from .openai_compatible_provider import (
     is_valid_failure_code,
 )
 
-MVP_ACTIONS = ("illegal_parking", "housing_department", "bulky_waste", "move_in_report", "public_health_center", "none")
+MVP_ACTIONS = ("illegal_parking", "housing_department", "bulky_waste", "passport_guidance", "unmanned_kiosk", "none")
 
 MVP_FAILURE_ANSWER = "현재 AI 안내를 연결하지 못했습니다."
 
@@ -58,16 +61,15 @@ MVP_SYSTEM_PROMPT = (
     "   - 로컬 데모가 대형폐기물 배출 안내 화면을 시각적으로 안내할 수 있음을 "
     "안내하세요.\n"
     "   - 실제 결제·제출·개인정보 입력은 데모에서 수행하지 않음을 명확히 하세요.\n"
-    "4. move_in_report — 전입신고 안내\n"
-    "   - 이사 후 전입신고(주소 옮기기) 경로를 안내하세요.\n"
-    "   - 로컬 데모가 전입신고 안내 화면을 시각적으로 안내할 수 있음을 안내하세요.\n"
-    "   - 실제 본인인증, 세대주·주소·가족관계 정보 입력, 정부24 또는 주민센터 "
-    "제출은 데모에서 수행하지 않음을 명확히 하세요.\n"
-    "5. public_health_center — 보건소 위치·진료 안내\n"
-    "   - 보건소 위치, 운영시간, 진료과목, 예방접종, 검사, 예약 가능 여부 등 경로를 안내하세요.\n"
-    "   - 로컬 데모가 보건소 위치·진료 안내 화면을 시각적으로 안내할 수 있음을 안내하세요.\n"
-    "   - 실제 의료 판단, 진단, 처방, 응급 판단, 예약, 본인인증, 건강정보 입력, 제출은 "
-    "데모에서 수행하지 않음을 명확히 하세요.\n"
+    "4. passport_guidance — 여권 발급·안내\n"
+    "   - 여권 종류, 유효기간, 발급 수수료, 신청절차, 구비서류를 안내하세요.\n"
+    "   - 로컬 데모가 여권민원 안내 화면을 시각적으로 안내할 수 있음을 안내하세요.\n"
+    "   - 실제 신청·본인인증·수수료 결제는 북구청 민원실 방문 또는 정부24에서 직접 "
+    "진행해야 함을 명확히 하세요.\n"
+    "5. unmanned_kiosk — 무인민원발급기 안내\n"
+    "   - 무인민원발급기 설치장소, 발급 가능한 민원서류 종류, 이용방법을 안내하세요.\n"
+    "   - 로컬 데모가 무인민원발급기 안내 화면을 시각적으로 안내할 수 있음을 안내하세요.\n"
+    "   - 실제 민원서류 발급은 현장에서 본인인증 후 직접 진행해야 함을 명확히 하세요.\n"
     "6. none — 그 밖의 질문\n"
     "   - 북구청 정보 안내 로컬 데모의 범위를 자연스럽게 설명하고, 북구청 민원·"
     "부서·시설·공고 등 질문을 안내할 수 있다고 제안하세요.\n"
@@ -83,7 +85,7 @@ MVP_SYSTEM_PROMPT = (
     "\n"
     "※ action 값은 다음 6개 중 정확히 하나여야 합니다:\n"
     '  "illegal_parking", "housing_department", "bulky_waste",\n'
-    '  "move_in_report", "public_health_center", "none"\n'
+    '  "passport_guidance", "unmanned_kiosk", "none"\n'
     "※ confidence 값은 0.0 (낮은 확신) ~ 1.0 (높은 확신) 사이의 숫자입니다.\n"
     "\n"
     "[fallback 규칙 — 모르거나 확신 없을 때]\n"
@@ -96,7 +98,7 @@ MVP_SYSTEM_PROMPT = (
 class MvpActionDecision:
     """Frozen MVP decision contract returned by :func:`decide_mvp_action`."""
     answer: str
-    action: Literal["illegal_parking", "housing_department", "bulky_waste", "move_in_report", "public_health_center", "none"]
+    action: Literal["illegal_parking", "housing_department", "bulky_waste", "passport_guidance", "unmanned_kiosk", "none"]
     confidence: float
     # Sanitized, closed-vocabulary failure classification. Empty string on a
     # normal successful action; otherwise one of the fixed failure codes. Never

@@ -25,12 +25,12 @@
     "대형폐기물은 어떻게 버리나요?": true,
     "가구 버리려면 어디서 신청해요?": true,
     "매트리스 폐기 신청은 어디서 하나요?": true,
-    "이사 왔는데 전입신고는 어떻게 해요?": true,
-    "전입신고 어디서 하나요?": true,
-    "보건소 어디에 있어요?": true,
-    "북구 보건소 진료는 어떻게 확인해요?": true,
-    "보건소 위치랑 진료 안내 알려줘": true,
-    "예방접종이나 진료 보려면 어디로 가야 해요?": true,
+    "여권 발급은 어디서 하나요?": true,
+    "여권 재발급은 어떻게 하나요?": true,
+    "무인민원발급기 어디 있어요?": true,
+    "무인민원발급기로 뭘 발급받을 수 있어요?": true,
+    "무인민원발급기 이용방법 알려줘": true,
+    "민원서류 발급받으려면 어디로 가야 해요?": true,
   };
   var SPLIT_FOLLOW_UP_MESSAGE =
     "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
@@ -628,8 +628,8 @@
     if (question.indexOf("공동주택") !== -1) return "공동주택 부서 문의";
     if (question.indexOf("침대") !== -1 || question.indexOf("매트리스") !== -1) return "대형폐기물 배출";
     if (question.indexOf("대형폐기물") !== -1 || question.indexOf("가구") !== -1) return "대형폐기물 배출";
-    if (question.indexOf("전입신고") !== -1 || question.indexOf("이사") !== -1) return "전입신고";
-    if (question.indexOf("보건소") !== -1 || question.indexOf("진료") !== -1 || question.indexOf("예방접종") !== -1) return "보건소 위치·진료 안내";
+    if (question.indexOf("여권") !== -1) return "여권 발급 안내";
+    if (question.indexOf("무인민원발급기") !== -1 || question.indexOf("민원서류") !== -1) return "무인민원발급기 안내";
     return "이 안내";
   }
 
@@ -851,7 +851,7 @@
     chatInput.value = "";
     appendChatMessage(
       "ai",
-"현재 첫 화면에서는 불법 주정차 신고, 공동주택 문의, 대형폐기물 처리, 전입신고, 보건소 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요."
+"현재 첫 화면에서는 불법 주정차 신고, 공동주택 문의, 대형폐기물 처리, 여권 발급 안내, 무인민원발급기 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요."
     );
     chatInput.focus();
   }
