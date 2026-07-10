@@ -2668,7 +2668,7 @@
   color: #fff;
   border: 1px solid #0054a6;
 }
-/* 시나리오4 (정부24/전입신고): 실제 정부24 네이비(#0A325A) 테마 */
+/* 시나리오4 (여권민원): 여권 안내 테마 */
 .bg-page--passport-guidance .bg-sub-btn--primary {
   background: #0A325A;
   border-color: #0A325A;

@@ -19,7 +19,8 @@
  *               complaint-category-traffic-or-facility-safety,
  *               complaint-category-other-or-unsure,
  *               complaint-illegal-parking-report,
- *               bulky-waste-guidance-card,
+ *               bulky-waste-guidance-card, passport-guidance-card,
+ *               unmanned-kiosk-card,
  *               complaint-body, complaint-draft-review,
  *               confirm-draft-prefill, handoff-notice
  */
