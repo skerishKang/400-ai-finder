@@ -198,7 +198,7 @@ function buildDoc() {
   };
 }
 
-function buildWindow({ search, reducedMotion, bridge, choreo }) {
+function buildWindow({ search, reducedMotion, bridge, choreo, setTimeoutImpl }) {
   const listeners = {};
   return {
     location: {
@@ -225,7 +225,7 @@ function buildWindow({ search, reducedMotion, bridge, choreo }) {
       return 1;
     },
     cancelAnimationFrame() {},
-    setTimeout,
+    setTimeout: setTimeoutImpl || setTimeout,
     clearTimeout,
     setInterval,
     clearInterval,
@@ -288,6 +288,7 @@ function makePendingBridge() {
 function makeChoreo() {
   return {
     startCalls: [],
+    startResults: [],
     cancelCalls: 0,
     start(action) {
       this.startCalls.push(action);
@@ -303,16 +304,23 @@ function makeChoreo() {
 
 // ── Scenario runner ───────────────────────────────────────────────────────
 
-function runScenario({ search, reducedMotion, bridge, choreo }) {
+function runScenario({ search, reducedMotion, bridge, choreo, fastTimers }) {
+  // fastTimers collapses production step/visual delays to a small fixed value
+  // so progression scenarios can drive the REAL choreography to terminal
+  // states (waiting_choice / waiting_confirmation) without waiting for the
+  // full production delay budget. Production delay constants are untouched.
+  const setTimeoutImpl = fastTimers
+    ? (fn, ms) => setTimeout(fn, Math.min(typeof ms === "number" ? ms : 0, 2))
+    : setTimeout;
   const doc = buildDoc();
-  const win = buildWindow({ search, reducedMotion, bridge, choreo });
+  const win = buildWindow({ search, reducedMotion, bridge, choreo, setTimeoutImpl });
   const context = {
     window: win,
     document: doc,
     console,
     URLSearchParams,
     Promise,
-    setTimeout,
+    setTimeout: setTimeoutImpl,
     clearTimeout,
     setInterval,
     clearInterval,
@@ -349,8 +357,13 @@ function runScenario({ search, reducedMotion, bridge, choreo }) {
     if (real && typeof real.start === "function") {
       const proxy = {
         start(action) {
+          // Record BOTH the called action and the REAL return value so the
+          // test can assert genuine start() behavior, not just that a call
+          // happened (the previous false-positive gap).
+          const result = real.start(action);
           choreo.startCalls.push(action);
-          return real.start(action);
+          if (Array.isArray(choreo.startResults)) choreo.startResults.push(result);
+          return result;
         },
         cancel(...args) { return real.cancel(...args); },
         getState(...args) { return real.getState(...args); },
@@ -435,6 +448,54 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 const drainTimers = async () => { await new Promise(r => setTimeout(r, 700)); };
 // Full drain for end-to-end choreography scenarios (multiple step delays).
 const drainTimersLong = async () => { await new Promise(r => setTimeout(r, 1200)); };
+
+// Poll until `predicate()` is true or `maxMs` elapses. Used by the genuine
+// progression scenarios to drive the REAL choreography to a terminal/awaiting
+// state (waiting_choice / waiting_confirmation) without guessing exact delays.
+async function drainUntil(predicate, maxMs = 2000, tickMs = 5) {
+  const start = Date.now();
+  while (!predicate() && Date.now() - start < maxMs) {
+    await new Promise((r) => setTimeout(r, tickMs));
+  }
+  return predicate();
+}
+
+// Install a route-navigation + submit spy over the REAL canvas/adapter so the
+// progression scenarios can assert genuine runtime effects (route transition,
+// no automatic submission) rather than only inspecting return booleans.
+function installCanvasRouteSpy(scenario) {
+  const realCanvas = scenario.win.CitizenActionDemoCanvas;
+  const routeCalls = [];
+  scenario.win.CitizenActionDemoCanvas = {
+    navigateToRoute(id) {
+      routeCalls.push(id);
+      return realCanvas.navigateToRoute(id);
+    },
+    getTargetElement: (...a) => realCanvas.getTargetElement(...a),
+    clickAnimation: (...a) => realCanvas.clickAnimation(...a),
+    hideCursor: (...a) => (realCanvas.hideCursor ? realCanvas.hideCursor(...a) : undefined),
+    showCursorAt: (...a) => (realCanvas.showCursorAt ? realCanvas.showCursorAt(...a) : undefined),
+  };
+  const realAdapter = scenario.win.CitizenContentAdapter;
+  const submitCalls = [];
+  if (realAdapter) {
+    // Delegate ALL adapter methods to the real object; only intercept
+    // submitBoardPost so we can assert no automatic submission occurs.
+    scenario.win.CitizenContentAdapter = new Proxy(realAdapter, {
+      get(target, prop) {
+        if (prop === "submitBoardPost") {
+          return (data) => {
+            submitCalls.push(data);
+            return target.submitBoardPost(data);
+          };
+        }
+        const value = target[prop];
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+  }
+  return { routeCalls, submitCalls };
+}
 
 // ── Confirm-run helpers ──────────────────────────────────────────────────
 
@@ -1753,6 +1814,141 @@ async function scenarioStreetlightRouteContract() {
   console.log("  [25] 가로등 신고 route contract (complaint-board): OK");
 }
 
+// ── Genuine end-to-end progression (#1069 / PR #1074) ───────────────────────
+// These scenarios drive the REAL choreography (not the old false-positive
+// startCalls-only check) and assert the actual start() return value plus real
+// step progression through the canvas route transition and the awaiting states.
+// fastTimers collapses production delays so the journey can reach terminal
+// awaiting states without changing any production delay constant.
+
+async function scenarioStreetlightReportProgression() {
+  const bridge = makeResolvingBridge({ ok: true, answer: "가로등 안내입니다.", action: "none", confidence: 0.5 });
+  const choreo = makeChoreo();
+  const s = runScenario({ search: "?mvp=1", reducedMotion: true, bridge, choreo, fastTimers: true });
+
+  assert.strictEqual(
+    s.win.CitizenFirstChoreography.hasJourney("streetlight_report"),
+    true,
+    "streetlight: hasJourney('streetlight_report') must be true",
+  );
+
+  const { routeCalls } = installCanvasRouteSpy(s);
+
+  submit(s, "가로등이 고장났어요. 신고할게요");
+  await flush();
+  await drainTimers();
+  assert.strictEqual(
+    s.win.CitizenFirstUseShell.getState(),
+    "split",
+    "streetlight: shell must split after chip submit",
+  );
+  const confirmMsg = findConfirmRunMsg(s);
+  assert.ok(confirmMsg, "streetlight: confirm-run message must be present");
+  const yesBtn = findButtonByText(confirmMsg, "예");
+  assert.ok(yesBtn, "streetlight: confirm-run 예 button must exist");
+  clickButton(yesBtn);
+  await flush();
+
+  // The actual start() return value must be true (was false / false-positive before).
+  const started = s.win.CitizenFirstChoreography.start("streetlight_report");
+  assert.strictEqual(started, true, "streetlight: start('streetlight_report') must return true");
+  assert.strictEqual(
+    s.win.CitizenFirstChoreography.getCurrentJourneyId(),
+    "complaint-board-write",
+    "streetlight: current journey id must be complaint-board-write",
+  );
+  // The choreography is progressing (running), not immediately idle.
+  assert.strictEqual(
+    s.win.CitizenFirstChoreography.getState(),
+    "running",
+    "streetlight: choreography must be running after first step (not idle)",
+  );
+  // Real route transition to the validated complaint-board canvas route (the
+  // route dispatch fires after the thinking indicator delay, so drain first).
+  await drainTimersLong();
+  assert.ok(
+    routeCalls.includes("complaint-board"),
+    "streetlight: choreography must navigate to the complaint-board route",
+  );
+  console.log("  [26] 가로등 신고 journey progression (complaint-board route, running): OK");
+}
+
+async function scenarioLitterAiAssistProgression() {
+  const bridge = makeResolvingBridge({ ok: true, answer: "안내입니다.", action: "none", confidence: 0.5 });
+  const choreo = makeChoreo();
+  const s = runScenario({ search: "?mvp=1", reducedMotion: true, bridge, choreo, fastTimers: true });
+
+  assert.strictEqual(
+    s.win.CitizenFirstChoreography.hasJourney("litter_ai_assist"),
+    true,
+    "litter: hasJourney('litter_ai_assist') must be true",
+  );
+
+  const { routeCalls, submitCalls } = installCanvasRouteSpy(s);
+
+  submit(s, "쓰레기 무단투기 신고할래 (AI 도움)");
+  await flush();
+  await drainTimers();
+  assert.strictEqual(
+    s.win.CitizenFirstUseShell.getState(),
+    "split",
+    "litter: shell must split after chip submit",
+  );
+  const confirmMsg = findConfirmRunMsg(s);
+  assert.ok(confirmMsg, "litter: confirm-run message must be present");
+  const yesBtn = findButtonByText(confirmMsg, "예");
+  assert.ok(yesBtn, "litter: confirm-run 예 button must exist");
+  clickButton(yesBtn);
+  await flush();
+
+  // The actual start() return value from the confirm-run 예 click must be true
+  // (was false / false-positive before the alias fix). The proxy records the
+  // REAL return value in choreo.startResults.
+  assert.ok(
+    choreo.startResults.length > 0,
+    "litter: confirm-run 예 must have driven a real start() call",
+  );
+  assert.strictEqual(
+    choreo.startResults[choreo.startResults.length - 1],
+    true,
+    "litter: real start('litter_ai_assist') must return true",
+  );
+  assert.strictEqual(
+    s.win.CitizenFirstChoreography.getCurrentJourneyId(),
+    "complaint-ai-assist",
+    "litter: current journey id must be complaint-ai-assist",
+  );
+  // Reaches the choice-awaiting state after step 0/1/2.
+  await drainUntil(() => s.win.CitizenFirstChoreography.getState() === "waiting_choice", 2000);
+  assert.strictEqual(
+    s.win.CitizenFirstChoreography.getState(),
+    "waiting_choice",
+    "litter: choreography must reach waiting_choice",
+  );
+  // Real route transition through the validated complaint-board canvas route.
+  assert.ok(
+    routeCalls.includes("complaint-board"),
+    "litter: choreography must navigate to the complaint-board route",
+  );
+  // AI 도움 선택 (the choice step index passed by the rendered prompt) advances
+  // the REAL journey past step 0.
+  s.win.CitizenFirstChoreography.handleChoice(2);
+  await flush();
+  await drainUntil(() => s.win.CitizenFirstChoreography.getState() === "waiting_confirmation", 2000);
+  assert.strictEqual(
+    s.win.CitizenFirstChoreography.getState(),
+    "waiting_confirmation",
+    "litter: after AI 도움, choreography must reach waiting_confirmation",
+  );
+  // No automatic submission before the user confirms.
+  assert.strictEqual(
+    submitCalls.length,
+    0,
+    "litter: no automatic submit must occur before confirmation",
+  );
+  console.log("  [27] 쓰레기 무단투기 AI 도움 journey progression (waiting_choice → waiting_confirmation, no auto-submit): OK");
+}
+
 async function main() {
   console.log("Running MVP shell runtime scenarios (no network, no fetch):");
   await scenarioIllegalParking();
@@ -1785,6 +1981,8 @@ async function main() {
   await scenarioStreetlightChipGateAndStepProgression(); // A + B
   await scenarioLitterAiAssistEndToEnd();           // C (+ B)
   await scenarioStreetlightRouteContract();        // D
+  await scenarioStreetlightReportProgression();    // progression: streetlight
+  await scenarioLitterAiAssistProgression();        // progression: litter AI
   console.log("All MVP shell runtime scenarios passed.");
 }
 

@@ -6,12 +6,12 @@
  * No arbitrary route, target, selector, URL, or executable command input.
  *
  * Vocabulary source (read-only, not modified):
- *   Route IDs:  home, civil-service, complaint-category,
- *               complaint-illegal-parking, complaint-intake,
- *               handoff-stop, complaint-review,
- *               bulky-waste-disposal, passport-guidance,
- *               unmanned-kiosk-guidance, apartment-info,
- *               apartment-dept
+   *   Route IDs:  home, civil-service, complaint-category,
+   *               complaint-illegal-parking, complaint-intake,
+   *               complaint-board, handoff-stop, complaint-review,
+   *               bulky-waste-disposal, passport-guidance,
+   *               unmanned-kiosk-guidance, apartment-info,
+   *               apartment-dept
  *   Target IDs: nav-civil-service, nav-complaint-category,
  *               complaint-category-illegal-parking,
  *               complaint-category-public-parking-inconvenience,
@@ -124,7 +124,7 @@
       id: "complaint-board",
       title: "민원게시판",
       purpose: "북구청 민원게시판에서 민원을 조회하고 새 글을 작성할 수 있습니다.",
-      navTargets: Object.freeze(["complaint-write"]),
+      navTargets: Object.freeze([]),
       breadcrumbLabel: "민원게시판",
     }),
 

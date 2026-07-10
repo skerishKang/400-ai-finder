@@ -53,9 +53,42 @@
   //   thinkingText   — (new) temporary AI "thinking" indicator shown before message (optional)
   //   searchingText  — (new) second-phase "searching" indicator after thinking (optional)
   //   thinkingMs     — duration in ms for thinking/searching indicator (default 800)
-  //   delayMs        — pause before next step; omitted/0 = terminal
-  // ═══════════════════════════════════════════════════════════════════
-  var JOURNEY_MAP = Object.freeze({
+   //   delayMs        — pause before next step; omitted/0 = terminal
+   // ═══════════════════════════════════════════════════════════════════
+
+   // Shared frozen journey objects — the question-text key and the MVP shell
+   // action key MUST reference the exact same object so hasJourney()/start()
+   // resolve identically regardless of which key the shell passes.
+   var STREETLIGHT_REPORT_JOURNEY = Object.freeze({
+     id: "complaint-board-write",
+     description: "가로등 고장 신고 - 민원게시판 글쓰기 (MVP action)",
+     steps: Object.freeze([
+       Object.freeze({ message: "가로등 고장 신고를 도와드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
+       Object.freeze({ message: "민원게시판으로 이동합니다.", routeId: "complaint-board", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
+       Object.freeze({ message: "새로운 신고 글쓰기 양식을 엽니다.", clickTarget: "#btn-board-write", delayMs: 2000, routeId: "complaint-board", thinkingText: "양식을 준비 중입니다...", thinkingMs: 700 }),
+       Object.freeze({ message: "가로등 고장 신고 내용을 초안으로 작성했습니다.", focusSearch: true, typeQuery: "가로등 고장 신고", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "내용을 작성하는 중입니다...", thinkingMs: 800 }),
+       Object.freeze({ message: "작성된 내용을 확인하시고 제출해 주세요.", requiresConfirmation: true, delayMs: 1000 }),
+       Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다. 처리 결과는 민원게시판에서 확인 가능합니다." })
+     ]),
+   });
+
+   var LITTER_AI_ASSIST_JOURNEY = Object.freeze({
+     id: "complaint-ai-assist",
+     description: "쓰레기 무단투기 신고 - AI 폼 자동 완성 보조",
+     steps: Object.freeze([
+       Object.freeze({ message: "쓰레기 무단투기 신고 작성을 도와드립니다.", thinkingText: "안내를 준비 중입니다...", thinkingMs: 500, delayMs: 1000 }),
+       Object.freeze({ message: "민원게시판의 글쓰기 양식으로 이동합니다.", routeId: "complaint-board", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
+       Object.freeze({ message: "직접 작성하시겠습니까, 아니면 AI가 초안 작성을 도와드릴까요?", requiresChoice: true, delayMs: 1000 }),
+       Object.freeze({ message: "[사용자 선택: AI 도움 받기] 어떤 불편사항이 있으신지 편하게 말씀해 주세요.", delayMs: 1500, thinkingText: "답변을 기다리는 중입니다...", thinkingMs: 800 }),
+       Object.freeze({ message: "집 앞 공원에 쓰레기가 너무 많고 냄새가 나요. 빨리 치워주세요.", isUserSimulated: true, delayMs: 2500 }),
+       Object.freeze({ message: "말씀하신 내용을 바탕으로 민원 접수 양식에 맞게 초안을 작성합니다...", thinkingText: "내용을 분석하고 윤문하는 중입니다...", thinkingMs: 1500, delayMs: 1500 }),
+       Object.freeze({ message: "AI가 서식을 모두 채웠습니다.", focusSearch: true, typeQuery: "[환경정비 요청] ○○공원 내 방치 쓰레기 수거 및 악취 해결 요청", cursorTarget: "#board-write-title", delayMs: 1500, typeContent: "구정 발전에 노고가 많으십니다. 다름이 아니오라 집 앞 공원에 무단 투기된 쓰레기가 다량 방치되어 있어 심한 악취와 미관 훼손이 발생하고 있습니다. 조속한 환경 정비 및 수거를 요청드립니다." }),
+       Object.freeze({ message: "작성된 내용을 확인하시고 화면의 [제출하기] 버튼을 눌러주세요.", requiresConfirmation: true, delayMs: 1000 }),
+       Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다." })
+     ]),
+   });
+
+   var JOURNEY_MAP = Object.freeze({
     "불법 주정차 신고는 어디서 하나요?": Object.freeze({
       id: "complaint-illegal-parking",
       description: "불법 주정차 신고 경로 안내 (지도단속/안전신문고)",
@@ -251,33 +284,14 @@
         Object.freeze({ message: "안내를 마쳤습니다. 실제 이용은 북구청 및 각 행정복지센터에 설치된 무인민원발급기에서 가능합니다." }),
       ]),
     }),
-    "가로등이 고장났어요. 신고할게요": Object.freeze({
-      id: "complaint-board-write",
-      description: "가로등 고장 신고 - 민원게시판 글쓰기 (MVP action)",
-      steps: Object.freeze([
-        Object.freeze({ message: "가로등 고장 신고를 도와드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
-        Object.freeze({ message: "민원게시판으로 이동합니다.", routeId: "complaint-board", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
-        Object.freeze({ message: "새로운 신고 글쓰기 양식을 엽니다.", clickTarget: "#btn-board-write", delayMs: 2000, routeId: "complaint-board", thinkingText: "양식을 준비 중입니다...", thinkingMs: 700 }),
-        Object.freeze({ message: "가로등 고장 신고 내용을 초안으로 작성했습니다.", focusSearch: true, typeQuery: "가로등 고장 신고", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "내용을 작성하는 중입니다...", thinkingMs: 800 }),
-        Object.freeze({ message: "작성된 내용을 확인하시고 제출해 주세요.", requiresConfirmation: true, delayMs: 1000 }),
-        Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다. 처리 결과는 민원게시판에서 확인 가능합니다." })
-      ]),
-    }),
-    "쓰레기 무단투기 신고할래 (AI 도움)": Object.freeze({
-      id: "complaint-ai-assist",
-      description: "쓰레기 무단투기 신고 - AI 폼 자동 완성 보조",
-      steps: Object.freeze([
-        Object.freeze({ message: "쓰레기 무단투기 신고 작성을 도와드립니다.", thinkingText: "안내를 준비 중입니다...", thinkingMs: 500, delayMs: 1000 }),
-        Object.freeze({ message: "민원게시판의 글쓰기 양식으로 이동합니다.", routeId: "complaint-board", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
-        Object.freeze({ message: "직접 작성하시겠습니까, 아니면 AI가 초안 작성을 도와드릴까요?", requiresChoice: true, delayMs: 1000 }),
-        Object.freeze({ message: "[사용자 선택: AI 도움 받기] 어떤 불편사항이 있으신지 편하게 말씀해 주세요.", delayMs: 1500, thinkingText: "답변을 기다리는 중입니다...", thinkingMs: 800 }),
-        Object.freeze({ message: "집 앞 공원에 쓰레기가 너무 많고 냄새가 나요. 빨리 치워주세요.", isUserSimulated: true, delayMs: 2500 }),
-        Object.freeze({ message: "말씀하신 내용을 바탕으로 민원 접수 양식에 맞게 초안을 작성합니다...", thinkingText: "내용을 분석하고 윤문하는 중입니다...", thinkingMs: 1500, delayMs: 1500 }),
-        Object.freeze({ message: "AI가 서식을 모두 채웠습니다.", focusSearch: true, typeQuery: "[환경정비 요청] ○○공원 내 방치 쓰레기 수거 및 악취 해결 요청", cursorTarget: "#board-write-title", delayMs: 1500, typeContent: "구정 발전에 노고가 많으십니다. 다름이 아니오라 집 앞 공원에 무단 투기된 쓰레기가 다량 방치되어 있어 심한 악취와 미관 훼손이 발생하고 있습니다. 조속한 환경 정비 및 수거를 요청드립니다." }),
-        Object.freeze({ message: "작성된 내용을 확인하시고 화면의 [제출하기] 버튼을 눌러주세요.", requiresConfirmation: true, delayMs: 1000 }),
-        Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다." })
-      ]),
-    }),
+    // #927 / #1069 MVP action aliases — question text and action code share
+    // the exact same frozen journey object so start() resolves identically.
+    "가로등이 고장났어요. 신고할게요": STREETLIGHT_REPORT_JOURNEY,
+    "streetlight_report": STREETLIGHT_REPORT_JOURNEY,
+    // Owner-approved flagship flow: show the full menu, search, typing, and
+    // grounded-result sequence instead of jumping directly to the answer.
+    "쓰레기 무단투기 신고할래 (AI 도움)": LITTER_AI_ASSIST_JOURNEY,
+    "litter_ai_assist": LITTER_AI_ASSIST_JOURNEY,
   });
 
   // ═══════════════════════════════════════════════════════════════════
