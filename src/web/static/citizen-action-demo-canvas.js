@@ -2727,6 +2727,7 @@
         case "apartment-dept": html = _renderApartmentDept(route); break;
         case "apartment-info": html = _renderApartmentInfo(route); break;
         case "complaint-intake":   html = _renderComplaintIntake(route); break;
+        case "complaint-board":    html = _renderComplaintBoard(route); break;
         case "complaint-review":   html = _renderComplaintReview(route); break;
         case "handoff-stop":       html = _renderHandoffStop(route); break;
         default:                   html = "<p>알 수 없는 경로입니다.</p>"; break;
