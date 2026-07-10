@@ -633,6 +633,15 @@
     return "이 안내";
   }
 
+  function _actionDisplayName(action) {
+    if (action === "illegal_parking") return "불법 주정차 신고";
+    if (action === "housing_department") return "공동주택 부서 문의";
+    if (action === "bulky_waste") return "대형폐기물 배출";
+    if (action === "move_in_report") return "전입신고";
+    if (action === "public_health_center") return "보건소 위치·진료 안내";
+    return "이 안내";
+  }
+
   function startChoreography(question) {
     if (window.CitizenFirstChoreography && question) {
       window.CitizenFirstChoreography.start(question);
@@ -669,6 +678,66 @@
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
       startChoreography(question);
+    });
+
+    var noBtn = document.createElement("button");
+    noBtn.type = "button";
+    noBtn.textContent = "아니요";
+    noBtn.style.cssText = "padding:8px 16px;border:1px solid #d0d0d5;border-radius:18px;background:#fff;color:#0d0d0f;font:inherit;font-size:0.85rem;cursor:pointer;";
+    noBtn.addEventListener("click", function () {
+      msgDiv.removeAttribute("data-msg-type");
+      var btns = bubble.querySelectorAll("button");
+      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      if (chatInput) chatInput.focus();
+    });
+
+    btnRow.appendChild(yesBtn);
+    btnRow.appendChild(noBtn);
+    bubble.appendChild(btnRow);
+
+    var avatar = document.createElement("div");
+    avatar.className = "chat-avatar";
+    avatar.setAttribute("aria-label", "AI");
+    avatar.textContent = "A";
+    msgDiv.appendChild(avatar);
+    msgDiv.appendChild(bubble);
+
+    chatThread.appendChild(msgDiv);
+    chatThread.scrollTop = chatThread.scrollHeight;
+  }
+
+  // MVP confirm-run step: mirrors showConfirmRun but maps an action code to a
+  // display name instead of a free-text question. The local choreography must
+  // NOT start until the citizen explicitly chooses [예, 안내해 주세요].
+  function showConfirmRunForAction(action) {
+    var displayName = _actionDisplayName(action);
+    var msgDiv = document.createElement("div");
+    msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
+    msgDiv.setAttribute("data-msg-type", "confirm-run");
+
+    var bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bubble--ai";
+
+    var text = document.createElement("p");
+    text.style.margin = "0 0 10px 0";
+    text.textContent = displayName + "에 대해 안내해 드릴까요?";
+    bubble.appendChild(text);
+
+    var btnRow = document.createElement("div");
+    btnRow.style.display = "flex";
+    btnRow.style.gap = "8px";
+
+    var yesBtn = document.createElement("button");
+    yesBtn.type = "button";
+    yesBtn.textContent = "예, 안내해 주세요";
+    yesBtn.style.cssText = "padding:8px 16px;border:0;border-radius:18px;background:#ef6a4c;color:#fff;font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;";
+    yesBtn.addEventListener("click", function () {
+      msgDiv.removeAttribute("data-msg-type");
+      var btns = bubble.querySelectorAll("button");
+      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      if (window.CitizenFirstChoreography && action) {
+        window.CitizenFirstChoreography.start(action);
+      }
     });
 
     var noBtn = document.createElement("button");
@@ -891,9 +960,13 @@
         "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
       );
       appendQuestProgressCard(chatThread);
-      // run the existing local choreography for the resolved action
+      // MVP confirm-run step: do NOT start the local choreography until the
+      // citizen explicitly confirms. The confirm bubble shows the resolved
+      // action's display name and only starts Choreography.start(action) when
+      // the citizen presses [예, 안내해 주세요]. Pressing [아니요] keeps the
+      // chat as-is and never starts the choreography.
       if (window.CitizenFirstChoreography && action) {
-        window.CitizenFirstChoreography.start(action);
+        showConfirmRunForAction(action);
       }
       if (chatInput) chatInput.focus();
     }, 120);
