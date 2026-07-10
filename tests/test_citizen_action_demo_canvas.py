@@ -39,8 +39,8 @@ EXPECTED_ROUTE_IDS = sorted([
     "complaint-review",
     "handoff-stop",
     "home",
-    "move-in-report-guidance",
-    "public-health-center-guidance",
+    "passport-guidance",
+    "unmanned-kiosk-guidance",
 ])
 
 EXPECTED_TARGET_IDS = sorted([
@@ -58,10 +58,10 @@ EXPECTED_TARGET_IDS = sorted([
     "complaint-illegal-parking-report",
     "confirm-draft-prefill",
     "handoff-notice",
-    "health-center-guidance-card",
-    "move-in-guidance-card",
     "nav-civil-service",
     "nav-complaint-category",
+    "passport-guidance-card",
+    "unmanned-kiosk-card",
 ])
 
 
@@ -360,6 +360,85 @@ class TestRouteStructure:
         assert "bg-poc-banner" in js
 
 
+class TestMvpRouteVocabulary:
+    """#1057: Updated MVP route and target vocabulary."""
+
+    def test_passport_guidance_in_map(self):
+        js = _read_static("citizen-action-demo-map.js")
+        assert '"passport-guidance"' in js, "passport-guidance route not in map"
+
+    def test_unmanned_kiosk_guidance_in_map(self):
+        js = _read_static("citizen-action-demo-map.js")
+        assert '"unmanned-kiosk-guidance"' in js, "unmanned-kiosk-guidance route not in map"
+
+    def test_passport_guidance_card_in_map(self):
+        js = _read_static("citizen-action-demo-map.js")
+        assert '"passport-guidance-card"' in js, "passport-guidance-card target not in map"
+
+    def test_unmanned_kiosk_card_in_map(self):
+        js = _read_static("citizen-action-demo-map.js")
+        assert '"unmanned-kiosk-card"' in js, "unmanned-kiosk-card target not in map"
+
+    def test_move_in_report_guidance_not_in_closed_vocabulary(self):
+        js = _read_static("citizen-action-demo-map.js")
+        assert '"move-in-report-guidance"' not in js, \
+            "move-in-report-guidance should not be in current closed vocabulary"
+
+    def test_public_health_center_guidance_not_in_closed_vocabulary(self):
+        js = _read_static("citizen-action-demo-map.js")
+        assert '"public-health-center-guidance"' not in js, \
+            "public-health-center-guidance should not be in current closed vocabulary"
+
+    def test_move_in_guidance_card_not_in_closed_vocabulary(self):
+        js = _read_static("citizen-action-demo-map.js")
+        assert '"move-in-guidance-card"' not in js, \
+            "move-in-guidance-card should not be in current closed vocabulary"
+
+    def test_health_center_guidance_card_not_in_closed_vocabulary(self):
+        js = _read_static("citizen-action-demo-map.js")
+        assert '"health-center-guidance-card"' not in js, \
+            "health-center-guidance-card should not be in current closed vocabulary"
+
+    def test_old_routes_not_in_expected(self):
+        assert "move-in-report-guidance" not in EXPECTED_ROUTE_IDS
+        assert "public-health-center-guidance" not in EXPECTED_ROUTE_IDS
+
+    def test_old_targets_not_in_expected(self):
+        assert "move-in-guidance-card" not in EXPECTED_TARGET_IDS
+        assert "health-center-guidance-card" not in EXPECTED_TARGET_IDS
+
+
+class TestMvpRouteRender:
+    """#1057: MVP route render tests for passport and unmanned-kiosk."""
+
+    def _render_all_via_node(self):
+        return _render_all_routes_via_node()
+
+    def test_passport_route_renders_non_empty(self):
+        rendered = self._render_all_via_node()
+        html = rendered.get("passport-guidance", "")
+        assert html, "passport-guidance route rendered empty"
+        assert "bg-page-header" in html, "passport page missing header"
+
+    def test_unmanned_kiosk_route_renders_non_empty(self):
+        rendered = self._render_all_via_node()
+        html = rendered.get("unmanned-kiosk-guidance", "")
+        assert html, "unmanned-kiosk-guidance route rendered empty"
+        assert "bg-page-header" in html, "kiosk page missing header"
+
+    def test_passport_target_card_exists(self):
+        rendered = self._render_all_via_node()
+        combined = "".join(rendered.values())
+        assert 'data-action-target="passport-guidance-card"' in combined, \
+            "passport-guidance-card target not found in any rendered route"
+
+    def test_unmanned_kiosk_target_card_exists(self):
+        rendered = self._render_all_via_node()
+        combined = "".join(rendered.values())
+        assert 'data-action-target="unmanned-kiosk-card"' in combined, \
+            "unmanned-kiosk-card target not found in any rendered route"
+
+
 # ---------------------------------------------------------------------------
 # Safety disclosure content (removed PoC/demo explicit language per 박사님
 # instruction; should still mention authentication responsibility)
@@ -481,8 +560,8 @@ class TestRuntimeRender:
             "handoff-stop": {"title": "안내 종료", "purpose": "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
             "complaint-illegal-parking": {"title": "지도단속", "purpose": "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
             "bulky-waste-disposal": {"title": "대형폐기물 배출방법", "purpose": "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
-            "move-in-report-guidance": {"title": "전입신고 안내", "purpose": "전입신고(주소 옮기기) 경로와 유의사항을 안내합니다."},
-            "public-health-center-guidance": {"title": "보건소 위치·진료 안내", "purpose": "보건소 위치, 운영시간, 진료과목, 예방접종, 검사 경로를 안내합니다."},
+            "passport-guidance": {"title": "여권 발급 안내", "purpose": "여권 발급 및 재발급 경로와 유의사항을 안내합니다."},
+            "unmanned-kiosk-guidance": {"title": "무인민원발급기 안내", "purpose": "무인민원발급기 위치, 발급 가능 서류, 이용방법을 안내합니다."},
             "apartment-info": {"title": "아파트정보", "purpose": "분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다."},
             "apartment-dept": {"title": "공동주택과", "purpose": "도시관리국 공동주택과 업무 및 연락처 정보를 안내합니다."},
         }
@@ -779,8 +858,8 @@ class TestFidelityAndSeparation:
             "confirm-draft-prefill",
             "handoff-notice",
             "bulky-waste-guidance-card",
-            "move-in-guidance-card",
-            "health-center-guidance-card",
+            "passport-guidance-card",
+            "unmanned-kiosk-card",
             "apartment-guidance-card",
             "apartment-dept-card",
             "apartment-life-card",

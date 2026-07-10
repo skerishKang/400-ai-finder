@@ -1,5 +1,10 @@
 # Live Transition Decision Record
 
+> **2026-07-10 업데이트:** 현재 Cloudflare MVP Function(`functions/api/mvp/ask.js`)은
+> 실제로 **Gemini**(`gemini-3.1-flash-lite`)를 사용합니다. 아래 hy3/kilocode 참조는
+> 이전 결정 기록으로, Gemini 적용 시 이 결정 레코드의 조건(have-firecrawl, hy3 의존성)은
+> 더 이상 해당하지 않습니다.
+
 Decision gate between the **local/static MVP demo** and the **intended live /
 provider-assisted product** — official-site action navigator + live
 integration (epic #862).

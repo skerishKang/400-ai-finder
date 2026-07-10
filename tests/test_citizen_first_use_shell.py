@@ -41,7 +41,7 @@ def test_first_use_shell_rerenders_entry_conversation_after_canvas_boot():
 
 
 def test_first_use_shell_is_local_only_and_fail_closed():
-    assert '"불법 주정차 신고는 어디서 하나요?": true' in JS
+    assert '"불법 주정차 신고는 어디서 하나요?": "illegal_parking"' in JS
     assert "isSupportedQuestion(question)" in JS
     assert "예시 질문으로 다시 입력해 주세요." in JS
     assert "fetch(" not in JS
@@ -284,12 +284,14 @@ def test_canvas_delegates_quest_card_to_shell_renderer():
 def test_shell_normalizes_mvp_action_and_only_runs_approved_actions():
     assert "function normalizeMvpAction(" in JS
     assert "function resolveMvpActionForQuestion(" in JS
-    assert 'DEFAULT_SUPPORTED_ACTION = "illegal_parking"' in JS
+    assert "SUPPORTED_QUESTION_ACTIONS" in JS
     assert '"illegal_parking"' in JS
     assert '"housing_department"' in JS
-    # Only the two approved actions trigger a split+choreography.
+    # Actions trigger a split+choreography (all five plus none).
     assert "beginMvpSplitThenChoreography(question, \"illegal_parking\")" in JS
     assert "beginMvpSplitThenChoreography(question, \"housing_department\")" in JS
+    assert "beginMvpSplitThenChoreography(question, \"passport_guidance\")" in JS
+    assert "beginMvpSplitThenChoreography(question, \"unmanned_kiosk\")" in JS
     # Unsupported 'none' / failure must NOT start a choreography (no clone move).
     assert "CitizenFirstChoreography.start(action)" in JS
 
@@ -303,7 +305,7 @@ def test_shell_mvp_supported_question_none_falls_back_to_existing_clone_action()
     """A usable answer to the first supported question must not leave the
     MVP shell in chat-only mode just because the action field is none."""
     assert "if (action !== \"none\") return action" in JS
-    assert "if (isSupportedQuestion(question)) return DEFAULT_SUPPORTED_ACTION" in JS
+    assert "SUPPORTED_QUESTION_ACTIONS[normalized]" in JS
     assert "fall back to the existing deterministic local journey" in JS
 
 

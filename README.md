@@ -308,7 +308,7 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 |------|------|
 | **Python 로컬/서버 데모** | `src/web` 기반 Python 서버. 실제 AI·API·크롤링 사용 가능 (→ [`docs/operator-quickstart.md`](docs/operator-quickstart.md)) |
 | **Cloudflare Pages 정적 시연** | `dist/cloudflare-pages/` 빌드 산출물. 백엔드 없음, 결정형 스냅샷 기반, 네트워크 호출 없음 |
-| **Cloudflare Pages Live LLM** | `--mode live`로 빌드 시 `functions/api/mvp/ask.js`(Cloudflare Pages Function)를 통해 live LLM(hy3/kilocode) 사용 가능. `KILOCODE_API_KEY` secret 필요 |
+| **Cloudflare Pages Live LLM** | `--mode live`로 빌드 시 `functions/api/mvp/ask.js`(Cloudflare Pages Function)를 통해 live LLM(Gemini) 사용 가능. `GEMINI_API_KEY` secret 필요 |
 
 ### Live LLM 모드
 
@@ -316,7 +316,7 @@ Cloudflare Pages는 기본적으로 **static build**(`python3 scripts/build_clou
 
 `scripts/build_cloudflare_pages.py --mode live`를 사용하면 `functions/api/mvp/ask.js` Cloudflare Pages Function이 활성화되어 live LLM mode를 사용할 수 있습니다. 이 모드에서는:
 
-- `KILOCODE_API_KEY` secret이 Cloudflare Pages에 설정되어 있어야 합니다.
+- `GEMINI_API_KEY` secret이 Cloudflare Pages에 설정되어 있어야 합니다.
 - 채팅 인터페이스가 `/api/mvp/ask` 엔드포인트를 통해 실시간 LLM 응답을 제공합니다.
 - `?mvp=1` 쿼리 파라미터가 MVP entry에서 유지되어 shell이 live bridge를 로드합니다.
 

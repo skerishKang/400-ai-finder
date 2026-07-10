@@ -44,6 +44,15 @@ export async function onRequest(context) {
       }), { status: 200, headers });
     }
 
+    // 질문 타입 검증 — 문자열이 아니면 fail-closed
+    if (body.question !== undefined && typeof body.question !== 'string') {
+      return new Response(JSON.stringify({
+        ok: false, answer: '잘못된 요청 형식입니다.',
+        action: 'none', confidence: 0.0,
+        provider: 'gemini', model: 'gemini-3.1-flash-lite', failure_code: 'invalid_input'
+      }), { status: 200, headers });
+    }
+
     // 질문 길이 제한 (300자 초과 시 fail-closed)
     const q = (body.question || '').trim();
     if (q.length > 300) {
@@ -129,7 +138,7 @@ action 목록: illegal_parking(불법주정차/주차단속), housing_department
         // Confidence clamp (0.0 ~ 1.0)
         confidence = typeof parsed.confidence === 'number' ? Math.max(0, Math.min(1, parsed.confidence)) : 0.0;
       } catch {
-        // Non-JSON response: use raw content (hy3 may not always output valid JSON)
+        // Non-JSON response: use raw content (LLM may not always output valid JSON)
         answer = content || '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.';
       }
     }
