@@ -127,6 +127,29 @@ async function launchBrowser() {
   throw err;
 }
 
+// Promise wrapper around server.close() so cleanup awaits completion.
+function closeServer(server) {
+  return new Promise((resolve, reject) => {
+    if (!server || !server.listening) {
+      resolve();
+      return;
+    }
+    server.close((error) => {
+      if (error) {
+        // ERR_SERVER_NOT_RUNNING is harmless on a double-close; propagate
+        // anything else so real failures are not silently swallowed.
+        if (error.code === "ERR_SERVER_NOT_RUNNING") {
+          resolve();
+          return;
+        }
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
 // In-process static file server backed by dist/cloudflare-pages.
 // Listens on an OS-assigned port (0) so no fixed-port collision is possible.
 async function startServer() {
@@ -231,25 +254,28 @@ async function verifyFocusVisible(page, selector, ctx) {
       bottom: rect.bottom + focusExtent,
     };
 
-    // Walk ancestor chain for clipping containers.
+    // Walk ancestor chain for clipping containers, judged per-axis so an
+    // element that clips only one axis is still detected (the old concat of
+    // overflow+overflowX+overflowY could never match a single value).
+    const CLIPPING_VALUES = new Set(["hidden", "clip", "auto", "scroll"]);
     const clips = [];
     let node = el.parentElement;
     let depth = 0;
     while (node && node !== document.documentElement && depth < 50) {
       const ncs = getComputedStyle(node);
-      const clip = ["hidden", "clip", "auto", "scroll"].includes(
-        ncs.overflow + ncs.overflowX + ncs.overflowY,
-      )
-        ? ["hidden", "clip", "auto", "scroll"].filter((v) =>
-            [ncs.overflow, ncs.overflowX, ncs.overflowY].includes(v),
-          )
-        : [];
-      if (clip.length) {
+      const overflowX = ncs.overflowX;
+      const overflowY = ncs.overflowY;
+      const clipsX = CLIPPING_VALUES.has(overflowX);
+      const clipsY = CLIPPING_VALUES.has(overflowY);
+      if (clipsX || clipsY) {
         const nrect = node.getBoundingClientRect();
         clips.push({
           tag: node.tagName,
-          cls: node.className,
-          clip,
+          cls: typeof node.className === "string" ? node.className : "",
+          overflowX,
+          overflowY,
+          clipsX,
+          clipsY,
           rect: {
             left: nrect.left,
             right: nrect.right,
@@ -262,10 +288,25 @@ async function verifyFocusVisible(page, selector, ctx) {
       depth++;
     }
 
+    const ae = document.activeElement;
+    // .first-use-layout clips only at wider viewports (grid + overflow:hidden);
+    // at narrow widths it is display:flex with overflow:visible, so it is a
+    // non-clipping ancestor there. Report whether it actually clips so the
+    // caller can require its detection conditionally.
+    const layoutEl = document.querySelector(".first-use-layout");
+    const layoutCs = layoutEl ? getComputedStyle(layoutEl) : null;
+    const layoutClipping = !!(
+      layoutCs &&
+      (CLIPPING_VALUES.has(layoutCs.overflowX) ||
+        CLIPPING_VALUES.has(layoutCs.overflowY))
+    );
     return {
       exists: true,
       selector: sel,
-      activeElementMatches: document.activeElement === el,
+      activeElementMatches: ae === el,
+      activeTag: ae ? ae.tagName : null,
+      activeId: ae ? ae.id || "" : "",
+      activeClass: ae ? (typeof ae.className === "string" ? ae.className : "") : "",
       focusVisible: el.matches(":focus-visible"),
       focused: el.matches(":focus"),
       outlineStyle: cs.outlineStyle,
@@ -281,13 +322,19 @@ async function verifyFocusVisible(page, selector, ctx) {
       focusExtent,
       box,
       clips,
+      layoutClipping,
     };
   }, selector);
 
   assert.ok(info.exists, `${selector} does not exist [${ctx}]`);
+  const activeLabel = info.activeTag
+    ? `${info.activeTag}${info.activeId ? "#" + info.activeId : ""}${
+        info.activeClass ? "." + info.activeClass.split(/\s+/).join(".") : ""
+      }`
+    : "(none)";
   assert.ok(
     info.activeElementMatches,
-    `${selector} is not document.activeElement (got ${"tag"}:${info.activeElementMatches}) [${ctx}]`,
+    `${selector} is not document.activeElement (got ${activeLabel}) [${ctx}]`,
   );
   assert.ok(info.focused, `${selector} is not :focus [${ctx}]`);
   assert.ok(info.focusVisible, `${selector} is not :focus-visible [${ctx}]`);
@@ -308,6 +355,23 @@ async function verifyFocusVisible(page, selector, ctx) {
     `${selector} outline offset (${info.outlineOffset}px) < 0 [${ctx}]`,
   );
 
+  // Vacuous-pass guard: clipping detection must actually find an ancestor.
+  assert.ok(
+    info.clips.length > 0,
+    `${selector} found no clipping ancestors; ancestor detection may be broken [${ctx}]`,
+  );
+  // Require .first-use-layout detection only where it actually clips (it is
+  // display:flex + overflow:visible at narrow widths, where .chat-shell is the
+  // clipping ancestor instead). This keeps the guard meaningful on every
+  // viewport without asserting a structure that does not exist.
+  if (info.layoutClipping) {
+    assert.ok(
+      info.clips.some((c) => String(c.cls).split(/\s+/).includes("first-use-layout")),
+      `${selector} did not detect .first-use-layout as a clipping ancestor ` +
+        `[${ctx}]`,
+    );
+  }
+
   // Outline box must stay inside the viewport.
   const vw = await page.evaluate(() => window.innerWidth);
   const vh = await page.evaluate(() => window.innerHeight);
@@ -322,29 +386,38 @@ async function verifyFocusVisible(page, selector, ctx) {
       `[top=${info.box.top} bottom=${info.box.bottom} vh=${vh}] [${ctx}]`,
   );
 
-  // Outline box must not be clipped by an overflow ancestor.
+  // Outline box must not be clipped by an overflow ancestor. Each ancestor is
+  // judged per-axis: only the axes it actually clips are asserted.
+  let clippingChecks = 0;
   for (const c of info.clips) {
-    assert.ok(
-      info.box.left >= c.rect.left - TOL,
-      `${selector} outline box left (${info.box.left}) clipped by ancestor ` +
-        `${c.tag}.${c.cls} (${c.clip.join("/")}) left=${c.rect.left} [${ctx}]`,
-    );
-    assert.ok(
-      info.box.right <= c.rect.right + TOL,
-      `${selector} outline box right (${info.box.right}) clipped by ancestor ` +
-        `${c.tag}.${c.cls} (${c.clip.join("/")}) right=${c.rect.right} [${ctx}]`,
-    );
-    assert.ok(
-      info.box.top >= c.rect.top - TOL,
-      `${selector} outline box top (${info.box.top}) clipped by ancestor ` +
-        `${c.tag}.${c.cls} (${c.clip.join("/")}) top=${c.rect.top} [${ctx}]`,
-    );
-    assert.ok(
-      info.box.bottom <= c.rect.bottom + TOL,
-      `${selector} outline box bottom (${info.box.bottom}) clipped by ancestor ` +
-        `${c.tag}.${c.cls} (${c.clip.join("/")}) bottom=${c.rect.bottom} [${ctx}]`,
-    );
+    if (c.clipsX) {
+      assert.ok(
+        info.box.left >= c.rect.left - TOL,
+        `${selector} outline box left (${info.box.left}) clipped by ancestor ` +
+          `${c.tag}.${c.cls} (overflow-x=${c.overflowX}) left=${c.rect.left} [${ctx}]`,
+      );
+      assert.ok(
+        info.box.right <= c.rect.right + TOL,
+        `${selector} outline box right (${info.box.right}) clipped by ancestor ` +
+          `${c.tag}.${c.cls} (overflow-x=${c.overflowX}) right=${c.rect.right} [${ctx}]`,
+      );
+      clippingChecks += 2;
+    }
+    if (c.clipsY) {
+      assert.ok(
+        info.box.top >= c.rect.top - TOL,
+        `${selector} outline box top (${info.box.top}) clipped by ancestor ` +
+          `${c.tag}.${c.cls} (overflow-y=${c.overflowY}) top=${c.rect.top} [${ctx}]`,
+      );
+      assert.ok(
+        info.box.bottom <= c.rect.bottom + TOL,
+        `${selector} outline box bottom (${info.box.bottom}) clipped by ancestor ` +
+          `${c.tag}.${c.cls} (overflow-y=${c.overflowY}) bottom=${c.rect.bottom} [${ctx}]`,
+      );
+      clippingChecks += 2;
+    }
   }
+  info.clippingChecks = clippingChecks;
 
   return info;
 }
@@ -592,6 +665,12 @@ async function runOneState(page, viewport, state, base) {
         c.setAttribute("aria-hidden", "false");
       }
     });
+    // Re-apply transition:none after the fresh navigation so the grid layout
+    // settles immediately (a live transition makes the focus-box rect a
+    // non-deterministic mid-animation frame).
+    await page.addStyleTag({
+      content: "*{animation:none !important;transition:none !important;}",
+    });
     // Wait until the demo canvas is actually visible (its display/visibility
     // transition has settled) so the required-element check measures a
     // final, non-clipped layout rather than a mid-transition state.
@@ -615,6 +694,10 @@ async function runOneState(page, viewport, state, base) {
         c.setAttribute("aria-hidden", "false");
       }
     });
+    // Re-apply transition:none after the fresh navigation (see comment above).
+    await page.addStyleTag({
+      content: "*{animation:none !important;transition:none !important;}",
+    });
     // Wait until the demo canvas is actually visible (its display/visibility
     // transition has settled) so the required-element check measures a
     // final, non-clipped layout rather than a mid-transition state.
@@ -631,7 +714,10 @@ async function runOneState(page, viewport, state, base) {
       `overflow(htmlSW=${m.htmlScrollWidth}/${m.htmlClientWidth},bodySW=${m.bodyScrollWidth}/${m.viewportWidth}) ` +
       `input-focus(active=${inputFocus.activeElementMatches}, :focus-visible=${inputFocus.focusVisible}, outline=${inputFocus.outlineStyle} ${inputFocus.outlineWidth}px) ` +
       `send-focus(active=${sendFocus.activeElementMatches}, :focus-visible=${sendFocus.focusVisible}, outline=${sendFocus.outlineStyle} ${sendFocus.outlineWidth}px) ` +
-      `clipping=${push("c", true)}`,
+      `clipping=${push("c", true)} ` +
+      `input-clipping-ancestors=${inputFocus.clips.length} ` +
+      `send-clipping-ancestors=${sendFocus.clips.length} ` +
+      `clipping-checks=${inputFocus.clippingChecks + sendFocus.clippingChecks}`,
   );
 
   return { viewport, state, geometry: "PASS", inputFocus: "PASS", sendFocus: "PASS" };
@@ -658,15 +744,17 @@ async function main() {
 
   let browser;
   let browserInfo;
+  let context;
   try {
     browserInfo = await launchBrowser();
     browser = browserInfo.browser;
   } catch (e) {
-    server.close();
-    // A browser launch failure MUST fail the contract (never skip).
+    // A browser launch failure MUST fail the contract (never skip). Clean up
+    // the server first, then let main().catch produce the non-zero exit.
+    await closeServer(server);
     console.error("\n✗ RESPONSIVE BROWSER CONTRACT FAILED: no browser available");
     console.error("  " + e.message);
-    process.exit(1);
+    throw e;
   }
 
   // Report the actual browser used.
@@ -677,7 +765,7 @@ async function main() {
   const failures = [];
   let results = [];
   try {
-    const context = await browser.newContext({ viewport: VIEWPORTS[0] });
+    context = await browser.newContext({ viewport: VIEWPORTS[0] });
     const allowedOrigin = new URL(base).origin;
     // Block every request that is not to the test's own loopback origin.
     await context.route("**", (route) => {
@@ -702,9 +790,29 @@ async function main() {
     }
     await context.close();
   } finally {
-    await browser.close();
-    server.close();
+    // Close browser/context first, but always close the server afterwards so a
+    // browser-close failure cannot leave the server running.
+    try {
+      if (context) {
+        try {
+          await context.close();
+        } catch {
+          /* fall through to browser close */
+        }
+      }
+    } finally {
+      try {
+        if (browser) {
+          await browser.close();
+        }
+      } finally {
+        await closeServer(server);
+      }
+    }
   }
+
+  // Server must be fully stopped after the run.
+  assert.equal(server.listening, false, "server still listening after cleanup");
 
   console.log("\n=== viewport matrix ===");
   for (const r of results) {
