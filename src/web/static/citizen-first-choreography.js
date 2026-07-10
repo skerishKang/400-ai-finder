@@ -558,24 +558,28 @@
           visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 420);
         }
       }
+    }
 
-      // Schedule next step or terminate
+    // Schedule the next step (or termination) AFTER the permanent message is
+    // shown. Kept separate from _showPermanentAndSchedule so it always runs,
+    // regardless of which branch above displayed the message.
+    function _advanceAfterStep() {
       if (step.requiresChoice) {
-        var effectiveDelayChoice = Math.max(step.delayMs || 0, visualActionDelay + 320);
+        var effectiveDelayChoice = Math.max(step.delayMs || 0, 320);
         _timer = window.setTimeout(function () {
           _timer = null;
           _setState("waiting_choice");
           _renderChoicePrompt(index);
         }, effectiveDelayChoice);
       } else if (step.requiresConfirmation) {
-        var effectiveDelayConfirm = Math.max(step.delayMs || 0, visualActionDelay + 320);
+        var effectiveDelayConfirm = Math.max(step.delayMs || 0, 320);
         _timer = window.setTimeout(function () {
           _timer = null;
           _setState("waiting_confirmation");
           _renderConfirmationPrompt(index);
         }, effectiveDelayConfirm);
       } else if (typeof step.delayMs === "number" && step.delayMs > 0) {
-        var effectiveDelay = Math.max(step.delayMs, visualActionDelay + 320);
+        var effectiveDelay = Math.max(step.delayMs, 320);
         _timer = window.setTimeout(function () {
           _timer = null;
           _executeStep(index + 1);
@@ -599,6 +603,7 @@
           _scheduleAux(function () {
             if (searchEl && searchEl.parentNode) searchEl.parentNode.removeChild(searchEl);
             _showPermanentAndSchedule();
+            _advanceAfterStep();
           }, thinkMs);
         }, thinkMs);
       } else {
@@ -607,10 +612,12 @@
         _scheduleAux(function () {
           if (tempEl && tempEl.parentNode) tempEl.parentNode.removeChild(tempEl);
           _showPermanentAndSchedule();
+          _advanceAfterStep();
         }, thinkMs);
       }
     } else {
       _showPermanentAndSchedule();
+      _advanceAfterStep();
     }
   }
 
