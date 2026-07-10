@@ -1,6 +1,9 @@
 # MVP Golden Quest Fidelity Matrix
 
-This document locks the fidelity contract for the 5 resident-task golden quests
+> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+
+This matrix locks the left-surface fidelity contract for the five golden resident-task flows.
 in the Buk-gu Gwangju MVP. It exists so that future PRs cannot silently
 regress these quests back to generic pages, invented internal submission forms,
 or unsafe submission-like behavior.
@@ -44,7 +47,7 @@ or unsafe submission-like behavior.
     `건축민원 / 기계설비법 / 아파트정보(active) / 건축물대장말소신고 / 아파트생활정보 / 정비사업(재개발재건축)`
   - `아파트현황` table: `전체 428 건, 1/43 페이지`
   - columns: `번호 / 아파트명 / 새주소명 / 사용검사 / 동수 / 층수 / 세대수 / 관리사무소`
-  - representative rows: `제일맨션 / 오치아파트 / 송광아파트 / 두암아파트`
+  - 표시 행: `제일맨션 / 오치아파트 / 송광아파트 / 두암아파트` (예시 노출 행이며, 공식 페이지 전체 428건은 누락 없이 그대로 표시해야 함 — 일부 행만 표시하는 것은 금지)
   - `관리사무소` values are intentionally neutral (`-`); do **not** insert
     unverified public phone numbers.
   - related card: `아파트생활정보` (`하자발생 / 생활요령 / 생활수칙 / 관리비`)

@@ -1,6 +1,8 @@
 # Crop Manifest (Stage #863 followup-3)
 
-This manifest tracks individual visual assets cropped from `bukgu_home.png` to reconstruct the high-fidelity semantic DOM layout of Gwangju Buk-gu portal homepage.
+> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+
+This manifest tracks individual visual assets cropped from `bukgu_home.png` to reproduce the exact semantic DOM layout of Gwangju Buk-gu portal homepage.
 
 ---
 

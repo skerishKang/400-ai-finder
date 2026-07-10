@@ -6,7 +6,7 @@
 
 ## 핵심 목표
 
-- 복잡한 홈페이지 메뉴를 사용자 의도 중심으로 재구성합니다.
+- 복잡한 홈페이지 메뉴를 사용자 의도 중심으로 안내합니다.
 - 공지사항, 사업공고, 자료실, 첨부파일에 흩어진 정보를 통합 검색합니다.
 - 사용자가 해야 할 다음 행동을 단계별로 안내합니다.
 - 답변마다 출처 링크, 문서명, 게시일, 첨부파일명을 함께 제공합니다.
@@ -19,7 +19,9 @@
 2. 메뉴 구조와 주요 게시판을 분석합니다.
 3. PDF, HWP/HWPX, DOCX, XLSX 등 첨부문서를 파싱합니다.
 4. 사용자 질문에 대해 관련 페이지와 문서를 찾아줍니다.
-5. 신청 절차, 제출서류, 기한, 담당자 정보를 요약합니다.
+5. 신청 절차, 제출서류, 기한, 담당자 정보를 안내합니다.
+
+> **좌측 시민 사이트 화면 철칙**: 왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않는다. (canonical: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md))
 6. 답변에 바로가기 링크와 근거를 포함합니다.
 
 ## 프로젝트 구조
@@ -81,7 +83,7 @@
 - 일반 사용자 관점에서 기술적인 용어(`provider`, `model`, `preset` 등)가 전혀 노출되지 않습니다.
 
 ### 🖥️ 운영자 대시보드 (http://localhost:8090)
-- **서비스 및 사이트 정보 조회**: 현재 가동 중인 서비스명, 사이트 ID, 프로필 세부 사항 및 수집된 홈페이지 구조 요약을 모니터링합니다.
+- **서비스 및 사이트 정보 조회**: 현재 가동 중인 서비스명, 사이트 ID, 프로필 세부 사항 및 수집된 홈페이지 구조 요약(진단용 메타 요약)을 모니터링합니다.
 - **기관 선택 패널**: 등록된 site profile 목록에서 북구청(`bukgu_gwangju`)과 광주광역시청(`gwangju_go_kr`)을 선택해 같은 대시보드에서 기관별 테스트를 전환할 수 있습니다.
 - **LLM 모델 선택 패널**: 대시보드 화면에서 테스트용 LLM 프리셋 조합을 실시간으로 변경해가며 응답 품질을 비교·테스트할 수 있습니다.
   - **DeepSeek 기본** (preset: `deepseek-primary` / model: `deepseek-v4-flash` / provider: `opencode-go`)
@@ -125,7 +127,7 @@
 | 프로바이더 | 설명 | 기본 모델 | API Key 필요 |
 |-----------|------|----------|-------------|
 | `mock` | 테스트용 고정 응답 | mock | ❌ |
-| `stub` | Source 기반 시뮬레이션 응답 | stub | ❌ |
+| `stub` | Source 기반 응답 (실제 LLM API 호출 없음) | stub | ❌ |
 | `opencode-go` | OpenCode-Go Gateway | deepseek-v4-flash | ✅ |
 | `opengateway` | OpenGateway | mimo-v2.5-pro | ✅ |
 | `nvidia` | NVIDIA NIM | openai/gpt-oss-120b | ✅ |
@@ -437,3 +439,13 @@ PYTHONPATH=. .venv/bin/python scripts/analyze_question_logs.py \
 Reads sanitized JSONL question logs and produces a Markdown report separating
 promotion candidates from retrieval gaps. Dry-run only — no scenarios, snapshots,
 caches, PRs, or commits are created.
+
+## 좌측 시민 사이트 화면 철칙 (Exact Official-Site Clone)
+
+왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않는다.
+
+이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+
+- Canonical invariant: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+- 공식 페이지 fixture manifest: [tests/fixtures/official_site_clone_manifest.json](tests/fixtures/official_site_clone_manifest.json)
+- 계약 테스트: [tests/test_exact_official_site_clone_invariant.py](tests/test_exact_official_site_clone_invariant.py)

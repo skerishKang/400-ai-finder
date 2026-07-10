@@ -1,5 +1,8 @@
 # MVP Demo Milestone Snapshot
 
+> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+
 Short closeout snapshot for the Buk-gu Gwangju **local/static** MVP demo.
 It records what is complete now, what the demo is not, and what remains on the
 live/production tracks.
@@ -16,7 +19,7 @@ live/production tracks.
 | Complete | Current MVP demo milestone is complete for **local/static stakeholder review**. |
 | Not production | The demo is **not** a production rebuild. |
 | Not live integration | The demo is **not** a live official-site integration. |
-| What it is | A **local/static, high-fidelity demonstration surface** for five locked resident-task flows. |
+| What it is | A **local/static demonstration surface that clones the official Buk-gu portal pages verbatim** for five locked resident-task flows. |
 
 > **Scope note:** this milestone closes out the local/static demo surface only.
 > It is **not** the entire product. The intended product also answers unknown

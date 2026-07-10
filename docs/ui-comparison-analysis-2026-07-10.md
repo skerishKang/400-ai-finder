@@ -1,6 +1,9 @@
 # UI 비교 분석 리포트 — citizen-action-demo-canvas vs 실제 북구청 사이트
 
-**날짜**: 2026-07-10  
+> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+
+**날짜**: 2026-07-10  \
 **기준 SHA**: 9350328  
 **분석 대상**: `src/web/static/citizen-action-demo-canvas.js` / `.css`  
 
@@ -8,9 +11,9 @@
 
 ## 1. 개요
 
-citizen-action-demo-canvas는 북구청 공식 홈페이지(bukgu.gwangju.kr)의 UI를 고충실도로 재구성합니다.  
-기존 시각적 비교(참조: `docs/artifacts/863-reference/render/4c6c8e13/home-comparison-metadata.json`) 결과  
-**평균 RGB 차이 12.8/11.5/10.1**로, 상당히 근접하지만 미세한 차이가 존재합니다.
+citizen-action-demo-canvas는 북구청 공식 홈페이지(bukgu.gwangju.kr)의 UI를 공식 페이지 그대로 clone한다.  \
+기존 시각적 비교(참조: `docs/artifacts/863-reference/render/4c6c8e13/home-comparison-metadata.json`) 결과  \
+**평균 RGB 차이 12.8/11.5/10.1**로, 실제 공식 페이지와의 정확한 일치(exact match)가 아직 완전히 달성되지 않아 미세한 차이가 존재한다. clone은 공식 페이지와 다르게 근사하거나 재설계되지 않는다.
 
 ---
 
@@ -96,7 +99,7 @@ citizen-action-demo-canvas는 북구청 공식 홈페이지(bukgu.gwangju.kr)의
 1. **GNB active 색상**: home 페이지에서 canvas는 `#0054a6`이나 실제는 `#101010`
 2. **섹션 패딩 불일치**: 일부 섹션 32px vs 실제 40px
 3. **버튼 그림자**: canvas가 shadow 미적용
-4. **전체 RGB 차이**: 평균 12.8/11.5/10.1 (0~255 스케일) — 근접하나 미세 차이 존재
+4. **전체 RGB 차이**: 평균 12.8/11.5/10.1 (0~255 스케일) — 공식 페이지와 미세한 차이가 있으므로 exact clone으로 추가 보정 필요
 5. **이미지 에셋**: 퀵 링크, 알림 배너 등 실제 스크린샷 기반 이미지 사용으로 시각적 일치도 높음
 
 ---

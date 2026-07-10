@@ -1,12 +1,15 @@
 # #868 Home Layout Specification
 
+> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+
 Status: implementation specification derived from `R-HOME-01` and `R-HOME-02` in #867.
 
 ## Reference canvas
 
 - Initial viewport: 1344×756 (`R-HOME-01`)
 - Full page: 1344×1833 (`R-HOME-02`)
-- Desktop content container: centered, approximately 910px wide in the reference viewport.
+- Desktop content container: centered, 910px wide in the reference viewport (committed reference target — render must match the approved reference exactly, not approximately).
 - The left official page inside the final split demo uses a fixed internal desktop canvas. It may scale uniformly, but may not independently reflow or distort.
 
 ## Above-fold block order
