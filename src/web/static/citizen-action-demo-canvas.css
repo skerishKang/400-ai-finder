@@ -142,7 +142,10 @@
    GNB (white bg, dark text menu)
 --------------------------------------------------------------------------- */
 .bg-gnb {
-  background: #fff; border-bottom: 1px solid #e0e0e0; flex-shrink: 0;
+  background: #fff;
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, #32966E 0%, #466EAA 100%) 1;
+  flex-shrink: 0;
 }
 .bg-gnb__inner {
   max-width: 1200px; margin: 0 auto;
@@ -160,8 +163,8 @@
   transition: color 0.12s; white-space: nowrap;
   letter-spacing: -0.3px;
 }
-.bg-gnb__link:hover { color: #0054a6; }
-.bg-gnb__link--active { color: #0054a6; font-weight: 700; }
+.bg-gnb__link:hover { color: #466EAA; }
+.bg-gnb__link--active { color: #466EAA; font-weight: 700; }
 .bg-gnb__tools {
   display: flex; align-items: center; gap: 4px; margin-left: auto;
 }
@@ -169,7 +172,7 @@
   background: none; border: none; cursor: pointer;
   padding: 8px 10px; font-size: 1rem; color: #555; line-height: 1;
 }
-.bg-gnb__icon-btn:hover { color: #0054a6; }
+.bg-gnb__icon-btn:hover { color: #466EAA; }
 
 /* ---------------------------------------------------------------------------
    Search hero (pill-shaped large search)
@@ -504,10 +507,10 @@
 /* LNB sidebar */
 .bg-lnb {
   width: 220px; min-width: 220px;
-  border-right: 1px solid #e0e4ec; background: #fafbfc;
+  border-right: 1px solid #e0e4ec; background: #fff;
 }
 .bg-lnb__header {
-  background: #1f4973; color: #fff; font-weight: 700;
+  background: #fff; color: #2c3e50; font-weight: 700;
   font-size: 0.9375rem; padding: 12px 14px;
 }
 .bg-lnb__list { list-style: none; margin: 0; padding: 0; }
@@ -516,13 +519,13 @@
   display: block; padding: 10px 14px; font-size: 0.8125rem;
   color: #2c3e50; text-decoration: none; position: relative;
 }
-.bg-lnb__item a:hover { background: #eaf2fb; }
+.bg-lnb__item a:hover { background: #EAF2FB; }
 .bg-lnb__item--active > a {
-  background: #eaf2fb; color: #0054a6; font-weight: 600;
+  background: #EAF2FB; color: #466EAA; font-weight: 600;
 }
 .bg-lnb__item--active > a::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px; background: #0054a6;
+  width: 3px; background: #466EAA;
 }
 .bg-lnb__parent {
   font-weight: 600; display: flex; align-items: center; gap: 4px;
@@ -535,13 +538,13 @@
 .bg-lnb__sub li a {
   padding-left: 28px; font-size: 0.75rem; color: #5d6d7e;
 }
-.bg-lnb__sub li a:hover { background: #eaf2fb; }
+.bg-lnb__sub li a:hover { background: #EAF2FB; }
 .bg-lnb__sub li.bg-lnb__sub--active > a {
-  background: #e3f0fe; color: #0054a6; font-weight: 600;
+  background: #EAF2FB; color: #466EAA; font-weight: 600;
 }
 .bg-lnb__sub li.bg-lnb__sub--active > a::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px; background: #0054a6;
+  width: 3px; background: #466EAA;
 }
 .bg-lnb__ext-link::after {
   content: ' ↗'; font-size: 0.625rem; color: #888;
@@ -978,7 +981,8 @@
 
 /* 3. GNB Layout & Typo */
 .bg-page--home .bg-gnb {
-  border-bottom: 2px solid #0054a6;
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, #32966E 0%, #466EAA 100%) 1;
 }
 .bg-page--home .bg-gnb__inner {
   height: 52px;
@@ -998,7 +1002,7 @@
 }
 .bg-page--home .bg-gnb__link:hover,
 .bg-page--home .bg-gnb__link--active {
-  color: #0054a6;
+  color: #466EAA;
 }
 .bg-page--home .bg-gnb__tools {
   gap: 12px;
@@ -2664,6 +2668,15 @@
   color: #fff;
   border: 1px solid #0054a6;
 }
+/* 시나리오4 (정부24/전입신고): 실제 정부24 네이비(#0A325A) 테마 */
+.bg-page--move-in-report .bg-sub-btn--primary {
+  background: #0A325A;
+  border-color: #0A325A;
+}
+.bg-page--move-in-report .bg-sub-btn--secondary {
+  color: #0A325A;
+  border-color: #0A325A;
+}
 :is(.bg-page--illegal-parking,
     .bg-page--bulky-waste,
     .bg-page--move-in-report,
@@ -2850,8 +2863,8 @@
 
 /* 정부24 card */
 .bg-page--move-in-report .bg-gov24-card {
-  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 100%);
-  border: 2px solid #149896;
+  background: linear-gradient(135deg, #eaf0fb 0%, #dde6f3 100%);
+  border: 2px solid #0A325A;
   border-radius: 10px;
   padding: 24px;
   margin-bottom: 20px;
@@ -2859,7 +2872,7 @@
 .bg-page--move-in-report .bg-gov24-card__badge {
   display: inline-block;
   padding: 4px 12px;
-  background: #149896;
+  background: #0A325A;
   color: #fff;
   border-radius: 12px;
   font-size: 0.75rem;
@@ -2893,7 +2906,7 @@
   min-width: 90px;
 }
 .bg-page--move-in-report .bg-gov24-card__link {
-  color: #149896;
+  color: #0A325A;
   text-decoration: none;
   font-weight: 600;
 }
@@ -2906,7 +2919,7 @@
 /* 보건소 전용 헤더 */
 .bg-page--public-health-center .bg-health-header {
   background: #fff;
-  border-bottom: 2px solid #149896;
+  border-bottom: 2px solid #BEBEAA;
 }
 .bg-page--public-health-center .bg-health-header__inner {
   max-width: 1200px;
@@ -2934,7 +2947,7 @@
   display: block;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #149896;
+  color: #BEBEAA;
 }
 .bg-page--public-health-center .bg-health-gnb {
   display: flex;
@@ -2950,8 +2963,8 @@
   white-space: nowrap;
 }
 .bg-page--public-health-center .bg-health-gnb__link--active {
-  color: #149896;
-  border-bottom: 3px solid #149896;
+  color: #BEBEAA;
+  border-bottom: 3px solid #BEBEAA;
 }
 
 /* 보건소 map placeholder */
