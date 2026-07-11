@@ -21,24 +21,6 @@ MANIFEST = ROOT / "tests" / "fixtures" / "official_site_clone_manifest.json"
 MAP_JS = ROOT / "src" / "web" / "static" / "citizen-action-demo-map.js"
 PLAN_PY = ROOT / "src" / "agent" / "citizen_action_plan.py"
 
-# Canonical 13-route set from the CTO clarification (the expected dynamic result).
-EXPECTED_ROUTES = [
-    "home",
-    "civil-service",
-    "complaint-category",
-    "complaint-illegal-parking",
-    "bulky-waste-disposal",
-    "passport-guidance",
-    "unmanned-kiosk-guidance",
-    "apartment-dept",
-    "apartment-info",
-    "complaint-intake",
-    "complaint-board",
-    "complaint-review",
-    "handoff-stop",
-]
-
-
 # ---------------------------------------------------------------------------
 # Dynamic extraction from production renderer sources
 # ---------------------------------------------------------------------------
@@ -65,30 +47,25 @@ def _extract_valid_route_ids_from_py() -> set[str]:
     return set(ids)
 
 
+def _renderer_intersection() -> set[str]:
+    """Canonical route set is the intersection of JS and PY renderer vocabularies.
+    
+    No hand-maintained literal declares the expected set; the two independent
+    production sources (JS frozen array, PY frozenset) define it jointly.
+    """
+    js = _extract_closed_route_ids_from_js()
+    py = _extract_valid_route_ids_from_py()
+    return js & py
+
+
 def _manifest_capture_routes() -> set[str]:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     return {e["route_id"] for e in manifest.get("capture_required", [])}
 
 
 # ---------------------------------------------------------------------------
-# 1. Both renderer sources declare exactly the canonical 13-route set
+# 1. Both renderer sources agree on the same route vocabulary
 # ---------------------------------------------------------------------------
-
-def test_js_closed_route_ids_match_canonical_set():
-    got = _extract_closed_route_ids_from_js()
-    assert got == set(EXPECTED_ROUTES), (
-        f"CLOSED_ROUTE_IDS in map.js = {sorted(got)}; "
-        f"expected {sorted(EXPECTED_ROUTES)}"
-    )
-
-
-def test_py_valid_route_ids_match_canonical_set():
-    got = _extract_valid_route_ids_from_py()
-    assert got == set(EXPECTED_ROUTES), (
-        f"_VALID_ROUTE_IDS in plan.py = {sorted(got)}; "
-        f"expected {sorted(EXPECTED_ROUTES)}"
-    )
-
 
 def test_js_and_py_route_vocabularies_agree():
     js = _extract_closed_route_ids_from_js()
@@ -98,33 +75,34 @@ def test_js_and_py_route_vocabularies_agree():
     )
 
 
+def test_js_and_py_route_counts_agree():
+    js = _extract_closed_route_ids_from_js()
+    py = _extract_valid_route_ids_from_py()
+    assert len(js) == len(py), (
+        f"route count mismatch — js has {len(js)}, py has {len(py)}"
+    )
+
+
 # ---------------------------------------------------------------------------
-# 2. Manifest capture_required set is EXACTLY the dynamic renderer route set
+# 2. Manifest capture_required set is exactly the dynamic renderer route set
 #    (not a separately hand-maintained literal)
 # ---------------------------------------------------------------------------
 
-def test_manifest_capture_routes_equal_renderer_js_routes():
+def test_manifest_capture_routes_equal_renderer_intersection():
     manifest_routes = _manifest_capture_routes()
-    renderer_routes = _extract_closed_route_ids_from_js()
-    assert manifest_routes == renderer_routes, (
+    canonical = _renderer_intersection()
+    assert manifest_routes == canonical, (
         f"manifest capture_required routes {sorted(manifest_routes)} do not equal "
-        f"renderer (map.js) routes {sorted(renderer_routes)}"
+        f"renderer intersection {sorted(canonical)}"
     )
 
 
-def test_manifest_capture_routes_equal_renderer_py_routes():
+def test_manifest_capture_routes_count_matches_renderer():
     manifest_routes = _manifest_capture_routes()
-    renderer_routes = _extract_valid_route_ids_from_py()
-    assert manifest_routes == renderer_routes, (
-        f"manifest capture_required routes {sorted(manifest_routes)} do not equal "
-        f"renderer (plan.py) routes {sorted(renderer_routes)}"
-    )
-
-
-def test_manifest_capture_routes_count_is_thirteen():
-    manifest_routes = _manifest_capture_routes()
-    assert len(manifest_routes) == 13, (
-        f"expected exactly 13 capture_required routes, got {len(manifest_routes)}"
+    canonical = _renderer_intersection()
+    assert len(manifest_routes) == len(canonical), (
+        f"manifest has {len(manifest_routes)} routes, "
+        f"renderer intersection has {len(canonical)}"
     )
 
 

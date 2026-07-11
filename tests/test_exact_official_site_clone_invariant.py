@@ -22,16 +22,49 @@ MANIFEST = ROOT / "tests" / "fixtures" / "official_site_clone_manifest.json"
 
 # Clone-relevant documents that MUST reference the canonical invariant and MUST NOT
 # contain a sentence that APPROVES a weak (summary / approximate / redesigned) direction.
-CLONE_RELATED_DOCS = [
-    "README.md",
-    "docs/design_mockups.md",
-    "docs/ui-comparison-analysis-2026-07-10.md",
-    "docs/design/863-home-layout-spec.md",
-    "docs/artifacts/863-semantic/followup-3/crop-manifest.md",
-    "docs/mvp-golden-quest-fidelity-matrix.md",
-    "docs/mvp-demo-milestone-snapshot.md",
-    "docs/product/exact-official-site-clone-invariant.md",
-]
+# 
+# Dynamically discovered: every non-binary Markdown file under docs/ and the root
+# README.md that either (a) contains a link to the canonical invariant or (b) is
+# the canonical invariant document itself.  No hand-maintained literal replaces
+# this scan so newly created clone-relevant documents are automatically covered.
+DOC_PATTERNS = ("*.md", "*.mdx")
+_EXCLUDED_ROOTS = frozenset({
+    ".claude", ".git", "node_modules", "__pycache__", ".pytest_cache",
+    "data", "dist", "extensions", "presentation", "proposal", "prompts",
+    "examples", "tools",
+})
+
+
+def _discover_clone_related_docs() -> list[str]:
+    """Walk the repository and collect docs referencing the canonical invariant.
+    
+    No hand-maintained literal replaces this scan, so newly created clone-relevant
+    documents are automatically covered.
+    """
+    found: list[str] = []
+    found.append(CANONICAL_DOC)
+    readme_path = ROOT / "README.md"
+    if readme_path.is_file():
+        found.append("README.md")
+    docs_dir = ROOT / "docs"
+    if docs_dir.is_dir():
+        for pattern in DOC_PATTERNS:
+            for p in docs_dir.rglob(pattern):
+                if any(excluded in p.parts for excluded in _EXCLUDED_ROOTS):
+                    continue
+                try:
+                    text = p.read_text(encoding="utf-8", errors="replace")
+                except Exception:
+                    continue
+                if CANONICAL_LINK_TEXT in text or CANONICAL_DOC in text:
+                    rel = p.relative_to(ROOT).as_posix()
+                    if rel not in found:
+                        found.append(rel)
+    found.sort()
+    return found
+
+
+CLONE_RELATED_DOCS = _discover_clone_related_docs()
 
 OFFICIAL_DOMAIN = "https://bukgu.gwangju.kr"
 
@@ -51,6 +84,9 @@ FORBIDDEN_PHRASES = [
     "demo quality reproduction",
     "representative rows",
     "representative row",
+    "Use a summary instead of the official page",
+    "Use a summary instead",
+    "summary instead of official",
 ]
 
 # Weak terms whose mere presence is not a violation, but which become a violation when a

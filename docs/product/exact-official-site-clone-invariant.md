@@ -79,9 +79,13 @@
 - 공식 업데이트 날짜를 누락
 - AI 메시지를 공식 페이지 데이터로 사용
 - 모바일에서 공식 페이지 대신 요약 화면 표시
+- apartment 페이지에서 pagination을 flatten하여 모든 행을 단일 목록으로 병합
+- 검증되지 않은 `-` placeholder를 실제 데이터인 것처럼 표시
+- 오프라인/정적 빌드를 이유로 검색 입력, pagination control, 정렬 control을 disabled 처리
 
 다음 표현으로 공식 페이지와 다른 결과를 허용하지 않는다:
 "high-fidelity", "closely enough", "근사", "대표적인 정보", "요약 화면", "간소 버전",
+"Use a summary instead of the official page",
 "representative", "approximation", "summary", "simplified", "demo-quality reproduction".
 
 금지 동작:
@@ -92,6 +96,9 @@
 - 실제 페이지 대신 유사 화면을 제작하지 않는다
 - AI 답변이나 choreography 메시지를 왼쪽 공식 페이지 데이터의 원본으로 사용하지 않는다
 - 공식 source가 없는 내용을 추측하거나 만들어 넣지 않는다
+- 공식 페이지의 pagination을 flatten하여 단일 목록으로 병합하지 않는다
+- 검증되지 않은 `-` placeholder를 실제 콘텐츠처럼 표시하지 않는다
+- 오프라인/정적 빌드를 이유로 검색 입력, pagination control, 정렬 control을 disabled 처리하지 않는다 (공식 페이지 컨트롤은 그대로 보존)
 - 기밀인 의뢰·고객·관계자 정보를 저장소 어디에도 기록하지 않는다
 
 ## PR review 원칙
@@ -107,6 +114,9 @@
 - incomplete capture
 - approximate language
 - fixture 없는 official-page renderer
+- apartment pagination flatten (단일 목록 병합)
+- 검증되지 않은 `-` placeholder 사용
+- 오프라인 빌드를 이유로 검색/pagination/정렬 control 비활성화
 
 ## 관련 문서
 

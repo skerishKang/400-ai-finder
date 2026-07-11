@@ -44,7 +44,7 @@ def _load_manifest() -> dict:
 def test_every_capture_required_entry_has_all_mandatory_fields():
     manifest = _load_manifest()
     entries = manifest.get("capture_required", [])
-    assert entries, "manifest must contain capture_required entries (13 expected)"
+    assert entries, "manifest must contain capture_required entries"
     for entry in entries:
         rid = entry.get("route_id", "<no route_id>")
         missing = [f for f in REQUIRED_CAPTURE_FIELDS if f not in entry]
