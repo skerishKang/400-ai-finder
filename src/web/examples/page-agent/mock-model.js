@@ -22,6 +22,12 @@
 //   - "Show the MIT license section"         → scroll to #license
 //   - "Find the custom UI architecture"      → scroll to #architecture
 //   - Unknown/bound tasks                    → bounded "unsupported" done
+//
+// MULTI-TURN SUPPORT:
+//   After returning a done action, the mock sets turnComplete=true.  Any
+//   subsequent request without a genuinely new user message returns a stop
+//   response (no tool calls, finish_reason="stop") to halt the agent loop.
+//   When a new user message is detected, turnComplete resets.
 // ═══════════════════════════════════════════════════════════════════════════
 
 (function () {
@@ -120,6 +126,9 @@
   }
 
   // ── Extract the last user message from the request payload ──────────────
+  // The PageAgent runtime may send content as either a plain string or an
+  // array of content parts (OpenAI multi-modal format).  We always reduce
+  // to a plain string for deterministic matching.
 
   function getLastUserMessage(payload) {
     if (!payload || !payload.messages || !Array.isArray(payload.messages)) {
@@ -128,7 +137,18 @@
     var msgs = payload.messages;
     for (var i = msgs.length - 1; i >= 0; i--) {
       if (msgs[i].role === 'user') {
-        return msgs[i].content || '';
+        var content = msgs[i].content;
+        if (typeof content === 'string') return content;
+        if (Array.isArray(content)) {
+          var parts = [];
+          for (var k = 0; k < content.length; k++) {
+            if (content[k] && typeof content[k].text === 'string') {
+              parts.push(content[k].text);
+            }
+          }
+          return parts.join(' ');
+        }
+        return String(content);
       }
     }
     return '';
@@ -170,6 +190,32 @@
     };
   }
 
+  // ── Stop response (no tool calls) to break the agent loop ───────────────
+
+  function buildStopResponse() {
+    return {
+      id: 'chatcmpl-local-stop-' + Date.now(),
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model: 'local-mock',
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: 'Task processing complete.',
+          },
+          finish_reason: 'stop',
+        },
+      ],
+      usage: {
+        prompt_tokens: 1,
+        completion_tokens: 1,
+        total_tokens: 2,
+      },
+    };
+  }
+
   // ── Non-local host blocklist ───────────────────────────────────────────
 
   var BLOCKED_HOSTS = [
@@ -197,7 +243,7 @@
     }
   }
 
-  // ── Diagnostics for verification (no behavior change) ───────────────────
+  // ── Diagnostics for verification ───────────────────────────────────────
 
   var callCount = 0;
   var toolNames = [];
@@ -213,16 +259,20 @@
     taskIds = [];
     successValues = [];
     completionTexts = [];
+    turnComplete = false;
+    lastUserMessage = '';
   }
 
   window.__pageAgentLabResetDiagnostics = resetDiagnostics;
 
+  // ── Multi-turn state tracking ──────────────────────────────────────────
+
+  var turnComplete = false;
+  var lastUserMessage = '';
+
   // ── Public API ─────────────────────────────────────────────────────────
 
   function respond(input, init) {
-    // Parse the OpenAI-compatible request body.
-    // Note: page-agent-lab.js enforces same-origin via localCustomFetch,
-    // so URL validation is handled by the caller.
     var body = {};
     try {
       body = JSON.parse((init && init.body) || '{}');
@@ -230,7 +280,6 @@
       body = {};
     }
 
-    // Read the actual macro tool name the runtime requested.
     var macroToolName = 'AgentOutput';
     if (
       body.tools &&
@@ -243,14 +292,57 @@
     }
 
     var userMessage = getLastUserMessage(body);
-    // After the first action records a step, the user prompt embeds <step_1>.
-    var firstStep = userMessage.indexOf('<step_1>') === -1;
 
-    var task = findTask(userMessage);
+    // ── Strip PageAgent's XML wrapper ──────────────────────────────────
+    // PageAgent wraps the user's real prompt inside:
+    //   <agent_state>
+    //     <user_request>actual user prompt</user_request>
+    //     ...system-generated sections...
+    //   </agent_state>
+    // We extract only the content between <user_request> and </user_request>
+    // so the deterministic matcher sees the user's actual question, not the
+    // XML boilerplate (which may contain unrelated strings like "quick start").
+    var strippedMessage = userMessage;
+    if (typeof userMessage === 'string') {
+      var match = userMessage.match(/<user_request>([\s\S]*?)<\/user_request>/);
+      if (match) {
+        strippedMessage = match[1].trim();
+      }
+    }
+
+    // ── DEBUG: log request details ──────────────────────────────────────
+    var payloadMsgs = body.messages || [];
+    var lastRole = payloadMsgs.length > 0 ? payloadMsgs[payloadMsgs.length - 1].role : 'none';
+    var isFirstStep = userMessage.indexOf('<step_1>') === -1;
+    console.log(
+      '[MockModel] msgCount=' + payloadMsgs.length +
+      ' lastRole=' + lastRole +
+      ' firstStep=' + isFirstStep +
+      ' turnComplete=' + turnComplete +
+      ' strippedMsg="' + strippedMessage.substring(0, 80).replace(/"/g, '\\"') + '"'
+    );
+
+    // ── Multi-turn detection ──────────────────────────────────────────
+    if (turnComplete) {
+      if (userMessage === lastUserMessage) {
+        console.log('[MockModel] -> stop (same turn, breaking loop)');
+        return new Response(JSON.stringify(buildStopResponse()), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      console.log('[MockModel] -> new user message, resetting turn');
+      turnComplete = false;
+      lastUserMessage = userMessage;
+    }
+
+    // After the first action records a step, the user prompt embeds <step_1>.
+    var firstStep = isFirstStep;
+
+    var task = findTask(strippedMessage);
     var action;
 
     if (!task && firstStep) {
-      // Unknown task on first step → report unsupported
       action = {
         done: {
           text:
@@ -261,8 +353,6 @@
         },
       };
     } else if (firstStep && task) {
-      // Known task, first step → execute_javascript to scroll to section
-      // Also adds visual active marker to the target section
       action = {
         execute_javascript: {
           script:
@@ -282,11 +372,12 @@
         },
       };
     } else {
-      // Second step (has <step_1> in history) or unknown → done
+      turnComplete = true;
+      lastUserMessage = userMessage;
       action = {
         done: {
           text: task ? task.response : 'Task completed.',
-          success: true,
+          success: task ? true : true,
         },
       };
     }
@@ -310,6 +401,8 @@
       completionTexts.push(null);
     }
 
+    console.log('[MockModel] -> call#' + callCount + ' action=' + actionKey + ' task=' + (task ? task.id : 'null'));
+
     return new Response(JSON.stringify(buildToolResponse(macroToolName, action)), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -319,46 +412,20 @@
   window.PageAgentMockModel = {
     TASKS: TASKS,
     BLOCKED_HOSTS: BLOCKED_HOSTS,
-
-    /** Main entry: returns an OpenAI-compatible tool-call Response. */
     respond: respond,
-
-    /** Convenience wrapper returning the parsed response body. */
     handleCompletion: function (url, payload) {
       return respond(url, { body: JSON.stringify(payload || {}) }).then(function (r) {
         return r.json();
       });
     },
-
-    /** Check if a URL is in the blocked list. */
     isBlocked: isBlocked,
-
-    /** Get list of supported task IDs. */
-    getSupportedTaskIds: function () {
-      return TASKS.map(function (t) {
-        return t.id;
-      });
-    },
-
-    /** Get a task by ID. */
+    getSupportedTaskIds: function () { return TASKS.map(function (t) { return t.id; }); },
     getTask: function (id) {
-      for (var i = 0; i < TASKS.length; i++) {
-        if (TASKS[i].id === id) return TASKS[i];
-      }
+      for (var i = 0; i < TASKS.length; i++) { if (TASKS[i].id === id) return TASKS[i]; }
       return null;
     },
-
-    /** Check if a task ID is supported. */
-    isSupportedTask: function (id) {
-      return !!this.getTask(id);
-    },
-
-    /** Get all task definitions (for testing). */
-    getAllTasks: function () {
-      return TASKS;
-    },
-
-    /** Diagnostics for verification. */
+    isSupportedTask: function (id) { return !!this.getTask(id); },
+    getAllTasks: function () { return TASKS; },
     getDiagnostics: function () {
       return {
         callCount: callCount,
@@ -370,17 +437,11 @@
         successValues: successValues.slice(),
         lastSuccess: successValues.length > 0 ? successValues[successValues.length - 1] : null,
         completionTexts: completionTexts.slice(),
-        lastCompletionText:
-          completionTexts.length > 0
-            ? completionTexts[completionTexts.length - 1]
-            : null,
+        lastCompletionText: completionTexts.length > 0 ? completionTexts[completionTexts.length - 1] : null,
       };
     },
-
-    /** Reset all diagnostic counters to zero. */
     resetDiagnostics: resetDiagnostics,
   };
 
-  // ── Legacy alias for page-agent-lab.js compatibility ──────────────────
   window.PageAgentLabMockModel = window.PageAgentMockModel;
 })();

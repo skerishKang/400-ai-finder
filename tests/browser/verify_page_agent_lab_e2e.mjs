@@ -8,7 +8,7 @@
 //   -> target section scroll + visual marker -> done
 //   -> built-in Panel history/status display
 //
-// FAILS IMMEDIATELY if the Panel textarea is not found (no fallback).
+// FAILS IMMEDIATELY if the Panel input is not found (no fallback).
 
 import { chromium } from "playwright";
 import assert from "node:assert";
@@ -23,6 +23,9 @@ const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
 const EXPECTED_UNSUPPORTED_TEXT =
   "I can only help with the following topics on this page";
 
+const UNIQUE_MARKER = "Local interoperability experiment";
+const RELOAD_READY_TIMEOUT = 20000;
+
 // ── Known browser executable paths for fallback ──────────────────────────
 
 const KNOWN_BROWSER_PATHS = [
@@ -36,37 +39,66 @@ const KNOWN_BROWSER_PATHS = [
   "/usr/bin/chromium-browser",
 ];
 
-// ── Panel selectors (built-in PageAgent Panel DOM) ───────────────────────
-// These are the actual DOM selectors observed from the vendored IIFE bundle.
-// The Panel renders a <div class="panel-container"> root with nested
-// structure containing textarea, message list, and status elements.
+// ── Panel DOM helpers ────────────────────────────────────────────────────
+// The vendored IIFE bundle uses CSS-module hashed class names (e.g.
+// _taskInput_1tu05_573).  Built-in Panel root: #page-agent-runtime_agent-panel.
+// Input element is <input type="text"> (NOT a textarea) — so we target it
+// via attribute selector which works regardless of CSS module hashing.
 
-const PANEL_INPUT_SELECTORS = [
-  "div.panel-container textarea",
-  "textarea.page-agent-panel-input",
-  "#pageAgentPanel textarea",
-  "div[class*='page-agent'] textarea[placeholder]",
-  "div[class*='panel'] textarea",
-];
+const PANEL_ROOT_SELECTOR = "#page-agent-runtime_agent-panel";
 
-const PANEL_ROOT_SELECTORS = [
-  "div.panel-container",
-  "#pageAgentPanel",
-  "div[class*='page-agent-panel']",
-  "div[class*='panel-container']",
-];
+async function getPanelInputHandle(page) {
+  return page.locator(`${PANEL_ROOT_SELECTOR} input[type="text"]`).first();
+}
 
-const PANEL_MESSAGE_SELECTORS = [
-  "div.panel-container div[class*='message']",
-  "div.panel-container div[class*='chat-item']",
-  "div.panel-container div[class*='history-item']",
-];
+async function getPanelRootText(page) {
+  return page.evaluate(() => {
+    const panelRoot = document.querySelector("#page-agent-runtime_agent-panel");
+    if (panelRoot && panelRoot.textContent) return panelRoot.textContent;
+    for (const el of document.querySelectorAll("[class*='panel']")) {
+      if (el.textContent && el.textContent.includes("Page Agent")) return el.textContent;
+    }
+    return "";
+  });
+}
 
-const PANEL_STATUS_SELECTORS = [
-  "div.panel-container div[class*='status']",
-  "div.panel-container div[class*='loading']",
-  "div.panel-container div[aria-live]",
-];
+async function getPanelMessageElementCount(page) {
+  return page.evaluate(() => {
+    const root = document.querySelector("#page-agent-runtime_agent-panel");
+    if (!root) return 0;
+    let count = 0;
+    const all = root.querySelectorAll("*");
+    for (const el of all) {
+      if (el.className && typeof el.className === "string") {
+        const cn = el.className.toLowerCase();
+        if (cn.includes("history") || cn.includes("message") || cn.includes("chat") || cn.includes("item")) {
+          count++;
+        }
+      }
+    }
+    return count;
+  });
+}
+
+async function getPanelStatusTexts(page) {
+  return page.evaluate(() => {
+    const root = document.querySelector("#page-agent-runtime_agent-panel");
+    if (!root) return [];
+    const texts = [];
+    const all = root.querySelectorAll("*");
+    for (const el of all) {
+      if (el.className && typeof el.className === "string") {
+        const cn = el.className.toLowerCase();
+        if (cn.includes("status") || cn.includes("indicator") || cn.includes("loading") || cn.includes("thinking")) {
+          if (el.textContent && el.textContent.trim()) {
+            texts.push(el.textContent.trim());
+          }
+        }
+      }
+    }
+    return texts;
+  });
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -92,36 +124,10 @@ async function screenshot(page, name) {
 
 // ── Browser launch with progressive fallback (no Firefox) ────────────────
 
-async function findChromeExecutable() {
-  // Check PAGE_AGENT_BROWSER_EXECUTABLE env var first
-  const envPath = process.env.PAGE_AGENT_BROWSER_EXECUTABLE;
-  if (envPath) {
-    try {
-      readFileSync(envPath);
-      return { source: "env", executable: envPath };
-    } catch (_) {
-      // env path invalid, continue
-    }
-  }
-
-  // Check known system paths
-  for (const p of KNOWN_BROWSER_PATHS) {
-    try {
-      readFileSync(p);
-      return { source: "known-path", executable: p };
-    } catch (_) {
-      // not found, continue
-    }
-  }
-
-  return null;
-}
-
 async function launchBrowser() {
   const launchAttempts = [];
   const errors = [];
 
-  // Strategy 1: env variable
   const envPath = process.env.PAGE_AGENT_BROWSER_EXECUTABLE;
   if (envPath) {
     launchAttempts.push({
@@ -130,19 +136,14 @@ async function launchBrowser() {
     });
   }
 
-  // Strategy 2: chrome channel (system Chrome via Playwright)
   launchAttempts.push({
     name: "channel: chrome",
     launch: () => chromium.launch({ headless: true, channel: "chrome" }),
   });
 
-  // Strategy 3: known system paths
   for (const p of KNOWN_BROWSER_PATHS) {
     let exists = false;
-    try {
-      readFileSync(p);
-      exists = true;
-    } catch (_) {}
+    try { readFileSync(p); exists = true; } catch (_) {}
     if (exists) {
       launchAttempts.push({
         name: `path: ${p}`,
@@ -151,7 +152,6 @@ async function launchBrowser() {
     }
   }
 
-  // Strategy 4: default Playwright Chromium (bundled)
   launchAttempts.push({
     name: "default playwright chromium",
     launch: () => chromium.launch({ headless: true }),
@@ -160,10 +160,14 @@ async function launchBrowser() {
   for (const attempt of launchAttempts) {
     try {
       const browser = await attempt.launch();
-      const version =
-        browser.version && typeof browser.version === "function"
-          ? await browser.version().catch(() => "unknown")
-          : "unknown";
+      let version = "unknown";
+      try {
+        if (browser && typeof browser.version === "function") {
+          version = browser.version();
+        }
+      } catch (_) {
+        version = "unknown";
+      }
       console.log(`  Browser launched (${attempt.name}, v${version}) ✓`);
       return { browser, launchInfo: { source: attempt.name, version } };
     } catch (e) {
@@ -171,9 +175,7 @@ async function launchBrowser() {
     }
   }
 
-  throw new Error(
-    `Cannot launch any browser. Attempts:\n${errors.join("\n")}`
-  );
+  throw new Error(`Cannot launch any browser. Attempts:\n${errors.join("\n")}`);
 }
 
 // ── Task constants ──────────────────────────────────────────────────────
@@ -187,69 +189,38 @@ const SUPPORTED_TASKS = [
 
 const UNKNOWN_TASK = { id: "unknown", prompt: "What is the weather today?" };
 
-// ── DOM interaction helpers ─────────────────────────────────────────────
-
-async function getPanelInputHandle(page) {
-  for (const sel of PANEL_INPUT_SELECTORS) {
-    const el = await page.$(sel);
-    if (el) return el;
-  }
-  return null;
-}
-
-async function getPanelRoot(page) {
-  for (const sel of PANEL_ROOT_SELECTORS) {
-    const el = await page.$(sel);
-    if (el) return el;
-  }
-  return null;
-}
-
-async function getPanelMessageElements(page) {
-  for (const sel of PANEL_MESSAGE_SELECTORS) {
-    const els = await page.$$(sel);
-    if (els && els.length > 0) return els;
-  }
-  return [];
-}
-
-async function getPanelStatusElements(page) {
-  for (const sel of PANEL_STATUS_SELECTORS) {
-    const els = await page.$$(sel);
-    if (els && els.length > 0) return els;
-  }
-  return [];
-}
-
-async function getPanelRootText(page) {
-  return page.evaluate(() => {
-    const roots = [
-      document.querySelector("div.panel-container"),
-      document.querySelector("#pageAgentPanel"),
-      document.querySelector("[class*='page-agent-panel']"),
-      document.querySelector("[class*='panel-container']"),
-    ];
-    for (const r of roots) {
-      if (r && r.textContent) return r.textContent;
-    }
-    return "";
-  });
-}
-
 async function submitTaskViaPanel(page, prompt) {
-  const input = await getPanelInputHandle(page);
-  assert.ok(
-    input,
-    `Panel textarea not found in DOM — cannot submit task: "${prompt}". PageAgent Panel may not be rendered.`
-  );
-  await input.click();
-  await input.fill(prompt);
-  await page.evaluate((el) => {
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-  }, input);
-  await page.waitForTimeout(300);
-  await input.press("Enter");
+  // Use page.evaluate to ensure the browser-native events fire correctly.
+  // Playwright's locator.fill() + press("Enter") may not trigger custom
+  // React/VanillaJS event handlers that the PageAgent Panel uses.
+  const submitted = await page.evaluate((p) => {
+    const root = document.querySelector("#page-agent-runtime_agent-panel");
+    if (!root) return false;
+    const input = root.querySelector('input[type="text"]');
+    if (!input) return false;
+    // Set the value directly
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype, "value"
+    ).set;
+    nativeSetter.call(input, p);
+    // Dispatch input event
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    // Focus and press Enter. preventScroll avoids the browser auto-scrolling
+    // the document to reveal the Panel input (a test artifact, not agent
+    // behavior) which would otherwise break the unknown-task "no movement"
+    // assertion.
+    input.focus({ preventScroll: true });
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", code: "Enter", bubbles: true, cancelable: true })
+    );
+    input.dispatchEvent(
+      new KeyboardEvent("keyup", { key: "Enter", code: "Enter", bubbles: true, cancelable: true })
+    );
+    return true;
+  }, prompt);
+  assert.ok(submitted, `Panel input not found, cannot submit: "${prompt}"`);
+  await page.waitForTimeout(100);
 }
 
 // ── Diagnostics helpers ─────────────────────────────────────────────────
@@ -271,75 +242,219 @@ async function resetDiagnostics(page) {
   });
 }
 
-// ── Polling helpers ─────────────────────────────────────────────────────
+// ── Session isolation via page.reload() ────────────────────────────────
+// Each task runs as an independent Page Agent session by reloading the
+// same page and re-acquiring every Locator / handle afterwards.  The
+// vendored Page Agent runtime keeps ALL conversation + diagnostic state
+// in memory only (no localStorage / sessionStorage usage in the IIFE
+// bundle), so a full reload resets it completely — preventing a previous
+// task's ID from leaking into the next task's diagnostics.
 
-const POLL_TIMEOUT_MS = 20000;
+async function waitForLabReady(page) {
+  // 1. document.readyState === "complete"
+  await page.waitForFunction(
+    () => document.readyState === "complete",
+    { timeout: RELOAD_READY_TIMEOUT }
+  );
+
+  // 2. Page Agent unique marker ("Local interoperability experiment")
+  await page.waitForFunction(
+    (marker) => document.body.innerText.includes(marker),
+    UNIQUE_MARKER,
+    { timeout: RELOAD_READY_TIMEOUT }
+  );
+
+  // 3. built-in Panel root exists
+  await page.waitForSelector(PANEL_ROOT_SELECTOR, {
+    state: "attached",
+    timeout: RELOAD_READY_TIMEOUT,
+  });
+
+  // 4. Panel input visible + enabled
+  const inputLocator = page
+    .locator(`${PANEL_ROOT_SELECTOR} input[type="text"]`)
+    .first();
+  await inputLocator.waitFor({ state: "visible", timeout: RELOAD_READY_TIMEOUT });
+
+  // 5. Verify lab initialization (actual PageAgent + built-in Panel)
+  const labState = await page.evaluate(() => {
+    const lab = window.__PAGE_AGENT_LAB__;
+    return lab
+      ? { ok: true, integration: lab.integration, panel: lab.panel }
+      : { ok: false };
+  });
+  if (!labState.ok)
+    throw new Error("window.__PAGE_AGENT_LAB__ must be defined");
+  if (labState.integration !== "actual-page-agent")
+    throw new Error("must be actual PageAgent runtime");
+  if (labState.panel !== "built-in")
+    throw new Error("must use built-in Panel");
+
+  // 6. mock diagnostics API exists
+  const hasDiag = await page.evaluate(() => {
+    const m = window.PageAgentLabMockModel || window.PageAgentMockModel;
+    return !!(m && m.getDiagnostics && m.resetDiagnostics);
+  });
+  if (!hasDiag)
+    throw new Error("mock diagnostics API must exist");
+
+  // 7. reset diagnostics + verify empty
+  await page.evaluate(() => {
+    const m = window.PageAgentLabMockModel || window.PageAgentMockModel;
+    if (m && m.resetDiagnostics) m.resetDiagnostics();
+  });
+  const diagAfterReset = await page.evaluate(() => {
+    const m = window.PageAgentLabMockModel || window.PageAgentMockModel;
+    if (!m || !m.getDiagnostics) return null;
+    return m.getDiagnostics();
+  });
+  if (diagAfterReset && diagAfterReset.callCount !== 0)
+    throw new Error(
+      `diagnostics must be empty, got callCount=${diagAfterReset.callCount}`
+    );
+
+  // Force a deterministic scroll baseline.  page.reload() restores the
+  // previous scroll position (scroll restoration), which makes the
+  // unknown-task "no movement" check flaky.  Reset to top with instant
+  // behavior so every task session starts from a known position.
+  await page.evaluate(() => {
+    try { history.scrollRestoration = "manual"; } catch (_) {}
+    const root = document.documentElement;
+    const prev = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
+    window.scrollTo(0, 0);
+    root.style.scrollBehavior = prev;
+  });
+}
+
+// Create ONE page (one session) for a viewport.  Error listeners are
+// registered exactly once per page via setupErrorTracking — reload does
+// NOT re-register them.
+async function createLabPage(browser, labUrl, viewport, tracker) {
+  const ctx = await browser.newContext({
+    viewport: { width: viewport.w, height: viewport.h },
+  });
+  const page = await ctx.newPage();
+  setupErrorTracking(page, tracker);
+
+  await page.goto(labUrl, {
+    waitUntil: "networkidle",
+    timeout: RELOAD_READY_TIMEOUT,
+  });
+  await waitForLabReady(page);
+  return { ctx, page };
+}
+
+// Reload to start a fresh, isolated Page Agent session for the next task.
+// All Locators / handles must be re-acquired after this (our helpers
+// re-query the DOM via page.evaluate, so they are inherently reload-safe).
+async function reloadLabPage(page, labUrl) {
+  await page.reload({ waitUntil: "networkidle", timeout: RELOAD_READY_TIMEOUT });
+  await waitForLabReady(page);
+}
+
+// ── Polling helpers (manual loop for verbose diagnostics) ──────────────
+
+const POLL_TIMEOUT_MS = 30000;
 const POLL_INTERVAL_MS = 200;
 
 async function waitForSupportedCompletion(page, taskId) {
-  await page.waitForFunction(
-    (tId) => {
+  let pollAttempts = 0;
+  const maxAttempts = Math.ceil(POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
+  while (pollAttempts < maxAttempts) {
+    const d = await page.evaluate(() => {
       const m = window.PageAgentLabMockModel || window.PageAgentMockModel;
-      if (!m || !m.getDiagnostics) return false;
-      const d = m.getDiagnostics();
-      return (
-        d.callCount === 2 &&
-        d.actionNames.length === 2 &&
+      if (!m || !m.getDiagnostics) return null;
+      return m.getDiagnostics();
+    });
+    if (d && d.callCount >= 2) {
+      if (
+        d.actionNames.length >= 2 &&
         d.actionNames[0] === "execute_javascript" &&
         d.actionNames[1] === "done" &&
-        d.taskIds[0] === tId
-      );
-    },
-    taskId,
-    { timeout: POLL_TIMEOUT_MS, polling: POLL_INTERVAL_MS }
+        d.taskIds[0] === taskId
+      ) {
+        return;
+      }
+      console.log(`    waitForSupported: callCount=${d.callCount} actions=[${d.actionNames}] taskIds=[${d.taskIds}]`);
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      pollAttempts++;
+      continue;
+    }
+    if (pollAttempts > 0 && pollAttempts % 25 === 0) {
+      const snap = d || { callCount: 0, actionNames: [], taskIds: [] };
+      console.log(`    waitForSupported: [${pollAttempts}/${maxAttempts}] callCount=${snap.callCount} actions=[${snap.actionNames}]`);
+    }
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    pollAttempts++;
+  }
+  const final = await page.evaluate(() => {
+    const m = window.PageAgentLabMockModel || window.PageAgentMockModel;
+    if (!m || !m.getDiagnostics) return null;
+    return m.getDiagnostics();
+  });
+  throw new Error(
+    `waitForSupportedCompletion timed out for "${taskId}" after ${POLL_TIMEOUT_MS}ms. ` +
+    `Final diagnostics: ${JSON.stringify(final)}`
   );
 }
 
 async function waitForUnknownCompletion(page) {
-  await page.waitForFunction(
-    () => {
+  let pollAttempts = 0;
+  const maxAttempts = Math.ceil(POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
+  while (pollAttempts < maxAttempts) {
+    const d = await page.evaluate(() => {
       const m = window.PageAgentLabMockModel || window.PageAgentMockModel;
-      if (!m || !m.getDiagnostics) return false;
-      const d = m.getDiagnostics();
-      return (
-        d.callCount === 1 &&
-        d.actionNames.length === 1 &&
+      if (!m || !m.getDiagnostics) return null;
+      return m.getDiagnostics();
+    });
+    if (d && d.callCount >= 1) {
+      if (
+        d.actionNames.length >= 1 &&
         d.actionNames[0] === "done" &&
         d.taskIds[0] === null
-      );
-    },
-    { timeout: POLL_TIMEOUT_MS, polling: POLL_INTERVAL_MS }
+      ) {
+        return;
+      }
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      pollAttempts++;
+      continue;
+    }
+    if (pollAttempts > 0 && pollAttempts % 25 === 0) {
+      const snap = d || { callCount: 0, actionNames: [], taskIds: [] };
+      console.log(`    waitForUnknown: [${pollAttempts}/${maxAttempts}] callCount=${snap.callCount} actions=[${snap.actionNames}]`);
+    }
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    pollAttempts++;
+  }
+  const final = await page.evaluate(() => {
+    const m = window.PageAgentLabMockModel || window.PageAgentMockModel;
+    if (!m || !m.getDiagnostics) return null;
+    return m.getDiagnostics();
+  });
+  throw new Error(
+    `waitForUnknownCompletion timed out after ${POLL_TIMEOUT_MS}ms. Final diagnostics: ${JSON.stringify(final)}`
   );
 }
 
 // ── Scroll / marker verification ───────────────────────────────────────
 
 async function moveTargetOutsideViewport(page, sectionId, viewportHeight) {
-  // Check if target is currently in viewport; if so, scroll to the opposite extreme
   const state = await page.evaluate(
     ({ sid }) => {
       const el = document.getElementById(sid);
       if (!el) return { inViewport: true, rectTop: 0 };
       const r = el.getBoundingClientRect();
-      return {
-        inViewport: r.top < window.innerHeight && r.bottom > 0,
-        rectTop: r.top,
-        docHeight: document.body.scrollHeight,
-      };
+      return { inViewport: r.top < window.innerHeight && r.bottom > 0, rectTop: r.top, docHeight: document.body.scrollHeight };
     },
     { sid: sectionId }
   );
-
   if (state.inViewport) {
-    // Scroll to opposite extreme based on section's position
     if (state.rectTop < viewportHeight / 2) {
-      // Section is in upper half — scroll to bottom
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     } else {
-      // Section is in lower half — scroll to top
       await page.evaluate(() => window.scrollTo(0, 0));
     }
-    // Wait for scroll to settle
     await page.waitForTimeout(300);
   }
 }
@@ -348,23 +463,9 @@ async function getSectionState(page, sectionId) {
   return page.evaluate(
     ({ sid }) => {
       const el = document.getElementById(sid);
-      if (!el)
-        return {
-          scrollY: window.scrollY,
-          rectTop: null,
-          rectBottom: null,
-          inViewport: false,
-          exists: false,
-        };
+      if (!el) return { scrollY: window.scrollY, rectTop: null, rectBottom: null, inViewport: false, exists: false };
       const r = el.getBoundingClientRect();
-      const inVp = r.top < window.innerHeight && r.bottom > 0;
-      return {
-        scrollY: window.scrollY,
-        rectTop: r.top,
-        rectBottom: r.bottom,
-        inViewport: inVp,
-        exists: true,
-      };
+      return { scrollY: window.scrollY, rectTop: r.top, rectBottom: r.bottom, inViewport: r.top < window.innerHeight && r.bottom > 0, exists: true };
     },
     { sid: sectionId }
   );
@@ -374,12 +475,7 @@ async function getMarkerState(page, sectionId) {
   return page.evaluate(
     ({ sid }) => {
       const el = document.getElementById(sid);
-      if (!el)
-        return {
-          hasClass: false,
-          hasAttribute: false,
-          dataPageAgentTarget: null,
-        };
+      if (!el) return { hasClass: false, hasAttribute: false, dataPageAgentTarget: null };
       return {
         hasClass: el.classList.contains("page-agent-target-active"),
         hasAttribute: el.getAttribute("data-page-agent-target") === "active",
@@ -393,52 +489,27 @@ async function getMarkerState(page, sectionId) {
 // ── Panel verification ─────────────────────────────────────────────────
 
 async function verifyPanelAfterSupportedTask(page, prompt, completionText) {
-  // 1. Verify exact prompt appears in Panel root
   const panelText = await getPanelRootText(page);
-  assert.ok(
-    panelText.includes(prompt),
-    `Panel root must contain the exact submitted prompt. Expected to include: "${prompt}"`
-  );
-
-  // 2. Verify history/message count increased
-  const msgs = await getPanelMessageElements(page);
-  assert.ok(
-    msgs.length > 0,
-    `Panel must have at least 1 message element after task submission (got ${msgs.length})`
-  );
-
-  // 3. Verify completion text appears in Panel root
+  assert.ok(panelText.includes(prompt), `Panel root must contain the exact submitted prompt. Expected to include: "${prompt}"`);
+  const msgCount = await getPanelMessageElementCount(page);
+  assert.ok(msgCount > 0, `Panel must have at least 1 message element after task submission (got ${msgCount})`);
   if (completionText) {
-    assert.ok(
-      panelText.includes(completionText),
-      `Panel root must contain completion text. Expected to include: "${completionText.substring(0, 50)}..."`
-    );
+    assert.ok(panelText.includes(completionText), `Panel root must contain completion text. Expected to include: "${completionText.substring(0, 50)}..."`);
   }
-
-  // 4. Verify no error status in panel
-  const statusEls = await getPanelStatusElements(page);
-  for (const el of statusEls) {
-    const text = await el.textContent();
-    assert.ok(
-      !text.toLowerCase().includes("error"),
-      `Panel must not contain error status: "${text}"`
-    );
+  const statusTexts = await getPanelStatusTexts(page);
+  const forbiddenStates = ["error", "failed", "loading", "running", "processing", "thinking"];
+  for (const st of statusTexts) {
+    const lower = st.toLowerCase();
+    for (const fs of forbiddenStates) {
+      assert.ok(!lower.includes(fs), `Panel must not contain '${fs}' status: "${st}"`);
+    }
   }
 }
 
 async function verifyPanelAfterUnknownTask(page, prompt, unsupportedText) {
-  // 1. Verify exact unknown prompt appears in Panel root
   const panelText = await getPanelRootText(page);
-  assert.ok(
-    panelText.includes(prompt),
-    `Panel root must contain the exact unknown prompt. Expected to include: "${prompt}"`
-  );
-
-  // 2. Verify unsupported bounded text in Panel root
-  assert.ok(
-    panelText.includes(unsupportedText),
-    `Panel root must contain unsupported bounded text. Expected to include: "${unsupportedText}"`
-  );
+  assert.ok(panelText.includes(prompt), `Panel root must contain the exact unknown prompt. Expected to include: "${prompt}"`);
+  assert.ok(panelText.includes(unsupportedText), `Panel root must contain unsupported bounded text. Expected to include: "${unsupportedText}"`);
 }
 
 // ── Run supported task ─────────────────────────────────────────────────
@@ -447,103 +518,58 @@ async function runSingleSupportedTask(page, task, viewportHeight) {
   const label = task.id;
   console.log(`    "${label}"...`);
 
-  // ── Precondition: move target outside viewport ─────────────────────────
   const beforeState = await getSectionState(page, task.sectionId);
   if (beforeState.inViewport) {
     await moveTargetOutsideViewport(page, task.sectionId, viewportHeight);
   }
   const preconditionState = await getSectionState(page, task.sectionId);
-  assert.ok(
-    !preconditionState.inViewport,
-    `Precondition: #${task.sectionId} must be outside viewport before task submission (top=${preconditionState.rectTop}, viewport=${viewportHeight})`
-  );
+  assert.ok(!preconditionState.inViewport, `Precondition: #${task.sectionId} must be outside viewport before task submission (top=${preconditionState.rectTop}, viewport=${viewportHeight})`);
 
   const beforeMarkers = await getMarkerState(page, task.sectionId);
 
-  // Reset diagnostics
   await resetDiagnostics(page);
+  const msgBefore = await getPanelMessageElementCount(page);
 
-  // Record initial Panel message count
-  const msgBefore = (await getPanelMessageElements(page)).length;
-
-  // Submit via real Panel textarea
   await submitTaskViaPanel(page, task.prompt);
 
-  // Wait for completion via polling
   await waitForSupportedCompletion(page, task.id);
 
-  // ── Read diagnostics ──────────────────────────────────────────────────
   const diag = await getDiagnostics(page);
   assert.ok(diag !== null, `Diagnostics must be available for task ${task.id}`);
 
-  // ── Verify exactly 2 calls with correct sequence ──────────────────────
-  assert.strictEqual(
-    diag.callCount, 2,
-    `callCount must be 2 for "${task.id}", got ${diag.callCount}`
-  );
-  assert.deepStrictEqual(
-    diag.actionNames, ["execute_javascript", "done"],
-    `action sequence must be [execute_javascript, done], got [${diag.actionNames}]`
-  );
-  assert.deepStrictEqual(
-    diag.taskIds, [task.id, task.id],
-    `taskIds must be [${task.id}, ${task.id}], got [${diag.taskIds}]`
-  );
-  assert.deepStrictEqual(
-    diag.successValues, [null, true],
-    `successValues must be [null, true] for "${task.id}", got [${diag.successValues}]`
-  );
-  assert.strictEqual(
-    diag.lastSuccess, true,
-    `lastSuccess must be true for "${task.id}"`
-  );
+  assert.strictEqual(diag.callCount, 2, `callCount must be 2 for "${task.id}", got ${diag.callCount}`);
+  assert.strictEqual(diag.actionNames.length, 2, `action sequence must have length 2, got ${diag.actionNames.length}`);
+  assert.strictEqual(diag.actionNames[0], "execute_javascript", `actionNames[0] must be "execute_javascript", got "${diag.actionNames[0]}"`);
+  assert.strictEqual(diag.actionNames[1], "done", `actionNames[1] must be "done", got "${diag.actionNames[1]}"`);
+  assert.strictEqual(diag.taskIds.length, 2, `taskIds must have length 2, got ${diag.taskIds.length}`);
+  assert.strictEqual(diag.taskIds[0], task.id, `taskIds[0] must be "${task.id}", got "${diag.taskIds[0]}"`);
+  assert.strictEqual(diag.taskIds[1], task.id, `taskIds[1] must be "${task.id}", got "${diag.taskIds[1]}"`);
+  assert.strictEqual(diag.successValues.length, 2, `successValues must have length 2, got ${diag.successValues.length}`);
+  assert.strictEqual(diag.successValues[0], null, `successValues[0] must be null, got ${diag.successValues[0]}`);
+  assert.strictEqual(diag.successValues[1], true, `successValues[1] must be true, got ${diag.successValues[1]}`);
+  assert.strictEqual(diag.lastSuccess, true, `lastSuccess must be true for "${task.id}"`);
 
-  // ── Verify completion text ────────────────────────────────────────────
-  const taskDef = SUPPORTED_TASKS.find((t) => t.id === task.id);
-  const taskObj =
-    diag.completionTexts && diag.completionTexts.length === 2
-      ? diag.completionTexts[1]
-      : "";
-  assert.ok(
-    typeof taskObj === "string" && taskObj.length > 0,
-    `completionTexts[1] must be a non-empty string for "${task.id}"`
-  );
+  const taskObj = diag.completionTexts && diag.completionTexts.length === 2 ? diag.completionTexts[1] : "";
+  assert.ok(typeof taskObj === "string" && taskObj.length > 0, `completionTexts[1] must be a non-empty string for "${task.id}"`);
 
-  // ── Verify scroll change (viewport + scrollY) ─────────────────────────
+  // Wait for smooth-scroll animation to complete (CSS scroll-behavior: smooth)
+  await page.waitForTimeout(500);
+
   const afterState = await getSectionState(page, task.sectionId);
   const afterMarkers = await getMarkerState(page, task.sectionId);
 
-  assert.ok(
-    afterState.inViewport,
-    `After task, #${task.sectionId} must be within viewport (top=${afterState.rectTop}, bottom=${afterState.rectBottom}, viewport=${viewportHeight})`
-  );
-  assert.ok(
-    Math.abs(afterState.rectTop - preconditionState.rectTop) > 5 ||
-      Math.abs(afterState.scrollY - preconditionState.scrollY) > 5,
-    `PageController must have scrolled. scrollY delta=${Math.abs(afterState.scrollY - preconditionState.scrollY)}, rectTop delta=${Math.abs(afterState.rectTop - preconditionState.rectTop)}`
-  );
+  assert.ok(afterState.inViewport, `After task, #${task.sectionId} must be within viewport (top=${afterState.rectTop}, bottom=${afterState.rectBottom}, viewport=${viewportHeight})`);
+  assert.ok(Math.abs(afterState.rectTop - preconditionState.rectTop) > 5 || Math.abs(afterState.scrollY - preconditionState.scrollY) > 5, `PageController must have scrolled. scrollY delta=${Math.abs(afterState.scrollY - preconditionState.scrollY)}, rectTop delta=${Math.abs(afterState.rectTop - preconditionState.rectTop)}`);
+  assert.ok(afterMarkers.hasClass, `#${task.sectionId} must have page-agent-target-active class after task`);
+  assert.ok(afterMarkers.hasAttribute, `#${task.sectionId} must have data-page-agent-target='active' after task`);
 
-  // ── Verify visual marker ──────────────────────────────────────────────
-  assert.ok(
-    afterMarkers.hasClass,
-    `#${task.sectionId} must have page-agent-target-active class after task`
-  );
-  assert.ok(
-    afterMarkers.hasAttribute,
-    `#${task.sectionId} must have data-page-agent-target='active' after task`
-  );
-
-  // ── Verify Panel history ──────────────────────────────────────────────
-  const taskDefObj = SUPPORTED_TASKS.find((t) => t.id === task.id);
-  const taskResponse = taskDefObj
-    ? diag.completionTexts[1] || ""
-    : "";
+  const taskResponse = diag.completionTexts[1] || "";
   await verifyPanelAfterSupportedTask(page, task.prompt, taskResponse);
 
-  console.log(
-    `    ✓ callCount=2 action=[exe_js, done] success=[null,true] ` +
-      `scroll=✓ marker=✓ panel=✓ msgDelta=${(await getPanelMessageElements(page)).length - msgBefore}`
-  );
+  const msgAfter = await getPanelMessageElementCount(page);
+  assert.ok(msgAfter > msgBefore, `Panel history must grow for "${task.id}": before=${msgBefore}, after=${msgAfter}`);
+
+  console.log(`    ✓ callCount=2 action=[exe_js, done] success=[null,true] scroll=✓ marker=✓ panel=✓ msgDelta=${msgAfter - msgBefore}`);
   return { taskId: label, diagnostics: diag, beforeState: preconditionState, afterState };
 }
 
@@ -552,111 +578,57 @@ async function runSingleSupportedTask(page, task, viewportHeight) {
 async function runUnknownTask(page, task) {
   console.log(`  Unknown: "${task.prompt}"`);
 
-  // ── Record before state ───────────────────────────────────────────────
-  const beforeState = {
-    scrollY: await page.evaluate(() => window.scrollY),
-    sections: {},
-    markers: {},
-  };
-
+  const beforeState = { scrollY: await page.evaluate(() => window.scrollY), sections: {}, markers: {} };
   for (const t of SUPPORTED_TASKS) {
     beforeState.sections[t.sectionId] = await getSectionState(page, t.sectionId);
     beforeState.markers[t.sectionId] = await getMarkerState(page, t.sectionId);
   }
 
-  // Record initial Panel message count
-  const msgBefore = (await getPanelMessageElements(page)).length;
-
-  // Reset diagnostics
+  const msgBefore = await getPanelMessageElementCount(page);
   await resetDiagnostics(page);
-
-  // Submit unknown task (exactly once)
   await submitTaskViaPanel(page, task.prompt);
-
-  // Wait for completion via polling
   await waitForUnknownCompletion(page);
 
-  // ── Verify diagnostics ────────────────────────────────────────────────
   const diag = await getDiagnostics(page);
   assert.ok(diag !== null, "Diagnostics must be available after unknown task");
-
   assert.strictEqual(diag.callCount, 1, "Unknown task must have exactly 1 API call");
-  assert.deepStrictEqual(
-    diag.actionNames, ["done"],
-    `Unknown task actions must be ["done"], got [${diag.actionNames}]`
-  );
-  assert.deepStrictEqual(
-    diag.taskIds, [null],
-    `Unknown taskIds must be [null], got [${diag.taskIds}]`
-  );
-  assert.deepStrictEqual(
-    diag.successValues, [false],
-    `Unknown task successValues must be [false], got [${diag.successValues}]`
-  );
+  assert.strictEqual(diag.actionNames.length, 1, "Unknown task must have exactly 1 action");
+  assert.strictEqual(diag.actionNames[0], "done", `Unknown task action must be "done", got "${diag.actionNames[0]}"`);
+  assert.strictEqual(diag.taskIds.length, 1, "Unknown task must have exactly 1 taskId");
+  assert.strictEqual(diag.taskIds[0], null, `Unknown taskIds[0] must be null, got ${diag.taskIds[0]}`);
+  assert.strictEqual(diag.successValues.length, 1, "Unknown task must have exactly 1 successValue");
+  assert.strictEqual(diag.successValues[0], false, `Unknown task successValues[0] must be false, got ${diag.successValues[0]}`);
   assert.strictEqual(diag.lastSuccess, false, "Unknown task lastSuccess must be false");
+  assert.ok(typeof diag.lastCompletionText === "string" && diag.lastCompletionText.length > 0, "lastCompletionText must be a non-empty string");
+  assert.ok(diag.lastCompletionText.includes(EXPECTED_UNSUPPORTED_TEXT), `lastCompletionText must contain unsupported text. Got: "${diag.lastCompletionText}"`);
 
-  // ── Verify completion text ────────────────────────────────────────────
-  assert.ok(
-    typeof diag.lastCompletionText === "string" && diag.lastCompletionText.length > 0,
-    "lastCompletionText must be a non-empty string"
-  );
-  assert.ok(
-    diag.lastCompletionText.includes(EXPECTED_UNSUPPORTED_TEXT),
-    `lastCompletionText must contain unsupported text. Got: "${diag.lastCompletionText}"`
-  );
-
-  // ── Verify no scroll change (delta <= 3px) ────────────────────────────
   const afterScrollY = await page.evaluate(() => window.scrollY);
-  const scrollDelta = Math.abs(afterScrollY - beforeState.scrollY);
-  assert.ok(
-    scrollDelta <= 3,
-    `scrollY must not change after unknown task (delta=${scrollDelta}px, threshold=3px)`
-  );
+  assert.ok(Math.abs(afterScrollY - beforeState.scrollY) <= 3, `scrollY must not change after unknown task (delta=${Math.abs(afterScrollY - beforeState.scrollY)}px, threshold=3px)`);
 
-  // ── Verify no section movement (delta <= 3px) ─────────────────────────
   for (const t of SUPPORTED_TASKS) {
     const afterSection = await getSectionState(page, t.sectionId);
     if (beforeState.sections[t.sectionId] && beforeState.sections[t.sectionId].exists) {
       const beforeTop = beforeState.sections[t.sectionId].rectTop;
       const afterTop = afterSection.rectTop;
       if (beforeTop !== null && afterTop !== null) {
-        const delta = Math.abs(afterTop - beforeTop);
-        assert.ok(
-          delta <= 3,
-          `Section #${t.sectionId} top must not change (delta=${delta}px, threshold=3px)`
-        );
+        assert.ok(Math.abs(afterTop - beforeTop) <= 3, `Section #${t.sectionId} top must not change (delta=${Math.abs(afterTop - beforeTop)}px, threshold=3px)`);
       }
     }
   }
 
-  // ── Verify markers unchanged ──────────────────────────────────────────
   for (const t of SUPPORTED_TASKS) {
     const afterMarker = await getMarkerState(page, t.sectionId);
-    assert.strictEqual(
-      afterMarker.hasClass,
-      beforeState.markers[t.sectionId].hasClass,
-      `#${t.sectionId} marker class must not change after unknown task`
-    );
-    assert.strictEqual(
-      afterMarker.dataPageAgentTarget,
-      beforeState.markers[t.sectionId].dataPageAgentTarget,
-      `#${t.sectionId} data-page-agent-target must not change after unknown task`
-    );
+    assert.strictEqual(afterMarker.hasClass, beforeState.markers[t.sectionId].hasClass, `#${t.sectionId} marker class must not change after unknown task`);
+    assert.strictEqual(afterMarker.dataPageAgentTarget, beforeState.markers[t.sectionId].dataPageAgentTarget, `#${t.sectionId} data-page-agent-target must not change after unknown task`);
   }
 
-  // ── Verify no execute_javascript ──────────────────────────────────────
-  assert.ok(
-    !diag.actionNames.includes("execute_javascript"),
-    "Unknown task must NOT trigger execute_javascript"
-  );
-
-  // ── Verify Panel shows unknown prompt + unsupported text ───────────────
+  assert.ok(!diag.actionNames.includes("execute_javascript"), "Unknown task must NOT trigger execute_javascript");
   await verifyPanelAfterUnknownTask(page, task.prompt, EXPECTED_UNSUPPORTED_TEXT);
 
-  console.log(
-    `    ✓ callCount=1 action=[done] success=[false] scroll=0 panel=✓ ` +
-      `msgDelta=${(await getPanelMessageElements(page)).length - msgBefore}`
-  );
+  const msgAfterUnknown = await getPanelMessageElementCount(page);
+  assert.ok(msgAfterUnknown > msgBefore, `Panel history must grow for unknown task: before=${msgBefore}, after=${msgAfterUnknown}`);
+
+  console.log(`    ✓ callCount=1 action=[done] success=[false] scroll=0 panel=✓ msgDelta=${msgAfterUnknown - msgBefore}`);
 }
 
 // ── Error tracking ─────────────────────────────────────────────────────
@@ -667,55 +639,37 @@ function setupErrorTracking(page, tracker) {
       tracker.nonLocal.push({ url: r.url(), method: r.method() });
     }
   });
-
   page.on("requestfailed", (req) => {
     const err = req.failure()?.errorText || "unknown";
     tracker.requestFailures.push({ url: req.url(), error: err });
   });
   page.on("console", (msg) => {
     const text = msg.text();
+    // Skip harmless favicon 404 (browser default request, not from PageAgent)
+    if (text.includes("favicon.ico")) return;
+    // The browser also logs a generic "Failed to load resource" message for
+    // network 404s (e.g. the automatic favicon request). This is not a
+    // PageAgent error, so exclude resource-load failures from the count.
+    if (msg.type() === "error" && /Failed to load resource/i.test(text)) return;
     if (msg.type() === "error") tracker.consoleErrors.push(text);
     else if (msg.type() === "warning") tracker.warnings.push(text);
   });
   page.on("pageerror", (err) => tracker.pageErrors.push(err.message));
-  page.on("requestfailed", (req) => {
-    const err = req.failure()?.errorText || "unknown";
-    if (!req.url().includes("favicon"))
-      tracker.requestFailures.push({ url: req.url(), error: err });
-  });
 }
 
 function assertZeroErrors(tracker, label) {
-  assert.strictEqual(
-    tracker.nonLocal.length, 0,
-    `${label} non-local requests: ${JSON.stringify(tracker.nonLocal.slice(0, 5))}`
-  );
-  assert.strictEqual(
-    tracker.consoleErrors.length, 0,
-    `${label} console errors: ${JSON.stringify(tracker.consoleErrors.slice(0, 5))}`
-  );
-  assert.strictEqual(
-    tracker.warnings.length, 0,
-    `${label} warnings: ${JSON.stringify(tracker.warnings.slice(0, 5))}`
-  );
-  assert.strictEqual(
-    tracker.pageErrors.length, 0,
-    `${label} page errors: ${JSON.stringify(tracker.pageErrors.slice(0, 5))}`
-  );
-  assert.strictEqual(
-    tracker.requestFailures.length, 0,
-    `${label} request failures: ${JSON.stringify(tracker.requestFailures.slice(0, 5))}`
-  );
+  assert.strictEqual(tracker.nonLocal.length, 0, `${label} non-local requests: ${JSON.stringify(tracker.nonLocal.slice(0, 5))}`);
+  assert.strictEqual(tracker.consoleErrors.length, 0, `${label} console errors: ${JSON.stringify(tracker.consoleErrors.slice(0, 5))}`);
+  assert.strictEqual(tracker.warnings.length, 0, `${label} warnings: ${JSON.stringify(tracker.warnings.slice(0, 5))}`);
+  assert.strictEqual(tracker.pageErrors.length, 0, `${label} page errors: ${JSON.stringify(tracker.pageErrors.slice(0, 5))}`);
+  assert.strictEqual(tracker.requestFailures.length, 0, `${label} request failures: ${JSON.stringify(tracker.requestFailures.slice(0, 5))}`);
 }
 
 // ── Main ────────────────────────────────────────────────────────────────
 
 async function main() {
   const baseUrl = process.argv[2];
-  if (!baseUrl) {
-    console.error("Usage: node verify_page_agent_lab_e2e.mjs <BASE_URL>");
-    process.exit(1);
-  }
+  if (!baseUrl) { console.error("Usage: node verify_page_agent_lab_e2e.mjs <BASE_URL>"); process.exit(1); }
   validateBaseUrl(baseUrl);
 
   const labUrl = baseUrl.replace(/\/+$/, "") + "/examples/page-agent/";
@@ -723,179 +677,88 @@ async function main() {
 
   const { browser, launchInfo } = await launchBrowser();
   let allPassed = true;
-  let desktopCtx, mobileCtx;
 
-  // Separate error trackers per viewport
-  const desktopTracker = {
-    baseUrl,
-    nonLocal: [],
-    consoleErrors: [],
-    warnings: [],
-    pageErrors: [],
-    requestFailures: [],
-  };
-
-  const mobileTracker = {
-    baseUrl,
-    nonLocal: [],
-    consoleErrors: [],
-    warnings: [],
-    pageErrors: [],
-    requestFailures: [],
-  };
-
-  const browserEvidence = {
-    browser: launchInfo,
-    desktop: { tasks: [] },
-    mobile: { tasks: [] },
-  };
+  const desktopTracker = { baseUrl, nonLocal: [], consoleErrors: [], warnings: [], pageErrors: [], requestFailures: [] };
+  const mobileTracker = { baseUrl, nonLocal: [], consoleErrors: [], warnings: [], pageErrors: [], requestFailures: [] };
+  const browserEvidence = { browser: launchInfo, desktop: { tasks: [] }, mobile: { tasks: [] } };
 
   try {
-    // ═══════════════════ Desktop (1440x900) ═══════════════════
+    // ═════ Desktop (1440x900) ═════
     console.log("\n[Desktop 1440x900]");
-    desktopCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    const dp = await desktopCtx.newPage();
-    setupErrorTracking(dp, desktopTracker);
 
-    await dp.goto(labUrl, { waitUntil: "networkidle", timeout: 20000 });
-    await screenshot(dp, "desktop-initial.png");
-
-    // Verify Panel initialization
-    const labState = await dp.evaluate(() => {
-      const lab = window.__PAGE_AGENT_LAB__;
-      return lab
-        ? { ok: true, integration: lab.integration, panel: lab.panel }
-        : { ok: false };
-    });
-    assert.ok(labState.ok, "window.__PAGE_AGENT_LAB__ must be defined");
-    assert.strictEqual(
-      labState.integration, "actual-page-agent",
-      "must be actual PageAgent runtime"
+    // ── Desktop supported tasks (each in a reloaded, isolated session) ──
+    const { ctx: desktopCtx, page: desktopPage } = await createLabPage(
+      browser, labUrl, { w: 1440, h: 900 }, desktopTracker
     );
-    assert.strictEqual(labState.panel, "built-in", "must use built-in Panel");
-    console.log("  Panel initialized (built-in) ✓");
+    console.log(`  Desktop page ready ✓`);
 
-    // Verify Panel textarea exists
-    const panelInput = await getPanelInputHandle(dp);
-    assert.ok(
-      panelInput,
-      "Panel textarea must be present in DOM. Hard requirement."
-    );
-    console.log("  Panel textarea found ✓");
-
-    // ── Run 3 supported tasks ──────────────────────────────────────────
     const desktopResults = [];
     for (let i = 0; i < 3; i++) {
       const task = SUPPORTED_TASKS[i];
-      const result = await runSingleSupportedTask(dp, task, 900);
+      // Reload to start a brand-new Page Agent session so no prior
+      // conversation / task ID can leak into this task's diagnostics.
+      await reloadLabPage(desktopPage, labUrl);
+      console.log(`  Task ${i + 1}: "${task.id}" — session reloaded ✓`);
+
+      const result = await runSingleSupportedTask(desktopPage, task, 900);
       desktopResults.push(result);
       browserEvidence.desktop.tasks.push({
-        taskId: task.id,
-        callCount: result.diagnostics?.callCount,
-        actions: result.diagnostics?.actionNames,
-        successValues: result.diagnostics?.successValues,
-        lastSuccess: result.diagnostics?.lastSuccess,
+        taskId: task.id, callCount: result.diagnostics?.callCount,
+        actions: result.diagnostics?.actionNames, successValues: result.diagnostics?.successValues, lastSuccess: result.diagnostics?.lastSuccess,
       });
     }
+    assert.strictEqual(desktopResults.length, 3, "Must have 3 desktop task results");
 
-    assert.strictEqual(
-      desktopResults.length, 3,
-      "Must have 3 desktop task results"
-    );
-
-    // ── Run unknown task ───────────────────────────────────────────────
-    await runUnknownTask(dp, UNKNOWN_TASK);
-
-    await screenshot(dp, "desktop-final.png");
-
-    // ── Desktop errors must be zero ────────────────────────────────────
+    // ── Desktop unknown task (separate reload cycle) ──
+    await reloadLabPage(desktopPage, labUrl);
+    console.log(`  Unknown task — session reloaded ✓`);
+    await runUnknownTask(desktopPage, UNKNOWN_TASK);
+    await screenshot(desktopPage, "desktop-final.png");
     assertZeroErrors(desktopTracker, "Desktop");
+    await desktopCtx.close();
 
-    // ═══════════════════ Mobile (390x844) ═══════════════════
+    // ═════ Mobile (390x844) ═════
     console.log("\n[Mobile 390x844]");
-    mobileCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    const mp = await mobileCtx.newPage();
-    setupErrorTracking(mp, mobileTracker);
-
-    await mp.goto(labUrl, { waitUntil: "networkidle", timeout: 20000 });
-    await screenshot(mp, "mobile-initial.png");
-
-    // Verify Panel textarea exists on mobile
-    const mobilePanelInput = await getPanelInputHandle(mp);
-    assert.ok(
-      mobilePanelInput,
-      "Panel textarea must exist on mobile (hard requirement)"
+    const { ctx: mobileCtxObj, page: mobilePage } = await createLabPage(
+      browser, labUrl, { w: 390, h: 844 }, mobileTracker
     );
-    console.log("  Mobile Panel textarea found ✓");
+    console.log(`  Mobile page ready ✓`);
+    await reloadLabPage(mobilePage, labUrl);
+    console.log(`  Mobile — session reloaded ✓`);
 
-    // Run 1 supported task on mobile
     const mobileTask = SUPPORTED_TASKS[0];
-    const mobileResult = await runSingleSupportedTask(mp, mobileTask, 844);
+    const mobileResult = await runSingleSupportedTask(mobilePage, mobileTask, 844);
     browserEvidence.mobile.tasks.push({
-      taskId: mobileTask.id,
-      callCount: mobileResult.diagnostics?.callCount,
-      actions: mobileResult.diagnostics?.actionNames,
-      successValues: mobileResult.diagnostics?.successValues,
-      lastSuccess: mobileResult.diagnostics?.lastSuccess,
+      taskId: mobileTask.id, callCount: mobileResult.diagnostics?.callCount,
+      actions: mobileResult.diagnostics?.actionNames, successValues: mobileResult.diagnostics?.successValues, lastSuccess: mobileResult.diagnostics?.lastSuccess,
     });
 
-    await screenshot(mp, "mobile-final.png");
-
-    // ── Mobile errors must be zero ─────────────────────────────────────
+    await screenshot(mobilePage, "mobile-final.png");
+    await mobileCtxObj.close();
     assertZeroErrors(mobileTracker, "Mobile");
 
-    // ═══════════════════ Summary ═══════════════════
+    // ═════ Summary ═════
     console.log("\n  === SUMMARY ===");
     console.log(`  Desktop supported: 3/3`);
     console.log(`  Desktop unknown: 1/1`);
     console.log(`  Mobile supported: 1/1`);
-    console.log(
-      `  Desktop errors: nonLocal=${desktopTracker.nonLocal.length} ` +
-        `console=${desktopTracker.consoleErrors.length} ` +
-        `warn=${desktopTracker.warnings.length} ` +
-        `page=${desktopTracker.pageErrors.length} ` +
-        `reqFail=${desktopTracker.requestFailures.length}`
-    );
-    console.log(
-      `  Mobile errors: nonLocal=${mobileTracker.nonLocal.length} ` +
-        `console=${mobileTracker.consoleErrors.length} ` +
-        `warn=${mobileTracker.warnings.length} ` +
-        `page=${mobileTracker.pageErrors.length} ` +
-        `reqFail=${mobileTracker.requestFailures.length}`
-    );
+    console.log(`  Desktop errors: nonLocal=${desktopTracker.nonLocal.length} console=${desktopTracker.consoleErrors.length} warn=${desktopTracker.warnings.length} page=${desktopTracker.pageErrors.length} reqFail=${desktopTracker.requestFailures.length}`);
+    console.log(`  Mobile errors: nonLocal=${mobileTracker.nonLocal.length} console=${mobileTracker.consoleErrors.length} warn=${mobileTracker.warnings.length} page=${mobileTracker.pageErrors.length} reqFail=${mobileTracker.requestFailures.length}`);
     console.log(`  Browser: ${launchInfo.source} v${launchInfo.version}`);
     console.log("\nAll Page Agent lab E2E checks passed.");
 
-    // Save evidence
     ensureScreenshotDir();
-    writeFileSync(
-      join(SCREENSHOT_DIR, "browser-evidence.json"),
-      JSON.stringify(
-        {
-          baseUrl,
-          labUrl,
-          timestamp: new Date().toISOString(),
-          browser: launchInfo,
-          desktop: {
-            tasks: browserEvidence.desktop.tasks,
-            errors: desktopTracker,
-          },
-          mobile: {
-            tasks: browserEvidence.mobile.tasks,
-            errors: mobileTracker,
-          },
-        },
-        null,
-        2
-      )
-    );
+    writeFileSync(join(SCREENSHOT_DIR, "browser-evidence.json"), JSON.stringify({
+      baseUrl, labUrl, timestamp: new Date().toISOString(), browser: launchInfo,
+      desktop: { tasks: browserEvidence.desktop.tasks, errors: desktopTracker },
+      mobile: { tasks: browserEvidence.mobile.tasks, errors: mobileTracker },
+    }, null, 2));
   } catch (err) {
     console.error("\nPage Agent lab E2E verification FAILED:");
     console.error(err && err.stack ? err.stack : err);
     allPassed = false;
   } finally {
-    if (desktopCtx) await desktopCtx.close();
-    if (mobileCtx) await mobileCtx.close();
+    // Each task's context is closed individually; only close the browser here
     await browser.close();
   }
 

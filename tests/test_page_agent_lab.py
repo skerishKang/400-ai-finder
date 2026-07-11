@@ -11,15 +11,19 @@ build output, no route registration, and no API endpoint.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 import re
+import sys
+import tempfile
 
 import pytest
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 _EXAMPLES_DIR = os.path.join(_REPO_ROOT, "src", "web", "examples", "page-agent")
 _VENDOR_DIR = os.path.join(_EXAMPLES_DIR, "vendor")
+_BUILD_MODULE_PATH = os.path.join(_REPO_ROOT, "scripts", "build_cloudflare_pages.py")
 
 # ── Required files ────────────────────────────────────────────────────────
 
@@ -35,6 +39,34 @@ REQUIRED_SOURCE_FILES = [
 REQUIRED_VENDOR_FILES = [
     "LICENSE",
     "page-agent.iife.js",
+]
+
+# ── Build output files ───────────────────────────────────────────────────
+
+BUILD_OUTPUT_FILES = [
+    "index.html",
+    "mock-model.js",
+    "page-agent-lab.js",
+    "page-agent-lab.css",
+    "source-manifest.json",
+    "vendor-manifest.json",
+    "vendor/LICENSE",
+    "vendor/page-agent.iife.js",
+]
+
+# ── Routes that must NOT contain Page Agent content ───────────────────────
+
+PROTECTED_ROUTES = [
+    "index.html",      # root landing
+    os.path.join("mvp", "index.html"),
+    "mobile.html",
+    "admin.html",
+]
+
+PAGE_AGENT_PAGE_SIGNATURES = [
+    "Page Agent",
+    "page-agent",
+    "./vendor/page-agent.iife.js",
 ]
 
 # ── Hosts that must appear in mocked blocklists ───────────────────────────
@@ -65,6 +97,37 @@ def _read(path):
 def _read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
+
+
+def _run_build(mode):
+    """Run the build script with PYTHONPATH via subprocess.
+    Builds into default dist/cloudflare-pages directory.
+    """
+    import subprocess
+    env = os.environ.copy()
+    env["PYTHONPATH"] = _REPO_ROOT + os.pathsep + env.get("PYTHONPATH", "")
+    result = subprocess.run(
+        [sys.executable, _BUILD_MODULE_PATH, "--mode", mode],
+        capture_output=True, text=True, timeout=120,
+        cwd=_REPO_ROOT, env=env,
+    )
+    assert result.returncode == 0, (
+        f"Build ({mode}) failed:\n{result.stderr}"
+    )
+    return os.path.join(_REPO_ROOT, "dist", "cloudflare-pages")
+
+
+def _verify_build_output(mode, dist_root):
+    """Verify that all page-agent files exist in the build output."""
+    page_agent_dir = os.path.join(dist_root, "examples", "page-agent")
+    assert os.path.isdir(page_agent_dir), (
+        f"examples/page-agent/ missing from {mode} build output"
+    )
+    for name in BUILD_OUTPUT_FILES:
+        path = os.path.join(page_agent_dir, name)
+        assert os.path.isfile(path), (
+            f"examples/page-agent/{name} missing from {mode} build output"
+        )
 
 
 # ── File existence ────────────────────────────────────────────────────────
@@ -370,3 +433,91 @@ class TestLabCss:
     def test_prefers_reduced_motion(self):
         css = _read(os.path.join(_EXAMPLES_DIR, "page-agent-lab.css"))
         assert "prefers-reduced-motion" not in css  # not required for this lab
+
+
+# ── Build output contracts ────────────────────────────────────────────────
+
+
+class TestBuildOutput:
+    """Verify Page Agent files are correctly included in the build output."""
+
+    def test_static_build_includes_page_agent(self):
+        out = _run_build("static")
+        _verify_build_output("static", out)
+
+    def test_live_build_includes_page_agent(self):
+        out = _run_build("live")
+        _verify_build_output("live", out)
+
+    def test_source_output_byte_parity_static(self):
+        """Copied files must be byte-for-byte identical to source in static build."""
+        out = _run_build("static")
+        for name in BUILD_OUTPUT_FILES:
+            source_path = os.path.join(_EXAMPLES_DIR, name)
+            build_path = os.path.join(out, "examples", "page-agent", name)
+            assert os.path.isfile(source_path), f"source file missing: {name}"
+            assert os.path.isfile(build_path), f"build file missing: {name}"
+            source_bytes = _read_bytes(source_path)
+            build_bytes = _read_bytes(build_path)
+            assert source_bytes == build_bytes, (
+                f"Byte mismatch for {name} in static build"
+            )
+
+    def test_source_output_byte_parity_live(self):
+        """Copied files must be byte-for-byte identical to source in live build."""
+        out = _run_build("live")
+        for name in BUILD_OUTPUT_FILES:
+                source_path = os.path.join(_EXAMPLES_DIR, name)
+                build_path = os.path.join(out, "examples", "page-agent", name)
+                assert os.path.isfile(source_path), f"source file missing: {name}"
+                assert os.path.isfile(build_path), f"build file missing: {name}"
+                source_bytes = _read_bytes(source_path)
+                build_bytes = _read_bytes(build_path)
+                assert source_bytes == build_bytes, (
+                    f"Byte mismatch for {name} in live build"
+                )
+
+
+# ── Route isolation contracts ─────────────────────────────────────────────
+
+
+class TestRouteIsolation:
+    """Page Agent content must NOT leak into root/MVP/mobile/admin routes."""
+
+    @pytest.mark.parametrize("route", PROTECTED_ROUTES)
+    def test_static_build_route_isolation(self, route):
+        out = _run_build("static")
+        route_path = os.path.join(out, route)
+        if os.path.isfile(route_path):
+            text = _read(route_path)
+            for sig in PAGE_AGENT_PAGE_SIGNATURES:
+                assert sig not in text, (
+                    f"Page Agent signature '{sig}' found in static {route}"
+                )
+
+    @pytest.mark.parametrize("route", PROTECTED_ROUTES)
+    def test_live_build_route_isolation(self, route):
+        out = _run_build("live")
+        route_path = os.path.join(out, route)
+        if os.path.isfile(route_path):
+            text = _read(route_path)
+            for sig in PAGE_AGENT_PAGE_SIGNATURES:
+                    assert sig not in text, (
+                        f"Page Agent signature '{sig}' found in live {route}"
+                    )
+
+
+# ── API isolation contracts ───────────────────────────────────────────────
+
+
+class TestApiIsolation:
+    """Page Agent files must not reference or modify /api/mvp/ask."""
+
+    PAGE_AGENT_FILES = ["index.html", "mock-model.js", "page-agent-lab.js", "page-agent-lab.css"]
+
+    @pytest.mark.parametrize("filename", PAGE_AGENT_FILES)
+    def test_no_api_mvp_ask_reference(self, filename):
+        text = _read(os.path.join(_EXAMPLES_DIR, filename))
+        assert "/api/mvp/ask" not in text, (
+            f"{filename} must not reference /api/mvp/ask"
+        )
