@@ -72,7 +72,7 @@ def _extract_canvas_route_ids() -> set[str]:
 def _extract_manifest_route_ids() -> set[str]:
     """Parse every exact or capture-required route from the manifest."""
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest.get("pages", []) + manifest.get("capture_required", [])
+    entries = manifest.get("pages", []) + manifest.get("capture_required", []) + manifest.get("product_transitions", [])
     return {e["route_id"] for e in entries}
 
 
@@ -178,7 +178,7 @@ def test_complete_capture_required_matches_capture_required():
 
 def test_manifest_no_duplicate_route_id():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest.get("pages", []) + manifest.get("capture_required", [])
+    entries = manifest.get("pages", []) + manifest.get("capture_required", []) + manifest.get("product_transitions", [])
     ids = [e["route_id"] for e in entries]
     duplicates = {rid for rid in ids if ids.count(rid) > 1}
     assert not duplicates, (
@@ -188,7 +188,7 @@ def test_manifest_no_duplicate_route_id():
 
 def test_manifest_no_duplicate_page_id():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest.get("pages", []) + manifest.get("capture_required", [])
+    entries = manifest.get("pages", []) + manifest.get("capture_required", []) + manifest.get("product_transitions", [])
     ids = [e["page_id"] for e in entries]
     duplicates = {pid for pid in ids if ids.count(pid) > 1}
     assert not duplicates, (
@@ -202,7 +202,7 @@ def test_manifest_no_duplicate_page_id():
 
 def test_manifest_render_target_methods_exist_in_canvas():
     manifest_entries = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest_entries.get("pages", []) + manifest_entries.get("capture_required", [])
+    entries = manifest_entries.get("pages", []) + manifest_entries.get("capture_required", []) + manifest_entries.get("product_transitions", [])
     defined = _find_defined_functions()
     for entry in entries:
         rt = entry.get("render_target", "")
@@ -223,7 +223,7 @@ def test_manifest_render_target_matches_dispatch():
     switch actually calls for that route_id."""
     dispatch = _extract_canvas_render_methods()
     manifest_entries = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest_entries.get("pages", []) + manifest_entries.get("capture_required", [])
+    entries = manifest_entries.get("pages", []) + manifest_entries.get("capture_required", []) + manifest_entries.get("product_transitions", [])
     for entry in entries:
         rid = entry["route_id"]
         rt = entry.get("render_target", "")
@@ -245,7 +245,7 @@ def test_manfest_render_target_must_not_reference_nonexistent_method():
     in canvas.js, the test must fail."""
     defined = _find_defined_functions()
     manifest_entries = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest_entries.get("pages", []) + manifest_entries.get("capture_required", [])
+    entries = manifest_entries.get("pages", []) + manifest_entries.get("capture_required", []) + manifest_entries.get("product_transitions", [])
     for entry in entries:
         rt = entry.get("render_target", "")
         m = re.search(r'(\._?[a-zA-Z0-9_]+)\s*\(', rt)
@@ -266,7 +266,7 @@ def test_manfest_render_target_must_not_reference_nonexistent_method():
 
 def test_manifest_excludes_deprecated_quests():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest.get("pages", []) + manifest.get("capture_required", [])
+    entries = manifest.get("pages", []) + manifest.get("capture_required", []) + manifest.get("product_transitions", [])
     all_ids = {e["route_id"] for e in entries}
     manifest_text = MANIFEST.read_text(encoding="utf-8").lower()
     assert "move_in_report_guidance" not in manifest_text
