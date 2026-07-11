@@ -5,29 +5,29 @@
   "upstream_commit": "fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7",
   "license": "MIT",
   "source_artifact_sha256": "103f04944e5bc0faf902a3ff96f51269e043515aa95b1d3f8a89f4d042772c64",
-  "bundle_kind": "none",
+  "bundle_kind": "production",
   "demo_bundle": false,
-  "reason": "page-agent@1.12.1 does not expose a usable non-demo browser bundle for static HTML integration. dist/esm/page-agent.js (722 B) re-exports from @page-agent/* packages requiring a bundler and npm dependencies. dist/iife/page-agent.demo.js (209 KB) is a demo-only bundle with auto-init, free testing API (DashScope), and jsDelivr CDN references — excluded per experiment policy.",
-  "bundles_inspected": [
-    {
-      "path": "dist/esm/page-agent.js",
-      "size": 722,
-      "standalone": false,
-      "reason": "Thin ESM re-export wrapper; requires bundler + @page-agent/* packages"
-    },
-    {
-      "path": "dist/iife/page-agent.demo.js",
-      "size": 209047,
-      "standalone": true,
-      "demo_bundle": true,
-      "reason": "Self-contained IIFE but includes auto-init, free testing API endpoint, and CDN references — excluded per experiment policy"
-    }
-  ],
-  "vendored_files": [],
+  "reason": "page-agent@1.12.1 does not expose a usable non-demo browser bundle for static HTML integration. dist/esm/page-agent.js (722 B) requires bundler + @page-agent/* packages. dist/iife/page-agent.demo.js (209 KB) is the only standalone IIFE but is demo-only (auto-init, free testing API, CDN). No production bundle could be vendored.",
   "prohibited": [
     "page-agent.demo.js",
     "free testing API",
     "runtime CDN",
     "automatic demo initialization"
-  ]
+  ],
+  "bundles_inspected": [
+    {
+      "path": "dist/esm/page-agent.js",
+      "size_bytes": 722,
+      "standalone": false,
+      "reason": "Thin ESM re-export; requires bundler and @page-agent/* dependencies"
+    },
+    {
+      "path": "dist/iife/page-agent.demo.js",
+      "size_bytes": 209047,
+      "standalone": true,
+      "demo_bundle": true,
+      "reason": "Self-contained IIFE but includes auto-init, free testing API (DashScope), and CDN — excluded per policy"
+    }
+  ],
+  "vendored_files": []
 }

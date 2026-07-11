@@ -699,7 +699,7 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
         f"({'live, ?mvp=1 forced' if mode == 'live' else 'public entry, query-sanitized'})"
     )
 
-        # 9. Copy examples (Page Agent lab) verbatim - isolated, no build-time
+    # 9. Copy examples (Page Agent lab) verbatim - isolated, no build-time
     #    processing. The lab is an independent experiment not connected to
     #    the Buk-gu MVP or its live bridge.
     examples_src = os.path.join(EXAMPLES_DIR, "page-agent")
