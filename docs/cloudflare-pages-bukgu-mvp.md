@@ -1,5 +1,7 @@
 # 북구청 MVP — Cloudflare Pages (정적 시연 + Live LLM 이중 모드)
 
+> **Clone invariant:** 좌측 시민 사이트의 공식 페이지 clone은 [canonical invariant](product/exact-official-site-clone-invariant.md)를 따른다. 이 Cloudflare Pages 문서의 내용은 exact-clone 계약을 약화하지 않는다. Live retrieval이나 분석은 canonical fixture 기반 왼쪽 화면을 대체하지 않는다.
+
 이 문서는 `400-ai-finder` 저장소의 북구청 MVP를 Cloudflare Pages에서 실행하는
 **두 가지 모드(정적 시연 / Live LLM)** 에 대한 설명이다.
 

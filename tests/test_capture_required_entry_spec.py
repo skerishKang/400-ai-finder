@@ -131,3 +131,155 @@ def test_capture_required_entry_has_quest_ids_field():
         assert isinstance(entry["quest_ids"], list), (
             f"entry '{rid}' quest_ids must be a list"
         )
+
+
+# ---------------------------------------------------------------------------
+# Status claim honesty: when capture_required exists, current-status
+# documents must not claim clone completion.
+# ---------------------------------------------------------------------------
+
+from pathlib import Path as _Path
+import re as _re
+
+ROOT_DIR = _Path(__file__).resolve().parents[1]
+
+
+def _is_status_document(rel: str, text: str) -> bool:
+    """Check if a doc is a current-status document by filename or content."""
+    low_name = rel.lower()
+    status_keywords = [
+        "status", "milestone", "snapshot", "closeout",
+        "current state", "completion report",
+    ]
+    if any(kw in low_name for kw in status_keywords):
+        return True
+    low_text = text.lower()
+    # Must mention the current project explicitly
+    has_status_signal = any(kw in low_text for kw in status_keywords)
+    if not has_status_signal:
+        return False
+    return True
+
+
+def _find_status_documents() -> list[str]:
+    """Discover current-status documents in the repo."""
+    found: list[str] = []
+    docs_dir = ROOT_DIR / "docs"
+    if not docs_dir.is_dir():
+        return found
+    for p in docs_dir.rglob("*.md"):
+        if p.is_file():
+            try:
+                text = p.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                continue
+            rel = p.relative_to(ROOT_DIR).as_posix()
+            if _is_status_document(rel, text):
+                found.append(rel)
+    found.sort()
+    return found
+
+
+# Phrases that claim clone completion — must never appear in a status doc
+# when manifest has any capture_required entry.
+CLONE_COMPLETE_PHRASES = [
+    "clones the official pages verbatim",
+    "official clone parity is complete",
+    "공식 페이지 그대로 복제가 완료",
+    "exact official clone is complete",
+    "complete official clone",
+]
+
+# Phrases that are allowed — target/goal statements or honest partial status.
+ALLOWED_PATTERNS = [
+    "Exact clone is the required target.",
+    "Official fixture parity remains capture_required.",
+    "but official clone parity is not complete.",
+    "capture_required",
+    "is the target",
+]
+
+
+def _has_clone_complete_claim(text: str) -> list[str]:
+    """Find clone-complete claims in text, excluding allowed goal/policy statements."""
+    offending: list[str] = []
+    low = text.lower()
+    for phrase in CLONE_COMPLETE_PHRASES:
+        if phrase.lower() in low:
+            # Check if this is a goal/policy statement rather than a current-status claim
+            # by verifying it's not in the same sentence as allowed patterns
+            offending.append(phrase)
+    # Remove false positives: claims that are counter-examples or negated
+    filtered: list[str] = []
+    for phrase in offending:
+        # If the phrase is inside a "must not" / "하지 않는다" / "금지" context,
+        # it's a prohibition description, not a claim
+        low_text = text.lower()
+        # Find the sentence containing the phrase
+        idx = low_text.index(phrase.lower())
+        start = max(0, low_text.rfind("\n", 0, idx))
+        end = low_text.find("\n", idx)
+        if end == -1:
+            end = len(low_text)
+        sentence = low_text[start:end]
+        prohibition_signals = ["must not", "do not", "never", "금지", "하지 않는다", "불가"]
+        allowed_signals = ["requires", "needs", "pending", "incomplete", "not complete"]
+        if any(sig in sentence for sig in prohibition_signals):
+            continue
+        if any(sig in sentence for sig in allowed_signals):
+            continue
+        filtered.append(phrase)
+    return filtered
+
+
+def _status_detector_positive_self_test():
+    """Sentences that MUST be detected as clone-complete claims."""
+    must_fail = [
+        "The current MVP clones the official pages verbatim.",
+        "Official clone parity is complete.",
+        "현재 공식 페이지 그대로 복제가 완료되었다.",
+    ]
+    for s in must_fail:
+        violations = _has_clone_complete_claim(s)
+        assert violations, (
+            f"Status positive self-test failed: should have detected:\n  {s}"
+        )
+
+
+def _status_detector_negative_self_test():
+    """Sentences that MUST be allowed."""
+    must_pass = [
+        "Exact clone is the required target.",
+        "Official fixture parity remains capture_required.",
+        "The interaction shell is complete, but official clone parity is not complete.",
+    ]
+    for s in must_pass:
+        violations = _has_clone_complete_claim(s)
+        assert not violations, (
+            f"Status negative self-test failed: should NOT have detected:\n  {s}\n"
+            f"Got: {violations}"
+        )
+
+
+def test_status_detector_self_tests():
+    _status_detector_positive_self_test()
+    _status_detector_negative_self_test()
+
+
+def test_status_docs_do_not_claim_clone_complete_when_capture_required_exists():
+    """When manifest has any capture_required entry, current-status documents
+    must not claim the official clone is complete/exact/verbatim."""
+    manifest = _load_manifest()
+    capture_req = manifest.get("capture_required", [])
+    if not capture_req:
+        return  # no capture_required means clone may be complete
+    status_docs = _find_status_documents()
+    assert status_docs, "No status documents found to check"
+    for rel in status_docs:
+        p = ROOT_DIR / rel
+        content = p.read_text(encoding="utf-8", errors="replace")
+        violations = _has_clone_complete_claim(content)
+        assert not violations, (
+            f"{rel} claims clone completion while capture_required entries exist: "
+            + " || ".join(violations)
+        )

@@ -1,5 +1,7 @@
 # Local Execution Contract for #867–#870
 
+> **Clone invariant:** 좌측 시민 사이트의 공식 페이지 clone은 [canonical invariant](../product/exact-official-site-clone-invariant.md)를 따른다. 이 historical/planning 문서의 내용은 exact-clone 계약을 약화하지 않는다. Live retrieval이나 분석은 canonical fixture 기반 왼쪽 화면을 대체하지 않는다.
+
 > Historical status (2026-07-10): this narrow executor contract is retained for
 > provenance and reproducible reference-import work only. It is superseded for
 > product development by `docs/design/bukgu-ai-agent-product-directive.md`.

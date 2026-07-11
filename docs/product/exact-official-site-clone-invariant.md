@@ -118,6 +118,53 @@
 - 검증되지 않은 `-` placeholder 사용
 - 오프라인 빌드를 이유로 검색/pagination/정렬 control 비활성화
 
+## Pagination fidelity
+
+- 다음 항목을 공식 페이지와 동일하게 보존한다:
+  - official total count
+  - official page size
+  - official current page
+  - official current-page rows
+  - official row order
+  - official pagination control structure/state
+
+## No flattening
+
+- 여러 공식 페이지의 행을 한 페이지에 병합하지 않는다.
+
+## No placeholder fabrication
+
+- 공식 source에 없는 `-`, 빈 값, 전화번호, 설명 문구를 생성하지 않는다.
+- 검증되지 않은 placeholder 값을 실제 데이터처럼 표시하지 않는다.
+
+## Fixture-less renderer
+
+- complete official semantic/content fixture가 없는 renderer는 exact clone이 아니다.
+- manifest에서 `capture_required` 상태인 renderer는 exact/complete clone으로 주장할 수 없다.
+
+## Screenshot/crop limitation
+
+- screenshot 또는 crop만으로 complete semantic/content fixture라고 할 수 없다.
+- complete fixture는 행·셀·텍스트 수준의 committed content snapshot을 의미한다.
+
+## Shell completion separation
+
+- interaction shell, layout, choreography 또는 demo mechanics 완료는 official clone 완료가 아니다.
+- 이 항목들의 완료가 manifest의 `capture_required` 상태를 대체하지 않는다.
+
+## Offline meaning
+
+- offline은 runtime external network가 없다는 뜻이다.
+- 공식 control의 삭제·비활성화를 의미하지 않는다.
+- committed fixture 위에서 control을 deterministic하게 실행해야 한다.
+- offline을 이유로 검색, pagination, 정렬 control을 disabled 처리하지 않는다.
+
+## Truthful current status
+
+- manifest에 `capture_required`가 남아 있는 동안 current-status 문서가 exact/verbatim/complete clone 완료를 주장할 수 없다.
+- milestone, snapshot, closeout 문서는 남은 capture_required 항목을 정직하게 반영해야 한다.
+- 목표 또는 정책으로서의 exact clone 요구는 허용된다 (예: "Exact clone is the required target").
+
 ## 관련 문서
 
 - primary README — 좌측 화면 exact clone 철칙 명시 + 본 문서 링크

@@ -1,5 +1,7 @@
 # Municipal Service Crawl/Index Completeness Audit
 
+> **Clone invariant:** 좌측 시민 사이트의 공식 페이지 clone은 [canonical invariant](exact-official-site-clone-invariant.md)를 따른다. 이 audit 문서의 내용은 exact-clone 계약을 약화하지 않는다. Live retrieval이나 분석은 canonical fixture 기반 왼쪽 화면을 대체하지 않는다.
+
 ## Stage
 Stage 384
 

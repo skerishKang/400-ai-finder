@@ -17,16 +17,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_DOC = "docs/product/exact-official-site-clone-invariant.md"
-CANONICAL_LINK_TEXT = "exact-official-site-clone-invariant.md"
 MANIFEST = ROOT / "tests" / "fixtures" / "official_site_clone_manifest.json"
 
-# Clone-relevant documents that MUST reference the canonical invariant and MUST NOT
-# contain a sentence that APPROVES a weak (summary / approximate / redesigned) direction.
-#
-# Dynamically discovered: every non-binary Markdown file under docs/ and the root
-# README.md that either (a) contains a link to the canonical invariant or (b) is
-# the canonical invariant document itself.  No hand-maintained literal replaces
-# this scan so newly created clone-relevant documents are automatically covered.
+# ---------------------------------------------------------------------------
+# Dynamic document discovery — no link dependency
+# ---------------------------------------------------------------------------
+
 DOC_PATTERNS = ("*.md", "*.mdx")
 _EXCLUDED_ROOTS = frozenset({
     ".claude", ".git", "node_modules", "__pycache__", ".pytest_cache",
@@ -34,42 +30,131 @@ _EXCLUDED_ROOTS = frozenset({
     "examples", "tools",
 })
 
+# Topics that identify a doc as clone-governing candidate.
+# Canonical link presence is NOT used as discovery condition.
+CLONE_TOPIC_PATTERNS = [
+    "official site", "official page",
+    "북구청 공식 사이트", "공식 페이지",
+    "left civic-site", "left website surface",
+    "citizen canvas",
+    "official fixture", "official snapshot",
+    "official route inventory",
+    "official-page renderer",
+    "clone fidelity", "exact clone",
+    "공식 콘텐츠를 좌측 화면에 렌더링",
+    "official public source",
+]
+
+# ALLOWLIST: files excluded with specific reason (no broad directory exclusion).
+ALLOWLIST: dict[str, str] = {}
+
+
+def _is_clone_governing_candidate(text: str) -> bool:
+    """Check if doc content references any clone-governing topic.
+
+    Canonical link presence is NOT required for discovery.
+    """
+    low = text.lower()
+    for topic in CLONE_TOPIC_PATTERNS:
+        if topic.lower() in low:
+            return True
+    return False
+
 
 def _discover_clone_related_docs() -> list[str]:
-    """Walk the repository and collect docs referencing the canonical invariant.
+    """Walk repository and collect docs that reference clone-governing topics.
 
-    No hand-maintained literal replaces this scan, so newly created clone-relevant
-    documents are automatically covered.
+    No hand-maintained literal replaces this scan. Canonical link presence is
+    NOT used as a discovery condition. ALLOWLIST must specify per-path exclusion
+    with a specific reason.
     """
     found: list[str] = []
+    # Always include canonical doc itself
     found.append(CANONICAL_DOC)
-    readme_path = ROOT / "README.md"
-    if readme_path.is_file():
-        found.append("README.md")
+
+    # README*
+    for p in ROOT.glob("README*"):
+        if p.is_file() and p.suffix in (".md", ".mdx", ""):
+            rel = p.relative_to(ROOT).as_posix()
+            if rel in ALLOWLIST:
+                continue
+            if rel not in found:
+                found.append(rel)
+
+    # root *.md / *.mdx
+    for pattern in DOC_PATTERNS:
+        for p in ROOT.glob(pattern):
+            if p.is_file() and p.parent == ROOT:
+                rel = p.relative_to(ROOT).as_posix()
+                if rel in ALLOWLIST or rel in found:
+                    continue
+                try:
+                    text = p.read_text(encoding="utf-8", errors="replace")
+                except Exception:
+                    continue
+                if _is_clone_governing_candidate(text):
+                    found.append(rel)
+
+    # docs/**/*.md / *.mdx
     docs_dir = ROOT / "docs"
     if docs_dir.is_dir():
         for pattern in DOC_PATTERNS:
             for p in docs_dir.rglob(pattern):
                 if any(excluded in p.parts for excluded in _EXCLUDED_ROOTS):
                     continue
+                rel = p.relative_to(ROOT).as_posix()
+                if rel in ALLOWLIST or rel in found:
+                    continue
                 try:
                     text = p.read_text(encoding="utf-8", errors="replace")
                 except Exception:
                     continue
-                if CANONICAL_LINK_TEXT in text or CANONICAL_DOC in text:
-                    rel = p.relative_to(ROOT).as_posix()
-                    if rel not in found:
-                        found.append(rel)
+                if _is_clone_governing_candidate(text):
+                    found.append(rel)
+
+    # .github/**/*.md / *.mdx
+    github_dir = ROOT / ".github"
+    if github_dir.is_dir():
+        for pattern in DOC_PATTERNS:
+            for p in github_dir.rglob(pattern):
+                if any(excluded in p.parts for excluded in _EXCLUDED_ROOTS):
+                    continue
+                rel = p.relative_to(ROOT).as_posix()
+                if rel in ALLOWLIST or rel in found:
+                    continue
+                try:
+                    text = p.read_text(encoding="utf-8", errors="replace")
+                except Exception:
+                    continue
+                if _is_clone_governing_candidate(text):
+                    found.append(rel)
+
     found.sort()
     return found
 
 
 CLONE_RELATED_DOCS = _discover_clone_related_docs()
 
+REQUIRED_8_CANONICAL = [
+    "docs/design/863-local-execution-contract.md",
+    "docs/mvp-demo-operator-runbook.md",
+    "docs/official-site-route-inventory-first-local-static-records.md",
+    "docs/official-site-route-inventory-plan.md",
+    "docs/operator-controlled-retrieval-gap-validation.md",
+    "docs/product/1078-corrective-note.md",
+    "docs/product/dynamic-retrieval-query-learning-strategy.md",
+    "docs/product/municipal-service-crawl-index-completeness-audit.md",
+]
+
 OFFICIAL_DOMAIN = "https://bukgu.gwangju.kr"
 
-# Forbidden explicit phrases — must never appear in clone-relevant docs, regardless of
-# surrounding approval language. These encode the directions that are permanently banned.
+# ---------------------------------------------------------------------------
+# Weakening detector — rewritten for CTO clarity
+# ---------------------------------------------------------------------------
+
+# Explicit forbidden phrases — must never appear in clone-relevant docs.
+# Note: "Use a summary instead" type phrases are removed from FORBIDDEN_PHRASES;
+# the sentence-level detector handles them with proper negation context.
 FORBIDDEN_PHRASES = [
     "high-fidelity",
     "high fidelity",
@@ -84,57 +169,56 @@ FORBIDDEN_PHRASES = [
     "demo quality reproduction",
     "representative rows",
     "representative row",
-    "Use a summary instead of the official page",
-    "Use a summary instead",
-    "summary instead of official",
 ]
 
-# Weak terms whose mere presence is not a violation, but which become a violation when a
-# sentence ALSO contains an approval/permission signal (the sentence approves a weak clone).
-# Note: rebuild verbs (reconstruct / 재구성 / 재현 / recreate) are intentionally EXCLUDED —
-# they are neutral "rebuild verbatim" verbs, not weak directions by themselves.
+# Weak terms whose mere presence is not a violation, but which become a
+# violation when a sentence ALSO contains an approval/permission signal
+# (the sentence approves a weak clone).
 WEAK_TERMS = [
-    "요약", "축약", "간소", "재설계", "근사", "유사", "비슷",
+    "요약", "축약", "간소", "재설계", "근사", "유사", "비슷", "대표",
     "approximate", "approximation", "representative", "summary", "simplified",
     "simplify", "simulation", "simulated", "inspired by",
     "approximately", "근접", "충분히 유사",
 ]
 
-# Approval / permission signals: a sentence that contains a weak term AND one of these
-# approves a weak direction (e.g. "representative rows are shown", "approximately 910px",
-# "high-fidelity reconstruction"). Rebuild verbs are NOT here (see WEAK_TERMS note).
 APPROVAL_SIGNALS = [
-    "허용", "가능", "수준", "대신", "instead", "acceptable", "enough", "충분",
-    "근접", "비슷", "유사", "approximate", "approximation", "closely",
+    "허용", "가능", "수준", "대신", "instead of", "acceptable", "enough",
+    "충분", "근접", "비슷", "유사", "approximate", "approximation", "closely",
     "보여", "표시", "노출", "사용", "적용",
-    "는다", "한다", "이다", "입니다", "있습니다",
+    " use ", " may ",  # word-boundary matched to avoid false positives
+    "도 된다",
+]
+
+# Only explicit negation signals — broad/broken negations removed.
+# "instead of" and "대신" are replacement-direction indicators, not negation.
+NEGATION_SIGNALS = [
+    "must not", "do not", "never",
+    "forbidden", "disallowed", "cannot be used",
+    " not ",  # standalone token negation (e.g. "match exactly, not approximately")
+    " no ",
+    "금지한다", "허용하지 않는다", "사용하지 않는다",
+    "대체하지 않는다", "표시하지 않는다", "하지 않는다",
+    "되지 않는다",
+    "불가",
 ]
 
 
 def _split_sentences(text: str) -> list[str]:
-    # Naive sentence splitter good enough for doc scanning.
     parts = re.split(r"(?<=[.。!?])\s+|\n+", text)
     return [p.strip() for p in parts if p.strip()]
 
 
-# Explicit negation signals — a sentence that forbids a weak direction is the OPPOSITE
-# of approving it, and must NOT be flagged.
-NEGATION_SIGNALS = [
-    "하지 않", "하지 않", "않", "금지", "금지하", "금지되", "must not", "no ", "not ",
-    "절대", "禁止", "forbidden", "disallow", "cannot", "can't", "never", "없",
-    "없이", "instead of", "대신", " molten", "불가", "안 ", "안 되", "되지 않",
-]
-
-
 def _has_weak_approval_sentence(text: str) -> list[str]:
-    """Return list of offending sentences (weak term + approval signal, NOT negated)."""
+    """Return list of offending sentences (weak term + approval signal,
+    NOT explicitly negated)."""
     offending: list[str] = []
     for sent in _split_sentences(text):
         low = sent.lower()
         has_weak = any(w.lower() in low for w in WEAK_TERMS)
         if not has_weak:
             continue
-        # Skip sentences that explicitly FORBID the weak direction.
+        # Skip sentences that explicitly FORBID the weak direction
+        # using one of the NEGATION_SIGNALS
         if any(neg in low for neg in NEGATION_SIGNALS):
             continue
         has_approval = any(s.lower() in low for s in APPROVAL_SIGNALS)
@@ -143,14 +227,44 @@ def _has_weak_approval_sentence(text: str) -> list[str]:
     return offending
 
 
+def _detector_positive_self_test():
+    """Sentences that MUST be detected as violations."""
+    must_violate = [
+        "Use a summary instead of the official page.",
+        "A simplified version of the official page is acceptable.",
+        "The left surface may use representative rows.",
+        "공식 표 대신 대표 행만 표시한다.",
+        "공식 페이지를 대략 비슷하게 만들어도 된다.",
+    ]
+    for s in must_violate:
+        assert _has_weak_approval_sentence(s), (
+            f"Positive self-test failed: should have detected violation:\n  {s}"
+        )
+
+
+def _detector_negative_self_test():
+    """Sentences that MUST be allowed (explicitly negated or unrelated)."""
+    must_pass = [
+        "Do not use a summary instead of the official page.",
+        "The official page must never be simplified.",
+        "대표 행만 표시하는 것은 금지한다.",
+        "공식 표를 요약 화면으로 대체하지 않는다.",
+        "The retrieval index has an unused summary field; this is unrelated to clone fidelity.",
+    ]
+    for s in must_pass:
+        violations = _has_weak_approval_sentence(s)
+        assert not violations, (
+            f"Negative self-test failed: should NOT have detected:\n  {s}\n"
+            f"Got: {violations}"
+        )
+
+
 # ---------------------------------------------------------------------------
 # 1. canonical invariant document exists
 # ---------------------------------------------------------------------------
 
 def test_canonical_invariant_document_exists():
-    assert (ROOT / CANONICAL_DOC).is_file(), (
-        f"canonical invariant doc missing: {CANONICAL_DOC}"
-    )
+    assert (ROOT / CANONICAL_DOC).is_file()
 
 
 # ---------------------------------------------------------------------------
@@ -161,10 +275,10 @@ def test_readme_links_canonical_invariant():
     readme = ROOT / "README.md"
     assert readme.is_file()
     content = readme.read_text(encoding="utf-8")
-    assert CANONICAL_LINK_TEXT in content, (
+    link_text = "exact-official-site-clone-invariant.md"
+    assert link_text in content, (
         "README must link the canonical exact-official-site-clone invariant doc"
     )
-    # The required invariant sentence must be present verbatim (or its English form).
     required_ko = (
         "왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다"
     )
@@ -172,9 +286,7 @@ def test_readme_links_canonical_invariant():
         "The left civic-site surface clones the captured official Gwangju Buk-gu "
         "portal page verbatim"
     )
-    assert required_ko in content or required_en in content, (
-        "README must state the exact-clone invariant sentence verbatim"
-    )
+    assert required_ko in content or required_en in content
 
 
 # ---------------------------------------------------------------------------
@@ -185,11 +297,33 @@ def test_clone_related_docs_link_canonical():
     for rel in CLONE_RELATED_DOCS:
         p = ROOT / rel
         assert p.is_file(), f"clone-related doc missing: {rel}"
-        # The canonical doc itself is the reference; skip self-link check.
         if rel == CANONICAL_DOC:
             continue
         content = p.read_text(encoding="utf-8")
-        assert CANONICAL_LINK_TEXT in content or CANONICAL_DOC in content, (
+        link_text = "exact-official-site-clone-invariant.md"
+        assert link_text in content or CANONICAL_DOC in content, (
+            f"{rel} must reference the canonical invariant doc ({CANONICAL_DOC})"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 3b. Required 8 docs are discovered and linked
+# ---------------------------------------------------------------------------
+
+def test_required_8_docs_are_discovered():
+    for rel in REQUIRED_8_CANONICAL:
+        assert rel in CLONE_RELATED_DOCS, (
+            f"Required doc not discovered: {rel}"
+        )
+
+
+def test_required_8_docs_link_canonical():
+    for rel in REQUIRED_8_CANONICAL:
+        p = ROOT / rel
+        assert p.is_file(), f"Required doc missing: {rel}"
+        content = p.read_text(encoding="utf-8")
+        link_text = "exact-official-site-clone-invariant.md"
+        assert link_text in content or CANONICAL_DOC in content, (
             f"{rel} must reference the canonical invariant doc ({CANONICAL_DOC})"
         )
 
@@ -198,12 +332,17 @@ def test_clone_related_docs_link_canonical():
 # 4. clone-related docs contain no sentence that approves a weak direction
 # ---------------------------------------------------------------------------
 
+def test_detector_self_tests():
+    _detector_positive_self_test()
+    _detector_negative_self_test()
+
+
 def test_clone_related_docs_have_no_weak_approval_language():
     for rel in CLONE_RELATED_DOCS:
         p = ROOT / rel
         content = p.read_text(encoding="utf-8")
-        # The canonical invariant doc itself enumerates forbidden phrases as examples to
-        # BLOCK; skip both the hard-block phrase scan and the weak-approval detector on it.
+        # The canonical invariant doc itself enumerates forbidden phrases as
+        # examples to BLOCK; skip both scans on it.
         if rel == CANONICAL_DOC:
             continue
         # Hard-blocked explicit phrases (any occurrence is a violation).
@@ -212,10 +351,10 @@ def test_clone_related_docs_have_no_weak_approval_language():
             assert phrase.lower() not in low, (
                 f"{rel} contains forbidden clone-weakening phrase: '{phrase}'"
             )
-        # Sentence-level weak-approval detection.
+        # Sentence-level weak-approval detection (context-aware).
         offending = _has_weak_approval_sentence(content)
         assert not offending, (
-            f"{rel} contains sentence(s) that approve a weak (non-exact) clone direction: "
+            f"{rel} contains sentence(s) that approve a weak clone direction: "
             + " || ".join(offending)
         )
 
@@ -225,9 +364,7 @@ def test_clone_related_docs_have_no_weak_approval_language():
 # ---------------------------------------------------------------------------
 
 def test_official_page_fixture_manifest_exists():
-    assert MANIFEST.is_file(), (
-        f"official page fixture manifest missing: {MANIFEST}"
-    )
+    assert MANIFEST.is_file()
 
 
 # ---------------------------------------------------------------------------

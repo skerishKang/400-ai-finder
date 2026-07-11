@@ -19,7 +19,7 @@ live/production tracks.
 | Complete | Current MVP demo milestone is complete for **local/static stakeholder review**. |
 | Not production | The demo is **not** a production rebuild. |
 | Not live integration | The demo is **not** a live official-site integration. |
-| What it is | A **local/static demonstration surface that clones the official Buk-gu portal pages verbatim** for five locked resident-task flows. |
+| What it is | A **local/static demonstration surface for five locked resident-task flows**. Official-site clone capture is not complete — see `capture_required` in the [official-site manifest](tests/fixtures/official_site_clone_manifest.json). |
 
 > **Scope note:** this milestone closes out the local/static demo surface only.
 > It is **not** the entire product. The intended product also answers unknown
@@ -33,22 +33,23 @@ live/production tracks.
 
 - First-use question entry
 - Split left website surface / right AI assistant shell
-- Three locked local/static golden renderer-route quests
-- Real-page fidelity hardening for the five quests
+- Five locked local/static golden quests
 - Quest fidelity matrix
 - Matrix regression test
 - Operator runbook
 - README entry-point discoverability
 
-Real-page fidelity hardening for the three core renderer-route quests was completed
-earlier (including #987 / #989 and related follow-ups). Closeout docs/tests for
-this milestone are summarized in §7.
+Completed: interaction shell, left/right layout, scripted choreography mechanics,
+local demo execution mechanics, and related shell/build contracts. Not yet
+complete: official fixture capture, semantic/content parity, renderer-to-fixture
+parity, and route별 official source verification — these remain `capture_required`
+per the manifest.
 
 ---
 
 ## 3. Locked golden quest set
 
-All three core renderer-route quests use `source_mode: local_static` and
+All five quests use `source_mode: local_static` and
 `stop_condition: STOP_FOR_USER_CONFIRMATION`.
 
 | # | quest_id | resident task | primary path |
@@ -56,15 +57,8 @@ All three core renderer-route quests use `source_mode: local_static` and
 | A | `housing_department_lookup` | 아파트 정보 안내 | 북구청 홈 > 분야별정보 > 건축 > 아파트정보 > 아파트현황 |
 | B | `illegal_parking_report_guidance` | 불법 주정차 신고 안내 | 북구청 홈 > 분야별정보 > 차량교통 > 지도단속 |
 | C | `bulky_waste_disposal_guidance` | 대형폐기물 배출 안내 | 북구청 홈 > 분야별정보 > 환경재활용 > 대형폐기물 배출방법 |
-
-> **Note:** `move_in_report_guidance` and `public_health_center_guidance` are
-> **not** renderer routes and are excluded from the exact-clone manifest. They
-> were previously listed under this milestone but do not correspond to a
-> production `capture_required` page. Those quests belong to a separate track
-> (Government24 handoff / health-center information) outside the current
-> renderer-route scope. See the
-> [official-site manifest](tests/fixtures/official_site_clone_manifest.json) for
-> the authoritative 13-route renderer set.
+| D | `move_in_report_guidance` | 전입신고 안내 | 북구청 홈 > 종합민원 > 전자민원창구 > 정부24 |
+| E | `public_health_center_guidance` | 보건소 위치·진료 안내 | 북구청 홈 > 보건소 > 보건소소개 > 찾아오시는 길 |
 
 Do not add a sixth golden quest in this milestone without a new issue and
 matrix update.
@@ -119,6 +113,8 @@ entire product.
 - `tests/browser/verify_housing_quest_e2e.mjs`
 - `tests/browser/verify_illegal_parking_quest_e2e.mjs`
 - `tests/browser/verify_bulky_waste_quest_e2e.mjs`
+- `tests/browser/verify_move_in_quest_e2e.mjs`
+- `tests/browser/verify_public_health_center_quest_e2e.mjs`
 - `tests/browser/verify_citizen_first_use_pages.mjs`
 
 ---
