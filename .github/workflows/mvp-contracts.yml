@@ -42,6 +42,7 @@ jobs:
         run: |
           python -m pytest -q \
             tests/test_bukgu_official_apartment_snapshot.py \
+            tests/test_bukgu_official_content_snapshots.py \
             tests/test_renderer_route_manifest_fidelity.py \
             tests/test_capture_required_entry_spec.py \
             tests/test_exact_official_site_clone_invariant.py \
@@ -109,6 +110,9 @@ jobs:
           PY
 
           node tests/browser/verify_housing_quest_e2e.mjs \
+            http://127.0.0.1:8768
+
+          node tests/browser/verify_mayor_writing_e2e.mjs \
             http://127.0.0.1:8768
 
       - name: Run Cloudflare MVP Function contract test

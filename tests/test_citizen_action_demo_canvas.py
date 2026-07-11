@@ -1056,8 +1056,15 @@ class TestJDept01SpecificContracts:
     def test_jdept01_css_is_scoped(self):
         """7. Verify J-DEPT CSS rules are route-scoped only."""
         css = _read_static("citizen-action-demo-canvas.css")
-        # Split by the exact end marker of the comment block to clear the header comment
-        jdept_part = css.split("--------------------------------------------------------------------------- */")[-1]
+        # Delimit the historical J-DEPT block so later route styles are checked by
+        # their own contracts instead of being mistaken for J-DEPT selectors.
+        start_marker = "J-DEPT-01 specific scoped styles"
+        end_marker = "/* J-DEPT-01 scoped styles end */"
+        assert css.count(start_marker) == 1
+        assert css.count(end_marker) == 1
+        jdept_part = css.split(start_marker, 1)[1]
+        jdept_part = jdept_part.split("--------------------------------------------------------------------------- */", 1)[1]
+        jdept_part = jdept_part.split(end_marker, 1)[0]
 
         import re
         jdept_part = re.sub(r"/\*[\s\S]*?\*/", "", jdept_part)

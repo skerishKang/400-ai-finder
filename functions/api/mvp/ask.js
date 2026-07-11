@@ -39,6 +39,13 @@ const ACTION_RULES = Object.freeze([
   { action: 'litter_ai_assist', terms: ['쓰레기 무단투기', '무단 투기 신고', '방치 쓰레기 신고'] },
 ]);
 
+const ACTION_SNAPSHOT_ROUTES = Object.freeze({
+  housing_department: 'apartment-dept',
+  bulky_waste: 'bulky-waste-disposal',
+  passport_guidance: 'passport-guidance',
+  unmanned_kiosk: 'unmanned-kiosk-guidance',
+});
+
 function jsonResponse(payload, status, headers) {
   return new Response(JSON.stringify(payload), { status, headers });
 }
@@ -79,10 +86,64 @@ export function classifyAction(question) {
   return 'none';
 }
 
+function plainTextFromOfficialHtml(html) {
+  return String(html || '')
+    .replace(/<(?:br|hr)\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|li|tr|h[1-6]|section|article|div)>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;|&#34;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s*\n\s*\n+/g, '\n\n')
+    .trim();
+}
+
 function buildCanonicalSnapshotContext(action) {
-  if (action !== 'housing_department') return null;
-  const snapshot = BUKGU_OFFICIAL_SNAPSHOTS['apartment-dept'];
-  if (!snapshot || !snapshot.page || !Array.isArray(snapshot.page.rows)) return null;
+  const routeId = ACTION_SNAPSHOT_ROUTES[action];
+  if (!routeId) return null;
+  const snapshot = BUKGU_OFFICIAL_SNAPSHOTS[routeId];
+  if (!snapshot || !snapshot.page || !snapshot.source) return null;
+
+  if (snapshot.snapshot_kind === 'official_content_page') {
+    const officialText = plainTextFromOfficialHtml(snapshot.page.content_html);
+    if (!officialText) return null;
+    const source = snapshot.source;
+    return {
+      ok: true,
+      evidence: [
+        `[공식 스냅샷 ${snapshot.snapshot_id}]`,
+        `페이지: ${source.title}`,
+        `공식 URL: ${source.url}`,
+        `공식 페이지 업데이트 표시: ${source.source_updated_at}`,
+        `캡처된 공식 본문:\n${officialText}`,
+      ].join('\n'),
+      sources: [{
+        title: source.title,
+        url: source.url,
+        official: true,
+        snapshot_id: snapshot.snapshot_id,
+        canonical_sha256: snapshot.canonical_sha256,
+        captured_at: source.captured_at,
+        verified_at: source.verified_at,
+        source_updated_at: source.source_updated_at,
+      }],
+      sourceUrl: source.url,
+      searchQueries: [],
+      freshnessState: 'official_snapshot',
+      capturedAt: source.captured_at,
+      verifiedAt: source.verified_at,
+      routeId: snapshot.route_id,
+      pageId: snapshot.page_id,
+      snapshotId: snapshot.snapshot_id,
+      canonicalSha256: snapshot.canonical_sha256,
+    };
+  }
+
+  if (!Array.isArray(snapshot.page.rows)) return null;
 
   const columns = Array.isArray(snapshot.page.columns) ? snapshot.page.columns : [];
   const columnLabels = columns.map((column) => column.label).join(' | ');

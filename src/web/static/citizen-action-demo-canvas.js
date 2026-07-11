@@ -42,6 +42,45 @@
     return snapshots[routeId];
   }
 
+  function _renderOfficialContentPage(routeId, activeMenu, targetId) {
+    var snapshot = _getOfficialSnapshot(routeId);
+    if (!snapshot || snapshot.snapshot_kind !== "official_content_page" ||
+        !snapshot.page || !snapshot.page.content_html) {
+      return "";
+    }
+    var page = snapshot.page;
+    var breadcrumbs = (page.breadcrumbs || []).map(function (label, index) {
+      return '<li' + (index === page.breadcrumbs.length - 1 ? ' aria-current="page"' : '') + '>' +
+        '<span>' + _escHtml(label) + '</span>' +
+        (index < page.breadcrumbs.length - 1 ? '<b aria-hidden="true">›</b>' : '') + '</li>';
+    }).join("");
+
+    return (
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--official-content bg-page--official-' +
+        _escHtml(routeId) + '" data-official-snapshot-id="' + _escHtml(snapshot.snapshot_id) +
+        '" data-official-route-id="' + _escHtml(routeId) + '" data-canonical-sha256="' +
+        _escHtml(snapshot.canonical_sha256 || "") + '">' +
+        _renderDenseHeader(activeMenu) +
+        '<main class="bg-official-content-main" role="main">' +
+          '<header class="bg-official-content-heading">' +
+            '<h1>' + _escHtml(page.section_title) + '</h1>' +
+            '<nav class="bg-official-content-breadcrumb" aria-label="현재 위치"><ol>' + breadcrumbs + '</ol></nav>' +
+            '<div class="bg-official-content-tools" aria-label="페이지 도구">' +
+              '<button type="button" aria-label="글자 크게">＋</button>' +
+              '<button type="button" aria-label="글자 작게">－</button>' +
+              '<button type="button" aria-label="인쇄">▣</button>' +
+              '<button type="button" aria-label="공유">⌯</button>' +
+            '</div>' +
+          '</header>' +
+          '<section class="bg-official-content-html" data-action-target="' + _escHtml(targetId) + '">' +
+            page.content_html +
+          '</section>' +
+        '</main>' +
+        _renderSubFooter() +
+      '</div>'
+    );
+  }
+
   function _apartmentDeptAnswerText() {
     var snapshot = _getOfficialSnapshot("apartment-dept");
     if (!snapshot || !snapshot.page || !snapshot.representative_contact) {
@@ -641,16 +680,17 @@
 
   /**
    * First-use choreography presence check.
-   * When the first-use shell is in split state and choreography is active,
-   * route transitions must not overwrite the chat thread with the default
-   * historical chat HTML. Returns true when chat should be preserved.
+   * When the first-use shell owns the split-state chat thread (the resident
+   * has not yet completed the journey), route transitions must not overwrite
+   * it with the default historical chat HTML. This covers the entire split
+   * phase, including the pending user-confirmation step before any
+   * choreography has started, so the shell-managed quest card and
+   * confirm-run button survive the canvas home render. Returns true when the
+   * chat should be preserved.
    */
   function _shouldPreserveFirstUseChat() {
     if (!document.body) return false;
-    var firstUseState = document.body.getAttribute("data-first-use-state");
-    var choreographyState = document.body.getAttribute("data-choreography-state");
-    return firstUseState === "split" &&
-      (choreographyState === "running" || choreographyState === "done");
+    return document.body.getAttribute("data-first-use-state") === "split";
   }
 
   function _restoreHistoricalChat() {
@@ -1138,6 +1178,10 @@
           '<section class="bg-home-lead" aria-label="주요 안내">' +
             '<article class="bg-home-lead__mayor">' +
               '<img src="' + assets + '/home-mayor-card.png" alt="따뜻한 북구를 만들겠습니다. 북구청장 신수정입니다." />' +
+              '<button type="button" class="bg-home-mayor-hotspot" id="btn-open-mayor-office" ' +
+                'data-action-target="mayor-office-open" aria-label="열린구청장실 바로가기">' +
+                '<span>열린구청장실 바로가기</span><b aria-hidden="true">→</b>' +
+              '</button>' +
             '</article>' +
             '<article class="bg-home-lead__banner" aria-label="소속 공무원 사칭 피해주의 알림">' +
               '<img src="' + assets + '/' + bannerFile + '" alt="주요 알림 배너" />' +
@@ -1396,6 +1440,10 @@
   }
 
   function _renderBulkyWasteDisposal(route) {
+    var officialPage = _renderOfficialContentPage(
+      "bulky-waste-disposal", "field-info", "bulky-waste-guidance-card"
+    );
+    if (officialPage) return officialPage;
     return (
       '<div class="bg-page bg-page--full bg-page--dense bg-page--bulky-waste">' +
         _renderDenseHeader('field-info') +
@@ -1566,6 +1614,10 @@
   }
 
   function _renderPassportGuidance(route) {
+    var officialPage = _renderOfficialContentPage(
+      "passport-guidance", "civil-service", "passport-guidance-card"
+    );
+    if (officialPage) return officialPage;
     return (
       '<div class="bg-page bg-page--full bg-page--dense bg-page--passport-guidance">' +
         _renderDenseHeader('civil-service') +
@@ -1882,6 +1934,10 @@
   }
 
   function _renderUnmannedKioskGuidance(route) {
+    var officialPage = _renderOfficialContentPage(
+      "unmanned-kiosk-guidance", "civil-service", "unmanned-kiosk-card"
+    );
+    if (officialPage) return officialPage;
     return (
       '<div class="bg-page bg-page--full bg-page--dense bg-page--unmanned-kiosk-guidance">' +
         _renderDenseHeader('civil-service') +
@@ -2467,67 +2523,135 @@
   // _renderHandoffStop — demo end screen
   // -----------------------------------------------------------------------
 
+  function _renderProductBreadcrumb(items) {
+    return '<nav class="bg-product-breadcrumb" aria-label="현재 위치"><ol>' +
+      items.map(function (item, index) {
+        return '<li' + (index === items.length - 1 ? ' aria-current="page"' : '') + '>' +
+          _escHtml(item) + (index < items.length - 1 ? '<span aria-hidden="true">›</span>' : '') + '</li>';
+      }).join("") + '</ol></nav>';
+  }
+
   function _renderComplaintBoard() {
-    // Schedule fetch after DOM update
     if (typeof window !== "undefined" && window.setTimeout) {
       window.setTimeout(_fetchAndRenderBoardPosts, 50);
     }
     return (
-      '<div class="bg-page bg-page--full">' +
-        '<div class="bg-home-gov-strip">' +
-          '<div class="bg-home-gov-strip__inner">' +
-            '<img src="/static/images/bukgu-current/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
-          '</div>' +
-        '</div>' +
-        '<header class="bg-header"><div class="bg-home-header"><div class="bg-home-header__inner">' +
-          '<div class="bg-home-header__identity"><img src="/static/images/bukgu-current/home-identity.png" alt="북구청" /></div>' +
-          '<nav class="bg-gnb"><div class="bg-home-gnb"><span class="bg-home-gnb__link">소통광장</span></div></nav>' +
-        '</div></div></header>' +
-        '<main class="bg-dept-main">' +
-          '<div class="bg-dept-header"><h2>민원게시판</h2></div>' +
-          '<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">' +
-            '<button type="button" class="bg-dept-search__btn" data-action-target="complaint-write" id="btn-board-write">글쓰기</button>' +
-          '</div>' +
-          '<table class="bg-dept-table" id="board-list-table">' +
-            '<thead><tr><th>번호</th><th>제목</th><th>작성자</th><th>작성일</th><th>상태</th></tr></thead>' +
-            '<tbody id="board-list-body">' +
-              '<tr><td colspan="5" style="text-align:center;">게시글을 불러오는 중...</td></tr>' +
-            '</tbody>' +
-          '</table>' +
-        '</main>' +
+      '<div class="bg-page bg-page--full bg-page--product bg-page--complaint-board" data-product-proposal="true">' +
+        _renderDenseHeader("communication") +
+        '<main class="bg-product-main">' +
+          _renderProductBreadcrumb(["홈", "소통광장", "생활민원", "민원게시판"]) +
+          '<section class="bg-product-hero">' +
+            '<div><p class="bg-product-eyebrow">BUKGU LISTENS</p>' +
+              '<h1>생활의 불편을<br><strong>더 빠르게 해결합니다</strong></h1>' +
+              '<p>말로 설명하면 AI가 행정 문장으로 정리하고, 주민이 확인한 뒤 접수하는 북구형 민원 제안 화면입니다.</p></div>' +
+            '<div class="bg-product-hero__metric" aria-label="민원 처리 현황"><span>오늘 접수</span><strong>24</strong><small>평균 첫 응답 1.8일</small></div>' +
+          '</section>' +
+          '<section class="bg-board-panel" aria-labelledby="complaint-board-title">' +
+            '<header class="bg-board-panel__head"><div><p>주민 생활 제안</p><h2 id="complaint-board-title">민원게시판</h2></div>' +
+              '<button type="button" class="bg-action-btn bg-action-btn--primary" data-action-target="complaint-write" id="btn-board-write">' +
+                '<span aria-hidden="true">＋</span> 새 민원 작성</button></header>' +
+            '<div class="bg-board-toolbar"><div class="bg-board-search"><span aria-hidden="true">⌕</span><input type="search" aria-label="민원 검색" placeholder="제목이나 처리 부서를 검색하세요" /></div>' +
+              '<div class="bg-board-filters" aria-label="상태 필터"><button type="button" aria-pressed="true">전체</button><button type="button">접수</button><button type="button">답변완료</button></div></div>' +
+            '<div class="bg-board-table-wrap"><table class="bg-board-table" id="board-list-table">' +
+              '<thead><tr><th scope="col">번호</th><th scope="col">제목</th><th scope="col">작성자</th><th scope="col">작성일</th><th scope="col">상태</th></tr></thead>' +
+              '<tbody id="board-list-body"><tr><td colspan="5" class="bg-board-loading">게시글을 불러오는 중입니다.</td></tr></tbody>' +
+            '</table></div>' +
+            '<footer class="bg-board-panel__foot"><p><span aria-hidden="true">i</span> 개인정보와 정확한 위치는 제출 전 직접 확인해 주세요.</p><span>1 / 1</span></footer>' +
+          '</section>' +
+        '</main>' + _renderSubFooter() +
       '</div>'
     );
   }
 
-  function _renderComplaintWrite() {
+  function _renderWritingWorkspace(config) {
     return (
-      '<div class="bg-page bg-page--full">' +
-        '<div class="bg-home-gov-strip">' +
-          '<div class="bg-home-gov-strip__inner">' +
-            '<img src="/static/images/bukgu-current/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
-          '</div>' +
+      '<main class="bg-writing-main">' +
+        _renderProductBreadcrumb(config.breadcrumbs) +
+        '<header class="bg-writing-heading"><div><p class="bg-product-eyebrow">AI WRITING ASSIST</p><h1>' + _escHtml(config.title) + '</h1>' +
+          '<p>' + _escHtml(config.description) + '</p></div><span class="bg-writing-heading__badge">' + _escHtml(config.badge) + '</span></header>' +
+        '<div class="bg-writing-layout">' +
+          '<section class="bg-writing-card" aria-labelledby="' + _escHtml(config.titleId) + '">' +
+            '<div class="bg-writing-card__top"><div><span>작성 단계</span><strong id="' + _escHtml(config.titleId) + '">민원 내용을 확인해 주세요</strong></div>' +
+              '<div class="bg-writing-progress" aria-label="작성 진행률"><span class="is-done"></span><span class="is-active"></span><span></span></div></div>' +
+            '<div class="bg-writing-field"><label for="' + _escHtml(config.fieldPrefix) + '-title">제목 <b>필수</b></label>' +
+              '<p>담당자가 내용을 빠르게 파악할 수 있도록 핵심을 담아 주세요.</p>' +
+              '<input type="text" class="bg-dept-search__input bg-writing-input" id="' + _escHtml(config.fieldPrefix) + '-title" maxlength="100" autocomplete="off" placeholder="예: 공원 내 방치 쓰레기 수거 요청" /></div>' +
+            '<div class="bg-writing-field"><div class="bg-writing-field__label"><label for="' + _escHtml(config.fieldPrefix) + '-content">내용 <b>필수</b></label><span>최대 2,000자</span></div>' +
+              '<p>불편한 상황, 위치, 원하는 조치를 편하게 말씀해 주세요. AI가 민원 문장으로 다듬습니다.</p>' +
+              '<textarea id="' + _escHtml(config.fieldPrefix) + '-content" maxlength="2000" placeholder="내용을 입력하거나 AI 작성을 시작하세요."></textarea></div>' +
+            '<div class="bg-writing-consent"><span aria-hidden="true">✓</span><p><strong>제출 전 주민 확인</strong>AI는 초안만 작성하며 주민이 확인 버튼을 누르기 전에는 제출되지 않습니다.</p></div>' +
+            '<div class="bg-writing-actions">' +
+              '<button type="button" class="bg-action-btn bg-action-btn--secondary" data-action-target="' + _escHtml(config.backTarget) + '">이전으로</button>' +
+              '<button type="button" class="bg-action-btn bg-action-btn--primary" id="' + _escHtml(config.submitId) + '" disabled aria-disabled="true">검토 후 제출 가능</button>' +
+            '</div>' +
+          '</section>' +
+          '<aside class="bg-writing-assistant" aria-label="AI 작성 도움 상태"><div class="bg-writing-assistant__orb"><span>AI</span></div>' +
+            '<p class="bg-product-eyebrow">BUKGU AI</p><h2>주민의 말은 그대로,<br>행정 문장은 더 명확하게</h2>' +
+            '<ol><li class="is-done"><b>1</b><span><strong>핵심 내용 파악</strong>불편 상황과 요청사항을 구분합니다.</span></li>' +
+              '<li class="is-active"><b>2</b><span><strong>민원 문장 작성</strong>정중하고 구체적인 문장으로 다듬습니다.</span></li>' +
+              '<li><b>3</b><span><strong>주민 최종 확인</strong>수정하거나 제출 여부를 선택합니다.</span></li></ol>' +
+            '<div class="bg-writing-assistant__tip"><span aria-hidden="true">✦</span><p>위치나 날짜처럼 필요한 정보가 비어 있으면 제출 전에 알려드립니다.</p></div>' +
+          '</aside>' +
         '</div>' +
-        '<header class="bg-header"><div class="bg-home-header"><div class="bg-home-header__inner">' +
-          '<div class="bg-home-header__identity"><img src="/static/images/bukgu-current/home-identity.png" alt="북구청" /></div>' +
-          '<nav class="bg-gnb"><div class="bg-home-gnb"><span class="bg-home-gnb__link">소통광장</span></div></nav>' +
-        '</div></div></header>' +
-        '<main class="bg-dept-main">' +
-          '<div class="bg-dept-header"><h2>민원 글쓰기</h2></div>' +
-          '<div class="bg-form-group" style="margin-top:20px;">' +
-            '<label style="display:block;margin-bottom:5px;font-weight:bold;">제목</label>' +
-            '<input type="text" class="bg-dept-search__input" id="board-write-title" style="width:100%;max-width:600px;" />' +
-          '</div>' +
-          '<div class="bg-form-group" style="margin-top:15px;">' +
-            '<label style="display:block;margin-bottom:5px;font-weight:bold;">내용</label>' +
-            '<textarea id="board-write-content" style="width:100%;height:200px;padding:10px;border:1px solid #ccc;resize:none;"></textarea>' +
-          '</div>' +
-          '<div style="display:flex;justify-content:center;gap:10px;margin-top:20px;">' +
-            '<button type="button" class="bg-dept-search__btn" id="btn-board-submit" disabled aria-disabled="true">제출 전 확인 필요</button>' +
-            '<button type="button" class="bg-dept-search__btn" style="background:#666;" data-action-target="complaint-board-return">취소</button>' +
-          '</div>' +
-        '</main>' +
-      '</div>'
+      '</main>'
     );
+  }
+
+  function _renderComplaintWrite() {
+    return '<div class="bg-page bg-page--full bg-page--product bg-page--writing" data-product-proposal="true">' +
+      _renderDenseHeader("communication") + _renderWritingWorkspace({
+        breadcrumbs: ["홈", "소통광장", "민원게시판", "AI 민원작성"],
+        title: "AI와 함께 민원 쓰기",
+        description: "생활 속 불편을 편하게 말하면 접수에 필요한 제목과 본문으로 정리합니다.",
+        badge: "생활민원",
+        titleId: "complaint-writing-title",
+        fieldPrefix: "board-write",
+        submitId: "btn-board-submit",
+        backTarget: "complaint-board-return"
+      }) + _renderSubFooter() + '</div>';
+  }
+
+  function _renderMayorHeader() {
+    return '<header class="bg-mayor-header"><a class="bg-mayor-brand" href="#" data-action-target="mayor-receipt-home">' +
+      '<img src="/static/images/bukgu-current/home-identity.png" alt="전남광주통합특별시 북구" /><strong>열린구청장실</strong></a>' +
+      '<nav aria-label="열린구청장실 주메뉴"><span>신수정입니다</span><span>주민과 함께 하는</span><span>주민주권 으뜸북구</span></nav>' +
+      '<div class="bg-mayor-header__actions"><span>북구청</span><b aria-hidden="true">⌂</b><b aria-hidden="true">⌕</b><b aria-hidden="true">☰</b></div></header>';
+  }
+
+  function _renderMayorOffice() {
+    return '<div class="bg-page bg-page--full bg-page--mayor" data-product-proposal="true">' + _renderMayorHeader() +
+      '<main class="bg-mayor-main"><section class="bg-mayor-hero"><div class="bg-mayor-hero__copy"><div class="bg-mayor-dots" aria-hidden="true"><i></i><i></i><i></i><i class="is-active"></i><i></i></div>' +
+        '<p class="bg-product-eyebrow">OPEN MAYOR OFFICE</p><h1>참여로 실현하는<br>주민주권 도시</h1><p>주민과 함께 만드는 주민주권 북구를 만들겠습니다.</p>' +
+        '<div class="bg-mayor-hero__actions"><button type="button" class="bg-mayor-cta" id="btn-mayor-message" data-action-target="mayor-message-write">구청장에게 바란다 <span>→</span></button>' +
+          '<button type="button" class="bg-mayor-cta bg-mayor-cta--outline">구정방향 및 전략 <span>→</span></button></div></div>' +
+        '<div class="bg-mayor-hero__portrait"><img src="/static/images/bukgu-current/mayor/visual04.png" alt="주민과 현장에서 소통하는 신수정 북구청장" /></div></section>' +
+        '<section class="bg-mayor-stories" aria-labelledby="mayor-stories-title"><header><p>현장에서 듣고, 함께 답합니다</p><h2 id="mayor-stories-title">구민과 함께하는 북구청장 <strong>신수정</strong>입니다.</h2></header>' +
+          '<div class="bg-mayor-stories__grid"><article><img src="/static/images/bukgu-current/mayor/gallery-youth-vision.jpg" alt="청년기회도시 비전 발표" /><span>청년기회도시</span></article>' +
+            '<article><img src="/static/images/bukgu-current/mayor/gallery-small-business.jpg" alt="소상공인 정책간담회" /><span>민생경제 현장</span></article>' +
+            '<article><img src="/static/images/bukgu-current/mayor/gallery-youth-meeting.jpg" alt="청년 소통 간담회" /><span>주민 소통</span></article></div></section>' +
+      '</main></div>';
+  }
+
+  function _renderMayorComplaintWrite() {
+    return '<div class="bg-page bg-page--full bg-page--mayor bg-page--mayor-writing" data-product-proposal="true">' + _renderMayorHeader() +
+      _renderWritingWorkspace({
+        breadcrumbs: ["열린구청장실", "주민과 함께 하는", "구청장에게 바란다", "AI 제안작성"],
+        title: "구청장에게 바란다",
+        description: "북구의 변화에 필요한 제안을 AI와 함께 더 분명하고 설득력 있게 작성합니다.",
+        badge: "구정 제안",
+        titleId: "mayor-writing-title",
+        fieldPrefix: "mayor-write",
+        submitId: "btn-mayor-submit",
+        backTarget: "mayor-write-return"
+      }) + '</div>';
+  }
+
+  function _renderMayorComplaintReceipt() {
+    return '<div class="bg-page bg-page--full bg-page--mayor bg-page--mayor-receipt" data-product-proposal="true">' + _renderMayorHeader() +
+      '<main class="bg-receipt-main"><div class="bg-receipt-mark" aria-hidden="true"><span>✓</span></div><p class="bg-product-eyebrow">PROPOSAL RECEIVED</p>' +
+        '<h1>주민의 제안이<br>북구의 변화로 이어집니다</h1><p>시연용 제안 접수가 완료되었습니다. 실제 구축 시에는 북구청 통합인증과 담당 부서 배정 절차가 연결됩니다.</p>' +
+        '<section class="bg-receipt-card"><div><span>접수 유형</span><strong>구청장에게 바란다</strong></div><div><span>처리 상태</span><strong class="is-accent">접수 완료</strong></div><div><span>접수 번호</span><strong>DEMO-2026-0712</strong></div></section>' +
+        '<button type="button" class="bg-action-btn bg-action-btn--primary" data-action-target="mayor-receipt-home">북구청 홈으로</button></main></div>';
   }
 
   function _fetchAndRenderBoardPosts() {
@@ -2538,7 +2662,11 @@
           var html = "";
           for (var i = 0; i < posts.length; i++) {
             var p = posts[i];
-            html += "<tr><td>" + p.id + "</td><td>" + p.title + "</td><td>" + p.author + "</td><td>" + p.date + "</td><td>" + p.status + "</td></tr>";
+            var statusClass = p.status === "답변완료" ? "is-complete" : "is-open";
+            html += '<tr><td><span class="bg-board-number">' + _escHtml(p.id) + '</span></td>' +
+              '<td><strong class="bg-board-title">' + _escHtml(p.title) + '</strong></td>' +
+              '<td>' + _escHtml(p.author) + '</td><td>' + _escHtml(p.date) + '</td>' +
+              '<td><span class="bg-board-status ' + statusClass + '">' + _escHtml(p.status) + '</span></td></tr>';
           }
           tbody.innerHTML = html;
         }
@@ -2758,6 +2886,9 @@
         case "complaint-board":    html = _renderComplaintBoard(route); break;
         case "complaint-write":    html = _renderComplaintWrite(route); break;
         case "complaint-review":   html = _renderComplaintReview(route); break;
+        case "mayor-office": html = _renderMayorOffice(route); break;
+        case "mayor-complaint-write": html = _renderMayorComplaintWrite(route); break;
+        case "mayor-complaint-receipt": html = _renderMayorComplaintReceipt(route); break;
         case "handoff-stop":       html = _renderHandoffStop(route); break;
         default:                   html = "<p>알 수 없는 경로입니다.</p>"; break;
       }
@@ -2772,6 +2903,9 @@
       "handoff-stop": {title: "안내 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
       "complaint-illegal-parking": {title: "지도단속", purpose: "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
       "complaint-write": {title: "민원 글쓰기", purpose: "AI가 민원 제목과 본문 초안을 입력하고 제출 전에 주민 확인을 받습니다."},
+      "mayor-office": {title: "열린구청장실", purpose: "주민과 함께 만드는 북구의 비전과 소통 창구를 안내합니다."},
+      "mayor-complaint-write": {title: "구청장에게 바란다", purpose: "AI와 함께 구정 제안을 작성하고 제출 전에 직접 검토합니다."},
+      "mayor-complaint-receipt": {title: "제안 접수 완료", purpose: "시연용 구정 제안 접수 결과를 확인합니다."},
       "bulky-waste-disposal": {title: "대형폐기물 배출방법", purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
       "apartment-dept": {title: "공동주택과", purpose: "공동주택과 조직 및 업무안내의 전체 공식 표를 보여줍니다."},
       "passport-guidance": {title: "여권민원 안내", purpose: "여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 안내합니다."},
@@ -3015,6 +3149,9 @@
   function _attachDelegation() {
     if (!_demoCanvas || _delegationAttached) { return; }
     _delegationAttached = true;
+    _demoCanvas.addEventListener("submit", function (e) {
+      if (e && typeof e.preventDefault === "function") e.preventDefault();
+    });
     _demoCanvas.addEventListener("click", function (e) {
       var autoReplayAction = e.target.closest("[data-auto-replay-action]");
       if (autoReplayAction) {
@@ -3106,6 +3243,16 @@
       var targetId = target.getAttribute("data-action-target");
       if (!_map.isValidTarget(targetId)) { return; }
 
+      if (targetId === "mayor-message-write") {
+        navigateToRoute("mayor-complaint-write");
+        window.setTimeout(function () {
+          if (window.CitizenFirstChoreography && window.CitizenFirstChoreography.start) {
+            window.CitizenFirstChoreography.start("mayor_message_assist");
+          }
+        }, 520);
+        return;
+      }
+
       // Check if this is a demo category card click (from overlay or body)
       var catRoute = _map.getRoute("complaint-category");
       var categoryTargets = catRoute ? catRoute.navTargets : [];
@@ -3145,6 +3292,9 @@
       "complaint-illegal-parking-report":                  "handoff-stop",
       "complaint-write":                             "complaint-write",
       "complaint-board-return":                      "complaint-board",
+      "mayor-office-open":                           "mayor-office",
+      "mayor-write-return":                          "mayor-office",
+      "mayor-receipt-home":                          "home",
       "complaint-body":               null,
       "complaint-draft-review":       "complaint-review",
       "confirm-draft-prefill":        "handoff-stop",

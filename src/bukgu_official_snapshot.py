@@ -31,27 +31,9 @@ def _require_text(value: object, label: str) -> str:
     return value.strip()
 
 
-def validate_official_snapshot(snapshot: Mapping[str, Any]) -> None:
-    """Validate the common fields needed by every runtime consumer."""
-    if snapshot.get("schema_version") != 1:
-        raise OfficialSnapshotError("schema_version must be 1")
-    route_id = _require_text(snapshot.get("route_id"), "route_id")
-    if not _ROUTE_ID_RE.fullmatch(route_id):
-        raise OfficialSnapshotError("route_id contains unsupported characters")
-    for field in ("snapshot_id", "site_id", "site_name", "page_id"):
-        _require_text(snapshot.get(field), field)
-
-    source = snapshot.get("source")
-    if not isinstance(source, Mapping):
-        raise OfficialSnapshotError("source must be an object")
-    for field in ("url", "title", "captured_at", "verified_at", "source_updated_at"):
-        _require_text(source.get(field), f"source.{field}")
-    if not str(source["url"]).startswith("https://bukgu.gwangju.kr/"):
-        raise OfficialSnapshotError("source.url must use the official Buk-gu domain")
-
-    page = snapshot.get("page")
-    if not isinstance(page, Mapping):
-        raise OfficialSnapshotError("page must be an object")
+def _validate_department_snapshot(snapshot: Mapping[str, Any]) -> None:
+    """Validate the original organization-table snapshot shape."""
+    page = snapshot["page"]
     columns = page.get("columns")
     if not isinstance(columns, list) or [column.get("key") for column in columns] != list(_ROW_KEYS):
         raise OfficialSnapshotError("page.columns must preserve the official five-column order")
@@ -72,6 +54,75 @@ def validate_official_snapshot(snapshot: Mapping[str, Any]) -> None:
         raise OfficialSnapshotError("representative_contact must be an object")
     for field in ("department", "phone_display", "phone", "fax_display", "fax"):
         _require_text(representative.get(field), f"representative_contact.{field}")
+
+
+def _validate_content_page_snapshot(snapshot: Mapping[str, Any]) -> None:
+    """Validate a complete sanitized official content-page capture."""
+    if snapshot.get("snapshot_kind") != "official_content_page":
+        raise OfficialSnapshotError("snapshot_kind must be official_content_page")
+    page = snapshot["page"]
+    _require_text(page.get("section_title"), "page.section_title")
+    _require_text(page.get("content_html"), "page.content_html")
+
+    breadcrumbs = page.get("breadcrumbs")
+    if not isinstance(breadcrumbs, list) or not breadcrumbs:
+        raise OfficialSnapshotError("page.breadcrumbs must be a non-empty list")
+    for index, label in enumerate(breadcrumbs, start=1):
+        _require_text(label, f"page.breadcrumbs[{index}]")
+
+    for field in ("text_length", "table_count", "table_row_count"):
+        value = page.get(field)
+        if not isinstance(value, int) or value < 0:
+            raise OfficialSnapshotError(f"page.{field} must be a non-negative integer")
+    if page["text_length"] == 0:
+        raise OfficialSnapshotError("page.text_length must describe non-empty official content")
+
+    content_info = page.get("content_info_text")
+    if not isinstance(content_info, list):
+        raise OfficialSnapshotError("page.content_info_text must be a list")
+    if "<script" in page["content_html"].lower():
+        raise OfficialSnapshotError("page.content_html must not contain scripts")
+
+    rewrites = page.get("asset_rewrites", {})
+    hashes = page.get("asset_sha256", {})
+    if not isinstance(rewrites, Mapping) or not isinstance(hashes, Mapping):
+        raise OfficialSnapshotError("page asset metadata must be objects")
+    for source_url, local_path in rewrites.items():
+        if not str(source_url).startswith("https://bukgu.gwangju.kr/"):
+            raise OfficialSnapshotError("asset rewrite sources must use the official Buk-gu domain")
+        if not str(local_path).startswith("/static/images/"):
+            raise OfficialSnapshotError("asset rewrite targets must use local static images")
+        digest = hashes.get(local_path)
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise OfficialSnapshotError("each localized asset must have a lowercase SHA-256")
+
+
+def validate_official_snapshot(snapshot: Mapping[str, Any]) -> None:
+    """Validate common provenance plus the route-specific canonical shape."""
+    schema_version = snapshot.get("schema_version")
+    if schema_version not in (1, 2):
+        raise OfficialSnapshotError("schema_version must be 1 or 2")
+    route_id = _require_text(snapshot.get("route_id"), "route_id")
+    if not _ROUTE_ID_RE.fullmatch(route_id):
+        raise OfficialSnapshotError("route_id contains unsupported characters")
+    for field in ("snapshot_id", "site_id", "site_name", "page_id"):
+        _require_text(snapshot.get(field), field)
+
+    source = snapshot.get("source")
+    if not isinstance(source, Mapping):
+        raise OfficialSnapshotError("source must be an object")
+    for field in ("url", "title", "captured_at", "verified_at", "source_updated_at"):
+        _require_text(source.get(field), f"source.{field}")
+    if not str(source["url"]).startswith("https://bukgu.gwangju.kr/"):
+        raise OfficialSnapshotError("source.url must use the official Buk-gu domain")
+
+    page = snapshot.get("page")
+    if not isinstance(page, Mapping):
+        raise OfficialSnapshotError("page must be an object")
+    if schema_version == 1:
+        _validate_department_snapshot(snapshot)
+    else:
+        _validate_content_page_snapshot(snapshot)
 
 
 def canonical_snapshot_sha256(snapshot: Mapping[str, Any]) -> str:

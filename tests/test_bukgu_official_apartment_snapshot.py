@@ -151,8 +151,8 @@ def test_generated_browser_and_function_payloads_equal_canonical():
     canonical = _canonical()
     expected = copy.deepcopy(canonical)
     expected["canonical_sha256"] = canonical_snapshot_sha256(canonical)
-    assert _browser_payload() == {"apartment-dept": expected}
-    assert _function_payload() == {"apartment-dept": expected}
+    assert _browser_payload()["apartment-dept"] == expected
+    assert _function_payload()["apartment-dept"] == expected
 
 
 def test_generator_check_passes_without_writing():
@@ -166,11 +166,11 @@ def test_generator_check_passes_without_writing():
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_manifest_promotes_only_apartment_dept_to_exact():
+def test_manifest_keeps_apartment_dept_exact_after_other_routes_are_promoted():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     exact = {entry["route_id"]: entry for entry in manifest["pages"]}
     pending = {entry["route_id"]: entry for entry in manifest["capture_required"]}
-    assert set(exact) == {"apartment-dept"}
+    assert "apartment-dept" in exact
     assert "apartment-dept" not in pending
 
     exact_entry = exact["apartment-dept"]
