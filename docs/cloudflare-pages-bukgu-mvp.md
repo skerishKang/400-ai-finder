@@ -96,16 +96,25 @@ HY3를 2차 폴백**으로 사용한다. 공급자 선택은 운영자 환경변
   "model": "gemini-3.1-flash-lite",
   "failure_code": "",
   "retrieved_at": "2026-07-11T04:15:00.000Z",
-  "freshness_state": "model_only",
-  "source_url": "",
-  "sources": [],
+  "freshness_state": "live_official",
+  "source_url": "https://search.bukgu.gwangju.kr/RSA/front/Search.jsp?qt=...",
+  "sources": [
+    {
+      "title": "북구청 통합검색: 불법 주정차 신고",
+      "url": "https://search.bukgu.gwangju.kr/RSA/front/Search.jsp?qt=...",
+      "official": true
+    }
+  ],
   "fallback_used": false
 }
 ```
 
-Gemini Interactions 모드를 운영자가 선택하면 `freshness_state`가 `live_official` 또는
-`live_web`이 될 수 있으며 `source_url`과 `sources`에 검색 근거가 포함된다. HY3 또는
-Gemini OpenAI 호환 모드는 근거를 가장하지 않고 `model_only`로 표시한다.
+Function은 모델 호출 전에 북구청 공식 홈페이지와 통합검색 결과를 서버에서 병렬 조회한다.
+HTML의 실행 가능 요소를 제거하고 길이를 제한한 공식 근거를 Gemini와 HY3에 공통 주입하며,
+조회에 성공한 경우에만 `live_official`과 실제 조회 URL을 반환한다. 공식 사이트 조회가 실패해도
+모델 공급자 호출은 계속하되 `model_only`, 빈 `sources`로 표시한다. Gemini Interactions 모드는
+서버 조회 근거와 Google Search 인용을 함께 보존하며, 공식 도메인 근거가 없고 일반 웹 인용만
+있는 경우에는 `live_web`을 사용할 수 있다.
 
 **Validation rules:**
 | 항목 | 조건 | 실패 시 |
