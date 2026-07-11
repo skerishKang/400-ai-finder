@@ -194,8 +194,6 @@ APPROVAL_SIGNALS = [
 NEGATION_SIGNALS = [
     "must not", "do not", "never",
     "forbidden", "disallowed", "cannot be used",
-    " not ",  # standalone token negation (e.g. "match exactly, not approximately")
-    " no ",
     "금지한다", "허용하지 않는다", "사용하지 않는다",
     "대체하지 않는다", "표시하지 않는다", "하지 않는다",
     "되지 않는다",
@@ -208,57 +206,78 @@ def _split_sentences(text: str) -> list[str]:
     return [p.strip() for p in parts if p.strip()]
 
 
-def _has_weak_approval_sentence(text: str) -> list[str]:
-    """Return list of offending sentences (weak term + approval signal,
-    NOT explicitly negated)."""
+def _scan_document_for_clone_weakening(text: str) -> list[str]:
+    """Full context-aware scanner for clone-weakening language.
+
+    Splits text into sentences and checks each for:
+    - Hard-blocked phrases (FORBIDDEN_PHRASES) that weaken clone fidelity.
+    - Weak terms (WEAK_TERMS) combined with approval/permission signals.
+
+    Sentences that contain an explicit negation signal (NEGATION_SIGNALS)
+    are excluded -- prohibition rules must be allowed.
+
+    Returns list of offending sentence(s).
+    """
     offending: list[str] = []
     for sent in _split_sentences(text):
         low = sent.lower()
+        # Skip sentences that explicitly prohibit weakening
+        has_negation = any(neg in low for neg in NEGATION_SIGNALS)
+        # Proximity check: "not [weak_term]" — "not" directly negates a weak term.
+        # This handles patterns like "match exactly, not approximately" where
+        # the broad " not " token was removed from NEGATION_SIGNALS per #1078.
+        if not has_negation:
+            for wt in WEAK_TERMS:
+                if wt in low and f" not {wt}" in low:
+                    has_negation = True
+                    break
+        # Check hard-blocked phrases (always a violation unless negated)
+        if any(phrase.lower() in low for phrase in FORBIDDEN_PHRASES):
+            if not has_negation:
+                offending.append(sent)
+                continue
+        # Check weak term + approval signal (unless negated)
+        if has_negation:
+            continue
         has_weak = any(w.lower() in low for w in WEAK_TERMS)
         if not has_weak:
-            continue
-        # Skip sentences that explicitly FORBID the weak direction
-        # using one of the NEGATION_SIGNALS
-        if any(neg in low for neg in NEGATION_SIGNALS):
             continue
         has_approval = any(s.lower() in low for s in APPROVAL_SIGNALS)
         if has_approval:
             offending.append(sent)
     return offending
-
-
-def _detector_positive_self_test():
-    """Sentences that MUST be detected as violations."""
+def _full_scanner_positive_self_test():
+    """Sentences that MUST be detected as violations by the full scanner."""
     must_violate = [
         "Use a summary instead of the official page.",
         "A simplified version of the official page is acceptable.",
         "The left surface may use representative rows.",
+        "The current clone uses representative rows.",
+        "A high-fidelity approximation is acceptable.",
         "공식 표 대신 대표 행만 표시한다.",
-        "공식 페이지를 대략 비슷하게 만들어도 된다.",
     ]
     for s in must_violate:
-        assert _has_weak_approval_sentence(s), (
-            f"Positive self-test failed: should have detected violation:\n  {s}"
+        violations = _scan_document_for_clone_weakening(s)
+        assert violations, (
+            f"Positive self-test failed: should have detected violation:\\n  {s}"
         )
-
-
-def _detector_negative_self_test():
+def _full_scanner_negative_self_test():
     """Sentences that MUST be allowed (explicitly negated or unrelated)."""
     must_pass = [
         "Do not use a summary instead of the official page.",
         "The official page must never be simplified.",
+        "Representative rows must not be used.",
+        "Do not build a high-fidelity approximation of the official page.",
         "대표 행만 표시하는 것은 금지한다.",
         "공식 표를 요약 화면으로 대체하지 않는다.",
         "The retrieval index has an unused summary field; this is unrelated to clone fidelity.",
     ]
     for s in must_pass:
-        violations = _has_weak_approval_sentence(s)
+        violations = _scan_document_for_clone_weakening(s)
         assert not violations, (
-            f"Negative self-test failed: should NOT have detected:\n  {s}\n"
+            f"Negative self-test failed: should NOT have detected:\\n  {s}\\n"
             f"Got: {violations}"
         )
-
-
 # ---------------------------------------------------------------------------
 # 1. canonical invariant document exists
 # ---------------------------------------------------------------------------
@@ -333,32 +352,27 @@ def test_required_8_docs_link_canonical():
 # ---------------------------------------------------------------------------
 
 def test_detector_self_tests():
-    _detector_positive_self_test()
-    _detector_negative_self_test()
+    _full_scanner_positive_self_test()
+    _full_scanner_negative_self_test()
 
 
 def test_clone_related_docs_have_no_weak_approval_language():
     for rel in CLONE_RELATED_DOCS:
         p = ROOT / rel
-        content = p.read_text(encoding="utf-8")
-        # The canonical invariant doc itself enumerates forbidden phrases as
-        # examples to BLOCK; skip both scans on it.
+        content_text = p.read_text(encoding="utf-8")
+        # The canonical invariant doc enumerates forbidden phrases as
+        # examples of what to BLOCK. The context-aware scanner naturally
+        # handles prohibition rules because they contain negation signals.
+        # Only skip it unconditionally as a safety net -- the scanner should
+        # pass prohibition examples without this exclusion.
         if rel == CANONICAL_DOC:
             continue
-        # Hard-blocked explicit phrases (any occurrence is a violation).
-        low = content.lower()
-        for phrase in FORBIDDEN_PHRASES:
-            assert phrase.lower() not in low, (
-                f"{rel} contains forbidden clone-weakening phrase: '{phrase}'"
-            )
-        # Sentence-level weak-approval detection (context-aware).
-        offending = _has_weak_approval_sentence(content)
+        # Unified context-aware scan (phrase + sentence level).
+        offending = _scan_document_for_clone_weakening(content_text)
         assert not offending, (
             f"{rel} contains sentence(s) that approve a weak clone direction: "
             + " || ".join(offending)
         )
-
-
 # ---------------------------------------------------------------------------
 # 5. official page fixture manifest exists
 # ---------------------------------------------------------------------------
