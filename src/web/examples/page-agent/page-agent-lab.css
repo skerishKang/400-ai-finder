@@ -1,0 +1,456 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Page Agent · Local Lab — Styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg: #fafafb;
+  --surface: #ffffff;
+  --fg: #1a1a2e;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --accent: #4f46e5;
+  --accent-light: #eef2ff;
+  --green: #059669;
+  --green-light: #ecfdf5;
+  --amber: #d97706;
+  --amber-light: #fffbeb;
+  --radius: 12px;
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Navigation ────────────────────────────────────────────────────────── */
+
+.lab-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+
+.nav-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav-inner::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-brand {
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  color: var(--accent);
+}
+
+.nav-tag {
+  font-size: 0.7rem;
+  font-family: var(--mono);
+  background: var(--accent-light);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.nav-links a {
+  display: block;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-decoration: none;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-links a:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────────── */
+
+.lab-hero {
+  padding: 80px 24px 60px;
+  text-align: center;
+  background: linear-gradient(135deg, var(--accent-light) 0%, #f0f4ff 100%);
+}
+
+.hero-content {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.hero-content h1 {
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 12px;
+  color: var(--fg);
+}
+
+.hero-sub {
+  font-size: 1.05rem;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.hero-badge {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-family: var(--mono);
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.badge-mit {
+  background: var(--green-light);
+  color: var(--green);
+}
+
+.badge-exp {
+  background: var(--amber-light);
+  color: var(--amber);
+}
+
+.badge-upstream {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* ── Content ───────────────────────────────────────────────────────────── */
+
+.lab-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.lab-section {
+  margin-bottom: 48px;
+  scroll-margin-top: 72px;
+}
+
+.lab-section h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--line);
+}
+
+.lab-section p {
+  margin-bottom: 12px;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.lab-section p:last-child {
+  margin-bottom: 0;
+}
+
+.feature-list {
+  list-style: none;
+  padding: 0;
+}
+
+.feature-list li {
+  padding: 8px 0 8px 24px;
+  position: relative;
+  font-size: 0.95rem;
+  color: #374151;
+  border-bottom: 1px solid var(--line);
+}
+
+.feature-list li:last-child {
+  border-bottom: none;
+}
+
+.feature-list li::before {
+  content: "◆";
+  position: absolute;
+  left: 4px;
+  color: var(--accent);
+  font-size: 0.65rem;
+  top: 11px;
+}
+
+.feature-list li strong {
+  color: var(--fg);
+}
+
+/* ── Use case grid ─────────────────────────────────────────────────────── */
+
+.use-case-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.use-case-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.use-case-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
+}
+
+.use-case-card h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.use-case-card p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── Comparison table ──────────────────────────────────────────────────── */
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.comparison-table th {
+  background: var(--accent-light);
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.comparison-table td:first-child {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.comparison-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Code blocks ───────────────────────────────────────────────────────── */
+
+pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  font-size: 0.82rem;
+  font-family: var(--mono);
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+code {
+  background: var(--accent-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.82em;
+  font-family: var(--mono);
+  color: var(--accent);
+}
+
+/* ── Notes ─────────────────────────────────────────────────────────────── */
+
+.note {
+  font-size: 0.85rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border-left: 3px solid;
+}
+
+.note-warn {
+  background: var(--amber-light);
+  border-color: var(--amber);
+  color: #92400e;
+}
+
+/* ── Architecture diagram ──────────────────────────────────────────────── */
+
+.arch-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 16px 0;
+}
+
+.arch-layer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 18px;
+  transition: border-color 0.15s;
+}
+
+.arch-layer:hover {
+  border-color: var(--accent);
+}
+
+.arch-layer.arch-accent {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+.arch-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  min-width: 130px;
+  color: var(--fg);
+}
+
+.arch-desc {
+  font-size: 0.83rem;
+  color: var(--muted);
+}
+
+/* ── License quote ─────────────────────────────────────────────────────── */
+
+.license-quote {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  font-size: 0.85rem;
+  color: #374151;
+  line-height: 1.65;
+}
+
+.license-quote p {
+  margin-bottom: 8px;
+}
+
+.license-quote p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Attribute table ───────────────────────────────────────────────────── */
+
+.attr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.attr-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.attr-table td:first-child {
+  font-weight: 600;
+  color: var(--fg);
+  width: 180px;
+}
+
+.attr-table td code {
+  font-size: 0.8rem;
+}
+
+.attr-table a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.attr-table a:hover {
+  text-decoration: underline;
+}
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+
+.lab-footer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  text-align: center;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.footer-small {
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+
+/* ── Smooth scroll ─────────────────────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Page Agent panel offset ───────────────────────────────────────────── */
+
+[id] {
+  scroll-margin-top: 72px;
+}

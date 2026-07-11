@@ -72,6 +72,7 @@ def _ensure_repo_on_path() -> None:
 WEB_DIR = os.path.join(_REPO_ROOT, "src", "web")
 TEMPLATES_DIR = os.path.join(WEB_DIR, "templates")
 STATIC_DIR = os.path.join(WEB_DIR, "static")
+EXAMPLES_DIR = os.path.join(WEB_DIR, "examples")
 SNAPSHOT_FIXTURE = os.path.join(
     _REPO_ROOT, "tests", "fixtures", "bukgu_gwangju_demo_snapshot.json"
 )
@@ -698,6 +699,14 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
         f"({'live, ?mvp=1 forced' if mode == 'live' else 'public entry, query-sanitized'})"
     )
 
+
+    # 9. Copy examples (Page Agent lab) verbatim — isolated, no build-time
+    #    processing. The lab is an independent experiment not connected to
+    #    the Buk-gu MVP or its live bridge.
+    examples_src = os.path.join(EXAMPLES_DIR, "page-agent")
+    if os.path.isdir(examples_src):
+        _copy_tree(examples_src, os.path.join(dist_root, "examples", "page-agent"))
+        print("[build] copied examples/page-agent")
     print(f"[build] done -> {dist_root}")
 
 

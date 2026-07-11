@@ -1,0 +1,42 @@
+{
+  "title": "Page Agent Local Lab",
+  "description": "Local interoperability experiment with Alibaba Page Agent",
+  "type": "attributed_open_source_example",
+  "experiment_id": "1090",
+  "build_date": "2026-07-11",
+  "upstream": {
+    "repository": "alibaba/page-agent",
+    "pinned_commit": "fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7",
+    "version": "1.12.1",
+    "license": "MIT"
+  },
+  "integration": {
+    "type": "vendored_iife_bundle",
+    "class": "PageAgent",
+    "core": "PageAgentCore",
+    "controller": "PageController",
+    "panel": "Panel",
+    "model_adapter": "local_deterministic_mock",
+    "model_endpoint": "/examples/page-agent/mock-llm/v1"
+  },
+  "network_profile": {
+    "runtime_cdn": false,
+    "live_llm_api": false,
+    "non_local_requests": 0,
+    "blocked_origins": [
+      "cdn.jsdelivr.net",
+      "registry.npmmirror.com",
+      "dashscope.aliyuncs.com",
+      "api.openai.com",
+      "generativelanguage.googleapis.com",
+      "alibaba.github.io",
+      "raw.githubusercontent.com"
+    ]
+  },
+  "isolation": {
+    "bukgu_manifest_untouched": true,
+    "bukgu_registry_untouched": true,
+    "mvp_unchanged": true,
+    "api_mvp_ask_unchanged": true
+  }
+}
