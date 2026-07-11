@@ -4,6 +4,11 @@ This runbook lets a reviewer or demo operator run, verify, and present the
 Buk-gu Gwangju MVP resident-task shell **without reading implementation
 history**. It is docs-only guidance for the locked local/static surface.
 
+> 좌측 시민 사이트 공식 페이지 clone은 canonical invariant를 따른다:
+> [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md).
+> 이 runbook은 exact-clone 계약을 약화하지 않는다.
+> Live retrieval이나 분석은 canonical fixture 기반 왼쪽 화면을 대체하지 않는다.
+
 > **Related contract:** [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md)
 > locks the fidelity expectations for the five golden quests. Prefer that
 > matrix when a detail in this runbook and the matrix appear to diverge.
@@ -16,7 +21,7 @@ The current MVP demo surface is intentionally narrow:
 
 | Area | In scope |
 |------|----------|
-| Left surface | Buk-gu website-like resident path (menu LNB, breadcrumb-style path, body content that mirrors the official local/static page shape) |
+| Left surface | Committed official fixture renders official page structure, content, tables, rows, and controls verbatim. Routes without committed fixtures are `capture_required` and are not exact-clone-complete. |
 | Right surface | AI assistant / quest card / action choreography (action-plan quest card) |
 | Flows | Five locked local/static resident-task golden quests — the deterministic scripted tier (see §2) |
 | Runtime mode | Local / static only (for the current demo artifact) |
@@ -32,6 +37,9 @@ The current MVP demo surface is intentionally narrow:
 - no live / provider-dependent behavior
 - no external request / navigation (real Buk-gu, Government24, SafetyReport, 여기로, etc.)
 - no site-affecting action (submit, pay, authenticate, phone connect, form completion)
+
+Current demo mechanics are separate from exact official page parity. This runbook
+locks quest route/action contracts only; it does not claim exact page content completion.
 
 If a demo path would require any of the above, stop and open a new issue.
 Do **not** hot-patch main during a demo.
@@ -51,11 +59,12 @@ local_static` and stops at `STOP_FOR_USER_CONFIRMATION`.
 | **Resident prompt (suggested)** | `공동주택 관련 문의는 어느 부서에 해야 하나요?` |
 | **quest_id** | `housing_department_lookup` |
 | **Expected left surface path** | 북구청 홈 > 북구소개 > 구청안내 > 업무 및 전화번호 안내 > 도시관리국 > 공동주택과 |
-| **Expected left surface content** | 공동주택과 department info, responsibilities, and contact guidance |
-| **Expected right-panel quest card** | action-plan card showing `local_static` and `STOP_FOR_USER_CONFIRMATION` (labels such as 공동주택과 안내 화면 이동, 공동주택과 업무 및 연락처 확인) |
+| **Route** | `apartment-dept` (`capture_required` — exact official page fixture tracked in #1062) |
+| **Action labels** | 공동주택과 안내 화면 이동, 공동주택과 업무 및 연락처 확인, 사용자 확인 대기 |
+| **Expected right-panel quest card** | action-plan card showing `local_static` and `STOP_FOR_USER_CONFIRMATION` |
 | **source_mode** | `local_static` |
 | **stop_condition** | `STOP_FOR_USER_CONFIRMATION` |
-| **Must-not-do boundary** | Do **not** regress to a generic `분야별정보 > 건축 > 아파트정보 > 아파트현황` surface. No search submit / 하자 접수 / personal-data input / phone connect. |
+| **Must-not-do boundary** | Do **not** claim a synthetic card or a single phone number as the exact official page. The full official organization/contact table (rows, columns, order, responsibilities, phone numbers) must be preserved verbatim when fixture is secured. |
 
 **E2E verifier:** `tests/browser/verify_housing_quest_e2e.mjs`
 
@@ -275,6 +284,7 @@ node tests/browser/verify_mvp_shell_runtime.mjs
 Fidelity contract (locked paths, prohibited regressions, E2E file mapping):
 
 - [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md)
+- [`docs/product/exact-official-site-clone-invariant.md`](docs/product/exact-official-site-clone-invariant.md)
 
 Static Pages build / deploy context (backend-free artifact):
 

@@ -12,6 +12,8 @@ See docs/mvp-golden-quest-fidelity-matrix.md for the human-readable matrix.
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from src.agent.quest_registry import load_default_bukgu_registry
@@ -43,6 +45,7 @@ GOLDEN_MATRIX = {
         ],
         "forbidden_path_segments": ["분야별정보", "건축", "아파트정보", "아파트현황"],
         "forbidden_answer_substrings": ["062-410-6033"],
+        "required_answer_substrings": [],
     },
     "illegal_parking_report_guidance": {
         "quest_name": "불법 주정차 신고 안내",
@@ -66,6 +69,7 @@ GOLDEN_MATRIX = {
         ],
         "forbidden_path_segments": ["불법 주정차 신고", "민원신고"],
         "forbidden_answer_substrings": [],
+        "required_answer_substrings": [],
     },
     "bulky_waste_disposal_guidance": {
         "quest_name": "대형폐기물 배출 안내",
@@ -93,6 +97,7 @@ GOLDEN_MATRIX = {
             "배출번호를 발급합니다",
             "수수료 결제를 진행",
         ],
+        "required_answer_substrings": [],
     },
     "passport_guidance": {
         "quest_name": "여권 발급 안내",
@@ -121,6 +126,13 @@ GOLDEN_MATRIX = {
             "여권이 발급",
             "서류를 발급했습니다",
         ],
+        "required_answer_substrings": [
+            "여권 발급 경로",
+            "여권민원",
+            "실제 여권 신청",
+            "사용자가",
+            "직접 진행",
+        ],
     },
     "unmanned_kiosk_guidance": {
         "quest_name": "무인민원발급기 안내",
@@ -148,6 +160,14 @@ GOLDEN_MATRIX = {
             "발급되었습니다",
             "서류를 발급했습니다",
             "본인인증을 완료",
+        ],
+        "required_answer_substrings": [
+            "무인민원발급기 이용 경로",
+            "설치장소",
+            "발급종류",
+            "실제 서류 발급",
+            "사용자가",
+            "직접 진행",
         ],
     },
 }
@@ -324,3 +344,63 @@ def test_removed_quest_ids_not_in_registry(registry):
 def test_removed_quest_ids_not_in_matrix():
     present = REMOVED_QUEST_IDS & set(GOLDEN_MATRIX.keys())
     assert not present, f"removed quests still present in GOLDEN_MATRIX: {present}"
+
+
+@pytest.mark.parametrize("quest_id", list(GOLDEN_MATRIX.keys()))
+def test_required_answer_substrings_present(registry, quest_id):
+    """Check that essential semantic content is preserved in the answer."""
+    required = GOLDEN_MATRIX[quest_id].get("required_answer_substrings", [])
+    if not required:
+        pytest.skip(f"{quest_id} has no required answer substrings configured")
+    answer = registry.get(quest_id).answer or ""
+    for substring in required:
+        assert substring in answer, (
+            f"{quest_id} answer missing required content: {substring}"
+        )
+
+
+ACTIVE_CONTRACT_DOCS = [
+    "docs/mvp-golden-quest-fidelity-matrix.md",
+    "docs/mvp-demo-operator-runbook.md",
+    "docs/mvp-demo-milestone-snapshot.md",
+]
+
+REMOVED_VERIFIER_FILES = [
+    "tests/browser/verify_move_in_quest_e2e.mjs",
+    "tests/browser/verify_public_health_center_quest_e2e.mjs",
+]
+
+CURRENT_VERIFIER_FILES = [
+    "tests/browser/verify_passport_quest_e2e.mjs",
+    "tests/browser/verify_unmanned_kiosk_quest_e2e.mjs",
+]
+
+
+@pytest.mark.parametrize("doc_path", ACTIVE_CONTRACT_DOCS)
+def test_active_contract_docs_have_no_removed_quest_ids(doc_path):
+    """Active contract docs must not reference removed quest IDs as current quests."""
+    try:
+        with open(doc_path, encoding="utf-8") as f:
+            content = f.read()
+    except FileNotFoundError:
+        pytest.skip(f"{doc_path} not found — may be outside worktree scope")
+    for removed_id in REMOVED_QUEST_IDS:
+        assert removed_id not in content, (
+            f"{doc_path} contains removed quest ID: {removed_id}"
+        )
+
+
+@pytest.mark.parametrize("filepath", REMOVED_VERIFIER_FILES)
+def test_removed_verifier_files_absent(filepath):
+    """Removed verifier files must not exist."""
+    assert not os.path.exists(filepath), (
+        f"removed verifier file still exists: {filepath}"
+    )
+
+
+@pytest.mark.parametrize("filepath", CURRENT_VERIFIER_FILES)
+def test_current_verifier_files_present(filepath):
+    """Current verifier files must exist."""
+    assert os.path.exists(filepath), (
+        f"current verifier file missing: {filepath}"
+    )

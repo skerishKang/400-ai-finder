@@ -105,6 +105,11 @@ async function main() {
   await waitForText(page, "#chat-thread", "북구청 홈 > 종합민원 > 여권민원");
   await waitForText(page, "#chat-thread", "STOP_FOR_USER_CONFIRMATION");
   await waitForText(page, "#chat-thread", "local_static");
+  await waitForText(page, "#chat-thread", "실제 여권 신청");
+  await waitForText(page, "#chat-thread", "사용자가");
+  await waitForText(page, "#chat-thread", "직접 진행");
+  await waitForText(page, "#chat-thread", "본인인증");
+  await waitForText(page, "#chat-thread", "정부24");
 
   const evidence = await page.evaluate(() => {
     const card = document.querySelector("#chat-thread .chat-quest-card");
@@ -133,11 +138,22 @@ async function main() {
   assert.strictEqual(evidence.card.questCardType, "action_plan");
   assert.strictEqual(evidence.card.questId, "passport_guidance");
   assert.strictEqual(evidence.card.sourceMode, "local_static");
-  assert.ok(evidence.card.actionLabels.length >= 4, `expected at least 4 action labels, got ${evidence.card.actionLabels.length}`);
-  assert.ok(evidence.card.actionLabels.includes("종합민원 메뉴 확인"));
-  assert.ok(evidence.card.actionLabels.includes("여권민원 안내 화면 이동"));
-  assert.ok(evidence.card.actionLabels.includes("여권민원 안내 카드 확인"));
+  assert.strictEqual(evidence.card.actionLabels.length, 4, `expected exactly 4 action labels, got ${evidence.card.actionLabels.length}`);
+  assert.strictEqual(evidence.card.actionLabels[0], "종합민원 메뉴 확인");
+  assert.strictEqual(evidence.card.actionLabels[1], "여권민원 안내 화면 이동");
+  assert.strictEqual(evidence.card.actionLabels[2], "여권민원 안내 카드 확인");
+  assert.strictEqual(evidence.card.actionLabels[3], "사용자 확인 대기");
   assert.ok(evidence.card.text.includes("STOP_FOR_USER_CONFIRMATION"));
+
+  // Verify no forbidden completion wording in the quest card or chat thread
+  const fullChatText = String(await page.evaluate(() => {
+    const el = document.querySelector("#chat-thread");
+    return el ? el.textContent : "";
+  }));
+  assert.ok(!fullChatText.includes("발급되었습니다"), "must not claim issuance completed");
+  assert.ok(!fullChatText.includes("여권이 발급"), "must not claim passport issued");
+  assert.ok(!fullChatText.includes("본인인증을 완료"), "must not claim auth completed");
+  assert.ok(!fullChatText.includes("서류를 제출했습니다"), "must not claim document submitted");
 
   const nonLocal = requests.filter((url) => !isLocalRequest(url));
   assert.deepStrictEqual(nonLocal, [], `non-local requests: ${nonLocal.join(", ")}`);

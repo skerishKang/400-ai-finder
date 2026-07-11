@@ -4,6 +4,10 @@ Short closeout snapshot for the Buk-gu Gwangju **local/static** MVP demo.
 It records what is complete now, what the demo is not, and what remains on the
 live/production tracks.
 
+> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다:
+> [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+
 > **Not a changelog.** Prefer the runbook and fidelity matrix for day-to-day
 > operator and regression detail.
 
@@ -16,7 +20,7 @@ live/production tracks.
 | Complete | Current MVP demo milestone is complete for **local/static stakeholder review**. |
 | Not production | The demo is **not** a production rebuild. |
 | Not live integration | The demo is **not** a live official-site integration. |
-| What it is | A **local/static, high-fidelity demonstration surface** for five locked resident-task flows. |
+| What it is | A **local/static, scripted demonstration surface** for five locked resident-task flows. |
 
 > **Scope note:** this milestone closes out the local/static demo surface only.
 > It is **not** the entire product. The intended product also answers unknown
@@ -31,15 +35,17 @@ live/production tracks.
 - First-use question entry
 - Split left website surface / right AI assistant shell
 - Five locked local/static golden quests
-- Real-page fidelity hardening for the five quests
+- Interaction shell mechanics
+- Scripted choreography mechanics
+- Local demo execution mechanics
+- Shell/build contracts
+- Current five-quest registry alignment
 - Quest fidelity matrix
 - Matrix regression test
 - Operator runbook
 - README entry-point discoverability
 
-Real-page fidelity hardening for the five quests was completed earlier
-(including #987 / #989 and related follow-ups). Closeout docs/tests for this
-milestone are summarized in §7.
+Closeout docs/tests for this milestone are summarized in §7.
 
 ---
 
@@ -99,6 +105,7 @@ entire product.
 
 - [`docs/mvp-demo-operator-runbook.md`](mvp-demo-operator-runbook.md) — how to run, verify, and present the five locked flows
 - [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md) — locked paths, stop behavior, prohibited regressions
+- [`docs/product/exact-official-site-clone-invariant.md`](docs/product/exact-official-site-clone-invariant.md) — canonical invariant for left surface
 
 ### Matrix regression test
 
@@ -115,7 +122,23 @@ entire product.
 
 ---
 
-## 6. Deferred work
+## 6. Incomplete: official fixture capture
+
+The following work is **not** part of this local/static MVP closeout:
+
+- Complete official fixture capture (manifest has `capture_required`)
+- Semantic/content parity with official pages
+- Renderer-to-fixture parity
+- Route별 official source verification
+- Exact official clone completion
+
+Current demo mechanics are complete, but exact official page parity is separate.
+The interaction route/action contract matching correctly does **not** mean
+official fixture parity is done.
+
+---
+
+## 7. Deferred work
 
 Live/production/integration work that is **not** part of this local/static MVP
 closeout is tracked on the broad epics. Note that an **LLM fallback for unknown
@@ -141,7 +164,7 @@ forbidden.
 
 ---
 
-## 7. Recent closeout PRs
+## 8. Recent closeout PRs
 
 Compact list only (not a full history):
 
@@ -150,6 +173,5 @@ Compact list only (not a full history):
 | [#991](https://github.com/skerishKang/400-ai-finder/pull/991) | fidelity matrix |
 | [#993](https://github.com/skerishKang/400-ai-finder/pull/993) | operator runbook |
 | [#995](https://github.com/skerishKang/400-ai-finder/pull/995) | README discoverability |
-| [#1079](https://github.com/skerishKang/400-ai-finder/pull/1079) | golden quest realignment (move-in/health-center → passport/kiosk) |
 
-Earlier real-page fidelity hardening completed before this closeout (e.g. #987 / #989 and related quest fidelity PRs).
+Earlier closeout and quest realignment completed before this snapshot (e.g. #987 / #989 and #1079 quest realignment).

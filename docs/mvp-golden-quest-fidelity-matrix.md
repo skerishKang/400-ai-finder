@@ -3,7 +3,7 @@
 > 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
 > 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
 
-This matrix locks the left-surface fidelity contract for the five golden resident-task flows.
+This matrix locks the left-surface fidelity contract for the five golden resident-task flows
 in the Buk-gu Gwangju MVP. It exists so that future PRs cannot silently
 regress these quests back to generic pages, invented internal submission forms,
 or unsafe submission-like behavior.
@@ -34,35 +34,32 @@ or unsafe submission-like behavior.
 
 ---
 
-## 1. housing_department_lookup — 아파트 정보 안내
+## 1. housing_department_lookup — 공동주택과 안내
 
+- **quest name**: `공동주택과 안내`
 - **primary official_path**
-  `북구청 홈 > 분야별정보 > 건축 > 아파트정보 > 아파트현황`
-- **related / handoff path**
-  `분야별정보 > 건축 > 아파트생활정보 > 하자발생` (reflected as a related guidance card)
+  `북구청 홈 > 북구소개 > 구청안내 > 업무 및 전화번호 안내 > 도시관리국 > 공동주택과`
 - **source_mode**: `local_static`
 - **stop_condition**: `STOP_FOR_USER_CONFIRMATION`
-- **left surface fidelity**
-  - `apartment-info` is currently `capture_required` — complete official fixture not yet committed.
-  - Until complete official fixture is captured, legacy demo numbers, rows, and placeholders must not be claimed as exact official facts.
-  - When fixture is secured, the following items from the official screen must be preserved verbatim:
-    - total count
-    - page size
-    - current page
-    - current-page rows
-    - row order
-    - pagination controls
-    - search/navigation controls
-  - Must NOT flatten multiple official pages into a single combined page.
-  - Must NOT fabricate `-`, empty values, phone numbers, or descriptive phrases unverified from the official source.
-  - Offline means no runtime external network — it does not mean controls are deleted or disabled.
-  - Search and pagination controls must operate deterministically against committed fixtures.
+- **route**: `apartment-dept`
+- **target**: `apartment-dept-card`
+- **action labels** (exact ordered):
+  1. `공동주택과 안내 화면 이동`
+  2. `공동주택과 업무 및 연락처 확인`
+  3. `사용자 확인 대기`
+- **exact-clone status**
+  - `apartment-dept` is currently `capture_required` — complete official fixture not yet committed.
+  - Complete official page fixture is tracked in #1062.
+  - When fixture is secured, the full official organization info table (rows, columns, order, phone numbers, responsibilities, update metadata) must be preserved verbatim.
+  - A single representative phone number, a synthetic card, or a summary description is **not** an exact official page clone.
+  - The interaction route/action contract matching correctly is separate from official fixture parity being complete.
 - **right-panel quest card**
   - `quest_card_type`: `action_plan`
-  - action labels include `아파트정보 화면 이동`, `아파트생활정보 관련 안내 확인`
+  - action labels include `공동주택과 안내 화면 이동`, `공동주택과 업무 및 연락처 확인`
   - text includes `STOP_FOR_USER_CONFIRMATION`, `local_static`
 - **prohibited behavior**
-  - Must **not** regress to a generic `공동주택과 전화번호 lookup` (북구소개 > 구청안내 > 업무 및 전화번호 안내) surface.
+  - Must **not** regress to the old `분야별정보 > 건축 > 아파트정보 > 아파트현황` surface.
+  - `062-410-6033` regression guard: the answer must not contain this single phone number as a representative of the full official table.
   - No invented internal department form, no contact-lookup submission UI.
 - **E2E verifier**: `tests/browser/verify_housing_quest_e2e.mjs`
 
@@ -146,7 +143,7 @@ or unsafe submission-like behavior.
 - **prohibited behavior**
   - Must **not** claim the demo completed the passport application or issuance
   - No real Government24 navigation or request, no 본인인증 / 주소 / 사진 / 서류 input, no submission
-  - Must **not** regress to the removed `move_in_report_guidance` quest path
+  - Must **not** regress to the removed move-in quest path
 - **E2E verifier**: `tests/browser/verify_passport_quest_e2e.mjs`
 
 ---
