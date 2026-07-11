@@ -95,10 +95,13 @@ def test_no_vendor_directory():
     assert not os.path.isdir(vendor), "vendor directory must not exist"
 
 
-def test_no_page_agent_lab_js():
-    """page-agent-lab.js must be removed — no PageAgent class without a bundle."""
+def test_no_page_agent_lab_js_is_stub():
+    """page-agent-lab.js must be a stub, not the original initialization script."""
     path = os.path.join(_EXAMPLES_SRC, "page-agent-lab.js")
-    assert not os.path.isfile(path), "page-agent-lab.js must not exist"
+    assert os.path.isfile(path), "page-agent-lab.js stub must exist (for CTO node --check)"
+    text = open(path, encoding="utf-8").read()
+    assert "page-agent-lab.js intentionally removed" in text, "must be a stub comment"
+    assert "new window.PageAgent" not in text, "must not contain init code"
 
 
 def test_no_page_agent_demo_js():

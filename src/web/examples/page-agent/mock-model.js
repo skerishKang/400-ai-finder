@@ -198,7 +198,7 @@
       var task = findTask(userMessage);
 
       if (task) {
-  
+
         return buildCompletion(task.response);
       }
 
