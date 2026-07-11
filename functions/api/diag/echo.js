@@ -1,11 +1,9 @@
 export async function onRequest(context) {
-  const url = context.request.url;
-  const target = new URL(url).searchParams.get('t') || 'https://bukgu.gwangju.kr/';
+  const target = 'https://bukgu.gwangju.kr/';
+  const variants = {};
   try {
-    const r = await fetch(target, { method: 'GET', headers: { Accept: 'text/html' }, redirect: 'follow' });
-    const txt = await r.text();
-    return new Response(JSON.stringify({ ok: true, status: r.status, len: txt.length, head: txt.slice(0, 200) }), { status: 200, headers: { 'content-type': 'application/json' } });
-  } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: String(e && e.message || e), name: e && e.name }), { status: 200, headers: { 'content-type': 'application/json' } });
-  }
+    const r1 = await fetch(target, { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'text/html' } });
+    variants.plainUA = { status: r1.status, len: (await r1.text()).length };
+  } catch (e) { variants.plainUA = { error: String(e.message||e) }; }
+  return new Response(JSON.stringify(variants), { status: 200, headers: { 'content-type': 'application/json' } });
 }
