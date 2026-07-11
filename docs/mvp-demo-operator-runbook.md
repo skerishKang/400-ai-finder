@@ -1,10 +1,13 @@
 # MVP Demo Operator Runbook
 
-> **Clone invariant:** 좌측 시민 사이트의 공식 페이지 clone은 [canonical invariant](product/exact-official-site-clone-invariant.md)를 따른다. 이 historical/planning 문서의 내용은 exact-clone 계약을 약화하지 않는다. Live retrieval이나 분석은 canonical fixture 기반 왼쪽 화면을 대체하지 않는다.
-
 This runbook lets a reviewer or demo operator run, verify, and present the
 Buk-gu Gwangju MVP resident-task shell **without reading implementation
 history**. It is docs-only guidance for the locked local/static surface.
+
+> 좌측 시민 사이트 공식 페이지 clone은 canonical invariant를 따른다:
+> [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md).
+> 이 runbook은 exact-clone 계약을 약화하지 않는다.
+> Live retrieval이나 분석은 canonical fixture 기반 왼쪽 화면을 대체하지 않는다.
 
 > **Related contract:** [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md)
 > locks the fidelity expectations for the five golden quests. Prefer that
@@ -18,7 +21,7 @@ The current MVP demo surface is intentionally narrow:
 
 | Area | In scope |
 |------|----------|
-| Left surface | Buk-gu website-like resident path (menu LNB, breadcrumb-style path, body content that mirrors the official local/static page shape) |
+| Left surface | Committed official fixture renders official page structure, content, tables, rows, and controls verbatim. Routes without committed fixtures are `capture_required` and are not exact-clone-complete. |
 | Right surface | AI assistant / quest card / action choreography (action-plan quest card) |
 | Flows | Five locked local/static resident-task golden quests — the deterministic scripted tier (see §2) |
 | Runtime mode | Local / static only (for the current demo artifact) |
@@ -35,6 +38,9 @@ The current MVP demo surface is intentionally narrow:
 - no external request / navigation (real Buk-gu, Government24, SafetyReport, 여기로, etc.)
 - no site-affecting action (submit, pay, authenticate, phone connect, form completion)
 
+Current demo mechanics are separate from exact official page parity. This runbook
+locks quest route/action contracts only; it does not claim exact page content completion.
+
 If a demo path would require any of the above, stop and open a new issue.
 Do **not** hot-patch main during a demo.
 
@@ -45,19 +51,20 @@ Do **not** hot-patch main during a demo.
 Use **only** these five locked resident prompts. Each quest is `source_mode =
 local_static` and stops at `STOP_FOR_USER_CONFIRMATION`.
 
-### A. `housing_department_lookup` — 아파트 정보 안내
+### A. `housing_department_lookup` — 공동주택과 안내
 
 | Field | Value |
 |-------|-------|
-| **Resident task** | 아파트 정보 안내 |
+| **Resident task** | 공동주택과 안내 또는 공동주택 관련 부서 안내 |
 | **Resident prompt (suggested)** | `공동주택 관련 문의는 어느 부서에 해야 하나요?` |
 | **quest_id** | `housing_department_lookup` |
-| **Expected left surface path** | 북구청 홈 > 분야별정보 > 건축 > 아파트정보 > 아파트현황 |
-| **Expected left surface content** | 아파트정보 / 아파트현황 table / 전체 428건 / 관리사무소 column / 아파트생활정보 card |
-| **Expected right-panel quest card** | action-plan card showing `local_static` and `STOP_FOR_USER_CONFIRMATION` (labels such as 아파트정보 화면 이동, 아파트생활정보 관련 안내 확인) |
+| **Expected left surface path** | 북구청 홈 > 북구소개 > 구청안내 > 업무 및 전화번호 안내 > 도시관리국 > 공동주택과 |
+| **Route** | `apartment-dept` (`capture_required` — exact official page fixture tracked in #1062) |
+| **Action labels** | 공동주택과 안내 화면 이동, 공동주택과 업무 및 연락처 확인, 사용자 확인 대기 |
+| **Expected right-panel quest card** | action-plan card showing `local_static` and `STOP_FOR_USER_CONFIRMATION` |
 | **source_mode** | `local_static` |
 | **stop_condition** | `STOP_FOR_USER_CONFIRMATION` |
-| **Must-not-do boundary** | Do **not** regress to generic 공동주택과 전화번호 lookup. No search submit / 하자 접수 / personal-data input / phone connect. |
+| **Must-not-do boundary** | Do **not** claim a synthetic card or a single phone number as the exact official page. The full official organization/contact table (rows, columns, order, responsibilities, phone numbers) must be preserved verbatim when fixture is secured. |
 
 **E2E verifier:** `tests/browser/verify_housing_quest_e2e.mjs`
 
@@ -99,38 +106,39 @@ local_static` and stops at `STOP_FOR_USER_CONFIRMATION`.
 
 ---
 
-### D. `move_in_report_guidance` — 전입신고 안내
+### D. `passport_guidance` — 여권 발급 안내
 
 | Field | Value |
 |-------|-------|
-| **Resident task** | 전입신고 안내 |
-| **Resident prompt (suggested)** | `전입신고는 어디서 하나요?` |
-| **quest_id** | `move_in_report_guidance` |
-| **Expected left surface path** | 북구청 홈 > 종합민원 > 전자민원창구 > 정부24 |
-| **Related handoff (guidance only)** | Government24 / 주민센터 |
-| **Expected right-panel quest card** | action-plan card showing `local_static` and `STOP_FOR_USER_CONFIRMATION` (labels such as 정부24 전입신고 연결 안내 화면 이동, 정부24 전입신고 연결 안내 카드 확인) |
+| **Resident task** | 여권 발급 안내 |
+| **Resident prompt (suggested)** | `여권 발급은 어디서 하나요?` |
+| **quest_id** | `passport_guidance` |
+| **Expected left surface path** | 북구청 홈 > 종합민원 > 여권민원 |
+| **Related handoff (guidance only)** | 북구청 민원실 방문 / 정부24 |
+| **Expected right-panel quest card** | action-plan card showing `local_static` and `STOP_FOR_USER_CONFIRMATION` (labels such as 종합민원 메뉴 확인, 여권민원 안내 화면 이동, 여권민원 안내 카드 확인, 사용자 확인 대기) |
 | **source_mode** | `local_static` |
 | **stop_condition** | `STOP_FOR_USER_CONFIRMATION` |
-| **Must-not-do boundary** | No 북구청-internal 전입신고 form. No real Government24 navigation/request. No 본인인증 / 주소 / 세대주 / 가족관계 input. No 제출. |
+| **Must-not-do boundary** | No 실제 신청·본인확인·사진·서류 제출. No 여권 발급 완료 주장. No real Government24 navigation/request. |
 
-**E2E verifier:** `tests/browser/verify_move_in_quest_e2e.mjs`
+**E2E verifier:** `tests/browser/verify_passport_quest_e2e.mjs`
 
 ---
 
-### E. `public_health_center_guidance` — 보건소 위치·진료 안내
+### E. `unmanned_kiosk_guidance` — 무인민원발급기 안내
 
 | Field | Value |
 |-------|-------|
-| **Resident task** | 보건소 위치·진료 안내 |
-| **Resident prompt (suggested)** | `북구 보건소 위치랑 진료 안내 알려줘` |
-| **quest_id** | `public_health_center_guidance` |
-| **Expected left surface path** | 북구청 홈 > 보건소 > 보건소소개 > 찾아오시는 길 |
-| **Expected right-panel quest card** | action-plan card showing `local_static` and `STOP_FOR_USER_CONFIRMATION` (labels such as 보건소 위치·진료 안내 화면 이동, 보건소 위치·진료 안내 카드 확인) |
+| **Resident task** | 무인민원발급기 안내 |
+| **Resident prompt (suggested)** | `무인민원발급기 어디 있어요?` |
+| **quest_id** | `unmanned_kiosk_guidance` |
+| **Expected left surface path** | 북구청 홈 > 종합민원 > 무인민원발급기 |
+| **Related handoff (guidance only)** | 북구청 및 각 행정복지센터 무인민원발급기 |
+| **Expected right-panel quest card** | action-plan card showing `local_static` and `STOP_FOR_USER_CONFIRMATION` (labels such as 종합민원 메뉴 확인, 무인민원발급기 안내 화면 이동, 무인민원발급기 안내 카드 확인, 사용자 확인 대기) |
 | **source_mode** | `local_static` |
 | **stop_condition** | `STOP_FOR_USER_CONFIRMATION` |
-| **Must-not-do boundary** | No 의료 판단 / 진단 / 처방 / 예약 simulation. No 건강정보 input. No appointment / prescription submission. |
+| **Must-not-do boundary** | No 실제 서류 발급·본인인증. No 건강정보·진단·처방·예약 흐름 회귀. No real Buk-gu site navigation/request. |
 
-**E2E verifier:** `tests/browser/verify_public_health_center_quest_e2e.mjs`
+**E2E verifier:** `tests/browser/verify_unmanned_kiosk_quest_e2e.mjs`
 
 ---
 
@@ -198,8 +206,8 @@ This produces the backend-free artifact under `dist/cloudflare-pages/`
 node tests/browser/verify_housing_quest_e2e.mjs http://127.0.0.1:<port>
 node tests/browser/verify_illegal_parking_quest_e2e.mjs http://127.0.0.1:<port>
 node tests/browser/verify_bulky_waste_quest_e2e.mjs http://127.0.0.1:<port>
-node tests/browser/verify_move_in_quest_e2e.mjs http://127.0.0.1:<port>
-node tests/browser/verify_public_health_center_quest_e2e.mjs http://127.0.0.1:<port>
+node tests/browser/verify_passport_quest_e2e.mjs http://127.0.0.1:<port>
+node tests/browser/verify_unmanned_kiosk_quest_e2e.mjs http://127.0.0.1:<port>
 node tests/browser/verify_citizen_first_use_pages.mjs http://127.0.0.1:<port>
 ```
 
@@ -264,7 +272,7 @@ node tests/browser/verify_mvp_shell_runtime.mjs
 | **Quest not matched** | Prompt drifted from locked phrasing; stale quest registry; wrong `/mvp` entry | Re-type the **exact** suggested prompt from §2. Rebuild static artifact. Confirm `data/quests/bukgu_gwangju_quests.json` on the demo SHA still contains the five `quest_id`s. |
 | **Stale local server / build** | Serving an older `dist/cloudflare-pages` or a non-artifact directory | Stop the old server process. Re-run `PYTHONPATH=. python3 scripts/build_cloudflare_pages.py`. Restart the existing local static server against the fresh `dist/cloudflare-pages/`. Hard-refresh the browser. |
 | **Browser E2E timeout** | Server not listening; wrong port; page hung | Confirm `http://127.0.0.1:<port>/mvp` loads manually. Re-run the specific `verify_*_quest_e2e.mjs` with the correct origin. Prefer reduced-motion / headless as the scripts already set. |
-| **Non-local request detected** | UI attempted external navigation/fetch; wrong base URL; live code path mixed in | Abort demo narrative if needed. Capture E2E non-local request list (no secrets). Open a new issue; do not “fix” by enabling real hosts. |
+| **Non-local request detected** | UI attempted external navigation/fetch; wrong base URL; live code path mixed in | Abort demo narrative if needed. Capture E2E non-local request list (no secrets). Open a new issue; do not "fix" by enabling real hosts. |
 | **Visual surface looks generic or wrong path** | Fidelity regression (e.g. housing fell back to generic department lookup) | Compare left surface against §2 + [`mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md). Run `PYTHONPATH=. pytest tests/test_mvp_golden_quest_fidelity_matrix.py` and the matching `verify_*_quest_e2e.mjs`. File an issue with screenshots (no PII). |
 | **Right panel does not show `STOP_FOR_USER_CONFIRMATION`** | Quest card / action-plan contract drift | Confirm quest card text includes both `local_static` and `STOP_FOR_USER_CONFIRMATION`. Run matrix + action-plan / action-contract pytest listed in §3.2. |
 | **Demo accidentally tries to collect personal data** | Wrong quest path, invented form, or operator free-form prompt | Stop immediately. Do not enter name / address / phone / vehicle / health data. Return to a locked §2 prompt. Treat as a safety incident → new issue if the product UI prompted for personal data. |
@@ -276,6 +284,7 @@ node tests/browser/verify_mvp_shell_runtime.mjs
 Fidelity contract (locked paths, prohibited regressions, E2E file mapping):
 
 - [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md)
+- [`docs/product/exact-official-site-clone-invariant.md`](docs/product/exact-official-site-clone-invariant.md)
 
 Static Pages build / deploy context (backend-free artifact):
 
@@ -285,7 +294,7 @@ Static Pages build / deploy context (backend-free artifact):
 
 ## Safety boundary (this runbook does not authorize)
 
-Do **not** add via demo or follow-up “quick fixes” during the demo:
+Do **not** add via demo or follow-up "quick fixes" during the demo:
 
 - new quest
 - code behavior changes

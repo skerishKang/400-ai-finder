@@ -46,8 +46,8 @@ def test_default_registry_loads_five_phase1_quests_only():
         "housing_department_lookup",
         "illegal_parking_report_guidance",
         "bulky_waste_disposal_guidance",
-        "move_in_report_guidance",
-        "public_health_center_guidance",
+        "passport_guidance",
+        "unmanned_kiosk_guidance",
     ]
     quest = registry.get("housing_department_lookup")
     assert quest is not None
@@ -110,14 +110,14 @@ def test_illegal_parking_questions_match_report_guidance(question):
     assert result.confidence >= 0.72
 
 
-def test_public_health_center_questions_match_guidance():
+def test_passport_questions_match_passport_guidance():
     for question in [
-        "보건소 어디에 있어요?",
-        "보건소 위치랑 진료 안내 알려줘",
+        "여권 발급은 어디서 하나요?",
+        "여권 재발급은 어떻게 하나요?",
     ]:
         result = match_quest(question, load_default_bukgu_registry())
         assert result.status == "matched"
-        assert result.quest_id == "public_health_center_guidance"
+        assert result.quest_id == "passport_guidance"
         assert result.confidence >= 0.72
 
 
@@ -129,15 +129,15 @@ def test_unknown_question_is_unsupported_or_needs_confirmation():
 
 
 @pytest.mark.parametrize("question", [
-    "이사 왔는데 전입신고는 어떻게 해요?",
-    "전입신고 어디서 하나요?",
-    "주소 옮기려면 어디로 가야 해요?",
-    "전입신고 하려면 북구청에서 뭘 해야 하나요?",
+    "무인민원발급기 어디 있어요?",
+    "무인민원발급기로 뭘 발급받을 수 있어요?",
+    "무인민원발급기 이용방법 알려줘",
+    "민원서류 발급받으려면 어디로 가야 해요?",
 ])
-def test_move_in_questions_match_move_in_report_guidance(question):
+def test_unmanned_kiosk_questions_match_unmanned_kiosk_guidance(question):
     result = match_quest(question, load_default_bukgu_registry())
     assert result.status == "matched"
-    assert result.quest_id == "move_in_report_guidance"
+    assert result.quest_id == "unmanned_kiosk_guidance"
     assert result.confidence >= 0.72
 
 

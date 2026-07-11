@@ -1,11 +1,12 @@
 # MVP Demo Milestone Snapshot
 
-> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
-> 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
-
 Short closeout snapshot for the Buk-gu Gwangju **local/static** MVP demo.
 It records what is complete now, what the demo is not, and what remains on the
 live/production tracks.
+
+> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다:
+> [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
 
 > **Not a changelog.** Prefer the runbook and fidelity matrix for day-to-day
 > operator and regression detail.
@@ -19,7 +20,7 @@ live/production tracks.
 | Complete | Current MVP demo milestone is complete for **local/static stakeholder review**. |
 | Not production | The demo is **not** a production rebuild. |
 | Not live integration | The demo is **not** a live official-site integration. |
-| What it is | A **local/static demonstration surface for five locked resident-task flows**. Official-site clone capture is not complete — see `capture_required` in the [official-site manifest](tests/fixtures/official_site_clone_manifest.json). |
+| What it is | A **local/static, scripted demonstration surface** for five locked resident-task flows. |
 
 > **Scope note:** this milestone closes out the local/static demo surface only.
 > It is **not** the entire product. The intended product also answers unknown
@@ -34,16 +35,17 @@ live/production tracks.
 - First-use question entry
 - Split left website surface / right AI assistant shell
 - Five locked local/static golden quests
+- Interaction shell mechanics
+- Scripted choreography mechanics
+- Local demo execution mechanics
+- Shell/build contracts
+- Current five-quest registry alignment
 - Quest fidelity matrix
 - Matrix regression test
 - Operator runbook
 - README entry-point discoverability
 
-Completed: interaction shell, left/right layout, scripted choreography mechanics,
-local demo execution mechanics, and related shell/build contracts. Not yet
-complete: official fixture capture, semantic/content parity, renderer-to-fixture
-parity, and route별 official source verification — these remain `capture_required`
-per the manifest.
+Closeout docs/tests for this milestone are summarized in §7.
 
 ---
 
@@ -54,11 +56,11 @@ All five quests use `source_mode: local_static` and
 
 | # | quest_id | resident task | primary path |
 |---|----------|---------------|--------------|
-| A | `housing_department_lookup` | 아파트 정보 안내 | 북구청 홈 > 분야별정보 > 건축 > 아파트정보 > 아파트현황 |
+| A | `housing_department_lookup` | 공동주택과 안내 또는 공동주택 관련 부서 안내 | 북구청 홈 > 북구소개 > 구청안내 > 업무 및 전화번호 안내 > 도시관리국 > 공동주택과 |
 | B | `illegal_parking_report_guidance` | 불법 주정차 신고 안내 | 북구청 홈 > 분야별정보 > 차량교통 > 지도단속 |
 | C | `bulky_waste_disposal_guidance` | 대형폐기물 배출 안내 | 북구청 홈 > 분야별정보 > 환경재활용 > 대형폐기물 배출방법 |
-| D | `move_in_report_guidance` | 전입신고 안내 | 북구청 홈 > 종합민원 > 전자민원창구 > 정부24 |
-| E | `public_health_center_guidance` | 보건소 위치·진료 안내 | 북구청 홈 > 보건소 > 보건소소개 > 찾아오시는 길 |
+| D | `passport_guidance` | 여권 발급 안내 | 북구청 홈 > 종합민원 > 여권민원 |
+| E | `unmanned_kiosk_guidance` | 무인민원발급기 안내 | 북구청 홈 > 종합민원 > 무인민원발급기 |
 
 Do not add a sixth golden quest in this milestone without a new issue and
 matrix update.
@@ -103,6 +105,7 @@ entire product.
 
 - [`docs/mvp-demo-operator-runbook.md`](mvp-demo-operator-runbook.md) — how to run, verify, and present the five locked flows
 - [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md) — locked paths, stop behavior, prohibited regressions
+- [`docs/product/exact-official-site-clone-invariant.md`](docs/product/exact-official-site-clone-invariant.md) — canonical invariant for left surface
 
 ### Matrix regression test
 
@@ -113,13 +116,29 @@ entire product.
 - `tests/browser/verify_housing_quest_e2e.mjs`
 - `tests/browser/verify_illegal_parking_quest_e2e.mjs`
 - `tests/browser/verify_bulky_waste_quest_e2e.mjs`
-- `tests/browser/verify_move_in_quest_e2e.mjs`
-- `tests/browser/verify_public_health_center_quest_e2e.mjs`
+- `tests/browser/verify_passport_quest_e2e.mjs`
+- `tests/browser/verify_unmanned_kiosk_quest_e2e.mjs`
 - `tests/browser/verify_citizen_first_use_pages.mjs`
 
 ---
 
-## 6. Deferred work
+## 6. Incomplete: official fixture capture
+
+The following work is **not** part of this local/static MVP closeout:
+
+- Complete official fixture capture (manifest has `capture_required`)
+- Semantic/content parity with official pages
+- Renderer-to-fixture parity
+- Route별 official source verification
+- Exact official clone completion
+
+Current demo mechanics are complete, but exact official page parity is separate.
+The interaction route/action contract matching correctly does **not** mean
+official fixture parity is done.
+
+---
+
+## 7. Deferred work
 
 Live/production/integration work that is **not** part of this local/static MVP
 closeout is tracked on the broad epics. Note that an **LLM fallback for unknown
@@ -145,7 +164,7 @@ forbidden.
 
 ---
 
-## 7. Recent closeout PRs
+## 8. Recent closeout PRs
 
 Compact list only (not a full history):
 
@@ -155,4 +174,4 @@ Compact list only (not a full history):
 | [#993](https://github.com/skerishKang/400-ai-finder/pull/993) | operator runbook |
 | [#995](https://github.com/skerishKang/400-ai-finder/pull/995) | README discoverability |
 
-Earlier real-page fidelity hardening completed before this closeout (e.g. #987 / #989 and related quest fidelity PRs).
+Earlier closeout and quest realignment completed before this snapshot (e.g. #987 / #989 and #1079 quest realignment).
