@@ -37,6 +37,29 @@
   var _steps = [];
   var _highlightedEls = [];
 
+  function _apartmentDeptSnapshot() {
+    var snapshots = window.__BUKGU_OFFICIAL_SNAPSHOTS__;
+    return snapshots && snapshots["apartment-dept"] ? snapshots["apartment-dept"] : null;
+  }
+
+  function _apartmentDeptFinalMessage() {
+    var snapshot = _apartmentDeptSnapshot();
+    if (!snapshot || !snapshot.page || !snapshot.representative_contact) {
+      return "공동주택과 공식 스냅샷을 불러오지 못했습니다.";
+    }
+    return "공동주택과 부서 대표전화는 " + snapshot.representative_contact.phone +
+      ", FAX는 " + snapshot.representative_contact.fax +
+      "입니다. 왼쪽 조직 및 업무안내 표에서 전체 " + snapshot.page.row_count +
+      "명의 업무별 연락처를 확인할 수 있습니다.";
+  }
+
+  function _apartmentDeptTableMessage() {
+    var snapshot = _apartmentDeptSnapshot();
+    var count = snapshot && snapshot.page ? snapshot.page.row_count : "전체";
+    return "공식 조직 및 업무안내의 전체 " + count +
+      "명 표를 열고 대표 연락처 행을 확인했습니다.";
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Journey map — typed deterministic step lists keyed by question
   // or journey ID. Each step:
@@ -118,28 +141,28 @@
     // grounded-result sequence instead of jumping directly to the answer.
     "공동주택 관련 문의는 어느 부서에 해야 하나요?": Object.freeze({
       id: "apartment-dept",
-      description: "도시관리국 공동주택과 업무 및 연락처 안내",
+      description: "공동주택과 조직 및 업무안내",
       steps: Object.freeze([
         Object.freeze({ message: "공동주택 부서 정보를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
         Object.freeze({ message: "먼저 북구소개 메뉴를 열겠습니다.", journeyState: "J-DEPT-01:home", clickTarget: '[data-dept-action="open-menu"]', journeyStateAfterClick: "J-DEPT-01:menu", delayMs: 2400, thinkingText: "북구청 메뉴를 살펴보는 중입니다...", thinkingMs: 650 }),
-        Object.freeze({ message: "구청안내에서 업무 및 전화번호 안내를 선택합니다.", clickTarget: '[data-dept-action="go-directory"]', journeyStateAfterClick: "J-DEPT-01:directory", delayMs: 2500, thinkingText: "담당 부서 경로를 찾는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "구청안내에서 행정조직의 공동주택과를 찾습니다.", clickTarget: '[data-dept-action="go-directory"]', journeyStateAfterClick: "J-DEPT-01:directory", delayMs: 2500, thinkingText: "담당 부서 경로를 찾는 중입니다...", thinkingMs: 650 }),
         Object.freeze({ message: "검색창에 공동주택을 입력하겠습니다.", focusSearch: true, typeQuery: "공동주택", cursorTarget: ".bg-dept-search__input", delayMs: 2500, thinkingText: "부서 검색을 준비하는 중입니다...", thinkingMs: 550 }),
         Object.freeze({ message: "입력한 검색어로 담당 부서를 조회합니다.", submitSearch: true, clickTarget: ".bg-dept-search__btn", delayMs: 2500, searchingText: "공동주택 관련 부서를 검색 중입니다...", thinkingText: "검색 조건을 확인하는 중입니다...", thinkingMs: 650 }),
-        Object.freeze({ message: "검색 결과에서 공동주택과와 대표 연락처를 확인했습니다.", cursorTarget: ".bg-dept-table tbody tr:first-child", delayMs: 2400, thinkingText: "공식 결과를 확인하는 중입니다...", thinkingMs: 650 }),
-        Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당하며, 대표 연락처는 062-410-6033입니다." }),
+        Object.freeze({ message: _apartmentDeptTableMessage(), cursorTarget: '[data-representative-contact="true"]', delayMs: 2400, thinkingText: "공식 결과를 확인하는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: _apartmentDeptFinalMessage() }),
       ]),
     }),
     "housing_department": Object.freeze({
       id: "apartment-dept",
-      description: "도시관리국 공동주택과 업무 및 연락처 안내 (MVP action)",
+      description: "공동주택과 조직 및 업무안내 (MVP action)",
       steps: Object.freeze([
         Object.freeze({ message: "공동주택 부서 정보를 안내해 드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
         Object.freeze({ message: "먼저 북구소개 메뉴를 열겠습니다.", journeyState: "J-DEPT-01:home", clickTarget: '[data-dept-action="open-menu"]', journeyStateAfterClick: "J-DEPT-01:menu", delayMs: 2400, thinkingText: "북구청 메뉴를 살펴보는 중입니다...", thinkingMs: 650 }),
-        Object.freeze({ message: "구청안내에서 업무 및 전화번호 안내를 선택합니다.", clickTarget: '[data-dept-action="go-directory"]', journeyStateAfterClick: "J-DEPT-01:directory", delayMs: 2500, thinkingText: "담당 부서 경로를 찾는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "구청안내에서 행정조직의 공동주택과를 찾습니다.", clickTarget: '[data-dept-action="go-directory"]', journeyStateAfterClick: "J-DEPT-01:directory", delayMs: 2500, thinkingText: "담당 부서 경로를 찾는 중입니다...", thinkingMs: 650 }),
         Object.freeze({ message: "검색창에 공동주택을 입력하겠습니다.", focusSearch: true, typeQuery: "공동주택", cursorTarget: ".bg-dept-search__input", delayMs: 2500, thinkingText: "부서 검색을 준비하는 중입니다...", thinkingMs: 550 }),
         Object.freeze({ message: "입력한 검색어로 담당 부서를 조회합니다.", submitSearch: true, clickTarget: ".bg-dept-search__btn", delayMs: 2500, searchingText: "공동주택 관련 부서를 검색 중입니다...", thinkingText: "검색 조건을 확인하는 중입니다...", thinkingMs: 650 }),
-        Object.freeze({ message: "검색 결과에서 공동주택과와 대표 연락처를 확인했습니다.", cursorTarget: ".bg-dept-table tbody tr:first-child", delayMs: 2400, thinkingText: "공식 결과를 확인하는 중입니다...", thinkingMs: 650 }),
-        Object.freeze({ message: "공동주택 관련 문의는 공동주택과에서 담당하며, 대표 연락처는 062-410-6033입니다." }),
+        Object.freeze({ message: _apartmentDeptTableMessage(), cursorTarget: '[data-representative-contact="true"]', delayMs: 2400, thinkingText: "공식 결과를 확인하는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: _apartmentDeptFinalMessage() }),
       ]),
     }),
     "bulky_waste": Object.freeze({
@@ -437,7 +460,7 @@
 
   // #927: drive an existing local clone journey state through the public
   // canvas API. Currently supports the approved J-DEPT-01 directory state,
-  // which renders the 공동주택과 / 062-410-6033 / 공동주택과 업무전반 facts.
+  // which renders the canonical 공동주택과 organization/work snapshot.
   function _applyJourneyState(journeyState) {
     if (!journeyState || typeof journeyState !== "string") return;
     var parts = journeyState.split(":");

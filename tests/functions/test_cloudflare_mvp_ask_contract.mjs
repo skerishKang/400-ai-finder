@@ -336,6 +336,48 @@ await assert('current contact question is grounded in official phone and hours',
   }
 });
 
+await assert('housing guidance uses the canonical snapshot without request-time official fetch', async () => {
+  try {
+    mockFetchSequence([{
+      body: chatResponse('공동주택과 공식 조직 및 업무안내입니다.', 'housing_department', 0.95),
+    }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: '공동주택 관련 문의는 어느 부서에 해야 하나요?',
+    }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.action, 'housing_department', 'action');
+    expectEqual(data.freshness_state, 'official_snapshot', 'freshness_state');
+    expectEqual(data.official_route_id, 'apartment-dept', 'official_route_id');
+    expectEqual(data.official_page_id, 'organization2-a10602012601-5820036', 'official_page_id');
+    expectEqual(data.snapshot_id, 'bukgu_gwangju.apartment-dept.2026-07-11', 'snapshot_id');
+    expectEqual(data.canonical_sha256.length, 64, 'canonical_sha256 length');
+    expectIsoDate(data.captured_at, 'captured_at');
+    expectIsoDate(data.verified_at, 'verified_at');
+    expectEqual(data.sources.length, 2, 'source count');
+    expectEqual(
+      data.source_url,
+      'https://bukgu.gwangju.kr/organization2.es?mid=a10602012601&org_cd=5820036',
+      'source_url',
+    );
+    expectEqual(officialFetchCalls().length, 0, 'request-time official fetch count');
+    const prompt = JSON.parse(providerFetchCalls()[0].body).messages[0].content;
+    for (const fact of [
+      '부서 대표전화: 062-410-6841',
+      'FAX: 062-510-1486',
+      '조직 및 업무 / 총 19명',
+      '1. 공동주택과 |  | 과장 | 062-410-6033 | 공동주택과 업무전반',
+      '19. 공동주택과 | 공동주택관리 | 직원 | 062-410-6828',
+    ]) {
+      if (!prompt.includes(fact)) throw new Error(`canonical snapshot fact missing: ${fact}`);
+    }
+    if (prompt.includes('062-410-6831') || prompt.includes('062-410-6832')) {
+      throw new Error('obsolete synthetic rows leaked into housing evidence');
+    }
+  } finally {
+    restoreFetch();
+  }
+});
+
 await assert('official retrieval failure falls back honestly to model_only', async () => {
   try {
     mockFetchSequence(

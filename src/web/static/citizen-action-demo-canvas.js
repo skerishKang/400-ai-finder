@@ -36,6 +36,24 @@
       .replace(/'/g, "&#39;");
   }
 
+  function _getOfficialSnapshot(routeId) {
+    var snapshots = window.__BUKGU_OFFICIAL_SNAPSHOTS__;
+    if (!snapshots || !snapshots[routeId]) return null;
+    return snapshots[routeId];
+  }
+
+  function _apartmentDeptAnswerText() {
+    var snapshot = _getOfficialSnapshot("apartment-dept");
+    if (!snapshot || !snapshot.page || !snapshot.representative_contact) {
+      return "공동주택과 공식 스냅샷을 불러오지 못했습니다.";
+    }
+    return "공동주택 관련 문의는 " + snapshot.representative_contact.department +
+      "에서 담당합니다. 부서 대표전화는 " + snapshot.representative_contact.phone +
+      ", FAX는 " + snapshot.representative_contact.fax +
+      "이며, 왼쪽 표에서 전체 " + snapshot.page.row_count +
+      "명의 담당 업무와 전화번호를 확인할 수 있습니다.";
+  }
+
   // -----------------------------------------------------------------------
   // J-PARK-01 local-only utilities and renderers
   // -----------------------------------------------------------------------
@@ -462,7 +480,7 @@
       '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내 경로를 확인하겠습니다.</div></div>',
       '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구소개 메뉴에서 업무 및 전화번호 안내를 확인하고 있습니다.</div></div>',
       '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 담당 부서를 검색하고 있습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.</div></div>'
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">' + _escHtml(_apartmentDeptAnswerText()) + '</div></div>'
     ];
     var renderCount;
     if (step === "ready" || step === "") {
@@ -553,7 +571,7 @@
       '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">공동주택 관련 문의는 어느 부서에 해야 하나요?</div></div>',
       '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내에서 담당 부서를 찾겠습니다.</div></div>',
       '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구소개 &gt; 구청안내 &gt; 업무 및 전화번호 안내에서 담당 부서를 확인하고 있습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.</div></div>'
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">' + _escHtml(_apartmentDeptAnswerText()) + '</div></div>'
     ];
     var renderCount = step === "ready" ? 2 : (step === "directory" ? 3 : 4);
     var html = "";
@@ -572,7 +590,7 @@
       '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내에서 담당 부서를 찾아보겠습니다.</div></div>',
       '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구소개 메뉴에서 구청안내를 확인했습니다.</div></div>',
       '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">업무 및 전화번호 안내에서 ‘공동주택’을 검색하고 있습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.</div></div>'
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">' + _escHtml(_apartmentDeptAnswerText()) + '</div></div>'
     ];
 
     var progressIndicator =
@@ -663,6 +681,9 @@
   }
 
   function _renderDeptDirectory(deptState) {
+    if (deptState === "result") {
+      return _renderApartmentDept("apartment-dept");
+    }
     var assets = "/static/images/bukgu-current";
     var searchIcon =
       '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.4 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
@@ -736,31 +757,9 @@
             '</div>' +
           '</div>' +
           '<div class="bg-dept-results">' +
-            (deptState === 'result' ?
-              '<div class="bg-dept-results__count">' +
-                '전체 <strong>9</strong>명, 현재 페이지 <strong>1/1</strong>' +
-              '</div>' +
-              '<table class="bg-dept-table">' +
-                '<thead>' +
-                  '<tr>' +
-                    '<th>부서명</th>' +
-                    '<th>전화번호</th>' +
-                    '<th>담당업무</th>' +
-                  '</tr>' +
-                '</thead>' +
-                '<tbody>' +
-                  '<tr class="bg-dept-table__row bg-dept-table__row--highlighted">' +
-                    '<td>공동주택과</td>' +
-                    '<td>062-410-6033</td>' +
-                    '<td>공동주택과 업무전반</td>' +
-                  '</tr>' +
-                '</tbody>' +
-              '</table>'
-            :
-              '<div class="bg-dept-results__empty">' +
-                '검색어를 입력 후 검색해 주세요. (예: 공동주택)' +
-              '</div>'
-            ) +
+            '<div class="bg-dept-results__empty">' +
+              '검색어를 입력 후 검색해 주세요. (예: 공동주택)' +
+            '</div>' +
           '</div>' +
         '</main>' +
         '<footer class="bg-home-footer" aria-label="사이트 하단">' +
@@ -784,6 +783,9 @@
       return _renderHome(_resolveHomeReferenceState(typeof window !== "undefined" && window.location ? window.location.search : ""));
     }
     var html = _renderDeptDirectory(step === "result" ? "result" : "directory");
+    if (step === "result") {
+      return _decorateOfficialDeptReplay(html, step, "", false);
+    }
     html = html.replace(
       '<div class="bg-page bg-page--full bg-page--dept-directory">',
       '<div class="bg-page bg-page--full bg-page--dept-directory bg-page--dept-replay" data-dept-replay="true" data-dept-replay-step="' + _escHtml(step) + '">'
@@ -851,19 +853,23 @@
     }
 
     html = _renderDeptDirectory(step === "result" ? "result" : "directory");
-    html = html.replace(
-      '<div class="bg-page bg-page--full bg-page--dept-directory">',
-      '<div class="bg-page bg-page--full bg-page--dept-directory bg-page--dept-replay" data-dept-auto-replay="true" data-auto-replay-step="' + _escHtml(step) + '" data-auto-replay-status="' + _escHtml(status) + '">'
-    );
-    html = html.replace(
-      '<div class="bg-dept-header">' +
-        '<h2>업무 및 전화번호 안내</h2>' +
-      '</div>',
-      '<div class="bg-dept-header">' +
-        '<h2>업무 및 전화번호 안내</h2>' +
-        _renderAutoReplayControls(step, status) +
-      '</div>'
-    );
+    if (step === "result") {
+      html = _decorateOfficialDeptReplay(html, step, status, true);
+    } else {
+      html = html.replace(
+        '<div class="bg-page bg-page--full bg-page--dept-directory">',
+        '<div class="bg-page bg-page--full bg-page--dept-directory bg-page--dept-replay" data-dept-auto-replay="true" data-auto-replay-step="' + _escHtml(step) + '" data-auto-replay-status="' + _escHtml(status) + '">'
+      );
+      html = html.replace(
+        '<div class="bg-dept-header">' +
+          '<h2>업무 및 전화번호 안내</h2>' +
+        '</div>',
+        '<div class="bg-dept-header">' +
+          '<h2>업무 및 전화번호 안내</h2>' +
+          _renderAutoReplayControls(step, status) +
+        '</div>'
+      );
+    }
     return html.replace(
       '</footer>' +
       '</div>',
@@ -2349,89 +2355,111 @@
   }
 
   // -----------------------------------------------------------------------
-  // _renderApartmentDept — 업무 및 전화번호 안내 (공동주택과)
-  // 실제 Buk-gu 사이트 스타일: 부서 검색 + 데이터 테이블
+  // _renderApartmentDept — canonical 공동주택과 조직 및 업무안내 snapshot
   // -----------------------------------------------------------------------
   function _renderApartmentDept(route) {
+    var snapshot = _getOfficialSnapshot("apartment-dept");
+    if (!snapshot || !snapshot.page || !Array.isArray(snapshot.page.rows)) {
+      return (
+        '<div class="bg-page bg-page--full bg-page--dense bg-page--dept-directory">' +
+          _renderDenseHeader("home") +
+          '<main class="bg-official-dept-main"><h1>행정조직</h1>' +
+            '<p role="alert">공동주택과 공식 스냅샷을 불러오지 못했습니다.</p></main>' +
+          _renderSubFooter() +
+        '</div>'
+      );
+    }
+
+    var page = snapshot.page;
+    var source = snapshot.source;
+    var breadcrumbs = page.breadcrumbs.map(function (item, index) {
+      return '<li' + (item.active ? ' aria-current="page"' : '') + '>' +
+        '<span>' + _escHtml(item.label) + '</span>' +
+        (index < page.breadcrumbs.length - 1 ? '<b aria-hidden="true">›</b>' : '') +
+      '</li>';
+    }).join("");
+    var tools = page.page_tools.map(function (label) {
+      return '<span class="bg-official-dept-tools__item">' + _escHtml(label) + '</span>';
+    }).join("");
+    var tabs = page.tabs.map(function (tab) {
+      return '<li class="bg-official-dept-tabs__item' + (tab.active ? ' bg-official-dept-tabs__item--active' : '') + '">' +
+        '<span' + (tab.active ? ' aria-current="page"' : '') + '>' + _escHtml(tab.label) + '</span>' +
+      '</li>';
+    }).join("");
+    var columns = page.columns.map(function (column) {
+      return '<th scope="col">' + _escHtml(column.label) + '</th>';
+    }).join("");
+    var rows = page.rows.map(function (row, index) {
+      var representative = row.phone === snapshot.representative_contact.phone;
+      return '<tr data-official-row="' + (index + 1) + '"' +
+        (representative ? ' data-representative-contact="true"' : '') + '>' +
+        '<td>' + _escHtml(row.department) + '</td>' +
+        '<td>' + _escHtml(row.team) + '</td>' +
+        '<td>' + _escHtml(row.position) + '</td>' +
+        '<td>' + _escHtml(row.phone) + '</td>' +
+        '<td class="bg-official-dept-table__duty">' + _escHtml(row.duty) + '</td>' +
+      '</tr>';
+    }).join("");
+    var contentInfo = page.content_info;
+
     return (
-      '<div class="bg-page bg-page--full bg-page--dense bg-page--dept-directory">' +
+      '<div class="bg-page bg-page--full bg-page--dense bg-page--dept-directory" ' +
+        'data-official-snapshot-id="' + _escHtml(snapshot.snapshot_id) + '" ' +
+        'data-official-route-id="' + _escHtml(snapshot.route_id) + '" ' +
+        'data-canonical-sha256="' + _escHtml(snapshot.canonical_sha256) + '" ' +
+        'data-source-updated-at="' + _escHtml(source.source_updated_at) + '">' +
         _renderDenseHeader("home") +
-
-        '<div class="bg-layout--lnb">' +
-          /* LNB — 북구소개 > 구청안내 > 업무 및 전화번호 안내 */
-          '<nav class="bg-lnb" aria-label="좌측 메뉴">' +
-            '<div class="bg-lnb__header">북구소개</div>' +
-            '<ul class="bg-lnb__list">' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">북구안내</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--expanded">' +
-                '<a href="#" class="bg-lnb__parent">구청안내 <span class="bg-lnb__toggle">−</span></a>' +
-                '<ul class="bg-lnb__sub">' +
-                  '<li class="bg-lnb__item"><a href="#">행정조직</a></li>' +
-                  '<li class="bg-lnb__item bg-lnb__item--active"><a href="#">업무 및 전화번호 안내</a></li>' +
-                  '<li class="bg-lnb__item"><a href="#">부서 대표번호</a></li>' +
-                  '<li class="bg-lnb__item"><a href="#">청사안내</a></li>' +
-                '</ul>' +
-              '</li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">(재)광주북구장학회</a></li>' +
-              '<li class="bg-lnb__item bg-lnb__item--collapsed"><a href="#" class="bg-lnb__parent">동 행정복지센터</a></li>' +
-            '</ul>' +
-          '</nav>' +
-
-          /* Main content — 실제 Buk-gu 스타일 테이블 */
-          '<main class="bg-content" role="main">' +
-            '<div class="bg-page-header">' +
-              '<h1 class="bg-page-header__title">업무 및 전화번호 안내</h1>' +
+        '<main class="bg-official-dept-main" role="main">' +
+          '<header class="bg-official-dept-heading">' +
+            '<h1>' + _escHtml(page.section_title) + '</h1>' +
+            '<nav class="bg-official-dept-breadcrumb" aria-label="현재 위치"><ol>' + breadcrumbs + '</ol></nav>' +
+            '<div class="bg-official-dept-tools" aria-label="페이지 도구">' + tools + '</div>' +
+          '</header>' +
+          '<nav class="bg-official-dept-tabs" aria-label="공동주택과 메뉴"><ul>' + tabs + '</ul></nav>' +
+          '<section class="bg-official-dept-content" aria-labelledby="official-apartment-heading">' +
+            '<div class="bg-official-dept-content__top">' +
+              '<h2 id="official-apartment-heading">' + _escHtml(page.content_heading) + '</h2>' +
+              '<p>총 <strong>' + page.row_count + '</strong>명</p>' +
             '</div>' +
-
-            /* 검색/필터 바 (실제 Buk-gu 스타일) */
-            '<div class="bg-dept-search-bar">' +
-              '<div class="bg-dept-search-bar__row">' +
-                '<select class="bg-dept-search-bar__select" disabled>' +
-                  '<option>부서 선택</option>' +
-                  '<option selected>도시관리국</option>' +
-                '</select>' +
-                '<select class="bg-dept-search-bar__select" disabled>' +
-                  '<option>구분 전체</option>' +
-                '</select>' +
-                '<input type="text" class="bg-dept-search-bar__input" placeholder="검색어를 입력하세요" value="공동주택과" disabled />' +
-                '<button type="button" class="bg-dept-search-bar__btn" disabled>검색</button>' +
-              '</div>' +
-            '</div>' +
-
-            /* 데이터 테이블 */
-            '<div class="bg-dept-table-wrap">' +
-              '<table class="bg-dept-table" data-action-target="apartment-dept-card">' +
-                '<thead>' +
-                  '<tr>' +
-                    '<th>부서명</th>' +
-                    '<th>팀명</th>' +
-                    '<th>직책</th>' +
-                    '<th>전화번호</th>' +
-                    '<th>담당업무</th>' +
-                  '</tr>' +
-                '</thead>' +
-                '<tbody>' +
-                  '<tr class="bg-dept-table__row--highlight">' +
-                    '<td>공동주택과</td><td>공동주택팀</td><td>팀장</td><td>062-410-6831</td><td>공동주택 관리 지원</td>' +
-                  '</tr>' +
-                  '<tr class="bg-dept-table__row--highlight">' +
-                    '<td>공동주택과</td><td>공동주택팀</td><td>담당</td><td>062-410-6832</td><td>하자분쟁조정</td>' +
-                  '</tr>' +
-                  '<tr class="bg-dept-table__row--highlight">' +
-                    '<td>공동주택과</td><td>공동주택팀</td><td>담당</td><td>062-410-6833</td><td>보조금 지원</td>' +
-                  '</tr>' +
-                  '<tr class="bg-dept-table__row--highlight">' +
-                    '<td>공동주택과</td><td>공동주택팀</td><td>담당</td><td>062-410-6834</td><td>공동주택 감사</td>' +
-                  '</tr>' +
-                '</tbody>' +
+            '<div class="bg-official-dept-table-wrap">' +
+              '<table class="bg-official-dept-table" data-action-target="apartment-dept-card" ' +
+                'aria-label="' + _escHtml(page.table_accessible_name) + '">' +
+                '<thead><tr>' + columns + '</tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
               '</table>' +
             '</div>' +
-
-            '<div class="bg-dept-table-info">총 4건 (공동주택과)</div>' +
-          '</main>' +
-        '</div>' +
+          '</section>' +
+          '<section class="bg-official-dept-info" aria-label="콘텐츠 정보">' +
+            '<div><strong>' + _escHtml(contentInfo.label) + '</strong>' +
+              '<span>' + _escHtml(contentInfo.department_label) + ' ' + _escHtml(contentInfo.department) + '</span>' +
+              '<span>' + _escHtml(contentInfo.contact_label) + ' ' + _escHtml(contentInfo.contact) + '</span></div>' +
+            '<p><strong>' + _escHtml(contentInfo.last_updated_label) + '</strong> ' +
+              _escHtml(contentInfo.last_updated) + '</p>' +
+          '</section>' +
+        '</main>' +
         _renderSubFooter() +
       '</div>'
+    );
+  }
+
+  function _decorateOfficialDeptReplay(html, step, status, isAuto) {
+    var rootNeedle = '<div class="bg-page bg-page--full bg-page--dense bg-page--dept-directory"';
+    var rootReplacement = '<div class="bg-page bg-page--full bg-page--dense bg-page--dept-directory bg-page--dept-replay"';
+    if (isAuto) {
+      rootReplacement += ' data-dept-auto-replay="true" data-auto-replay-step="' +
+        _escHtml(step) + '" data-auto-replay-status="' + _escHtml(status) + '"';
+    } else {
+      rootReplacement += ' data-dept-replay="true" data-dept-replay-step="' + _escHtml(step) + '"';
+    }
+    html = html.replace(rootNeedle, rootReplacement);
+
+    var mainNeedle = '<main class="bg-official-dept-main" role="main">';
+    var controls = isAuto
+      ? _renderAutoReplayControls(step, status)
+      : _renderDeptReplayControls(step);
+    return html.replace(
+      mainNeedle,
+      mainNeedle + '<div class="bg-official-dept-replay-controls">' + controls + '</div>'
     );
   }
 
@@ -2745,7 +2773,7 @@
       "complaint-illegal-parking": {title: "지도단속", purpose: "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
       "complaint-write": {title: "민원 글쓰기", purpose: "AI가 민원 제목과 본문 초안을 입력하고 제출 전에 주민 확인을 받습니다."},
       "bulky-waste-disposal": {title: "대형폐기물 배출방법", purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
-      "apartment-dept": {title: "공동주택과", purpose: "도시관리국 공동주택과 업무 및 연락처 정보를 안내합니다."},
+      "apartment-dept": {title: "공동주택과", purpose: "공동주택과 조직 및 업무안내의 전체 공식 표를 보여줍니다."},
       "passport-guidance": {title: "여권민원 안내", purpose: "여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 안내합니다."},
       "unmanned-kiosk-guidance": {title: "무인민원발급기 안내", purpose: "무인민원발급기 설치장소, 발급종류, 이용방법을 안내합니다."},
       "apartment-info": {title: "아파트정보", purpose: "분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다."}

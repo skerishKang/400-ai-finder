@@ -22,6 +22,7 @@ STATIC = os.path.join(os.path.dirname(__file__), "..", "src", "web", "static")
 
 REQUIRED_FILES = [
     "citizen-action-demo.html",
+    "bukgu-official-snapshots.js",
     "citizen-action-demo-map.js",
     "citizen-action-demo-canvas.js",
     "citizen-action-demo-canvas.css",
@@ -141,9 +142,11 @@ sandbox.URLSearchParams = URLSearchParams;
 sandbox.window = sandbox;
 var cx = vm.createContext(sandbox);
 
-// Evaluate map and canvas (must use runInContext so sandbox.window is in scope)
+// Evaluate the browser scripts in production order.
+var snapshotJS = %s;
 var mapJS = %s;
 var canvasJS = %s;
+vm.runInContext(snapshotJS, cx);
 vm.runInContext(mapJS, cx);
 vm.runInContext(canvasJS, cx);
 
@@ -165,11 +168,12 @@ process.stdout.write(JSON.stringify(results));
 
 def _render_all_routes_via_node():
     """Call Node to render all routes, return dict of routeId -> html."""
+    snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
     map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
     canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
     routes_json = json.dumps(EXPECTED_ROUTE_IDS)
 
-    script = _RUNTIME_SCRIPT % (map_js, canvas_js, routes_json)
+    script = _RUNTIME_SCRIPT % (snapshot_js, map_js, canvas_js, routes_json)
 
     result = _run_node_script_file(script, timeout=30)
     if result.returncode != 0:
@@ -188,6 +192,7 @@ def _run_node_script_file(script: str, timeout: int = 30):
             ["node", script_path],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=timeout,
         )
     finally:
@@ -569,7 +574,7 @@ class TestRuntimeRender:
             "passport-guidance": {"title": "여권민원 안내", "purpose": "여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 안내합니다."},
             "unmanned-kiosk-guidance": {"title": "무인민원발급기 안내", "purpose": "무인민원발급기 설치장소, 발급종류, 이용방법을 안내합니다."},
             "apartment-info": {"title": "아파트정보", "purpose": "분야별정보 건축 > 아파트정보 아파트현황 페이지입니다. 아파트명, 주소, 세대수, 관리사무소 정보를 확인할 수 있습니다."},
-            "apartment-dept": {"title": "공동주택과", "purpose": "도시관리국 공동주택과 업무 및 연락처 정보를 안내합니다."},
+            "apartment-dept": {"title": "공동주택과", "purpose": "공동주택과 조직 및 업무안내의 전체 공식 표를 보여줍니다."},
         }
 
         for route_id in EXPECTED_ROUTE_IDS:
@@ -909,6 +914,7 @@ class TestJDept01SpecificContracts:
     def dept_render(self):
         """Helper to run Node and capture HTML under J-DEPT-01 query states."""
         def _render(query: str):
+            snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
             map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
             canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
             # Run with custom sandbox search query
@@ -956,10 +962,12 @@ class TestJDept01SpecificContracts:
             var cx = vm.createContext(sandbox);
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
             sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
             process.stdout.write(capturedHTML);
             """ % (
                 json.dumps(query),
+                snapshot_js,
                 map_js,
                 canvas_js
             )
@@ -996,11 +1004,12 @@ class TestJDept01SpecificContracts:
         html_res = dept_render("?journey=J-DEPT-01&dept-state=result")
         assert "bg-page--dept-directory" in html_res
         assert "공동주택과" in html_res
-        # Public shell preservation checks on result
+        # The final transition opens the exact official organization page.
         assert "bg-home-utility" in html_res
         assert "bg-header" in html_res
-        assert "bg-home-gnb__item--dept" in html_res
-        assert "bg-dept-mega-menu" in html_res
+        assert 'data-official-route-id="apartment-dept"' in html_res
+        assert "bg-official-dept-tabs" in html_res
+        assert "조직 및 업무안내" in html_res
 
     def test_jdept01_exact_route_and_chat_progression(self, dept_render):
         """3. Output contains correct route navigation elements."""
@@ -1011,13 +1020,14 @@ class TestJDept01SpecificContracts:
         assert "업무 및 전화번호 안내" in html_dir
 
     def test_jdept01_factual_result_row_only(self, dept_render):
-        """4. Result state renders only the single approved factual row and count."""
+        """4. Result state renders the complete canonical official table."""
         html_res = dept_render("?journey=J-DEPT-01&dept-state=result")
-        assert "전체" in html_res
-        assert "9" in html_res
-        assert "1/1" in html_res
+        assert "총 <strong>19</strong>명" in html_res
+        assert html_res.count('data-official-row="') == 19
         assert "공동주택과" in html_res
         assert "062-410-6033" in html_res
+        assert "062-410-6841" in html_res
+        assert 'data-representative-contact="true"' in html_res
         assert "공동주택과 업무전반" in html_res
         # Assert no other fake or synthesized rows are present
         assert "공동주택지원팀" not in html_res
@@ -1100,8 +1110,9 @@ class TestJDept01SpecificContracts:
                                  sub_sel.startswith(".bg-page--bulky-waste") or
                                  sub_sel.startswith(".bg-page--passport-guidance") or
                                  sub_sel.startswith(".bg-page--unmanned-kiosk-guidance") or
-                                 sub_sel.startswith(".bg-page--apartment-info") or
-                                 sub_sel.startswith(".bg-dept-search-bar") or
+                                sub_sel.startswith(".bg-page--apartment-info") or
+                                sub_sel.startswith(".bg-official-dept-") or
+                                sub_sel.startswith(".bg-dept-search-bar") or
                                  sub_sel.startswith(".bg-dept-table") or
                                  sub_sel.startswith(".bg-dept-table-wrap") or
                                  sub_sel.startswith(".bg-dept-table-info")), \
@@ -1119,6 +1130,7 @@ class TestJDept01SpecificContracts:
                         sel_part.startswith(".bg-page--passport-guidance") or
                         sel_part.startswith(".bg-page--unmanned-kiosk-guidance") or
                         sel_part.startswith(".bg-page--apartment-info") or
+                        sel_part.startswith(".bg-official-dept-") or
                         sel_part == "#demo-canvas[inert]" or
                         sel_part.startswith(".bg-dept-search-bar") or
                         sel_part.startswith(".bg-dept-table") or
@@ -1188,6 +1200,7 @@ class TestJDept01SpecificContracts:
 
     def test_jdept01_exact_search_handler_execution(self):
         """8. Execute captured click handler and check pushState query resolution for exact-search."""
+        snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
         map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
         canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
 
@@ -1248,6 +1261,7 @@ class TestJDept01SpecificContracts:
         sandbox.window = sandbox;
 
         var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
 
@@ -1350,7 +1364,7 @@ class TestJDept01SpecificContracts:
         }
 
         process.stdout.write(JSON.stringify(testResults));
-        """ % (map_js, canvas_js)
+        """ % (snapshot_js, map_js, canvas_js)
 
         res = _run_node_script_file(sandbox_init, timeout=10)
         assert res.returncode == 0, res.stderr
@@ -1360,21 +1374,22 @@ class TestJDept01SpecificContracts:
         assert "dept-state=result" in exact['url']
         assert exact['pd'] is True
         assert "공동주택과" in exact['html']
-        assert "전체" in exact['html'] and "9" in exact['html'] and "1/1" in exact['html']
+        assert "총 <strong>19</strong>명" in exact['html']
+        assert exact['html'].count('data-official-row="') == 19
         assert "공동주택과에서 담당합니다" in exact['chat']
 
         mismatch = res_data['mismatch']
         assert "dept-state=directory" in mismatch['url']
         assert mismatch['pd'] is True
         assert "공동주택과" not in mismatch['html']
-        assert "전체 9명" not in mismatch['html']
+        assert 'data-official-route-id="apartment-dept"' not in mismatch['html']
         assert "공동주택과에서 담당합니다" not in mismatch['chat']
 
         empty = res_data['empty']
         assert "dept-state=directory" in empty['url']
         assert empty['pd'] is True
         assert "공동주택과" not in empty['html']
-        assert "전체 9명" not in empty['html']
+        assert 'data-official-route-id="apartment-dept"' not in empty['html']
         assert "공동주택과에서 담당합니다" not in empty['chat']
 
     def test_jdept01_hover_focus_menu_contract(self):
@@ -1389,6 +1404,7 @@ class TestJDept01ReplayContracts:
     @pytest.fixture(scope="class")
     def replay_render(self):
         def _render(query: str):
+            snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
             map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
             canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
             sandbox_init = """
@@ -1429,9 +1445,10 @@ class TestJDept01ReplayContracts:
             var cx = vm.createContext(sandbox);
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
             sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
             process.stdout.write(JSON.stringify({ html: capturedHTML, chat: capturedChatHTML }));
-            """ % (json.dumps(query), map_js, canvas_js)
+            """ % (json.dumps(query), snapshot_js, map_js, canvas_js)
             res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return json.loads(res.stdout)
@@ -1465,15 +1482,18 @@ class TestJDept01ReplayContracts:
 
         result = replay_render("?replay=J-DEPT-01&replay-step=result")
         assert 'data-dept-replay-step="result"' in result["html"]
-        assert 'value="공동주택"' in result["html"]
-        assert "전체 <strong>9</strong>명, 현재 페이지 <strong>1/1</strong>" in result["html"]
+        assert 'data-official-route-id="apartment-dept"' in result["html"]
+        assert "총 <strong>19</strong>명" in result["html"]
+        assert result["html"].count('data-official-row="') == 19
         assert result["html"].count("<tbody>") == 1
         assert "공동주택과</td>" in result["html"]
         assert "062-410-6033" in result["html"]
+        assert "062-410-6841" in result["html"]
         assert "공동주택과 업무전반" in result["html"]
-        assert "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다." in result["chat"]
+        assert "부서 대표전화는 062-410-6841, FAX는 062-510-1486" in result["chat"]
 
     def test_replay_controls_are_user_advanced_and_local_only(self):
+        snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
         map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
         canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
         sandbox_init = """
@@ -1527,6 +1547,7 @@ class TestJDept01ReplayContracts:
         var cx = vm.createContext(sandbox);
         vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
         sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
 
         function click(action) {
@@ -1563,7 +1584,7 @@ class TestJDept01ReplayContracts:
           afterNext: afterNext,
           afterRestart: afterRestart
         }));
-        """ % (map_js, canvas_js)
+        """ % (snapshot_js, map_js, canvas_js)
         res = _run_node_script_file(sandbox_init, timeout=10)
         assert res.returncode == 0, res.stderr
         data = json.loads(res.stdout)
@@ -2278,6 +2299,7 @@ AUTO_PHASES = ["route", "directory", "search", "result"]
 
 
 def _build_auto_replay_sandbox(initial_url: str, map_js: str, canvas_js: str, actions: list | None = None) -> str:
+    snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
     return """
 'use strict';
 var vm = require('vm');
@@ -2369,6 +2391,7 @@ sandbox.window = sandbox;
 var cx = vm.createContext(sandbox);
 vm.runInContext(%s, cx);
 vm.runInContext(%s, cx);
+vm.runInContext(%s, cx);
 sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
 
 var initial = snapshot();
@@ -2411,7 +2434,13 @@ if (!actionList || actionList.length === 0) {
     results: results
   }));
 }
-""" % (json.dumps(initial_url), map_js, canvas_js, json.dumps(actions or []))
+""" % (
+        json.dumps(initial_url),
+        snapshot_js,
+        map_js,
+        canvas_js,
+        json.dumps(actions or []),
+    )
 
 
 def _run_auto_replay(query: str, actions: list | None = None) -> dict:
@@ -2506,11 +2535,11 @@ class TestAutoReplayContract:
         ]),
         (f"{AUTO_READY_QUERY}&replay-step=search", [
             "공동주택 관련 담당 부서를 검색하고 있습니다.",
-            "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.",
+            "부서 대표전화는 062-410-6841, FAX는 062-510-1486",
         ]),
         (f"{AUTO_READY_QUERY}&replay-step=result", [
             "공동주택 관련 담당 부서를 검색하고 있습니다.",
-            "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다.",
+            "부서 대표전화는 062-410-6841, FAX는 062-510-1486",
         ]),
     ])
     def test_exact_chat_strings(self, query, chat_snippets):
@@ -2619,9 +2648,11 @@ class TestAutoReplayContract:
         html = result["html"]
         assert "공동주택과" in html
         assert "062-410-6033" in html
+        assert "062-410-6841" in html
         assert "공동주택과 업무전반" in html
-        assert "전체 <strong>9</strong>명, 현재 페이지 <strong>1/1</strong>" in html
-        assert "공동주택 관련 문의는 공동주택과에서 담당합니다. 대표 연락처는 062-410-6033입니다." in result["chat"]
+        assert "총 <strong>19</strong>명" in html
+        assert html.count('data-official-row="') == 19
+        assert "부서 대표전화는 062-410-6841, FAX는 062-510-1486" in result["chat"]
 
     @pytest.mark.parametrize("pattern", [
         "fetch(",

@@ -163,7 +163,7 @@ async function startServer() {
 
         // Block path traversal.
         const safePath = path
-          .normalize(pathname)
+          .posix.normalize(pathname)
           .replace(/^(\.\.[/\\])+/, "")
           .replace(/^[/\\]+/, "");
         if (safePath.includes("..")) {

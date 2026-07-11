@@ -108,6 +108,12 @@ The two supplied home captures show different carousel slides. The initial stati
 
 ## #869 approved first information journey — J-DEPT-01
 
+> Historical reference note: this section records the earlier #869 directory-search
+> capture and is not the current runtime source of truth. Issue #1062 supersedes its
+> reduced `전체 9명` result with the complete official 19-row 공동주택과 organization/work
+> snapshot. `062-410-6033` remains an official 과장 row, not the department representative
+> number; the separately verified representative number is `062-410-6841`.
+
 ### Scope
 
 J-DEPT-01 is one local, source-backed information-finding journey only:
