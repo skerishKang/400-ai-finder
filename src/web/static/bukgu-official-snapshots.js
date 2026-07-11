@@ -252,6 +252,395 @@
       }
     },
     "canonical_sha256": "b07eeaefb473844d1230ec1bb126993dd3c8bd194d3fc41a873fd818b4ce622b"
+  },
+  "bulky-waste-disposal": {
+    "schema_version": 2,
+    "snapshot_id": "bukgu_gwangju.bulky-waste-disposal.2026-07-12",
+    "site_id": "bukgu_gwangju",
+    "site_name": "전남광주통합특별시 북구",
+    "route_id": "bulky-waste-disposal",
+    "page_id": "menu-a10406070000",
+    "snapshot_kind": "official_content_page",
+    "source": {
+      "url": "https://bukgu.gwangju.kr/menu.es?mid=a10406070000",
+      "title": "대형폐기물 배출방법 | 환경재활용 | 분야별정보 : 전남광주통합특별시 북구",
+      "captured_at": "2026-07-11T19:46:03.163Z",
+      "verified_at": "2026-07-11T19:46:03.163Z",
+      "source_updated_at": "not-shown",
+      "capture_method": "owner-approved read-only official-site DOM capture"
+    },
+    "page": {
+      "section_title": "대형폐기물 배출방법",
+      "breadcrumbs": [
+        "홈",
+        "분야별정보",
+        "환경재활용",
+        "대형폐기물 배출방법"
+      ],
+      "page_tools": [
+        "글자 크게",
+        "글자 작게",
+        "인쇄",
+        "공유"
+      ],
+      "tabs": [],
+      "content_html": "<h2 class=\"dep01\">대형폐기물 배출방법</h2>\n<h3 class=\"dep02\">배출방법</h3>\n<ul class=\"dep03\">\n\t<li>수탁업체(녹색환경)에 직접 전화 또는 구두로 신고후 배출</li>\n\t<li>월요일부터 금요일까지 수거가능</li>\n\t<li>신고전화 : ☎062-572-1336, 1337</li>\n\t<li>「여기로」어플 및 홈페이지에서 신청 가능\n\t\t<ul>\n\t\t\t<li>사용방법 : ①스마트폰 구글플레이＆앱스토어 「여기로」 검색 후 다운로드 설치 및 「여기로」홈페이지 접속 → ②배출신고 및 수수료 결제 → ③배출번호 수신후 기재 → ④폐기물배출 → ⑤폐기물 수거\n\t\t\t\t<div class=\"BtnBox TxtL mt10\">\n\t\t\t\t\t<a title=\"인터넷 배출하기 새창으로 열림\" class=\"btn-go\" href=\"https://yeogiro24.co.kr/web/index.html\">인터넷 배출하기<i></i></a>\n\t\t\t\t</div>\n\t\t\t</li>\n\t\t</ul>\n\t</li>\n</ul>\n<h3 class=\"dep02\">수수료 납부 방법</h3>\n<ul class=\"dep03\">\n\t<li>신용카드, 무통장 입금(입금 수수료 신고자 부담), 현금 납부<br><span><b>※ 상생카드 결제 불가</b></span></li>\n</ul>\n<h3 class=\"dep02\">배출변경 · 취소할 경우</h3>\n<ul class=\"dep03\">\n\t<li>수탁업체에서 즉시 배출자에게 반환\n<span class=\"info diB\">카드 결제 취소 시 카드사 사정에 따라 환불 처리 기간 상이 </span></li>\n</ul>\n<h3 class=\"dep02\">폐가전 배출방법 안내</h3>\n<ul class=\"dep03\">\n\t<li>원형 보존된 것 ☞ 재활용 가능<span class=\"cRed\">(무상수거)</span>\n\t\t<ul>\n\t\t\t<li>소형가전 1~4개 버릴 때 : 주요 거점에 비치된 수거함에 배출\n\t\t\t\t<ul><li>공동주택 : 아파트 내 비치(위치는 아파트 관리사무소 문의) </li>\n\t\t\t\t<li>각 동 행정복지센터 내 소형폐가전 수거함 </li></ul>\n\t\t\t</li>\n\t\t\t<li>소형가전 5개 이상일 때 : 폐가전제품 무상방문수거 서비스 이용(☎1599-0903 또는 온라인 신청 <a href=\"http://15990903.or.kr\" title=\"새창으로 열림\" class=\"linkWindow\">http://15990903.or.kr</a>) <span class=\"info diB\">단, 처리기간 7일 이상</span></li>\n\t\t\t<li>대형폐가전 : 냉장고, 세탁기, 에어컨 등은 폐가전제품 무상방문수거 서비스 이용 </li>\n\t\t</ul>\n\t</li>\n\t<li>원형 훼손된 제품 ☞ 대형폐기물로 처리<span class=\"cRed\">(유상수거)</span>\n\t\t<ul>\n\t\t\t<li>북구 대형폐기물 수집․운반 대행업체 ㈜녹색환경에서 처리 </li>\n\t\t\t<li>전화접수 ☎ 062-572-1336~7, 스마트어플 접수 “여기로” </li>\n\t\t</ul>\n\t</li>\n</ul>\n<h3 class=\"dep02\">대형폐기물 품목 및 수수료 기준(제2조, 제7조, 제21조 관련)</h3>\n<div class=\"BtnBox-line\">\n\t<a title=\"대형폐기물 품목 안내책자 PDF 다운로드\" class=\"btn-line btn-down\" href=\"https://bukgu.gwangju.kr/boardDownload.es?bid=ATT&amp;list_no=921&amp;seq=2\">대형폐기물 품목 안내책자 다운로드<i></i></a>\n\t<a class=\"btn-line btn-view\" href=\"https://bukgu.gwangju.kr/attachPreview.es?bid=ATT&amp;list_no=921&amp;seq=2\" title=\"새창으로 열림\">대형폐기물 품목 안내책자 바로보기<i></i></a>\n</div>\n<ul class=\"dep03\">\n\t<li>아래에 표기되지 않은 품목은 유사품목에 준하여 부과합니다.</li>\n\t<li>쓰레기봉투에 담기 어려운 폐기물 : 20ℓ당 3,000원\n\t\t<div class=\"table\">\n\t\t\t<table class=\"tbl_type1\">\n\t\t\t\t<caption>대형폐기물 품목 및 수수료 기준으로 품목류, 품목별, 규격, 부과금액(원), 비고의 정보를 나타낸 표입니다.</caption>\n\t\t\t\t<colgroup><col><col><col><col><col></colgroup>\n\t\t\t\t<thead>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<th scope=\"col\">품목류</th>\n\t\t\t\t\t\t<th scope=\"col\">품목별</th>\n\t\t\t\t\t\t<th scope=\"col\">규격</th>\n\t\t\t\t\t\t<th scope=\"col\">부과금액(원)</th>\n\t\t\t\t\t\t<th scope=\"col\">비고</th>\n\t\t\t\t\t</tr>\n\t\t\t\t</thead>\n\t\t\t\t<tbody>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<th scope=\"row\" rowspan=\"39\">가전 제품류</th>\n\t\t\t\t\t\t<td rowspan=\"4\">냉장고(업소용제외)</td>\n\t\t\t\t\t\t<td>800ℓ 이상</td>\n\t\t\t\t\t\t<td>15,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>500ℓ 이상</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>300ℓ 이상</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>300ℓ 미만</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"4\">텔레비젼</td>\n\t\t\t\t\t\t<td>42인치 이상</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>29인치 이상</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>14인치 이상</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>14인치 미만</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">세탁기</td>\n\t\t\t\t\t\t<td>통돌이 8kg 이상</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>통돌이 8kg 미만</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>드럼세탁기</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">에어컨(온풍기)</td>\n\t\t\t\t\t\t<td>264㎡ 이상(80평)</td>\n\t\t\t\t\t\t<td>9,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>66㎡ 이상(20평)</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>66㎡ 미만(20평 미만)</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">가스오븐렌지</td>\n\t\t\t\t\t\t<td>높이 1m 이상</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>높이 1m 미만</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>탈수기</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">공기청정기</td>\n\t\t\t\t\t\t<td>높이 1m 이상</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>높이 1m 미만</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t  </tr>\n\t\t\t\t  <tr>\n\t\t\t\t\t\t<td>청소기</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>팩스기기</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">컴퓨터</td>\n\t\t\t\t\t\t<td>본 체(키포드 포함)</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>모 니 터</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>프 린 터</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">음향기기(전  축)</td>\n\t\t\t\t\t\t<td>본  체</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>스피커 1세트(높이 50cm 이상)</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>스피커 1세트(높이 50cm 미만)</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>가스렌지</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>전자레인지</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">선풍기</td>\n\t\t\t\t\t\t<td>일 반 용</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>업 소 용</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>난  로</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>비디오</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>가습기</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>복사기</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">정수기</td>\n\t\t\t\t\t\t<td>높이 1m 이상</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>높이 1m 미만</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>식기세척기</td>\n\t\t\t\t\t\t<td>가 정 용</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>전화기</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<th scope=\"row\" rowspan=\"46\">가구류</th>\n\t\t\t\t\t\t<td rowspan=\"3\">장  농</td>\n\t\t\t\t\t\t<td>120cm 1쪽당</td>\n\t\t\t\t\t\t<td>15,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>90cm 1쪽당</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>90cm미만 1쪽당</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">서랍장</td>\n\t\t\t\t\t\t<td>5단 이상</td>\n\t\t\t\t\t\t<td>7,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>4단 이하</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">신발장</td>\n\t\t\t\t\t\t<td>폭 1m이상 1쪽당(높이 1m 이상)</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>폭 1m미만 1쪽당(높이 1m 미만)</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">문  갑</td>\n\t\t\t\t\t\t<td>4개 이상1세트(높이 1m 이상)</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>4개 미만1세트(높이 1m 미만)</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">화장대</td>\n\t\t\t\t\t\t<td>상판 가로 90cm 이상</td>\n\t\t\t\t\t\t<td>7,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>상판 가로 90cm 미만</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr><tr>\n\t\t\t\t\t\t<td rowspan=\"3\">거실장</td>\n\t\t\t\t\t\t<td>150cm 이상</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>60cm 이상</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>60cm 미만</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">책  장(책꽂이)</td>\n\t\t\t\t\t\t<td>1.5×2.0m 내외</td>\n\t\t\t\t\t\t<td>12,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>1.5×1.0m 내외</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>1.0×1.0m 내외</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"8\">응접셋트</td>\n\t\t\t\t\t\t<td>6인용 이상 탁자</td>\n\t\t\t\t\t\t<td>7,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>6인용 미만 탁자</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>5인용 이상 소파</td>\n\t\t\t\t\t\t<td>15,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>4인용 소파</td>\n\t\t\t\t\t\t<td>14,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>3인용 소파</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>2인용 소파</td>\n\t\t\t\t\t\t<td>7,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>1인용 소파</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>1인용 소파(팔걸이 없음)</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"10\">침  대</td>\n\t\t\t\t\t\t<td>1인용 침대(세트)</td>\n\t\t\t\t\t\t<td>12,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>1인용 매트리스</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>1인용 매트리스 틀</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>2인용 침대(세트)</td>\n\t\t\t\t\t\t<td>17,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>2인용 매트리스</td>\n\t\t\t\t\t\t<td>11,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>2인용 2단 매트리스</td>\n\t\t\t\t\t\t<td>15,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>2인용 매트리스 틀</td>\n\t\t\t\t\t\t<td>9,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>2인용 매트리스 틀(플라스틱 재질)</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>유아용 침대</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>어린이 2층 침대</td>\n\t\t\t\t\t\t<td>20,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">침대(돌,옥,흙)</td>\n\t\t\t\t\t\t<td>1인용</td>\n\t\t\t\t\t\t<td>25,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>2인용</td>\n\t\t\t\t\t\t<td>30,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">라텍스</td>\n\t\t\t\t\t\t<td>싱글</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>더블</td>\n\t\t\t\t\t\t<td>9,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"4\">식  탁(유리 제외)</td>\n\t\t\t\t\t\t<td>목재 6인용 이상</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>목재 6인용 미만</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>대리석 6인용 이상</td>\n\t\t\t\t\t\t<td>15,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>대리석 6인용 미만</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">밥  상</td>\n\t\t\t\t\t\t<td>90cm×90cm 이상</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>90cm×90cm 미만</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>싱크대 및 싱크 찬장</td>\n\t\t\t\t\t\t<td>소형 1짝당 (폭 1m당)</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<th scope=\"row\" rowspan=\"25\">생활용품</th>\n\t\t\t\t\t\t<td>옷걸이</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">쌀  통</td>\n\t\t\t\t\t\t<td>다용도</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>일  반</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>벽시계</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">가  방</td>\n\t\t\t\t\t\t<td>골프가방</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>캐리어(20ℓ 초과)</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>그 밖의 가방류</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">책  상(책장, 책꽂이 별도)</td>\n\t\t\t\t\t\t<td>양수, 대형</td>\n\t\t\t\t\t\t<td>7,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>편수, 소형</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">의  자</td>\n\t\t\t\t\t\t<td>고정식 의자</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>회전식 의자</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>협  탁</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>TV 받침대</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>오디오 케이스</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">장식장(차단스)</td>\n\t\t\t\t\t\t<td>90cm×180cm 이상</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>90cm×180cm 미만</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>캐비넷</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">파일캐비넷</td>\n\t\t\t\t\t\t<td>4단 이상</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>3단 이하</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">피아노</td>\n\t\t\t\t\t\t<td>어프라이트</td>\n\t\t\t\t\t\t<td>16,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>그 랜 드</td>\n\t\t\t\t\t\t<td>25,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>올  겐</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>인형류</td>\n\t\t\t\t\t\t<td>50ℓ(1마대)당</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>장난감류</td>\n\t\t\t\t\t\t<td>50ℓ(1마대)당</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>재봉틀</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<th scope=\"row\" rowspan=\"58\">기  타</th>\n\t\t\t\t\t\t<td>앰  프</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>건조대</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>휠체어</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>조명기구</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>변압기</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">아이스박스</td>\n\t\t\t\t\t\t<td>20ℓ 이상</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>20ℓ 미만</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">문  짝</td>\n\t\t\t\t\t\t<td>대(방문)</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>소(창문)</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">수족관</td>\n\t\t\t\t\t\t<td>가로 2m 이상</td>\n\t\t\t\t\t\t<td>15,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>가로 1m 이상</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>가로 1m 미만</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">오락기</td>\n\t\t\t\t\t\t<td>높이 1.5m 이상(29인치 이상)</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>높이 1m 이상(29인치 미만)</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>높이 1m 미만(20인치 이하)</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">액자, 거울, 표구, 병풍</td>\n\t\t\t\t\t\t<td>1m 이상</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>1m 미만</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">자전거</td>\n\t\t\t\t\t\t<td>일반용(2발)</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>아동용(3발)</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>유모차</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">항아리</td>\n\t\t\t\t\t\t<td>20ℓ 이상</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>20ℓ 미만</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>세면대</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">욕  조</td>\n\t\t\t\t\t\t<td>일  반</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>유  아</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>변  기</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>장  판</td>\n\t\t\t\t\t\t<td>1평당(3.3㎡)</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"6\">전기장판</td>\n\t\t\t\t\t\t<td>일반용(1인용)</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>일반용(2인용)</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>일반용(거실용)</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>옥매트(1인용)</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>옥매트(2인용)</td>\n\t\t\t\t\t\t<td>6,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>옥매트(3인용)</td>\n\t\t\t\t\t\t<td>9,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>이불, 카펫, 천막</td>\n\t\t\t\t\t\t<td>1평당(3.3㎡)</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>흙, 사기, (깨진)유리</td>\n\t\t\t\t\t\t<td>20ℓ당</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>목재류</td>\n\t\t\t\t\t\t<td>50ℓ(1마대)당</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>플라스틱류</td>\n\t\t\t\t\t\t<td>50ℓ(1마대)당</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>물탱크, 정화조(FRP)</td>\n\t\t\t\t\t\t<td>용적 1.0㎡당</td>\n\t\t\t\t\t\t<td>10,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">화  분(흙, 돌 제외)</td>\n\t\t\t\t\t\t<td>높이 70cm 미만</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>높이 70cm 이상</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>블라인드, 커튼</td>\n\t\t\t\t\t\t<td>모든규격(1피스당)</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>파티션</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>밥  솥</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>2,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>강화문</td>\n\t\t\t\t\t\t<td>모 든 규 격</td>\n\t\t\t\t\t\t<td>15,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">운동기구</td>\n\t\t\t\t\t\t<td>런닝머신</td>\n\t\t\t\t\t\t<td>20,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>싸이클</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>그밖의 운동기구</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">간  판</td>\n\t\t\t\t\t\t<td>60×180cm 이상</td>\n\t\t\t\t\t\t<td>8,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>60×180cm 미만</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>입간판</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"3\">고무통</td>\n\t\t\t\t\t\t<td>90×100cm 이상</td>\n\t\t\t\t\t\t<td>5,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>90×100cm 미만</td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>70×80cm 이하</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>도배지</td>\n\t\t\t\t\t\t<td>50ℓ(1마대)당</td>\n\t\t\t\t\t\t<td>3,300</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>합  판</td>\n\t\t\t\t\t\t<td>1장당 </td>\n\t\t\t\t\t\t<td>4,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>분말소화기</td>\n\t\t\t\t\t\t<td>3.3kg당</td>\n\t\t\t\t\t\t<td>3,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td rowspan=\"2\">안마의자</td>\n\t\t\t\t\t\t<td>대(大)</td>\n\t\t\t\t\t\t<td>20,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t\t<tr>\n\t\t\t\t\t\t<td>소(小)</td>\n\t\t\t\t\t\t<td>15,000</td>\n\t\t\t\t\t\t<td></td>\n\t\t\t\t\t</tr>\n\t\t\t\t</tbody>\n\t\t\t</table>\n\t\t</div>\n\t</li>\n</ul>",
+      "content_info_text": [
+        "대형폐기물 배출방법 홈 분야별정보 환경재활용 대형폐기물 배출방법",
+        "콘텐츠 만족도 조사 콘텐츠 만족도 조사 [평균 4.13점 / 16명 참여] 매우만족 만족 보통 불만족 매우불만족 사용자 의견 0/100"
+      ],
+      "image_sources": [],
+      "text_length": 4200,
+      "table_count": 1,
+      "table_row_count": 169
+    },
+    "canonical_sha256": "f72509ff8fc10dc153a48cb6a83227d5db93694bcf6402a6bdb758c030db5745"
+  },
+  "passport-guidance": {
+    "schema_version": 2,
+    "snapshot_id": "bukgu_gwangju.passport-guidance.2026-07-12",
+    "site_id": "bukgu_gwangju",
+    "site_name": "전남광주통합특별시 북구",
+    "route_id": "passport-guidance",
+    "page_id": "menu-a10101060200",
+    "snapshot_kind": "official_content_page",
+    "source": {
+      "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101060200",
+      "title": "여권안내 | 여권민원 | 종합민원 | 종합민원 : 전남광주통합특별시 북구",
+      "captured_at": "2026-07-11T19:46:03.747Z",
+      "verified_at": "2026-07-11T19:46:03.747Z",
+      "source_updated_at": "not-shown",
+      "capture_method": "owner-approved read-only official-site DOM capture"
+    },
+    "page": {
+      "section_title": "여권민원",
+      "breadcrumbs": [
+        "홈",
+        "종합민원",
+        "여권민원",
+        "여권안내"
+      ],
+      "page_tools": [
+        "글자 크게",
+        "글자 작게",
+        "인쇄",
+        "공유"
+      ],
+      "tabs": [
+        {
+          "active": true,
+          "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101060200",
+          "label": "여권안내"
+        },
+        {
+          "active": false,
+          "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101060500",
+          "label": "차세대전자여권"
+        },
+        {
+          "active": false,
+          "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101060400",
+          "label": "정부24 여권 재발급 신청"
+        }
+      ],
+      "content_html": "<div id=\"depth4_menu_div\" class=\"depth4_tab\">\n\n<ul id=\"depth4_menu_ul\">\n\t<li id=\"li0101060200\" class=\"active\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101060200\">여권안내</a></li>\n\t<li id=\"li0101060500\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101060500\">차세대전자여권</a></li>\n\t<li id=\"li0101060400\" class=\"last\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101060400\">정부24 여권 재발급 신청</a></li>\n</ul>\n\n</div>\n\t\t\t\t\n\t\t\t\t\n\n\n\n\n<div class=\"c01010602\">\n\t<div class=\"infoBox\"><i></i>\n\t\t<span class=\"txt\">\n\t\t\t<strong class=\"tt\">여권안내</strong>\n\t\t\t<span>여권종류, 유효기간, 발급수수료, 신청절차, 신청서식 등 자세한 정보는 외교부 여권안내에서 확인하실수 있습니다.</span>\n            <span class=\"BtnBox mt10\"><a class=\"btn-go\" href=\"http://www.passport.go.kr/\" title=\"새창으로 열림\">여권발급안내 바로가기<i></i></a><a class=\"btn-go ml10\" style=\"background-color:#086867\" href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101100000\" title=\"새창으로 열림\">여권대기현황 바로가기<i></i></a></span>\n\t\t</span>\n\t</div>\n\t<h3 class=\"dep02\">여권신청 안내</h3>\n\t<ul class=\"dep03\">\n\t\t<li>근무시간 : 월~금 09:00~18:00 (점심시간 12:00~13:00 휴무)</li>\n\t\t<li>발급 구비서류\n\t\t\t<ul>\n\t\t\t\t<li>여권 발급 신청서 </li>\n\t\t\t\t<li>여권용 사진 1매(사진규정 참고)</li>\n\t\t\t\t<li>신분증(주민등록증, 운전면허증 등 주민번호 13자리 기재 필수)</li>\n\t\t\t\t<li>유효기간이 남아있는 여권은 반드시 지참</li>\n\t\t\t</ul>\n\t\t</li>\n\t\t<li>수수료 (국제교류기여금 포함)\n\t\t\t<ul>\n\t\t\t\t<li class=\"cBlue\">2026년 3월 1일부터 여권발급수수료 2천원 인상 시행\n\t\t\t\t\t<div class=\"table\">\n\t\t\t\t\t\t<table class=\"tbl_type1\">\n\t\t\t\t\t\t\t<caption>여권 발급 수수료의 종류, 구분, 여권발급수수료 , 비고를 안내한 표입니다</caption>\n\t\t\t\t\t\t\t<colgroup><col><col><col><col></colgroup>\n\t\t\t\t\t\t\t<thead>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<th scope=\"col\">종류</th>\n\t\t\t\t\t\t\t\t\t<th scope=\"col\" colspan=\"2\">구분</th>\n\t\t\t\t\t\t\t\t\t<th scope=\"col\" colspan=\"2\">여권발급수수료 </th>\n\t\t\t\t\t\t\t\t\t<th scope=\"col\">비고</th>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t</thead>\n\t\t\t\t\t\t\t<tbody>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"7\">전자여권</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"6\">복수여권</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">10년이내(18세 이상)</td>\n\t\t\t\t\t\t\t\t\t<td>58면</td>\n\t\t\t\t\t\t\t\t\t<td>52,000원</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">만 18세 이상 성인</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td>26면</td>\n\t\t\t\t\t\t\t\t\t<td class=\"line-r\">49,000원</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"4\">5년(18세미만)</td>\n\t\t\t\t\t\t\t\t\t<td>58면</td>\n\t\t\t\t\t\t\t\t\t<td>44,000원</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">만8세이상</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td>26면</td>\n\t\t\t\t\t\t\t\t\t<td class=\"line-r\">41,000원</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td>58면</td>\n\t\t\t\t\t\t\t\t\t<td class=\"line-r\">35,000원</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">만8세미만</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td>26면</td>\n\t\t\t\t\t\t\t\t\t<td class=\"line-r\">32,000원</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td>단수여권</td>\n\t\t\t\t\t\t\t\t\t<td>1년이내</td>\n\t\t\t\t\t\t\t\t\t<td colspan=\"2\">17,000원</td>\n\t\t\t\t\t\t\t\t\t<td>6개월 이내 1회 여행만 가능 </td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"3\">기타</td>\n\t\t\t\t\t\t\t\t\t<td colspan=\"2\" rowspan=\"2\">남은 유효기간부여 여권 (58면,26면 선택)</td>\n\t\t\t\t\t\t\t\t\t<td>58면</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">27,000원</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">분실, 영문성명 변경, 사진교체 등 </td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td class=\"line-r\">26면</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td colspan=\"2\">여권사실증명</td>\n\t\t\t\t\t\t\t\t\t<td colspan=\"2\">1,000원</td>\n\t\t\t\t\t\t\t\t\t<td>무인민원발급기, 정부24 홈페이지 이용 시 수수료 무료</td>\n\t\t\t\t\t\t\t  </tr>\n\t\t\t\t\t\t\t</tbody>\n\t\t\t\t\t\t</table>\n\t\t\t\t\t</div>\n\t\t\t\t</li>\n\t\t\t</ul>\n\t\t</li>\n\t\t<li>사진규격\n\t\t\t<ul class=\"W55\">\n\t\t\t\t<li>가로 3.5cm, 세로 4.5cm인 천연색 상반신 정면 사진이어야 합니다.</li>\n\t\t\t\t<li>배경은 균일한 흰색이어야 합니다. </li>\n\t\t\t\t<li>머리길이(정수리부터 턱까지)가 3.2 ~ 3.6cm 이어야 합니다.</li>\n\t\t\t\t<li>여권발급 신청일 전 6개월 이내 촬영된 사진이어야 합니다.</li>\n\t\t\t\t<li>얼굴과 어깨는 정면을 향해야 합니다.(측면포즈 불가)</li>\n\t\t\t\t<li>유색의 미용렌즈, 렌즈에 색이 들어간 안경 그리고 선글라스는 사용할 수 없습니다.</li>\n\t\t\t\t<li>사진 편집 프로그램, 사진 필터 기능 등을 사용하여 임의로 보정한 사진(AI를 활용한 편집·가공·합성·창조 제작물 포함)은 허용 불가합니다.</li>\n\t\t\t</ul>\n\t\t</li>\n\t</ul>\n\t<img src=\"/static/images/bukgu-current/mayor/passport-photo-guide.jpg\" alt=\"여권 사진규격\">\n\t<h3 class=\"dep02 mt100\">여권교부 소요기간(근무일 기준 7일 소요)</h3>\n\t<div class=\"step-list\">\n\t\t<ul>\n\t\t\t<li><strong>신청접수</strong></li>\n\t\t\t<li><strong>제작</strong><span>한국조폐공사<br>(대전)</span></li>\n\t\t\t<li><strong>배송</strong></li>\n\t\t\t<li><strong>품질검사</strong></li>\n\t\t\t<li><strong>완료</strong></li>\n\t\t\t<li><strong>교부</strong></li>\n\t\t</ul>\n\t</div>\n\t<span class=\"info\">여권발급은 신청일부터 수령시까지 통상 7일(토·일요일 및 공휴일 제외)이 소요되며, 신청건수 증가 등 제반상황에 따라 2~3일 지연될 수 있음</span>\n\t<h3 class=\"dep02 mt20\">개별 우편배송 서비스</h3>\n\t<ul class=\"dep03\">\n\t\t<li>근무일 기준 약 3~4일 소요 (비용 : 5,500원 카드 결제만 가능, 여권접수시 신청)<span class=\"info\">통합배송 불가, 개별신청</span><span class=\"info\">우편 수령을 신청하면 재방문 없이 여권을 교부받을 수 있습니다.</span></li>\n\t</ul>\n\n\t<h3 class=\"dep02\">여권․국제운전면허증 동시 발급 원스톱서비스</h3>\n\t<div class=\"con-explain\">여권발급 신청 시 국제운전면허증 발급 신청을 원하는 민원인에게 국제운전면허증 신청서를 접수·교부하는 서비스입니다. </div>\n\t<ul class=\"dep03\">\n\t\t<li>발급안내\n\t\t\t<ul><li>발급절차 : 신청서 접수(구청) → 운전면허시험장 이송 → 면허증 발급 및 발송(운전면허시험장) → 면허증 교부(구청)</li>\n\t\t\t<li>소요일수 : 접수일로부터 통상 7일<span class=\"info diB\">여권과 국제운전면허증을 동시 발급 신청시에만 접수 가능</span><span class=\"info diB\">도로교통법(제98조의 2)에 의한 교통범칙금, 과태료 미납자 발급제한</span></li></ul>\n\t\t</li>\n\t\t<li>구비서류\n\t\t\t<ul><li>국제운전면허증 발급 신청서(현장 구비됨)</li>\n\t\t\t<li>신분증(주민등록증, 운전면허증 등)</li>\n\t\t\t<li>여권용 사진 1매(3.5X4.5cm)</li>\n\t\t\t<li>수수료 9,000원(현금, 운전면허시험장 계좌 이체용)</li></ul>\n\t\t</li>\n\t</ul>\n</div>",
+      "content_info_text": [
+        "여권민원 홈 종합민원 종합민원 여권민원 여권안내",
+        "콘텐츠 만족도 조사 콘텐츠 만족도 조사 [평균 4.14점 / 14명 참여] 매우만족 만족 보통 불만족 매우불만족 사용자 의견 0/100 콘텐츠 정보책임자 민원여권과 062-410-6244"
+      ],
+      "image_sources": [
+        {
+          "alt": "여권 사진규격",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/02/01010602-img.jpg"
+        }
+      ],
+      "text_length": 1545,
+      "table_count": 1,
+      "table_row_count": 11,
+      "asset_rewrites": {
+        "https://bukgu.gwangju.kr/kor/img/contents/02/01010602-img.jpg": "/static/images/bukgu-current/mayor/passport-photo-guide.jpg"
+      },
+      "asset_sha256": {
+        "/static/images/bukgu-current/mayor/passport-photo-guide.jpg": "69f9afca460ec5b6842d33af6d9f5aab6cd497d969b3d0e48cc8138f38ab7ec3"
+      }
+    },
+    "canonical_sha256": "fed99b96e68df6b4278315bbad5a03197de3b2eeed71ca8ca750c93abff7d194"
+  },
+  "unmanned-kiosk-guidance": {
+    "schema_version": 2,
+    "snapshot_id": "bukgu_gwangju.unmanned-kiosk-guidance.2026-07-12",
+    "site_id": "bukgu_gwangju",
+    "site_name": "전남광주통합특별시 북구",
+    "route_id": "unmanned-kiosk-guidance",
+    "page_id": "menu-a10101020100",
+    "snapshot_kind": "official_content_page",
+    "source": {
+      "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101020100",
+      "title": "설치장소 | 무인민원발급기 | 종합민원 | 종합민원 : 전남광주통합특별시 북구",
+      "captured_at": "2026-07-11T19:46:04.913Z",
+      "verified_at": "2026-07-11T19:46:04.913Z",
+      "source_updated_at": "not-shown",
+      "capture_method": "owner-approved read-only official-site DOM capture"
+    },
+    "page": {
+      "section_title": "무인민원발급기",
+      "breadcrumbs": [
+        "홈",
+        "종합민원",
+        "무인민원발급기",
+        "설치장소"
+      ],
+      "page_tools": [
+        "글자 크게",
+        "글자 작게",
+        "인쇄",
+        "공유"
+      ],
+      "tabs": [
+        {
+          "active": true,
+          "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101020100",
+          "label": "설치장소"
+        },
+        {
+          "active": false,
+          "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101020200",
+          "label": "발급종류 및 처리순서"
+        },
+        {
+          "active": false,
+          "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101020300",
+          "label": "발급가능 민원서류"
+        }
+      ],
+      "content_html": "<div id=\"depth4_menu_div\" class=\"depth4_tab\">\n\n<ul id=\"depth4_menu_ul\">\n\t<li id=\"li0101020100\" class=\"active\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101020100\">설치장소</a></li>\n\t<li id=\"li0101020200\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101020200\">발급종류 및 처리순서</a></li>\n\t<li id=\"li0101020300\" class=\"last\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101020300\">발급가능 민원서류</a></li>\n</ul>\n\n</div>\n\t\t\t\t\n\t\t\t\t\n\n\n\n<div class=\"c01010201\">\n\t<h2 class=\"IR\">설치장소</h2>\n\t<div class=\"infoBox\">\n\t\t<i></i>\n\t\t<span class=\"txt\">\n\t\t\t<strong class=\"tt\">무인민원 발급기</strong>\n\t\t\t<span>민원인이 관공서를 방문하지 않고 각종 제증명을 무인민원발급기를 통해 서류를 현장에서 신청, 바로 발급받는 시스템입니다.</span>\n\t\t</span>\n\t</div>\n\t<h2 class=\"IR\">무인민원발급기</h2>\n\t<h3 class=\"dep02\">무인민원발급기 설치장소(50개소)</h3>\n\t<div class=\"table\">\n\t\t<table class=\"tbl_type1\">\n\t\t\t<caption>무인민원발급기 설치장소를 구분, 설치장소, 운영시간, 발급종수, 발급기형태, 비고의 내용으로 안내한 표입니다</caption>\n\t\t\t<colgroup><col><col class=\"W5\"><col class=\"W20\"><col class=\"W20\"><col class=\"W15\"><col class=\"W10\"><col class=\"W5\"></colgroup>\n\t\t\t<thead>\n\t\t\t\t<tr>\n\t\t\t\t\t<th rowspan=\"2\" colspan=\"2\" scope=\"col\">구 분</th>\n\t\t\t\t\t<th colspan=\"2\" scope=\"col\">설치장소</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">운영시간</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">발급종수</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">발급기형태</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">비 고</th>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<th>시설명</th>\n\t\t\t\t\t<th class=\"line-r\">도로명주소</th>\n\t\t\t\t</tr>\n\t\t\t</thead>\n\t\t\t<tbody>\n\t\t\t\t<tr>\n\t\t\t\t\t<td colspan=\"2\" rowspan=\"3\">구청</td>\n\t\t\t\t\t<td>북구청 민원실</td>\n\t\t\t\t\t<td>우치로 77</td>\n\t\t\t\t\t<td>24시간</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>북구청 민원실 2</td>\n\t\t\t\t\t<td>우치로 77</td>\n\t\t\t\t\t<td>24시간</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>북구청 교통행정과</td>\n\t\t\t\t\t<td>용봉로138번길 11</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td rowspan=\"27\" colspan=\"2\">행정복지센터</td>\n\t\t\t\t\t<td>중흥1동 행정복지센터</td>\n\t\t\t\t\t<td>중흥로183번길 7</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>중흥동 행정복지센터</td>\n\t\t\t\t\t<td>당뫼로 33</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>중앙동 행정복지센터</td>\n\t\t\t\t\t<td>금재로 30</td>\n\t\t\t\t\t<td>24시간</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>임동 행정복지센터</td>\n\t\t\t\t\t<td>서림로 53</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>신안동 행정복지센터</td>\n\t\t\t\t\t<td>자산로 66</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>용봉동 행정복지센터</td>\n\t\t\t\t\t<td>용주로18번길 28</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>운암1동 행정복지센터</td>\n\t\t\t\t\t<td>동운로201번길 55</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>운암2동 행정복지센터</td>\n\t\t\t\t\t<td>죽봉대로 214</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>운암3동 행정복지센터</td>\n\t\t\t\t\t<td>서강로 129</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>동림동 행정복지센터</td>\n\t\t\t\t\t<td>북문대로 236</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>우산동 행정복지센터</td>\n\t\t\t\t\t<td>동문대로 109, 2층</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>풍향동 행정복지센터</td>\n\t\t\t\t\t<td>필문대로 29번길 10</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>문화동 행정복지센터</td>\n\t\t\t\t\t<td>군왕로 233</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>문흥1동 행정복지센터</td>\n\t\t\t\t\t<td>대천로 140-3</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>문흥2동 행정복지센터</td>\n\t\t\t\t\t<td>문산로 25</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>두암1동 행정복지센터</td>\n\t\t\t\t\t<td>동문대로 110번길 77</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>두암2동 행정복지센터</td>\n\t\t\t\t\t<td>면앙로192번길 15</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>두암3동 행정복지센터</td>\n\t\t\t\t\t<td>삼정로3번길 25</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>삼각동 행정복지센터</td>\n\t\t\t\t\t<td>설죽로 447</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>일곡동 행정복지센터</td>\n\t\t\t\t\t<td>설죽로 525</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>매곡동 행정복지센터</td>\n\t\t\t\t\t<td>매곡로69번길 25</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>오치1동 행정복지센터</td>\n\t\t\t\t\t<td>우치로274번길 48</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>오치2동 행정복지센터</td>\n\t\t\t\t\t<td>서하로183번길 29</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>석곡동 행정복지센터</td>\n\t\t\t\t\t<td>석곡로 634</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>건국동 행정복지센터</td>\n\t\t\t\t\t<td>용두마을길 6</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>양산동 행정복지센터</td>\n\t\t\t\t\t<td>양산택지로 32</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>신용동 행정복지센터</td>\n\t\t\t\t\t<td>첨단연신로 107번길 22</td>\n\t\t\t\t\t<td>24시간</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td rowspan=\"22\">다중이용시설</td>\n\t\t\t\t\t<td>운암동</td>\n\t\t\t\t\t<td>북광주세무서</td>\n\t\t\t\t\t<td>금호로 70</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td rowspan=\"2\">중앙동</td>\n\t\t\t\t\t<td>고용복지플러스센터</td>\n\t\t\t\t\t<td>금남로121</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>해피뷰병원</td>\n\t\t\t\t\t<td>경열로 216</td>\n\t\t\t\t\t<td>24시간</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>임동</td>\n\t\t\t\t\t<td>북부새마을금고 본점</td>\n\t\t\t\t\t<td>서림로 109-1</td>\n\t\t\t\t\t<td>08:00~23:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>용봉동</td>\n\t\t\t\t\t<td>농협 비엔날레지점</td>\n\t\t\t\t\t<td>비엔날레로 108</td>\n\t\t\t\t\t<td>08:00~22:00</td>\n\t\t\t\t\t<td>111종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>운암3동</td>\n\t\t\t\t\t<td>운암도서관</td>\n\t\t\t\t\t<td>북문대로 118</td>\n\t\t\t\t\t<td>09:00~22:00<br>(2,4주 월요일 휴무)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td rowspan=\"2\">우산동</td>\n\t\t\t\t\t<td>꿈나무사회복지관</td>\n\t\t\t\t\t<td>중문로 58</td>\n\t\t\t\t\t<td>09:00~18:00(평일)<br>09:00~11:00(토)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>서방새마을금고 본점</td>\n\t\t\t\t\t<td>동문대로 19-1</td>\n\t\t\t\t\t<td>07:00~23:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>문화동</td>\n\t\t\t\t\t<td>광주원예농협점</td>\n\t\t\t\t\t<td>동문대로 260</td>\n\t\t\t\t\t<td>07:00~23:50</td>\n\t\t\t\t\t<td>111종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>두암2동</td>\n\t\t\t\t\t<td>홈플러스 동광주점</td>\n\t\t\t\t\t<td>동문대로 200</td>\n\t\t\t\t\t<td>10:00~24:00<br>(2,4주 일요일 휴무)</td>\n\t\t\t\t\t<td>111종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>일곡동</td>\n\t\t\t\t\t<td>북광주신협 본점</td>\n\t\t\t\t\t<td>설죽로 497</td>\n\t\t\t\t\t<td>08:00~23:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>매곡동</td>\n\t\t\t\t\t<td>광주농협 매곡동지점</td>\n\t\t\t\t\t<td>매곡로 48</td>\n\t\t\t\t\t<td>09:00~20:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>오치2동</td>\n\t\t\t\t\t<td>북부경찰서</td>\n\t\t\t\t\t<td>서하로 172</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>석곡동</td>\n\t\t\t\t\t<td>광주농협 충효지점</td>\n\t\t\t\t\t<td>송강로 393</td>\n\t\t\t\t\t<td>09:00~16:30(평일)</td>\n\t\t\t\t\t<td>111종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td rowspan=\"4\">건국동</td>\n\t\t\t\t\t<td>영락공원 관리사무소</td>\n\t\t\t\t\t<td>영락공원로 170</td>\n\t\t\t\t\t<td>07:00~18:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>정부광주지방합동청사</td>\n\t\t\t\t\t<td>첨단과기로208번길 43</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>북광주농협 신용동지점</td>\n\t\t\t\t\t<td>임방울대로 1044</td>\n\t\t\t\t\t<td>08:00~22:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>북광주농협 우치동지점</td>\n\t\t\t\t\t<td>용전마을길 4</td>\n\t\t\t\t\t<td>07:00~23:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>연제동</td>\n\t\t\t\t\t<td>북광주농협 연제동지점</td>\n\t\t\t\t\t<td>양일로 95</td>\n\t\t\t\t\t<td>08:00~22:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>신용동</td>\n\t\t\t\t\t<td>문화신협 첨단지점</td>\n\t\t\t\t\t<td>첨단연신로91번길 20-4</td>\n\t\t\t\t\t<td>08:00~22:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t</tbody>\n\t\t</table>\n\t</div>\n\t<span class=\"info -mt20\"><img style=\"width: 15px;\" alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"> : 휠체어 접근편의성 제공(출입구 경사로, 턱 낮추기)</span><br>\n\t<h3 class=\"dep02\">법인전용 무인민원발급기 설치장소(1개소)</h3>\n\t<div class=\"table\">\n\t\t<table class=\"tbl_type1\">\n\t\t\t<caption>법인전용 무인민원발급기 설치장소를 구분, 설치장소, 운영시간, 발급종수, 발급기형태, 비고의 내용으로 안내한 표입니다</caption>\n\t\t\t<colgroup><col class=\"W5\"><col class=\"W5\"><col class=\"W17\"><col class=\"W15\"><col class=\"W15\"><col><col class=\"W5\"></colgroup>\n\t\t\t<thead>\n\t\t\t\t<tr>\n\t\t\t\t\t<th rowspan=\"2\" colspan=\"2\" scope=\"col\">구 분</th>\n\t\t\t\t\t<th colspan=\"2\" scope=\"col\">설치장소</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">운영시간</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">발급종류</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">비 고</th>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<th>시설명</th>\n\t\t\t\t\t<th class=\"line-r\">도로명주소</th>\n\t\t\t\t</tr>\n\t\t\t</thead>\n\t\t\t<tbody>\n\t\t\t\t<tr>\n\t\t\t\t\t<td colspan=\"2\" rowspan=\"2\">구청 사업소</td>\n\t\t\t\t\t<td>중소기업지원과</td>\n\t\t\t\t\t<td>첨단연신로88, 802호</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>\n\t\t\t\t\t\t<ul class=\"dep04\">\n\t\t\t\t\t\t\t<li>법인인감증명서</li>\n\t\t\t\t\t\t\t<li>법인등기부등본</li>\n\t\t\t\t\t\t\t<li>부동산등기부등본</li>\n\t\t\t\t\t\t</ul>\n\t\t\t\t\t</td>\n\t\t\t\t\t<td> </td>\n\t\t\t\t</tr>\n\t\t\t</tbody>\n\t\t</table>\n\t</div>\n\t<h3 class=\"dep02 mt20\">지문인식 방법</h3>\n\t<ul class=\"dep03\">\n\t\t<li>지문의 중심점이 중앙으로 오도록 손가락을 위로 올려주세요!</li>\n\t\t<li>지문이미지가 흐릴 때는 손가락에 입김을 불어넣은 후 재시도</li>\n\t\t<li>지문이미지가 진할 때는 손가락의 땀, 물 등을 닦은 후 재시도</li>\n\t\t<li>지문인식이 잘 안 되시나요?\n\t\t\t<ul><li>지문 최초 등록 후 지문이 닳거나 손상되어 지문 인식이 잘 안 되는 경우<br>가까운 동 행정복지센터에서 지문(우무인) 재등록이 가능합니다.\n\t\t\t\t<ul><li>지문 재등록 시, 지문정보 변경으로 인해 주민등록증 재발급이 필요함</li>\n\t\t\t\t<li>주민등록증 재발급을 위해서는 ‘6개월 이내에 촬영한 3.5㎝×4.5㎝의 모자 등을 쓰지 않은<br>상반신 천연색 사진(1장)’이 필요함</li>\n\t\t\t\t<li>이전 주민등록증 반납 시 수수료 없음(단, 미반납 시 수수료 부과)<span class=\"info\">주민등록번호 입력 후 등록되지 않은 지문 정보라고 뜨는 경우, 거주지 관할 동 행정복지센터에 문의바랍니다.</span></li></ul>\n\t\t\t</li></ul>\n\t\t</li>\n\t</ul>\n\t<img class=\"fin\" alt=\"지문인식방법 그림\" src=\"/static/images/bukgu-current/mayor/kiosk-fingerprint.gif\">\n\t<h3 class=\"dep02 mt20\">발급종수</h3>\n\t<ul class=\"dep03\">\n\t\t<li>122종 : 부동산 등기부등본, 가족관계등록부·제적부 발급 가능</li>\n\t\t<li>121종 : 가족관계등록부·제적부 발급 가능</li>\n\t</ul>\n\t<h3 class=\"dep02\">발급기형태</h3>\n\t<ul class=\"dep03\">\n\t\t<li>장애인겸용 : 장애인편의기능(시각장애인용 키패드, 시각장애인용 음성안내, 청각장애인용 화면안내, 점자라벨, 이어폰소켓, 화면확대기능, 휠체어 탄 사용자 조작 가능) 포함</li>\n\t</ul>\n\t<h3 class=\"dep02\">이용안내</h3>\n\t<ul class=\"dep03\">\n\t\t<li>수수료 지불방법 : 현금(지폐, 동전), 신용·체크카드, 모바일 간편결제(삼성페이)</li>\n\t\t<li>본인확인방법 : 인증방식 선택(지문인증 또는 모바일 신분증)\n<ul><li>지문인증 : 주민등록증에 등록된 지문 인증</li><li>모바일 신분증 : 모바일 신분증 앱으로 QR 촬영</li></ul></li>\n\t</ul>\n\t<h3 class=\"dep02\">유지보수업체</h3>\n\t<ul class=\"dep03\">\n\t\t<li>한국타피컴퓨터 : 1577-8411 (010-4184-2968)</li>\n\t\t<li>에니텍시스 : 1577-9920 (010-4613-5455)</li>\n\t\t<li>광명테크 : 1577-4522 (010-2892-5568)</li>\n\t</ul>\n\t<h3 class=\"dep02\">관리자 및 연락처</h3>\n\t<ul class=\"dep03\">\n\t\t<li>북구청 민원여권과(평일 주간) : 062-410-6237</li>\n\t\t<li>북구청 당직실(야간, 주말·공휴일) : 062-410-8100</li>\n\t</ul>\n</div>",
+      "content_info_text": [
+        "무인민원발급기 홈 종합민원 종합민원 무인민원발급기 설치장소",
+        "콘텐츠 만족도 조사 콘텐츠 만족도 조사 [평균 3.77점 / 13명 참여] 매우만족 만족 보통 불만족 매우불만족 사용자 의견 0/100 콘텐츠 정보책임자 민원여권과 062-410-6237"
+      ],
+      "image_sources": [
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "휠체어 표시",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+        },
+        {
+          "alt": "지문인식방법 그림",
+          "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.gif"
+        }
+      ],
+      "text_length": 3783,
+      "table_count": 2,
+      "table_row_count": 55,
+      "asset_rewrites": {
+        "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png": "/static/images/bukgu-current/mayor/kiosk-wheelchair.png",
+        "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.gif": "/static/images/bukgu-current/mayor/kiosk-fingerprint.gif"
+      },
+      "asset_sha256": {
+        "/static/images/bukgu-current/mayor/kiosk-wheelchair.png": "03e6c27d8327caf8808b8310a12aec1f8240183c6af91a867d043478b2ab3297",
+        "/static/images/bukgu-current/mayor/kiosk-fingerprint.gif": "37b1edd16bf369f98549f3d02bb9b7b2af7ee71d363176362b117a81c0e4a9eb"
+      }
+    },
+    "canonical_sha256": "4ee051be9fd24abe41de12b4180bdd033f8e86ea924827be499b27670676286e"
   }
 };
 })(typeof window !== "undefined" ? window : globalThis);

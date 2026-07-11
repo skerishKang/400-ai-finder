@@ -9,7 +9,8 @@
    *   Route IDs:  home, civil-service, complaint-category,
    *               complaint-illegal-parking, complaint-intake,
    *               complaint-board, complaint-write, handoff-stop,
-   *               complaint-review,
+   *               complaint-review, mayor-office,
+   *               mayor-complaint-write, mayor-complaint-receipt,
    *               bulky-waste-disposal, passport-guidance,
    *               unmanned-kiosk-guidance, apartment-info,
    *               apartment-dept
@@ -42,7 +43,10 @@
     "complaint-write",
     "handoff-stop",
     "complaint-review",
-"bulky-waste-disposal",
+    "mayor-office",
+    "mayor-complaint-write",
+    "mayor-complaint-receipt",
+    "bulky-waste-disposal",
     "passport-guidance",
     "unmanned-kiosk-guidance",
     "apartment-info",
@@ -60,6 +64,10 @@
     "complaint-illegal-parking-report",
     "complaint-write",
     "complaint-board-return",
+    "mayor-office-open",
+    "mayor-message-write",
+    "mayor-write-return",
+    "mayor-receipt-home",
     "complaint-body",
     "complaint-draft-review",
     "confirm-draft-prefill",
@@ -146,6 +154,30 @@
       purpose: "작성된 내용을 확인해 주세요.",
       navTargets: Object.freeze(["confirm-draft-prefill"]),
       breadcrumbLabel: "내용 확인",
+    }),
+
+    "mayor-office": Object.freeze({
+      id: "mayor-office",
+      title: "열린구청장실",
+      purpose: "주민과 함께 만드는 북구의 비전과 구청장 소통 창구를 안내합니다.",
+      navTargets: Object.freeze(["mayor-message-write"]),
+      breadcrumbLabel: "열린구청장실",
+    }),
+
+    "mayor-complaint-write": Object.freeze({
+      id: "mayor-complaint-write",
+      title: "구청장에게 바란다",
+      purpose: "AI와 함께 제안 내용을 정리하고 제출 전에 직접 검토합니다.",
+      navTargets: Object.freeze(["mayor-write-return"]),
+      breadcrumbLabel: "구청장에게 바란다",
+    }),
+
+    "mayor-complaint-receipt": Object.freeze({
+      id: "mayor-complaint-receipt",
+      title: "제안 접수 완료",
+      purpose: "시연용 제안 접수 결과를 확인합니다.",
+      navTargets: Object.freeze(["mayor-receipt-home"]),
+      breadcrumbLabel: "접수 완료",
     }),
 
     "handoff-stop": Object.freeze({

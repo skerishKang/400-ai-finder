@@ -1,0 +1,69 @@
+{
+  "schema_version": 2,
+  "snapshot_id": "bukgu_gwangju.passport-guidance.2026-07-12",
+  "site_id": "bukgu_gwangju",
+  "site_name": "전남광주통합특별시 북구",
+  "route_id": "passport-guidance",
+  "page_id": "menu-a10101060200",
+  "snapshot_kind": "official_content_page",
+  "source": {
+    "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101060200",
+    "title": "여권안내 | 여권민원 | 종합민원 | 종합민원 : 전남광주통합특별시 북구",
+    "captured_at": "2026-07-11T19:46:03.747Z",
+    "verified_at": "2026-07-11T19:46:03.747Z",
+    "source_updated_at": "not-shown",
+    "capture_method": "owner-approved read-only official-site DOM capture"
+  },
+  "page": {
+    "section_title": "여권민원",
+    "breadcrumbs": [
+      "홈",
+      "종합민원",
+      "여권민원",
+      "여권안내"
+    ],
+    "page_tools": [
+      "글자 크게",
+      "글자 작게",
+      "인쇄",
+      "공유"
+    ],
+    "tabs": [
+      {
+        "active": true,
+        "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101060200",
+        "label": "여권안내"
+      },
+      {
+        "active": false,
+        "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101060500",
+        "label": "차세대전자여권"
+      },
+      {
+        "active": false,
+        "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101060400",
+        "label": "정부24 여권 재발급 신청"
+      }
+    ],
+    "content_html": "<div id=\"depth4_menu_div\" class=\"depth4_tab\">\n\n<ul id=\"depth4_menu_ul\">\n\t<li id=\"li0101060200\" class=\"active\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101060200\">여권안내</a></li>\n\t<li id=\"li0101060500\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101060500\">차세대전자여권</a></li>\n\t<li id=\"li0101060400\" class=\"last\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101060400\">정부24 여권 재발급 신청</a></li>\n</ul>\n\n</div>\n\t\t\t\t\n\t\t\t\t\n\n\n\n\n<div class=\"c01010602\">\n\t<div class=\"infoBox\"><i></i>\n\t\t<span class=\"txt\">\n\t\t\t<strong class=\"tt\">여권안내</strong>\n\t\t\t<span>여권종류, 유효기간, 발급수수료, 신청절차, 신청서식 등 자세한 정보는 외교부 여권안내에서 확인하실수 있습니다.</span>\n            <span class=\"BtnBox mt10\"><a class=\"btn-go\" href=\"http://www.passport.go.kr/\" title=\"새창으로 열림\">여권발급안내 바로가기<i></i></a><a class=\"btn-go ml10\" style=\"background-color:#086867\" href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101100000\" title=\"새창으로 열림\">여권대기현황 바로가기<i></i></a></span>\n\t\t</span>\n\t</div>\n\t<h3 class=\"dep02\">여권신청 안내</h3>\n\t<ul class=\"dep03\">\n\t\t<li>근무시간 : 월~금 09:00~18:00 (점심시간 12:00~13:00 휴무)</li>\n\t\t<li>발급 구비서류\n\t\t\t<ul>\n\t\t\t\t<li>여권 발급 신청서 </li>\n\t\t\t\t<li>여권용 사진 1매(사진규정 참고)</li>\n\t\t\t\t<li>신분증(주민등록증, 운전면허증 등 주민번호 13자리 기재 필수)</li>\n\t\t\t\t<li>유효기간이 남아있는 여권은 반드시 지참</li>\n\t\t\t</ul>\n\t\t</li>\n\t\t<li>수수료 (국제교류기여금 포함)\n\t\t\t<ul>\n\t\t\t\t<li class=\"cBlue\">2026년 3월 1일부터 여권발급수수료 2천원 인상 시행\n\t\t\t\t\t<div class=\"table\">\n\t\t\t\t\t\t<table class=\"tbl_type1\">\n\t\t\t\t\t\t\t<caption>여권 발급 수수료의 종류, 구분, 여권발급수수료 , 비고를 안내한 표입니다</caption>\n\t\t\t\t\t\t\t<colgroup><col><col><col><col></colgroup>\n\t\t\t\t\t\t\t<thead>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<th scope=\"col\">종류</th>\n\t\t\t\t\t\t\t\t\t<th scope=\"col\" colspan=\"2\">구분</th>\n\t\t\t\t\t\t\t\t\t<th scope=\"col\" colspan=\"2\">여권발급수수료 </th>\n\t\t\t\t\t\t\t\t\t<th scope=\"col\">비고</th>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t</thead>\n\t\t\t\t\t\t\t<tbody>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"7\">전자여권</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"6\">복수여권</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">10년이내(18세 이상)</td>\n\t\t\t\t\t\t\t\t\t<td>58면</td>\n\t\t\t\t\t\t\t\t\t<td>52,000원</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">만 18세 이상 성인</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td>26면</td>\n\t\t\t\t\t\t\t\t\t<td class=\"line-r\">49,000원</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"4\">5년(18세미만)</td>\n\t\t\t\t\t\t\t\t\t<td>58면</td>\n\t\t\t\t\t\t\t\t\t<td>44,000원</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">만8세이상</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td>26면</td>\n\t\t\t\t\t\t\t\t\t<td class=\"line-r\">41,000원</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td>58면</td>\n\t\t\t\t\t\t\t\t\t<td class=\"line-r\">35,000원</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">만8세미만</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td>26면</td>\n\t\t\t\t\t\t\t\t\t<td class=\"line-r\">32,000원</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td>단수여권</td>\n\t\t\t\t\t\t\t\t\t<td>1년이내</td>\n\t\t\t\t\t\t\t\t\t<td colspan=\"2\">17,000원</td>\n\t\t\t\t\t\t\t\t\t<td>6개월 이내 1회 여행만 가능 </td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"3\">기타</td>\n\t\t\t\t\t\t\t\t\t<td colspan=\"2\" rowspan=\"2\">남은 유효기간부여 여권 (58면,26면 선택)</td>\n\t\t\t\t\t\t\t\t\t<td>58면</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">27,000원</td>\n\t\t\t\t\t\t\t\t\t<td rowspan=\"2\">분실, 영문성명 변경, 사진교체 등 </td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td class=\"line-r\">26면</td>\n\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t<td colspan=\"2\">여권사실증명</td>\n\t\t\t\t\t\t\t\t\t<td colspan=\"2\">1,000원</td>\n\t\t\t\t\t\t\t\t\t<td>무인민원발급기, 정부24 홈페이지 이용 시 수수료 무료</td>\n\t\t\t\t\t\t\t  </tr>\n\t\t\t\t\t\t\t</tbody>\n\t\t\t\t\t\t</table>\n\t\t\t\t\t</div>\n\t\t\t\t</li>\n\t\t\t</ul>\n\t\t</li>\n\t\t<li>사진규격\n\t\t\t<ul class=\"W55\">\n\t\t\t\t<li>가로 3.5cm, 세로 4.5cm인 천연색 상반신 정면 사진이어야 합니다.</li>\n\t\t\t\t<li>배경은 균일한 흰색이어야 합니다. </li>\n\t\t\t\t<li>머리길이(정수리부터 턱까지)가 3.2 ~ 3.6cm 이어야 합니다.</li>\n\t\t\t\t<li>여권발급 신청일 전 6개월 이내 촬영된 사진이어야 합니다.</li>\n\t\t\t\t<li>얼굴과 어깨는 정면을 향해야 합니다.(측면포즈 불가)</li>\n\t\t\t\t<li>유색의 미용렌즈, 렌즈에 색이 들어간 안경 그리고 선글라스는 사용할 수 없습니다.</li>\n\t\t\t\t<li>사진 편집 프로그램, 사진 필터 기능 등을 사용하여 임의로 보정한 사진(AI를 활용한 편집·가공·합성·창조 제작물 포함)은 허용 불가합니다.</li>\n\t\t\t</ul>\n\t\t</li>\n\t</ul>\n\t<img src=\"/static/images/bukgu-current/mayor/passport-photo-guide.jpg\" alt=\"여권 사진규격\">\n\t<h3 class=\"dep02 mt100\">여권교부 소요기간(근무일 기준 7일 소요)</h3>\n\t<div class=\"step-list\">\n\t\t<ul>\n\t\t\t<li><strong>신청접수</strong></li>\n\t\t\t<li><strong>제작</strong><span>한국조폐공사<br>(대전)</span></li>\n\t\t\t<li><strong>배송</strong></li>\n\t\t\t<li><strong>품질검사</strong></li>\n\t\t\t<li><strong>완료</strong></li>\n\t\t\t<li><strong>교부</strong></li>\n\t\t</ul>\n\t</div>\n\t<span class=\"info\">여권발급은 신청일부터 수령시까지 통상 7일(토·일요일 및 공휴일 제외)이 소요되며, 신청건수 증가 등 제반상황에 따라 2~3일 지연될 수 있음</span>\n\t<h3 class=\"dep02 mt20\">개별 우편배송 서비스</h3>\n\t<ul class=\"dep03\">\n\t\t<li>근무일 기준 약 3~4일 소요 (비용 : 5,500원 카드 결제만 가능, 여권접수시 신청)<span class=\"info\">통합배송 불가, 개별신청</span><span class=\"info\">우편 수령을 신청하면 재방문 없이 여권을 교부받을 수 있습니다.</span></li>\n\t</ul>\n\n\t<h3 class=\"dep02\">여권․국제운전면허증 동시 발급 원스톱서비스</h3>\n\t<div class=\"con-explain\">여권발급 신청 시 국제운전면허증 발급 신청을 원하는 민원인에게 국제운전면허증 신청서를 접수·교부하는 서비스입니다. </div>\n\t<ul class=\"dep03\">\n\t\t<li>발급안내\n\t\t\t<ul><li>발급절차 : 신청서 접수(구청) → 운전면허시험장 이송 → 면허증 발급 및 발송(운전면허시험장) → 면허증 교부(구청)</li>\n\t\t\t<li>소요일수 : 접수일로부터 통상 7일<span class=\"info diB\">여권과 국제운전면허증을 동시 발급 신청시에만 접수 가능</span><span class=\"info diB\">도로교통법(제98조의 2)에 의한 교통범칙금, 과태료 미납자 발급제한</span></li></ul>\n\t\t</li>\n\t\t<li>구비서류\n\t\t\t<ul><li>국제운전면허증 발급 신청서(현장 구비됨)</li>\n\t\t\t<li>신분증(주민등록증, 운전면허증 등)</li>\n\t\t\t<li>여권용 사진 1매(3.5X4.5cm)</li>\n\t\t\t<li>수수료 9,000원(현금, 운전면허시험장 계좌 이체용)</li></ul>\n\t\t</li>\n\t</ul>\n</div>",
+    "content_info_text": [
+      "여권민원 홈 종합민원 종합민원 여권민원 여권안내",
+      "콘텐츠 만족도 조사 콘텐츠 만족도 조사 [평균 4.14점 / 14명 참여] 매우만족 만족 보통 불만족 매우불만족 사용자 의견 0/100 콘텐츠 정보책임자 민원여권과 062-410-6244"
+    ],
+    "image_sources": [
+      {
+        "alt": "여권 사진규격",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/02/01010602-img.jpg"
+      }
+    ],
+    "text_length": 1545,
+    "table_count": 1,
+    "table_row_count": 11,
+    "asset_rewrites": {
+      "https://bukgu.gwangju.kr/kor/img/contents/02/01010602-img.jpg": "/static/images/bukgu-current/mayor/passport-photo-guide.jpg"
+    },
+    "asset_sha256": {
+      "/static/images/bukgu-current/mayor/passport-photo-guide.jpg": "69f9afca460ec5b6842d33af6d9f5aab6cd497d969b3d0e48cc8138f38ab7ec3"
+    }
+  }
+}

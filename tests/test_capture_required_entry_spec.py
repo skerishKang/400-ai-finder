@@ -291,7 +291,15 @@ def test_status_docs_do_not_claim_clone_complete_when_capture_required_exists():
 # Product-transition classification contract (Issue #1096)
 # ---------------------------------------------------------------------------
 
-PRODUCT_TRANSITION_ROUTES = ["complaint-review", "handoff-stop"]
+PRODUCT_TRANSITION_ROUTES = [
+    "complaint-board",
+    "complaint-write",
+    "complaint-review",
+    "handoff-stop",
+    "mayor-office",
+    "mayor-complaint-write",
+    "mayor-complaint-receipt",
+]
 
 FORBIDDEN_PROVENANCE_FIELDS = [
     "source_url",
@@ -316,7 +324,7 @@ def test_product_transitions_section_exists():
     assert "product_transitions" in manifest, "manifest must define product_transitions section"
 
 
-def test_product_transitions_contains_exactly_two_routes():
+def test_product_transitions_contains_registered_routes():
     ids = [e["route_id"] for e in _load_product_transitions()]
     assert sorted(ids) == sorted(PRODUCT_TRANSITION_ROUTES), (
         f"product_transitions must contain exactly {PRODUCT_TRANSITION_ROUTES}, got {ids}"

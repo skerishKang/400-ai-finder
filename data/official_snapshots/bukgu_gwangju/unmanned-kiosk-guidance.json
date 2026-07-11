@@ -1,0 +1,275 @@
+{
+  "schema_version": 2,
+  "snapshot_id": "bukgu_gwangju.unmanned-kiosk-guidance.2026-07-12",
+  "site_id": "bukgu_gwangju",
+  "site_name": "전남광주통합특별시 북구",
+  "route_id": "unmanned-kiosk-guidance",
+  "page_id": "menu-a10101020100",
+  "snapshot_kind": "official_content_page",
+  "source": {
+    "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101020100",
+    "title": "설치장소 | 무인민원발급기 | 종합민원 | 종합민원 : 전남광주통합특별시 북구",
+    "captured_at": "2026-07-11T19:46:04.913Z",
+    "verified_at": "2026-07-11T19:46:04.913Z",
+    "source_updated_at": "not-shown",
+    "capture_method": "owner-approved read-only official-site DOM capture"
+  },
+  "page": {
+    "section_title": "무인민원발급기",
+    "breadcrumbs": [
+      "홈",
+      "종합민원",
+      "무인민원발급기",
+      "설치장소"
+    ],
+    "page_tools": [
+      "글자 크게",
+      "글자 작게",
+      "인쇄",
+      "공유"
+    ],
+    "tabs": [
+      {
+        "active": true,
+        "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101020100",
+        "label": "설치장소"
+      },
+      {
+        "active": false,
+        "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101020200",
+        "label": "발급종류 및 처리순서"
+      },
+      {
+        "active": false,
+        "href": "https://bukgu.gwangju.kr/menu.es?mid=a10101020300",
+        "label": "발급가능 민원서류"
+      }
+    ],
+    "content_html": "<div id=\"depth4_menu_div\" class=\"depth4_tab\">\n\n<ul id=\"depth4_menu_ul\">\n\t<li id=\"li0101020100\" class=\"active\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101020100\">설치장소</a></li>\n\t<li id=\"li0101020200\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101020200\">발급종류 및 처리순서</a></li>\n\t<li id=\"li0101020300\" class=\"last\"><a href=\"https://bukgu.gwangju.kr/menu.es?mid=a10101020300\">발급가능 민원서류</a></li>\n</ul>\n\n</div>\n\t\t\t\t\n\t\t\t\t\n\n\n\n<div class=\"c01010201\">\n\t<h2 class=\"IR\">설치장소</h2>\n\t<div class=\"infoBox\">\n\t\t<i></i>\n\t\t<span class=\"txt\">\n\t\t\t<strong class=\"tt\">무인민원 발급기</strong>\n\t\t\t<span>민원인이 관공서를 방문하지 않고 각종 제증명을 무인민원발급기를 통해 서류를 현장에서 신청, 바로 발급받는 시스템입니다.</span>\n\t\t</span>\n\t</div>\n\t<h2 class=\"IR\">무인민원발급기</h2>\n\t<h3 class=\"dep02\">무인민원발급기 설치장소(50개소)</h3>\n\t<div class=\"table\">\n\t\t<table class=\"tbl_type1\">\n\t\t\t<caption>무인민원발급기 설치장소를 구분, 설치장소, 운영시간, 발급종수, 발급기형태, 비고의 내용으로 안내한 표입니다</caption>\n\t\t\t<colgroup><col><col class=\"W5\"><col class=\"W20\"><col class=\"W20\"><col class=\"W15\"><col class=\"W10\"><col class=\"W5\"></colgroup>\n\t\t\t<thead>\n\t\t\t\t<tr>\n\t\t\t\t\t<th rowspan=\"2\" colspan=\"2\" scope=\"col\">구 분</th>\n\t\t\t\t\t<th colspan=\"2\" scope=\"col\">설치장소</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">운영시간</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">발급종수</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">발급기형태</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">비 고</th>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<th>시설명</th>\n\t\t\t\t\t<th class=\"line-r\">도로명주소</th>\n\t\t\t\t</tr>\n\t\t\t</thead>\n\t\t\t<tbody>\n\t\t\t\t<tr>\n\t\t\t\t\t<td colspan=\"2\" rowspan=\"3\">구청</td>\n\t\t\t\t\t<td>북구청 민원실</td>\n\t\t\t\t\t<td>우치로 77</td>\n\t\t\t\t\t<td>24시간</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>북구청 민원실 2</td>\n\t\t\t\t\t<td>우치로 77</td>\n\t\t\t\t\t<td>24시간</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>북구청 교통행정과</td>\n\t\t\t\t\t<td>용봉로138번길 11</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td rowspan=\"27\" colspan=\"2\">행정복지센터</td>\n\t\t\t\t\t<td>중흥1동 행정복지센터</td>\n\t\t\t\t\t<td>중흥로183번길 7</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>중흥동 행정복지센터</td>\n\t\t\t\t\t<td>당뫼로 33</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>중앙동 행정복지센터</td>\n\t\t\t\t\t<td>금재로 30</td>\n\t\t\t\t\t<td>24시간</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>임동 행정복지센터</td>\n\t\t\t\t\t<td>서림로 53</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>신안동 행정복지센터</td>\n\t\t\t\t\t<td>자산로 66</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>용봉동 행정복지센터</td>\n\t\t\t\t\t<td>용주로18번길 28</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>운암1동 행정복지센터</td>\n\t\t\t\t\t<td>동운로201번길 55</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>운암2동 행정복지센터</td>\n\t\t\t\t\t<td>죽봉대로 214</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>운암3동 행정복지센터</td>\n\t\t\t\t\t<td>서강로 129</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>동림동 행정복지센터</td>\n\t\t\t\t\t<td>북문대로 236</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>우산동 행정복지센터</td>\n\t\t\t\t\t<td>동문대로 109, 2층</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>풍향동 행정복지센터</td>\n\t\t\t\t\t<td>필문대로 29번길 10</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>문화동 행정복지센터</td>\n\t\t\t\t\t<td>군왕로 233</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>문흥1동 행정복지센터</td>\n\t\t\t\t\t<td>대천로 140-3</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>문흥2동 행정복지센터</td>\n\t\t\t\t\t<td>문산로 25</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>두암1동 행정복지센터</td>\n\t\t\t\t\t<td>동문대로 110번길 77</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>두암2동 행정복지센터</td>\n\t\t\t\t\t<td>면앙로192번길 15</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>두암3동 행정복지센터</td>\n\t\t\t\t\t<td>삼정로3번길 25</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>삼각동 행정복지센터</td>\n\t\t\t\t\t<td>설죽로 447</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>일곡동 행정복지센터</td>\n\t\t\t\t\t<td>설죽로 525</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>매곡동 행정복지센터</td>\n\t\t\t\t\t<td>매곡로69번길 25</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>오치1동 행정복지센터</td>\n\t\t\t\t\t<td>우치로274번길 48</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>오치2동 행정복지센터</td>\n\t\t\t\t\t<td>서하로183번길 29</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>석곡동 행정복지센터</td>\n\t\t\t\t\t<td>석곡로 634</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>건국동 행정복지센터</td>\n\t\t\t\t\t<td>용두마을길 6</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>양산동 행정복지센터</td>\n\t\t\t\t\t<td>양산택지로 32</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>신용동 행정복지센터</td>\n\t\t\t\t\t<td>첨단연신로 107번길 22</td>\n\t\t\t\t\t<td>24시간</td>\n\t\t\t\t\t<td>122종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td rowspan=\"22\">다중이용시설</td>\n\t\t\t\t\t<td>운암동</td>\n\t\t\t\t\t<td>북광주세무서</td>\n\t\t\t\t\t<td>금호로 70</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td rowspan=\"2\">중앙동</td>\n\t\t\t\t\t<td>고용복지플러스센터</td>\n\t\t\t\t\t<td>금남로121</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>해피뷰병원</td>\n\t\t\t\t\t<td>경열로 216</td>\n\t\t\t\t\t<td>24시간</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>임동</td>\n\t\t\t\t\t<td>북부새마을금고 본점</td>\n\t\t\t\t\t<td>서림로 109-1</td>\n\t\t\t\t\t<td>08:00~23:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>용봉동</td>\n\t\t\t\t\t<td>농협 비엔날레지점</td>\n\t\t\t\t\t<td>비엔날레로 108</td>\n\t\t\t\t\t<td>08:00~22:00</td>\n\t\t\t\t\t<td>111종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>운암3동</td>\n\t\t\t\t\t<td>운암도서관</td>\n\t\t\t\t\t<td>북문대로 118</td>\n\t\t\t\t\t<td>09:00~22:00<br>(2,4주 월요일 휴무)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td rowspan=\"2\">우산동</td>\n\t\t\t\t\t<td>꿈나무사회복지관</td>\n\t\t\t\t\t<td>중문로 58</td>\n\t\t\t\t\t<td>09:00~18:00(평일)<br>09:00~11:00(토)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>서방새마을금고 본점</td>\n\t\t\t\t\t<td>동문대로 19-1</td>\n\t\t\t\t\t<td>07:00~23:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>문화동</td>\n\t\t\t\t\t<td>광주원예농협점</td>\n\t\t\t\t\t<td>동문대로 260</td>\n\t\t\t\t\t<td>07:00~23:50</td>\n\t\t\t\t\t<td>111종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>두암2동</td>\n\t\t\t\t\t<td>홈플러스 동광주점</td>\n\t\t\t\t\t<td>동문대로 200</td>\n\t\t\t\t\t<td>10:00~24:00<br>(2,4주 일요일 휴무)</td>\n\t\t\t\t\t<td>111종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>일곡동</td>\n\t\t\t\t\t<td>북광주신협 본점</td>\n\t\t\t\t\t<td>설죽로 497</td>\n\t\t\t\t\t<td>08:00~23:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>매곡동</td>\n\t\t\t\t\t<td>광주농협 매곡동지점</td>\n\t\t\t\t\t<td>매곡로 48</td>\n\t\t\t\t\t<td>09:00~20:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>오치2동</td>\n\t\t\t\t\t<td>북부경찰서</td>\n\t\t\t\t\t<td>서하로 172</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>석곡동</td>\n\t\t\t\t\t<td>광주농협 충효지점</td>\n\t\t\t\t\t<td>송강로 393</td>\n\t\t\t\t\t<td>09:00~16:30(평일)</td>\n\t\t\t\t\t<td>111종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td rowspan=\"4\">건국동</td>\n\t\t\t\t\t<td>영락공원 관리사무소</td>\n\t\t\t\t\t<td>영락공원로 170</td>\n\t\t\t\t\t<td>07:00~18:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>정부광주지방합동청사</td>\n\t\t\t\t\t<td>첨단과기로208번길 43</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>북광주농협 신용동지점</td>\n\t\t\t\t\t<td>임방울대로 1044</td>\n\t\t\t\t\t<td>08:00~22:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>북광주농협 우치동지점</td>\n\t\t\t\t\t<td>용전마을길 4</td>\n\t\t\t\t\t<td>07:00~23:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>연제동</td>\n\t\t\t\t\t<td>북광주농협 연제동지점</td>\n\t\t\t\t\t<td>양일로 95</td>\n\t\t\t\t\t<td>08:00~22:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<td>신용동</td>\n\t\t\t\t\t<td>문화신협 첨단지점</td>\n\t\t\t\t\t<td>첨단연신로91번길 20-4</td>\n\t\t\t\t\t<td>08:00~22:00</td>\n\t\t\t\t\t<td>121종</td>\n\t\t\t\t\t<td>장애인겸용</td>\n\t\t\t\t\t<td><img alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"></td>\n\t\t\t\t</tr>\n\t\t\t</tbody>\n\t\t</table>\n\t</div>\n\t<span class=\"info -mt20\"><img style=\"width: 15px;\" alt=\"휠체어 표시\" src=\"/static/images/bukgu-current/mayor/kiosk-wheelchair.png\"> : 휠체어 접근편의성 제공(출입구 경사로, 턱 낮추기)</span><br>\n\t<h3 class=\"dep02\">법인전용 무인민원발급기 설치장소(1개소)</h3>\n\t<div class=\"table\">\n\t\t<table class=\"tbl_type1\">\n\t\t\t<caption>법인전용 무인민원발급기 설치장소를 구분, 설치장소, 운영시간, 발급종수, 발급기형태, 비고의 내용으로 안내한 표입니다</caption>\n\t\t\t<colgroup><col class=\"W5\"><col class=\"W5\"><col class=\"W17\"><col class=\"W15\"><col class=\"W15\"><col><col class=\"W5\"></colgroup>\n\t\t\t<thead>\n\t\t\t\t<tr>\n\t\t\t\t\t<th rowspan=\"2\" colspan=\"2\" scope=\"col\">구 분</th>\n\t\t\t\t\t<th colspan=\"2\" scope=\"col\">설치장소</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">운영시간</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">발급종류</th>\n\t\t\t\t\t<th rowspan=\"2\" scope=\"col\">비 고</th>\n\t\t\t\t</tr>\n\t\t\t\t<tr>\n\t\t\t\t\t<th>시설명</th>\n\t\t\t\t\t<th class=\"line-r\">도로명주소</th>\n\t\t\t\t</tr>\n\t\t\t</thead>\n\t\t\t<tbody>\n\t\t\t\t<tr>\n\t\t\t\t\t<td colspan=\"2\" rowspan=\"2\">구청 사업소</td>\n\t\t\t\t\t<td>중소기업지원과</td>\n\t\t\t\t\t<td>첨단연신로88, 802호</td>\n\t\t\t\t\t<td>09:00~18:00(평일)</td>\n\t\t\t\t\t<td>\n\t\t\t\t\t\t<ul class=\"dep04\">\n\t\t\t\t\t\t\t<li>법인인감증명서</li>\n\t\t\t\t\t\t\t<li>법인등기부등본</li>\n\t\t\t\t\t\t\t<li>부동산등기부등본</li>\n\t\t\t\t\t\t</ul>\n\t\t\t\t\t</td>\n\t\t\t\t\t<td> </td>\n\t\t\t\t</tr>\n\t\t\t</tbody>\n\t\t</table>\n\t</div>\n\t<h3 class=\"dep02 mt20\">지문인식 방법</h3>\n\t<ul class=\"dep03\">\n\t\t<li>지문의 중심점이 중앙으로 오도록 손가락을 위로 올려주세요!</li>\n\t\t<li>지문이미지가 흐릴 때는 손가락에 입김을 불어넣은 후 재시도</li>\n\t\t<li>지문이미지가 진할 때는 손가락의 땀, 물 등을 닦은 후 재시도</li>\n\t\t<li>지문인식이 잘 안 되시나요?\n\t\t\t<ul><li>지문 최초 등록 후 지문이 닳거나 손상되어 지문 인식이 잘 안 되는 경우<br>가까운 동 행정복지센터에서 지문(우무인) 재등록이 가능합니다.\n\t\t\t\t<ul><li>지문 재등록 시, 지문정보 변경으로 인해 주민등록증 재발급이 필요함</li>\n\t\t\t\t<li>주민등록증 재발급을 위해서는 ‘6개월 이내에 촬영한 3.5㎝×4.5㎝의 모자 등을 쓰지 않은<br>상반신 천연색 사진(1장)’이 필요함</li>\n\t\t\t\t<li>이전 주민등록증 반납 시 수수료 없음(단, 미반납 시 수수료 부과)<span class=\"info\">주민등록번호 입력 후 등록되지 않은 지문 정보라고 뜨는 경우, 거주지 관할 동 행정복지센터에 문의바랍니다.</span></li></ul>\n\t\t\t</li></ul>\n\t\t</li>\n\t</ul>\n\t<img class=\"fin\" alt=\"지문인식방법 그림\" src=\"/static/images/bukgu-current/mayor/kiosk-fingerprint.gif\">\n\t<h3 class=\"dep02 mt20\">발급종수</h3>\n\t<ul class=\"dep03\">\n\t\t<li>122종 : 부동산 등기부등본, 가족관계등록부·제적부 발급 가능</li>\n\t\t<li>121종 : 가족관계등록부·제적부 발급 가능</li>\n\t</ul>\n\t<h3 class=\"dep02\">발급기형태</h3>\n\t<ul class=\"dep03\">\n\t\t<li>장애인겸용 : 장애인편의기능(시각장애인용 키패드, 시각장애인용 음성안내, 청각장애인용 화면안내, 점자라벨, 이어폰소켓, 화면확대기능, 휠체어 탄 사용자 조작 가능) 포함</li>\n\t</ul>\n\t<h3 class=\"dep02\">이용안내</h3>\n\t<ul class=\"dep03\">\n\t\t<li>수수료 지불방법 : 현금(지폐, 동전), 신용·체크카드, 모바일 간편결제(삼성페이)</li>\n\t\t<li>본인확인방법 : 인증방식 선택(지문인증 또는 모바일 신분증)\n<ul><li>지문인증 : 주민등록증에 등록된 지문 인증</li><li>모바일 신분증 : 모바일 신분증 앱으로 QR 촬영</li></ul></li>\n\t</ul>\n\t<h3 class=\"dep02\">유지보수업체</h3>\n\t<ul class=\"dep03\">\n\t\t<li>한국타피컴퓨터 : 1577-8411 (010-4184-2968)</li>\n\t\t<li>에니텍시스 : 1577-9920 (010-4613-5455)</li>\n\t\t<li>광명테크 : 1577-4522 (010-2892-5568)</li>\n\t</ul>\n\t<h3 class=\"dep02\">관리자 및 연락처</h3>\n\t<ul class=\"dep03\">\n\t\t<li>북구청 민원여권과(평일 주간) : 062-410-6237</li>\n\t\t<li>북구청 당직실(야간, 주말·공휴일) : 062-410-8100</li>\n\t</ul>\n</div>",
+    "content_info_text": [
+      "무인민원발급기 홈 종합민원 종합민원 무인민원발급기 설치장소",
+      "콘텐츠 만족도 조사 콘텐츠 만족도 조사 [평균 3.77점 / 13명 참여] 매우만족 만족 보통 불만족 매우불만족 사용자 의견 0/100 콘텐츠 정보책임자 민원여권과 062-410-6237"
+    ],
+    "image_sources": [
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "휠체어 표시",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png"
+      },
+      {
+        "alt": "지문인식방법 그림",
+        "src": "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.gif"
+      }
+    ],
+    "text_length": 3783,
+    "table_count": 2,
+    "table_row_count": 55,
+    "asset_rewrites": {
+      "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.png": "/static/images/bukgu-current/mayor/kiosk-wheelchair.png",
+      "https://bukgu.gwangju.kr/kor/img/contents/01/01010201-img.gif": "/static/images/bukgu-current/mayor/kiosk-fingerprint.gif"
+    },
+    "asset_sha256": {
+      "/static/images/bukgu-current/mayor/kiosk-wheelchair.png": "03e6c27d8327caf8808b8310a12aec1f8240183c6af91a867d043478b2ab3297",
+      "/static/images/bukgu-current/mayor/kiosk-fingerprint.gif": "37b1edd16bf369f98549f3d02bb9b7b2af7ee71d363176362b117a81c0e4a9eb"
+    }
+  }
+}
