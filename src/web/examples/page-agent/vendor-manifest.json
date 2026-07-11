@@ -15,12 +15,12 @@
   "vendored_files": [
     {
       "path": "vendor/page-agent.iife.js",
-      "sha256": "ADE2BD44C77C2555143BD3D008FE9C3527D161C2C922A579471CE8A6C6FA3C74",
+      "sha256": "ade2bd44c77c2555143bd3d008fe9c3527d161c2c922a579471ce8a6c6fa3c74",
       "bytes": 208138
     },
     {
       "path": "vendor/LICENSE",
-      "sha256": "393AD563CE5DD0BBE283EC40F9F5D631817262BC9BBD5EB17ED038A9D9F44803",
+      "sha256": "393ad563ce5dd0bbe283ec40f9f5d631817262bc9bbd5eb17ed038a9d9f44803",
       "bytes": 1119
     }
   ]

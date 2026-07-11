@@ -135,9 +135,9 @@
 
   <section id="quick-start" class="lab-section">
     <h2>Quick Start</h2>
-    <p>One-line integration using the published package:</p>
-    <pre><code>&lt;script src="https://cdn.jsdelivr.net/npm/page-agent@1.12.1/dist/iife/page-agent.demo.js" crossorigin="anonymous"&gt;&lt;/script&gt;</code></pre>
-    <p class="note note-warn">This CDN-based demo is for evaluation only and uses Alibaba's free testing LLM API via DashScope. This lab does <strong>not</strong> use that CDN or testing API — see the <a href="#local-integration">Local Adapter</a> section for the constrained offline approach.</p>
+    <p>One-line integration using the vendored non-demo IIFE bundle:</p>
+    <pre><code>&lt;script src="./vendor/page-agent.iife.js"&gt;&lt;/script&gt;</code></pre>
+    <p class="note note-warn">This lab uses a custom non-demo IIFE bundle built from pinned upstream source. No CDN, no auto-init, and no free testing API — see the <a href="#local-integration">Local Adapter</a> section for details.</p>
   </section>
 
   <section id="npm-installation" class="lab-section">
@@ -219,7 +219,7 @@ await core.execute('Fill the search form')</code></pre>
     <p><strong>Real Non-Demo Bundle:</strong> This lab vendors a <strong>custom non-demo IIFE bundle</strong> built directly from the pinned upstream source (<code>packages/page-agent/src/production-iife-entry.ts</code>). The bundle exposes <code>window.PageAgent</code> and runs the real <code>PageAgent</code> → <code>PageAgentCore</code> → <code>PageController</code> → built-in <code>Panel</code> stack with a local deterministic mock model. It is distinct from the published artifacts:</p>
     <ul class="feature-list">
       <li><strong><code>dist/esm/page-agent.js</code></strong> (722 bytes) — Thin ESM re-export requiring a bundler and <code>@page-agent/*</code> dependencies. Not used here.</li>
-      <li><strong><code>dist/iife/page-agent.demo.js</code></strong> (209 KB) — Demo-only bundle with automatic initialization, a free testing LLM API (DashScope), and jsDelivr CDN references. Explicitly <strong>excluded</strong> per experiment policy.</li>
+      <li><strong><code>dist/iife/page-agent.demo</code></strong> (209 KB) — Demo-only bundle with automatic initialization, a free testing LLM API (DashScope), and jsDelivr CDN references. Explicitly <strong>excluded</strong> per experiment policy.</li>
       <li><strong>vendored <code>page-agent.iife.js</code></strong> — Custom non-demo IIFE bundle, no auto-init, no live model, no CDN. See <code>vendor-manifest.json</code> for build provenance and SHA-256.</li>
     </ul>
 

@@ -443,6 +443,17 @@ code {
   margin-top: 6px;
 }
 
+/* ── Visual active marker (set by PageController execute_javascript) ───── */
+
+.page-agent-target-active {
+  outline: 3px solid var(--accent, #4f46e5);
+  background: var(--accent-light, #eef2ff);
+  transition: outline 0.3s ease, background 0.3s ease;
+  border-radius: 8px;
+  padding: 4px 8px;
+  margin: -4px -8px;
+}
+
 /* ── Smooth scroll ─────────────────────────────────────────────────────── */
 
 html {

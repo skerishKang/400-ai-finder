@@ -2,186 +2,157 @@
 //
 // End-to-end browser verification for the #1090 Page Agent lab.
 //
-// This lab vendors a custom non-demo IIFE bundle built from pinned upstream
-// source (alibaba/page-agent@fa4664df). page-agent-lab.js instantiates the
-// real PageAgent → PageAgentCore → PageController → built-in Panel stack
-// with a local deterministic mock model and same-origin customFetch.
+// REQUIRED BEHAVIOR:
+//   built-in Panel input -> PageAgentCore -> same-origin customFetch
+//   -> AgentOutput tool call -> PageController execute_javascript
+//   -> target section scroll + visual marker -> done
+//   -> built-in Panel history/status display
 //
-// Requires:
-//   - Playwright package installed
-//   - A local HTTP server running at the specified BASE_URL
-//
-// Usage:
-//   node tests/browser/verify_page_agent_lab_e2e.mjs <BASE_URL>
-//
-// The BASE_URL must be a localhost or 127.0.0.1 origin.
+// FAILS IMMEDIATELY if the Panel textarea is not found (no fallback).
 
 import { chromium } from "playwright";
 import assert from "node:assert";
-import { writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SCREENSHOT_DIR = join(
-  __dirname, "..", "..", "docs", "artifacts", "1090-page-agent-lab",
-);
-
-// ── Localhost validation ─────────────────────────────────────────────────
-
+const SCREENSHOT_DIR = join(__dirname, "..", "..", "docs", "artifacts", "1090-page-agent-lab");
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
 
 function validateBaseUrl(baseUrl) {
   const parsed = new URL(baseUrl);
-  if (!LOCAL_HOSTS.has(parsed.hostname)) {
-    throw new Error(`BASE_ORIGIN must be localhost, got: ${parsed.hostname}`);
-  }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error(`BASE_ORIGIN protocol must be http or https, got: ${parsed.protocol}`);
-  }
-  if (parsed.username || parsed.password) {
-    throw new Error("BASE_ORIGIN must not contain credentials");
-  }
-  if (parsed.search) {
-    throw new Error("BASE_ORIGIN must not contain query string");
-  }
-  if (parsed.hash) {
-    throw new Error("BASE_ORIGIN must not contain hash");
-  }
+  if (!LOCAL_HOSTS.has(parsed.hostname)) throw new Error(`BASE_ORIGIN must be localhost: ${parsed.hostname}`);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("protocol must be http/https");
+  if (parsed.username || parsed.password) throw new Error("no credentials");
+  if (parsed.search) throw new Error("no query string");
+  if (parsed.hash) throw new Error("no hash");
 }
-
-// ── Request monitoring ───────────────────────────────────────────────────
-
-class RequestMonitor {
-  constructor() {
-    this.requests = [];
-  }
-
-  onRequest(request) {
-    this.requests.push({
-      url: request.url(),
-      method: request.method(),
-      resourceType: request.resourceType(),
-      headers: request.headers(),
-    });
-  }
-
-  getNonLocalRequests(baseOrigin) {
-    return this.requests.filter((r) => !r.url.startsWith(baseOrigin));
-  }
-
-  getMockApiRequests(baseOrigin) {
-    return this.requests.filter(
-      (r) => r.url.includes("/mock-llm/v1/chat/completions") && r.url.startsWith(baseOrigin),
-    );
-  }
-
-  reset() {
-    this.requests = [];
-  }
-}
-
-// ── Screenshot helper ────────────────────────────────────────────────────
 
 function ensureScreenshotDir() {
-  if (!existsSync(SCREENSHOT_DIR)) {
-    mkdirSync(SCREENSHOT_DIR, { recursive: true });
-  }
+  if (!existsSync(SCREENSHOT_DIR)) mkdirSync(SCREENSHOT_DIR, { recursive: true });
 }
 
 async function screenshot(page, name) {
   ensureScreenshotDir();
-  await page.screenshot({
-    path: join(SCREENSHOT_DIR, name),
-    fullPage: false,
+  await page.screenshot({ path: join(SCREENSHOT_DIR, name), fullPage: false });
+}
+
+function getLaunchOptions() {
+  if (process.env.PAGE_AGENT_BROWSER_EXECUTABLE) {
+    return { headless: true, executablePath: process.env.PAGE_AGENT_BROWSER_EXECUTABLE };
+  }
+  return { headless: true, channel: "chrome" };
+}
+
+const SUPPORTED_TASKS = [
+  { id: "quick-start", prompt: "Show the Quick Start section.", sectionId: "quick-start" },
+  { id: "vs-browser-use", prompt: "Compare page-agent with browser-use.", sectionId: "vs-browser-use" },
+  { id: "license", prompt: "Show the MIT license section.", sectionId: "license" },
+  { id: "architecture", prompt: "Find the custom UI architecture.", sectionId: "architecture" },
+];
+const UNKNOWN_TASK = { id: "unknown", prompt: "What is the weather today?" };
+
+async function getDiagnostics(page) {
+  return page.evaluate(() => {
+    const m = window.PageAgentLabMockModel || window.PageAgentMockModel;
+    if (!m || !m.getDiagnostics) return null;
+    return m.getDiagnostics();
   });
 }
 
-// ── Browser launch with optional system executable ───────────────────────
-
-function getLaunchOptions() {
-  const opts = { headless: true };
-  if (process.env.PAGE_AGENT_BROWSER_EXECUTABLE) {
-    opts.executablePath = process.env.PAGE_AGENT_BROWSER_EXECUTABLE;
+async function getPanelInputHandle(page) {
+  const selectors = [
+    "div.panel-container textarea",
+    "textarea.page-agent-panel-input",
+    "#pageAgentPanel textarea",
+    "div[class*='page-agent'] textarea[placeholder]",
+    "div[class*='panel'] textarea",
+  ];
+  for (const sel of selectors) {
+    const el = await page.$(sel);
+    if (el) return el;
   }
-  return opts;
+  return null;
 }
-
-// ── Task configuration ───────────────────────────────────────────────────
-
-const TASKS = [
-  {
-    id: "quick-start",
-    prompt: "Show the Quick Start section.",
-    sectionId: "quick-start",
-    sectionText: "Quick Start",
-  },
-  {
-    id: "vs-browser-use",
-    prompt: "Compare page-agent with browser-use.",
-    sectionId: "vs-browser-use",
-    sectionText: "Page Agent vs browser-use",
-  },
-  {
-    id: "license",
-    prompt: "Show the MIT license section.",
-    sectionId: "license",
-    sectionText: "MIT License",
-  },
-  {
-    id: "architecture",
-    prompt: "Find the custom UI architecture.",
-    sectionId: "architecture",
-    sectionText: "Custom UI",
-  },
-];
-
-// ── Attempt to submit a task via the Page Agent Panel ────────────────────
-//
-// Returns one of:
-//   "panel-input"   — text was typed into Panel textarea and Enter pressed
-//   "via-execute"   — task was dispatched via agent.execute()
-//   "panel-present" — Panel found but could not submit (informational)
-//   "panel-not-found" — no Panel input or agent.execute() found
 
 async function submitTaskViaPanel(page, prompt) {
-  // Try to find the Panel's input element
-  // PageAgent's built-in Panel injects elements with specific classes
-  const panelInput = await page.$(
-    "textarea.page-agent-panel-input, " +
-    "div.page-agent-panel textarea, " +
-    "#pageAgentPanel textarea, " +
-    "textarea[placeholder*='input']",
-  );
-
-  if (panelInput) {
-    await panelInput.click();
-    await panelInput.fill(prompt);
-    // Dispatch native change event for frameworks that expect it
-    await page.evaluate((el) => {
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-    }, panelInput);
-    await page.waitForTimeout(500);
-    await panelInput.press("Enter");
-    return "panel-input";
-  }
-
-  // Fallback: try agent.execute() via window.__PAGE_AGENT_LAB__
-  const result = await page.evaluate((p) => {
-    const lab = window.__PAGE_AGENT_LAB__;
-    if (!lab || !lab.agent) return "no-agent";
-    if (typeof lab.agent.execute === "function") {
-      lab.agent.execute(p);
-      return "via-execute";
-    }
-    if (lab.panel === "built-in") return "panel-present";
-    return "panel-not-found";
-  }, prompt);
-
-  return result;
+  const input = await getPanelInputHandle(page);
+  assert.ok(input, `Panel textarea not found in DOM — cannot submit task: "${prompt}". PageAgent Panel may not be rendered.`);
+  await input.click();
+  await input.fill(prompt);
+  await page.evaluate((el) => {
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }, input);
+  await page.waitForTimeout(300);
+  await input.press("Enter");
 }
 
-// ── Main verification ────────────────────────────────────────────────────
+async function verifySectionInViewport(page, sectionId, viewportHeight) {
+  const rect = await page.evaluate((sid) => {
+    const el = document.getElementById(sid);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom };
+  }, sectionId);
+  assert.ok(rect !== null, `Section #${sectionId} must exist in DOM`);
+  assert.ok(rect.top < viewportHeight && rect.bottom > 0,
+    `Section #${sectionId} must be within viewport (top=${rect.top}, bottom=${rect.bottom}, viewport=${viewportHeight})`);
+  return rect;
+}
+
+async function verifyVisualMarker(page, sectionId) {
+  const hasMarker = await page.evaluate((sid) => {
+    const el = document.getElementById(sid);
+    if (!el) return { exists: false };
+    return {
+      exists: true,
+      hasClass: el.classList.contains("page-agent-target-active"),
+      hasAttribute: el.getAttribute("data-page-agent-target") === "active",
+    };
+  }, sectionId);
+  assert.ok(hasMarker.exists, `Section #${sectionId} must exist`);
+  assert.ok(hasMarker.hasClass, `Section #${sectionId} must have page-agent-target-active class (visual marker)`);
+  assert.ok(hasMarker.hasAttribute, `Section #${sectionId} must have data-page-agent-target='active' attribute`);
+}
+
+async function verifyUnknownTaskResult(page) {
+  const diag = await getDiagnostics(page);
+  assert.ok(diag !== null, "Diagnostics must be available after unknown task");
+  // Last action should be 'done' (not execute_javascript)
+  const lastAction = diag.actionNames?.[diag.actionNames.length - 1];
+  assert.strictEqual(lastAction, "done", "Unknown task must end with 'done', not execute_javascript");
+  // No execute_javascript in action history
+  assert.ok(!diag.actionNames.includes("execute_javascript"),
+    "Unknown task must NOT trigger execute_javascript");
+}
+
+async function runSingleTask(page, task) {
+  const label = task.id;
+  console.log(`    "${label}"...`);
+
+  // Record position before
+  const beforePos = await page.evaluate((sid) => {
+    const el = sid ? document.getElementById(sid) : null;
+    return el ? el.getBoundingClientRect().top : null;
+  }, task.sectionId || null);
+
+  // Reset diagnostics tracking
+  await page.evaluate(() => {
+    const m = window.PageAgentLabMockModel || window.PageAgentMockModel;
+    if (m && m.getDiagnostics) { /* just reset, no API for reset */ }
+  });
+
+  // Submit via real Panel textarea
+  await submitTaskViaPanel(page, task.prompt);
+  await page.waitForTimeout(5000);
+
+  // Read mock diagnostics
+  const diag = await getDiagnostics(page);
+
+  return { taskId: label, diagnostics: diag, beforePosition: beforePos };
+}
 
 async function main() {
   const baseUrl = process.argv[2];
@@ -189,239 +160,153 @@ async function main() {
     console.error("Usage: node verify_page_agent_lab_e2e.mjs <BASE_URL>");
     process.exit(1);
   }
-
   validateBaseUrl(baseUrl);
   const labUrl = baseUrl.replace(/\/+$/, "") + "/examples/page-agent/";
   console.log(`Verifying Page Agent lab at: ${labUrl}`);
 
   const browser = await chromium.launch(getLaunchOptions());
-  const monitor = new RequestMonitor();
-  const evidence = {
-    baseUrl, labUrl,
-    timestamp: new Date().toISOString(),
-    desktop: { tasksAttempted: 0, tasksCompleted: 0, results: [] },
-    mobile: { tasksAttempted: 0, tasksCompleted: 0, results: [] },
-    nonLocalRequestsDesktop: [],
-    nonLocalRequestsMobile: [],
-    consoleErrors: [],
-    networkErrors: [],
-  };
-
-  const desktopSections = [
-    "overview", "what-is-page-agent", "core-features", "use-cases",
-    "vs-browser-use", "quick-start", "npm-installation", "basic-execution",
-    "architecture", "custom-ui", "local-integration", "license", "source-attribution",
-  ];
+  let allPassed = true;
+  let desktopCtx, mobileCtx;
 
   try {
-    // ═════════════════════════════════════════════════════════════════════
-    // Desktop test (1440px)
-    // ═════════════════════════════════════════════════════════════════════
-    console.log("\n[Desktop 1440px]");
-    const desktopCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    const desktopPage = await desktopCtx.newPage();
-    monitor.reset();
-    const desktopErrors = [];
+    // ═══════════════════ Desktop (1440x900) ═══════════════════
+    console.log("\n[Desktop 1440x900]");
+    desktopCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const dp = await desktopCtx.newPage();
+    const desktopReqMonitor = [];
 
-    desktopPage.on("request", (req) => monitor.onRequest(req));
-    desktopPage.on("pageerror", (err) => { desktopErrors.push(err.message); });
-    desktopPage.on("console", (msg) => {
+    dp.on("request", (r) => desktopReqMonitor.push({ url: r.url(), method: r.method() }));
+    dp.on("console", (msg) => {
       if (msg.type() === "error" || msg.type() === "warning") {
-        evidence.consoleErrors.push(`[${msg.type()}] ${msg.text()}`);
+        throw new Error(`[${msg.type().toUpperCase()}] ${msg.text()}`);
       }
     });
-    desktopPage.on("requestfailed", (req) => {
-      evidence.networkErrors.push({ url: req.url(), error: req.failure()?.errorText });
+    dp.on("pageerror", (err) => { throw new Error(`Page error: ${err.message}`); });
+    dp.on("requestfailed", (req) => {
+      const err = req.failure()?.errorText || "unknown";
+      if (!req.url().includes("favicon")) throw new Error(`Request failed: ${req.url()} (${err})`);
     });
 
-    await desktopPage.goto(labUrl, { waitUntil: "networkidle", timeout: 20000 });
-    await screenshot(desktopPage, "desktop-initial.png");
+    await dp.goto(labUrl, { waitUntil: "networkidle", timeout: 20000 });
+    await screenshot(dp, "desktop-initial.png");
 
-    // Verify page title
-    const title = await desktopPage.title();
-    assert.ok(title.includes("Page Agent"), `Page title: ${title}`);
-    console.log(`  Page title: ${title}`);
-
-    // Verify Page Agent Panel is initialized via window.__PAGE_AGENT_LAB__
-    const labState = await desktopPage.evaluate(() => {
+    // Verify Panel initialization via window.__PAGE_AGENT_LAB__
+    const labState = await dp.evaluate(() => {
       const lab = window.__PAGE_AGENT_LAB__;
-      if (!lab) return { initialized: false };
-      return {
-        initialized: true,
-        integration: lab.integration,
-        panel: lab.panel,
-        hasAgent: !!lab.agent,
-        hasAgentPanel: !!(lab.agent && lab.agent.panel),
-      };
+      return lab ? { ok: true, integration: lab.integration, panel: lab.panel } : { ok: false };
     });
-    assert.ok(labState.initialized, "window.__PAGE_AGENT_LAB__ must be defined");
-    assert.strictEqual(labState.integration, "actual-page-agent", "must be actual PageAgent");
+    assert.ok(labState.ok, "window.__PAGE_AGENT_LAB__ must be defined");
+    assert.strictEqual(labState.integration, "actual-page-agent", "must be actual PageAgent runtime");
     assert.strictEqual(labState.panel, "built-in", "must use built-in Panel");
-    assert.ok(labState.hasAgent, "agent instance must exist");
-    console.log(`  PageAgent Panel (built-in): ${labState.panel}`);
+    console.log("  Panel initialized (built-in) ✓");
 
-    // Verify all sections exist in DOM
-    for (const sectionId of desktopSections) {
-      const el = await desktopPage.$(`#${sectionId}`);
-      assert.ok(el, `Section #${sectionId} must exist in the DOM`);
+    // Verify Panel textarea exists - FAIL IMMEDIATELY if not found
+    const panelInput = await getPanelInputHandle(dp);
+    assert.ok(panelInput, "Panel textarea must be present in DOM. This is a hard requirement - if the PageAgent Panel is not rendered, no tasks can be submitted.");
+    console.log("  Panel textarea found ✓");
+
+    // ── Run supported tasks (3 minimum) ──────────────────────────────────
+    const desktopResults = [];
+    for (let i = 0; i < 3; i++) {
+      const task = SUPPORTED_TASKS[i];
+      const result = await runSingleTask(dp, task);
+      desktopResults.push(result);
+
+      // Verify section in viewport (viewport height = 900 for desktop)
+      await verifySectionInViewport(dp, task.sectionId, 900);
+      // Verify visual marker (page-agent-target-active class)
+      await verifyVisualMarker(dp, task.sectionId);
+      // Verify mock was called
+      assert.ok(result.diagnostics && result.diagnostics.callCount > 0,
+        `Mock must be called for task ${task.id}`);
+      console.log(`    ✓ section #${task.sectionId} in viewport + marker`);
     }
 
-    // Verify MIT license and upstream provenance
-    const bodyText = await desktopPage.textContent("body");
-    assert.ok(bodyText.includes("MIT License"), "MIT License must be visible");
-    assert.ok(bodyText.includes("Permission is hereby granted"), "MIT notice must be visible");
-    assert.ok(bodyText.includes("alibaba/page-agent"), "Repository must be shown");
-    assert.ok(bodyText.includes("fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7"), "Commit SHA shown");
-    assert.ok(bodyText.includes("1.12.1"), "Version shown");
-    assert.ok(bodyText.includes("interoperability experiment") || bodyText.includes("Local Lab"),
-      "Page must be marked as experiment");
+    // Verify all 3 tasks had Panel submission
+    assert.ok(desktopResults.length === 3, "Must have 3 desktop task results");
 
-    // Verify the real bundle documentation
-    assert.ok(
-      bodyText.includes("custom non-demo IIFE bundle"),
-      "Page must document the real non-demo bundle",
+    // ── Run unknown task ────────────────────────────────────────────────
+    console.log(`  Unknown: "${UNKNOWN_TASK.prompt}"`);
+    const unknownDiagBefore = await getDiagnostics(dp);
+    await submitTaskViaPanel(dp, UNKNOWN_TASK.prompt);
+    await dp.waitForTimeout(5000);
+    const unknownResult = await runSingleTask(dp, UNKNOWN_TASK);
+    await verifyUnknownTaskResult(dp);
+    console.log(`    ✓ unknown task correctly returns done (not execute_javascript)`);
+
+    // ── Check non-local requests ────────────────────────────────────────
+    const deskNonLocal = desktopReqMonitor.filter(
+      (r) => !r.url.startsWith(baseUrl) && !r.url.includes("favicon")
     );
+    assert.strictEqual(deskNonLocal.length, 0,
+      `Desktop non-local requests found: ${JSON.stringify(deskNonLocal.slice(0, 5))}`);
 
-    // ── Attempt supported tasks ──────────────────────────────────────────
-    let desktopTasksAttempted = 0;
-    let desktopTasksCompleted = 0;
+    await screenshot(dp, "desktop-final.png");
 
-    for (const task of TASKS.slice(0, 3)) { // Attempt first 3 tasks on desktop
-      desktopTasksAttempted++;
-      console.log(`  Task ${desktopTasksAttempted}/3: "${task.prompt.substring(0, 40)}..."`);
+    // ═══════════════════ Mobile (390x844) ═══════════════════
+    console.log("\n[Mobile 390x844]");
+    mobileCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const mp = await mobileCtx.newPage();
+    const mobileReqMonitor = [];
 
-      try {
-        const status = await submitTaskViaPanel(desktopPage, task.prompt);
-        await desktopPage.waitForTimeout(2000);
-        await screenshot(desktopPage, `desktop-task-${task.id}.png`);
-
-        if (status === "panel-input" || status === "via-execute") {
-          desktopTasksCompleted++;
-        }
-
-        evidence.desktop.results.push({
-          task: task.id,
-          prompt: task.prompt,
-          submitStatus: status,
-        });
-        console.log(`    submit status: ${status}`);
-      } catch (err) {
-        evidence.desktop.results.push({
-          task: task.id,
-          prompt: task.prompt,
-          submitStatus: `error: ${err.message}`,
-        });
-        console.log(`    submit error: ${err.message}`);
-      }
-    }
-
-    evidence.desktop.tasksAttempted = desktopTasksAttempted;
-    evidence.desktop.tasksCompleted = desktopTasksCompleted;
-
-    // Check for customFetch invocations (mock model requests)
-    const mockRequests = monitor.getMockApiRequests(baseUrl);
-    console.log(`  Mock model customFetch requests: ${mockRequests.length}`);
-
-    // No non-local requests (excluding favicon)
-    const nonLocal = monitor.getNonLocalRequests(baseUrl).filter(
-      (r) => !r.url.includes("favicon"),
-    );
-    evidence.nonLocalRequestsDesktop = nonLocal;
-    assert.strictEqual(nonLocal.length, 0,
-      `Non-local requests on desktop: ${JSON.stringify(nonLocal.slice(0, 5))}`);
-    console.log(`  Non-local requests: ${nonLocal.length}`);
-
-    await screenshot(desktopPage, "desktop-final.png");
-
-    // ═════════════════════════════════════════════════════════════════════
-    // Mobile test (390px)
-    // ═════════════════════════════════════════════════════════════════════
-    console.log("\n[Mobile 390px]");
-    const mobileCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    const mobilePage = await mobileCtx.newPage();
-    monitor.reset();
-
-    mobilePage.on("request", (req) => monitor.onRequest(req));
-    mobilePage.on("pageerror", (err) => { evidence.consoleErrors.push(err.message); });
-    mobilePage.on("requestfailed", (req) => {
-      evidence.networkErrors.push({ url: req.url(), error: req.failure()?.errorText });
+    mp.on("request", (r) => mobileReqMonitor.push({ url: r.url(), method: r.method() }));
+    mp.on("pageerror", (err) => { throw new Error(`Mobile page error: ${err.message}`); });
+    mp.on("requestfailed", (req) => {
+      const err = req.failure()?.errorText || "unknown";
+      if (!req.url().includes("favicon")) throw new Error(`Mobile request failed: ${req.url()} (${err})`);
     });
 
-    await mobilePage.goto(labUrl, { waitUntil: "networkidle", timeout: 20000 });
-    await screenshot(mobilePage, "mobile-initial.png");
+    await mp.goto(labUrl, { waitUntil: "networkidle", timeout: 20000 });
+    await screenshot(mp, "mobile-initial.png");
 
-    const mobileTitle = await mobilePage.title();
-    assert.ok(mobileTitle.includes("Page Agent"), "Mobile page must load");
-    console.log(`  Mobile title: ${mobileTitle}`);
+    // Verify Panel textarea exists on mobile
+    const mobilePanelInput = await getPanelInputHandle(mp);
+    assert.ok(mobilePanelInput, "Panel textarea must exist on mobile (hard requirement)");
+    console.log("  Mobile Panel textarea found ✓");
 
-    const mobileBody = await mobilePage.textContent("body");
-    assert.ok(mobileBody.includes("MIT License"), "MIT license visible on mobile");
+    // Run 1 supported task on mobile
+    const mobileTask = SUPPORTED_TASKS[0];
+    const mobileResult = await runSingleTask(mp, mobileTask);
+    await verifySectionInViewport(mp, mobileTask.sectionId, 844);
+    await verifyVisualMarker(mp, mobileTask.sectionId);
+    console.log(`  ✓ Mobile task #${mobileTask.sectionId} completed`);
 
-    // Attempt first task on mobile
-    const firstTask = TASKS[0];
-    evidence.mobile.tasksAttempted = 1;
-    try {
-      const status = await submitTaskViaPanel(mobilePage, firstTask.prompt);
-      await mobilePage.waitForTimeout(3000);
-
-      if (status === "panel-input" || status === "via-execute") {
-        evidence.mobile.tasksCompleted = 1;
-      }
-
-      evidence.mobile.results.push({
-        task: firstTask.id,
-        prompt: firstTask.prompt,
-        submitStatus: status,
-      });
-      console.log(`  Mobile task submit status: ${status}`);
-      await screenshot(mobilePage, "mobile-final.png");
-    } catch (err) {
-      evidence.mobile.results.push({
-        task: firstTask.id,
-        prompt: firstTask.prompt,
-        submitStatus: `error: ${err.message}`,
-      });
-    }
-
-    const nonLocalMobile = monitor.getNonLocalRequests(baseUrl).filter(
-      (r) => !r.url.includes("favicon"),
+    // Check non-local requests on mobile
+    const mobNonLocal = mobileReqMonitor.filter(
+      (r) => !r.url.startsWith(baseUrl) && !r.url.includes("favicon")
     );
-    evidence.nonLocalRequestsMobile = nonLocalMobile;
-    assert.strictEqual(nonLocalMobile.length, 0,
-      `Non-local requests on mobile: ${JSON.stringify(nonLocalMobile.slice(0, 5))}`);
+    assert.strictEqual(mobNonLocal.length, 0,
+      `Mobile non-local requests found: ${JSON.stringify(mobNonLocal.slice(0, 5))}`);
 
-    await screenshot(mobilePage, "mobile-final.png");
-    await mobileCtx.close();
+    await screenshot(mp, "mobile-final.png");
 
-    // ── Summary ───────────────────────────────────────────────────────────
-    console.log(`\n  Desktop: ${evidence.desktop.tasksCompleted}/${evidence.desktop.tasksAttempted} tasks completed`);
-    console.log(`  Mobile: ${evidence.mobile.tasksCompleted}/${evidence.mobile.tasksAttempted} tasks completed`);
-    console.log(`  Non-local requests: ${nonLocal.length} desktop, ${nonLocalMobile.length} mobile`);
-    console.log(`  Console/warning messages: ${evidence.consoleErrors.length}`);
+    // ═══════════════════ Summary ═══════════════════
+    console.log(`\n  === SUMMARY ===`);
+    console.log(`  Desktop tasks: 3 supported + 1 unknown = ${desktopResults.length + 1}`);
+    console.log(`  Desktop non-local requests: ${deskNonLocal.length}`);
+    console.log(`  Mobile tasks: 1 supported`);
+    console.log(`  Mobile non-local requests: ${mobNonLocal.length}`);
+    console.log(`\nAll Page Agent lab E2E checks passed.`);
 
-    const fatalPageErrors = desktopErrors.filter(
-      (e) => !e.includes("favicon") && !e.includes("net::ERR_"),
-    );
-    console.log(`  Page errors (excluding favicon): ${fatalPageErrors.length}`);
-
-    // ── Save evidence ────────────────────────────────────────────────────
+    // Save evidence
     ensureScreenshotDir();
-    writeFileSync(
-      join(SCREENSHOT_DIR, "browser-evidence.json"),
-      JSON.stringify(evidence, null, 2),
-    );
-
-    await desktopCtx.close();
-    console.log("\nAll Page Agent lab E2E checks completed.");
-    console.log(`Screenshots saved to: ${SCREENSHOT_DIR}`);
+    writeFileSync(join(SCREENSHOT_DIR, "browser-evidence.json"), JSON.stringify({
+      baseUrl, labUrl, timestamp: new Date().toISOString(),
+      desktopTasks: desktopResults.length,
+      mobileTasks: 1,
+      desktopResults: desktopResults.map((r) => ({ taskId: r.taskId, callCount: r.diagnostics?.callCount })),
+    }, null, 2));
   } catch (err) {
-    console.error("Page Agent lab E2E verification FAILED:");
+    console.error("\nPage Agent lab E2E verification FAILED:");
     console.error(err && err.stack ? err.stack : err);
-    await browser.close();
-    process.exit(1);
+    allPassed = false;
   } finally {
+    if (desktopCtx) await desktopCtx.close();
+    if (mobileCtx) await mobileCtx.close();
     await browser.close();
   }
+
+  if (!allPassed) process.exit(1);
 }
 
 main();

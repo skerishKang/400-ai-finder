@@ -200,8 +200,9 @@
   // ── Diagnostics for verification (no behavior change) ───────────────────
 
   var callCount = 0;
-  var lastToolName = null;
-  var lastActionName = null;
+  var toolNames = [];
+  var actionNames = [];
+  var taskIds = [];
 
   // ── Public API ─────────────────────────────────────────────────────────
 
@@ -248,12 +249,23 @@
       };
     } else if (firstStep && task) {
       // Known task, first step → execute_javascript to scroll to section
+      // Also adds visual active marker to the target section
       action = {
         execute_javascript: {
           script:
+            "document.querySelectorAll('.page-agent-target-active').forEach(function(el) {" +
+            " el.classList.remove('page-agent-target-active');" +
+            " el.removeAttribute('data-page-agent-target');" +
+            "});" +
             "document.getElementById('" +
             task.sectionId +
-            "').scrollIntoView({block:'center'});",
+            "').scrollIntoView({block:'center'});" +
+            "document.getElementById('" +
+            task.sectionId +
+            "').classList.add('page-agent-target-active');" +
+            "document.getElementById('" +
+            task.sectionId +
+            "').setAttribute('data-page-agent-target','active');",
         },
       };
     } else {
@@ -267,8 +279,9 @@
     }
 
     callCount++;
-    lastToolName = macroToolName;
-    lastActionName = action && Object.keys(action)[0];
+    toolNames.push(macroToolName);
+    actionNames.push(action && Object.keys(action)[0]);
+    taskIds.push(task ? task.id : null);
 
     return new Response(JSON.stringify(buildToolResponse(macroToolName, action)), {
       status: 200,
@@ -322,8 +335,11 @@
     getDiagnostics: function () {
       return {
         callCount: callCount,
-        lastToolName: lastToolName,
-        lastActionName: lastActionName,
+        lastToolName: toolNames.length > 0 ? toolNames[toolNames.length - 1] : null,
+        lastActionName: actionNames.length > 0 ? actionNames[actionNames.length - 1] : null,
+        toolNames: toolNames.slice(),
+        actionNames: actionNames.slice(),
+        taskIds: taskIds.slice(),
       };
     },
   };

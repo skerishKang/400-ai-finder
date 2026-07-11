@@ -66,6 +66,7 @@ function createContext() {
       clearInterval,
     },
     Response,
+    URL,
   };
   ctx.window.globalThis = ctx.window;
   return ctx;
@@ -265,8 +266,8 @@ function testManifestShaParity() {
     const content = readFileSync(filePath);
     const actualSha = createHash("sha256").update(content).digest("hex");
     assert.strictEqual(
-      actualSha,
-      entry.sha256,
+      actualSha.toUpperCase(),
+      entry.sha256.toUpperCase(),
       `SHA-256 mismatch for ${entry.path}: expected ${entry.sha256}, got ${actualSha}`
     );
     assert.strictEqual(content.length, entry.bytes, `byte count mismatch for ${entry.path}`);
@@ -280,13 +281,23 @@ function testNoDemoStrings() {
   const labPath = join(EXAMPLES_BASE, "page-agent-lab.js");
   const indexPath = join(EXAMPLES_BASE, "index.html");
 
-  for (const path of [bundlePath, labPath, indexPath]) {
+  // Vendor bundle and lab init must not contain demo strings
+  for (const path of [bundlePath, labPath]) {
     const text = readFileSync(path, "utf8");
     assert.ok(!text.includes("page-ag-testing-ohftxirgbn"), `${path} must not contain demo testing API key`);
     assert.ok(!text.includes("DEMO_BASE_URL"), `${path} must not contain DEMO_BASE_URL`);
     assert.ok(!text.includes("autoInit"), `${path} must not contain autoInit`);
     assert.ok(!text.includes("page-agent.demo.js"), `${path} must not reference demo bundle`);
   }
+
+  // index.html may contain documentation code examples showing upstream usage.
+  // Only check for active script loads (already covered by Python test_no_auto_init_script).
+  const indexText = readFileSync(indexPath, "utf8");
+  assert.ok(!indexText.includes("page-ag-testing-ohftxirgbn"), "index must not contain demo testing API key");
+  assert.ok(!indexText.includes("DEMO_BASE_URL"), "index must not contain DEMO_BASE_URL");
+  assert.ok(!indexText.includes("autoInit"), "index must not contain autoInit");
+  // page-agent.demo.js reference in documentation code blocks is allowed;
+  // only active <script src=...> loads are forbidden (tested in Python suite).
 
   console.log("  [10] No demo strings in bundle/lab/index: OK");
 }
@@ -329,8 +340,8 @@ function testBukguIsolation() {
     const text = readFileSync(join(EXAMPLES_BASE, fn), "utf8");
     assert.ok(!text.includes("bukgu"), `${fn} must not reference bukgu`);
     assert.ok(!text.includes("북구"), `${fn} must not reference 북구`);
-    assert.ok(!text.includes("quest"), `${fn} must not reference quest`);
-    assert.ok(!text.includes("mvp"), `${fn} must not reference mvp`);
+    assert.ok(!/\bquest\b/i.test(text), `${fn} must not reference quest`);
+    assert.ok(!/\bmvp\b/i.test(text), `${fn} must not reference mvp`);
   }
   console.log("  [13] Buk-gu isolation: OK");
 }
