@@ -191,7 +191,7 @@
     "apartment-dept": Object.freeze({
       id: "apartment-dept",
       title: "공동주택과",
-      purpose: "도시관리국 공동주택과 업무 및 연락처 정보를 안내합니다.",
+      purpose: "공동주택과 조직 및 업무안내의 전체 공식 표를 보여줍니다.",
       navTargets: Object.freeze(["apartment-dept-card"]),
       breadcrumbLabel: "공동주택과",
     }),

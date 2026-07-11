@@ -35,6 +35,12 @@
       freshness_state: "unavailable",
       source_url: "",
       sources: [],
+      captured_at: "",
+      verified_at: "",
+      official_route_id: "",
+      official_page_id: "",
+      snapshot_id: "",
+      canonical_sha256: "",
     };
   }
 
@@ -74,6 +80,12 @@
             freshness_state: data && typeof data.freshness_state === "string" ? data.freshness_state : "",
             source_url: data && typeof data.source_url === "string" ? data.source_url : "",
             sources: data && Array.isArray(data.sources) ? data.sources : [],
+            captured_at: data && typeof data.captured_at === "string" ? data.captured_at : "",
+            verified_at: data && typeof data.verified_at === "string" ? data.verified_at : "",
+            official_route_id: data && typeof data.official_route_id === "string" ? data.official_route_id : "",
+            official_page_id: data && typeof data.official_page_id === "string" ? data.official_page_id : "",
+            snapshot_id: data && typeof data.snapshot_id === "string" ? data.snapshot_id : "",
+            canonical_sha256: data && typeof data.canonical_sha256 === "string" ? data.canonical_sha256 : "",
           };
         }, function () {
           // JSON parse failure → treat as malformed model response.

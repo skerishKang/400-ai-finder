@@ -727,6 +727,7 @@
 
   function freshnessLabel(value) {
     if (value === "live_official") return "최신 공식자료 확인";
+    if (value === "official_snapshot") return "북구청 공식 스냅샷";
     if (value === "live_web") return "최신 웹자료 확인 · 공식 출처 재확인 필요";
     if (value === "model_only") return "현재 공식 출처 없음";
     return "최신성 확인 불가";
@@ -751,7 +752,10 @@
   function appendAnswerFreshness(message, result) {
     if (!message || !result || result.ok !== true) return;
     var sources = Array.isArray(result.sources) ? result.sources.slice(0, 3) : [];
-    var retrievedAt = formatRetrievedAt(result.retrieved_at);
+    var provenanceTime = result.freshness_state === "official_snapshot"
+      ? (result.verified_at || result.captured_at)
+      : result.retrieved_at;
+    var retrievedAt = formatRetrievedAt(provenanceTime);
     if (!retrievedAt && !sources.length && !result.freshness_state) return;
 
     var meta = document.createElement("div");

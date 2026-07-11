@@ -24,12 +24,12 @@ GOLDEN_MATRIX = {
     "housing_department_lookup": {
         "quest_name": "공동주택과 안내",
         "official_path": (
-            "북구청 홈",
+            "홈",
             "북구소개",
             "구청안내",
-            "업무 및 전화번호 안내",
-            "도시관리국",
+            "행정조직",
             "공동주택과",
+            "조직 및 업무안내",
         ),
         "expected_action_types": [
             "OPEN_ALLOWLISTED_ROUTE",
@@ -45,7 +45,7 @@ GOLDEN_MATRIX = {
         ],
         "forbidden_path_segments": ["분야별정보", "건축", "아파트정보", "아파트현황"],
         "forbidden_answer_substrings": ["062-410-6033"],
-        "required_answer_substrings": [],
+        "required_answer_substrings": ["062-410-6841", "전체 19명"],
     },
     "illegal_parking_report_guidance": {
         "quest_name": "불법 주정차 신고 안내",

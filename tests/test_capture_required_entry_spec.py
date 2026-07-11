@@ -109,11 +109,13 @@ def test_capture_required_without_fixture_is_permitted_but_flagged():
 
 def test_apartment_dept_and_apartment_info_are_separate_entries():
     manifest = _load_manifest()
-    ids = [e["route_id"] for e in manifest.get("capture_required", [])]
-    assert "apartment-dept" in ids, "apartment-dept must be a separate capture entry"
-    assert "apartment-info" in ids, "apartment-info must be a separate capture entry"
-    assert ids.count("apartment-dept") == 1
-    assert ids.count("apartment-info") == 1
+    exact_ids = [e["route_id"] for e in manifest.get("pages", [])]
+    capture_ids = [e["route_id"] for e in manifest.get("capture_required", [])]
+    assert "apartment-dept" in exact_ids, "apartment-dept must be an exact fixture entry"
+    assert "apartment-dept" not in capture_ids
+    assert "apartment-info" in capture_ids, "apartment-info must remain capture_required"
+    assert exact_ids.count("apartment-dept") == 1
+    assert capture_ids.count("apartment-info") == 1
 
 
 def test_capture_required_entry_has_quest_ids_field():

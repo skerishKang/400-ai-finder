@@ -9,6 +9,7 @@ JS = (STATIC / "citizen-first-use-shell.js").read_text(encoding="utf-8")
 CSS = (STATIC / "citizen-first-use-shell.css").read_text(encoding="utf-8")
 CHOREO = (STATIC / "citizen-first-choreography.js").read_text(encoding="utf-8")
 CANVAS = (STATIC / "citizen-action-demo-canvas.js").read_text(encoding="utf-8")
+OFFICIAL_SNAPSHOTS = (STATIC / "bukgu-official-snapshots.js").read_text(encoding="utf-8")
 ADAPTER = (STATIC / "citizen-content-adapter.js").read_text(encoding="utf-8")
 COPILOT_CSS = (STATIC / "citizen-copilot-shell.css").read_text(encoding="utf-8")
 DIRECTIVE = (ROOT / "docs" / "design" / "bukgu-ai-agent-product-directive.md").read_text(
@@ -20,6 +21,7 @@ DIRECTIVE = (ROOT / "docs" / "design" / "bukgu-ai-agent-product-directive.md").r
 
 
 def test_first_use_shell_is_loaded_after_existing_local_demo_scripts():
+    assert HTML.index("bukgu-official-snapshots.js") < HTML.index("citizen-action-demo-canvas.js")
     assert HTML.index("citizen-action-demo-canvas.js") < HTML.index("citizen-first-use-shell.js")
     assert HTML.index("citizen-action-executor.js") < HTML.index("citizen-first-use-shell.js")
     assert 'data-first-use-state="entry"' in HTML
@@ -398,8 +400,9 @@ def test_choreography_housing_reuses_approved_facts():
     """housing_department must provide 공동주택과 guidance,
     not invent new data or contacts."""
     assert "공동주택과" in CHOREO
-    assert "도시관리국" in CHOREO
     assert "apartment-dept" in CHOREO
+    assert "_apartmentDeptSnapshot" in CHOREO
+    assert '"phone": "062-410-6841"' in OFFICIAL_SNAPSHOTS
 
 
 def test_choreography_applies_journey_state_in_step_execution():
@@ -427,7 +430,8 @@ def test_housing_journey_visibly_clicks_types_and_searches():
     assert 'clickTarget: ".bg-dept-search__btn"' in CHOREO
     assert "function _typeIntoSearch(" in CHOREO
     assert 'setAttribute("data-agent-typing", "true")' in CHOREO
-    assert "062-410-6033" in CHOREO
+    assert "062-410-6033" not in CHOREO
+    assert 'data-representative-contact="true"' in CHOREO
 
 
 def test_canvas_cursor_has_visible_ai_identity_and_canvas_scoped_targeting():
@@ -494,11 +498,14 @@ class TestResponsiveViewportContract:
         assert "width: 100%" in canvas_block
 
     def test_chips_wrap_and_long_chip_cannot_exceed_container(self):
-        # chat-chips must wrap so they never force a horizontal overflow.
+        # Entry chips wrap; the compact split view switches to a scroll rail.
         assert ".chat-chips {" in CSS
         chips_block = CSS[CSS.index(".chat-chips {"):]
         chips_block = chips_block[: chips_block.index("}") + 1]
         assert "flex-wrap: wrap" in chips_block
+        assert 'body[data-first-use-state="split"] .chat-chips' in CSS
+        assert "flex-wrap: nowrap" in CSS
+        assert "overflow-x: auto" in CSS
         # the shared composer input must allow shrinking (real 320px overflow fix)
         assert ".chat-composer__input {" in COPILOT_CSS
         input_block = COPILOT_CSS[COPILOT_CSS.index(".chat-composer__input {"):]

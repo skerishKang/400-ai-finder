@@ -58,13 +58,13 @@ local_static` and stops at `STOP_FOR_USER_CONFIRMATION`.
 | **Resident task** | 공동주택과 안내 또는 공동주택 관련 부서 안내 |
 | **Resident prompt (suggested)** | `공동주택 관련 문의는 어느 부서에 해야 하나요?` |
 | **quest_id** | `housing_department_lookup` |
-| **Expected left surface path** | 북구청 홈 > 북구소개 > 구청안내 > 업무 및 전화번호 안내 > 도시관리국 > 공동주택과 |
-| **Route** | `apartment-dept` (`capture_required` — exact official page fixture tracked in #1062) |
+| **Expected left surface path** | 홈 > 북구소개 > 구청안내 > 행정조직 > 공동주택과 > 조직 및 업무안내 |
+| **Route** | `apartment-dept` (`exact` — canonical 19-row official snapshot) |
 | **Action labels** | 공동주택과 안내 화면 이동, 공동주택과 업무 및 연락처 확인, 사용자 확인 대기 |
 | **Expected right-panel quest card** | action-plan card showing `local_static` and `STOP_FOR_USER_CONFIRMATION` |
 | **source_mode** | `local_static` |
 | **stop_condition** | `STOP_FOR_USER_CONFIRMATION` |
-| **Must-not-do boundary** | Do **not** claim a synthetic card or a single phone number as the exact official page. The full official organization/contact table (rows, columns, order, responsibilities, phone numbers) must be preserved verbatim when fixture is secured. |
+| **Must-not-do boundary** | Do **not** replace the complete 19-row official table with a synthetic card or single-number summary. `062-410-6033` is the 과장 row, while `062-410-6841` is the department representative number. |
 
 **E2E verifier:** `tests/browser/verify_housing_quest_e2e.mjs`
 
@@ -183,13 +183,13 @@ PYTHONPATH=. pytest \
 > on PRs and `main`. Confirm that check is green for the demo commit when
 > preparing an external review.
 
-### 3.3 Static Pages build
+### 3.3 Local Pages build
 
 ```bash
 PYTHONPATH=. python3 scripts/build_cloudflare_pages.py
 ```
 
-This produces the backend-free artifact under `dist/cloudflare-pages/`
+This produces the live-shaped Pages artifact under `dist/cloudflare-pages/`
 (gitignored). Details: [`docs/cloudflare-pages-bukgu-mvp.md`](cloudflare-pages-bukgu-mvp.md).
 
 ### 3.4 Local static server + browser E2E
@@ -215,6 +215,9 @@ Notes:
 
 - E2E scripts accept **only** local `http://` origins (`127.0.0.1`,
   `localhost`, `::1`). External hosts are rejected before browser work starts.
+- The housing verifier fulfills only the local `/api/mvp/ask` request from the
+  committed quest and `apartment-dept` canonical snapshot. It never calls a
+  provider or official site; the Function contract is tested separately.
 - Quest E2E scripts open the public first-use entry at `/mvp`.
 - Report **non-local requests = 0** from each E2E run when summarizing demo
   readiness.

@@ -4,7 +4,8 @@ Enforces the CTO directive: the official page fixture manifest MUST be derived
 from the *actual* production renderer route vocabulary — not from a hand-maintained
 literal list. These tests dynamically extract the route set from four independent
 production sources (JS frozen array, Python frozenset, Canvas JS dispatch,
-Manifest capture_required) and assert that all four are EXACTLY the same set.
+Manifest exact + capture_required entries) and assert that all four are EXACTLY
+the same set.
 
 No hand-maintained literal declares the expected set; the four sources define it
 jointly. No `amend`/`rebase`/test-weakening: assertions are strict and complete.
@@ -69,7 +70,13 @@ def _extract_canvas_route_ids() -> set[str]:
 
 
 def _extract_manifest_route_ids() -> set[str]:
-    """Parse capture_required[].route_id from manifest."""
+    """Parse every exact or capture-required route from the manifest."""
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    entries = manifest.get("pages", []) + manifest.get("capture_required", [])
+    return {e["route_id"] for e in entries}
+
+
+def _extract_capture_required_route_ids() -> set[str]:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     return {e["route_id"] for e in manifest.get("capture_required", [])}
 
@@ -129,7 +136,7 @@ def test_canvas_route_set_is_not_empty():
 
 def test_manifest_route_set_is_not_empty():
     manifest = _extract_manifest_route_ids()
-    assert manifest, "Manifest capture_required route set must not be empty"
+    assert manifest, "Manifest route set must not be empty"
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +164,7 @@ def test_complete_capture_required_matches_capture_required():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     if "complete_capture_required" not in manifest:
         return  # field is optional
-    capture = _extract_manifest_route_ids()
+    capture = _extract_capture_required_route_ids()
     complete = _extract_complete_capture_required()
     assert capture == complete, (
         f"complete_capture_required {sorted(complete)} does not match "
@@ -171,21 +178,21 @@ def test_complete_capture_required_matches_capture_required():
 
 def test_manifest_no_duplicate_route_id():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest.get("capture_required", [])
+    entries = manifest.get("pages", []) + manifest.get("capture_required", [])
     ids = [e["route_id"] for e in entries]
     duplicates = {rid for rid in ids if ids.count(rid) > 1}
     assert not duplicates, (
-        f"manifest capture_required contains duplicate route_id(s): {duplicates}"
+        f"manifest contains duplicate route_id(s): {duplicates}"
     )
 
 
 def test_manifest_no_duplicate_page_id():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest.get("capture_required", [])
+    entries = manifest.get("pages", []) + manifest.get("capture_required", [])
     ids = [e["page_id"] for e in entries]
     duplicates = {pid for pid in ids if ids.count(pid) > 1}
     assert not duplicates, (
-        f"manifest capture_required contains duplicate page_id(s): {duplicates}"
+        f"manifest contains duplicate page_id(s): {duplicates}"
     )
 
 
@@ -195,7 +202,7 @@ def test_manifest_no_duplicate_page_id():
 
 def test_manifest_render_target_methods_exist_in_canvas():
     manifest_entries = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    entries = manifest_entries.get("capture_required", [])
+    entries = manifest_entries.get("pages", []) + manifest_entries.get("capture_required", [])
     defined = _find_defined_functions()
     for entry in entries:
         rt = entry.get("render_target", "")
@@ -216,7 +223,8 @@ def test_manifest_render_target_matches_dispatch():
     switch actually calls for that route_id."""
     dispatch = _extract_canvas_render_methods()
     manifest_entries = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    for entry in manifest_entries.get("capture_required", []):
+    entries = manifest_entries.get("pages", []) + manifest_entries.get("capture_required", [])
+    for entry in entries:
         rid = entry["route_id"]
         rt = entry.get("render_target", "")
         m = re.search(r'(\._?[a-zA-Z0-9_]+)\s*\(', rt)
@@ -237,7 +245,8 @@ def test_manfest_render_target_must_not_reference_nonexistent_method():
     in canvas.js, the test must fail."""
     defined = _find_defined_functions()
     manifest_entries = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    for entry in manifest_entries.get("capture_required", []):
+    entries = manifest_entries.get("pages", []) + manifest_entries.get("capture_required", [])
+    for entry in entries:
         rt = entry.get("render_target", "")
         m = re.search(r'(\._?[a-zA-Z0-9_]+)\s*\(', rt)
         if not m:
@@ -257,7 +266,8 @@ def test_manfest_render_target_must_not_reference_nonexistent_method():
 
 def test_manifest_excludes_deprecated_quests():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    all_ids = {e["route_id"] for e in manifest.get("capture_required", [])}
+    entries = manifest.get("pages", []) + manifest.get("capture_required", [])
+    all_ids = {e["route_id"] for e in entries}
     manifest_text = MANIFEST.read_text(encoding="utf-8").lower()
     assert "move_in_report_guidance" not in manifest_text
     assert "public_health_center_guidance" not in manifest_text

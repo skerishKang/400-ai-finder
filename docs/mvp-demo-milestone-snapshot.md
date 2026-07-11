@@ -56,7 +56,7 @@ All five quests use `source_mode: local_static` and
 
 | # | quest_id | resident task | primary path |
 |---|----------|---------------|--------------|
-| A | `housing_department_lookup` | 공동주택과 안내 또는 공동주택 관련 부서 안내 | 북구청 홈 > 북구소개 > 구청안내 > 업무 및 전화번호 안내 > 도시관리국 > 공동주택과 |
+| A | `housing_department_lookup` | 공동주택과 안내 또는 공동주택 관련 부서 안내 | 홈 > 북구소개 > 구청안내 > 행정조직 > 공동주택과 > 조직 및 업무안내 |
 | B | `illegal_parking_report_guidance` | 불법 주정차 신고 안내 | 북구청 홈 > 분야별정보 > 차량교통 > 지도단속 |
 | C | `bulky_waste_disposal_guidance` | 대형폐기물 배출 안내 | 북구청 홈 > 분야별정보 > 환경재활용 > 대형폐기물 배출방법 |
 | D | `passport_guidance` | 여권 발급 안내 | 북구청 홈 > 종합민원 > 여권민원 |

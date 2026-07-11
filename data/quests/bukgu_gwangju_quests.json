@@ -17,12 +17,12 @@
       ],
       "required_slots": [],
       "official_path": [
-        "북구청 홈",
+        "홈",
         "북구소개",
         "구청안내",
-        "업무 및 전화번호 안내",
-        "도시관리국",
-        "공동주택과"
+        "행정조직",
+        "공동주택과",
+        "조직 및 업무안내"
       ],
       "browser_actions": [
         {
@@ -46,16 +46,11 @@
       "ai_can_submit": false,
       "stop_condition": "STOP_FOR_USER_CONFIRMATION",
       "final_warning": {
-        "warning_text": "공동주택과는 도시관리국 소속으로 공동주택 관리 지원, 하자분쟁조정, 보조금 지원 업무를 담당합니다. 실제 민원 신청 및 부서 방문은 업무 시간 내에 공식 채널을 이용하시기 바랍니다.",
+        "warning_text": "담당 업무별 연락처는 왼쪽의 공식 조직 및 업무안내 표에서 확인해 주세요. 실제 민원 신청 및 부서 방문은 업무 시간 내에 공식 채널을 이용하시기 바랍니다.",
         "requires_user_confirmation": true
       },
       "client_action": "housing_department",
-      "answer": "공동주택 관련 문의는 북구청 도시관리국 소속 공동주택과에서 담당합니다. 공동주택과는 공동주택 관리 지원, 하자분쟁조정, 보조금 지원 등의 업무를 수행합니다. 위치는 북구소개 > 구청안내 > 업무 및 전화번호 안내 > 도시관리국에서 확인하실 수 있습니다.",
-      "result": {
-        "service": "도시관리국 공동주택과 안내",
-        "surface": "공동주택과 업무 및 연락처 정보",
-        "stop": "사용자 확인 후 공식 채널에서 직접 진행"
-      },
+      "official_snapshot_ref": "apartment-dept",
       "match_terms": [
         "공동주택",
         "아파트",
