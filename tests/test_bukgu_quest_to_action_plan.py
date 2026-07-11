@@ -26,15 +26,17 @@ def test_housing_quest_converts_to_valid_action_plan():
     assert plan.quest_name == "공동주택과 안내"
     assert plan.client_action == "housing_department"
     assert plan.official_path == (
-        "북구청 홈",
+        "홈",
         "북구소개",
         "구청안내",
-        "업무 및 전화번호 안내",
-        "도시관리국",
+        "행정조직",
         "공동주택과",
+        "조직 및 업무안내",
     )
-    assert plan.result["service"] == "도시관리국 공동주택과 안내"
-    assert "공동주택과" in plan.result["surface"]
+    assert plan.result["service"] == "공동주택과 조직 및 업무안내"
+    assert plan.result["surface"] == "전체 19명 공식 업무 및 연락처"
+    assert plan.result["source_updated_at"] == "2026-06-01"
+    assert "공동주택과" in plan.result["service"]
 
 
 def test_housing_quest_ends_with_stop_for_user_confirmation():

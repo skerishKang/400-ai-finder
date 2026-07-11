@@ -29,6 +29,8 @@ from datetime import datetime
 from typing import Literal
 from zoneinfo import ZoneInfo
 
+from src.bukgu_official_snapshot import build_snapshot_model_guidance
+
 from .base import LLMProvider, ProviderResult
 from .openai_compatible_provider import (
     FAILURE_INVALID_MVP_DECISION,
@@ -49,6 +51,7 @@ MVP_ACTIONS = (
 )
 
 MVP_FAILURE_ANSWER = "현재 AI 안내를 연결하지 못했습니다."
+_HOUSING_MODEL_GUIDANCE = build_snapshot_model_guidance("apartment-dept")
 
 MVP_SYSTEM_PROMPT = (
     "당신은 광주광역시 북구청 정보 안내 로컬 데모의 안내 결정 모델입니다. "
@@ -65,8 +68,7 @@ MVP_SYSTEM_PROMPT = (
     "시각적으로 안내할 수 있음을 안내하세요.\n"
     "   - 실제 신고 완료나 외부 사이트 처리는 주장하지 마세요.\n"
     "2. housing_department — 공동주택 담당 부서·전화번호 안내\n"
-    "   - 담당 부서: 공동주택과\n"
-    "   - 대표 연락처: 062-410-6033\n"
+    f"{_HOUSING_MODEL_GUIDANCE}"
     "   - 로컬 데모가 담당 부서·전화번호 탐색 화면을 시각적으로 안내할 수 있음을 "
     "안내하세요.\n"
     "3. bulky_waste — 대형폐기물 배출 신청 안내\n"

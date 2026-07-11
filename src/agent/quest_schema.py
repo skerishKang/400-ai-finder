@@ -108,12 +108,25 @@ class Quest:
         return value if isinstance(value, str) else ""
 
     @property
+    def official_snapshot_ref(self) -> str:
+        value = self.extra.get("official_snapshot_ref", "")
+        return value if isinstance(value, str) else ""
+
+    @property
     def answer(self) -> str:
+        if self.official_snapshot_ref:
+            from src.bukgu_official_snapshot import build_snapshot_answer
+
+            return build_snapshot_answer(self.official_snapshot_ref)
         value = self.extra.get("answer", "")
         return value if isinstance(value, str) else ""
 
     @property
     def result(self) -> Mapping[str, Any]:
+        if self.official_snapshot_ref:
+            from src.bukgu_official_snapshot import build_snapshot_result
+
+            return build_snapshot_result(self.official_snapshot_ref)
         value = self.extra.get("result", {})
         return value if isinstance(value, Mapping) else {}
 

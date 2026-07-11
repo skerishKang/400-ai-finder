@@ -174,6 +174,7 @@ def test_static_first_use_shell_files_exist(build_dir):
     static = os.path.join(build_dir, "static")
     required = [
         "citizen-action-demo.html",
+        "bukgu-official-snapshots.js",
         "citizen-first-use-shell.js",
         "citizen-first-use-shell.css",
         "citizen-first-choreography.js",
@@ -187,11 +188,33 @@ def test_static_html_loads_first_use_shell_in_order(build_dir):
     shell script before the choreography script."""
     html_path = os.path.join(build_dir, "static", "citizen-action-demo.html")
     html = open(html_path, encoding="utf-8").read()
+    snapshot_idx = html.index("bukgu-official-snapshots.js")
+    canvas_idx = html.index("citizen-action-demo-canvas.js")
     shell_idx = html.index("citizen-first-use-shell.js")
     choreo_idx = html.index("citizen-first-choreography.js")
+    assert snapshot_idx < canvas_idx, (
+        "bukgu-official-snapshots.js must load before citizen-action-demo-canvas.js"
+    )
     assert shell_idx < choreo_idx, (
         "citizen-first-use-shell.js must load before citizen-first-choreography.js"
     )
+
+    built_snapshot = os.path.join(build_dir, "static", "bukgu-official-snapshots.js")
+    source_snapshot = os.path.join(
+        _REPO_ROOT, "src", "web", "static", "bukgu-official-snapshots.js"
+    )
+    assert open(built_snapshot, "rb").read() == open(source_snapshot, "rb").read()
+
+
+def test_live_official_snapshot_artifact_is_identical(live_build_dir):
+    built_snapshot = os.path.join(
+        live_build_dir, "static", "bukgu-official-snapshots.js"
+    )
+    source_snapshot = os.path.join(
+        _REPO_ROOT, "src", "web", "static", "bukgu-official-snapshots.js"
+    )
+    assert os.path.isfile(built_snapshot)
+    assert open(built_snapshot, "rb").read() == open(source_snapshot, "rb").read()
 
 
 def test_static_html_has_first_use_css(build_dir):

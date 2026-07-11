@@ -22,20 +22,22 @@ site-affecting actions.
 2. `/api/mvp/ask` checks the quest registry before resolving an LLM provider.
 3. The housing quest matches `housing_department_lookup`.
 4. `quest_to_action_plan` validates browser actions and returns:
-   - official path: `북구소개 > 구청안내 > 업무 및 전화번호 안내 > 공동주택과`
+   - official path: `홈 > 북구소개 > 구청안내 > 행정조직 > 공동주택과 > 조직 및 업무안내`
    - client action: `housing_department`
-   - stop condition: `STOP_AFTER_RESULT`
+   - stop condition: `STOP_FOR_USER_CONFIRMATION`
 5. The existing first-use shell starts the existing `housing_department`
    choreography.
-6. The left pane renders the local `J-DEPT-01` department directory result:
-   `공동주택과 / 062-410-6033 / 공동주택과 업무전반`.
+6. The left pane renders the committed canonical `apartment-dept` snapshot:
+   the complete official 19-row organization/work table in source order.
 7. The right AI panel shows quest name, official path, result, progress, and
-   `STOP_AFTER_RESULT`.
+   `STOP_FOR_USER_CONFIRMATION`.
 
 ## Runtime Mode
 
-The housing quest path is `local_static`.
+The housing quest path is `local_static` with `official_snapshot` provenance.
 
-It does not call the live Buk-gu site, Firecrawl, crawler adapters, or an LLM
-provider. Non-matching MVP questions keep the existing provider-backed fallback
-path.
+The left canvas, deterministic Python answer, model prompt evidence, and
+Cloudflare Function all consume `data/official_snapshots/bukgu_gwangju/apartment-dept.json`.
+Normal execution does not call the live Buk-gu site, Firecrawl, or crawler
+adapters for this route. Non-matching MVP questions keep the existing provider-backed
+fallback path.

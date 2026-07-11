@@ -587,6 +587,17 @@ def _write_file(path: str, content: str) -> None:
 # Main build
 # ---------------------------------------------------------------------------
 def build(out_dir: str | None = None, mode: str = "static") -> None:
+    _ensure_repo_on_path()
+    from scripts.generate_bukgu_official_snapshots import check_generated_artifacts
+
+    stale_snapshot_artifacts = check_generated_artifacts()
+    if stale_snapshot_artifacts:
+        stale = ", ".join(str(path.relative_to(_REPO_ROOT)) for path in stale_snapshot_artifacts)
+        raise RuntimeError(
+            "generated official snapshot artifacts are stale; run "
+            f"python scripts/generate_bukgu_official_snapshots.py ({stale})"
+        )
+
     # 1. Refresh dist/cloudflare-pages (build-time only output).
     dist_root = out_dir if out_dir else DIST_ROOT
     if os.path.isdir(dist_root):

@@ -706,6 +706,7 @@ body.first-use-shell--no-motion .demo-canvas {
     height: min(58vh, 520px);
     min-height: 360px;
   }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -805,6 +806,25 @@ body.first-use-shell--no-motion .demo-canvas {
 
 .chat-chips[hidden] {
   display: none;
+}
+
+@media (max-width: 767px) {
+  body[data-first-use-state="split"] .chat-chips,
+  body[data-first-use-state="transitioning"] .chat-chips {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    padding: 8px 12px 7px;
+    scrollbar-width: thin;
+  }
+
+  body[data-first-use-state="split"] .chat-chip,
+  body[data-first-use-state="transitioning"] .chat-chip {
+    flex: 0 0 auto;
+    padding: 7px 12px;
+  }
 }
 
 /* Fade-in for chat messages */

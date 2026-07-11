@@ -2431,6 +2431,195 @@
   text-align: right;
 }
 
+/* Canonical 공동주택과 organization/work page snapshot. */
+.bg-page--dept-replay .bg-official-dept-replay-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
+}
+.bg-page--dept-replay .bg-official-dept-replay-controls .bg-dept-replay-controls {
+  margin: 0;
+}
+.bg-official-dept-main {
+  width: min(1180px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 28px 0 56px;
+  color: #222;
+}
+.bg-official-dept-heading {
+  position: relative;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #d9d9d9;
+}
+.bg-official-dept-heading h1 {
+  margin: 0 0 17px;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
+.bg-official-dept-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #666;
+  font-size: 13px;
+}
+.bg-official-dept-breadcrumb li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.bg-official-dept-breadcrumb li[aria-current="page"] {
+  color: #167047;
+  font-weight: 700;
+}
+.bg-official-dept-breadcrumb b {
+  color: #aaa;
+  font-weight: 400;
+}
+.bg-official-dept-tools {
+  position: absolute;
+  right: 0;
+  bottom: 18px;
+  display: flex;
+  gap: 5px;
+}
+.bg-official-dept-tools__item {
+  display: inline-flex;
+  min-width: 33px;
+  min-height: 33px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: 1px solid #d7d7d7;
+  border-radius: 50px;
+  background: #fff;
+  color: #555;
+  font-size: 11px;
+}
+.bg-official-dept-tabs {
+  margin: 24px 0 30px;
+}
+.bg-official-dept-tabs ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid #d7d7d7;
+}
+.bg-official-dept-tabs__item {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  background: #fff;
+  border-right: 1px solid #d7d7d7;
+  font-size: 14px;
+}
+.bg-official-dept-tabs__item:last-child { border-right: 0; }
+.bg-official-dept-tabs__item--active {
+  color: #fff;
+  background: #167047;
+  font-weight: 700;
+}
+.bg-official-dept-content__top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 13px;
+}
+.bg-official-dept-content__top h2 {
+  margin: 0;
+  font-size: 23px;
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+}
+.bg-official-dept-content__top p {
+  margin: 0;
+  color: #555;
+  font-size: 14px;
+}
+.bg-official-dept-content__top strong { color: #d33434; }
+.bg-official-dept-table-wrap {
+  overflow-x: auto;
+  border-top: 2px solid #333;
+}
+.bg-official-dept-table {
+  width: 100%;
+  min-width: 930px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.bg-official-dept-table th {
+  padding: 13px 10px;
+  border-right: 1px solid #dedede;
+  border-bottom: 1px solid #bdbdbd;
+  background: #f4f5f5;
+  color: #222;
+  text-align: center;
+  font-weight: 700;
+}
+.bg-official-dept-table td {
+  padding: 12px 10px;
+  border-right: 1px solid #e3e3e3;
+  border-bottom: 1px solid #e3e3e3;
+  color: #333;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.55;
+}
+.bg-official-dept-table th:last-child,
+.bg-official-dept-table td:last-child { border-right: 0; }
+.bg-official-dept-table th:nth-child(1),
+.bg-official-dept-table td:nth-child(1) { width: 20%; }
+.bg-official-dept-table th:nth-child(2),
+.bg-official-dept-table td:nth-child(2) { width: 15%; }
+.bg-official-dept-table th:nth-child(3),
+.bg-official-dept-table td:nth-child(3) { width: 11%; }
+.bg-official-dept-table th:nth-child(4),
+.bg-official-dept-table td:nth-child(4) { width: 14%; }
+.bg-official-dept-table th:nth-child(5),
+.bg-official-dept-table td:nth-child(5) { width: 40%; }
+.bg-official-dept-table__duty { text-align: left !important; }
+.bg-official-dept-table tr[data-representative-contact="true"] {
+  scroll-margin-top: 24px;
+}
+.bg-official-dept-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 28px;
+  padding: 17px 19px;
+  border: 1px solid #ddd;
+  background: #f8f8f8;
+  color: #555;
+  font-size: 12px;
+}
+.bg-official-dept-info div,
+.bg-official-dept-info p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+}
+.bg-official-dept-info strong { color: #222; }
+
+@media (max-width: 760px) {
+  .bg-official-dept-main { width: calc(100% - 24px); padding-top: 20px; }
+  .bg-official-dept-heading h1 { font-size: 25px; }
+  .bg-official-dept-tools { position: static; margin-top: 15px; }
+  .bg-official-dept-tabs { margin: 18px 0 24px; }
+  .bg-official-dept-info { flex-direction: column; }
+}
+
 /* ═══════════════════════════════════════════════════════
    Sub-page common elements (breadcrumb, title, tabs)
    ═══════════════════════════════════════════════════════ */

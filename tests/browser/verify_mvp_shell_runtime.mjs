@@ -24,6 +24,7 @@ const shellCode = readFileSync(SHELL_PATH, "utf8");
 // canvas navigateToRoute / choreography step progression, not test doubles.
 const STATIC_BASE = new URL("../../src/web/static/", import.meta.url);
 const readStatic = (f) => readFileSync(new URL(f, STATIC_BASE), "utf8");
+const snapshotCode = readStatic("bukgu-official-snapshots.js");
 const mapCode = readStatic("citizen-action-demo-map.js");
 const canvasCode = readStatic("citizen-action-demo-canvas.js");
 const adapterCode = readStatic("citizen-content-adapter.js");
@@ -342,6 +343,7 @@ function runScenario({ search, reducedMotion, bridge, choreo, fastTimers }) {
   // executes the real complaint-board route render. The injected
   // window.CitizenFirstChoreography test double (above) is replaced by the real
   // module so C/D/E assert against genuine runtime behavior.
+  vm.runInContext(snapshotCode, context);
   vm.runInContext(mapCode, context);
   vm.runInContext(canvasCode, context);
   vm.runInContext(adapterCode, context);
@@ -638,23 +640,23 @@ async function scenarioIllegalParking() {
 async function scenarioHousingDepartment() {
   const bridge = makeResolvingBridge({
     ok: true,
-    answer: "공동주택 관련 문의는 공동주택과(062-410-6033)에서 담당합니다.",
+    answer: "공동주택과 부서 대표전화는 062-410-6841이며, 공식 19명 업무표를 함께 보여드립니다.",
     action: "housing_department",
     confidence: 0.9,
     quest: {
       quest_id: "housing_department_lookup",
       quest_name: "공동주택 담당부서 찾기",
-      official_path: ["북구소개", "구청안내", "업무 및 전화번호 안내", "공동주택과"],
-      result: { department: "공동주택과", phone: "062-410-6033" },
+      official_path: ["홈", "북구소개", "구청안내", "행정조직", "공동주택과", "조직 및 업무안내"],
+      result: { service: "공동주택과 조직 및 업무안내", surface: "전체 19명 공식 업무 및 연락처" },
       source_mode: "local_static",
     },
     action_plan: {
-      official_path: ["북구소개", "구청안내", "업무 및 전화번호 안내", "공동주택과"],
+      official_path: ["홈", "북구소개", "구청안내", "행정조직", "공동주택과", "조직 및 업무안내"],
       browser_actions: [
-        { label: "업무 및 전화번호 안내 이동" },
-        { label: "공동주택 검색" },
+        { label: "공동주택과 안내 화면 이동" },
+        { label: "공동주택과 업무 및 연락처 확인" },
       ],
-      result: { department: "공동주택과", phone: "062-410-6033" },
+      result: { service: "공동주택과 조직 및 업무안내", surface: "전체 19명 공식 업무 및 연락처" },
       source_mode: "local_static",
       stop_condition: "STOP_AFTER_RESULT",
       final_warning: null,
@@ -674,7 +676,7 @@ async function scenarioHousingDepartment() {
   const bubbles = aiBubbleTexts(s);
   assert.ok(
     bubbles.includes(
-      "공동주택 관련 문의는 공동주택과(062-410-6033)에서 담당합니다.",
+      "공동주택과 부서 대표전화는 062-410-6841이며, 공식 19명 업무표를 함께 보여드립니다.",
     ),
     "housing_department: server answer must be shown",
   );
@@ -701,10 +703,10 @@ async function scenarioHousingDepartment() {
   assert.strictEqual(card.getAttribute("data-quest-card"), "action_plan");
   const cardText = card.textContent;
   assert.ok(cardText.includes("공동주택 담당부서 찾기"));
-  assert.ok(cardText.includes("북구소개 > 구청안내 > 업무 및 전화번호 안내 > 공동주택과"));
-  assert.ok(cardText.includes("공동주택과 / 062-410-6033"));
-  assert.ok(cardText.includes("업무 및 전화번호 안내 이동"));
-  assert.ok(cardText.includes("공동주택 검색"));
+  assert.ok(cardText.includes("홈 > 북구소개 > 구청안내 > 행정조직 > 공동주택과 > 조직 및 업무안내"));
+  assert.ok(cardText.includes("공동주택과 조직 및 업무안내 / 전체 19명 공식 업무 및 연락처"));
+  assert.ok(cardText.includes("공동주택과 안내 화면 이동"));
+  assert.ok(cardText.includes("공동주택과 업무 및 연락처 확인"));
   // Localized labels (not internal enum constants):
   assert.ok(cardText.includes("북구청 공식 화면 기준"));
   assert.ok(cardText.includes("안내 준비 완료"));
@@ -1687,6 +1689,7 @@ async function scenarioComplaintBoardRouteRegistered() {
   };
   ctx.globalThis = ctx;
   vm.createContext(ctx);
+  vm.runInContext(snapshotCode, ctx);
   vm.runInContext(mapCode, ctx);
   vm.runInContext(canvasCode, ctx);
   const map = w.CitizenActionDemoMap;

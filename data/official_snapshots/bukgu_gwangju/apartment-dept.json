@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "snapshot_id": "bukgu_gwangju.apartment-dept.2026-07-11",
+  "site_id": "bukgu_gwangju",
+  "site_name": "전남광주통합특별시 북구",
+  "route_id": "apartment-dept",
+  "page_id": "organization2-a10602012601-5820036",
+  "source": {
+    "url": "https://bukgu.gwangju.kr/organization2.es?mid=a10602012601&org_cd=5820036",
+    "title": "조직 및 업무안내 | 공동주택과 | 행정조직 | 구청안내 | 북구소개 : 전남광주통합특별시 북구",
+    "captured_at": "2026-07-11T23:08:02+09:00",
+    "verified_at": "2026-07-11T23:08:02+09:00",
+    "source_updated_at": "2026-06-01",
+    "capture_method": "owner-approved read-only official-site validation"
+  },
+  "representative_contact_source": {
+    "url": "https://bukgu.gwangju.kr/menu.es?mid=a10602060100",
+    "title": "본청 | 부서 대표(전화번호, FAX) | 구청안내 | 북구소개 : 전남광주통합특별시 북구",
+    "captured_at": "2026-07-11T23:08:02+09:00",
+    "verified_at": "2026-07-11T23:08:02+09:00",
+    "source_updated_at": "2026-06-01"
+  },
+  "representative_contact": {
+    "department": "공동주택과",
+    "phone_display": "062)410-6841",
+    "phone": "062-410-6841",
+    "fax_display": "062)510-1486",
+    "fax": "062-510-1486"
+  },
+  "page": {
+    "section_title": "행정조직",
+    "breadcrumbs": [
+      { "label": "홈", "href": "/index.es?sid=a1" },
+      { "label": "북구소개", "href": "/menu.es?mid=a10600000000" },
+      { "label": "구청안내", "href": "/menu.es?mid=a10602000000" },
+      { "label": "행정조직", "href": "/menu.es?mid=a10602010000" },
+      { "label": "공동주택과", "href": "/menu.es?mid=a10602012600" },
+      { "label": "조직 및 업무안내", "href": "/menu.es?mid=a10602012601", "active": true }
+    ],
+    "page_tools": ["글자 크게", "글자 작게", "인쇄", "공유"],
+    "tabs": [
+      { "label": "조직 및 업무안내", "href": "/menu.es?mid=a10602012601", "active": true },
+      { "label": "자료실", "href": "/menu.es?mid=a10602012602", "active": false }
+    ],
+    "content_heading": "조직 및 업무",
+    "count_label": "총 19명",
+    "row_count": 19,
+    "table_accessible_name": "부서별 직원 목록",
+    "columns": [
+      { "key": "department", "label": "부서명" },
+      { "key": "team", "label": "팀명" },
+      { "key": "position", "label": "직책" },
+      { "key": "phone", "label": "전화번호" },
+      { "key": "duty", "label": "담당업무" }
+    ],
+    "rows": [
+      { "department": "공동주택과", "team": "", "position": "과장", "phone": "062-410-6033", "duty": "공동주택과 업무전반" },
+      { "department": "공동주택과", "team": "공동주택정책", "position": "팀장", "phone": "062-410-6812", "duty": "공동주택정책팀 업무 전반" },
+      { "department": "공동주택과", "team": "공동주택정책", "position": "직원", "phone": "062-410-6841", "duty": "서무" },
+      { "department": "공동주택과", "team": "공동주택정책", "position": "직원", "phone": "062-410-6816", "duty": "주택건설사업, 지역주택조합" },
+      { "department": "공동주택과", "team": "공동주택정책", "position": "직원", "phone": "062-410-8277", "duty": "주택건설사업,지역주택조합" },
+      { "department": "공동주택과", "team": "공동주택정책", "position": "직원", "phone": "062-410-6834", "duty": "주택건설사업, 지역주택조합" },
+      { "department": "공동주택과", "team": "재건축", "position": "팀장", "phone": "062-410-8457", "duty": "재건축팀 업무 전반" },
+      { "department": "공동주택과", "team": "재건축", "position": "직원", "phone": "062-410-8458", "duty": "재건축, 소규모주택정비사업" },
+      { "department": "공동주택과", "team": "재건축", "position": "직원", "phone": "062-410-8459", "duty": "재건축, 소규모주택정비사업" },
+      { "department": "공동주택과", "team": "재개발", "position": "팀장", "phone": "062-410-6742", "duty": "재개발팀 업무 전반" },
+      { "department": "공동주택과", "team": "재개발", "position": "직원", "phone": "062-410-6755", "duty": "재개발 사업(누문, 풍향, 임동)" },
+      { "department": "공동주택과", "team": "재개발", "position": "직원", "phone": "062-410-6750", "duty": "재개발 사업(북동, 중흥, 우산, 임동2)" },
+      { "department": "공동주택과", "team": "공동주택관리", "position": "팀장", "phone": "062-410-6840", "duty": "공동주택관리팀 업무 전반" },
+      { "department": "공동주택과", "team": "공동주택관리", "position": "직원", "phone": "062-410-6809", "duty": "공동주택관리(오치,두암,용두,우산,동림,매곡), 주민편익시설개선사업 등" },
+      { "department": "공동주택과", "team": "공동주택관리", "position": "직원", "phone": "062-410-6842", "duty": "임대차계약(변경)신고, 주택(임대)관리업등록 등" },
+      { "department": "공동주택과", "team": "공동주택관리", "position": "직원", "phone": "062-410-6833", "duty": "공동주택관리(각화,운암,풍향,삼각,신안), 노후중소형아파트시설개선지원, 비정규직근무환경개선지원 등" },
+      { "department": "공동주택과", "team": "공동주택관리", "position": "직원", "phone": "062-410-8276", "duty": "공동주택관리(용봉,본촌,문흥,신용,일곡), 소규모공동주택안전점검지원사업 등" },
+      { "department": "공동주택과", "team": "공동주택관리", "position": "직원", "phone": "062-410-8278", "duty": "임대사업자등록및말소, 공동주택운영윤리교육, 방범소방교육 등" },
+      { "department": "공동주택과", "team": "공동주택관리", "position": "직원", "phone": "062-410-6828", "duty": "공동주택관리(중흥,유동,임동,양산,연제), 공동주택어린이놀이시설관리 등" }
+    ],
+    "content_info": {
+      "label": "콘텐츠 정보책임자",
+      "department_label": "담당부서",
+      "department": "데이터정보과",
+      "contact_label": "연락처",
+      "contact": "062-410-8298",
+      "last_updated_label": "최근업데이트",
+      "last_updated": "2026/06/01"
+    }
+  }
+}

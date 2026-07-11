@@ -38,7 +38,7 @@ or unsafe submission-like behavior.
 
 - **quest name**: `공동주택과 안내`
 - **primary official_path**
-  `북구청 홈 > 북구소개 > 구청안내 > 업무 및 전화번호 안내 > 도시관리국 > 공동주택과`
+  `홈 > 북구소개 > 구청안내 > 행정조직 > 공동주택과 > 조직 및 업무안내`
 - **source_mode**: `local_static`
 - **stop_condition**: `STOP_FOR_USER_CONFIRMATION`
 - **route**: `apartment-dept`
@@ -48,18 +48,19 @@ or unsafe submission-like behavior.
   2. `공동주택과 업무 및 연락처 확인`
   3. `사용자 확인 대기`
 - **exact-clone status**
-  - `apartment-dept` is currently `capture_required` — complete official fixture not yet committed.
-  - Complete official page fixture is tracked in #1062.
-  - When fixture is secured, the full official organization info table (rows, columns, order, phone numbers, responsibilities, update metadata) must be preserved verbatim.
+  - `apartment-dept` is `exact` through the canonical #1062 snapshot.
+  - The full official 19-row organization table, column order, phone numbers, duties, breadcrumbs, labels, and update metadata are preserved.
+  - Canonical source: `data/official_snapshots/bukgu_gwangju/apartment-dept.json`.
   - A single representative phone number, a synthetic card, or a summary description is **not** an exact official page clone.
-  - The interaction route/action contract matching correctly is separate from official fixture parity being complete.
+  - Generated browser and Function copies are checksum-locked to the canonical source.
 - **right-panel quest card**
   - `quest_card_type`: `action_plan`
   - action labels include `공동주택과 안내 화면 이동`, `공동주택과 업무 및 연락처 확인`
   - text includes `STOP_FOR_USER_CONFIRMATION`, `local_static`
 - **prohibited behavior**
   - Must **not** regress to the old `분야별정보 > 건축 > 아파트정보 > 아파트현황` surface.
-  - `062-410-6033` regression guard: the answer must not contain this single phone number as a representative of the full official table.
+  - `062-410-6033` is preserved only as the official 과장 row and must never be labeled as the department representative number.
+  - The department representative number is `062-410-6841`; the full table remains visible.
   - No invented internal department form, no contact-lookup submission UI.
 - **E2E verifier**: `tests/browser/verify_housing_quest_e2e.mjs`
 
