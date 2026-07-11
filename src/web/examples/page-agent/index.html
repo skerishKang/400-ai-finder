@@ -24,6 +24,7 @@
       <li><a href="#basic-execution">Usage</a></li>
       <li><a href="#architecture">Architecture</a></li>
       <li><a href="#custom-ui">Custom UI</a></li>
+      <li><a href="#local-integration">Local Adapter</a></li>
       <li><a href="#license">License</a></li>
       <li><a href="#source-attribution">Source</a></li>
     </ul>
@@ -136,7 +137,7 @@
     <h2>Quick Start</h2>
     <p>One-line integration using the published package:</p>
     <pre><code>&lt;script src="https://cdn.jsdelivr.net/npm/page-agent@1.12.1/dist/iife/page-agent.demo.js" crossorigin="anonymous"&gt;&lt;/script&gt;</code></pre>
-    <p class="note note-warn">This lab uses a <strong>local vendored copy</strong> of the same bundle with a deterministic mock model — no external CDN, no live API calls.</p>
+    <p class="note note-warn">This CDN-based demo is for evaluation only and uses Alibaba's free testing LLM API via DashScope. This lab does <strong>not</strong> use that CDN or testing API — see the <a href="#local-integration">Local Adapter</a> section for the constrained offline approach.</p>
   </section>
 
   <section id="npm-installation" class="lab-section">
@@ -160,7 +161,7 @@ const agent = new PageAgent({
 })
 
 await agent.execute('Click the login button')</code></pre>
-    <p>In this lab, a <strong>custom local model adapter</strong> replaces the DashScope/OpenAI endpoint with a deterministic mock. The agent class, core, controller, and panel are the actual published implementations — only the model provider is substituted.</p>
+    <p>The standard integration connects to an OpenAI-compatible LLM endpoint. In a constrained offline environment, a deterministic mock adapter fulfills the same request/response contract without any network dependency.</p>
   </section>
 
   <section id="architecture" class="lab-section">
@@ -209,12 +210,41 @@ core.on('status', (status) => { /* update UI */ })
 core.on('activity', (activity) => { /* render step */ })
 
 await core.execute('Fill the search form')</code></pre>
-    <p>The built-in Panel (used in this lab) wraps PageAgentCore with a ready-to-use chat interface that includes task input, status indicators, and an expandable action history.</p>
+    <p>The built-in Panel wraps PageAgentCore with a ready-to-use chat interface that includes task input, status indicators, and an expandable action history. This lab's <code>mock-model.js</code> demonstrates the adapter interface that would drive the Panel in a fully integrated setup.</p>
+  </section>
+
+  <section id="local-integration" class="lab-section">
+    <h2>Local Adapter + Bundle Limitation</h2>
+
+    <p><strong>Bundle Limitation:</strong> The published <code>page-agent@1.12.1</code> package exposes two distribution files:</p>
+    <ul class="feature-list">
+      <li><strong><code>dist/esm/page-agent.js</code></strong> (722 bytes) — ECMAScript module that re-exports from <code>@page-agent/core</code>, <code>@page-agent/page-controller</code>, and <code>@page-agent/ui</code>. Requires a bundler (Vite, webpack, etc.) and those dependency packages at build time. Not usable as a standalone browser script.</li>
+      <li><strong><code>dist/iife/page-agent.demo.js</code></strong> (209 KB) — Self-contained IIFE bundle. However, it is explicitly a <strong>demo bundle</strong> that includes automatic initialization code, a free testing LLM API endpoint (DashScope), and jsDelivr CDN references. Per experiment policy, this bundle is not used — the demo auto-init, free testing API, and runtime CDN are all prohibited in this lab.</li>
+    </ul>
+
+    <p><strong>Deterministic Mock Model:</strong> The <code>mock-model.js</code> file demonstrates the OpenAI-compatible chat completion contract that Page Agent's LLM client requires. It implements four deterministic tasks:</p>
+    <ul class="feature-list">
+      <li><code>quick-start</code> — Maps to the Quick Start documentation section</li>
+      <li><code>vs-browser-use</code> — Maps to the comparison table</li>
+      <li><code>license</code> — Maps to the MIT License section</li>
+      <li><code>architecture</code> — Maps to the Architecture diagram</li>
+    </ul>
+
+    <p>The mock exports <code>window.PageAgentMockModel</code> with <code>handleCompletion(url, payload)</code>, <code>isBlocked(url)</code>, and task lookup methods. This adapter:</p>
+    <ul class="feature-list">
+      <li>Receives OpenAI-compatible request payloads</li>
+      <li>Returns deterministic completion responses for known tasks</li>
+      <li>Returns a bounded unsupported response for unknown tasks</li>
+      <li>Blocks all non-local origins via an explicit denylist</li>
+      <li>Requires no API keys, secrets, or environment variables</li>
+    </ul>
+
+    <p class="note note-warn"><strong>Status:</strong> page-agent@1.12.1 does not expose a usable non-demo browser bundle for this purely static, offline integration. A full Page Agent live Panel integration would require either (a) using a bundler with the ESM package and its dependencies, or (b) using the demo bundle, which is prohibited by experiment constraints. The mock-model.js adapter layer is architecture-complete and ready to drive the actual PageAgent class once a suitable bundle is available.</p>
   </section>
 
   <section id="license" class="lab-section">
     <h2>MIT License</h2>
-    <p>Page Agent is published under the MIT License. The full license text is included in the vendored <code>vendor/LICENSE</code> file.</p>
+    <p>Page Agent is published under the MIT License.</p>
     <blockquote class="license-quote">
       <p>MIT License</p>
       <p>Copyright (c) 2026 SimonLuvRamen &amp; Alibaba Group Holding Limited</p>
@@ -232,7 +262,6 @@ await core.execute('Fill the search form')</code></pre>
       <tr><td>Pinned Commit</td><td><code>fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7</code></td></tr>
       <tr><td>Package Version</td><td>1.12.1</td></tr>
       <tr><td>License</td><td>MIT</td></tr>
-      <tr><td>Vendor Path</td><td><code>vendor/page-agent.demo.js</code></td></tr>
       <tr><td>Source Manifest</td><td><code>source-manifest.json</code></td></tr>
     </table>
   </section>
@@ -242,12 +271,10 @@ await core.execute('Fill the search form')</code></pre>
 <!-- ═══ Footer ═══ -->
 <footer class="lab-footer">
   <p>Local interoperability experiment · Page Agent 1.12.1 · MIT License</p>
-  <p class="footer-small">Built from <code>alibaba/page-agent@fa4664d</code> — packaged vendored bundle, no runtime network calls.</p>
+  <p class="footer-small">Analysed from <code>alibaba/page-agent@fa4664d</code> — documentation page with deterministic mock adapter, no runtime bundle.</p>
 </footer>
 
 <!-- ═══ Scripts ═══ -->
-<script src="vendor/page-agent.demo.js?autoInit=false" crossorigin="anonymous"></script>
 <script src="mock-model.js"></script>
-<script src="page-agent-lab.js"></script>
 </body>
 </html>

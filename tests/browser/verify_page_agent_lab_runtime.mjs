@@ -7,6 +7,10 @@
 //   - uses only node:assert, node:fs, node:vm
 //   - reads src/web/examples/page-agent/mock-model.js and verifies
 //     its deterministic behavior, task mapping, and URL blocking
+//
+// Note: page-agent@1.12.1 does not expose a usable non-demo browser bundle
+// for static integration. This harness tests the mock adapter layer that
+// would drive PageAgent in a fully integrated setup.
 
 import { readFileSync } from "node:fs";
 import assert from "node:assert";
@@ -22,28 +26,29 @@ const mockModelCode = readFileSync(
   "utf8",
 );
 
-const labJsCode = readFileSync(
-  new URL("page-agent-lab.js", EXAMPLES_BASE),
-  "utf8",
-);
-
 // ── VM Context ───────────────────────────────────────────────────────────
 
 function createContext() {
-  const mockDoc = {
-    getElementById(id) { return null; },
-    addEventListener() {},
-  };
   const ctx = {
     window: {
       location: { origin: "http://localhost:8765", href: "http://localhost:8765/examples/page-agent/" },
       addEventListener() {},
       PageAgent: undefined,
       PageAgentMockModel: undefined,
-      PageAgentLab: undefined,
-      fetch: (url) => Promise.reject(new Error("fetch not expected: " + url)),
+      setTimeout,
+      clearTimeout,
+      setInterval,
+      clearInterval,
     },
-    document: mockDoc,
+    document: {
+      getElementById(id) {
+        if (id === "quick-start" || id === "vs-browser-use" || id === "license" || id === "architecture") {
+          return { scrollIntoView() {}, style: {} };
+        }
+        return null;
+      },
+      addEventListener() {},
+    },
     console,
     setTimeout,
     clearTimeout,
@@ -174,7 +179,7 @@ function testUrlBlocking() {
   }
 
   const allowedUrls = [
-    "http://localhost:8765/examples/page-agent/vendor/page-agent.demo.js",
+    "http://localhost:8765/examples/page-agent/mock-model.js",
     "http://127.0.0.1:8765/page-agent-lab.css",
   ];
 
@@ -185,51 +190,32 @@ function testUrlBlocking() {
   console.log("  [5] URL blocking: OK");
 }
 
-function testLabJsInitializationMarkers() {
+function testOpenAiCompatibleResponseFormat() {
   const ctx = createContext();
-  // Pre-set PageAgent as a function so the lab JS can detect it
-  ctx.window.PageAgent = function PageAgentMock(config) {
-    this.config = config;
-    this.panel = { show: () => {} };
-  };
-  ctx.window.PageAgentMockModel = undefined; // Will be set when mock-model runs
-
-  // Run mock-model first
   runInContext(mockModelCode, ctx);
-  assert.ok(ctx.window.PageAgentMockModel, "mock model must be loaded before lab JS");
+  const model = ctx.window.PageAgentMockModel;
 
-  // Run lab JS
-  runInContext(labJsCode, ctx);
+  const result = model.handleCompletion(
+    "http://localhost/mock-llm/v1/chat/completions",
+    { messages: [{ role: "user", content: "Show the Quick Start section" }] },
+  );
 
-  // Check that the lab initialized (PageAgentLab should be defined)
-  // Note: initialization is async via DOMContentLoaded, so we may need
-  // to check for the lab's public API after a tick.
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const lab = ctx.window.PageAgentLab;
-      assert.ok(lab, "PageAgentLab must be defined after init");
-      assert.strictEqual(typeof lab.isReady, "function", "isReady must be a function");
-      assert.strictEqual(typeof lab.getAgent, "function", "getAgent must be a function");
-      assert.strictEqual(typeof lab.getSupportedTaskIds, "function", "getSupportedTaskIds must be a function");
+  // OpenAI-compatible envelope validation
+  assert.ok(result.id, "response must have an id");
+  assert.ok(result.id.startsWith("chatcmpl-"), "id must start with chatcmpl-");
+  assert.strictEqual(result.object, "chat.completion");
+  assert.ok(result.created > 0, "created must be a positive timestamp");
+  assert.strictEqual(result.model, "local-mock");
+  assert.ok(Array.isArray(result.choices), "choices must be an array");
+  assert.strictEqual(result.choices.length, 1, "must have exactly 1 choice");
+  assert.strictEqual(result.choices[0].index, 0);
+  assert.strictEqual(result.choices[0].message.role, "assistant");
+  assert.ok(result.choices[0].message.content.length > 0);
+  assert.strictEqual(result.choices[0].finish_reason, "stop");
+  assert.ok(result.usage, "must include usage info");
+  assert.ok(result.usage.total_tokens > 0);
 
-      // Verify customFetch and local-mock configuration
-      const agent = lab.getAgent();
-      assert.ok(agent, "agent must be created");
-      assert.ok(agent.config, "agent must have config");
-      assert.strictEqual(agent.config.model, "local-mock", "model must be local-mock");
-      assert.strictEqual(agent.config.apiKey, "local-test-only", "apiKey must be placeholder");
-      assert.ok(
-        agent.config.baseURL.includes("examples/page-agent/mock-llm/v1"),
-        `baseURL must point to local mock: ${agent.config.baseURL}`,
-      );
-      // customFetch must be a function
-      assert.strictEqual(typeof agent.config.customFetch, "function", "customFetch must be defined");
-      assert.ok(agent.panel, "agent must have panel property");
-
-      console.log("  [6] Lab initialization markers: OK");
-      resolve();
-    }, 200);
-  });
+  console.log("  [6] OpenAI-compatible response format: OK");
 }
 
 function testProvenanceConstants() {
@@ -237,7 +223,6 @@ function testProvenanceConstants() {
   runInContext(mockModelCode, ctx);
   const model = ctx.window.PageAgentMockModel;
 
-  // Check BLOCKED_HOSTS
   assert.ok(Array.isArray(model.BLOCKED_HOSTS), "BLOCKED_HOSTS must be an array");
   assert.ok(model.BLOCKED_HOSTS.includes("cdn.jsdelivr.net"), "must block jsdelivr");
   assert.ok(model.BLOCKED_HOSTS.includes("dashscope.aliyuncs.com"), "must block dashscope");
@@ -255,7 +240,7 @@ async function main() {
   testTaskLookup();
   testCompletionHandling();
   testUrlBlocking();
-  await testLabJsInitializationMarkers();
+  testOpenAiCompatibleResponseFormat();
   testProvenanceConstants();
   console.log("All Page Agent lab runtime scenarios passed.");
 }

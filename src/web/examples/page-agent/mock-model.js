@@ -186,20 +186,6 @@
     }
   }
 
-  // ── Scroll to target section helper ────────────────────────────────────
-
-  function scrollToSection(sectionId) {
-    var el = document.getElementById(sectionId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      el.style.transition = 'background 0.3s';
-      el.style.background = '#eef2ff';
-      setTimeout(function () {
-        el.style.background = '';
-      }, 2000);
-    }
-  }
-
   // ── Public API ─────────────────────────────────────────────────────────
 
   window.PageAgentMockModel = {
@@ -212,10 +198,7 @@
       var task = findTask(userMessage);
 
       if (task) {
-        // Schedule scroll to the target section
-        setTimeout(function () {
-          scrollToSection(task.sectionId);
-        }, 100);
+  
         return buildCompletion(task.response);
       }
 

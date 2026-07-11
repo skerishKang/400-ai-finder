@@ -1,6 +1,6 @@
 {
   "title": "Page Agent Local Lab",
-  "description": "Local interoperability experiment with Alibaba Page Agent",
+  "description": "Local interoperability experiment with Alibaba Page Agent — documentation page with deterministic mock adapter",
   "type": "attributed_open_source_example",
   "experiment_id": "1090",
   "build_date": "2026-07-11",
@@ -11,13 +11,10 @@
     "license": "MIT"
   },
   "integration": {
-    "type": "vendored_iife_bundle",
-    "class": "PageAgent",
-    "core": "PageAgentCore",
-    "controller": "PageController",
-    "panel": "Panel",
+    "type": "documentation_with_mock_adapter",
     "model_adapter": "local_deterministic_mock",
-    "model_endpoint": "/examples/page-agent/mock-llm/v1"
+    "model_endpoint": "/examples/page-agent/mock-llm/v1",
+    "bundle_status": "page-agent@1.12.1 does not expose a usable non-demo browser bundle for static integration. ESM module (722 B) requires bundler + @page-agent/* dependencies. IIFE demo bundle (209 KB) is excluded per experiment policy (auto-init, free testing API, CDN references)."
   },
   "network_profile": {
     "runtime_cdn": false,
