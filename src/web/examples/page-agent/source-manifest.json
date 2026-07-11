@@ -10,11 +10,23 @@
     "version": "1.12.1",
     "license": "MIT"
   },
+  "bundle_kind": "custom_non_demo_iife",
+  "build_provenance": {
+    "checkout": "temporary pinned upstream checkout",
+    "dependency_install": "npm ci --ignore-scripts using the pinned upstream lockfile",
+    "entry": "packages/page-agent/src/production-iife-entry.ts (temporary local production IIFE entry created inside the pinned upstream checkout)",
+    "source_module": "packages/page-agent/src/PageAgent.ts",
+    "excluded": [
+      "src/demo.ts",
+      "published demo auto-init",
+      "Alibaba testing endpoint"
+    ]
+  },
   "integration": {
     "type": "actual_page_agent_runtime",
     "model_adapter": "local_deterministic_mock",
     "model_endpoint": "/examples/page-agent/mock-llm/v1",
-    "bundle_status": "Vendored non-demo IIFE bundle built from pinned upstream source (packages/page-agent/src/production-iife-entry.ts). The bundle exposes window.PageAgent and runs the real Panel, PageAgentCore, PageController, and LLM client with a local deterministic mock model. The published demo bundle (auto-init, free testing API, CDN) is excluded per experiment policy.",
+    "bundle_status": "Custom non-demo IIFE bundle built locally from the pinned alibaba/page-agent source. The build used a temporary local production IIFE entry (packages/page-agent/src/production-iife-entry.ts) created inside the pinned upstream checkout, compiling the PageAgent source module (packages/page-agent/src/PageAgent.ts). It is a controlled local build output, not a published package bundle. The published demo entry (src/demo.ts, auto-init, free testing API, CDN) is excluded per experiment policy.",
     "vendor_manifest": "vendor-manifest.json"
   },
   "network_profile": {

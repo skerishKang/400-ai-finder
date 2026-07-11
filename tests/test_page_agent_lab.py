@@ -521,3 +521,119 @@ class TestApiIsolation:
         assert "/api/mvp/ask" not in text, (
             f"{filename} must not reference /api/mvp/ask"
         )
+
+
+# ── Provenance contracts (fail-closed) ─────────────────────────────────
+
+
+class TestProvenanceContract:
+    """Both manifests must describe the SAME, correct, offline build
+    provenance and must NOT claim a published npm/demo bundle was used.
+
+    These tests are fail-closed: any missing provenance field, any
+    mismatch between the two manifests, or any forbidden wording fails.
+    """
+
+    PINNED_COMMIT = "fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7"
+    EXPECTED_VERSION = "1.12.1"
+    EXPECTED_BUNDLE_KIND = "custom_non_demo_iife"
+
+    FORBIDDEN_SUBSTRINGS = [
+        "dist/page-agent.iife.js (npm package)",
+        # a representation that the published demo bundle was actually used
+        "used the published demo bundle",
+        "uses the published demo bundle",
+        "published demo bundle was used",
+    ]
+
+    def _vendor(self):
+        return json.loads(_read(os.path.join(_EXAMPLES_DIR, "vendor-manifest.json")))
+
+    def _source(self):
+        return json.loads(_read(os.path.join(_EXAMPLES_DIR, "source-manifest.json")))
+
+    def test_vendor_upstream_repository_present(self):
+        v = self._vendor()
+        assert "upstream_repository" in v, "vendor manifest must declare upstream_repository"
+        assert v["upstream_repository"] == "alibaba/page-agent"
+
+    def test_vendor_pinned_commit_exact(self):
+        v = self._vendor()
+        assert v.get("pinned_commit") == self.PINNED_COMMIT, (
+            f"vendor pinned_commit must be exactly {self.PINNED_COMMIT}, "
+            f"got {v.get('pinned_commit')}"
+        )
+
+    def test_vendor_version(self):
+        v = self._vendor()
+        assert v.get("version") == self.EXPECTED_VERSION
+
+    def test_vendor_bundle_kind(self):
+        v = self._vendor()
+        assert v.get("bundle_kind") == self.EXPECTED_BUNDLE_KIND
+
+    def test_vendor_build_provenance_nonempty_dict(self):
+        v = self._vendor()
+        bp = v.get("build_provenance")
+        assert isinstance(bp, dict) and len(bp) > 0, (
+            "vendor manifest build_provenance must be a non-empty object"
+        )
+
+    def test_vendor_dependency_install_uses_npm_ci_ignore_scripts(self):
+        v = self._vendor()
+        bp = v["build_provenance"]
+        di = bp.get("dependency_install", "")
+        assert "npm ci" in di, "build_provenance must record npm ci dependency install"
+        assert "--ignore-scripts" in di, (
+            "build_provenance must record --ignore-scripts (no postinstall)"
+        )
+
+    def test_vendor_excluded_lists_src_demo_ts(self):
+        v = self._vendor()
+        bp = v["build_provenance"]
+        excluded = bp.get("excluded", [])
+        joined = " ".join(excluded)
+        assert "src/demo.ts" in joined, (
+            "build_provenance.excluded must list src/demo.ts"
+        )
+
+    def test_vendor_runtime_offline(self):
+        v = self._vendor()
+        rp = v.get("runtime_profile", {})
+        assert rp.get("cdn") is False, "runtime must not use a CDN"
+        assert rp.get("live_model_api") is False, "runtime must not use a live model API"
+        assert rp.get("non_local_requests") == 0, "runtime must make 0 non-local requests"
+
+    def test_source_runtime_offline(self):
+        s = self._source()
+        np_ = s.get("network_profile", {})
+        assert np_.get("runtime_cdn") is False, "source network_profile.runtime_cdn must be False"
+        assert np_.get("live_llm_api") is False, "source network_profile.live_llm_api must be False"
+        assert np_.get("non_local_requests") == 0
+
+    def test_manifests_consistent(self):
+        s = self._source()
+        v = self._vendor()
+        # repository
+        assert s["upstream"]["repository"] == v["upstream_repository"], (
+            "repository must match between source and vendor manifests"
+        )
+        # pinned commit
+        assert s["upstream"]["pinned_commit"] == v["pinned_commit"], (
+            "pinned_commit must match between source and vendor manifests"
+        )
+        # version
+        assert s["upstream"]["version"] == v["version"], (
+            "version must match between source and vendor manifests"
+        )
+        # bundle kind
+        assert s.get("bundle_kind") == v.get("bundle_kind"), (
+            "bundle_kind must match between source and vendor manifests"
+        )
+
+    def test_no_forbidden_provenance_wording(self):
+        s_text = _read(os.path.join(_EXAMPLES_DIR, "source-manifest.json"))
+        v_text = _read(os.path.join(_EXAMPLES_DIR, "vendor-manifest.json"))
+        for sub in self.FORBIDDEN_SUBSTRINGS:
+            assert sub not in s_text, f"source manifest must not contain forbidden wording: '{sub}'"
+            assert sub not in v_text, f"vendor manifest must not contain forbidden wording: '{sub}'"
