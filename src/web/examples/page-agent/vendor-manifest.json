@@ -1,0 +1,43 @@
+{
+  "source": "@alicloud/page-agent",
+  "version": "1.12.1",
+  "upstream_repository": "alibaba/page-agent",
+  "pinned_commit": "fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7",
+  "bundle_kind": "custom_non_demo_iife",
+  "description": "Custom non-demo IIFE bundle built locally from pinned alibaba/page-agent source for the offline lab. Controlled local build output, not a published package bundle.",
+  "build_provenance": {
+    "checkout": "temporary pinned upstream checkout",
+    "dependency_install": "npm ci --ignore-scripts using the pinned upstream lockfile",
+    "entry": "packages/page-agent/src/production-iife-entry.ts (temporary local production IIFE entry created inside the pinned upstream checkout)",
+    "source_module": "packages/page-agent/src/PageAgent.ts",
+    "excluded": [
+      "src/demo.ts",
+      "published demo auto-init",
+      "Alibaba testing endpoint"
+    ]
+  },
+  "runtime_profile": {
+    "cdn": false,
+    "live_model_api": false,
+    "non_local_requests": 0
+  },
+  "vendored_files": [
+    {
+      "path": "vendor/LICENSE",
+      "source": "alibaba/page-agent/LICENSE (MIT)",
+      "bytes": 1070,
+      "sha256": "062A52901BED47A901076645239CE20B74EF9EDC8239149A7842CE153B959F9D"
+    },
+    {
+      "path": "vendor/page-agent.iife.js",
+      "source": "custom non-demo IIFE built locally from pinned alibaba/page-agent source",
+      "bytes": 208138,
+      "sha256": "ADE2BD44C77C2555143BD3D008FE9C3527D161C2C922A579471CE8A6C6FA3C74"
+    }
+  ],
+  "integrity": {
+    "verified_at": "2026-07-12T00:00:00Z",
+    "verified_by": "local-build",
+    "notes": "Offline vendored copy. Bundle is a controlled local build artifact; runtime performs no remote fetch."
+  }
+}
