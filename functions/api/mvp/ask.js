@@ -29,26 +29,6 @@ export const PROVIDER_DEFAULTS = Object.freeze({
   }),
 });
 
-export const OFFICIAL_SOURCE_DEFAULTS = Object.freeze({
-  homepage: 'https://bukgu.gwangju.kr/',
-  search: 'https://search.bukgu.gwangju.kr/RSA/front/Search.jsp',
-});
-
-const OFFICIAL_SEARCH_TERMS = Object.freeze({
-  illegal_parking: '불법 주정차 신고',
-  housing_department: '공동주택과',
-  bulky_waste: '대형폐기물 배출방법',
-  passport_guidance: '여권민원',
-  unmanned_kiosk: '무인민원발급기',
-  streetlight_report: '가로등 고장 신고',
-  litter_ai_assist: '쓰레기 무단투기 신고',
-});
-
-const OFFICIAL_FETCH_TIMEOUT_MS = 4500;
-const OFFICIAL_RAW_HTML_LIMIT = 240000;
-const OFFICIAL_PAGE_TEXT_LIMIT = 7000;
-const OFFICIAL_CONTEXT_LIMIT = 15000;
-
 const ACTION_RULES = Object.freeze([
   { action: 'illegal_parking', terms: ['불법 주정차', '불법주정차', '주차 단속', '주정차 신고'] },
   { action: 'housing_department', terms: ['공동주택', '아파트 부서', '아파트 문의'] },
@@ -97,134 +77,6 @@ export function classifyAction(question) {
     }
   }
   return 'none';
-}
-
-function normalizeQuestionForSearch(question) {
-  return String(question || '')
-    .normalize('NFKC')
-    .replace(/https?:\/\/\S+/gi, ' ')
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, ' ')
-    .replace(/\b\d{6}\s*-?\s*[1-4]\d{6}\b/g, ' ')
-    .replace(/\b\d[\d\s-]{6,}\d\b/g, ' ')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-export function buildOfficialSearchQuery(question, action = classifyAction(question)) {
-  if (OFFICIAL_SEARCH_TERMS[action]) return OFFICIAL_SEARCH_TERMS[action];
-
-  const normalized = normalizeQuestionForSearch(question);
-  if (/대표\s*전화|전화번호|운영\s*시간|업무\s*시간|민원실|점심\s*시간/i.test(normalized)) {
-    return '북구청 대표전화 구청 동행정복지센터 운영시간';
-  }
-  return normalized.slice(0, 100) || '북구청 민원 안내';
-}
-
-export function buildOfficialSearchUrl(query) {
-  const url = new URL(OFFICIAL_SOURCE_DEFAULTS.search);
-  url.searchParams.set('qt', String(query || '').trim());
-  return url.toString();
-}
-
-function decodeHtmlEntities(value) {
-  const named = {
-    amp: '&',
-    apos: "'",
-    copy: '(c)',
-    gt: '>',
-    hellip: '...',
-    laquo: '<<',
-    lt: '<',
-    middot: '·',
-    nbsp: ' ',
-    ndash: '-',
-    quot: '"',
-    raquo: '>>',
-  };
-  return String(value || '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity) => {
-    if (entity[0] !== '#') return Object.prototype.hasOwnProperty.call(named, entity.toLowerCase())
-      ? named[entity.toLowerCase()]
-      : ' ';
-    const isHex = entity[1].toLowerCase() === 'x';
-    const codePoint = Number.parseInt(entity.slice(isHex ? 2 : 1), isHex ? 16 : 10);
-    if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10ffff) return ' ';
-    try {
-      return String.fromCodePoint(codePoint);
-    } catch (_) {
-      return ' ';
-    }
-  });
-}
-
-export function sanitizeOfficialHtml(html) {
-  const raw = String(html || '').slice(0, OFFICIAL_RAW_HTML_LIMIT);
-  return decodeHtmlEntities(raw
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/<(script|style|noscript|template|svg|iframe|object)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ')
-    .replace(/<(br|hr)\s*\/?\s*>/gi, '\n')
-    .replace(/<\/(address|article|aside|dd|div|dl|dt|footer|form|h[1-6]|header|li|main|nav|ol|p|section|table|tbody|td|th|thead|tr|ul)\s*>/gi, '\n')
-    .replace(/<[^>]+>/g, ' '))
-    .replace(/\r/g, '')
-    .split('\n')
-    .map((line) => line.replace(/[\t ]+/g, ' ').trim())
-    .filter(Boolean)
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function relevantOfficialText(text, query) {
-  const clean = String(text || '').trim();
-  if (!clean) return '';
-  const snippets = [];
-  const seen = new Set();
-  const add = (value) => {
-    const snippet = String(value || '').trim();
-    if (!snippet || seen.has(snippet)) return;
-    seen.add(snippet);
-    snippets.push(snippet);
-  };
-
-  add(clean.slice(0, 1500));
-  // The official homepage publishes contact details and operating hours in its footer.
-  add(clean.slice(Math.max(0, clean.length - 1800)));
-  const tokens = Array.from(new Set(
-    String(query || '').split(/\s+/).map((token) => token.trim()).filter((token) => token.length >= 2),
-  )).slice(0, 8);
-  for (const token of tokens) {
-    let fromIndex = 0;
-    for (let matchCount = 0; matchCount < 3; matchCount += 1) {
-      const index = clean.indexOf(token, fromIndex);
-      if (index < 0) break;
-      add(clean.slice(Math.max(0, index - 350), Math.min(clean.length, index + token.length + 850)));
-      fromIndex = index + token.length;
-    }
-  }
-  return snippets.join('\n...\n').slice(0, OFFICIAL_PAGE_TEXT_LIMIT);
-}
-
-async function fetchOfficialText(url, query) {
-  const controller = typeof AbortController === 'function' ? new AbortController() : null;
-  const timeout = controller ? setTimeout(() => controller.abort(), OFFICIAL_FETCH_TIMEOUT_MS) : null;
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'text/html,application/xhtml+xml' },
-      redirect: 'follow',
-      signal: controller ? controller.signal : undefined,
-      cf: { cacheEverything: true, cacheTtl: 120 },
-    });
-    if (!response.ok) {
-      await response.text();
-      return '';
-    }
-    return relevantOfficialText(sanitizeOfficialHtml(await response.text()), query);
-  } catch (_) {
-    return '';
-  } finally {
-    if (timeout) clearTimeout(timeout);
-  }
 }
 
 function buildCanonicalSnapshotContext(action) {
@@ -288,42 +140,32 @@ function buildCanonicalSnapshotContext(action) {
   };
 }
 
-export async function retrieveOfficialContext(question, action = classifyAction(question)) {
-  const snapshotContext = buildCanonicalSnapshotContext(action);
-  if (snapshotContext) return snapshotContext;
-
-  const query = buildOfficialSearchQuery(question, action);
-  const searchUrl = buildOfficialSearchUrl(query);
-  const [homepageText, searchText] = await Promise.all([
-    fetchOfficialText(OFFICIAL_SOURCE_DEFAULTS.homepage, query),
-    fetchOfficialText(searchUrl, query),
-  ]);
-  const sections = [];
-  const sources = [];
-
-  if (searchText) {
-    sections.push(`[북구청 공식 통합검색: ${query}]\n${searchText}`);
-    sources.push({ title: `북구청 통합검색: ${query}`, url: searchUrl, official: true });
-  }
-  if (homepageText) {
-    sections.push(`[광주광역시 북구청 공식 홈페이지]\n${homepageText}`);
-    sources.push({ title: '광주광역시 북구청', url: OFFICIAL_SOURCE_DEFAULTS.homepage, official: true });
-  }
-
+function buildSnapshotUnavailableContext(action) {
   return {
-    ok: sections.length > 0,
-    evidence: sections.join('\n\n').slice(0, OFFICIAL_CONTEXT_LIMIT),
-    sources,
-    sourceUrl: sources[0] ? sources[0].url : '',
-    searchQueries: sections.length ? [query] : [],
-    freshnessState: sections.length ? 'live_official' : 'model_only',
+    ok: false,
+    evidence: '',
+    sources: [],
+    sourceUrl: '',
+    searchQueries: [],
+    freshnessState: 'snapshot_unavailable',
     capturedAt: '',
     verifiedAt: '',
     routeId: '',
     pageId: '',
     snapshotId: '',
     canonicalSha256: '',
+    action,
   };
+}
+
+// Official context is served only from canonical, owner-approved snapshots.
+// Actions without a canonical snapshot do not fall back to request-time fetches
+// of the live Buk-gu site or integrated search; they return an explicit
+// non-official state so model inference is never misrepresented as official fact.
+export async function retrieveOfficialContext(question, action = classifyAction(question)) {
+  const snapshotContext = buildCanonicalSnapshotContext(action);
+  if (snapshotContext) return snapshotContext;
+  return buildSnapshotUnavailableContext(action);
 }
 
 export function normalizeProviderOrder(value) {
@@ -437,6 +279,9 @@ function safeSource(annotation) {
         ? annotation.title.trim().slice(0, 160)
         : url.hostname,
       url: url.toString(),
+      // `official` here is only URL-domain classification (e.g. *.go.kr). It is
+      // NOT a canonical snapshot validation state and must never promote the
+      // response freshness to `live_official` or `official_snapshot`.
       official: isOfficialUrl(url.toString()),
     };
   } catch (_) {
@@ -617,7 +462,7 @@ async function requestOpenAICompatible(config, question, currentTime, officialCo
     answer: parsed.answer,
     action: parsed.action,
     confidence: parsed.confidence,
-    freshnessState: officialContext.freshnessState || (officialContext.ok ? 'live_official' : 'model_only'),
+    freshnessState: officialContext.freshnessState,
     sources: officialContext.sources,
     sourceUrl: officialContext.sourceUrl,
     searchQueries: officialContext.searchQueries,
@@ -653,10 +498,8 @@ async function requestGeminiInteractions(config, question, currentTime, official
   }
   const parsed = parseGroundedInteraction(data);
   if (!parsed.answer) return { ok: false, failureCode: 'empty_response' };
-  const officialSources = parsed.sources.filter((source) => source.official);
   const sources = mergeSources(officialContext.sources, parsed.sources);
   const primarySource = officialContext.sourceUrl ||
-    (officialSources[0] && officialSources[0].url) ||
     (parsed.sources[0] && parsed.sources[0].url) ||
     '';
   return {
@@ -664,9 +507,13 @@ async function requestGeminiInteractions(config, question, currentTime, official
     answer: parsed.answer,
     action: parsed.action,
     confidence: parsed.confidence,
-    freshnessState: officialContext.ok
-      ? (officialContext.freshnessState || 'live_official')
-      : (officialSources.length ? 'live_official' : (parsed.sources.length ? 'live_web' : 'model_only')),
+    // Canonical provenance is authoritative and never derived from provider
+    // search results. Provider Google Search annotations are preserved as
+    // supplementary citations in `sources` but must not promote the response
+    // to `live_official` or `official_snapshot`. An action without a canonical
+    // snapshot stays `snapshot_unavailable` even when the provider returns
+    // official-domain citations.
+    freshnessState: officialContext.freshnessState,
     sources,
     sourceUrl: primarySource,
     searchQueries: mergeQueries(officialContext.searchQueries, parsed.searchQueries),
