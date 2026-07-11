@@ -8,7 +8,8 @@
  * Vocabulary source (read-only, not modified):
    *   Route IDs:  home, civil-service, complaint-category,
    *               complaint-illegal-parking, complaint-intake,
-   *               complaint-board, handoff-stop, complaint-review,
+   *               complaint-board, complaint-write, handoff-stop,
+   *               complaint-review,
    *               bulky-waste-disposal, passport-guidance,
    *               unmanned-kiosk-guidance, apartment-info,
    *               apartment-dept
@@ -38,6 +39,7 @@
     "complaint-illegal-parking",
     "complaint-intake",
     "complaint-board",
+    "complaint-write",
     "handoff-stop",
     "complaint-review",
 "bulky-waste-disposal",
@@ -56,6 +58,8 @@
     "complaint-category-traffic-or-facility-safety",
     "complaint-category-other-or-unsure",
     "complaint-illegal-parking-report",
+    "complaint-write",
+    "complaint-board-return",
     "complaint-body",
     "complaint-draft-review",
     "confirm-draft-prefill",
@@ -124,8 +128,16 @@
       id: "complaint-board",
       title: "민원게시판",
       purpose: "북구청 민원게시판에서 민원을 조회하고 새 글을 작성할 수 있습니다.",
-      navTargets: Object.freeze([]),
+      navTargets: Object.freeze(["complaint-write"]),
       breadcrumbLabel: "민원게시판",
+    }),
+
+    "complaint-write": Object.freeze({
+      id: "complaint-write",
+      title: "민원 글쓰기",
+      purpose: "AI가 제목과 본문 초안을 입력하고 주민이 제출 전에 검토합니다.",
+      navTargets: Object.freeze(["complaint-board-return"]),
+      breadcrumbLabel: "민원 글쓰기",
     }),
 
     "complaint-review": Object.freeze({

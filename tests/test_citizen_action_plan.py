@@ -252,6 +252,13 @@ class TestComplaintBoardRouteVocabulary:
         ])
         assert plan.plan_status == "guided"
 
+    def test_complaint_write_is_valid_reversible_route(self):
+        plan = build_citizen_action_plan([
+            make_action("OPEN_ALLOWLISTED_ROUTE", route_id="complaint-write"),
+            stop_action(),
+        ])
+        assert plan.plan_status == "guided"
+
     def test_unknown_route_still_invalid(self):
         """an unknown route id must still be rejected (no over-permissiveness)."""
         plan = build_citizen_action_plan([
@@ -264,7 +271,7 @@ class TestComplaintBoardRouteVocabulary:
         """pre-existing approved routes must remain valid after the sync."""
         for rid in (
             "home", "civil-service", "complaint-category",
-            "complaint-illegal-parking", "complaint-intake", "handoff-stop",
+            "complaint-illegal-parking", "complaint-intake", "complaint-write", "handoff-stop",
             "complaint-review", "bulky-waste-disposal", "passport-guidance",
             "unmanned-kiosk-guidance", "apartment-info", "apartment-dept",
         ):

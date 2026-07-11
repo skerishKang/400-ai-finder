@@ -5,9 +5,9 @@
 
 ---
 
-## 1. 정적 시연 모드 (Static / Default)
+## 1. 정적 시연 모드 (명시적 fallback)
 
-기본 `/mvp/` 경로는 **정적 시연 배포본**으로 동작한다.
+`--mode static`으로 빌드한 `/mvp/` 경로는 네트워크 없는 **정적 fallback**으로 동작한다.
 
 ### 성격
 
@@ -53,7 +53,7 @@
 ### 로컬 빌드
 
 ```bash
-python3 scripts/build_cloudflare_pages.py
+python3 scripts/build_cloudflare_pages.py --mode static
 ```
 
 빌드는 재현 가능하다(결정형). 출력은 `dist/cloudflare-pages/` 에 생성된다.
@@ -62,8 +62,8 @@ python3 scripts/build_cloudflare_pages.py
 
 ## 2. Live LLM 모드 (MVP Mode)
 
-`functions/api/mvp/ask.js` Cloudflare Pages Function을 통해 **실제 Gemini LLM**에
-연결하여 질문-답변을 처리할 수 있다.
+기본 배포는 `functions/api/mvp/ask.js` Cloudflare Pages Function을 통해 **실제 Gemini**에
+연결하고, Google 검색으로 현재 공식 자료를 확인해 질문-답변을 처리한다.
 
 ### 활성화 조건
 
@@ -91,8 +91,12 @@ python3 scripts/build_cloudflare_pages.py
   "action": "illegal_parking",
   "confidence": 0.95,
   "provider": "gemini",
-  "model": "gemini-3.1-flash-lite",
-  "failure_code": ""
+  "model": "gemini-3.5-flash",
+  "failure_code": "",
+  "retrieved_at": "2026-07-11T04:15:00.000Z",
+  "freshness_state": "live_official",
+  "source_url": "https://bukgu.gwangju.kr/...",
+  "sources": [{"title": "북구청", "url": "https://bukgu.gwangju.kr/...", "official": true}]
 }
 ```
 
@@ -100,10 +104,10 @@ python3 scripts/build_cloudflare_pages.py
 | 항목 | 조건 | 실패 시 |
 |---|---|---|
 | `question` | 필수, 문자열, 300자 이내 | `invalid_input` (status 200, `ok: false`) 또는 400 |
-| `action` (LLM 응답) | `VALID_ACTIONS` 중 하나로 강제 | 알 수 없는 action → `'none'` |
-| `confidence` (LLM 응답) | 0.0 ~ 1.0으로 clamp | `Math.max(0, Math.min(1, parsed.confidence))` |
-| `answer` (LLM 응답) | 빈 값 fail-closed | `'죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.'` |
-| CORS | origin allowlist (`cgbukku.pages.dev`, `localhost:8000`, `127.0.0.1:8000`) + `Vary: Origin` | |
+| `action` | 서버의 7개 시연 규칙으로 결정 | 그 밖의 질문은 `'none'` |
+| `answer` | Gemini 검색 근거 답변, 빈 값 fail-closed | 최신 공식정보 확인 실패 안내 |
+| 최신성 메타데이터 | `retrieved_at`, `freshness_state`, `source_url`, `sources` | 근거가 없으면 `model_only` 또는 `unavailable` |
+| CORS | production/preview `cgbukku.pages.dev`와 localhost allowlist + `Vary: Origin` | |
 
 ### 실패 모드
 
@@ -113,7 +117,7 @@ python3 scripts/build_cloudflare_pages.py
 | 질문 300자 초과 | 200 | false | `invalid_input` |
 | API key 미설정 | 200 | false | `config_error` |
 | Upstream HTTP 오류 | 200 | false | `upstream_error` |
-| JSON 파싱 오류 | 200 | false | — (answer에 raw content) |
+| 빈/비정상 upstream 응답 | 200 | false | `empty_response` |
 | 서버 내부 오류 | 200 | false | `internal_error` |
 
 > 모든 실패 응답은 **status 200**으로 반환되어 MVP 정적 shim과의 contract 일관성을 유지한다.

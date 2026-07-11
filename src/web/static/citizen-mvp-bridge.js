@@ -30,6 +30,11 @@
       model: "",
       quest: null,
       action_plan: null,
+      current_time: "",
+      retrieved_at: "",
+      freshness_state: "unavailable",
+      source_url: "",
+      sources: [],
     };
   }
 
@@ -64,6 +69,11 @@
             model: data ? data.model : "",
             quest: data && data.quest ? data.quest : null,
             action_plan: data && data.action_plan ? data.action_plan : null,
+            current_time: data && typeof data.current_time === "string" ? data.current_time : "",
+            retrieved_at: data && typeof data.retrieved_at === "string" ? data.retrieved_at : "",
+            freshness_state: data && typeof data.freshness_state === "string" ? data.freshness_state : "",
+            source_url: data && typeof data.source_url === "string" ? data.source_url : "",
+            sources: data && Array.isArray(data.sources) ? data.sources : [],
           };
         }, function () {
           // JSON parse failure → treat as malformed model response.

@@ -15,6 +15,8 @@ STATIC = os.path.join(os.path.dirname(__file__), "..", "src", "web", "static")
 HTML_FILE = os.path.join(STATIC, "citizen-action-demo.html")
 UI_FILE = os.path.join(STATIC, "citizen-complaint-journey-ui.js")
 CSS_FILE = os.path.join(STATIC, "citizen-complaint-journey.css")
+CANVAS_FILE = os.path.join(STATIC, "citizen-action-demo-canvas.js")
+CHOREO_FILE = os.path.join(STATIC, "citizen-first-choreography.js")
 
 
 def _read(path):
@@ -159,36 +161,29 @@ class TestNoNetworkOrStorage:
 
 
 # =========================================================================
-# Test 6: UI/HTML contain no form, input, textarea, select,
-#         contenteditable, or submit
+# Test 6: owner-approved forms keep a visible confirmation boundary
 # =========================================================================
 
-class TestNoFormElements:
-    # These patterns (in actual HTML or source code) are forbidden.
-    FORBIDDEN_PATTERNS = [
-        "<form",
-        "<input",
-        "<textarea",
-        "<select",
-        'contenteditable=',
-        'type="submit"',
-        'action="',
-    ]
-
-    def test_html_has_no_form_elements(self):
+class TestAuthorizedFormBoundary:
+    def test_html_has_semantic_chat_form_without_external_action(self):
         src = _read(HTML_FILE)
-        for pat in self.FORBIDDEN_PATTERNS:
-            assert pat not in src, \
-                f"HTML must not contain '{pat}'"
+        assert '<form class="chat-composer"' in src
+        form_tag = re.search(r'<form[^>]+>', src).group(0)
+        assert "action=" not in form_tag
 
-    def test_ui_source_has_no_form_elements(self):
-        src = _read(UI_FILE)
-        # Remove comment blocks so "no contenteditable" prose is not flagged.
-        code = re.sub(r'/\*[\s\S]*?\*/', '',
-                      re.sub(r'//.*', '', src))
-        for pat in self.FORBIDDEN_PATTERNS:
-            assert pat not in code, \
-                f"UI source must not contain '{pat}' in code"
+    def test_complaint_write_form_has_title_body_and_locked_submit(self):
+        src = _read(CANVAS_FILE)
+        assert 'id="board-write-title"' in src
+        assert 'id="board-write-content"' in src
+        submit = re.search(r'<button[^>]+id="btn-board-submit"[^>]*>', src).group(0)
+        assert "disabled" in submit
+        assert 'aria-disabled="true"' in submit
+
+    def test_choreography_requires_confirmation_before_submit_adapter(self):
+        src = _read(CHOREO_FILE)
+        assert "requiresConfirmation: true" in src
+        assert src.index("requiresConfirmation: true") < src.index("function confirmSubmission")
+        assert "CitizenContentAdapter.submitBoardPost" in src
 
 
 # =========================================================================
@@ -308,31 +303,19 @@ class TestNoExternalNavigation:
 
 
 # =========================================================================
-# Test 14: Terminal notice contains non-submit / non-transmit / non-auth text
+# Test 14: terminal region and explicit submission confirmation remain present
 # =========================================================================
 
 class TestTerminalNotice:
-    REQUIRED_TERMS = [
-        "로컬",
-        "실제 제출",
-        "전송",
-        "인증",
-        "종료",
-    ]
-
-    def test_terminal_notice_in_ui_source(self):
-        src = _read(UI_FILE)
-        for term in self.REQUIRED_TERMS:
-            assert term in src, \
-                f"Terminal notice must contain '{term}'"
-
     def test_terminal_notice_in_html(self):
         src = _read(HTML_FILE)
         assert "journey-terminal-notice" in src
 
-    def test_terminal_notice_mentions_no_submission(self):
-        src = _read(UI_FILE)
-        assert "제출" in src or "전송" in src or "인증" in src
+    def test_submission_prompt_is_explicit_and_reversible(self):
+        src = _read(CHOREO_FILE)
+        assert "이 내용으로 데모 민원게시판에 제출할까요?" in src
+        assert "검토했고, 제출하기" in src
+        assert "수정할게요" in src
 
 
 # =========================================================================

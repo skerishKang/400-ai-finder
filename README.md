@@ -298,7 +298,7 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 - `tests/fixtures/bukgu_gwangju_demo_snapshot.json` 파일을 스냅샷 테스트에 활용합니다.
 - Provider live-only tests are opt-in and skipped by default. They require explicit `RUN_LIVE_*_TESTS=1` flags in addition to API keys. See `docs/provider-fetch-network-boundary.md` for details.
 
-## Cloudflare Pages 정적 시연 배포
+## Cloudflare Pages AI MVP 배포
 
 400-ai-finder는 **두 가지 배포 방식**을 지원합니다. 이 둘은 완전히 독립적이며, 각각 다른 목적에 사용됩니다.
 
@@ -307,30 +307,31 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 | 구분 | 설명 |
 |------|------|
 | **Python 로컬/서버 데모** | `src/web` 기반 Python 서버. 실제 AI·API·크롤링 사용 가능 (→ [`docs/operator-quickstart.md`](docs/operator-quickstart.md)) |
-| **Cloudflare Pages 정적 시연** | `dist/cloudflare-pages/` 빌드 산출물. 백엔드 없음, 결정형 스냅샷 기반, 네트워크 호출 없음 |
-| **Cloudflare Pages Live LLM** | `--mode live`로 빌드 시 `functions/api/mvp/ask.js`(Cloudflare Pages Function)를 통해 live LLM(Gemini) 사용 가능. `GEMINI_API_KEY` secret 필요 |
+| **Cloudflare Pages Live AI** | 기본 배포. `functions/api/mvp/ask.js`를 통해 Gemini와 최신 검색 근거를 사용. `GEMINI_API_KEY` secret 필요 |
+| **Cloudflare Pages 정적 시연** | `--mode static` 전용 비상·회귀검증 모드. 백엔드 없이 결정형 스냅샷을 사용 |
 
 ### Live LLM 모드
 
-Cloudflare Pages는 기본적으로 **static build**(`python3 scripts/build_cloudflare_pages.py`)를 사용하여 백엔드 없는 결정형 데모를 배포합니다.
+Cloudflare Pages의 무인자 빌드(`python3 scripts/build_cloudflare_pages.py`)는 기본적으로 **live AI 모드**를 배포합니다.
 
-`scripts/build_cloudflare_pages.py --mode live`를 사용하면 `functions/api/mvp/ask.js` Cloudflare Pages Function이 활성화되어 live LLM mode를 사용할 수 있습니다. 이 모드에서는:
+이 모드에서는 `functions/api/mvp/ask.js` Cloudflare Pages Function이 활성화되어:
 
 - `GEMINI_API_KEY` secret이 Cloudflare Pages에 설정되어 있어야 합니다.
 - 채팅 인터페이스가 `/api/mvp/ask` 엔드포인트를 통해 실시간 LLM 응답을 제공합니다.
 - `?mvp=1` 쿼리 파라미터가 MVP entry에서 유지되어 shell이 live bridge를 로드합니다.
+- 답변마다 공식 출처 URL, 조회시각, 신선도 상태를 내부 계약으로 전달합니다.
 
 ```bash
-# Live LLM mode 빌드
-python3 scripts/build_cloudflare_pages.py --mode live
-
-# static mode (기본값)
+# Live AI 배포 빌드 (기본값)
 python3 scripts/build_cloudflare_pages.py
+
+# 오프라인 정적 fallback
+python3 scripts/build_cloudflare_pages.py --mode static
 ```
 
 ### 정적 Pages 시연 개요
 
-Cloudflare Pages는 GitHub `main` push 시 **자동으로** `python3 scripts/build_cloudflare_pages.py`를 실행하여 정적 시연 산출물(`dist/cloudflare-pages/`)을 프로덕션에 배포합니다. 자세한 설정값은 [`docs/cloudflare-pages-bukgu-mvp.md`](docs/cloudflare-pages-bukgu-mvp.md)를 참고하세요.
+Cloudflare Pages는 GitHub `main` push 시 **자동으로** `python3 scripts/build_cloudflare_pages.py`를 실행하여 Live AI 산출물(`dist/cloudflare-pages/`)과 Pages Function을 프로덕션에 배포합니다. 자세한 설정값은 [`docs/cloudflare-pages-bukgu-mvp.md`](docs/cloudflare-pages-bukgu-mvp.md)를 참고하세요.
 
 | 항목 | 값 |
 |---|---|
@@ -349,7 +350,7 @@ Cloudflare Pages는 GitHub `main` push 시 **자동으로** `python3 scripts/bui
 | 경로 | 설명 |
 |---|---|
 | `/` | 정적 랜딩 페이지 (MVP 카드 포함) |
-| `/mvp/` | 시민 첫 화면 시연 entry (백엔드 없음) |
+| `/mvp/` | 시민 첫 화면 및 AI 행정 브라우저 시연 entry |
 | `/mobile` | 모바일 챗 데모 (`/mobile.html` → 308 redirect) |
 | `/admin` | 운영자 화면 (`/admin.html` → 308 redirect) |
 
@@ -387,7 +388,7 @@ curl -sI https://cgbukku.pages.dev/admin     # 200
 
 ### Boundaries
 
-- 이 정적 시연은 **백엔드 없는 결정형 데모**입니다. 기본 검증 흐름은 이 로컬 정적 아티팩트만으로 충분합니다.
+- 정적 모드는 `--mode static`으로 계속 제공되며, CI와 오프라인 fallback 검증에 사용합니다.
 - 북구청 공식 사이트 참고·클릭·검색·스크린샷 비교, route/content inventory, crawling/scraping, 그리고 Firecrawl·외부 API·live provider reference 수집은 현재 제품 방향에서 **허용되는 참고·수집 작업**입니다.
 - live-dependent 실험 경로(Firecrawl/외부 API/live provider 호출)는 별도 operational stage로 분리되어 있으며, 명시적 opt-in과 자격 증명(env) 설정 하에 실행됩니다. 자세한 경계는 [`docs/provider-fetch-network-boundary.md`](docs/provider-fetch-network-boundary.md)를 참고하세요.
 - Cloudflare 배포 제어는 운영자 전용입니다. 배포 재실행(Retry/Redeploy/Create deployment)은 배포 권한 보유 운영자만 수행하며, secrets/env는 해당 운영자 책임 하에 다룹니다.

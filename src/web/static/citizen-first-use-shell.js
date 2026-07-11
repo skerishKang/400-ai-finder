@@ -73,7 +73,7 @@
   function normalizeMvpAction(result) {
     if (!result || result.ok !== true) return "none";
     var a = result.action;
-    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "passport_guidance" || a === "unmanned_kiosk" || a === "none") {
+    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "passport_guidance" || a === "unmanned_kiosk" || a === "streetlight_report" || a === "litter_ai_assist" || a === "none") {
       return a;
     }
     return "none";
@@ -268,12 +268,14 @@
   }
 
   function resolveMvpActionForQuestion(question, result, hasUsableMvpResult) {
-    if (!hasUsableMvpResult) return "none";
-    var action = normalizeMvpAction(result);
-    if (action !== "none") return action;
+    // Exact presentation prompts are product-owned routes. Keep them stable
+    // even when the live model is unavailable or classifies a chip loosely.
     var normalized = normalizeQuestion(question);
     var mapped = SUPPORTED_QUESTION_ACTIONS[normalized];
     if (mapped) return mapped;
+    if (!hasUsableMvpResult) return "none";
+    var action = normalizeMvpAction(result);
+    if (action !== "none") return action;
     return "none";
   }
 
@@ -616,20 +618,58 @@
     }
   }
 
+  function resetOfficialCanvasScroll() {
+    if (!canvas) return;
+    canvas.scrollTop = 0;
+    canvas.scrollLeft = 0;
+  }
+
+  function clearPreviousJourneyLocationState() {
+    if (!window.location || !window.history || typeof window.history.replaceState !== "function") {
+      return;
+    }
+    try {
+      var params = new URLSearchParams(window.location.search || "");
+      ["journey", "dept-state", "replay", "replay-mode", "replay-step"].forEach(function (key) {
+        params.delete(key);
+      });
+      var query = params.toString();
+      var path = window.location.pathname || "";
+      var hash = window.location.hash || "";
+      window.history.replaceState({}, "", path + (query ? "?" + query : "") + hash);
+    } catch (_) {
+      // URL state is an enhancement; the DOM and scroll reset still proceed.
+    }
+  }
+
   function startCinematicSplit() {
+    if (window.CitizenFirstChoreography &&
+        typeof window.CitizenFirstChoreography.cancel === "function") {
+      window.CitizenFirstChoreography.cancel();
+    }
+    if (window.CitizenActionDemoCanvas &&
+        typeof window.CitizenActionDemoCanvas.hideCursor === "function") {
+      window.CitizenActionDemoCanvas.hideCursor();
+    }
+    clearPreviousJourneyLocationState();
+    resetOfficialCanvasScroll();
+
     // Paint the official canvas before the reveal starts so the animation
     // exposes a complete page rather than a loading placeholder.
     _renderBukguHomeFixture();
+    resetOfficialCanvasScroll();
 
     if (prefersReducedMotion() || !chatShell || !window.requestAnimationFrame) {
       setState(STATE_TRANSITIONING);
       fitOfficialCanvas();
+      resetOfficialCanvasScroll();
       return;
     }
 
     var firstRect = chatShell.getBoundingClientRect();
     setState(STATE_TRANSITIONING);
     fitOfficialCanvas();
+    resetOfficialCanvasScroll();
     var lastRect = chatShell.getBoundingClientRect();
     var scaleX = lastRect.width ? firstRect.width / lastRect.width : 1;
     var scaleY = lastRect.height ? firstRect.height / lastRect.height : 1;
@@ -662,7 +702,7 @@
 
   function appendChatMessage(role, text) {
     if (!chatThread) {
-      return;
+      return null;
     }
 
     var message = document.createElement("div");
@@ -681,6 +721,69 @@
     bubble.textContent = text;
     message.appendChild(bubble);
     chatThread.appendChild(message);
+    scrollChatToLatest();
+    return message;
+  }
+
+  function freshnessLabel(value) {
+    if (value === "live_official") return "최신 공식자료 확인";
+    if (value === "live_web") return "최신 웹자료 확인 · 공식 출처 재확인 필요";
+    if (value === "model_only") return "현재 공식 출처 없음";
+    return "최신성 확인 불가";
+  }
+
+  function formatRetrievedAt(value) {
+    if (!value) return "";
+    try {
+      return new Date(value).toLocaleString("ko-KR", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function appendAnswerFreshness(message, result) {
+    if (!message || !result || result.ok !== true) return;
+    var sources = Array.isArray(result.sources) ? result.sources.slice(0, 3) : [];
+    var retrievedAt = formatRetrievedAt(result.retrieved_at);
+    if (!retrievedAt && !sources.length && !result.freshness_state) return;
+
+    var meta = document.createElement("div");
+    meta.className = "chat-answer-meta";
+    meta.setAttribute("data-freshness-state", result.freshness_state || "unknown");
+
+    var status = document.createElement("span");
+    status.className = "chat-answer-meta__status";
+    status.textContent = freshnessLabel(result.freshness_state) + (retrievedAt ? " · " + retrievedAt : "");
+    meta.appendChild(status);
+
+    sources.forEach(function (source) {
+      if (!source || typeof source.url !== "string") return;
+      var link;
+      try {
+        var parsed = new URL(source.url);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return;
+        link = document.createElement("a");
+        link.href = parsed.toString();
+      } catch (_) {
+        return;
+      }
+      link.className = "chat-answer-meta__source";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = source.official ? "공식 출처" : "참고 출처";
+      link.setAttribute("aria-label", (source.title || "답변 출처") + " 새 창 열기");
+      meta.appendChild(link);
+    });
+
+    var bubble = message.querySelector && message.querySelector(".chat-bubble");
+    (bubble || message).appendChild(meta);
     scrollChatToLatest();
   }
 
@@ -980,7 +1083,8 @@
         var answer = hasUsableMvpResult
           ? normalizedAnswer
           : "현재 AI 안내를 연결하지 못했습니다.";
-        appendChatMessage("ai", answer);
+        var answerMessage = appendChatMessage("ai", answer);
+        appendAnswerFreshness(answerMessage, result);
         if (hasUsableMvpResult) {
           applyQuestRuntimeState(result);
         } else {

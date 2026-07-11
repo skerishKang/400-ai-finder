@@ -56,9 +56,10 @@ function createMockContext(method, body, envOverrides) {
 const FUNCTION_PATH = new URL('../../functions/api/mvp/ask.js', import.meta.url).pathname;
 
 let onRequest;
+let functionModule;
 try {
-  const mod = await import(`file://${FUNCTION_PATH}`);
-  onRequest = mod.onRequest;
+  functionModule = await import(`file://${FUNCTION_PATH}`);
+  onRequest = functionModule.onRequest;
 } catch (err) {
   console.error('[FAIL] Could not import Cloudflare Function module:', err.message);
   process.exit(1);
@@ -218,7 +219,7 @@ await assertNoCallJsonResponse('Question null returns invalid_input (not interna
   confidence: 0.0,
   failure_code: 'invalid_input',
   provider: 'gemini',
-  model: 'gemini-3.1-flash-lite',
+  model: 'gemini-3.5-flash',
 }, { GEMINI_API_KEY: 'test-key' });
 
 await assertNoCallJsonResponse('Question number returns invalid_input', 'POST', JSON.stringify({ question: 123 }), {
@@ -272,10 +273,10 @@ await assertNoCallJsonResponse('Question over 300 chars returns invalid_input', 
 
 // 6. action allowlist — verify the allowlist exists by checking the module's behavior.
 await assert('VALID_ACTIONS constant is defined in module', async () => {
-  const mod = await import(`file://${FUNCTION_PATH}`);
-  if (mod.VALID_ACTIONS) {
-    if (!Array.isArray(mod.VALID_ACTIONS)) throw new Error('VALID_ACTIONS must be an array');
-    if (mod.VALID_ACTIONS.length < 5) throw new Error('VALID_ACTIONS has too few entries');
+  if (!Array.isArray(functionModule.VALID_ACTIONS)) throw new Error('VALID_ACTIONS must be an array');
+  if (functionModule.VALID_ACTIONS.length !== 8) throw new Error('VALID_ACTIONS must contain seven journeys plus none');
+  for (const action of ['streetlight_report', 'litter_ai_assist', 'none']) {
+    if (!functionModule.VALID_ACTIONS.includes(action)) throw new Error(`Missing action ${action}`);
   }
 });
 
@@ -286,7 +287,7 @@ await assertNoCallJsonResponse('No API key returns config_error with gemini prov
   action: 'none',
   confidence: 0.0,
   provider: 'gemini',
-  model: 'gemini-3.1-flash-lite',
+  model: 'gemini-3.5-flash',
 });
 
 // 8. Response shape contract — check all known failure modes return proper JSON
@@ -307,205 +308,131 @@ await assertNoCallJsonResponse('Question 301 chars returns invalid_input', 'POST
   failure_code: 'invalid_input',
 }, {});
 
-// All tests below this line use canned mock fetch for upstream responses.
-console.log('\n--- Mock upstream response tests ---\n');
+// All tests below this line use canned Gemini Interactions API responses.
+console.log('\n--- Grounded interaction response tests ---\n');
 
-// 10. Invalid action from LLM is clamped to 'none'
+function groundedInteraction(answer, annotations = [], queries = ['site:bukgu.gwangju.kr 북구청 공지']) {
+  return {
+    steps: [
+      { type: 'google_search_call', arguments: { queries } },
+      { type: 'model_output', content: [{ type: 'text', text: answer, annotations }] },
+    ],
+  };
+}
+
+const officialCitation = {
+  type: 'url_citation',
+  title: '광주 북구청',
+  url: 'https://bukgu.gwangju.kr/board.es?mid=a10201010000',
+  start_index: 0,
+  end_index: 8,
+};
+
 try {
-  mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'DROP_DATABASE', answer: 'test answer', confidence: 0.8 }) } }],
-  });
-  await assertJsonResponse('Invalid action "DROP_DATABASE" is clamped to none', 'POST', JSON.stringify({ question: 'test' }), {
+  mockFetch(200, groundedInteraction('현재 북구청 공지사항을 확인했습니다.', [officialCitation]));
+  await assertJsonResponse('Official grounded answer exposes freshness metadata', 'POST', JSON.stringify({ question: '이번 주 북구청 공지 알려줘' }), {
     ok: true,
+    answer: '현재 북구청 공지사항을 확인했습니다.',
     action: 'none',
-  }, { GEMINI_API_KEY: 'test-key' });
-} finally {
-  restoreFetch();
-}
-
-// 11. Confidence > 1.0 is clamped to 1.0
-try {
-  mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: 'test answer', confidence: 999 }) } }],
-  });
-  await assertJsonResponse('Confidence 999 is clamped to 1.0', 'POST', JSON.stringify({ question: 'test' }), {
-    ok: true,
-    confidence: 1.0,
-  }, { GEMINI_API_KEY: 'test-key' });
-} finally {
-  restoreFetch();
-}
-
-// 12. Whitespace-only answer returns fallback message
-try {
-  mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: '   ', confidence: 0.5 }) } }],
-  });
-  await assertJsonResponse('Whitespace-only answer returns fallback message', 'POST', JSON.stringify({ question: 'test' }), {
-    ok: true,
-    answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
-  }, { GEMINI_API_KEY: 'test-key' });
-} finally {
-  restoreFetch();
-}
-
-// 13. Empty answer returns fallback message
-try {
-  mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: '', confidence: 0.5 }) } }],
-  });
-  await assertJsonResponse('Empty answer returns fallback message', 'POST', JSON.stringify({ question: 'test' }), {
-    ok: true,
-    answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
-  }, { GEMINI_API_KEY: 'test-key' });
-} finally {
-  restoreFetch();
-}
-
-// 14. Negative confidence is clamped to 0.0
-try {
-  mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: 'test answer', confidence: -5 }) } }],
-  });
-  await assertJsonResponse('Confidence -5 is clamped to 0.0', 'POST', JSON.stringify({ question: 'test' }), {
-    ok: true,
-    confidence: 0.0,
-  }, { GEMINI_API_KEY: 'test-key' });
-} finally {
-  restoreFetch();
-}
-
-// 15. Non-JSON LLM response is handled without crash
-try {
-  mockFetch(200, {
-    choices: [{ message: { content: 'Hello, I am a helpful assistant. The answer is...' } }],
-  });
-  await assertJsonResponse('Non-JSON LLM response is handled without crash', 'POST', JSON.stringify({ question: 'test' }), {
-    ok: true,
     provider: 'gemini',
+    model: 'gemini-3.5-flash',
+    freshness_state: 'live_official',
+    source_url: officialCitation.url,
+    retrieved_at: (value) => {
+      if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) throw new Error(`Invalid retrieved_at: ${value}`);
+    },
+    sources: (value) => {
+      if (!Array.isArray(value) || value.length !== 1 || value[0].official !== true) {
+        throw new Error(`Expected one official source, got ${JSON.stringify(value)}`);
+      }
+    },
   }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
 }
 
-// 16. Upstream HTTP error returns upstream_error failure_code
+try {
+  mockFetch(200, groundedInteraction('참고 자료를 확인했습니다.', [{
+    type: 'url_citation', title: '참고', url: 'https://example.com/info', start_index: 0, end_index: 4,
+  }]));
+  await assertJsonResponse('Non-official citation is marked live_web', 'POST', JSON.stringify({ question: '일반 질문' }), {
+    ok: true,
+    freshness_state: 'live_web',
+    source_url: 'https://example.com/info',
+  }, { GEMINI_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
+try {
+  mockFetch(200, groundedInteraction('   ', []));
+  await assertJsonResponse('Blank grounded output fails closed', 'POST', JSON.stringify({ question: 'test' }), {
+    ok: false,
+    failure_code: 'empty_response',
+    freshness_state: 'unavailable',
+  }, { GEMINI_API_KEY: 'test-key' });
+} finally {
+  restoreFetch();
+}
+
 try {
   mockFetch(500, { error: 'Internal Server Error' });
   await assertJsonResponse('Upstream HTTP 500 returns upstream_error', 'POST', JSON.stringify({ question: 'test' }), {
     ok: false,
     failure_code: 'upstream_error',
     action: 'none',
-    confidence: 0.0,
+    freshness_state: 'unavailable',
   }, { GEMINI_API_KEY: 'test-key' });
 } finally {
   restoreFetch();
 }
 
-// 17. No content field in upstream response
-try {
-  mockFetch(200, { choices: [{ message: {} }] });
-  await assertJsonResponse('Empty message content returns fallback answer', 'POST', JSON.stringify({ question: 'test' }), {
-    ok: true,
-    answer: '죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.',
-  }, { GEMINI_API_KEY: 'test-key' });
-} finally {
-  restoreFetch();
-}
+console.log('\n--- Upstream request and action routing ---\n');
 
-// ---------------------------------------------------------------------------
-// Upstream fetch verification tests
-// ---------------------------------------------------------------------------
-console.log('\n--- Upstream fetch verification ---\n');
-
-// 18. Verify upstream fetch URL, method, headers, and request body model
 try {
-  mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'none', answer: 'test', confidence: 0.5 }) } }],
-  });
+  mockFetch(200, groundedInteraction('테스트 답변', [officialCitation]));
   await getResponse('POST', JSON.stringify({ question: '테스트 질문' }), { GEMINI_API_KEY: 'test-key' });
   const call = getLastCall();
-  await assert('Upstream fetch URL matches Gemini endpoint', async () => {
-    if (!call) throw new Error('No upstream call recorded');
-    if (call.url !== 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions') {
-      throw new Error(`Expected Gemini URL, got ${call.url}`);
+  await assert('Upstream uses Gemini Interactions endpoint', async () => {
+    if (!call || call.url !== 'https://generativelanguage.googleapis.com/v1beta/interactions') {
+      throw new Error(`Unexpected URL: ${call && call.url}`);
     }
   });
-  await assert('Upstream fetch uses POST method', async () => {
-    if (!call || call.method !== 'POST') throw new Error(`Expected POST, got ${call ? call.method : 'none'}`);
+  await assert('Upstream uses x-goog-api-key and POST', async () => {
+    if (call.method !== 'POST') throw new Error(`Expected POST, got ${call.method}`);
+    if (call.headers['x-goog-api-key'] !== 'test-key') throw new Error('Missing x-goog-api-key');
   });
-  await assert('Upstream Authorization header uses Bearer test-key', async () => {
-    const auth = call && call.headers && call.headers['Authorization'];
-    if (!auth || auth !== 'Bearer test-key') throw new Error(`Expected Bearer test-key, got ${auth}`);
-  });
-  await assert('Upstream Content-Type is application/json', async () => {
-    const ct = call && call.headers && call.headers['Content-Type'];
-    if (!ct || ct !== 'application/json') throw new Error(`Expected application/json, got ${ct}`);
-  });
-  await assert('Upstream request body contains model gemini-3.1-flash-lite', async () => {
-    if (!call || !call.body) throw new Error('No request body');
-    const parsed = JSON.parse(call.body);
-    if (parsed.model !== 'gemini-3.1-flash-lite') throw new Error(`Expected model gemini-3.1-flash-lite, got ${parsed.model}`);
+  await assert('Request enables Google Search and current-time official prompt', async () => {
+    const payload = JSON.parse(call.body);
+    if (payload.model !== 'gemini-3.5-flash') throw new Error(`Unexpected model ${payload.model}`);
+    if (payload.tools?.[0]?.type !== 'google_search') throw new Error('google_search tool missing');
+    if (payload.store !== false) throw new Error('Interactions request must be stateless');
+    if (!payload.input.includes('현재 대한민국 표준시각')) throw new Error('Current time missing from prompt');
+    if (!payload.input.includes('site:bukgu.gwangju.kr')) throw new Error('Official-domain search guidance missing');
   });
 } finally {
   restoreFetch();
 }
 
-// ---------------------------------------------------------------------------
-// Action allowlist behavior tests
-// ---------------------------------------------------------------------------
-console.log('\n--- Action behavior tests ---\n');
+await assert('All seven visible prompts classify deterministically', async () => {
+  const cases = [
+    ['불법 주정차 신고는 어디서 하나요?', 'illegal_parking'],
+    ['공동주택 관련 문의는 어느 부서에 해야 하나요?', 'housing_department'],
+    ['매트리스 폐기 신청은 어디서 하나요?', 'bulky_waste'],
+    ['여권 발급은 어디서 하나요?', 'passport_guidance'],
+    ['무인민원발급기 어디 있어요?', 'unmanned_kiosk'],
+    ['가로등이 고장났어요. 신고할게요', 'streetlight_report'],
+    ['쓰레기 무단투기 신고할래', 'litter_ai_assist'],
+  ];
+  for (const [question, expected] of cases) {
+    const actual = functionModule.classifyAction(question);
+    if (actual !== expected) throw new Error(`${question}: expected ${expected}, got ${actual}`);
+  }
+});
 
-// 19. Allowed action: passport_guidance
-try {
-  mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'passport_guidance', answer: '여권 발급 안내입니다.', confidence: 0.9 }) } }],
-  });
-  await assertJsonResponse('Action passport_guidance is allowed', 'POST', JSON.stringify({ question: '여권 발급' }), {
-    ok: true,
-    action: 'passport_guidance',
-  }, { GEMINI_API_KEY: 'test-key' });
-} finally {
-  restoreFetch();
-}
-
-// 20. Allowed action: unmanned_kiosk
-try {
-  mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'unmanned_kiosk', answer: '무인민원발급기 안내입니다.', confidence: 0.85 }) } }],
-  });
-  await assertJsonResponse('Action unmanned_kiosk is allowed', 'POST', JSON.stringify({ question: '무인민원발급기' }), {
-    ok: true,
-    action: 'unmanned_kiosk',
-  }, { GEMINI_API_KEY: 'test-key' });
-} finally {
-  restoreFetch();
-}
-
-// 21. Rejected action: move_in_report is clamped to none
-try {
-  mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'move_in_report', answer: '전입신고 안내입니다.', confidence: 0.9 }) } }],
-  });
-  await assertJsonResponse('Action move_in_report is clamped to none', 'POST', JSON.stringify({ question: '전입신고' }), {
-    ok: true,
-    action: 'none',
-  }, { GEMINI_API_KEY: 'test-key' });
-} finally {
-  restoreFetch();
-}
-
-// 22. Rejected action: public_health_center is clamped to none
-try {
-  mockFetch(200, {
-    choices: [{ message: { content: JSON.stringify({ action: 'public_health_center', answer: '보건소 안내입니다.', confidence: 0.9 }) } }],
-  });
-  await assertJsonResponse('Action public_health_center is clamped to none', 'POST', JSON.stringify({ question: '보건소' }), {
-    ok: true,
-    action: 'none',
-  }, { GEMINI_API_KEY: 'test-key' });
-} finally {
-  restoreFetch();
-}
+await assert('Unknown question remains chat-only action none', async () => {
+  if (functionModule.classifyAction('안녕하세요') !== 'none') throw new Error('Unknown question must be none');
+});
 
 // ---------------------------------------------------------------------------
 // Summary
