@@ -307,7 +307,7 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 | 구분 | 설명 |
 |------|------|
 | **Python 로컬/서버 데모** | `src/web` 기반 Python 서버. 실제 AI·API·크롤링 사용 가능 (→ [`docs/operator-quickstart.md`](docs/operator-quickstart.md)) |
-| **Cloudflare Pages Live AI** | 기본 배포. `functions/api/mvp/ask.js`를 통해 Gemini와 최신 검색 근거를 사용. `GEMINI_API_KEY` secret 필요 |
+| **Cloudflare Pages Live AI** | 기본 배포. Gemini 1차, HY3 2차 폴백이며 운영자가 공급자 순서를 변경할 수 있음 |
 | **Cloudflare Pages 정적 시연** | `--mode static` 전용 비상·회귀검증 모드. 백엔드 없이 결정형 스냅샷을 사용 |
 
 ### Live LLM 모드
@@ -316,10 +316,11 @@ Cloudflare Pages의 무인자 빌드(`python3 scripts/build_cloudflare_pages.py`
 
 이 모드에서는 `functions/api/mvp/ask.js` Cloudflare Pages Function이 활성화되어:
 
-- `GEMINI_API_KEY` secret이 Cloudflare Pages에 설정되어 있어야 합니다.
+- `GEMINI_API_KEY` 또는 `KILOCODE_API_KEY` 중 하나 이상이 Cloudflare Pages secret으로 설정되어 있어야 합니다.
+- 기본 `MVP_LLM_ORDER=gemini,hy3`이며 운영자만 순서를 변경합니다. 일반 사용자는 모델을 선택하지 않습니다.
 - 채팅 인터페이스가 `/api/mvp/ask` 엔드포인트를 통해 실시간 LLM 응답을 제공합니다.
 - `?mvp=1` 쿼리 파라미터가 MVP entry에서 유지되어 shell이 live bridge를 로드합니다.
-- 답변마다 공식 출처 URL, 조회시각, 신선도 상태를 내부 계약으로 전달합니다.
+- 답변마다 공급자, 모델, 조회시각, 신선도 상태를 전달합니다. Gemini Interactions 모드를 선택하면 검색 출처도 함께 전달합니다.
 
 ```bash
 # Live AI 배포 빌드 (기본값)

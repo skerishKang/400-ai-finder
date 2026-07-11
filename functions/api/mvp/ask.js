@@ -1,5 +1,5 @@
 // Cloudflare Pages Function for the live Buk-gu civic assistant.
-// GEMINI_API_KEY is stored as a Pages secret; no user question is persisted.
+// Provider keys stay in Pages secrets; requests are handled statelessly.
 
 export const VALID_ACTIONS = Object.freeze([
   'illegal_parking',
@@ -12,7 +12,20 @@ export const VALID_ACTIONS = Object.freeze([
   'none',
 ]);
 
-export const DEFAULT_MODEL = 'gemini-3.5-flash';
+export const DEFAULT_PROVIDER_ORDER = Object.freeze(['gemini', 'hy3']);
+
+export const PROVIDER_DEFAULTS = Object.freeze({
+  gemini: Object.freeze({
+    model: 'gemini-3.1-flash-lite',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    apiStyle: 'openai',
+  }),
+  hy3: Object.freeze({
+    model: 'tencent/hy3:free',
+    endpoint: 'https://api.kilo.ai/api/gateway/v1/chat/completions',
+    apiStyle: 'openai',
+  }),
+});
 
 const ACTION_RULES = Object.freeze([
   { action: 'illegal_parking', terms: ['불법 주정차', '불법주정차', '주차 단속', '주정차 신고'] },
@@ -64,6 +77,43 @@ export function classifyAction(question) {
   return 'none';
 }
 
+export function normalizeProviderOrder(value) {
+  const raw = typeof value === 'string' && value.trim()
+    ? value
+    : DEFAULT_PROVIDER_ORDER.join(',');
+  const order = [];
+  for (const token of raw.split(',')) {
+    const provider = token.trim().toLowerCase();
+    if (!DEFAULT_PROVIDER_ORDER.includes(provider) || order.includes(provider)) continue;
+    order.push(provider);
+  }
+  return order.length ? order : Array.from(DEFAULT_PROVIDER_ORDER);
+}
+
+function envText(env, name, fallback) {
+  return typeof env[name] === 'string' && env[name].trim() ? env[name].trim() : fallback;
+}
+
+function providerConfig(provider, env) {
+  if (provider === 'hy3') {
+    return {
+      provider,
+      key: envText(env, 'KILOCODE_API_KEY', ''),
+      model: envText(env, 'HY3_MODEL', PROVIDER_DEFAULTS.hy3.model),
+      endpoint: envText(env, 'HY3_API_ENDPOINT', PROVIDER_DEFAULTS.hy3.endpoint),
+      apiStyle: 'openai',
+    };
+  }
+  const style = envText(env, 'GEMINI_API_STYLE', PROVIDER_DEFAULTS.gemini.apiStyle).toLowerCase();
+  return {
+    provider: 'gemini',
+    key: envText(env, 'GEMINI_API_KEY', ''),
+    model: envText(env, 'GEMINI_MODEL', PROVIDER_DEFAULTS.gemini.model),
+    endpoint: envText(env, 'GEMINI_API_ENDPOINT', PROVIDER_DEFAULTS.gemini.endpoint),
+    apiStyle: style === 'interactions' ? 'interactions' : 'openai',
+  };
+}
+
 function formatSeoulTime(date) {
   return new Intl.DateTimeFormat('ko-KR', {
     timeZone: 'Asia/Seoul',
@@ -77,18 +127,25 @@ function formatSeoulTime(date) {
   }).format(date);
 }
 
-function buildGroundedPrompt(question, currentTime) {
+function buildSystemPrompt(currentTime) {
   return [
     '당신은 광주 북구 주민을 돕는 "북구 도우미"입니다.',
     `현재 대한민국 표준시각은 ${currentTime}입니다. 이 시각을 기준으로 답하세요.`,
+    '북구 행정, 연락처, 비용, 일정처럼 변경될 수 있는 내용은 근거가 없으면 추측하지 마세요.',
+    '주민에게 바로 도움이 되도록 자연스러운 한국어 2~5문장으로 답하세요.',
+    '반드시 아래 JSON 객체만 반환하고 마크다운 코드 블록이나 다른 설명을 붙이지 마세요.',
+    '{"answer":"주민에게 보여줄 답변","action":"허용된 action","confidence":0.0}',
+    `action은 다음 중 하나입니다: ${VALID_ACTIONS.join(', ')}`,
+  ].join('\n');
+}
+
+function buildGroundedPrompt(question, currentTime) {
+  return [
+    buildSystemPrompt(currentTime),
     '',
     '반드시 Google 검색 도구로 현재 정보를 확인하세요.',
-    '북구 행정, 일정, 공고, 연락처, 비용, 신청 방법에 관한 질문은 bukgu.gwangju.kr,',
-    'search.bukgu.gwangju.kr 및 대한민국 공식 공공기관 도메인의 최신 자료를 우선 사용하세요.',
+    '북구 행정 관련 질문은 bukgu.gwangju.kr, search.bukgu.gwangju.kr 및 공공기관 도메인을 우선하세요.',
     '가능하면 site:bukgu.gwangju.kr 또는 site:search.bukgu.gwangju.kr 검색을 먼저 수행하세요.',
-    '현재 공식 근거를 찾지 못했거나 자료가 서로 다르면 확인하지 못했다고 분명히 말하고 추측하지 마세요.',
-    '주민에게 바로 도움이 되도록 자연스러운 한국어 2~5문장으로 답하세요.',
-    '링크 목록은 시스템이 별도로 표시하므로 답변 본문에 긴 URL을 나열하지 마세요.',
     '',
     `주민 질문: ${question}`,
   ].join('\n');
@@ -156,19 +213,211 @@ export function parseGroundedInteraction(data) {
     }
   }
 
+  const structured = parseAnswerText(textParts.join('\n'));
   return {
-    answer: textParts.join('\n').trim(),
+    answer: structured.answer,
+    action: structured.action,
+    confidence: structured.confidence,
     sources: sources.slice(0, 5),
     searchQueries: searchQueries.slice(0, 5),
+  };
+}
+
+function textFromMessagePart(value) {
+  if (typeof value === 'string') return value.trim();
+  if (!Array.isArray(value)) return '';
+  return value.map((part) => {
+    if (!part || typeof part !== 'object') return '';
+    if (typeof part.text === 'string') return part.text;
+    if (typeof part.content === 'string') return part.content;
+    return '';
+  }).join('\n').trim();
+}
+
+function parseJsonObject(text) {
+  const trimmed = String(text || '').trim();
+  if (!trimmed) return null;
+  const withoutFence = trimmed
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+  const candidates = [withoutFence];
+  const firstBrace = withoutFence.indexOf('{');
+  const lastBrace = withoutFence.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.push(withoutFence.slice(firstBrace, lastBrace + 1));
+  }
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+    } catch (_) {
+      // Try the next candidate before treating the response as plain text.
+    }
+  }
+  return null;
+}
+
+function clampConfidence(value, fallback) {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0, Math.min(1, value))
+    : fallback;
+}
+
+function parseAnswerText(rawText) {
+  const raw = String(rawText || '').trim();
+  if (!raw) return { answer: '', action: 'none', confidence: 0.0 };
+  const parsed = parseJsonObject(raw);
+  if (parsed) {
+    const answer = typeof parsed.answer === 'string' ? parsed.answer.trim().slice(0, 4000) : '';
+    return {
+      answer,
+      action: VALID_ACTIONS.includes(parsed.action) ? parsed.action : 'none',
+      confidence: clampConfidence(parsed.confidence, 0.0),
+    };
+  }
+
+  const afterThinking = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  return {
+    answer: (afterThinking || raw).slice(0, 4000),
+    action: 'none',
+    confidence: 0.0,
+  };
+}
+
+export function parseOpenAIChatResponse(data) {
+  const message = data && data.choices && data.choices[0] && data.choices[0].message;
+  if (!message || typeof message !== 'object') {
+    return { answer: '', action: 'none', confidence: 0.0, usedReasoning: false };
+  }
+  const content = textFromMessagePart(message.content);
+  const reasoning = textFromMessagePart(message.reasoning) || textFromMessagePart(message.reasoning_content);
+  const parsed = parseAnswerText(content || reasoning);
+  return Object.assign(parsed, { usedReasoning: !content && Boolean(reasoning) });
+}
+
+async function requestOpenAICompatible(config, question, currentTime) {
+  const upstream = await fetch(config.endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${config.key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [
+        { role: 'system', content: buildSystemPrompt(currentTime) },
+        { role: 'user', content: question },
+      ],
+      temperature: 0.1,
+      max_tokens: 700,
+    }),
+  });
+
+  if (!upstream.ok) {
+    await upstream.text();
+    return { ok: false, failureCode: 'upstream_error' };
+  }
+
+  let data;
+  try {
+    data = await upstream.json();
+  } catch (_) {
+    return { ok: false, failureCode: 'malformed_response' };
+  }
+  const parsed = parseOpenAIChatResponse(data);
+  if (!parsed.answer) return { ok: false, failureCode: 'empty_response' };
+  return {
+    ok: true,
+    answer: parsed.answer,
+    action: parsed.action,
+    confidence: parsed.confidence,
+    freshnessState: 'model_only',
+    sources: [],
+    sourceUrl: '',
+    searchQueries: [],
+    usedReasoning: parsed.usedReasoning,
+  };
+}
+
+async function requestGeminiInteractions(config, question, currentTime) {
+  const upstream = await fetch(config.endpoint, {
+    method: 'POST',
+    headers: {
+      'x-goog-api-key': config.key,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: config.model,
+      input: buildGroundedPrompt(question, currentTime),
+      tools: [{ type: 'google_search' }],
+      store: false,
+    }),
+  });
+
+  if (!upstream.ok) {
+    await upstream.text();
+    return { ok: false, failureCode: 'upstream_error' };
+  }
+
+  let data;
+  try {
+    data = await upstream.json();
+  } catch (_) {
+    return { ok: false, failureCode: 'malformed_response' };
+  }
+  const parsed = parseGroundedInteraction(data);
+  if (!parsed.answer) return { ok: false, failureCode: 'empty_response' };
+  const officialSources = parsed.sources.filter((source) => source.official);
+  const primarySource = officialSources[0] || parsed.sources[0] || null;
+  return {
+    ok: true,
+    answer: parsed.answer,
+    action: parsed.action,
+    confidence: parsed.confidence,
+    freshnessState: officialSources.length ? 'live_official' : (parsed.sources.length ? 'live_web' : 'model_only'),
+    sources: parsed.sources,
+    sourceUrl: primarySource ? primarySource.url : '',
+    searchQueries: parsed.searchQueries,
+    usedReasoning: false,
+  };
+}
+
+async function requestProvider(config, question, currentTime) {
+  if (config.provider === 'gemini' && config.apiStyle === 'interactions') {
+    return requestGeminiInteractions(config, question, currentTime);
+  }
+  return requestOpenAICompatible(config, question, currentTime);
+}
+
+function failurePayload(question, provider, model, failureCode, retrievedAt, currentTime) {
+  return {
+    ok: false,
+    question,
+    answer: failureCode === 'config_error'
+      ? '현재 AI 안내 설정을 확인하고 있습니다.'
+      : '현재 AI 안내를 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    action: question ? classifyAction(question) : 'none',
+    confidence: 0.0,
+    provider,
+    model,
+    failure_code: failureCode,
+    current_time: currentTime,
+    retrieved_at: retrievedAt.toISOString(),
+    freshness_state: 'unavailable',
+    source_url: '',
+    sources: [],
+    fallback_used: false,
   };
 }
 
 export async function onRequest(context) {
   const { request, env } = context;
   const headers = buildHeaders(request);
-  const model = typeof env.GEMINI_MODEL === 'string' && env.GEMINI_MODEL.trim()
-    ? env.GEMINI_MODEL.trim()
-    : DEFAULT_MODEL;
+  const providerOrder = normalizeProviderOrder(env.MVP_LLM_ORDER);
+  const primaryConfig = providerConfig(providerOrder[0], env);
+  const retrievedAt = new Date();
+  const currentTime = formatSeoulTime(retrievedAt);
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 200, headers });
   if (request.method !== 'POST') {
@@ -179,133 +428,78 @@ export async function onRequest(context) {
   try {
     body = await request.json();
   } catch (_) {
-    return jsonResponse({ ok: false, answer: '잘못된 요청 형식입니다.', action: 'none', confidence: 0.0, provider: 'gemini', model, failure_code: 'invalid_input' }, 200, headers);
+    return jsonResponse(Object.assign(
+      failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime),
+      { answer: '잘못된 요청 형식입니다.' },
+    ), 200, headers);
   }
 
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return jsonResponse({ ok: false, answer: '잘못된 요청 형식입니다.', action: 'none', confidence: 0.0, provider: 'gemini', model, failure_code: 'invalid_input' }, 200, headers);
-  }
-  if (!Object.prototype.hasOwnProperty.call(body, 'question')) {
-    return jsonResponse({ ok: false, error: 'Missing question' }, 400, headers);
-  }
-  if (typeof body.question !== 'string') {
-    return jsonResponse({ ok: false, answer: '잘못된 요청 형식입니다.', action: 'none', confidence: 0.0, provider: 'gemini', model, failure_code: 'invalid_input' }, 200, headers);
+  if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.question !== 'string') {
+    if (body && typeof body === 'object' && !Array.isArray(body) && !Object.prototype.hasOwnProperty.call(body, 'question')) {
+      return jsonResponse({ ok: false, error: 'Missing question' }, 400, headers);
+    }
+    return jsonResponse(Object.assign(
+      failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime),
+      { answer: '잘못된 요청 형식입니다.' },
+    ), 200, headers);
   }
 
   const question = body.question.trim();
   if (!question) return jsonResponse({ ok: false, error: 'Missing question' }, 400, headers);
   if (question.length > 300) {
-    return jsonResponse({ ok: false, answer: '질문이 너무 깁니다. 300자 이내로 입력해 주세요.', action: 'none', confidence: 0.0, provider: 'gemini', model, failure_code: 'invalid_input' }, 200, headers);
+    return jsonResponse(Object.assign(
+      failurePayload(question, primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime),
+      { answer: '질문이 너무 깁니다. 300자 이내로 입력해 주세요.' },
+    ), 200, headers);
   }
 
-  const action = classifyAction(question);
-  const retrievedAt = new Date();
-  const currentTime = formatSeoulTime(retrievedAt);
+  const deterministicAction = classifyAction(question);
+  let configuredProviderCount = 0;
+  let lastFailureCode = 'config_error';
 
-  if (!env.GEMINI_API_KEY) {
-    return jsonResponse({
-      ok: false,
-      question,
-      answer: '현재 AI 안내 설정을 확인하고 있습니다.',
-      action,
-      confidence: action === 'none' ? 0.0 : 1.0,
-      provider: 'gemini',
-      model,
-      failure_code: 'config_error',
-      retrieved_at: retrievedAt.toISOString(),
-      freshness_state: 'unavailable',
-      source_url: '',
-      sources: [],
-    }, 200, headers);
-  }
+  for (let index = 0; index < providerOrder.length; index += 1) {
+    const config = providerConfig(providerOrder[index], env);
+    if (!config.key) continue;
+    configuredProviderCount += 1;
 
-  try {
-    const upstream = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
-      method: 'POST',
-      headers: {
-        'x-goog-api-key': env.GEMINI_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        input: buildGroundedPrompt(question, currentTime),
-        tools: [{ type: 'google_search' }],
-        store: false,
-      }),
-    });
-
-    if (!upstream.ok) {
-      await upstream.text();
-      return jsonResponse({
-        ok: false,
-        question,
-        answer: '최신 공식 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.',
-        action,
-        confidence: action === 'none' ? 0.0 : 1.0,
-        provider: 'gemini',
-        model,
-        failure_code: 'upstream_error',
-        retrieved_at: retrievedAt.toISOString(),
-        freshness_state: 'unavailable',
-        source_url: '',
-        sources: [],
-      }, 200, headers);
+    let result;
+    try {
+      result = await requestProvider(config, question, currentTime);
+    } catch (_) {
+      result = { ok: false, failureCode: 'upstream_error' };
+    }
+    if (!result.ok) {
+      lastFailureCode = result.failureCode || 'upstream_error';
+      continue;
     }
 
-    const parsed = parseGroundedInteraction(await upstream.json());
-    if (!parsed.answer) {
-      return jsonResponse({
-        ok: false,
-        question,
-        answer: '최신 공식 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.',
-        action,
-        confidence: action === 'none' ? 0.0 : 1.0,
-        provider: 'gemini',
-        model,
-        failure_code: 'empty_response',
-        retrieved_at: retrievedAt.toISOString(),
-        freshness_state: 'unavailable',
-        source_url: '',
-        sources: [],
-      }, 200, headers);
-    }
-
-    const officialSources = parsed.sources.filter((source) => source.official);
-    const freshnessState = officialSources.length
-      ? 'live_official'
-      : (parsed.sources.length ? 'live_web' : 'model_only');
-    const primarySource = officialSources[0] || parsed.sources[0] || null;
-
+    const action = deterministicAction !== 'none' ? deterministicAction : result.action;
+    const confidence = deterministicAction !== 'none'
+      ? 1.0
+      : clampConfidence(result.confidence, action === 'none' ? 0.0 : 0.72);
     return jsonResponse({
       ok: true,
       question,
-      answer: parsed.answer,
-      action,
-      confidence: action === 'none' ? 0.72 : 1.0,
-      provider: 'gemini',
-      model,
+      answer: result.answer,
+      action: VALID_ACTIONS.includes(action) ? action : 'none',
+      confidence,
+      provider: config.provider,
+      model: config.model,
       failure_code: '',
       current_time: currentTime,
       retrieved_at: retrievedAt.toISOString(),
-      freshness_state: freshnessState,
-      source_url: primarySource ? primarySource.url : '',
-      sources: parsed.sources,
-      search_queries: parsed.searchQueries,
-    }, 200, headers);
-  } catch (_) {
-    return jsonResponse({
-      ok: false,
-      question,
-      answer: '서버 오류로 최신 공식 정보를 확인하지 못했습니다.',
-      action,
-      confidence: action === 'none' ? 0.0 : 1.0,
-      provider: 'gemini',
-      model,
-      failure_code: 'internal_error',
-      retrieved_at: retrievedAt.toISOString(),
-      freshness_state: 'unavailable',
-      source_url: '',
-      sources: [],
+      freshness_state: result.freshnessState,
+      source_url: result.sourceUrl,
+      sources: result.sources,
+      search_queries: result.searchQueries,
+      fallback_used: index > 0,
     }, 200, headers);
   }
+
+  const failureCode = configuredProviderCount ? lastFailureCode : 'config_error';
+  return jsonResponse(
+    failurePayload(question, primaryConfig.provider, primaryConfig.model, failureCode, retrievedAt, currentTime),
+    200,
+    headers,
+  );
 }
