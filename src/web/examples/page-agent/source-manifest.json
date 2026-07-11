@@ -1,0 +1,52 @@
+{
+  "title": "Page Agent Local Lab",
+  "description": "Local interoperability experiment with Alibaba Page Agent — real non-demo IIFE runtime driven by a deterministic offline mock model",
+  "type": "attributed_open_source_example",
+  "experiment_id": "1090",
+  "build_date": "2026-07-12",
+  "upstream": {
+    "repository": "alibaba/page-agent",
+    "pinned_commit": "fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7",
+    "version": "1.12.1",
+    "license": "MIT"
+  },
+  "bundle_kind": "custom_non_demo_iife",
+  "build_provenance": {
+    "checkout": "temporary pinned upstream checkout",
+    "dependency_install": "npm ci --ignore-scripts using the pinned upstream lockfile",
+    "entry": "packages/page-agent/src/production-iife-entry.ts (temporary local production IIFE entry created inside the pinned upstream checkout)",
+    "source_module": "packages/page-agent/src/PageAgent.ts",
+    "excluded": [
+      "src/demo.ts",
+      "published demo auto-init",
+      "Alibaba testing endpoint"
+    ]
+  },
+  "integration": {
+    "type": "actual_page_agent_runtime",
+    "model_adapter": "local_deterministic_mock",
+    "model_endpoint": "/examples/page-agent/mock-llm/v1",
+    "bundle_status": "Custom non-demo IIFE bundle built locally from the pinned alibaba/page-agent source. The build used a temporary local production IIFE entry (packages/page-agent/src/production-iife-entry.ts) created inside the pinned upstream checkout, compiling the PageAgent source module (packages/page-agent/src/PageAgent.ts). It is a controlled local build output, not a published package bundle. The published demo entry (src/demo.ts, auto-init, free testing API, CDN) is excluded per experiment policy.",
+    "vendor_manifest": "vendor-manifest.json"
+  },
+  "network_profile": {
+    "runtime_cdn": false,
+    "live_llm_api": false,
+    "non_local_requests": 0,
+    "blocked_origins": [
+      "cdn.jsdelivr.net",
+      "registry.npmmirror.com",
+      "dashscope.aliyuncs.com",
+      "api.openai.com",
+      "generativelanguage.googleapis.com",
+      "alibaba.github.io",
+      "raw.githubusercontent.com"
+    ]
+  },
+  "isolation": {
+    "bukgu_manifest_untouched": true,
+    "bukgu_registry_untouched": true,
+    "mvp_unchanged": true,
+    "api_mvp_ask_unchanged": true
+  }
+}

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page Agent — Local Lab</title>
+<link rel="stylesheet" href="page-agent-lab.css">
+</head>
+<body>
+
+<!-- ═══ Navigation ═══ -->
+<nav class="lab-nav">
+  <div class="nav-inner">
+    <span class="nav-brand">Page Agent · Local Lab</span>
+    <span class="nav-tag">experiment/1090</span>
+    <ul class="nav-links">
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#what-is-page-agent">About</a></li>
+      <li><a href="#core-features">Features</a></li>
+      <li><a href="#use-cases">Use Cases</a></li>
+      <li><a href="#vs-browser-use">vs browser-use</a></li>
+      <li><a href="#quick-start">Quick Start</a></li>
+      <li><a href="#npm-installation">NPM</a></li>
+      <li><a href="#basic-execution">Usage</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#custom-ui">Custom UI</a></li>
+      <li><a href="#local-integration">Local Adapter</a></li>
+      <li><a href="#license">License</a></li>
+      <li><a href="#source-attribution">Source</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ═══ Hero ═══ -->
+<header class="lab-hero" id="overview">
+  <div class="hero-content">
+    <h1>Page Agent</h1>
+    <p class="hero-sub">An in-page GUI agent for web interaction — local interoperability experiment.</p>
+    <div class="hero-badge">
+      <span class="badge badge-mit">MIT License</span>
+      <span class="badge badge-exp">Offline Experiment</span>
+      <span class="badge badge-upstream">alibaba/page-agent@1.12.1</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ Content Sections ═══ -->
+<main class="lab-content">
+
+  <section id="what-is-page-agent" class="lab-section">
+    <h2>What is Page Agent?</h2>
+    <p>Page Agent is an open-source, in-page GUI agent that gives any web page its own AI assistant. It runs entirely in the browser as a JavaScript library — no Python runtime, no headless browser, no browser extension required. The agent can understand page content, navigate the DOM, fill forms, click buttons, and report results, all through a lightweight in-page integration.</p>
+    <p>Unlike traditional browser automation tools that require a separate runtime environment, Page Agent embeds directly into the page and operates with standard DOM APIs.</p>
+  </section>
+
+  <section id="core-features" class="lab-section">
+    <h2>Core Features</h2>
+    <ul class="feature-list">
+      <li><strong>Easy Integration</strong> — Add a single <code>&lt;script&gt;</code> tag to give any page an AI agent.</li>
+      <li><strong>Text-based DOM Manipulation</strong> — Operates on the live DOM tree. No screenshots, no canvas capture, no special permissions.</li>
+      <li><strong>Model Agnostic</strong> — Works with most mainstream LLMs and locally deployed models through an OpenAI-compatible API.</li>
+      <li><strong>Built-in Panel UI</strong> — Ships with a ready-to-use floating chat panel (task input, status indicators, action history).</li>
+      <li><strong>PageController</strong> — Integrated DOM interaction engine: click, type, select, scroll, and execute JavaScript on the page.</li>
+      <li><strong>Chrome Extension</strong> — Optional companion extension for cross-page and multi-tab tasks.</li>
+      <li><strong>MCP Server</strong> — Optional Model Context Protocol server for extended AI tool integration.</li>
+    </ul>
+  </section>
+
+  <section id="use-cases" class="lab-section">
+    <h2>Use Cases</h2>
+    <div class="use-case-grid">
+      <div class="use-case-card">
+        <h3>AI Copilot for SaaS</h3>
+        <p>Embed an intelligent assistant directly into your web application to guide users through complex workflows, form filling, and data entry tasks.</p>
+      </div>
+      <div class="use-case-card">
+        <h3>Smart Form Filling</h3>
+        <p>Automate repetitive form interactions — the agent can navigate multi-step forms, pre-fill known values, and validate input before submission.</p>
+      </div>
+      <div class="use-case-card">
+        <h3>Accessibility Enhancement</h3>
+        <p>Provide an alternative interaction layer for users who benefit from natural-language commands instead of manual navigation.</p>
+      </div>
+      <div class="use-case-card">
+        <h3>Multi-page Browser Agent</h3>
+        <p>Combine with the optional Chrome extension to perform tasks that span multiple pages or browser tabs.</p>
+      </div>
+      <div class="use-case-card">
+        <h3>MCP Client Control</h3>
+        <p>Use the MCP server integration to connect the agent with external tools and data sources through the Model Context Protocol.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="vs-browser-use" class="lab-section">
+    <h2>Page Agent vs browser-use</h2>
+    <p>While <strong>browser-use</strong> is a Python framework for AI-powered browser automation using headless browsers, <strong>Page Agent</strong> takes a fundamentally different approach:</p>
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Aspect</th>
+          <th>Page Agent</th>
+          <th>browser-use</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Runtime</td>
+          <td>Browser (JavaScript)</td>
+          <td>Python + headless browser</td>
+        </tr>
+        <tr>
+          <td>Integration</td>
+          <td>In-page &lt;script&gt; tag</td>
+          <td>Separate automation script</td>
+        </tr>
+        <tr>
+          <td>DOM Access</td>
+          <td>Direct (same-origin)</td>
+          <td>Via CDP/WebDriver</td>
+        </tr>
+        <tr>
+          <td>Multi-page</td>
+          <td>Optional extension</td>
+          <td>Built-in</td>
+        </tr>
+        <tr>
+          <td>Use Case</td>
+          <td>Embedded AI copilot</td>
+          <td>Programmatic automation</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="quick-start" class="lab-section">
+    <h2>Quick Start</h2>
+    <p>One-line integration using the vendored non-demo IIFE bundle:</p>
+    <pre><code>&lt;script src="./vendor/page-agent.iife.js"&gt;&lt;/script&gt;</code></pre>
+    <p class="note note-warn">This lab uses a custom non-demo IIFE bundle built from pinned upstream source. No CDN, no auto-init, and no free testing API — see the <a href="#local-integration">Local Adapter</a> section for details.</p>
+  </section>
+
+  <section id="npm-installation" class="lab-section">
+    <h2>NPM Installation</h2>
+    <p>Via npm for programmatic use:</p>
+    <pre><code>npm install page-agent@1.12.1</code></pre>
+    <p>Or save-exact for reproducible builds:</p>
+    <pre><code>npm install --save-exact page-agent@1.12.1 --ignore-scripts</code></pre>
+  </section>
+
+  <section id="basic-execution" class="lab-section">
+    <h2>Basic Execution</h2>
+    <p>Create an agent instance and execute a task:</p>
+    <pre><code>import { PageAgent } from 'page-agent'
+
+const agent = new PageAgent({
+  model: 'qwen3.5-plus',
+  baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  apiKey: 'YOUR_API_KEY',
+  language: 'en-US',
+})
+
+await agent.execute('Click the login button')</code></pre>
+    <p>The standard integration connects to an OpenAI-compatible LLM endpoint. In a constrained offline environment, a deterministic mock adapter fulfills the same request/response contract without any network dependency.</p>
+  </section>
+
+  <section id="architecture" class="lab-section">
+    <h2>Architecture</h2>
+    <p>Page Agent is composed of several layered modules:</p>
+    <div class="arch-diagram">
+      <div class="arch-layer">
+        <span class="arch-label">Panel (UI)</span>
+        <span class="arch-desc">Floating chat interface — task input, status, history</span>
+      </div>
+      <div class="arch-layer arch-accent">
+        <span class="arch-label">PageAgent</span>
+        <span class="arch-desc">Orchestrator — extends PageAgentCore</span>
+      </div>
+      <div class="arch-layer">
+        <span class="arch-label">PageAgentCore</span>
+        <span class="arch-desc">Agent loop — model interaction, planning, execution</span>
+      </div>
+      <div class="arch-layer">
+        <span class="arch-label">LLM Client</span>
+        <span class="arch-desc">OpenAI-compatible HTTP client with custom fetch support</span>
+      </div>
+      <div class="arch-layer arch-accent">
+        <span class="arch-label">PageController</span>
+        <span class="arch-desc">DOM interaction engine — click, type, scroll, select</span>
+      </div>
+      <div class="arch-layer">
+        <span class="arch-label">Custom UI</span>
+        <span class="arch-desc">Build your own interface on top of PageAgentCore</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="custom-ui" class="lab-section">
+    <h2>Custom UI</h2>
+    <p>For applications that need a bespoke interface, PageAgentCore can be used directly without the built-in Panel. The core exposes agent lifecycle events (thinking, executing, completed, error) so you can build your own UI components:</p>
+    <pre><code>import { PageAgentCore } from 'page-agent'
+
+const core = new PageAgentCore({
+  model: 'gpt-4o',
+  baseURL: 'https://api.openai.com/v1',
+  apiKey: 'sk-...',
+})
+
+core.on('status', (status) => { /* update UI */ })
+core.on('activity', (activity) => { /* render step */ })
+
+await core.execute('Fill the search form')</code></pre>
+    <p>The built-in Panel wraps PageAgentCore with a ready-to-use chat interface that includes task input, status indicators, and an expandable action history. This lab's <code>mock-model.js</code> demonstrates the adapter interface that would drive the Panel in a fully integrated setup.</p>
+  </section>
+
+  <section id="local-integration" class="lab-section">
+    <h2>Local Adapter + Real Runtime</h2>
+
+    <p><strong>Real Non-Demo Bundle:</strong> This lab vendors a <strong>custom non-demo IIFE bundle</strong> built directly from the pinned upstream source (<code>packages/page-agent/src/production-iife-entry.ts</code>). The bundle exposes <code>window.PageAgent</code> and runs the real <code>PageAgent</code> → <code>PageAgentCore</code> → <code>PageController</code> → built-in <code>Panel</code> stack with a local deterministic mock model. It is distinct from the published artifacts:</p>
+    <ul class="feature-list">
+      <li><strong><code>dist/esm/page-agent.js</code></strong> (722 bytes) — Thin ESM re-export requiring a bundler and <code>@page-agent/*</code> dependencies. Not used here.</li>
+      <li><strong><code>dist/iife/page-agent.demo</code></strong> (209 KB) — Demo-only bundle with automatic initialization, a free testing LLM API (DashScope), and jsDelivr CDN references. Explicitly <strong>excluded</strong> per experiment policy.</li>
+      <li><strong>vendored <code>page-agent.iife.js</code></strong> — Custom non-demo IIFE bundle, no auto-init, no live model, no CDN. See <code>vendor-manifest.json</code> for build provenance and SHA-256.</li>
+    </ul>
+
+    <p><strong>Deterministic Mock Model:</strong> The <code>mock-model.js</code> file demonstrates the OpenAI-compatible chat completion contract that Page Agent's LLM client requires. It implements four deterministic tasks:</p>
+    <ul class="feature-list">
+      <li><code>quick-start</code> — Maps to the Quick Start documentation section</li>
+      <li><code>vs-browser-use</code> — Maps to the comparison table</li>
+      <li><code>license</code> — Maps to the MIT License section</li>
+      <li><code>architecture</code> — Maps to the Architecture diagram</li>
+    </ul>
+
+    <p>The mock exports <code>window.PageAgentMockModel</code> with <code>handleCompletion(url, payload)</code>, <code>isBlocked(url)</code>, and task lookup methods. This adapter:</p>
+    <ul class="feature-list">
+      <li>Receives OpenAI-compatible request payloads</li>
+      <li>Returns deterministic completion responses for known tasks</li>
+      <li>Returns a bounded unsupported response for unknown tasks</li>
+      <li>Blocks all non-local origins via an explicit denylist</li>
+      <li>Requires no API keys, secrets, or environment variables</li>
+    </ul>
+
+    <p class="note note-warn"><strong>Status:</strong> This lab runs the <strong>actual Page Agent 1.12.1 runtime</strong>. The vendored non-demo IIFE bundle exposes <code>window.PageAgent</code>; <code>page-agent-lab.js</code> instantiates it with a same-origin <code>customFetch</code> that routes chat-completion requests to <code>mock-model.js</code>. Each supported task flows through the real Panel input → PageAgentCore request → customFetch → tool response → PageController DOM action → target section. No CDN, no live model, and no non-local requests occur.</p>
+  </section>
+
+  <section id="license" class="lab-section">
+    <h2>MIT License</h2>
+    <p>Page Agent is published under the MIT License.</p>
+    <blockquote class="license-quote">
+      <p>MIT License</p>
+      <p>Copyright (c) 2026 SimonLuvRamen &amp; Alibaba Group Holding Limited</p>
+      <p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+      <p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+      <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+    </blockquote>
+  </section>
+
+  <section id="source-attribution" class="lab-section">
+    <h2>Source Attribution</h2>
+    <p>This page is a <strong>local interoperability experiment</strong> using the Alibaba Page Agent library. It is not affiliated with or endorsed by Alibaba Group. All trademarks and copyrights belong to their respective owners.</p>
+    <table class="attr-table">
+      <tr><td>Upstream Repository</td><td><a href="https://github.com/alibaba/page-agent" target="_blank" rel="noopener">alibaba/page-agent</a></td></tr>
+      <tr><td>Pinned Commit</td><td><code>fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7</code></td></tr>
+      <tr><td>Package Version</td><td>1.12.1</td></tr>
+      <tr><td>License</td><td>MIT</td></tr>
+      <tr><td>Source Manifest</td><td><code>source-manifest.json</code></td></tr>
+    </table>
+  </section>
+
+</main>
+
+<!-- ═══ Footer ═══ -->
+<footer class="lab-footer">
+  <p>Local interoperability experiment · Page Agent 1.12.1 · MIT License</p>
+  <p class="footer-small">Analysed from <code>alibaba/page-agent@fa4664d</code> — runs the real non-demo Page Agent 1.12.1 IIFE bundle with a deterministic offline mock model. No CDN, no live model, no external requests.</p>
+</footer>
+
+<!-- ═══ Scripts ═══ -->
+<script src="./vendor/page-agent.iife.js"></script>
+<script src="./mock-model.js"></script>
+<script src="./page-agent-lab.js"></script>
+</body>
+</html>

@@ -120,5 +120,68 @@ jobs:
           RUN_CLOUDFLARE_FUNCTION_CONTRACTS: "1"
         run: node tests/functions/test_cloudflare_mvp_ask_contract.mjs
 
+      - name: Run Page Agent lab Python contracts (full suite)
+        run: python -m pytest -q tests/test_page_agent_lab.py
+
+      - name: Run Page Agent lab runtime verification
+        run: node tests/browser/verify_page_agent_lab_runtime.mjs
+
+      - name: Run Page Agent lab browser E2E
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PYTHONPATH=. python scripts/build_cloudflare_pages.py --mode live
+
+          test -f dist/cloudflare-pages/examples/page-agent/index.html
+          test -f dist/cloudflare-pages/examples/page-agent/mock-model.js
+          test -f dist/cloudflare-pages/examples/page-agent/page-agent-lab.js
+          test -f dist/cloudflare-pages/examples/page-agent/vendor/page-agent.iife.js
+          test -f dist/cloudflare-pages/examples/page-agent/vendor/LICENSE
+
+          python -m http.server 8767 \
+            --bind 127.0.0.1 \
+            --directory dist/cloudflare-pages \
+            > /tmp/page-agent-e2e-server.log 2>&1 &
+
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8767/examples/page-agent/"
+
+          for _ in range(40):
+              try:
+                  with urllib.request.urlopen(url, timeout=1) as response:
+                      body = response.read().decode("utf-8", errors="replace")
+                      if response.status == 200 and "Local interoperability experiment" in body:
+                          break
+              except Exception:
+                  time.sleep(0.25)
+          else:
+              import sys
+              try:
+                  with open("/tmp/page-agent-e2e-server.log", "r") as f:
+                      sys.stderr.write("--- Server log ---\n")
+                      sys.stderr.write(f.read())
+                      sys.stderr.write("--- End server log ---\n")
+              except Exception as e:
+                  sys.stderr.write("Could not read server log: " + str(e) + "\n")
+              raise SystemExit("Page Agent E2E server did not become ready")
+          PY
+
+          node tests/browser/verify_page_agent_lab_e2e.mjs \
+            http://127.0.0.1:8767
+
       - name: Check whitespace errors
         run: git diff --check
