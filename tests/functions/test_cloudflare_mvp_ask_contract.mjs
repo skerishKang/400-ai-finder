@@ -582,7 +582,7 @@ await assert('all configured providers failing returns sanitized upstream_error'
   }
 });
 
-await assert('optional Gemini Interactions mode keeps search grounding', async () => {
+await assert('optional Gemini Interactions keeps grounding but never promotes to official', async () => {
   const officialCitation = {
     type: 'url_citation',
     title: '광주 북구청',
@@ -597,19 +597,68 @@ await assert('optional Gemini Interactions mode keeps search grounding', async (
       GEMINI_API_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/interactions',
     });
     expectEqual(data.provider, 'gemini', 'provider');
-    expectEqual(data.freshness_state, 'live_official', 'freshness_state');
+    expectEqual(data.freshness_state, 'snapshot_unavailable', 'freshness_state');
+    if (data.freshness_state === 'live_official') throw new Error('must not promote to live_official');
+    if (data.freshness_state === 'official_snapshot') throw new Error('must not promote to official_snapshot');
     if (!data.source_url.startsWith('https://bukgu.gwangju.kr/')) {
       throw new Error(`unexpected primary source: ${data.source_url}`);
     }
     if (!data.sources.some((source) => source.url === officialCitation.url)) {
       throw new Error('Interactions citation was not preserved');
     }
+    if (!data.search_queries.length) throw new Error('search queries were dropped');
+    expectEqual(data.official_route_id, '', 'official_route_id');
+    expectEqual(data.official_page_id, '', 'official_page_id');
+    expectEqual(data.snapshot_id, '', 'snapshot_id');
+    expectEqual(data.canonical_sha256, '', 'canonical_sha256');
+    expectEqual(data.captured_at, '', 'captured_at');
+    expectEqual(data.verified_at, '', 'verified_at');
     expectEqual(officialFetchCalls().length, 0, 'request-time official fetch count');
     const modelCall = providerFetchCalls()[0];
     expectEqual(modelCall.headers['x-goog-api-key'], 'test-gemini', 'Interactions auth');
     const payload = JSON.parse(modelCall.body);
     expectEqual(payload.store, false, 'store');
     expectEqual(payload.tools[0].type, 'google_search', 'tool');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('housing_department canonical snapshot survives Gemini Interactions citations', async () => {
+  const providerCitation = {
+    type: 'url_citation',
+    title: '북구청 공동주택 안내',
+    url: 'https://bukgu.gwangju.kr/board.es?mid=a10602012601',
+  };
+  try {
+    mockFetchSequence([{ body: groundedInteraction('공동주택과 안내입니다.', [providerCitation]) }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: '공동주택 관련 문의는 어느 부서에 해야 하나요?',
+    }), {
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_API_STYLE: 'interactions',
+      GEMINI_MODEL: 'gemini-3.5-flash',
+      GEMINI_API_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/interactions',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.freshness_state, 'official_snapshot', 'freshness_state');
+    expectEqual(data.official_route_id, 'apartment-dept', 'official_route_id');
+    if (!data.official_page_id) throw new Error('official_page_id missing');
+    if (!data.snapshot_id) throw new Error('snapshot_id missing');
+    if (typeof data.canonical_sha256 !== 'string' || data.canonical_sha256.length !== 64) {
+      throw new Error(`canonical_sha256 missing/invalid: ${data.canonical_sha256}`);
+    }
+    expectIsoDate(data.captured_at, 'captured_at');
+    expectIsoDate(data.verified_at, 'verified_at');
+    if (data.freshness_state !== 'official_snapshot' && !data.canonical_sha256) {
+      throw new Error('canonical provenance lost after provider citation merge');
+    }
+    if (!data.sources.some((source) => source.url === providerCitation.url)) {
+      throw new Error('provider citation was not preserved alongside canonical sources');
+    }
+    const modelCall = providerFetchCalls()[0];
+    expectEqual(JSON.parse(modelCall.body).tools[0].type, 'google_search', 'tool');
+    expectEqual(officialFetchCalls().length, 0, 'request-time official fetch count');
   } finally {
     restoreFetch();
   }

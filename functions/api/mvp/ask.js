@@ -279,6 +279,9 @@ function safeSource(annotation) {
         ? annotation.title.trim().slice(0, 160)
         : url.hostname,
       url: url.toString(),
+      // `official` here is only URL-domain classification (e.g. *.go.kr). It is
+      // NOT a canonical snapshot validation state and must never promote the
+      // response freshness to `live_official` or `official_snapshot`.
       official: isOfficialUrl(url.toString()),
     };
   } catch (_) {
@@ -495,10 +498,8 @@ async function requestGeminiInteractions(config, question, currentTime, official
   }
   const parsed = parseGroundedInteraction(data);
   if (!parsed.answer) return { ok: false, failureCode: 'empty_response' };
-  const officialSources = parsed.sources.filter((source) => source.official);
   const sources = mergeSources(officialContext.sources, parsed.sources);
   const primarySource = officialContext.sourceUrl ||
-    (officialSources[0] && officialSources[0].url) ||
     (parsed.sources[0] && parsed.sources[0].url) ||
     '';
   return {
@@ -506,9 +507,13 @@ async function requestGeminiInteractions(config, question, currentTime, official
     answer: parsed.answer,
     action: parsed.action,
     confidence: parsed.confidence,
-    freshnessState: officialContext.ok
-      ? (officialContext.freshnessState || 'live_official')
-      : (officialSources.length ? 'live_official' : (parsed.sources.length ? 'live_web' : 'model_only')),
+    // Canonical provenance is authoritative and never derived from provider
+    // search results. Provider Google Search annotations are preserved as
+    // supplementary citations in `sources` but must not promote the response
+    // to `live_official` or `official_snapshot`. An action without a canonical
+    // snapshot stays `snapshot_unavailable` even when the provider returns
+    // official-domain citations.
+    freshnessState: officialContext.freshnessState,
     sources,
     sourceUrl: primarySource,
     searchQueries: mergeQueries(officialContext.searchQueries, parsed.searchQueries),
