@@ -130,7 +130,7 @@ jobs:
 
           python -m http.server 8767 \
             --bind 127.0.0.1 \
-            --directory src/web/examples \
+            --directory src/web \
             > /tmp/page-agent-e2e-server.log 2>&1 &
 
           server_pid=$!
@@ -146,16 +146,27 @@ jobs:
           import time
           import urllib.request
 
-          url = "http://127.0.0.1:8767/"
+          url = "http://127.0.0.1:8767/examples/page-agent/"
 
           for _ in range(40):
               try:
                   with urllib.request.urlopen(url, timeout=1) as response:
-                      if response.status == 200:
+                      body = response.read().decode("utf-8", errors="replace")
+                      if response.status == 200 and "Page Agent" in body:
                           break
               except Exception:
                   time.sleep(0.25)
           else:
+              import sys
+              try:
+                  with open("/tmp/page-agent-e2e-server.log", "r") as f:
+                      sys.stderr.write("--- Server log ---\n")
+                      sys.stderr.write(f.read())
+                      sys.stderr.write("--- End server log ---\n")
+                  dir_listing = urllib.request.urlopen("http://127.0.0.1:8767/examples/")
+                  sys.stderr.write("examples dir: " + dir_listing.read().decode("utf-8", errors="replace")[:500] + "\n")
+              except Exception as e:
+                  sys.stderr.write("Could not read server log or dir listing: " + str(e) + "\n")
               raise SystemExit("Page Agent E2E server did not become ready")
           PY
 

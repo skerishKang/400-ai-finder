@@ -346,6 +346,159 @@ function testBukguIsolation() {
   console.log("  [13] Buk-gu isolation: OK");
 }
 
+// ── #1090 NEW: Reset diagnostics ───────────────────────────────────────
+
+async function testResetDiagnostics() {
+  const ctx = createContext();
+  runInContext(mockModelCode, ctx);
+  const model = ctx.window.PageAgentMockModel;
+
+  const url = "http://localhost:8765/examples/page-agent/mock-llm/v1/chat/completions";
+  const payload = {
+    model: "page-agent-lab-local",
+    messages: [{ role: "user", content: "Show the Quick Start section" }],
+    tools: [{ function: { name: "AgentOutput" } }],
+    tool_choice: { type: "function", function: { name: "AgentOutput" } },
+  };
+
+  function isEmptyArray(a) {
+    return Array.isArray(a) && a.length === 0;
+  }
+
+  // Before any call
+  let d = model.getDiagnostics();
+  assert.strictEqual(d.callCount, 0);
+  assert.ok(isEmptyArray(d.toolNames), "toolNames must be empty before any call");
+  assert.ok(isEmptyArray(d.actionNames), "actionNames must be empty before any call");
+  assert.ok(isEmptyArray(d.taskIds), "taskIds must be empty before any call");
+  assert.ok(isEmptyArray(d.successValues), "successValues must be empty before any call");
+  assert.ok(isEmptyArray(d.completionTexts), "completionTexts must be empty before any call");
+
+  // After first call
+  await model.respond(url, { body: JSON.stringify(payload) });
+  d = model.getDiagnostics();
+  assert.strictEqual(d.callCount, 1);
+  assert.strictEqual(d.toolNames.length, 1);
+  assert.strictEqual(d.actionNames[0], "execute_javascript");
+
+  // Reset
+  model.resetDiagnostics();
+  d = model.getDiagnostics();
+  assert.strictEqual(d.callCount, 0);
+  assert.ok(isEmptyArray(d.toolNames), "toolNames must be empty after reset");
+  assert.ok(isEmptyArray(d.actionNames), "actionNames must be empty after reset");
+  assert.ok(isEmptyArray(d.taskIds), "taskIds must be empty after reset");
+  assert.ok(isEmptyArray(d.successValues), "successValues must be empty after reset");
+  assert.ok(isEmptyArray(d.completionTexts), "completionTexts must be empty after reset");
+
+  console.log("  [14] Reset diagnostics clears all counters: OK");
+}
+
+// ── #1090 NEW: Supported task diagnostic sequence ───────────────────────
+
+async function testSupportedDiagnosticsSequence() {
+  const ctx = createContext();
+  runInContext(mockModelCode, ctx);
+  const model = ctx.window.PageAgentMockModel;
+
+  const url = "http://localhost:8765/examples/page-agent/mock-llm/v1/chat/completions";
+  const payload = {
+    model: "page-agent-lab-local",
+    messages: [{ role: "user", content: "Show the Quick Start section" }],
+    tools: [{ function: { name: "AgentOutput" } }],
+    tool_choice: { type: "function", function: { name: "AgentOutput" } },
+  };
+
+  // First call (supported, first step) → execute_javascript, no done yet
+  await model.respond(url, { body: JSON.stringify(payload) });
+  let d = model.getDiagnostics();
+  assert.strictEqual(d.callCount, 1);
+  assert.strictEqual(d.actionNames.length, 1);
+  assert.strictEqual(d.actionNames[0], "execute_javascript");
+  assert.strictEqual(d.successValues.length, 1);
+  assert.strictEqual(d.successValues[0], null);
+  assert.strictEqual(d.completionTexts.length, 1);
+  assert.strictEqual(d.completionTexts[0], null);
+  assert.strictEqual(d.lastSuccess, null);
+  assert.strictEqual(d.lastCompletionText, null);
+
+  // Second call (supported, has <step_1>) → done with success:true + response text
+  const quickStartTask = model.getTask("quick-start");
+  assert.ok(quickStartTask, "quick-start task must exist");
+  const payload2 = {
+    ...payload,
+    messages: [{ role: "user", content: "<step_1> Show the Quick Start section" }],
+  };
+  await model.respond(url, { body: JSON.stringify(payload2) });
+  d = model.getDiagnostics();
+  assert.strictEqual(d.callCount, 2);
+  assert.strictEqual(d.actionNames.length, 2);
+  assert.strictEqual(d.actionNames[0], "execute_javascript");
+  assert.strictEqual(d.actionNames[1], "done");
+  assert.strictEqual(d.successValues.length, 2);
+  assert.strictEqual(d.successValues[0], null);
+  assert.strictEqual(d.successValues[1], true);
+  assert.strictEqual(d.lastSuccess, true);
+  assert.strictEqual(d.completionTexts[0], null);
+  assert.ok(
+    typeof d.completionTexts[1] === "string" && d.completionTexts[1].length > 0,
+    `completion text must be a non-empty string for done action, got ${typeof d.completionTexts[1]}`
+  );
+  assert.ok(
+    d.lastCompletionText.includes(quickStartTask.response),
+    `lastCompletionText must contain the task response. Expected to include: "${quickStartTask.response.substring(0, 40)}..."`
+  );
+
+  console.log("  [15] Supported task diagnostic sequence (successValues, completionTexts): OK");
+}
+
+// ── #1090 NEW: Unknown task diagnostic sequence ─────────────────────────
+
+async function testUnknownDiagnosticsSequence() {
+  const ctx = createContext();
+  runInContext(mockModelCode, ctx);
+  const model = ctx.window.PageAgentMockModel;
+
+  const url = "http://localhost:8765/examples/page-agent/mock-llm/v1/chat/completions";
+  const payload = {
+    model: "page-agent-lab-local",
+    messages: [{ role: "user", content: "What is the weather today?" }],
+    tools: [{ function: { name: "AgentOutput" } }],
+    tool_choice: { type: "function", function: { name: "AgentOutput" } },
+  };
+
+  // Reset first
+  model.resetDiagnostics();
+
+  // Single call for unknown (no <step_1>) → done with success:false + unsupported text
+  await model.respond(url, { body: JSON.stringify(payload) });
+  const d = model.getDiagnostics();
+
+  assert.strictEqual(d.callCount, 1);
+  assert.strictEqual(d.actionNames.length, 1);
+  assert.strictEqual(d.actionNames[0], "done");
+  assert.strictEqual(d.taskIds.length, 1);
+  assert.strictEqual(d.taskIds[0], null);
+  assert.strictEqual(d.successValues.length, 1);
+  assert.strictEqual(d.successValues[0], false);
+  assert.strictEqual(d.lastSuccess, false);
+  assert.strictEqual(d.completionTexts[0], d.lastCompletionText);
+  assert.ok(
+    typeof d.lastCompletionText === "string" && d.lastCompletionText.length > 0,
+    "lastCompletionText must be a non-empty string for unknown task"
+  );
+  assert.ok(
+    d.lastCompletionText.includes("I can only help with the following topics on this page"),
+    `lastCompletionText must contain unsupported bounded text. Got: "${d.lastCompletionText.substring(0, 80)}..."`
+  );
+  assert.ok(
+    d.lastCompletionText.includes("Show the Quick Start section"),
+    "lastCompletionText must list supported tasks"
+  );
+
+  console.log("  [16] Unknown task diagnostic sequence (success=false, bounded text): OK");
+}
+
 // ── Main ────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -364,6 +517,9 @@ async function main() {
   testPageAgentLabActualInit();
   testIndexHtmlScriptOrder();
   testBukguIsolation();
+  await testResetDiagnostics();
+  await testSupportedDiagnosticsSequence();
+  await testUnknownDiagnosticsSequence();
 
   console.log("All Page Agent lab runtime scenarios passed.");
 }

@@ -204,6 +204,7 @@
   var actionNames = [];
   var taskIds = [];
   var successValues = [];
+  var completionTexts = [];
 
   function resetDiagnostics() {
     callCount = 0;
@@ -211,6 +212,7 @@
     actionNames = [];
     taskIds = [];
     successValues = [];
+    completionTexts = [];
   }
 
   window.__pageAgentLabResetDiagnostics = resetDiagnostics;
@@ -298,8 +300,14 @@
     taskIds.push(task ? task.id : null);
     if (actionKey === 'done') {
       successValues.push(actionDetail ? !!actionDetail.success : true);
+      completionTexts.push(
+        actionDetail && typeof actionDetail.text === 'string'
+          ? actionDetail.text
+          : ''
+      );
     } else {
       successValues.push(null);
+      completionTexts.push(null);
     }
 
     return new Response(JSON.stringify(buildToolResponse(macroToolName, action)), {
@@ -361,6 +369,11 @@
         taskIds: taskIds.slice(),
         successValues: successValues.slice(),
         lastSuccess: successValues.length > 0 ? successValues[successValues.length - 1] : null,
+        completionTexts: completionTexts.slice(),
+        lastCompletionText:
+          completionTexts.length > 0
+            ? completionTexts[completionTexts.length - 1]
+            : null,
       };
     },
 
