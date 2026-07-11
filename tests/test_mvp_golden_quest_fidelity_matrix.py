@@ -348,10 +348,10 @@ def test_removed_quest_ids_not_in_matrix():
 
 @pytest.mark.parametrize("quest_id", list(GOLDEN_MATRIX.keys()))
 def test_required_answer_substrings_present(registry, quest_id):
-    """Check that essential semantic content is preserved in the answer."""
+    """Check that essential semantic content is preserved in the answer.
+    Quests without required_answer_substrings configured trivially pass.
+    """
     required = GOLDEN_MATRIX[quest_id].get("required_answer_substrings", [])
-    if not required:
-        pytest.skip(f"{quest_id} has no required answer substrings configured")
     answer = registry.get(quest_id).answer or ""
     for substring in required:
         assert substring in answer, (
@@ -378,12 +378,11 @@ CURRENT_VERIFIER_FILES = [
 
 @pytest.mark.parametrize("doc_path", ACTIVE_CONTRACT_DOCS)
 def test_active_contract_docs_have_no_removed_quest_ids(doc_path):
-    """Active contract docs must not reference removed quest IDs as current quests."""
-    try:
-        with open(doc_path, encoding="utf-8") as f:
-            content = f.read()
-    except FileNotFoundError:
-        pytest.skip(f"{doc_path} not found — may be outside worktree scope")
+    """Active contract docs must not reference removed quest IDs as current quests.
+    These docs are committed in the repository; if absent the test must fail.
+    """
+    with open(doc_path, encoding="utf-8") as f:
+        content = f.read()
     for removed_id in REMOVED_QUEST_IDS:
         assert removed_id not in content, (
             f"{doc_path} contains removed quest ID: {removed_id}"
