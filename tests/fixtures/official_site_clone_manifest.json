@@ -236,7 +236,7 @@
       "quest_ids": []
     }
   ],
-  "completeness_note": "The apartment-dept route is backed by one complete canonical official snapshot and registered as exact. All remaining production renderer routes stay under capture_required and must not be represented as exact until their complete official captures land. Two deprecated quests are not renderer routes and are excluded from this manifest.",
+  "completeness_note": "The apartment-dept route is backed by one complete canonical official snapshot and registered as exact. Official or unresolved official-looking renderer routes remain under capture_required until complete official captures land. complaint-review and handoff-stop are registered separately as non-official product_transitions and must never be represented as exact official pages. Two deprecated quests are not renderer routes and are excluded from this manifest.",
   "complete_capture_required": [
     "home",
     "civil-service",

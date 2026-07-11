@@ -4,7 +4,7 @@ Enforces the CTO directive: the official page fixture manifest MUST be derived
 from the *actual* production renderer route vocabulary — not from a hand-maintained
 literal list. These tests dynamically extract the route set from four independent
 production sources (JS frozen array, Python frozenset, Canvas JS dispatch,
-Manifest exact + capture_required entries) and assert that all four are EXACTLY
+Manifest pages + capture_required + product_transitions entries) and assert that all four are EXACTLY
 the same set.
 
 No hand-maintained literal declares the expected set; the four sources define it
@@ -70,7 +70,7 @@ def _extract_canvas_route_ids() -> set[str]:
 
 
 def _extract_manifest_route_ids() -> set[str]:
-    """Parse every exact or capture-required route from the manifest."""
+    """Parse every registered production route from pages, capture_required, and product_transitions."""
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     entries = manifest.get("pages", []) + manifest.get("capture_required", []) + manifest.get("product_transitions", [])
     return {e["route_id"] for e in entries}
@@ -157,15 +157,19 @@ def test_all_four_route_sets_are_identical():
 
 
 # ---------------------------------------------------------------------------
-# 3. complete_capture_required matches (if present)
+# complete_capture_required is mandatory and exactly matches capture_required
 # ---------------------------------------------------------------------------
 
 def test_complete_capture_required_matches_capture_required():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    if "complete_capture_required" not in manifest:
-        return  # field is optional
+
+    assert "complete_capture_required" in manifest, (
+        "manifest must define complete_capture_required"
+    )
+
     capture = _extract_capture_required_route_ids()
     complete = _extract_complete_capture_required()
+
     assert capture == complete, (
         f"complete_capture_required {sorted(complete)} does not match "
         f"capture_required route_ids {sorted(capture)}"
