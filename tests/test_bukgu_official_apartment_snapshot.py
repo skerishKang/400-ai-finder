@@ -24,6 +24,8 @@ CANVAS = ROOT / "src" / "web" / "static" / "citizen-action-demo-canvas.js"
 CHOREOGRAPHY = ROOT / "src" / "web" / "static" / "citizen-first-choreography.js"
 HTML = ROOT / "src" / "web" / "static" / "citizen-action-demo.html"
 MANIFEST = ROOT / "tests" / "fixtures" / "official_site_clone_manifest.json"
+WORKFLOW = ROOT / ".github" / "workflows" / "mvp-contracts.yml"
+HOUSING_E2E = ROOT / "tests" / "browser" / "verify_housing_quest_e2e.mjs"
 
 
 EXPECTED_ROWS = [
@@ -167,13 +169,20 @@ def test_generator_check_passes_without_writing():
 def test_manifest_promotes_only_apartment_dept_to_exact():
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     exact = {entry["route_id"]: entry for entry in manifest["pages"]}
-    pending = {entry["route_id"] for entry in manifest["capture_required"]}
+    pending = {entry["route_id"]: entry for entry in manifest["capture_required"]}
     assert set(exact) == {"apartment-dept"}
     assert "apartment-dept" not in pending
-    entry = exact["apartment-dept"]
-    assert entry["fixture_path"] == "data/official_snapshots/bukgu_gwangju/apartment-dept.json"
-    assert entry["content_mode"] == "exact"
-    assert entry["canonical_sha256"] == canonical_snapshot_sha256(_canonical())
+
+    exact_entry = exact["apartment-dept"]
+    assert exact_entry["fixture_path"] == "data/official_snapshots/bukgu_gwangju/apartment-dept.json"
+    assert exact_entry["content_mode"] == "exact"
+    assert exact_entry["canonical_sha256"] == canonical_snapshot_sha256(_canonical())
+    assert exact_entry["quest_ids"] == ["housing_department_lookup"]
+
+    apartment_info_entry = pending["apartment-info"]
+    assert apartment_info_entry["status"] == "capture_required"
+    assert "housing_department_lookup" not in apartment_info_entry["quest_ids"]
+    assert apartment_info_entry["quest_ids"] == []
     assert "apartment-info" in pending
 
 
@@ -195,3 +204,45 @@ def test_canonical_snapshot_has_no_runtime_network_dependency():
     entry = next(item for item in manifest["pages"] if item["route_id"] == "apartment-dept")
     assert entry["network_required_at_runtime"] is False
     assert "fetch(" not in BROWSER.read_text(encoding="utf-8")
+
+
+def test_housing_quest_routes_only_to_apartment_dept_snapshot():
+    from src.agent.quest_registry import load_default_bukgu_registry
+
+    quest = load_default_bukgu_registry().get("housing_department_lookup")
+    assert quest is not None
+    assert quest.official_snapshot_ref == "apartment-dept"
+
+    open_routes = [
+        action.route_id
+        for action in quest.browser_actions
+        if action.action_type == "OPEN_ALLOWLISTED_ROUTE"
+    ]
+    assert open_routes == ["apartment-dept"]
+
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    exact = {entry["route_id"]: entry for entry in manifest["pages"]}
+    pending = {entry["route_id"]: entry for entry in manifest["capture_required"]}
+    assert exact["apartment-dept"]["quest_ids"] == ["housing_department_lookup"]
+    assert "housing_department_lookup" not in pending["apartment-info"]["quest_ids"]
+
+
+def test_housing_e2e_registered_in_ci_workflow():
+    assert HOUSING_E2E.exists(), "housing E2E verifier must exist"
+
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    assert "verify_housing_quest_e2e.mjs" in workflow, "workflow must run the housing E2E verifier"
+    assert "build_cloudflare_pages.py --mode live" in workflow, "workflow must build live Pages"
+    assert "127.0.0.1" in workflow, "workflow must bind the loopback server"
+
+    for line in workflow.splitlines():
+        stripped = line.strip()
+        if "bukgu.gwangju.kr" in stripped and "verify_housing_quest_e2e.mjs" not in stripped:
+            # harness URLs in the workflow are fine, but the E2E target must be loopback only
+            pass
+    assert "http://127.0.0.1:8768" in workflow, "workflow must point the verifier at the loopback server"
+
+    # verifier failures must not be swallowed
+    assert "verify_housing_quest_e2e.mjs" in workflow
+    e2e_lines = [ln for ln in workflow.splitlines() if "verify_housing_quest_e2e.mjs" in ln]
+    assert not any(ln.strip().endswith("|| true") for ln in e2e_lines), "verifier failures must not be ignored with || true"

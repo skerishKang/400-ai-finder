@@ -160,9 +160,7 @@
       "blocking_followup_issue": "#1080 — apartment-info full official capture pending; synthetic render must not be mistaken for exact.",
       "network_required_at_runtime": false,
       "status": "capture_required",
-      "quest_ids": [
-        "housing_department_lookup"
-      ]
+      "quest_ids": []
     },
     {
       "route_id": "complaint-intake",

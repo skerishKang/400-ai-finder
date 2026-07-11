@@ -70,6 +70,47 @@ jobs:
       - name: Run responsive browser contract
         run: node tests/browser/verify_first_use_responsive.mjs
 
+      - name: Run housing department browser contract
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python scripts/build_cloudflare_pages.py --mode live
+
+          python -m http.server 8768 \
+            --bind 127.0.0.1 \
+            --directory dist/cloudflare-pages \
+            > /tmp/housing-e2e-server.log 2>&1 &
+
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8768/"
+
+          for _ in range(40):
+              try:
+                  with urllib.request.urlopen(url, timeout=1) as response:
+                      if response.status == 200:
+                          break
+              except Exception:
+                  time.sleep(0.25)
+          else:
+              raise SystemExit("housing E2E server did not become ready")
+          PY
+
+          node tests/browser/verify_housing_quest_e2e.mjs \
+            http://127.0.0.1:8768
+
       - name: Run Cloudflare MVP Function contract test
         env:
           RUN_CLOUDFLARE_FUNCTION_CONTRACTS: "1"
