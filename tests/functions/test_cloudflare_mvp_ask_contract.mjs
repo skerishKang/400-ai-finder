@@ -236,31 +236,78 @@ await assert('provider order defaults to Gemini then HY3', async () => {
   expectEqual(functionModule.normalizeProviderOrder('gemini,gemini,hy3').join(','), 'gemini,hy3', 'deduped order');
 });
 
-await assert('official search queries are focused and redact obvious personal data', async () => {
-  expectEqual(
-    functionModule.buildOfficialSearchQuery('매트리스는 어떻게 버리나요?'),
-    '대형폐기물 배출방법',
-    'bulky waste query',
-  );
-  expectEqual(
-    functionModule.buildOfficialSearchQuery('북구청 대표전화와 운영시간 알려줘'),
-    '북구청 대표전화 구청 동행정복지센터 운영시간',
-    'contact query',
-  );
-  const redacted = functionModule.buildOfficialSearchQuery(
-    'test@example.com 또는 010-1234-5678로 답하지 말고 청소 민원 알려줘',
-  );
-  if (redacted.includes('test@example.com') || redacted.includes('010-1234-5678')) {
-    throw new Error(`personal data leaked into search query: ${redacted}`);
+await assert('request-time official fetch helpers are removed (snapshot-only)', async () => {
+  for (const name of ['buildOfficialSearchQuery', 'buildOfficialSearchUrl', 'sanitizeOfficialHtml']) {
+    if (typeof functionModule[name] !== 'undefined') {
+      throw new Error(`legacy request-time helper still exported: ${name}`);
+    }
+  }
+  if (typeof functionModule.OFFICIAL_SOURCE_DEFAULTS !== 'undefined') {
+    throw new Error('OFFICIAL_SOURCE_DEFAULTS still exported');
   }
 });
 
-await assert('official HTML sanitizer strips executable content and decodes facts', async () => {
-  const sanitized = functionModule.sanitizeOfficialHtml(
-    '<main><p>대표전화 &amp; 안내: 062-410-8000</p><script>steal secrets</script></main>',
-  );
-  if (!sanitized.includes('대표전화 & 안내: 062-410-8000')) throw new Error('official fact missing');
-  if (sanitized.includes('steal secrets') || sanitized.includes('<script>')) throw new Error('script content leaked');
+await assert('housing_department official context uses the canonical apartment-dept snapshot', async () => {
+  const context = await functionModule.retrieveOfficialContext('공동주택 관련 문의는 어디에요?', 'housing_department');
+  expectEqual(context.ok, true, 'ok');
+  expectEqual(context.freshnessState, 'official_snapshot', 'freshnessState');
+  expectEqual(context.routeId, 'apartment-dept', 'routeId');
+  if (!context.pageId) throw new Error('pageId missing');
+  if (!context.snapshotId) throw new Error('snapshotId missing');
+  if (typeof context.canonicalSha256 !== 'string' || context.canonicalSha256.length !== 64) {
+    throw new Error(`canonicalSha256 missing/invalid: ${context.canonicalSha256}`);
+  }
+  expectIsoDate(context.capturedAt, 'capturedAt');
+  expectIsoDate(context.verifiedAt, 'verifiedAt');
+  if (!context.sourceUrl) throw new Error('official source url missing');
+  if (!context.sources.some((source) => source.official === true)) {
+    throw new Error('canonical sources missing official provenance');
+  }
+  const evidenceLines = context.evidence.split('\n');
+  if (evidenceLines.filter((line) => /^\d+\.\s/.test(line)).length !== 19) {
+    throw new Error('expected 19 official department rows in evidence');
+  }
+});
+
+await assert('retrieveOfficialContext never fetches live official domains for actions without a canonical snapshot', async () => {
+  let callCount = 0;
+  const priorFetch = globalThis.fetch;
+  globalThis.fetch = async () => { callCount += 1; throw new Error('NETWORK_BLOCKED'); };
+  try {
+    const context = await functionModule.retrieveOfficialContext('여권 발급은 어디서 하나요?', 'passport_guidance');
+    expectEqual(context.ok, false, 'ok');
+    expectEqual(context.freshnessState, 'snapshot_unavailable', 'freshnessState');
+    expectEqual(context.evidence, '', 'evidence');
+    expectEqual(context.sourceUrl, '', 'sourceUrl');
+    expectEqual(context.searchQueries.length, 0, 'searchQueries');
+    expectEqual(context.sources.length, 0, 'sources');
+    if (context.freshnessState === 'live_official' || context.freshnessState === 'official_snapshot') {
+      throw new Error('non-official action must not be marked official');
+    }
+    if ((context.sources || []).some((source) => source.official)) {
+      throw new Error('unavailable context must not carry official sources');
+    }
+    if (callCount !== 0) throw new Error(`retrieveOfficialContext called fetch ${callCount} times`);
+  } finally {
+    globalThis.fetch = priorFetch;
+  }
+});
+
+await assert('retrieveOfficialContext returns explicit unavailable state for actions with no snapshot', async () => {
+  const context = await functionModule.retrieveOfficialContext('북구청 운영시간 알려줘', 'none');
+  expectEqual(context.ok, false, 'ok');
+  expectEqual(context.freshnessState, 'snapshot_unavailable', 'freshnessState');
+  expectEqual(context.evidence, '', 'evidence');
+  expectEqual(context.sourceUrl, '', 'sourceUrl');
+  expectEqual(context.searchQueries.length, 0, 'searchQueries');
+  expectEqual(context.sources.length, 0, 'sources');
+  expectEqual(context.routeId, '', 'routeId');
+  expectEqual(context.pageId, '', 'pageId');
+  expectEqual(context.snapshotId, '', 'snapshotId');
+  expectEqual(context.canonicalSha256, '', 'canonicalSha256');
+  if ((context.sources || []).some((source) => source.official)) {
+    throw new Error('unavailable context must not carry official sources');
+  }
 });
 
 await assert('no configured keys returns config_error for primary provider', async () => {
@@ -272,7 +319,7 @@ await assert('no configured keys returns config_error for primary provider', asy
   expectEqual(fetchCalls.length, 0, 'fetch call count');
 });
 
-await assert('Gemini OpenAI-compatible endpoint is primary', async () => {
+await assert('Gemini OpenAI-compatible endpoint is primary (no request-time official fetch)', async () => {
   try {
     mockFetchSequence([{ body: chatResponse('여권 발급 안내입니다.', 'passport_guidance', 0.95) }]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '여권 발급 알려줘' }), {
@@ -284,10 +331,12 @@ await assert('Gemini OpenAI-compatible endpoint is primary', async () => {
     expectEqual(data.model, 'gemini-3.1-flash-lite', 'model');
     expectEqual(data.action, 'passport_guidance', 'action');
     expectEqual(data.fallback_used, false, 'fallback_used');
-    expectEqual(data.freshness_state, 'live_official', 'freshness_state');
-    expectEqual(data.sources.length, 2, 'official source count');
+    expectEqual(data.freshness_state, 'snapshot_unavailable', 'freshness_state');
+    expectEqual(data.sources.length, 0, 'official source count');
+    expectEqual(data.source_url, '', 'source_url');
+    expectEqual(data.search_queries.length, 0, 'search_queries');
     expectIsoDate(data.retrieved_at, 'retrieved_at');
-    expectEqual(officialFetchCalls().length, 2, 'official fetch call count');
+    expectEqual(officialFetchCalls().length, 0, 'request-time official fetch call count');
     const modelCalls = providerFetchCalls();
     expectEqual(modelCalls.length, 1, 'provider fetch call count');
     expectEqual(modelCalls[0].url, 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'Gemini URL');
@@ -295,42 +344,30 @@ await assert('Gemini OpenAI-compatible endpoint is primary', async () => {
     const payload = JSON.parse(modelCalls[0].body);
     expectEqual(payload.model, 'gemini-3.1-flash-lite', 'Gemini model');
     if (!payload.messages[0].content.includes('현재 대한민국 표준시각')) throw new Error('current time missing');
-    if (!payload.messages[0].content.includes('062-410-8000')) throw new Error('official evidence missing');
+    if (payload.messages[0].content.includes('<official_reference>')) {
+      throw new Error('unavailable action injected fake official evidence');
+    }
     if (payload.messages[0].content.includes('ignore previous instructions')) throw new Error('script content leaked');
   } finally {
     restoreFetch();
   }
 });
 
-await assert('current contact question is grounded in official phone and hours', async () => {
+await assert('action with no canonical snapshot answers without request-time official fetch', async () => {
   try {
-    const longHomepage = `<html><body>
-      <main>${'<p>북구청 대표전화 운영시간 관련 메뉴 안내</p>'.repeat(500)}</main>
-      <footer>
-        <p>대표전화 : 062-410-8000</p>
-        <p>구청·동행정복지센터 운영시간 : 평일 09:00~18:00 (점심시간 12:00~13:00)</p>
-      </footer>
-    </body></html>`;
-    mockFetchSequence(
-      [{ body: chatResponse('대표전화는 062-410-8000이며 평일 09:00~18:00 운영합니다.') }],
-      { homepageResponse: { body: longHomepage } },
-    );
+    mockFetchSequence([{ body: chatResponse('일반 민원 안내입니다.') }]);
     const { data } = await requestJson('POST', JSON.stringify({
       question: '오늘 기준 북구청 대표전화와 민원실 운영시간을 알려줘',
     }), { GEMINI_API_KEY: 'test-gemini' });
-    expectEqual(data.freshness_state, 'live_official', 'freshness_state');
-    expectEqual(
-      data.search_queries[0],
-      '북구청 대표전화 구청 동행정복지센터 운영시간',
-      'search query',
-    );
-    if (!data.source_url.startsWith('https://search.bukgu.gwangju.kr/')) {
-      throw new Error(`unexpected source URL: ${data.source_url}`);
-    }
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.freshness_state, 'snapshot_unavailable', 'freshness_state');
+    expectEqual(data.source_url, '', 'source_url');
+    expectEqual(data.search_queries.length, 0, 'search_queries');
+    expectEqual(data.sources.length, 0, 'sources');
+    expectEqual(officialFetchCalls().length, 0, 'request-time official fetch call count');
     const prompt = JSON.parse(providerFetchCalls()[0].body).messages[0].content;
-    for (const fact of ['062-410-8000', '평일 09:00~18:00', '점심시간 12:00~13:00']) {
-      if (!prompt.includes(fact)) throw new Error(`official fact missing from prompt: ${fact}`);
-    }
+    if (prompt.includes('<official_reference>')) throw new Error('unavailable action injected fake official evidence');
+    if (prompt.includes('062-410-8000')) throw new Error('live official fact leaked into prompt without snapshot');
   } finally {
     restoreFetch();
   }
@@ -354,6 +391,14 @@ await assert('housing guidance uses the canonical snapshot without request-time 
     expectIsoDate(data.captured_at, 'captured_at');
     expectIsoDate(data.verified_at, 'verified_at');
     expectEqual(data.sources.length, 2, 'source count');
+    for (const source of data.sources) {
+      expectEqual(source.official, true, `source official flag for ${source.url}`);
+      if (!source.snapshot_id) throw new Error(`source missing snapshot_id: ${source.url}`);
+      if (!source.canonical_sha256) throw new Error(`source missing canonical_sha256: ${source.url}`);
+      if (!source.captured_at) throw new Error(`source missing captured_at: ${source.url}`);
+      if (!source.verified_at) throw new Error(`source missing verified_at: ${source.url}`);
+      if (!source.source_updated_at) throw new Error(`source missing source_updated_at: ${source.url}`);
+    }
     expectEqual(
       data.source_url,
       'https://bukgu.gwangju.kr/organization2.es?mid=a10602012601&org_cd=5820036',
@@ -361,6 +406,8 @@ await assert('housing guidance uses the canonical snapshot without request-time 
     );
     expectEqual(officialFetchCalls().length, 0, 'request-time official fetch count');
     const prompt = JSON.parse(providerFetchCalls()[0].body).messages[0].content;
+    const rowLines = prompt.split('\n').filter((line) => /^\d+\.\s*공동주택과\s*\|/.test(line));
+    expectEqual(rowLines.length, 19, 'canonical official row count');
     for (const fact of [
       '부서 대표전화: 062-410-6841',
       'FAX: 062-510-1486',
@@ -378,7 +425,7 @@ await assert('housing guidance uses the canonical snapshot without request-time 
   }
 });
 
-await assert('official retrieval failure falls back honestly to model_only', async () => {
+await assert('action without a canonical snapshot answers honestly with no official evidence', async () => {
   try {
     mockFetchSequence(
       [{ body: chatResponse('공식 근거를 확인하지 못한 일반 답변입니다.') }],
@@ -391,12 +438,14 @@ await assert('official retrieval failure falls back honestly to model_only', asy
       GEMINI_API_KEY: 'test-gemini',
     });
     expectEqual(data.ok, true, 'ok');
-    expectEqual(data.freshness_state, 'model_only', 'freshness_state');
+    expectEqual(data.freshness_state, 'snapshot_unavailable', 'freshness_state');
     expectEqual(data.source_url, '', 'source_url');
     expectEqual(data.sources.length, 0, 'sources');
     expectEqual(data.search_queries.length, 0, 'search_queries');
+    expectEqual(officialFetchCalls().length, 0, 'request-time official fetch count');
     const prompt = JSON.parse(providerFetchCalls()[0].body).messages[0].content;
-    if (prompt.includes('<official_reference>')) throw new Error('failed retrieval injected fake evidence');
+    if (prompt.includes('<official_reference>')) throw new Error('unavailable action injected fake evidence');
+    if (prompt.includes('062-410-8000')) throw new Error('live official fact leaked into prompt without snapshot');
   } finally {
     restoreFetch();
   }
@@ -485,9 +534,14 @@ await assert('operator can make HY3 the primary provider', async () => {
     });
     expectEqual(data.provider, 'hy3', 'provider');
     expectEqual(data.fallback_used, false, 'fallback_used');
+    expectEqual(data.freshness_state, 'snapshot_unavailable', 'freshness_state');
+    expectEqual(data.sources.length, 0, 'sources');
     expectEqual(providerFetchCalls().length, 1, 'provider fetch call count');
+    expectEqual(officialFetchCalls().length, 0, 'request-time official fetch count');
     const payload = JSON.parse(providerFetchCalls()[0].body);
-    if (!payload.messages[0].content.includes('062-410-8000')) throw new Error('HY3 official evidence missing');
+    if (payload.messages[0].content.includes('<official_reference>')) {
+      throw new Error('unavailable action injected fake official evidence');
+    }
   } finally {
     restoreFetch();
   }
@@ -544,12 +598,13 @@ await assert('optional Gemini Interactions mode keeps search grounding', async (
     });
     expectEqual(data.provider, 'gemini', 'provider');
     expectEqual(data.freshness_state, 'live_official', 'freshness_state');
-    if (!data.source_url.startsWith('https://search.bukgu.gwangju.kr/')) {
+    if (!data.source_url.startsWith('https://bukgu.gwangju.kr/')) {
       throw new Error(`unexpected primary source: ${data.source_url}`);
     }
     if (!data.sources.some((source) => source.url === officialCitation.url)) {
       throw new Error('Interactions citation was not preserved');
     }
+    expectEqual(officialFetchCalls().length, 0, 'request-time official fetch count');
     const modelCall = providerFetchCalls()[0];
     expectEqual(modelCall.headers['x-goog-api-key'], 'test-gemini', 'Interactions auth');
     const payload = JSON.parse(modelCall.body);
