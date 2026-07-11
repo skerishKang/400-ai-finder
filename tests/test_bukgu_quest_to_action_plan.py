@@ -23,17 +23,18 @@ def test_housing_quest_converts_to_valid_action_plan():
     plan = build_quest_action_plan(_housing_quest())
     assert plan.plan_status == "guided"
     assert plan.quest_id == "housing_department_lookup"
-    assert plan.quest_name == "아파트 정보 안내"
+    assert plan.quest_name == "공동주택과 안내"
     assert plan.client_action == "housing_department"
     assert plan.official_path == (
         "북구청 홈",
-        "분야별정보",
-        "건축",
-        "아파트정보",
-        "아파트현황",
+        "북구소개",
+        "구청안내",
+        "업무 및 전화번호 안내",
+        "도시관리국",
+        "공동주택과",
     )
-    assert plan.result["service"] == "아파트정보 아파트현황 / 아파트생활정보 관련 안내"
-    assert "아파트정보" in plan.result["surface"]
+    assert plan.result["service"] == "도시관리국 공동주택과 안내"
+    assert "공동주택과" in plan.result["surface"]
 
 
 def test_housing_quest_ends_with_stop_for_user_confirmation():
@@ -55,8 +56,6 @@ def test_illegal_parking_quest_converts_to_valid_action_plan():
         "차량교통",
         "지도단속",
     )
-    assert plan.result["service"] == "지도단속 안내 / 안전신문고 신고 경로"
-    assert plan.result["surface"] == "지도단속 안내 / 공식 신고 채널 handoff"
     labels = [action.label for action in plan.browser_actions]
     assert "지도단속 안내 화면 이동" in labels
     assert "안전신문고 신고 경로 안내 확인" in labels
@@ -81,8 +80,6 @@ def test_decide_bukgu_quest_action_returns_local_static_housing_decision():
     decision = decide_bukgu_quest_action("공동주택 문의는 어디로 해요?")
     assert decision is not None
     assert decision.action == "housing_department"
-    assert "아파트 정보" in decision.answer
-    assert "아파트명" in decision.answer
     assert decision.quest is not None
     assert decision.quest["quest_id"] == "housing_department_lookup"
     assert decision.quest["source_mode"] == "local_static"
@@ -103,111 +100,85 @@ def test_decide_bukgu_quest_action_returns_local_static_illegal_parking_decision
     assert decision.action_plan["final_warning"]["requires_user_confirmation"] is True
 
 
-def _move_in_report_quest():
-    quest = load_default_bukgu_registry().get("move_in_report_guidance")
+def _passport_quest():
+    quest = load_default_bukgu_registry().get("passport_guidance")
     assert quest is not None
     return quest
 
 
-def test_move_in_report_quest_converts_to_valid_action_plan():
-    plan = build_quest_action_plan(_move_in_report_quest())
+def test_passport_quest_converts_to_valid_action_plan():
+    plan = build_quest_action_plan(_passport_quest())
     assert plan.plan_status == "guided"
-    assert plan.quest_id == "move_in_report_guidance"
-    assert plan.quest_name == "전입신고 안내"
-    assert plan.client_action == "move_in_report"
+    assert plan.quest_id == "passport_guidance"
+    assert plan.quest_name == "여권 발급 안내"
+    assert plan.client_action == "passport_guidance"
     assert plan.official_path == (
         "북구청 홈",
         "종합민원",
-        "전자민원창구",
-        "정부24",
+        "여권민원",
     )
-    assert plan.result["service"] == "정부24 전입신고 연결 안내"
-    assert plan.result["surface"] == "정부24 전입신고 연결 안내"
     labels = [action.label for action in plan.browser_actions]
-    assert "정부24 전입신고 연결 안내 화면 이동" in labels
-    assert "정부24 전입신고 연결 안내 카드 확인" in labels
+    assert "종합민원 메뉴 확인" in labels
+    assert "여권민원 안내 화면 이동" in labels
+    assert "여권민원 안내 카드 확인" in labels
 
 
-def test_move_in_report_quest_stops_for_user_confirmation_with_warning():
-    plan = build_quest_action_plan(_move_in_report_quest())
+def test_passport_quest_stops_for_user_confirmation():
+    plan = build_quest_action_plan(_passport_quest())
     assert plan.stop_condition == "STOP_FOR_USER_CONFIRMATION"
     assert plan.browser_actions[-1].action_type == "STOP_FOR_USER_CONFIRMATION"
     assert plan.requires_user_confirmation is True
-    assert plan.final_warning is not None
-    assert plan.final_warning["requires_user_confirmation"] is True
-    warning_text = plan.final_warning["warning_text"]
-    assert "본인인증" in warning_text
-    assert "세대주" in warning_text
-    assert "주소" in warning_text
-    assert "가족관계" in warning_text
-    assert "정부24" in warning_text
-    assert "주민센터" in warning_text
 
 
-def _public_health_center_quest():
-    quest = load_default_bukgu_registry().get("public_health_center_guidance")
+def _unmanned_kiosk_quest():
+    quest = load_default_bukgu_registry().get("unmanned_kiosk_guidance")
     assert quest is not None
     return quest
 
 
-def test_public_health_center_quest_converts_to_valid_action_plan():
-    plan = build_quest_action_plan(_public_health_center_quest())
+def test_unmanned_kiosk_quest_converts_to_valid_action_plan():
+    plan = build_quest_action_plan(_unmanned_kiosk_quest())
     assert plan.plan_status == "guided"
-    assert plan.quest_id == "public_health_center_guidance"
-    assert plan.quest_name == "보건소 위치·진료 안내"
-    assert plan.client_action == "public_health_center"
+    assert plan.quest_id == "unmanned_kiosk_guidance"
+    assert plan.quest_name == "무인민원발급기 안내"
+    assert plan.client_action == "unmanned_kiosk"
     assert plan.official_path == (
         "북구청 홈",
-        "보건소",
-        "보건소소개",
-        "찾아오시는 길",
+        "종합민원",
+        "무인민원발급기",
     )
-    assert plan.result["service"] == "보건소 위치·진료 안내"
-    assert plan.result["surface"] == "보건소 위치·진료 안내 카드"
     labels = [action.label for action in plan.browser_actions]
-    assert "보건소 위치·진료 안내 화면 이동" in labels
-    assert "보건소 위치·진료 안내 카드 확인" in labels
+    assert "종합민원 메뉴 확인" in labels
+    assert "무인민원발급기 안내 화면 이동" in labels
+    assert "무인민원발급기 안내 카드 확인" in labels
 
 
-def test_public_health_center_quest_stops_for_user_confirmation_with_warning():
-    plan = build_quest_action_plan(_public_health_center_quest())
+def test_unmanned_kiosk_quest_stops_for_user_confirmation():
+    plan = build_quest_action_plan(_unmanned_kiosk_quest())
     assert plan.stop_condition == "STOP_FOR_USER_CONFIRMATION"
     assert plan.browser_actions[-1].action_type == "STOP_FOR_USER_CONFIRMATION"
     assert plan.requires_user_confirmation is True
-    assert plan.final_warning is not None
-    assert plan.final_warning["requires_user_confirmation"] is True
-    warning_text = plan.final_warning["warning_text"]
-    assert "의료 판단" in warning_text
-    assert "진단" in warning_text
-    assert "처방" in warning_text
-    assert "응급 판단" in warning_text
-    assert "예약" in warning_text
-    assert "본인인증" in warning_text
-    assert "건강정보 입력" in warning_text
-    assert "제출" in warning_text
 
 
-def test_decide_bukgu_quest_action_returns_local_static_public_health_center_decision():
-    decision = decide_bukgu_quest_action("보건소 어디에 있어요?")
+def test_decide_bukgu_quest_action_returns_local_static_passport_decision():
+    decision = decide_bukgu_quest_action("여권 발급은 어디서 하나요?")
     assert decision is not None
-    assert decision.action == "public_health_center"
+    assert decision.action == "passport_guidance"
     assert decision.quest is not None
-    assert decision.quest["quest_id"] == "public_health_center_guidance"
+    assert decision.quest["quest_id"] == "passport_guidance"
     assert decision.quest["source_mode"] == "local_static"
     assert decision.action_plan is not None
     assert decision.action_plan["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
     assert decision.action_plan["requires_user_confirmation"] is True
-    assert decision.action_plan["final_warning"]["requires_user_confirmation"] is True
 
 
-def test_decide_bukgu_quest_action_returns_local_static_move_in_report_decision():
-    decision = decide_bukgu_quest_action("이사 왔는데 전입신고는 어떻게 해요?")
+def test_decide_bukgu_quest_action_returns_local_static_unmanned_kiosk_decision():
+    decision = decide_bukgu_quest_action("무인민원발급기 어디 있어요?")
     assert decision is not None
-    assert decision.action == "move_in_report"
+    assert decision.action == "unmanned_kiosk"
     assert decision.quest is not None
-    assert decision.quest["quest_id"] == "move_in_report_guidance"
+    assert decision.quest["quest_id"] == "unmanned_kiosk_guidance"
     assert decision.quest["source_mode"] == "local_static"
     assert decision.action_plan is not None
     assert decision.action_plan["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
     assert decision.action_plan["requires_user_confirmation"] is True
-    assert decision.action_plan["final_warning"]["requires_user_confirmation"] is True

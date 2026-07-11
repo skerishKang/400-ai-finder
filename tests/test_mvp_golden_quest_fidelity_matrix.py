@@ -17,91 +17,158 @@ import pytest
 from src.agent.quest_registry import load_default_bukgu_registry
 
 
-# ── Locked golden quest matrix ─────────────────────────────────────────────
-# Each entry encodes the immutable contract verified by this test.
+# Locked golden quest matrix
 GOLDEN_MATRIX = {
     "housing_department_lookup": {
-        "resident_task": "아파트 정보 안내",
-        "official_path": [
+        "quest_name": "공동주택과 안내",
+        "official_path": (
             "북구청 홈",
-            "분야별정보",
-            "건축",
-            "아파트정보",
-            "아파트현황",
+            "북구소개",
+            "구청안내",
+            "업무 및 전화번호 안내",
+            "도시관리국",
+            "공동주택과",
+        ),
+        "expected_action_types": [
+            "OPEN_ALLOWLISTED_ROUTE",
+            "SHOW_ALLOWLISTED_RESULT",
+            "STOP_FOR_USER_CONFIRMATION",
         ],
-        "expected_routes": ["apartment-info"],
-        "expected_labels": ["아파트정보 화면 이동", "아파트생활정보 관련 안내 확인"],
-        # Regressions that must never reappear for this quest.
-        "forbidden_path_segments": ["업무 및 전화번호 안내", "구청안내", "공동주택과"],
+        "expected_route_ids": ["apartment-dept"],
+        "expected_target_ids": ["apartment-dept-card"],
+        "expected_labels": [
+            "공동주택과 안내 화면 이동",
+            "공동주택과 업무 및 연락처 확인",
+            "사용자 확인 대기",
+        ],
+        "forbidden_path_segments": ["분야별정보", "건축", "아파트정보", "아파트현황"],
         "forbidden_answer_substrings": ["062-410-6033"],
     },
     "illegal_parking_report_guidance": {
-        "resident_task": "불법 주정차 신고 안내",
-        "official_path": [
+        "quest_name": "불법 주정차 신고 안내",
+        "official_path": (
             "북구청 홈",
             "분야별정보",
             "차량교통",
             "지도단속",
+        ),
+        "expected_action_types": [
+            "OPEN_ALLOWLISTED_ROUTE",
+            "SHOW_ALLOWLISTED_RESULT",
+            "STOP_FOR_USER_CONFIRMATION",
         ],
-        "expected_routes": ["complaint-illegal-parking"],
-        "expected_labels": ["지도단속 안내 화면 이동", "안전신문고 신고 경로 안내 확인"],
+        "expected_route_ids": ["complaint-illegal-parking"],
+        "expected_target_ids": ["complaint-illegal-parking-report"],
+        "expected_labels": [
+            "지도단속 안내 화면 이동",
+            "안전신문고 신고 경로 안내 확인",
+            "사용자 확인 대기",
+        ],
         "forbidden_path_segments": ["불법 주정차 신고", "민원신고"],
         "forbidden_answer_substrings": [],
     },
     "bulky_waste_disposal_guidance": {
-        "resident_task": "대형폐기물 배출 안내",
-        "official_path": [
+        "quest_name": "대형폐기물 배출 안내",
+        "official_path": (
             "북구청 홈",
             "분야별정보",
             "환경재활용",
             "대형폐기물 배출방법",
+        ),
+        "expected_action_types": [
+            "OPEN_ALLOWLISTED_ROUTE",
+            "SHOW_ALLOWLISTED_RESULT",
+            "STOP_FOR_USER_CONFIRMATION",
         ],
-        "expected_routes": ["bulky-waste-disposal"],
-        "expected_labels": ["대형폐기물 배출방법 화면 이동", "대형폐기물 배출방법 안내 확인"],
-        # No internal payment / sticker / 배출번호 issuance simulation presented by the demo.
+        "expected_route_ids": ["bulky-waste-disposal"],
+        "expected_target_ids": ["bulky-waste-guidance-card"],
+        "expected_labels": [
+            "대형폐기물 배출방법 화면 이동",
+            "대형폐기물 배출방법 안내 확인",
+            "사용자 확인 대기",
+        ],
         "forbidden_path_segments": ["대형폐기물 처리"],
-        "forbidden_answer_substrings": ["스티커를 출력", "배출번호를 발급합니다", "수수료 결제를 진행"],
+        "forbidden_answer_substrings": [
+            "스티커를 출력",
+            "배출번호를 발급합니다",
+            "수수료 결제를 진행",
+        ],
     },
-    "move_in_report_guidance": {
-        "resident_task": "전입신고 안내",
-        "official_path": [
+    "passport_guidance": {
+        "quest_name": "여권 발급 안내",
+        "official_path": (
             "북구청 홈",
             "종합민원",
-            "전자민원창구",
-            "정부24",
+            "여권민원",
+        ),
+        "expected_action_types": [
+            "OPEN_ALLOWLISTED_ROUTE",
+            "OPEN_ALLOWLISTED_ROUTE",
+            "SHOW_ALLOWLISTED_RESULT",
+            "STOP_FOR_USER_CONFIRMATION",
         ],
-        "expected_routes": ["civil-service", "move-in-report-guidance"],
-        "expected_labels": ["정부24 전입신고 연결 안내 화면 이동", "정부24 전입신고 연결 안내 카드 확인"],
-        # Must not regress to a North-gu-internal 전입신고 신청 form path.
-        "forbidden_path_segments": ["민원신고"],
-        "forbidden_answer_substrings": [],
+        "expected_route_ids": ["civil-service", "passport-guidance"],
+        "expected_target_ids": ["passport-guidance-card"],
+        "expected_labels": [
+            "종합민원 메뉴 확인",
+            "여권민원 안내 화면 이동",
+            "여권민원 안내 카드 확인",
+            "사용자 확인 대기",
+        ],
+        "forbidden_path_segments": [],
+        "forbidden_answer_substrings": [
+            "발급되었습니다",
+            "여권이 발급",
+            "서류를 발급했습니다",
+        ],
     },
-    "public_health_center_guidance": {
-        "resident_task": "보건소 위치·진료 안내",
-        "official_path": [
+    "unmanned_kiosk_guidance": {
+        "quest_name": "무인민원발급기 안내",
+        "official_path": (
             "북구청 홈",
-            "보건소",
-            "보건소소개",
-            "찾아오시는 길",
+            "종합민원",
+            "무인민원발급기",
+        ),
+        "expected_action_types": [
+            "OPEN_ALLOWLISTED_ROUTE",
+            "OPEN_ALLOWLISTED_ROUTE",
+            "SHOW_ALLOWLISTED_RESULT",
+            "STOP_FOR_USER_CONFIRMATION",
         ],
-        "expected_routes": ["home", "public-health-center-guidance"],
-        "expected_labels": ["보건소 위치·진료 안내 화면 이동", "보건소 위치·진료 안내 카드 확인"],
-        # No diagnosis / prescription / appointment / health-data input simulation.
-        "forbidden_path_segments": ["진단", "처방", "예약신청"],
-        "forbidden_answer_substrings": [],
+        "expected_route_ids": ["civil-service", "unmanned-kiosk-guidance"],
+        "expected_target_ids": ["unmanned-kiosk-card"],
+        "expected_labels": [
+            "종합민원 메뉴 확인",
+            "무인민원발급기 안내 화면 이동",
+            "무인민원발급기 안내 카드 확인",
+            "사용자 확인 대기",
+        ],
+        "forbidden_path_segments": [],
+        "forbidden_answer_substrings": [
+            "발급되었습니다",
+            "서류를 발급했습니다",
+            "본인인증을 완료",
+        ],
     },
 }
 
-# Completion-claim verbs that, if present in a quest's `answer`, imply the demo
-# performed a submission-like action. The demo must only *guide*; it must never
-# report its own completion of a real-world filing.
 FORBIDDEN_ANSWER_COMPLETION_VERBS = [
     "접수되었습니다",
     "제출되었습니다",
     "신청이 완료",
     "접수 완료",
     "처리 완료",
+    "발급되었습니다",
+    "발급 완료",
+    "여권이 발급",
+    "서류를 발급했습니다",
+    "본인인증을 완료",
 ]
+
+REMOVED_QUEST_IDS = {
+    "move_in_report_guidance",
+    "public_health_center_guidance",
+}
 
 
 @pytest.fixture(scope="module")
@@ -111,17 +178,31 @@ def registry():
 
 def test_all_five_golden_quests_exist(registry):
     for quest_id in GOLDEN_MATRIX:
-        assert registry.get(quest_id) is not None, f"locked golden quest missing: {quest_id}"
+        assert registry.get(quest_id) is not None, (
+            f"locked golden quest missing: {quest_id}"
+        )
+
+
+@pytest.mark.parametrize("quest_id", list(GOLDEN_MATRIX.keys()))
+def test_quest_name_matches_locked_value(registry, quest_id):
+    quest = registry.get(quest_id)
+    expected = GOLDEN_MATRIX[quest_id]["quest_name"]
+    assert quest.quest_name == expected, (
+        f"{quest_id} quest_name regressed:\n"
+        f"  expected: {expected}\n"
+        f"  actual:   {quest.quest_name}"
+    )
 
 
 @pytest.mark.parametrize("quest_id", list(GOLDEN_MATRIX.keys()))
 def test_official_path_matches_locked_value(registry, quest_id):
     quest = registry.get(quest_id)
-    expected = GOLDEN_MATRIX[quest_id]["official_path"]
-    assert list(quest.official_path) == expected, (
+    expected = list(GOLDEN_MATRIX[quest_id]["official_path"])
+    actual = list(quest.official_path)
+    assert actual == expected, (
         f"{quest_id} official_path regressed:\n"
         f"  expected: {expected}\n"
-        f"  actual:   {list(quest.official_path)}"
+        f"  actual:   {actual}"
     )
 
 
@@ -146,19 +227,51 @@ def test_stop_condition_is_user_confirmation(registry, quest_id):
 
 
 @pytest.mark.parametrize("quest_id", list(GOLDEN_MATRIX.keys()))
-def test_expected_routes_present(registry, quest_id):
+def test_action_types_exact_ordered(registry, quest_id):
     quest = registry.get(quest_id)
-    route_ids = [a.route_id for a in quest.browser_actions]
-    for expected in GOLDEN_MATRIX[quest_id]["expected_routes"]:
-        assert expected in route_ids, f"{quest_id} missing route_id: {expected}"
+    actual = [a.action_type for a in quest.browser_actions]
+    expected = GOLDEN_MATRIX[quest_id]["expected_action_types"]
+    assert actual == expected, (
+        f"{quest_id} action types regressed:\n"
+        f"  expected: {expected}\n"
+        f"  actual:   {actual}"
+    )
 
 
 @pytest.mark.parametrize("quest_id", list(GOLDEN_MATRIX.keys()))
-def test_expected_action_labels_present(registry, quest_id):
+def test_route_ids_exact_ordered(registry, quest_id):
     quest = registry.get(quest_id)
-    labels = [a.label for a in quest.browser_actions]
-    for expected in GOLDEN_MATRIX[quest_id]["expected_labels"]:
-        assert expected in labels, f"{quest_id} missing action label: {expected}"
+    actual = [a.route_id for a in quest.browser_actions if a.route_id is not None]
+    expected = GOLDEN_MATRIX[quest_id]["expected_route_ids"]
+    assert actual == expected, (
+        f"{quest_id} route_ids regressed:\n"
+        f"  expected: {expected}\n"
+        f"  actual:   {actual}"
+    )
+
+
+@pytest.mark.parametrize("quest_id", list(GOLDEN_MATRIX.keys()))
+def test_target_ids_exact_ordered(registry, quest_id):
+    quest = registry.get(quest_id)
+    actual = [a.target_id for a in quest.browser_actions if a.target_id is not None]
+    expected = GOLDEN_MATRIX[quest_id]["expected_target_ids"]
+    assert actual == expected, (
+        f"{quest_id} target_ids regressed:\n"
+        f"  expected: {expected}\n"
+        f"  actual:   {actual}"
+    )
+
+
+@pytest.mark.parametrize("quest_id", list(GOLDEN_MATRIX.keys()))
+def test_labels_exact_ordered(registry, quest_id):
+    quest = registry.get(quest_id)
+    actual = [a.label for a in quest.browser_actions]
+    expected = GOLDEN_MATRIX[quest_id]["expected_labels"]
+    assert actual == expected, (
+        f"{quest_id} labels regressed:\n"
+        f"  expected: {expected}\n"
+        f"  actual:   {actual}"
+    )
 
 
 @pytest.mark.parametrize("quest_id", list(GOLDEN_MATRIX.keys()))
@@ -183,7 +296,6 @@ def test_no_forbidden_answer_substrings(registry, quest_id):
 
 @pytest.mark.parametrize("quest_id", list(GOLDEN_MATRIX.keys()))
 def test_answer_never_claims_submission_completion(registry, quest_id):
-    """The demo must only guide; it must never report its own filing completion."""
     answer = registry.get(quest_id).answer or ""
     for verb in FORBIDDEN_ANSWER_COMPLETION_VERBS:
         assert verb not in answer, (
@@ -191,8 +303,7 @@ def test_answer_never_claims_submission_completion(registry, quest_id):
         )
 
 
-def test_no_new_golden_quests_beyond_locked_set(registry):
-    """Regression guard: the locked set must stay at exactly these 5 quests."""
+def test_matrix_matches_canonical_phase1_golden_registry(registry):
     locked = set(GOLDEN_MATRIX.keys())
     actual_golden = {
         q.quest_id for q in registry.quests if q.status == "phase1_golden"
@@ -202,3 +313,14 @@ def test_no_new_golden_quests_beyond_locked_set(registry):
         f"  locked:  {sorted(locked)}\n"
         f"  actual:  {sorted(actual_golden)}"
     )
+
+
+def test_removed_quest_ids_not_in_registry(registry):
+    ids_in_registry = {q.quest_id for q in registry.quests}
+    present = REMOVED_QUEST_IDS & ids_in_registry
+    assert not present, f"removed quests still present in registry: {present}"
+
+
+def test_removed_quest_ids_not_in_matrix():
+    present = REMOVED_QUEST_IDS & set(GOLDEN_MATRIX.keys())
+    assert not present, f"removed quests still present in GOLDEN_MATRIX: {present}"
