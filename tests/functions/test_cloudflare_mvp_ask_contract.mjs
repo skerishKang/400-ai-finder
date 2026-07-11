@@ -269,27 +269,37 @@ await assert('housing_department official context uses the canonical apartment-d
   }
 });
 
-await assert('retrieveOfficialContext never fetches live official domains for actions without a canonical snapshot', async () => {
+await assert('guidance snapshots never fetch live official domains', async () => {
   let callCount = 0;
   const priorFetch = globalThis.fetch;
   globalThis.fetch = async () => { callCount += 1; throw new Error('NETWORK_BLOCKED'); };
   try {
     const context = await functionModule.retrieveOfficialContext('여권 발급은 어디서 하나요?', 'passport_guidance');
-    expectEqual(context.ok, false, 'ok');
-    expectEqual(context.freshnessState, 'snapshot_unavailable', 'freshnessState');
-    expectEqual(context.evidence, '', 'evidence');
-    expectEqual(context.sourceUrl, '', 'sourceUrl');
+    expectEqual(context.ok, true, 'ok');
+    expectEqual(context.freshnessState, 'official_snapshot', 'freshnessState');
+    if (!context.evidence.includes('캡처된 공식 본문')) throw new Error('official body missing');
+    expectEqual(context.sourceUrl, 'https://bukgu.gwangju.kr/menu.es?mid=a10101060200', 'sourceUrl');
     expectEqual(context.searchQueries.length, 0, 'searchQueries');
-    expectEqual(context.sources.length, 0, 'sources');
-    if (context.freshnessState === 'live_official' || context.freshnessState === 'official_snapshot') {
-      throw new Error('non-official action must not be marked official');
-    }
-    if ((context.sources || []).some((source) => source.official)) {
-      throw new Error('unavailable context must not carry official sources');
-    }
+    expectEqual(context.sources.length, 1, 'sources');
+    expectEqual(context.routeId, 'passport-guidance', 'routeId');
+    if (!(context.sources || []).every((source) => source.official)) throw new Error('official source missing');
     if (callCount !== 0) throw new Error(`retrieveOfficialContext called fetch ${callCount} times`);
   } finally {
     globalThis.fetch = priorFetch;
+  }
+});
+
+await assert('bulky-waste and kiosk actions use their canonical snapshots', async () => {
+  for (const [action, routeId] of [
+    ['bulky_waste', 'bulky-waste-disposal'],
+    ['unmanned_kiosk', 'unmanned-kiosk-guidance'],
+  ]) {
+    const context = await functionModule.retrieveOfficialContext('공식 안내를 알려주세요', action);
+    expectEqual(context.ok, true, `${action} ok`);
+    expectEqual(context.freshnessState, 'official_snapshot', `${action} freshnessState`);
+    expectEqual(context.routeId, routeId, `${action} routeId`);
+    expectEqual(context.sources.length, 1, `${action} sources`);
+    if (!context.evidence.includes('캡처된 공식 본문')) throw new Error(`${action} official body missing`);
   }
 });
 
@@ -331,9 +341,11 @@ await assert('Gemini OpenAI-compatible endpoint is primary (no request-time offi
     expectEqual(data.model, 'gemini-3.1-flash-lite', 'model');
     expectEqual(data.action, 'passport_guidance', 'action');
     expectEqual(data.fallback_used, false, 'fallback_used');
-    expectEqual(data.freshness_state, 'snapshot_unavailable', 'freshness_state');
-    expectEqual(data.sources.length, 0, 'official source count');
-    expectEqual(data.source_url, '', 'source_url');
+    expectEqual(data.freshness_state, 'official_snapshot', 'freshness_state');
+    expectEqual(data.sources.length, 1, 'official source count');
+    expectEqual(data.sources[0].official, true, 'official source flag');
+    expectEqual(data.official_route_id, 'passport-guidance', 'official_route_id');
+    expectEqual(data.source_url, 'https://bukgu.gwangju.kr/menu.es?mid=a10101060200', 'source_url');
     expectEqual(data.search_queries.length, 0, 'search_queries');
     expectIsoDate(data.retrieved_at, 'retrieved_at');
     expectEqual(officialFetchCalls().length, 0, 'request-time official fetch call count');
@@ -344,9 +356,8 @@ await assert('Gemini OpenAI-compatible endpoint is primary (no request-time offi
     const payload = JSON.parse(modelCalls[0].body);
     expectEqual(payload.model, 'gemini-3.1-flash-lite', 'Gemini model');
     if (!payload.messages[0].content.includes('현재 대한민국 표준시각')) throw new Error('current time missing');
-    if (payload.messages[0].content.includes('<official_reference>')) {
-      throw new Error('unavailable action injected fake official evidence');
-    }
+    if (!payload.messages[0].content.includes('<official_reference>')) throw new Error('official evidence missing');
+    if (!payload.messages[0].content.includes('캡처된 공식 본문')) throw new Error('official page body missing');
     if (payload.messages[0].content.includes('ignore previous instructions')) throw new Error('script content leaked');
   } finally {
     restoreFetch();

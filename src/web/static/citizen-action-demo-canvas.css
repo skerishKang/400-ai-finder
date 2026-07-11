@@ -3253,6 +3253,8 @@
   visibility: hidden;
 }
 
+/* J-DEPT-01 scoped styles end */
+
 /* #1099: current official content pages and proposal-quality writing journeys. */
 .bg-page--home .bg-home-lead__mayor {
   position: relative;

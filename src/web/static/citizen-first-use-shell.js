@@ -364,6 +364,14 @@
 
   function _renderBukguHomeFixture() {
     if (!canvas) return;
+    // Keep the split reveal on the canonical canvas renderer. The historical
+    // fallback below intentionally remains for shells loaded without the
+    // canvas module, but must not overwrite newer home controls and routes.
+    if (window.CitizenActionDemoCanvas &&
+        typeof window.CitizenActionDemoCanvas.navigateToRoute === "function") {
+      window.CitizenActionDemoCanvas.navigateToRoute("home");
+      return;
+    }
     var assets = "/static/images/bukgu-current";
     var searchIcon = _bukguSearchIcon();
     var menuIcon = _bukguMenuIcon();
