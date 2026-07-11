@@ -1,9 +1,9 @@
 {
   "title": "Page Agent Local Lab",
-  "description": "Local interoperability experiment with Alibaba Page Agent — documentation page with deterministic mock adapter",
+  "description": "Local interoperability experiment with Alibaba Page Agent — real non-demo IIFE runtime driven by a deterministic offline mock model",
   "type": "attributed_open_source_example",
   "experiment_id": "1090",
-  "build_date": "2026-07-11",
+  "build_date": "2026-07-12",
   "upstream": {
     "repository": "alibaba/page-agent",
     "pinned_commit": "fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7",
@@ -11,10 +11,11 @@
     "license": "MIT"
   },
   "integration": {
-    "type": "documentation_with_mock_adapter",
+    "type": "actual_page_agent_runtime",
     "model_adapter": "local_deterministic_mock",
     "model_endpoint": "/examples/page-agent/mock-llm/v1",
-    "bundle_status": "page-agent@1.12.1 does not expose a usable non-demo browser bundle for static integration. ESM module (722 B) requires bundler + @page-agent/* dependencies. IIFE demo bundle (209 KB) is excluded per experiment policy (auto-init, free testing API, CDN references)."
+    "bundle_status": "Vendored non-demo IIFE bundle built from pinned upstream source (packages/page-agent/src/production-iife-entry.ts). The bundle exposes window.PageAgent and runs the real Panel, PageAgentCore, PageController, and LLM client with a local deterministic mock model. The published demo bundle (auto-init, free testing API, CDN) is excluded per experiment policy.",
+    "vendor_manifest": "vendor-manifest.json"
   },
   "network_profile": {
     "runtime_cdn": false,

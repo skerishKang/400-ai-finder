@@ -1,37 +1,32 @@
 // tests/browser/verify_page_agent_lab_runtime.mjs
 //
-// Executable runtime verification for the #1090 Page Agent lab.
-//
-// Constraints:
-//   - no Playwright, no external network, no real fetch
-//   - uses only node:assert, node:fs, node:vm
-//   - reads src/web/examples/page-agent/mock-model.js and verifies
-//     its deterministic behavior, task mapping, and URL blocking
-//
-// Note: page-agent@1.12.1 does not expose a usable non-demo browser bundle
-// for static integration. This harness tests the mock adapter layer that
-// would drive PageAgent in a fully integrated setup.
+// Runtime verification for the #1090 Page Agent lab.
+// No Playwright, no external network, no real fetch.
+// Uses only node:assert, node:fs, node:vm, node:crypto.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import assert from "node:assert";
 import vm from "node:vm";
+import { join } from "node:path";
+import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 
-const EXAMPLES_BASE = new URL(
-  "../../src/web/examples/page-agent/",
-  import.meta.url,
-);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = join(__dirname, "..", "..");
+const EXAMPLES_BASE = join(REPO_ROOT, "src", "web", "examples", "page-agent");
 
-const mockModelCode = readFileSync(
-  new URL("mock-model.js", EXAMPLES_BASE),
-  "utf8",
-);
+const mockModelCode = readFileSync(join(EXAMPLES_BASE, "mock-model.js"), "utf8");
 
 // ── VM Context ───────────────────────────────────────────────────────────
 
 function createContext() {
   const ctx = {
     window: {
-      location: { origin: "http://localhost:8765", href: "http://localhost:8765/examples/page-agent/" },
+      location: {
+        origin: "http://localhost:8765",
+        href: "http://localhost:8765/examples/page-agent/",
+      },
       addEventListener() {},
       PageAgent: undefined,
       PageAgentMockModel: undefined,
@@ -39,33 +34,40 @@ function createContext() {
       clearTimeout,
       setInterval,
       clearInterval,
-    },
-    document: {
-      getElementById(id) {
-        if (id === "quick-start" || id === "vs-browser-use" || id === "license" || id === "architecture") {
-          return { scrollIntoView() {}, style: {} };
-        }
-        return null;
+      Promise,
+      Math,
+      Object,
+      String,
+      Boolean,
+      Array,
+      JSON,
+      Number,
+      Date,
+      URL,
+      fetch: undefined,
+      document: {
+        getElementById(id) {
+          if (
+            id === "quick-start" ||
+            id === "vs-browser-use" ||
+            id === "license" ||
+            id === "architecture"
+          ) {
+            return { scrollIntoView() {}, style: {} };
+          }
+          return null;
+        },
+        addEventListener() {},
       },
-      addEventListener() {},
+      console,
+      setTimeout,
+      clearTimeout,
+      setInterval,
+      clearInterval,
     },
-    console,
-    setTimeout,
-    clearTimeout,
-    setInterval,
-    clearInterval,
-    Promise,
-    Math,
-    Object,
-    String,
-    Boolean,
-    Array,
-    JSON,
-    Number,
-    Date,
-    URL,
+    Response,
   };
-  ctx.globalThis = ctx;
+  ctx.window.globalThis = ctx.window;
   return ctx;
 }
 
@@ -89,6 +91,7 @@ function testMockModelExports() {
   assert.strictEqual(typeof model.getTask, "function", "getTask must be a function");
   assert.strictEqual(typeof model.isSupportedTask, "function", "isSupportedTask must be a function");
   assert.strictEqual(typeof model.getAllTasks, "function", "getAllTasks must be a function");
+  assert.strictEqual(typeof model.respond, "function", "respond must be a function");
 
   console.log("  [1] Mock model exports: OK");
 }
@@ -99,7 +102,7 @@ function testSupportedTasksCount() {
   const model = ctx.window.PageAgentMockModel;
 
   const taskIds = model.getSupportedTaskIds();
-  assert.ok(taskIds.length >= 3, `expected at least 3 tasks, got ${taskIds.length}: ${taskIds.join(", ")}`);
+  assert.ok(taskIds.length >= 4, `expected at least 4 tasks, got ${taskIds.length}: ${taskIds.join(", ")}`);
 
   console.log(`  [2] Supported task count (${taskIds.length}): OK`);
 }
@@ -123,41 +126,47 @@ function testTaskLookup() {
   console.log("  [3] Task lookup: OK");
 }
 
-function testCompletionHandling() {
+async function testAgentOutputToolCallFormat() {
   const ctx = createContext();
   runInContext(mockModelCode, ctx);
   const model = ctx.window.PageAgentMockModel;
 
-  // Known task
-  const result1 = model.handleCompletion(
-    "http://localhost/mock-llm/v1/chat/completions",
-    { messages: [{ role: "user", content: "Show the Quick Start section" }] },
-  );
-  assert.ok(result1, "known task must return a response");
-  assert.ok(result1.choices, "response must have choices array");
-  assert.ok(result1.choices[0].message, "choice must have message");
-  assert.ok(result1.choices[0].message.content, "message must have content");
-  const content1 = result1.choices[0].message.content;
-  assert.ok(
-    content1.toLowerCase().includes("quick start"),
-    `response must mention the target section: ${content1}`,
-  );
+  const url = "http://localhost:8765/examples/page-agent/mock-llm/v1/chat/completions";
+  const payload = {
+    model: "page-agent-lab-local",
+    messages: [{ role: "user", content: "Show the Quick Start section" }],
+    tools: [{ function: { name: "AgentOutput" } }],
+    tool_choice: { type: "function", function: { name: "AgentOutput" } },
+  };
 
-  // Unknown task
-  const result2 = model.handleCompletion(
-    "http://localhost/mock-llm/v1/chat/completions",
-    { messages: [{ role: "user", content: "What is the weather today?" }] },
-  );
-  assert.ok(result2, "unknown task must still return a response");
-  assert.ok(result2.choices, "unknown response must have choices");
-  const content2 = result2.choices[0].message.content;
-  assert.ok(
-    content2.toLowerCase().includes("supported tasks") ||
-    content2.toLowerCase().includes("cannot help with"),
-    `unknown task response must say unsupported: ${content2}`,
-  );
+  // First call (no <step_1> in history) → execute_javascript
+  const resp1 = await model.respond(url, { body: JSON.stringify(payload) });
+  assert.ok(resp1 instanceof Response, "respond must return a Response");
+  const data1 = await resp1.json();
 
-  console.log("  [4] Completion handling (known + unknown): OK");
+  assert.ok(data1.choices, "response must have choices array");
+  assert.strictEqual(data1.choices.length, 1, "must have exactly 1 choice");
+  const choice1 = data1.choices[0];
+  assert.ok(choice1.message.tool_calls, "first response must have tool_calls");
+  assert.strictEqual(choice1.message.tool_calls.length, 1);
+  const tc1 = choice1.message.tool_calls[0];
+  assert.strictEqual(tc1.function.name, "AgentOutput");
+  const args1 = JSON.parse(tc1.function.arguments);
+  assert.ok(args1.action.execute_javascript, "first step must call execute_javascript");
+  assert.ok(args1.action.execute_javascript.script.includes("quick-start"));
+  assert.strictEqual(choice1.finish_reason, "tool_calls");
+
+  // Second call (with <step_1> in history) → done
+  const payload2 = { ...payload, messages: [{ role: "user", content: "<step_1>..." }] };
+  const resp2 = await model.respond(url, { body: JSON.stringify(payload2) });
+  const data2 = await resp2.json();
+  const choice2 = data2.choices[0];
+  const tc2 = choice2.message.tool_calls[0];
+  const args2 = JSON.parse(tc2.function.arguments);
+  assert.ok(args2.action.done, "second step must call done");
+  assert.strictEqual(args2.action.done.success, true);
+
+  console.log("  [4] AgentOutput tool-call format (execute_javascript → done): OK");
 }
 
 function testUrlBlocking() {
@@ -190,34 +199,6 @@ function testUrlBlocking() {
   console.log("  [5] URL blocking: OK");
 }
 
-function testOpenAiCompatibleResponseFormat() {
-  const ctx = createContext();
-  runInContext(mockModelCode, ctx);
-  const model = ctx.window.PageAgentMockModel;
-
-  const result = model.handleCompletion(
-    "http://localhost/mock-llm/v1/chat/completions",
-    { messages: [{ role: "user", content: "Show the Quick Start section" }] },
-  );
-
-  // OpenAI-compatible envelope validation
-  assert.ok(result.id, "response must have an id");
-  assert.ok(result.id.startsWith("chatcmpl-"), "id must start with chatcmpl-");
-  assert.strictEqual(result.object, "chat.completion");
-  assert.ok(result.created > 0, "created must be a positive timestamp");
-  assert.strictEqual(result.model, "local-mock");
-  assert.ok(Array.isArray(result.choices), "choices must be an array");
-  assert.strictEqual(result.choices.length, 1, "must have exactly 1 choice");
-  assert.strictEqual(result.choices[0].index, 0);
-  assert.strictEqual(result.choices[0].message.role, "assistant");
-  assert.ok(result.choices[0].message.content.length > 0);
-  assert.strictEqual(result.choices[0].finish_reason, "stop");
-  assert.ok(result.usage, "must include usage info");
-  assert.ok(result.usage.total_tokens > 0);
-
-  console.log("  [6] OpenAI-compatible response format: OK");
-}
-
 function testProvenanceConstants() {
   const ctx = createContext();
   runInContext(mockModelCode, ctx);
@@ -228,20 +209,151 @@ function testProvenanceConstants() {
   assert.ok(model.BLOCKED_HOSTS.includes("dashscope.aliyuncs.com"), "must block dashscope");
   assert.ok(model.BLOCKED_HOSTS.includes("api.openai.com"), "must block openai");
 
-  console.log("  [7] Provenance constants: OK");
+  console.log("  [6] Provenance constants: OK");
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────
+async function testDiagnosticsIncrement() {
+  const ctx = createContext();
+  runInContext(mockModelCode, ctx);
+  const model = ctx.window.PageAgentMockModel;
+
+  const url = "http://localhost:8765/examples/page-agent/mock-llm/v1/chat/completions";
+  const payload = {
+    model: "page-agent-lab-local",
+    messages: [{ role: "user", content: "Show the Quick Start section" }],
+    tools: [{ function: { name: "AgentOutput" } }],
+    tool_choice: { type: "function", function: { name: "AgentOutput" } },
+  };
+
+  const d1 = model.getDiagnostics();
+  assert.strictEqual(d1.callCount, 0);
+  await model.respond(url, { body: JSON.stringify(payload) });
+  const d2 = model.getDiagnostics();
+  assert.strictEqual(d2.callCount, 1);
+  assert.strictEqual(d2.lastActionName, "execute_javascript");
+  await model.respond(url, { body: JSON.stringify({ ...payload, messages: [{ role: "user", content: "<step_1>" }] }) });
+  const d3 = model.getDiagnostics();
+  assert.strictEqual(d3.callCount, 2);
+  assert.strictEqual(d3.lastActionName, "done");
+
+  console.log("  [7] Diagnostics increment across calls: OK");
+}
+
+function testVendorBundleExists() {
+  const bundlePath = join(EXAMPLES_BASE, "vendor", "page-agent.iife.js");
+  const licensePath = join(EXAMPLES_BASE, "vendor", "LICENSE");
+  assert.ok(existsSync(bundlePath), "vendor bundle must exist");
+  assert.ok(existsSync(licensePath), "vendor LICENSE must exist");
+
+  const bundleSize = readFileSync(bundlePath).length;
+  assert.ok(bundleSize > 100000, "bundle should be substantial (>100KB)");
+
+  console.log("  [8] Vendor bundle exists and is substantial: OK");
+}
+
+function testManifestShaParity() {
+  const manifestPath = join(EXAMPLES_BASE, "vendor-manifest.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+
+  assert.ok(manifest.vendored_files, "manifest must have vendored_files");
+  assert.ok(manifest.vendored_files.length >= 2, "at least 2 vendored files");
+
+  for (const entry of manifest.vendored_files) {
+    const filePath = join(EXAMPLES_BASE, entry.path);
+    assert.ok(existsSync(filePath), `vendored file must exist: ${entry.path}`);
+
+    const content = readFileSync(filePath);
+    const actualSha = createHash("sha256").update(content).digest("hex");
+    assert.strictEqual(
+      actualSha,
+      entry.sha256,
+      `SHA-256 mismatch for ${entry.path}: expected ${entry.sha256}, got ${actualSha}`
+    );
+    assert.strictEqual(content.length, entry.bytes, `byte count mismatch for ${entry.path}`);
+  }
+
+  console.log("  [9] Manifest SHA-256 parity: OK");
+}
+
+function testNoDemoStrings() {
+  const bundlePath = join(EXAMPLES_BASE, "vendor", "page-agent.iife.js");
+  const labPath = join(EXAMPLES_BASE, "page-agent-lab.js");
+  const indexPath = join(EXAMPLES_BASE, "index.html");
+
+  for (const path of [bundlePath, labPath, indexPath]) {
+    const text = readFileSync(path, "utf8");
+    assert.ok(!text.includes("page-ag-testing-ohftxirgbn"), `${path} must not contain demo testing API key`);
+    assert.ok(!text.includes("DEMO_BASE_URL"), `${path} must not contain DEMO_BASE_URL`);
+    assert.ok(!text.includes("autoInit"), `${path} must not contain autoInit`);
+    assert.ok(!text.includes("page-agent.demo.js"), `${path} must not reference demo bundle`);
+  }
+
+  console.log("  [10] No demo strings in bundle/lab/index: OK");
+}
+
+function testPageAgentLabActualInit() {
+  const labPath = join(EXAMPLES_BASE, "page-agent-lab.js");
+  const text = readFileSync(labPath, "utf8");
+
+  assert.ok(text.includes("window.PageAgent"), "must reference window.PageAgent");
+  assert.ok(text.includes("new window.PageAgent"), "must instantiate actual PageAgent");
+  assert.ok(text.includes("agent.panel.show()"), "must show built-in Panel");
+  assert.ok(text.includes("customFetch:"), "must provide customFetch");
+  assert.ok(text.includes("experimentalScriptExecutionTool: true"), "must enable execute_javascript tool");
+  assert.ok(text.includes("localCustomFetch"), "must use local customFetch");
+  assert.ok(text.includes("mock-llm/v1"), "must point to local mock endpoint");
+  assert.ok(text.includes("PageAgentLabMockModel.respond"), "must call mock model's respond");
+  assert.ok(!text.includes("fetch("), "must not use native fetch directly");
+  assert.ok(!text.includes("scrollIntoView"), "lab must not directly call scrollIntoView");
+
+  console.log("  [11] page-agent-lab.js uses actual PageAgent + customFetch + Panel: OK");
+}
+
+function testIndexHtmlScriptOrder() {
+  const indexPath = join(EXAMPLES_BASE, "index.html");
+  const html = readFileSync(indexPath, "utf8");
+
+  const bundleIdx = html.indexOf("./vendor/page-agent.iife.js");
+  const mockIdx = html.indexOf("./mock-model.js");
+  const labIdx = html.indexOf("./page-agent-lab.js");
+
+  assert.ok(bundleIdx > 0 && mockIdx > 0 && labIdx > 0, "all three scripts must be present");
+  assert.ok(bundleIdx < mockIdx && mockIdx < labIdx, "load order: bundle → mock-model → lab");
+
+  console.log("  [12] index.html script load order: OK");
+}
+
+function testBukguIsolation() {
+  const files = ["mock-model.js", "page-agent-lab.js", "page-agent-lab.css", "index.html"];
+  for (const fn of files) {
+    const text = readFileSync(join(EXAMPLES_BASE, fn), "utf8");
+    assert.ok(!text.includes("bukgu"), `${fn} must not reference bukgu`);
+    assert.ok(!text.includes("북구"), `${fn} must not reference 북구`);
+    assert.ok(!text.includes("quest"), `${fn} must not reference quest`);
+    assert.ok(!text.includes("mvp"), `${fn} must not reference mvp`);
+  }
+  console.log("  [13] Buk-gu isolation: OK");
+}
+
+// ── Main ────────────────────────────────────────────────────────────────
 
 async function main() {
   console.log("Running Page Agent lab runtime scenarios (no network, no fetch):");
+
   testMockModelExports();
   testSupportedTasksCount();
   testTaskLookup();
-  testCompletionHandling();
+  await testAgentOutputToolCallFormat();
   testUrlBlocking();
-  testOpenAiCompatibleResponseFormat();
   testProvenanceConstants();
+  await testDiagnosticsIncrement();
+  testVendorBundleExists();
+  testManifestShaParity();
+  testNoDemoStrings();
+  testPageAgentLabActualInit();
+  testIndexHtmlScriptOrder();
+  testBukguIsolation();
+
   console.log("All Page Agent lab runtime scenarios passed.");
 }
 

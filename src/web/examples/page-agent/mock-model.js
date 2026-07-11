@@ -1,22 +1,33 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // mock-model.js — Local deterministic model adapter for Page Agent lab
 //
-// This module provides a deterministic mock model that returns bounded
-// responses for supported tasks. The actual fetch interception is handled
-// by page-agent-lab.js via PageAgent's customFetch option.
+// This module provides a deterministic mock model that speaks the exact
+// OpenAI-compatible *tool-call* contract the real PageAgent expects:
+//
+//   POST <baseURL>/chat/completions
+//     → tool_choice: { function: { name: "AgentOutput" } }
+//     → response: message.tool_calls[0].function = {
+//         name: "AgentOutput",
+//         arguments: JSON.stringify({ action: { <toolName>: <toolInput> } })
+//       }
+//
+// The agent loop (PageAgentCore → PageController) executes the returned
+// action as a real DOM operation. For a supported task the mock drives a
+// real `execute_javascript` PageController action that scrolls the target
+// section into view, then a `done` action to complete the task.
 //
 // Task support:
 //   - "Show the Quick Start section"        → scroll to #quick-start
 //   - "Compare page-agent with browser-use"  → scroll to #vs-browser-use
 //   - "Show the MIT license section"         → scroll to #license
 //   - "Find the custom UI architecture"      → scroll to #architecture
-//   - Unknown/bound tasks                    → bounded "unsupported" response
+//   - Unknown/bound tasks                    → bounded "unsupported" done
 // ═══════════════════════════════════════════════════════════════════════════
 
 (function () {
   'use strict';
 
-  // ── Supported task definitions ──────────────────────────────────────────
+  // ── Supported task definitions ────────────────────────────────────────
 
   var TASKS = [
     {
@@ -31,7 +42,7 @@
       ],
       sectionId: 'quick-start',
       response:
-        'I found the Quick Start section. Let me scroll to it now. The Quick Start section shows how to integrate Page Agent with a single script tag. Scrolling to #quick-start.',
+        'I found the Quick Start section. The Quick Start section shows how to integrate Page Agent with a single script tag.',
     },
     {
       id: 'vs-browser-use',
@@ -45,7 +56,7 @@
       ],
       sectionId: 'vs-browser-use',
       response:
-        'I can see the comparison table between Page Agent and browser-use. Let me scroll to that section. The table compares runtime, integration, DOM access, multi-page support, and use cases. Scrolling to #vs-browser-use.',
+        'The comparison table between Page Agent and browser-use compares runtime, integration, DOM access, multi-page support, and use cases.',
     },
     {
       id: 'license',
@@ -60,7 +71,7 @@
       ],
       sectionId: 'license',
       response:
-        'I found the MIT License section. Page Agent is published under the MIT License. Let me scroll to #license to show the full license text.',
+        'Page Agent is published under the MIT License. The MIT License section shows the full license text.',
     },
     {
       id: 'architecture',
@@ -76,7 +87,7 @@
       ],
       sectionId: 'architecture',
       response:
-        'I found the Architecture section. The diagram shows the layered structure: Panel UI, PageAgent orchestrator, PageAgentCore agent loop, LLM Client, PageController DOM engine, and Custom UI layer. Scrolling to #architecture.',
+        'The Architecture section shows the layered structure: Panel UI, PageAgent orchestrator, PageAgentCore agent loop, LLM Client, PageController DOM engine, and Custom UI layer.',
     },
   ];
 
@@ -108,42 +119,6 @@
     return null;
   }
 
-  // ── Build OpenAI-compatible chat completion response ────────────────────
-
-  function buildCompletion(content) {
-    return {
-      id: 'chatcmpl-local-mock-' + Date.now(),
-      object: 'chat.completion',
-      created: Math.floor(Date.now() / 1000),
-      model: 'local-mock',
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: content,
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 1,
-        completion_tokens: 1,
-        total_tokens: 2,
-      },
-    };
-  }
-
-  // ── Build bounded unsupported response ─────────────────────────────────
-
-  function buildUnsupportedResponse() {
-    return buildCompletion(
-      'I can only help with the following topics on this page: Show the Quick Start section, ' +
-        'Compare page-agent with browser-use, Show the MIT license section, ' +
-        'and Find the custom UI architecture. Please try one of the supported tasks listed above.'
-    );
-  }
-
   // ── Extract the last user message from the request payload ──────────────
 
   function getLastUserMessage(payload) {
@@ -157,6 +132,42 @@
       }
     }
     return '';
+  }
+
+  // ── OpenAI-compatible tool-call response (AgentOutput macro) ────────────
+
+  function buildToolResponse(macroToolName, action) {
+    return {
+      id: 'chatcmpl-local-mock-' + Date.now(),
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model: 'local-mock',
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: 'call_local_' + Date.now(),
+                type: 'function',
+                function: {
+                  name: macroToolName,
+                  arguments: JSON.stringify({ action: action }),
+                },
+              },
+            ],
+          },
+          finish_reason: 'tool_calls',
+        },
+      ],
+      usage: {
+        prompt_tokens: 1,
+        completion_tokens: 1,
+        total_tokens: 2,
+      },
+    };
   }
 
   // ── Non-local host blocklist ───────────────────────────────────────────
@@ -186,23 +197,97 @@
     }
   }
 
+  // ── Diagnostics for verification (no behavior change) ───────────────────
+
+  var callCount = 0;
+  var lastToolName = null;
+  var lastActionName = null;
+
   // ── Public API ─────────────────────────────────────────────────────────
+
+  function respond(input, init) {
+    // Parse the OpenAI-compatible request body.
+    // Note: page-agent-lab.js enforces same-origin via localCustomFetch,
+    // so URL validation is handled by the caller.
+    var body = {};
+    try {
+      body = JSON.parse((init && init.body) || '{}');
+    } catch (e) {
+      body = {};
+    }
+
+    // Read the actual macro tool name the runtime requested.
+    var macroToolName = 'AgentOutput';
+    if (
+      body.tools &&
+      body.tools.length &&
+      body.tools[0] &&
+      body.tools[0].function &&
+      body.tools[0].function.name
+    ) {
+      macroToolName = body.tools[0].function.name;
+    }
+
+    var userMessage = getLastUserMessage(body);
+    // After the first action records a step, the user prompt embeds <step_1>.
+    var firstStep = userMessage.indexOf('<step_1>') === -1;
+
+    var task = findTask(userMessage);
+    var action;
+
+    if (!task && firstStep) {
+      // Unknown task on first step → report unsupported
+      action = {
+        done: {
+          text:
+            'I can only help with the following topics on this page: Show the Quick Start section, ' +
+            'Compare page-agent with browser-use, Show the MIT license section, ' +
+            'and Find the custom UI architecture. Please try one of the supported tasks.',
+          success: false,
+        },
+      };
+    } else if (firstStep && task) {
+      // Known task, first step → execute_javascript to scroll to section
+      action = {
+        execute_javascript: {
+          script:
+            "document.getElementById('" +
+            task.sectionId +
+            "').scrollIntoView({block:'center'});",
+        },
+      };
+    } else {
+      // Second step (has <step_1> in history) or unknown → done
+      action = {
+        done: {
+          text: task ? task.response : 'Task completed.',
+          success: true,
+        },
+      };
+    }
+
+    callCount++;
+    lastToolName = macroToolName;
+    lastActionName = action && Object.keys(action)[0];
+
+    return new Response(JSON.stringify(buildToolResponse(macroToolName, action)), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   window.PageAgentMockModel = {
     TASKS: TASKS,
     BLOCKED_HOSTS: BLOCKED_HOSTS,
 
-    /** Handle an OpenAI-compatible chat completion request. */
+    /** Main entry: returns an OpenAI-compatible tool-call Response. */
+    respond: respond,
+
+    /** Convenience wrapper returning the parsed response body. */
     handleCompletion: function (url, payload) {
-      var userMessage = getLastUserMessage(payload);
-      var task = findTask(userMessage);
-
-      if (task) {
-
-        return buildCompletion(task.response);
-      }
-
-      return buildUnsupportedResponse();
+      return respond(url, { body: JSON.stringify(payload || {}) }).then(function (r) {
+        return r.json();
+      });
     },
 
     /** Check if a URL is in the blocked list. */
@@ -210,7 +295,9 @@
 
     /** Get list of supported task IDs. */
     getSupportedTaskIds: function () {
-      return TASKS.map(function (t) { return t.id; });
+      return TASKS.map(function (t) {
+        return t.id;
+      });
     },
 
     /** Get a task by ID. */
@@ -230,6 +317,17 @@
     getAllTasks: function () {
       return TASKS;
     },
+
+    /** Diagnostics for verification. */
+    getDiagnostics: function () {
+      return {
+        callCount: callCount,
+        lastToolName: lastToolName,
+        lastActionName: lastActionName,
+      };
+    },
   };
 
+  // ── Legacy alias for page-agent-lab.js compatibility ──────────────────
+  window.PageAgentLabMockModel = window.PageAgentMockModel;
 })();
