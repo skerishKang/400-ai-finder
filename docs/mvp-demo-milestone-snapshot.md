@@ -1,5 +1,8 @@
 # MVP Demo Milestone Snapshot
 
+> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+
 Short closeout snapshot for the Buk-gu Gwangju **local/static** MVP demo.
 It records what is complete now, what the demo is not, and what remains on the
 live/production tracks.
@@ -16,7 +19,7 @@ live/production tracks.
 | Complete | Current MVP demo milestone is complete for **local/static stakeholder review**. |
 | Not production | The demo is **not** a production rebuild. |
 | Not live integration | The demo is **not** a live official-site integration. |
-| What it is | A **local/static, high-fidelity demonstration surface** for five locked resident-task flows. |
+| What it is | A **local/static demonstration surface for five locked resident-task flows**. Official-site clone capture is not complete — see `capture_required` in the [official-site manifest](tests/fixtures/official_site_clone_manifest.json). |
 
 > **Scope note:** this milestone closes out the local/static demo surface only.
 > It is **not** the entire product. The intended product also answers unknown
@@ -31,15 +34,16 @@ live/production tracks.
 - First-use question entry
 - Split left website surface / right AI assistant shell
 - Five locked local/static golden quests
-- Real-page fidelity hardening for the five quests
 - Quest fidelity matrix
 - Matrix regression test
 - Operator runbook
 - README entry-point discoverability
 
-Real-page fidelity hardening for the five quests was completed earlier
-(including #987 / #989 and related follow-ups). Closeout docs/tests for this
-milestone are summarized in §7.
+Completed: interaction shell, left/right layout, scripted choreography mechanics,
+local demo execution mechanics, and related shell/build contracts. Not yet
+complete: official fixture capture, semantic/content parity, renderer-to-fixture
+parity, and route별 official source verification — these remain `capture_required`
+per the manifest.
 
 ---
 

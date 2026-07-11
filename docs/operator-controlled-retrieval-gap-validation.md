@@ -1,5 +1,7 @@
 # Operator Guide: Controlled Retrieval-Gap Validation
 
+> **Clone invariant:** 좌측 시민 사이트의 공식 페이지 clone은 [canonical invariant](product/exact-official-site-clone-invariant.md)를 따른다. 이 historical/planning 문서의 내용은 exact-clone 계약을 약화하지 않는다. Live retrieval이나 분석은 canonical fixture 기반 왼쪽 화면을 대체하지 않는다.
+
 This guide covers `scripts/validate_retrieval_gaps.py` as an operator-facing workflow tool. It is intended to help teams run retrieval-gap checks without accidentally crossing provider, fetch, network, API, or Firecrawl boundaries.
 
 ## 1. Purpose

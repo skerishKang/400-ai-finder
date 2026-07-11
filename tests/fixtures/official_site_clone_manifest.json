@@ -1,0 +1,245 @@
+{
+  "manifest_version": "1.0.0",
+  "canonical_invariant": "docs/product/exact-official-site-clone-invariant.md",
+  "policy": "exact official-site clone — public Gwangju Buk-gu portal (https://bukgu.gwangju.kr) rendered verbatim, no summary/redesign/approximation",
+  "forbidden_content_modes": [
+    "partial",
+    "summary",
+    "representative",
+    "simplified",
+    "approximate",
+    "synthetic"
+  ],
+  "required_source_metadata_fields": [
+    "page_id",
+    "route_id",
+    "page_title",
+    "source_url",
+    "captured_at",
+    "verified_at",
+    "source_updated_at",
+    "fixture_path",
+    "render_target",
+    "content_mode",
+    "network_required_at_runtime"
+  ],
+  "source_url_domain_policy": "source_url must be under https://bukgu.gwangju.kr (official public Buk-gu portal). Any other host is rejected.",
+  "network_required_at_runtime_policy": "normal tests must not require external lookup; network_required_at_runtime must be false for all registered pages.",
+  "pages": [],
+  "capture_required": [
+    {
+      "route_id": "home",
+      "page_id": "home",
+      "page_title": "시민 행정 도우미",
+      "render_target": "CitizenActionDemoCanvas._renderHome (route 'home')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderHome — synthetic shell, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": []
+    },
+    {
+      "route_id": "civil-service",
+      "page_id": "civil-service",
+      "page_title": "민원 신청",
+      "render_target": "CitizenActionDemoCanvas._renderCivilService (route 'civil-service')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderCivilService — synthetic shell, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": [
+        "passport_guidance",
+        "unmanned_kiosk_guidance"
+      ]
+    },
+    {
+      "route_id": "complaint-category",
+      "page_id": "complaint-category",
+      "page_title": "민원 유형 선택",
+      "render_target": "CitizenActionDemoCanvas._renderCheongwon24 (route 'complaint-category')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderComplaintCategory — synthetic shell, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": []
+    },
+    {
+      "route_id": "complaint-illegal-parking",
+      "page_id": "complaint-illegal-parking",
+      "page_title": "지도단속",
+      "render_target": "CitizenActionDemoCanvas._renderIllegalParking (route 'complaint-illegal-parking')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderComplaintIllegalParking — synthetic render, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": [
+        "illegal_parking_report_guidance"
+      ]
+    },
+    {
+      "route_id": "bulky-waste-disposal",
+      "page_id": "bulky-waste-disposal",
+      "page_title": "대형폐기물 배출방법",
+      "render_target": "CitizenActionDemoCanvas._renderBulkyWasteDisposal (route 'bulky-waste-disposal')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderBulkyWasteDisposal — synthetic render, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": [
+        "bulky_waste_disposal_guidance"
+      ]
+    },
+    {
+      "route_id": "passport-guidance",
+      "page_id": "passport-guidance",
+      "page_title": "여권민원 안내",
+      "render_target": "CitizenActionDemoCanvas._renderPassportGuidance (route 'passport-guidance')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderPassportGuidance — synthetic card render, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": [
+        "passport_guidance"
+      ]
+    },
+    {
+      "route_id": "unmanned-kiosk-guidance",
+      "page_id": "unmanned-kiosk-guidance",
+      "page_title": "무인민원발급기 안내",
+      "render_target": "CitizenActionDemoCanvas._renderUnmannedKioskGuidance (route 'unmanned-kiosk-guidance')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderUnmannedKioskGuidance — synthetic card render, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": [
+        "unmanned_kiosk_guidance"
+      ]
+    },
+    {
+      "route_id": "apartment-dept",
+      "page_id": "apartment-dept",
+      "page_title": "공동주택과",
+      "render_target": "CitizenActionDemoCanvas._renderApartmentDept (route 'apartment-dept')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderApartmentDept — synthetic card render, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1062 — apartment-dept full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": [
+        "housing_department_lookup"
+      ]
+    },
+    {
+      "route_id": "apartment-info",
+      "page_id": "apartment-info",
+      "page_title": "아파트정보",
+      "render_target": "CitizenActionDemoCanvas._renderApartmentInfo (route 'apartment-info')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderApartmentInfo — synthetic table render, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — apartment-info full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": [
+        "housing_department_lookup"
+      ]
+    },
+    {
+      "route_id": "complaint-intake",
+      "page_id": "complaint-intake",
+      "page_title": "민원 작성",
+      "render_target": "CitizenActionDemoCanvas._renderComplaintIntake (route 'complaint-intake')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderComplaintIntake — synthetic form shell, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": []
+    },
+    {
+      "route_id": "complaint-board",
+      "page_id": "complaint-board",
+      "page_title": "민원게시판",
+      "render_target": "CitizenActionDemoCanvas._renderComplaintBoard (route 'complaint-board')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderComplaintBoard — synthetic board shell, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": []
+    },
+    {
+      "route_id": "complaint-write",
+      "page_id": "complaint-write",
+      "page_title": "민원 작성 폼",
+      "render_target": "CitizenActionDemoCanvas._renderComplaintWrite (route 'complaint-write')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderComplaintWrite — synthetic write form, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": []
+    },
+    {
+      "route_id": "complaint-review",
+      "page_id": "complaint-review",
+      "page_title": "민원 내용 확인",
+      "render_target": "CitizenActionDemoCanvas._renderComplaintReview (route 'complaint-review')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderComplaintReview — synthetic review shell, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": []
+    },
+    {
+      "route_id": "handoff-stop",
+      "page_id": "handoff-stop",
+      "page_title": "안내 종료",
+      "render_target": "CitizenActionDemoCanvas._renderHandoffStop (route 'handoff-stop')",
+      "source_url_or_reference": "https://bukgu.gwangju.kr (공식 북구청 포털 — 정확 deep-link 경로는 capture 시 확인 필요)",
+      "current_synthetic_location": "src/web/static/citizen-action-demo-canvas.js:_renderHandoffStop — synthetic stop screen, no official fixture",
+      "missing_official_capture_items": "전체 공식 page fixture (full-row / full-cell 공식 캡처) 미확보; 공식 screenshot 미확보; 공식 crop 미확보; 실제 콘텐츠(텍스트/표/메뉴) verbatim 대조 불가",
+      "blocking_followup_issue": "#1080 — capture_required: full official capture pending; synthetic render must not be mistaken for exact.",
+      "network_required_at_runtime": false,
+      "status": "capture_required",
+      "quest_ids": []
+    }
+  ],
+  "completeness_note": "No complete official content fixtures are committed in this repository. Per the exact-clone invariant, synthetic data must not be disguised as official fixture, so no page is registered as 'exact'. All production renderer routes are registered under 'capture_required' (status=capture_required, network_required_at_runtime=false) pending complete official capture. Two deprecated quests are not renderer routes and are excluded from this manifest.",
+  "complete_capture_required": [
+    "home",
+    "civil-service",
+    "complaint-category",
+    "complaint-illegal-parking",
+    "bulky-waste-disposal",
+    "passport-guidance",
+    "unmanned-kiosk-guidance",
+    "apartment-dept",
+    "apartment-info",
+    "complaint-intake",
+    "complaint-board",
+    "complaint-review",
+    "complaint-write",
+    "handoff-stop"
+  ]
+}

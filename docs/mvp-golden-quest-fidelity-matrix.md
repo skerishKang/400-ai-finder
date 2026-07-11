@@ -1,6 +1,9 @@
 # MVP Golden Quest Fidelity Matrix
 
-This document locks the fidelity contract for the 5 resident-task golden quests
+> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+
+This matrix locks the left-surface fidelity contract for the five golden resident-task flows.
 in the Buk-gu Gwangju MVP. It exists so that future PRs cannot silently
 regress these quests back to generic pages, invented internal submission forms,
 or unsafe submission-like behavior.
@@ -40,15 +43,20 @@ or unsafe submission-like behavior.
 - **source_mode**: `local_static`
 - **stop_condition**: `STOP_FOR_USER_CONFIRMATION`
 - **left surface fidelity**
-  - LNB: `분야별정보 > 건축` with sub-items
-    `건축민원 / 기계설비법 / 아파트정보(active) / 건축물대장말소신고 / 아파트생활정보 / 정비사업(재개발재건축)`
-  - `아파트현황` table: `전체 428 건, 1/43 페이지`
-  - columns: `번호 / 아파트명 / 새주소명 / 사용검사 / 동수 / 층수 / 세대수 / 관리사무소`
-  - representative rows: `제일맨션 / 오치아파트 / 송광아파트 / 두암아파트`
-  - `관리사무소` values are intentionally neutral (`-`); do **not** insert
-    unverified public phone numbers.
-  - related card: `아파트생활정보` (`하자발생 / 생활요령 / 생활수칙 / 관리비`)
-  - search box is `disabled` (static demo only, no external request)
+  - `apartment-info` is currently `capture_required` — complete official fixture not yet committed.
+  - Until complete official fixture is captured, legacy demo numbers, rows, and placeholders must not be claimed as exact official facts.
+  - When fixture is secured, the following items from the official screen must be preserved verbatim:
+    - total count
+    - page size
+    - current page
+    - current-page rows
+    - row order
+    - pagination controls
+    - search/navigation controls
+  - Must NOT flatten multiple official pages into a single combined page.
+  - Must NOT fabricate `-`, empty values, phone numbers, or descriptive phrases unverified from the official source.
+  - Offline means no runtime external network — it does not mean controls are deleted or disabled.
+  - Search and pagination controls must operate deterministically against committed fixtures.
 - **right-panel quest card**
   - `quest_card_type`: `action_plan`
   - action labels include `아파트정보 화면 이동`, `아파트생활정보 관련 안내 확인`

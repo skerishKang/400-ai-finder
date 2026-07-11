@@ -1,7 +1,10 @@
 # Stage #863-B — Buk-gu Semantic HTML/CSS Reconstruction Report
 
+> 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+
 ## 1. Overview
-* **Goal**: Reconstruct Buk-gu Office portal pages as semantic HTML/CSS using actual screenshots as reference.
+* **Goal**: Reconstruct Buk-gu Office portal pages as semantic HTML/CSS that renders the actual captured official portal pages verbatim, using actual screenshots as reference.
 * **Status**: All 6 routes implemented — `home`, `civil-service`, `complaint-category`, `complaint-intake`, `complaint-review`, `handoff-stop`.
 
 ## 2. Architecture
@@ -9,7 +12,7 @@
 ```
 실제 북구청 캡처 이미지 (src/web/static/images/bukgu_*.png)
 → 레퍼런스 분석 → text content + layout extracted
-→ HTML/CSS로 실제 북구청 화면 구조 재현 (citizen-action-demo-canvas.js)
+→ HTML/CSS로 실제 북구청 화면 구조를 공식 페이지 그대로 구현 (citizen-action-demo-canvas.js)
 → GNB·LNB·카드·표를 실제 DOM으로 구현
 → 각 click 대상에 data-action-target 부착
 → route navigation + AI narration (우측 chat-shell)
