@@ -647,6 +647,13 @@ function setupErrorTracking(page, tracker) {
     const text = msg.text();
     // Skip harmless favicon 404 (browser default request, not from PageAgent)
     if (text.includes("favicon.ico")) return;
+    // Chromium's GPU process emits WebGL GL driver performance diagnostics
+    // (e.g. "[.WebGL-...]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV,
+    // High): GPU stall due to ReadPixels") as console warnings. These are
+    // browser-generated, driver/GPU specific, and unrelated to the Page Agent,
+    // so they must not fail the warning gate. Only the GL driver message
+    // signature is excluded — genuine Page Agent/application warnings remain.
+    if (/GL Driver Message \(OpenGL, Performance/i.test(text)) return;
     // The browser also logs a generic "Failed to load resource" message for
     // network 404s (e.g. the automatic favicon request). This is not a
     // PageAgent error, so exclude resource-load failures from the count.
