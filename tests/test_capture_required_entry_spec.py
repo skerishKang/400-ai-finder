@@ -283,5 +283,89 @@ def test_status_docs_do_not_claim_clone_complete_when_capture_required_exists():
         violations = _has_clone_complete_claim(content)
         assert not violations, (
             f"{rel} claims clone completion while capture_required entries exist: "
-            + " || ".join(violations)
+        + " || ".join(violations)
+    )
+
+
+# ---------------------------------------------------------------------------
+# Product-transition classification contract (Issue #1096)
+# ---------------------------------------------------------------------------
+
+PRODUCT_TRANSITION_ROUTES = ["complaint-review", "handoff-stop"]
+
+FORBIDDEN_PROVENANCE_FIELDS = [
+    "source_url",
+    "source_url_or_reference",
+    "fixture_path",
+    "snapshot_id",
+    "canonical_sha256",
+    "captured_at",
+    "verified_at",
+    "source_updated_at",
+    "content_mode",
+]
+
+
+def _load_product_transitions() -> list:
+    manifest = _load_manifest()
+    return manifest.get("product_transitions", [])
+
+
+def test_product_transitions_section_exists():
+    manifest = _load_manifest()
+    assert "product_transitions" in manifest, "manifest must define product_transitions section"
+
+
+def test_product_transitions_contains_exactly_two_routes():
+    ids = [e["route_id"] for e in _load_product_transitions()]
+    assert sorted(ids) == sorted(PRODUCT_TRANSITION_ROUTES), (
+        f"product_transitions must contain exactly {PRODUCT_TRANSITION_ROUTES}, got {ids}"
+    )
+
+
+def test_product_transition_entries_appear_once_each():
+    ids = [e["route_id"] for e in _load_product_transitions()]
+    dupes = {rid for rid in ids if ids.count(rid) > 1}
+    assert not dupes, f"duplicate product_transition route_id(s): {dupes}"
+
+
+def test_product_transitions_have_required_classification_fields():
+    for e in _load_product_transitions():
+        rid = e.get("route_id")
+        assert e.get("surface_kind") == "product_transition", (
+            f"{rid} surface_kind must be 'product_transition'"
         )
+        assert e.get("official_capture_expectation") == "not_applicable", (
+            f"{rid} official_capture_expectation must be 'not_applicable'"
+        )
+        assert e.get("status") == "product_transition", (
+            f"{rid} status must be 'product_transition'"
+        )
+        assert e.get("network_required_at_runtime") is False, (
+            f"{rid} network_required_at_runtime must be false"
+        )
+        contract = e.get("product_state_contract")
+        assert isinstance(contract, dict) and contract, (
+            f"{rid} must carry a non-empty product_state_contract dict"
+        )
+
+
+def test_product_transitions_forbid_official_provenance():
+    for e in _load_product_transitions():
+        rid = e.get("route_id")
+        for field in FORBIDDEN_PROVENANCE_FIELDS:
+            assert field not in e, (
+                f"{rid} must not carry official provenance field '{field}'"
+            )
+        assert e.get("status") != "exact", f"{rid} must not be status exact"
+
+
+def test_product_transitions_disjoint_from_other_sections():
+    manifest = _load_manifest()
+    pt_ids = {e["route_id"] for e in manifest.get("product_transitions", [])}
+    page_ids = {e["route_id"] for e in manifest.get("pages", [])}
+    cap_ids = {e["route_id"] for e in manifest.get("capture_required", [])}
+    complete = set(manifest.get("complete_capture_required", []))
+    assert not (pt_ids & page_ids), f"product_transitions overlaps pages: {pt_ids & page_ids}"
+    assert not (pt_ids & cap_ids), f"product_transitions overlaps capture_required: {pt_ids & cap_ids}"
+    assert not (pt_ids & complete), f"product_transitions overlaps complete_capture_required: {pt_ids & complete}"
