@@ -271,17 +271,30 @@ def test_canvas_has_preserve_first_use_chat_helper():
     assert "function _shouldPreserveFirstUseChat()" in CANVAS
 
 
-def test_canvas_preserve_helper_checks_split_and_choreography_state():
-    """Helper returns true only when data-first-use-state=split
-    and data-choreography-state is running or done."""
-    assert '"split"' in CANVAS
-    assert 'choreographyState === "running"' in CANVAS or 'choreographyState === "running"' in CANVAS
-    assert 'choreographyState === "done"' in CANVAS
+def _preserve_first_use_chat_body():
+    start = CANVAS.index("function _shouldPreserveFirstUseChat()")
+    end = CANVAS.index("function _restoreHistoricalChat()", start)
+    return CANVAS[start:end]
 
 
-def test_canvas_preserve_helper_is_noop_for_entry():
-    """Helper returns false when first-use-state is entry (no split yet)."""
-    assert 'firstUseState === "split"' in CANVAS
+def test_canvas_preserve_helper_covers_entire_split_phase():
+    """Pending confirmation을 포함한 split 전체 단계에서 chat을 보존한다."""
+    body = _preserve_first_use_chat_body()
+
+    assert 'data-first-use-state' in body
+    assert '=== "split"' in body
+    assert "data-choreography-state" not in body
+    assert "choreographyState" not in body
+
+
+def test_canvas_preserve_helper_remains_false_outside_split():
+    """Helper가 split 여부만 반환하여 entry/transitioning에서는 false가 된다."""
+    body = _preserve_first_use_chat_body()
+
+    assert (
+        'return document.body.getAttribute("data-first-use-state") === "split";'
+        in body
+    )
 
 
 def test_canvas_restore_historical_is_guarded_by_preserve_helper():
