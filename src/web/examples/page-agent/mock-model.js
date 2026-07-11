@@ -203,6 +203,17 @@
   var toolNames = [];
   var actionNames = [];
   var taskIds = [];
+  var successValues = [];
+
+  function resetDiagnostics() {
+    callCount = 0;
+    toolNames = [];
+    actionNames = [];
+    taskIds = [];
+    successValues = [];
+  }
+
+  window.__pageAgentLabResetDiagnostics = resetDiagnostics;
 
   // ── Public API ─────────────────────────────────────────────────────────
 
@@ -278,10 +289,18 @@
       };
     }
 
+    var actionKey = action && Object.keys(action)[0];
+    var actionDetail = action && action[actionKey];
+
     callCount++;
     toolNames.push(macroToolName);
-    actionNames.push(action && Object.keys(action)[0]);
+    actionNames.push(actionKey);
     taskIds.push(task ? task.id : null);
+    if (actionKey === 'done') {
+      successValues.push(actionDetail ? !!actionDetail.success : true);
+    } else {
+      successValues.push(null);
+    }
 
     return new Response(JSON.stringify(buildToolResponse(macroToolName, action)), {
       status: 200,
@@ -340,8 +359,13 @@
         toolNames: toolNames.slice(),
         actionNames: actionNames.slice(),
         taskIds: taskIds.slice(),
+        successValues: successValues.slice(),
+        lastSuccess: successValues.length > 0 ? successValues[successValues.length - 1] : null,
       };
     },
+
+    /** Reset all diagnostic counters to zero. */
+    resetDiagnostics: resetDiagnostics,
   };
 
   // ── Legacy alias for page-agent-lab.js compatibility ──────────────────

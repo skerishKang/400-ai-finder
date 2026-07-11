@@ -122,5 +122,45 @@ jobs:
       - name: Run Page Agent lab runtime verification
         run: node tests/browser/verify_page_agent_lab_runtime.mjs
 
+      - name: Run Page Agent lab browser E2E
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -m http.server 8767 \
+            --bind 127.0.0.1 \
+            --directory src/web/examples \
+            > /tmp/page-agent-e2e-server.log 2>&1 &
+
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8767/"
+
+          for _ in range(40):
+              try:
+                  with urllib.request.urlopen(url, timeout=1) as response:
+                      if response.status == 200:
+                          break
+              except Exception:
+                  time.sleep(0.25)
+          else:
+              raise SystemExit("Page Agent E2E server did not become ready")
+          PY
+
+          node tests/browser/verify_page_agent_lab_e2e.mjs \
+            http://127.0.0.1:8767
+
       - name: Check whitespace errors
         run: git diff --check
