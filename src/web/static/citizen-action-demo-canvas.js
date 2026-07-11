@@ -680,16 +680,17 @@
 
   /**
    * First-use choreography presence check.
-   * When the first-use shell is in split state and choreography is active,
-   * route transitions must not overwrite the chat thread with the default
-   * historical chat HTML. Returns true when chat should be preserved.
+   * When the first-use shell owns the split-state chat thread (the resident
+   * has not yet completed the journey), route transitions must not overwrite
+   * it with the default historical chat HTML. This covers the entire split
+   * phase, including the pending user-confirmation step before any
+   * choreography has started, so the shell-managed quest card and
+   * confirm-run button survive the canvas home render. Returns true when the
+   * chat should be preserved.
    */
   function _shouldPreserveFirstUseChat() {
     if (!document.body) return false;
-    var firstUseState = document.body.getAttribute("data-first-use-state");
-    var choreographyState = document.body.getAttribute("data-choreography-state");
-    return firstUseState === "split" &&
-      (choreographyState === "running" || choreographyState === "done");
+    return document.body.getAttribute("data-first-use-state") === "split";
   }
 
   function _restoreHistoricalChat() {
