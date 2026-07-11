@@ -22,7 +22,7 @@ MANIFEST = ROOT / "tests" / "fixtures" / "official_site_clone_manifest.json"
 
 # Clone-relevant documents that MUST reference the canonical invariant and MUST NOT
 # contain a sentence that APPROVES a weak (summary / approximate / redesigned) direction.
-# 
+#
 # Dynamically discovered: every non-binary Markdown file under docs/ and the root
 # README.md that either (a) contains a link to the canonical invariant or (b) is
 # the canonical invariant document itself.  No hand-maintained literal replaces
@@ -37,7 +37,7 @@ _EXCLUDED_ROOTS = frozenset({
 
 def _discover_clone_related_docs() -> list[str]:
     """Walk the repository and collect docs referencing the canonical invariant.
-    
+
     No hand-maintained literal replaces this scan, so newly created clone-relevant
     documents are automatically covered.
     """

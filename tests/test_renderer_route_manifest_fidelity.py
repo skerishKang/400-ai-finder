@@ -49,7 +49,7 @@ def _extract_valid_route_ids_from_py() -> set[str]:
 
 def _renderer_intersection() -> set[str]:
     """Canonical route set is the intersection of JS and PY renderer vocabularies.
-    
+
     No hand-maintained literal declares the expected set; the two independent
     production sources (JS frozen array, PY frozenset) define it jointly.
     """
