@@ -2494,8 +2494,8 @@
             '<textarea id="board-write-content" style="width:100%;height:200px;padding:10px;border:1px solid #ccc;resize:none;"></textarea>' +
           '</div>' +
           '<div style="display:flex;justify-content:center;gap:10px;margin-top:20px;">' +
-            '<button type="button" class="bg-dept-search__btn" id="btn-board-submit" data-action-target="complaint-board">제출하기</button>' +
-            '<button type="button" class="bg-dept-search__btn" style="background:#666;" data-action-target="complaint-board">취소</button>' +
+            '<button type="button" class="bg-dept-search__btn" id="btn-board-submit" disabled aria-disabled="true">제출 전 확인 필요</button>' +
+            '<button type="button" class="bg-dept-search__btn" style="background:#666;" data-action-target="complaint-board-return">취소</button>' +
           '</div>' +
         '</main>' +
       '</div>'
@@ -2728,6 +2728,7 @@
         case "apartment-info": html = _renderApartmentInfo(route); break;
         case "complaint-intake":   html = _renderComplaintIntake(route); break;
         case "complaint-board":    html = _renderComplaintBoard(route); break;
+        case "complaint-write":    html = _renderComplaintWrite(route); break;
         case "complaint-review":   html = _renderComplaintReview(route); break;
         case "handoff-stop":       html = _renderHandoffStop(route); break;
         default:                   html = "<p>알 수 없는 경로입니다.</p>"; break;
@@ -2742,6 +2743,7 @@
       "complaint-review": {title: "민원 신청 확인", purpose: "아래 내용을 확인하고 신청해 주세요."},
       "handoff-stop": {title: "안내 종료", purpose: "실제 민원 신청은 북구청 공식 채널을 이용하세요."},
       "complaint-illegal-parking": {title: "지도단속", purpose: "차량교통 분야 지도단속 안내. 실제 신고는 안전신문고 등 공식 채널에서 직접 진행해야 합니다."},
+      "complaint-write": {title: "민원 글쓰기", purpose: "AI가 민원 제목과 본문 초안을 입력하고 제출 전에 주민 확인을 받습니다."},
       "bulky-waste-disposal": {title: "대형폐기물 배출방법", purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
       "apartment-dept": {title: "공동주택과", purpose: "도시관리국 공동주택과 업무 및 연락처 정보를 안내합니다."},
       "passport-guidance": {title: "여권민원 안내", purpose: "여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 안내합니다."},
@@ -2821,6 +2823,8 @@
       var navTimer = setTimeout(function () {
         // HTML swap happens while opacity is 0 (invisible)
         _demoCanvas.innerHTML = '<div class="demo-canvas__inner">' + _renderRoute(routeId) + '</div>';
+        _demoCanvas.scrollTop = 0;
+        _demoCanvas.scrollLeft = 0;
         _attachDelegation();
         fitToViewport();
         // Force reflow then fade in
@@ -3111,8 +3115,8 @@
       "complaint-category-traffic-or-facility-safety":    "complaint-intake",
       "complaint-category-other-or-unsure":               "complaint-intake",
       "complaint-illegal-parking-report":                  "handoff-stop",
-      "complaint-board":                              "complaint-write",
-      "btn-board-submit":                             "complaint-board",
+      "complaint-write":                             "complaint-write",
+      "complaint-board-return":                      "complaint-board",
       "complaint-body":               null,
       "complaint-draft-review":       "complaint-review",
       "confirm-draft-prefill":        "handoff-stop",

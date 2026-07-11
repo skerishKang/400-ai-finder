@@ -41,14 +41,20 @@ class _QuestionRoutedProvider(LLMProvider):
         for msg in messages:
             if msg.get("role") == "user":
                 question = msg.get("content", "")
-        if "주정차" in question or "불법" in question:
+        if "주정차" in question or "불법 주차" in question:
             action = "illegal_parking"
         elif "공동주택" in question or "아파트" in question:
             action = "housing_department"
-        elif "전입신고" in question or "이사" in question:
-            action = "move_in_report"
-        elif "보건소" in question or "예방접종" in question:
-            action = "public_health_center"
+        elif "대형폐기물" in question or "매트리스" in question:
+            action = "bulky_waste"
+        elif "여권" in question:
+            action = "passport_guidance"
+        elif "무인민원발급기" in question:
+            action = "unmanned_kiosk"
+        elif "가로등" in question:
+            action = "streetlight_report"
+        elif "무단투기" in question or "방치 쓰레기" in question:
+            action = "litter_ai_assist"
         else:
             action = "none"
         payload = {
@@ -214,6 +220,21 @@ class TestMvpActionDecision:
         assert decision.action == "housing_department"
         assert not is_mvp_failure(decision)
 
+    @pytest.mark.parametrize(
+        ("question", "expected"),
+        [
+            ("매트리스 폐기 신청은 어디서 하나요?", "bulky_waste"),
+            ("여권 발급은 어디서 하나요?", "passport_guidance"),
+            ("무인민원발급기 어디 있어요?", "unmanned_kiosk"),
+            ("가로등이 고장났어요. 신고할게요", "streetlight_report"),
+            ("쓰레기 무단투기 신고할래", "litter_ai_assist"),
+        ],
+    )
+    def test_remaining_visible_journey_variants(self, question, expected):
+        decision = decide_mvp_action(question, _QuestionRoutedProvider())
+        assert decision.action == expected
+        assert not is_mvp_failure(decision)
+
     def test_none_variant(self):
         provider = _QuestionRoutedProvider()
         decision = decide_mvp_action("오늘 날씨 어떠세요?", provider)
@@ -343,8 +364,8 @@ class TestMvpAskEndpoint:
         assert data["action_plan"]["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
         assert data["action_plan"]["requires_user_confirmation"] is True
         labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
-        assert "아파트정보 화면 이동" in labels
-        assert "아파트생활정보 관련 안내 확인" in labels
+        assert "공동주택과 안내 화면 이동" in labels
+        assert "공동주택과 업무 및 연락처 확인" in labels
 
     def test_mvp_ask_bulky_waste(self, mvp_server):
         port = mvp_server["port"]
@@ -369,10 +390,10 @@ class TestMvpAskEndpoint:
         assert "대형폐기물 배출방법 화면 이동" in labels
         assert "대형폐기물 배출방법 안내 확인" in labels
 
-    def test_mvp_ask_public_health_center(self, mvp_server):
+    def test_mvp_ask_streetlight_report(self, mvp_server):
         port = mvp_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=5)
-        body = json.dumps({"question": "보건소 어디에 있어요?"}).encode()
+        body = json.dumps({"question": "가로등이 고장났어요. 신고할게요"}).encode()
         conn.request("POST", "/api/mvp/ask", body=body,
                      headers={"Content-Type": "application/json"})
         resp = conn.getresponse()
@@ -380,22 +401,14 @@ class TestMvpAskEndpoint:
         conn.close()
         assert resp.status == 200
         assert data["ok"] is True
-        assert data["action"] == "public_health_center"
-        assert data["provider"] == "local_static"
-        assert data["model"] == "quest-engine-v1"
-        assert data["quest"]["quest_id"] == "public_health_center_guidance"
-        assert data["quest"]["source_mode"] == "local_static"
-        assert data["action_plan"]["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
-        assert data["action_plan"]["requires_user_confirmation"] is True
-        assert data["action_plan"]["final_warning"]["requires_user_confirmation"] is True
-        labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
-        assert "보건소 위치·진료 안내 화면 이동" in labels
-        assert "보건소 위치·진료 안내 카드 확인" in labels
+        assert data["action"] == "streetlight_report"
+        assert data["provider"] == "fake"
+        assert data["model"] == "fake-model"
 
-    def test_mvp_ask_move_in_report(self, mvp_server):
+    def test_mvp_ask_litter_ai_assist(self, mvp_server):
         port = mvp_server["port"]
         conn = HTTPConnection("127.0.0.1", port, timeout=5)
-        body = json.dumps({"question": "이사 왔는데 전입신고는 어떻게 해요?"}).encode()
+        body = json.dumps({"question": "쓰레기 무단투기 신고할래"}).encode()
         conn.request("POST", "/api/mvp/ask", body=body,
                      headers={"Content-Type": "application/json"})
         resp = conn.getresponse()
@@ -403,17 +416,9 @@ class TestMvpAskEndpoint:
         conn.close()
         assert resp.status == 200
         assert data["ok"] is True
-        assert data["action"] == "move_in_report"
-        assert data["provider"] == "local_static"
-        assert data["model"] == "quest-engine-v1"
-        assert data["quest"]["quest_id"] == "move_in_report_guidance"
-        assert data["quest"]["source_mode"] == "local_static"
-        assert data["action_plan"]["stop_condition"] == "STOP_FOR_USER_CONFIRMATION"
-        assert data["action_plan"]["requires_user_confirmation"] is True
-        assert data["action_plan"]["final_warning"]["requires_user_confirmation"] is True
-        labels = [action["label"] for action in data["action_plan"]["browser_actions"]]
-        assert "정부24 전입신고 연결 안내 화면 이동" in labels
-        assert "정부24 전입신고 연결 안내 카드 확인" in labels
+        assert data["action"] == "litter_ai_assist"
+        assert data["provider"] == "fake"
+        assert data["model"] == "fake-model"
 
     def test_mvp_ask_none_unrelated(self, mvp_server):
         port = mvp_server["port"]

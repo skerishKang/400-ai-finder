@@ -80,6 +80,13 @@ STATIC_MOBILE_ENDPOINT = "var API_ENDPOINT = '/api/ask';"
 SHELL_SCRIPT = "citizen-first-use-shell.js"
 
 
+def test_no_argument_deployment_cli_defaults_to_live_mode():
+    source = open(_MODULE_PATH, encoding="utf-8").read()
+    parser_block = source[source.index("parser.add_argument(\n        \"--mode\""):]
+    assert 'default="live"' in parser_block
+    assert "deployment default" in parser_block
+
+
 def test_required_files_exist(build_dir):
     required = [
         "index.html",
@@ -556,7 +563,7 @@ def test_shim_execution_boundary(build_dir):
       console.log('INFO_PROFILES:' + d3.profiles.map(p => p.site_id).join(','));
     })();
     """
-    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as f:
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as f:
         f.write(harness)
         harness_path = f.name
     try:

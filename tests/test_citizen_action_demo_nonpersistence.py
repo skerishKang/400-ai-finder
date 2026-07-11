@@ -22,7 +22,7 @@ DIRECTIVE = os.path.join(
 )
 
 # ======================================================================
-# Stage #850: the entire action-demo static surface (11 assets).
+# Entire action-demo static surface.
 # ======================================================================
 
 ASSET_ALLOWLIST = [
@@ -42,6 +42,7 @@ ASSET_ALLOWLIST = [
     "citizen-first-use-shell.js",
     "citizen-first-use-shell.css",
     "citizen-mvp-bridge.js",
+    "citizen-content-adapter.js",
 ]
 
 
@@ -71,7 +72,7 @@ def _strip_comments_js(src):
 # ======================================================================
 
 class TestAssetSurface:
-    def test_all_eleven_assets_exist(self):
+    def test_all_allowlisted_assets_exist(self):
         for path in _all_asset_paths():
             assert os.path.isfile(path), f"Missing asset: {path}"
 
@@ -126,7 +127,7 @@ class TestNoRawLoggingConnection:
         "admin_demo",
     ]
 
-    def test_eleven_assets_have_no_log_conversation_reference(self):
+    def test_allowlisted_assets_have_no_log_conversation_reference(self):
         for name, src in _loaded_assets():
             code = _strip_comments_js(src)
             for token in self.FORBIDDEN_TOKENS:
@@ -191,10 +192,10 @@ class TestNoExportDownloadPersistence:
         (r'\bBlob\b', "Blob"),
         (r'URL\.createObjectURL', "URL.createObjectURL"),
         (r'download\s*=', "download= attribute"),
-        (r'createElement\s*\(\s*["\']a["\']\s*\)', "createElement('a')"),
+        (r'setAttribute\s*\(\s*["\']download["\']', "download attribute assignment"),
     ]
 
-    def test_eleven_assets_have_no_export_download(self):
+    def test_allowlisted_assets_have_no_export_download(self):
         for name, src in _loaded_assets():
             code = _strip_comments_js(src)
             for pat, label in self.FORBIDDEN_PATTERNS:

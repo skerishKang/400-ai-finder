@@ -9,6 +9,7 @@ JS = (STATIC / "citizen-first-use-shell.js").read_text(encoding="utf-8")
 CSS = (STATIC / "citizen-first-use-shell.css").read_text(encoding="utf-8")
 CHOREO = (STATIC / "citizen-first-choreography.js").read_text(encoding="utf-8")
 CANVAS = (STATIC / "citizen-action-demo-canvas.js").read_text(encoding="utf-8")
+ADAPTER = (STATIC / "citizen-content-adapter.js").read_text(encoding="utf-8")
 COPILOT_CSS = (STATIC / "citizen-copilot-shell.css").read_text(encoding="utf-8")
 DIRECTIVE = (ROOT / "docs" / "design" / "bukgu-ai-agent-product-directive.md").read_text(
     encoding="utf-8"
@@ -205,12 +206,12 @@ def test_choreography_terminal_step_preserves_highlight():
     _clearHighlights must be guarded by a routeId-or-targetId condition so
     message-only terminal steps preserve the previous step's highlight."""
     # Verify the guard: _clearHighlights only runs when step has routeId or targetId
-    assert "step.routeId || step.targetId" in CHOREO
+    assert "step.routeId || step.routeIdAfterClick" in CHOREO
     # Verify that a line matching the guard is directly followed by _clearHighlights
     choreo_lines = CHOREO.splitlines()
     guard_found = False
     for i, line in enumerate(choreo_lines):
-        if "step.routeId || step.targetId" in line and "if (" in line:
+        if "step.routeId || step.routeIdAfterClick" in line and "if (" in line:
             for j in range(i + 1, min(i + 5, len(choreo_lines))):
                 stripped = choreo_lines[j].strip()
                 if stripped and not stripped.startswith("//") and not stripped.startswith("*"):
@@ -221,6 +222,33 @@ def test_choreography_terminal_step_preserves_highlight():
                     break
             break
     assert guard_found, "Guard condition for _clearHighlights not found"
+
+
+def test_each_new_journey_resets_canvas_scroll_and_stale_department_state():
+    assert "resetOfficialCanvasScroll" in JS
+    assert "params.delete(key)" in JS
+    assert '"journey", "dept-state"' in JS
+    assert "canvas.scrollTop = 0" in JS
+
+
+def test_exact_presentation_prompts_take_priority_over_model_classification():
+    resolver = JS[JS.index("function resolveMvpActionForQuestion"):]
+    assert resolver.index("if (mapped) return mapped") < resolver.index("normalizeMvpAction(result)")
+
+
+def test_ai_writing_journey_types_title_and_body_before_confirmation():
+    assert 'routeIdAfterClick: "complaint-write"' in CHOREO
+    assert 'cursorTarget: "#board-write-title"' in CHOREO
+    assert 'cursorTarget: "#board-write-content"' in CHOREO
+    assert "typeContent:" in CHOREO
+    assert CHOREO.index("typeContent:") < CHOREO.index("requiresConfirmation: true")
+
+
+def test_content_adapter_distinguishes_local_demo_freshness_metadata():
+    assert "getBoardSnapshot" in ADAPTER
+    assert 'sourceUrl: ""' in ADAPTER
+    assert "retrievedAt: null" in ADAPTER
+    assert 'freshnessState: "local_demo"' in ADAPTER
 
 
 def test_choreography_cancel_still_clears_highlights():

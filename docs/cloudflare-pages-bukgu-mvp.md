@@ -5,9 +5,9 @@
 
 ---
 
-## 1. 정적 시연 모드 (Static / Default)
+## 1. 정적 시연 모드 (명시적 fallback)
 
-기본 `/mvp/` 경로는 **정적 시연 배포본**으로 동작한다.
+`--mode static`으로 빌드한 `/mvp/` 경로는 네트워크 없는 **정적 fallback**으로 동작한다.
 
 ### 성격
 
@@ -53,7 +53,7 @@
 ### 로컬 빌드
 
 ```bash
-python3 scripts/build_cloudflare_pages.py
+python3 scripts/build_cloudflare_pages.py --mode static
 ```
 
 빌드는 재현 가능하다(결정형). 출력은 `dist/cloudflare-pages/` 에 생성된다.
@@ -62,12 +62,14 @@ python3 scripts/build_cloudflare_pages.py
 
 ## 2. Live LLM 모드 (MVP Mode)
 
-`functions/api/mvp/ask.js` Cloudflare Pages Function을 통해 **실제 Gemini LLM**에
-연결하여 질문-답변을 처리할 수 있다.
+기본 배포는 `functions/api/mvp/ask.js` Cloudflare Pages Function에서 **Gemini를 1차,
+HY3를 2차 폴백**으로 사용한다. 공급자 선택은 운영자 환경변수로만 제어하며 주민에게
+모델 선택이나 비밀키를 노출하지 않는다.
 
 ### 활성화 조건
 
-- Cloudflare Pages에 `GEMINI_API_KEY` secret이 설정되어 있어야 한다.
+- Cloudflare Pages에 `GEMINI_API_KEY` 또는 `KILOCODE_API_KEY` 중 하나 이상이 설정되어야 한다.
+- 기본 순서는 `MVP_LLM_ORDER=gemini,hy3`이다. 첫 공급자가 키 누락, HTTP 오류, 빈 응답이면 다음 공급자를 시도한다.
 - 프론트엔드에서 `/api/mvp/ask`로 POST 요청을 보내면 Function이 동작한다.
 - 정적 시연과 달리 **네트워크 호출이 발생**한다.
 
@@ -92,18 +94,37 @@ python3 scripts/build_cloudflare_pages.py
   "confidence": 0.95,
   "provider": "gemini",
   "model": "gemini-3.1-flash-lite",
-  "failure_code": ""
+  "failure_code": "",
+  "retrieved_at": "2026-07-11T04:15:00.000Z",
+  "freshness_state": "live_official",
+  "source_url": "https://search.bukgu.gwangju.kr/RSA/front/Search.jsp?qt=...",
+  "sources": [
+    {
+      "title": "북구청 통합검색: 불법 주정차 신고",
+      "url": "https://search.bukgu.gwangju.kr/RSA/front/Search.jsp?qt=...",
+      "official": true
+    }
+  ],
+  "fallback_used": false
 }
 ```
+
+Function은 모델 호출 전에 북구청 공식 홈페이지와 통합검색 결과를 서버에서 병렬 조회한다.
+HTML의 실행 가능 요소를 제거하고 길이를 제한한 공식 근거를 Gemini와 HY3에 공통 주입하며,
+조회에 성공한 경우에만 `live_official`과 실제 조회 URL을 반환한다. 공식 사이트 조회가 실패해도
+모델 공급자 호출은 계속하되 `model_only`, 빈 `sources`로 표시한다. Gemini Interactions 모드는
+서버 조회 근거와 Google Search 인용을 함께 보존하며, 공식 도메인 근거가 없고 일반 웹 인용만
+있는 경우에는 `live_web`을 사용할 수 있다.
 
 **Validation rules:**
 | 항목 | 조건 | 실패 시 |
 |---|---|---|
 | `question` | 필수, 문자열, 300자 이내 | `invalid_input` (status 200, `ok: false`) 또는 400 |
-| `action` (LLM 응답) | `VALID_ACTIONS` 중 하나로 강제 | 알 수 없는 action → `'none'` |
-| `confidence` (LLM 응답) | 0.0 ~ 1.0으로 clamp | `Math.max(0, Math.min(1, parsed.confidence))` |
-| `answer` (LLM 응답) | 빈 값 fail-closed | `'죄송합니다. 답변을 준비하지 못했습니다. 다른 질문을 해 주세요.'` |
-| CORS | origin allowlist (`cgbukku.pages.dev`, `localhost:8000`, `127.0.0.1:8000`) + `Vary: Origin` | |
+| `action` | 서버의 7개 시연 규칙으로 결정 | 그 밖의 질문은 `'none'` |
+| `answer` | 선택된 공급자의 비어 있지 않은 답변 | 빈 응답이면 다음 공급자 시도 후 fail-closed |
+| 최신성 메타데이터 | `retrieved_at`, `freshness_state`, `source_url`, `sources` | 근거가 없으면 `model_only` 또는 `unavailable` |
+| 공급자 메타데이터 | `provider`, `model`, `fallback_used` | 키와 원시 오류는 절대 응답하지 않음 |
+| CORS | production/preview `cgbukku.pages.dev`와 localhost allowlist + `Vary: Origin` | |
 
 ### 실패 모드
 
@@ -111,10 +132,9 @@ python3 scripts/build_cloudflare_pages.py
 |---|---|---|---|
 | 질문 없음 | 400 | false | — |
 | 질문 300자 초과 | 200 | false | `invalid_input` |
-| API key 미설정 | 200 | false | `config_error` |
-| Upstream HTTP 오류 | 200 | false | `upstream_error` |
-| JSON 파싱 오류 | 200 | false | — (answer에 raw content) |
-| 서버 내부 오류 | 200 | false | `internal_error` |
+| 모든 API key 미설정 | 200 | false | `config_error` |
+| 모든 설정 공급자의 HTTP 오류 | 200 | false | `upstream_error` |
+| 마지막 공급자의 빈/비정상 응답 | 200 | false | `empty_response` 또는 `malformed_response` |
 
 > 모든 실패 응답은 **status 200**으로 반환되어 MVP 정적 shim과의 contract 일관성을 유지한다.
 > 단, 질문 누락(400)과 Method Not Allowed(405)는 예외.
@@ -123,9 +143,16 @@ python3 scripts/build_cloudflare_pages.py
 
 | 변수 | 설명 | 설정 위치 |
 |---|---|---|
-| `GEMINI_API_KEY` | Gemini API 인증 키 | Cloudflare Pages → Secrets |
+| `MVP_LLM_ORDER` | 공급자 우선순위, 기본 `gemini,hy3` | Cloudflare Pages → Variables |
+| `GEMINI_API_KEY` | Gemini 인증 키 | Cloudflare Pages → Secrets |
+| `KILOCODE_API_KEY` | KiloCode HY3 인증 키 | Cloudflare Pages → Secrets |
+| `GEMINI_MODEL` | 기본 `gemini-3.1-flash-lite` | Cloudflare Pages → Variables |
+| `GEMINI_API_STYLE` | 기본 `openai`, 선택값 `interactions` | Cloudflare Pages → Variables |
+| `GEMINI_API_ENDPOINT` | Gemini endpoint override | Cloudflare Pages → Variables |
+| `HY3_MODEL` | 기본 `tencent/hy3:free` | Cloudflare Pages → Variables |
+| `HY3_API_ENDPOINT` | HY3 endpoint override | Cloudflare Pages → Variables |
 
-> 참고: 저장소 전체에는 `KILOCODE_API_KEY` 등 다른 provider의 환경변수도 존재한다. 위 표는 Cloudflare MVP Function 설정에만 해당한다.
+실제 키는 `.env.example`에 값을 적지 않고 Cloudflare secret으로만 저장한다.
 
 ### 호출 제한 관련 주의사항
 
@@ -147,7 +174,7 @@ Cloudflare Pages 콘솔에서 다음과 같이 설정한다.
 | Build command | `python3 scripts/build_cloudflare_pages.py` |
 | Build output directory | `dist/cloudflare-pages` |
 | Root directory | _(비움)_ |
-| Environment variables | `GEMINI_API_KEY` (secret) |
+| Environment variables | `MVP_LLM_ORDER=gemini,hy3`, `GEMINI_API_KEY`, `KILOCODE_API_KEY` |
 
 > 빌드 산출물(`dist/cloudflare-pages`)은 Git에 추적되지 않으므로,
 > Cloudflare Pages 빌드 단계에서 위 Build command 가 산출물을 직접 생성한다.
@@ -198,14 +225,15 @@ curl -sI https://cgbukku.pages.dev/admin   # HTTP 200 (from /admin.html 308)
 ### 5.3. Live LLM 모드 확인
 
 ```bash
-# GEMINI_API_KEY가 설정된 배포에서만 동작
+# GEMINI_API_KEY 또는 KILOCODE_API_KEY가 설정된 배포에서 동작
 curl -s -X POST https://cgbukku.pages.dev/api/mvp/ask \
   -H 'Content-Type: application/json' \
   -d '{"question":"불법주차 신고하려면?"}' | jq .
 ```
 
 - 응답에 `ok: true`, `answer` (비어 있지 않음), `action`, `confidence`가 포함되어야 함.
-- `GEMINI_API_KEY` 미설정 시 `ok: false`, `failure_code: "config_error"` 응답.
+- Gemini 응답 실패 시 HY3가 설정되어 있으면 `provider: "hy3"`, `fallback_used: true`로 응답.
+- 두 키가 모두 없으면 `ok: false`, `failure_code: "config_error"` 응답.
 
 ### 5.4. public URL만으로 deployed SHA 확정 불가
 
@@ -216,7 +244,7 @@ public 정적 HTML은 빌드 커밋 SHA를 노출하지 않습니다. 정확한 
 ## 6. 현재 정적 아티팩트 vs 의도된 제품 아키텍처
 
 이 문서는 **현재 정적 배포본**(빌드 시점 스냅샷, LLM/API/network 없음)과
-**Live LLM 모드**(Cloudflare Pages Function + KiloCode)를 함께 설명한다.
+**Live LLM 모드**(Cloudflare Pages Function + Gemini/HY3 공급자 체인)를 함께 설명한다.
 범위를 벗어난 질문에 대해 "정적 시연본은 … 제한된 안내 흐름" 응답(bounded-demo)을
 반환하는 것은 **현재 배포 제약**이며, 최종 제품 의도가 아니다. 의도된 제품은
 정해지지 않은 자연어 질문에 대해 **LLM fallback**으로 답하고 가능하면 known
@@ -231,7 +259,7 @@ bounded-demo 매칭 동작은 **현재 배포 제약**이고, 의도된 routing 
 
 ## Boundaries
 
-- 이 배포는 **백엔드 없는 결정형 정적 시연**을 기본으로 하며, Live LLM 모드는 `GEMINI_API_KEY` secret 설정 시 선택적으로 활성화된다.
+- 배포 CLI 기본값은 Live LLM 모드이며, `--mode static`에서만 백엔드 없는 결정형 시연을 만든다. Live 응답에는 `GEMINI_API_KEY` 또는 `KILOCODE_API_KEY`가 필요하다.
 - 기본 검증 흐름은 로컬 정적 아티팩트만으로 충분하다.
 - 배포 제어(Retry deployment / Redeploy / Create deployment)는 배포 권한 보유 운영자 전용이며, secrets/env는 해당 운영자 책임 하에 다룹니다.
 - live-dependent 실험 경로(Firecrawl/외부 API/live provider 호출)는 별도 operational stage로 분리되어 있으며, 명시적 opt-in과 자격 증명(env) 설정 하에 실행됩니다. 자세한 경계는 [`provider-fetch-network-boundary.md`](provider-fetch-network-boundary.md)를 참고하세요.

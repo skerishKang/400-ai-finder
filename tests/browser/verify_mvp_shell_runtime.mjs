@@ -1172,23 +1172,24 @@ async function scenarioFailureDiagnosticHidden(failureCode) {
     `failure(${failureCode}): choreography must NOT start on failure`,
   );
 
-  // Shell must stay in entry state (not split).
+  // Exact presentation prompts keep their deterministic route even when the
+  // live answer fails. The journey still waits for the resident's confirmation.
   assert.strictEqual(
     s.win.CitizenFirstUseShell.getState(),
-    "entry",
-    `failure(${failureCode}): shell must stay in entry (no split)`,
+    "split",
+    `failure(${failureCode}): supported prompt must retain its split fallback`,
   );
 
-  // Left canvas must remain hidden/inert.
+  // Left fallback clone is visible, but choreography has not started.
   assert.strictEqual(
     canvasAriaHidden(s),
-    "true",
-    `failure(${failureCode}): left clone must remain hidden/inert`,
+    "false",
+    `failure(${failureCode}): fallback clone must be visible`,
   );
   assert.strictEqual(
     canvasInert(s),
-    true,
-    `failure(${failureCode}): left clone must remain inert`,
+    false,
+    `failure(${failureCode}): fallback clone must be interactive`,
   );
 
   console.log(`  [7] failure diagnostics hidden (${failureCode}): OK`);
@@ -1240,23 +1241,22 @@ async function scenarioFailureUntrustedAnswer() {
     "failure(untrusted answer): choreography must NOT start on failure",
   );
 
-  // Shell must stay in entry state (not split).
+  // The untrusted answer remains hidden while the exact chip route still opens.
   assert.strictEqual(
     s.win.CitizenFirstUseShell.getState(),
-    "entry",
-    "failure(untrusted answer): shell must stay in entry (no split)",
+    "split",
+    "failure(untrusted answer): supported prompt keeps deterministic split fallback",
   );
 
-  // Left canvas must remain hidden/inert.
   assert.strictEqual(
     canvasAriaHidden(s),
-    "true",
-    "failure(untrusted answer): left clone must remain hidden/inert",
+    "false",
+    "failure(untrusted answer): fallback clone must be visible",
   );
   assert.strictEqual(
     canvasInert(s),
-    true,
-    "failure(untrusted answer): left clone must remain inert",
+    false,
+    "failure(untrusted answer): fallback clone must be interactive",
   );
 
   console.log("  [8] failure untrusted answer hidden: OK");
@@ -1319,8 +1319,8 @@ async function scenarioSuccessBlankAnswer() {
 
 // ── Scenario A: missing result must fail closed ──
 // The bridge resolves with `undefined`. The shell must never render anything
-// from a missing result; it must show the generic Korean failure message and
-// keep the shell in entry with the canvas inert, and recover the composer.
+// from a missing result; it shows the generic failure while retaining the
+// deterministic presentation route for an exact chip prompt.
 
 async function scenarioMissingResult() {
   const bridge = makeResolvingBridge(undefined);
@@ -1345,18 +1345,18 @@ async function scenarioMissingResult() {
   );
   assert.strictEqual(
     s.win.CitizenFirstUseShell.getState(),
-    "entry",
-    "missing result: shell must stay in entry (no split)",
+    "split",
+    "missing result: exact prompt must keep split fallback",
   );
   assert.strictEqual(
     canvasAriaHidden(s),
-    "true",
-    "missing result: left clone must remain hidden/inert",
+    "false",
+    "missing result: fallback clone must be visible",
   );
   assert.strictEqual(
     canvasInert(s),
-    true,
-    "missing result: left clone must remain inert",
+    false,
+    "missing result: fallback clone must be interactive",
   );
   assertComposerRecovered(s, "missing result");
 
@@ -1408,18 +1408,18 @@ async function scenarioMalformedResult() {
     );
     assert.strictEqual(
       s.win.CitizenFirstUseShell.getState(),
-      "entry",
-      `${label}: shell must stay in entry (no split)`,
+      "split",
+      `${label}: exact prompt must keep split fallback`,
     );
     assert.strictEqual(
       canvasAriaHidden(s),
-      "true",
-      `${label}: left clone must remain hidden/inert`,
+      "false",
+      `${label}: fallback clone must be visible`,
     );
     assert.strictEqual(
       canvasInert(s),
-      true,
-      `${label}: left clone must remain inert`,
+      false,
+      `${label}: fallback clone must be interactive`,
     );
     assertComposerRecovered(s, label);
   }
@@ -1644,7 +1644,7 @@ async function scenarioUnknownNoneNoMovement() {
 }
 
 async function scenarioMalformedResultNoMovement() {
-  // Malformed result → no split
+  // Malformed result cannot override the exact presentation route.
   const choreo = makeChoreo();
   const s = runScenario({
     search: "?mvp=1", reducedMotion: true,
@@ -1653,9 +1653,9 @@ async function scenarioMalformedResultNoMovement() {
   });
   submit(s, "불법 주정차 신고는 어디서 하나요?");
   await flush();
-  assert.strictEqual(s.win.CitizenFirstUseShell.getState(), "entry", "malformed-none: shell must stay in entry");
+  assert.strictEqual(s.win.CitizenFirstUseShell.getState(), "split", "malformed-none: exact prompt keeps split fallback");
   assert.strictEqual(choreo.startCalls.length, 0, "malformed-none: choreography must NOT start");
-  console.log("  [21] malformed result → no split: OK");
+  console.log("  [21] malformed result → deterministic split fallback: OK");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1698,8 +1698,8 @@ async function scenarioComplaintBoardRouteRegistered() {
     map.getRouteIds().indexOf("complaint-board") !== -1,
     "E: complaint-board must appear in getRouteIds()",
   );
-  // (1b) a legacy/non-existent routeId must NOT be accepted
-  assert.strictEqual(map.isValidRoute("complaint-write"), false, "E: complaint-write must NOT be a valid route");
+  // (1b) the reversible write form is a first-class route.
+  assert.strictEqual(map.isValidRoute("complaint-write"), true, "E: complaint-write must be a valid route");
 
   // Spy on the demo-canvas innerHTML so we can inspect the dispatch RESULT
   // without replaying the full _attachDelegation/fitToViewport timer chain.
@@ -1728,7 +1728,14 @@ async function scenarioComplaintBoardRouteRegistered() {
     !lastHtml.includes("알 수 없는 경로"),
     "E: complaint-board must NOT fall through to the default '알 수 없는 경로' renderer",
   );
-  console.log("  [22] complaint-board canvas route registration: OK");
+
+  canvas.navigateToRoute("complaint-write");
+  await drainTimers();
+  lastHtml = String(canvasEl.innerHTML || "");
+  assert.ok(lastHtml.includes('id="board-write-title"'), "E: write route must render the title field");
+  assert.ok(lastHtml.includes('id="board-write-content"'), "E: write route must render the body field");
+  assert.ok(lastHtml.includes('id="btn-board-submit"') && lastHtml.includes("disabled"), "E: final submit must start locked");
+  console.log("  [22] complaint-board + complaint-write route registration: OK");
 }
 
 // New-chip gate contract (directive §5-A). The shell must recognize the
@@ -1784,10 +1791,8 @@ async function scenarioLitterAiAssistEndToEnd() {
   console.log("  [24] 쓰레기 무단투기 AI 도움 chip gate (→ litter_ai_assist): OK");
 }
 
-// D: 가로등 scenario must use the valid complaint-board canvas route (the
-// closed vocabulary registry already carries it — see scenario E). The gate
-// must resolve to streetlight_report and must NOT fall back to an invalid
-// legacy "complaint-write" route.
+// D: the gate resolves to the streetlight action; complaint-write is a route,
+// never an action value returned by the model bridge.
 async function scenarioStreetlightRouteContract() {
   const bridge = makeResolvingBridge({ ok: true, answer: "가로등 안내입니다.", action: "none", confidence: 0.5 });
   const choreo = makeChoreo();
@@ -1799,12 +1804,11 @@ async function scenarioStreetlightRouteContract() {
   await flush();
   await drainTimers();
   assert.deepStrictEqual(choreo.startCalls, ["streetlight_report"], "D: starts streetlight_report");
-  // The resolved action key must be a valid closed-vocabulary route action,
-  // never the legacy invalid "complaint-write" token.
+  // Action and route vocabularies remain distinct.
   assert.notStrictEqual(
     choreo.startCalls[0],
     "complaint-write",
-    "D: must NOT resolve to the invalid legacy complaint-write route",
+    "D: complaint-write is a route and must not be emitted as an action",
   );
   // The complaint-board canvas route itself is validated in scenario E.
   assert.ok(
@@ -1870,7 +1874,11 @@ async function scenarioStreetlightReportProgression() {
     routeCalls.includes("complaint-board"),
     "streetlight: choreography must navigate to the complaint-board route",
   );
-  console.log("  [26] 가로등 신고 journey progression (complaint-board route, running): OK");
+  assert.ok(
+    routeCalls.includes("complaint-write"),
+    "streetlight: visible write click must navigate to the complaint-write form",
+  );
+  console.log("  [26] 가로등 신고 journey progression (board → write form): OK");
 }
 
 async function scenarioLitterAiAssistProgression() {
@@ -1939,6 +1947,10 @@ async function scenarioLitterAiAssistProgression() {
     s.win.CitizenFirstChoreography.getState(),
     "waiting_confirmation",
     "litter: after AI 도움, choreography must reach waiting_confirmation",
+  );
+  assert.ok(
+    routeCalls.includes("complaint-write"),
+    "litter: AI help must open the complaint-write form before confirmation",
   );
   // No automatic submission before the user confirms.
   assert.strictEqual(

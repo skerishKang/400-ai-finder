@@ -1,13 +1,15 @@
 """Model-backed MVP action decision router for the Buk-gu local demo.
 
-This module implements the #925 Stage 1 "2+1" MVP contract: given a natural
-language question, a model decides one of three actions:
+This module routes natural-language questions into the seven interactive MVP
+journeys or a chat-only response:
 
   - ``illegal_parking``   : illegal parking report / complaint guidance
   - ``housing_department``: apartment (공동주택) department & phone guidance
   - ``bulky_waste``       : large waste disposal guidance
   - ``passport_guidance``  : passport issuance guidance
   - ``unmanned_kiosk``     : unmanned kiosk guidance
+  - ``streetlight_report`` : AI-assisted streetlight complaint drafting
+  - ``litter_ai_assist``   : AI-assisted illegal-dumping complaint drafting
   - ``none``              : unrelated / no left-pane navigation needed
 
 The model call is performed only through an *injectable* ``LLMProvider`` so the
@@ -23,7 +25,9 @@ from __future__ import annotations
 import json
 import math
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from .base import LLMProvider, ProviderResult
 from .openai_compatible_provider import (
@@ -33,13 +37,22 @@ from .openai_compatible_provider import (
     is_valid_failure_code,
 )
 
-MVP_ACTIONS = ("illegal_parking", "housing_department", "bulky_waste", "passport_guidance", "unmanned_kiosk", "none")
+MVP_ACTIONS = (
+    "illegal_parking",
+    "housing_department",
+    "bulky_waste",
+    "passport_guidance",
+    "unmanned_kiosk",
+    "streetlight_report",
+    "litter_ai_assist",
+    "none",
+)
 
 MVP_FAILURE_ANSWER = "현재 AI 안내를 연결하지 못했습니다."
 
 MVP_SYSTEM_PROMPT = (
     "당신은 광주광역시 북구청 정보 안내 로컬 데모의 안내 결정 모델입니다. "
-    "사용자의 한국어 질문을 받고, 아래 여섯 가지 안내 범위 중 하나로만 분류하세요.\n"
+    "사용자의 한국어 질문을 받고, 아래 여덟 가지 안내 범위 중 하나로만 분류하세요.\n"
     "\n"
     "⚠️ 중요 — 반드시 아래 지정된 JSON 형식으로만 응답하세요. "
     "JSON 외의 텍스트, 설명, 인사말, 마크다운 코드 블록(```)을 절대 포함하지 마세요. "
@@ -70,7 +83,11 @@ MVP_SYSTEM_PROMPT = (
     "   - 무인민원발급기 설치장소, 발급 가능한 민원서류 종류, 이용방법을 안내하세요.\n"
     "   - 로컬 데모가 무인민원발급기 안내 화면을 시각적으로 안내할 수 있음을 안내하세요.\n"
     "   - 실제 민원서류 발급은 현장에서 본인인증 후 직접 진행해야 함을 명확히 하세요.\n"
-    "6. none — 그 밖의 질문\n"
+    "6. streetlight_report — 가로등 고장 신고 글쓰기 보조\n"
+    "   - 민원게시판 글쓰기 화면에서 제목과 본문 초안을 준비하고 최종 제출 전에 멈춥니다.\n"
+    "7. litter_ai_assist — 쓰레기 무단투기 신고 글쓰기 보조\n"
+    "   - 주민의 쉬운 표현을 정중한 민원 문장으로 다듬고 최종 제출 전에 멈춥니다.\n"
+    "8. none — 그 밖의 질문\n"
     "   - 북구청 정보 안내 로컬 데모의 범위를 자연스럽게 설명하고, 북구청 민원·"
     "부서·시설·공고 등 질문을 안내할 수 있다고 제안하세요.\n"
     "   - 좌측 화면 이동은 필요 없음을 의미합니다.\n"
@@ -83,13 +100,14 @@ MVP_SYSTEM_PROMPT = (
     '  "confidence": 0.95\n'
     '}\n'
     "\n"
-    "※ action 값은 다음 6개 중 정확히 하나여야 합니다:\n"
+    "※ action 값은 다음 8개 중 정확히 하나여야 합니다:\n"
     '  "illegal_parking", "housing_department", "bulky_waste",\n'
-    '  "passport_guidance", "unmanned_kiosk", "none"\n'
+    '  "passport_guidance", "unmanned_kiosk", "streetlight_report",\n'
+    '  "litter_ai_assist", "none"\n'
     "※ confidence 값은 0.0 (낮은 확신) ~ 1.0 (높은 확신) 사이의 숫자입니다.\n"
     "\n"
     "[fallback 규칙 — 모르거나 확신 없을 때]\n"
-    "질문이 위 6개 안내 범위 중 어디에도 해당하지 않거나 판단이 어렵다면\n"
+    "질문이 위 8개 안내 범위 중 어디에도 해당하지 않거나 판단이 어렵다면\n"
     'action: "none", confidence: 0.0으로 응답하세요.\n'
 )
 
@@ -98,7 +116,16 @@ MVP_SYSTEM_PROMPT = (
 class MvpActionDecision:
     """Frozen MVP decision contract returned by :func:`decide_mvp_action`."""
     answer: str
-    action: Literal["illegal_parking", "housing_department", "bulky_waste", "passport_guidance", "unmanned_kiosk", "none"]
+    action: Literal[
+        "illegal_parking",
+        "housing_department",
+        "bulky_waste",
+        "passport_guidance",
+        "unmanned_kiosk",
+        "streetlight_report",
+        "litter_ai_assist",
+        "none",
+    ]
     confidence: float
     # Sanitized, closed-vocabulary failure classification. Empty string on a
     # normal successful action; otherwise one of the fixed failure codes. Never
@@ -246,8 +273,12 @@ def decide_mvp_action(question: str, provider: LLMProvider) -> MvpActionDecision
     if quest_decision is not None:
         return quest_decision
 
+    current_time = datetime.now(ZoneInfo("Asia/Seoul")).isoformat(timespec="seconds")
     messages = [
-        {"role": "system", "content": MVP_SYSTEM_PROMPT},
+        {
+            "role": "system",
+            "content": MVP_SYSTEM_PROMPT + f"\n현재 대한민국 표준시각: {current_time}",
+        },
         {"role": "user", "content": question},
     ]
     try:

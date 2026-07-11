@@ -47,9 +47,11 @@
   //   journeyStateAfterClick — apply a journey state after the cursor click lands
   //   focusSearch    — true: focus + highlight the directory search input
   //   typeQuery      — string: set value of the directory search input
+  //   typeContent    — string: type into the complaint body field
   //   submitSearch   — true: click the directory search button
   //   cursorTarget   — CSS selector: move cursor arrow to this element
   //   clickTarget    — CSS selector: show cursor + click ripple at target element
+  //   routeIdAfterClick — navigate after the visible click lands
   //   thinkingText   — (new) temporary AI "thinking" indicator shown before message (optional)
   //   searchingText  — (new) second-phase "searching" indicator after thinking (optional)
   //   thinkingMs     — duration in ms for thinking/searching indicator (default 800)
@@ -65,9 +67,10 @@
      steps: Object.freeze([
        Object.freeze({ message: "가로등 고장 신고를 도와드립니다.", thinkingText: "잠시만 기다려 주세요...", thinkingMs: 600, delayMs: 1000 }),
        Object.freeze({ message: "민원게시판으로 이동합니다.", routeId: "complaint-board", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
-       Object.freeze({ message: "새로운 신고 글쓰기 양식을 엽니다.", clickTarget: "#btn-board-write", delayMs: 2000, routeId: "complaint-board", thinkingText: "양식을 준비 중입니다...", thinkingMs: 700 }),
-       Object.freeze({ message: "가로등 고장 신고 내용을 초안으로 작성했습니다.", focusSearch: true, typeQuery: "가로등 고장 신고", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "내용을 작성하는 중입니다...", thinkingMs: 800 }),
-       Object.freeze({ message: "작성된 내용을 확인하시고 제출해 주세요.", requiresConfirmation: true, delayMs: 1000 }),
+       Object.freeze({ message: "글쓰기 버튼을 눌러 새 신고 양식을 엽니다.", clickTarget: "#btn-board-write", routeIdAfterClick: "complaint-write", delayMs: 2200, thinkingText: "양식을 준비 중입니다...", thinkingMs: 700 }),
+       Object.freeze({ message: "민원 제목을 입력합니다.", focusSearch: true, typeQuery: "[시설물 정비 요청] 가로등 고장 신고", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "제목을 다듬는 중입니다...", thinkingMs: 650 }),
+       Object.freeze({ message: "말씀하실 내용을 민원 문장으로 정리해 본문에 입력합니다.", typeContent: "안녕하세요. 생활에 불편을 주는 가로등 고장을 신고합니다. 정확한 위치와 고장 상태를 확인할 수 있도록 아래 내용을 검토해 주세요.\n\n- 위치: [도로명 또는 주변 건물]\n- 고장 상태: [점등 불가 / 깜빡임 / 파손]\n- 발생 시각: [확인한 날짜와 시간]\n\n안전사고 예방을 위해 점검과 수리를 요청드립니다.", cursorTarget: "#board-write-content", typeSpeedMs: 18, delayMs: 2600, thinkingText: "민원 문장을 작성하는 중입니다...", thinkingMs: 750 }),
+       Object.freeze({ message: "제목과 본문 초안을 입력했습니다. 대괄호 부분을 확인한 뒤 제출 여부를 선택해 주세요.", requiresConfirmation: true, delayMs: 1000 }),
        Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다. 처리 결과는 민원게시판에서 확인 가능합니다." })
      ]),
    });
@@ -79,11 +82,12 @@
        Object.freeze({ message: "쓰레기 무단투기 신고 작성을 도와드립니다.", thinkingText: "안내를 준비 중입니다...", thinkingMs: 500, delayMs: 1000 }),
        Object.freeze({ message: "민원게시판의 글쓰기 양식으로 이동합니다.", routeId: "complaint-board", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
        Object.freeze({ message: "직접 작성하시겠습니까, 아니면 AI가 초안 작성을 도와드릴까요?", requiresChoice: true, delayMs: 1000 }),
-       Object.freeze({ message: "[사용자 선택: AI 도움 받기] 어떤 불편사항이 있으신지 편하게 말씀해 주세요.", delayMs: 1500, thinkingText: "답변을 기다리는 중입니다...", thinkingMs: 800 }),
+       Object.freeze({ message: "AI 도움을 선택하셨습니다. 글쓰기 버튼을 누르고 양식을 열겠습니다. 어떤 불편사항인지 편하게 말씀해 주세요.", clickTarget: "#btn-board-write", routeIdAfterClick: "complaint-write", delayMs: 2200, thinkingText: "글쓰기 양식을 여는 중입니다...", thinkingMs: 700 }),
        Object.freeze({ message: "집 앞 공원에 쓰레기가 너무 많고 냄새가 나요. 빨리 치워주세요.", isUserSimulated: true, delayMs: 2500 }),
        Object.freeze({ message: "말씀하신 내용을 바탕으로 민원 접수 양식에 맞게 초안을 작성합니다...", thinkingText: "내용을 분석하고 윤문하는 중입니다...", thinkingMs: 1500, delayMs: 1500 }),
-       Object.freeze({ message: "AI가 서식을 모두 채웠습니다.", focusSearch: true, typeQuery: "[환경정비 요청] ○○공원 내 방치 쓰레기 수거 및 악취 해결 요청", cursorTarget: "#board-write-title", delayMs: 1500, typeContent: "구정 발전에 노고가 많으십니다. 다름이 아니오라 집 앞 공원에 무단 투기된 쓰레기가 다량 방치되어 있어 심한 악취와 미관 훼손이 발생하고 있습니다. 조속한 환경 정비 및 수거를 요청드립니다." }),
-       Object.freeze({ message: "작성된 내용을 확인하시고 화면의 [제출하기] 버튼을 눌러주세요.", requiresConfirmation: true, delayMs: 1000 }),
+       Object.freeze({ message: "먼저 민원 제목을 입력합니다.", focusSearch: true, typeQuery: "[환경정비 요청] 공원 내 방치 쓰레기 수거 및 악취 해결 요청", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "핵심 내용을 제목으로 정리하는 중입니다...", thinkingMs: 650 }),
+       Object.freeze({ message: "이어서 주민의 표현을 정중하고 구체적인 민원 문장으로 다듬어 본문에 입력합니다.", typeContent: "안녕하세요. 집 앞 공원에 무단 투기된 쓰레기가 다량 방치되어 있어 심한 악취와 미관 훼손이 발생하고 있습니다. 주민들이 안심하고 공원을 이용할 수 있도록 현장 확인 후 쓰레기 수거와 주변 환경 정비를 요청드립니다. 정확한 처리를 위해 공원 이름이나 위치를 제출 전에 추가해 주세요.", cursorTarget: "#board-write-content", typeSpeedMs: 18, delayMs: 2600, thinkingText: "민원 문장을 작성하는 중입니다...", thinkingMs: 750 }),
+       Object.freeze({ message: "작성된 초안을 확인한 뒤 오른쪽의 [검토했고, 제출하기]를 선택해 주세요. 확인 전에는 제출되지 않습니다.", requiresConfirmation: true, delayMs: 1000 }),
        Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다." })
      ]),
    });
@@ -391,10 +395,12 @@
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
-  function _typeIntoSearch(input, value, startDelayMs) {
+  function _typeIntoSearch(input, value, startDelayMs, requestedCharDelayMs) {
     if (!input) return 0;
     var text = String(value || "");
-    var charDelayMs = _prefersReducedMotion() ? 0 : 115;
+    var charDelayMs = _prefersReducedMotion()
+      ? 0
+      : (typeof requestedCharDelayMs === "number" ? Math.max(8, requestedCharDelayMs) : 115);
     var startDelay = _prefersReducedMotion() ? 0 : startDelayMs;
 
     input.value = "";
@@ -468,7 +474,7 @@
 
     // Execute DOM action FIRST so left-pane visuals render before
     // the chat message appears — 박사님 choreography ordering requirement (#965).
-    if (step.routeId || step.targetId || step.journeyState || step.focusSearch || step.typeQuery || step.submitSearch) {
+    if (step.routeId || step.routeIdAfterClick || step.targetId || step.journeyState || step.focusSearch || step.typeQuery || step.typeContent || step.submitSearch) {
       _clearHighlights();
     }
 
@@ -507,12 +513,14 @@
     // ── AI-style thinking/searching indicator ──────────────────────
     // If the step has a thinkingText, show a temporary indicator before
     // the permanent message, simulating AI "thinking" / "searching".
+    var stepVisualActionDelay = 0;
+
     function _showPermanentAndSchedule() {
       // Remove any stale temp indicators
       _removeTempMessages();
       // Show chat message AFTER DOM actions so the left-pane state is visible
       // before the explanation text.
-      _appendChatMessage("ai", step.message);
+      _appendChatMessage(step.isUserSimulated ? "user" : "ai", step.message);
 
       // Cursor, click, typing, and state changes play after the narration so the
       // resident can watch the agent act instead of seeing a finished state pop in.
@@ -543,6 +551,16 @@
         }
       }
 
+      if (step.routeIdAfterClick) {
+        _scheduleAux(function () {
+          var routeCanvas = window.CitizenActionDemoCanvas;
+          if (routeCanvas && routeCanvas.navigateToRoute) {
+            routeCanvas.navigateToRoute(step.routeIdAfterClick);
+          }
+        }, actionCommitDelay);
+        visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 420);
+      }
+
       if (step.typeQuery) {
         var typeDemoEl = _getCanvasEl();
         var typeInput = typeDemoEl && typeDemoEl.querySelector(".bg-dept-search__input");
@@ -550,6 +568,19 @@
         visualActionDelay = Math.max(
           visualActionDelay,
           _typeIntoSearch(typeInput, step.typeQuery, typingStartDelay)
+        );
+      }
+
+      if (step.typeContent) {
+        var contentDemoEl = _getCanvasEl();
+        var contentInput = contentDemoEl && contentDemoEl.querySelector("#board-write-content");
+        var contentTypingStartDelay = step.cursorTarget ? 850 : 160;
+        if (contentInput) {
+          contentInput.focus();
+        }
+        visualActionDelay = Math.max(
+          visualActionDelay,
+          _typeIntoSearch(contentInput, step.typeContent, contentTypingStartDelay, step.typeSpeedMs)
         );
       }
 
@@ -572,6 +603,7 @@
           visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 420);
         }
       }
+      stepVisualActionDelay = visualActionDelay;
     }
 
     // Schedule the next step (or termination) AFTER the permanent message is
@@ -579,21 +611,21 @@
     // regardless of which branch above displayed the message.
     function _advanceAfterStep() {
       if (step.requiresChoice) {
-        var effectiveDelayChoice = Math.max(step.delayMs || 0, 320);
+        var effectiveDelayChoice = Math.max(step.delayMs || 0, stepVisualActionDelay + 120, 320);
         _timer = window.setTimeout(function () {
           _timer = null;
           _setState("waiting_choice");
           _renderChoicePrompt(index);
         }, effectiveDelayChoice);
       } else if (step.requiresConfirmation) {
-        var effectiveDelayConfirm = Math.max(step.delayMs || 0, 320);
+        var effectiveDelayConfirm = Math.max(step.delayMs || 0, stepVisualActionDelay + 120, 320);
         _timer = window.setTimeout(function () {
           _timer = null;
           _setState("waiting_confirmation");
           _renderConfirmationPrompt(index);
         }, effectiveDelayConfirm);
       } else if (typeof step.delayMs === "number" && step.delayMs > 0) {
-        var effectiveDelay = Math.max(step.delayMs, 320);
+        var effectiveDelay = Math.max(step.delayMs, stepVisualActionDelay + 120, 320);
         _timer = window.setTimeout(function () {
           _timer = null;
           _executeStep(index + 1);
@@ -712,10 +744,10 @@
     messageEl.className = "chat-msg chat-msg--ai";
     messageEl.innerHTML = '<div class="chat-avatar" aria-label="AI">A</div>' +
       '<div class="chat-bubble chat-bubble--ai" style="display:flex; flex-direction:column; gap:10px;">' +
-        '<span>이대로 제출할까요? (실제 제출 전 확인)</span>' +
+        '<span>작성된 제목과 본문을 검토했습니다. 이 내용으로 데모 민원게시판에 제출할까요?</span>' +
         '<div style="display:flex; gap:10px;">' +
-          '<button type="button" class="bg-dept-search__btn" style="padding:5px 10px; font-size:14px;" onclick="window.CitizenFirstChoreography.confirmSubmission(' + index + ')">제출하기</button>' +
-          '<button type="button" class="bg-dept-search__btn" style="background:#666; padding:5px 10px; font-size:14px;" onclick="window.CitizenFirstChoreography.cancel()">취소하기</button>' +
+          '<button type="button" class="bg-dept-search__btn" style="padding:5px 10px; font-size:14px;" onclick="window.CitizenFirstChoreography.confirmSubmission(' + index + ')">검토했고, 제출하기</button>' +
+          '<button type="button" class="bg-dept-search__btn" style="background:#666; padding:5px 10px; font-size:14px;" onclick="window.CitizenFirstChoreography.cancel()">수정할게요</button>' +
         '</div>' +
       '</div>';
     _chatThread.appendChild(messageEl);
@@ -730,6 +762,7 @@
       var demoEl = document.getElementById("demo-canvas");
       var title = demoEl.querySelector("#board-write-title");
       var contentEl = demoEl.querySelector("#board-write-content");
+      var submitButton = demoEl.querySelector("#btn-board-submit");
       var data = {
         title: title ? title.value : "가로등 고장 신고",
         content: contentEl ? contentEl.value : "가로등 고장을 신고합니다.",
@@ -737,6 +770,11 @@
       };
       
       var cCanvas = window.CitizenActionDemoCanvas;
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.setAttribute("aria-disabled", "false");
+        submitButton.textContent = "제출하는 중...";
+      }
       if (cCanvas && cCanvas.clickAnimation) {
          cCanvas.clickAnimation("#btn-board-submit");
       }

@@ -1,8 +1,8 @@
 /*
  * citizen-content-adapter.js
- * Official latest content adapter for Buk-gu AI Agent.
- * Simulates async API calls to fetch real-time official content
- * and maintains an in-memory state for local demonstrations.
+ * Versioned content adapter for the Buk-gu AI Agent demo.
+ * Board data is intentionally marked local_demo; live answer freshness comes
+ * from /api/mvp/ask and must never be implied by these in-memory fixtures.
  */
 
 (function () {
@@ -16,6 +16,12 @@
     ]
   };
 
+  var LOCAL_METADATA = Object.freeze({
+    sourceUrl: "",
+    retrievedAt: null,
+    freshnessState: "local_demo"
+  });
+
   /**
    * Helper to simulate network latency
    * @param {number} ms 
@@ -27,14 +33,32 @@
   }
 
   var CitizenContentAdapter = {
+    getSourceMetadata: function() {
+      return {
+        sourceUrl: LOCAL_METADATA.sourceUrl,
+        retrievedAt: LOCAL_METADATA.retrievedAt,
+        freshnessState: LOCAL_METADATA.freshnessState
+      };
+    },
+
+    getBoardSnapshot: function() {
+      return _delay(400).then(function() {
+        return {
+          items: JSON.parse(JSON.stringify(_store.boardPosts)).reverse(),
+          sourceUrl: LOCAL_METADATA.sourceUrl,
+          retrievedAt: LOCAL_METADATA.retrievedAt,
+          freshnessState: LOCAL_METADATA.freshnessState
+        };
+      });
+    },
+
     /**
      * Fetch current board posts
      * @returns {Promise<Array>}
      */
     getBoardPosts: function() {
-      return _delay(400).then(function() {
-        // Return a copy to prevent direct mutation
-        return JSON.parse(JSON.stringify(_store.boardPosts)).reverse();
+      return this.getBoardSnapshot().then(function(snapshot) {
+        return snapshot.items;
       });
     },
 
@@ -53,7 +77,11 @@
           status: "접수"
         };
         _store.boardPosts.push(newPost);
-        return newPost;
+        return Object.assign({}, newPost, {
+          sourceUrl: LOCAL_METADATA.sourceUrl,
+          retrievedAt: LOCAL_METADATA.retrievedAt,
+          freshnessState: LOCAL_METADATA.freshnessState
+        });
       });
     }
   };

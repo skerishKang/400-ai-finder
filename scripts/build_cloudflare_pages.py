@@ -2,7 +2,7 @@
 
 Two modes (``--mode``):
 
-**static** (default)
+**static** (explicit fallback via ``--mode static``)
     Produces ``dist/cloudflare-pages/`` containing a fully static, backend-free
     demo that mirrors the live Python ``src/web`` demos. It is the *only*
     producer of that directory — originals under ``src/web`` are copied verbatim
@@ -22,9 +22,9 @@ Two modes (``--mode``):
 
     Usage::
 
-        python3 scripts/build_cloudflare_pages.py
+        python3 scripts/build_cloudflare_pages.py --mode static
 
-**live**
+**live** (deployment CLI default)
     Produces ``dist/cloudflare-pages/`` optimised for deployment behind
     Cloudflare Pages Functions (``functions/api/mvp/ask.js``). All chat
     interfaces use the live ``POST /api/mvp/ask`` endpoint instead of the
@@ -38,7 +38,7 @@ Two modes (``--mode``):
 
     Usage::
 
-        python3 scripts/build_cloudflare_pages.py --mode live
+        python3 scripts/build_cloudflare_pages.py
 
 """
 
@@ -710,8 +710,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mode",
         choices=["static", "live"],
-        default="static",
-        help="Build mode: static (offline snapshot, default) or live (LLM-backed)",
+        default="live",
+        help="Build mode: live (LLM-backed, deployment default) or static (offline fallback)",
     )
     args = parser.parse_args()
     build(mode=args.mode)
