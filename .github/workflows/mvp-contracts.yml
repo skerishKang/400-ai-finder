@@ -71,6 +71,47 @@ jobs:
       - name: Run responsive browser contract
         run: node tests/browser/verify_first_use_responsive.mjs
 
+      - name: Run mobile link safety browser contract (live build, port 8769)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PYTHONPATH=. python scripts/build_cloudflare_pages.py --mode live
+
+          python -m http.server 8769 \
+            --bind 127.0.0.1 \
+            --directory dist/cloudflare-pages \
+            > /tmp/mobile-link-safety-server.log 2>&1 &
+
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8769/mobile.html"
+
+          for _ in range(40):
+              try:
+                  with urllib.request.urlopen(url, timeout=1) as response:
+                      if response.status == 200:
+                          break
+              except Exception:
+                  time.sleep(0.25)
+          else:
+              raise SystemExit("mobile link safety server did not become ready")
+          PY
+
+          node tests/browser/verify_mobile_link_safety.mjs \
+            http://127.0.0.1:8769/mobile.html
+
       - name: Run housing department browser contract
         shell: bash
         run: |
