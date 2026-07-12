@@ -1,0 +1,83 @@
+# 광주광역시청 사이트 프로필
+# 광주광역시 — MODERN_CMS_SITE (SIIRU 기반)
+# boardList.do / contentsView.do 패턴의 Java/Spring CMS
+
+site_id: gwangju_go_kr
+name: "광주광역시청"
+base_url: "https://www.gwangju.go.kr/"
+allowed_domains:
+  - www.gwangju.go.kr
+  - gwangju.go.kr
+preferred_fetch_provider: requests
+classification: LEGACY_BOARD_SITE
+
+important_keywords:
+  - 고시공고
+  - 고시·공고
+  - 입법예고
+  - 시정뉴스
+  - 고시공고
+  - 공지사항
+  - 민원
+  - 민원서식
+  - 시민참여
+  - 조직도
+  - 정보공개
+  - 지원사업
+  - 복지
+  - 관광
+  - 시정소식
+  - 참여광장
+  - 입찰소식
+
+document_extensions:
+  - pdf
+  - hwp
+  - hwpx
+  - doc
+  - docx
+  - xls
+  - xlsx
+  - ppt
+  - pptx
+  - zip
+
+board_patterns:
+  - boardList.do
+  - boardView.do
+  - contentsView.do
+  - board
+  - notice
+  - bbs
+
+fallback_strategy:
+  - requests
+  - sitemap
+  - homepage_map
+  - document_index
+  - internal_search
+  - browser_provider_candidate
+
+crawl_rules:
+  max_depth: 3
+  max_pages: 300
+  include_documents: true
+  respect_robots: true
+
+notes: "SIIRU 기반 CMS이나 PHP legacy board 패턴 다수 감지(php=432, board=152). boardList.do, contentsView.do 패턴. Sitemap 존재(200). User-Agent 설정 필요(미설정 시 400 반환). Stage 34 진단 결과 LEGACY_BOARD_SITE 분류."
+
+crawl_filters:
+  allow_patterns: []
+  deny_patterns:
+    - "print="
+    - "utm_"
+    - "utm_source="
+    - "utm_medium="
+    - "utm_campaign="
+  protected_patterns:
+    - "mid="
+    - "menuId="
+    - "board.es"
+    - "seq="
+    - "contentId="
+    - "articleId="

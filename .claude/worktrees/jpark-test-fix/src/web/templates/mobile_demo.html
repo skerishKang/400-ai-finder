@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>400 AI 파인더</title>
+<link rel="stylesheet" href="/static/mobile/mobile_base.css">
+<link rel="stylesheet" href="/static/mobile/mobile_reset.css">
+<link rel="stylesheet" href="/static/mobile/mobile_layout.css">
+<link rel="stylesheet" href="/static/mobile/mobile_sidebar.css">
+<link rel="stylesheet" href="/static/mobile/mobile_header.css">
+<link rel="stylesheet" href="/static/mobile/mobile_chat.css">
+<link rel="stylesheet" href="/static/mobile/mobile_composer.css">
+<link rel="stylesheet" href="/static/mobile/mobile_responsive.css">
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <button class="new-chat-btn" onclick="newChat()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        새 대화
+      </button>
+    </div>
+    <div class="sidebar-title">대화 목록</div>
+    <div class="conversations" id="convList"></div>
+    <div class="sidebar-footer">
+      <span>🏛️ 400 AI 파인더</span>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Top Bar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSidebar()" aria-label="사이드바 전환">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="topbar-title">
+          <span class="brand-icon">🔍</span>
+          <span class="brand-name">{{site_name}} AI 안내</span>
+          <span class="model-badge">홈페이지 파인더</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="테마 전환">🌙</button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages" id="messages">
+      <div class="messages-inner">
+        <div class="welcome" id="welcome">
+          <div class="welcome-icon">🔍</div>
+          <div class="welcome-title">{{site_name}}</div>
+          <div class="welcome-sub">
+            홈페이지에서 무엇을 찾고 계신가요?<br>
+            자연어로 질문하시면 관련 메뉴를 안내해 드립니다.
+          </div>
+          <div class="welcome-chips">
+            <button class="welcome-chip" onclick="quickAsk('민원서식 어디서 받아?')">
+              <span class="chip-title">📋 민원서식 받기</span>
+              <span class="chip-desc">다양한 민원신청 서식 다운로드 및 안내</span>
+            </button>
+            <button class="welcome-chip" onclick="quickAsk('교육접수는 어디서 해?')">
+              <span class="chip-title">🎓 교육접수 신청</span>
+              <span class="chip-desc">다양한 교육 및 문화 강좌 신청 안내</span>
+            </button>
+            <button class="welcome-chip" onclick="quickAsk('정보공개는 어디서 볼 수 있어?')">
+              <span class="chip-title">🔍 정보공개 조회</span>
+              <span class="chip-desc">행정 정보공개 청구 및 공표 자료 조회</span>
+            </button>
+            <button class="welcome-chip" onclick="quickAsk('고시공고는 어디서 확인해?')">
+              <span class="chip-title">📢 고시공고 확인</span>
+              <span class="chip-desc">구정 고시 및 공고 정보 실시간 확인</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Composer -->
+    <div class="composer-wrap">
+      <div class="composer-inner">
+        <!-- Quick recommendation chips above input -->
+        <div class="composer-chips" id="composerChips">
+          <button class="composer-chip" onclick="quickAsk('📋 민원서식 어디서 받아?')">📋 민원서식 받기</button>
+          <button class="composer-chip" onclick="quickAsk('🎓 교육접수는 어떻게 해?')">🎓 교육접수 신청</button>
+          <button class="composer-chip" onclick="quickAsk('🔍 정보공개는 어디서 봐?')">🔍 정보공개 조회</button>
+          <button class="composer-chip" onclick="quickAsk('📢 고시공고 확인하고 싶어')">📢 고시공고 확인</button>
+        </div>
+        <div class="composer-box">
+          <textarea class="composer-textarea" id="input" rows="1" placeholder="메시지를 입력하세요…" autocomplete="off"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="send()" aria-label="전송">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+        <div class="composer-hint">{{site_name}} 홈페이지 메뉴를 기준으로 안내합니다.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+var SITE_NAME = '{{site_name}}';
+var API_ENDPOINT = '/api/ask';
+</script>
+<script src="/static/mobile/mobile_demo.js"></script>
+</body>
+</html>

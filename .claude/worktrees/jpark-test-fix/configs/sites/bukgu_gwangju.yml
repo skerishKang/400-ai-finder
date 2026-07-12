@@ -1,0 +1,94 @@
+# 북구청 MVP 사이트 프로필
+# 광주광역시 북구청 — LEGACY_BOARD_SITE
+# Stage 10D 진단 결과 기반
+
+site_id: bukgu_gwangju
+name: "광주광역시 북구청"
+base_url: "https://bukgu.gwangju.kr/"
+allowed_domains:
+  - bukgu.gwangju.kr
+preferred_fetch_provider: requests
+classification: LEGACY_BOARD_SITE
+
+important_keywords:
+  - 종합민원
+  - 민원서식
+  - 교육접수
+  - 정보공개
+  - 소통광장
+  - 고시공고
+  - 공지사항
+  - 지원사업
+  - 신청서
+
+# Stage 365: first approved site-specific synonym dictionary slice.
+# Retrieval-term expansion only — not answers, not person names,
+# not officeholder names, not volatile facts.
+# Deferred groups (구청장, 열린구청장, 복지, 정보공개, 청년일자리) are
+# intentionally excluded from this first slice.
+synonym_dictionary:
+  민원:
+    - 종합민원
+    - 온라인 민원
+    - 민원서식
+  공고:
+    - 고시공고
+    - 공지사항
+    - 새소식
+  교육:
+    - 교육접수
+    - 평생교육
+    - 강좌
+    - 프로그램
+
+document_extensions:
+  - pdf
+  - hwp
+  - hwpx
+  - doc
+  - docx
+  - xls
+  - xlsx
+  - ppt
+  - pptx
+  - zip
+
+board_patterns:
+  - board
+  - bbs
+  - list
+  - view
+  - article
+  - notice
+
+fallback_strategy:
+  - requests
+  - sitemap
+  - homepage_map
+  - document_index
+  - internal_search
+  - browser_provider_candidate
+
+crawl_rules:
+  max_depth: 3
+  max_pages: 200
+  include_documents: true
+  respect_robots: true
+
+notes: "Legacy PHP/EGOV board site. requests provider works. Sitemap not found. Menu keywords detected in Stage 10D diagnostics."
+
+crawl_filters:
+  allow_patterns: []
+  deny_patterns:
+    - "print="
+    - "utm_"
+    - "utm_source="
+    - "utm_medium="
+    - "utm_campaign="
+  protected_patterns:
+    - "mid="
+    - "menuId="
+    - "board.es"
+    - "seq="
+    - "contentId="
+    - "articleId="

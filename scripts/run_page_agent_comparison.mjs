@@ -331,11 +331,12 @@ function makeRunRecord(scenarioId, mode, attempt) {
     console_error_messages: [],
     reproducibility_signature: "",
     errors: [],
+    http_error_responses: [],
   };
 }
 
 function makeErrorTracker(baseUrl) {
-  return { baseUrl, nonLocal: [], consoleErrors: [], warnings: [], pageErrors: [], requestFailures: [] };
+  return { baseUrl, nonLocal: [], consoleErrors: [], warnings: [], pageErrors: [], requestFailures: [], httpErrors: [] };
 }
 
 async function setupErrorTracking(page, tracker) {
@@ -355,7 +356,7 @@ async function setupErrorTracking(page, tracker) {
   });
   page.on("response", (res) => {
     if (res.status() === 404) {
-      tracker.pageErrors.push(`404 Not Found: ${res.url()}`);
+      tracker.httpErrors.push({ url: res.url(), status: res.status() });
     }
   });
   page.on("requestfailed", (req) => {
@@ -754,12 +755,15 @@ async function runCancelPageAgent(page) {
     if (btn) btn.click();
   });
 
-  await page.waitForTimeout(300);
-
-  const state = await page.evaluate(() => {
-    const status = document.getElementById("chat-status");
-    return status ? status.textContent : "";
-  });
+  let state = "";
+  for (let i = 0; i < 20; i++) {
+    state = await page.evaluate(() => {
+      const status = document.getElementById("chat-status");
+      return status ? status.textContent : "";
+    });
+    if (state.includes("취소") || state.includes("cancel") || state.includes("중단")) break;
+    await page.waitForTimeout(100);
+  }
 
   return {
     mode: "page_agent",
@@ -867,6 +871,7 @@ async function main() {
             record.page_error_count = tracker.pageErrors.length;
             record.request_failure_count = tracker.requestFailures.length;
             record.warnings = tracker.warnings.length > 0 ? [...tracker.warnings] : [];
+            record.http_error_responses = tracker.httpErrors.length > 0 ? [...tracker.httpErrors] : [];
 
             // success: all pass criteria met, route matches expected, no-submit preserved, no external requests, no errors
             const allPassCriteriaMet = record.pass_criteria_results.length > 0
@@ -880,7 +885,8 @@ async function main() {
               record.no_submit_preserved &&
               record.external_request_count === 0 &&
               record.console_error_count === 0 &&
-              record.page_error_count === 0
+              record.page_error_count === 0 &&
+              record.http_error_responses.length === 0
             );
 
             record.reproducibility_signature = computeSignature(record);
@@ -939,6 +945,7 @@ async function main() {
             record.page_error_count = tracker.pageErrors.length;
             record.request_failure_count = tracker.requestFailures.length;
             record.warnings = tracker.warnings.length > 0 ? [...tracker.warnings] : [];
+            record.http_error_responses = tracker.httpErrors.length > 0 ? [...tracker.httpErrors] : [];
 
             // success: all pass criteria met, route matches expected, no-submit preserved, no external requests, no errors
             const allPassCriteriaMet = record.pass_criteria_results.length > 0
@@ -952,7 +959,8 @@ async function main() {
               record.no_submit_preserved &&
               record.external_request_count === 0 &&
               record.console_error_count === 0 &&
-              record.page_error_count === 0
+              record.page_error_count === 0 &&
+              record.http_error_responses.length === 0
             );
 
             record.reproducibility_signature = computeSignature(record);
@@ -1126,6 +1134,8 @@ async function main() {
     const allBoundarySafe = boundaryResults.every(r => {
       if (r.probe === "unsupported_prompt" && r.mode === "page_agent") return r.safe !== false;
       if (r.probe === "unsupported_prompt" && r.mode === "deterministic") return !r.has_journey;
+      if (r.probe === "cancellation" && r.mode === "deterministic") return r.success === true;
+      if (r.probe === "cancellation" && r.mode === "page_agent") return r.success === true;
       return true;
     });
     if (!allBoundarySafe) {

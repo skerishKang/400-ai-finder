@@ -68,6 +68,7 @@ REQUIRED_RUN_FIELDS = frozenset({
     "reproducibility_signature",
     "errors",
     "console_error_messages",
+    "http_error_responses",
 })
 
 REQUIRED_EVIDENCE_TOP_KEYS = frozenset({
@@ -238,6 +239,7 @@ class TestEvidenceSchema:
             assert isinstance(run["external_request_count"], int)
             assert isinstance(run["console_error_count"], int)
             assert isinstance(run["reproducibility_signature"], str)
+            assert isinstance(run["http_error_responses"], list)
 
     def test_exactly_5_scenario_ids(self):
         runs = self.data["primary_runs"]

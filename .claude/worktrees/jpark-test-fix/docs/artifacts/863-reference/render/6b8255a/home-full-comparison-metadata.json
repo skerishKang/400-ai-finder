@@ -1,0 +1,25 @@
+{
+  "reference_id": "R-HOME-02",
+  "reference_file": "docs/artifacts/863-reference/source/CaptureX_2026-07-05_150832_bukgu.gwangju.kr_full.png",
+  "reference_sha256": "e0c1d451312056a5314fa2dc5b77d62fb53ef6dc90352797d78e4bb57eae3c49",
+  "render_file": "docs/artifacts/863-reference/render/6b8255a/home-full-canvas-1344x1833.png",
+  "render_sha256": "5e5dc67ffa331f957358d901eea39fb5f52b6761cfa961cd556129f8f7c10c7b",
+  "rendered_code_head": "6b8255a2af40e8e6c8bfbea881bff599420989cd",
+  "fixture_url": "http://127.0.0.1:8765/static/citizen-action-demo.html?home-reference=R-HOME-02",
+  "home_reference_state": "R-HOME-02",
+  "dimensions": {
+    "width": 1344,
+    "height": 1833
+  },
+  "mean_absolute_rgb_difference": [
+    27.652025,
+    25.582442,
+    24.427092
+  ],
+  "max_rgb_difference": [
+    255,
+    255,
+    255
+  ],
+  "note": "Review evidence only; numeric differences do not automatically accept visual fidelity."
+}

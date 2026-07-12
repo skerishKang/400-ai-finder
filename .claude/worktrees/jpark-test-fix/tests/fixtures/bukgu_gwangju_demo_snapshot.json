@@ -1,0 +1,86 @@
+{
+  "site_id": "bukgu_gwangju",
+  "site_name": "광주광역시 북구청",
+  "question": "민원서식 어디서 받아?",
+  "answer": "## 답변\n\n민원서식은 북구청 홈페이지 종합민원 > 민원서식 메뉴에서 확인할 수 있습니다.\n\n## 관련 자료\n\n- [민원서식](https://bukgu.gwangju.kr/menu.es?mid=a10101040000)\n- [민원서식 작성예시](https://bukgu.gwangju.kr/menu.es?mid=a10101110000)\n\n## 다음 단계\n\n링크를 클릭하여 해당 페이지에서 서식을 내려받으세요.",
+  "sources": [
+    {
+      "title": "민원서식",
+      "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101040000",
+      "source_type": "document",
+      "snippet": "민원서식 작성예시 QR코드 민원편의시책 여권민원",
+      "score": 0.95
+    },
+    {
+      "title": "민원서식 작성예시 QR코드",
+      "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101110000",
+      "source_type": "document",
+      "snippet": "민원서식 작성예시 QR코드",
+      "score": 0.88
+    }
+  ],
+  "search_results": [
+    {
+      "id": "00000",
+      "title": "민원서식",
+      "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101040000",
+      "canonical_url": "https://bukgu.gwangju.kr/menu.es?mid=a10101040000",
+      "category": "document",
+      "content_type": "page",
+      "score": 18.0,
+      "matched_terms": ["민원서식"],
+      "matched_fields": ["title", "metadata.link_texts"],
+      "snippet": "민원서식",
+      "metadata": {"source_types": ["document"], "fetch_status": "fetched"}
+    }
+  ],
+  "ok": true,
+  "answer_ok": true,
+  "provider": "mock",
+  "fetch_provider": "requests",
+  "output_dir": "/tmp/demo_snapshot_fixture",
+  "fetched_at": "2026-05-29T12:00:00Z",
+  "fallback_used": false,
+  "warnings": [],
+  "homepage_map": {
+    "start_url": "https://bukgu.gwangju.kr/",
+    "base_url": "https://bukgu.gwangju.kr",
+    "homepage": {
+      "title": "광주광역시 북구",
+      "description": "",
+      "navigation_links": [
+        {"title": "민원서식", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101040000", "text": "민원서식"},
+        {"title": "교육접수", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10208020000", "text": "교육접수"},
+        {"title": "정보공개", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10301010000", "text": "정보공개"},
+        {"title": "고시공고", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10401010000", "text": "고시공고"}
+      ],
+      "attachment_links": [],
+      "errors": []
+    },
+    "categories": {
+      "menu": [
+        {"title": "교육접수", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10208020000", "text": "교육접수"}
+      ],
+      "notice": [
+        {"title": "고시공고", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10401010000", "text": "고시공고"}
+      ],
+      "board": [],
+      "document": [
+        {"title": "민원서식", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10101040000", "text": "민원서식"}
+      ],
+      "apply": [
+        {"title": "정보공개", "url": "https://bukgu.gwangju.kr/menu.es?mid=a10301010000", "text": "정보공개"}
+      ],
+      "contact": [],
+      "unknown": []
+    },
+    "sitemap": {"candidates": [], "found": [], "url_count": 0, "urls": [], "errors": []},
+    "stats": {
+      "sitemap_url_count": 0,
+      "navigation_link_count": 4,
+      "attachment_count": 0,
+      "category_counts": {"menu": 1, "notice": 0, "board": 0, "document": 1, "apply": 0, "contact": 0, "unknown": 0}
+    },
+    "errors": []
+  }
+}

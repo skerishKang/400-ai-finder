@@ -1,0 +1,644 @@
+/**
+ * citizen-copilot-shell.css
+ * Responsive dockable citizen-action copilot shell.
+ *
+ * Desktop: left/right dock rail (layout side-rail, not overlay).
+ * Compact: full-width canvas + collapsible drawer below breakpoint.
+ *
+ * No external URLs, no analytics, no persistence.
+ */
+
+/* ---------------------------------------------------------------------------
+   Design tokens (local scope only)
+--------------------------------------------------------------------------- */
+:root {
+  --copilot-rail-width: 280px;
+  --copilot-bg: #f8f9fc;
+  --copilot-header-bg: #2c3e50;
+  --copilot-header-color: #ecf0f1;
+  --copilot-section-border: #dde2ec;
+  --copilot-text: #2c3e50;
+  --copilot-muted: #7f8c9a;
+  --copilot-active: #2980b9;
+  --copilot-active-bg: #eaf3fb;
+  --copilot-confirm-approve-bg: #27ae60;
+  --copilot-confirm-cancel-bg: #c0392b;
+  --copilot-choice-btn-bg: #ecf0f1;
+  --copilot-choice-btn-hover: #d5dce8;
+  --copilot-canvas-bg: #ffffff;
+  --copilot-breakpoint: 768px;
+}
+
+/* ---------------------------------------------------------------------------
+   Reset
+--------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--copilot-canvas-bg);
+  color: var(--copilot-text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+/* ---------------------------------------------------------------------------
+   Desktop dock rail (always-visible layout side-rail)
+--------------------------------------------------------------------------- */
+body[data-copilot-dock="left"] {
+  flex-direction: row;
+}
+
+body[data-copilot-dock="right"] {
+  flex-direction: row-reverse;
+}
+
+/* ---------------------------------------------------------------------------
+   Copilot rail — the dock panel
+--------------------------------------------------------------------------- */
+.copilot-rail {
+  width: var(--copilot-rail-width);
+  min-width: var(--copilot-rail-width);
+  max-width: var(--copilot-rail-width);
+  background: var(--copilot-bg);
+  border: 1px solid var(--copilot-section-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+/* On desktop the canvas takes remaining width — NOT overlaid */
+.demo-canvas {
+  flex: 1;
+  min-width: 0;  /* allow flex shrink */
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------------------------------------------------------------------
+   Rail header + dock toggle
+--------------------------------------------------------------------------- */
+.copilot-header {
+  background: var(--copilot-header-bg);
+  color: var(--copilot-header-color);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.copilot-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copilot-dock-toggle {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--copilot-header-color);
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 3px 8px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.copilot-dock-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.copilot-dock-toggle:focus-visible {
+  outline: 2px solid #5dade2;
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Section structure
+--------------------------------------------------------------------------- */
+.copilot-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--copilot-section-border);
+}
+
+.copilot-section-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--copilot-muted);
+  margin-bottom: 6px;
+}
+
+/* ---------------------------------------------------------------------------
+   Conversation / clarifying choices
+--------------------------------------------------------------------------- */
+.copilot-conversation-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.conv-item {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: var(--copilot-canvas-bg);
+  border: 1px solid var(--copilot-section-border);
+}
+
+.conv-item--assistant {
+  background: var(--copilot-active-bg);
+  border-color: #b8d6ed;
+  color: var(--copilot-active);
+}
+
+.copilot-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.choice-btn {
+  background: var(--copilot-choice-btn-bg);
+  border: 1px solid var(--copilot-section-border);
+  border-radius: 4px;
+  color: var(--copilot-text);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 3px 7px;
+  transition: background 0.12s;
+}
+
+.choice-btn:hover {
+  background: var(--copilot-choice-btn-hover);
+}
+
+.choice-btn:focus-visible {
+  outline: 2px solid var(--copilot-active);
+  outline-offset: 1px;
+}
+
+.choice-btn:active {
+  background: var(--copilot-choice-btn-hover);
+}
+
+/* ---------------------------------------------------------------------------
+   Action explanation
+--------------------------------------------------------------------------- */
+.action-explanation {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--copilot-text);
+}
+
+/* ---------------------------------------------------------------------------
+   Action trace
+--------------------------------------------------------------------------- */
+.action-trace-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trace-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--copilot-muted);
+  padding: 2px 0;
+}
+
+.trace-icon {
+  font-size: 0.6875rem;
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.trace-item--done {
+  color: #27ae60;
+}
+
+.trace-item--active {
+  color: var(--copilot-active);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   Confirmation control (visual/local only — no submit/navigate/send)
+--------------------------------------------------------------------------- */
+.copilot-confirm-section {
+  margin-top: auto;  /* push to bottom if rail scrolls */
+}
+
+.confirm-notice {
+  font-size: 0.75rem;
+  color: var(--copilot-muted);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.confirm-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.confirm-btn {
+  flex: 1;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  transition: opacity 0.12s;
+}
+
+.confirm-btn:hover {
+  opacity: 0.88;
+}
+
+.confirm-btn:focus-visible {
+  outline: 2px solid var(--copilot-active);
+  outline-offset: 2px;
+}
+
+.confirm-btn:active {
+  opacity: 0.75;
+}
+
+.confirm-btn--approve {
+  background: var(--copilot-confirm-approve-bg);
+}
+
+.confirm-btn--cancel {
+  background: var(--copilot-confirm-cancel-bg);
+}
+
+/* ---------------------------------------------------------------------------
+   Demo canvas
+--------------------------------------------------------------------------- */
+.demo-canvas__inner {
+  flex: 1;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.demo-canvas__title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #1a252f;
+}
+
+.demo-canvas__desc {
+  font-size: 0.9375rem;
+  color: var(--copilot-muted);
+  line-height: 1.6;
+  max-width: 560px;
+}
+
+.demo-canvas__placeholder {
+  flex: 1;
+  border: 2px dashed var(--copilot-section-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--copilot-muted);
+  min-height: 260px;
+}
+
+.placeholder-icon {
+  font-size: 2.5rem;
+}
+
+.placeholder-sub {
+  font-size: 0.8125rem;
+  color: #aab4be;
+}
+
+.demo-canvas__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.canvas-btn {
+  background: var(--copilot-active-bg);
+  border: 1px solid #b8d6ed;
+  border-radius: 4px;
+  color: var(--copilot-active);
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 7px 14px;
+  transition: background 0.12s;
+}
+
+.canvas-btn:hover {
+  background: #d5eaf7;
+}
+
+.canvas-btn:focus-visible {
+  outline: 2px solid var(--copilot-active);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Compact-mode toggle (hidden on desktop, visible below breakpoint)
+--------------------------------------------------------------------------- */
+.compact-toggle {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   COMPACT MODE — below breakpoint
+   Canvas takes full width; copilot becomes collapsible drawer/sheet
+--------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  body {
+    flex-direction: column !important;
+  }
+
+  body[data-copilot-dock="left"],
+  body[data-copilot-dock="right"] {
+    flex-direction: column;
+  }
+
+  .copilot-rail {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    height: 60vh;
+    max-height: 70vh;
+    z-index: 200;
+    border-top: 2px solid var(--copilot-header-bg);
+    border-right: none;
+    border-bottom: none;
+    border-left: none;
+    transform: translateY(100%);  /* hidden by default */
+    transition: transform 0.25s ease-out;
+    overflow-y: auto;
+  }
+
+  /* When compact-drawer-open class is added, slide up */
+  body[data-copilot-dock="right"].compact-drawer-open .copilot-rail,
+  body[data-copilot-dock="left"].compact-drawer-open .copilot-rail {
+    transform: translateY(0);
+  }
+
+  .demo-canvas {
+    width: 100%;
+    height: 100vh;
+  }
+
+  /* Show the compact toggle */
+  .compact-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: fixed;
+    bottom: 12px;
+    right: 16px;
+    z-index: 201;
+    background: var(--copilot-header-bg);
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 8px 16px;
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+
+  .compact-toggle:hover {
+    background: #34495e;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+  }
+
+  .compact-toggle:focus-visible {
+    outline: 2px solid #5dade2;
+    outline-offset: 3px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   ARIA state: drawer open — toggle text update
+--------------------------------------------------------------------------- */
+body.compact-drawer-open .compact-toggle .toggle-icon {
+  /* arrow indicator could rotate here */
+}
+
+/* ---------------------------------------------------------------------------
+   Chat shell — primary right-side panel (replaces copilot-rail)
+--------------------------------------------------------------------------- */
+.chat-shell {
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fc;
+  border-left: 1px solid #dde2ec;
+  overflow: hidden;
+}
+
+.chat-shell__header {
+  background: #2c3e50;
+  color: #ecf0f1;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.chat-shell__title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+.chat-shell__badge {
+  background: #27ae60;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+/* Conversation thread */
+.chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-msg {
+  display: flex;
+  gap: 6px;
+  max-width: 100%;
+}
+.chat-msg--user {
+  justify-content: flex-end;
+}
+.chat-msg--ai {
+  justify-content: flex-start;
+}
+
+.chat-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2c3e50;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.chat-bubble {
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  max-width: 85%;
+  word-break: break-word;
+}
+.chat-bubble--user {
+  background: #d4e6f7;
+  color: #1a252f;
+  border-radius: 14px 14px 4px 14px;
+}
+.chat-bubble--ai {
+  background: #fff;
+  color: #2c3e50;
+  border: 1px solid #e0e4ec;
+  border-radius: 14px 14px 14px 4px;
+}
+
+/* Compact progress indicator */
+.chat-progress {
+  background: #f0f4f8;
+  border: 1px solid #e0e4ec;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-top: 4px;
+}
+.chat-progress__label {
+  font-size: 0.6875rem;
+  color: #7f8c9a;
+  display: block;
+  margin-bottom: 6px;
+}
+.chat-progress__steps {
+  display: flex;
+  gap: 4px;
+  font-size: 0.75rem;
+  align-items: center;
+}
+.chat-progress__step {
+  color: #aab8c2;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.chat-progress__step--done {
+  color: #27ae60;
+  font-weight: 600;
+}
+.chat-progress__step--active {
+  background: #2980b9;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Chat composer */
+.chat-composer {
+  border-top: 1px solid #dde2ec;
+  padding: 10px 12px;
+  background: #fff;
+  flex-shrink: 0;
+}
+.chat-composer__row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.chat-composer__input {
+  flex: 1;
+  border: 1px solid #c8d5e6;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  color: #2c3e50;
+  background: #f8f9fc;
+  outline: none;
+}
+.chat-composer__input:focus {
+  border-color: #2980b9;
+  background: #fff;
+}
+.chat-composer__send {
+  background: #2980b9;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chat-composer__send:disabled,
+.chat-composer__input:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.chat-composer__hint {
+  margin: 6px 0 0;
+  font-size: 0.6875rem;
+  color: #aab8c2;
+  text-align: center;
+}

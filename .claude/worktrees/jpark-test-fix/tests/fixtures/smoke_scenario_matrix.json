@@ -1,0 +1,236 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "stage": 40,
+    "created": "2026-05-30",
+    "description": "Product smoke scenario matrix for AI Homepage Finder quality gate.",
+    "usage": "Stage 41 eval runner loads this file and executes each scenario against the live or snapshot pipeline.",
+    "baseline_head": "4a4da76"
+  },
+  "quality_gate": {
+    "site_id_match": "Response site_id must equal scenario expected_site_id.",
+    "grounded_source": "At least one source must have a non-empty title and a URL containing the expected domain.",
+    "no_unsupported_facts": "Answer must not contain facts that contradict the source titles or URLs.",
+    "clear_fallback": "When sources are empty or score is low, answer must include a fallback message (e.g. '홈페이지에서 직접 확인').",
+    "no_cross_site_confusion": "Source URLs must belong to the expected_site_id's domain, not another site's domain."
+  },
+  "scenarios": [
+    {
+      "id": "bukgu-01",
+      "site_id": "bukgu_gwangju",
+      "category": "service_navigation",
+      "question": "민원서식 어디서 받아?",
+      "expected_domain": "bukgu.gwangju.kr",
+      "expected_keywords": ["민원서식", "종합민원"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 1,
+        "source_domain": "bukgu.gwangju.kr",
+        "answer_contains_any": ["민원서식"],
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "bukgu-02",
+      "site_id": "bukgu_gwangju",
+      "category": "service_navigation",
+      "question": "교육접수는 어디서 해?",
+      "expected_domain": "bukgu.gwangju.kr",
+      "expected_keywords": ["교육접수"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 1,
+        "source_domain": "bukgu.gwangju.kr",
+        "answer_contains_any": ["교육"],
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "bukgu-03",
+      "site_id": "bukgu_gwangju",
+      "category": "document_lookup",
+      "question": "주민등록등본 발급 서류가 뭐야?",
+      "expected_domain": "bukgu.gwangju.kr",
+      "expected_keywords": ["주민등록", "등본", "발급"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 0,
+        "source_domain": "bukgu.gwangju.kr",
+        "answer_contains_any": ["주민등록", "등본", "발급", "민원"],
+        "fallback_when_no_source": true,
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "bukgu-04",
+      "site_id": "bukgu_gwangju",
+      "category": "department_contact",
+      "question": "세무과 전화번호 알려줘",
+      "expected_domain": "bukgu.gwangju.kr",
+      "expected_keywords": ["세무", "전화", "연락처"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 0,
+        "source_domain": "bukgu.gwangju.kr",
+        "answer_contains_any": ["세무", "전화", "연락처", "조직"],
+        "fallback_when_no_source": true,
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "bukgu-05",
+      "site_id": "bukgu_gwangju",
+      "category": "fee_hour_location",
+      "question": "구청 민원실 운영시간이 어떻게 돼?",
+      "expected_domain": "bukgu.gwangju.kr",
+      "expected_keywords": ["운영시간", "민원실", "이용시간"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 0,
+        "source_domain": "bukgu.gwangju.kr",
+        "answer_contains_any": ["시간", "운영", "민원"],
+        "fallback_when_no_source": true,
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "bukgu-06",
+      "site_id": "bukgu_gwangju",
+      "category": "ambiguous_query",
+      "question": "지원금",
+      "expected_domain": "bukgu.gwangju.kr",
+      "expected_keywords": ["지원", "지원금", "사업"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 0,
+        "source_domain": "bukgu.gwangju.kr",
+        "answer_not_empty": true,
+        "fallback_when_no_source": true,
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "bukgu-07",
+      "site_id": "bukgu_gwangju",
+      "category": "low_confidence_fallback",
+      "question": "우주여행 예약하는 방법 알려줘",
+      "expected_domain": "bukgu.gwangju.kr",
+      "expected_keywords": [],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 0,
+        "answer_not_empty": true,
+        "fallback_required": true,
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "gwangju-01",
+      "site_id": "gwangju_go_kr",
+      "category": "service_navigation",
+      "question": "고시공고는 어디서 봐?",
+      "expected_domain": "gwangju.go.kr",
+      "expected_keywords": ["고시", "공고"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 1,
+        "source_domain": "gwangju.go.kr",
+        "answer_contains_any": ["고시", "공고"],
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "gwangju-02",
+      "site_id": "gwangju_go_kr",
+      "category": "service_navigation",
+      "question": "정보공개는 어디서 확인해?",
+      "expected_domain": "gwangju.go.kr",
+      "expected_keywords": ["정보공개"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 1,
+        "source_domain": "gwangju.go.kr",
+        "answer_contains_any": ["정보공개"],
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "gwangju-03",
+      "site_id": "gwangju_go_kr",
+      "category": "document_lookup",
+      "question": "시청 민원서식 양식 어디서 다운로드해?",
+      "expected_domain": "gwangju.go.kr",
+      "expected_keywords": ["민원서식", "양식", "다운로드"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 0,
+        "source_domain": "gwangju.go.kr",
+        "answer_contains_any": ["민원", "서식", "양식"],
+        "fallback_when_no_source": true,
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "gwangju-04",
+      "site_id": "gwangju_go_kr",
+      "category": "department_contact",
+      "question": "시청 조직도는 어디서 봐?",
+      "expected_domain": "gwangju.go.kr",
+      "expected_keywords": ["조직도", "시청"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 1,
+        "source_domain": "gwangju.go.kr",
+        "answer_contains_any": ["조직", "시청"],
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "gwangju-05",
+      "site_id": "gwangju_go_kr",
+      "category": "fee_hour_location",
+      "question": "시청 방문 주차장 있어?",
+      "expected_domain": "gwangju.go.kr",
+      "expected_keywords": ["주차", "방문", "위치"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 0,
+        "source_domain": "gwangju.go.kr",
+        "answer_contains_any": ["주차", "방문", "위치"],
+        "fallback_when_no_source": true,
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "gwangju-06",
+      "site_id": "gwangju_go_kr",
+      "category": "ambiguous_query",
+      "question": "복지",
+      "expected_domain": "gwangju.go.kr",
+      "expected_keywords": ["복지", "지원"],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 0,
+        "source_domain": "gwangju.go.kr",
+        "answer_not_empty": true,
+        "fallback_when_no_source": true,
+        "no_cross_site_urls": true
+      }
+    },
+    {
+      "id": "gwangju-07",
+      "site_id": "gwangju_go_kr",
+      "category": "low_confidence_fallback",
+      "question": "외계인 등록증 발급 받으려면?",
+      "expected_domain": "gwangju.go.kr",
+      "expected_keywords": [],
+      "pass_criteria": {
+        "site_id_match": true,
+        "min_sources": 0,
+        "answer_not_empty": true,
+        "fallback_required": true,
+        "no_cross_site_urls": true
+      }
+    }
+  ]
+}

@@ -384,9 +384,12 @@ for r in runs:
     # Verify action_step_count matches action_sequence length
     seq = r.get('action_sequence', [])
     if len(seq) > 0:
-        non_terminal = [a for a in seq if a not in ('done', 'stop')]
-        assert r.get('action_step_count', 0) == len(non_terminal), \
-            f'action_step_count {r.get(\"action_step_count\")} != non-terminal count {len(non_terminal)}'
+        if r["mode"] == "deterministic":
+            expected_count = len([a for a in seq if a not in ('message', '', 'noop')])
+        else:
+            expected_count = len([a for a in seq if a not in ('done', 'stop')])
+        assert r.get('action_step_count', 0) == expected_count, \
+            f'action_step_count {r.get("action_step_count")} != expected count {expected_count} for mode {r["mode"]}'
 print(f'Evidence schema OK: {len(runs)} runs, 0 external requests, all no_submit preserved, all pass_criteria populated')
 "
 

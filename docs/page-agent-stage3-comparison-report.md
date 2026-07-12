@@ -163,8 +163,9 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 | 성공 | 9 | 3 |
 | 실패 | 6 | 12 |
 | 성공률 | 60.0% | 20.0% |
-| Median elapsed (ms) (All) | 10,430 | 2,457 |
-| Median action steps (All) | 4 | 2 |
+| Median elapsed (ms) (All) | 11,986 | 1,961 |
+| Median elapsed (ms) (Success only) | 10,490 | 2,393 |
+| Median action steps (All) | 4 | 1 |
 | Total wrong route actions | 3 | 12 |
 | 외부 요청 | 0 | 0 |
 | No-submit 위반 | 0 | 0 |

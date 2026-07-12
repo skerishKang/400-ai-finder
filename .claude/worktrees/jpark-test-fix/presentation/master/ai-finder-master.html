@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI파인더 | 복잡한 홈페이지를 사람 말로 찾아주는 AI 내비게이터</title>
+  <style>
+    :root {
+      --bg: #f7f3ed;
+      --card: #fffaf3;
+      --ink: #23201d;
+      --muted: #6f665d;
+      --line: #eadfce;
+      --accent: #ff8f70;
+      --accent-soft: #ffe1d6;
+      --deep: #3c2f2a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.65;
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 44px 22px 80px; }
+    .hero {
+      padding: 58px 42px;
+      border-radius: 32px;
+      background: linear-gradient(135deg, #fffaf3 0%, #ffe8dd 100%);
+      border: 1px solid var(--line);
+      box-shadow: 0 24px 70px rgba(76, 52, 38, 0.10);
+    }
+    .eyebrow { color: var(--accent); font-weight: 800; letter-spacing: .04em; }
+    h1 { margin: 16px 0 18px; font-size: clamp(38px, 6vw, 72px); line-height: 1.05; color: var(--deep); }
+    .subtitle { font-size: clamp(18px, 2.3vw, 26px); max-width: 820px; color: var(--muted); }
+    .actions { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .pill { display: inline-flex; padding: 10px 16px; border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--deep); font-weight: 700; }
+    section { margin-top: 34px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 26px; box-shadow: 0 14px 38px rgba(76, 52, 38, 0.06); }
+    h2 { margin: 0 0 14px; font-size: 30px; color: var(--deep); }
+    h3 { margin: 0 0 10px; font-size: 20px; color: var(--deep); }
+    p { margin: 0 0 12px; }
+    ul { margin: 10px 0 0; padding-left: 20px; }
+    li { margin: 6px 0; }
+    .problem { background: #fff; }
+    .quote { font-size: 22px; font-weight: 800; color: var(--deep); }
+    .flow { display: grid; gap: 10px; }
+    .step { padding: 14px 16px; border-radius: 16px; background: #fff; border: 1px solid var(--line); font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 18px; background: #fff; }
+    th, td { border-bottom: 1px solid var(--line); padding: 14px; text-align: left; vertical-align: top; }
+    th { background: var(--accent-soft); color: var(--deep); }
+    .footer { margin-top: 40px; padding: 24px; border-radius: 22px; background: var(--deep); color: #fff; }
+    .footer p { color: #fff; }
+    @media (max-width: 840px) {
+      .hero { padding: 38px 24px; }
+      .grid, .grid.two { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div class="eyebrow">400-ai-finder / AI파인더</div>
+      <h1>복잡한 홈페이지를<br />사람 말로 찾아주는<br />AI 내비게이터</h1>
+      <p class="subtitle">AI파인더는 기관, 공공기관, 대학, 기업 지원사업 홈페이지에 흩어진 메뉴·공지·자료실·첨부문서를 분석해 사용자가 원하는 페이지와 해야 할 일을 자연어로 안내합니다.</p>
+      <div class="actions">
+        <span class="pill">홈페이지 탐색</span>
+        <span class="pill">문서 기반 답변</span>
+        <span class="pill">바로가기 안내</span>
+        <span class="pill">근거 표시</span>
+      </div>
+    </header>
+
+    <section class="grid two">
+      <div class="card problem">
+        <h2>왜 필요한가</h2>
+        <p>많은 홈페이지는 사용자의 목적보다 기관의 조직 구조와 행정 용어를 기준으로 구성되어 있습니다.</p>
+        <ul>
+          <li>공지사항, 사업공고, 자료실에 정보가 분산됩니다.</li>
+          <li>중요한 내용은 PDF, HWP, DOCX, XLSX 안에 들어 있습니다.</li>
+          <li>사용자는 정확한 메뉴명과 문서명을 알아야 합니다.</li>
+          <li>담당자는 이미 공개된 정보에 대해 반복 문의를 받습니다.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>어떻게 해결하나</h2>
+        <p class="quote">“신청서 어디 있어?”처럼 물으면, AI파인더가 관련 페이지와 문서를 찾아줍니다.</p>
+        <p>AI파인더는 홈페이지 구조, 게시판, 첨부문서, 링크 관계를 분석해 사용자의 목적에 맞는 경로를 안내합니다.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>사용 예시</h2>
+      <div class="grid">
+        <div>
+          <h3>지원사업 찾기</h3>
+          <p>“중소기업 교육비 지원 공고 어디 있어?”</p>
+          <p>→ 관련 공고, 신청안내, 첨부파일을 함께 제시합니다.</p>
+        </div>
+        <div>
+          <h3>제출서류 확인</h3>
+          <p>“이 사업 신청하려면 어떤 서류가 필요해?”</p>
+          <p>→ 공고문과 첨부문서에서 제출서류를 찾아 요약합니다.</p>
+        </div>
+        <div>
+          <h3>홈페이지 길찾기</h3>
+          <p>“교육 신청은 어디로 들어가야 해?”</p>
+          <p>→ 메뉴 경로와 바로가기를 안내합니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <div class="card">
+        <h2>제품 구조</h2>
+        <div class="flow">
+          <div class="step">1. 홈페이지 URL 수집</div>
+          <div class="step">2. 메뉴·게시판·링크 분석</div>
+          <div class="step">3. 첨부문서 파싱</div>
+          <div class="step">4. 검색 인덱스 생성</div>
+          <div class="step">5. 사용자 질문 이해</div>
+          <div class="step">6. 근거 기반 답변 제공</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>초기 MVP</h2>
+        <ul>
+          <li>단일 URL 분석</li>
+          <li>페이지 제목, 본문, 링크 추출</li>
+          <li>내부 링크와 외부 링크 구분</li>
+          <li>PDF, HWP/HWPX, DOCX, XLSX 첨부파일 분류</li>
+          <li>검색과 답변 생성을 위한 데이터 구조화</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>대상별 가치</h2>
+      <table>
+        <thead>
+          <tr><th>대상</th><th>핵심 가치</th><th>설득 포인트</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>회사 대표</td><td>새로운 AI 솔루션 사업화</td><td>구축비, 유지관리, 기관별 커스터마이징, PoC 확장</td></tr>
+          <tr><td>공기업 및 기관</td><td>이용자 편의와 반복 문의 감소</td><td>접근성, 업무 효율, 공개문서 기반 답변, 보안형 운영</td></tr>
+          <tr><td>소비자</td><td>원하는 정보를 쉽게 찾는 경험</td><td>쉬운 질문, 바로가기, 해야 할 일 정리, 시간 절약</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>기존 챗봇과의 차이</h2>
+      <table>
+        <thead>
+          <tr><th>구분</th><th>기존 FAQ 챗봇</th><th>AI파인더</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>기준</td><td>미리 등록된 질문과 답변</td><td>홈페이지 구조와 문서</td></tr>
+          <tr><td>탐색 방식</td><td>FAQ 일치 여부</td><td>사용자 목적 기반 탐색</td></tr>
+          <tr><td>문서 처리</td><td>제한적</td><td>첨부문서까지 분석</td></tr>
+          <tr><td>출력</td><td>설명 중심</td><td>경로, 링크, 다음 행동 중심</td></tr>
+          <tr><td>근거</td><td>부족할 수 있음</td><td>URL, 문서명, 첨부파일명 제공</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="grid two">
+      <div class="card">
+        <h2>도입 방식</h2>
+        <ul>
+          <li>기존 홈페이지를 전면 개편하지 않습니다.</li>
+          <li>공개 홈페이지를 먼저 분석합니다.</li>
+          <li>기관별 검색 인덱스를 만듭니다.</li>
+          <li>필요하면 홈페이지 삽입형 위젯으로 확장합니다.</li>
+          <li>보안 요구가 있으면 로컬 모델 또는 내부망 운영을 검토합니다.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>로드맵</h2>
+        <ul>
+          <li>Stage 1. 단일 URL 분석기</li>
+          <li>Stage 2. 홈페이지 지도 생성기</li>
+          <li>Stage 3. 문서 수집과 색인</li>
+          <li>Stage 4. 근거 기반 질의응답</li>
+          <li>Stage 5. 웹 UI</li>
+          <li>Stage 6. 기관 PoC</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <h2>핵심 메시지</h2>
+      <p>AI파인더는 홈페이지를 새로 만드는 서비스가 아닙니다. 기존 홈페이지 위에 AI 탐색 레이어를 얹어, 사용자가 원하는 정보를 더 쉽게 찾게 만드는 서비스입니다.</p>
+    </footer>
+  </main>
+</body>
+</html>

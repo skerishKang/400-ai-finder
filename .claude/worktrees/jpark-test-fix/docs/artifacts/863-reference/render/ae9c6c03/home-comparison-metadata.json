@@ -1,0 +1,23 @@
+{
+  "reference": "docs/artifacts/863-reference/source/CaptureX_2026-07-05_150817_bukgu.gwangju.kr.png",
+  "reference_sha256": "e851f990a710b13251700177e8355f18477fcceb5c5e8497a9504e085e2d2397",
+  "render": "docs/artifacts/863-reference/render/ae9c6c03/home-canvas-1344x756.png",
+  "render_sha256": "46295e081f7d3c6ac38ee53e8cf7ee293fab5ff9d020c35d6d3c4864e3b2e0f4",
+  "dimensions": {
+    "width": 1344,
+    "height": 756
+  },
+  "overlay": "docs/artifacts/863-reference/render/ae9c6c03/home-overlay-vs-R-HOME-01-1344x756.png",
+  "diff": "docs/artifacts/863-reference/render/ae9c6c03/home-diff-vs-R-HOME-01-1344x756.png",
+  "mean_absolute_rgb_difference": [
+    12.813297,
+    11.492298,
+    10.147093
+  ],
+  "max_rgb_difference": [
+    255,
+    255,
+    255
+  ],
+  "note": "Metrics are review evidence only; they are not an automatic visual acceptance gate."
+}
