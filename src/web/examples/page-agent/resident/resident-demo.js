@@ -140,7 +140,7 @@
       customFetch: localCustomFetch,
       language: "ko",
       enableMask: false,
-      includeAttributes: true,
+      includeAttributes: ["data-action-target"],
       maxSteps: 20,
     });
 

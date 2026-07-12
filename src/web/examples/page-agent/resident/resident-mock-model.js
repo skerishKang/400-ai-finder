@@ -143,12 +143,18 @@
   }
 
   function findElementIndexByTarget(state, targetId) {
-    var re = new RegExp('data-action-target="' + targetId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"');
     var lines = state.split('\n');
     for (var i = 0; i < lines.length; i++) {
-      if (re.test(lines[i])) {
-        var match = lines[i].match(/\[(\d+)\]/);
-        if (match) return parseInt(match[1], 10);
+      var line = lines[i];
+      if (line.indexOf('data-action-target=') === -1) continue;
+      var m = line.match(/data-action-target=([^\s>]+)/);
+      if (m) {
+        var val = m[1];
+        if (val.indexOf('...') !== -1) val = val.slice(0, val.indexOf('...'));
+        if (targetId.indexOf(val) === 0) {
+          var idxMatch = line.match(/\[(\d+)\]/);
+          if (idxMatch) return parseInt(idxMatch[1], 10);
+        }
       }
     }
     return null;
@@ -158,13 +164,13 @@
   var _sessionTask = null;       // Current scenario object
   var _sessionNavIdx = 0;        // Current nav step index
   var _sessionDone = false;      // Has returned done already?
-  var _lastPayloadMessage = '';  // Last seen user message (dedup)
+    var _lastSessionKey = '';  // Last seen user request (session dedup)
 
   function resetSession() {
     _sessionTask = null;
     _sessionNavIdx = 0;
     _sessionDone = false;
-    _lastPayloadMessage = '';
+    _lastSessionKey = '';
   }
 
   // ── Response builders ────────────────────────────────────────────────────
@@ -220,25 +226,24 @@
     }
 
     var rawMessage = getLastUserMessage(body);
-    var currentMessage = rawMessage;
+    var userRequest = extractUserRequest(rawMessage);
+    var browserState = extractBrowserState(rawMessage);
+    var sessionKey = userRequest || rawMessage;
 
-    // Dedup: if same message was already processed, return stop
-    if (_sessionDone && rawMessage === _lastPayloadMessage) {
+    // Dedup: if same session was already completed, return stop
+    if (_sessionDone && sessionKey === _lastSessionKey) {
       return new Response(JSON.stringify(buildStopResponse()), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // New message → reset session state
-    if (rawMessage !== _lastPayloadMessage) {
-      _lastPayloadMessage = rawMessage;
+    // New user request → reset navigation progress (but keep across turns with same request)
+    if (sessionKey !== _lastSessionKey) {
+      _lastSessionKey = sessionKey;
       _sessionNavIdx = 0;
       _sessionDone = false;
     }
-
-    var userRequest = extractUserRequest(rawMessage);
-    var browserState = extractBrowserState(rawMessage);
 
     var scenario = _sessionTask || findScenario(userRequest);
 

@@ -320,7 +320,7 @@ class TestResidentRouteStub:
         # Contract: NO experimental script execution tool.
         assert "experimentalScriptExecutionTool" not in src
         # Uses includeAttributes for data-action-target parsing.
-        assert "includeAttributes: true" in src
+        assert "includeAttributes: [" in src
         # Has cancel button and timeout.
         assert "chat-cancel" in src or "stopAgent" in src
         assert "TIMEOUT_MS" in src or "60000" in src
