@@ -234,19 +234,26 @@ jobs:
 
       - name: Verify expectations fixture integrity
         run: |
-          python -c "
-import json
-with open('tests/fixtures/page_agent_comparison_expectations.json') as f:
-    data = json.load(f)
-assert data['schema_version'] == '1.0.0'
-assert len(data['scenarios']) == 5
-for s in data['scenarios']:
-    assert 'deterministic' in s
-    assert 'page_agent' in s
-    assert 'trigger' in s['deterministic']
-    assert 'trigger' in s['page_agent']
-print('Expectations fixture: OK')
-"
+          python - <<'PY'
+          import json
+
+          with open(
+              "tests/fixtures/page_agent_comparison_expectations.json",
+              encoding="utf-8",
+          ) as f:
+              data = json.load(f)
+
+          assert data["schema_version"] == "1.0.0"
+          assert len(data["scenarios"]) == 5
+
+          for scenario in data["scenarios"]:
+              assert "deterministic" in scenario
+              assert "page_agent" in scenario
+              assert "trigger" in scenario["deterministic"]
+              assert "trigger" in scenario["page_agent"]
+
+          print("Expectations fixture: OK")
+          PY
 
       - name: Run resident demo browser E2E
         if: github.event_name == 'push' || github.event_name == 'pull_request'
@@ -366,32 +373,75 @@ print('Expectations fixture: OK')
       - name: Verify Stage 3 evidence schema on CI-generated evidence (10 runs)
         if: always()
         run: |
-          python -c "
-import json
-with open('/tmp/comparison-evidence-ci.json') as f:
-    data = json.load(f)
-assert data['schema_version'] == '1.0.0'
-runs = data['primary_runs']
-assert len(runs) == 10, f'Expected 10 runs (5 scenarios x 2 modes x 1 rep), got {len(runs)}'
-for r in runs:
-    assert r['external_request_count'] == 0, f'External request in {r[\"mode\"]}/{r[\"scenario_id\"]}: {r[\"external_request_count\"]}'
-    assert r['no_submit_preserved'] == True
-    # Verify pass_criteria_results are populated
-    cr = r.get('pass_criteria_results', [])
-    assert len(cr) > 0, f'Run {r[\"mode\"]}/{r[\"scenario_id\"]}/{r[\"attempt\"]} has empty pass_criteria_results'
-    for c in cr:
-        assert 'criterion' in c and 'passed' in c, f'Malformed pass_criteria_result: {c}'
-    # Verify action_step_count matches action_sequence length
-    seq = r.get('action_sequence', [])
-    if len(seq) > 0:
-        if r["mode"] == "deterministic":
-            expected_count = len([a for a in seq if a not in ('message', '', 'noop')])
-        else:
-            expected_count = len([a for a in seq if a not in ('done', 'stop')])
-        assert r.get('action_step_count', 0) == expected_count, \
-            f'action_step_count {r.get("action_step_count")} != expected count {expected_count} for mode {r["mode"]}'
-print(f'Evidence schema OK: {len(runs)} runs, 0 external requests, all no_submit preserved, all pass_criteria populated')
-"
+          python - <<'PY'
+          import json
+
+          with open("/tmp/comparison-evidence-ci.json", encoding="utf-8") as f:
+              data = json.load(f)
+
+          assert data["schema_version"] == "1.0.0"
+
+          runs = data["primary_runs"]
+          assert len(runs) == 10, (
+              "Expected 10 runs "
+              f"(5 scenarios x 2 modes x 1 rep), got {len(runs)}"
+          )
+
+          for run in runs:
+              label = (
+                  f'{run["mode"]}/'
+                  f'{run["scenario_id"]}/'
+                  f'{run["attempt"]}'
+              )
+
+              assert run["external_request_count"] == 0, (
+                  f"External request in {label}: "
+                  f'{run["external_request_count"]}'
+              )
+              assert run["no_submit_preserved"] is True
+
+              criteria = run.get("pass_criteria_results", [])
+              assert criteria, (
+                  f"Run {label} has empty pass_criteria_results"
+              )
+
+              for criterion in criteria:
+                  assert "criterion" in criterion
+                  assert "passed" in criterion
+
+              sequence = run.get("action_sequence", [])
+              if sequence:
+                  if run["mode"] == "deterministic":
+                      expected_count = len(
+                          [
+                              action
+                              for action in sequence
+                              if action not in ("message", "", "noop")
+                          ]
+                      )
+                  else:
+                      expected_count = len(
+                          [
+                              action
+                              for action in sequence
+                              if action not in ("done", "stop")
+                          ]
+                      )
+
+                  assert run.get("action_step_count", 0) == expected_count, (
+                      f'action_step_count '
+                      f'{run.get("action_step_count")} '
+                      f"!= expected count {expected_count} "
+                      f'for mode {run["mode"]}'
+                  )
+
+          print(
+              "Evidence schema OK: "
+              f"{len(runs)} runs, 0 external requests, "
+              "all no_submit preserved, "
+              "all pass_criteria populated"
+          )
+          PY
 
       - name: Check whitespace errors
         run: git diff --check
