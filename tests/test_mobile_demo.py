@@ -378,3 +378,144 @@ class TestMobileDemoHTTP:
         assert "preset" not in html.lower()
         assert "stub" not in html.lower()
         assert "mock" not in html.lower()
+
+
+_MOBILE_DEMO_JS = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "src", "web", "static", "mobile", "mobile_demo.js",
+)
+
+
+class TestMobileDemoLinkSafety:
+    """Static contract tests for #1102 mobile link safety.
+
+    The mobile demo renders untrusted answer markdown and untrusted source
+    URLs into the DOM. Both insertion paths MUST go through a single
+    ``sanitizeMobileUrl`` guard that rejects every non-http(s) scheme
+    (javascript:, data:, vbscript:, file:, blob:, protocol-relative //host)
+    and any credentialed/malformed URL. Unsafe answer links render as inert
+    text (no <a>, no href). Unsafe source cards are omitted entirely.
+    """
+
+    @staticmethod
+    def _js():
+        with open(_MOBILE_DEMO_JS, "r", encoding="utf-8") as f:
+            return f.read()
+
+    def test_sanitize_mobile_url_is_defined(self):
+        js = self._js()
+        assert "function sanitizeMobileUrl" in js, \
+            "sanitizeMobileUrl must be defined as the single URL guard"
+
+    def test_source_card_uses_sanitizer(self):
+        js = self._js()
+        # Old vulnerable direct assignment must be gone.
+        assert "s.url || '#'" not in js, \
+            "raw source url must never be assigned as href"
+        # The source loop must sanitize before using the url.
+        assert "sanitizeMobileUrl(s.url)" in js, \
+            "source card must call sanitizeMobileUrl(s.url)"
+        # Unsafe sources must be skipped (the loop `return`s early).
+        assert "if (!safe) return" in js, \
+            "unsafe source urls must be omitted (early return in loop)"
+        # extractDomain must only see already-sanitized hrefs.
+        assert "extractDomain(safe.href)" in js, \
+            "extractDomain must be fed the sanitized href, not the raw url"
+
+    def test_markdown_link_replacement_is_callback_not_raw(self):
+        js = self._js()
+        # The dangerous raw-attribute interpolation must be gone.
+        assert '"$2"' not in js, \
+            "markdown link regex must not interpolate the raw url into href"
+        # The replacement must invoke the sanitizer inside a callback.
+        assert "sanitizeMobileUrl(url)" in js, \
+            "markdown link replacement must sanitize the captured url"
+        # Callback form (arrow function) must be used, not a string replacement.
+        assert "(m, label, url) =>" in js, \
+            "markdown link replacement should use a callback"
+
+    def test_sanitizer_rejects_non_http_schemes(self):
+        """Sanitizer must reject javascript:, data:, protocol-relative, etc.
+
+        This is a lightweight contract mirror of the browser E2E: it ensures
+        the function exists with the expected rejection shape (returns null
+        for unsafe, an object with href/external for safe). The full runtime
+        behavior is covered by verify_mobile_link_safety.mjs.
+        """
+        js = self._js()
+        # Guard clauses that prove the policy is enforced in source.
+        assert "scheme !== 'http:' && scheme !== 'https:'" not in js, \
+            "old lowercase scheme check must be replaced by exact protocol compare"
+        assert "parsed.protocol !== 'http:' && parsed.protocol !== 'https:'" in js, \
+            "sanitizer must allow only http: and https: schemes"
+        assert "parsed.username || parsed.password" in js, \
+            "sanitizer must reject credentialed URLs"
+        assert r"[\x00-\x1f\x7f]" in js, \
+            "sanitizer must reject control characters before trim"
+
+    def test_sanitizer_block_policy(self):
+        """The sanitizer function block must encode the full fail-closed policy."""
+        js = self._js()
+        start = js.index("function sanitizeMobileUrl")
+        # Slice from the function start to the closing of its return object.
+        block = js[start:start + 1400]
+
+        # Backslash rejection (before trim/parse, do not rely on parser).
+        assert "rawUrl.includes('\\\\')" in block, \
+            "sanitizer must reject backslashes explicitly"
+        # Approved-relative classification.
+        assert "approvedRelative" in block, \
+            "sanitizer must classify approved same-origin relative forms"
+        assert "value.startsWith('/')" in block, \
+            "sanitizer must approve /path relative forms"
+        assert "value.startsWith('?')" in block, \
+            "sanitizer must approve ?query relative forms"
+        assert "value.startsWith('#')" in block, \
+            "sanitizer must approve #fragment relative forms"
+        # Bare relative must fail closed (not absolute and not approved).
+        assert "if (!absoluteScheme && !approvedRelative) return null" in block, \
+            "bare relative paths must fail closed"
+        # Protocol-relative rejection.
+        assert "value.startsWith('//')" in block, \
+            "sanitizer must reject protocol-relative URLs (//host)"
+        # Credentials rejection.
+        assert "parsed.username || parsed.password" in block, \
+            "sanitizer must reject credentialed URLs"
+        # Dead check removed.
+        assert "if (!external && parsed.origin !== window.location.origin)" not in block, \
+            "dead relative/external check must be removed"
+
+    def test_source_wrapper_appended_only_when_children(self):
+        """The .sources-wrap must only be appended when it has children."""
+        js = self._js()
+        assert "if (wrap.childElementCount > 0)" in js, \
+            "sources-wrap must be appended only when it has children"
+        assert "content.appendChild(wrap)" in js, \
+            "sources-wrap append must be guarded by childElementCount"
+
+    def test_answer_and_source_share_sanitizer(self):
+        """Answer markdown links and source cards must use the SAME sanitizer."""
+        js = self._js()
+        assert "sanitizeMobileUrl(url)" in js, \
+            "answer markdown replacement must call sanitizeMobileUrl"
+        assert "sanitizeMobileUrl(s.url)" in js, \
+            "source card must call sanitizeMobileUrl"
+        # Exactly one definition of the sanitizer (single canonical guard).
+        assert js.count("function sanitizeMobileUrl") == 1, \
+            "there must be exactly one sanitizeMobileUrl definition"
+
+    def test_no_raw_unsafe_href_assignment(self):
+        """No raw / unsafe href assignment (incl. href='#' fallback) is allowed."""
+        js = self._js()
+        assert "s.url || '#'" not in js, \
+            "raw source url must never be assigned as href"
+        assert "a.href = '#'" not in js, \
+            "unsafe links must not fall back to href='#'"
+
+    def test_external_rel_noopener_noreferrer(self):
+        """External links (answer + source) must set rel=noopener noreferrer."""
+        js = self._js()
+        assert "rel = 'noopener noreferrer'" in js, \
+            "source external links must set rel=noopener noreferrer"
+        assert "' target=\"_blank\" rel=\"noopener noreferrer\"'" in js, \
+            "answer external links must set target=_blank rel=noopener noreferrer"
