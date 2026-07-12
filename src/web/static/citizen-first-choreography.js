@@ -828,7 +828,7 @@
         content: contentEl ? contentEl.value : "가로등 고장을 신고합니다.",
         author: "주민"
       };
-
+      
       window.CitizenContentAdapter.submitBoardPost(data).then(function() {
         if (cCanvas && cCanvas.navigateToRoute) {
           cCanvas.navigateToRoute("complaint-review");
