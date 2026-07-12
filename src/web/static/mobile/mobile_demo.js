@@ -217,7 +217,12 @@ function addMessageToDOM(role, html, sources, animate = true){
         '<div class="src-url">' + esc(safe.href) + '</div>';
       wrap.appendChild(a);
     });
-    content.appendChild(wrap);
+    // Only render the sources section if at least one source survived
+    // sanitization. When every source is unsafe the wrapper must not appear
+    // in the DOM at all (no card, title, or raw URL leaks).
+    if (wrap.childElementCount > 0) {
+      content.appendChild(wrap);
+    }
   }
 
   row.appendChild(inner);
@@ -331,28 +336,54 @@ function esc(s){
   return d.innerHTML;
 }
 
+// Canonical, shared URL sanitizer for both answer markdown links and source
+// cards. Fail-closed: anything that is not an http(s) absolute URL or an
+// explicitly-approved same-origin relative form is rejected (return null).
 function sanitizeMobileUrl(rawUrl) {
   if (typeof rawUrl !== 'string') return null;
-  const value = rawUrl;
-  // Check for control characters BEFORE any trim
-  if (/[\x00-\x1f\x7f]/.test(value)) return null;
-  const trimmed = value.trim();
-  if (trimmed === '') return null;
-  // Reject protocol-relative URLs
-  if (/^\/\//.test(trimmed)) return null;
+
+  // Control characters are rejected before any trimming/parsing.
+  if (/[\x00-\x1f\x7f]/.test(rawUrl)) return null;
+
+  // Backslashes are rejected before trimming/parsing. We do NOT rely on the
+  // URL parser's slash normalization.
+  if (rawUrl.includes('\\')) return null;
+
+  const value = rawUrl.trim();
+  if (!value) return null;
+
+  // Protocol-relative URLs (//host) are rejected.
+  if (value.startsWith('//')) return null;
+
+  const absoluteScheme = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(value);
+  const approvedRelative =
+    value.startsWith('/') ||
+    value.startsWith('?') ||
+    value.startsWith('#');
+
+  // Bare relative paths (foo, foo/bar, ../path, ./path) are not needed by the
+  // product and are rejected. The URL only proceeds if it is an absolute
+  // http(s) URL or an approved same-origin relative form.
+  if (!absoluteScheme && !approvedRelative) return null;
+
   let parsed;
   try {
-    parsed = new URL(trimmed, window.location.href);
-  } catch (e) {
+    parsed = new URL(value, window.location.href);
+  } catch {
     return null;
   }
-  const scheme = parsed.protocol.toLowerCase();
-  if (scheme !== 'http:' && scheme !== 'https:') return null;
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
   if (parsed.username || parsed.password) return null;
-  const external = parsed.origin !== window.location.origin;
-  // Reject relative URLs that resolve to external origin
-  if (!external && parsed.origin !== window.location.origin) return null;
-  return { href: parsed.href, external: external };
+
+  // Approved relative URLs must resolve to the same origin; fail closed if a
+  // parser quirk would otherwise escape the origin.
+  if (!absoluteScheme && parsed.origin !== window.location.origin) return null;
+
+  return {
+    href: parsed.href,
+    external: parsed.origin !== window.location.origin
+  };
 }
 
 function renderMarkdown(md){
@@ -364,7 +395,10 @@ function renderMarkdown(md){
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, label, url) => {
       const safe = sanitizeMobileUrl(url);
       if (!safe) {
-        return esc(label);
+        // `data.answer` is already escaped by esc() before renderMarkdown, so
+        // `label` is already inert text — returning it directly avoids
+        // double-escaping while keeping the label as inert text (no anchor).
+        return label;
       }
       const attrs = safe.external
         ? ' target="_blank" rel="noopener noreferrer"'
