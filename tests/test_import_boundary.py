@@ -16,17 +16,19 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+EXPECTED_HELPER = (
+    REPO_ROOT / "tests" / "helpers" / "pipeline_fakes.py"
+).resolve()
 
 
 def _assert_repo_local(module_file: str) -> None:
     resolved = Path(module_file).resolve()
     assert resolved.exists(), f"imported helper missing: {resolved}"
-    assert REPO_ROOT in resolved.parents or resolved == (
-        REPO_ROOT / "tests" / "helpers" / "pipeline_fakes.py"
-    ), f"imported helper is NOT repository-local: {resolved}"
+    assert resolved == EXPECTED_HELPER, (
+        f"imported helper is NOT repository-local: {resolved}"
+    )
 
 
 def test_pipeline_fakes_imported_from_repo():
@@ -58,10 +60,10 @@ def test_import_resolves_with_installed_external_tests_package():
     _assert_repo_local(str(helper_path))
 
 
-def test_import_resolves_with_shadowing_external_tests_ahead():
-    """Worst case: a fake external ``tests`` package is placed ahead of the
-    repo on PYTHONPATH. The repository-local helper must still win because the
-    repository root (cwd) is prepended to sys.path by pytest / python -m.
+def test_import_resolves_with_shadowing_package_on_pythonpath():
+    """A fake external ``tests`` package on PYTHONPATH must not shadow the
+    repository-local helper. The repository root (cwd) is prepended to
+    sys.path before PYTHONPATH entries, so the repo version wins.
     """
     import tempfile
 
