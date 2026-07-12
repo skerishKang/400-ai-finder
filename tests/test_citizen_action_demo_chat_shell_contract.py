@@ -4,6 +4,7 @@ This file is executed by `.github/workflows/mvp-contracts.yml`, so the #1065
 shared-visual-token source-contract lives here (not in a standalone file).
 """
 
+from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
@@ -292,3 +293,207 @@ def test_docs_inventory_matches_source():
     assistant_docs = _docs_tokens_between(DOCS, "### assistant", "## Removed")
     assert shared_docs == SHARED_TOKENS
     assert assistant_docs == ASSISTANT_TOKENS
+
+
+# ── #1066 prioritized resident tasks on first use ──────────────────────────
+
+PRIMARY_CANONICAL = [
+    "불법 주정차 신고는 어디서 하나요?",
+    "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+    "매트리스 폐기 신청은 어디서 하나요?",
+]
+SECONDARY_CANONICAL = [
+    "여권 발급은 어디서 하나요?",
+    "무인민원발급기 어디 있어요?",
+    "가로등이 고장났어요. 신고할게요",
+    "쓰레기 무단투기 신고할래 (AI 도움)",
+]
+ALL_CANONICAL = PRIMARY_CANONICAL + SECONDARY_CANONICAL
+
+FORBIDDEN_FIRST_SCREEN = [
+    "demo",
+    "시연",
+    "poc",
+    "연결 안 됨",
+    "연결되지 않음",
+    "테스트용",
+    "개발자용",
+]
+# Civic canvas content markers — the entry panel must not clone/rephrase them.
+CIVIC_CLONE_MARKERS = [
+    "BUKGU AI CIVIC BROWSER",
+    "북구의 모든 행정",
+    "home-identity.png",
+    "bg-home-",
+]
+
+
+class _EntryPanelParser(HTMLParser):
+    """Extracts the entry-panel fragment and separates primary/secondary tasks.
+
+    Uses a section-id stack so the primary and secondary groups are identified
+    by their DOM scope rather than a naive substring count.
+    """
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self._section_stack = []
+        self._capture = False
+        self._fragment = []
+        self.primary_questions = []
+        self.secondary_questions = []
+        self.all_questions = []
+        self.task_types = []
+        self.toggle_expanded = None
+        self.toggle_controls = None
+        self.secondary_hidden = None
+
+    def handle_starttag(self, tag, attrs):
+        d = dict(attrs)
+        gid = d.get("id")
+        if gid == "chat-entry-panel":
+            self._capture = True
+        if self._capture:
+            self._fragment.append(self.get_starttag_text())
+        if self._capture and tag == "section" and gid in (
+            "chat-primary-tasks",
+            "chat-secondary-tasks",
+        ):
+            self._section_stack.append(gid)
+        if self._capture and tag == "button" and "data-chip-question" in d:
+            q = d.get("data-chip-question")
+            self.all_questions.append(q)
+            if "chat-primary-tasks" in self._section_stack:
+                self.primary_questions.append(q)
+            elif "chat-secondary-tasks" in self._section_stack:
+                self.secondary_questions.append(q)
+            self.task_types.append(d.get("type"))
+        if self._capture and gid == "chat-more-tasks":
+            self.toggle_expanded = d.get("aria-expanded")
+            self.toggle_controls = d.get("aria-controls")
+        if self._capture and gid == "chat-secondary-tasks":
+            self.secondary_hidden = "hidden" in d
+
+    def handle_endtag(self, tag):
+        if self._capture:
+            self._fragment.append("</" + tag + ">")
+        if tag == "section" and self._section_stack:
+            self._section_stack.pop()
+        if tag == "section" and "id=\"chat-entry-panel\"" in "".join(self._fragment):
+            # conservative: rely on stack depth instead
+            pass
+
+    def fragment(self):
+        return "".join(self._fragment)
+
+
+def _parse_entry_panel():
+    p = _EntryPanelParser()
+    p.feed(HTML)
+    return p
+
+
+def _extract_entry_fragment():
+    start = HTML.index('id="chat-entry-panel"')
+    open_pos = HTML.rfind("<section", 0, start)
+    depth = 0
+    import re
+
+    for m in re.finditer(r"<(/?)(section)\b[^>]*>", HTML[open_pos:]):
+        depth += 1 if m.group(1) != "/" else -1
+        if depth == 0:
+            return HTML[open_pos : open_pos + m.end()]
+    return HTML[open_pos:]
+
+
+def test_entry_panel_exists():
+    assert 'id="chat-entry-panel"' in HTML
+
+
+def test_entry_panel_has_single_concise_service_intro():
+    frag = _extract_entry_fragment()
+    # Exactly one intro block and one entry title.
+    assert frag.count('class="chat-entry__intro"') == 1
+    assert frag.count('id="chat-entry-title"') == 1
+    # Intro is concise (a heading + one short paragraph, not a long essay).
+    intro = frag[frag.index('chat-entry__intro') :]
+    intro = intro[: intro.index("</div>")]
+    assert len(intro) < 400
+    # The entry intro must not duplicate the old greeting bubble wording.
+    assert "안녕하세요. 북구청 민원 안내 AI입니다" not in frag
+
+
+def test_entry_primary_group_exists():
+    assert 'id="chat-primary-tasks"' in HTML
+
+
+def test_entry_primary_task_count_is_three():
+    p = _parse_entry_panel()
+    assert len(p.primary_questions) == 3
+
+
+def test_entry_secondary_group_exists():
+    assert 'id="chat-secondary-tasks"' in HTML
+
+
+def test_entry_secondary_task_count_is_four():
+    p = _parse_entry_panel()
+    assert len(p.secondary_questions) == 4
+
+
+def test_entry_secondary_initially_hidden():
+    p = _parse_entry_panel()
+    assert p.secondary_hidden is True
+
+
+def test_entry_toggle_has_expanded_false():
+    p = _parse_entry_panel()
+    assert p.toggle_expanded == "false"
+
+
+def test_entry_toggle_controls_secondary():
+    p = _parse_entry_panel()
+    assert p.toggle_controls == "chat-secondary-tasks"
+
+
+def test_entry_all_seven_canonical_questions_exact():
+    p = _parse_entry_panel()
+    assert set(p.all_questions) == set(ALL_CANONICAL)
+    for q in ALL_CANONICAL:
+        assert q in p.all_questions
+
+
+def test_entry_canonical_questions_unique():
+    p = _parse_entry_panel()
+    assert len(p.all_questions) == len(set(p.all_questions))
+
+
+def test_entry_task_buttons_are_type_button():
+    p = _parse_entry_panel()
+    assert len(p.task_types) == 7
+    assert all(t == "button" for t in p.task_types)
+
+
+def test_entry_composer_outside_task_scroll_region():
+    # Composer is defined after the entry panel content in the DOM, so it lives
+    # outside the scrollable task region (and inside the chat shell).
+    assert HTML.index("id=\"chat-composer-form\"") > HTML.index("id=\"chat-secondary-tasks\"")
+    shell = _visible_chat_shell()
+    assert 'id="chat-composer-form"' in shell
+    assert 'id="chat-entry-panel"' in shell
+
+
+def test_entry_visible_panel_has_no_forbidden_framing():
+    frag = _extract_entry_fragment().lower()
+    for forbidden in FORBIDDEN_FIRST_SCREEN:
+        assert forbidden not in frag, f"forbidden first-screen framing: {forbidden}"
+
+
+def test_entry_panel_does_not_clone_civic_content():
+    frag = _extract_entry_fragment()
+    for marker in CIVIC_CLONE_MARKERS:
+        assert marker not in frag, f"entry panel clones civic content: {marker}"
+
+
+def test_entry_shared_token_stylesheet_still_linked():
+    assert "citizen-shared-tokens.css" in HTML

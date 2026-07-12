@@ -44,6 +44,9 @@
   var chatSend = document.getElementById("chat-composer-send");
   var resetButton = document.getElementById("chat-reset");
   var chipsContainer = document.getElementById("chat-chips");
+  var entryPanel = document.getElementById("chat-entry-panel");
+  var moreTasksButton = document.getElementById("chat-more-tasks");
+  var secondaryTasks = document.getElementById("chat-secondary-tasks");
   var splitTimer = null;
   var lastSplitQuestion = null;
   var currentState = STATE_ENTRY;
@@ -583,8 +586,11 @@
       if (resetButton) {
         resetButton.hidden = true;
       }
-      if (chipsContainer) {
-        chipsContainer.hidden = false;
+      if (entryPanel) {
+        entryPanel.hidden = false;
+      }
+      if (chatThread) {
+        chatThread.hidden = true;
       }
       return;
     }
@@ -595,8 +601,11 @@
       if (resetButton) {
         resetButton.hidden = true;
       }
-      if (chipsContainer) {
-        chipsContainer.hidden = true;
+      if (entryPanel) {
+        entryPanel.hidden = true;
+      }
+      if (chatThread) {
+        chatThread.hidden = false;
       }
       return;
     }
@@ -606,8 +615,11 @@
     if (resetButton) {
       resetButton.hidden = false;
     }
-    if (chipsContainer) {
-      chipsContainer.hidden = false;
+    if (entryPanel) {
+      entryPanel.hidden = true;
+    }
+    if (chatThread) {
+      chatThread.hidden = false;
     }
   }
 
@@ -1196,6 +1208,8 @@
 
     body.classList.add("first-use-shell--no-motion");
     setState(STATE_ENTRY);
+    // Collapse the secondary task disclosure so entry state is always pristine.
+    setSecondaryTasksExpanded(false);
     // Reset scroll position to top
     if (chatThread) {
       chatThread.scrollTop = 0;
@@ -1216,6 +1230,28 @@
 
   if (resetButton) {
     resetButton.addEventListener("click", resetToEntry);
+  }
+
+  // #1066: secondary task disclosure toggle.
+  // Toggling must NOT submit a question or change the composer value — it only
+  // reveals/hides the secondary task group and keeps aria-expanded in sync.
+  function setSecondaryTasksExpanded(expanded) {
+    if (!secondaryTasks || !moreTasksButton) return;
+    secondaryTasks.hidden = !expanded;
+    moreTasksButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+    moreTasksButton.textContent = expanded ? "다른 민원 접기" : "다른 민원 4개 보기";
+  }
+
+  function toggleSecondaryTasks() {
+    if (!secondaryTasks || !moreTasksButton) return;
+    setSecondaryTasksExpanded(secondaryTasks.hidden);
+  }
+
+  if (moreTasksButton) {
+    moreTasksButton.addEventListener("click", function (e) {
+      e.preventDefault();
+      toggleSecondaryTasks();
+    });
   }
 
   // #965: chip click → submit question

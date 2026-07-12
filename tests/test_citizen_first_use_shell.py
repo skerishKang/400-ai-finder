@@ -539,3 +539,79 @@ class TestResponsiveViewportContract:
         assert "@media (max-width: 1180px)" in CSS
         # 768 is the first width above the 767px mobile cap → desktop split layout
         assert 'body[data-first-use-state="split"] .first-use-layout' in CSS
+
+
+# ── #1066 prioritized resident tasks on first use ──────────────────────────
+
+
+def test_shell_defines_secondary_toggle_handler():
+    assert "function toggleSecondaryTasks(" in JS
+    assert "function setSecondaryTasksExpanded(" in JS
+    assert 'getElementById("chat-more-tasks")' in JS
+    assert 'getElementById("chat-secondary-tasks")' in JS
+
+
+def test_shell_secondary_toggle_keeps_expanded_and_hidden_in_sync():
+    # Expanding must flip both aria-expanded and the hidden attribute together.
+    assert 'secondaryTasks.hidden = !expanded' in JS
+    assert 'moreTasksButton.setAttribute("aria-expanded", expanded ? "true" : "false")' in JS
+    # The toggle must never submit a question or change the composer value.
+    assert "e.preventDefault()" in JS
+    toggle_body = JS[JS.index("function toggleSecondaryTasks()"):]
+    toggle_body = toggle_body[: toggle_body.index("if (moreTasksButton)")]
+    assert "chatForm" not in toggle_body
+    assert "chatInput.value" not in toggle_body
+
+
+def test_shell_reset_collapses_secondary_tasks():
+    idx = JS.index("function resetToEntry()")
+    reset_body = JS[idx : idx + 1400]
+    assert "setSecondaryTasksExpanded(false)" in reset_body
+
+
+def test_shell_entry_transitioning_split_switch_entry_and_thread_visibility():
+    entry_body = JS[JS.index("function setState(") : JS.index("function clearChatMotionStyles()")]
+    # Entry: entry panel visible, thread hidden.
+    assert 'entryPanel.hidden = false' in entry_body
+    assert 'chatThread.hidden = true' in entry_body
+    # Transitioning + split: entry panel hidden, thread visible.
+    assert entry_body.count('entryPanel.hidden = true') == 2
+    assert entry_body.count('chatThread.hidden = false') == 2
+    # No residual chips-container visibility toggling.
+    assert "chipsContainer.hidden" not in entry_body
+
+
+def test_shell_preserves_all_seven_canonical_question_mappings():
+    for question in [
+        "불법 주정차 신고는 어디서 하나요?",
+        "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+        "매트리스 폐기 신청은 어디서 하나요?",
+        "여권 발급은 어디서 하나요?",
+        "무인민원발급기 어디 있어요?",
+        "가로등이 고장났어요. 신고할게요",
+        "쓰레기 무단투기 신고할래 (AI 도움)",
+    ]:
+        assert '"' + question + '"' in JS, f"canonical mapping missing: {question}"
+
+
+def test_shell_secondary_toggle_has_no_new_route_or_action_branch():
+    # The toggle uses SUPPORTED_QUESTION_ACTIONS only via the existing chip path;
+    # it must not introduce a new routing/action branch.
+    assert "SUPPORTED_QUESTION_ACTIONS" in JS
+    toggle_body = JS[JS.index("function toggleSecondaryTasks()"):]
+    toggle_body = toggle_body[: toggle_body.index("if (moreTasksButton)")]
+    assert "beginSupportedTransition" not in toggle_body
+    assert "CitizenFirstChoreography" not in toggle_body
+
+
+def test_shell_composer_busy_logic_preserved():
+    assert '"data-chat-busy"' in JS
+    assert "setComposerDisabled(false)" in JS
+    assert "setComposerDisabled(true)" in JS
+
+
+def test_shell_entry_panel_still_local_only():
+    assert "fetch(" not in JS
+    assert "localStorage" not in JS
+    assert "sessionStorage" not in JS
+    assert "document.cookie" not in JS

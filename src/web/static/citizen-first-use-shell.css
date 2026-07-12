@@ -851,7 +851,8 @@ body.first-use-shell--no-motion .demo-canvas {
    ═══════════════════════════════════════════════════════ */
 .chat-chips {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px 16px 4px;
   margin: 0;
   flex-wrap: wrap;
@@ -893,6 +894,158 @@ body.first-use-shell--no-motion .demo-canvas {
 
 .chat-chips[hidden] {
   display: none;
+}
+
+/* ═══════════════════════════════════════════════════════
+   #1066: prioritized first-use entry panel + resident tasks
+   ═════════════════════════════════════════════════════ */
+
+/* Entry panel owns first use; it is the scrollable content region and yields
+   to #chat-thread during transitioning/split. The composer stays a sibling
+   outside the scroll region so it is always visible. */
+.chat-entry {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0 8px;
+}
+.chat-entry[hidden] {
+  display: none;
+}
+.chat-thread[hidden] {
+  display: none;
+}
+
+.chat-entry__intro {
+  padding: 4px 18px 8px;
+}
+.chat-entry__intro h2 {
+  margin: 0;
+  color: var(--first-use-navy);
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.chat-entry__intro p {
+  margin: 6px 0 0;
+  color: #4a5666;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.chat-task-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+}
+.chat-task-group[hidden] {
+  display: none;
+}
+.chat-task-group__title {
+  margin: 4px 0 2px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #8a93a3;
+}
+.chat-task-group--primary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.chat-task-group--secondary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.chat-task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  color: #0d0d0f;
+  background: #fff;
+  border: 1px solid #e6e6ea;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.chat-task:hover {
+  background: #fafafb;
+  border-color: #d0d0d5;
+}
+.chat-task:focus-visible {
+  outline: 3px solid #8dc7ef;
+  outline-offset: 2px;
+}
+.chat-task__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--first-use-blue), var(--first-use-teal));
+}
+.chat-task__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.chat-task__label {
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.chat-task__support {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: #8a93a3;
+  overflow-wrap: anywhere;
+}
+
+.chat-more-tasks {
+  align-self: flex-start;
+  margin: 2px 16px 0;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--first-use-blue);
+  background: rgba(12, 57, 117, 0.06);
+  border: 1px solid rgba(12, 57, 117, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.chat-more-tasks:hover {
+  background: rgba(12, 57, 117, 0.12);
+}
+.chat-more-tasks:focus-visible {
+  outline: 3px solid #8dc7ef;
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .chat-task-group--primary,
+  .chat-task-group--secondary {
+    grid-template-columns: 1fr;
+  }
+  .chat-entry__intro {
+    padding: 2px 16px 6px;
+  }
 }
 
 @media (max-width: 767px) {
