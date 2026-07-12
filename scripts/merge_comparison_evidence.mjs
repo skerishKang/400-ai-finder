@@ -75,6 +75,7 @@ function main() {
   if (base.methodology) {
     base.methodology = {
       ...base.methodology,
+      repetitions: 3,
       total_primary_runs: base.primary_runs.length,
       merge_info: {
         input_files: args.inputs,
@@ -91,8 +92,10 @@ function main() {
   const detRuns = allRecords.filter(r => r.mode === "deterministic");
   const paRuns = allRecords.filter(r => r.mode === "page_agent");
 
-  const elapsedDet = detRuns.filter(r => r.success).map(r => r.elapsed_ms).sort((a, b) => a - b);
-  const elapsedPa = paRuns.filter(r => r.success).map(r => r.elapsed_ms).sort((a, b) => a - b);
+  const elapsedDetAll = detRuns.map(r => r.elapsed_ms).sort((a, b) => a - b);
+  const elapsedPaAll = paRuns.map(r => r.elapsed_ms).sort((a, b) => a - b);
+  const elapsedDetSuccess = detRuns.filter(r => r.success).map(r => r.elapsed_ms).sort((a, b) => a - b);
+  const elapsedPaSuccess = paRuns.filter(r => r.success).map(r => r.elapsed_ms).sort((a, b) => a - b);
 
   // Reproducibility: group by (scenario_id, mode)
   const groups = {};
@@ -124,20 +127,24 @@ function main() {
         total: detRuns.length,
         successful: detRuns.filter(r => r.success).length,
         failed: detRuns.filter(r => !r.success).length,
-        median_elapsed_ms: median(elapsedDet),
-        min_elapsed_ms: elapsedDet.length > 0 ? elapsedDet[0] : 0,
-        max_elapsed_ms: elapsedDet.length > 0 ? elapsedDet[elapsedDet.length - 1] : 0,
-        median_action_step_count: median(detRuns.filter(r => r.success).map(r => r.action_step_count)),
+        median_elapsed_ms_all: median(elapsedDetAll),
+        median_elapsed_ms_success: median(elapsedDetSuccess),
+        min_elapsed_ms: elapsedDetAll.length > 0 ? elapsedDetAll[0] : 0,
+        max_elapsed_ms: elapsedDetAll.length > 0 ? elapsedDetAll[elapsedDetAll.length - 1] : 0,
+        median_action_step_count_all: median(detRuns.map(r => r.action_step_count)),
+        median_action_step_count_success: median(detRuns.filter(r => r.success).map(r => r.action_step_count)),
         total_wrong_route_actions: detRuns.reduce((s, r) => s + r.wrong_route_action_count, 0),
       },
       page_agent: {
         total: paRuns.length,
         successful: paRuns.filter(r => r.success).length,
         failed: paRuns.filter(r => !r.success).length,
-        median_elapsed_ms: median(elapsedPa),
-        min_elapsed_ms: elapsedPa.length > 0 ? elapsedPa[0] : 0,
-        max_elapsed_ms: elapsedPa.length > 0 ? elapsedPa[elapsedPa.length - 1] : 0,
-        median_action_step_count: median(paRuns.filter(r => r.success).map(r => r.action_step_count)),
+        median_elapsed_ms_all: median(elapsedPaAll),
+        median_elapsed_ms_success: median(elapsedPaSuccess),
+        min_elapsed_ms: elapsedPaAll.length > 0 ? elapsedPaAll[0] : 0,
+        max_elapsed_ms: elapsedPaAll.length > 0 ? elapsedPaAll[elapsedPaAll.length - 1] : 0,
+        median_action_step_count_all: median(paRuns.map(r => r.action_step_count)),
+        median_action_step_count_success: median(paRuns.filter(r => r.success).map(r => r.action_step_count)),
         total_wrong_route_actions: paRuns.reduce((s, r) => s + r.wrong_route_action_count, 0),
       },
     },

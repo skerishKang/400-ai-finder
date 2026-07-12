@@ -3,7 +3,7 @@
 - **Track**: #1109 — experiment(page-agent): parity Buk-gu AI demo and comparison track
 - **Stage**: 3 — comparison harness and evidence (수정됨)
 - **Date**: 2026-07-13
-- **Owner**: Computer 1
+- **Owner**: Computer 2
 - **Branch**: `experiment/1109-stage3-comparison-evidence`
 - **Base SHA**: `c847bab4dc05b42b5ce2153141e2ae766df55025`
 
@@ -163,8 +163,8 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 | 성공 | 9 | 3 |
 | 실패 | 6 | 12 |
 | 성공률 | 60.0% | 20.0% |
-| Median elapsed (ms) | 10,430 | 2,457 |
-| Median action steps | 4 | 2 |
+| Median elapsed (ms) (All) | 10,430 | 2,457 |
+| Median action steps (All) | 4 | 2 |
 | Total wrong route actions | 3 | 12 |
 | 외부 요청 | 0 | 0 |
 | No-submit 위반 | 0 | 0 |

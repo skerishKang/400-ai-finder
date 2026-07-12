@@ -296,15 +296,18 @@ class TestEvidenceSchema:
                 f"{sid}: expected {expected_count} pass criteria, got {actual_count}"
             )
 
-    def test_deterministic_action_step_count_nonzero(self):
-        """Deterministic mode should have action_step_count > 0 for scenarios with actions."""
+    def test_deterministic_action_step_count_matches_sequence(self):
+        """Deterministic mode should have action_step_count matching sequence excluding trivials."""
         runs = self.data["primary_runs"]
         det_runs = [r for r in runs if r["mode"] == "deterministic"]
         for r in det_runs:
-            assert r["action_step_count"] > 0, (
-                f"deterministic/{r['scenario_id']}/{r['attempt']}: action_step_count={r['action_step_count']}, "
-                f"should be > 0 (has actions)"
-            )
+            seq = r.get("action_sequence", [])
+            if len(seq) > 0:
+                non_trivial = [s for s in seq if s not in ("message", "", "noop")]
+                assert r["action_step_count"] == len(non_trivial), (
+                    f"deterministic/{r['scenario_id']}/{r['attempt']}: action_step_count={r['action_step_count']} "
+                    f"!= non_trivial count={len(non_trivial)}"
+                )
 
     def test_deterministic_total_engine_step_count_matches_action_sequence(self):
         """Deterministic total_engine_step_count should equal action_sequence length."""
@@ -354,21 +357,30 @@ class TestEvidenceSchema:
                 f"!= sum of runs={expected_total}"
             )
 
-    def test_aggregate_median_action_step_from_runs(self):
-        """Aggregate median_action_step_count should be computed from successful runs."""
+    def test_aggregate_median_metrics_from_runs(self):
+        """Aggregate medians should be computed for all and success."""
         runs = self.data["primary_runs"]
         aggregate = self.data["aggregate"]
         for mode_name in ("deterministic", "page_agent"):
-            mode_runs = [r for r in runs if r["mode"] == mode_name and r["success"]]
-            if mode_runs:
-                steps = sorted(r["action_step_count"] for r in mode_runs)
-                n = len(steps)
-                expected_median = steps[n // 2] if n % 2 else (steps[n // 2 - 1] + steps[n // 2]) / 2
-                actual_median = aggregate["by_mode"][mode_name]["median_action_step_count"]
-                assert actual_median == expected_median, (
-                    f"{mode_name}: aggregate median_action_step_count={actual_median} "
-                    f"!= expected={expected_median}"
-                )
+            mode_runs = [r for r in runs if r["mode"] == mode_name]
+            success_runs = [r for r in mode_runs if r["success"]]
+            
+            def compute_median(values):
+                if not values: return 0
+                s = sorted(values)
+                n = len(s)
+                return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2
+
+            expected_action_all = compute_median([r["action_step_count"] for r in mode_runs])
+            expected_action_success = compute_median([r["action_step_count"] for r in success_runs])
+            expected_elapsed_all = compute_median([r["elapsed_ms"] for r in mode_runs])
+            expected_elapsed_success = compute_median([r["elapsed_ms"] for r in success_runs])
+            
+            agg = aggregate["by_mode"][mode_name]
+            assert agg["median_action_step_count_all"] == expected_action_all
+            assert agg["median_action_step_count_success"] == expected_action_success
+            assert agg["median_elapsed_ms_all"] == expected_elapsed_all
+            assert agg["median_elapsed_ms_success"] == expected_elapsed_success
 
     def test_zero_external_requests(self):
         runs = self.data["primary_runs"]
@@ -434,7 +446,10 @@ class TestEvidenceSchema:
             assert "total" in m
             assert "successful" in m
             assert "failed" in m
-            assert "median_elapsed_ms" in m
+            assert "median_elapsed_ms_all" in m
+            assert "median_elapsed_ms_success" in m
+            assert "median_action_step_count_all" in m
+            assert "median_action_step_count_success" in m
             assert "total_wrong_route_actions" in m
 
     def test_no_winner_declaration(self):

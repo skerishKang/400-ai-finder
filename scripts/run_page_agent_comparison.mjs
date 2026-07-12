@@ -68,20 +68,48 @@ const PASS_CRITERIA_EVALUATORS = {
 };
 
 function routeMatches(expectedRoutes, contentKeywords) {
-  return (route, canvasText) => expectedRoutes.includes(route) || contentKeywords.some(kw => canvasText.includes(kw));
+  return (route, canvasText) => {
+    if (expectedRoutes.includes(route)) return { passed: true, excerpt: `route: ${route}` };
+    for (const kw of contentKeywords) {
+      if (canvasText.includes(kw)) {
+        const idx = canvasText.indexOf(kw);
+        const excerpt = canvasText.substring(Math.max(0, idx - 10), Math.min(canvasText.length, idx + kw.length + 10)).replace(/\n/g, " ").trim();
+        return { passed: true, excerpt: `text: "...${excerpt}..."` };
+      }
+    }
+    return { passed: false };
+  };
 }
 
 function textContains(keywords) {
-  return (route, canvasText) => keywords.some(kw => canvasText.includes(kw));
+  return (route, canvasText) => {
+    for (const kw of keywords) {
+      if (canvasText.includes(kw)) {
+        const idx = canvasText.indexOf(kw);
+        const excerpt = canvasText.substring(Math.max(0, idx - 10), Math.min(canvasText.length, idx + kw.length + 10)).replace(/\n/g, " ").trim();
+        return { passed: true, excerpt: `text: "...${excerpt}..."` };
+      }
+    }
+    return { passed: false };
+  };
 }
 
 function textExcludes(keywords) {
-  return (route, canvasText) => !keywords.some(kw => canvasText.includes(kw));
+  return (route, canvasText) => {
+    for (const kw of keywords) {
+      if (canvasText.includes(kw)) {
+        return { passed: false };
+      }
+    }
+    return { passed: true, excerpt: "keywords excluded" };
+  };
 }
 
 function noSubmitCheck() {
   // Evaluated against (route, canvasText, noSubmitPreserved) triple
-  return (route, canvasText, noSubmitPreserved) => noSubmitPreserved === true;
+  return (route, canvasText, noSubmitPreserved) => {
+    return { passed: noSubmitPreserved === true, excerpt: noSubmitPreserved ? "no submit detected" : "submit detected" };
+  };
 }
 
 const KNOWN_BROWSER_PATHS = [
@@ -252,8 +280,9 @@ function evaluatePassCriteria(scenarioId, canvasRoute, canvasText, noSubmitPrese
   if (!evaluators) return [];
   return evaluators.map((ev, i) => {
     try {
-      const passed = ev.check(canvasRoute, canvasText, noSubmitPreserved);
-      const evidence = passed ? "passed"
+      const result = ev.check(canvasRoute, canvasText, noSubmitPreserved);
+      const passed = result.passed;
+      const evidence = passed ? `passed: ${result.excerpt}`
         : `failed: route=${canvasRoute} no_submit=${noSubmitPreserved}`;
       return { criterion: ev.label, passed, evidence };
     } catch (e) {
@@ -309,13 +338,24 @@ function makeErrorTracker(baseUrl) {
   return { baseUrl, nonLocal: [], consoleErrors: [], warnings: [], pageErrors: [], requestFailures: [] };
 }
 
-function setupErrorTracking(page, tracker) {
+async function setupErrorTracking(page, tracker) {
+  await page.addInitScript(() => {
+    window._formSubmitted = false;
+    document.addEventListener("submit", () => {
+      window._formSubmitted = true;
+    }, true);
+  });
   page.on("request", (r) => {
     if (r.url().startsWith("data:")) return;
     const u = r.url();
     const isLocal = LOCAL_HOSTS.has(new URL(u).hostname);
     if (!isLocal) {
       tracker.nonLocal.push({ url: u, method: r.method() });
+    }
+  });
+  page.on("response", (res) => {
+    if (res.status() === 404) {
+      tracker.pageErrors.push(`404 Not Found: ${res.url()}`);
     }
   });
   page.on("requestfailed", (req) => {
@@ -439,10 +479,11 @@ async function collectDeterministicMetrics(page, scenarioId, record) {
   record.final_route = canvasRoute;
   record.final_surface = canvasRoute;
 
-  // No-submit: check state machine + DOM badge
+  // No-submit: check state machine + DOM badge + form submission
+  const formSubmitted = await page.evaluate(() => window._formSubmitted);
   const safeStates = ["done", "waiting_choice", "waiting_confirmation", "cancelled"];
-  record.no_submit_preserved = safeStates.includes(choreoState.state);
-  if (!record.no_submit_preserved && noSubmitBadge) {
+  record.no_submit_preserved = !formSubmitted && safeStates.includes(choreoState.state);
+  if (!record.no_submit_preserved && !formSubmitted && noSubmitBadge) {
     record.no_submit_preserved = true;
   }
 
@@ -571,8 +612,9 @@ async function collectResidentMetrics(page, scenarioId, record) {
   record.final_route = canvasRoute;
   record.final_surface = canvasRoute;
 
-  // Page Agent mode: check DOM badge for no-submit
-  record.no_submit_preserved = noSubmitBadge;
+  // Page Agent mode: check DOM badge for no-submit and actual submission
+  const formSubmitted = await page.evaluate(() => window._formSubmitted);
+  record.no_submit_preserved = !formSubmitted && noSubmitBadge;
 
   // Wrong route action count: 1 if final route != expected route
   record.wrong_route_action_count = (expectedRoute && canvasRoute !== expectedRoute) ? 1 : 0;
@@ -810,7 +852,7 @@ async function main() {
           try {
             ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
             page = await ctx.newPage();
-            setupErrorTracking(page, tracker);
+            await setupErrorTracking(page, tracker);
 
             await waitForDeterministicPage(page, deterministicRoute);
 
@@ -871,7 +913,7 @@ async function main() {
           try {
             ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
             page = await ctx.newPage();
-            setupErrorTracking(page, tracker);
+            await setupErrorTracking(page, tracker);
 
             await page.evaluate(() => {
               const m = window.PageAgentMockModel;
@@ -997,8 +1039,10 @@ async function main() {
     const detRuns = allRecords.filter(r => r.mode === "deterministic");
     const paRuns = allRecords.filter(r => r.mode === "page_agent");
 
-    const elapsedDet = detRuns.filter(r => r.success).map(r => r.elapsed_ms).sort((a, b) => a - b);
-    const elapsedPa = paRuns.filter(r => r.success).map(r => r.elapsed_ms).sort((a, b) => a - b);
+    const elapsedDetAll = detRuns.map(r => r.elapsed_ms).sort((a, b) => a - b);
+    const elapsedPaAll = paRuns.map(r => r.elapsed_ms).sort((a, b) => a - b);
+    const elapsedDetSuccess = detRuns.filter(r => r.success).map(r => r.elapsed_ms).sort((a, b) => a - b);
+    const elapsedPaSuccess = paRuns.filter(r => r.success).map(r => r.elapsed_ms).sort((a, b) => a - b);
 
     function median(arr) { if (!arr.length) return 0; const m = Math.floor(arr.length / 2); return arr.length % 2 ? arr[m] : (arr[m - 1] + arr[m]) / 2; }
 
@@ -1038,20 +1082,24 @@ async function main() {
             total: detRuns.length,
             successful: detRuns.filter(r => r.success).length,
             failed: detRuns.filter(r => !r.success).length,
-            median_elapsed_ms: median(elapsedDet),
-            min_elapsed_ms: elapsedDet.length > 0 ? elapsedDet[0] : 0,
-            max_elapsed_ms: elapsedDet.length > 0 ? elapsedDet[elapsedDet.length - 1] : 0,
-            median_action_step_count: median(detRuns.filter(r => r.success).map(r => r.action_step_count)),
+            median_elapsed_ms_all: median(elapsedDetAll),
+            median_elapsed_ms_success: median(elapsedDetSuccess),
+            min_elapsed_ms: elapsedDetAll.length > 0 ? elapsedDetAll[0] : 0,
+            max_elapsed_ms: elapsedDetAll.length > 0 ? elapsedDetAll[elapsedDetAll.length - 1] : 0,
+            median_action_step_count_all: median(detRuns.map(r => r.action_step_count)),
+            median_action_step_count_success: median(detRuns.filter(r => r.success).map(r => r.action_step_count)),
             total_wrong_route_actions: detRuns.reduce((s, r) => s + r.wrong_route_action_count, 0),
           },
           page_agent: {
             total: paRuns.length,
             successful: paRuns.filter(r => r.success).length,
             failed: paRuns.filter(r => !r.success).length,
-            median_elapsed_ms: median(elapsedPa),
-            min_elapsed_ms: elapsedPa.length > 0 ? elapsedPa[0] : 0,
-            max_elapsed_ms: elapsedPa.length > 0 ? elapsedPa[elapsedPa.length - 1] : 0,
-            median_action_step_count: median(paRuns.filter(r => r.success).map(r => r.action_step_count)),
+            median_elapsed_ms_all: median(elapsedPaAll),
+            median_elapsed_ms_success: median(elapsedPaSuccess),
+            min_elapsed_ms: elapsedPaAll.length > 0 ? elapsedPaAll[0] : 0,
+            max_elapsed_ms: elapsedPaAll.length > 0 ? elapsedPaAll[elapsedPaAll.length - 1] : 0,
+            median_action_step_count_all: median(paRuns.map(r => r.action_step_count)),
+            median_action_step_count_success: median(paRuns.filter(r => r.success).map(r => r.action_step_count)),
             total_wrong_route_actions: paRuns.reduce((s, r) => s + r.wrong_route_action_count, 0),
           },
         },
@@ -1070,12 +1118,20 @@ async function main() {
     if (failRuns.length > 0) {
       console.log(`\n  ⚠ ${failRuns.length} runs failed`);
     }
+    if (hasStall || allRecords.length < SCENARIO_IDS.length * 2 * repetitions) {
+      console.log(`\n  ⚠ stall: ${hasStall}, short count: ${allRecords.length < SCENARIO_IDS.length * 2 * repetitions}`);
+      hasViolation = true;
+    }
 
     const allBoundarySafe = boundaryResults.every(r => {
       if (r.probe === "unsupported_prompt" && r.mode === "page_agent") return r.safe !== false;
       if (r.probe === "unsupported_prompt" && r.mode === "deterministic") return !r.has_journey;
       return true;
     });
+    if (!allBoundarySafe) {
+      console.log("\n  ✈ BOUNDARY VIOLATION DETECTED — violation");
+      hasViolation = true;
+    }
 
     const allNoExternal = allRecords.every(r => r.external_request_count === 0);
     const allNoSubmit = allRecords.every(r => r.no_submit_preserved !== false);
