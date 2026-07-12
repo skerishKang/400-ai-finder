@@ -859,6 +859,209 @@ async function main() {
     const page = await context.newPage();
     page.on("pageerror", (err) => failures.push("pageerror: " + err.message));
 
+    // ── #1116 Stage A: mobile conversation/guidance surface ──────────
+    // Drives the REAL shell on ≤767px viewports: submit a supported
+    // question → confirm → assert the surface switch appears, the guidance
+    // surface (canonical #demo-canvas) becomes active, and the composer
+    // keyboard is closed before navigation. Runs BEFORE the browser/
+    // context is closed (below), while the browser is still alive, and as
+    // a separate pass so the strict geometry/focus matrix stays untouched.
+    const mobileViewports = VIEWPORTS.filter((v) => v.width <= 767);
+    if (mobileViewports.length) {
+      console.log("\nRunning #1116 Stage A mobile surface scenario:");
+      try {
+        const surfCtx = await browser.newContext({
+          viewport: mobileViewports[0],
+        });
+        const allowedOrigin2 = new URL(base).origin;
+        await surfCtx.route("**", (route) => {
+          const requestUrl = new URL(route.request().url());
+          if (requestUrl.origin === allowedOrigin2) {
+            return route.continue();
+          }
+          return route.abort();
+        });
+        const sp = await surfCtx.newPage();
+        sp.on("pageerror", (err) =>
+          failures.push("stageA pageerror: " + err.message),
+        );
+
+        for (const vp of mobileViewports) {
+          try {
+            await sp.setViewportSize({ width: vp.width, height: vp.height });
+            await sp.goto(base, { waitUntil: "domcontentloaded" });
+            await sp.waitForSelector(".chat-shell", { timeout: 10000 });
+
+            // 1) entry: switch hidden, conversation default surface.
+            const entryState = await sp.evaluate(() => {
+              const sw = document.getElementById("mobile-surface-switch");
+              return {
+                switchHidden: !!sw && sw.hasAttribute("hidden"),
+                state: document.body.getAttribute("data-first-use-state"),
+              };
+            });
+            assert.ok(
+              entryState.switchHidden,
+              `stageA ${vp.width}x${vp.height}: mobile switch must be hidden on entry`,
+            );
+
+            // 2) submit a supported question (non-MVP, deterministic).
+            await sp.fill(".chat-composer__input", "불법 주정차 신고는 어디서 하나요?");
+            await sp.click(".chat-composer__send");
+
+            // Wait for the cinematic split to complete and the shell to
+            // expose the mobile surface switch.
+            await sp.waitForFunction(
+              () => {
+                const sw = document.getElementById("mobile-surface-switch");
+                return sw && !sw.hasAttribute("hidden");
+              },
+              { timeout: 8000 },
+            );
+
+            const splitState = await sp.evaluate(() => {
+              const sw = document.getElementById("mobile-surface-switch");
+              const tabC = document.getElementById("tab-conversation");
+              const tabG = document.getElementById("tab-guidance");
+              const canvas = document.getElementById("demo-canvas");
+              const cs = getComputedStyle(canvas);
+              return {
+                switchVisible: !!sw && !sw.hasAttribute("hidden"),
+                role: sw ? sw.getAttribute("role") : null,
+                tabCSelected: tabC
+                  ? tabC.getAttribute("aria-selected")
+                  : null,
+                tabGSelected: tabG
+                  ? tabG.getAttribute("aria-selected")
+                  : null,
+                canvasDisplay: cs.display,
+                surface: document.body.getAttribute("data-mobile-surface"),
+              };
+            });
+            assert.equal(
+              splitState.role,
+              "tablist",
+              `stageA ${vp.width}x${vp.height}: switch must be role=tablist`,
+            );
+            assert.equal(
+              splitState.tabCSelected,
+              "true",
+              `stageA ${vp.width}x${vp.height}: conversation tab selected at split`,
+            );
+            assert.equal(
+              splitState.tabGSelected,
+              "false",
+              `stageA ${vp.width}x${vp.height}: guidance tab not selected at split`,
+            );
+
+            // 3) confirm-run bubble → press 예, 안내해 주세요.
+            const yesBtn = await sp
+              .waitForSelector(
+                '.chat-msg--confirm-run button:has-text("예, 안내해 주세요")',
+                { timeout: 8000 },
+              )
+              .catch(() => null);
+            assert.ok(
+              yesBtn,
+              `stageA ${vp.width}x${vp.height}: confirm-run button not found`,
+            );
+            if (yesBtn) {
+              await yesBtn.click();
+              // After confirm: guidance surface active, composer blurred.
+              await sp
+                .waitForFunction(
+                  () =>
+                    document.body.getAttribute("data-mobile-surface") === "guidance",
+                  { timeout: 8000 },
+                )
+                .catch(() => {});
+              const afterConfirm = await sp.evaluate(() => {
+                const tabC = document.getElementById("tab-conversation");
+                const tabG = document.getElementById("tab-guidance");
+                const canvas = document.getElementById("demo-canvas");
+                const cs = getComputedStyle(canvas);
+                const active = document.activeElement;
+                const editable =
+                  !!active &&
+                  (active.matches(
+                    "input, textarea, [contenteditable='true']",
+                  ) ||
+                    active.isContentEditable);
+                return {
+                  surface: document.body.getAttribute("data-mobile-surface"),
+                  tabCSelected: tabC
+                    ? tabC.getAttribute("aria-selected")
+                    : null,
+                  tabGSelected: tabG
+                    ? tabG.getAttribute("aria-selected")
+                    : null,
+                  canvasDisplay: cs.display,
+                  composerEditableFocused: editable,
+                };
+              });
+              assert.equal(
+                afterConfirm.surface,
+                "guidance",
+                `stageA ${vp.width}x${vp.height}: guidance surface active after confirm`,
+              );
+              assert.equal(
+                afterConfirm.tabGSelected,
+                "true",
+                `stageA ${vp.width}x${vp.height}: guidance tab selected after confirm`,
+              );
+              assert.equal(
+                afterConfirm.canvasDisplay,
+                "flex",
+                `stageA ${vp.width}x${vp.height}: canonical #demo-canvas visible as guidance`,
+              );
+              assert.equal(
+                afterConfirm.composerEditableFocused,
+                false,
+                `stageA ${vp.width}x${vp.height}: composer keyboard closed before navigation`,
+              );
+            }
+
+            // 4) return to conversation preserves chat state (canonical DOM).
+            const tabC2 = await sp.$("#tab-conversation");
+            if (tabC2) {
+              await tabC2.click();
+              const back = await sp.evaluate(() => {
+                const tabC = document.getElementById("tab-conversation");
+                return {
+                  surface: document.body.getAttribute("data-mobile-surface"),
+                  tabCSelected: tabC
+                    ? tabC.getAttribute("aria-selected")
+                    : null,
+                };
+              });
+              assert.equal(
+                back.surface,
+                "conversation",
+                `stageA ${vp.width}x${vp.height}: returns to conversation`,
+              );
+              assert.equal(
+                back.tabCSelected,
+                "true",
+                `stageA ${vp.width}x${vp.height}: conversation tab reselected`,
+              );
+            }
+
+            console.log(
+              `  [${vp.width}x${vp.height}] stageA surface=PASS`,
+            );
+          } catch (err) {
+            failures.push(
+              `stageA viewport=${vp.width}x${vp.height}: ${err.message}`,
+            );
+          }
+        }
+        await sp.close();
+        await surfCtx.close();
+      } catch (err) {
+        failures.push(`stageA setup: ${err.message}`);
+      }
+    }
+
     for (const vp of VIEWPORTS) {
       for (const state of STATES) {
         try {

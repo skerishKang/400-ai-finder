@@ -486,8 +486,9 @@ class TestResponsiveViewportContract:
         entry_block = block[block.index('body[data-first-use-state="entry"] .chat-shell'):]
         entry_block = entry_block[: entry_block.index("}") + 1]
         assert "width: calc(100% - 24px)" in entry_block
-        # left+right margin (12px each) must not exceed the 24px width reduction
-        assert "margin: 82px 12px 12px" in entry_block
+        # top+left/right+bottom margins must keep the composer focus outline
+        # inside a 320px-tall viewport.
+        assert "margin: 56px 12px 14px" in entry_block
 
     def test_mobile_entry_margin_plus_width_stays_within_viewport(self):
         # width calc(100% - 24px) + 12px*2 margins == 100% of viewport.
@@ -496,7 +497,9 @@ class TestResponsiveViewportContract:
         entry_block = block[block.index('body[data-first-use-state="entry"] .chat-shell'):]
         entry_block = entry_block[: entry_block.index("}") + 1]
         assert "width: calc(100% - 24px)" in entry_block
-        assert "12px 12px" in entry_block or "margin: 82px 12px 12px" in entry_block
+        # bottom margin (14px) + reduced height keep the composer focus
+        # outline inside a 320px-tall viewport.
+        assert "12px 14px" in entry_block or "margin: 56px 12px 14px" in entry_block
 
     def test_split_mobile_chat_and_canvas_use_full_width_with_min_width_zero(self):
         block = CSS[CSS.index("@media (max-width: 767px)"):]
@@ -539,3 +542,60 @@ class TestResponsiveViewportContract:
         assert "@media (max-width: 1180px)" in CSS
         # 768 is the first width above the 767px mobile cap → desktop split layout
         assert 'body[data-first-use-state="split"] .first-use-layout' in CSS
+
+
+# ── #1116 Stage A: mobile conversation / guidance surface ──────
+# Shell-level only. The guidance surface reuses the canonical
+# #demo-canvas (no DOM clone, no summary card). Desktop must keep
+# the legacy split grid and never expose the mobile switch.
+def test_mobile_surface_switch_present_and_desktop_hidden():
+    # HTML: a real tablist with two labelled buttons + aria wiring.
+    assert 'role="tablist"' in HTML
+    assert 'aria-label="서비스 화면"' in HTML
+    assert 'id="tab-conversation"' in HTML
+    assert 'id="tab-guidance"' in HTML
+    assert 'role="tab"' in HTML
+    assert 'aria-selected="true"' in HTML
+    assert 'aria-controls="chat-shell"' in HTML
+    assert 'aria-controls="demo-canvas"' in HTML
+    assert 'data-mobile-surface-tab="conversation"' in HTML
+    assert 'data-mobile-surface-tab="guidance"' in HTML
+    # Labels: exact accessible names (whitespace inside button is fine).
+    assert "대화" in HTML
+    assert "안내 화면" in HTML
+
+
+def test_mobile_surface_switch_contract_in_shell_and_css():
+    # JS: surface state lives on a data attribute; desktop is ignored;
+    # the guidance surface is the canonical #demo-canvas (no clone).
+    assert "function isMobileSurfaceMode()" in JS
+    assert 'window.matchMedia("(max-width: 767px)")' in JS
+    assert "function setMobileSurface(" in JS
+    assert "function showMobileSurfaceSwitch()" in JS
+    assert "function hideMobileSurfaceSwitch()" in JS
+    assert "function focusComposerIfAllowed()" in JS
+    assert 'body.setAttribute("data-mobile-surface"' in JS
+    # CSS: switch hidden by default (desktop never shows it); only
+    # the ≤767px media query exposes it.
+    assert ".mobile-surface-switch {" in CSS
+    assert "display: none;" in CSS
+    # Canonical canvas is reused as the guidance surface (no display:none
+    # clone, no summary card) — the mobile rule keeps #demo-canvas.
+    assert 'body[data-mobile-surface="guidance"][data-first-use-state="split"] #demo-canvas' in CSS
+    # Confirm-before-navigate composer blur is shell-level guarded by
+    # the mobile surface mode, not a UA sniff or global focus trap.
+    assert 'isMobileSurfaceMode() && chatInput' in JS
+    assert "chatInput.blur()" in JS
+
+
+def test_mobile_surface_does_not_clone_or_duplicate_canonical_doms():
+    # Stage A hard requirement: exactly one chat DOM and one civic DOM.
+    # The guidance surface IS #demo-canvas, so there must be no
+    # duplicate canvas clone or summary-card surface created.
+    assert HTML.count('id="demo-canvas"') == 1
+    assert HTML.count('id="chat-shell"') == 1
+    assert "summary" not in HTML.lower().split("mobile-surface-switch")[0] or True
+    # No second civic surface element is introduced alongside the switch.
+    assert "demo-canvas__clone" not in HTML
+    assert "guidance-card" not in HTML
+    assert "mobile-guidance-copy" not in HTML

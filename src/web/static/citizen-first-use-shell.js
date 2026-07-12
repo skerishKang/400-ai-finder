@@ -343,6 +343,74 @@
     }
   }
 
+  // ── Mobile surface switch (Stage A, shell-level only) ──────────────
+  // Exposes an explicit conversation / guidance surface on mobile. The
+  // guidance surface reuses the canonical #demo-canvas (no DOM clone,
+  // no summary card). Desktop ignores this entirely.
+  var mobileSurfaceSwitch = document.getElementById("mobile-surface-switch");
+  var tabConversation = document.getElementById("tab-conversation");
+  var tabGuidance = document.getElementById("tab-guidance");
+
+  function isMobileSurfaceMode() {
+    // Judged from the APPLIED responsive breakpoint (CSS media query
+    // match), NOT a user-agent string. Matches the @media (max-width:
+    // 767px) rule that switches the shell to the mobile column layout.
+    try {
+      return !!window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function setMobileSurface(surface) {
+    if (!isMobileSurfaceMode()) {
+      // Desktop: the switch is hidden and never drives layout.
+      return;
+    }
+    if (body) {
+      body.setAttribute("data-mobile-surface", surface);
+    }
+    if (tabConversation) {
+      tabConversation.setAttribute(
+        "aria-selected",
+        surface === "conversation" ? "true" : "false"
+      );
+    }
+    if (tabGuidance) {
+      tabGuidance.setAttribute(
+        "aria-selected",
+        surface === "guidance" ? "true" : "false"
+      );
+    }
+  }
+
+  function showMobileSurfaceSwitch() {
+    if (mobileSurfaceSwitch && isMobileSurfaceMode()) {
+      mobileSurfaceSwitch.removeAttribute("hidden");
+    }
+  }
+
+  function hideMobileSurfaceSwitch() {
+    if (mobileSurfaceSwitch) {
+      mobileSurfaceSwitch.setAttribute("hidden", "");
+    }
+    if (body) {
+      body.removeAttribute("data-mobile-surface");
+    }
+  }
+
+  function focusComposerIfAllowed() {
+    // Shell-level composer focus guard: on mobile the conversation/
+    // guidance switch owns visibility, so the shell must NOT pull focus
+    // back into the composer during automated journey transitions,
+    // after journey completion, or after reset. Explicit user taps still
+    // focus (handled by the browser natively). Desktop keyboard
+    // behavior is preserved.
+    if (chatInput && !isMobileSurfaceMode()) {
+      chatInput.focus();
+    }
+  }
+
   // ── Static Bukgu Homepage Fixture ───────────────────────────────────
   // Renders the Bukgu Office main portal layout as a static fixture for the
   // initial left surface (first visible canvas content on split).
@@ -586,6 +654,7 @@
       if (chipsContainer) {
         chipsContainer.hidden = false;
       }
+      hideMobileSurfaceSwitch();
       return;
     }
 
@@ -598,6 +667,7 @@
       if (chipsContainer) {
         chipsContainer.hidden = true;
       }
+      hideMobileSurfaceSwitch();
       return;
     }
 
@@ -609,6 +679,9 @@
     if (chipsContainer) {
       chipsContainer.hidden = false;
     }
+    // Mobile: expose the conversation/guidance switch once split is live.
+    showMobileSurfaceSwitch();
+    setMobileSurface("conversation");
   }
 
   function clearChatMotionStyles() {
@@ -869,6 +942,12 @@
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      // Mobile: switch the active surface to guidance BEFORE the
+      // scripted navigation starts, and close the composer keyboard.
+      if (isMobileSurfaceMode() && chatInput) {
+        chatInput.blur();
+      }
+      setMobileSurface("guidance");
       startChoreography(question);
     });
 
@@ -927,6 +1006,12 @@
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      // Mobile: switch to guidance + close composer keyboard before
+      // the scripted navigation starts.
+      if (isMobileSurfaceMode() && chatInput) {
+        chatInput.blur();
+      }
+      setMobileSurface("guidance");
       if (window.CitizenFirstChoreography && action) {
         window.CitizenFirstChoreography.start(action);
       }
@@ -1167,7 +1252,7 @@
       if (window.CitizenFirstChoreography && action) {
         showConfirmRunForAction(action);
       }
-      if (chatInput) chatInput.focus();
+      focusComposerIfAllowed();
     }, 220);
   }
 
@@ -1203,7 +1288,9 @@
     renderEntryConversation();
     if (chatInput) {
       chatInput.value = "";
-      chatInput.focus();
+      // Only refocus on desktop; on mobile the surface switch owns
+      // visibility and must NOT auto-focus the composer after reset.
+      focusComposerIfAllowed();
     }
     window.requestAnimationFrame(function () {
       body.classList.remove("first-use-shell--no-motion");
@@ -1216,6 +1303,30 @@
 
   if (resetButton) {
     resetButton.addEventListener("click", resetToEntry);
+  }
+
+  // Mobile surface tabs: switch the active surface. State (chat, route,
+  // prefilled values, confirmation, journey, cursor) is preserved because
+  // the canonical chat DOM and canonical civic DOM are never cloned.
+  function handleSurfaceTabClick(targetSurface) {
+    if (!isMobileSurfaceMode()) {
+      return;
+    }
+    if (targetSurface === "conversation") {
+      setMobileSurface("conversation");
+    } else if (targetSurface === "guidance") {
+      setMobileSurface("guidance");
+    }
+  }
+  if (tabConversation) {
+    tabConversation.addEventListener("click", function () {
+      handleSurfaceTabClick("conversation");
+    });
+  }
+  if (tabGuidance) {
+    tabGuidance.addEventListener("click", function () {
+      handleSurfaceTabClick("guidance");
+    });
   }
 
   // #965: chip click → submit question
