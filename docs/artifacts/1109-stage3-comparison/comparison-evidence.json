@@ -1,0 +1,1879 @@
+{
+  "schema_version": "1.0.0",
+  "track": "1109-page-agent-comparison",
+  "generated_at": "2026-07-12T18:56:01.297Z",
+  "methodology": {
+    "description": "Browser-based comparison harness executing the 5 parity scenarios from parity-contract.json in both modes against the same controlled same-origin civic canvas.",
+    "modes": [
+      {
+        "id": "deterministic",
+        "label": "정밀 구현형 AI 북구청",
+        "route": "mvp/",
+        "engine": "handcrafted deterministic choreography (CitizenFirstChoreography)"
+      },
+      {
+        "id": "page_agent",
+        "label": "Page Agent형 AI 북구청",
+        "route": "examples/page-agent/resident/",
+        "engine": "vendored Page Agent runtime with deterministic resident mock adapter"
+      }
+    ],
+    "scenarios": [
+      {
+        "id": "apartment_contact",
+        "resident_request": "공동주택과 연락처 찾아줘",
+        "category": "information_lookup"
+      },
+      {
+        "id": "bulky_waste_menu",
+        "resident_request": "대형폐기물 신청 메뉴 찾아줘",
+        "category": "menu_navigation"
+      },
+      {
+        "id": "passport_procedure",
+        "resident_request": "여권 발급 절차를 찾아줘",
+        "category": "procedure_navigation"
+      },
+      {
+        "id": "complaint_screen",
+        "resident_request": "민원 작성 화면을 열어줘",
+        "category": "form_assist"
+      },
+      {
+        "id": "mayor_proposal_writing",
+        "resident_request": "구청장에게 제안할 글 작성을 도와줘",
+        "category": "writing_assist"
+      }
+    ],
+    "repetitions": 3,
+    "total_primary_runs": 30,
+    "browser": {
+      "source": "channel: chrome",
+      "version": "150.0.7871.102"
+    },
+    "shared_invariants": [
+      "same resident-oriented task vocabulary",
+      "same left civic-site / right assistant mental model",
+      "comparable desktop and mobile presentation",
+      "same target pages and task completion definitions",
+      "same official-submission boundary",
+      "visible progress and failure states",
+      "no automatic final submission, payment, or irreversible action"
+    ],
+    "no_submit_boundary": {
+      "note": "Both modes must stop before any official submission. They may observe, navigate, fill a draft, and report; they must never submit, pay, authenticate, or transmit personal information.",
+      "forbidden_actions": [
+        "real form submission / final submit click on an official form",
+        "payment or any monetary transaction",
+        "credential or login entry",
+        "personal-data (PII) transmission",
+        "external-domain navigation away from the controlled same-origin civic canvas",
+        "arbitrary model-generated JavaScript execution",
+        "destructive or irreversible actions",
+        "multi-tab or browser-extension control"
+      ],
+      "allowed_actions": [
+        "click",
+        "input/type",
+        "select",
+        "scroll",
+        "read/result extraction",
+        "same-origin internal navigation"
+      ]
+    },
+    "limitations": [
+      "Deterministic mode includes intentional UI animation delays (thinking text, cursor, typing simulation) that inflate elapsed_ms relative to page_agent mode.",
+      "Page Agent mode uses a deterministic resident mock adapter, not a real LLM. Results reflect orchestration structure and current demo implementation, not LLM quality/cost/latency.",
+      "Action step counting differs between modes due to different orchestration patterns (choreography steps vs Page Agent tool calls).",
+      "Deterministic trigger texts differ from canonical parity texts; see actual_trigger field per scenario.",
+      "Cancellation probe in deterministic mode uses choreography API directly (cancel button not exposed in MVP shell)."
+    ],
+    "merge_info": {
+      "input_files": [
+        "docs/artifacts/1109-stage3-comparison/shard1.json",
+        "docs/artifacts/1109-stage3-comparison/shard2.json",
+        "docs/artifacts/1109-stage3-comparison/shard3.json"
+      ],
+      "shard_count": 3,
+      "merged_at": "2026-07-12T18:56:01.297Z"
+    }
+  },
+  "primary_runs": [
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "apartment_contact",
+      "category": "information_lookup",
+      "mode": "deterministic",
+      "attempt": 1,
+      "canonical_request": "공동주택과 연락처 찾아줘",
+      "actual_trigger": "housing_department",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "apartment-dept",
+      "final_surface": "apartment-dept",
+      "expected_outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "공동주택 안내 영역 노출",
+          "passed": true,
+          "evidence": "passed: route: apartment-dept"
+        },
+        {
+          "criterion": "담당 부서/연락처 정보 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...부서 데이터정보과 연락처 062-410-8...\""
+        },
+        {
+          "criterion": "오류 없이 정보 채워짐",
+          "passed": true,
+          "evidence": "passed: keywords excluded"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 7,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "click:[data-dept-action=\"open-menu\"]",
+        "click:[data-dept-action=\"go-directory\"]",
+        "type+focusSearch",
+        "click:.bg-dept-search__btn+submitSearch",
+        "message",
+        "message"
+      ],
+      "elapsed_ms": 17685,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "apartment_contact",
+      "category": "information_lookup",
+      "mode": "page_agent",
+      "attempt": 1,
+      "canonical_request": "공동주택과 연락처 찾아줘",
+      "actual_trigger": "공동주택과 연락처 찾아줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "공동주택 안내 영역 노출",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "담당 부서/연락처 정보 표시",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "오류 없이 정보 채워짐",
+          "passed": true,
+          "evidence": "passed: keywords excluded"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1934,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|apartment_contact|false||official-content|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "bulky_waste_menu",
+      "category": "menu_navigation",
+      "mode": "deterministic",
+      "attempt": 1,
+      "canonical_request": "대형폐기물 신청 메뉴 찾아줘",
+      "actual_trigger": "bulky_waste",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "bulky-waste-disposal",
+      "final_surface": "bulky-waste-disposal",
+      "expected_outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함",
+      "pass_criteria_results": [
+        {
+          "criterion": "대형폐기물 화면 열림",
+          "passed": true,
+          "evidence": "passed: route: bulky-waste-disposal"
+        },
+        {
+          "criterion": "안내 텍스트 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...통합검색 전체메뉴 대형폐기물 배출방법 홈 ›...\""
+        },
+        {
+          "criterion": "실제 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 4,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "route:bulky-waste-disposal",
+        "target:bulky-waste-guidance-card",
+        "message"
+      ],
+      "elapsed_ms": 5511,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|bulky_waste_menu|true|done|bulky-waste-disposal|true|0|0|message,route:bulky-waste-disposal,target:bulky-waste-guidance-card,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "bulky_waste_menu",
+      "category": "menu_navigation",
+      "mode": "page_agent",
+      "attempt": 1,
+      "canonical_request": "대형폐기물 신청 메뉴 찾아줘",
+      "actual_trigger": "대형폐기물 신청 메뉴 찾아줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함",
+      "pass_criteria_results": [
+        {
+          "criterion": "대형폐기물 화면 열림",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "안내 텍스트 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...색 전체메뉴 민원 신청  북구청 주요 민...\""
+        },
+        {
+          "criterion": "실제 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1980,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|bulky_waste_menu|false||official-content|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "passport_procedure",
+      "category": "procedure_navigation",
+      "mode": "deterministic",
+      "attempt": 1,
+      "canonical_request": "여권 발급 절차를 찾아줘",
+      "actual_trigger": "passport_guidance",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "passport-guidance",
+      "final_surface": "passport-guidance",
+      "expected_outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "여권 절차 안내 화면/정보 표시",
+          "passed": true,
+          "evidence": "passed: route: passport-guidance"
+        },
+        {
+          "criterion": "구비서류/절차 단계 노출",
+          "passed": true,
+          "evidence": "passed: text: \"...00 휴무) 발급 구비서류 여권 발급 신청서...\""
+        },
+        {
+          "criterion": "실제 여권 신청 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 6,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "target:nav-civil-service",
+        "route:civil-service",
+        "route:passport-guidance",
+        "target:passport-guidance-card",
+        "message"
+      ],
+      "elapsed_ms": 10498,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|passport_procedure|true|done|passport-guidance|true|0|0|message,target:nav-civil-service,route:civil-service,route:passport-guidance,target:passport-guidance-card,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "passport_procedure",
+      "category": "procedure_navigation",
+      "mode": "page_agent",
+      "attempt": 1,
+      "canonical_request": "여권 발급 절차를 찾아줘",
+      "actual_trigger": "여권 발급 절차를 찾아줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "여권 절차 안내 화면/정보 표시",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "구비서류/절차 단계 노출",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "실제 여권 신청 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1942,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|passport_procedure|false||official-content|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "complaint_screen",
+      "category": "form_assist",
+      "mode": "deterministic",
+      "attempt": 1,
+      "canonical_request": "민원 작성 화면을 열어줘",
+      "actual_trigger": "streetlight_report",
+      "success": true,
+      "terminal_state": "waiting_confirmation",
+      "final_route": "complaint-write",
+      "final_surface": "complaint-write",
+      "expected_outcome": "민원 작성 화면이 열리고(필요시 입력 필드가 식별됨) 작성 보조가 제공됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "민원 작성 화면 열림",
+          "passed": true,
+          "evidence": "passed: route: complaint-write"
+        },
+        {
+          "criterion": "입력 필드/영역 식별됨",
+          "passed": true,
+          "evidence": "passed: text: \"...면 접수에 필요한 제목과 본문으로 정리합...\""
+        },
+        {
+          "criterion": "임의 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 7,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "route:complaint-board",
+        "click:#btn-board-write+routeAfterClick:complaint-write",
+        "type+focusSearch",
+        "type",
+        "message",
+        "message"
+      ],
+      "elapsed_ms": 17343,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|complaint_screen|true|waiting_confirmation|complaint-write|true|0|0|message,route:complaint-board,click:#btn-board-write+routeAfterClick:complaint-write,type+focusSearch,type,message,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "complaint_screen",
+      "category": "form_assist",
+      "mode": "page_agent",
+      "attempt": 1,
+      "canonical_request": "민원 작성 화면을 열어줘",
+      "actual_trigger": "민원 작성 화면을 열어줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "민원 작성 화면이 열리고(필요시 입력 필드가 식별됨) 작성 보조가 제공됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "민원 작성 화면 열림",
+          "passed": true,
+          "evidence": "passed: text: \"...▾ KOR ▾ 종합민원 소통광장 더불어복...\""
+        },
+        {
+          "criterion": "입력 필드/영역 식별됨",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "임의 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 3,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 3051,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|complaint_screen|false||official-content|true|0|0|click_element_by_index,click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "mayor_proposal_writing",
+      "category": "writing_assist",
+      "mode": "deterministic",
+      "attempt": 1,
+      "canonical_request": "구청장에게 제안할 글 작성을 도와줘",
+      "actual_trigger": "mayor_message_assist",
+      "success": false,
+      "terminal_state": "waiting_confirmation",
+      "final_route": "home",
+      "final_surface": "home",
+      "expected_outcome": "제안 글 작성을 위한 초안/보조가 제공되며 실제 전송 전에 멈춤",
+      "pass_criteria_results": [
+        {
+          "criterion": "작성 화면/보조 영역 열림",
+          "passed": true,
+          "evidence": "passed: text: \"...물 #부끄머니 열린구청장실 바로가기 → 업...\""
+        },
+        {
+          "criterion": "초안/입력 안내 제공됨",
+          "passed": false,
+          "evidence": "failed: route=home no_submit=true"
+        },
+        {
+          "criterion": "실제 전송/제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 7,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "message",
+        "message",
+        "message",
+        "type",
+        "type",
+        "message",
+        "message"
+      ],
+      "elapsed_ms": 11871,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|mayor_proposal_writing|false|waiting_confirmation|home|true|0|0|message,message,message,type,type,message,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "mayor_proposal_writing",
+      "category": "writing_assist",
+      "mode": "page_agent",
+      "attempt": 1,
+      "canonical_request": "구청장에게 제안할 글 작성을 도와줘",
+      "actual_trigger": "구청장에게 제안할 글 작성을 도와줘",
+      "success": true,
+      "terminal_state": "",
+      "final_route": "mayor-complaint-write",
+      "final_surface": "mayor-complaint-write",
+      "expected_outcome": "제안 글 작성을 위한 초안/보조가 제공되며 실제 전송 전에 멈춤",
+      "pass_criteria_results": [
+        {
+          "criterion": "작성 화면/보조 영역 열림",
+          "passed": true,
+          "evidence": "passed: route: mayor-complaint-write"
+        },
+        {
+          "criterion": "초안/입력 안내 제공됨",
+          "passed": true,
+          "evidence": "passed: text: \"...을 확인해 주세요 제목 필수  담당자가...\""
+        },
+        {
+          "criterion": "실제 전송/제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 3,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "click_element_by_index",
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 2420,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|mayor_proposal_writing|true||mayor-complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "apartment_contact",
+      "category": "information_lookup",
+      "mode": "deterministic",
+      "attempt": 2,
+      "canonical_request": "공동주택과 연락처 찾아줘",
+      "actual_trigger": "housing_department",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "apartment-dept",
+      "final_surface": "apartment-dept",
+      "expected_outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "공동주택 안내 영역 노출",
+          "passed": true,
+          "evidence": "passed: route: apartment-dept"
+        },
+        {
+          "criterion": "담당 부서/연락처 정보 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...부서 데이터정보과 연락처 062-410-8...\""
+        },
+        {
+          "criterion": "오류 없이 정보 채워짐",
+          "passed": true,
+          "evidence": "passed: keywords excluded"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 7,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "click:[data-dept-action=\"open-menu\"]",
+        "click:[data-dept-action=\"go-directory\"]",
+        "type+focusSearch",
+        "click:.bg-dept-search__btn+submitSearch",
+        "message",
+        "message"
+      ],
+      "elapsed_ms": 17641,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "apartment_contact",
+      "category": "information_lookup",
+      "mode": "page_agent",
+      "attempt": 2,
+      "canonical_request": "공동주택과 연락처 찾아줘",
+      "actual_trigger": "공동주택과 연락처 찾아줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "공동주택 안내 영역 노출",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "담당 부서/연락처 정보 표시",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "오류 없이 정보 채워짐",
+          "passed": true,
+          "evidence": "passed: keywords excluded"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1962,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|apartment_contact|false||official-content|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "bulky_waste_menu",
+      "category": "menu_navigation",
+      "mode": "deterministic",
+      "attempt": 2,
+      "canonical_request": "대형폐기물 신청 메뉴 찾아줘",
+      "actual_trigger": "bulky_waste",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "bulky-waste-disposal",
+      "final_surface": "bulky-waste-disposal",
+      "expected_outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함",
+      "pass_criteria_results": [
+        {
+          "criterion": "대형폐기물 화면 열림",
+          "passed": true,
+          "evidence": "passed: route: bulky-waste-disposal"
+        },
+        {
+          "criterion": "안내 텍스트 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...통합검색 전체메뉴 대형폐기물 배출방법 홈 ›...\""
+        },
+        {
+          "criterion": "실제 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 4,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "route:bulky-waste-disposal",
+        "target:bulky-waste-guidance-card",
+        "message"
+      ],
+      "elapsed_ms": 5563,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|bulky_waste_menu|true|done|bulky-waste-disposal|true|0|0|message,route:bulky-waste-disposal,target:bulky-waste-guidance-card,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "bulky_waste_menu",
+      "category": "menu_navigation",
+      "mode": "page_agent",
+      "attempt": 2,
+      "canonical_request": "대형폐기물 신청 메뉴 찾아줘",
+      "actual_trigger": "대형폐기물 신청 메뉴 찾아줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함",
+      "pass_criteria_results": [
+        {
+          "criterion": "대형폐기물 화면 열림",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "안내 텍스트 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...색 전체메뉴 민원 신청  북구청 주요 민...\""
+        },
+        {
+          "criterion": "실제 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1945,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|bulky_waste_menu|false||official-content|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "passport_procedure",
+      "category": "procedure_navigation",
+      "mode": "deterministic",
+      "attempt": 2,
+      "canonical_request": "여권 발급 절차를 찾아줘",
+      "actual_trigger": "passport_guidance",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "passport-guidance",
+      "final_surface": "passport-guidance",
+      "expected_outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "여권 절차 안내 화면/정보 표시",
+          "passed": true,
+          "evidence": "passed: route: passport-guidance"
+        },
+        {
+          "criterion": "구비서류/절차 단계 노출",
+          "passed": true,
+          "evidence": "passed: text: \"...00 휴무) 발급 구비서류 여권 발급 신청서...\""
+        },
+        {
+          "criterion": "실제 여권 신청 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 6,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "target:nav-civil-service",
+        "route:civil-service",
+        "route:passport-guidance",
+        "target:passport-guidance-card",
+        "message"
+      ],
+      "elapsed_ms": 10474,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|passport_procedure|true|done|passport-guidance|true|0|0|message,target:nav-civil-service,route:civil-service,route:passport-guidance,target:passport-guidance-card,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "passport_procedure",
+      "category": "procedure_navigation",
+      "mode": "page_agent",
+      "attempt": 2,
+      "canonical_request": "여권 발급 절차를 찾아줘",
+      "actual_trigger": "여권 발급 절차를 찾아줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "여권 절차 안내 화면/정보 표시",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "구비서류/절차 단계 노출",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "실제 여권 신청 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1940,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|passport_procedure|false||official-content|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "complaint_screen",
+      "category": "form_assist",
+      "mode": "deterministic",
+      "attempt": 2,
+      "canonical_request": "민원 작성 화면을 열어줘",
+      "actual_trigger": "streetlight_report",
+      "success": true,
+      "terminal_state": "waiting_confirmation",
+      "final_route": "complaint-write",
+      "final_surface": "complaint-write",
+      "expected_outcome": "민원 작성 화면이 열리고(필요시 입력 필드가 식별됨) 작성 보조가 제공됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "민원 작성 화면 열림",
+          "passed": true,
+          "evidence": "passed: route: complaint-write"
+        },
+        {
+          "criterion": "입력 필드/영역 식별됨",
+          "passed": true,
+          "evidence": "passed: text: \"...면 접수에 필요한 제목과 본문으로 정리합...\""
+        },
+        {
+          "criterion": "임의 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 7,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "route:complaint-board",
+        "click:#btn-board-write+routeAfterClick:complaint-write",
+        "type+focusSearch",
+        "type",
+        "message",
+        "message"
+      ],
+      "elapsed_ms": 17363,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|complaint_screen|true|waiting_confirmation|complaint-write|true|0|0|message,route:complaint-board,click:#btn-board-write+routeAfterClick:complaint-write,type+focusSearch,type,message,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "complaint_screen",
+      "category": "form_assist",
+      "mode": "page_agent",
+      "attempt": 2,
+      "canonical_request": "민원 작성 화면을 열어줘",
+      "actual_trigger": "민원 작성 화면을 열어줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "민원 작성 화면이 열리고(필요시 입력 필드가 식별됨) 작성 보조가 제공됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "민원 작성 화면 열림",
+          "passed": true,
+          "evidence": "passed: text: \"...▾ KOR ▾ 종합민원 소통광장 더불어복...\""
+        },
+        {
+          "criterion": "입력 필드/영역 식별됨",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "임의 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 3,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 3021,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|complaint_screen|false||official-content|true|0|0|click_element_by_index,click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "mayor_proposal_writing",
+      "category": "writing_assist",
+      "mode": "deterministic",
+      "attempt": 2,
+      "canonical_request": "구청장에게 제안할 글 작성을 도와줘",
+      "actual_trigger": "mayor_message_assist",
+      "success": false,
+      "terminal_state": "waiting_confirmation",
+      "final_route": "home",
+      "final_surface": "home",
+      "expected_outcome": "제안 글 작성을 위한 초안/보조가 제공되며 실제 전송 전에 멈춤",
+      "pass_criteria_results": [
+        {
+          "criterion": "작성 화면/보조 영역 열림",
+          "passed": true,
+          "evidence": "passed: text: \"...물 #부끄머니 열린구청장실 바로가기 → 업...\""
+        },
+        {
+          "criterion": "초안/입력 안내 제공됨",
+          "passed": false,
+          "evidence": "failed: route=home no_submit=true"
+        },
+        {
+          "criterion": "실제 전송/제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 7,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "message",
+        "message",
+        "message",
+        "type",
+        "type",
+        "message",
+        "message"
+      ],
+      "elapsed_ms": 11948,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|mayor_proposal_writing|false|waiting_confirmation|home|true|0|0|message,message,message,type,type,message,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "mayor_proposal_writing",
+      "category": "writing_assist",
+      "mode": "page_agent",
+      "attempt": 2,
+      "canonical_request": "구청장에게 제안할 글 작성을 도와줘",
+      "actual_trigger": "구청장에게 제안할 글 작성을 도와줘",
+      "success": true,
+      "terminal_state": "",
+      "final_route": "mayor-complaint-write",
+      "final_surface": "mayor-complaint-write",
+      "expected_outcome": "제안 글 작성을 위한 초안/보조가 제공되며 실제 전송 전에 멈춤",
+      "pass_criteria_results": [
+        {
+          "criterion": "작성 화면/보조 영역 열림",
+          "passed": true,
+          "evidence": "passed: route: mayor-complaint-write"
+        },
+        {
+          "criterion": "초안/입력 안내 제공됨",
+          "passed": true,
+          "evidence": "passed: text: \"...을 확인해 주세요 제목 필수  담당자가...\""
+        },
+        {
+          "criterion": "실제 전송/제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 3,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "click_element_by_index",
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 2398,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|mayor_proposal_writing|true||mayor-complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "apartment_contact",
+      "category": "information_lookup",
+      "mode": "deterministic",
+      "attempt": 3,
+      "canonical_request": "공동주택과 연락처 찾아줘",
+      "actual_trigger": "housing_department",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "apartment-dept",
+      "final_surface": "apartment-dept",
+      "expected_outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "공동주택 안내 영역 노출",
+          "passed": true,
+          "evidence": "passed: route: apartment-dept"
+        },
+        {
+          "criterion": "담당 부서/연락처 정보 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...부서 데이터정보과 연락처 062-410-8...\""
+        },
+        {
+          "criterion": "오류 없이 정보 채워짐",
+          "passed": true,
+          "evidence": "passed: keywords excluded"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 7,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "click:[data-dept-action=\"open-menu\"]",
+        "click:[data-dept-action=\"go-directory\"]",
+        "type+focusSearch",
+        "click:.bg-dept-search__btn+submitSearch",
+        "message",
+        "message"
+      ],
+      "elapsed_ms": 17751,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "apartment_contact",
+      "category": "information_lookup",
+      "mode": "page_agent",
+      "attempt": 3,
+      "canonical_request": "공동주택과 연락처 찾아줘",
+      "actual_trigger": "공동주택과 연락처 찾아줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "공동주택 안내 영역 노출",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "담당 부서/연락처 정보 표시",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "오류 없이 정보 채워짐",
+          "passed": true,
+          "evidence": "passed: keywords excluded"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1925,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|apartment_contact|false||official-content|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "bulky_waste_menu",
+      "category": "menu_navigation",
+      "mode": "deterministic",
+      "attempt": 3,
+      "canonical_request": "대형폐기물 신청 메뉴 찾아줘",
+      "actual_trigger": "bulky_waste",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "bulky-waste-disposal",
+      "final_surface": "bulky-waste-disposal",
+      "expected_outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함",
+      "pass_criteria_results": [
+        {
+          "criterion": "대형폐기물 화면 열림",
+          "passed": true,
+          "evidence": "passed: route: bulky-waste-disposal"
+        },
+        {
+          "criterion": "안내 텍스트 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...통합검색 전체메뉴 대형폐기물 배출방법 홈 ›...\""
+        },
+        {
+          "criterion": "실제 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 4,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "route:bulky-waste-disposal",
+        "target:bulky-waste-guidance-card",
+        "message"
+      ],
+      "elapsed_ms": 5566,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|bulky_waste_menu|true|done|bulky-waste-disposal|true|0|0|message,route:bulky-waste-disposal,target:bulky-waste-guidance-card,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "bulky_waste_menu",
+      "category": "menu_navigation",
+      "mode": "page_agent",
+      "attempt": 3,
+      "canonical_request": "대형폐기물 신청 메뉴 찾아줘",
+      "actual_trigger": "대형폐기물 신청 메뉴 찾아줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함",
+      "pass_criteria_results": [
+        {
+          "criterion": "대형폐기물 화면 열림",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "안내 텍스트 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...색 전체메뉴 민원 신청  북구청 주요 민...\""
+        },
+        {
+          "criterion": "실제 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1929,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|bulky_waste_menu|false||official-content|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "passport_procedure",
+      "category": "procedure_navigation",
+      "mode": "deterministic",
+      "attempt": 3,
+      "canonical_request": "여권 발급 절차를 찾아줘",
+      "actual_trigger": "passport_guidance",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "passport-guidance",
+      "final_surface": "passport-guidance",
+      "expected_outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "여권 절차 안내 화면/정보 표시",
+          "passed": true,
+          "evidence": "passed: route: passport-guidance"
+        },
+        {
+          "criterion": "구비서류/절차 단계 노출",
+          "passed": true,
+          "evidence": "passed: text: \"...00 휴무) 발급 구비서류 여권 발급 신청서...\""
+        },
+        {
+          "criterion": "실제 여권 신청 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 6,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "target:nav-civil-service",
+        "route:civil-service",
+        "route:passport-guidance",
+        "target:passport-guidance-card",
+        "message"
+      ],
+      "elapsed_ms": 10513,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|passport_procedure|true|done|passport-guidance|true|0|0|message,target:nav-civil-service,route:civil-service,route:passport-guidance,target:passport-guidance-card,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "passport_procedure",
+      "category": "procedure_navigation",
+      "mode": "page_agent",
+      "attempt": 3,
+      "canonical_request": "여권 발급 절차를 찾아줘",
+      "actual_trigger": "여권 발급 절차를 찾아줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "여권 절차 안내 화면/정보 표시",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "구비서류/절차 단계 노출",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "실제 여권 신청 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1918,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|passport_procedure|false||official-content|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "complaint_screen",
+      "category": "form_assist",
+      "mode": "deterministic",
+      "attempt": 3,
+      "canonical_request": "민원 작성 화면을 열어줘",
+      "actual_trigger": "streetlight_report",
+      "success": true,
+      "terminal_state": "waiting_confirmation",
+      "final_route": "complaint-write",
+      "final_surface": "complaint-write",
+      "expected_outcome": "민원 작성 화면이 열리고(필요시 입력 필드가 식별됨) 작성 보조가 제공됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "민원 작성 화면 열림",
+          "passed": true,
+          "evidence": "passed: route: complaint-write"
+        },
+        {
+          "criterion": "입력 필드/영역 식별됨",
+          "passed": true,
+          "evidence": "passed: text: \"...면 접수에 필요한 제목과 본문으로 정리합...\""
+        },
+        {
+          "criterion": "임의 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 7,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "route:complaint-board",
+        "click:#btn-board-write+routeAfterClick:complaint-write",
+        "type+focusSearch",
+        "type",
+        "message",
+        "message"
+      ],
+      "elapsed_ms": 17342,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|complaint_screen|true|waiting_confirmation|complaint-write|true|0|0|message,route:complaint-board,click:#btn-board-write+routeAfterClick:complaint-write,type+focusSearch,type,message,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "complaint_screen",
+      "category": "form_assist",
+      "mode": "page_agent",
+      "attempt": 3,
+      "canonical_request": "민원 작성 화면을 열어줘",
+      "actual_trigger": "민원 작성 화면을 열어줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "민원 작성 화면이 열리고(필요시 입력 필드가 식별됨) 작성 보조가 제공됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "민원 작성 화면 열림",
+          "passed": true,
+          "evidence": "passed: text: \"...▾ KOR ▾ 종합민원 소통광장 더불어복...\""
+        },
+        {
+          "criterion": "입력 필드/영역 식별됨",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "임의 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 3,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 3001,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|complaint_screen|false||official-content|true|0|0|click_element_by_index,click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "mayor_proposal_writing",
+      "category": "writing_assist",
+      "mode": "deterministic",
+      "attempt": 3,
+      "canonical_request": "구청장에게 제안할 글 작성을 도와줘",
+      "actual_trigger": "mayor_message_assist",
+      "success": false,
+      "terminal_state": "waiting_confirmation",
+      "final_route": "home",
+      "final_surface": "home",
+      "expected_outcome": "제안 글 작성을 위한 초안/보조가 제공되며 실제 전송 전에 멈춤",
+      "pass_criteria_results": [
+        {
+          "criterion": "작성 화면/보조 영역 열림",
+          "passed": true,
+          "evidence": "passed: text: \"...물 #부끄머니 열린구청장실 바로가기 → 업...\""
+        },
+        {
+          "criterion": "초안/입력 안내 제공됨",
+          "passed": false,
+          "evidence": "failed: route=home no_submit=true"
+        },
+        {
+          "criterion": "실제 전송/제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 7,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "message",
+        "message",
+        "message",
+        "type",
+        "type",
+        "message",
+        "message"
+      ],
+      "elapsed_ms": 11875,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|mayor_proposal_writing|false|waiting_confirmation|home|true|0|0|message,message,message,type,type,message,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "mayor_proposal_writing",
+      "category": "writing_assist",
+      "mode": "page_agent",
+      "attempt": 3,
+      "canonical_request": "구청장에게 제안할 글 작성을 도와줘",
+      "actual_trigger": "구청장에게 제안할 글 작성을 도와줘",
+      "success": true,
+      "terminal_state": "",
+      "final_route": "mayor-complaint-write",
+      "final_surface": "mayor-complaint-write",
+      "expected_outcome": "제안 글 작성을 위한 초안/보조가 제공되며 실제 전송 전에 멈춤",
+      "pass_criteria_results": [
+        {
+          "criterion": "작성 화면/보조 영역 열림",
+          "passed": true,
+          "evidence": "passed: route: mayor-complaint-write"
+        },
+        {
+          "criterion": "초안/입력 안내 제공됨",
+          "passed": true,
+          "evidence": "passed: text: \"...을 확인해 주세요 제목 필수  담당자가...\""
+        },
+        {
+          "criterion": "실제 전송/제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 3,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "click_element_by_index",
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 2452,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|mayor_proposal_writing|true||mayor-complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    }
+  ],
+  "boundary_probes": [
+    {
+      "mode": "deterministic",
+      "probe": "unsupported_prompt",
+      "trigger": "오늘 날씨 알려줘",
+      "has_journey": false,
+      "started": true,
+      "elapsed_ms": 7,
+      "note": "hasJourney returned false, no choreography started"
+    },
+    {
+      "mode": "page_agent",
+      "probe": "unsupported_prompt",
+      "trigger": "오늘 날씨 알려줘",
+      "responded": true,
+      "actions_attempted": [
+        "done"
+      ],
+      "has_execute_javascript": false,
+      "has_click": false,
+      "response_success": false,
+      "elapsed_ms": 796,
+      "safe": true
+    },
+    {
+      "mode": "deterministic",
+      "probe": "cancellation",
+      "cancel_method": "CitizenFirstChoreography.cancel()",
+      "cancel_supported": true,
+      "journey_started": true,
+      "terminal_state": "cancelled",
+      "success": true
+    },
+    {
+      "mode": "page_agent",
+      "probe": "cancellation",
+      "cancel_method": "chat-cancel button click",
+      "cancel_supported": true,
+      "terminal_status": "취소됨",
+      "success": true
+    }
+  ],
+  "aggregate": {
+    "total_runs": 30,
+    "successful": 15,
+    "failed": 15,
+    "success_rate": 0.5,
+    "by_mode": {
+      "deterministic": {
+        "total": 15,
+        "successful": 12,
+        "failed": 3,
+        "median_elapsed_ms_all": 11875,
+        "median_elapsed_ms_success": 13927.5,
+        "min_elapsed_ms": 5511,
+        "max_elapsed_ms": 17751,
+        "median_action_step_count_all": 4,
+        "median_action_step_count_success": 4,
+        "total_wrong_route_actions": 3
+      },
+      "page_agent": {
+        "total": 15,
+        "successful": 3,
+        "failed": 12,
+        "median_elapsed_ms_all": 1962,
+        "median_elapsed_ms_success": 2420,
+        "min_elapsed_ms": 1918,
+        "max_elapsed_ms": 3051,
+        "median_action_step_count_all": 1,
+        "median_action_step_count_success": 2,
+        "total_wrong_route_actions": 12
+      }
+    },
+    "reproducibility": true,
+    "reproducibility_details": [
+      {
+        "scenario_id": "apartment_contact",
+        "mode": "deterministic",
+        "run_count": 3,
+        "unique_signatures": 1,
+        "reproducible": true,
+        "signatures": [
+          "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message"
+        ]
+      },
+      {
+        "scenario_id": "apartment_contact",
+        "mode": "page_agent",
+        "run_count": 3,
+        "unique_signatures": 1,
+        "reproducible": true,
+        "signatures": [
+          "page_agent|apartment_contact|false||official-content|true|0|0|click_element_by_index,done"
+        ]
+      },
+      {
+        "scenario_id": "bulky_waste_menu",
+        "mode": "deterministic",
+        "run_count": 3,
+        "unique_signatures": 1,
+        "reproducible": true,
+        "signatures": [
+          "deterministic|bulky_waste_menu|true|done|bulky-waste-disposal|true|0|0|message,route:bulky-waste-disposal,target:bulky-waste-guidance-card,message"
+        ]
+      },
+      {
+        "scenario_id": "bulky_waste_menu",
+        "mode": "page_agent",
+        "run_count": 3,
+        "unique_signatures": 1,
+        "reproducible": true,
+        "signatures": [
+          "page_agent|bulky_waste_menu|false||official-content|true|0|0|click_element_by_index,done"
+        ]
+      },
+      {
+        "scenario_id": "passport_procedure",
+        "mode": "deterministic",
+        "run_count": 3,
+        "unique_signatures": 1,
+        "reproducible": true,
+        "signatures": [
+          "deterministic|passport_procedure|true|done|passport-guidance|true|0|0|message,target:nav-civil-service,route:civil-service,route:passport-guidance,target:passport-guidance-card,message"
+        ]
+      },
+      {
+        "scenario_id": "passport_procedure",
+        "mode": "page_agent",
+        "run_count": 3,
+        "unique_signatures": 1,
+        "reproducible": true,
+        "signatures": [
+          "page_agent|passport_procedure|false||official-content|true|0|0|click_element_by_index,done"
+        ]
+      },
+      {
+        "scenario_id": "complaint_screen",
+        "mode": "deterministic",
+        "run_count": 3,
+        "unique_signatures": 1,
+        "reproducible": true,
+        "signatures": [
+          "deterministic|complaint_screen|true|waiting_confirmation|complaint-write|true|0|0|message,route:complaint-board,click:#btn-board-write+routeAfterClick:complaint-write,type+focusSearch,type,message,message"
+        ]
+      },
+      {
+        "scenario_id": "complaint_screen",
+        "mode": "page_agent",
+        "run_count": 3,
+        "unique_signatures": 1,
+        "reproducible": true,
+        "signatures": [
+          "page_agent|complaint_screen|false||official-content|true|0|0|click_element_by_index,click_element_by_index,done"
+        ]
+      },
+      {
+        "scenario_id": "mayor_proposal_writing",
+        "mode": "deterministic",
+        "run_count": 3,
+        "unique_signatures": 1,
+        "reproducible": true,
+        "signatures": [
+          "deterministic|mayor_proposal_writing|false|waiting_confirmation|home|true|0|0|message,message,message,type,type,message,message"
+        ]
+      },
+      {
+        "scenario_id": "mayor_proposal_writing",
+        "mode": "page_agent",
+        "run_count": 3,
+        "unique_signatures": 1,
+        "reproducible": true,
+        "signatures": [
+          "page_agent|mayor_proposal_writing|true||mayor-complaint-write|true|0|0|click_element_by_index,click_element_by_index,done"
+        ]
+      }
+    ]
+  }
+}
