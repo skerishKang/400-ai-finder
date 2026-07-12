@@ -454,7 +454,11 @@ def build_index_html(profiles: list[dict], is_live: bool = False) -> str:
   <div class="cards">
     <a class="card" href="{mvp_href}">
       <h2>시민 행정 도우미</h2>
-      <p>질문하면 북구청 안내 화면을 함께 열어 경로를 안내합니다.</p>
+      <p>정밀 구현형 AI 북구청 — 질문하면 북구청 안내 화면을 함께 열어 경로를 안내합니다.</p>
+    </a>
+    <a class="card" href="examples/page-agent/resident/">
+      <h2>Page Agent형 AI 북구청</h2>
+      <p>자연어 요청을 해석하고, Page Agent가 보이는 동작(클릭·입력·선택·스크롤·같은 출처 이동)으로 북구청 화면을 안내합니다. 주민용 비교 데모입니다.</p>
     </a>
     <a class="card" href="mobile.html">
       <h2>모바일 챗 안내</h2>
@@ -465,8 +469,8 @@ def build_index_html(profiles: list[dict], is_live: bool = False) -> str:
       <p>사이트 프로필 · 질문 테스트 · 상태 확인</p>
     </a>
     <a class="card" href="examples/page-agent/">
-      <h2>Page Agent 실험실</h2>
-      <p>브라우저 안에서 페이지 요소를 조작하는 독립 오프라인 기술 실험입니다. 북구청 MVP 통합 기능이 아닙니다.</p>
+      <h2>Page Agent 개발자 실험실</h2>
+      <p>브라우저 안에서 페이지 요소를 조작하는 독립 오프라인 기술 실험(영어 문서)입니다. 북구청 주민 데모가 아닙니다.</p>
     </a>
   </div>
 </div>

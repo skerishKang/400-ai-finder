@@ -124,7 +124,9 @@ def _run_build(mode):
     """
     import subprocess
     env = os.environ.copy()
-    env["PYTHONPATH"] = _REPO_ROOT + os.pathsep + env.get("PYTHONPATH", "")
+    # Use a relative PYTHONPATH resolved against cwd so the ``src`` namespace
+    # package (no __init__.py) resolves offline on both local and CI runners.
+    env["PYTHONPATH"] = "." + os.pathsep + env.get("PYTHONPATH", "")
     result = subprocess.run(
         [sys.executable, _BUILD_MODULE_PATH, "--mode", mode],
         capture_output=True, text=True, timeout=120,
@@ -551,10 +553,16 @@ class TestRouteIsolation:
     def test_static_root_is_only_discovery_boundary(self):
         out = _run_build("static")
         index = _read(os.path.join(out, "index.html"))
-        # Exactly one same-origin gateway link + standalone title.
+        # Exactly one same-origin gateway link to the demoted developer lab.
         assert index.count('href="examples/page-agent/"') == 1
-        assert index.count("Page Agent 실험실") == 1
-        # The link is same-origin, not external or new-tab.
+        # The demoted developer lab uses the developer-artifact label.
+        assert index.count("Page Agent 개발자 실험실") == 1
+        # The old primary product label is gone.
+        assert index.count("Page Agent 실험실") == 0
+        # Exactly one primary resident Page Agent card link.
+        assert index.count('href="examples/page-agent/resident/"') == 1
+        assert index.count("Page Agent형 AI 북구청") == 1
+        # The developer-lab link is same-origin, not external or new-tab.
         card_block = index[index.index('<a class="card" href="examples/page-agent/"'):]
         card_block = card_block[: card_block.index("</a>")]
         assert 'href="http://' not in card_block
@@ -567,7 +575,10 @@ class TestRouteIsolation:
         out = _run_build("live")
         index = _read(os.path.join(out, "index.html"))
         assert index.count('href="examples/page-agent/"') == 1
-        assert index.count("Page Agent 실험실") == 1
+        assert index.count("Page Agent 개발자 실험실") == 1
+        assert index.count("Page Agent 실험실") == 0
+        assert index.count('href="examples/page-agent/resident/"') == 1
+        assert index.count("Page Agent형 AI 북구청") == 1
         card_block = index[index.index('<a class="card" href="examples/page-agent/"'):]
         card_block = card_block[: card_block.index("</a>")]
         assert 'href="http://' not in card_block

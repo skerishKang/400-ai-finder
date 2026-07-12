@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page Agent형 AI 북구청 — 비교 데모</title>
+<style>
+  :root { --bg:#fff; --card:#fafafb; --fg:#0d0d0f; --muted:#9b9ba5; --line:#e6e6ea; --accent:#2f6df6; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR","Apple SD Gothic Neo",sans-serif; background:var(--bg); color:var(--fg); -webkit-font-smoothing:antialiased; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 56px 20px; }
+  h1 { font-size: 1.6rem; font-weight: 600; letter-spacing:-.02em; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin-bottom: 28px; font-size:.92rem; }
+  .badge { display:inline-block; font-size:.74rem; padding:3px 9px; border:1px solid var(--line); border-radius:999px; color:var(--muted); margin-right:6px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin-bottom:16px; }
+  h2 { font-size:1.05rem; font-weight:600; margin:0 0 10px; }
+  ol { margin:0; padding-left:20px; }
+  li { margin:6px 0; line-height:1.5; }
+  .code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.85rem; }
+  .note { color:#b4541b; border:1px solid #f3d8b8; background:#fdf6ee; border-radius:10px; padding:12px 14px; font-size:.88rem; line-height:1.5; }
+  .links a { color:var(--accent); text-decoration:none; margin-right:16px; font-size:.9rem; }
+  .links a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Page Agent형 AI 북구청</h1>
+  <div class="sub">주민용 비교 데모 · experiment/1109</div>
+  <div>
+    <span class="badge">offline / mock</span>
+    <span class="badge">same-origin civic canvas</span>
+    <span class="badge">no-submit</span>
+  </div>
+
+  <div class="panel">
+    <h2>이 화면은 무엇인가?</h2>
+    <p style="margin:0; line-height:1.6; color:#444;">
+      정밀 구현형 MVP(<a href="../../mvp/">시민 행정 도우미</a>)와 <strong>동일한 시민 화면</strong>에서,
+      모델 호환 plan을 통해 Page Agent가 실제 DOM 동작(클릭·입력·선택·스크롤·같은 출처 이동)을 수행하는
+      주민용 비교 데모입니다. 영어 개발자 문서(<a href="../">Page Agent 개발자 실험실</a>)와는 별개의 제품 카드입니다.
+    </p>
+  </div>
+
+  <div class="panel">
+    <h2>공유 비교 시나리오 (5개)</h2>
+    <p style="margin:0 0 8px; color:var(--muted); font-size:.86rem;">
+      정밀 구현형과 Page Agent형이 동일하게 시도하는 시나리오입니다. 정의는
+      <span class="code">examples/page-agent/parity-contract.json</span>에 고정되어 있습니다.
+    </p>
+    <ol>
+      <li><strong>공동주택과 연락처 찾아줘</strong> — <span class="code">apartment_contact</span></li>
+      <li><strong>대형폐기물 신청 메뉴 찾아줘</strong> — <span class="code">bulky_waste_menu</span></li>
+      <li><strong>여권 발급 절차를 찾아줘</strong> — <span class="code">passport_procedure</span></li>
+      <li><strong>민원 작성 화면을 열어줘</strong> — <span class="code">complaint_screen</span></li>
+      <li><strong>구청장에게 제안할 글 작성을 도와줘</strong> — <span class="code">mayor_proposal_writing</span></li>
+    </ol>
+  </div>
+
+  <div class="note">
+    <strong>제출 금지 경계:</strong> 두 모드 모두 실제 민원 제출·결제·로그인·개인정보 전송·외부 도메인 이동·임의 JavaScript 실행을 하지 않습니다.
+    화면 탐색·입력 보조·초안 제공까지만 수행하고 제출 전에 멈춥니다. 실제 북구청 사이트를 직접 조작하지 않습니다.
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <h2>구현 상태</h2>
+    <p style="margin:0; color:#444; line-height:1.6;">
+      라우트 계약과 제품 라벨링, 공유 시나리오 계약은 <strong>Stage 1</strong>에서 확정되었습니다.
+      Page Agent형 데모의 대화형 구현(실제 action loop 통과)은 <strong>Stage 2</strong>에서 진행됩니다.
+      이 페이지는 라우트 격리와 제품 라벨링 계약을 잠그기 위한 자리 표시자입니다.
+    </p>
+  </div>
+
+  <div class="links" style="margin-top:8px;">
+    <a href="../../index.html">← 400 AI 파인더 홈</a>
+    <a href="../">Page Agent 개발자 실험실</a>
+    <a href="../../mvp/">정밀 구현형 MVP</a>
+  </div>
+</div>
+</body>
+</html>
