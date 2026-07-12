@@ -26,7 +26,7 @@
  */
 
 import assert from "assert";
-import { mkdirSync } from "fs";
+import { mkdirSync, readFileSync } from "fs";
 import { join } from "path";
 import os from "os";
 import { chromium } from "playwright";
@@ -34,6 +34,75 @@ import { chromium } from "playwright";
 const PAGE_URL = process.argv[2] || "http://127.0.0.1:8769/mobile.html";
 const SCREENSHOT_DIR = join(os.tmpdir(), "400-ai-finder-1102");
 mkdirSync(SCREENSHOT_DIR, { recursive: true });
+
+// ── Known browser executable paths for fallback (no browser download) ─────
+// GitHub runners do not have the Playwright-bundled Chromium installed
+// (npm ci runs with --ignore-scripts), so fall back to a browser already
+// present on the host before giving up.
+const KNOWN_BROWSER_PATHS = [
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  "/usr/bin/google-chrome",
+  "/usr/bin/google-chrome-stable",
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
+];
+
+async function launchBrowser() {
+  const launchAttempts = [];
+  const errors = [];
+
+  const envPath = process.env.MOBILE_LINK_BROWSER_EXECUTABLE;
+  if (envPath) {
+    launchAttempts.push({
+      name: `env: ${envPath}`,
+      launch: () => chromium.launch({ headless: true, executablePath: envPath }),
+    });
+  }
+
+  launchAttempts.push({
+    name: "channel: chrome",
+    launch: () => chromium.launch({ headless: true, channel: "chrome" }),
+  });
+
+  for (const p of KNOWN_BROWSER_PATHS) {
+    let exists = false;
+    try { readFileSync(p); exists = true; } catch (_) {}
+    if (exists) {
+      launchAttempts.push({
+        name: `path: ${p}`,
+        launch: () => chromium.launch({ headless: true, executablePath: p }),
+      });
+    }
+  }
+
+  launchAttempts.push({
+    name: "default playwright chromium",
+    launch: () => chromium.launch({ headless: true }),
+  });
+
+  for (const attempt of launchAttempts) {
+    try {
+      const browser = await attempt.launch();
+      let version = "unknown";
+      try {
+        if (browser && typeof browser.version === "function") {
+          version = await browser.version();
+        }
+      } catch (_) {
+        version = "unknown";
+      }
+      console.log(`  Browser launched (${attempt.name}, v${version}) ✓`);
+      return { browser, launchInfo: { source: attempt.name, version } };
+    } catch (e) {
+      errors.push(`  [${attempt.name}] ${e.message}`);
+    }
+  }
+
+  throw new Error(`Cannot launch any browser. Attempts:\n${errors.join("\n")}`);
+}
 
 function validateOrigin(rawUrl) {
   let parsed;
@@ -174,7 +243,8 @@ async function waitForText(page, selector, text, timeout = 10000) {
 async function main() {
   const requests = [];
   const errors = [];
-  const browser = await chromium.launch({ headless: true });
+  const { browser, launchInfo } = await launchBrowser();
+  console.log(`[browser] source=${launchInfo.source} version=${launchInfo.version}`);
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     reducedMotion: "reduce",
