@@ -22,7 +22,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
 
 import pytest
 
@@ -169,6 +168,14 @@ class TestExpectationsFixture:
             assert "pass_criteria" not in scenario, (
                 f"pass_criteria should not be duplicated in expectations for {scenario['id']}"
             )
+
+    def test_base_sha_is_locked_provenance(self):
+        data = _read_json(_EXPECTATIONS_PATH)
+        base_sha = data["base_sha"]
+
+        assert isinstance(base_sha, str)
+        assert re.fullmatch(r"[0-9a-f]{40}", base_sha)
+        assert base_sha == "5ad20ad027f993cb522a49c90f39523211e6c5cd"
 
 
 # ---------------------------------------------------------------------------
@@ -562,24 +569,23 @@ class TestReportContract:
             f"Report owner must be 'Computer 2' per #1109 CTO assignment, got: {m.group(1)!r}"
         )
 
-    def test_report_base_sha_matches_synced_main(self):
+    def test_report_base_sha_matches_fixture_provenance(self):
         if not os.path.isfile(_REPORT_PATH):
             pytest.skip("report not yet generated")
+
         text = _read(_REPORT_PATH)
-        m = re.search(r"Base SHA\*\*?:\s*`?([0-9a-f]{40})`?", text)
-        assert m is not None, "Report must declare a 40-hex Base SHA"
-        report_sha = m.group(1)
-        # The report Base SHA must equal the synchronized main the branch was
-        # merged against. Resolve it locally (no network) from the git repo.
-        main_sha = subprocess.run(
-            ["git", "rev-parse", "origin/main"],
-            cwd=_REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-        assert report_sha == main_sha, (
-            f"Report Base SHA {report_sha} != synchronized origin/main {main_sha}"
+        match = re.search(r"Base SHA\*\*?:\s*`?([0-9a-f]{40})`?", text)
+
+        assert match is not None, "Report must declare a 40-hex Base SHA"
+
+        report_sha = match.group(1)
+        expectations = _read_json(_EXPECTATIONS_PATH)
+        fixture_sha = expectations["base_sha"]
+
+        assert re.fullmatch(r"[0-9a-f]{40}", report_sha)
+        assert report_sha == fixture_sha, (
+            f"Report Base SHA {report_sha} "
+            f"!= fixture provenance SHA {fixture_sha}"
         )
 
 

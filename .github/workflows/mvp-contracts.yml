@@ -252,6 +252,13 @@ jobs:
               assert "trigger" in scenario["deterministic"]
               assert "trigger" in scenario["page_agent"]
 
+          base_sha = data["base_sha"]
+
+          assert isinstance(base_sha, str)
+          assert len(base_sha) == 40
+          assert all(char in "0123456789abcdef" for char in base_sha)
+          assert base_sha == "5ad20ad027f993cb522a49c90f39523211e6c5cd"
+
           print("Expectations fixture: OK")
           PY
 

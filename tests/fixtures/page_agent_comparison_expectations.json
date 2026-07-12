@@ -2,6 +2,7 @@
   "schema_version": "1.0.0",
   "track": "1109-page-agent-comparison",
   "description": "Mode-specific expected routes and action sequences for the 5 parity scenarios. Shared pass criteria are defined in parity-contract.json and are NOT duplicated here.",
+  "base_sha": "5ad20ad027f993cb522a49c90f39523211e6c5cd",
   "scenarios": [
     {
       "id": "apartment_contact",
