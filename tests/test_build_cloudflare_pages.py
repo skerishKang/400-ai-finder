@@ -287,7 +287,7 @@ def test_landing_links_to_public_mvp(build_dir):
 
     # User-facing wording must convey: citizen first screen, deterministic
     # static demo, no real AI/external API.
-    assert "시민 행정 도우미" in index
+    assert "정밀 구현형 AI 북구청" in index
     # Clean, real-service-style landing page.
     assert 'href="mvp/"' in index
 
