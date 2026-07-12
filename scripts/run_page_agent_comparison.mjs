@@ -8,8 +8,9 @@
 // Usage:
 //   node scripts/run_page_agent_comparison.mjs \
 //     --base-url http://127.0.0.1:<PORT> \
-//     --repetitions 3 \
-//     --output <PATH>
+//     [--repetitions 1] \
+//     [--attempt-range 1-3]  (overrides --repetitions; e.g. 1-1, 2-2, 1-3) \
+//     [--output <PATH>]
 //
 // Behaviour:
 //   - Reads parity-contract.json and expectations fixture
@@ -17,7 +18,7 @@
 //   - Boundary probes: unsupported prompt, cancellation
 //   - Fresh browser context per run
 //   - Writes machine-readable evidence JSON
-//   - Non-zero exit on pass-criteria violation or external request
+//   - Non-zero exit on any run failure (stall = stop + exit)
 
 import { chromium } from "playwright";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
@@ -30,8 +31,58 @@ const PROJECT_ROOT = join(__dirname, "..");
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
 const RELOAD_TIMEOUT = 30000;
-const TASK_TIMEOUT_MS = 60000;
+const DETERMINISTIC_TIMEOUT_MS = 30000;
+const PAGE_AGENT_TIMEOUT_MS = 15000;
+const BROWSER_TIMEOUT_MS = 15000;
 const SCHEMA_VERSION = "1.0.0";
+
+// ── Shared pass criteria from parity-contract.json indexed by scenario id ──
+// Each criterion is (description, evaluation function key) that is evaluated
+// against DOM evidence at runtime.
+const PASS_CRITERIA_EVALUATORS = {
+  apartment_contact: [
+    { label: "공동주택 안내 영역 노출", check: routeMatches(["apartment-dept"], ["공동주택"]) },
+    { label: "담당 부서/연락처 정보 표시", check: textContains(["연락처", "전화", "FAX"]) },
+    { label: "오류 없이 정보 채워짐", check: textExcludes(["오류", "불러오지 못했습니다"]) },
+  ],
+  bulky_waste_menu: [
+    { label: "대형폐기물 화면 열림", check: routeMatches(["bulky-waste-disposal"], ["대형폐기물"]) },
+    { label: "안내 텍스트 표시", check: textContains(["대형폐기물", "배출", "신청"]) },
+    { label: "실제 제출 없음", check: noSubmitCheck() },
+  ],
+  passport_procedure: [
+    { label: "여권 절차 안내 화면/정보 표시", check: routeMatches(["passport-guidance"], ["여권"]) },
+    { label: "구비서류/절차 단계 노출", check: textContains(["구비서류", "수수료", "신청절차", "발급"]) },
+    { label: "실제 여권 신청 제출 없음", check: noSubmitCheck() },
+  ],
+  complaint_screen: [
+    { label: "민원 작성 화면 열림", check: routeMatches(["complaint-write"], ["민원"]) },
+    { label: "입력 필드/영역 식별됨", check: textContains(["제목", "입력", "작성"]) },
+    { label: "임의 제출 없음", check: noSubmitCheck() },
+  ],
+  mayor_proposal_writing: [
+    { label: "작성 화면/보조 영역 열림", check: routeMatches(["mayor-complaint-write"], ["제안", "구청장"]) },
+    { label: "초안/입력 안내 제공됨", check: textContains(["제목", "초안", "내용"]) },
+    { label: "실제 전송/제출 없음", check: noSubmitCheck() },
+  ],
+};
+
+function routeMatches(expectedRoutes, contentKeywords) {
+  return (route, canvasText) => expectedRoutes.includes(route) || contentKeywords.some(kw => canvasText.includes(kw));
+}
+
+function textContains(keywords) {
+  return (route, canvasText) => keywords.some(kw => canvasText.includes(kw));
+}
+
+function textExcludes(keywords) {
+  return (route, canvasText) => !keywords.some(kw => canvasText.includes(kw));
+}
+
+function noSubmitCheck() {
+  // Evaluated against (route, canvasText, noSubmitPreserved) triple
+  return (route, canvasText, noSubmitPreserved) => noSubmitPreserved === true;
+}
 
 const KNOWN_BROWSER_PATHS = [
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -66,13 +117,25 @@ function parseArgs() {
       args.baseUrl = process.argv[++i];
     } else if (arg === "--repetitions" && i + 1 < process.argv.length) {
       args.repetitions = parseInt(process.argv[++i], 10);
+    } else if (arg === "--attempt-range" && i + 1 < process.argv.length) {
+      args.attemptRange = process.argv[++i];
     } else if (arg === "--output" && i + 1 < process.argv.length) {
       args.output = process.argv[++i];
     }
   }
   if (!args.baseUrl) throw new Error("--base-url is required");
-  if (!args.repetitions || args.repetitions < 1) args.repetitions = 3;
+  if (!args.repetitions || args.repetitions < 1) args.repetitions = 1;
   if (!args.output) args.output = join(PROJECT_ROOT, "docs", "artifacts", "1109-stage3-comparison", "comparison-evidence.json");
+  // Parse attempt-range if provided (overrides repetitions)
+  if (args.attemptRange) {
+    const parts = args.attemptRange.split("-").map(Number);
+    if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1]) || parts[0] < 1 || parts[1] < parts[0]) {
+      throw new Error(`--attempt-range must be START-END (e.g. 1-3), got "${args.attemptRange}"`);
+    }
+    args.attemptStart = parts[0];
+    args.attemptEnd = parts[1];
+    args.repetitions = parts[1] - parts[0] + 1;
+  }
   return args;
 }
 
@@ -90,6 +153,27 @@ function validateBaseUrl(baseUrl) {
 // ── Browser launch ─────────────────────────────────────────────────────────
 
 async function launchBrowser() {
+  // Prefer channel:chrome with short timeout; skip fallback if it succeeds
+  async function tryLaunch(name, launchFn) {
+    const timer = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), BROWSER_TIMEOUT_MS)
+    );
+    return Promise.race([launchFn(), timer]);
+  }
+
+  try {
+    const browser = await tryLaunch("channel: chrome", () =>
+      chromium.launch({ headless: true, channel: "chrome" })
+    );
+    let version = "unknown";
+    try { version = await browser.version(); } catch (_) {}
+    console.log(`  Browser: channel: chrome v${version}`);
+    return { browser, source: "channel: chrome", version };
+  } catch (e) {
+    console.log(`  channel:chrome failed (${e.message}), trying env/fallback paths...`);
+  }
+
+  // Fallback attempts
   const launchAttempts = [];
   const errors = [];
 
@@ -100,11 +184,6 @@ async function launchBrowser() {
       launch: () => chromium.launch({ headless: true, executablePath: envPath }),
     });
   }
-
-  launchAttempts.push({
-    name: "channel: chrome",
-    launch: () => chromium.launch({ headless: true, channel: "chrome" }),
-  });
 
   for (const p of KNOWN_BROWSER_PATHS) {
     if (existsSync(p)) {
@@ -132,6 +211,61 @@ async function launchBrowser() {
     }
   }
   throw new Error(`Cannot launch any browser.\n${errors.join("\n")}`);
+}
+
+// ── Shared route detection helper ──────────────────────────────────────────
+
+async function detectCanvasRoute(page) {
+  return page.evaluate(() => {
+    const canvas = document.getElementById("demo-canvas");
+    if (!canvas) return "";
+    const pageDiv = canvas.querySelector("[class*='bg-page']");
+    if (!pageDiv) return "";
+    // Check specific route markers first (more specific = checked earlier)
+    if (pageDiv.classList.contains("bg-page--home")) return "home";
+    if (pageDiv.classList.contains("bg-page--dept-directory") || pageDiv.classList.contains("bg-page--official-apartment-dept")) return "apartment-dept";
+    if (pageDiv.classList.contains("bg-page--bulky-waste") || pageDiv.classList.contains("bg-page--official-bulky-waste-disposal")) return "bulky-waste-disposal";
+    if (pageDiv.classList.contains("bg-page--passport-guidance") || pageDiv.classList.contains("bg-page--official-passport-guidance")) return "passport-guidance";
+    if (pageDiv.classList.contains("bg-page--complaint-write") || pageDiv.querySelector("#btn-board-write, #board-write-title, #complaint-write-title")) return "complaint-write";
+    if (pageDiv.classList.contains("bg-page--mayor-complaint-write") || pageDiv.querySelector("#mayor-write-title, #btn-mayor-submit, #mayor-proposal-title")) return "mayor-complaint-write";
+    // Generic fallback: extract from bg-page--* class (skip layout classes)
+    for (const cls of pageDiv.classList) {
+      if (cls.startsWith("bg-page--") && cls !== "bg-page--full" && cls !== "bg-page--dense" && cls !== "bg-page--official-content") {
+        return cls.replace("bg-page--", "").replace("official-", "");
+      }
+    }
+    return "official-content";
+  });
+}
+
+async function detectCanvasText(page) {
+  return page.evaluate(() => {
+    const canvas = document.getElementById("demo-canvas");
+    return canvas ? canvas.innerText : "";
+  });
+}
+
+// ── Pass criteria evaluation ───────────────────────────────────────────────
+
+function evaluatePassCriteria(scenarioId, canvasRoute, canvasText, noSubmitPreserved) {
+  const evaluators = PASS_CRITERIA_EVALUATORS[scenarioId];
+  if (!evaluators) return [];
+  return evaluators.map((ev, i) => {
+    try {
+      const passed = ev.check(canvasRoute, canvasText, noSubmitPreserved);
+      const evidence = passed ? "passed"
+        : `failed: route=${canvasRoute} no_submit=${noSubmitPreserved}`;
+      return { criterion: ev.label, passed, evidence };
+    } catch (e) {
+      return { criterion: ev.label, passed: false, evidence: `evaluation_error: ${e.message}` };
+    }
+  });
+}
+
+function getExpectedRoute(scenarioId, mode) {
+  const expect = EXPECTATIONS.scenarios.find(s => s.id === scenarioId);
+  if (!expect || !expect[mode]) return "";
+  return expect[mode].expected_final_route || "";
 }
 
 // ── Metric recording ───────────────────────────────────────────────────────
@@ -164,7 +298,8 @@ function makeRunRecord(scenarioId, mode, attempt) {
     request_failure_count: 0,
     console_error_count: 0,
     page_error_count: 0,
-    warning_count: 0,
+    warnings: [],
+    console_error_messages: [],
     reproducibility_signature: "",
     errors: [],
   };
@@ -242,9 +377,10 @@ async function submitDeterministicTask(page, trigger) {
 async function waitForDeterministicCompletion(page) {
   const startTime = Date.now();
   const terminalStates = ["done", "waiting_choice", "waiting_confirmation", "cancelled"];
-  const maxMs = TASK_TIMEOUT_MS;
+  const maxMs = DETERMINISTIC_TIMEOUT_MS;
+  const maxIterations = Math.ceil(maxMs / 200);
 
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < maxIterations; i++) {
     const state = await page.evaluate(() => {
       const c = window.CitizenFirstChoreography;
       return c ? c.getState() : "";
@@ -257,57 +393,70 @@ async function waitForDeterministicCompletion(page) {
   throw new Error(`deterministic task timed out after ${maxMs}ms`);
 }
 
-async function collectDeterministicMetrics(page, record) {
-  const result = await page.evaluate(() => {
+async function collectDeterministicMetrics(page, scenarioId, record) {
+  const expectedRoute = getExpectedRoute(scenarioId, "deterministic");
+
+  // Read choreography state including action trace
+  const choreoState = await page.evaluate(() => {
     const c = window.CitizenFirstChoreography;
-    const canvas = window.CitizenActionDemoCanvas;
-    const body = document.body;
+    if (!c) return { state: "", journeyId: "", stepIndex: -1, totalSteps: 0, steps: [] };
     return {
-      state: c ? c.getState() : "",
-      journeyId: c ? c.getCurrentJourneyId() : "",
-      bodyAttr: body ? body.getAttribute("data-choreography-state") : "",
-      canvasContent: canvas ? "" : "",  // canvas is rendered; we check route
-      currentRoute: "",  // read from DOM
-      noSubmitBadge: body ? (body.innerText.includes("제출 불가") || body.innerText.includes("nosubmit")) : false,
+      state: c.getState(),
+      journeyId: c.getCurrentJourneyId(),
+      stepIndex: c.getCurrentStepIndex ? c.getCurrentStepIndex() : -1,
+      totalSteps: c.getTotalSteps ? c.getTotalSteps() : 0,
+      steps: (c.getSteps ? c.getSteps() : []).map(s => {
+        const actions = [];
+        if (s.routeId) actions.push(`route:${s.routeId}`);
+        if (s.clickTarget) actions.push(`click:${s.clickTarget}`);
+        if (s.routeIdAfterClick) actions.push(`routeAfterClick:${s.routeIdAfterClick}`);
+        if (s.typeQuery || s.typeContent) actions.push(`type`);
+        if (s.submitSearch) actions.push(`submitSearch`);
+        if (s.focusSearch) actions.push(`focusSearch`);
+        if (s.targetId) actions.push(`target:${s.targetId}`);
+        return actions.join("+") || "message";
+      }),
     };
   });
 
-  // Read canvas route from the demo-canvas element
-  const canvasRoute = await page.evaluate(() => {
-    const canvas = document.getElementById("demo-canvas");
-    if (!canvas) return "";
-    const pageDiv = canvas.querySelector("[class*='bg-page']");
-    if (!pageDiv) return "";
-    // Check for specific route marker
-    if (pageDiv.classList.contains("bg-page--home")) return "home";
-    if (pageDiv.classList.contains("bg-page--dept-directory") || pageDiv.classList.contains("bg-page--official-apartment-dept")) return "apartment-dept";
-    if (pageDiv.classList.contains("bg-page--bulky-waste") || pageDiv.classList.contains("bg-page--official-bulky-waste-disposal") || pageDiv.classList.contains("bg-page--official-content")) return "bulky-waste-disposal";
-    if (pageDiv.classList.contains("bg-page--passport-guidance") || pageDiv.classList.contains("bg-page--official-passport-guidance")) return "passport-guidance";
-    if (pageDiv.querySelector("#btn-board-write, #board-write-title, #complaint-write-title")) return "complaint-write";
-    if (pageDiv.querySelector("#mayor-write-title, #btn-mayor-submit, #mayor-proposal-title")) return "mayor-complaint-write";
-    // Check data attributes or any bg-page--* class
-    for (const cls of pageDiv.classList) {
-      if (cls.startsWith("bg-page--") && cls !== "bg-page--full" && cls !== "bg-page--dense") {
-        return cls.replace("bg-page--", "").replace("official-", "");
-      }
-    }
-    return pageDiv.className;
-  });
+  // Read canvas route and text
+  const canvasRoute = await detectCanvasRoute(page);
+  const canvasText = await detectCanvasText(page);
 
-  record.terminal_state = result.state;
+  // Check no-submit badge from body
+  const noSubmitBadge = await page.evaluate(() =>
+    document.body.innerText.includes("제출 불가") || document.body.innerText.includes("nosubmit")
+  );
+
+  // Set action trace
+  if (choreoState.totalSteps > 0) {
+    record.total_engine_step_count = choreoState.totalSteps;
+    record.action_sequence = choreoState.steps;
+    record.action_step_count = choreoState.steps.filter(s => s !== "message" && s !== "" && s !== "noop").length;
+  }
+
+  record.terminal_state = choreoState.state;
   record.final_route = canvasRoute;
   record.final_surface = canvasRoute;
 
-  // For deterministic mode, no-submit is enforced by choreography state machine:
-  // terminal states "done", "waiting_choice", "waiting_confirmation", "cancelled"
-  // all indicate no actual submission occurred
+  // No-submit: check state machine + DOM badge
   const safeStates = ["done", "waiting_choice", "waiting_confirmation", "cancelled"];
-  record.no_submit_preserved = safeStates.includes(result.state);
-  if (!record.no_submit_preserved && result.noSubmitBadge) {
+  record.no_submit_preserved = safeStates.includes(choreoState.state);
+  if (!record.no_submit_preserved && noSubmitBadge) {
     record.no_submit_preserved = true;
   }
-  // Always consider the choreography safe since no actual submit action is possible
-  record.no_submit_preserved = true;
+
+  // Check that choreography completed all steps (didn't stall mid-way)
+  if (choreoState.totalSteps > 0 && choreoState.stepIndex < choreoState.totalSteps - 1) {
+    record.warnings.push(`choreography stalled at step ${choreoState.stepIndex}/${choreoState.totalSteps - 1}`);
+  }
+
+  // Wrong route action count: 1 if final route != expected route
+  record.wrong_route_action_count = (expectedRoute && canvasRoute !== expectedRoute) ? 1 : 0;
+
+  // Evaluate shared pass criteria from parity contract against DOM evidence
+  record.pass_criteria_results = evaluatePassCriteria(scenarioId, canvasRoute, canvasText, record.no_submit_preserved);
+
   return record;
 }
 
@@ -355,8 +504,10 @@ async function submitResidentTask(page, prompt) {
 async function waitForResidentCompletion(page, expectedNavSteps) {
   const expectedCalls = expectedNavSteps + 1;
   const startTime = Date.now();
+  const maxMs = PAGE_AGENT_TIMEOUT_MS;
+  const maxIterations = Math.ceil(maxMs / 200);
 
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < maxIterations; i++) {
     const diag = await page.evaluate(() => {
       const m = window.PageAgentMockModel;
       if (!m || !m.getDiagnostics) return null;
@@ -381,10 +532,12 @@ async function waitForResidentCompletion(page, expectedNavSteps) {
     }
     await new Promise(r => setTimeout(r, 200));
   }
-  throw new Error(`Resident task timed out after ${TASK_TIMEOUT_MS}ms`);
+  throw new Error(`Resident task timed out after ${maxMs}ms`);
 }
 
-async function collectResidentMetrics(page, record) {
+async function collectResidentMetrics(page, scenarioId, record) {
+  const expectedRoute = getExpectedRoute(scenarioId, "page_agent");
+
   const diag = await page.evaluate(() => {
     const m = window.PageAgentMockModel;
     if (!m || !m.getDiagnostics) return null;
@@ -406,35 +559,27 @@ async function collectResidentMetrics(page, record) {
     record.action_sequence = diag.actionNames;
   }
 
-  // Check canvas route
-  const canvasRoute = await page.evaluate(() => {
-    const canvas = document.getElementById("demo-canvas");
-    if (!canvas) return "";
-    const pageDiv = canvas.querySelector("[class*='bg-page']");
-    if (!pageDiv) return "";
-    if (pageDiv.classList.contains("bg-page--home")) return "home";
-    if (pageDiv.classList.contains("bg-page--dept-directory") || pageDiv.classList.contains("bg-page--official-apartment-dept")) return "apartment-dept";
-    if (pageDiv.classList.contains("bg-page--bulky-waste") || pageDiv.classList.contains("bg-page--official-bulky-waste-disposal") || pageDiv.classList.contains("bg-page--official-content")) return "bulky-waste-disposal";
-    if (pageDiv.classList.contains("bg-page--passport-guidance") || pageDiv.classList.contains("bg-page--official-passport-guidance")) return "passport-guidance";
-    if (pageDiv.querySelector("#btn-board-write, #board-write-title, #complaint-write-title")) return "complaint-write";
-    if (pageDiv.querySelector("#mayor-write-title, #btn-mayor-submit, #mayor-proposal-title")) return "mayor-complaint-write";
-    // Check data attributes or any bg-page--* class
-    for (const cls of pageDiv.classList) {
-      if (cls.startsWith("bg-page--") && cls !== "bg-page--full" && cls !== "bg-page--dense") {
-        return cls.replace("bg-page--", "").replace("official-", "");
-      }
-    }
-    return pageDiv.className;
-  });
+  // Read canvas route and text
+  const canvasRoute = await detectCanvasRoute(page);
+  const canvasText = await detectCanvasText(page);
 
-  const noSubmitBadge = await page.evaluate(() => {
-    return document.body.innerText.includes("제출 불가") || document.body.innerText.includes("nosubmit");
-  });
+  // Check no-submit badge
+  const noSubmitBadge = await page.evaluate(() =>
+    document.body.innerText.includes("제출 불가") || document.body.innerText.includes("nosubmit")
+  );
 
   record.final_route = canvasRoute;
   record.final_surface = canvasRoute;
-  // Page Agent mode: check both DOM badge and mock diagnostics
+
+  // Page Agent mode: check DOM badge for no-submit
   record.no_submit_preserved = noSubmitBadge;
+
+  // Wrong route action count: 1 if final route != expected route
+  record.wrong_route_action_count = (expectedRoute && canvasRoute !== expectedRoute) ? 1 : 0;
+
+  // Evaluate shared pass criteria from parity contract against DOM evidence
+  record.pass_criteria_results = evaluatePassCriteria(scenarioId, canvasRoute, canvasText, record.no_submit_preserved);
+
   return record;
 }
 
@@ -639,17 +784,21 @@ async function main() {
   const allRecords = [];
   const boundaryResults = [];
   let hasViolation = false;
+  let hasStall = false;
 
   try {
     // ════════════════════════════════════════════════════════════════
-    // Primary runs: 5 scenarios x 2 modes x N repetitions
+    // Primary runs: 5 scenarios x 2 modes x N attempts (range)
     // ════════════════════════════════════════════════════════════════
+
+    const attemptStart = args.attemptStart || 1;
+    const attemptEnd = args.attemptEnd || repetitions;
 
     for (const scenario of SCENARIOS) {
       const sid = scenario.id;
       const expect = EXPECTATIONS.scenarios.find(s => s.id === sid);
 
-      for (let attempt = 1; attempt <= repetitions; attempt++) {
+      for (let attempt = attemptStart; attempt <= attemptEnd; attempt++) {
         // ── Deterministic mode ──
         {
           const detStart = Date.now();
@@ -669,17 +818,23 @@ async function main() {
             const completion = await waitForDeterministicCompletion(page);
 
             record.elapsed_ms = completion.elapsedMs;
-            await collectDeterministicMetrics(page, record);
+            await collectDeterministicMetrics(page, sid, record);
             record.external_request_count = tracker.nonLocal.length;
             record.console_error_count = tracker.consoleErrors.length;
+            record.console_error_messages = tracker.consoleErrors.length > 0 ? [...tracker.consoleErrors] : [];
             record.page_error_count = tracker.pageErrors.length;
             record.request_failure_count = tracker.requestFailures.length;
-            record.warning_count = tracker.warnings.length;
+            record.warnings = tracker.warnings.length > 0 ? [...tracker.warnings] : [];
 
-            // success: all pass criteria met, no-submit preserved, no external requests, no errors
-            // no_submit_preserved comes from DOM check in collectDeterministicMetrics;
-            // do NOT use || true fallback as that would mask violations
+            // success: all pass criteria met, route matches expected, no-submit preserved, no external requests, no errors
+            const allPassCriteriaMet = record.pass_criteria_results.length > 0
+              ? record.pass_criteria_results.every(cr => cr.passed)
+              : false;
+            const expectedRoute = getExpectedRoute(sid, "deterministic");
+            const routeMatchesExpected = !expectedRoute || record.final_route === expectedRoute;
             record.success = (
+              allPassCriteriaMet &&
+              routeMatchesExpected &&
               record.no_submit_preserved &&
               record.external_request_count === 0 &&
               record.console_error_count === 0 &&
@@ -689,17 +844,19 @@ async function main() {
             record.reproducibility_signature = computeSignature(record);
             record.errors = [];
 
-            console.log(`  [det][${sid}] attempt=${attempt} success=${record.success} state=${record.terminal_state} route=${record.final_route} elapsed=${record.elapsed_ms}ms`);
+            console.log(`  [det][${sid}] attempt=${attempt} success=${record.success} state=${record.terminal_state} route=${record.final_route} actions=${record.action_step_count}/${record.total_engine_step_count} wr=${record.wrong_route_action_count} elapsed=${record.elapsed_ms}ms`);
           } catch (e) {
             record.success = false;
             record.errors.push(e.message || String(e));
             record.elapsed_ms = Date.now() - detStart;
-            console.log(`  [det][${sid}] attempt=${attempt} FAILED: ${e.message}`);
+            console.log(`  [det][${sid}] attempt=${attempt} FAILED (stall): ${e.message}`);
+            hasStall = true;
           } finally {
             if (page) await page.close().catch(() => {});
             if (ctx) await ctx.close().catch(() => {});
           }
           allRecords.push(record);
+          if (hasStall) break;  // breaks from attempt for-loop
         }
 
         // ── Page Agent mode ──
@@ -733,17 +890,23 @@ async function main() {
             const completion = await waitForResidentCompletion(page, expectedNavSteps);
 
             record.elapsed_ms = completion.elapsedMs;
-            await collectResidentMetrics(page, record);
+            await collectResidentMetrics(page, sid, record);
             record.external_request_count = tracker.nonLocal.length;
             record.console_error_count = tracker.consoleErrors.length;
+            record.console_error_messages = tracker.consoleErrors.length > 0 ? [...tracker.consoleErrors] : [];
             record.page_error_count = tracker.pageErrors.length;
             record.request_failure_count = tracker.requestFailures.length;
-            record.warning_count = tracker.warnings.length;
+            record.warnings = tracker.warnings.length > 0 ? [...tracker.warnings] : [];
 
-            // Determine success
-            // no_submit_preserved comes from DOM check in collectResidentMetrics;
-            // do NOT use || true fallback as that would mask violations
+            // success: all pass criteria met, route matches expected, no-submit preserved, no external requests, no errors
+            const allPassCriteriaMet = record.pass_criteria_results.length > 0
+              ? record.pass_criteria_results.every(cr => cr.passed)
+              : false;
+            const expectedRoute = getExpectedRoute(sid, "page_agent");
+            const routeMatchesExpected = !expectedRoute || record.final_route === expectedRoute;
             record.success = (
+              allPassCriteriaMet &&
+              routeMatchesExpected &&
               record.no_submit_preserved &&
               record.external_request_count === 0 &&
               record.console_error_count === 0 &&
@@ -753,19 +916,25 @@ async function main() {
             record.reproducibility_signature = computeSignature(record);
             record.errors = [];
 
-            console.log(`  [pag][${sid}] attempt=${attempt} success=${record.success} actions=${record.action_step_count} route=${record.final_route} elapsed=${record.elapsed_ms}ms`);
+            console.log(`  [pag][${sid}] attempt=${attempt} success=${record.success} actions=${record.action_step_count}/${record.total_engine_step_count} wr=${record.wrong_route_action_count} route=${record.final_route} elapsed=${record.elapsed_ms}ms`);
           } catch (e) {
             record.success = false;
             record.errors.push(e.message || String(e));
             record.elapsed_ms = Date.now() - paStart;
-            console.log(`  [pag][${sid}] attempt=${attempt} FAILED: ${e.message}`);
+            console.log(`  [pag][${sid}] attempt=${attempt} FAILED (stall): ${e.message}`);
+            hasStall = true;
           } finally {
             if (page) await page.close().catch(() => {});
             if (ctx) await ctx.close().catch(() => {});
           }
           allRecords.push(record);
+          if (hasStall) break;
         }
       } // end attempts
+      if (hasStall) {
+        console.log(`  [stall] Stopping due to stall at ${sid}`);
+        break;  // stop scenario loop on stall
+      }
     } // end scenarios
 
     // ════════════════════════════════════════════════════════════════

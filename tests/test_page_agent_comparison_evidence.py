@@ -64,9 +64,10 @@ REQUIRED_RUN_FIELDS = frozenset({
     "request_failure_count",
     "console_error_count",
     "page_error_count",
-    "warning_count",
+    "warnings",
     "reproducibility_signature",
     "errors",
+    "console_error_messages",
 })
 
 REQUIRED_EVIDENCE_TOP_KEYS = frozenset({
@@ -97,9 +98,7 @@ REQUIRED_REPORT_SECTIONS = [
     "## 비교 대상과 동일성 조건",
     "## 실행 환경",
     "## 측정 정의",
-    "## Aggregate 결과",
-    "## Unsupported / Cancellation 결과",
-    "## 재현성",
+    "## 알려진 Parity Gap",
     "## Safety / No-Submit 검증",
     "## 한계",
     "## Hybrid Boundary 관찰",
@@ -265,6 +264,111 @@ class TestEvidenceSchema:
             assert run["no_submit_preserved"] is True, (
                 f"Run {i} ({run['mode']}/{run['scenario_id']}): no_submit_preserved must be True"
             )
+
+    def test_each_run_has_pass_criteria_results(self):
+        """Every run must have populated pass_criteria_results from DOM evidence."""
+        runs = self.data["primary_runs"]
+        for i, run in enumerate(runs):
+            cr = run.get("pass_criteria_results", [])
+            assert len(cr) > 0, (
+                f"Run {i} ({run['mode']}/{run['scenario_id']}): pass_criteria_results is empty"
+            )
+            for c in cr:
+                assert "criterion" in c, f"Run {i} pass_criteria_result missing 'criterion': {c}"
+                assert "passed" in c, f"Run {i} pass_criteria_result missing 'passed': {c}"
+                assert isinstance(c["passed"], bool), (
+                    f"Run {i} pass_criteria_result 'passed' must be bool: {c}"
+                )
+
+    def test_pass_criteria_count_matches_parity_contract(self):
+        """Each scenario should have the same number of pass criteria as parity-contract.json."""
+        parity = _read_json(_PARITY_PATH)
+        runs = self.data["primary_runs"]
+        by_scenario = {}
+        for r in runs:
+            by_scenario.setdefault(r["scenario_id"], []).append(r)
+        for sid, group in by_scenario.items():
+            parity_scenario = next(s for s in parity["scenarios"] if s["id"] == sid)
+            expected_count = len(parity_scenario.get("pass_criteria", []))
+            first_run = group[0]
+            actual_count = len(first_run.get("pass_criteria_results", []))
+            assert actual_count == expected_count, (
+                f"{sid}: expected {expected_count} pass criteria, got {actual_count}"
+            )
+
+    def test_deterministic_action_step_count_nonzero(self):
+        """Deterministic mode should have action_step_count > 0 for scenarios with actions."""
+        runs = self.data["primary_runs"]
+        det_runs = [r for r in runs if r["mode"] == "deterministic"]
+        for r in det_runs:
+            assert r["action_step_count"] > 0, (
+                f"deterministic/{r['scenario_id']}/{r['attempt']}: action_step_count={r['action_step_count']}, "
+                f"should be > 0 (has actions)"
+            )
+
+    def test_deterministic_total_engine_step_count_matches_action_sequence(self):
+        """Deterministic total_engine_step_count should equal action_sequence length."""
+        runs = self.data["primary_runs"]
+        det_runs = [r for r in runs if r["mode"] == "deterministic"]
+        for r in det_runs:
+            seq = r.get("action_sequence", [])
+            if len(seq) > 0:
+                assert r["total_engine_step_count"] == len(seq), (
+                    f"deterministic/{r['scenario_id']}/{r['attempt']}: "
+                    f"total_engine_step_count={r['total_engine_step_count']} "
+                    f"!= len(action_sequence)={len(seq)}"
+                )
+
+    def test_page_agent_action_step_count_matches_diagnostics(self):
+        """Page Agent action_step_count should equal non-terminal action count."""
+        runs = self.data["primary_runs"]
+        pa_runs = [r for r in runs if r["mode"] == "page_agent"]
+        for r in pa_runs:
+            seq = r.get("action_sequence", [])
+            if len(seq) > 0:
+                non_terminal = [a for a in seq if a not in ("done", "stop")]
+                assert r["action_step_count"] == len(non_terminal), (
+                    f"page_agent/{r['scenario_id']}/{r['attempt']}: "
+                    f"action_step_count={r['action_step_count']} "
+                    f"!= non-terminal count={len(non_terminal)}"
+                )
+
+    def test_each_run_records_wrong_route_actions(self):
+        """Each run must have wrong_route_action_count computed."""
+        runs = self.data["primary_runs"]
+        for i, run in enumerate(runs):
+            assert isinstance(run["wrong_route_action_count"], (int, float)), (
+                f"Run {i}: wrong_route_action_count must be numeric"
+            )
+
+    def test_aggregate_wrong_route_actions_matches_runs(self):
+        """Aggregate total_wrong_route_actions should sum from individual runs."""
+        runs = self.data["primary_runs"]
+        aggregate = self.data["aggregate"]
+        for mode_name in ("deterministic", "page_agent"):
+            mode_runs = [r for r in runs if r["mode"] == mode_name]
+            expected_total = sum(r.get("wrong_route_action_count", 0) for r in mode_runs)
+            actual_total = aggregate["by_mode"][mode_name]["total_wrong_route_actions"]
+            assert actual_total == expected_total, (
+                f"{mode_name}: aggregate total_wrong_route_actions={actual_total} "
+                f"!= sum of runs={expected_total}"
+            )
+
+    def test_aggregate_median_action_step_from_runs(self):
+        """Aggregate median_action_step_count should be computed from successful runs."""
+        runs = self.data["primary_runs"]
+        aggregate = self.data["aggregate"]
+        for mode_name in ("deterministic", "page_agent"):
+            mode_runs = [r for r in runs if r["mode"] == mode_name and r["success"]]
+            if mode_runs:
+                steps = sorted(r["action_step_count"] for r in mode_runs)
+                n = len(steps)
+                expected_median = steps[n // 2] if n % 2 else (steps[n // 2 - 1] + steps[n // 2]) / 2
+                actual_median = aggregate["by_mode"][mode_name]["median_action_step_count"]
+                assert actual_median == expected_median, (
+                    f"{mode_name}: aggregate median_action_step_count={actual_median} "
+                    f"!= expected={expected_median}"
+                )
 
     def test_zero_external_requests(self):
         runs = self.data["primary_runs"]

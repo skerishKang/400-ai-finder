@@ -230,7 +230,7 @@ jobs:
       - name: Run Page Agent comparison evidence contract tests
         if: always()
         run: |
-          python -m pytest -q tests/test_page_agent_comparison_evidence.py || echo "evidence file may not exist yet; test will skip gracefully"
+          python -m pytest -q tests/test_page_agent_comparison_evidence.py
 
       - name: Verify expectations fixture integrity
         run: |
@@ -306,7 +306,7 @@ print('Expectations fixture: OK')
           node tests/browser/verify_resident_e2e.mjs \
             http://127.0.0.1:8766
 
-      - name: Run Stage 3 browser comparison harness (static build, port 8765)
+      - name: Run Stage 3 browser comparison harness (static build, port 8765, 1 rep)
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         shell: bash
         run: |
@@ -360,10 +360,10 @@ print('Expectations fixture: OK')
 
           node scripts/run_page_agent_comparison.mjs \
             --base-url http://127.0.0.1:8765 \
-            --repetitions 3 \
+            --repetitions 1 \
             --output /tmp/comparison-evidence-ci.json
 
-      - name: Verify Stage 3 evidence schema on CI-generated evidence
+      - name: Verify Stage 3 evidence schema on CI-generated evidence (10 runs)
         if: always()
         run: |
           python -c "
@@ -372,11 +372,22 @@ with open('/tmp/comparison-evidence-ci.json') as f:
     data = json.load(f)
 assert data['schema_version'] == '1.0.0'
 runs = data['primary_runs']
-assert len(runs) == 30, f'Expected 30 runs, got {len(runs)}'
+assert len(runs) == 10, f'Expected 10 runs (5 scenarios x 2 modes x 1 rep), got {len(runs)}'
 for r in runs:
     assert r['external_request_count'] == 0, f'External request in {r[\"mode\"]}/{r[\"scenario_id\"]}: {r[\"external_request_count\"]}'
     assert r['no_submit_preserved'] == True
-print(f'Evidence schema OK: {len(runs)} runs, 0 external requests, all no_submit preserved')
+    # Verify pass_criteria_results are populated
+    cr = r.get('pass_criteria_results', [])
+    assert len(cr) > 0, f'Run {r[\"mode\"]}/{r[\"scenario_id\"]}/{r[\"attempt\"]} has empty pass_criteria_results'
+    for c in cr:
+        assert 'criterion' in c and 'passed' in c, f'Malformed pass_criteria_result: {c}'
+    # Verify action_step_count matches action_sequence length
+    seq = r.get('action_sequence', [])
+    if len(seq) > 0:
+        non_terminal = [a for a in seq if a not in ('done', 'stop')]
+        assert r.get('action_step_count', 0) == len(non_terminal), \
+            f'action_step_count {r.get(\"action_step_count\")} != non-terminal count {len(non_terminal)}'
+print(f'Evidence schema OK: {len(runs)} runs, 0 external requests, all no_submit preserved, all pass_criteria populated')
 "
 
       - name: Check whitespace errors

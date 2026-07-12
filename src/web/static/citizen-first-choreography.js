@@ -840,6 +840,21 @@
     }
   }
 
+  /** @returns {number} current step index (-1 if not started) */
+  function getCurrentStepIndex() {
+    return _currentStep;
+  }
+
+  /** @returns {number} total steps in the active journey (0 if none) */
+  function getTotalSteps() {
+    return _steps ? _steps.length : 0;
+  }
+
+  /** @returns {Array} copy of the action step descriptors */
+  function getSteps() {
+    return _steps ? _steps.slice() : [];
+  }
+
   window.CitizenFirstChoreography = Object.freeze({
     start: start,
     cancel: cancel,
@@ -848,6 +863,9 @@
     hasJourney: hasJourney,
     confirmSubmission: confirmSubmission,
     handleChoice: handleChoice,
+    getCurrentStepIndex: getCurrentStepIndex,
+    getTotalSteps: getTotalSteps,
+    getSteps: getSteps,
     states: Object.freeze({
       idle: STATE_IDLE,
       running: STATE_RUNNING,
