@@ -111,38 +111,81 @@
     }
   }
 
+  var DISABLED_DONE_TEXT = "서버 모델이 비활성 상태입니다.";
+
   function initAgent() {
     if (typeof window.PageAgent !== "function") {
       addErrorMessage("PageAgent runtime을 불러올 수 없습니다.");
       return;
     }
 
-    var mockBaseUrl = new URL("./mock-llm/v1", window.location.href);
-    mockBaseUrl.pathname = mockBaseUrl.pathname.replace(/\/$/, "");
+    var params = new URLSearchParams(window.location.search);
+    var isServer = params.get("page_agent_adapter") === "server";
 
-    function localCustomFetch(input, init) {
-      var raw = input instanceof Request ? input.url : String(input);
-      var url = new URL(raw, window.location.href);
-      var expectedPath = mockBaseUrl.pathname + "/chat/completions";
-      if (url.origin !== window.location.origin) {
-        return Promise.reject(new Error("Blocked external Page Agent request: " + url.href));
+    if (isServer) {
+      var serverBaseUrl = new URL("/api/page-agent/v1", window.location.href);
+      serverBaseUrl.pathname = serverBaseUrl.pathname.replace(/\/$/, "");
+
+      var badgeMode = document.getElementById("badge-mode");
+      if (badgeMode) badgeMode.textContent = "☁️ 서버 모델";
+      var badgeSub = document.querySelector(".chat-header__sub");
+      if (badgeSub) badgeSub.textContent = "주민용 비교 데모 · 서버 모델 어댑터";
+
+      function serverCustomFetch(input, init) {
+        var raw = input instanceof Request ? input.url : String(input);
+        var url = new URL(raw, window.location.href);
+        var expectedPath = serverBaseUrl.pathname + "/chat/completions";
+        if (url.origin !== window.location.origin) {
+          return Promise.reject(new Error("Blocked external Page Agent request: " + url.href));
+        }
+        if (url.pathname !== expectedPath) {
+          return Promise.reject(new Error("Blocked unexpected request: " + url.pathname));
+        }
+        if (init && init.headers) {
+          delete init.headers.Authorization;
+          delete init.headers.authorization;
+        }
+        return fetch(input, init);
       }
-      if (url.pathname !== expectedPath) {
-        return Promise.reject(new Error("Blocked unexpected request: " + url.pathname));
+
+      agent = new window.PageAgent({
+        model: "resident-server-adapter",
+        baseURL: serverBaseUrl.href,
+        apiKey: "same-origin-server-adapter",
+        customFetch: serverCustomFetch,
+        language: "ko",
+        enableMask: false,
+        includeAttributes: ["data-action-target"],
+        maxSteps: 20,
+      });
+    } else {
+      var mockBaseUrl = new URL("./mock-llm/v1", window.location.href);
+      mockBaseUrl.pathname = mockBaseUrl.pathname.replace(/\/$/, "");
+
+      function localCustomFetch(input, init) {
+        var raw = input instanceof Request ? input.url : String(input);
+        var url = new URL(raw, window.location.href);
+        var expectedPath = mockBaseUrl.pathname + "/chat/completions";
+        if (url.origin !== window.location.origin) {
+          return Promise.reject(new Error("Blocked external Page Agent request: " + url.href));
+        }
+        if (url.pathname !== expectedPath) {
+          return Promise.reject(new Error("Blocked unexpected request: " + url.pathname));
+        }
+        return window.PageAgentMockModel.respond(input, init);
       }
-      return window.PageAgentMockModel.respond(input, init);
+
+      agent = new window.PageAgent({
+        model: "resident-mock-local",
+        baseURL: mockBaseUrl.href,
+        apiKey: "local-resident-demo",
+        customFetch: localCustomFetch,
+        language: "ko",
+        enableMask: false,
+        includeAttributes: ["data-action-target"],
+        maxSteps: 20,
+      });
     }
-
-    agent = new window.PageAgent({
-      model: "resident-mock-local",
-      baseURL: mockBaseUrl.href,
-      apiKey: "local-resident-demo",
-      customFetch: localCustomFetch,
-      language: "ko",
-      enableMask: false,
-      includeAttributes: ["data-action-target"],
-      maxSteps: 20,
-    });
 
     agent.panel.hide();
 
@@ -163,6 +206,10 @@
           addMessage(result ? result.text : "작업을 완료하지 못했습니다.", "agent");
         }
         setRunning(false);
+        if (isServer && result && result.text === DISABLED_DONE_TEXT) {
+          var badgeMode = document.getElementById("badge-mode");
+          if (badgeMode) badgeMode.textContent = "☁️ 서버 모델 비활성";
+        }
       } else if (status === "error" || status === "stopped") {
         removeThinkingMessage();
         if (status === "stopped") {
