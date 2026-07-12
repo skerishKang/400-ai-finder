@@ -1,49 +1,50 @@
 # MVP Shared Visual Tokens (#1065)
 
-Canonical visual token layer shared between the civic canvas (left, exact
-official-site clone) and the AI assistant panel (right, monochrome assistant
-UI) of the precise-implementation MVP.
+Canonical visual token layer for the precise-implementation MVP, consumed by
+the **AI assistant panel** (`citizen-copilot-shell.css`). Loaded first in
+`citizen-action-demo.html` (and therefore the built `/mvp/` entry) so the
+assistant CSS resolves its tokens.
 
-## Source of truth
+## Scope of THIS pull request
 
-`src/web/static/citizen-shared-tokens.css` is the **single** definition point
-for every cross-surface primitive. It is loaded first in
-`src/web/static/citizen-action-demo.html` (and therefore in the built
-`/mvp/` entry). The assistant CSS (`citizen-copilot-shell.css`) consumes these
-tokens directly; it defines only one layout-only token
-(`--copilot-rail-width`).
+This PR tokenizes **`citizen-copilot-shell.css` only** — the assistant chat /
+copilot shell on the right of the first-use surface. It establishes the single
+source of truth for the assistant's visual + interaction primitives and
+documents ownership.
+
+Out of scope (kept on their own systems, intentionally not touched):
+- **civic canvas** (`citizen-action-demo-canvas.css`) — frozen by the #1078
+  exact-official-site-clone invariant; keeps its own hard-coded literals.
+- **first-use shell** (`citizen-first-use-shell.css`) — keeps its own
+  `--first-use-*` system, separate motion timings, and `#8dc7ef` focus color.
+
+Future PRs may extend the layer to those surfaces; this PR does not.
 
 ## Ownership model
 
 Every token has exactly one owner:
 
-- **shared** — genuinely cross-surface interaction primitive. Canonical value
-  defined once in the shared layer. The civic canvas is frozen by the #1078
-  exact-clone invariant, so it may keep an equivalent literal instead of
-  referencing the token, but the canonical value is defined only here.
+- **shared** — a primitive whose *value* is genuinely embodied by BOTH
+  surfaces. Only a tiny set qualifies, because #1078 freezes civic colors /
+  geometry. The civic canvas uses the same number as a hard-coded literal
+  (e.g. `border-radius: 4px`, `transition: … 0.12s`); the assistant references
+  the token. This coincidence is locked by a contract test.
 - **assistant** — owned by the AI assistant panel. The civic canvas uses its
   own exact-clone colors and MUST NOT adopt these.
-- **civic-exact** — #1078 exact-official-site-clone constants. They live
-  verbatim in `citizen-action-demo-canvas.css` and are deliberately **not**
-  tokenized (documented in the shared file as comments only).
+
+There is **no civic-exact token**: those #1078 constants live verbatim in the
+civic canvas CSS and are documented as comments in `citizen-shared-tokens.css`
+for traceability only.
 
 ## Canonical token list
 
-### shared (cross-surface)
-| Token | Value | Purpose |
-|-------|-------|---------|
-| `--mvp-radius-xs` | `3px` | smallest radius (dock toggle) |
-| `--mvp-radius-sm` | `4px` | default control radius |
-| `--mvp-radius-md` | `8px` | card / placeholder radius |
-| `--mvp-radius-lg` | `12px` | decision button radius |
-| `--mvp-radius-pill` | `999px` | pill / badge radius |
-| `--mvp-control-min-height` | `36px` | min control height |
-| `--mvp-touch-target` | `44px` | min touch target (decision buttons) |
-| `--mvp-transition-fast` | `120ms` | hover/quick transition |
-| `--mvp-transition-base` | `150ms` | base transition |
-| `--mvp-transition-slow` | `240ms` | drawer / large transition |
-| `--mvp-focus-ring-width` | `2px` | keyboard focus ring width |
-| `--mvp-focus-ring-offset` | `2px` | keyboard focus ring offset |
+### shared (value embodied by both surfaces)
+| Token | Value | Civic embodiment (literal) |
+|-------|-------|----------------------------|
+| `--mvp-radius-sm` | `4px` | civic `border-radius: 4px` (buttons, cards) |
+| `--mvp-transition-fast` | `120ms` | civic `transition: … 0.12s` |
+| `--mvp-focus-ring-width` | `2px` | civic focus highlight is 2px-class |
+| `--mvp-focus-ring-offset` | `2px` | — |
 
 ### assistant (AI panel only)
 | Token | Value | Purpose |
@@ -58,10 +59,7 @@ Every token has exactly one owner:
 | `--mvp-color-border-accent` | `#b8d6ed` | accent border |
 | `--mvp-color-success` | `#27ae60` | success state |
 | `--mvp-color-error` | `#c0392b` | error state |
-| `--mvp-color-warning` | `#b9770e` | warning state |
 | `--mvp-color-busy` | `#2980b9` | busy/active-progress state |
-| `--mvp-color-disabled-fg` | `#9b9ba5` | disabled foreground |
-| `--mvp-color-disabled-bg` | `#e8ebef` | disabled background |
 | `--mvp-color-focus` | `#5dade2` | assistant focus ring color |
 | `--mvp-color-accent` | `#ef6a4c` | composer / primary accent |
 | `--mvp-font-size-xs` | `0.6875rem` | 11px |
@@ -73,68 +71,80 @@ Every token has exactly one owner:
 | `--mvp-font-size-send` | `0.85rem` | composer send |
 | `--mvp-font-size-xl` | `0.95rem` | chat shell title / bubble |
 | `--mvp-font-size-2xl` | `1.375rem` | canvas / demo title |
-| `--mvp-weight-regular` | `400` | |
-| `--mvp-weight-medium` | `500` | |
 | `--mvp-weight-semibold` | `600` | |
 | `--mvp-weight-bold` | `700` | |
-| `--mvp-weight-extrabold` | `800` | |
-| `--mvp-space-1` | `4px` | |
-| `--mvp-space-2` | `8px` | |
-| `--mvp-space-3` | `12px` | |
-| `--mvp-space-4` | `16px` | |
-| `--mvp-space-5` | `24px` | |
-| `--mvp-space-6` | `32px` | |
+| `--mvp-radius-xs` | `3px` | smallest radius (dock toggle) |
+| `--mvp-radius-md` | `8px` | card / placeholder radius |
+| `--mvp-transition-base` | `150ms` | base transition |
 
-### civic-exact (NOT tokenized — #1078 frozen)
-`#2c3e50` nav, `#32966E`/`#466EAA` GNB gradient, `#008575`/`#008b68`/`#009e6d`
-green, `#004a99`/`#0054a6`/`#2c5697` blue, `#e6e8ec`/`#e0e0e0`/`#e0e4ec`
-dividers, `#000`/`#333`/`#1a252f` text, `#5d6d7e`/`#7f8c9a` muted, `#c0392b`
-(safety-stop overlay only), `#fff`/`#f8f9fa`/`#f4f7fb` backgrounds.
+## Removed speculative tokens (per review)
+
+The following were declared in the first revision but are **not connected to
+any production selector**, so they were removed to keep the layer small and
+honest:
+
+- `--mvp-radius-lg`, `--mvp-radius-pill` (no production usage; pill controls
+  keep a literal `border-radius: 20px`)
+- `--mvp-transition-slow` (the only `0.25s` usage keeps a literal `0.25s`)
+- spacing scale (`--mvp-space-1..6`) — not yet applied
+- `--mvp-weight-regular`, `--mvp-weight-medium`, `--mvp-weight-extrabold`
+- `--mvp-control-min-height`, `--mvp-touch-target`
+- `--mvp-color-warning`, `--mvp-color-disabled-fg`, `--mvp-color-disabled-bg`
+
+The assistant currently expresses disabled state via `opacity` + `cursor` and
+has no warning surface, so those tokens were speculative.
 
 ## Migration map (hard-coded literal → token)
 
-All substitutions preserve the resolved computed value exactly.
+Every substitution preserves the **resolved computed value exactly**
+(`0.15s` ≡ `150ms`, `0.12s` ≡ `120ms`). Two values were intentionally kept as
+literals because their tokenized forms would NOT be equal:
 
-| File | Before | After |
-|------|--------|-------|
-| citizen-copilot-shell.css | `#fff` | `var(--mvp-color-surface)` |
-| citizen-copilot-shell.css | `#0d0d0f` | `var(--mvp-color-text)` |
-| citizen-copilot-shell.css | `#e6e6ea` | `var(--mvp-color-divider)` |
-| citizen-copilot-shell.css | `#9b9ba5` | `var(--mvp-color-text-muted)` |
-| citizen-copilot-shell.css | `#f4f4f6` | `var(--mvp-color-surface-subtle)` |
-| citizen-copilot-shell.css | `#ecf0f1` | `var(--mvp-color-surface-2)` |
-| citizen-copilot-shell.css | `#d5dce8` | `var(--mvp-color-border-soft)` |
-| citizen-copilot-shell.css | `#b8d6ed` | `var(--mvp-color-border-accent)` |
-| citizen-copilot-shell.css | `#27ae60` | `var(--mvp-color-success)` |
-| citizen-copilot-shell.css | `#c0392b` | `var(--mvp-color-error)` |
-| citizen-copilot-shell.css | `#2980b9` | `var(--mvp-color-busy)` |
-| citizen-copilot-shell.css | `#5dade2` | `var(--mvp-color-focus)` |
-| citizen-copilot-shell.css | `#ef6a4c` | `var(--mvp-color-accent)` |
-| citizen-copilot-shell.css | `3px` (radius) | `var(--mvp-radius-xs)` |
-| citizen-copilot-shell.css | `4px` (radius) | `var(--mvp-radius-sm)` |
-| citizen-copilot-shell.css | `8px` (radius) | `var(--mvp-radius-md)` |
-| citizen-copilot-shell.css | `20px` (radius) | `var(--mvp-radius-pill)` |
-| citizen-copilot-shell.css | `0.12s` / `0.15s` / `0.25s` | fast / base / slow |
-| citizen-copilot-shell.css | `2px solid #5dade2` (focus) | `var(--mvp-focus-ring-width) solid var(--mvp-color-focus)` |
+| File | Before | After | Value-equal? |
+|------|--------|-------|--------------|
+| citizen-copilot-shell.css | `#fff` | `var(--mvp-color-surface)` | yes |
+| citizen-copilot-shell.css | `#0d0d0f` | `var(--mvp-color-text)` | yes |
+| citizen-copilot-shell.css | `#e6e6ea` | `var(--mvp-color-divider)` | yes |
+| citizen-copilot-shell.css | `#9b9ba5` | `var(--mvp-color-text-muted)` | yes |
+| citizen-copilot-shell.css | `#f4f4f6` | `var(--mvp-color-surface-subtle)` | yes |
+| citizen-copilot-shell.css | `#ecf0f1` | `var(--mvp-color-surface-2)` | yes |
+| citizen-copilot-shell.css | `#d5dce8` | `var(--mvp-color-border-soft)` | yes |
+| citizen-copilot-shell.css | `#b8d6ed` | `var(--mvp-color-border-accent)` | yes |
+| citizen-copilot-shell.css | `#27ae60` | `var(--mvp-color-success)` | yes |
+| citizen-copilot-shell.css | `#c0392b` | `var(--mvp-color-error)` | yes |
+| citizen-copilot-shell.css | `#2980b9` | `var(--mvp-color-busy)` | yes |
+| citizen-copilot-shell.css | `#5dade2` | `var(--mvp-color-focus)` | yes |
+| citizen-copilot-shell.css | `#ef6a4c` | `var(--mvp-color-accent)` | yes |
+| citizen-copilot-shell.css | `3px` (radius) | `var(--mvp-radius-xs)` | yes |
+| citizen-copilot-shell.css | `4px` (radius) | `var(--mvp-radius-sm)` | yes |
+| citizen-copilot-shell.css | `8px` (radius) | `var(--mvp-radius-md)` | yes |
+| citizen-copilot-shell.css | `0.12s` | `var(--mvp-transition-fast)` | yes (`120ms`) |
+| citizen-copilot-shell.css | `0.15s` | `var(--mvp-transition-base)` | yes (`150ms`) |
+| citizen-copilot-shell.css | `2px solid #5dade2` (focus) | `var(--mvp-focus-ring-width) solid var(--mvp-color-focus)` | yes |
+| citizen-copilot-shell.css | `20px` (radius, badge/toggle) | `20px` (literal — kept) | n/a (unchanged) |
+| citizen-copilot-shell.css | `0.25s` (drawer transition) | `0.25s` (literal — kept) | n/a (unchanged) |
 
 The removed `--copilot-*` semantic tokens (`--copilot-text`,
 `--copilot-section-border`, `--copilot-confirm-approve-bg`, etc.) are deleted;
-their values now resolve through the shared tokens above.
+their values now resolve through the shared tokens above. The dead
+`--copilot-breakpoint` token was also removed.
 
 ## Reduced motion
 
 `citizen-shared-tokens.css` ends with a `prefers-reduced-motion: reduce` block
 that collapses every transition/animation to an effectively-instant duration.
 This affects **motion timing only**, never geometry, color, or content, so it
-does not violate the #1078 exact-clone invariant. The first-use shell keeps its
-own reduced-motion rules; both layers are consistent.
+does not violate the #1078 exact-clone invariant. The first-use shell keeps
+its own reduced-motion rules; both layers are consistent.
 
-## Conflict cleanup
+## Contract tests
 
-- Removed dead `--copilot-breakpoint: 768px` (media queries cannot read custom
-  properties; the real breakpoint is the literal `767px` media query).
-- De-duplicated repeated `#0d0d0f`, `#e6e6ea`, `#f4f4f6`, `#27ae60`, `#c0392b`
-  literals into single token references.
-- Assistant focus ring now uses the shared `--mvp-focus-ring-width` /
-  `--mvp-focus-ring-offset` geometry everywhere; only the color differs per
-  surface (assistant `#5dade2` vs first-use `#8dc7ef`/`#00a58f`).
+- `tests/test_citizen_shared_visual_tokens.py` (Python, runs in CI): token
+  stylesheet load order, key token values + ownership, detection of any
+  unresolved `var(--mvp-*)` referenced by the assistant CSS, proof that the
+  shared primitives are embodied by the civic canvas literals, focus-visible
+  presence, success/error/busy/disabled token definitions, and the
+  reduced-motion media block.
+- `tests/browser/verify_first_use_responsive.mjs` (strengthened): adds
+  reduced-motion and disabled-state checks at 390 / 768 / 1440px on top of the
+  existing geometry + focus-visible contract.

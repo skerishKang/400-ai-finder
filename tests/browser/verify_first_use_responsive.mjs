@@ -528,6 +528,87 @@ function assertInsideViewport(rect, name, ctx, vw) {
   );
 }
 
+async function applySplitState(page) {
+  await page.evaluate(() => {
+    document.body.setAttribute("data-first-use-state", "split");
+    const c = document.getElementById("demo-canvas");
+    if (c) {
+      c.removeAttribute("inert");
+      c.setAttribute("aria-hidden", "false");
+    }
+  });
+}
+
+// Extra contract checks required by #1065 (token layer): token stylesheet is
+// actually loaded + parsed, the disabled state collapses correctly, and
+// prefers-reduced-motion collapses transition duration. Each throws on
+// failure so it is surfaced through the shared failure list.
+async function verifyStateExtra(page, viewport, state, base) {
+  const ctx = `extra viewport=${viewport.width}x${viewport.height} state=${state}`;
+
+  // 1) Token stylesheet loaded + parsed (canonical primitive resolves).
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  if (state === "split") await applySplitState(page);
+  const tokenVal = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue("--mvp-radius-sm").trim(),
+  );
+  assert.equal(
+    tokenVal,
+    "4px",
+    `${ctx}: --mvp-radius-sm not applied via token stylesheet (got '${tokenVal}')`,
+  );
+
+  // 2) Disabled state: send button must read opacity 0.4 + cursor default.
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  if (state === "split") await applySplitState(page);
+  const dis = await page.evaluate(() => {
+    const s = document.querySelector(".chat-composer__send");
+    if (!s) return { exists: false };
+    s.disabled = true;
+    const cs = getComputedStyle(s);
+    const out = { exists: true, opacity: cs.opacity, cursor: cs.cursor };
+    s.disabled = false;
+    return out;
+  });
+  assert.ok(dis.exists, `${ctx}: .chat-composer__send missing`);
+  assert.equal(
+    dis.opacity,
+    "0.4",
+    `${ctx}: disabled send opacity expected 0.4, got ${dis.opacity}`,
+  );
+  assert.equal(
+    dis.cursor,
+    "default",
+    `${ctx}: disabled send cursor expected default, got ${dis.cursor}`,
+  );
+
+  // 3) Reduced motion collapses transition duration to ~0.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  if (state === "split") await applySplitState(page);
+  const rd = await page.evaluate(() => {
+    const el = document.querySelector(".chat-shell");
+    return el ? getComputedStyle(el).transitionDuration : null;
+  });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  assert.ok(rd !== null, `${ctx}: .chat-shell missing for reduced-motion check`);
+  // Reduced motion must collapse transitions to an effectively-instant value.
+  // The shared token layer sets `transition-duration: 0.001ms !important`, but
+  // the first-use layer overrides `.first-use-layout .chat-shell` with
+  // `transition: none !important` (a stricter, equally reduced-motion-safe
+  // collapse). Both yield "no visible motion", so accept either.
+  assert.ok(
+    rd === "0s" || rd === "0.001ms",
+    `${ctx}: reduced-motion transition-duration expected 0s or 0.001ms (collapsed), got ${rd}`,
+  );
+
+  console.log(
+    `[${viewport.width}x${viewport.height} ${state}] extra=` +
+      `token(${tokenVal}) disabled(opacity=${dis.opacity},cursor=${dis.cursor}) ` +
+      `reduced-motion(transition=${rd})`,
+  );
+}
+
 async function runOneState(page, viewport, state, base) {
   const ctx = `viewport=${viewport.width}x${viewport.height} state=${state}`;
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
@@ -783,6 +864,7 @@ async function main() {
         try {
           const r = await runOneState(page, vp, state, base);
           results.push(r);
+          await verifyStateExtra(page, vp, state, base);
         } catch (err) {
           failures.push(`viewport=${vp.width}x${vp.height} state=${state}: ${err.message}`);
         }

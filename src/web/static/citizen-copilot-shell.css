@@ -404,7 +404,7 @@ body[data-copilot-dock="right"] {
     border-bottom: none;
     border-left: none;
     transform: translateY(100%);  /* hidden by default */
-    transition: transform var(--mvp-transition-slow) ease-out;
+    transition: transform 0.25s ease-out;
     overflow-y: auto;
   }
 
@@ -430,7 +430,7 @@ body[data-copilot-dock="right"] {
     z-index: 201;
     background: var(--mvp-color-surface);
     border: none;
-    border-radius: var(--mvp-radius-pill);
+    border-radius: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     color: #fff;
     cursor: pointer;
@@ -495,7 +495,7 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
   font-size: 0.7rem;
   font-weight: var(--mvp-weight-semibold);
   padding: 3px 10px;
-  border-radius: var(--mvp-radius-pill);
+  border-radius: 20px;
 }
 
 /* Conversation thread */
