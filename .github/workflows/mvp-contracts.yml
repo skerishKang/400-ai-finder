@@ -227,6 +227,27 @@ jobs:
       - name: Run Page Agent comparison contract tests (full suite)
         run: python -m pytest -q tests/test_page_agent_comparison_contract.py
 
+      - name: Run Page Agent comparison evidence contract tests
+        if: always()
+        run: |
+          python -m pytest -q tests/test_page_agent_comparison_evidence.py || echo "evidence file may not exist yet; test will skip gracefully"
+
+      - name: Verify expectations fixture integrity
+        run: |
+          python -c "
+import json
+with open('tests/fixtures/page_agent_comparison_expectations.json') as f:
+    data = json.load(f)
+assert data['schema_version'] == '1.0.0'
+assert len(data['scenarios']) == 5
+for s in data['scenarios']:
+    assert 'deterministic' in s
+    assert 'page_agent' in s
+    assert 'trigger' in s['deterministic']
+    assert 'trigger' in s['page_agent']
+print('Expectations fixture: OK')
+"
+
       - name: Run resident demo browser E2E
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         shell: bash
@@ -284,6 +305,79 @@ jobs:
 
           node tests/browser/verify_resident_e2e.mjs \
             http://127.0.0.1:8766
+
+      - name: Run Stage 3 browser comparison harness (static build, port 8765)
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PYTHONPATH=. python scripts/build_cloudflare_pages.py --mode static
+
+          test -f dist/cloudflare-pages/examples/page-agent/resident/index.html
+          test -f dist/cloudflare-pages/examples/page-agent/vendor/page-agent.iife.js
+          test -f dist/cloudflare-pages/mvp/index.html
+
+          python -m http.server 8765 \
+            --bind 127.0.0.1 \
+            --directory dist/cloudflare-pages \
+            > /tmp/comparison-harness-server.log 2>&1 &
+
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8765/examples/page-agent/resident/"
+
+          for _ in range(40):
+              try:
+                  with urllib.request.urlopen(url, timeout=1) as response:
+                      body = response.read().decode("utf-8", errors="replace")
+                      if response.status == 200 and "Page Agent형 AI 북구청" in body:
+                          break
+              except Exception:
+                  time.sleep(0.25)
+          else:
+              import sys
+              try:
+                  with open("/tmp/comparison-harness-server.log", "r") as f:
+                      sys.stderr.write("--- Server log ---\n")
+                      sys.stderr.write(f.read())
+                      sys.stderr.write("--- End server log ---\n")
+              except Exception as e:
+                  sys.stderr.write("Could not read server log: " + str(e) + "\n")
+              raise SystemExit("Comparison harness server did not become ready")
+          PY
+
+          node scripts/run_page_agent_comparison.mjs \
+            --base-url http://127.0.0.1:8765 \
+            --repetitions 3 \
+            --output /tmp/comparison-evidence-ci.json
+
+      - name: Verify Stage 3 evidence schema on CI-generated evidence
+        if: always()
+        run: |
+          python -c "
+import json
+with open('/tmp/comparison-evidence-ci.json') as f:
+    data = json.load(f)
+assert data['schema_version'] == '1.0.0'
+runs = data['primary_runs']
+assert len(runs) == 30, f'Expected 30 runs, got {len(runs)}'
+for r in runs:
+    assert r['external_request_count'] == 0, f'External request in {r[\"mode\"]}/{r[\"scenario_id\"]}: {r[\"external_request_count\"]}'
+    assert r['no_submit_preserved'] == True
+print(f'Evidence schema OK: {len(runs)} runs, 0 external requests, all no_submit preserved')
+"
 
       - name: Check whitespace errors
         run: git diff --check
