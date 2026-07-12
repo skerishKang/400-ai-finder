@@ -31,8 +31,8 @@
     {
       "path": "vendor/page-agent.iife.js",
       "source": "custom non-demo IIFE built locally from pinned alibaba/page-agent source",
-      "bytes": 208160,
-      "sha256": "DE64882D3CFB4316E2DB740EEA896310F9925419C8932CB95D59AB88DA8A434E"
+      "bytes": 208138,
+      "sha256": "ADE2BD44C77C2555143BD3D008FE9C3527D161C2C922A579471CE8A6C6FA3C74"
     }
   ],
   "integrity": {
