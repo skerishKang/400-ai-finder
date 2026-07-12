@@ -210,23 +210,32 @@ export function getLastUserMessageText(messages) {
 }
 
 export function extractUserRequest(text) {
-  if (typeof text !== 'string') return '';
-  const open = text.indexOf('<user_request>');
-  const close = text.indexOf('</user_request>');
-  if (open >= 0 && close > open) {
-    return text.slice(open + 14, close).trim();
-  }
-  return text.trim();
+  if (typeof text !== 'string') return null;
+  const openTag = '<user_request>';
+  const closeTag = '</user_request>';
+  const firstOpen = text.indexOf(openTag);
+  if (firstOpen < 0) return null;
+  // reject duplicate opening tags
+  if (text.indexOf(openTag, firstOpen + 1) >= 0) return null;
+  const close = text.indexOf(closeTag);
+  if (close <= firstOpen) return null;
+  // reject malformed close tag (e.g., </user_request  >)
+  const extracted = text.slice(firstOpen, close + closeTag.length);
+  if (extracted.includes('<', 1) && extracted.indexOf('<', 1) < close) return null;
+  return text.slice(firstOpen + openTag.length, close).trim();
 }
 
 export function extractBrowserState(text) {
-  if (typeof text !== 'string') return '';
-  const open = text.indexOf('<browser_state>');
-  const close = text.indexOf('</browser_state>');
-  if (open >= 0 && close > open) {
-    return text.slice(open + 15, close);
-  }
-  return '';
+  if (typeof text !== 'string') return null;
+  const openTag = '<browser_state>';
+  const closeTag = '</browser_state>';
+  const firstOpen = text.indexOf(openTag);
+  if (firstOpen < 0) return null;
+  // reject duplicate opening tags
+  if (text.indexOf(openTag, firstOpen + 1) >= 0) return null;
+  const close = text.indexOf(closeTag);
+  if (close <= firstOpen) return null;
+  return text.slice(firstOpen + openTag.length, close);
 }
 
 function stripControlChars(s) {
@@ -363,15 +372,15 @@ export function validateAction(action, stateElements, opts) {
     if (!P.isSafeTarget(el.target)) return { ok: false, failureCode: 'unsafe_target' };
     if (el.href && el.href !== '#' && el.href !== '') {
       try {
-        const u = new URL(el.href, (opts && opts.baseUrl) || 'http://localhost/');
-        if (u.protocol === 'http:' || u.protocol === 'https:') {
-          const host = u.hostname.toLowerCase();
-          const local = host === 'localhost' || host === '127.0.0.1';
-          const pages = host === 'cgbukku.pages.dev' || host.endsWith('.cgbukku.pages.dev');
-          if (!local && !pages) return { ok: false, failureCode: 'unsafe_target' };
+        const u = new URL(el.href, requestOrigin);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+          return { ok: false, failureCode: 'unsafe_target' };
+        }
+        if (u.origin !== requestOrigin) {
+          return { ok: false, failureCode: 'unsafe_target' };
         }
       } catch (_) {
-        // relative href tolerated
+        return { ok: false, failureCode: 'unsafe_target' };
       }
     }
     const hay = (el.text + ' ' + el.inputType + ' ' + el.target).toLowerCase();
@@ -615,8 +624,20 @@ export async function onRequest(context) {
   }
 
   const origin = headerGet(request, 'Origin') || '';
-  if (origin && !P.isAllowedOrigin(origin)) {
-    return jsonResponse({ error: 'forbidden_origin' }, 403, headers);
+
+  // OPTIONS: if origin is present it must be valid; missing origin is allowed for preflight
+  // POST: origin MUST be present and MUST be valid
+  if (request.method === 'OPTIONS') {
+    if (origin && !P.isAllowedOrigin(origin)) {
+      return jsonResponse({ error: 'forbidden_origin' }, 403, headers);
+    }
+  } else {
+    if (!origin) {
+      return jsonResponse({ error: 'missing_origin' }, 403, headers);
+    }
+    if (!P.isAllowedOrigin(origin)) {
+      return jsonResponse({ error: 'forbidden_origin' }, 403, headers);
+    }
   }
 
   let rawText;
@@ -642,7 +663,10 @@ export async function onRequest(context) {
     return jsonResponse({ error: 'missing_messages' }, 400, headers);
   }
 
-  const tools = Array.isArray(body.tools) ? body.tools : [];
+  const tools = Array.isArray(body.tools) ? body.tools : null;
+  if (!tools || tools.length === 0) {
+    return jsonResponse({ error: 'missing_tools' }, 400, headers);
+  }
   const macroName =
     (tools[0] && tools[0].function && tools[0].function.name) || P.MACRO_TOOL_NAME;
   if (macroName !== P.MACRO_TOOL_NAME) {
@@ -650,7 +674,14 @@ export async function onRequest(context) {
   }
 
   const userText = getLastUserMessageText(messages);
+  const lastMsg = messages[messages.length - 1];
+  if (!lastMsg || lastMsg.role !== 'user') {
+    return jsonResponse(buildSafeDone('invalid_input'), 200, headers);
+  }
   const rawRequest = extractUserRequest(userText);
+  if (rawRequest === null) {
+    return jsonResponse(buildSafeDone('invalid_input'), 200, headers);
+  }
   const userRequest = sanitizeUserRequest(rawRequest);
 
   const pii = P.detectUserRequestPii(userRequest);
@@ -667,6 +698,9 @@ export async function onRequest(context) {
   }
 
   const browserStateRaw = extractBrowserState(userText);
+  if (browserStateRaw === null) {
+    return jsonResponse(buildSafeDone('invalid_input'), 200, headers);
+  }
   const browserState = redactBrowserState(browserStateRaw, config.maxBrowserState);
 
   const stepCount = countSteps(userText);
@@ -732,7 +766,7 @@ export async function onRequest(context) {
 
   const elements = parseBrowserStateElements(browserState);
   const actionCheck = validateAction(validated.action, elements, {
-    baseUrl: P.isAllowedOrigin(origin) ? origin : undefined,
+    requestOrigin: origin || 'http://localhost/',
   });
   if (!actionCheck.ok) {
     safeLog(env, {

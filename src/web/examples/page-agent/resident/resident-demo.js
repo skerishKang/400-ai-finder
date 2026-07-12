@@ -141,11 +141,23 @@
         if (url.pathname !== expectedPath) {
           return Promise.reject(new Error("Blocked unexpected request: " + url.pathname));
         }
-        if (init && init.headers) {
-          delete init.headers.Authorization;
-          delete init.headers.authorization;
+        var mergedInit = init || {};
+        var headers;
+        if (mergedInit.headers instanceof Headers) {
+          headers = new Headers(mergedInit.headers);
+        } else if (Array.isArray(mergedInit.headers)) {
+          headers = new Headers(mergedInit.headers);
+        } else if (mergedInit.headers && typeof mergedInit.headers === 'object') {
+          headers = new Headers(Object.entries(mergedInit.headers));
+        } else {
+          headers = new Headers();
         }
-        return fetch(input, init);
+        var toDelete = [];
+        headers.forEach(function (value, key) {
+          if (key.toLowerCase() === 'authorization') toDelete.push(key);
+        });
+        toDelete.forEach(function (key) { headers.delete(key); });
+        return fetch(input, Object.assign({}, mergedInit, { headers: headers, credentials: 'same-origin' }));
       }
 
       agent = new window.PageAgent({

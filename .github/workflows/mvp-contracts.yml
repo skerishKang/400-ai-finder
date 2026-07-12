@@ -161,6 +161,16 @@ jobs:
           RUN_CLOUDFLARE_FUNCTION_CONTRACTS: "1"
         run: node tests/functions/test_cloudflare_mvp_ask_contract.mjs
 
+      - name: Run Page Agent Stage 4 server adapter contracts
+        env:
+          RUN_CLOUDFLARE_FUNCTION_CONTRACTS: "1"
+        run: node tests/functions/test_page_agent_server_adapter_contract.mjs
+
+      - name: Run Page Agent controlled-live offline validator
+        env:
+          RUN_PAGE_AGENT_LIVE_VALIDATION: "1"
+        run: node scripts/validate_page_agent_live_adapter.mjs
+
       - name: Run Page Agent lab Python contracts (full suite)
         run: python -m pytest -q tests/test_page_agent_lab.py
 

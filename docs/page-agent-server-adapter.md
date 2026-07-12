@@ -226,6 +226,8 @@ misconfigured, the adapter returns a safe `done(success:false)` with text
 
 ## PII / credential redaction
 
+**Accuracy note**: The adapter blocks known high-risk PII patterns (resident registration numbers, card numbers, account numbers, phone numbers, email addresses, password/auth keywords) before provider invocation. Browser-state credentials and known secret-bearing fields are redacted. However, arbitrary DOM content cannot be proven PII-free.
+
 ### User request
 
 The resident's free-text `<user_request>` is checked against
@@ -253,6 +255,8 @@ Before forwarding the `<browser_state>` to the provider, the adapter:
 
 Public phone numbers, menu names, and department names are **not** redacted
 (they are public DOM).
+
+**Controlled live validation remains blocked pending explicit owner approval.**
 
 ## Logging policy
 
@@ -289,20 +293,15 @@ input values, PII, or environment variable values.
 
 ## Controlled-live validation
 
-The script `scripts/validate_page_agent_live_adapter.mjs` exists for
-authorised, secret-controlled, one-shot validation against a real provider.
-It is **gated** behind three environment variables:
+The script `scripts/validate_page_agent_live_adapter.mjs` performs **offline fixture validation** of the adapter policy by reusing the same validation functions (`validateAction`, `validateProviderResponse`) that the actual server adapter uses. It validates that the policy correctly rejects dangerous actions (execute_javascript, go_to, input_text, select_option, unknown actions, multiple actions, invalid href protocol, external href) without making any live provider calls.
+
+Gated behind:
 
 ```bash
 RUN_PAGE_AGENT_LIVE_VALIDATION=1
-PAGE_AGENT_LLM_ENABLED=true
-PAGE_AGENT_LLM_PROVIDER=gemini  # or hy3
 ```
 
-It validates exactly one safe scenario with one provider, one model, bounded
-steps, and no real submission or PII transmission.  The result includes only
-provider, model, validated action name, and duration — never the raw prompt,
-DOM, or API key.
+No real submission, no external navigation, no provider secrets accessed.
 
 ## Known limitations (Stage 4)
 
