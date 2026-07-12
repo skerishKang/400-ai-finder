@@ -4,10 +4,13 @@
   var chatMessages = document.getElementById("chat-messages");
   var chatInput = document.getElementById("chat-input");
   var chatSend = document.getElementById("chat-send");
+  var chatCancel = document.getElementById("chat-cancel");
   var statusEl = document.getElementById("chat-status");
 
   var agent = null;
   var isRunning = false;
+  var timeoutId = null;
+  var TIMEOUT_MS = 60000; // 60-second bounded timeout
 
   var SUGGESTIONS = [
     "공동주택과 연락처 찾아줘",
@@ -28,6 +31,17 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
+  function addErrorMessage(text) {
+    var div = document.createElement("div");
+    div.className = "chat-msg chat-msg--agent";
+    var bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bubble--agent chat-bubble--error";
+    bubble.textContent = "⚠ " + text;
+    div.appendChild(bubble);
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
   function setStatus(text, className) {
     statusEl.textContent = text;
     statusEl.className = "chat-header__status" + (className ? " " + className : "");
@@ -37,11 +51,12 @@
     isRunning = running;
     chatInput.disabled = running;
     chatSend.disabled = running;
+    if (chatCancel) chatCancel.style.display = running ? "inline-flex" : "none";
     if (running) {
       chatInput.placeholder = "Page Agent가 작업 중...";
     } else {
       chatInput.placeholder = "무엇을 도와드릴까요?";
-      chatInput.focus();
+      if (!chatInput.disabled) chatInput.focus();
     }
   }
 
@@ -62,28 +77,43 @@
     if (el) el.parentElement.remove();
   }
 
-  function addNavigateMessage(routeId) {
-    var routeNames = {
-      "apartment-dept": "공동주택과 안내",
-      "bulky-waste-disposal": "대형폐기물 배출방법 안내",
-      "passport-guidance": "여권민원 안내",
-      "complaint-write": "민원 글쓰기",
-      "mayor-complaint-write": "구청장에게 바란다",
-    };
-    var name = routeNames[routeId] || routeId;
+  function addActionRecord(actionName, detail) {
     var div = document.createElement("div");
-    div.className = "chat-msg chat-msg--agent";
+    div.className = "chat-msg chat-msg--status chat-msg--action";
     var bubble = document.createElement("div");
-    bubble.className = "chat-bubble chat-bubble--agent chat-bubble--navigate";
-    bubble.textContent = "🔍 " + name + " 화면을 열고 있습니다...";
+    bubble.className = "chat-bubble chat-bubble--action";
+    var icon = "";
+    var label = "";
+    switch (actionName) {
+      case "click_element_by_index":
+        icon = "🖱️";
+        label = "요소 클릭";
+        if (detail && typeof detail.index === "number") label += " (index " + detail.index + ")";
+        break;
+      case "scroll":
+        icon = "📜";
+        label = "스크롤";
+        break;
+      default:
+        icon = "⚙️";
+        label = actionName;
+    }
+    bubble.textContent = icon + " " + label;
     div.appendChild(bubble);
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
+  function stopAgent() {
+    if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
+    if (agent && isRunning) {
+      agent.stop();
+    }
+  }
+
   function initAgent() {
     if (typeof window.PageAgent !== "function") {
-      addMessage("PageAgent runtime을 불러올 수 없습니다.", "agent");
+      addErrorMessage("PageAgent runtime을 불러올 수 없습니다.");
       return;
     }
 
@@ -110,8 +140,8 @@
       customFetch: localCustomFetch,
       language: "ko",
       enableMask: false,
-      experimentalScriptExecutionTool: true,
-      promptForNextTask: true,
+      includeAttributes: true,
+      maxSteps: 20,
     });
 
     agent.panel.hide();
@@ -135,18 +165,25 @@
         setRunning(false);
       } else if (status === "error" || status === "stopped") {
         removeThinkingMessage();
-        setStatus("중단됨", "");
+        if (status === "stopped") {
+          setStatus("취소됨", "");
+          addMessage("작업이 취소되었습니다.", "agent");
+        } else {
+          setStatus("오류", "chat-header__status--error");
+          addErrorMessage("작업 중 오류가 발생했습니다.");
+        }
         setRunning(false);
       }
     });
 
     agent.addEventListener("activity", function (e) {
       var detail = e.detail;
-      if (detail && detail.type === "executing" && detail.input && detail.input.script) {
-        var match = detail.input.script.match(/navigateToRoute\("([^"]+)"\)/);
-        if (match) {
+      if (detail && detail.type === "executing") {
+        var toolName = detail.tool;
+        var toolInput = detail.input;
+        if (toolName === "click_element_by_index") {
           removeThinkingMessage();
-          addNavigateMessage(match[1]);
+          addActionRecord(toolName, toolInput);
           addThinkingMessage();
         }
       }
@@ -159,9 +196,17 @@
     if (!text.trim() || isRunning) return;
     addMessage(text, "user");
     if (agent) {
+      // Bounded timeout
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(function () {
+        if (isRunning) {
+          addErrorMessage("60초가 초과되어 작업이 중단되었습니다.");
+          stopAgent();
+        }
+      }, TIMEOUT_MS);
       agent.execute(text);
     } else {
-      addMessage("PageAgent가 아직 초기화되지 않았습니다.", "agent");
+      addErrorMessage("PageAgent가 아직 초기화되지 않았습니다.");
     }
   }
 
@@ -173,6 +218,10 @@
     }
   }
 
+  function onCancel() {
+    stopAgent();
+  }
+
   function init() {
     chatSend.addEventListener("click", onSend);
     chatInput.addEventListener("keydown", function (e) {
@@ -181,6 +230,7 @@
         onSend();
       }
     });
+    if (chatCancel) chatCancel.addEventListener("click", onCancel);
 
     var suggestionsContainer = document.getElementById("chat-suggestions");
     SUGGESTIONS.forEach(function (s) {

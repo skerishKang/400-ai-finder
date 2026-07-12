@@ -10,7 +10,9 @@
 </head>
 <body>
 <div class="resident-layout">
-  <div class="resident-canvas" id="demo-canvas" role="main" aria-label="북구청 안내 화면"></div>
+  <div class="resident-canvas" role="main" aria-label="북구청 안내 화면">
+    <div id="demo-canvas"></div>
+  </div>
 
   <aside class="resident-chat" role="complementary" aria-label="Page Agent 챗봇">
     <div class="chat-header">
@@ -18,6 +20,11 @@
         <span>🤖</span> Page Agent형 AI 북구청
       </div>
       <div class="chat-header__sub">주민용 비교 데모 · 실시간 DOM 동작</div>
+      <div class="chat-header__badges">
+        <span class="badge badge--offline">🔒 오프라인/mock</span>
+        <span class="badge badge--sameorigin">🏠 동일 출처</span>
+        <span class="badge badge--nosubmit">🚫 제출 불가</span>
+      </div>
       <div class="chat-header__status" id="chat-status">초기화 중...</div>
     </div>
 
@@ -35,6 +42,7 @@
     <div class="chat-input-row">
       <input class="chat-input" id="chat-input" type="text" placeholder="무엇을 도와드릴까요?" aria-label="메시지 입력">
       <button class="chat-send" id="chat-send" type="button">보내기</button>
+      <button class="chat-cancel" id="chat-cancel" type="button" style="display:none">취소</button>
     </div>
   </aside>
 </div>

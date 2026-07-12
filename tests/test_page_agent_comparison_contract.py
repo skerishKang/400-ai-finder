@@ -255,6 +255,16 @@ class TestResidentRouteStub:
         assert "citizen-action-demo-canvas.css" in html
         assert 'id="demo-canvas"' in html
 
+    def test_resident_index_has_safety_badges(self):
+        html = _read(_RESIDENT_INDEX)
+        assert "오프라인/mock" in html
+        assert "동일 출처" in html or "sameorigin" in html
+        assert "제출 불가" in html or "nosubmit" in html
+
+    def test_resident_index_has_cancel_button(self):
+        html = _read(_RESIDENT_INDEX)
+        assert 'id="chat-cancel"' in html or "취소" in html
+
     def test_resident_index_has_no_external_calls(self):
         html = _read(_RESIDENT_INDEX)
         _assert_no_external_auto_calls(html, "resident/index.html")
@@ -269,14 +279,33 @@ class TestResidentRouteStub:
         # Validate all 5 parity scenario route IDs are present.
         for route_id in _RESIDENT_SCENARIO_ROUTES:
             assert route_id in src, f"route {route_id} missing from mock model"
+        # Validate navSteps (data-action-target sequences) for each scenario.
+        assert "navSteps" in src
+        assert "nav-civil-service" in src
+        assert "nav-complaint-category" in src
+        assert "mayor-office-open" in src
+        assert "mayor-message-write" in src
+        # No route ID used as direct navigation (contract: click DOM, not route jump).
+        assert "navigateToRoute" not in src, "contract violation: navigateToRoute forbidden"
 
-    def test_resident_mock_model_exposes_respond(self):
+    def test_resident_mock_model_uses_allowed_actions_only(self):
         src = _read(_RESIDENT_MOCK_MODEL)
-        assert "function respond" in src
-        assert "execute_javascript" in src
-        assert "navigateToRoute" in src
+        # Contract requires: NO arbitrary model-generated JavaScript execution.
+        assert "execute_javascript" not in src, "contract violation: execute_javascript forbidden"
+        assert "experimentalScriptExecutionTool" not in src, "contract violation: attribute forbidden"
+        # Only allowed DOM actions: click_element_by_index, scroll, done.
+        assert "click_element_by_index" in src, "must use click DOM action"
         assert "buildToolResponse" in src
         assert "buildStopResponse" in src
+        assert "function respond" in src
+
+    def test_resident_mock_model_exposes_diagnostics_api(self):
+        src = _read(_RESIDENT_MOCK_MODEL)
+        assert "getDiagnostics" in src
+        assert "resetDiagnostics" in src
+        assert "callCount" in src
+        assert "actionNames" in src
+        assert "recordDiag" in src
 
     def test_resident_demo_js_exists(self):
         assert os.path.isfile(_RESIDENT_DEMO_JS), "resident demo JS missing"
@@ -288,9 +317,27 @@ class TestResidentRouteStub:
         assert "agent.execute(" in src
         assert "PageAgentMockModel.respond" in src
         assert "agent.panel.hide()" in src
+        # Contract: NO experimental script execution tool.
+        assert "experimentalScriptExecutionTool" not in src
+        # Uses includeAttributes for data-action-target parsing.
+        assert "includeAttributes: true" in src
+        # Has cancel button and timeout.
+        assert "chat-cancel" in src or "stopAgent" in src
+        assert "TIMEOUT_MS" in src or "60000" in src
+        # Records action history (not execute_javascript regex extraction).
+        assert "click_element_by_index" in src
 
     def test_resident_demo_css_exists(self):
         assert os.path.isfile(_RESIDENT_DEMO_CSS), "resident demo CSS missing"
+
+    def test_resident_demo_css_mobile_layout(self):
+        css = _read(_RESIDENT_DEMO_CSS)
+        assert "@media (max-width: 768px)" in css, "must have mobile layout breakpoint"
+        assert "flex-direction: column" in css, "mobile must stack vertically"
+        assert "chat-cancel" in css or "chat-cancel" in open(_RESIDENT_DEMO_CSS).read()
+        # Verify canvas selector is correct (no duplicate class/ID selector).
+        assert "#demo-canvas" in css
+        assert ".resident-canvas #demo-canvas" not in css, "invalid: canvas is not inside .resident-canvas"
 
 
 # ---------------------------------------------------------------------------
