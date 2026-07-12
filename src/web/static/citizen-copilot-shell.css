@@ -6,27 +6,20 @@
  * Compact: full-width canvas + collapsible drawer below breakpoint.
  *
  * No external URLs, no analytics, no persistence.
+ *
+ * Visual primitives are defined once in citizen-shared-tokens.css and
+ * consumed here via assistant-specific aliases. The shared layer provides
+ * assistant colors, typography, the radii actually used by the assistant,
+ * the focus-ring geometry, status colors, transition timing, and the
+ * reduced-motion collapse. This file MUST NOT change any resolved value.
  */
 
 /* ---------------------------------------------------------------------------
-   Design tokens (local scope only)
+   Layout-only token (geometry specific to the dock rail)
+   Semantic colors/radii/motion live in citizen-shared-tokens.css.
 --------------------------------------------------------------------------- */
 :root {
   --copilot-rail-width: 280px;
-  --copilot-bg: #fff;
-  --copilot-header-bg: #fff;
-  --copilot-header-color: #0d0d0f;
-  --copilot-section-border: #e6e6ea;
-  --copilot-text: #0d0d0f;
-  --copilot-muted: #9b9ba5;
-  --copilot-active: #0d0d0f;
-  --copilot-active-bg: #f4f4f6;
-  --copilot-confirm-approve-bg: #27ae60;
-  --copilot-confirm-cancel-bg: #c0392b;
-  --copilot-choice-btn-bg: #ecf0f1;
-  --copilot-choice-btn-hover: #d5dce8;
-  --copilot-canvas-bg: #ffffff;
-  --copilot-breakpoint: 768px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -40,8 +33,8 @@
 
 body {
   font-family: 'Noto Sans KR', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: var(--copilot-canvas-bg);
-  color: var(--copilot-text);
+  background: var(--mvp-color-surface);
+  color: var(--mvp-color-text);
   min-height: 100vh;
   display: flex;
   flex-direction: row;
@@ -67,8 +60,8 @@ body[data-copilot-dock="right"] {
   width: var(--copilot-rail-width);
   min-width: var(--copilot-rail-width);
   max-width: var(--copilot-rail-width);
-  background: var(--copilot-bg);
-  border: 1px solid var(--copilot-section-border);
+  background: var(--mvp-color-surface);
+  border: 1px solid var(--mvp-color-divider);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -93,8 +86,8 @@ body[data-copilot-dock="right"] {
    Rail header + dock toggle
 --------------------------------------------------------------------------- */
 .copilot-header {
-  background: var(--copilot-header-bg);
-  color: var(--copilot-header-color);
+  background: var(--mvp-color-surface);
+  color: var(--mvp-color-text);
   padding: 10px 12px;
   display: flex;
   align-items: center;
@@ -104,8 +97,8 @@ body[data-copilot-dock="right"] {
 }
 
 .copilot-title {
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: var(--mvp-font-size-md);
+  font-weight: var(--mvp-weight-semibold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -114,14 +107,14 @@ body[data-copilot-dock="right"] {
 .copilot-dock-toggle {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  color: var(--copilot-header-color);
+  color: var(--mvp-color-text);
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--mvp-font-size-md);
   padding: 3px 8px;
-  border-radius: 3px;
+  border-radius: var(--mvp-radius-xs);
   flex-shrink: 0;
   line-height: 1;
-  transition: background 0.15s;
+  transition: background var(--mvp-transition-base);
 }
 
 .copilot-dock-toggle:hover {
@@ -129,8 +122,8 @@ body[data-copilot-dock="right"] {
 }
 
 .copilot-dock-toggle:focus-visible {
-  outline: 2px solid #5dade2;
-  outline-offset: 2px;
+  outline: var(--mvp-focus-ring-width) solid var(--mvp-color-focus);
+  outline-offset: var(--mvp-focus-ring-offset);
 }
 
 /* ---------------------------------------------------------------------------
@@ -138,15 +131,15 @@ body[data-copilot-dock="right"] {
 --------------------------------------------------------------------------- */
 .copilot-section {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--copilot-section-border);
+  border-bottom: 1px solid var(--mvp-color-divider);
 }
 
 .copilot-section-title {
-  font-size: 0.6875rem;
-  font-weight: 700;
+  font-size: var(--mvp-font-size-xs);
+  font-weight: var(--mvp-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--copilot-muted);
+  color: var(--mvp-color-text-muted);
   margin-bottom: 6px;
 }
 
@@ -162,18 +155,18 @@ body[data-copilot-dock="right"] {
 }
 
 .conv-item {
-  font-size: 0.8125rem;
+  font-size: var(--mvp-font-size-base);
   line-height: 1.4;
   padding: 4px 6px;
-  border-radius: 4px;
-  background: var(--copilot-canvas-bg);
-  border: 1px solid var(--copilot-section-border);
+  border-radius: var(--mvp-radius-sm);
+  background: var(--mvp-color-surface);
+  border: 1px solid var(--mvp-color-divider);
 }
 
 .conv-item--assistant {
-  background: var(--copilot-active-bg);
-  border-color: #b8d6ed;
-  color: var(--copilot-active);
+  background: var(--mvp-color-surface-subtle);
+  border-color: var(--mvp-color-border-accent);
+  color: var(--mvp-color-text);
 }
 
 .copilot-choices {
@@ -183,36 +176,36 @@ body[data-copilot-dock="right"] {
 }
 
 .choice-btn {
-  background: var(--copilot-choice-btn-bg);
-  border: 1px solid var(--copilot-section-border);
-  border-radius: 4px;
-  color: var(--copilot-text);
+  background: var(--mvp-color-surface-2);
+  border: 1px solid var(--mvp-color-divider);
+  border-radius: var(--mvp-radius-sm);
+  color: var(--mvp-color-text);
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: var(--mvp-font-size-sm);
   padding: 3px 7px;
-  transition: background 0.12s;
+  transition: background var(--mvp-transition-fast);
 }
 
 .choice-btn:hover {
-  background: var(--copilot-choice-btn-hover);
+  background: var(--mvp-color-border-soft);
 }
 
 .choice-btn:focus-visible {
-  outline: 2px solid var(--copilot-active);
+  outline: var(--mvp-focus-ring-width) solid var(--mvp-color-text);
   outline-offset: 1px;
 }
 
 .choice-btn:active {
-  background: var(--copilot-choice-btn-hover);
+  background: var(--mvp-color-border-soft);
 }
 
 /* ---------------------------------------------------------------------------
    Action explanation
 --------------------------------------------------------------------------- */
 .action-explanation {
-  font-size: 0.8125rem;
+  font-size: var(--mvp-font-size-base);
   line-height: 1.5;
-  color: var(--copilot-text);
+  color: var(--mvp-color-text);
 }
 
 /* ---------------------------------------------------------------------------
@@ -229,25 +222,25 @@ body[data-copilot-dock="right"] {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.8125rem;
-  color: var(--copilot-muted);
+  font-size: var(--mvp-font-size-base);
+  color: var(--mvp-color-text-muted);
   padding: 2px 0;
 }
 
 .trace-icon {
-  font-size: 0.6875rem;
+  font-size: var(--mvp-font-size-xs);
   width: 14px;
   text-align: center;
   flex-shrink: 0;
 }
 
 .trace-item--done {
-  color: #27ae60;
+  color: var(--mvp-color-success);
 }
 
 .trace-item--active {
-  color: var(--copilot-active);
-  font-weight: 600;
+  color: var(--mvp-color-text);
+  font-weight: var(--mvp-weight-semibold);
 }
 
 /* ---------------------------------------------------------------------------
@@ -258,8 +251,8 @@ body[data-copilot-dock="right"] {
 }
 
 .confirm-notice {
-  font-size: 0.75rem;
-  color: var(--copilot-muted);
+  font-size: var(--mvp-font-size-sm);
+  color: var(--mvp-color-text-muted);
   margin-bottom: 8px;
   line-height: 1.4;
 }
@@ -272,13 +265,13 @@ body[data-copilot-dock="right"] {
 .confirm-btn {
   flex: 1;
   border: none;
-  border-radius: 4px;
-  color: #fff;
+  border-radius: var(--mvp-radius-sm);
+  color: var(--mvp-color-surface);
   cursor: pointer;
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--mvp-font-size-base);
+  font-weight: var(--mvp-weight-semibold);
   padding: 6px 10px;
-  transition: opacity 0.12s;
+  transition: opacity var(--mvp-transition-fast);
 }
 
 .confirm-btn:hover {
@@ -286,8 +279,8 @@ body[data-copilot-dock="right"] {
 }
 
 .confirm-btn:focus-visible {
-  outline: 2px solid var(--copilot-active);
-  outline-offset: 2px;
+  outline: var(--mvp-focus-ring-width) solid var(--mvp-color-text);
+  outline-offset: var(--mvp-focus-ring-offset);
 }
 
 .confirm-btn:active {
@@ -295,11 +288,11 @@ body[data-copilot-dock="right"] {
 }
 
 .confirm-btn--approve {
-  background: var(--copilot-confirm-approve-bg);
+  background: var(--mvp-color-success);
 }
 
 .confirm-btn--cancel {
-  background: var(--copilot-confirm-cancel-bg);
+  background: var(--mvp-color-error);
 }
 
 /* ---------------------------------------------------------------------------
@@ -314,28 +307,28 @@ body[data-copilot-dock="right"] {
 }
 
 .demo-canvas__title {
-  font-size: 1.375rem;
-  font-weight: 700;
+  font-size: var(--mvp-font-size-2xl);
+  font-weight: var(--mvp-weight-bold);
   color: #1a252f;
 }
 
 .demo-canvas__desc {
-  font-size: 0.9375rem;
-  color: var(--copilot-muted);
+  font-size: var(--mvp-font-size-lg);
+  color: var(--mvp-color-text-muted);
   line-height: 1.6;
   max-width: 560px;
 }
 
 .demo-canvas__placeholder {
   flex: 1;
-  border: 2px dashed var(--copilot-section-border);
-  border-radius: 8px;
+  border: 2px dashed var(--mvp-color-divider);
+  border-radius: var(--mvp-radius-md);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: var(--copilot-muted);
+  color: var(--mvp-color-text-muted);
   min-height: 260px;
 }
 
@@ -344,7 +337,7 @@ body[data-copilot-dock="right"] {
 }
 
 .placeholder-sub {
-  font-size: 0.8125rem;
+  font-size: var(--mvp-font-size-base);
   color: #aab4be;
 }
 
@@ -355,14 +348,14 @@ body[data-copilot-dock="right"] {
 }
 
 .canvas-btn {
-  background: var(--copilot-active-bg);
-  border: 1px solid #b8d6ed;
-  border-radius: 4px;
-  color: var(--copilot-active);
+  background: var(--mvp-color-surface-subtle);
+  border: 1px solid var(--mvp-color-border-accent);
+  border-radius: var(--mvp-radius-sm);
+  color: var(--mvp-color-text);
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--mvp-font-size-md);
   padding: 7px 14px;
-  transition: background 0.12s;
+  transition: background var(--mvp-transition-fast);
 }
 
 .canvas-btn:hover {
@@ -370,8 +363,8 @@ body[data-copilot-dock="right"] {
 }
 
 .canvas-btn:focus-visible {
-  outline: 2px solid var(--copilot-active);
-  outline-offset: 2px;
+  outline: var(--mvp-focus-ring-width) solid var(--mvp-color-text);
+  outline-offset: var(--mvp-focus-ring-offset);
 }
 
 /* ---------------------------------------------------------------------------
@@ -407,7 +400,7 @@ body[data-copilot-dock="right"] {
     height: 60vh;
     max-height: 70vh;
     z-index: 200;
-    border-top: 2px solid var(--copilot-header-bg);
+    border-top: 2px solid var(--mvp-color-surface);
     border-right: none;
     border-bottom: none;
     border-left: none;
@@ -436,16 +429,16 @@ body[data-copilot-dock="right"] {
     bottom: 12px;
     right: 16px;
     z-index: 201;
-    background: var(--copilot-header-bg);
+    background: var(--mvp-color-surface);
     border: none;
     border-radius: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     color: #fff;
     cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: var(--mvp-font-size-md);
+    font-weight: var(--mvp-weight-semibold);
     padding: 8px 16px;
-    transition: background 0.15s, box-shadow 0.15s;
+    transition: background var(--mvp-transition-base), box-shadow var(--mvp-transition-base);
   }
 
   .compact-toggle:hover {
@@ -454,7 +447,7 @@ body[data-copilot-dock="right"] {
   }
 
   .compact-toggle:focus-visible {
-    outline: 2px solid #5dade2;
+    outline: var(--mvp-focus-ring-width) solid var(--mvp-color-focus);
     outline-offset: 3px;
   }
 }
@@ -476,32 +469,32 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border-left: 1px solid #e6e6ea;
+  background: var(--mvp-color-surface);
+  border-left: 1px solid var(--mvp-color-divider);
   overflow: hidden;
   font-family: 'Noto Sans KR', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", sans-serif;
 }
 
 .chat-shell__header {
-  background: #fff;
-  color: #0d0d0f;
+  background: var(--mvp-color-surface);
+  color: var(--mvp-color-text);
   padding: 14px 18px;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  border-bottom: 1px solid #e6e6ea;
+  border-bottom: 1px solid var(--mvp-color-divider);
 }
 .chat-shell__title {
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: var(--mvp-weight-semibold);
+  font-size: var(--mvp-font-size-xl);
   letter-spacing: -0.01em;
 }
 .chat-shell__badge {
   background: #eef0f3;
   color: #8e8ea0;
   font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: var(--mvp-weight-semibold);
   padding: 3px 10px;
   border-radius: 20px;
 }
@@ -532,10 +525,10 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #0d0d0f;
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 700;
+  background: var(--mvp-color-text);
+  color: var(--mvp-color-surface);
+  font-size: var(--mvp-font-size-sm);
+  font-weight: var(--mvp-weight-bold);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -545,19 +538,19 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 
 .chat-bubble {
   padding: 12px 15px;
-  font-size: 0.95rem;
+  font-size: var(--mvp-font-size-xl);
   line-height: 1.55;
   max-width: 85%;
   word-break: break-word;
 }
 .chat-bubble--user {
-  background: #f4f4f6;
-  color: #0d0d0f;
+  background: var(--mvp-color-surface-subtle);
+  color: var(--mvp-color-text);
   border-radius: 18px 18px 4px 18px;
 }
 .chat-bubble--ai {
-  background: #f4f4f6;
-  color: #0d0d0f;
+  background: var(--mvp-color-surface-subtle);
+  color: var(--mvp-color-text);
   border: 0;
   border-radius: 18px 18px 18px 4px;
 }
@@ -571,7 +564,7 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
   margin-top: 4px;
 }
 .chat-progress__label {
-  font-size: 0.6875rem;
+  font-size: var(--mvp-font-size-xs);
   color: #7f8c9a;
   display: block;
   margin-bottom: 6px;
@@ -579,7 +572,7 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 .chat-progress__steps {
   display: flex;
   gap: 4px;
-  font-size: 0.75rem;
+  font-size: var(--mvp-font-size-sm);
   align-items: center;
 }
 .chat-progress__step {
@@ -588,27 +581,27 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
   border-radius: 3px;
 }
 .chat-progress__step--done {
-  color: #27ae60;
-  font-weight: 600;
+  color: var(--mvp-color-success);
+  font-weight: var(--mvp-weight-semibold);
 }
 .chat-progress__step--active {
-  background: #2980b9;
+  background: var(--mvp-color-busy);
   color: #fff;
-  font-weight: 600;
+  font-weight: var(--mvp-weight-semibold);
 }
 
 /* Chat composer */
 .chat-composer {
-  border-top: 1px solid #e6e6ea;
+  border-top: 1px solid var(--mvp-color-divider);
   padding: 12px 14px 14px;
-  background: #fff;
+  background: var(--mvp-color-surface);
   flex-shrink: 0;
 }
 .chat-composer__row {
   display: flex;
   border: 1px solid #d0d0d5;
   border-radius: 22px;
-  background: #fff;
+  background: var(--mvp-color-surface);
   padding: 4px;
   align-items: center;
   gap: 4px;
@@ -619,23 +612,23 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
   border: none;
   border-radius: 18px;
   padding: 8px 12px;
-  font-size: 0.9rem;
-  color: #0d0d0f;
+  font-size: var(--mvp-font-size-input);
+  color: var(--mvp-color-text);
   background: transparent;
   outline: none;
   font-family: inherit;
 }
 .chat-composer__input::placeholder {
-  color: #9b9ba5;
+  color: var(--mvp-color-text-muted);
 }
 .chat-composer__send {
-  background: #ef6a4c;
-  color: #fff;
+  background: var(--mvp-color-accent);
+  color: var(--mvp-color-surface);
   border: none;
   border-radius: 18px;
   padding: 8px 16px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: var(--mvp-font-size-send);
+  font-weight: var(--mvp-weight-semibold);
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
@@ -649,6 +642,6 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
 .chat-composer__hint {
   margin: 6px 0 0;
   font-size: 0.72rem;
-  color: #9b9ba5;
+  color: var(--mvp-color-text-muted);
   text-align: center;
 }
