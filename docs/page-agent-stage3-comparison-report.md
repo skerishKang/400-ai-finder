@@ -5,7 +5,7 @@
 - **Date**: 2026-07-13
 - **Owner**: Computer 2
 - **Branch**: `experiment/1109-stage3-comparison-evidence`
-- **Base SHA**: `c847bab4dc05b42b5ce2153141e2ae766df55025`
+- **Base SHA**: `5ad20ad027f993cb522a49c90f39523211e6c5cd`
 
 ---
 
@@ -163,8 +163,8 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 | 성공 | 12 | 3 |
 | 실패 | 3 | 12 |
 | 성공률 | 80.0% | 20.0% |
-| Median elapsed (ms) (All runs) | 11,973 | 2,032 |
-| Median elapsed (ms) (Successful runs only) | 14,003 | 2,599 |
+| Median elapsed (ms) (All runs) | 11,875 | 1,962 |
+| Median elapsed (ms) (Successful runs only) | 13,927.5 | 2,420 |
 | Median action steps (All runs) | 4 | 1 |
 | Median action steps (Successful runs only) | 4 | 2 |
 | Total wrong route actions | 3 | 12 |
@@ -172,6 +172,24 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 | No-submit 위반 | 0 | 0 |
 
 *(상세 집계는 evidence JSON 파일의 aggregate 필드 참조)*
+
+### Overall (both modes, 30 runs)
+
+| 지표 | 값 |
+|------|-----|
+| 총 실행 / 성공 / 실패 | 30 / 15 / 15 |
+| 성공률 | 50.0% |
+| Median elapsed (ms) — All runs | 4,281 |
+| Median elapsed (ms) — Successful runs only | 10,498 |
+| Median action steps — All runs | 2 |
+| Median action steps — Successful runs only | 4 |
+| Total wrong route actions | 15 (deterministic 3 + page_agent 12) |
+| Console error (합계) | 0 |
+| Page error (합계) | 0 |
+| HTTP error responses (합계) | 0 |
+| Request failure (합계) | 0 |
+| External request (합계) | 0 |
+| No-submit 위반 | 0 |
 
 ### Scenario별 결과
 
@@ -251,7 +269,7 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 - **Route 검증**: `final_route`를 expectations fixture의 `expected_final_route`와 비교. deterministic 3건, page_agent 12건의 route 불일치 탐지.
 - **Action trace 기록**: deterministic action step count median 4 (all/success 동일), page_agent median 1 (all) / 2 (success only). Choreography step과 tool call의 구조적 차이 반영.
 - **No-submit**: 30/30 run에서 실제 제출 없음 확인. 강제 true 없이 상태 머신 + DOM badge로 검증.
-- **Console error**: 30/30 run 모두 0건. 404 에셋 오류 수정 완료.
+- **Console error**: 30/30 run 모두 0건. Fresh static build 기준, 브라우저 자동 `/favicon.ico` 요청(벤ign resource 404)은 애플리케이션 console error 계측에서 제외됨.
 - **Request failure**: 30/30 run 모두 0건.
 - **외부 요청**: 모든 run에서 0건.
 

@@ -18,7 +18,9 @@
 //   - Boundary probes: unsupported prompt, cancellation
 //   - Fresh browser context per run
 //   - Writes machine-readable evidence JSON
-//   - Non-zero exit on any run failure (stall = stop + exit)
+//   - Primary scenario failures are recorded as comparison outcomes.
+//   - The harness exits non-zero only for harness integrity, safety,
+//     boundary-probe, stall, cardinality, or artifact-validation violations.
 
 import { chromium } from "playwright";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
@@ -380,10 +382,15 @@ async function setupErrorTracking(page, tracker, mode, scenarioId, attempt) {
   });
   page.on("console", (msg) => {
     const text = msg.text();
-    if (text.includes("favicon.ico")) return;
     if (/GL Driver Message/i.test(text)) return;
     const location = msg.location();
     const locUrl = location ? location.url : "";
+    // The browser automatically requests /favicon.ico on every navigation.
+    // That benign resource 404 is not an application console error and must
+    // not count toward console_error_count. Match by both message text
+    // (older Chromium) and request URL (Chromium >= ~120, where the URL is
+    // reported as a structured location rather than inside the text).
+    if (locUrl.includes("favicon.ico") || text.includes("favicon.ico")) return;
     if (msg.type() === "error") {
       tracker.consoleErrors.push({
         text,

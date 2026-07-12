@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 
 import pytest
 
@@ -551,6 +552,36 @@ class TestReportContract:
             "Report must acknowledge mock/deterministic nature"
         )
 
+    def test_report_owner_is_computer_2(self):
+        if not os.path.isfile(_REPORT_PATH):
+            pytest.skip("report not yet generated")
+        text = _read(_REPORT_PATH)
+        m = re.search(r"Owner\*\*?:\s*([^\n]+)", text)
+        assert m is not None, "Report must declare an Owner"
+        assert "Computer 2" in m.group(1), (
+            f"Report owner must be 'Computer 2' per #1109 CTO assignment, got: {m.group(1)!r}"
+        )
+
+    def test_report_base_sha_matches_synced_main(self):
+        if not os.path.isfile(_REPORT_PATH):
+            pytest.skip("report not yet generated")
+        text = _read(_REPORT_PATH)
+        m = re.search(r"Base SHA\*\*?:\s*`?([0-9a-f]{40})`?", text)
+        assert m is not None, "Report must declare a 40-hex Base SHA"
+        report_sha = m.group(1)
+        # The report Base SHA must equal the synchronized main the branch was
+        # merged against. Resolve it locally (no network) from the git repo.
+        main_sha = subprocess.run(
+            ["git", "rev-parse", "origin/main"],
+            cwd=_REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        assert report_sha == main_sha, (
+            f"Report Base SHA {report_sha} != synchronized origin/main {main_sha}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # Parity contract consistency
@@ -591,6 +622,26 @@ class TestHarnessScriptSafety:
         forbidden = ["openai", "anthropic", "gemini", "firecrawl"]
         for item in forbidden:
             assert item not in text, f"Harness must not reference '{item}'"
+
+    def test_harness_policy_description_locked(self):
+        """Step 5 policy: primary scenario failures are comparison outcomes;
+        only integrity/safety/boundary/stall/cardinality/artifact-validation
+        violations may cause a non-zero exit. The corrected description must be
+        present and the old misleading description must be gone."""
+        harness_path = os.path.join(_REPO_ROOT, "scripts", "run_page_agent_comparison.mjs")
+        if not os.path.isfile(harness_path):
+            pytest.skip("harness script not yet created")
+        text = _read(harness_path)
+        assert "Primary scenario failures are recorded as comparison outcomes" in text, (
+            "Harness description must state primary scenario failures are comparison outcomes"
+        )
+        assert "harness integrity, safety," in text and "artifact-validation violations" in text, (
+            "Harness description must list integrity/safety/boundary/stall/cardinality/"
+            "artifact-validation as the only non-zero-exit triggers"
+        )
+        assert "Non-zero exit on any run failure" not in text, (
+            "Obsolete description 'Non-zero exit on any run failure' must be removed"
+        )
 
 
 # ---------------------------------------------------------------------------
