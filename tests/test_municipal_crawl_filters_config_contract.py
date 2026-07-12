@@ -5,7 +5,7 @@ from src.site_profiles.site_profile import SiteProfile
 from src.crawler.url_crawler import URLCrawler
 from src.crawler.homepage_mapper import HomepageMapper
 from src.pipeline.pipeline_runner import PipelineRunner
-from tests.test_pipeline_runner import (
+from tests.helpers.pipeline_fakes import (
     FAKE_HOMEPAGE_MAP,
     FAKE_DOCS,
     FAKE_ENRICHED_DOCS,
