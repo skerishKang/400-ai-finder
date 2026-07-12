@@ -31,6 +31,8 @@
     "민원서류 발급받으려면 어디로 가야 해요?": "unmanned_kiosk",
     "가로등이 고장났어요. 신고할게요": "streetlight_report",
     "쓰레기 무단투기 신고할래 (AI 도움)": "litter_ai_assist",
+    // #1114 — mayor proposal entry (same journey object as the canonical question)
+    "구청장에게 제안하고 싶어요": "mayor_message_assist",
   };
   var SPLIT_FOLLOW_UP_MESSAGE =
     "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
@@ -73,7 +75,7 @@
   function normalizeMvpAction(result) {
     if (!result || result.ok !== true) return "none";
     var a = result.action;
-    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "passport_guidance" || a === "unmanned_kiosk" || a === "streetlight_report" || a === "litter_ai_assist" || a === "none") {
+    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "passport_guidance" || a === "unmanned_kiosk" || a === "streetlight_report" || a === "litter_ai_assist" || a === "mayor_message_assist" || a === "none") {
       return a;
     }
     return "none";
@@ -993,6 +995,39 @@
     splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
   }
 
+  // ── #1114: central mayor-proposal entry ─────────────────────────
+  // Both the chat chip/composer submission of "구청장에게 제안하고 싶어요" and the
+  // hero "열린구청장실 바로가기" control activation converge here. The canonical
+  // question + action are fixed; the user message is shown exactly once and the
+  // existing MAYOR_MESSAGE_ASSIST_JOURNEY is driven through the shared
+  // choreography — no duplicate dispatch, no direct final-route jump.
+  var MAYOR_CANONICAL_QUESTION = "구청장에게 제안하고 싶어요";
+  var MAYOR_CANONICAL_ACTION = "mayor_message_assist";
+
+  function isMayorQuestion(value) {
+    return normalizeQuestion(value) === MAYOR_CANONICAL_QUESTION;
+  }
+
+  function beginMayorProposalEntry() {
+    if (!chatInput || currentState === STATE_TRANSITIONING) return;
+    // Idempotent guard: if already splitting for the same question, do nothing.
+    if (currentState === STATE_SPLIT && lastSplitQuestion === MAYOR_CANONICAL_QUESTION) {
+      return;
+    }
+    // Single user-message echo, shared by both entry points.
+    if (currentState !== STATE_SPLIT) {
+      appendChatMessage("user", MAYOR_CANONICAL_QUESTION);
+      if (chatInput) chatInput.value = "";
+    }
+    lastSplitQuestion = MAYOR_CANONICAL_QUESTION;
+    startCinematicSplit();
+    if (prefersReducedMotion()) {
+      completeSplit();
+    } else {
+      splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
+    }
+  }
+
   function handleSubmission(event) {
     if (event) {
       event.preventDefault();
@@ -1232,6 +1267,17 @@
       if (chatForm) {
         chatForm.dispatchEvent(new Event("submit", { cancelable: true }));
       }
+    });
+  }
+
+  // #1114: hero "열린구청장실 바로가기" control → same canonical mayor entry.
+  // No chat round-trip; converges on beginMayorProposalEntry so the user message
+  // is shown exactly once and no second bridge dispatch occurs.
+  var mayorControl = document.getElementById("mayor-open-office-control");
+  if (mayorControl) {
+    mayorControl.addEventListener("click", function (e) {
+      e.preventDefault();
+      beginMayorProposalEntry();
     });
   }
 

@@ -196,7 +196,9 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  margin-top: 18px;
+  /* #1114: nudge the FIND/ACT/WRITE row ~10px up so it never touches/overlaps
+     the chat panel even on short desktops (1440x760). */
+  margin-top: 8px;
   color: rgba(255, 255, 255, 0.62);
   font-size: 0.72rem;
   letter-spacing: 0.08em;
@@ -343,6 +345,8 @@ body[data-first-use-state="entry"] .chat-shell {
   width: var(--first-use-entry-chat-width);
   height: min(470px, calc(100vh - 300px));
   min-height: 410px;
+  display: flex;
+  flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.58);
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.94);
@@ -351,6 +355,19 @@ body[data-first-use-state="entry"] .chat-shell {
     inset 0 1px 0 rgba(255, 255, 255, 0.84);
   backdrop-filter: blur(22px) saturate(1.16);
   animation: firstUseChatArrive 900ms var(--first-use-ease) both;
+}
+
+/* #1114: keep the composer always visible when 8 chips wrap on short viewports.
+   Let the chips region scroll instead of pushing the composer below the fold. */
+body[data-first-use-state="entry"] .chat-chips {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  align-content: flex-start;
+  min-height: 0;
+}
+
+body[data-first-use-state="entry"] .chat-composer {
+  flex-shrink: 0;
 }
 
 body[data-first-use-state="entry"] .chat-shell__header {
@@ -1055,5 +1072,62 @@ body.first-use-shell--no-motion .demo-canvas {
   .bg-dept-search__btn.executor-search-busy::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* #1114 — semantic "열린구청장실 바로가기" control.
+   Sibling of .entry-stage (which is aria-hidden), positioned to overlap the blue
+   button region of the mayor-card image. Geometry tracks the mayor card via the
+   same top/right/width anchors so it scales responsively with the image.
+   The green "매니페스토 바로가기" region is intentionally left non-interactive. */
+.mayor-open-office-control {
+  position: absolute;
+  z-index: 4;
+  /* match .entry-stage__mayor anchors */
+  top: clamp(165px, 22vh, 218px);
+  right: clamp(38px, 7.5vw, 118px);
+  width: min(25vw, 360px);
+  min-width: 300px;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  /* pin the hit area to the blue button band of the 345x297 card:
+     x ~14%..50%, y ~77%..92% */
+  clip-path: inset(77% 50% 8% 14%);
+  -webkit-clip-path: inset(77% 50% 8% 14%);
+  font-size: 0;
+}
+
+.mayor-open-office-control:focus-visible {
+  outline: 3px solid var(--first-use-mint, #55dfc8);
+  outline-offset: 2px;
+  border-radius: 8px;
+  /* make focus visible even though the control is transparent */
+  background: rgba(85, 223, 200, 0.18);
+  clip-path: none;
+  -webkit-clip-path: none;
+}
+
+.mayor-open-office-control:hover {
+  background: rgba(85, 223, 200, 0.12);
+  border-radius: 8px;
+  clip-path: none;
+  -webkit-clip-path: none;
+}
+
+/* Hide the control when the entry stage is not the active surface (e.g. after split). */
+body[data-first-use-state="split"] .mayor-open-office-control,
+body[data-first-use-state="transitioning"] .mayor-open-office-control {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  /* Mayor card is hidden on small screens; the control is not reachable there. */
+  .mayor-open-office-control {
+    display: none;
   }
 }

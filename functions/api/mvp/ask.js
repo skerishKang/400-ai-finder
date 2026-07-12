@@ -11,6 +11,7 @@ export const VALID_ACTIONS = Object.freeze([
   'unmanned_kiosk',
   'streetlight_report',
   'litter_ai_assist',
+  'mayor_message_assist',
   'none',
 ]);
 
@@ -37,6 +38,9 @@ const ACTION_RULES = Object.freeze([
   { action: 'unmanned_kiosk', terms: ['무인민원발급기', '무인 발급기'] },
   { action: 'streetlight_report', terms: ['가로등 고장', '가로등 신고', '가로등이 고장'] },
   { action: 'litter_ai_assist', terms: ['쓰레기 무단투기', '무단 투기 신고', '방치 쓰레기 신고'] },
+  // #1114 — mayor proposal entry. Writing-assist action: no official factual
+  // snapshot route is wired (intentionally), so ACTION_SNAPSHOT_ROUTES omits it.
+  { action: 'mayor_message_assist', terms: ['구청장에게 제안', '구청장 제안', '제안하고 싶어요', '구청장 바란다'] },
 ]);
 
 const ACTION_SNAPSHOT_ROUTES = Object.freeze({

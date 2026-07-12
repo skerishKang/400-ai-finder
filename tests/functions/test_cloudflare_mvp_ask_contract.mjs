@@ -222,9 +222,9 @@ await assert('question over 300 characters is rejected', async () => {
   expectEqual(data.failure_code, 'invalid_input', 'failure_code');
 });
 
-await assert('visible action allowlist contains seven journeys plus none', async () => {
-  expectEqual(functionModule.VALID_ACTIONS.length, 8, 'action count');
-  for (const action of ['passport_guidance', 'streetlight_report', 'litter_ai_assist', 'none']) {
+await assert('visible action allowlist contains eight journeys plus none', async () => {
+  expectEqual(functionModule.VALID_ACTIONS.length, 9, 'action count');
+  for (const action of ['passport_guidance', 'streetlight_report', 'litter_ai_assist', 'mayor_message_assist', 'none']) {
     if (!functionModule.VALID_ACTIONS.includes(action)) throw new Error(`missing ${action}`);
   }
 });
