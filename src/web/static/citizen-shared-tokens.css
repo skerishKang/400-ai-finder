@@ -1,0 +1,162 @@
+/**
+ * citizen-shared-tokens.css
+ *
+ * Canonical visual token layer for the precise-implementation MVP.
+ *
+ * Single source of truth for the cross-surface visual + interaction
+ * primitives shared between the civic canvas (left, exact official-site
+ * clone) and the AI assistant panel (right, monochrome assistant UI).
+ *
+ * OWNERSHIP MODEL
+ * ---------------
+ * Every token below is tagged with exactly one owner:
+ *
+ *   [shared]   genuinely cross-surface interaction primitive. The canonical
+ *              definition lives here; both surfaces consume it. The civic
+ *              canvas is frozen by the #1078 exact-clone invariant, so it may
+ *              keep an equivalent literal instead of referencing the token —
+ *              but the canonical value is defined only once, here.
+ *
+ *   [assistant] owned by the AI assistant panel (citizen-copilot-shell.css and
+ *              the first-use chat shell). The civic canvas uses its own
+ *              exact-clone colors and MUST NOT adopt these.
+ *
+ *   [civic-exact] documented here for traceability only. These values are the
+ *              #1078 exact-official-site-clone constants and live verbatim in
+ *              citizen-action-demo-canvas.css. They are deliberately NOT
+ *              tokenized and are listed as comments so the boundary is explicit.
+ *
+ * MIGRATION RULE
+ * --------------
+ * A token's final *computed* value must never change when substituted for a
+ * hard-coded literal. Substituting a literal with var(--token) is allowed only
+ * when the resolved value is byte-for-byte identical.
+ */
+
+:root {
+  /* ===================================================================
+     [shared] Radius primitives
+     =================================================================== */
+  --mvp-radius-xs: 3px;
+  --mvp-radius-sm: 4px;
+  --mvp-radius-md: 8px;
+  --mvp-radius-lg: 12px;
+  --mvp-radius-pill: 999px;
+
+  /* ===================================================================
+     [shared] Control geometry — minimum height + touch target
+     =================================================================== */
+  --mvp-control-min-height: 36px;
+  --mvp-touch-target: 44px;
+
+  /* ===================================================================
+     [shared] Motion — transition durations
+     =================================================================== */
+  --mvp-transition-fast: 120ms;
+  --mvp-transition-base: 150ms;
+  --mvp-transition-slow: 240ms;
+
+  /* ===================================================================
+     [shared] Keyboard focus ring geometry
+     (color is surface-specific; see [assistant] --mvp-color-focus and the
+      first-use --first-use focus color)
+     =================================================================== */
+  --mvp-focus-ring-width: 2px;
+  --mvp-focus-ring-offset: 2px;
+
+  /* ===================================================================
+     [assistant] Neutral text + divider palette (AI panel only)
+     The civic canvas keeps its own exact-clone values, e.g.
+       text      #000 / #333
+       divider   #e6e8ec / #e0e0e0 / #e0e4ec
+       muted     #5d6d7e / #7f8c9a
+     =================================================================== */
+  --mvp-color-text: #0d0d0f;
+  --mvp-color-text-muted: #9b9ba5;
+  --mvp-color-surface: #ffffff;
+  --mvp-color-surface-subtle: #f4f4f6;
+  --mvp-color-surface-2: #ecf0f1;
+  --mvp-color-divider: #e6e6ea;
+  --mvp-color-border-soft: #d5dce8;
+  --mvp-color-border-accent: #b8d6ed;
+
+  /* ===================================================================
+     [assistant] Status colors — success / warning / error / busy / disabled
+     =================================================================== */
+  --mvp-color-success: #27ae60;
+  --mvp-color-error: #c0392b;
+  --mvp-color-warning: #b9770e;
+  --mvp-color-busy: #2980b9;
+  --mvp-color-disabled-fg: #9b9ba5;
+  --mvp-color-disabled-bg: #e8ebef;
+
+  --mvp-color-focus: #5dade2;   /* assistant keyboard focus ring color */
+  --mvp-color-accent: #ef6a4c;  /* assistant composer / primary accent */
+
+  /* ===================================================================
+     [assistant] Typography scale + weight
+     (civic canvas uses its own exact scale — see [civic-exact])
+     =================================================================== */
+  --mvp-font-size-xs: 0.6875rem;   /* 11px */
+  --mvp-font-size-sm: 0.75rem;     /* 12px */
+  --mvp-font-size-base: 0.8125rem; /* 13px */
+  --mvp-font-size-md: 0.875rem;    /* 14px */
+  --mvp-font-size-lg: 0.9375rem;   /* 15px */
+  --mvp-font-size-input: 0.9rem;   /* composer input */
+  --mvp-font-size-send: 0.85rem;   /* composer send */
+  --mvp-font-size-xl: 0.95rem;     /* chat shell title / bubble */
+  --mvp-font-size-2xl: 1.375rem;   /* canvas / demo title */
+
+  --mvp-weight-regular: 400;
+  --mvp-weight-medium: 500;
+  --mvp-weight-semibold: 600;
+  --mvp-weight-bold: 700;
+  --mvp-weight-extrabold: 800;
+
+  /* ===================================================================
+     [assistant] Spacing scale
+     =================================================================== */
+  --mvp-space-1: 4px;
+  --mvp-space-2: 8px;
+  --mvp-space-3: 12px;
+  --mvp-space-4: 16px;
+  --mvp-space-5: 24px;
+  --mvp-space-6: 32px;
+
+  /* ===================================================================
+     [civic-exact] Exact official-site clone constants — DO NOT TOKENIZE.
+     These are frozen by the #1078 invariant and live verbatim in
+     citizen-action-demo-canvas.css. Listed here only so the boundary is
+     unambiguous. The assistant MUST NOT adopt these values.
+       --civic-nav-bg:        #2c3e50
+       --civic-gnb-gradient:  linear-gradient(90deg,#32966E 0%,#466EAA 100%)
+       --civic-green:         #008575
+       --civic-green-2:       #008b68 / #009e6d
+       --civic-blue:          #004a99 / #0054a6
+       --civic-blue-2:        #2c5697
+       --civic-divider:       #e6e8ec / #e0e0e0 / #e0e4ec
+       --civic-text:          #000 / #333 / #1a252f
+       --civic-muted:         #5d6d7e / #7f8c9a
+       --civic-danger:        #c0392b (safety-stop overlay only)
+       --civic-bg:            #fff / #f8f9fa / #f4f7fb
+     =================================================================== */
+}
+
+/* ===================================================================
+   [shared] Reduced-motion handling
+   When the user prefers reduced motion, collapse all transitions and
+   animations to an effectively-instant duration. This only affects motion
+   timing — never geometry, color, or content — so it is safe across both
+   surfaces and does not violate the #1078 exact-clone invariant.
+   =================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
