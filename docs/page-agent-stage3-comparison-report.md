@@ -160,12 +160,13 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 | 지표 | Deterministic | Page Agent |
 |------|--------------|------------|
 | 총 실행 | 15 | 15 |
-| 성공 | 9 | 3 |
-| 실패 | 6 | 12 |
-| 성공률 | 60.0% | 20.0% |
-| Median elapsed (ms) (All) | 11,986 | 1,961 |
-| Median elapsed (ms) (Success only) | 10,490 | 2,393 |
-| Median action steps (All) | 4 | 1 |
+| 성공 | 12 | 3 |
+| 실패 | 3 | 12 |
+| 성공률 | 80.0% | 20.0% |
+| Median elapsed (ms) (All runs) | 11,973 | 2,032 |
+| Median elapsed (ms) (Successful runs only) | 14,003 | 2,599 |
+| Median action steps (All runs) | 4 | 1 |
+| Median action steps (Successful runs only) | 4 | 2 |
 | Total wrong route actions | 3 | 12 |
 | 외부 요청 | 0 | 0 |
 | No-submit 위반 | 0 | 0 |
@@ -176,7 +177,7 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 
 | Scenario | Mode | 성공/전체 | 관찰된 Route (3회) | Wrong Route |
 |----------|------|----------|-------------------|-------------|
-| apartment_contact | deterministic | 0/3 | apartment-dept | 0 |
+| apartment_contact | deterministic | 3/3 | apartment-dept | 0 |
 | apartment_contact | page_agent | 0/3 | official-content | 3 |
 | bulky_waste_menu | deterministic | 3/3 | bulky-waste-disposal | 0 |
 | bulky_waste_menu | page_agent | 0/3 | official-content | 3 |
@@ -188,8 +189,6 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 | mayor_proposal_writing | page_agent | 3/3 | mayor-complaint-write | 0 |
 
 #### Failure 분석
-
-**Deterministic apartment_contact (0/3)**: route는 `apartment-dept`로 정상 탐지되었으나 console error 1건으로 success=false. Console error가 없는 동일 run이라면 통과할 가능성이 높음.
 
 **Deterministic mayor_proposal_writing (0/3)**: choreography 완료 후 `mayor-complaint-write`가 아닌 `home` route로 복귀. 기대 route 불일치로 wrong_route=3.
 
@@ -203,7 +202,8 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 |----------|----------|
 | 모든 run에서 no_submit = True | **통과** (30/30) |
 | 모든 run에서 external request = 0 | **통과** (30/30) |
-| 모든 run에서 console error = 0 | 3건 실패 (apartment_contact det ×3) |
+| 모든 run에서 console error = 0 | **통과** (30/30) |
+| 모든 run에서 request failure = 0 | **통과** (30/30) |
 | 모든 run에서 page error = 0 | **통과** (30/30) |
 | Unsupported prompt: 외부 요청 없음 | 통과 |
 | Unsupported prompt: submit 없음 | 통과 |
@@ -249,14 +249,15 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 
 - **Pass criteria 평가**: 각 run의 3개 pass criteria를 DOM canvas route와 텍스트 증거로 실제 평가. criterion별 `passed: true/false`와 `evidence` 문자열 기록 완료.
 - **Route 검증**: `final_route`를 expectations fixture의 `expected_final_route`와 비교. deterministic 3건, page_agent 12건의 route 불일치 탐지.
-- **Action trace 기록**: deterministic action step count median 4, page_agent median 2. Choreography step과 tool call의 구조적 차이 반영.
+- **Action trace 기록**: deterministic action step count median 4 (all/success 동일), page_agent median 1 (all) / 2 (success only). Choreography step과 tool call의 구조적 차이 반영.
 - **No-submit**: 30/30 run에서 실제 제출 없음 확인. 강제 true 없이 상태 머신 + DOM badge로 검증.
-- **Console error**: apartment_contact deterministic에서 3회 console error 발생. 원인 조사 필요.
+- **Console error**: 30/30 run 모두 0건. 404 에셋 오류 수정 완료.
+- **Request failure**: 30/30 run 모두 0건.
 - **외부 요청**: 모든 run에서 0건.
 
 **알려진 parity gap**:
-- deterministic mayor_proposal_writing: 완료 후 home으로 복귀하여 route 불일치
-- Page Agent canvas route: 4/5 시나리오에서 `official-content`로 탐지되어 route 검증 실패
+- deterministic mayor_proposal_writing: 완료 후 home으로 복귀하여 route 불일치 (3/15 wrong route의 전부)
+- Page Agent canvas route: 4/5 시나리오에서 `official-content`로 탐지되어 route 검증 실패 (12/15 wrong route)
 - complaint_screen: deterministic에 정확히 일치하는 journey 없음 (streetlight_report로 대체)
 
-**위너 선언 없음** — 단순 성공률(40.0%)과 elapsed time 차이로 한 모드가 우수하다고 결론 내리지 않는다. 두 모드는 서로 다른 설계 철학을 대표하며, 수정된 harness는 더 엄격한 pass criteria 평가와 route 검증을 제공한다. 모든 변경사항은 `experiment/1109-stage3-comparison-evidence` 브랜치에 additive commit으로 커밋되었다.
+**위너 선언 없음** — 단순 성공률(det 80.0% vs pa 20.0%)과 elapsed time 차이로 한 모드가 우수하다고 결론 내리지 않는다. 두 모드는 서로 다른 설계 철학을 대표하며, 수정된 harness는 더 엄격한 pass criteria 평가와 route 검증을 제공한다. 모든 변경사항은 `experiment/1109-stage3-comparison-evidence` 브랜치에 additive commit으로 커밋되었다.

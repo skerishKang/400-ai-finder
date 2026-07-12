@@ -68,6 +68,8 @@ REQUIRED_RUN_FIELDS = frozenset({
     "reproducibility_signature",
     "errors",
     "console_error_messages",
+    "console_error_details",
+    "request_failed_details",
     "http_error_responses",
 })
 
@@ -589,3 +591,164 @@ class TestHarnessScriptSafety:
         forbidden = ["openai", "anthropic", "gemini", "firecrawl"]
         for item in forbidden:
             assert item not in text, f"Harness must not reference '{item}'"
+
+
+# ---------------------------------------------------------------------------
+# Exact parity: report numbers must match evidence aggregate
+# ---------------------------------------------------------------------------
+
+
+class TestReportEvidenceParity:
+    """Contract: every number in the report that corresponds to an evidence
+    aggregate field must exactly match the JSON value."""
+
+    @pytest.fixture(autouse=True)
+    def load(self):
+        if not os.path.isfile(_EVIDENCE_PATH):
+            pytest.skip("evidence not yet generated")
+        if not os.path.isfile(_REPORT_PATH):
+            pytest.skip("report not yet generated")
+        self.data = _read_json(_EVIDENCE_PATH)
+        self.report = _read(_REPORT_PATH)
+
+    def _extract_number(self, pattern):
+        """Find first number matching a regex pattern in the report."""
+        m = re.search(pattern, self.report)
+        if m is None:
+            return None
+        # strip commas and convert
+        raw = m.group(1).replace(",", "")
+        try:
+            return int(raw)
+        except ValueError:
+            try:
+                return float(raw)
+            except ValueError:
+                return None
+
+    def test_total_runs_matches(self):
+        agg = self.data["aggregate"]
+        expected = agg["total_runs"]
+        assert expected == 30, f"total_runs should be 30, got {expected}"
+        # Verify report also says 30
+        n = self._extract_number(r"총 실행.*?\|.*?(\d+)")
+        if n is not None:
+            assert n == 15, f"Report table should show 15 per mode (30 total)"
+
+    def test_deterministic_totals_match(self):
+        agg = self.data["aggregate"]["by_mode"]["deterministic"]
+        runs = self.data["primary_runs"]
+        det_runs = [r for r in runs if r["mode"] == "deterministic"]
+        assert agg["total"] == len(det_runs), (
+            f"aggregate.by_mode.deterministic.total={agg['total']} != actual det runs {len(det_runs)}"
+        )
+        succ = sum(1 for r in det_runs if r["success"])
+        assert agg["successful"] == succ, (
+            f"aggregate.by_mode.deterministic.successful={agg['successful']} != {succ}"
+        )
+        fail = len(det_runs) - succ
+        assert agg["failed"] == fail, (
+            f"aggregate.by_mode.deterministic.failed={agg['failed']} != {fail}"
+        )
+
+    def test_page_agent_totals_match(self):
+        agg = self.data["aggregate"]["by_mode"]["page_agent"]
+        runs = self.data["primary_runs"]
+        pa_runs = [r for r in runs if r["mode"] == "page_agent"]
+        assert agg["total"] == len(pa_runs), (
+            f"aggregate.by_mode.page_agent.total={agg['total']} != actual pa runs {len(pa_runs)}"
+        )
+        succ = sum(1 for r in pa_runs if r["success"])
+        assert agg["successful"] == succ
+        fail = len(pa_runs) - succ
+        assert agg["failed"] == fail
+
+    def test_success_rate_matches(self):
+        agg = self.data["aggregate"]
+        runs = self.data["primary_runs"]
+        succ = sum(1 for r in runs if r["success"])
+        expected_rate = succ / len(runs) if runs else 0
+        assert abs(agg["success_rate"] - expected_rate) < 1e-9, (
+            f"success_rate mismatch: {agg['success_rate']} != {expected_rate}"
+        )
+
+    def test_wrong_route_totals_match(self):
+        runs = self.data["primary_runs"]
+        agg = self.data["aggregate"]["by_mode"]
+        for mode_name in ("deterministic", "page_agent"):
+            mode_runs = [r for r in runs if r["mode"] == mode_name]
+            expected = sum(r["wrong_route_action_count"] for r in mode_runs)
+            actual = agg[mode_name]["total_wrong_route_actions"]
+            assert actual == expected, (
+                f"{mode_name} wrong_route total mismatch: {actual} != {expected}"
+            )
+
+    def test_console_error_total_matches(self):
+        """Sum of all console errors across runs must be 0 in final evidence."""
+        runs = self.data["primary_runs"]
+        total = sum(r["console_error_count"] for r in runs)
+        assert total == 0, (
+            f"Expected 0 total console errors in final evidence, got {total}"
+        )
+
+    def test_page_error_total_matches(self):
+        runs = self.data["primary_runs"]
+        total = sum(r["page_error_count"] for r in runs)
+        assert total == 0, f"Expected 0 total page errors, got {total}"
+
+    def test_http_error_total_matches(self):
+        runs = self.data["primary_runs"]
+        total = sum(len(r["http_error_responses"]) for r in runs)
+        assert total == 0, f"Expected 0 http errors, got {total}"
+
+    def test_request_failure_total_matches(self):
+        runs = self.data["primary_runs"]
+        total = sum(r["request_failure_count"] for r in runs)
+        assert total == 0, f"Expected 0 request failures, got {total}"
+
+    def test_external_request_total_matches(self):
+        runs = self.data["primary_runs"]
+        total = sum(r["external_request_count"] for r in runs)
+        assert total == 0, f"Expected 0 external requests, got {total}"
+
+    def test_no_submit_all_runs_match(self):
+        runs = self.data["primary_runs"]
+        for run in runs:
+            assert run["no_submit_preserved"] is True, (
+                f"{run['mode']}/{run['scenario_id']}/attempt={run['attempt']}: no_submit_preserved is False"
+            )
+
+    def test_cancellation_both_modes_success(self):
+        probes = self.data["boundary_probes"]
+        det_cancel = [p for p in probes if p.get("probe") == "cancellation" and p.get("mode") == "deterministic"]
+        pa_cancel = [p for p in probes if p.get("probe") == "cancellation" and p.get("mode") == "page_agent"]
+        assert any(p.get("success") is True for p in det_cancel), (
+            "Deterministic cancellation probe must have success=True"
+        )
+        assert any(p.get("success") is True for p in pa_cancel), (
+            "Page Agent cancellation probe must have success=True"
+        )
+
+    def test_median_action_step_count_computed_from_runs(self):
+        """Verify the aggregate medians match actual run data."""
+        runs = self.data["primary_runs"]
+        agg = self.data["aggregate"]["by_mode"]
+
+        def compute_median(values):
+            if not values:
+                return 0
+            s = sorted(values)
+            n = len(s)
+            return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2
+
+        for mode_name in ("deterministic", "page_agent"):
+            mode_runs = [r for r in runs if r["mode"] == mode_name]
+            success_runs = [r for r in mode_runs if r["success"]]
+            expected_all = compute_median([r["action_step_count"] for r in mode_runs])
+            expected_success = compute_median([r["action_step_count"] for r in success_runs])
+            assert agg[mode_name]["median_action_step_count_all"] == expected_all, (
+                f"{mode_name} median_action_step_count_all mismatch"
+            )
+            assert agg[mode_name]["median_action_step_count_success"] == expected_success, (
+                f"{mode_name} median_action_step_count_success mismatch"
+            )

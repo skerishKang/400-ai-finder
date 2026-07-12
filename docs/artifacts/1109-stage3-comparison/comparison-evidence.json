@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "track": "1109-page-agent-comparison",
-  "generated_at": "2026-07-12T17:26:22.637Z",
+  "generated_at": "2026-07-12T18:24:21.049Z",
   "methodology": {
     "description": "Browser-based comparison harness executing the 5 parity scenarios from parity-contract.json in both modes against the same controlled same-origin civic canvas.",
     "modes": [
@@ -95,7 +95,7 @@
         "docs/artifacts/1109-stage3-comparison/shard3.json"
       ],
       "shard_count": 3,
-      "merged_at": "2026-07-12T17:26:22.637Z"
+      "merged_at": "2026-07-12T18:24:21.049Z"
     }
   },
   "primary_runs": [
@@ -107,7 +107,7 @@
       "attempt": 1,
       "canonical_request": "공동주택과 연락처 찾아줘",
       "actual_trigger": "housing_department",
-      "success": false,
+      "success": true,
       "terminal_state": "done",
       "final_route": "apartment-dept",
       "final_surface": "apartment-dept",
@@ -141,17 +141,17 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17662,
+      "elapsed_ms": 17727,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
-      "console_error_count": 1,
+      "console_error_count": 0,
       "page_error_count": 0,
       "warnings": [],
-      "console_error_messages": [
-        "Failed to load resource: the server responded with a status of 404 (File not found)"
-      ],
-      "reproducibility_signature": "deterministic|apartment_contact|false|done|apartment-dept|true|0|1|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
       "errors": [],
       "http_error_responses": []
     },
@@ -192,7 +192,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1961,
+      "elapsed_ms": 1941,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -200,6 +200,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|apartment_contact|false||official-content|true|0|0|click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -243,7 +245,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5601,
+      "elapsed_ms": 5434,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -251,6 +253,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|bulky_waste_menu|true|done|bulky-waste-disposal|true|0|0|message,route:bulky-waste-disposal,target:bulky-waste-guidance-card,message",
       "errors": [],
       "http_error_responses": []
@@ -292,7 +296,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1937,
+      "elapsed_ms": 1956,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -300,6 +304,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|bulky_waste_menu|false||official-content|true|0|0|click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -345,7 +351,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10490,
+      "elapsed_ms": 10578,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -353,6 +359,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|passport_procedure|true|done|passport-guidance|true|0|0|message,target:nav-civil-service,route:civil-service,route:passport-guidance,target:passport-guidance-card,message",
       "errors": [],
       "http_error_responses": []
@@ -394,7 +402,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1912,
+      "elapsed_ms": 1981,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -402,6 +410,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|passport_procedure|false||official-content|true|0|0|click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -448,7 +458,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17380,
+      "elapsed_ms": 17445,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -456,6 +466,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|complaint_screen|true|waiting_confirmation|complaint-write|true|0|0|message,route:complaint-board,click:#btn-board-write+routeAfterClick:complaint-write,type+focusSearch,type,message,message",
       "errors": [],
       "http_error_responses": []
@@ -498,7 +510,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3044,
+      "elapsed_ms": 2961,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -506,6 +518,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|complaint_screen|false||official-content|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -552,7 +566,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 11986,
+      "elapsed_ms": 11867,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -560,6 +574,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|mayor_proposal_writing|false|waiting_confirmation|home|true|0|0|message,message,message,type,type,message,message",
       "errors": [],
       "http_error_responses": []
@@ -602,7 +618,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2390,
+      "elapsed_ms": 2437,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -610,6 +626,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|mayor_proposal_writing|true||mayor-complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -622,7 +640,7 @@
       "attempt": 2,
       "canonical_request": "공동주택과 연락처 찾아줘",
       "actual_trigger": "housing_department",
-      "success": false,
+      "success": true,
       "terminal_state": "done",
       "final_route": "apartment-dept",
       "final_surface": "apartment-dept",
@@ -656,17 +674,17 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17602,
+      "elapsed_ms": 17618,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
-      "console_error_count": 1,
+      "console_error_count": 0,
       "page_error_count": 0,
       "warnings": [],
-      "console_error_messages": [
-        "Failed to load resource: the server responded with a status of 404 (File not found)"
-      ],
-      "reproducibility_signature": "deterministic|apartment_contact|false|done|apartment-dept|true|0|1|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
       "errors": [],
       "http_error_responses": []
     },
@@ -698,6 +716,110 @@
           "criterion": "오류 없이 정보 채워짐",
           "passed": true,
           "evidence": "passed: keywords excluded"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 1,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1939,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|apartment_contact|false||official-content|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "bulky_waste_menu",
+      "category": "menu_navigation",
+      "mode": "deterministic",
+      "attempt": 2,
+      "canonical_request": "대형폐기물 신청 메뉴 찾아줘",
+      "actual_trigger": "bulky_waste",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "bulky-waste-disposal",
+      "final_surface": "bulky-waste-disposal",
+      "expected_outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함",
+      "pass_criteria_results": [
+        {
+          "criterion": "대형폐기물 화면 열림",
+          "passed": true,
+          "evidence": "passed: route: bulky-waste-disposal"
+        },
+        {
+          "criterion": "안내 텍스트 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...통합검색 전체메뉴 대형폐기물 배출방법 홈 ›...\""
+        },
+        {
+          "criterion": "실제 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 2,
+      "total_engine_step_count": 4,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "route:bulky-waste-disposal",
+        "target:bulky-waste-guidance-card",
+        "message"
+      ],
+      "elapsed_ms": 5614,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|bulky_waste_menu|true|done|bulky-waste-disposal|true|0|0|message,route:bulky-waste-disposal,target:bulky-waste-guidance-card,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "bulky_waste_menu",
+      "category": "menu_navigation",
+      "mode": "page_agent",
+      "attempt": 2,
+      "canonical_request": "대형폐기물 신청 메뉴 찾아줘",
+      "actual_trigger": "대형폐기물 신청 메뉴 찾아줘",
+      "success": false,
+      "terminal_state": "",
+      "final_route": "official-content",
+      "final_surface": "official-content",
+      "expected_outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함",
+      "pass_criteria_results": [
+        {
+          "criterion": "대형폐기물 화면 열림",
+          "passed": false,
+          "evidence": "failed: route=official-content no_submit=true"
+        },
+        {
+          "criterion": "안내 텍스트 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...색 전체메뉴 민원 신청  북구청 주요 민...\""
+        },
+        {
+          "criterion": "실제 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
         }
       ],
       "action_step_count": 1,
@@ -715,106 +837,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
-      "reproducibility_signature": "page_agent|apartment_contact|false||official-content|true|0|0|click_element_by_index,done",
-      "errors": [],
-      "http_error_responses": []
-    },
-    {
-      "schema_version": "1.0.0",
-      "scenario_id": "bulky_waste_menu",
-      "category": "menu_navigation",
-      "mode": "deterministic",
-      "attempt": 2,
-      "canonical_request": "대형폐기물 신청 메뉴 찾아줘",
-      "actual_trigger": "bulky_waste",
-      "success": true,
-      "terminal_state": "done",
-      "final_route": "bulky-waste-disposal",
-      "final_surface": "bulky-waste-disposal",
-      "expected_outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함",
-      "pass_criteria_results": [
-        {
-          "criterion": "대형폐기물 화면 열림",
-          "passed": true,
-          "evidence": "passed: route: bulky-waste-disposal"
-        },
-        {
-          "criterion": "안내 텍스트 표시",
-          "passed": true,
-          "evidence": "passed: text: \"...통합검색 전체메뉴 대형폐기물 배출방법 홈 ›...\""
-        },
-        {
-          "criterion": "실제 제출 없음",
-          "passed": true,
-          "evidence": "passed: no submit detected"
-        }
-      ],
-      "action_step_count": 2,
-      "total_engine_step_count": 4,
-      "wrong_route_action_count": 0,
-      "action_sequence": [
-        "message",
-        "route:bulky-waste-disposal",
-        "target:bulky-waste-guidance-card",
-        "message"
-      ],
-      "elapsed_ms": 5625,
-      "no_submit_preserved": true,
-      "external_request_count": 0,
-      "request_failure_count": 0,
-      "console_error_count": 0,
-      "page_error_count": 0,
-      "warnings": [],
-      "console_error_messages": [],
-      "reproducibility_signature": "deterministic|bulky_waste_menu|true|done|bulky-waste-disposal|true|0|0|message,route:bulky-waste-disposal,target:bulky-waste-guidance-card,message",
-      "errors": [],
-      "http_error_responses": []
-    },
-    {
-      "schema_version": "1.0.0",
-      "scenario_id": "bulky_waste_menu",
-      "category": "menu_navigation",
-      "mode": "page_agent",
-      "attempt": 2,
-      "canonical_request": "대형폐기물 신청 메뉴 찾아줘",
-      "actual_trigger": "대형폐기물 신청 메뉴 찾아줘",
-      "success": false,
-      "terminal_state": "",
-      "final_route": "official-content",
-      "final_surface": "official-content",
-      "expected_outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함",
-      "pass_criteria_results": [
-        {
-          "criterion": "대형폐기물 화면 열림",
-          "passed": false,
-          "evidence": "failed: route=official-content no_submit=true"
-        },
-        {
-          "criterion": "안내 텍스트 표시",
-          "passed": true,
-          "evidence": "passed: text: \"...색 전체메뉴 민원 신청  북구청 주요 민...\""
-        },
-        {
-          "criterion": "실제 제출 없음",
-          "passed": true,
-          "evidence": "passed: no submit detected"
-        }
-      ],
-      "action_step_count": 1,
-      "total_engine_step_count": 2,
-      "wrong_route_action_count": 1,
-      "action_sequence": [
-        "click_element_by_index",
-        "done"
-      ],
-      "elapsed_ms": 1919,
-      "no_submit_preserved": true,
-      "external_request_count": 0,
-      "request_failure_count": 0,
-      "console_error_count": 0,
-      "page_error_count": 0,
-      "warnings": [],
-      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|bulky_waste_menu|false||official-content|true|0|0|click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -860,7 +884,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10499,
+      "elapsed_ms": 10504,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -868,6 +892,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|passport_procedure|true|done|passport-guidance|true|0|0|message,target:nav-civil-service,route:civil-service,route:passport-guidance,target:passport-guidance-card,message",
       "errors": [],
       "http_error_responses": []
@@ -909,7 +935,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1921,
+      "elapsed_ms": 1952,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -917,6 +943,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|passport_procedure|false||official-content|true|0|0|click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -963,7 +991,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17376,
+      "elapsed_ms": 17511,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -971,6 +999,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|complaint_screen|true|waiting_confirmation|complaint-write|true|0|0|message,route:complaint-board,click:#btn-board-write+routeAfterClick:complaint-write,type+focusSearch,type,message,message",
       "errors": [],
       "http_error_responses": []
@@ -1013,7 +1043,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3007,
+      "elapsed_ms": 3200,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1021,6 +1051,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|complaint_screen|false||official-content|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -1067,7 +1099,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 11956,
+      "elapsed_ms": 12201,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1075,6 +1107,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|mayor_proposal_writing|false|waiting_confirmation|home|true|0|0|message,message,message,type,type,message,message",
       "errors": [],
       "http_error_responses": []
@@ -1117,7 +1151,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2393,
+      "elapsed_ms": 2599,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1125,6 +1159,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|mayor_proposal_writing|true||mayor-complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -1137,7 +1173,7 @@
       "attempt": 3,
       "canonical_request": "공동주택과 연락처 찾아줘",
       "actual_trigger": "housing_department",
-      "success": false,
+      "success": true,
       "terminal_state": "done",
       "final_route": "apartment-dept",
       "final_surface": "apartment-dept",
@@ -1171,17 +1207,17 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17758,
+      "elapsed_ms": 17730,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
-      "console_error_count": 1,
+      "console_error_count": 0,
       "page_error_count": 0,
       "warnings": [],
-      "console_error_messages": [
-        "Failed to load resource: the server responded with a status of 404 (File not found)"
-      ],
-      "reproducibility_signature": "deterministic|apartment_contact|false|done|apartment-dept|true|0|1|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
       "errors": [],
       "http_error_responses": []
     },
@@ -1222,7 +1258,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1931,
+      "elapsed_ms": 2032,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1230,6 +1266,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|apartment_contact|false||official-content|true|0|0|click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -1273,7 +1311,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5555,
+      "elapsed_ms": 5486,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1281,6 +1319,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|bulky_waste_menu|true|done|bulky-waste-disposal|true|0|0|message,route:bulky-waste-disposal,target:bulky-waste-guidance-card,message",
       "errors": [],
       "http_error_responses": []
@@ -1322,7 +1362,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1947,
+      "elapsed_ms": 1945,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1330,6 +1370,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|bulky_waste_menu|false||official-content|true|0|0|click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -1375,7 +1417,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10394,
+      "elapsed_ms": 10393,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1383,6 +1425,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|passport_procedure|true|done|passport-guidance|true|0|0|message,target:nav-civil-service,route:civil-service,route:passport-guidance,target:passport-guidance-card,message",
       "errors": [],
       "http_error_responses": []
@@ -1424,7 +1468,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2062,
+      "elapsed_ms": 2167,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1432,6 +1476,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|passport_procedure|false||official-content|true|0|0|click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -1478,7 +1524,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17293,
+      "elapsed_ms": 17428,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1486,6 +1532,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|complaint_screen|true|waiting_confirmation|complaint-write|true|0|0|message,route:complaint-board,click:#btn-board-write+routeAfterClick:complaint-write,type+focusSearch,type,message,message",
       "errors": [],
       "http_error_responses": []
@@ -1528,7 +1576,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3063,
+      "elapsed_ms": 2887,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1536,6 +1584,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|complaint_screen|false||official-content|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -1582,7 +1632,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 12090,
+      "elapsed_ms": 11973,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1590,6 +1640,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "deterministic|mayor_proposal_writing|false|waiting_confirmation|home|true|0|0|message,message,message,type,type,message,message",
       "errors": [],
       "http_error_responses": []
@@ -1632,7 +1684,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2572,
+      "elapsed_ms": 2676,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1640,6 +1692,8 @@
       "page_error_count": 0,
       "warnings": [],
       "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
       "reproducibility_signature": "page_agent|mayor_proposal_writing|true||mayor-complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
       "http_error_responses": []
@@ -1666,7 +1720,7 @@
       "has_execute_javascript": false,
       "has_click": false,
       "response_success": false,
-      "elapsed_ms": 807,
+      "elapsed_ms": 788,
       "safe": true
     },
     {
@@ -1689,18 +1743,18 @@
   ],
   "aggregate": {
     "total_runs": 30,
-    "successful": 12,
-    "failed": 18,
-    "success_rate": 0.4,
+    "successful": 15,
+    "failed": 15,
+    "success_rate": 0.5,
     "by_mode": {
       "deterministic": {
         "total": 15,
-        "successful": 9,
-        "failed": 6,
-        "median_elapsed_ms_all": 11986,
-        "median_elapsed_ms_success": 10490,
-        "min_elapsed_ms": 5555,
-        "max_elapsed_ms": 17758,
+        "successful": 12,
+        "failed": 3,
+        "median_elapsed_ms_all": 11973,
+        "median_elapsed_ms_success": 14003,
+        "min_elapsed_ms": 5434,
+        "max_elapsed_ms": 17730,
         "median_action_step_count_all": 4,
         "median_action_step_count_success": 4,
         "total_wrong_route_actions": 3
@@ -1709,10 +1763,10 @@
         "total": 15,
         "successful": 3,
         "failed": 12,
-        "median_elapsed_ms_all": 1961,
-        "median_elapsed_ms_success": 2393,
-        "min_elapsed_ms": 1912,
-        "max_elapsed_ms": 3063,
+        "median_elapsed_ms_all": 2032,
+        "median_elapsed_ms_success": 2599,
+        "min_elapsed_ms": 1935,
+        "max_elapsed_ms": 3200,
         "median_action_step_count_all": 1,
         "median_action_step_count_success": 2,
         "total_wrong_route_actions": 12
@@ -1727,7 +1781,7 @@
         "unique_signatures": 1,
         "reproducible": true,
         "signatures": [
-          "deterministic|apartment_contact|false|done|apartment-dept|true|0|1|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message"
+          "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message"
         ]
       },
       {

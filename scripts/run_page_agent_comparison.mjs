@@ -329,6 +329,8 @@ function makeRunRecord(scenarioId, mode, attempt) {
     page_error_count: 0,
     warnings: [],
     console_error_messages: [],
+    console_error_details: [],
+    request_failed_details: [],
     reproducibility_signature: "",
     errors: [],
     http_error_responses: [],
@@ -339,7 +341,7 @@ function makeErrorTracker(baseUrl) {
   return { baseUrl, nonLocal: [], consoleErrors: [], warnings: [], pageErrors: [], requestFailures: [], httpErrors: [] };
 }
 
-async function setupErrorTracking(page, tracker) {
+async function setupErrorTracking(page, tracker, mode, scenarioId, attempt) {
   await page.addInitScript(() => {
     window._formSubmitted = false;
     document.addEventListener("submit", () => {
@@ -351,26 +353,63 @@ async function setupErrorTracking(page, tracker) {
     const u = r.url();
     const isLocal = LOCAL_HOSTS.has(new URL(u).hostname);
     if (!isLocal) {
-      tracker.nonLocal.push({ url: u, method: r.method() });
+      tracker.nonLocal.push({ url: u, method: r.method(), mode, scenarioId, attempt });
     }
   });
   page.on("response", (res) => {
-    if (res.status() === 404) {
-      tracker.httpErrors.push({ url: res.url(), status: res.status() });
+    const status = res.status();
+    if (status >= 400) {
+      tracker.httpErrors.push({
+        url: res.url(),
+        status,
+        mode,
+        scenarioId,
+        attempt
+      });
     }
   });
   page.on("requestfailed", (req) => {
     const err = req.failure()?.errorText || "unknown";
-    tracker.requestFailures.push({ url: req.url(), error: err });
+    tracker.requestFailures.push({
+      url: req.url(),
+      error: err,
+      mode,
+      scenarioId,
+      attempt
+    });
   });
   page.on("console", (msg) => {
     const text = msg.text();
     if (text.includes("favicon.ico")) return;
     if (/GL Driver Message/i.test(text)) return;
-    if (msg.type() === "error") tracker.consoleErrors.push(text);
-    else if (msg.type() === "warning") tracker.warnings.push(text);
+    const location = msg.location();
+    const locUrl = location ? location.url : "";
+    if (msg.type() === "error") {
+      tracker.consoleErrors.push({
+        text,
+        url: locUrl,
+        mode,
+        scenarioId,
+        attempt
+      });
+    } else if (msg.type() === "warning") {
+      tracker.warnings.push({
+        text,
+        url: locUrl,
+        mode,
+        scenarioId,
+        attempt
+      });
+    }
   });
-  page.on("pageerror", (err) => tracker.pageErrors.push(err.message));
+  page.on("pageerror", (err) => {
+    tracker.pageErrors.push({
+      message: err.message,
+      mode,
+      scenarioId,
+      attempt
+    });
+  });
 }
 
 function computeSignature(record) {
@@ -856,7 +895,7 @@ async function main() {
           try {
             ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
             page = await ctx.newPage();
-            await setupErrorTracking(page, tracker);
+            await setupErrorTracking(page, tracker, "deterministic", sid, attempt);
 
             await waitForDeterministicPage(page, deterministicRoute);
 
@@ -867,11 +906,13 @@ async function main() {
             await collectDeterministicMetrics(page, sid, record);
             record.external_request_count = tracker.nonLocal.length;
             record.console_error_count = tracker.consoleErrors.length;
-            record.console_error_messages = tracker.consoleErrors.length > 0 ? [...tracker.consoleErrors] : [];
+            record.console_error_messages = tracker.consoleErrors.map(e => e.text);
+            record.console_error_details = tracker.consoleErrors;
             record.page_error_count = tracker.pageErrors.length;
             record.request_failure_count = tracker.requestFailures.length;
-            record.warnings = tracker.warnings.length > 0 ? [...tracker.warnings] : [];
-            record.http_error_responses = tracker.httpErrors.length > 0 ? [...tracker.httpErrors] : [];
+            record.request_failed_details = tracker.requestFailures;
+            record.warnings = tracker.warnings.map(w => w.text);
+            record.http_error_responses = tracker.httpErrors;
 
             // success: all pass criteria met, route matches expected, no-submit preserved, no external requests, no errors
             const allPassCriteriaMet = record.pass_criteria_results.length > 0
@@ -919,7 +960,7 @@ async function main() {
           try {
             ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
             page = await ctx.newPage();
-            await setupErrorTracking(page, tracker);
+            await setupErrorTracking(page, tracker, "page_agent", sid, attempt);
 
             await page.evaluate(() => {
               const m = window.PageAgentMockModel;
@@ -941,11 +982,13 @@ async function main() {
             await collectResidentMetrics(page, sid, record);
             record.external_request_count = tracker.nonLocal.length;
             record.console_error_count = tracker.consoleErrors.length;
-            record.console_error_messages = tracker.consoleErrors.length > 0 ? [...tracker.consoleErrors] : [];
+            record.console_error_messages = tracker.consoleErrors.map(e => e.text);
+            record.console_error_details = tracker.consoleErrors;
             record.page_error_count = tracker.pageErrors.length;
             record.request_failure_count = tracker.requestFailures.length;
-            record.warnings = tracker.warnings.length > 0 ? [...tracker.warnings] : [];
-            record.http_error_responses = tracker.httpErrors.length > 0 ? [...tracker.httpErrors] : [];
+            record.request_failed_details = tracker.requestFailures;
+            record.warnings = tracker.warnings.map(w => w.text);
+            record.http_error_responses = tracker.httpErrors;
 
             // success: all pass criteria met, route matches expected, no-submit preserved, no external requests, no errors
             const allPassCriteriaMet = record.pass_criteria_results.length > 0
