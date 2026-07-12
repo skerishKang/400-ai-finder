@@ -53,16 +53,18 @@
 
 빌드 게이트웨이(`scripts/build_cloudflare_pages.py::build_index_html`) 카드:
 
-| 순서 | 카드 | 라우트 | 성격 |
+| 순서 | 카드 | 라우트 | 비고 |
 |----|------|--------|------|
-| 1 | 시민 행정 도우미 (정밀 구현형) | `mvp/` | 기존 MVP, 설명 보강 |
-| 2 | **Page Agent형 AI 북구청** | `examples/page-agent/resident/` | **주민용 주요 Page Agent 카드** |
+| 1 | 정밀 구현형 AI 북구청 | `mvp/` | deterministic, 기존 MVP |
+| 2 | **Page Agent형 AI 북구청** | `examples/page-agent/resident/` | **주민용 주요 Page Agent 카드, Stage 2 준비 중** |
 | 3 | 모바일 챗 안내 | `mobile.html` | 기존 |
 | 4 | 운영자 화면 | `admin.html` | 기존 |
-| 5 | Page Agent 개발자 실험실 | `examples/page-agent/` | **격하된 developer lab** |
+
+카드 영역 밖 별도 `<div>`에 작은 링크로 developer lab을 배치:
+- `Page Agent 개발자 실험실` → `examples/page-agent/` (독립 오프라인 기술 실험, 제품 카드 아님)
 
 - 기존 카드명 `Page Agent 실험실` → `Page Agent 개발자 실험실`로 변경(영어 기술 실험임을 명시).
-- `examples/page-agent/` 링크는 root에 정확히 1개만 존재(격리 계약 유지).
+- `examples/page-agent/` 링크는 root에 정확히 1개만 존재(격리 계약 유지), `.card` 클래스 없음.
 - 라이브 모드(`?mvp=1`)에서도 동일 라벨링 적용.
 
 ## 4. 공유 비교 시나리오 계약 (shared parity contract)
