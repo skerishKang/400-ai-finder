@@ -1,0 +1,134 @@
+{
+  "track": "1109-page-agent-comparison",
+  "title": "Page Agent형 vs 정밀 구현형 비교 데모 공통 시나리오 계약",
+  "version": "1.0.0",
+  "owner": "Computer 1 (#1109 Stage 1)",
+  "description": "Both the deterministic MVP (정밀 구현형) and the Page Agent-driven demo (Page Agent형) must attempt the same resident tasks against the same controlled same-origin civic canvas and the same completion boundary. Scenario wording may be normalized, but target outcome and pass criteria are shared across both modes.",
+  "modes": {
+    "deterministic": {
+      "label": "정밀 구현형 AI 북구청",
+      "kind": "handcrafted/deterministic",
+      "route": "mvp/",
+      "engine": "predefined route/action mapping -> civic canvas transition"
+    },
+    "page_agent": {
+      "label": "Page Agent형 AI 북구청",
+      "kind": "model-compatible plan -> Page Agent DOM actions",
+      "route": "examples/page-agent/resident/",
+      "engine": "model-compatible plan -> Page Agent DOM actions (click/input/select/scroll/same-origin navigation) -> civic canvas transition",
+      "status": "route-contract only in Stage 1; interactive demo implemented in Stage 2"
+    }
+  },
+  "shared_invariants": [
+    "same resident-oriented task vocabulary",
+    "same left civic-site / right assistant mental model",
+    "comparable desktop and mobile presentation",
+    "same target pages and task completion definitions",
+    "same official-submission boundary",
+    "visible progress and failure states",
+    "no automatic final submission, payment, or irreversible action"
+  ],
+  "no_submit_boundary": {
+    "note": "Both modes must stop before any official submission. They may observe, navigate, fill a draft, and report; they must never submit, pay, authenticate, or transmit personal information.",
+    "forbidden_actions": [
+      "real form submission / final submit click on an official form",
+      "payment or any monetary transaction",
+      "credential or login entry",
+      "personal-data (PII) transmission",
+      "external-domain navigation away from the controlled same-origin civic canvas",
+      "arbitrary model-generated JavaScript execution",
+      "destructive or irreversible actions",
+      "multi-tab or browser-extension control"
+    ],
+    "allowed_actions": [
+      "click",
+      "input/type",
+      "select",
+      "scroll",
+      "read/result extraction",
+      "same-origin internal navigation"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "apartment_contact",
+      "resident_request": "공동주택과 연락처 찾아줘",
+      "category": "information_lookup",
+      "target": {
+        "civic_surface": "북구청 공동주택 / 아파트 단지 안내 화면",
+        "outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨"
+      },
+      "pass_criteria": [
+        "시민 화면에 공동주택(아파트) 관련 안내 영역이 노출된다",
+        "해당 안내와 함께 담당 부서 또는 연락처 정보가 표시된다",
+        "결과 영역에 오류 없이 정보가 채워진다"
+      ],
+      "no_submit": true,
+      "mode_agnostic": true
+    },
+    {
+      "id": "bulky_waste_menu",
+      "resident_request": "대형폐기물 신청 메뉴 찾아줘",
+      "category": "menu_navigation",
+      "target": {
+        "civic_surface": "북구청 대형폐기물 신청 메뉴/안내 화면",
+        "outcome": "대형폐기물 신청 메뉴 또는 안내 화면으로 이동함"
+      },
+      "pass_criteria": [
+        "대형폐기물 신청 관련 메뉴/화면이 열리거나 포커스된다",
+        "해당 화면의 제목/안내 텍스트가 시민에게 표시된다",
+        "신청 화면 자체의 실제 제출은 발생하지 않는다"
+      ],
+      "no_submit": true,
+      "mode_agnostic": true
+    },
+    {
+      "id": "passport_procedure",
+      "resident_request": "여권 발급 절차를 찾아줘",
+      "category": "procedure_navigation",
+      "target": {
+        "civic_surface": "북구청 여권 발급 절차 안내 화면",
+        "outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨"
+      },
+      "pass_criteria": [
+        "여권 발급 절차 안내 화면으로 이동하거나 절차 정보가 표시된다",
+        "구비서류/절차 단계 중 최소 일부가 가시적으로 노출된다",
+        "실제 여권 신청 제출은 발생하지 않는다"
+      ],
+      "no_submit": true,
+      "mode_agnostic": true
+    },
+    {
+      "id": "complaint_screen",
+      "resident_request": "민원 작성 화면을 열어줘",
+      "category": "form_assist",
+      "target": {
+        "civic_surface": "북구청 민원 작성 화면",
+        "outcome": "민원 작성 화면이 열리고(필요시 입력 필드가 식별됨) 작성 보조가 제공됨"
+      },
+      "pass_criteria": [
+        "민원 작성 화면이 열린다",
+        "작성 가능한 입력 필드/영역이 식별되어 시민에게 표시된다",
+        "임의 제출 없이 작성 보조 상태로 머문다"
+      ],
+      "no_submit": true,
+      "mode_agnostic": true
+    },
+    {
+      "id": "mayor_proposal_writing",
+      "resident_request": "구청장에게 제안할 글 작성을 도와줘",
+      "category": "writing_assist",
+      "target": {
+        "civic_surface": "구청장에게 제안/건의 작성 화면 또는 작성 보조 영역",
+        "outcome": "제안 글 작성을 위한 초안/보조가 제공되며 실제 전송 전에 멈춤"
+      },
+      "pass_criteria": [
+        "구청장 제안/건의 작성 화면으로 이동하거나 작성 보조 영역이 열린다",
+        "초안 텍스트 또는 입력 안내가 시민에게 제공된다",
+        "실제 전송/제출은 발생하지 않는다"
+      ],
+      "no_submit": true,
+      "mode_agnostic": true
+    }
+  ]
+}
