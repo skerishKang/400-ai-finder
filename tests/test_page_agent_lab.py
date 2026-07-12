@@ -63,10 +63,29 @@ PROTECTED_ROUTES = [
     "admin.html",
 ]
 
-PAGE_AGENT_PAGE_SIGNATURES = [
+# Discoverability: root gateway link + name only.
+PAGE_AGENT_DISCOVERY_SIGNATURES = [
     "Page Agent",
     "page-agent",
+]
+
+# Runtime/content leakage: vendor, mock model, lab JS/CSS, init code, experiment body.
+PAGE_AGENT_RUNTIME_SIGNATURES = [
     "./vendor/page-agent.iife.js",
+    "./mock-model.js",
+    "./page-agent-lab.js",
+    "./page-agent-lab.css",
+    "new window.PageAgent(",
+    "PageAgentLabMockModel",
+    "what-is-page-agent",
+    "Page Agent 1.12.1",
+]
+
+# Routes that must not expose ANY Page Agent discovery (name/link) either.
+NON_ROOT_PROTECTED_ROUTES = [
+    os.path.join("mvp", "index.html"),
+    "mobile.html",
+    "admin.html",
 ]
 
 # ── Hosts that must appear in mocked blocklists ───────────────────────────
@@ -481,30 +500,80 @@ class TestBuildOutput:
 # ── Route isolation contracts ─────────────────────────────────────────────
 
 
+def _assert_no_page_agent_runtime(text, route, mode):
+    for sig in PAGE_AGENT_RUNTIME_SIGNATURES:
+        assert sig not in text, (
+            f"Page Agent runtime signature {sig!r} found in {mode} {route}"
+        )
+
+
+def _assert_no_page_agent_discovery(text, route, mode):
+    for sig in PAGE_AGENT_DISCOVERY_SIGNATURES:
+        assert sig not in text, (
+            f"Page Agent discovery signature {sig!r} found in {mode} {route}"
+        )
+
+
 class TestRouteIsolation:
-    """Page Agent content must NOT leak into root/MVP/mobile/admin routes."""
+    """Page Agent runtime must NOT leak into any protected route; the root
+    gateway may expose the discovery link/name, but the three non-root routes
+    (MVP / mobile / admin) must stay fully clean of both discovery and runtime.
+    """
 
     @pytest.mark.parametrize("route", PROTECTED_ROUTES)
-    def test_static_build_route_isolation(self, route):
+    def test_static_build_runtime_absent(self, route):
         out = _run_build("static")
         route_path = os.path.join(out, route)
         if os.path.isfile(route_path):
-            text = _read(route_path)
-            for sig in PAGE_AGENT_PAGE_SIGNATURES:
-                assert sig not in text, (
-                    f"Page Agent signature '{sig}' found in static {route}"
-                )
+            _assert_no_page_agent_runtime(_read(route_path), route, "static")
 
     @pytest.mark.parametrize("route", PROTECTED_ROUTES)
-    def test_live_build_route_isolation(self, route):
+    def test_live_build_runtime_absent(self, route):
         out = _run_build("live")
         route_path = os.path.join(out, route)
         if os.path.isfile(route_path):
-            text = _read(route_path)
-            for sig in PAGE_AGENT_PAGE_SIGNATURES:
-                    assert sig not in text, (
-                        f"Page Agent signature '{sig}' found in live {route}"
-                    )
+            _assert_no_page_agent_runtime(_read(route_path), route, "live")
+
+    @pytest.mark.parametrize("route", NON_ROOT_PROTECTED_ROUTES)
+    def test_static_build_discovery_absent(self, route):
+        out = _run_build("static")
+        route_path = os.path.join(out, route)
+        if os.path.isfile(route_path):
+            _assert_no_page_agent_discovery(_read(route_path), route, "static")
+
+    @pytest.mark.parametrize("route", NON_ROOT_PROTECTED_ROUTES)
+    def test_live_build_discovery_absent(self, route):
+        out = _run_build("live")
+        route_path = os.path.join(out, route)
+        if os.path.isfile(route_path):
+            _assert_no_page_agent_discovery(_read(route_path), route, "live")
+
+    def test_static_root_is_only_discovery_boundary(self):
+        out = _run_build("static")
+        index = _read(os.path.join(out, "index.html"))
+        # Exactly one same-origin gateway link + standalone title.
+        assert index.count('href="examples/page-agent/"') == 1
+        assert index.count("Page Agent 실험실") == 1
+        # The link is same-origin, not external or new-tab.
+        card_block = index[index.index('<a class="card" href="examples/page-agent/"'):]
+        card_block = card_block[: card_block.index("</a>")]
+        assert 'href="http://' not in card_block
+        assert 'href="https://' not in card_block
+        assert 'target="_blank"' not in card_block
+        # Root still contains no runtime leakage.
+        _assert_no_page_agent_runtime(index, "index.html", "static")
+
+    def test_live_root_is_only_discovery_boundary(self):
+        out = _run_build("live")
+        index = _read(os.path.join(out, "index.html"))
+        assert index.count('href="examples/page-agent/"') == 1
+        assert index.count("Page Agent 실험실") == 1
+        card_block = index[index.index('<a class="card" href="examples/page-agent/"'):]
+        card_block = card_block[: card_block.index("</a>")]
+        assert 'href="http://' not in card_block
+        assert 'href="https://' not in card_block
+        assert 'target="_blank"' not in card_block
+        _assert_no_page_agent_runtime(index, "index.html", "live")
 
 
 # ── API isolation contracts ───────────────────────────────────────────────
