@@ -7,10 +7,11 @@
  *
  * No external URLs, no analytics, no persistence.
  *
- * Visual primitives (radius, focus ring, transitions, status colors,
- * typography, spacing, touch target) are defined once in
- * citizen-shared-tokens.css. This file consumes those tokens via
- * assistant-specific aliases; it MUST NOT change any resolved value.
+ * Visual primitives are defined once in citizen-shared-tokens.css and
+ * consumed here via assistant-specific aliases. The shared layer provides
+ * assistant colors, typography, the radii actually used by the assistant,
+ * the focus-ring geometry, status colors, transition timing, and the
+ * reduced-motion collapse. This file MUST NOT change any resolved value.
  */
 
 /* ---------------------------------------------------------------------------

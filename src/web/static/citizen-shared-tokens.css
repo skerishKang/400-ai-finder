@@ -39,14 +39,13 @@
      [shared] Genuinely cross-surface primitives
      radius-sm (4px) and transition-fast (120ms) are embodied by the civic
      canvas as hard-coded literals too (border-radius: 4px, transition: .12s),
-     so the canonical value is shared. Focus-ring geometry is the canonical
-     keyboard-focus primitive (assistant uses outline; civic uses a bg
-     highlight, but both are 2px).
+     so the canonical value is shared. Focus-ring geometry is NOT shared:
+     the civic canvas does not consume --mvp-focus-ring-* and has no
+     equivalent embodied focus-ring geometry, so those tokens are
+     assistant-owned (see the focus-ring block below).
      =================================================================== */
   --mvp-radius-sm: 4px;
   --mvp-transition-fast: 120ms;
-  --mvp-focus-ring-width: 2px;
-  --mvp-focus-ring-offset: 2px;
 
   /* ===================================================================
      [assistant] Neutral text + divider palette (AI panel only)
@@ -75,6 +74,15 @@
   --mvp-color-busy: #2980b9;
   --mvp-color-focus: #5dade2;   /* assistant keyboard focus ring color */
   --mvp-color-accent: #ef6a4c;  /* assistant composer / primary accent */
+
+  /* ===================================================================
+     [assistant] Keyboard focus-ring geometry
+     Owned by the assistant panel. The civic canvas does not consume these
+     tokens and has no equivalent embodied focus-ring geometry, so they are
+     assistant-only and not shared.
+     =================================================================== */
+  --mvp-focus-ring-width: 2px;
+  --mvp-focus-ring-offset: 2px;
 
   /* ===================================================================
      [assistant] Typography scale + weight actually used by the assistant

@@ -38,15 +38,17 @@ for traceability only.
 
 ## Canonical token list
 
-### shared (value embodied by both surfaces)
+### shared (2) — value embodied by both surfaces
 | Token | Value | Civic embodiment (literal) |
 |-------|-------|----------------------------|
 | `--mvp-radius-sm` | `4px` | civic `border-radius: 4px` (buttons, cards) |
 | `--mvp-transition-fast` | `120ms` | civic `transition: … 0.12s` |
-| `--mvp-focus-ring-width` | `2px` | civic focus highlight is 2px-class |
-| `--mvp-focus-ring-offset` | `2px` | — |
 
-### assistant (AI panel only)
+> The focus-ring tokens are **not** shared: the civic canvas does not consume
+> `--mvp-focus-ring-*` and has no equivalent embodied focus-ring geometry, so
+> they are assistant-owned (see below).
+
+### assistant (29) — AI panel only
 | Token | Value | Purpose |
 |-------|-------|---------|
 | `--mvp-color-text` | `#0d0d0f` | neutral text |
@@ -62,6 +64,8 @@ for traceability only.
 | `--mvp-color-busy` | `#2980b9` | busy/active-progress state |
 | `--mvp-color-focus` | `#5dade2` | assistant focus ring color |
 | `--mvp-color-accent` | `#ef6a4c` | composer / primary accent |
+| `--mvp-focus-ring-width` | `2px` | assistant keyboard focus ring width |
+| `--mvp-focus-ring-offset` | `2px` | assistant keyboard focus ring offset |
 | `--mvp-font-size-xs` | `0.6875rem` | 11px |
 | `--mvp-font-size-sm` | `0.75rem` | 12px |
 | `--mvp-font-size-base` | `0.8125rem` | 13px |
@@ -139,12 +143,15 @@ its own reduced-motion rules; both layers are consistent.
 
 ## Contract tests
 
-- `tests/test_citizen_shared_visual_tokens.py` (Python, runs in CI): token
-  stylesheet load order, key token values + ownership, detection of any
-  unresolved `var(--mvp-*)` referenced by the assistant CSS, proof that the
-  shared primitives are embodied by the civic canvas literals, focus-visible
-  presence, success/error/busy/disabled token definitions, and the
-  reduced-motion media block.
+- `tests/test_citizen_action_demo_chat_shell_contract.py` (Python, runs in CI):
+  token stylesheet load order, the exact set of defined `--mvp-*` token names,
+  proof that every production `var(--mvp-*)` is defined and every defined
+  production token is consumed by the assistant CSS, the single allowed
+  layout-only variable (`--copilot-rail-width`), the civic canvas carrying no
+  `var(--mvp-*)` and embodying the shared primitives as the exact literals
+  `4px` / `0.12s`, the full speculative-token removal list, focus-visible
+  presence, success/error/busy/disabled token definitions, the reduced-motion
+  media block, and that the docs inventory matches the source inventory.
 - `tests/browser/verify_first_use_responsive.mjs` (strengthened): adds
   reduced-motion and disabled-state checks at 390 / 768 / 1440px on top of the
   existing geometry + focus-visible contract.
