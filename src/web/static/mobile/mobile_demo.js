@@ -198,20 +198,23 @@ function addMessageToDOM(role, html, sources, animate = true){
     const wrap = document.createElement('div');
     wrap.className = 'sources-wrap';
     sources.forEach(s => {
+      const safe = sanitizeMobileUrl(s.url);
+      if (!safe) return; // omit unsafe source entirely
       const a = document.createElement('a');
       a.className = 'source-link';
-      a.href = s.url || '#';
-      a.target = '_blank';
-      a.rel = 'noopener';
-      
-      const domain = extractDomain(s.url);
+      a.href = safe.href;
+      if (safe.external) {
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+      }
+      const domain = extractDomain(safe.href);
       a.innerHTML =
         '<div class="src-card-header">' +
           '<span class="src-icon">🏛️</span>' +
           '<span class="src-domain">' + esc(domain || '홈페이지') + '</span>' +
         '</div>' +
         '<div class="src-title">' + esc(s.title || '바로가기') + '</div>' +
-        '<div class="src-url">' + esc(s.url || '') + '</div>';
+        '<div class="src-url">' + esc(safe.href) + '</div>';
       wrap.appendChild(a);
     });
     content.appendChild(wrap);
@@ -328,13 +331,46 @@ function esc(s){
   return d.innerHTML;
 }
 
+function sanitizeMobileUrl(rawUrl) {
+  if (typeof rawUrl !== 'string') return null;
+  const value = rawUrl;
+  // Check for control characters BEFORE any trim
+  if (/[\x00-\x1f\x7f]/.test(value)) return null;
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  // Reject protocol-relative URLs
+  if (/^\/\//.test(trimmed)) return null;
+  let parsed;
+  try {
+    parsed = new URL(trimmed, window.location.href);
+  } catch (e) {
+    return null;
+  }
+  const scheme = parsed.protocol.toLowerCase();
+  if (scheme !== 'http:' && scheme !== 'https:') return null;
+  if (parsed.username || parsed.password) return null;
+  const external = parsed.origin !== window.location.origin;
+  // Reject relative URLs that resolve to external origin
+  if (!external && parsed.origin !== window.location.origin) return null;
+  return { href: parsed.href, external: external };
+}
+
 function renderMarkdown(md){
   let html = md
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, label, url) => {
+      const safe = sanitizeMobileUrl(url);
+      if (!safe) {
+        return esc(label);
+      }
+      const attrs = safe.external
+        ? ' target="_blank" rel="noopener noreferrer"'
+        : '';
+      return '<a href="' + esc(safe.href) + '"' + attrs + '>' + label + '</a>';
+    })
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
     .replace(/\n\n/g, '</p><p>')

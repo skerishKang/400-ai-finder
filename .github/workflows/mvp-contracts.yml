@@ -71,6 +71,55 @@ jobs:
       - name: Run responsive browser contract
         run: node tests/browser/verify_first_use_responsive.mjs
 
+      - name: Run mobile link safety browser contract (port 8769)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > /tmp/mobile_link_safety_server.py <<'PY'
+          from src.web.mobile_demo import create_app
+          server = create_app(
+              site_id="bukgu_gwangju",
+              provider="mock",
+              snapshot="tests/fixtures/bukgu_gwangju_demo_snapshot.json",
+              host="127.0.0.1",
+              port=8769,
+          )
+          server.serve_forever()
+          PY
+
+          PYTHONPATH=. python /tmp/mobile_link_safety_server.py \
+            > /tmp/mobile-link-safety-server.log 2>&1 &
+
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8769/"
+
+          for _ in range(40):
+              try:
+                  with urllib.request.urlopen(url, timeout=1) as response:
+                      if response.status == 200:
+                          break
+              except Exception:
+                  time.sleep(0.25)
+          else:
+              raise SystemExit("mobile link safety server did not become ready")
+          PY
+
+          node tests/browser/verify_mobile_link_safety.mjs \
+            http://127.0.0.1:8769
+
       - name: Run housing department browser contract
         shell: bash
         run: |
