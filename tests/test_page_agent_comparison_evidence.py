@@ -366,7 +366,7 @@ class TestEvidenceSchema:
         for mode_name in ("deterministic", "page_agent"):
             mode_runs = [r for r in runs if r["mode"] == mode_name]
             success_runs = [r for r in mode_runs if r["success"]]
-            
+
             def compute_median(values):
                 if not values: return 0
                 s = sorted(values)
@@ -377,7 +377,7 @@ class TestEvidenceSchema:
             expected_action_success = compute_median([r["action_step_count"] for r in success_runs])
             expected_elapsed_all = compute_median([r["elapsed_ms"] for r in mode_runs])
             expected_elapsed_success = compute_median([r["elapsed_ms"] for r in success_runs])
-            
+
             agg = aggregate["by_mode"][mode_name]
             assert agg["median_action_step_count_all"] == expected_action_all
             assert agg["median_action_step_count_success"] == expected_action_success
