@@ -602,3 +602,100 @@ def test_shim_execution_boundary(build_dir):
         assert "INFO_PROFILES:bukgu_gwangju" in text, text
     finally:
         os.unlink(harness_path)
+
+
+# ---------------------------------------------------------------------------
+# Issue #1106: Page Agent lab root gateway (artifact link, not a runtime copy)
+# ---------------------------------------------------------------------------
+_PAGE_AGENT_ARTIFACTS = (
+    os.path.join("examples", "page-agent", "index.html"),
+    os.path.join("examples", "page-agent", "mock-model.js"),
+    os.path.join("examples", "page-agent", "page-agent-lab.js"),
+    os.path.join("examples", "page-agent", "vendor", "page-agent.iife.js"),
+    os.path.join("examples", "page-agent", "vendor", "LICENSE"),
+)
+
+# Forbidden wording the root gateway must never imply.
+_PAGE_AGENT_FORBIDDEN = (
+    "북구청 AI 자동조작",
+    "실제 북구청 탐색",
+    "실제 민원 자동처리",
+    "운영 중",
+    "실서비스",
+)
+
+
+def test_static_root_gateway_links_page_agent(build_dir):
+    """#1106: Static root gateway links the standalone Page Agent lab."""
+    index = open(os.path.join(build_dir, "index.html"), encoding="utf-8").read()
+
+    # Every gateway link appears exactly once.
+    for href in ('href="mvp/"', 'href="mobile.html"', 'href="admin.html"',
+                 'href="examples/page-agent/"'):
+        assert index.count(href) == 1, f"expected exactly one {href} in static root"
+
+    # Page Agent card carries the standalone/offline experiment wording.
+    assert "Page Agent" in index
+    assert "독립" in index
+    assert "오프라인" in index
+    assert "실험" in index
+
+    # The Page Agent link is independent of the mvp_href condition.
+    assert 'href="examples/page-agent/"' in index
+
+    # No integration / live-service claim.
+    for bad in _PAGE_AGENT_FORBIDDEN:
+        assert bad not in index, f"forbidden wording present in static root: {bad}"
+
+
+def test_live_root_gateway_links_page_agent(live_build_dir):
+    """#1106: Live root gateway links the same standalone Page Agent lab."""
+    index = open(os.path.join(live_build_dir, "index.html"), encoding="utf-8").read()
+
+    # Live root links to the live MVP entry and the standalone lab.
+    for href in ('href="mvp/?mvp=1"', 'href="mobile.html"', 'href="admin.html"',
+                 'href="examples/page-agent/"'):
+        assert index.count(href) == 1, f"expected exactly one {href} in live root"
+
+    # Page Agent card wording is identical between modes.
+    assert "Page Agent" in index
+    assert "독립" in index
+    assert "오프라인" in index
+    assert "실험" in index
+
+    for bad in _PAGE_AGENT_FORBIDDEN:
+        assert bad not in index, f"forbidden wording present in live root: {bad}"
+
+
+def test_static_page_agent_artifacts_exist(build_dir):
+    """#1106: Static build exposes the already-generated Page Agent artifacts."""
+    for rel in _PAGE_AGENT_ARTIFACTS:
+        assert os.path.isfile(os.path.join(build_dir, rel)), f"missing static {rel}"
+
+
+def test_live_page_agent_artifacts_exist(live_build_dir):
+    """#1106: Live build exposes the same Page Agent artifacts."""
+    for rel in _PAGE_AGENT_ARTIFACTS:
+        assert os.path.isfile(os.path.join(live_build_dir, rel)), f"missing live {rel}"
+
+
+def test_root_gateway_has_no_external_or_new_tab(build_dir, live_build_dir):
+    """#1106: Root gateway keeps same-origin relative links; no http(s) or
+    target=_blank, and the Page Agent link is identical across modes."""
+    for d in (build_dir, live_build_dir):
+        index = open(os.path.join(d, "index.html"), encoding="utf-8").read()
+        assert "https://" not in index, "root gateway must not contain https://"
+        assert "http://" not in index, "root gateway must not contain http://"
+        assert 'target="_blank"' not in index, "root gateway must not open new tab"
+        # Page Agent link is absolute-same-origin (relative) in both builds.
+        assert 'href="examples/page-agent/"' in index
+
+
+def test_page_agent_card_not_dependent_on_mvp_href(build_dir, live_build_dir):
+    """#1106: The Page Agent card link must not change between static/live."""
+    static_index = open(os.path.join(build_dir, "index.html"), encoding="utf-8").read()
+    live_index = open(os.path.join(live_build_dir, "index.html"), encoding="utf-8").read()
+    static_link = static_index.count('href="examples/page-agent/"')
+    live_link = live_index.count('href="examples/page-agent/"')
+    assert static_link == 1 and live_link == 1, "Page Agent link must appear once per mode"
+    assert static_link == live_link, "Page Agent link must be identical in static and live"

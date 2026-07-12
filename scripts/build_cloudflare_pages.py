@@ -464,6 +464,10 @@ def build_index_html(profiles: list[dict], is_live: bool = False) -> str:
       <h2>운영자 화면</h2>
       <p>사이트 프로필 · 질문 테스트 · 상태 확인</p>
     </a>
+    <a class="card" href="examples/page-agent/">
+      <h2>Page Agent 실험실</h2>
+      <p>브라우저 안에서 페이지 요소를 조작하는 독립 오프라인 기술 실험입니다. 북구청 MVP 통합 기능이 아닙니다.</p>
+    </a>
   </div>
 </div>
 </body>
