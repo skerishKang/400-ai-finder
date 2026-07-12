@@ -130,13 +130,15 @@ class TestRootProductLabeling:
             assert index.count(f'href="{DEV_LAB_ROUTE}"') == 1
             # The old primary product label is gone.
             assert "Page Agent 실험실" not in index
+            # Developer lab is NOT a primary .card.
+            assert f'<a class="card" href="{DEV_LAB_ROUTE}"' not in index
 
     def test_mvp_mobile_admin_cards_preserved(self):
         mod = _load_build_module()
         index = mod.build_index_html([], is_live=False)
         # MVP card stays relative-path, no query string.
         assert 'href="mvp/"' in index
-        assert "시민 행정 도우미" in index
+        assert "정밀 구현형 AI 북구청" in index
         assert "mvp=1" not in index
         assert 'href="mobile.html"' in index
         assert 'href="admin.html"' in index
@@ -221,12 +223,8 @@ class TestResidentRouteStub:
         _assert_no_runtime_signatures(html, "resident/index.html")
         _assert_no_external_auto_calls(html, "resident/index.html")
 
-    def test_resident_index_links_back_to_root_lab_mvp(self):
+    def test_resident_index_links_are_same_origin(self):
         html = _read(_RESIDENT_INDEX)
-        # Links use same-origin relative paths only (no http://).
-        assert "../../index.html" in html
-        assert "../" in html
-        assert "../../mvp/" in html
         _assert_no_external_auto_calls(html, "resident/index.html")
 
 
@@ -271,3 +269,15 @@ class TestBuildOutputContracts:
         assert index.count(f'href="{RESIDENT_ROUTE}"') == 1
         assert index.count(f'href="{DEV_LAB_ROUTE}"') == 1
         assert "Page Agent형 AI 북구청" in index
+
+    def test_resident_links_resolve_to_existing_build_output_targets(self, build_dir):
+        resident = os.path.join(build_dir, "examples", "page-agent", "resident", "index.html")
+        html = _read(resident)
+        resident_dir = os.path.dirname(resident)
+        for href in re.findall(r'<a[^>]+href="([^"]+)"', html):
+            if href.startswith(("http://", "https://", "mailto:", "#")):
+                continue
+            resolved = os.path.normpath(os.path.join(resident_dir, href))
+            assert os.path.exists(resolved), (
+                f"href {href!r} resolves to {resolved} which does not exist in build output"
+            )

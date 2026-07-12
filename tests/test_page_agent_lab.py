@@ -124,9 +124,9 @@ def _run_build(mode):
     """
     import subprocess
     env = os.environ.copy()
-    # Use a relative PYTHONPATH resolved against cwd so the ``src`` namespace
-    # package (no __init__.py) resolves offline on both local and CI runners.
-    env["PYTHONPATH"] = "." + os.pathsep + env.get("PYTHONPATH", "")
+    # Use an absolute PYTHONPATH so the ``src`` namespace package (no
+    # __init__.py) resolves deterministically on every runner regardless of cwd.
+    env["PYTHONPATH"] = str(_REPO_ROOT) + os.pathsep + env.get("PYTHONPATH", "")
     result = subprocess.run(
         [sys.executable, _BUILD_MODULE_PATH, "--mode", mode],
         capture_output=True, text=True, timeout=120,
@@ -562,12 +562,8 @@ class TestRouteIsolation:
         # Exactly one primary resident Page Agent card link.
         assert index.count('href="examples/page-agent/resident/"') == 1
         assert index.count("Page Agent형 AI 북구청") == 1
-        # The developer-lab link is same-origin, not external or new-tab.
-        card_block = index[index.index('<a class="card" href="examples/page-agent/"'):]
-        card_block = card_block[: card_block.index("</a>")]
-        assert 'href="http://' not in card_block
-        assert 'href="https://' not in card_block
-        assert 'target="_blank"' not in card_block
+        # Developer lab is NOT a primary .card.
+        assert '<a class="card" href="examples/page-agent/"' not in index
         # Root still contains no runtime leakage.
         _assert_no_page_agent_runtime(index, "index.html", "static")
 
@@ -579,11 +575,8 @@ class TestRouteIsolation:
         assert index.count("Page Agent 실험실") == 0
         assert index.count('href="examples/page-agent/resident/"') == 1
         assert index.count("Page Agent형 AI 북구청") == 1
-        card_block = index[index.index('<a class="card" href="examples/page-agent/"'):]
-        card_block = card_block[: card_block.index("</a>")]
-        assert 'href="http://' not in card_block
-        assert 'href="https://' not in card_block
-        assert 'target="_blank"' not in card_block
+        # Developer lab is NOT a primary .card.
+        assert '<a class="card" href="examples/page-agent/"' not in index
         _assert_no_page_agent_runtime(index, "index.html", "live")
 
 
