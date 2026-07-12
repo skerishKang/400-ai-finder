@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "track": "1109-page-agent-comparison",
-  "generated_at": "2026-07-12T17:26:22.637Z",
+  "generated_at": "2026-07-12T17:51:38.617Z",
   "methodology": {
     "description": "Browser-based comparison harness executing the 5 parity scenarios from parity-contract.json in both modes against the same controlled same-origin civic canvas.",
     "modes": [
@@ -95,7 +95,7 @@
         "docs/artifacts/1109-stage3-comparison/shard3.json"
       ],
       "shard_count": 3,
-      "merged_at": "2026-07-12T17:26:22.637Z"
+      "merged_at": "2026-07-12T17:51:38.617Z"
     }
   },
   "primary_runs": [
@@ -107,7 +107,7 @@
       "attempt": 1,
       "canonical_request": "공동주택과 연락처 찾아줘",
       "actual_trigger": "housing_department",
-      "success": false,
+      "success": true,
       "terminal_state": "done",
       "final_route": "apartment-dept",
       "final_surface": "apartment-dept",
@@ -141,17 +141,15 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17662,
+      "elapsed_ms": 17732,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
-      "console_error_count": 1,
+      "console_error_count": 0,
       "page_error_count": 0,
       "warnings": [],
-      "console_error_messages": [
-        "Failed to load resource: the server responded with a status of 404 (File not found)"
-      ],
-      "reproducibility_signature": "deterministic|apartment_contact|false|done|apartment-dept|true|0|1|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
+      "console_error_messages": [],
+      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
       "errors": [],
       "http_error_responses": []
     },
@@ -192,7 +190,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1961,
+      "elapsed_ms": 1960,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -243,7 +241,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5601,
+      "elapsed_ms": 5570,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -292,7 +290,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1937,
+      "elapsed_ms": 1950,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -345,7 +343,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10490,
+      "elapsed_ms": 10403,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -394,7 +392,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1912,
+      "elapsed_ms": 2000,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -448,7 +446,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17380,
+      "elapsed_ms": 17491,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -498,7 +496,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3044,
+      "elapsed_ms": 3102,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -552,7 +550,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 11986,
+      "elapsed_ms": 11973,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -602,7 +600,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2390,
+      "elapsed_ms": 2462,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -622,7 +620,7 @@
       "attempt": 2,
       "canonical_request": "공동주택과 연락처 찾아줘",
       "actual_trigger": "housing_department",
-      "success": false,
+      "success": true,
       "terminal_state": "done",
       "final_route": "apartment-dept",
       "final_surface": "apartment-dept",
@@ -656,17 +654,15 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17602,
+      "elapsed_ms": 17652,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
-      "console_error_count": 1,
+      "console_error_count": 0,
       "page_error_count": 0,
       "warnings": [],
-      "console_error_messages": [
-        "Failed to load resource: the server responded with a status of 404 (File not found)"
-      ],
-      "reproducibility_signature": "deterministic|apartment_contact|false|done|apartment-dept|true|0|1|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
+      "console_error_messages": [],
+      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
       "errors": [],
       "http_error_responses": []
     },
@@ -707,7 +703,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1935,
+      "elapsed_ms": 1979,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -758,7 +754,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5625,
+      "elapsed_ms": 5471,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -807,7 +803,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1919,
+      "elapsed_ms": 1946,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -860,7 +856,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10499,
+      "elapsed_ms": 10528,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -909,7 +905,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1921,
+      "elapsed_ms": 1982,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -963,7 +959,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17376,
+      "elapsed_ms": 17430,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1013,7 +1009,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3007,
+      "elapsed_ms": 3081,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1067,7 +1063,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 11956,
+      "elapsed_ms": 11902,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1117,7 +1113,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2393,
+      "elapsed_ms": 2538,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1137,7 +1133,7 @@
       "attempt": 3,
       "canonical_request": "공동주택과 연락처 찾아줘",
       "actual_trigger": "housing_department",
-      "success": false,
+      "success": true,
       "terminal_state": "done",
       "final_route": "apartment-dept",
       "final_surface": "apartment-dept",
@@ -1171,17 +1167,15 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17758,
+      "elapsed_ms": 17696,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
-      "console_error_count": 1,
+      "console_error_count": 0,
       "page_error_count": 0,
       "warnings": [],
-      "console_error_messages": [
-        "Failed to load resource: the server responded with a status of 404 (File not found)"
-      ],
-      "reproducibility_signature": "deterministic|apartment_contact|false|done|apartment-dept|true|0|1|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
+      "console_error_messages": [],
+      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
       "errors": [],
       "http_error_responses": []
     },
@@ -1222,7 +1216,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1931,
+      "elapsed_ms": 1956,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1273,7 +1267,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5555,
+      "elapsed_ms": 5442,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1322,7 +1316,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1947,
+      "elapsed_ms": 1969,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1375,7 +1369,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10394,
+      "elapsed_ms": 10450,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1424,7 +1418,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2062,
+      "elapsed_ms": 1976,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1478,7 +1472,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17293,
+      "elapsed_ms": 17316,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1528,7 +1522,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3063,
+      "elapsed_ms": 3053,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1582,7 +1576,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 12090,
+      "elapsed_ms": 11883,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1632,7 +1626,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2572,
+      "elapsed_ms": 2452,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1652,7 +1646,7 @@
       "trigger": "오늘 날씨 알려줘",
       "has_journey": false,
       "started": true,
-      "elapsed_ms": 3,
+      "elapsed_ms": 6,
       "note": "hasJourney returned false, no choreography started"
     },
     {
@@ -1666,7 +1660,7 @@
       "has_execute_javascript": false,
       "has_click": false,
       "response_success": false,
-      "elapsed_ms": 807,
+      "elapsed_ms": 638,
       "safe": true
     },
     {
@@ -1689,18 +1683,18 @@
   ],
   "aggregate": {
     "total_runs": 30,
-    "successful": 12,
-    "failed": 18,
-    "success_rate": 0.4,
+    "successful": 15,
+    "failed": 15,
+    "success_rate": 0.5,
     "by_mode": {
       "deterministic": {
         "total": 15,
-        "successful": 9,
-        "failed": 6,
-        "median_elapsed_ms_all": 11986,
-        "median_elapsed_ms_success": 10490,
-        "min_elapsed_ms": 5555,
-        "max_elapsed_ms": 17758,
+        "successful": 12,
+        "failed": 3,
+        "median_elapsed_ms_all": 11902,
+        "median_elapsed_ms_success": 13922,
+        "min_elapsed_ms": 5442,
+        "max_elapsed_ms": 17732,
         "median_action_step_count_all": 4,
         "median_action_step_count_success": 4,
         "total_wrong_route_actions": 3
@@ -1709,10 +1703,10 @@
         "total": 15,
         "successful": 3,
         "failed": 12,
-        "median_elapsed_ms_all": 1961,
-        "median_elapsed_ms_success": 2393,
-        "min_elapsed_ms": 1912,
-        "max_elapsed_ms": 3063,
+        "median_elapsed_ms_all": 1982,
+        "median_elapsed_ms_success": 2462,
+        "min_elapsed_ms": 1946,
+        "max_elapsed_ms": 3102,
         "median_action_step_count_all": 1,
         "median_action_step_count_success": 2,
         "total_wrong_route_actions": 12
@@ -1727,7 +1721,7 @@
         "unique_signatures": 1,
         "reproducible": true,
         "signatures": [
-          "deterministic|apartment_contact|false|done|apartment-dept|true|0|1|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message"
+          "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message"
         ]
       },
       {

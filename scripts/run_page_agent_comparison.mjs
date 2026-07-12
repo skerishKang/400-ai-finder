@@ -367,10 +367,19 @@ async function setupErrorTracking(page, tracker) {
     const text = msg.text();
     if (text.includes("favicon.ico")) return;
     if (/GL Driver Message/i.test(text)) return;
-    if (msg.type() === "error") tracker.consoleErrors.push(text);
-    else if (msg.type() === "warning") tracker.warnings.push(text);
+    const loc = msg.location();
+    const url = loc ? loc.url : "";
+    const formatted = url ? `${text} (at ${url})` : text;
+    if (msg.type() === "error") {
+      tracker.consoleErrors.push(formatted);
+      console.log(`  [console_error] ${formatted}`);
+    }
+    else if (msg.type() === "warning") tracker.warnings.push(formatted);
   });
-  page.on("pageerror", (err) => tracker.pageErrors.push(err.message));
+  page.on("pageerror", (err) => {
+    tracker.pageErrors.push(err.message);
+    console.log(`  [page_error] ${err.message}`);
+  });
 }
 
 function computeSignature(record) {
