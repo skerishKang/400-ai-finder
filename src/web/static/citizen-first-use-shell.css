@@ -123,10 +123,11 @@
 }
 
 .entry-stage__brand img {
-  width: 192px;
-  padding: 9px 12px;
+  display: block;
+  width: 216px;
+  padding: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.96);
+  background: transparent;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
   opacity: 1;
 }
@@ -1142,6 +1143,19 @@ body[data-reduced-motion="true"] .executor-typing {
   outline: 3px solid #8dc7ef;
   outline-offset: 2px;
 }
+.chat-chip--mayor-primary {
+  border-color: rgba(0, 165, 143, 0.46);
+  background: rgba(0, 165, 143, 0.1);
+  color: #075f69;
+  font-weight: 600;
+}
+.chat-chip--mayor-primary:hover {
+  background: rgba(0, 165, 143, 0.14);
+  border-color: rgba(0, 165, 143, 0.58);
+}
+.chat-chip--mayor-primary .chat-chip__icon {
+  color: #0a7a84;
+}
 .chat-chip__icon {
   display: inline-flex;
   align-items: center;
@@ -1464,13 +1478,13 @@ body[data-reduced-motion="true"] .executor-typing {
 }
 
 .mayor-open-office-control:hover {
-  background: rgba(47, 111, 237, 0.12);
+  background: transparent;
 }
 
 .mayor-open-office-control:focus-visible {
   outline: 3px solid var(--first-use-mint, #55dfc8);
   outline-offset: 2px;
-  background: rgba(85, 223, 200, 0.18);
+  background: transparent;
 }
 
 /* AI cursor target highlight (reuses blue rectangle; does not enlarge hit area). */

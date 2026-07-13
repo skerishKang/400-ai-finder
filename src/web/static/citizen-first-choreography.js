@@ -804,7 +804,10 @@
       var reduced = _prefersReducedMotion();
       var cursorDelay = _decorativeDelayMs(120);
       var clickDelay = _decorativeDelayMs(180);
-      var actionCommitDelay = reduced ? 0 : 1080;
+      // #1140: normal motion — wait for move(1140)+dwell(300) before advance;
+      // route/journey commit ~340ms after click ripple (clickDelay + 1440 + 340).
+      var cursorVisualFloorMs = 1440;
+      var actionCommitDelay = reduced ? 0 : 1960;
 
       if (step.cursorTarget) {
         var cCanvas = window.CitizenActionDemoCanvas;
@@ -816,7 +819,7 @@
           _scheduleAux(function () {
             cCanvas.showCursorAt(step.cursorTarget);
           }, cursorDelay);
-          visualActionDelay = Math.max(visualActionDelay, cursorDelay + 780);
+          visualActionDelay = Math.max(visualActionDelay, cursorDelay + cursorVisualFloorMs);
         }
       }
       if (step.clickTarget) {
@@ -854,7 +857,7 @@
       if (step.typeQuery) {
         var typeDemoEl = _getCanvasEl();
         var typeInput = typeDemoEl && typeDemoEl.querySelector(step.querySelector || ".bg-dept-search__input");
-        var typingStartDelay = reduced ? 0 : (step.cursorTarget ? 850 : 160);
+        var typingStartDelay = reduced ? 0 : (step.cursorTarget ? 1560 : 160);
         visualActionDelay = Math.max(
           visualActionDelay,
           _typeIntoSearch(typeInput, step.typeQuery, typingStartDelay)
@@ -868,7 +871,7 @@
       if (step.typeContent) {
         var contentDemoEl = _getCanvasEl();
         var contentInput = contentDemoEl && contentDemoEl.querySelector(step.contentSelector || "#board-write-content");
-        var contentTypingStartDelay = reduced ? 0 : (step.cursorTarget ? 850 : 160);
+        var contentTypingStartDelay = reduced ? 0 : (step.cursorTarget ? 1560 : 160);
         // Desktop-only: focus the body field so the typing caret is
         // visible. On mobile the automated step must NOT pull focus.
         _focusEditableOnDesktopOnly(contentInput);

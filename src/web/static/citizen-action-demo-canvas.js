@@ -3059,9 +3059,13 @@
   var _cursorEl = null;
   // Internal counter to deduplicate rapid cursor moves
   var _cursorMoveToken = 0;
+  // #1140: slower guided cursor - move, dwell, then click ripple.
+  var CURSOR_MOVE_MS = 1140;
+  var CURSOR_DWELL_MS = 300;
+  var CURSOR_CLICK_AT_MS = CURSOR_MOVE_MS + CURSOR_DWELL_MS;
   var _cursorTransition =
-    "opacity 220ms ease,left 760ms cubic-bezier(0.16,1,0.3,1)," +
-    "top 760ms cubic-bezier(0.16,1,0.3,1),transform 220ms ease";
+    "opacity 220ms ease,left " + CURSOR_MOVE_MS + "ms cubic-bezier(0.16,1,0.3,1)," +
+    "top " + CURSOR_MOVE_MS + "ms cubic-bezier(0.16,1,0.3,1),transform 220ms ease";
 
   function _ensureCursor() {
     if (_cursorEl) return _cursorEl;
@@ -3123,7 +3127,7 @@
       cursor.style.opacity = "1";
       setTimeout(function () {
         if (token === _cursorMoveToken) cursor.setAttribute("data-agent-status", "ready");
-      }, 780);
+      }, CURSOR_MOVE_MS);
     }, 40);
   }
 
@@ -3175,8 +3179,7 @@
     showCursorAt(el);
     var cx = rect.left + rect.width / 2;
     var cy = rect.top + rect.height / 2;
-    // Step 2: after cursor arrives (slightly less than transition time),
-    // fire a double ripple: outer (faster fade) + inner (slower)
+    // Step 2: after move + dwell, fire double ripple (outer faster + inner slower).
     setTimeout(function () {
       if (_cursorEl) _cursorEl.setAttribute("data-agent-status", "clicking");
       _createRipple(cx, cy, "rgba(239,106,76,0.45)", 500);
@@ -3186,7 +3189,7 @@
       setTimeout(function () {
         if (_cursorEl) _cursorEl.setAttribute("data-agent-status", "ready");
       }, 520);
-    }, 380);
+    }, CURSOR_CLICK_AT_MS);
   }
   // -----------------------------------------------------------------------
   var _delegationAttached = false;
