@@ -91,19 +91,26 @@ export function isAllowedOrigin(origin) {
   } catch (_) {
     return false; // malformed origin rejected
   }
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+  // No credentials.
   if (parsed.username || parsed.password) return false;
+  // No path, query, or hash allowed.
   if (parsed.pathname !== '/' || parsed.search || parsed.hash) return false;
-  if (parsed.hostname === 'cgbukku.pages.dev') return true;
-  if (parsed.hostname.endsWith('.cgbukku.pages.dev')) return true;
-  if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return true;
-  // Allow any loopback / private preview port for localhost-style hosts only.
-  if (
-    (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') &&
-    (parsed.port === '' || /^\d+$/.test(parsed.port))
-  ) {
-    return true;
+
+  const host = parsed.hostname;
+
+  // Production / preview: HTTPS only. HTTP (even on the pages.dev host) is
+  // rejected, and arbitrary ports / subdomains are not accepted as origins.
+  if (host === 'cgbukku.pages.dev' || host.endsWith('.cgbukku.pages.dev')) {
+    return parsed.protocol === 'https:';
   }
+
+  // localhost / 127.0.0.1: HTTP only, with an (optionally empty) numeric port.
+  if (host === 'localhost' || host === '127.0.0.1') {
+    if (parsed.protocol !== 'http:') return false;
+    if (parsed.port === '' || /^\d+$/.test(parsed.port)) return true;
+    return false;
+  }
+
   return false;
 }
 

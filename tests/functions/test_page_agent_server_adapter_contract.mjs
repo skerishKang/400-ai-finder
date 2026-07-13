@@ -47,6 +47,9 @@ function makeRequest(opts) {
   headers.set('Content-Type', contentType);
   if (origin) headers.set('Origin', origin);
   if (opts.auth) headers.set('Authorization', opts.auth);
+  if (opts.extraHeaders) {
+    for (const k of Object.keys(opts.extraHeaders)) headers.set(k, opts.extraHeaders[k]);
+  }
   return {
     method: method,
     url: 'http://localhost:8766/api/page-agent/v1/chat/completions',
@@ -91,6 +94,11 @@ const SAFE_BROWSER_STATE =
 
 function agentOutputArgs(actionObj) {
   return JSON.stringify({ action: actionObj });
+}
+
+// Build a single-element browser state for href-origin matrix tests.
+function elAt(href, target) {
+  return parseBrowserStateElements('[0]<a href="' + href + '" data-action-target="' + target + '">X</a>');
 }
 
 // ---- provider stubs (no manual bracket towers) ----
@@ -670,6 +678,269 @@ await assert('parseBrowserStateElements extracts index/target', () => {
   ok(map.has(2), 'index 2 present');
   eq(map.get(2).target, 'apartment-guidance-card', 'target');
   eq(map.get(0).href, '#', 'href');
+});
+
+// ---- 9. origin policy matrix ----
+
+await assert('POST valid production HTTPS origin -> not 403', async () => {
+  const request = makeRequest({ origin: 'https://cgbukku.pages.dev', body: bodyWith(toolCallsMessages('공동주택과', SAFE_BROWSER_STATE)) });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 200, 'status (safe done, not 403)');
+});
+
+await assert('POST valid preview HTTPS origin -> not 403', async () => {
+  const request = makeRequest({ origin: 'https://preview.cgbukku.pages.dev', body: bodyWith(toolCallsMessages('공동주택과', SAFE_BROWSER_STATE)) });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 200, 'status');
+});
+
+await assert('POST valid localhost HTTP origin -> not 403', async () => {
+  const request = makeRequest({ origin: 'http://localhost:8766', body: bodyWith(toolCallsMessages('공동주택과', SAFE_BROWSER_STATE)) });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 200, 'status');
+});
+
+await assert('POST valid 127.0.0.1 HTTP origin -> not 403', async () => {
+  const request = makeRequest({ origin: 'http://127.0.0.1:8766', body: bodyWith(toolCallsMessages('공동주택과', SAFE_BROWSER_STATE)) });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 200, 'status');
+});
+
+await assert('POST http production origin -> 403', async () => {
+  const request = makeRequest({ origin: 'http://cgbukku.pages.dev' });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 403, 'status');
+});
+
+await assert('POST http preview origin -> 403', async () => {
+  const request = makeRequest({ origin: 'http://preview.cgbukku.pages.dev' });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 403, 'status');
+});
+
+await assert('POST missing origin -> 403', async () => {
+  const request = makeRequest({ origin: '' });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 403, 'status');
+});
+
+await assert('OPTIONS missing origin -> 403', async () => {
+  installFetch(async () => { throw new Error('no'); });
+  const request = makeRequest({ method: 'OPTIONS', origin: '' });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 403, 'status');
+  eq(fetchCalls, 0, 'upstream');
+  restoreFetch();
+});
+
+await assert('OPTIONS invalid origin -> 403', async () => {
+  installFetch(async () => { throw new Error('no'); });
+  const request = makeRequest({ method: 'OPTIONS', origin: 'https://evil.example.com' });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 403, 'status');
+  eq(fetchCalls, 0, 'upstream');
+  restoreFetch();
+});
+
+await assert('OPTIONS valid origin -> 200', async () => {
+  installFetch(async () => { throw new Error('no'); });
+  const request = makeRequest({ method: 'OPTIONS', origin: 'http://localhost:8766' });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 200, 'status');
+  eq(fetchCalls, 0, 'upstream');
+  restoreFetch();
+});
+
+await assert('attacker origin never reflected in CORS header', async () => {
+  const request = makeRequest({ origin: 'https://attacker.example.com' });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 403, 'status');
+  eq(res.headers.get('Access-Control-Allow-Origin'), P.PRODUCTION_ORIGIN, 'header is production default, not attacker');
+});
+
+await assert('valid origin reflected in CORS header', async () => {
+  const request = makeRequest({ origin: 'http://localhost:8766' });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.headers.get('Access-Control-Allow-Origin'), 'http://localhost:8766', 'valid origin reflected');
+});
+
+// ---- 10. request schema matrix ----
+
+await assert('tools missing -> 400', async () => {
+  const body = { messages: [{ role: 'user', content: '<user_request>x</user_request>' }] };
+  const request = makeRequest({ body: body });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 400, 'status');
+});
+
+await assert('tools empty array -> 400', async () => {
+  const body = bodyWith(toolCallsMessages('공동주택과', SAFE_BROWSER_STATE));
+  body.tools = [];
+  const request = makeRequest({ body: body });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 400, 'status');
+});
+
+await assert('tool type not function -> 400', async () => {
+  const body = bodyWith(toolCallsMessages('공동주택과', SAFE_BROWSER_STATE));
+  body.tools = [{ type: 'other', function: { name: 'AgentOutput' } }];
+  const request = makeRequest({ body: body });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 400, 'status');
+});
+
+await assert('tool function name mismatch -> 400', async () => {
+  const body = bodyWith(toolCallsMessages('공동주택과', SAFE_BROWSER_STATE), 'OtherTool');
+  const request = makeRequest({ body: body });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 400, 'status');
+});
+
+await assert('messages not array -> 400', async () => {
+  const body = { messages: 'not-array', tools: bodyWith(toolCallsMessages('x', SAFE_BROWSER_STATE)).tools };
+  const request = makeRequest({ body: body });
+  const res = await onRequest({ request: request, env: {} });
+  eq(res.status, 400, 'status');
+});
+
+await assert('duplicate user_request tags -> safe done', async () => {
+  const body = bodyWith([{ role: 'user', content: '<user_request>a</user_request><user_request>b</user_request>' }]);
+  const r = await callOn(body, {});
+  eq(r.res.status, 200, 'status');
+  eq(JSON.parse(r.data.choices[0].message.tool_calls[0].function.arguments).action.done.success, false, 'safe done');
+});
+
+await assert('duplicate browser_state tags -> safe done', async () => {
+  const body = bodyWith([{ role: 'user', content: '<user_request>a</user_request><browser_state>x</browser_state><browser_state>y</browser_state>' }]);
+  const r = await callOn(body, {});
+  eq(r.res.status, 200, 'status');
+  eq(JSON.parse(r.data.choices[0].message.tool_calls[0].function.arguments).action.done.success, false, 'safe done');
+});
+
+await assert('closing before opening -> safe done', async () => {
+  const body = bodyWith([{ role: 'user', content: '</user_request><user_request>a</user_request>' }]);
+  const r = await callOn(body, {});
+  eq(r.res.status, 200, 'status');
+  eq(JSON.parse(r.data.choices[0].message.tool_calls[0].function.arguments).action.done.success, false, 'safe done');
+});
+
+await assert('empty messages array -> safe done', async () => {
+  const body = bodyWith([]);
+  const r = await callOn(body, {});
+  eq(r.res.status, 200, 'status');
+  eq(JSON.parse(r.data.choices[0].message.tool_calls[0].function.arguments).action.done.success, false, 'safe done');
+});
+
+// ---- 11. href same-origin matrix ----
+
+await assert('href # -> ok', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('#', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(r.ok, 'ok');
+});
+
+await assert('href empty -> ok', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(r.ok, 'ok');
+});
+
+await assert('href relative same-origin -> ok', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('/internal/path', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(r.ok, 'ok');
+});
+
+await assert('href absolute same-origin https -> ok', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('https://cgbukku.pages.dev/same', 'nav-civil-service'), { requestOrigin: 'https://cgbukku.pages.dev' });
+  ok(r.ok, 'ok');
+});
+
+await assert('href external https -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('https://evil.example.com/x', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(!r.ok && r.failureCode === 'unsafe_target', 'rejected');
+});
+
+await assert('href javascript: -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('javascript:alert(1)', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(!r.ok && r.failureCode === 'unsafe_target', 'rejected');
+});
+
+await assert('href data: -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('data:text/html,<script>1</script>', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(!r.ok && r.failureCode === 'unsafe_target', 'rejected');
+});
+
+await assert('href blob: -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('blob:https://x/1', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(!r.ok && r.failureCode === 'unsafe_target', 'rejected');
+});
+
+await assert('href file: -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('file:///etc/passwd', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(!r.ok && r.failureCode === 'unsafe_target', 'rejected');
+});
+
+await assert('href mailto: -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('mailto:a@b.com', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(!r.ok && r.failureCode === 'unsafe_target', 'rejected');
+});
+
+await assert('href tel: -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('tel:1234', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(!r.ok && r.failureCode === 'unsafe_target', 'rejected');
+});
+
+await assert('href about: -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('about:blank', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(!r.ok && r.failureCode === 'unsafe_target', 'rejected');
+});
+
+await assert('href different port -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('http://localhost:9999/x', 'nav-civil-service'), { requestOrigin: 'http://localhost:8766' });
+  ok(!r.ok && r.failureCode === 'unsafe_target', 'rejected');
+});
+
+await assert('href different preview subdomain -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('https://other.cgbukku.pages.dev/x', 'nav-civil-service'), { requestOrigin: 'https://cgbukku.pages.dev' });
+  ok(!r.ok && r.failureCode === 'unsafe_target', 'rejected');
+});
+
+await assert('href with missing request origin -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('https://other.example.com/x', 'nav-civil-service'), {});
+  ok(!r.ok, 'rejected');
+});
+
+await assert('href with malformed request origin -> rejected', () => {
+  const r = validateAction({ click_element_by_index: { index: 0 } }, elAt('https://other.example.com/x', 'nav-civil-service'), { requestOrigin: 'not a url' });
+  ok(!r.ok, 'rejected');
+});
+
+// ---- 12. Authorization handling matrix (server never forwards inbound auth) ----
+
+await assert('inbound Authorization (Bearer) never forwarded to provider', async () => {
+  installFetch(provOk({ done: { text: 'ok', success: true } }));
+  const env = { PAGE_AGENT_LLM_ENABLED: 'true', PAGE_AGENT_LLM_PROVIDER: 'gemini', GEMINI_API_KEY: 'srv-secret' };
+  await callOn(bodyWith(toolCallsMessages('공동주택과', SAFE_BROWSER_STATE)), env, { auth: 'Bearer attacker-token' });
+  eq(lastFetch.init.headers.Authorization, 'Bearer srv-secret', 'provider auth is server secret');
+  ok(lastFetch.init.headers.Authorization !== 'Bearer attacker-token', 'inbound ignored');
+  restoreFetch();
+});
+
+await assert('provider Authorization always server secret (hy3)', async () => {
+  installFetch(provOk({ done: { text: 'ok', success: true } }));
+  const env = { PAGE_AGENT_LLM_ENABLED: 'true', PAGE_AGENT_LLM_PROVIDER: 'hy3', KILOCODE_API_KEY: 'kilo-secret' };
+  const request = makeRequest({ body: bodyWith(toolCallsMessages('공동주택과', SAFE_BROWSER_STATE)), auth: 'Basic xyz', extraHeaders: { 'X-Custom': '1' } });
+  await onRequest({ request: request, env: env });
+  eq(lastFetch.init.headers.Authorization, 'Bearer kilo-secret', 'hy3 server secret');
+  ok(lastFetch.init.headers['X-Custom'] === undefined, 'inbound extra header not forwarded');
+  restoreFetch();
+});
+
+await assert('mixed-case inbound authorization header never forwarded', async () => {
+  installFetch(provOk({ done: { text: 'ok', success: true } }));
+  const env = { PAGE_AGENT_LLM_ENABLED: 'true', PAGE_AGENT_LLM_PROVIDER: 'gemini', GEMINI_API_KEY: 'srv-secret' };
+  const request = makeRequest({ body: bodyWith(toolCallsMessages('공동주택과', SAFE_BROWSER_STATE)), extraHeaders: { 'authorization': 'Bearer lower' } });
+  await onRequest({ request: request, env: env });
+  eq(lastFetch.init.headers.Authorization, 'Bearer srv-secret', 'provider auth is server secret');
+  restoreFetch();
 });
 
 // ---- summary ----

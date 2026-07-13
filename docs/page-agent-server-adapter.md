@@ -112,6 +112,25 @@ returns 400.
 }
 ```
 
+## Origin and CORS policy
+
+The adapter is fail-closed on origin. Every request (both `POST` and `OPTIONS`
+preflight) must carry an `Origin` header that passes `isAllowedOrigin`:
+
+- `https://cgbukku.pages.dev` and any `https://<branch>.cgbukku.pages.dev`
+  preview subdomain are accepted **only over HTTPS**. `http://` on the
+  pages.dev host (production or preview) is rejected.
+- `http://localhost` and `http://127.0.0.1` are accepted over HTTP only, with
+  an (optionally empty) numeric port. Other hosts, credentials, paths, query
+  strings, or hashes are rejected.
+- A missing or invalid `Origin` returns `403 forbidden_origin` /
+  `missing_origin`. An `OPTIONS` preflight with a missing/invalid origin is
+  also rejected with `403`.
+- The `Access-Control-Allow-Origin` response header is set by `corsHeaders()`:
+  it reflects the request origin **only when that origin is itself allowed**,
+  and otherwise defaults to the production origin. An attacker-controlled
+  origin is therefore never reflected.
+
 ## Action allowlist
 
 | Action                    | Schema                                                    |
@@ -150,8 +169,12 @@ A click action is only accepted when ALL of the following hold:
 5.  The target does NOT contain any of the forbidden substrings:
     `submit`, `confirm-draft`, `login`, `auth`, `pay`, `payment`, `password`,
     `token`, `external`, `signup`, `sign-in`.
-6.  The element's `href` (if present) is same-origin (`#`, empty, or points
-    to `localhost`, `127.0.0.1`, or `*.cgbukku.pages.dev`).
+6.  The element's `href` (if present) must be **same-origin**. `#` and empty
+    hrefs are allowed. Relative (`/path`) and absolute same-origin links are
+    allowed. The comparison is **exact-origin** (scheme + host + port): a
+    mismatched port or a different preview subdomain is rejected. The schemes
+    `javascript:`, `data:`, `blob:`, `file:`, `mailto:`, `tel:`, and `about:`
+    are always rejected.
 7.  The element's text / type / target does not match
     `FORBIDDEN_ELEMENT_KEYWORDS` (`제출`, `로그인`, `결제`, `인증`, `외부`, etc.).
 
@@ -226,7 +249,13 @@ misconfigured, the adapter returns a safe `done(success:false)` with text
 
 ## PII / credential redaction
 
-**Accuracy note**: The adapter blocks known high-risk PII patterns (resident registration numbers, card numbers, account numbers, phone numbers, email addresses, password/auth keywords) before provider invocation. Browser-state credentials and known secret-bearing fields are redacted. However, arbitrary DOM content cannot be proven PII-free.
+**Accuracy note (best-effort, not a guarantee)**: The adapter attempts to
+block known high-risk PII patterns (resident registration numbers, card
+numbers, account numbers, phone numbers, email addresses, password/auth
+keywords) before provider invocation. Browser-state credentials and known
+secret-bearing fields are redacted on a best-effort basis. These are defense-in-depth
+filters, not a provable guarantee: arbitrary DOM content cannot be proven
+PII-free, and novel PII shapes may not match the patterns.
 
 ### User request
 

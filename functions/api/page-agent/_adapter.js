@@ -219,10 +219,17 @@ export function extractUserRequest(text) {
   if (text.indexOf(openTag, firstOpen + 1) >= 0) return null;
   const close = text.indexOf(closeTag);
   if (close <= firstOpen) return null;
-  // reject malformed close tag (e.g., </user_request  >)
+  // reject malformed close tag / nested tags: anything other than the close
+  // tag appearing between the opening tag body and the close tag is malformed.
+  // All coordinate math below is relative to `extracted` to avoid mixing
+  // coordinate systems (the previous bug compared an index inside the slice
+  // against an index in the original string).
   const extracted = text.slice(firstOpen, close + closeTag.length);
-  if (extracted.includes('<', 1) && extracted.indexOf('<', 1) < close) return null;
-  return text.slice(firstOpen + openTag.length, close).trim();
+  const closeRel = extracted.indexOf(closeTag);
+  if (closeRel < 0) return null;
+  const inner = extracted.slice(openTag.length, closeRel);
+  if (inner.indexOf('<') >= 0) return null;
+  return inner.trim();
 }
 
 export function extractBrowserState(text) {
@@ -371,15 +378,42 @@ export function validateAction(action, stateElements, opts) {
     if (!el.target) return { ok: false, failureCode: 'unsafe_target' };
     if (!P.isSafeTarget(el.target)) return { ok: false, failureCode: 'unsafe_target' };
     if (el.href && el.href !== '#' && el.href !== '') {
+      // Fail-closed: request origin must be present and well-formed. A missing
+      // or malformed origin is rejected (not thrown) without evaluating the href.
+      let requestOrigin = '';
       try {
-        const u = new URL(el.href, requestOrigin);
-        if (u.protocol !== 'http:' && u.protocol !== 'https:') {
-          return { ok: false, failureCode: 'unsafe_target' };
-        }
-        if (u.origin !== requestOrigin) {
-          return { ok: false, failureCode: 'unsafe_target' };
-        }
+        requestOrigin = new URL(opts && opts.requestOrigin ? opts.requestOrigin : '').origin;
       } catch (_) {
+        requestOrigin = '';
+      }
+      if (!requestOrigin) {
+        return { ok: false, failureCode: 'invalid_action' };
+      }
+      let u;
+      try {
+        u = new URL(el.href, requestOrigin);
+      } catch (_) {
+        return { ok: false, failureCode: 'unsafe_target' };
+      }
+      // Forbidden schemes are rejected (XSS / data exfiltration vectors).
+      const forbiddenSchemes = [
+        'javascript:',
+        'data:',
+        'blob:',
+        'file:',
+        'mailto:',
+        'tel:',
+        'about:',
+      ];
+      if (forbiddenSchemes.indexOf(u.protocol) !== -1) {
+        return { ok: false, failureCode: 'unsafe_target' };
+      }
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+        return { ok: false, failureCode: 'unsafe_target' };
+      }
+      // Exact same-origin enforcement: hostname alone is insufficient — a
+      // mismatched port or preview subdomain is rejected.
+      if (u.origin !== requestOrigin) {
         return { ok: false, failureCode: 'unsafe_target' };
       }
     }
@@ -611,7 +645,18 @@ export async function onRequest(context) {
     provider: config.provider || null,
   });
 
+  const origin = headerGet(request, 'Origin') || '';
+
+  // OPTIONS preflight: missing or invalid origin is rejected fail-closed.
+  // A valid origin is answered with 200; the CORS allow-origin header is set
+  // by corsHeaders() and never reflects an attacker-controlled origin.
   if (request.method === 'OPTIONS') {
+    if (!origin) {
+      return jsonResponse({ error: 'missing_origin' }, 403, headers);
+    }
+    if (!P.isAllowedOrigin(origin)) {
+      return jsonResponse({ error: 'forbidden_origin' }, 403, headers);
+    }
     return new Response(null, { status: 200, headers: headers });
   }
   if (request.method !== 'POST') {
@@ -623,21 +668,11 @@ export async function onRequest(context) {
     return jsonResponse({ error: 'unsupported_media_type' }, 415, headers);
   }
 
-  const origin = headerGet(request, 'Origin') || '';
-
-  // OPTIONS: if origin is present it must be valid; missing origin is allowed for preflight
-  // POST: origin MUST be present and MUST be valid
-  if (request.method === 'OPTIONS') {
-    if (origin && !P.isAllowedOrigin(origin)) {
-      return jsonResponse({ error: 'forbidden_origin' }, 403, headers);
-    }
-  } else {
-    if (!origin) {
-      return jsonResponse({ error: 'missing_origin' }, 403, headers);
-    }
-    if (!P.isAllowedOrigin(origin)) {
-      return jsonResponse({ error: 'forbidden_origin' }, 403, headers);
-    }
+  if (!origin) {
+    return jsonResponse({ error: 'missing_origin' }, 403, headers);
+  }
+  if (!P.isAllowedOrigin(origin)) {
+    return jsonResponse({ error: 'forbidden_origin' }, 403, headers);
   }
 
   let rawText;
@@ -667,8 +702,11 @@ export async function onRequest(context) {
   if (!tools || tools.length === 0) {
     return jsonResponse({ error: 'missing_tools' }, 400, headers);
   }
-  const macroName =
-    (tools[0] && tools[0].function && tools[0].function.name) || P.MACRO_TOOL_NAME;
+  const firstTool = tools[0];
+  if (!firstTool || firstTool.type !== 'function' || !firstTool.function) {
+    return jsonResponse({ error: 'wrong_macro_name' }, 400, headers);
+  }
+  const macroName = firstTool.function.name;
   if (macroName !== P.MACRO_TOOL_NAME) {
     return jsonResponse({ error: 'wrong_macro_name' }, 400, headers);
   }

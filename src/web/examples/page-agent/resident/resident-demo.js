@@ -142,22 +142,33 @@
           return Promise.reject(new Error("Blocked unexpected request: " + url.pathname));
         }
         var mergedInit = init || {};
-        var headers;
-        if (mergedInit.headers instanceof Headers) {
-          headers = new Headers(mergedInit.headers);
-        } else if (Array.isArray(mergedInit.headers)) {
-          headers = new Headers(mergedInit.headers);
-        } else if (mergedInit.headers && typeof mergedInit.headers === 'object') {
-          headers = new Headers(Object.entries(mergedInit.headers));
-        } else {
-          headers = new Headers();
+        var headers = new Headers();
+        // Collect header sources without mutating any original object.
+        // Request-level headers are applied first; init headers override them.
+        function collect(src) {
+          if (!src) return;
+          if (src instanceof Headers) {
+            src.forEach(function (value, key) { headers.append(key, value); });
+          } else if (Array.isArray(src)) {
+            src.forEach(function (pair) {
+              if (Array.isArray(pair) && pair.length === 2) headers.append(pair[0], pair[1]);
+            });
+          } else if (typeof src === 'object') {
+            Object.keys(src).forEach(function (k) { headers.append(k, src[k]); });
+          }
         }
+        if (input instanceof Request) collect(input.headers);
+        collect(mergedInit.headers);
+        // Case-insensitive Authorization removal (never forwarded to server).
         var toDelete = [];
         headers.forEach(function (value, key) {
           if (key.toLowerCase() === 'authorization') toDelete.push(key);
         });
         toDelete.forEach(function (key) { headers.delete(key); });
-        return fetch(input, Object.assign({}, mergedInit, { headers: headers, credentials: 'same-origin' }));
+        var finalInit = Object.assign({}, mergedInit);
+        finalInit.headers = headers;
+        finalInit.credentials = 'same-origin';
+        return fetch(input, finalInit);
       }
 
       agent = new window.PageAgent({
