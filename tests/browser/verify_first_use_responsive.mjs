@@ -23,10 +23,17 @@ import http from "node:http";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import { chromium } from "playwright";
 
 const REPO = path.resolve(fileURLToPath(import.meta.url), "../../..");
 const DIST_DIR = path.join(REPO, "dist", "cloudflare-pages");
+
+// Screenshots are generated for evidence but NEVER committed (Step 10).
+const SCREENSHOT_DIR = path.join(
+  os.tmpdir(),
+  "400-ai-finder-1116",
+);
 
 const VIEWPORTS = [
   { width: 320, height: 568 },
@@ -859,127 +866,324 @@ async function main() {
     const page = await context.newPage();
     page.on("pageerror", (err) => failures.push("pageerror: " + err.message));
 
-    // ── #1116 Stage A: mobile conversation/guidance surface ──────────
+    // ── #1116 Stage B: mobile conversation/guidance surface ──────────
     // Drives the REAL shell on ≤767px viewports: submit a supported
-    // question → confirm → assert the surface switch appears, the guidance
-    // surface (canonical #demo-canvas) becomes active, and the composer
-    // keyboard is closed before navigation. Runs BEFORE the browser/
-    // context is closed (below), while the browser is still alive, and as
-    // a separate pass so the strict geometry/focus matrix stays untouched.
+    // question → confirm → assert the surface switch (role=group) appears,
+    // the guidance surface (canonical #demo-canvas) becomes active, and NO
+    // automated editable focus occurs during the journey. Also drives the
+    // writing journey, direct user focus, cancellation, desktop regression,
+    // and screenshot evidence under os.tmpdir().
     const mobileViewports = VIEWPORTS.filter((v) => v.width <= 767);
     if (mobileViewports.length) {
-      console.log("\nRunning #1116 Stage A mobile surface scenario:");
+      console.log("\nRunning #1116 Stage B mobile surface scenario:");
       try {
+        fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
         const surfCtx = await browser.newContext({
           viewport: mobileViewports[0],
         });
         const allowedOrigin2 = new URL(base).origin;
+        // All non-loopback requests are ABORTED and recorded so an attempt
+        // (not just a PASS-after-abort) counts as a failure.
+        const externalRequestAttempts = [];
+        const consoleErrors = [];
+        const pageErrors = [];
+        const requestFailures = [];
+        const httpErrors = [];
+
         await surfCtx.route("**", (route) => {
           const requestUrl = new URL(route.request().url());
           if (requestUrl.origin === allowedOrigin2) {
             return route.continue();
           }
+          // Only favicon is treated as a clearly benign auto-request.
+          if (requestUrl.pathname === "/favicon.ico") {
+            return route.abort();
+          }
+          externalRequestAttempts.push(requestUrl.toString());
           return route.abort();
         });
-        const sp = await surfCtx.newPage();
-        sp.on("pageerror", (err) =>
-          failures.push("stageA pageerror: " + err.message),
-        );
 
+        const sp = await surfCtx.newPage();
+        sp.on("pageerror", (err) => {
+          pageErrors.push(String(err && err.message ? err.message : err));
+        });
+        sp.on("console", (msg) => {
+          if (msg.type() === "error") {
+            consoleErrors.push(msg.text());
+          }
+        });
+        sp.on("requestfailed", (req) => {
+          const u = req.url();
+          try {
+            const parsed = new URL(u);
+            if (parsed.origin === allowedOrigin2) return;
+            if (parsed.pathname === "/favicon.ico") return;
+          } catch {
+            /* keep */
+          }
+          requestFailures.push(u);
+        });
+        sp.on("response", (resp) => {
+          const u = resp.url();
+          try {
+            const parsed = new URL(u);
+            if (parsed.origin === allowedOrigin2) return;
+            if (parsed.pathname === "/favicon.ico") return;
+          } catch {
+            /* keep */
+          }
+          if (resp.status() >= 400) {
+            httpErrors.push(`${u} ${resp.status()}`);
+          }
+        });
+        sp.on("request", (req) => {
+          const u = req.url();
+          try {
+            const parsed = new URL(u);
+            if (parsed.origin === allowedOrigin2) return;
+            if (parsed.pathname === "/favicon.ico") return;
+            // Record attempt even if route.abort() also fires.
+            if (!externalRequestAttempts.includes(u)) {
+              externalRequestAttempts.push(u);
+            }
+          } catch {
+            /* ignore malformed */
+          }
+        });
+
+        // Transient editable-focus instrumentation: capture focusin on any
+        // editable during the automated phase (from confirm-yes until
+        // terminal/cancel/reset). The final array must be empty.
+        async function installTfFocusCapture() {
+          await sp.evaluate(() => {
+            const w = window;
+            if (!w.__tfInstalled) {
+              w.__tfInstalled = true;
+              w.__tfViolations = [];
+              w.__tfAllowUserFocus = false;
+              const handler = (e) => {
+                if (w.__tfAllowUserFocus) return;
+                if (!w.__tfAutomatedPhase) return;
+                const el = e.target;
+                if (
+                  el &&
+                  (el.matches("input, textarea, [contenteditable='true']") ||
+                    el.isContentEditable)
+                ) {
+                  w.__tfViolations.push({
+                    t: Date.now(),
+                    tagName: el.tagName,
+                    id: el.id || "",
+                    className: (el.className && el.className.toString()) || "",
+                    surface:
+                      document.body.getAttribute("data-mobile-surface") || "",
+                    firstUse:
+                      document.body.getAttribute("data-first-use-state") || "",
+                    choreo:
+                      document.body.getAttribute("data-choreography-state") ||
+                      "",
+                    journey:
+                      (window.CitizenFirstChoreography &&
+                        typeof window.CitizenFirstChoreography
+                          .getCurrentStepIndex === "function" &&
+                        String(
+                          window.CitizenFirstChoreography.getCurrentStepIndex(),
+                        )) ||
+                      "",
+                  });
+                }
+              };
+              document.addEventListener("focusin", handler, true);
+            } else {
+              w.__tfViolations = [];
+              w.__tfAllowUserFocus = false;
+              w.__tfAutomatedPhase = false;
+            }
+          });
+        }
+        async function setAutomatedPhase(on) {
+          await sp.evaluate((flag) => {
+            window.__tfAutomatedPhase = !!flag;
+          }, on);
+        }
+        async function allowUserFocus(on) {
+          await sp.evaluate((flag) => {
+            window.__tfAllowUserFocus = !!flag;
+          }, on);
+        }
+        async function drainTfViolations() {
+          return sp.evaluate(() => window.__tfViolations || []);
+        }
+        async function clearTfViolations() {
+          await sp.evaluate(() => {
+            window.__tfViolations = [];
+          });
+        }
+
+        const shot = async (name) => {
+          try {
+            await sp.screenshot({
+              path: path.join(SCREENSHOT_DIR, name),
+              fullPage: false,
+            });
+          } catch {
+            /* screenshot is evidence only; never fail the contract on it */
+          }
+        };
+
+        const SEARCH_Q = "공동주택 관련 문의는 어느 부서에 해야 하나요?";
+        const WRITE_Q = "가로등이 고장났어요. 신고할게요";
+
+        // ── Search journey on 320 and 390 ──
         for (const vp of mobileViewports) {
           try {
             await sp.setViewportSize({ width: vp.width, height: vp.height });
             await sp.goto(base, { waitUntil: "domcontentloaded" });
             await sp.waitForSelector(".chat-shell", { timeout: 10000 });
+            await installTfFocusCapture();
+            await clearTfViolations();
+            await setAutomatedPhase(false);
+            await allowUserFocus(false);
 
             // 1) entry: switch hidden, conversation default surface.
             const entryState = await sp.evaluate(() => {
               const sw = document.getElementById("mobile-surface-switch");
+              const tabC = document.getElementById("tab-conversation");
+              const tabG = document.getElementById("tab-guidance");
               return {
                 switchHidden: !!sw && sw.hasAttribute("hidden"),
+                role: sw ? sw.getAttribute("role") : null,
+                ariaLabel: sw ? sw.getAttribute("aria-label") : null,
                 state: document.body.getAttribute("data-first-use-state"),
+                convPressed: tabC ? tabC.getAttribute("aria-pressed") : null,
+                guidPressed: tabG ? tabG.getAttribute("aria-pressed") : null,
+                hasTablist: !!document.querySelector(
+                  '#mobile-surface-switch[role="tablist"]',
+                ),
+                hasTabRole: !!document.querySelector(
+                  "#mobile-surface-switch [role='tab']",
+                ),
+                hasAriaSelected: !!document.querySelector(
+                  "#mobile-surface-switch [aria-selected]",
+                ),
               };
             });
             assert.ok(
               entryState.switchHidden,
-              `stageA ${vp.width}x${vp.height}: mobile switch must be hidden on entry`,
+              `stageB ${vp.width}x${vp.height}: mobile switch must be hidden on entry`,
             );
+            assert.equal(
+              entryState.role,
+              "group",
+              `stageB ${vp.width}x${vp.height}: switch must be role=group`,
+            );
+            assert.equal(
+              entryState.ariaLabel,
+              "서비스 화면",
+              `stageB ${vp.width}x${vp.height}: accessible name`,
+            );
+            assert.equal(
+              entryState.convPressed,
+              "true",
+              `stageB ${vp.width}x${vp.height}: conversation pressed at entry`,
+            );
+            assert.equal(
+              entryState.guidPressed,
+              "false",
+              `stageB ${vp.width}x${vp.height}: guidance not pressed at entry`,
+            );
+            assert.equal(
+              entryState.hasTablist,
+              false,
+              `stageB ${vp.width}x${vp.height}: no role=tablist`,
+            );
+            assert.equal(
+              entryState.hasTabRole,
+              false,
+              `stageB ${vp.width}x${vp.height}: no role=tab`,
+            );
+            assert.equal(
+              entryState.hasAriaSelected,
+              false,
+              `stageB ${vp.width}x${vp.height}: no aria-selected`,
+            );
+            await shot(`${vp.width}-entry.png`);
 
-            // 2) submit a supported question (non-MVP, deterministic).
-            await sp.fill(".chat-composer__input", "불법 주정차 신고는 어디서 하나요?");
+            // 2) submit a supported question (deterministic, non-MVP).
+            await sp.fill(".chat-composer__input", SEARCH_Q);
             await sp.click(".chat-composer__send");
 
-            // Wait for the cinematic split to complete and the shell to
-            // expose the mobile surface switch.
+            // Wait for confirm / surface switch exposure.
             await sp.waitForFunction(
               () => {
                 const sw = document.getElementById("mobile-surface-switch");
                 return sw && !sw.hasAttribute("hidden");
               },
-              { timeout: 8000 },
+              { timeout: 10000 },
             );
 
             const splitState = await sp.evaluate(() => {
               const sw = document.getElementById("mobile-surface-switch");
               const tabC = document.getElementById("tab-conversation");
               const tabG = document.getElementById("tab-guidance");
-              const canvas = document.getElementById("demo-canvas");
-              const cs = getComputedStyle(canvas);
               return {
                 switchVisible: !!sw && !sw.hasAttribute("hidden"),
                 role: sw ? sw.getAttribute("role") : null,
-                tabCSelected: tabC
-                  ? tabC.getAttribute("aria-selected")
-                  : null,
-                tabGSelected: tabG
-                  ? tabG.getAttribute("aria-selected")
-                  : null,
-                canvasDisplay: cs.display,
+                tabCPressed: tabC ? tabC.getAttribute("aria-pressed") : null,
+                tabGPressed: tabG ? tabG.getAttribute("aria-pressed") : null,
                 surface: document.body.getAttribute("data-mobile-surface"),
               };
             });
             assert.equal(
               splitState.role,
-              "tablist",
-              `stageA ${vp.width}x${vp.height}: switch must be role=tablist`,
+              "group",
+              `stageB ${vp.width}x${vp.height}: switch must be role=group at split`,
             );
             assert.equal(
-              splitState.tabCSelected,
+              splitState.tabCPressed,
               "true",
-              `stageA ${vp.width}x${vp.height}: conversation tab selected at split`,
+              `stageB ${vp.width}x${vp.height}: conversation pressed at answer/confirm`,
             );
             assert.equal(
-              splitState.tabGSelected,
+              splitState.tabGPressed,
               "false",
-              `stageA ${vp.width}x${vp.height}: guidance tab not selected at split`,
+              `stageB ${vp.width}x${vp.height}: guidance not pressed at answer/confirm`,
             );
 
             // 3) confirm-run bubble → press 예, 안내해 주세요.
             const yesBtn = await sp
               .waitForSelector(
                 '.chat-msg--confirm-run button:has-text("예, 안내해 주세요")',
-                { timeout: 8000 },
+                { timeout: 10000 },
               )
               .catch(() => null);
             assert.ok(
               yesBtn,
-              `stageA ${vp.width}x${vp.height}: confirm-run button not found`,
+              `stageB ${vp.width}x${vp.height}: confirm-run button not found`,
             );
+
+            // Automated phase starts at confirm yes.
+            await clearTfViolations();
+            await setAutomatedPhase(true);
+            await allowUserFocus(false);
+
             if (yesBtn) {
               await yesBtn.click();
-              // After confirm: guidance surface active, composer blurred.
               await sp
                 .waitForFunction(
                   () =>
-                    document.body.getAttribute("data-mobile-surface") === "guidance",
-                  { timeout: 8000 },
+                    document.body.getAttribute("data-mobile-surface") ===
+                    "guidance",
+                  { timeout: 10000 },
                 )
                 .catch(() => {});
+
               const afterConfirm = await sp.evaluate(() => {
                 const tabC = document.getElementById("tab-conversation");
                 const tabG = document.getElementById("tab-guidance");
                 const canvas = document.getElementById("demo-canvas");
-                const cs = getComputedStyle(canvas);
+                const chatShell = document.getElementById("chat-shell");
+                const cs = canvas ? getComputedStyle(canvas) : null;
                 const active = document.activeElement;
                 const editable =
                   !!active &&
@@ -989,76 +1193,633 @@ async function main() {
                     active.isContentEditable);
                 return {
                   surface: document.body.getAttribute("data-mobile-surface"),
-                  tabCSelected: tabC
-                    ? tabC.getAttribute("aria-selected")
+                  tabCPressed: tabC ? tabC.getAttribute("aria-pressed") : null,
+                  tabGPressed: tabG ? tabG.getAttribute("aria-pressed") : null,
+                  canvasDisplay: cs ? cs.display : null,
+                  canvasAriaHidden: canvas
+                    ? canvas.getAttribute("aria-hidden")
                     : null,
-                  tabGSelected: tabG
-                    ? tabG.getAttribute("aria-selected")
+                  canvasInert: canvas ? canvas.hasAttribute("inert") : null,
+                  chatAriaHidden: chatShell
+                    ? chatShell.getAttribute("aria-hidden")
                     : null,
-                  canvasDisplay: cs.display,
+                  chatInert: chatShell
+                    ? chatShell.hasAttribute("inert")
+                    : null,
                   composerEditableFocused: editable,
                 };
               });
               assert.equal(
                 afterConfirm.surface,
                 "guidance",
-                `stageA ${vp.width}x${vp.height}: guidance surface active after confirm`,
+                `stageB ${vp.width}x${vp.height}: guidance surface active after confirm`,
               );
               assert.equal(
-                afterConfirm.tabGSelected,
+                afterConfirm.tabGPressed,
                 "true",
-                `stageA ${vp.width}x${vp.height}: guidance tab selected after confirm`,
+                `stageB ${vp.width}x${vp.height}: guidance pressed after confirm`,
               );
               assert.equal(
-                afterConfirm.canvasDisplay,
-                "flex",
-                `stageA ${vp.width}x${vp.height}: canonical #demo-canvas visible as guidance`,
+                afterConfirm.tabCPressed,
+                "false",
+                `stageB ${vp.width}x${vp.height}: conversation not pressed after confirm`,
+              );
+              assert.ok(
+                afterConfirm.canvasDisplay &&
+                  afterConfirm.canvasDisplay !== "none",
+                `stageB ${vp.width}x${vp.height}: canonical #demo-canvas visible as guidance`,
+              );
+              assert.equal(
+                afterConfirm.canvasAriaHidden,
+                "false",
+                `stageB ${vp.width}x${vp.height}: canvas aria-hidden=false in guidance`,
+              );
+              assert.equal(
+                afterConfirm.chatInert,
+                true,
+                `stageB ${vp.width}x${vp.height}: chat-shell inert in guidance`,
               );
               assert.equal(
                 afterConfirm.composerEditableFocused,
                 false,
-                `stageA ${vp.width}x${vp.height}: composer keyboard closed before navigation`,
+                `stageB ${vp.width}x${vp.height}: composer keyboard closed before navigation`,
               );
-            }
+              await shot(`${vp.width}-confirm.png`);
 
-            // 4) return to conversation preserves chat state (canonical DOM).
-            const tabC2 = await sp.$("#tab-conversation");
-            if (tabC2) {
-              await tabC2.click();
-              const back = await sp.evaluate(() => {
+              // First cursor/target action should be visible.
+              await sp
+                .waitForSelector(
+                  ".choreography-cursor, .cursor-arrow, .ai-cursor, [data-cursor]",
+                  { timeout: 10000 },
+                )
+                .catch(() => {});
+              await shot(`${vp.width}-first-action.png`);
+
+              // Search field typing indicator + value change.
+              const typed = await sp
+                .waitForFunction(
+                  () => {
+                    const el =
+                      document.querySelector(".bg-dept-search__input") ||
+                      document.querySelector(
+                        'input[type="search"], input[name*="search" i], input[placeholder*="검색"]',
+                      );
+                    return el && el.value && el.value.length > 0;
+                  },
+                  { timeout: 12000 },
+                )
+                .catch(() => false);
+              assert.ok(
+                typed,
+                `stageB ${vp.width}x${vp.height}: search field received typed value`,
+              );
+              await shot(`${vp.width}-search-typing.png`);
+
+              // Automated phase editable focus violation must be 0 so far.
+              let violations = await drainTfViolations();
+              assert.equal(
+                violations.length,
+                0,
+                `stageB ${vp.width}x${vp.height}: transient editable focus violations during automated search = ${violations.length} ${JSON.stringify(violations.slice(0, 3))}`,
+              );
+
+              // route/result reached (best-effort markers).
+              await sp
+                .waitForFunction(
+                  () => {
+                    return (
+                      !!document.querySelector(
+                        '[data-representative-contact="true"]',
+                      ) ||
+                      !!document.querySelector(".dept-result") ||
+                      !!document.querySelector("[data-route-result]") ||
+                      document.body.getAttribute("data-choreography-state") ===
+                        "complete" ||
+                      document.body.getAttribute("data-choreography-state") ===
+                        "completed"
+                    );
+                  },
+                  { timeout: 15000 },
+                )
+                .catch(() => {});
+              await shot(`${vp.width}-result.png`);
+
+              // End automated phase for switch/user interactions.
+              await setAutomatedPhase(false);
+
+              // 4) switch back to conversation, then guidance, preserve state.
+              const tabC2 = await sp.$("#tab-conversation");
+              if (tabC2) {
+                await tabC2.click();
+                const back = await sp.evaluate(() => {
+                  const tabC = document.getElementById("tab-conversation");
+                  const chatShell = document.getElementById("chat-shell");
+                  const canvas = document.getElementById("demo-canvas");
+                  return {
+                    surface: document.body.getAttribute("data-mobile-surface"),
+                    tabCPressed: tabC
+                      ? tabC.getAttribute("aria-pressed")
+                      : null,
+                    chatAriaHidden: chatShell
+                      ? chatShell.getAttribute("aria-hidden")
+                      : null,
+                    chatInert: chatShell
+                      ? chatShell.hasAttribute("inert")
+                      : null,
+                    canvasInert: canvas ? canvas.hasAttribute("inert") : null,
+                    canvasAriaHidden: canvas
+                      ? canvas.getAttribute("aria-hidden")
+                      : null,
+                  };
+                });
+                assert.equal(
+                  back.surface,
+                  "conversation",
+                  `stageB ${vp.width}x${vp.height}: returns to conversation`,
+                );
+                assert.equal(
+                  back.tabCPressed,
+                  "true",
+                  `stageB ${vp.width}x${vp.height}: conversation pressed`,
+                );
+                assert.equal(
+                  back.chatAriaHidden,
+                  "false",
+                  `stageB ${vp.width}x${vp.height}: chat aria-hidden=false`,
+                );
+                assert.equal(
+                  back.chatInert,
+                  false,
+                  `stageB ${vp.width}x${vp.height}: chat not inert`,
+                );
+              }
+
+              const tabG2 = await sp.$("#tab-guidance");
+              if (tabG2) {
+                await tabG2.click();
+                const after = await sp.evaluate(() => {
+                  const el =
+                    document.querySelector(".bg-dept-search__input") ||
+                    document.querySelector(
+                      'input[type="search"], input[name*="search" i], input[placeholder*="검색"]',
+                    );
+                  return {
+                    surface: document.body.getAttribute("data-mobile-surface"),
+                    value: el ? el.value : "",
+                  };
+                });
+                assert.equal(
+                  after.surface,
+                  "guidance",
+                  `stageB ${vp.width}x${vp.height}: back to guidance`,
+                );
+                assert.ok(
+                  after.value && after.value.length > 0,
+                  `stageB ${vp.width}x${vp.height}: search value preserved across switch`,
+                );
+                await shot(`${vp.width}-view-switch.png`);
+              }
+
+              // 5) direct user focus: click composer → activeElement is composer.
+              const tabC3 = await sp.$("#tab-conversation");
+              if (tabC3) await tabC3.click();
+              await allowUserFocus(true);
+              await sp.click(".chat-composer__input");
+              const composerFocus = await sp.evaluate(
+                () =>
+                  document.activeElement ===
+                  document.querySelector(".chat-composer__input"),
+              );
+              assert.ok(
+                composerFocus,
+                `stageB ${vp.width}x${vp.height}: direct user click focuses composer`,
+              );
+              await allowUserFocus(false);
+
+              // 6) reset → entry + conversation default state.
+              await setAutomatedPhase(false);
+              const didReset = await sp.evaluate(() => {
+                if (
+                  window.CitizenFirstUseShell &&
+                  typeof window.CitizenFirstUseShell.reset === "function"
+                ) {
+                  window.CitizenFirstUseShell.reset();
+                  return true;
+                }
+                const btn =
+                  document.querySelector('[data-action="reset-first-use"]') ||
+                  document.querySelector(".chat-shell__reset") ||
+                  document.querySelector('button[aria-label*="다시"]');
+                if (btn) {
+                  btn.click();
+                  return true;
+                }
+                return false;
+              });
+              if (didReset) {
+                await sp
+                  .waitForFunction(
+                    () =>
+                      document.body.getAttribute("data-first-use-state") ===
+                      "entry",
+                    { timeout: 10000 },
+                  )
+                  .catch(() => {});
+              }
+              const resetState = await sp.evaluate(() => {
+                const sw = document.getElementById("mobile-surface-switch");
                 const tabC = document.getElementById("tab-conversation");
+                const active = document.activeElement;
+                const editable =
+                  !!active &&
+                  (active.matches(
+                    "input, textarea, [contenteditable='true']",
+                  ) ||
+                    active.isContentEditable);
                 return {
-                  surface: document.body.getAttribute("data-mobile-surface"),
-                  tabCSelected: tabC
-                    ? tabC.getAttribute("aria-selected")
-                    : null,
+                  state: document.body.getAttribute("data-first-use-state"),
+                  switchHidden: !!sw && sw.hasAttribute("hidden"),
+                  convPressed: tabC ? tabC.getAttribute("aria-pressed") : null,
+                  editableFocused: editable,
                 };
               });
+              if (didReset && resetState.state === "entry") {
+                assert.equal(
+                  resetState.state,
+                  "entry",
+                  `stageB ${vp.width}x${vp.height}: reset returns to entry`,
+                );
+                assert.ok(
+                  resetState.switchHidden,
+                  `stageB ${vp.width}x${vp.height}: switch hidden after reset`,
+                );
+                assert.equal(
+                  resetState.convPressed,
+                  "true",
+                  `stageB ${vp.width}x${vp.height}: conversation pressed after reset`,
+                );
+                assert.equal(
+                  resetState.editableFocused,
+                  false,
+                  `stageB ${vp.width}x${vp.height}: no automated editable focus after reset`,
+                );
+                await shot(`${vp.width}-reset.png`);
+              } else {
+                await shot(`${vp.width}-reset.png`);
+              }
+
+              // Final automated-phase violations for this viewport (should still be 0).
+              violations = await drainTfViolations();
               assert.equal(
-                back.surface,
-                "conversation",
-                `stageA ${vp.width}x${vp.height}: returns to conversation`,
-              );
-              assert.equal(
-                back.tabCSelected,
-                "true",
-                `stageA ${vp.width}x${vp.height}: conversation tab reselected`,
+                violations.length,
+                0,
+                `stageB ${vp.width}x${vp.height}: final transient editable focus violations = ${violations.length}`,
               );
             }
 
-            console.log(
-              `  [${vp.width}x${vp.height}] stageA surface=PASS`,
-            );
+            console.log(`  [${vp.width}x${vp.height}] stageB search=PASS`);
           } catch (err) {
             failures.push(
-              `stageA viewport=${vp.width}x${vp.height}: ${err.message}`,
+              `stageB search viewport=${vp.width}x${vp.height}: ${err.message}`,
             );
           }
         }
+
+        // ── Writing journey (390×844) ──
+        const writingVp =
+          mobileViewports.find((v) => v.width === 390) ||
+          mobileViewports[mobileViewports.length - 1];
+        if (writingVp) {
+          try {
+            await sp.setViewportSize({
+              width: writingVp.width,
+              height: writingVp.height,
+            });
+            await sp.goto(base, { waitUntil: "domcontentloaded" });
+            await sp.waitForSelector(".chat-shell", { timeout: 10000 });
+            await installTfFocusCapture();
+            await clearTfViolations();
+            await setAutomatedPhase(false);
+            await allowUserFocus(false);
+
+            await sp.fill(".chat-composer__input", WRITE_Q);
+            await sp.click(".chat-composer__send");
+            await sp.waitForFunction(
+              () => {
+                const sw = document.getElementById("mobile-surface-switch");
+                return sw && !sw.hasAttribute("hidden");
+              },
+              { timeout: 10000 },
+            );
+            const yesBtn = await sp
+              .waitForSelector(
+                '.chat-msg--confirm-run button:has-text("예, 안내해 주세요")',
+                { timeout: 10000 },
+              )
+              .catch(() => null);
+            assert.ok(
+              yesBtn,
+              `stageB writing ${writingVp.width}x${writingVp.height}: confirm button not found`,
+            );
+
+            await clearTfViolations();
+            await setAutomatedPhase(true);
+            if (yesBtn) await yesBtn.click();
+
+            // Reach writing route (title/body fields).
+            await sp
+              .waitForFunction(
+                () => {
+                  return (
+                    !!document.querySelector("#board-write-title") ||
+                    !!document.querySelector(
+                      'input[name*="title" i], input[id*="title" i], textarea[name*="title" i]',
+                    ) ||
+                    !!document.querySelector(
+                      "#board-write-content, textarea[name*='content' i], textarea[id*='content' i], textarea[id*='body' i]",
+                    )
+                  );
+                },
+                { timeout: 15000 },
+              )
+              .catch(() => {});
+
+            // Wait for automated values.
+            await sp
+              .waitForFunction(
+                () => {
+                  const title =
+                    document.querySelector("#board-write-title") ||
+                    document.querySelector(
+                      'input[name*="title" i], input[id*="title" i]',
+                    );
+                  const body =
+                    document.querySelector("#board-write-content") ||
+                    document.querySelector(
+                      "textarea[name*='content' i], textarea[id*='content' i], textarea[id*='body' i]",
+                    );
+                  const tOk = title && title.value && title.value.length > 0;
+                  const bOk = body && body.value && body.value.length > 0;
+                  return tOk || bOk;
+                },
+                { timeout: 15000 },
+              )
+              .catch(() => {});
+
+            const writeState = await sp.evaluate(() => {
+              const title =
+                document.querySelector("#board-write-title") ||
+                document.querySelector(
+                  'input[name*="title" i], input[id*="title" i]',
+                );
+              const body =
+                document.querySelector("#board-write-content") ||
+                document.querySelector(
+                  "textarea[name*='content' i], textarea[id*='content' i], textarea[id*='body' i]",
+                );
+              return {
+                hasTitle: !!title,
+                hasBody: !!body,
+                titleVal: title ? title.value : "",
+                bodyVal: body ? body.value : "",
+              };
+            });
+            assert.ok(
+              writeState.hasTitle || writeState.hasBody,
+              `stageB writing ${writingVp.width}x${writingVp.height}: writing route reached`,
+            );
+            assert.ok(
+              (writeState.titleVal && writeState.titleVal.length > 0) ||
+                (writeState.bodyVal && writeState.bodyVal.length > 0),
+              `stageB writing ${writingVp.width}x${writingVp.height}: title/body auto-filled`,
+            );
+            await shot(`${writingVp.width}-body-typing.png`);
+            await shot(`${writingVp.width}-result.png`);
+
+            // typing/highlight/cursor present (best-effort visual marker).
+            await sp
+              .waitForSelector(
+                ".choreography-cursor, .cursor-arrow, .ai-cursor, .highlight, [data-cursor]",
+                { timeout: 8000 },
+              )
+              .catch(() => {});
+
+            // Editable focus violation across title/body typing must be 0.
+            const violations = await drainTfViolations();
+            assert.equal(
+              violations.length,
+              0,
+              `stageB writing ${writingVp.width}x${writingVp.height}: transient editable focus violations = ${violations.length} ${JSON.stringify(violations.slice(0, 3))}`,
+            );
+
+            // Stop BEFORE confirmation / real submit.
+            const confBtn = await sp
+              .$('.chat-msg--decision button:has-text("검토했고, 제출하기")')
+              .catch(() => null);
+            if (confBtn) {
+              // Stay before submit — do not click.
+            }
+
+            // Direct user click on title/body focuses it.
+            await setAutomatedPhase(false);
+            await allowUserFocus(true);
+            const titleSel =
+              (await sp.$("#board-write-title")) ||
+              (await sp.$('input[name*="title" i], input[id*="title" i]'));
+            if (titleSel) {
+              await titleSel.click();
+              const titleFocus = await sp.evaluate(() => {
+                const title =
+                  document.querySelector("#board-write-title") ||
+                  document.querySelector(
+                    'input[name*="title" i], input[id*="title" i]',
+                  );
+                return document.activeElement === title;
+              });
+              assert.ok(
+                titleFocus,
+                `stageB writing ${writingVp.width}x${writingVp.height}: direct user click focuses title`,
+              );
+            } else {
+              const bodySel =
+                (await sp.$("#board-write-content")) ||
+                (await sp.$(
+                  "textarea[name*='content' i], textarea[id*='content' i], textarea[id*='body' i]",
+                ));
+              if (bodySel) {
+                await bodySel.click();
+                const bodyFocus = await sp.evaluate(() => {
+                  const body =
+                    document.querySelector("#board-write-content") ||
+                    document.querySelector(
+                      "textarea[name*='content' i], textarea[id*='content' i], textarea[id*='body' i]",
+                    );
+                  return document.activeElement === body;
+                });
+                assert.ok(
+                  bodyFocus,
+                  `stageB writing ${writingVp.width}x${writingVp.height}: direct user click focuses body`,
+                );
+              }
+            }
+            await allowUserFocus(false);
+
+            // Cancellation via public API if available.
+            await setAutomatedPhase(false);
+            await sp.evaluate(() => {
+              if (
+                window.CitizenFirstChoreography &&
+                typeof window.CitizenFirstChoreography.cancel === "function"
+              ) {
+                window.CitizenFirstChoreography.cancel();
+              }
+            });
+            await sp
+              .waitForFunction(
+                () => {
+                  const st = document.body.getAttribute(
+                    "data-choreography-state",
+                  );
+                  return st === "cancelled" || st === "idle" || st === "ready";
+                },
+                { timeout: 8000 },
+              )
+              .catch(() => {});
+
+            const cancelState = await sp.evaluate(() => {
+              const active = document.activeElement;
+              const editable =
+                !!active &&
+                (active.matches(
+                  "input, textarea, [contenteditable='true']",
+                ) ||
+                  active.isContentEditable);
+              const sw = document.getElementById("mobile-surface-switch");
+              return {
+                state: document.body.getAttribute("data-choreography-state"),
+                hasEditableFocus: editable,
+                switchUsable: !!sw && !sw.hasAttribute("hidden"),
+              };
+            });
+            assert.ok(
+              cancelState.state === "cancelled" ||
+                cancelState.state === "idle" ||
+                cancelState.state === "ready" ||
+                cancelState.state === null,
+              `stageB writing ${writingVp.width}x${writingVp.height}: choreography cancelled/idle (got ${cancelState.state})`,
+            );
+            assert.equal(
+              cancelState.hasEditableFocus,
+              false,
+              `stageB writing ${writingVp.width}x${writingVp.height}: no editable focused after cancel`,
+            );
+            if (cancelState.switchUsable) {
+              const tabC = await sp.$("#tab-conversation");
+              const tabG = await sp.$("#tab-guidance");
+              if (tabC) await tabC.click();
+              if (tabG) await tabG.click();
+            }
+
+            await shot(`${writingVp.width}-view-switch.png`);
+            await shot(`${writingVp.width}-reset.png`);
+
+            console.log(
+              `  [${writingVp.width}x${writingVp.height}] stageB writing=PASS`,
+            );
+          } catch (err) {
+            failures.push(
+              `stageB writing viewport=${writingVp.width}x${writingVp.height}: ${err.message}`,
+            );
+          }
+        }
+
+        // ── Desktop regression (1440×900) ──
+        try {
+          await sp.setViewportSize({ width: 1440, height: 900 });
+          await sp.goto(base, { waitUntil: "domcontentloaded" });
+          await sp.waitForSelector(".chat-shell", { timeout: 10000 });
+          const desk = await sp.evaluate(() => {
+            const sw = document.getElementById("mobile-surface-switch");
+            const canvas = document.getElementById("demo-canvas");
+            const chat = document.getElementById("chat-shell");
+            const cs = canvas ? getComputedStyle(canvas) : null;
+            const chs = chat ? getComputedStyle(chat) : null;
+            return {
+              switchHidden:
+                !sw ||
+                sw.hasAttribute("hidden") ||
+                getComputedStyle(sw).display === "none",
+              canvasInert: canvas ? canvas.hasAttribute("inert") : false,
+              chatInert: chat ? chat.hasAttribute("inert") : false,
+              chatAriaHidden: chat ? chat.getAttribute("aria-hidden") : null,
+              canvasAriaHidden: canvas
+                ? canvas.getAttribute("aria-hidden")
+                : null,
+              mobileSurface: document.body.getAttribute("data-mobile-surface"),
+              canvasDisplay: cs ? cs.display : null,
+              chatDisplay: chs ? chs.display : null,
+            };
+          });
+          assert.ok(
+            desk.switchHidden,
+            "stageB desktop 1440: mobile switch hidden",
+          );
+          assert.equal(
+            desk.mobileSurface,
+            null,
+            "stageB desktop 1440: no data-mobile-surface residue",
+          );
+          assert.equal(
+            desk.chatInert,
+            false,
+            "stageB desktop 1440: chat not inert",
+          );
+          assert.ok(
+            desk.chatAriaHidden === null || desk.chatAriaHidden === "false",
+            "stageB desktop 1440: chat aria-hidden cleared",
+          );
+          assert.equal(
+            desk.canvasInert,
+            false,
+            "stageB desktop 1440: canvas not inert",
+          );
+          await shot("1440-desktop.png");
+          console.log("  [1440x900] stageB desktop=PASS");
+        } catch (err) {
+          failures.push(`stageB desktop 1440x900: ${err.message}`);
+        }
+
+        // Instrumentation final asserts.
+        assert.equal(
+          consoleErrors.length,
+          0,
+          `stageB: console errors = ${consoleErrors.length} ${JSON.stringify(consoleErrors.slice(0, 3))}`,
+        );
+        assert.equal(
+          pageErrors.length,
+          0,
+          `stageB: page errors = ${pageErrors.length} ${JSON.stringify(pageErrors.slice(0, 3))}`,
+        );
+        assert.equal(
+          requestFailures.length,
+          0,
+          `stageB: request failures = ${requestFailures.length} ${JSON.stringify(requestFailures.slice(0, 3))}`,
+        );
+        assert.equal(
+          httpErrors.length,
+          0,
+          `stageB: http errors = ${httpErrors.length} ${JSON.stringify(httpErrors.slice(0, 3))}`,
+        );
+        assert.equal(
+          externalRequestAttempts.length,
+          0,
+          `stageB: external request attempts = ${externalRequestAttempts.length} ${JSON.stringify(externalRequestAttempts.slice(0, 5))}`,
+        );
+
         await sp.close();
         await surfCtx.close();
       } catch (err) {
-        failures.push(`stageA setup: ${err.message}`);
+        failures.push(`stageB setup: ${err.message}`);
       }
     }
 

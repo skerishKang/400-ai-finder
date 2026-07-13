@@ -501,6 +501,41 @@
     return document.getElementById("demo-canvas");
   }
 
+  function _isMobileInteractionMode() {
+    return Boolean(
+      window.matchMedia &&
+      window.matchMedia("(max-width: 767px)").matches
+    );
+  }
+
+  function _isEditableElement(element) {
+    return Boolean(
+      element &&
+      (
+        element.matches("input, textarea, [contenteditable='true']") ||
+        element.isContentEditable
+      )
+    );
+  }
+
+  function _blurActiveEditableForAutomatedMobileStep() {
+    if (!_isMobileInteractionMode()) return;
+    var active = document.activeElement;
+    if (_isEditableElement(active) && typeof active.blur === "function") {
+      active.blur();
+    }
+  }
+
+  function _focusEditableOnDesktopOnly(element) {
+    if (
+      element &&
+      !_isMobileInteractionMode() &&
+      typeof element.focus === "function"
+    ) {
+      element.focus();
+    }
+  }
+
   function _executeStep(index) {
     if (_state !== STATE_RUNNING) return;
     if (index >= _steps.length) {
@@ -510,6 +545,11 @@
 
     _currentStep = index;
     var step = _steps[index];
+
+    // On mobile, an automated step must never steal focus into an editable
+    // field — the resident taps fields explicitly. Blur any active editable
+    // before the action drives the canvas. Desktop is unaffected.
+    _blurActiveEditableForAutomatedMobileStep();
 
     // Execute DOM action FIRST so left-pane visuals render before
     // the chat message appears — 박사님 choreography ordering requirement (#965).
@@ -542,7 +582,9 @@
       if (demoEl) {
         var input = demoEl.querySelector(".bg-dept-search__input");
         if (input) {
-          input.focus();
+          // Desktop-only: focus the search field. On mobile the automated
+          // journey must NOT steal focus into an editable.
+          _focusEditableOnDesktopOnly(input);
           input.classList.add(HIGHLIGHT_CLASS);
           _highlightedEls.push(input);
         }
@@ -608,15 +650,18 @@
           visualActionDelay,
           _typeIntoSearch(typeInput, step.typeQuery, typingStartDelay)
         );
+        // Desktop-only: focus the search field so the typing caret is
+        // visible. On mobile the automated step must NOT pull focus.
+        _focusEditableOnDesktopOnly(typeInput);
       }
 
       if (step.typeContent) {
         var contentDemoEl = _getCanvasEl();
         var contentInput = contentDemoEl && contentDemoEl.querySelector(step.contentSelector || "#board-write-content");
         var contentTypingStartDelay = step.cursorTarget ? 850 : 160;
-        if (contentInput) {
-          contentInput.focus();
-        }
+        // Desktop-only: focus the body field so the typing caret is
+        // visible. On mobile the automated step must NOT pull focus.
+        _focusEditableOnDesktopOnly(contentInput);
         visualActionDelay = Math.max(
           visualActionDelay,
           _typeIntoSearch(contentInput, step.typeContent, contentTypingStartDelay, step.typeSpeedMs)
@@ -828,7 +873,7 @@
         content: contentEl ? contentEl.value : "가로등 고장을 신고합니다.",
         author: "주민"
       };
-      
+
       window.CitizenContentAdapter.submitBoardPost(data).then(function() {
         if (cCanvas && cCanvas.navigateToRoute) {
           cCanvas.navigateToRoute("complaint-review");

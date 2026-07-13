@@ -486,9 +486,9 @@ class TestResponsiveViewportContract:
         entry_block = block[block.index('body[data-first-use-state="entry"] .chat-shell'):]
         entry_block = entry_block[: entry_block.index("}") + 1]
         assert "width: calc(100% - 24px)" in entry_block
-        # top+left/right+bottom margins must keep the composer focus outline
-        # inside a 320px-tall viewport.
-        assert "margin: 56px 12px 14px" in entry_block
+        # top+left/right+bottom margins match the canonical mobile entry spec
+        # (82px top clears the brand, 12px side/bottom symmetric).
+        assert "margin: 82px 12px 12px" in entry_block
 
     def test_mobile_entry_margin_plus_width_stays_within_viewport(self):
         # width calc(100% - 24px) + 12px*2 margins == 100% of viewport.
@@ -497,9 +497,9 @@ class TestResponsiveViewportContract:
         entry_block = block[block.index('body[data-first-use-state="entry"] .chat-shell'):]
         entry_block = entry_block[: entry_block.index("}") + 1]
         assert "width: calc(100% - 24px)" in entry_block
-        # bottom margin (14px) + reduced height keep the composer focus
+        # bottom margin (12px) + reduced height keep the composer focus
         # outline inside a 320px-tall viewport.
-        assert "12px 14px" in entry_block or "margin: 56px 12px 14px" in entry_block
+        assert "82px 12px 12px" in entry_block or "margin: 82px 12px 12px" in entry_block
 
     def test_split_mobile_chat_and_canvas_use_full_width_with_min_width_zero(self):
         block = CSS[CSS.index("@media (max-width: 767px)"):]
@@ -549,17 +549,21 @@ class TestResponsiveViewportContract:
 # #demo-canvas (no DOM clone, no summary card). Desktop must keep
 # the legacy split grid and never expose the mobile switch.
 def test_mobile_surface_switch_present_and_desktop_hidden():
-    # HTML: a real tablist with two labelled buttons + aria wiring.
-    assert 'role="tablist"' in HTML
+    # HTML: a real group with two toggle buttons + aria-pressed wiring.
+    assert 'role="group"' in HTML
     assert 'aria-label="서비스 화면"' in HTML
     assert 'id="tab-conversation"' in HTML
     assert 'id="tab-guidance"' in HTML
-    assert 'role="tab"' in HTML
-    assert 'aria-selected="true"' in HTML
+    assert 'aria-pressed="true"' in HTML
+    assert 'aria-pressed="false"' in HTML
     assert 'aria-controls="chat-shell"' in HTML
     assert 'aria-controls="demo-canvas"' in HTML
     assert 'data-mobile-surface-tab="conversation"' in HTML
     assert 'data-mobile-surface-tab="guidance"' in HTML
+    # No tablist/tab/aria-selected semantics (replaced by group + aria-pressed).
+    assert 'role="tablist"' not in HTML
+    assert 'role="tab"' not in HTML
+    assert 'aria-selected=' not in HTML
     # Labels: exact accessible names (whitespace inside button is fine).
     assert "대화" in HTML
     assert "안내 화면" in HTML
@@ -575,10 +579,23 @@ def test_mobile_surface_switch_contract_in_shell_and_css():
     assert "function hideMobileSurfaceSwitch()" in JS
     assert "function focusComposerIfAllowed()" in JS
     assert 'body.setAttribute("data-mobile-surface"' in JS
-    # CSS: switch hidden by default (desktop never shows it); only
-    # the ≤767px media query exposes it.
+    # setMobileSurface must drive aria-pressed (not aria-selected) and
+    # toggle inert/aria-hidden on the canonical chat + canvas DOMs.
+    assert "aria-pressed" in JS
+    assert 'chatShell.setAttribute("aria-hidden"' in JS or "chatShell.setAttribute('aria-hidden'" in JS
+    assert 'canvas.setAttribute("aria-hidden"' in JS or "canvas.setAttribute('aria-hidden'" in JS
+    assert 'chatShell.setAttribute("inert"' in JS or "chatShell.setAttribute('inert'" in JS
+    assert 'canvas.setAttribute("inert"' in JS
+    # Responsive resize cleanup is driven by a matchMedia change listener
+    # (no UA sniffing).
+    assert "addEventListener(\"change\"" in JS or "addListener(" in JS
+    assert "syncResponsiveMode" in JS
+    # CSS: switch hidden by default (desktop never shows it); only the
+    # ≤767px media query exposes it; [hidden] always wins.
     assert ".mobile-surface-switch {" in CSS
     assert "display: none;" in CSS
+    assert ".mobile-surface-switch[hidden] {" in CSS
+    assert "display: none !important;" in CSS
     # Canonical canvas is reused as the guidance surface (no display:none
     # clone, no summary card) — the mobile rule keeps #demo-canvas.
     assert 'body[data-mobile-surface="guidance"][data-first-use-state="split"] #demo-canvas' in CSS
@@ -586,6 +603,30 @@ def test_mobile_surface_switch_contract_in_shell_and_css():
     # the mobile surface mode, not a UA sniff or global focus trap.
     assert 'isMobileSurfaceMode() && chatInput' in JS
     assert "chatInput.blur()" in JS
+    # No UA sniffing anywhere in the surface module.
+    assert "navigator.userAgent" not in JS
+    assert "navigator.platform" not in JS
+    # startChoreography must NOT unconditionally focus; mobile auto-focus
+    # is suppressed via the desktop-only guard.
+    assert "function startChoreography(" in JS
+    assert "focusComposerIfAllowed();" in JS
+
+
+def test_mobile_surface_choreography_focus_is_desktop_only():
+    # Choreography automated steps must NOT call .focus() directly on
+    # editable elements on mobile; they go through the desktop-only helper.
+    assert "function _focusEditableOnDesktopOnly(" in CHOREO
+    assert "function _blurActiveEditableForAutomatedMobileStep(" in CHOREO
+    # The automated action paths route editable focus via the helper.
+    assert "_focusEditableOnDesktopOnly(typeInput)" in CHOREO
+    assert "_focusEditableOnDesktopOnly(contentInput)" in CHOREO
+    # _executeStep must blur any active editable at step start on mobile.
+    assert "_blurActiveEditableForAutomatedMobileStep();" in CHOREO
+    # Stage 3 getter API must be preserved (no behavior change).
+    assert "getCurrentStepIndex" in CHOREO
+    assert "getTotalSteps" in CHOREO
+    assert "getSteps" in CHOREO
+
 
 
 def test_mobile_surface_does_not_clone_or_duplicate_canonical_doms():
@@ -594,7 +635,9 @@ def test_mobile_surface_does_not_clone_or_duplicate_canonical_doms():
     # duplicate canvas clone or summary-card surface created.
     assert HTML.count('id="demo-canvas"') == 1
     assert HTML.count('id="chat-shell"') == 1
-    assert "summary" not in HTML.lower().split("mobile-surface-switch")[0] or True
+    # No mobile summary/replacement surface is introduced before the switch.
+    assert "mobile-guidance-summary" not in HTML
+    assert "mobile-result-replacement" not in HTML
     # No second civic surface element is introduced alongside the switch.
     assert "demo-canvas__clone" not in HTML
     assert "guidance-card" not in HTML

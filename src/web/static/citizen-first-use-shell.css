@@ -671,19 +671,15 @@ body.first-use-shell--no-motion .demo-canvas {
   }
 
   body[data-first-use-state="entry"] .first-use-layout {
-    align-items: start;
-    grid-template-rows: auto;
+    grid-template-columns: 1fr 0;
   }
 
   body[data-first-use-state="entry"] .chat-shell {
-    grid-area: auto !important;
-    place-self: start !important;
-    align-self: start !important;
+    place-self: auto;
     width: calc(100% - 24px);
-    height: calc(100vh - 130px) !important;
-    min-height: 0 !important;
-    margin: 28px 12px 14px !important;
-    overflow: visible !important;
+    height: calc(100vh - 94px);
+    min-height: 0;
+    margin: 82px 12px 12px;
     border-radius: 22px;
     box-shadow: 0 24px 70px rgba(1, 14, 35, 0.34);
   }
@@ -979,6 +975,11 @@ body.first-use-shell--no-motion .demo-canvas {
   display: none;
 }
 
+/* Hidden attribute always wins, even inside the ≤767px exposure rule. */
+.mobile-surface-switch[hidden] {
+  display: none !important;
+}
+
 @supports (grid) {
   /* Desktop: keep the legacy split grid intact; switch stays hidden. */
   body[data-first-use-state="split"] .mobile-surface-switch,
@@ -1025,7 +1026,7 @@ body.first-use-shell--no-motion .demo-canvas {
     background: #e7ecf3;
   }
 
-  .mobile-surface-tab[aria-selected="true"] {
+  .mobile-surface-tab[aria-pressed="true"] {
     color: #0d0d0f;
     background: #fff;
     border-color: #8dc7ef;
