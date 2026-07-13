@@ -277,31 +277,48 @@ def _preserve_first_use_chat_body():
     return CANVAS[start:end]
 
 
-def test_canvas_preserve_helper_covers_entire_split_phase():
-    """Pending confirmation을 포함한 split 전체 단계에서 chat을 보존한다."""
+def test_canvas_preserve_helper_covers_transitioning_and_split():
+    """#1123: cinematic split (transitioning) and pending confirmation/split
+    both preserve shell-owned chat. Canvas home paint during transitioning
+    must not wipe the real user message via _restoreHistoricalChat."""
     body = _preserve_first_use_chat_body()
 
-    assert 'data-first-use-state' in body
-    assert '=== "split"' in body
+    assert "data-first-use-state" in body
+    assert 'state === "transitioning"' in body
+    assert 'state === "split"' in body
     assert "data-choreography-state" not in body
     assert "choreographyState" not in body
 
 
-def test_canvas_preserve_helper_remains_false_outside_split():
-    """Helper가 split 여부만 반환하여 entry/transitioning에서는 false가 된다."""
+def test_canvas_preserve_helper_remains_false_on_entry_only():
+    """Helper is false on entry so standalone canvas demos can still seed
+    historical chat; shell re-renders the greeting after canvas boot."""
     body = _preserve_first_use_chat_body()
 
-    assert (
-        'return document.body.getAttribute("data-first-use-state") === "split";'
-        in body
-    )
+    assert 'state === "transitioning"' in body
+    assert 'state === "split"' in body
+    assert '=== "entry"' not in body
+    assert "return state === \"transitioning\" || state === \"split\";" in body
 
 
 def test_canvas_restore_historical_is_guarded_by_preserve_helper():
-    """_restoreHistoricalChat call must be guarded by !_shouldPreserveFirstUseChat()
-    so that choreography chat messages survive route transitions."""
-    assert "!_shouldPreserveFirstUseChat()" in CANVAS
-    assert "_restoreHistoricalChat()" in CANVAS
+    """_restoreHistoricalChat and other full-thread rewriters must be gated
+    by preserveChat so shell-owned history survives route transitions."""
+    assert "var preserveChat = _shouldPreserveFirstUseChat();" in CANVAS
+    assert "!preserveChat" in CANVAS
+    # Call site (not the function definition) must sit behind !preserveChat.
+    call_idx = CANVAS.index("_restoreHistoricalChat();")
+    call_window = CANVAS[max(0, call_idx - 120): call_idx]
+    assert "!preserveChat" in call_window
+    # Dept journey progress rewrite is also gated (housing choreography).
+    assert "_updateChatProgressForDept(deptState)" in CANVAS
+    render_route = CANVAS[CANVAS.index("function _renderRoute(routeId)"):]
+    dept_guard_region = render_route[
+        render_route.index("if (isDeptJourney)"): render_route.index(
+            "_restoreHistoricalChat();"
+        )
+    ]
+    assert "if (!preserveChat)" in dept_guard_region
 
 
 def test_canvas_preserve_no_network_or_storage():

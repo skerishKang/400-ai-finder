@@ -679,18 +679,23 @@
   }
 
   /**
-   * First-use choreography presence check.
-   * When the first-use shell owns the split-state chat thread (the resident
-   * has not yet completed the journey), route transitions must not overwrite
-   * it with the default historical chat HTML. This covers the entire split
-   * phase, including the pending user-confirmation step before any
-   * choreography has started, so the shell-managed quest card and
-   * confirm-run button survive the canvas home render. Returns true when the
-   * chat should be preserved.
+   * First-use shell chat ownership check (#1099 / #1123).
+   * When the first-use shell owns the chat thread, canvas route / replay /
+   * journey renders must not rewrite #chat-thread (innerHTML full replace).
+   *
+   * Covers:
+   * - transitioning: cinematic split paints home via navigateToRoute("home")
+   *   while the real user message + greeting are already in the thread
+   * - split: pending confirm-run, quest card, and choreography narration
+   *
+   * Entry remains false so standalone canvas demos / URL-driven replays can
+   * still seed historical chat before the shell re-renders the greeting.
+   * Returns true when the chat should be preserved (append-only ownership).
    */
   function _shouldPreserveFirstUseChat() {
     if (!document.body) return false;
-    return document.body.getAttribute("data-first-use-state") === "split";
+    var state = document.body.getAttribute("data-first-use-state");
+    return state === "transitioning" || state === "split";
   }
 
   function _restoreHistoricalChat() {
@@ -2808,6 +2813,9 @@
   // -----------------------------------------------------------------------
   function _renderRoute(routeId) {
     var search = typeof window !== "undefined" && window.location ? window.location.search : "";
+    // #1123: once the first-use shell owns the thread (transitioning|split),
+    // never full-replace #chat-thread from any canvas route side-effect.
+    var preserveChat = _shouldPreserveFirstUseChat();
     var autoReplay = _resolveAutoReplayState(search);
     if (autoReplay.isAuto) {
       var status;
@@ -2828,7 +2836,9 @@
       }
       _autoReplayState.phase = autoReplay.step;
       _autoReplayState.status = status;
-      _updateChatProgressForAutoReplay(autoReplay.step);
+      if (!preserveChat) {
+        _updateChatProgressForAutoReplay(autoReplay.step);
+      }
       if (status === "running") {
         _scheduleAutoReplayAdvance(autoReplay.step);
       } else {
@@ -2839,7 +2849,9 @@
     _clearAutoReplayTimer();
     var deptReplay = _resolveDeptReplayState(search);
     if (deptReplay.isReplay) {
-      _updateChatProgressForDeptReplay(deptReplay.step);
+      if (!preserveChat) {
+        _updateChatProgressForDeptReplay(deptReplay.step);
+      }
       if (deptReplay.step === "ready") {
         return _renderHome(_resolveHomeReferenceState(search));
       }
@@ -2847,12 +2859,16 @@
     }
     var kioskJourney = _resolveKioskJourneyState(search);
     if (kioskJourney.isKiosk) {
-      _updateChatForKiosk();
+      if (!preserveChat) {
+        _updateChatForKiosk();
+      }
       return _renderKioskInformation();
     }
     var parkJourney = _resolveParkJourneyState(search);
     if (parkJourney.isPark) {
-      _updateChatForPark();
+      if (!preserveChat) {
+        _updateChatForPark();
+      }
       return _renderParkInformation();
     }
     var deptJourney = _resolveDeptJourneyState(search);
@@ -2860,8 +2876,12 @@
     var deptState = deptJourney.state;
 
     if (isDeptJourney) {
-      _updateChatProgressForDept(deptState);
-    } else if (!kioskJourney.isKiosk && !_shouldPreserveFirstUseChat()) {
+      // Housing choreography pushes J-DEPT-01 URL state then navigates home;
+      // do not replace shell-owned history with canned dept progress HTML.
+      if (!preserveChat) {
+        _updateChatProgressForDept(deptState);
+      }
+    } else if (!kioskJourney.isKiosk && !preserveChat) {
       _restoreHistoricalChat();
     }
 
