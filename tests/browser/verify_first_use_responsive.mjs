@@ -46,6 +46,34 @@ const STATES = ["entry", "split"];
 
 const TOL = 1.5; // sub-pixel rounding tolerance (px)
 
+// #1114 — product canonical entry chips (exact data-chip-question strings).
+// Taken from src/web/static/citizen-action-demo.html; do not invent copy.
+const EXPECTED_ENTRY_QUESTIONS = Object.freeze([
+  "불법 주정차 신고는 어디서 하나요?",
+  "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+  "매트리스 폐기 신청은 어디서 하나요?",
+  "여권 발급은 어디서 하나요?",
+  "무인민원발급기 어디 있어요?",
+  "가로등이 고장났어요. 신고할게요",
+  "쓰레기 무단투기 신고할래 (AI 도움)",
+  "구청장에게 제안하고 싶어요",
+]);
+const MAYOR_CANONICAL_QUESTION = "구청장에게 제안하고 싶어요";
+const MAYOR_CANONICAL_ACTION = "mayor_message_assist";
+const MAYOR_CONTROL_SELECTOR = "#mayor-open-office-control";
+const MAYOR_ACCESSIBLE_NAME = "열린구청장실 바로가기";
+const MAYOR_CONFIRM_LABEL = "구청장 제안 작성";
+// Geometry ratios from focused diagnostics (sub-pixel bounded ranges).
+const MAYOR_RATIO_BOUNDS = Object.freeze({
+  left: [0.12, 0.19],
+  top: [0.72, 0.82],
+  width: [0.3, 0.4],
+  height: [0.1, 0.2],
+});
+const MAYOR_CURSOR_SELECTOR = '[data-agent-cursor="true"], .choreo-cursor';
+const MAYOR_HIGHLIGHT_SELECTOR =
+  "#mayor-open-office-control.executor-highlight, #mayor-open-office-control.is-agent-target";
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -78,7 +106,21 @@ function run(cmd, args, opts = {}) {
 }
 
 async function pickPython() {
-  for (const exe of ["python3", "python"]) {
+  const localAppData = process.env.LOCALAPPDATA || "";
+  const programFiles = process.env.ProgramFiles || "C:\\Program Files";
+  const candidates = [
+    "python3",
+    "python",
+    // Prefer a real Windows install over the Microsoft Store stub.
+    path.join(localAppData, "Programs", "Python", "Python312", "python.exe"),
+    path.join(localAppData, "Programs", "Python", "Python313", "python.exe"),
+    path.join(localAppData, "Programs", "Python", "Python311", "python.exe"),
+    path.join(programFiles, "Python312", "python.exe"),
+    path.join(programFiles, "Python311", "python.exe"),
+  ];
+  for (const exe of candidates) {
+    if (!exe) continue;
+    if (exe.includes(path.sep) && !fs.existsSync(exe)) continue;
     try {
       await run(exe, ["--version"]);
       return exe;
@@ -818,6 +860,1258 @@ async function runOneState(page, viewport, state, base) {
   );
 
   return { viewport, state, geometry: "PASS", inputFocus: "PASS", sendFocus: "PASS" };
+}
+
+// ── #1114 mayor proposal entry: persistent browser contracts ──────────
+// Extends this harness only (no new server/workflow). Fail-closed under the
+// same external-request abort + error instrumentation as Stage B.
+
+function rectAlmostEqual(a, b, tol = TOL) {
+  if (!a || !b) return false;
+  return (
+    Math.abs(a.left - b.left) <= tol &&
+    Math.abs(a.top - b.top) <= tol &&
+    Math.abs(a.width - b.width) <= tol &&
+    Math.abs(a.height - b.height) <= tol
+  );
+}
+
+function inRatioRange(value, [lo, hi], label, ctx) {
+  assert.ok(
+    typeof value === "number" && Number.isFinite(value),
+    `${label} ratio not finite (${value}) [${ctx}]`,
+  );
+  assert.ok(
+    value >= lo && value <= hi,
+    `${label} ratio ${value.toFixed(4)} outside [${lo}, ${hi}] [${ctx}]`,
+  );
+}
+
+async function install1114ErrorInstrumentation(page, allowedOrigin, buckets) {
+  const {
+    consoleErrors,
+    pageErrors,
+    requestFailures,
+    httpErrors,
+    externalRequestAttempts,
+  } = buckets;
+
+  page.on("pageerror", (err) => {
+    pageErrors.push(String(err && err.message ? err.message : err));
+  });
+  page.on("console", (msg) => {
+    if (msg.type() === "error") {
+      const loc = typeof msg.location === "function" ? msg.location() : null;
+      consoleErrors.push({
+        text: msg.text(),
+        url: loc && loc.url ? loc.url : "",
+        line: loc && typeof loc.lineNumber === "number" ? loc.lineNumber : null,
+      });
+    }
+  });
+  page.on("requestfailed", (req) => {
+    const url = req.url();
+    try {
+      const parsed = new URL(url);
+      if (parsed.pathname === "/favicon.ico") return;
+    } catch {
+      /* malformed counts */
+    }
+    requestFailures.push({
+      url,
+      failure: (req.failure() && req.failure().errorText) || "unknown",
+    });
+  });
+  page.on("response", (resp) => {
+    const url = resp.url();
+    try {
+      const parsed = new URL(url);
+      if (parsed.pathname === "/favicon.ico") return;
+    } catch {
+      /* inspect anyway */
+    }
+    if (resp.status() >= 400) {
+      httpErrors.push({ url, status: resp.status() });
+    }
+  });
+  page.on("request", (req) => {
+    const u = req.url();
+    try {
+      const parsed = new URL(u);
+      if (parsed.origin === allowedOrigin) return;
+      if (parsed.pathname === "/favicon.ico") return;
+      if (!externalRequestAttempts.includes(u)) {
+        externalRequestAttempts.push(u);
+      }
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+async function installMayorTimelineWrappers(page) {
+  await page.evaluate(() => {
+    const w = window;
+    w.__1114Timeline = [];
+    w.__1114VisualSamples = [];
+    const push = (type, extra) => {
+      w.__1114Timeline.push({
+        type,
+        selectorOrJourney:
+          extra && extra.selectorOrJourney != null
+            ? String(extra.selectorOrJourney)
+            : null,
+        time: performance.now(),
+        firstUseState: document.body.getAttribute("data-first-use-state"),
+        mobileSurface: document.body.getAttribute("data-mobile-surface"),
+      });
+    };
+
+    // State transitions.
+    if (!w.__1114StateObserver) {
+      w.__1114StateObserver = new MutationObserver(() => {
+        push("state-change", {
+          selectorOrJourney: document.body.getAttribute("data-first-use-state"),
+        });
+      });
+      w.__1114StateObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ["data-first-use-state"],
+      });
+    }
+
+    // Canonical user-message additions (survives later canvas chat rewrites).
+    // Observe direct chat-thread children only — one event per .chat-msg--user.
+    if (!w.__1114ChatObserver) {
+      const thread = document.getElementById("chat-thread");
+      if (thread) {
+        w.__1114ChatObserver = new MutationObserver((mutations) => {
+          for (const m of mutations) {
+            for (const node of m.addedNodes || []) {
+              if (!node || node.nodeType !== 1) continue;
+              if (!(node.matches && node.matches(".chat-msg--user"))) continue;
+              const bubble = node.querySelector(".chat-bubble");
+              const text = bubble
+                ? (bubble.textContent || "").trim()
+                : (node.textContent || "").trim();
+              if (text.includes("구청장에게 제안하고 싶어요")) {
+                push("user-message", { selectorOrJourney: text });
+              }
+            }
+          }
+        });
+        // Direct children only: avoids double-count from subtree bubble inserts.
+        w.__1114ChatObserver.observe(thread, { childList: true, subtree: false });
+      }
+    }
+
+    const describeTarget = (selOrEl) => {
+      if (selOrEl == null) return "";
+      if (typeof selOrEl === "string") return selOrEl;
+      if (selOrEl && selOrEl.id) return "#" + selOrEl.id;
+      if (selOrEl && selOrEl.getAttribute) {
+        const al = selOrEl.getAttribute("aria-label");
+        if (al) return "[aria-label=" + al + "]";
+      }
+      return String(selOrEl);
+    };
+
+    // Public cursor API (Object.freeze prevents reassignment — redefine via
+    // a non-frozen shim object only when possible; otherwise wrap by
+    // replacing the global with a new frozen facade that delegates).
+    const canvas = w.CitizenActionDemoCanvas;
+    if (canvas && !w.__1114CanvasWrapped) {
+      const origShow = canvas.showCursorAt && canvas.showCursorAt.bind(canvas);
+      const origClick = canvas.clickAnimation && canvas.clickAnimation.bind(canvas);
+      const origHide = canvas.hideCursor && canvas.hideCursor.bind(canvas);
+      const facade = Object.assign({}, canvas);
+      if (origShow) {
+        facade.showCursorAt = function (sel) {
+          push("showCursorAt", { selectorOrJourney: describeTarget(sel) });
+          return origShow(sel);
+        };
+      }
+      if (origClick) {
+        facade.clickAnimation = function (sel) {
+          push("clickAnimation", { selectorOrJourney: describeTarget(sel) });
+          return origClick(sel);
+        };
+      }
+      if (origHide) {
+        facade.hideCursor = function () {
+          push("hideCursor", {});
+          return origHide();
+        };
+      }
+      try {
+        w.CitizenActionDemoCanvas = Object.freeze(facade);
+        w.__1114CanvasWrapped = true;
+      } catch {
+        // If reassignment fails, fall back to polling visual samples only.
+        w.__1114CanvasWrapFailed = true;
+      }
+    }
+
+    const choreo = w.CitizenFirstChoreography;
+    if (choreo && !w.__1114ChoreoWrapped) {
+      const origStart = choreo.start && choreo.start.bind(choreo);
+      const facade = Object.assign({}, choreo);
+      if (origStart) {
+        facade.start = function (key) {
+          push("choreography-start", { selectorOrJourney: String(key) });
+          return origStart(key);
+        };
+      }
+      try {
+        w.CitizenFirstChoreography = Object.freeze(facade);
+        w.__1114ChoreoWrapped = true;
+      } catch {
+        w.__1114ChoreoWrapFailed = true;
+      }
+    }
+
+    // Visual DOM samples (cursor / highlight / ripple) during entry.
+    if (!w.__1114SampleTimer) {
+      w.__1114SampleTimer = setInterval(() => {
+        const control = document.getElementById("mayor-open-office-control");
+        const cursor = document.querySelector(
+          '[data-agent-cursor="true"], .choreo-cursor',
+        );
+        const state = document.body.getAttribute("data-first-use-state");
+        if (state !== "entry") return;
+        const cRect = control ? control.getBoundingClientRect() : null;
+        const kRect = cursor ? cursor.getBoundingClientRect() : null;
+        const status = cursor ? cursor.getAttribute("data-agent-status") : null;
+        const opacity = cursor ? cursor.style.opacity : null;
+        const highlight = !!(
+          control &&
+          (control.classList.contains("executor-highlight") ||
+            control.classList.contains("is-agent-target"))
+        );
+        // Ripple nodes are anonymous fixed divs with choreoClick animation.
+        let rippleVisible = false;
+        const nodes = document.body ? document.body.children : [];
+        for (let i = 0; i < nodes.length; i++) {
+          const n = nodes[i];
+          if (!n || n === cursor) continue;
+          const st = n.style;
+          if (
+            st &&
+            st.position === "fixed" &&
+            st.pointerEvents === "none" &&
+            (st.animation || "").indexOf("choreoClick") !== -1
+          ) {
+            rippleVisible = true;
+            break;
+          }
+        }
+        w.__1114VisualSamples.push({
+          time: performance.now(),
+          state,
+          highlight,
+          cursorStatus: status,
+          cursorOpacity: opacity,
+          cursorVisible: !!(cursor && opacity === "1"),
+          rippleVisible,
+          cursorNearControl: !!(
+            cRect &&
+            kRect &&
+            kRect.width > 0 &&
+            Math.abs(kRect.left - (cRect.left + cRect.width / 2)) <
+              Math.max(cRect.width, 80) &&
+            Math.abs(kRect.top - cRect.top) < Math.max(cRect.height * 2, 120)
+          ),
+          mayorUserCount: Array.from(
+            document.querySelectorAll(".chat-msg--user .chat-bubble"),
+          ).filter((b) =>
+            (b.textContent || "").includes("구청장에게 제안하고 싶어요"),
+          ).length,
+        });
+      }, 80);
+    }
+  });
+}
+
+async function readMayorTimeline(page) {
+  return page.evaluate(() => {
+    if (window.__1114SampleTimer) {
+      clearInterval(window.__1114SampleTimer);
+      window.__1114SampleTimer = null;
+    }
+    return {
+      timeline: window.__1114Timeline || [],
+      visual: window.__1114VisualSamples || [],
+      canvasWrapFailed: !!window.__1114CanvasWrapFailed,
+      choreoWrapFailed: !!window.__1114ChoreoWrapFailed,
+    };
+  });
+}
+
+async function assertEntryChipsComposer(page, base, viewport) {
+  const ctx = `1114 ${viewport.width}x${viewport.height} entry`;
+  await page.setViewportSize({
+    width: viewport.width,
+    height: viewport.height,
+  });
+  const response = await page.goto(base, { waitUntil: "domcontentloaded" });
+  assert.ok(response, `no response [${ctx}]`);
+  assert.equal(response.status(), 200, `status ${response.status()} [${ctx}]`);
+  await page.waitForSelector("#chat-chips", { timeout: 10000 });
+
+  const info = await page.evaluate((expected) => {
+    const chipsRoot = document.getElementById("chat-chips");
+    const chips = chipsRoot
+      ? Array.from(chipsRoot.querySelectorAll(".chat-chip"))
+      : [];
+    const box = chipsRoot ? chipsRoot.getBoundingClientRect() : null;
+    const composer = document.querySelector(".chat-composer");
+    const input = document.querySelector(".chat-composer__input");
+    const send = document.querySelector(".chat-composer__send");
+    const greeting = document.querySelector(
+      ".chat-thread .chat-msg--ai .chat-bubble",
+    );
+    const vis = (el) => {
+      if (!el) return false;
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      return (
+        cs.display !== "none" &&
+        cs.visibility !== "hidden" &&
+        r.width > 0 &&
+        r.height > 0
+      );
+    };
+    const chipDetails = chips.map((c) => {
+      const r = c.getBoundingClientRect();
+      const cs = getComputedStyle(c);
+      const fullyInBox =
+        !!box &&
+        r.left >= box.left - 1.5 &&
+        r.right <= box.right + 1.5 &&
+        r.top >= box.top - 1.5 &&
+        r.bottom <= box.bottom + 1.5;
+      // Scroll-hidden: center of chip must remain within chips client box.
+      const centerInClient =
+        !!box &&
+        r.left + r.width / 2 >= box.left &&
+        r.left + r.width / 2 <= box.right &&
+        r.top + r.height / 2 >= box.top &&
+        r.top + r.height / 2 <= box.bottom;
+      return {
+        question: c.getAttribute("data-chip-question") || "",
+        display: cs.display,
+        visibility: cs.visibility,
+        width: r.width,
+        height: r.height,
+        fullyInBox,
+        centerInClient,
+        visible: vis(c),
+      };
+    });
+    return {
+      questions: chipDetails.map((c) => c.question),
+      chipDetails,
+      count: chips.length,
+      composerVisible: vis(composer),
+      inputVisible: vis(input),
+      sendVisible: vis(send),
+      greetingText: greeting ? (greeting.textContent || "").trim() : "",
+      expected,
+    };
+  }, EXPECTED_ENTRY_QUESTIONS);
+
+  assert.equal(info.count, 8, `chip count ${info.count} !== 8 [${ctx}]`);
+  assert.deepStrictEqual(
+    info.questions.slice().sort(),
+    EXPECTED_ENTRY_QUESTIONS.slice().sort(),
+    `chip question set mismatch [${ctx}]: got ${JSON.stringify(info.questions)}`,
+  );
+  assert.equal(
+    new Set(info.questions).size,
+    8,
+    `duplicate chip questions [${ctx}]`,
+  );
+  for (const q of EXPECTED_ENTRY_QUESTIONS) {
+    assert.ok(info.questions.includes(q), `missing chip question "${q}" [${ctx}]`);
+  }
+  const mayorCount = info.questions.filter((q) => q === MAYOR_CANONICAL_QUESTION)
+    .length;
+  assert.equal(mayorCount, 1, `mayor chip count ${mayorCount} [${ctx}]`);
+  for (let i = 0; i < info.chipDetails.length; i++) {
+    const c = info.chipDetails[i];
+    assert.notEqual(c.display, "none", `chip[${i}] display none [${ctx}]`);
+    assert.notEqual(c.visibility, "hidden", `chip[${i}] visibility hidden [${ctx}]`);
+    assert.ok(c.width > 0, `chip[${i}] width 0 [${ctx}]`);
+    assert.ok(c.height > 0, `chip[${i}] height 0 [${ctx}]`);
+    assert.ok(c.visible, `chip[${i}] not visible [${ctx}]`);
+    assert.ok(c.fullyInBox, `chip[${i}] not inside .chat-chips box [${ctx}]`);
+    assert.ok(
+      c.centerInClient,
+      `chip[${i}] scroll-hidden outside chips client box [${ctx}]`,
+    );
+  }
+  assert.ok(info.composerVisible, `composer not visible [${ctx}]`);
+  assert.ok(info.inputVisible, `composer input not visible [${ctx}]`);
+  assert.ok(info.sendVisible, `send button not visible [${ctx}]`);
+  assert.ok(
+    info.greetingText.includes("안녕하세요"),
+    `greeting bubble missing [${ctx}] got="${info.greetingText.slice(0, 80)}"`,
+  );
+  return info;
+}
+
+async function assertMayorControlGeometryAndFocus(page, base, viewport) {
+  const ctx = `1114 ${viewport.width}x${viewport.height} geometry`;
+  await page.setViewportSize({
+    width: viewport.width,
+    height: viewport.height,
+  });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector(MAYOR_CONTROL_SELECTOR, { state: "attached", timeout: 10000 });
+  // Allow mayor image layout to settle.
+  await page.waitForTimeout(200);
+
+  const geo = await page.evaluate(
+    ({ controlSel, name, bounds }) => {
+      const control = document.querySelector(controlSel);
+      const image = document.querySelector(".entry-stage__mayor > img");
+      const state = document.body.getAttribute("data-first-use-state");
+      if (!control) {
+        return { exists: false, state };
+      }
+      const cs = getComputedStyle(control);
+      const cRect = control.getBoundingClientRect();
+      const iRect = image ? image.getBoundingClientRect() : null;
+      const accessible =
+        control.getAttribute("aria-label") ||
+        (control.textContent || "").trim();
+      const blueHit = (() => {
+        if (cRect.width <= 0) return null;
+        const el = document.elementFromPoint(
+          cRect.left + cRect.width / 2,
+          cRect.top + cRect.height / 2,
+        );
+        return {
+          id: el && el.id,
+          isControl: !!(
+            el &&
+            (el === control || control.contains(el) || el.id === "mayor-open-office-control")
+          ),
+        };
+      })();
+      const greenPoint = iRect
+        ? {
+            x: iRect.left + iRect.width * 0.7,
+            y: iRect.top + iRect.height * 0.84,
+          }
+        : null;
+      const greenEl = greenPoint
+        ? document.elementFromPoint(greenPoint.x, greenPoint.y)
+        : null;
+      const greenIsControl = !!(
+        greenEl &&
+        (greenEl === control ||
+          control.contains(greenEl) ||
+          greenEl.id === "mayor-open-office-control")
+      );
+      let ratios = null;
+      if (iRect && iRect.width > 0 && iRect.height > 0) {
+        ratios = {
+          left: (cRect.left - iRect.left) / iRect.width,
+          top: (cRect.top - iRect.top) / iRect.height,
+          width: cRect.width / iRect.width,
+          height: cRect.height / iRect.height,
+        };
+      }
+      const controlInsideImage = !!(
+        iRect &&
+        cRect.left >= iRect.left - 1.5 &&
+        cRect.right <= iRect.right + 1.5 &&
+        cRect.top >= iRect.top - 1.5 &&
+        cRect.bottom <= iRect.bottom + 1.5
+      );
+      return {
+        exists: true,
+        state,
+        tagName: control.tagName,
+        accessible,
+        expectedName: name,
+        display: cs.display,
+        visibility: cs.visibility,
+        pointerEvents: cs.pointerEvents,
+        disabled: !!control.disabled,
+        tabIndex: control.tabIndex,
+        controlRect: {
+          left: cRect.left,
+          top: cRect.top,
+          width: cRect.width,
+          height: cRect.height,
+          right: cRect.right,
+          bottom: cRect.bottom,
+        },
+        imageRect: iRect
+          ? {
+              left: iRect.left,
+              top: iRect.top,
+              width: iRect.width,
+              height: iRect.height,
+              right: iRect.right,
+              bottom: iRect.bottom,
+            }
+          : null,
+        ratios,
+        blueHit,
+        greenIsControl,
+        greenPoint,
+        controlInsideImage,
+        bounds,
+      };
+    },
+    {
+      controlSel: MAYOR_CONTROL_SELECTOR,
+      name: MAYOR_ACCESSIBLE_NAME,
+      bounds: MAYOR_RATIO_BOUNDS,
+    },
+  );
+
+  const isDesktop = viewport.width >= 768;
+  if (!isDesktop) {
+    // Mobile: control hidden with mayor card; not in tab order.
+    assert.ok(geo.exists, `control missing from DOM on mobile [${ctx}]`);
+    assert.ok(
+      geo.display === "none" ||
+        geo.controlRect.width === 0 ||
+        geo.controlRect.height === 0,
+      `mobile control must be hidden [${ctx}] display=${geo.display} rect=${JSON.stringify(geo.controlRect)}`,
+    );
+    // Tab should not land on the control.
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    const activeId = await page.evaluate(() =>
+      document.activeElement ? document.activeElement.id : "",
+    );
+    assert.notEqual(
+      activeId,
+      "mayor-open-office-control",
+      `mobile control must not be keyboard-focusable [${ctx}]`,
+    );
+    return geo;
+  }
+
+  assert.ok(geo.exists, `control missing [${ctx}]`);
+  assert.equal(geo.state, "entry", `first-use-state not entry [${ctx}]`);
+  assert.ok(
+    geo.tagName === "BUTTON" || geo.tagName === "A",
+    `semantic type ${geo.tagName} [${ctx}]`,
+  );
+  assert.equal(geo.accessible, MAYOR_ACCESSIBLE_NAME, `a11y name [${ctx}]`);
+  assert.notEqual(geo.display, "none", `display none [${ctx}]`);
+  assert.notEqual(geo.visibility, "hidden", `visibility hidden [${ctx}]`);
+  assert.ok(geo.controlRect.width > 0, `width 0 [${ctx}]`);
+  assert.ok(geo.controlRect.height > 0, `height 0 [${ctx}]`);
+  assert.notEqual(geo.pointerEvents, "none", `pointer-events none [${ctx}]`);
+  assert.equal(geo.disabled, false, `disabled [${ctx}]`);
+  assert.ok(geo.imageRect && geo.imageRect.width > 0, `mayor image missing [${ctx}]`);
+  assert.ok(geo.ratios, `ratios missing [${ctx}]`);
+  inRatioRange(geo.ratios.left, MAYOR_RATIO_BOUNDS.left, "left", ctx);
+  inRatioRange(geo.ratios.top, MAYOR_RATIO_BOUNDS.top, "top", ctx);
+  inRatioRange(geo.ratios.width, MAYOR_RATIO_BOUNDS.width, "width", ctx);
+  inRatioRange(geo.ratios.height, MAYOR_RATIO_BOUNDS.height, "height", ctx);
+  assert.ok(geo.controlInsideImage, `control not inside image [${ctx}]`);
+  assert.ok(geo.blueHit && geo.blueHit.isControl, `blue center miss [${ctx}]`);
+  assert.equal(geo.greenIsControl, false, `green hit is control [${ctx}]`);
+
+  // Hover rect stability + green non-hit under hover.
+  const normalRect = geo.controlRect;
+  await page.hover(MAYOR_CONTROL_SELECTOR);
+  const hover = await page.evaluate((sel) => {
+    const control = document.querySelector(sel);
+    const image = document.querySelector(".entry-stage__mayor > img");
+    const r = control.getBoundingClientRect();
+    const i = image.getBoundingClientRect();
+    const g = document.elementFromPoint(
+      i.left + i.width * 0.7,
+      i.top + i.height * 0.84,
+    );
+    return {
+      rect: {
+        left: r.left,
+        top: r.top,
+        width: r.width,
+        height: r.height,
+      },
+      greenIsControl: !!(
+        g &&
+        (g === control || control.contains(g) || g.id === "mayor-open-office-control")
+      ),
+    };
+  }, MAYOR_CONTROL_SELECTOR);
+  assert.ok(
+    rectAlmostEqual(normalRect, hover.rect),
+    `hover expanded control rect [${ctx}] normal=${JSON.stringify(normalRect)} hover=${JSON.stringify(hover.rect)}`,
+  );
+  assert.equal(hover.greenIsControl, false, `green hit under hover [${ctx}]`);
+
+  // Keyboard focus-visible (not mouse .focus()).
+  await page.mouse.move(0, 0);
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(150);
+  // Ensure keyboard modality for :focus-visible.
+  await page.keyboard.press("Tab");
+  const reached = await focusByKeyboard(page, MAYOR_CONTROL_SELECTOR, 40);
+  assert.ok(reached, `Tab could not reach mayor control [${ctx}]`);
+  const focusInfo = await verifyFocusVisible(page, MAYOR_CONTROL_SELECTOR, ctx);
+  assert.ok(focusInfo.activeElementMatches, `activeElement not control [${ctx}]`);
+  assert.ok(focusInfo.focusVisible, `:focus-visible false [${ctx}]`);
+  assert.notEqual(focusInfo.outlineStyle, "none", `outline-style none [${ctx}]`);
+  assert.ok(
+    focusInfo.outlineWidth >= 1,
+    `outline-width ${focusInfo.outlineWidth} < 1 [${ctx}]`,
+  );
+  assert.ok(
+    focusInfo.outlineColor &&
+      focusInfo.outlineColor !== "transparent" &&
+      focusInfo.outlineColor !== "rgba(0, 0, 0, 0)",
+    `outline color not visible (${focusInfo.outlineColor}) [${ctx}]`,
+  );
+
+  const focusGeo = await page.evaluate((sel) => {
+    const control = document.querySelector(sel);
+    const image = document.querySelector(".entry-stage__mayor > img");
+    const r = control.getBoundingClientRect();
+    const i = image.getBoundingClientRect();
+    const g = document.elementFromPoint(
+      i.left + i.width * 0.7,
+      i.top + i.height * 0.84,
+    );
+    const matchesFocus = control.matches(":focus");
+    const matchesFocusVisible = control.matches(":focus-visible");
+    return {
+      rect: {
+        left: r.left,
+        top: r.top,
+        width: r.width,
+        height: r.height,
+      },
+      greenIsControl: !!(
+        g &&
+        (g === control || control.contains(g) || g.id === "mayor-open-office-control")
+      ),
+      matchesFocus,
+      matchesFocusVisible,
+    };
+  }, MAYOR_CONTROL_SELECTOR);
+  assert.ok(focusGeo.matchesFocus, `:focus false [${ctx}]`);
+  assert.ok(focusGeo.matchesFocusVisible, `:focus-visible false (matches) [${ctx}]`);
+  assert.ok(
+    rectAlmostEqual(normalRect, focusGeo.rect),
+    `focus expanded control rect [${ctx}]`,
+  );
+  assert.equal(focusGeo.greenIsControl, false, `green hit under focus [${ctx}]`);
+
+  console.log(
+    `[1114 ${viewport.width}x${viewport.height}] geometry ratios=` +
+      JSON.stringify(geo.ratios) +
+      ` control=${JSON.stringify(geo.controlRect)} image=${JSON.stringify(geo.imageRect)}`,
+  );
+  return geo;
+}
+
+async function runMayorChatCursorPath(page, base) {
+  const ctx = "1114 1440x900 chat cursor-before-split";
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector(
+    `.chat-chip[data-chip-question="${MAYOR_CANONICAL_QUESTION}"]`,
+    { timeout: 10000 },
+  );
+  await page.waitForTimeout(200);
+  await installMayorTimelineWrappers(page);
+
+  const pre = await page.evaluate((q) => {
+    const control = document.getElementById("mayor-open-office-control");
+    const r = control ? control.getBoundingClientRect() : null;
+    return {
+      state: document.body.getAttribute("data-first-use-state"),
+      controlVisible: !!(r && r.width > 0 && r.height > 0),
+      mayorUserCount: Array.from(
+        document.querySelectorAll(".chat-msg--user .chat-bubble"),
+      ).filter((b) => (b.textContent || "").includes(q)).length,
+    };
+  }, MAYOR_CANONICAL_QUESTION);
+  assert.equal(pre.state, "entry", `start state not entry [${ctx}]`);
+  assert.ok(pre.controlVisible, `control not visible at start [${ctx}]`);
+  assert.equal(pre.mayorUserCount, 0, `pre-existing mayor user message [${ctx}]`);
+
+  await page.click(`.chat-chip[data-chip-question="${MAYOR_CANONICAL_QUESTION}"]`);
+
+  // Wait until split (cursor ~1.5s + transition 1.1s + confirm 0.22s).
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-first-use-state") === "split",
+    null,
+    { timeout: 12000 },
+  );
+  // Confirm-run is scheduled ~220ms after split.
+  await page.waitForSelector(
+    '.chat-msg--confirm-run, [data-msg-type="confirm-run"]',
+    { timeout: 8000 },
+  );
+
+  const bundle = await readMayorTimeline(page);
+  assert.equal(
+    bundle.canvasWrapFailed,
+    false,
+    `could not wrap canvas cursor API for timeline [${ctx}]`,
+  );
+  assert.equal(
+    bundle.choreoWrapFailed,
+    false,
+    `could not wrap choreography start for timeline [${ctx}]`,
+  );
+
+  const tl = bundle.timeline;
+  const shows = tl.filter((e) => e.type === "showCursorAt");
+  const clicks = tl.filter((e) => e.type === "clickAnimation");
+  const states = tl.filter((e) => e.type === "state-change");
+  const starts = tl.filter((e) => e.type === "choreography-start");
+  const firstTransition = states.find(
+    (e) => e.selectorOrJourney === "transitioning",
+  );
+  const firstSplit = states.find((e) => e.selectorOrJourney === "split");
+
+  const userMsgs = tl.filter((e) => e.type === "user-message");
+  assert.equal(
+    userMsgs.length,
+    1,
+    `canonical user message count ${userMsgs.length} (expected 1) [${ctx}] ${JSON.stringify(userMsgs)}`,
+  );
+
+  assert.ok(shows.length >= 1, `showCursorAt not recorded [${ctx}] tl=${JSON.stringify(tl)}`);
+  assert.ok(clicks.length >= 1, `clickAnimation not recorded [${ctx}]`);
+  assert.ok(
+    shows.every(
+      (e) =>
+        e.selectorOrJourney === MAYOR_CONTROL_SELECTOR ||
+        e.selectorOrJourney === "#mayor-open-office-control",
+    ),
+    `showCursorAt target not mayor control [${ctx}] ${JSON.stringify(shows)}`,
+  );
+  assert.ok(
+    clicks.every(
+      (e) =>
+        e.selectorOrJourney === MAYOR_CONTROL_SELECTOR ||
+        e.selectorOrJourney === "#mayor-open-office-control",
+    ),
+    `clickAnimation target not mayor control [${ctx}]`,
+  );
+  assert.ok(
+    shows.every((e) => e.firstUseState === "entry"),
+    `showCursorAt not during entry [${ctx}]`,
+  );
+  assert.ok(
+    clicks.every((e) => e.firstUseState === "entry"),
+    `clickAnimation not during entry [${ctx}]`,
+  );
+
+  const firstShow = shows[0];
+  const firstClick = clicks[0];
+  assert.ok(firstTransition, `no transitioning state [${ctx}]`);
+  assert.ok(firstSplit, `no split state [${ctx}]`);
+  // MutationObserver may deliver after a synchronous state flip; order is
+  // enforced by timestamps against cursor/transition events.
+  assert.ok(
+    userMsgs[0].time <= firstShow.time + 50,
+    `user message not before/at showCursor [${ctx}] user=${userMsgs[0].time} show=${firstShow.time}`,
+  );
+  assert.ok(
+    userMsgs[0].time < firstTransition.time,
+    `user message not before transitioning [${ctx}] user=${userMsgs[0].time} tr=${firstTransition.time}`,
+  );
+  assert.ok(
+    firstShow.time <= firstClick.time + 50,
+    `showCursor after click [${ctx}] show=${firstShow.time} click=${firstClick.time}`,
+  );
+  assert.ok(
+    firstClick.time < firstTransition.time,
+    `click not before transitioning [${ctx}] click=${firstClick.time} tr=${firstTransition.time}`,
+  );
+  assert.ok(
+    firstTransition.time <= firstSplit.time,
+    `transitioning after split [${ctx}]`,
+  );
+
+  // Visual DOM evidence during entry.
+  const visCursor = bundle.visual.filter((s) => s.cursorVisible);
+  const visHighlight = bundle.visual.filter((s) => s.highlight);
+  const visRipple = bundle.visual.filter((s) => s.rippleVisible);
+  const visNear = bundle.visual.filter((s) => s.cursorNearControl && s.cursorVisible);
+  assert.ok(visCursor.length >= 1, `cursor DOM never visible during entry [${ctx}]`);
+  assert.ok(visHighlight.length >= 1, `highlight never visible during entry [${ctx}]`);
+  assert.ok(
+    visRipple.length >= 1 ||
+      bundle.visual.some((s) => s.cursorStatus === "clicking"),
+    `ripple/clicking never observed during entry [${ctx}]`,
+  );
+  assert.ok(visNear.length >= 1, `cursor never near mayor control [${ctx}]`);
+  assert.ok(
+    visCursor.every((s) => s.state === "entry"),
+    `cursor visible outside entry [${ctx}]`,
+  );
+
+  // Post-split contracts.
+  const post = await page.evaluate((label) => {
+    const confirms = Array.from(
+      document.querySelectorAll(
+        '.chat-msg--confirm-run, [data-msg-type="confirm-run"]',
+      ),
+    );
+    const texts = confirms.map((c) => (c.textContent || "").trim());
+    const writing =
+      !!document.querySelector("#mayor-write-title, #btn-mayor-submit") ||
+      !!document.querySelector(".bg-page--mayor-complaint-write");
+    const receipt = Array.from(document.querySelectorAll(".chat-msg")).some((m) =>
+      /접수되었습니다|receipt/i.test(m.textContent || ""),
+    );
+    return {
+      state: document.body.getAttribute("data-first-use-state"),
+      confirmCount: confirms.length,
+      confirmTexts: texts,
+      hasMayorLabel: texts.some((t) => t.includes(label)),
+      hasFallback: texts.some((t) => t.includes("이 안내에 대해")),
+      writingVisible: writing,
+      receiptVisible: receipt,
+    };
+  }, MAYOR_CONFIRM_LABEL);
+
+  assert.equal(post.state, "split", `post state ${post.state} [${ctx}]`);
+  assert.equal(post.confirmCount, 1, `confirm count ${post.confirmCount} [${ctx}]`);
+  assert.ok(post.hasMayorLabel, `confirm missing mayor label [${ctx}] ${JSON.stringify(post.confirmTexts)}`);
+  assert.equal(post.hasFallback, false, `confirm used fallback 이 안내 [${ctx}]`);
+  assert.equal(post.writingVisible, false, `direct writing page visible [${ctx}]`);
+  assert.equal(post.receiptVisible, false, `receipt visible before confirm [${ctx}]`);
+  assert.equal(starts.length, 0, `choreography started before confirm [${ctx}] ${JSON.stringify(starts)}`);
+
+  // Confirm yes → exactly one choreography start with mayor action/question.
+  await page.click('.chat-msg--confirm-run button:has-text("예, 안내해 주세요")');
+  await page.waitForTimeout(400);
+  const afterConfirm = await page.evaluate(() => window.__1114Timeline || []);
+  const postStarts = afterConfirm.filter((e) => e.type === "choreography-start");
+  assert.equal(
+    postStarts.length,
+    1,
+    `choreography start count ${postStarts.length} after confirm [${ctx}] ${JSON.stringify(postStarts)}`,
+  );
+  assert.ok(
+    postStarts[0].selectorOrJourney === MAYOR_CANONICAL_ACTION ||
+      postStarts[0].selectorOrJourney === MAYOR_CANONICAL_QUESTION,
+    `choreography journey ${postStarts[0].selectorOrJourney} [${ctx}]`,
+  );
+
+  console.log(
+    `[1114 1440x900] chat timeline shows=${shows.length} clicks=${clicks.length} ` +
+      `show@${firstShow.time.toFixed(0)} click@${firstClick.time.toFixed(0)} ` +
+      `tr@${firstTransition.time.toFixed(0)} split@${firstSplit.time.toFixed(0)} ` +
+      `visCursor=${visCursor.length} visHighlight=${visHighlight.length} visRipple=${visRipple.length}`,
+  );
+
+  return {
+    journey: postStarts[0].selectorOrJourney,
+    confirmText: post.confirmTexts[0] || "",
+  };
+}
+
+async function runMayorManualHeroPath(page, base) {
+  const ctx = "1114 1440x900 manual hero";
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector(MAYOR_CONTROL_SELECTOR, { timeout: 10000 });
+  await page.waitForTimeout(200);
+  await installMayorTimelineWrappers(page);
+
+  await page.click(MAYOR_CONTROL_SELECTOR);
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-first-use-state") === "split",
+    null,
+    { timeout: 10000 },
+  );
+  await page.waitForSelector(
+    '.chat-msg--confirm-run, [data-msg-type="confirm-run"]',
+    { timeout: 8000 },
+  );
+
+  const bundle = await readMayorTimeline(page);
+  const tl = bundle.timeline;
+  const shows = tl.filter(
+    (e) =>
+      e.type === "showCursorAt" &&
+      (e.selectorOrJourney === MAYOR_CONTROL_SELECTOR ||
+        e.selectorOrJourney === "#mayor-open-office-control"),
+  );
+  const clicks = tl.filter(
+    (e) =>
+      e.type === "clickAnimation" &&
+      (e.selectorOrJourney === MAYOR_CONTROL_SELECTOR ||
+        e.selectorOrJourney === "#mayor-open-office-control"),
+  );
+  const transitions = tl.filter(
+    (e) => e.type === "state-change" && e.selectorOrJourney === "transitioning",
+  );
+  const splits = tl.filter(
+    (e) => e.type === "state-change" && e.selectorOrJourney === "split",
+  );
+  const starts = tl.filter((e) => e.type === "choreography-start");
+
+  const userMsgs = tl.filter((e) => e.type === "user-message");
+  assert.equal(
+    userMsgs.length,
+    1,
+    `manual path user message count ${userMsgs.length} (expected 1) [${ctx}] ${JSON.stringify(userMsgs)}`,
+  );
+
+  assert.equal(shows.length, 0, `manual automated showCursorAt=${shows.length} [${ctx}]`);
+  assert.equal(clicks.length, 0, `manual automated clickAnimation=${clicks.length} [${ctx}]`);
+  assert.equal(transitions.length, 1, `transitioning count ${transitions.length} [${ctx}]`);
+  assert.equal(splits.length, 1, `split count ${splits.length} [${ctx}]`);
+  assert.equal(starts.length, 0, `choreography before confirm [${ctx}]`);
+
+  const post = await page.evaluate((label) => {
+    const confirms = Array.from(
+      document.querySelectorAll(
+        '.chat-msg--confirm-run, [data-msg-type="confirm-run"]',
+      ),
+    );
+    const texts = confirms.map((c) => (c.textContent || "").trim());
+    const writing =
+      !!document.querySelector("#mayor-write-title, #btn-mayor-submit") ||
+      !!document.querySelector(".bg-page--mayor-complaint-write");
+    const receipt = Array.from(document.querySelectorAll(".chat-msg")).some((m) =>
+      /접수되었습니다|receipt/i.test(m.textContent || ""),
+    );
+    return {
+      confirmCount: confirms.length,
+      confirmTexts: texts,
+      hasMayorLabel: texts.some((t) => t.includes(label)),
+      hasFallback: texts.some((t) => t.includes("이 안내에 대해")),
+      writingVisible: writing,
+      receiptVisible: receipt,
+    };
+  }, MAYOR_CONFIRM_LABEL);
+  assert.equal(post.confirmCount, 1, `confirm count ${post.confirmCount} [${ctx}]`);
+  assert.ok(post.hasMayorLabel, `confirm label missing [${ctx}]`);
+  assert.equal(post.hasFallback, false, `fallback 이 안내 [${ctx}]`);
+  assert.equal(post.writingVisible, false, `direct writing jump [${ctx}]`);
+  assert.equal(post.receiptVisible, false, `receipt jump [${ctx}]`);
+
+  await page.click('.chat-msg--confirm-run button:has-text("예, 안내해 주세요")');
+  await page.waitForTimeout(400);
+  const after = await page.evaluate(() => window.__1114Timeline || []);
+  const postStarts = after.filter((e) => e.type === "choreography-start");
+  assert.equal(postStarts.length, 1, `start count ${postStarts.length} [${ctx}]`);
+  assert.ok(
+    postStarts[0].selectorOrJourney === MAYOR_CANONICAL_ACTION ||
+      postStarts[0].selectorOrJourney === MAYOR_CANONICAL_QUESTION,
+    `journey ${postStarts[0].selectorOrJourney} [${ctx}]`,
+  );
+
+  console.log(
+    `[1114 1440x900] manual timeline shows=${shows.length} clicks=${clicks.length} ` +
+      `transitions=${transitions.length} splits=${splits.length} start=${postStarts[0].selectorOrJourney}`,
+  );
+
+  return {
+    journey: postStarts[0].selectorOrJourney,
+    confirmText: post.confirmTexts[0] || "",
+  };
+}
+
+async function runMayorMobile390(page, base) {
+  const ctx = "1114 390x844 mobile";
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#chat-chips", { timeout: 10000 });
+
+  // Editable-focus violation capture (same spirit as #1116 Stage B).
+  await page.evaluate(() => {
+    const w = window;
+    w.__tf1114Violations = [];
+    w.__tf1114Automated = true;
+    if (!w.__tf1114Installed) {
+      w.__tf1114Installed = true;
+      document.addEventListener(
+        "focusin",
+        (e) => {
+          if (!w.__tf1114Automated) return;
+          const el = e.target;
+          if (
+            el &&
+            (el.matches("input, textarea, [contenteditable='true']") ||
+              el.isContentEditable)
+          ) {
+            w.__tf1114Violations.push({
+              tag: el.tagName,
+              id: el.id || "",
+              state: document.body.getAttribute("data-first-use-state"),
+            });
+          }
+        },
+        true,
+      );
+    }
+  });
+
+  const entry = await page.evaluate(() => {
+    const control = document.getElementById("mayor-open-office-control");
+    const cs = control ? getComputedStyle(control) : null;
+    const r = control ? control.getBoundingClientRect() : null;
+    const chips = Array.from(document.querySelectorAll("#chat-chips .chat-chip"));
+    const vis = (el) => {
+      if (!el) return false;
+      const s = getComputedStyle(el);
+      const box = el.getBoundingClientRect();
+      return (
+        s.display !== "none" &&
+        s.visibility !== "hidden" &&
+        box.width > 0 &&
+        box.height > 0
+      );
+    };
+    return {
+      controlHidden:
+        !control ||
+        (cs && cs.display === "none") ||
+        !r ||
+        r.width === 0 ||
+        r.height === 0,
+      chipsVisible: chips.every(vis),
+      chipCount: chips.length,
+      composerVisible: vis(document.querySelector(".chat-composer")),
+    };
+  });
+  assert.equal(entry.chipCount, 8, `chip count ${entry.chipCount} [${ctx}]`);
+  assert.ok(entry.chipsVisible, `not all chips visible [${ctx}]`);
+  assert.ok(entry.composerVisible, `composer not visible [${ctx}]`);
+  assert.ok(entry.controlHidden, `mayor control not hidden on mobile [${ctx}]`);
+
+  await page.click(`.chat-chip[data-chip-question="${MAYOR_CANONICAL_QUESTION}"]`);
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-first-use-state") === "split",
+    null,
+    { timeout: 12000 },
+  );
+  await page.waitForTimeout(500);
+
+  const post = await page.evaluate(() => {
+    const sw = document.getElementById("mobile-surface-switch");
+    const chat = document.getElementById("chat-shell");
+    const canvas = document.getElementById("demo-canvas");
+    const surface = document.body.getAttribute("data-mobile-surface");
+    return {
+      state: document.body.getAttribute("data-first-use-state"),
+      switchHidden: sw ? sw.hasAttribute("hidden") : true,
+      surface,
+      chatInert: chat ? chat.hasAttribute("inert") : null,
+      chatAriaHidden: chat ? chat.getAttribute("aria-hidden") : null,
+      canvasInert: canvas ? canvas.hasAttribute("inert") : null,
+      canvasAriaHidden: canvas ? canvas.getAttribute("aria-hidden") : null,
+      confirm: !!document.querySelector(
+        '.chat-msg--confirm-run, [data-msg-type="confirm-run"]',
+      ),
+      violations: window.__tf1114Violations || [],
+    };
+  });
+
+  assert.equal(post.state, "split", `state ${post.state} [${ctx}]`);
+  assert.equal(post.switchHidden, false, `surface switch still hidden [${ctx}]`);
+  assert.equal(post.surface, "conversation", `surface ${post.surface} [${ctx}]`);
+  assert.equal(post.chatInert, false, `chat inert on conversation [${ctx}]`);
+  assert.notEqual(post.chatAriaHidden, "true", `chat aria-hidden on conversation [${ctx}]`);
+  assert.equal(post.canvasInert, true, `canvas not inert on conversation [${ctx}]`);
+  assert.equal(
+    post.canvasAriaHidden,
+    "true",
+    `canvas aria-hidden ${post.canvasAriaHidden} [${ctx}]`,
+  );
+  assert.ok(post.confirm, `confirm missing on mobile path [${ctx}]`);
+  assert.deepStrictEqual(
+    post.violations,
+    [],
+    `automated editable focus violations ${JSON.stringify(post.violations)} [${ctx}]`,
+  );
+
+  // Stop automated-phase capture for any later manual interaction.
+  await page.evaluate(() => {
+    window.__tf1114Automated = false;
+  });
+}
+
+async function assert1114InstrumentationClean(buckets, ctx) {
+  const summary = {
+    consoleErrors: buckets.consoleErrors,
+    pageErrors: buckets.pageErrors,
+    requestFailures: buckets.requestFailures,
+    httpErrors: buckets.httpErrors,
+    externalRequestAttempts: buckets.externalRequestAttempts,
+  };
+  assert.deepStrictEqual(
+    buckets.consoleErrors,
+    [],
+    `console errors [${ctx}]: ${JSON.stringify(summary)}`,
+  );
+  assert.deepStrictEqual(
+    buckets.pageErrors,
+    [],
+    `page errors [${ctx}]: ${JSON.stringify(summary)}`,
+  );
+  assert.deepStrictEqual(
+    buckets.requestFailures,
+    [],
+    `request failures [${ctx}]: ${JSON.stringify(summary)}`,
+  );
+  assert.deepStrictEqual(
+    buckets.httpErrors,
+    [],
+    `HTTP errors [${ctx}]: ${JSON.stringify(summary)}`,
+  );
+  assert.deepStrictEqual(
+    buckets.externalRequestAttempts,
+    [],
+    `external requests [${ctx}]: ${JSON.stringify(summary)}`,
+  );
+}
+
+/**
+ * #1114 persistent browser contract suite.
+ * Uses the existing browser + ephemeral static server; no second launch.
+ * Section failures are collected so one viewport defect cannot hide later evidence.
+ */
+async function runMayor1114Contracts(browser, base) {
+  console.log("\nRunning #1114 mayor proposal entry browser contracts:");
+  const allowedOrigin = new URL(base).origin;
+  const buckets = {
+    consoleErrors: [],
+    pageErrors: [],
+    requestFailures: [],
+    httpErrors: [],
+    externalRequestAttempts: [],
+  };
+  const sectionFailures = [];
+
+  async function section(name, fn) {
+    try {
+      await fn();
+      console.log(name.includes("PASS") ? name : `${name} PASS`);
+    } catch (err) {
+      const msg = err && err.message ? err.message : String(err);
+      sectionFailures.push(`${name}: ${msg}`);
+      console.error(`${name} FAIL: ${msg}`);
+    }
+  }
+
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  let page;
+  try {
+    await ctx.route("**", (route) => {
+      const requestUrl = new URL(route.request().url());
+      if (requestUrl.origin === allowedOrigin) {
+        return route.continue();
+      }
+      if (requestUrl.pathname === "/favicon.ico") {
+        return route.abort();
+      }
+      buckets.externalRequestAttempts.push(requestUrl.toString());
+      return route.abort();
+    });
+    page = await ctx.newPage();
+    await install1114ErrorInstrumentation(page, allowedOrigin, buckets);
+
+    // Block unexpected popups.
+    page.on("popup", (p) => {
+      buckets.pageErrors.push("unexpected-popup:" + p.url());
+    });
+
+    // Entry chips/composer on all viewports (hard: 320 included — no weaken).
+    for (const vp of VIEWPORTS) {
+      await section(`[1114 ${vp.width}x${vp.height}] entry chips`, async () => {
+        await assertEntryChipsComposer(page, base, vp);
+      });
+    }
+
+    // Geometry + keyboard focus on desktop entry viewports.
+    for (const vp of [
+      { width: 768, height: 1024 },
+      { width: 1440, height: 900 },
+    ]) {
+      await section(`[1114 ${vp.width}x${vp.height}] geometry/focus`, async () => {
+        await assertMayorControlGeometryAndFocus(page, base, vp);
+      });
+    }
+
+    // Mobile control hidden with mayor card.
+    await section("[1114 320x568] mobile control hidden", async () => {
+      await assertMayorControlGeometryAndFocus(page, base, {
+        width: 320,
+        height: 568,
+      });
+    });
+    await section("[1114 390x844] mobile control hidden", async () => {
+      await assertMayorControlGeometryAndFocus(page, base, {
+        width: 390,
+        height: 844,
+      });
+    });
+
+    // Chat path ordering + manual hero convergence (fresh loads).
+    let chatResult = null;
+    let manualResult = null;
+    await section("[1114 1440x900] chat cursor-before-split", async () => {
+      chatResult = await runMayorChatCursorPath(page, base);
+    });
+    await section("[1114 1440x900] manual hero convergence", async () => {
+      manualResult = await runMayorManualHeroPath(page, base);
+    });
+
+    await section("[1114] canonical path convergence", async () => {
+      assert.ok(chatResult, "chat path result missing");
+      assert.ok(manualResult, "manual path result missing");
+      assert.ok(
+        chatResult.journey === MAYOR_CANONICAL_ACTION ||
+          chatResult.journey === MAYOR_CANONICAL_QUESTION,
+        `chat journey ${chatResult.journey}`,
+      );
+      assert.ok(
+        manualResult.journey === MAYOR_CANONICAL_ACTION ||
+          manualResult.journey === MAYOR_CANONICAL_QUESTION,
+        `manual journey ${manualResult.journey}`,
+      );
+      assert.equal(
+        chatResult.journey,
+        manualResult.journey,
+        `chat/manual journey diverge chat=${chatResult.journey} manual=${manualResult.journey}`,
+      );
+    });
+
+    // Mobile #1116 regression with mayor chip.
+    await section("[1114 390x844] entry/mobile", async () => {
+      await runMayorMobile390(page, base);
+    });
+
+    await section("[1114] instrumentation clean", async () => {
+      await assert1114InstrumentationClean(buckets, "1114 suite");
+    });
+
+    if (sectionFailures.length) {
+      throw new Error(sectionFailures.join("\n"));
+    }
+  } finally {
+    if (page) {
+      try {
+        await page.close();
+      } catch {
+        /* ignore */
+      }
+    }
+    await ctx.close();
+  }
 }
 
 async function main() {
@@ -2355,6 +3649,14 @@ async function main() {
         }
       }
     }
+
+    // #1114 mayor entry contracts (persistent CI path in this harness).
+    try {
+      await runMayor1114Contracts(browser, base);
+    } catch (err) {
+      failures.push(`#1114 mayor contracts: ${err && err.message ? err.message : err}`);
+    }
+
     await context.close();
   } finally {
     // Close browser/context first, but always close the server afterwards so a
