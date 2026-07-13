@@ -13,7 +13,9 @@ Two modes (``--mode``):
     no requests fetch, no live site call.
 
     Output layout (all under ``dist/cloudflare-pages/``):
-        index.html            # static landing page linking to the two demos
+        index.html            # canonical citizen assistant + official canvas (#1068)
+        mvp/index.html        # compatibility alias of the same citizen entry
+        internal/index.html   # secondary operator/developer artifact index
         admin.html            # admin_demo.html (template copied + shim injected)
         mobile.html           # mobile_demo.html (template copied + shim injected)
         static/               # verbatim copy of src/web/static/
@@ -415,24 +417,24 @@ def build_static_api_shim(snapshot: dict, profile: dict | None, profiles: list[d
     )
 
 
-def build_index_html(profiles: list[dict], is_live: bool = False) -> str:
-    """Build a static landing page linking to the two demos.
+def build_internal_artifacts_html(profiles: list[dict], is_live: bool = False) -> str:
+    """Build a secondary internal artifact index (#1068).
 
-    If *is_live* is True, the MVP card link includes ``?mvp=1`` so that
-    the shell loads the live MVP bridge instead of the query-sanitized
-    static entry.
+    This is **not** the resident root. Operator / developer surfaces live
+    here so ``/`` can open the citizen assistant without an equal-choice
+    artifact chooser. Direct URLs (``/mvp/``, ``/mobile.html``, …) stay valid.
+
+    If *is_live* is True, the MVP card link includes ``?mvp=1`` so that the
+    shell loads the live MVP bridge from the internal index link as well.
     """
-    mvp_href = "mvp/?mvp=1" if is_live else "mvp/"
-    profile_items = "".join(
-        f"<li><code>{p.get('site_id', '-')}</code> — {p.get('name', '-')}</li>"
-        for p in profiles
-    ) or "<li>북구청 (bukgu_gwangju)</li>"
+    mvp_href = "../mvp/?mvp=1" if is_live else "../mvp/"
+    _ = profiles  # reserved for future operator profile listing
     return f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>400 AI 파인더</title>
+<title>내부 도구 · 400 AI 파인더</title>
 <style>
   :root {{ --bg:#fff; --card:#fafafb; --fg:#0d0d0f; --muted:#9b9ba5; --line:#e6e6ea; }}
   * {{ box-sizing: border-box; }}
@@ -445,38 +447,48 @@ def build_index_html(profiles: list[dict], is_live: bool = False) -> str:
   .card:hover {{ background:#f5f5f7; border-color:#d0d0d5; }}
   .card h2 {{ margin: 0 0 4px; font-size:1.05rem; font-weight:600; }}
   .card p {{ margin:0; color: var(--muted); font-size:.88rem; line-height:1.45; }}
+  .note {{ margin-top: 28px; font-size:.82rem; color:var(--muted); line-height:1.45; }}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>400 AI 파인더</h1>
-  <div class="sub">북구청 AI 안내 서비스</div>
+  <h1>내부 도구</h1>
+  <div class="sub">운영·개발용 경로입니다. 주민용 안내는 사이트 루트에서 바로 이용합니다.</div>
   <div class="cards">
     <a class="card" href="{mvp_href}">
-      <h2>정밀 구현형 AI 북구청</h2>
-      <p>질문하면 북구청 안내 화면을 함께 열어 경로를 안내합니다.</p>
+      <h2>시민 AI 안내 (호환 경로)</h2>
+      <p>루트와 동일한 북구청 시민 AI 안내 화면 — /mvp/ 호환 진입.</p>
     </a>
-    <a class="card" href="examples/page-agent/resident/">
+    <a class="card" href="../examples/page-agent/resident/">
       <h2>Page Agent형 AI 북구청</h2>
-      <p>주민용 비교 데모 준비 중 — 실제 Page Agent 조작은 Stage 2에서 제공됩니다.</p>
+      <p>주민용 비교 경로 — 실제 Page Agent 조작은 Stage 2에서 제공됩니다.</p>
     </a>
-    <a class="card" href="mobile.html">
+    <a class="card" href="../mobile.html">
       <h2>모바일 챗 안내</h2>
-      <p>자연어 질문으로 관련 메뉴를 찾습니다.</p>
+      <p>자연어 질문으로 관련 메뉴를 찾는 별도 챗 화면.</p>
     </a>
-    <a class="card" href="admin.html">
+    <a class="card" href="../admin.html">
       <h2>운영자 화면</h2>
       <p>사이트 프로필 · 질문 테스트 · 상태 확인</p>
     </a>
   </div>
-  <div style="margin-top:20px;font-size:.85rem;color:var(--muted);">
-    <a href="examples/page-agent/" style="color:var(--accent);text-decoration:none;">Page Agent 개발자 실험실 →</a>
+  <div class="note">
+    <a href="../examples/page-agent/" style="color:inherit;text-decoration:underline;">Page Agent 개발자 실험실</a>
     — 브라우저 안에서 페이지 요소를 조작하는 독립 오프라인 기술 실험
   </div>
 </div>
 </body>
 </html>
 """
+
+
+def build_index_html(profiles: list[dict], is_live: bool = False) -> str:
+    """Deprecated name kept for imports: builds the *internal* artifact index.
+
+    #1068 moved the equal-choice artifact cards off the resident root. Call
+    ``build_mvp_entry_html`` for the citizen entry written to ``index.html``.
+    """
+    return build_internal_artifacts_html(profiles, is_live=is_live)
 
 
 def substitute_site_name(html: str, site_name: str) -> str:
@@ -526,7 +538,10 @@ def build_404_html(site_name: str) -> str:
 
 
 def build_mvp_entry_html(is_live: bool = False) -> str:
-    """Build the public first-use MVP entry at ``/mvp/``.
+    """Build the citizen first-use assistant entry (#1068 root + ``/mvp/``).
+
+    The same HTML is written to both ``/`` (canonical resident entry) and
+    ``/mvp/`` (compatibility path). No duplicate template is maintained.
 
     In **static** mode (default): injects a query sanitizer that strips any
     query string (e.g. ``?mvp=1``) via ``history.replaceState`` so the shell
@@ -656,10 +671,24 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
     else:
         print("[build] live mode: skipping snapshot-data.js + static-api-shim.js")
 
-    # 5. Emit the landing page.
-    index_html = build_index_html(demo_profiles, is_live=(mode == "live"))
-    _write_file(os.path.join(dist_root, "index.html"), index_html)
-    print("[build] wrote index.html")
+    # 5. Emit the canonical resident entry at / and the /mvp/ compatibility
+    #    path from the same HTML (#1068). No redirect, no duplicate template.
+    #    static: backend-free + query sanitizer (strips ?mvp=1).
+    #    live: forces ?mvp=1 so the shell loads the MVP bridge.
+    citizen_entry = build_mvp_entry_html(mode == "live")
+    _write_file(os.path.join(dist_root, "index.html"), citizen_entry)
+    mvp_index = os.path.join(dist_root, "mvp", "index.html")
+    _write_file(mvp_index, citizen_entry)
+    mode_label = "live, ?mvp=1 forced" if mode == "live" else "public entry, query-sanitized"
+    print(f"[build] wrote index.html (citizen root, {mode_label})")
+    print(f"[build] wrote mvp/index.html (compatibility, {mode_label})")
+
+    # 5b. Secondary internal artifact index — not the resident root.
+    internal_html = build_internal_artifacts_html(
+        demo_profiles, is_live=(mode == "live")
+    )
+    _write_file(os.path.join(dist_root, "internal", "index.html"), internal_html)
+    print("[build] wrote internal/index.html (operator artifacts)")
 
     # 6. Emit a static 404 page (no external calls).
     _write_file(os.path.join(dist_root, "404.html"), build_404_html(site_name))
@@ -707,17 +736,6 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
     _write_file(os.path.join(dist_root, "admin.html"), admin_out)
     print("[build] wrote mobile.html + admin.html (templates copied, shim injected)")
 
-    # 8. Emit a public first-use MVP entry at /mvp/.
-    #    In static mode: backend-free, query-sanitized (strips ?mvp=1).
-    #    In live mode: forces ?mvp=1 so the shell loads the MVP bridge
-    #    even when the user arrives without the query string.
-    mvp_index = os.path.join(dist_root, "mvp", "index.html")
-    _write_file(mvp_index, build_mvp_entry_html(mode == "live"))
-    print(
-        f"[build] wrote mvp/index.html "
-        f"({'live, ?mvp=1 forced' if mode == 'live' else 'public entry, query-sanitized'})"
-    )
-
     # 9. Copy examples (Page Agent lab) verbatim - isolated, no build-time
     #    processing. The lab is an independent experiment not connected to
     #    the Buk-gu MVP or its live bridge.
@@ -741,5 +759,10 @@ if __name__ == "__main__":
         default="live",
         help="Build mode: live (LLM-backed, deployment default) or static (offline fallback)",
     )
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="Optional output directory (default: dist/cloudflare-pages)",
+    )
     args = parser.parse_args()
-    build(mode=args.mode)
+    build(out_dir=args.out_dir, mode=args.mode)

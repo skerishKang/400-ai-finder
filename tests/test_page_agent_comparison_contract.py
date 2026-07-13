@@ -3,8 +3,9 @@
 These tests lock:
 
   * the resident-facing Page Agent demo route (``examples/page-agent/resident/``);
-  * product labeling at the root gateway (primary ``Page Agent형 AI 북구청``
-    card, demoted developer lab);
+  * #1068 product surfaces:
+      - ``/`` and ``/mvp/`` = citizen assistant (discovery-free)
+      - ``/internal/`` = operator/developer discovery boundary
   * route isolation between the Page Agent group and the MVP/mobile/admin
     surfaces;
   * the shared parity scenario contract (``parity-contract.json``);
@@ -33,14 +34,19 @@ _EXAMPLES_DIR = os.path.join(_REPO_ROOT, "src", "web", "examples", "page-agent")
 _PARITY_CONTRACT = os.path.join(_EXAMPLES_DIR, "parity-contract.json")
 _RESIDENT_INDEX = os.path.join(_EXAMPLES_DIR, "resident", "index.html")
 
-# Resident demo route (primary Page Agent product card).
+# Resident demo route (primary Page Agent product card on the *internal* index).
+# From /internal/ the link is one level up.
+INTERNAL_RESIDENT_HREF = "../examples/page-agent/resident/"
+# Developer lab route (demoted note link on the internal index).
+INTERNAL_DEV_LAB_HREF = "../examples/page-agent/"
+# Build-output absolute-from-site-root path still used by artifact presence checks.
 RESIDENT_ROUTE = "examples/page-agent/resident/"
-# Developer lab route (demoted, remains exactly one root link).
 DEV_LAB_ROUTE = "examples/page-agent/"
 
 # Page Agent runtime/content signatures that must NEVER leak into the MVP,
-# mobile, admin, or root landing surfaces.  The resident route IS expected
-# to load some of these (the vendored runtime and its resident mock model).
+# mobile, admin, root landing, or internal discovery surfaces.  The resident
+# route IS expected to load some of these (the vendored runtime and its
+# resident mock model).
 PAGE_AGENT_RUNTIME_SIGNATURES = [
     "./vendor/page-agent.iife.js",
     "./mock-model.js",
@@ -50,6 +56,16 @@ PAGE_AGENT_RUNTIME_SIGNATURES = [
     "PageAgentLabMockModel",
     "what-is-page-agent",
     "Page Agent 1.12.1",
+]
+
+# Discovery signatures that must not appear on the citizen root /mvp entry.
+PAGE_AGENT_DISCOVERY_SIGNATURES = [
+    "Page Agent형 AI 북구청",
+    "Page Agent 개발자 실험실",
+    'href="examples/page-agent/"',
+    'href="examples/page-agent/resident/"',
+    'href="../examples/page-agent/"',
+    'href="../examples/page-agent/resident/"',
 ]
 
 # Stage 2 assets expected in the resident interactive demo directory.
@@ -115,61 +131,96 @@ def _assert_no_runtime_signatures(text, label):
 
 
 # ---------------------------------------------------------------------------
-# Product labeling at the root gateway
+# #1068 product surfaces: citizen root vs internal discovery boundary
 # ---------------------------------------------------------------------------
 
 
+def _assert_no_page_agent_discovery(text, label):
+    for sig in PAGE_AGENT_DISCOVERY_SIGNATURES:
+        assert sig not in text, f"Page Agent discovery signature {sig!r} in {label}"
+
+
 class TestRootProductLabeling:
-    def test_static_landing_primary_page_agent_card(self):
+    """#1068: citizen root is not a Page Agent discovery gateway.
+
+    Page Agent product cards live on ``/internal/`` only. ``build_index_html``
+    is retained as a deprecated alias of the *internal* artifact index.
+    """
+
+    def test_static_citizen_root_has_no_page_agent_discovery(self):
         mod = _load_build_module()
-        index = mod.build_index_html([], is_live=False)
-        # Primary resident card present and links to the resident route.
-        assert "Page Agent형 AI 북구청" in index
-        assert index.count(f'href="{RESIDENT_ROUTE}"') == 1
-        # No external/forced-tab on the primary card.
-        block = index[index.index(f'<a class="card" href="{RESIDENT_ROUTE}"'):]
+        root = mod.build_mvp_entry_html(is_live=False)
+        # Resident root opens the citizen assistant shell.
+        assert "citizen-first-use-shell.js" in root
+        assert "citizen-action-demo-canvas.js" in root
+        # Not an artifact chooser / Page Agent discovery page.
+        assert "내부 도구" not in root
+        _assert_no_page_agent_discovery(root, "static citizen root")
+        _assert_no_runtime_signatures(root, "static citizen root")
+
+    def test_live_citizen_root_has_no_page_agent_discovery(self):
+        mod = _load_build_module()
+        root = mod.build_mvp_entry_html(is_live=True)
+        assert "citizen-first-use-shell.js" in root
+        assert "내부 도구" not in root
+        _assert_no_page_agent_discovery(root, "live citizen root")
+        _assert_no_runtime_signatures(root, "live citizen root")
+
+    def test_static_internal_primary_page_agent_card(self):
+        mod = _load_build_module()
+        # build_index_html is the internal discovery boundary (#1068).
+        internal = mod.build_index_html([], is_live=False)
+        assert "내부 도구" in internal
+        assert "Page Agent형 AI 북구청" in internal
+        assert internal.count(f'href="{INTERNAL_RESIDENT_HREF}"') == 1
+        # Primary card, same-document relative, no forced tab.
+        block = internal[internal.index(f'<a class="card" href="{INTERNAL_RESIDENT_HREF}"'):]
         block = block[: block.index("</a>")]
         assert 'target="_blank"' not in block
 
-    def test_live_landing_primary_page_agent_card(self):
+    def test_live_internal_primary_page_agent_card(self):
         mod = _load_build_module()
-        index = mod.build_index_html([], is_live=True)
-        assert "Page Agent형 AI 북구청" in index
-        assert index.count(f'href="{RESIDENT_ROUTE}"') == 1
+        internal = mod.build_index_html([], is_live=True)
+        assert "Page Agent형 AI 북구청" in internal
+        assert internal.count(f'href="{INTERNAL_RESIDENT_HREF}"') == 1
 
-    def test_developer_lab_demoted_not_primary(self):
+    def test_developer_lab_demoted_on_internal_not_primary(self):
         mod = _load_build_module()
         for is_live in (False, True):
-            index = mod.build_index_html([], is_live=is_live)
-            # Demoted developer lab label + exactly one root link to the lab.
-            assert "Page Agent 개발자 실험실" in index
-            assert index.count(f'href="{DEV_LAB_ROUTE}"') == 1
+            internal = mod.build_index_html([], is_live=is_live)
+            # Demoted developer lab label + exactly one internal link to the lab.
+            assert "Page Agent 개발자 실험실" in internal
+            assert internal.count(f'href="{INTERNAL_DEV_LAB_HREF}"') == 1
             # The old primary product label is gone.
-            assert "Page Agent 실험실" not in index
+            assert "Page Agent 실험실" not in internal
             # Developer lab is NOT a primary .card.
-            assert f'<a class="card" href="{DEV_LAB_ROUTE}"' not in index
+            assert f'<a class="card" href="{INTERNAL_DEV_LAB_HREF}"' not in internal
 
-    def test_mvp_mobile_admin_cards_preserved(self):
+    def test_internal_mvp_mobile_admin_cards_preserved(self):
         mod = _load_build_module()
-        index = mod.build_index_html([], is_live=False)
-        # MVP card stays relative-path, no query string.
-        assert 'href="mvp/"' in index
-        assert "정밀 구현형 AI 북구청" in index
-        assert "mvp=1" not in index
-        assert 'href="mobile.html"' in index
-        assert 'href="admin.html"' in index
+        internal = mod.build_index_html([], is_live=False)
+        # Compatibility MVP card stays relative-path (one level up), no query.
+        assert 'href="../mvp/"' in internal
+        assert "mvp=1" not in internal
+        assert "시민 AI 안내" in internal
+        assert 'href="../mobile.html"' in internal
+        assert 'href="../admin.html"' in internal
 
     def test_landing_has_no_external_calls(self):
         mod = _load_build_module()
         for is_live in (False, True):
-            index = mod.build_index_html([], is_live=is_live)
-            _assert_no_external_auto_calls(index, f"landing(is_live={is_live})")
+            root = mod.build_mvp_entry_html(is_live=is_live)
+            internal = mod.build_index_html([], is_live=is_live)
+            _assert_no_external_auto_calls(root, f"citizen-root(is_live={is_live})")
+            _assert_no_external_auto_calls(internal, f"internal(is_live={is_live})")
 
     def test_landing_has_no_page_agent_runtime_leak(self):
         mod = _load_build_module()
         for is_live in (False, True):
-            index = mod.build_index_html([], is_live=is_live)
-            _assert_no_runtime_signatures(index, f"landing(is_live={is_live})")
+            root = mod.build_mvp_entry_html(is_live=is_live)
+            internal = mod.build_index_html([], is_live=is_live)
+            _assert_no_runtime_signatures(root, f"citizen-root(is_live={is_live})")
+            _assert_no_runtime_signatures(internal, f"internal(is_live={is_live})")
 
 
 # ---------------------------------------------------------------------------
@@ -350,17 +401,36 @@ class TestBuildOutputContracts:
         resident = os.path.join(build_dir, "examples", "page-agent", "resident", "index.html")
         assert os.path.isfile(resident), "resident route not copied into build output"
 
-    def test_build_landing_has_primary_and_demoted_cards(self, build_dir):
+    def test_build_root_is_citizen_entry_not_discovery(self, build_dir):
         index = _read(os.path.join(build_dir, "index.html"))
-        assert index.count(f'href="{RESIDENT_ROUTE}"') == 1
-        assert index.count(f'href="{DEV_LAB_ROUTE}"') == 1
-        assert "Page Agent형 AI 북구청" in index
-        assert "Page Agent 개발자 실험실" in index
-        assert "Page Agent 실험실" not in index
+        # #1068: built root is the citizen assistant, not Page Agent chooser.
+        assert "citizen-first-use-shell.js" in index
+        assert "내부 도구" not in index
+        _assert_no_page_agent_discovery(index, "build index.html")
+        # Internal discovery boundary exists with resident + demoted lab links.
+        internal = _read(os.path.join(build_dir, "internal", "index.html"))
+        assert internal.count(f'href="{INTERNAL_RESIDENT_HREF}"') == 1
+        assert internal.count(f'href="{INTERNAL_DEV_LAB_HREF}"') == 1
+        assert "Page Agent형 AI 북구청" in internal
+        assert "Page Agent 개발자 실험실" in internal
+        assert "Page Agent 실험실" not in internal
+        # Direct Page Agent artifact routes still exist.
+        assert os.path.isfile(
+            os.path.join(build_dir, "examples", "page-agent", "resident", "index.html")
+        )
+        assert os.path.isfile(
+            os.path.join(build_dir, "examples", "page-agent", "index.html")
+        )
 
     @pytest.mark.parametrize(
         "route",
-        ["index.html", os.path.join("mvp", "index.html"), "mobile.html", "admin.html"],
+        [
+            "index.html",
+            os.path.join("mvp", "index.html"),
+            "mobile.html",
+            "admin.html",
+            os.path.join("internal", "index.html"),
+        ],
     )
     def test_protected_routes_free_of_page_agent_runtime(self, build_dir, route):
         path = os.path.join(build_dir, route)
@@ -369,18 +439,27 @@ class TestBuildOutputContracts:
 
     @pytest.mark.parametrize(
         "route",
-        ["index.html", os.path.join("mvp", "index.html"), "mobile.html", "admin.html"],
+        [
+            "index.html",
+            os.path.join("mvp", "index.html"),
+            "mobile.html",
+            "admin.html",
+            os.path.join("internal", "index.html"),
+        ],
     )
     def test_protected_routes_free_of_external_calls(self, build_dir, route):
         path = os.path.join(build_dir, route)
         if os.path.isfile(path):
             _assert_no_external_auto_calls(_read(path), route)
 
-    def test_live_build_landing_labeling(self, live_build_dir):
+    def test_live_build_root_and_internal_labeling(self, live_build_dir):
         index = _read(os.path.join(live_build_dir, "index.html"))
-        assert index.count(f'href="{RESIDENT_ROUTE}"') == 1
-        assert index.count(f'href="{DEV_LAB_ROUTE}"') == 1
-        assert "Page Agent형 AI 북구청" in index
+        assert "citizen-first-use-shell.js" in index
+        _assert_no_page_agent_discovery(index, "live build index.html")
+        internal = _read(os.path.join(live_build_dir, "internal", "index.html"))
+        assert internal.count(f'href="{INTERNAL_RESIDENT_HREF}"') == 1
+        assert internal.count(f'href="{INTERNAL_DEV_LAB_HREF}"') == 1
+        assert "Page Agent형 AI 북구청" in internal
 
     def test_resident_links_resolve_to_existing_build_output_targets(self, build_dir):
         resident = os.path.join(build_dir, "examples", "page-agent", "resident", "index.html")

@@ -271,35 +271,52 @@ def test_verifier_uses_dynamic_origin_for_request_filter():
     assert 'new URL(url).origin === BASE_ORIGIN' in verifier
 
 
-def test_landing_links_to_public_mvp(build_dir):
-    """#942: Root landing links to the backend-free public MVP entry at mvp/.
+def test_static_root_is_citizen_assistant_entry(build_dir):
+    """#1068: Static root `/` is the citizen assistant, not an artifact chooser.
 
-    The card must use a relative `mvp/` path (no query string), preserve the
-    existing mobile/admin links, and carry copy that makes the deterministic,
-    backend-free nature of the demo explicit.
+    Root must match the static /mvp/ entry: shell + canvas, query sanitizer,
+    no live injector, no equal-choice admin/mobile/Page Agent cards.
     """
     index = open(os.path.join(build_dir, "index.html"), encoding="utf-8").read()
+    mvp = open(os.path.join(build_dir, "mvp", "index.html"), encoding="utf-8").read()
 
-    # Relative-path link to the public MVP entry; no query param allowed.
-    assert 'href="mvp/"' in index, "landing must link to mvp/ (relative path)"
-    assert "mvp=1" not in index, "no query-string MVP link allowed"
-    assert "?mvp=" not in index, "no query-string MVP link allowed"
+    # Canonical resident shell surfaces.
+    assert 'id="chat-shell"' in index
+    assert 'id="chat-thread"' in index
+    assert 'id="chat-composer-form"' in index
+    assert 'id="demo-canvas"' in index
+    assert 'data-chip-question=' in index
+    assert index.count('id="chat-shell"') == 1
+    assert index.count('id="chat-thread"') == 1
 
-    # User-facing wording must convey: citizen first screen, deterministic
-    # static demo, no real AI/external API.
-    assert "정밀 구현형 AI 북구청" in index
-    # Clean, real-service-style landing page.
-    assert 'href="mvp/"' in index
+    # Same citizen entry as /mvp/ (identical bytes).
+    assert index == mvp, "static root and /mvp/ must share the same citizen entry HTML"
 
-    # Existing mobile/admin landing links are preserved.
-    assert 'href="mobile.html"' in index
-    assert 'href="admin.html"' in index
+    # Static activation: sanitizer yes, live injector no.
+    assert "history.replaceState" in index
+    assert "window.location.pathname + window.location.hash" in index
+    assert '"?mvp=1"' not in index
+    assert 'data-mvp="1"' not in index
 
-    # Backend-free: the landing itself stays self-contained / no network.
-    assert _SCRIPT_SRC_RE.search(index) is None, "external <script src> in landing"
-    assert _LINK_HREF_RE.search(index) is None, "external <link href> in landing"
-    assert _FETCH_HTTP_RE.search(index) is None, "external fetch() in landing"
-    assert _CSS_URL_HTTP_RE.search(index) is None, "external url() in landing"
+    # No artifact chooser / equal-choice operator cards on resident root.
+    assert 'class="cards"' not in index
+    assert 'class="card"' not in index
+    assert "정밀 구현형 AI 북구청" not in index
+    assert "운영자 화면" not in index
+    assert "Page Agent 개발자 실험실" not in index
+    assert 'href="admin.html"' not in index
+    assert 'href="mobile.html"' not in index
+    assert 'href="examples/page-agent/"' not in index
+
+    # Resident root must not frame itself as an artifact/demo chooser.
+    for bad in ("데모 선택", "PoC", "class=\"cards\"", "정밀 구현형"):
+        assert bad not in index, f"forbidden resident framing on static root: {bad}"
+
+    # Backend-free: no external network assets in the entry document.
+    assert _SCRIPT_SRC_RE.search(index) is None, "external <script src> in root"
+    assert _LINK_HREF_RE.search(index) is None, "external <link href> in root"
+    assert _FETCH_HTTP_RE.search(index) is None, "external fetch() in root"
+    assert _CSS_URL_HTTP_RE.search(index) is None, "external url() in root"
 
 
 def test_admin_model_presets_enabled(build_dir):
@@ -512,24 +529,43 @@ def test_live_mvp_activation_is_single_injector(live_build_dir):
 
 
 def test_live_entries_have_no_static_shim(live_build_dir):
-    """#1054 D: No live entry (mobile / admin / mvp) injects static-api-shim.js."""
-    for entry in ("mobile.html", "admin.html", os.path.join("mvp", "index.html")):
+    """#1054 D / #1068: No live entry (root / mobile / admin / mvp) injects static-api-shim.js."""
+    for entry in (
+        "index.html",
+        "mobile.html",
+        "admin.html",
+        os.path.join("mvp", "index.html"),
+    ):
         html = open(os.path.join(live_build_dir, entry), encoding="utf-8").read()
         assert "static-api-shim.js" not in html, f"live {entry} must not inject static-api-shim.js"
 
 
-def test_live_root_links_to_live_mvp(live_build_dir):
-    """#1054 E: Live root connects the citizen MVP entry as the default path
-    (mvp/?mvp=1) while preserving mobile/admin links (no root redesign)."""
-    index = open(os.path.join(live_build_dir, "index.html"), encoding="utf-8").read()
+def test_live_root_is_citizen_assistant_with_mvp_activation(live_build_dir):
+    """#1068 / #1054 E: Live root IS the citizen entry with live MVP activation.
 
-    # Live root points to the live MVP entry.
-    assert 'href="mvp/?mvp=1"' in index, "live root must link to mvp/?mvp=1"
-    # Mobile/admin links preserved.
-    assert 'href="mobile.html"' in index, "live root must keep mobile link"
-    assert 'href="admin.html"' in index, "live root must keep admin link"
-    # Not reverted to the static-only framing.
-    assert 'href="mvp/"' not in index, "live root must not use static mvp/ link"
+    Root and /mvp/ share the same HTML; both force ?mvp=1. Artifact chooser
+    cards must not appear on the resident root.
+    """
+    index = open(os.path.join(live_build_dir, "index.html"), encoding="utf-8").read()
+    mvp = open(os.path.join(live_build_dir, "mvp", "index.html"), encoding="utf-8").read()
+
+    assert index == mvp, "live root and /mvp/ must share the same citizen entry HTML"
+    assert 'id="chat-shell"' in index
+    assert 'id="chat-thread"' in index
+    assert 'id="chat-composer-form"' in index
+    assert 'id="demo-canvas"' in index
+    assert 'data-chip-question=' in index
+
+    # Live activation injector present once; static sanitizer absent.
+    assert index.count(LIVE_INJECTOR) == 1
+    assert STATIC_SANITIZER not in index
+    assert index.index(LIVE_INJECTOR) < index.index(SHELL_SCRIPT)
+
+    # No equal-choice artifact cards on resident root.
+    assert 'class="cards"' not in index
+    assert "운영자 화면" not in index
+    assert 'href="admin.html"' not in index
+    assert 'href="mobile.html"' not in index
 
 
 def test_live_build_keeps_source_templates_byte_identical():
@@ -625,46 +661,67 @@ _PAGE_AGENT_FORBIDDEN = (
 )
 
 
-def test_static_root_gateway_links_page_agent(build_dir):
-    """#1106: Static root gateway links the standalone Page Agent lab."""
-    index = open(os.path.join(build_dir, "index.html"), encoding="utf-8").read()
+def test_static_internal_gateway_links_page_agent(build_dir):
+    """#1106/#1068: Static *internal* gateway links standalone Page Agent lab.
 
-    # Every gateway link appears exactly once.
-    for href in ('href="mvp/"', 'href="mobile.html"', 'href="admin.html"',
-                 'href="examples/page-agent/"'):
-        assert index.count(href) == 1, f"expected exactly one {href} in static root"
+    Equal-choice artifact cards live under /internal/, not the resident root.
+    """
+    internal = open(
+        os.path.join(build_dir, "internal", "index.html"), encoding="utf-8"
+    ).read()
+    root = open(os.path.join(build_dir, "index.html"), encoding="utf-8").read()
 
-    # Page Agent card carries the standalone/offline experiment wording.
-    assert "Page Agent" in index
-    assert "독립" in index
-    assert "오프라인" in index
-    assert "실험" in index
+    # Internal index carries operator links (relative from /internal/).
+    for href in (
+        'href="../mvp/"',
+        'href="../mobile.html"',
+        'href="../admin.html"',
+        'href="../examples/page-agent/"',
+    ):
+        assert internal.count(href) == 1, f"expected exactly one {href} in static internal"
 
-    # The Page Agent link is independent of the mvp_href condition.
-    assert 'href="examples/page-agent/"' in index
+    assert "Page Agent" in internal
+    assert "독립" in internal
+    assert "오프라인" in internal
+    assert "실험" in internal
+    assert "내부 도구" in internal
 
-    # No integration / live-service claim.
-    for bad in _PAGE_AGENT_FORBIDDEN:
-        assert bad not in index, f"forbidden wording present in static root: {bad}"
-
-
-def test_live_root_gateway_links_page_agent(live_build_dir):
-    """#1106: Live root gateway links the same standalone Page Agent lab."""
-    index = open(os.path.join(live_build_dir, "index.html"), encoding="utf-8").read()
-
-    # Live root links to the live MVP entry and the standalone lab.
-    for href in ('href="mvp/?mvp=1"', 'href="mobile.html"', 'href="admin.html"',
-                 'href="examples/page-agent/"'):
-        assert index.count(href) == 1, f"expected exactly one {href} in live root"
-
-    # Page Agent card wording is identical between modes.
-    assert "Page Agent" in index
-    assert "독립" in index
-    assert "오프라인" in index
-    assert "실험" in index
+    # Resident root must not promote these as equal-choice cards.
+    assert 'href="examples/page-agent/"' not in root
+    assert 'href="admin.html"' not in root
 
     for bad in _PAGE_AGENT_FORBIDDEN:
-        assert bad not in index, f"forbidden wording present in live root: {bad}"
+        assert bad not in internal, f"forbidden wording in static internal: {bad}"
+        assert bad not in root, f"forbidden wording in static root: {bad}"
+
+
+def test_live_internal_gateway_links_page_agent(live_build_dir):
+    """#1106/#1068: Live internal gateway links the same standalone lab."""
+    internal = open(
+        os.path.join(live_build_dir, "internal", "index.html"), encoding="utf-8"
+    ).read()
+    root = open(os.path.join(live_build_dir, "index.html"), encoding="utf-8").read()
+
+    for href in (
+        'href="../mvp/?mvp=1"',
+        'href="../mobile.html"',
+        'href="../admin.html"',
+        'href="../examples/page-agent/"',
+    ):
+        assert internal.count(href) == 1, f"expected exactly one {href} in live internal"
+
+    assert "Page Agent" in internal
+    assert "독립" in internal
+    assert "오프라인" in internal
+    assert "실험" in internal
+
+    # Live root is the citizen entry, not the chooser.
+    assert 'href="mvp/?mvp=1"' not in root
+    assert 'href="admin.html"' not in root
+
+    for bad in _PAGE_AGENT_FORBIDDEN:
+        assert bad not in internal, f"forbidden wording in live internal: {bad}"
+        assert bad not in root, f"forbidden wording in live root: {bad}"
 
 
 def test_static_page_agent_artifacts_exist(build_dir):
@@ -679,23 +736,27 @@ def test_live_page_agent_artifacts_exist(live_build_dir):
         assert os.path.isfile(os.path.join(live_build_dir, rel)), f"missing live {rel}"
 
 
-def test_root_gateway_has_no_external_or_new_tab(build_dir, live_build_dir):
-    """#1106: Root gateway keeps same-origin relative links; no http(s) or
-    target=_blank, and the Page Agent link is identical across modes."""
+def test_internal_gateway_has_no_external_or_new_tab(build_dir, live_build_dir):
+    """#1106/#1068: Internal gateway keeps same-origin relative links only."""
     for d in (build_dir, live_build_dir):
-        index = open(os.path.join(d, "index.html"), encoding="utf-8").read()
-        assert "https://" not in index, "root gateway must not contain https://"
-        assert "http://" not in index, "root gateway must not contain http://"
-        assert 'target="_blank"' not in index, "root gateway must not open new tab"
-        # Page Agent link is absolute-same-origin (relative) in both builds.
-        assert 'href="examples/page-agent/"' in index
+        internal = open(os.path.join(d, "internal", "index.html"), encoding="utf-8").read()
+        root = open(os.path.join(d, "index.html"), encoding="utf-8").read()
+        for label, html in (("internal", internal), ("root", root)):
+            assert "https://" not in html, f"{label} must not contain https://"
+            assert "http://" not in html, f"{label} must not contain http://"
+            assert 'target="_blank"' not in html, f"{label} must not open new tab"
+        assert 'href="../examples/page-agent/"' in internal
 
 
 def test_page_agent_card_not_dependent_on_mvp_href(build_dir, live_build_dir):
-    """#1106: The Page Agent card link must not change between static/live."""
-    static_index = open(os.path.join(build_dir, "index.html"), encoding="utf-8").read()
-    live_index = open(os.path.join(live_build_dir, "index.html"), encoding="utf-8").read()
-    static_link = static_index.count('href="examples/page-agent/"')
-    live_link = live_index.count('href="examples/page-agent/"')
+    """#1106/#1068: Page Agent link on internal index is stable across modes."""
+    static_internal = open(
+        os.path.join(build_dir, "internal", "index.html"), encoding="utf-8"
+    ).read()
+    live_internal = open(
+        os.path.join(live_build_dir, "internal", "index.html"), encoding="utf-8"
+    ).read()
+    static_link = static_internal.count('href="../examples/page-agent/"')
+    live_link = live_internal.count('href="../examples/page-agent/"')
     assert static_link == 1 and live_link == 1, "Page Agent link must appear once per mode"
     assert static_link == live_link, "Page Agent link must be identical in static and live"

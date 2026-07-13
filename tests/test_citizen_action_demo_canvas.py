@@ -2951,3 +2951,81 @@ class TestAutoReplayPhaseMismatchFailClosed:
         assert 'data-auto-replay-status="ready"' in last["html"]
         assert 'data-auto-replay-step="ready"' in last["html"]
         assert last["pendingTimers"] == 0
+
+# ---------------------------------------------------------------------------
+# #1122 — dense header styling + official list containment contracts
+# ---------------------------------------------------------------------------
+
+class TestCloneHeaderListContainment1122:
+    """Static contracts for official-header styling and list marker containment."""
+
+    FIVE_ROOT = (
+        ":is(.bg-page--home, .bg-page--dept-directory, "
+        ".bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense)"
+    )
+
+    def test_dense_header_stylesheet_scope_present(self):
+        css = _read_static("citizen-action-demo-canvas.css")
+        for cls in (
+            ".bg-home-utility__menus a",
+            ".bg-home-header__inner",
+            ".bg-home-gnb__link",
+            ".bg-home-header__icon",
+        ):
+            assert f"{self.FIVE_ROOT} {cls}" in css, f"missing dense-scoped rule for {cls}"
+
+    def test_dense_header_neutralizes_legacy_gnb_bar(self):
+        css = _read_static("citizen-action-demo-canvas.css")
+        # Markup nests nav.bg-gnb under .bg-home-header__inner, not as a
+        # direct child of .bg-home-header. Contract requires a descendant
+        # neutralization selector that wins over base .bg-gnb.
+        assert f"{self.FIVE_ROOT} .bg-home-header nav.bg-gnb" in css
+        assert f"{self.FIVE_ROOT} .bg-home-header .bg-gnb" in css
+        assert "background-image: none" in css
+        assert "border-image: none" in css
+        # Neutralization must appear after the base legacy gradient rule.
+        base_at = css.find(".bg-gnb {")
+        neutral_at = css.find(f"{self.FIVE_ROOT} .bg-home-header nav.bg-gnb")
+        assert base_at != -1 and neutral_at != -1 and neutral_at > base_at
+        # Utility/GNB links must not fall back to UA underline blue styling.
+        assert "text-decoration: none" in css
+        assert ".bg-home-utility__menus a" in css
+        assert ".bg-home-gnb__link" in css
+
+    def test_official_content_lists_have_containment_rules(self):
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert ".bg-official-content-html ul" in css
+        assert ".bg-official-content-html ol" in css
+        assert "padding-inline-start" in css
+        assert "list-style-position: outside" in css
+        assert ".bg-official-content-html li > ul" in css
+        assert ".bg-official-content-html .dep03" in css
+        # Must keep markers for dep03 (no blanket list-style:none on dep03).
+        dep03_match = re.search(
+            r"\.bg-official-content-html \.dep03\s*\{([^}]+)\}",
+            css,
+        )
+        assert dep03_match, "missing .bg-official-content-html .dep03 rule block"
+        dep03_block = dep03_match.group(1)
+        assert "list-style: none" not in dep03_block
+        assert "list-style-type: disc" in dep03_block
+
+    def test_step_list_is_contained_step_strip(self):
+        css = _read_static("citizen-action-demo-canvas.css")
+        assert ".bg-official-content-html .step-list > ul" in css
+        assert "display: flex" in css
+        # step-list intentionally uses a non-disc strip layout, not overflow-hidden
+        # to hide markers.
+        step_block = css.split(".bg-official-content-html .step-list > ul")[1].split(".bg-official-content-html .infoBox")[0]
+        assert "overflow: hidden" not in step_block
+
+    def test_passport_official_render_keeps_dense_and_lists(self):
+        js = _read_static("citizen-action-demo-canvas.js")
+        assert "_renderOfficialContentPage" in js
+        assert "bg-page--dense" in js
+        assert "bg-official-content-html" in js
+        assert 'case "passport-guidance"' in js or "passport-guidance" in js
+        snap = _read_static("bukgu-official-snapshots.js")
+        assert '"route_id": "passport-guidance"' in snap or '"passport-guidance"' in snap
+        assert "class=\\\"dep03\\\"" in snap or 'class="dep03"' in snap or "dep03" in snap
+        assert "step-list" in snap
