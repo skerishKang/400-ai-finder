@@ -56,20 +56,18 @@ PAGE_AGENT_RUNTIME_SIGNATURES = [
 _RESIDENT_MOCK_MODEL = os.path.join(_EXAMPLES_DIR, "resident", "resident-mock-model.js")
 _RESIDENT_DEMO_JS = os.path.join(_EXAMPLES_DIR, "resident", "resident-demo.js")
 _RESIDENT_DEMO_CSS = os.path.join(_EXAMPLES_DIR, "resident", "resident-demo.css")
-
-# Korean parity scenario route IDs expected in the resident mock model.
-_RESIDENT_SCENARIO_ROUTES = frozenset({
-    "apartment-dept",
-    "bulky-waste-disposal",
-    "passport-guidance",
-    "complaint-write",
-    "mayor-complaint-write",
-})
+# Canonical five-scenario vocabulary owner (Stage 4+ architecture).
+_RESIDENT_PARITY_SCENARIOS = os.path.join(
+    _EXAMPLES_DIR, "resident", "parity-scenarios.js"
+)
 
 _SCRIPT_SRC_RE = re.compile(r"<script[^>]+src=[\"']https?://", re.IGNORECASE)
 _LINK_HREF_RE = re.compile(r"<link[^>]+href=[\"']https?://", re.IGNORECASE)
 _FETCH_HTTP_RE = re.compile(r"fetch\(\s*[\"']https?://", re.IGNORECASE)
 _CSS_URL_HTTP_RE = re.compile(r"url\(\s*[\"']?https?://", re.IGNORECASE)
+# Scenario entries in parity-scenarios.js (canonical owner).
+_PARITY_SCENARIO_ID_RE = re.compile(r"^\s*id:\s*'([^']+)'", re.MULTILINE)
+_PARITY_ROUTE_ID_RE = re.compile(r"routeId:\s*'([^']+)'")
 
 
 def _load_build_module():
@@ -256,10 +254,27 @@ class TestResidentRouteStub:
         assert 'id="demo-canvas"' in html
 
     def test_resident_index_has_safety_badges(self):
+        """Stage 4+ resident badges: plan-mode label + same-origin + no-submit.
+
+        Scope assertions to the dedicated badge region so incidental body copy
+        cannot satisfy the contract. Do not require the legacy internal label
+        ``오프라인/mock`` as product-facing copy.
+        """
         html = _read(_RESIDENT_INDEX)
-        assert "오프라인/mock" in html
-        assert "동일 출처" in html or "sameorigin" in html
-        assert "제출 불가" in html or "nosubmit" in html
+        assert "chat-header__badges" in html, "resident safety badge region missing"
+        region_start = html.index("chat-header__badges")
+        region = html[region_start : region_start + 600]
+
+        # Dedicated plan-mode badge (default local mode user-facing label).
+        assert 'id="plan-mode-badge"' in region
+        assert "badge--offline" in region
+        assert "기본 안내" in region
+
+        # Same-origin and no-submit execution boundaries (user-visible + class).
+        assert "badge--sameorigin" in region
+        assert "동일 출처" in region
+        assert "badge--nosubmit" in region
+        assert "제출 불가" in region
 
     def test_resident_index_has_cancel_button(self):
         html = _read(_RESIDENT_INDEX)
@@ -273,20 +288,57 @@ class TestResidentRouteStub:
         assert os.path.isfile(_RESIDENT_MOCK_MODEL), "resident mock model missing"
 
     def test_resident_mock_model_covers_all_five_scenarios(self):
-        src = _read(_RESIDENT_MOCK_MODEL)
-        assert "window.PageAgentMockModel" in src
-        assert "window.PageAgentLabMockModel" in src
-        # Validate all 5 parity scenario route IDs are present.
-        for route_id in _RESIDENT_SCENARIO_ROUTES:
-            assert route_id in src, f"route {route_id} missing from mock model"
-        # Validate navSteps (data-action-target sequences) for each scenario.
-        assert "navSteps" in src
-        assert "nav-civil-service" in src
-        assert "nav-complaint-category" in src
-        assert "mayor-office-open" in src
-        assert "mayor-message-write" in src
+        """Canonical five-scenario ownership lives in parity-scenarios.js.
+
+        resident-mock-model.js must consume that owner rather than re-owning
+        route vocabulary strings. Do not force route IDs back into the mock.
+        """
+        assert os.path.isfile(_RESIDENT_PARITY_SCENARIOS), (
+            "resident parity-scenarios.js missing"
+        )
+        parity_src = _read(_RESIDENT_PARITY_SCENARIOS)
+        mock_src = _read(_RESIDENT_MOCK_MODEL)
+        html = _read(_RESIDENT_INDEX)
+
+        # Load order: canonical vocabulary before mock execution layer.
+        assert "parity-scenarios.js" in html
+        assert "resident-mock-model.js" in html
+        assert html.index("parity-scenarios.js") < html.index("resident-mock-model.js")
+
+        # Canonical owner exports frozen scenario table.
+        assert "window.PageAgentParityScenarios" in parity_src
+        scenario_ids = _PARITY_SCENARIO_ID_RE.findall(parity_src)
+        route_ids = _PARITY_ROUTE_ID_RE.findall(parity_src)
+        assert len(scenario_ids) == 5, (
+            f"expected exactly 5 parity scenario ids, got {scenario_ids!r}"
+        )
+        assert len(route_ids) == 5, (
+            f"expected exactly 5 parity routeIds, got {route_ids!r}"
+        )
+        assert len(set(scenario_ids)) == 5, f"duplicate scenario ids: {scenario_ids!r}"
+        assert len(set(route_ids)) == 5, f"duplicate routeIds: {route_ids!r}"
+        assert all(rid.strip() for rid in route_ids), "blank routeId in parity table"
+
+        # Nav step targets (data-action-target sequences) live on the owner.
+        assert "navSteps" in parity_src
+        assert "nav-civil-service" in parity_src
+        assert "nav-complaint-category" in parity_src
+        assert "mayor-office-open" in parity_src
+        assert "mayor-message-write" in parity_src
+
+        # Mock is the execution layer over the shared owner (no second map).
+        assert "window.PageAgentMockModel" in mock_src
+        assert "window.PageAgentLabMockModel" in mock_src
+        assert "PageAgentParityScenarios" in mock_src
+        assert "parity.SCENARIOS" in mock_src or "parity.SCENARIOS ||" in mock_src
+
         # No route ID used as direct navigation (contract: click DOM, not route jump).
-        assert "navigateToRoute" not in src, "contract violation: navigateToRoute forbidden"
+        assert "navigateToRoute" not in mock_src, (
+            "contract violation: navigateToRoute forbidden"
+        )
+        assert "navigateToRoute" not in parity_src, (
+            "contract violation: navigateToRoute forbidden in parity owner"
+        )
 
     def test_resident_mock_model_uses_allowed_actions_only(self):
         src = _read(_RESIDENT_MOCK_MODEL)
