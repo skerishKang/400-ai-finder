@@ -316,9 +316,44 @@ async function runViewport(browser, viewport) {
   await page.evaluate(() => window.CitizenActionDemoCanvas.navigateToRoute("home"));
 
   console.log(`[${viewportLabel}] mayor writing`);
+  // Ensure guidance surface is active on mobile so the home control is live,
+  // then bring the control into the canvas viewport without route injection.
+  if (isMobileViewport(viewport)) {
+    await selectMobileSurface(
+      page,
+      viewport,
+      "guidance",
+      `[${viewportLabel}] mayor entry guidance`,
+    );
+  }
   const mayorEntry = page.locator("#btn-open-mayor-office");
+  await mayorEntry.waitFor({ state: "attached", timeout: 5000 });
+  await page.evaluate(() => {
+    const canvas = document.getElementById("demo-canvas");
+    const btn = document.getElementById("btn-open-mayor-office");
+    if (btn && typeof btn.scrollIntoView === "function") {
+      btn.scrollIntoView({ block: "center", inline: "nearest" });
+    }
+    if (canvas && btn) {
+      const c = canvas.getBoundingClientRect();
+      const t = btn.getBoundingClientRect();
+      if (t.bottom > c.bottom || t.top < c.top) {
+        canvas.scrollTop += t.top - c.top - c.height / 3;
+      }
+    }
+  });
   await mayorEntry.waitFor({ state: "visible", timeout: 5000 });
-  await mayorEntry.click();
+  // Click only if the control is actually inside the viewport.
+  const mayorClickable = await page.evaluate(() => {
+    const btn = document.getElementById("btn-open-mayor-office");
+    if (!btn) return false;
+    const r = btn.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < vh && r.left < vw;
+  });
+  assert.ok(mayorClickable, `[${viewportLabel}] #btn-open-mayor-office clickable in viewport`);
+  await mayorEntry.click({ force: false });
   await page.locator(".bg-page--mayor").waitFor({ state: "visible", timeout: 5000 });
   assert.strictEqual(
     await page.locator('.bg-page--mayor [target="_blank"]').count(),
@@ -326,7 +361,17 @@ async function runViewport(browser, viewport) {
     `[${viewportLabel}] mayor page must not open target=_blank`,
   );
 
-  await page.locator('[data-action-target="mayor-message-write"]').click();
+  const mayorMessage = page.locator('[data-action-target="mayor-message-write"], #btn-mayor-message');
+  await mayorMessage.first().waitFor({ state: "visible", timeout: 5000 });
+  await page.evaluate(() => {
+    const btn =
+      document.getElementById("btn-mayor-message") ||
+      document.querySelector('[data-action-target="mayor-message-write"]');
+    if (btn && typeof btn.scrollIntoView === "function") {
+      btn.scrollIntoView({ block: "center", inline: "nearest" });
+    }
+  });
+  await mayorMessage.first().click({ force: false });
   await page.locator(".bg-page--mayor-writing").waitFor({ state: "visible", timeout: 5000 });
 
   if (isMobileViewport(viewport)) {
@@ -372,10 +417,30 @@ async function runViewport(browser, viewport) {
     (await page.locator("#mayor-write-title").inputValue()).includes("통학로"),
     `[${viewportLabel}] mayor title must include 통학로`,
   );
+  const bodyValue = await page.locator("#mayor-write-content").inputValue();
+  assert.ok(bodyValue.length > 250, `[${viewportLabel}] mayor body length > 250`);
+  const lastSentenceMarker = "제출 전에 추가하겠습니다";
   assert.ok(
-    (await page.locator("#mayor-write-content").inputValue()).length > 250,
-    `[${viewportLabel}] mayor body length > 250`,
+    bodyValue.includes(lastSentenceMarker),
+    `[${viewportLabel}] last body sentence present in value`,
   );
+  const bodyScroll = await page.evaluate(() => {
+    const el = document.getElementById("mayor-write-content");
+    if (!el) return null;
+    return {
+      scrollTop: el.scrollTop,
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      atBottom: el.scrollTop + el.clientHeight >= el.scrollHeight - 4,
+    };
+  });
+  assert.ok(bodyScroll, `[${viewportLabel}] mayor textarea exists`);
+  if (bodyScroll.scrollHeight > bodyScroll.clientHeight + 2) {
+    assert.ok(
+      bodyScroll.atBottom,
+      `[${viewportLabel}] textarea scrolled to bottom after typing: ${JSON.stringify(bodyScroll)}`,
+    );
+  }
 
   // Confirmation controls live in chat; mobile must switch to conversation.
   await selectMobileSurface(
@@ -848,19 +913,216 @@ async function runStreetlightWriteHeaderFlow(browser) {
   console.log(`[${label}] PASS`);
 }
 
+async function runVietnameseMayorChipFlow(browser) {
+  const label = "vietnamese-mayor-chip";
+  console.log(`[${label}] start`);
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: "no-preference",
+  });
+  const page = await context.newPage();
+  const errors = [];
+  const externalRequests = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("request", (request) => {
+    const url = request.url();
+    if (!url.startsWith("data:") && new URL(url).origin !== BASE_ORIGIN) {
+      externalRequests.push(url);
+    }
+  });
+  await page.route("**/api/mvp/ask", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json; charset=utf-8",
+      body: JSON.stringify({
+        ok: true,
+        answer: "구청장 제안 작성을 안내합니다.",
+        action: "mayor_message_assist",
+        confidence: 1,
+        failure_code: "",
+      }),
+    });
+  });
+
+  await page.goto(`${BASE_ORIGIN}/mvp/?lang=vi`, {
+    waitUntil: "networkidle",
+    timeout: 20000,
+  });
+
+  // Shell language contract
+  const shellTitle = page.locator(".chat-shell__title");
+  await shellTitle.waitFor({ state: "visible", timeout: 5000 });
+  assert.strictEqual(await shellTitle.innerText(), "Trợ lý AI tiếp dân Bukgu-gu", `[${label}] shell title`);
+
+  const langSelect = page.locator("#chat-lang");
+  assert.strictEqual(await langSelect.inputValue(), "vi", `[${label}] lang selector value`);
+
+  // Chip shows Vietnamese text
+  const viMayorChip = page.locator(".chat-chip--mayor-primary").first();
+  await viMayorChip.waitFor({ state: "visible", timeout: 5000 });
+  const chipText = await viMayorChip.innerText();
+  assert.ok(chipText.includes("gửi đề xuất"), `[${label}] chip text Vietnamese: ${chipText}`);
+
+  // Start journey from chip
+  await viMayorChip.click();
+  await page.getByRole("button", { name: "Vâng, hãy hướng dẫn tôi", exact: true }).click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-first-use-state") === "split",
+    null,
+    { timeout: 10000 },
+  );
+
+  // Verify welcome message in Vietnamese
+  const chatThread = page.locator("#chat-thread");
+  const threadText = await chatThread.innerText();
+  assert.ok(threadText.includes("Xin chào"), `[${label}] thread contains Vietnamese AI greeting: ${threadText.substring(0, 100)}`);
+
+  // Poll journey through to confirmation
+  const order = [];
+  const seen = new Set();
+  const deadline = Date.now() + 90000;
+  while (Date.now() < deadline) {
+    const routeId = await page.evaluate(() =>
+      window.CitizenActionDemoCanvas && window.CitizenActionDemoCanvas.getCurrentRouteId
+        ? window.CitizenActionDemoCanvas.getCurrentRouteId()
+        : "",
+    );
+    if (routeId && !seen.has(routeId)) {
+      seen.add(routeId);
+      order.push(routeId);
+      console.log(`[${label}] route`, routeId);
+    }
+    const waiting = await page.evaluate(
+      () => document.body.getAttribute("data-choreography-state") === "waiting_confirmation",
+    );
+    if (waiting) break;
+    await page.waitForTimeout(400);
+  }
+
+  assert.ok(order.includes("mayor-office"), `[${label}] visited mayor-office: ${order.join(">")}`);
+  assert.ok(
+    order.includes("mayor-complaint-write"),
+    `[${label}] visited mayor-complaint-write: ${order.join(">")}`,
+  );
+
+  // Verify Vietnamese confirm button text
+  const confirmBtn = page.locator(".chat-decision__button--primary").first();
+  await confirmBtn.waitFor({ state: "visible", timeout: 5000 });
+  const btnText = await confirmBtn.innerText();
+  assert.ok(btnText.includes("Đã xem xét"), `[${label}] confirm button Vietnamese: ${btnText}`);
+
+  // Draft labels must come from the locale registry (not test-only literals).
+  const draftLabels = await page.evaluate(() => {
+    const i18n = window.CitizenI18n;
+    const originalExpected = i18n.t("draft.originalResidentMessage");
+    const koreanExpected = i18n.t("draft.koreanAdministrativeDraft");
+    const originalNode = document.querySelector(
+      '[data-draft-role="original-resident"] [data-draft-label], [data-draft-role="original-resident"] .bg-writing-locale-meta__label, [data-draft-role="original-resident"] .chat-draft-label',
+    );
+    const koreanNode = document.querySelector(
+      '[data-draft-role="korean-administrative-draft"] [data-draft-label], [data-draft-role="korean-administrative-draft"] .bg-writing-locale-meta__label, [data-draft-role="korean-administrative-draft"] .chat-draft-label',
+    );
+    const originalText = document.querySelector(
+      '[data-draft-role="original-resident"] [data-draft-original-text], [data-draft-role="original-resident"] .chat-draft-body, [data-draft-role="original-resident"] .bg-writing-locale-meta__body',
+    );
+    const body = document.getElementById("mayor-write-content");
+    return {
+      originalExpected,
+      koreanExpected,
+      originalLabelText: originalNode ? originalNode.textContent.trim() : "",
+      koreanLabelText: koreanNode ? koreanNode.textContent.trim() : "",
+      originalBody: originalText ? originalText.textContent.trim() : "",
+      title: document.getElementById("mayor-write-title")
+        ? document.getElementById("mayor-write-title").value
+        : "",
+      body: body ? body.value : "",
+      bodyAtBottom: body
+        ? body.scrollTop + body.clientHeight >= body.scrollHeight - 4
+        : false,
+      scrollHeight: body ? body.scrollHeight : 0,
+      clientHeight: body ? body.clientHeight : 0,
+    };
+  });
+  assert.ok(draftLabels.originalExpected, `[${label}] registry original label exists`);
+  assert.ok(draftLabels.koreanExpected, `[${label}] registry korean draft label exists`);
+  assert.strictEqual(
+    draftLabels.originalLabelText,
+    draftLabels.originalExpected,
+    `[${label}] original-language label visible from registry`,
+  );
+  assert.strictEqual(
+    draftLabels.koreanLabelText,
+    draftLabels.koreanExpected,
+    `[${label}] Korean administrative draft label visible from registry`,
+  );
+  assert.ok(
+    draftLabels.originalBody.length > 10,
+    `[${label}] original resident text visible`,
+  );
+  assert.ok(
+    draftLabels.title.includes("통학로") || draftLabels.title.length > 5,
+    `[${label}] Korean title distinct field present`,
+  );
+  assert.ok(
+    draftLabels.body.includes("제출 전에 추가하겠습니다"),
+    `[${label}] Korean body last sentence present`,
+  );
+  assert.ok(
+    !draftLabels.originalBody.includes(draftLabels.title),
+    `[${label}] original text is distinct from Korean title`,
+  );
+  if (draftLabels.scrollHeight > draftLabels.clientHeight + 2) {
+    assert.ok(draftLabels.bodyAtBottom, `[${label}] textarea scrolled to bottom`);
+  }
+  const bannedTranslationClaims = ["공식 번역", "공인 통역", "official translation", "certified interpreter"];
+  const pageText = await page.locator("body").innerText();
+  for (const banned of bannedTranslationClaims) {
+    assert.ok(!pageText.includes(banned), `[${label}] banned claim: ${banned}`);
+  }
+
+  await confirmBtn.click();
+  await page.locator(".bg-page--mayor-receipt").waitFor({ state: "visible", timeout: 20000 });
+
+  // Canvas receipt stays Korean (left canvas is never localized)
+  const receiptText = await page.locator(".bg-page--mayor-receipt").innerText();
+  assert.ok(receiptText.includes("구정 제안서가 작성되었습니다"), `[${label}] receipt title Korean`);
+  assert.ok(receiptText.includes("공식 제출 전"), `[${label}] pre-submit Korean`);
+  assert.ok(receiptText.includes("공식 채널에서 확인 및 제출"), `[${label}] official handoff Korean`);
+
+  // No banned terms in chat
+  const finalChatText = await chatThread.innerText();
+  for (const banned of ["시연용", "PoC", "DEMO-", "접수 완료", "접수되었습니다"]) {
+    assert.ok(!finalChatText.includes(banned), `[${label}] chat banned: ${banned}`);
+  }
+
+  assert.deepStrictEqual(externalRequests, [], `[${label}] no external requests`);
+  assert.deepStrictEqual(errors, [], `[${label}] no browser errors: ${errors.join(" | ")}`);
+
+  await context.close();
+  console.log(`[${label}] PASS`);
+}
+
 async function main() {
   const browser = await launchBrowser();
   try {
-    // Existing reduced-motion coverage (desktop + mobile) retained.
+    // Desktop + both mobile contracts: product target 390×844 and the
+    // existing locked 375×812 reduced-motion suite.
     await runViewport(browser, { width: 1440, height: 900 });
     await runViewport(browser, { width: 390, height: 844 });
-    // #1142: normal-motion full mayor chip journey + one general write header path.
+    await runViewport(browser, { width: 375, height: 812 });
     await runNormalMotionMayorChipFlow(browser);
     await runStreetlightWriteHeaderFlow(browser);
+    // #1143: Vietnamese mayor flow (i18n).
+    await runVietnameseMayorChipFlow(browser);
   } finally {
     await browser.close();
   }
-  console.log("Mayor writing E2E passed (reduced + normal-motion + streetlight write).");
+  console.log(
+    "Mayor writing E2E passed (1440 + 390 + 375 + normal-motion + streetlight write + Vietnamese).",
+  );
 }
 
 main().catch((error) => {

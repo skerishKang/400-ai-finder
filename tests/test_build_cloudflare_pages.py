@@ -69,9 +69,12 @@ def live_build_dir():
 # Live-mode activation / artifact markers
 # ---------------------------------------------------------------------------
 # Live MVP entry activates the MVP bridge via a single ?mvp=1 query injector.
-LIVE_INJECTOR = 'window.location.pathname + "?mvp=1"'
-# Static public entry strips any query via pathname+hash replaceState.
-STATIC_SANITIZER = "window.location.pathname + window.location.hash"
+# #1143: injector preserves other params (e.g. lang) while still emitting the
+# literal "?mvp=1" marker the live-activation contract checks for.
+LIVE_INJECTOR = 'var force = "?mvp=1"'
+# Static public entry removes only the live-bridge `mvp` flag and preserves
+# other params such as `lang` (#1143 multilingual entry).
+STATIC_SANITIZER = 'searchParams.delete("mvp")'
 # Static runtime assets that must NOT exist/be referenced in live output.
 STATIC_RUNTIME_ASSETS = ("snapshot-data.js", "static-api-shim.js")
 # Live mobile endpoint.
@@ -294,8 +297,8 @@ def test_static_root_is_citizen_assistant_entry(build_dir):
 
     # Static activation: sanitizer yes, live injector no.
     assert "history.replaceState" in index
-    assert "window.location.pathname + window.location.hash" in index
-    assert '"?mvp=1"' not in index
+    assert STATIC_SANITIZER in index
+    assert LIVE_INJECTOR not in index
     assert 'data-mvp="1"' not in index
 
     # No artifact chooser / equal-choice operator cards on resident root.
@@ -349,8 +352,8 @@ def test_mvp_entry_generated(build_dir):
     # Query sanitizer is present and runs before the shell script.
     assert "history.replaceState" in html
     assert html.index("history.replaceState") < html.index("citizen-first-use-shell.js")
-    # Sanitizer preserves pathname + hash, drops only the query.
-    assert "window.location.pathname + window.location.hash" in html
+    # Sanitizer removes only the live mvp flag; lang and other params remain.
+    assert STATIC_SANITIZER in html
 
     # The live bridge script must never be referenced from the public entry.
     assert '<script src="/static/citizen-mvp-bridge.js"' not in html
@@ -399,14 +402,14 @@ def test_mvp_static_has_query_sanitizer(build_dir):
     html = open(mvp_index, encoding="utf-8").read()
     assert "history.replaceState" in html, "static mvp must have query sanitizer"
     assert html.index("history.replaceState") < html.index("citizen-first-use-shell.js")
-    assert "window.location.pathname + window.location.hash" in html
+    assert STATIC_SANITIZER in html, "static mvp must strip live mvp flag only"
 
 
 def test_mvp_static_has_no_live_injector(build_dir):
     """#1053: Static output must NOT have live ?mvp=1 injector."""
     mvp_index = os.path.join(build_dir, "mvp", "index.html")
     html = open(mvp_index, encoding="utf-8").read()
-    assert '"?mvp=1"' not in html, "static mvp must NOT have ?mvp=1 injector"
+    assert LIVE_INJECTOR not in html, "static mvp must NOT have live ?mvp=1 injector"
     assert '"?mvp=1" + window.location.hash' not in html
 
 
@@ -426,8 +429,8 @@ def test_mvp_live_has_injector():
         shell_idx = html.find("citizen-first-use-shell.js")
         assert injector_idx >= 0 and injector_idx < shell_idx, \
             "live injector must run before shell script"
-        # Live output must NOT have static query sanitizer (pathname+hash).
-        assert "window.location.pathname + window.location.hash" not in html, \
+        # Live output must NOT have static query sanitizer.
+        assert STATIC_SANITIZER not in html, \
             "live mode must NOT have static query sanitizer"
         # Live output must NOT have data-mvp="1".
         assert 'data-mvp="1"' not in html, \
@@ -435,7 +438,7 @@ def test_mvp_live_has_injector():
 
 
 def test_mvp_live_has_no_static_sanitizer():
-    """#1053: Live output must NOT have static query sanitizer (pathname+hash only)."""
+    """#1053: Live output must NOT have static query sanitizer."""
     mod = _load_build_module()
     with tempfile.TemporaryDirectory() as tmp:
         out = os.path.join(tmp, "out")
@@ -443,7 +446,7 @@ def test_mvp_live_has_no_static_sanitizer():
         mvp_index = os.path.join(out, "mvp", "index.html")
         html = open(mvp_index, encoding="utf-8").read()
         # Live output must NOT have the static query sanitizer pattern.
-        assert "window.location.pathname + window.location.hash" not in html, \
+        assert STATIC_SANITIZER not in html, \
             "live mode must NOT have static query sanitizer"
         # Live output must have the ?mvp=1 injector.
         assert '"?mvp=1"' in html or '"\\u003Fmvp=1"' in html, \

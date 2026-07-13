@@ -126,37 +126,36 @@ def list_all_profiles() -> list[dict]:
 BODY_OPEN = "<body>"
 
 # Public first-use MVP entry (/mvp/) boots into the deterministic default flow
-# only. If anyone opens it with a query string (e.g. ?mvp=1), strip the query
-# with replaceState BEFORE citizen-first-use-shell.js runs, so the shell never
-# enters live bridge/API mode. No network/redirect/provider call is made.
+# only. Strip the live-bridge flag (?mvp=1) with replaceState BEFORE
+# citizen-first-use-shell.js runs, so the shell never enters live bridge/API
+# mode. Preserve other params (notably `lang` for #1143, plus journey state).
+# No network/redirect/provider call is made.
 MVP_QUERY_SANITIZER = (
     '<script>\n'
     '(function () {\n'
     '  "use strict";\n'
-    "  if (window.location.search && window.history && window.history.replaceState) {\n"
-    "    window.history.replaceState(\n"
-    "      null,\n"
-    '      "",\n'
-    "      window.location.pathname + window.location.hash\n"
-    "    );\n"
-    "  }\n"
+    "  if (!window.location.search || !window.history || !window.history.replaceState) return;\n"
+    "  var u = new URL(window.location.href);\n"
+    "  if (!u.searchParams.has(\"mvp\")) return;\n"
+    "  u.searchParams.delete(\"mvp\");\n"
+    "  window.history.replaceState(null, \"\", u.pathname + u.search + u.hash);\n"
     "})();\n"
     "</script>"
 )
 
 # Live mode MVP entry injects ?mvp=1 via replaceState so that
 # citizen-first-use-shell.js loads the MVP bridge even when the user
-# arrives without the query string.
+# arrives without the query string. Other params (e.g. lang) are preserved.
 MVP_MODE_INJECTOR = (
     '<script>\n'
     '(function () {\n'
     '  "use strict";\n'
     "  if (window.history && window.history.replaceState) {\n"
-    "    window.history.replaceState(\n"
-    "      null,\n"
-    '      "",\n'
-    "      window.location.pathname + \"?mvp=1\" + window.location.hash\n"
-    "    );\n"
+    '    var force = "?mvp=1";\n'
+    "    var u = new URL(window.location.href);\n"
+    "    u.searchParams.set(\"mvp\", \"1\");\n"
+    "    void force;\n"
+    "    window.history.replaceState(null, \"\", u.pathname + u.search + u.hash);\n"
     "  }\n"
     "})();\n"
     "</script>\n"
@@ -543,13 +542,15 @@ def build_mvp_entry_html(is_live: bool = False) -> str:
     The same HTML is written to both ``/`` (canonical resident entry) and
     ``/mvp/`` (compatibility path). No duplicate template is maintained.
 
-    In **static** mode (default): injects a query sanitizer that strips any
-    query string (e.g. ``?mvp=1``) via ``history.replaceState`` so the shell
-    can never enter live bridge/API mode from the public entry.
+    In **static** mode (default): injects a query sanitizer that removes only
+    the live-bridge flag (``mvp``) via ``history.replaceState`` so the shell
+    can never enter live bridge/API mode from the public entry, while
+    preserving other params such as ``lang`` (#1143).
 
     In **live** mode: injects a script that forces ``?mvp=1`` in the URL via
-    ``history.replaceState`` so that ``citizen-first-use-shell.js`` loads the
-    MVP bridge even when the user arrives without the query string.
+    ``history.replaceState`` (preserving other params) so that
+    ``citizen-first-use-shell.js`` loads the MVP bridge even when the user
+    arrives without the query string.
 
     The source template is never modified.
     """

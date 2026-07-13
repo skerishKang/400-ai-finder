@@ -47,28 +47,40 @@
   var _reducedMotion = false;
   // #1142: short pause after click visual before route/receipt commit.
   var CLICK_READ_MS = 340;
+  // #1143: generation token so delayed click/route commits after cancel or
+  // locale reset never resume a stale journey.
+  var _journeyGeneration = 0;
 
   function _apartmentDeptSnapshot() {
     var snapshots = window.__BUKGU_OFFICIAL_SNAPSHOTS__;
     return snapshots && snapshots["apartment-dept"] ? snapshots["apartment-dept"] : null;
   }
 
+  function _i18nT(key, fallback) {
+    var i = window.CitizenI18n;
+    if (i) {
+      var v = i.t(key);
+      if (v && v !== key) return v;
+    }
+    return fallback;
+  }
+
   function _apartmentDeptFinalMessage() {
     var snapshot = _apartmentDeptSnapshot();
     if (!snapshot || !snapshot.page || !snapshot.representative_contact) {
-      return "공동주택과 공식 스냅샷을 불러오지 못했습니다.";
+      return _i18nT("apartment.missing", "공동주택과 공식 스냅샷을 불러오지 못했습니다.");
     }
-    return "공동주택과 부서 대표전화는 " + snapshot.representative_contact.phone +
-      ", FAX는 " + snapshot.representative_contact.fax +
-      "입니다. 왼쪽 조직 및 업무안내 표에서 전체 " + snapshot.page.row_count +
-      "명의 업무별 연락처를 확인할 수 있습니다.";
+    return _i18nT("apartment.final.prefix", "공동주택과 부서 대표전화는 ") + snapshot.representative_contact.phone +
+      _i18nT("apartment.final.fax", ", FAX는 ") + snapshot.representative_contact.fax +
+      _i18nT("apartment.final.suffix", "입니다. 왼쪽 조직 및 업무안내 표에서 전체 ") + snapshot.page.row_count +
+      _i18nT("apartment.final.tail", "명의 업무별 연락처를 확인할 수 있습니다.");
   }
 
   function _apartmentDeptTableMessage() {
     var snapshot = _apartmentDeptSnapshot();
     var count = snapshot && snapshot.page ? snapshot.page.row_count : "전체";
-    return "공식 조직 및 업무안내의 전체 " + count +
-      "명 표를 열고 대표 연락처 행을 확인했습니다.";
+    return _i18nT("apartment.table.prefix", "공식 조직 및 업무안내의 전체 ") + count +
+      _i18nT("apartment.table.tail", "명 표를 열고 대표 연락처 행을 확인했습니다.");
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -105,7 +117,7 @@
        Object.freeze({ message: "민원 제목을 입력합니다.", focusSearch: true, typeQuery: "[시설물 정비 요청] 가로등 고장 신고", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "제목을 다듬는 중입니다...", thinkingMs: 650 }),
        Object.freeze({ message: "말씀하실 내용을 민원 문장으로 정리해 본문에 입력합니다.", typeContent: "안녕하세요. 생활에 불편을 주는 가로등 고장을 신고합니다. 정확한 위치와 고장 상태를 확인할 수 있도록 아래 내용을 검토해 주세요.\n\n- 위치: [도로명 또는 주변 건물]\n- 고장 상태: [점등 불가 / 깜빡임 / 파손]\n- 발생 시각: [확인한 날짜와 시간]\n\n안전사고 예방을 위해 점검과 수리를 요청드립니다.", cursorTarget: "#board-write-content", typeSpeedMs: 18, delayMs: 2600, thinkingText: "민원 문장을 작성하는 중입니다...", thinkingMs: 750, revealWritingConfirm: true }),
        Object.freeze({ message: "제목과 본문 초안을 입력했습니다. 대괄호 부분을 확인한 뒤 제출 여부를 선택해 주세요.", requiresConfirmation: true, delayMs: 1000 }),
-       Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다. 처리 결과는 민원게시판에서 확인 가능합니다." })
+        Object.freeze({ message: "민원 초안 작성을 마쳤습니다. 실제 제출은 북구청 공식 채널에서 직접 진행해 주세요." })
      ]),
    });
 
@@ -122,7 +134,7 @@
        Object.freeze({ message: "먼저 민원 제목을 입력합니다.", focusSearch: true, typeQuery: "[환경정비 요청] 공원 내 방치 쓰레기 수거 및 악취 해결 요청", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "핵심 내용을 제목으로 정리하는 중입니다...", thinkingMs: 650 }),
        Object.freeze({ message: "이어서 주민의 표현을 정중하고 구체적인 민원 문장으로 다듬어 본문에 입력합니다.", typeContent: "안녕하세요. 집 앞 공원에 무단 투기된 쓰레기가 다량 방치되어 있어 심한 악취와 미관 훼손이 발생하고 있습니다. 주민들이 안심하고 공원을 이용할 수 있도록 현장 확인 후 쓰레기 수거와 주변 환경 정비를 요청드립니다. 정확한 처리를 위해 공원 이름이나 위치를 제출 전에 추가해 주세요.", cursorTarget: "#board-write-content", typeSpeedMs: 18, delayMs: 2600, thinkingText: "민원 문장을 작성하는 중입니다...", thinkingMs: 750, revealWritingConfirm: true }),
        Object.freeze({ message: "작성된 초안을 확인한 뒤 오른쪽의 [검토했고, 제출하기]를 선택해 주세요. 확인 전에는 제출되지 않습니다.", requiresConfirmation: true, delayMs: 1000 }),
-       Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다." })
+        Object.freeze({ message: "민원 초안 작성을 마쳤습니다. 실제 제출은 북구청 공식 채널에서 직접 진행해 주세요." })
      ]),
    });
 
@@ -133,7 +145,7 @@
        Object.freeze({ message: "구청장에게 전할 제안을 함께 작성하겠습니다.", thinkingText: "제안 작성 화면을 준비 중입니다...", thinkingMs: 550, delayMs: 900 }),
        Object.freeze({ message: "홈 화면의 열린구청장실로 이동합니다.", clickTarget: "#btn-open-mayor-office", routeIdAfterClick: "mayor-office", delayMs: 2400, thinkingText: "열린구청장실 경로를 찾는 중입니다...", thinkingMs: 650 }),
        Object.freeze({ message: "구청장에게 바란다 제안 작성 화면을 엽니다.", clickTarget: "#btn-mayor-message", routeIdAfterClick: "mayor-complaint-write", delayMs: 2400, thinkingText: "제안 작성 양식을 여는 중입니다...", thinkingMs: 650 }),
-       Object.freeze({ message: "아이들이 안심하고 걸을 수 있게 학교 앞 횡단보도 조명을 더 밝게 해주세요.", isUserSimulated: true, delayMs: 1800 }),
+        Object.freeze({ message: "아이들이 안심하고 걸을 수 있게 학교 앞 횡단보도 조명을 더 밝게 해주세요.", isUserSimulated: true, residentMessage: true, delayMs: 1800 }),
        Object.freeze({ message: "주민의 문제 제기와 기대 효과가 잘 드러나도록 구정 제안 문장으로 정리합니다.", thinkingText: "제안의 핵심과 기대 효과를 분석하는 중입니다...", thinkingMs: 900, delayMs: 1000 }),
        Object.freeze({ message: "먼저 제안 제목을 입력합니다.", typeQuery: "[안전한 통학로 제안] 학교 앞 횡단보도 조명 개선 요청", querySelector: "#mayor-write-title", cursorTarget: "#mayor-write-title", delayMs: 2100, thinkingText: "제목을 구체화하는 중입니다...", thinkingMs: 550 }),
        Object.freeze({ message: "현장 상황과 기대 효과를 담아 본문을 작성합니다.", typeContent: "안녕하세요. 북구의 안전한 통학환경 조성을 위해 학교 앞 횡단보도 조명 개선을 제안드립니다.\n\n현재 일부 통학로는 해가 진 뒤 횡단보도와 보행자 대기 구역이 어두워 운전자와 어린이 모두 시야 확보가 어렵습니다. 현장 밝기와 차량 통행량을 확인해 조명을 보강하고, 필요하다면 바닥형 보행신호등이나 안전표지 설치도 함께 검토해 주시기 바랍니다.\n\n아이와 보호자가 안심하고 걸을 수 있는 통학로가 조성되도록 관련 부서의 현장 점검과 개선 계획을 요청드립니다. 정확한 검토를 위해 학교명과 횡단보도 위치는 제출 전에 추가하겠습니다.", contentSelector: "#mayor-write-content", cursorTarget: "#mayor-write-content", typeSpeedMs: 15, delayMs: 2600, thinkingText: "설득력 있는 제안 문장을 작성하는 중입니다...", thinkingMs: 700, revealWritingConfirm: true }),
@@ -177,8 +189,8 @@
         Object.freeze({ message: "구청안내에서 행정조직의 공동주택과를 찾습니다.", clickTarget: '[data-dept-action="go-directory"]', journeyStateAfterClick: "J-DEPT-01:directory", delayMs: 2500, thinkingText: "담당 부서 경로를 찾는 중입니다...", thinkingMs: 650 }),
         Object.freeze({ message: "검색창에 공동주택을 입력하겠습니다.", focusSearch: true, typeQuery: "공동주택", cursorTarget: ".bg-dept-search__input", delayMs: 2500, thinkingText: "부서 검색을 준비하는 중입니다...", thinkingMs: 550 }),
         Object.freeze({ message: "입력한 검색어로 담당 부서를 조회합니다.", submitSearch: true, clickTarget: ".bg-dept-search__btn", delayMs: 2500, searchingText: "공동주택 관련 부서를 검색 중입니다...", thinkingText: "검색 조건을 확인하는 중입니다...", thinkingMs: 650 }),
-        Object.freeze({ message: _apartmentDeptTableMessage(), cursorTarget: '[data-representative-contact="true"]', delayMs: 2400, thinkingText: "공식 결과를 확인하는 중입니다...", thinkingMs: 650 }),
-        Object.freeze({ message: _apartmentDeptFinalMessage() }),
+        Object.freeze({ message: "__APARTMENT_TABLE__", cursorTarget: '[data-representative-contact="true"]', delayMs: 2400, thinkingText: "공식 결과를 확인하는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "__APARTMENT_FINAL__" }),
       ]),
     }),
     "housing_department": Object.freeze({
@@ -190,8 +202,8 @@
         Object.freeze({ message: "구청안내에서 행정조직의 공동주택과를 찾습니다.", clickTarget: '[data-dept-action="go-directory"]', journeyStateAfterClick: "J-DEPT-01:directory", delayMs: 2500, thinkingText: "담당 부서 경로를 찾는 중입니다...", thinkingMs: 650 }),
         Object.freeze({ message: "검색창에 공동주택을 입력하겠습니다.", focusSearch: true, typeQuery: "공동주택", cursorTarget: ".bg-dept-search__input", delayMs: 2500, thinkingText: "부서 검색을 준비하는 중입니다...", thinkingMs: 550 }),
         Object.freeze({ message: "입력한 검색어로 담당 부서를 조회합니다.", submitSearch: true, clickTarget: ".bg-dept-search__btn", delayMs: 2500, searchingText: "공동주택 관련 부서를 검색 중입니다...", thinkingText: "검색 조건을 확인하는 중입니다...", thinkingMs: 650 }),
-        Object.freeze({ message: _apartmentDeptTableMessage(), cursorTarget: '[data-representative-contact="true"]', delayMs: 2400, thinkingText: "공식 결과를 확인하는 중입니다...", thinkingMs: 650 }),
-        Object.freeze({ message: _apartmentDeptFinalMessage() }),
+        Object.freeze({ message: "__APARTMENT_TABLE__", cursorTarget: '[data-representative-contact="true"]', delayMs: 2400, thinkingText: "공식 결과를 확인하는 중입니다...", thinkingMs: 650 }),
+        Object.freeze({ message: "__APARTMENT_FINAL__" }),
       ]),
     }),
     "bulky_waste": Object.freeze({
@@ -354,12 +366,16 @@
   // Internal helpers
   // ═══════════════════════════════════════════════════════════════════
 
-  function _appendChatMessage(role, text, isTemp) {
+  function _appendChatMessage(role, text, isTemp, opts) {
     if (!_chatThread) return;
+    var options = opts || {};
     var messageEl = document.createElement("div");
     messageEl.className = "chat-msg chat-msg--" + role;
     if (isTemp) {
       messageEl.className += " chat-msg--temp";
+    }
+    if (options.draftRole) {
+      messageEl.setAttribute("data-draft-role", options.draftRole);
     }
     if (role === "ai") {
       var avatar = document.createElement("div");
@@ -370,11 +386,60 @@
     }
     var bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bubble--" + role;
-    bubble.textContent = text;
+    if (options.label) {
+      var labelEl = document.createElement("p");
+      labelEl.className = "chat-draft-label";
+      labelEl.setAttribute("data-draft-label", options.draftRole || "label");
+      labelEl.textContent = options.label;
+      bubble.appendChild(labelEl);
+      var bodyEl = document.createElement("p");
+      bodyEl.className = "chat-draft-body";
+      bodyEl.textContent = text;
+      bubble.appendChild(bodyEl);
+    } else {
+      bubble.textContent = text;
+    }
     messageEl.appendChild(bubble);
     _chatThread.appendChild(messageEl);
     _chatThread.scrollTop = _chatThread.scrollHeight;
     return messageEl;
+  }
+
+  function _scrollEditableToEnd(input) {
+    if (!input) return;
+    try {
+      // Textareas must pin the caret region so the last paragraph is readable
+      // before confirmation is offered.
+      if (typeof input.scrollHeight === "number") {
+        input.scrollTop = input.scrollHeight;
+      }
+      if (typeof input.setSelectionRange === "function" && typeof input.value === "string") {
+        var end = input.value.length;
+        try {
+          input.setSelectionRange(end, end);
+        } catch (_) {
+          /* some input types reject selection */
+        }
+      }
+    } catch (_) {
+      /* best-effort */
+    }
+  }
+
+  function _appendKoreanDraftLabelNotice() {
+    if (!window.CitizenI18n || window.CitizenI18n.getLocale() === "ko") return;
+    var label = _i18nT(
+      "draft.koreanAdministrativeDraft",
+      "한국어 행정 초안"
+    );
+    var helper = _i18nT(
+      "draft.translatedForDraft",
+      "작성 보조를 위한 번역"
+    );
+    _appendChatMessage("ai", helper, false, {
+      label: label,
+      draftRole: "korean-administrative-draft",
+    });
   }
 
   /** Remove all temporary chat messages (for cleaning up thinking/searching indicators) */
@@ -388,7 +453,8 @@
 
   /** Show a temporary thinking/searching indicator, then remove it after delayMs */
   function _showTempIndicator(text, delayMs) {
-    var el = _appendChatMessage("ai", text, true);
+    var localized = (window.CitizenI18n && text) ? window.CitizenI18n.translateMessage(text) : text;
+    var el = _appendChatMessage("ai", localized, true);
     if (el && delayMs > 0) {
       var timerId = window.setTimeout(function () {
         var idx = _tempIndicatorTimers.indexOf(timerId);
@@ -594,6 +660,11 @@
   function _revealWritingConfirmationInCanvas() {
     var canvas = _getCanvasEl();
     if (!canvas) return;
+    // Pin body draft to the last paragraph before scrolling the consent block.
+    var bodyField =
+      canvas.querySelector("#mayor-write-content") ||
+      canvas.querySelector("#board-write-content");
+    _scrollEditableToEnd(bodyField);
     var target =
       canvas.querySelector(".bg-writing-consent") ||
       canvas.querySelector(".bg-writing-actions") ||
@@ -660,6 +731,7 @@
 
     function _finishTyping() {
       input.removeAttribute("data-agent-typing");
+      _scrollEditableToEnd(input);
       if (typeof onComplete === "function") {
         try { onComplete(); } catch (_) { /* noop */ }
       }
@@ -669,6 +741,7 @@
     if (!charDelayMs) {
       input.value = text;
       _dispatchInputEvent(input);
+      _scrollEditableToEnd(input);
       _finishTyping();
       return 0;
     }
@@ -682,6 +755,10 @@
           if (operation.cancelled) return;
           input.value = text.slice(0, characterIndex + 1);
           _dispatchInputEvent(input);
+          // Keep long body drafts pinned to the latest paragraph while typing.
+          if (characterIndex === text.length - 1 || characterIndex % 12 === 0) {
+            _scrollEditableToEnd(input);
+          }
           if (characterIndex === text.length - 1) {
             var opIndex = _activeTypingOperations.indexOf(operation);
             if (opIndex !== -1) _activeTypingOperations.splice(opIndex, 1);
@@ -879,7 +956,35 @@
       _removeTempMessages();
       // Show chat message AFTER DOM actions so the left-pane state is visible
       // before the explanation text.
-      _appendChatMessage(step.isUserSimulated ? "user" : "ai", step.message);
+      var _displayText = step.message;
+      var _draftOpts = null;
+      if (window.CitizenI18n) {
+        if (step.residentMessage) {
+          _displayText = window.CitizenI18n.getResidentMessage();
+          // Non-Korean: label the resident's original-language utterance.
+          if (window.CitizenI18n.getLocale() !== "ko") {
+            _draftOpts = {
+              label: _i18nT(
+                "draft.originalResidentMessage",
+                "주민 원문 메시지"
+              ),
+              draftRole: "original-resident",
+            };
+          }
+        } else if (step.message === "__APARTMENT_TABLE__") {
+          _displayText = _apartmentDeptTableMessage();
+        } else if (step.message === "__APARTMENT_FINAL__") {
+          _displayText = _apartmentDeptFinalMessage();
+        } else {
+          _displayText = window.CitizenI18n.translateMessage(step.message);
+        }
+      }
+      _appendChatMessage(
+        step.isUserSimulated ? "user" : "ai",
+        _displayText,
+        false,
+        _draftOpts
+      );
 
       // Cursor, click, typing, and state changes play after the narration so the
       // resident can watch the agent act instead of seeing a finished state pop in.
@@ -970,7 +1075,10 @@
             step.typeSpeedMs,
             revealAfterBody
               ? function () {
-                  // One-shot after body typing completes — not per character.
+                  // After body typing: pin textarea to last paragraph, show
+                  // Korean-admin-draft label for non-ko, then reveal confirm.
+                  _scrollEditableToEnd(contentInput);
+                  _appendKoreanDraftLabelNotice();
                   _scheduleCanvasScroll(_revealWritingConfirmationInCanvas, reduced ? 0 : 80);
                 }
               : null
@@ -1096,11 +1204,12 @@
    * @returns {boolean} true if a matching journey was found and started
    */
   function start(journeyKey) {
-    if (_state === STATE_RUNNING) cancel();
+    if (_state === STATE_RUNNING || _state === "waiting_confirmation") cancel();
 
     var entry = JOURNEY_MAP[journeyKey];
     if (!entry) return false;
 
+    _journeyGeneration += 1;
     _currentJourneyId = entry.id;
     _steps = entry.steps;
     _currentStep = -1;
@@ -1112,6 +1221,7 @@
   /** Cancel a running choreography. Safe to call in any state. */
   function cancel() {
     if (_state === STATE_IDLE) return;
+    _journeyGeneration += 1;
     _clearTimer();
     _clearAuxTimers();
     _clearTypingTimers();
@@ -1150,14 +1260,19 @@
 
   function _renderChoicePrompt(index) {
     if (!_chatThread) return;
+    var i18n = window.CitizenI18n;
+    var t = i18n ? function (k, f) { var v = i18n.t(k); return v && v !== k ? v : f; } : null;
+    var promptText = t ? t("choice.prompt", "직접 작성하시겠습니까, 아니면 AI가 초안 작성을 도와드릴까요?") : "직접 작성하시겠습니까, 아니면 AI가 초안 작성을 도와드릴까요?";
+    var writeText = t ? t("action.writeMyself", "직접 작성") : "직접 작성";
+    var aiText = t ? t("action.chooseAi", "AI 도움 받기") : "AI 도움 받기";
     var messageEl = document.createElement("div");
     messageEl.className = "chat-msg chat-msg--ai chat-msg--decision";
     messageEl.innerHTML = '<div class="chat-avatar" aria-label="AI">A</div>' +
       '<div class="chat-bubble chat-bubble--ai chat-decision">' +
-        '<span>직접 작성하시겠습니까, 아니면 AI가 초안 작성을 도와드릴까요?</span>' +
+        '<span>' + promptText + '</span>' +
         '<div class="chat-decision__actions">' +
-          '<button type="button" class="chat-decision__button chat-decision__button--secondary" onclick="window.CitizenFirstChoreography.cancel()">직접 작성</button>' +
-          '<button type="button" class="chat-decision__button chat-decision__button--primary" onclick="window.CitizenFirstChoreography.handleChoice(' + index + ')">AI 도움 받기</button>' +
+          '<button type="button" class="chat-decision__button chat-decision__button--secondary" onclick="window.CitizenFirstChoreography.cancel()">' + writeText + '</button>' +
+          '<button type="button" class="chat-decision__button chat-decision__button--primary" onclick="window.CitizenFirstChoreography.handleChoice(' + index + ')">' + aiText + '</button>' +
         '</div>' +
       '</div>';
     _chatThread.appendChild(messageEl);
@@ -1171,17 +1286,22 @@
 
   function _renderConfirmationPrompt(index) {
     if (!_chatThread) return;
-    var messageEl = document.createElement("div");
+    var i18n = window.CitizenI18n;
+    var t = i18n ? function (k, f) { var v = i18n.t(k); return v && v !== k ? v : f; } : null;
     var isMayorJourney = _currentJourneyId === "mayor-message-assist";
+    var promptText = isMayorJourney
+      ? (t ? t("confirm.mayor", "작성된 제안의 제목과 본문을 검토했습니다. 이 내용으로 구정 제안서를 최종 확인할까요?") : "작성된 제안의 제목과 본문을 검토했습니다. 이 내용으로 구정 제안서를 최종 확인할까요?")
+      : (t ? t("confirm.generic", "작성된 제목과 본문을 검토했습니다. 확인 전에는 제출되지 않습니다. 이 내용으로 진행할까요?") : "작성된 제목과 본문을 검토했습니다. 확인 전에는 제출되지 않습니다. 이 내용으로 진행할까요?");
+    var submitText = t ? t("action.confirmSubmit", "검토했고, 제출하기") : "검토했고, 제출하기";
+    var editText = t ? t("action.edit", "수정할게요") : "수정할게요";
+    var messageEl = document.createElement("div");
     messageEl.className = "chat-msg chat-msg--ai chat-msg--decision";
     messageEl.innerHTML = '<div class="chat-avatar" aria-label="AI">A</div>' +
       '<div class="chat-bubble chat-bubble--ai chat-decision">' +
-        '<span>' + (isMayorJourney
-          ? "작성된 제안의 제목과 본문을 검토했습니다. 이 내용으로 구정 제안서를 최종 확인할까요?"
-          : "작성된 제목과 본문을 검토했습니다. 확인 전에는 제출되지 않습니다. 이 내용으로 진행할까요?") + '</span>' +
+        '<span>' + promptText + '</span>' +
         '<div class="chat-decision__actions">' +
-          '<button type="button" class="chat-decision__button chat-decision__button--primary" onclick="window.CitizenFirstChoreography.confirmSubmission(' + index + ')">검토했고, 제출하기</button>' +
-          '<button type="button" class="chat-decision__button chat-decision__button--secondary" onclick="window.CitizenFirstChoreography.cancel()">수정할게요</button>' +
+          '<button type="button" class="chat-decision__button chat-decision__button--primary" onclick="window.CitizenFirstChoreography.confirmSubmission(' + index + ')">' + submitText + '</button>' +
+          '<button type="button" class="chat-decision__button chat-decision__button--secondary" onclick="window.CitizenFirstChoreography.cancel()">' + editText + '</button>' +
         '</div>' +
       '</div>';
     _chatThread.appendChild(messageEl);
@@ -1193,8 +1313,9 @@
 
   function confirmSubmission(index) {
     if (_state !== "waiting_confirmation" && _state !== STATE_RUNNING) {
-      // Only consume while waiting, but allow re-entry if already running mid-commit.
+      return;
     }
+    var gen = _journeyGeneration;
     _setState(STATE_RUNNING);
     var isMayorJourney = _currentJourneyId === "mayor-message-assist";
     var demoEl = document.getElementById("demo-canvas");
@@ -1227,6 +1348,10 @@
     }
 
     function _commitAfterClickVisual() {
+      // Stale after cancel / locale reset / newer start.
+      if (gen !== _journeyGeneration) return;
+      if (_state === STATE_CANCELLED || _state === STATE_IDLE) return;
+
       if (isMayorJourney) {
         if (cCanvas && cCanvas.navigateToRoute) {
           cCanvas.navigateToRoute("mayor-complaint-receipt");
@@ -1244,6 +1369,8 @@
         };
 
         window.CitizenContentAdapter.submitBoardPost(data).then(function() {
+          if (gen !== _journeyGeneration) return;
+          if (_state === STATE_CANCELLED || _state === STATE_IDLE) return;
           if (cCanvas && cCanvas.navigateToRoute) {
             cCanvas.navigateToRoute("complaint-review");
           }
