@@ -13,10 +13,11 @@
 //   2. 5 parity scenarios complete through real action loop
 //   3. Click actions (not execute_javascript) are recorded
 //   4. Canvas route changes after click actions
-//   5. Safety badges displayed (offline/mock, same-origin, no-submit)
+//   5. Safety badges displayed (default guidance/local mode, same-origin, no-submit)
 //   6. Cancel button present and functional
 //   7. No external network requests
 //   8. Desktop and mobile viewport both work
+//   9. Mobile conversation/guidance surfaces switch per #1131 contract
 
 import { chromium } from "playwright";
 import assert from "node:assert";
@@ -268,10 +269,40 @@ function assertZeroErrors(tracker, label) {
 // ── Verification functions ────────────────────────────────────────────────
 
 async function verifySafetyBadges(page) {
-  const text = await page.evaluate(() => document.body.innerText);
-  assert.ok(text.includes("오프라인") || text.includes("mock"), "safety badge: offline/mock missing");
-  assert.ok(text.includes("동일 출처") || text.includes("same-origin"), "safety badge: same-origin missing");
-  assert.ok(text.includes("제출 불가") || text.includes("no-submit"), "safety badge: no-submit missing");
+  // Stage 4+ resident badges: plan-mode label + same-origin + no-submit.
+  // Scope to the dedicated badge region so incidental body copy cannot pass.
+  // Do not require the legacy internal label "오프라인/mock" as product copy.
+  const badges = await page.evaluate(() => {
+    const region = document.querySelector(".chat-header__badges");
+    if (!region) return null;
+    const plan = document.getElementById("plan-mode-badge");
+    return {
+      regionText: region.textContent || "",
+      hasPlanBadge: !!plan,
+      planText: plan ? plan.textContent.trim() : "",
+      planClass: plan ? plan.className : "",
+      hasSameOriginClass: !!region.querySelector(".badge--sameorigin"),
+      hasNoSubmitClass: !!region.querySelector(".badge--nosubmit"),
+    };
+  });
+  assert.ok(badges, "safety badge region (.chat-header__badges) missing");
+  assert.ok(badges.hasPlanBadge, "safety badge: #plan-mode-badge missing");
+  assert.ok(
+    badges.planClass.includes("badge--offline") || badges.planClass.includes("badge--server"),
+    "safety badge: plan-mode badge class missing"
+  );
+  assert.ok(
+    badges.planText.includes("기본 안내") || badges.planText.includes("서버 안내"),
+    `safety badge: plan-mode label missing (got ${JSON.stringify(badges.planText)})`
+  );
+  assert.ok(
+    badges.hasSameOriginClass && badges.regionText.includes("동일 출처"),
+    "safety badge: same-origin missing"
+  );
+  assert.ok(
+    badges.hasNoSubmitClass && badges.regionText.includes("제출 불가"),
+    "safety badge: no-submit missing"
+  );
   console.log("    ✓ Safety badges present");
 }
 
@@ -308,6 +339,158 @@ async function verifyMobileLayout(page) {
     assert.strictEqual(layoutDirection, "row", `Desktop layout must be row at ${vw}px`);
     console.log(`    ✓ Desktop layout row at ${vw}px`);
   }
+}
+
+function surfaceSnapshot() {
+  const conv = document.getElementById("page-agent-conversation-surface");
+  const guid = document.getElementById("page-agent-guidance-surface");
+  const sw = document.getElementById("page-agent-mobile-switch");
+  const tabC = document.getElementById("page-agent-tab-conversation");
+  const tabG = document.getElementById("page-agent-tab-guidance");
+  const rt = window.PageAgentResidentRuntime;
+  return {
+    bodySurface: document.body.getAttribute("data-page-agent-mobile-surface"),
+    htmlSurface: document.documentElement.getAttribute("data-page-agent-mobile-surface"),
+    runtimeSurface: rt && typeof rt.getMobileSurface === "function" ? rt.getMobileSurface() : null,
+    planState: rt && typeof rt.getPlanState === "function" ? rt.getPlanState() : null,
+    planMode: rt && typeof rt.getPlanMode === "function" ? rt.getPlanMode() : null,
+    switchVisible: !!(sw && !sw.hidden && getComputedStyle(sw).display !== "none"),
+    tabCPressed: tabC ? tabC.getAttribute("aria-pressed") : null,
+    tabGPressed: tabG ? tabG.getAttribute("aria-pressed") : null,
+    conv: conv
+      ? {
+          hidden: !!conv.hidden,
+          inert: !!conv.inert,
+          inertAttr: conv.hasAttribute("inert"),
+          ariaHidden: conv.getAttribute("aria-hidden"),
+        }
+      : null,
+    guid: guid
+      ? {
+          hidden: !!guid.hidden,
+          inert: !!guid.inert,
+          inertAttr: guid.hasAttribute("inert"),
+          ariaHidden: guid.getAttribute("aria-hidden"),
+        }
+      : null,
+    canvasCount: document.querySelectorAll("#demo-canvas").length,
+    chatCount: document.querySelectorAll("#page-agent-conversation-surface").length,
+    msgCount: document.querySelectorAll(".chat-msg").length,
+    actionCount: document.querySelectorAll(".chat-bubble--action").length,
+    route:
+      window.CitizenActionDemoCanvas &&
+      typeof window.CitizenActionDemoCanvas.getCurrentRouteId === "function"
+        ? window.CitizenActionDemoCanvas.getCurrentRouteId()
+        : null,
+    activeId: document.activeElement
+      ? document.activeElement.id || document.activeElement.tagName
+      : null,
+    chatFocused: document.activeElement === document.getElementById("chat-input"),
+    focusInHidden: (() => {
+      const active = document.activeElement;
+      if (!active || active === document.body) return false;
+      if (conv && conv.hidden && conv.contains(active)) return true;
+      if (guid && guid.hidden && guid.contains(active)) return true;
+      return false;
+    })(),
+  };
+}
+
+function assertActiveSurface(snap, surface, label) {
+  assert.strictEqual(snap.canvasCount, 1, `${label}: canonical canvas count must be 1`);
+  assert.strictEqual(snap.chatCount, 1, `${label}: canonical chat count must be 1`);
+  assert.strictEqual(snap.bodySurface, surface, `${label}: body data-page-agent-mobile-surface`);
+  assert.strictEqual(snap.htmlSurface, surface, `${label}: html data-page-agent-mobile-surface`);
+  if (snap.runtimeSurface !== null) {
+    assert.strictEqual(snap.runtimeSurface, surface, `${label}: runtime surface`);
+  }
+  if (surface === "conversation") {
+    assert.strictEqual(snap.tabCPressed, "true", `${label}: conversation tab pressed`);
+    assert.strictEqual(snap.tabGPressed, "false", `${label}: guidance tab not pressed`);
+    assert.ok(snap.conv && snap.conv.hidden === false, `${label}: conversation visible`);
+    assert.ok(snap.conv && snap.conv.inert === false && snap.conv.inertAttr === false, `${label}: conversation not inert`);
+    assert.ok(snap.conv && !snap.conv.ariaHidden, `${label}: conversation aria-hidden cleared`);
+    assert.ok(snap.guid && snap.guid.hidden === true, `${label}: guidance hidden`);
+    assert.ok(snap.guid && snap.guid.inert === true && snap.guid.inertAttr === true, `${label}: guidance inert`);
+    assert.strictEqual(snap.guid.ariaHidden, "true", `${label}: guidance aria-hidden`);
+  } else {
+    assert.strictEqual(snap.tabGPressed, "true", `${label}: guidance tab pressed`);
+    assert.strictEqual(snap.tabCPressed, "false", `${label}: conversation tab not pressed`);
+    assert.ok(snap.guid && snap.guid.hidden === false, `${label}: guidance visible`);
+    assert.ok(snap.guid && snap.guid.inert === false && snap.guid.inertAttr === false, `${label}: guidance not inert`);
+    assert.ok(snap.guid && !snap.guid.ariaHidden, `${label}: guidance aria-hidden cleared`);
+    assert.ok(snap.conv && snap.conv.hidden === true, `${label}: conversation hidden`);
+    assert.ok(snap.conv && snap.conv.inert === true && snap.conv.inertAttr === true, `${label}: conversation inert`);
+    assert.strictEqual(snap.conv.ariaHidden, "true", `${label}: conversation aria-hidden`);
+  }
+}
+
+async function verifyMobileSurfaceInitial(page) {
+  const snap = await page.evaluate(surfaceSnapshot);
+  assert.ok(snap.switchVisible, "mobile switch must be visible");
+  assertActiveSurface(snap, "conversation", "mobile initial");
+  console.log("    ✓ Mobile surface initial conversation + switch");
+  return snap;
+}
+
+async function waitForMobileSurface(page, surface, timeoutMs = 15000) {
+  await page.waitForFunction(
+    (expected) => {
+      const body = document.body.getAttribute("data-page-agent-mobile-surface");
+      const html = document.documentElement.getAttribute("data-page-agent-mobile-surface");
+      return body === expected && html === expected;
+    },
+    surface,
+    { timeout: timeoutMs }
+  );
+}
+
+async function verifyMobileSurfaceDuringAndAfterTask(page, task) {
+  const before = await page.evaluate(surfaceSnapshot);
+  assertActiveSurface(before, "conversation", "pre-task");
+
+  const msgBefore = before.msgCount;
+  await resetDiagnostics(page);
+  await submitTask(page, task.prompt);
+
+  // Guidance must engage before / as visible DOM execution proceeds.
+  await waitForMobileSurface(page, "guidance");
+  const during = await page.evaluate(surfaceSnapshot);
+  assertActiveSurface(during, "guidance", "during execution");
+  assert.ok(
+    during.activeId !== "demo-canvas" && during.chatFocused === false,
+    `must not autofocus canvas/composer during guidance (active=${during.activeId})`
+  );
+  assert.ok(!during.focusInHidden, "focus must not remain in a hidden surface");
+  console.log("    ✓ Mobile auto-switched to guidance before/during DOM work");
+
+  const diag = await waitForSupportedCompletion(page, task.id, task.navSteps);
+  assert.ok(diag !== null, "mobile task diagnostics required");
+  assert.strictEqual(diag.callCount, task.navSteps + 1);
+
+  const afterRun = await page.evaluate(surfaceSnapshot);
+  // Result may remain on guidance; either surface is allowed after completion,
+  // but plan state/messages must be preserved across manual return.
+  const planAfter = afterRun.planState;
+  const msgsAfter = afterRun.msgCount;
+  const actionsAfter = afterRun.actionCount;
+  const routeAfter = afterRun.route;
+  assert.ok(msgsAfter > msgBefore, "chat must grow during mobile task");
+
+  // Manual return to conversation without losing history/state.
+  await page.click("#page-agent-tab-conversation");
+  await waitForMobileSurface(page, "conversation");
+  const back = await page.evaluate(surfaceSnapshot);
+  assertActiveSurface(back, "conversation", "manual return");
+  assert.ok(back.msgCount >= msgsAfter, "manual surface switch must preserve chat messages");
+  assert.ok(back.actionCount >= actionsAfter, "manual surface switch must preserve action history");
+  assert.strictEqual(back.planState, planAfter, "manual surface switch must not change plan state");
+  assert.strictEqual(back.route, routeAfter, "manual surface switch must not reset civic route");
+  assert.strictEqual(back.chatFocused, false, "return to conversation must not autofocus composer");
+  assert.ok(!back.focusInHidden, "focus must not remain in hidden guidance after return");
+  console.log("    ✓ Mobile manual conversation return preserves plan/history/route");
+
+  return { diagnostics: diag, planState: planAfter };
 }
 
 async function runSupportedTask(page, task) {
@@ -446,12 +629,13 @@ async function main() {
     await waitForResidentReady(pageMobile);
     console.log("  Mobile page ready ✓");
 
-    // Verify mobile layout
+    // Verify mobile layout + #1131 surface model
     await verifyMobileLayout(pageMobile);
+    await verifyMobileSurfaceInitial(pageMobile);
 
-    // Run first scenario on mobile
+    // First scenario: auto guidance switch + manual conversation return
     const mobileTask = EXPECTED_TASKS[0];
-    const mobileResult = await runSupportedTask(pageMobile, mobileTask);
+    const mobileResult = await verifyMobileSurfaceDuringAndAfterTask(pageMobile, mobileTask);
     await screenshot(pageMobile, "mobile-final.png");
 
     assertZeroErrors(mobileTracker, "Mobile");
