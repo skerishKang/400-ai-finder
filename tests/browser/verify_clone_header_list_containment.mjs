@@ -417,6 +417,18 @@ function assertListsContained(listSnap, label) {
   );
 }
 
+/**
+ * Prefer bundled Chromium; fall back to an already-installed Chrome channel.
+ * Matches other local browser contracts (no browser download).
+ */
+async function launchLocalBrowser() {
+  try {
+    return await chromium.launch({ headless: true });
+  } catch {
+    return chromium.launch({ headless: true, channel: "chrome" });
+  }
+}
+
 async function main() {
   const requests = [];
   const consoleErrors = [];
@@ -424,7 +436,7 @@ async function main() {
   const failed = [];
   const httpErrors = [];
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchLocalBrowser();
   const viewports = [
     { width: 1440, height: 900 },
     { width: 768, height: 1024 },
