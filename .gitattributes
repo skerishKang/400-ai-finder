@@ -1,0 +1,6 @@
+# Page Agent manifest-covered vendor artifacts are byte-stable.
+# Their SHA-256 and byte count must match vendor-manifest.json on every OS,
+# including Windows checkouts with core.autocrlf=true. Mark them -text so Git
+# never applies line-ending conversion on checkout.
+src/web/examples/page-agent/vendor/LICENSE -text
+src/web/examples/page-agent/vendor/page-agent.iife.js -text
