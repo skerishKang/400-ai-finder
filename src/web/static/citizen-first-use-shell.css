@@ -670,6 +670,10 @@ body.first-use-shell--no-motion .demo-canvas {
     width: 154px;
   }
 
+  body[data-first-use-state="entry"] .first-use-layout {
+    grid-template-columns: 1fr 0;
+  }
+
   body[data-first-use-state="entry"] .chat-shell {
     place-self: auto;
     width: calc(100% - 24px);
@@ -961,6 +965,114 @@ body.first-use-shell--no-motion .demo-canvas {
   grid-template-columns: 24px auto;
   align-items: start;
   filter: drop-shadow(0 8px 14px rgba(4, 24, 52, 0.28));
+}
+
+/* ── Mobile surface switch (Stage A, shell-level only) ─────────────
+   Desktop: hidden, never shown. Mobile (≤767px): exposed as a
+   tablist that switches the visible surface. The guidance surface reuses
+   the canonical #demo-canvas (no DOM clone, no summary card). */
+.mobile-surface-switch {
+  display: none;
+}
+
+/* Hidden attribute always wins, even inside the ≤767px exposure rule. */
+.mobile-surface-switch[hidden] {
+  display: none !important;
+}
+
+@supports (grid) {
+  /* Desktop: keep the legacy split grid intact; switch stays hidden. */
+  body[data-first-use-state="split"] .mobile-surface-switch,
+  body[data-first-use-state="transitioning"] .mobile-surface-switch {
+    display: none;
+  }
+}
+
+@supports (grid) {
+  body[data-first-use-state="entry"] .mobile-surface-switch {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-surface-switch {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(13, 13, 15, 0.1);
+    background: #fff;
+  }
+
+  .mobile-surface-tab {
+    flex: 1 1 0;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #3c4b60;
+    background: #f1f4f8;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+
+  .mobile-surface-tab:hover {
+    background: #e7ecf3;
+  }
+
+  .mobile-surface-tab[aria-pressed="true"] {
+    color: #0d0d0f;
+    background: #fff;
+    border-color: #8dc7ef;
+    box-shadow: 0 2px 8px rgba(141, 199, 239, 0.32);
+  }
+
+  .mobile-surface-tab:focus-visible {
+    outline: 3px solid #8dc7ef;
+    outline-offset: 2px;
+  }
+
+  /* Surface visibility: only the active surface is rendered. The guidance
+     surface IS the canonical #demo-canvas (no clone). Inactive chat is
+     hidden so keyboard focus cannot enter it; inactive canvas is
+     aria-hidden + inert to remove it from the a11y tree and tab order. */
+  body[data-mobile-surface="conversation"] .chat-shell {
+    display: flex !important;
+  }
+  body[data-mobile-surface="conversation"][data-first-use-state="split"] #demo-canvas,
+  body[data-mobile-surface="conversation"][data-first-use-state="transitioning"] #demo-canvas {
+    display: none !important;
+  }
+
+  body[data-mobile-surface="guidance"] .chat-shell {
+    display: none !important;
+  }
+  body[data-mobile-surface="guidance"][data-first-use-state="split"] #demo-canvas {
+    display: flex !important;
+  }
+  body[data-mobile-surface="conversation"] #demo-canvas {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  body[data-mobile-surface="guidance"] .mobile-surface-switch {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-surface-tab {
+    transition: none !important;
+  }
 }
 
 .choreo-cursor__arrow {
