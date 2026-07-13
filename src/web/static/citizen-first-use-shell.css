@@ -453,8 +453,21 @@ body[data-first-use-state="split"] .demo-canvas {
 .chat-shell__header-main {
   display: flex;
   min-width: 0;
-  align-items: center;
-  gap: 8px;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* #1121: keep attribution muted and subordinate on narrow first-use shells. */
+.chat-shell__attribution {
+  font-size: 0.66rem;
+}
+
+.chat-shell__disclosure {
+  font-size: 0.62rem;
+  padding: 5px 12px 8px;
 }
 
 .chat-shell__reset {
@@ -751,6 +764,23 @@ body.first-use-shell--no-motion .demo-canvas {
 
   body[data-first-use-state="entry"] .chat-shell__title {
     font-size: 0.9rem;
+  }
+
+  /* #1121: keep attribution/disclosure compact on 320×568 without covering composer. */
+  body[data-first-use-state="entry"] .chat-shell__attribution {
+    font-size: 0.6rem;
+    line-height: 1.2;
+  }
+
+  body[data-first-use-state="entry"] .chat-shell__disclosure {
+    font-size: 0.56rem;
+    line-height: 1.25;
+    padding: 4px 8px 6px;
+  }
+
+  .chat-shell__disclosure {
+    font-size: 0.58rem;
+    padding: 4px 10px 6px;
   }
 
   body[data-first-use-state="entry"] .chat-thread {
