@@ -358,9 +358,11 @@ body[data-first-use-state="entry"] .chat-shell {
 }
 
 /* #1114: keep the composer always visible when 8 chips wrap on short viewports.
-   Let the chips region scroll instead of pushing the composer below the fold. */
+   Let the chips region scroll instead of pushing the composer below the fold.
+   flex-wrap remains wrap so long chip labels wrap within the chip rail. */
 body[data-first-use-state="entry"] .chat-chips {
   flex: 1 1 auto;
+  flex-wrap: wrap;
   overflow-y: auto;
   align-content: flex-start;
   min-height: 0;
@@ -687,6 +689,10 @@ body.first-use-shell--no-motion .demo-canvas {
     width: 154px;
   }
 
+  body[data-first-use-state="entry"] .first-use-layout {
+    grid-template-columns: 1fr 0;
+  }
+
   body[data-first-use-state="entry"] .chat-shell {
     place-self: auto;
     width: calc(100% - 24px);
@@ -724,6 +730,104 @@ body.first-use-shell--no-motion .demo-canvas {
     min-height: 360px;
   }
 
+}
+
+/* #1114 — 320-class narrow entry: fit all 8 chips + composer without
+   internal chip scrolling. Compacts spacing only; does not hide chips,
+   change copy, or alter ≥390 layouts. */
+@media (max-width: 340px) {
+  body[data-first-use-state="entry"] .chat-shell {
+    /* Keep shell fully inside 320×568: top brand clearance + bottom margin. */
+    margin: 52px 8px 6px;
+    width: calc(100% - 16px);
+    height: calc(100vh - 58px);
+    max-height: calc(100vh - 58px);
+    border-radius: 18px;
+  }
+
+  body[data-first-use-state="entry"] .chat-shell__header {
+    padding: 8px 10px;
+  }
+
+  body[data-first-use-state="entry"] .chat-shell__title {
+    font-size: 0.9rem;
+  }
+
+  body[data-first-use-state="entry"] .chat-thread {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  body[data-first-use-state="entry"] .chat-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+  }
+
+  body[data-first-use-state="entry"] .chat-bubble {
+    padding: 7px 10px;
+    font-size: 0.82rem;
+    line-height: 1.32;
+  }
+
+  /* Size chips to content; do not claim leftover flex space that forces scroll. */
+  body[data-first-use-state="entry"] .chat-chips {
+    flex: 0 0 auto;
+    overflow: visible;
+    gap: 4px;
+    padding: 4px 8px 2px;
+    min-height: 0;
+  }
+
+  body[data-first-use-state="entry"] .chat-chip {
+    padding: 5px 9px;
+    font-size: 0.76rem;
+    line-height: 1.2;
+    gap: 3px;
+    border-radius: 15px;
+  }
+
+  body[data-first-use-state="entry"] .chat-chip__icon svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  body[data-first-use-state="entry"] .chat-composer {
+    padding-top: 0;
+  }
+
+  body[data-first-use-state="entry"] .chat-composer__hint {
+    margin: 3px 0 0;
+    font-size: 0.66rem;
+    line-height: 1.2;
+  }
+
+  body[data-first-use-state="entry"] .chat-composer__row {
+    padding: 0;
+  }
+
+  body[data-first-use-state="entry"] .chat-composer__input {
+    min-height: 0;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    font-size: 0.86rem;
+  }
+
+  body[data-first-use-state="entry"] .chat-composer__send {
+    padding: 7px 11px;
+    font-size: 0.8rem;
+  }
+
+  .entry-stage__brand {
+    top: 14px;
+    left: 14px;
+  }
+
+  .entry-stage__brand img {
+    width: 120px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -980,6 +1084,114 @@ body.first-use-shell--no-motion .demo-canvas {
   filter: drop-shadow(0 8px 14px rgba(4, 24, 52, 0.28));
 }
 
+/* ── Mobile surface switch (Stage A, shell-level only) ─────────────
+   Desktop: hidden, never shown. Mobile (≤767px): exposed as a
+   tablist that switches the visible surface. The guidance surface reuses
+   the canonical #demo-canvas (no DOM clone, no summary card). */
+.mobile-surface-switch {
+  display: none;
+}
+
+/* Hidden attribute always wins, even inside the ≤767px exposure rule. */
+.mobile-surface-switch[hidden] {
+  display: none !important;
+}
+
+@supports (grid) {
+  /* Desktop: keep the legacy split grid intact; switch stays hidden. */
+  body[data-first-use-state="split"] .mobile-surface-switch,
+  body[data-first-use-state="transitioning"] .mobile-surface-switch {
+    display: none;
+  }
+}
+
+@supports (grid) {
+  body[data-first-use-state="entry"] .mobile-surface-switch {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-surface-switch {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(13, 13, 15, 0.1);
+    background: #fff;
+  }
+
+  .mobile-surface-tab {
+    flex: 1 1 0;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #3c4b60;
+    background: #f1f4f8;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+
+  .mobile-surface-tab:hover {
+    background: #e7ecf3;
+  }
+
+  .mobile-surface-tab[aria-pressed="true"] {
+    color: #0d0d0f;
+    background: #fff;
+    border-color: #8dc7ef;
+    box-shadow: 0 2px 8px rgba(141, 199, 239, 0.32);
+  }
+
+  .mobile-surface-tab:focus-visible {
+    outline: 3px solid #8dc7ef;
+    outline-offset: 2px;
+  }
+
+  /* Surface visibility: only the active surface is rendered. The guidance
+     surface IS the canonical #demo-canvas (no clone). Inactive chat is
+     hidden so keyboard focus cannot enter it; inactive canvas is
+     aria-hidden + inert to remove it from the a11y tree and tab order. */
+  body[data-mobile-surface="conversation"] .chat-shell {
+    display: flex !important;
+  }
+  body[data-mobile-surface="conversation"][data-first-use-state="split"] #demo-canvas,
+  body[data-mobile-surface="conversation"][data-first-use-state="transitioning"] #demo-canvas {
+    display: none !important;
+  }
+
+  body[data-mobile-surface="guidance"] .chat-shell {
+    display: none !important;
+  }
+  body[data-mobile-surface="guidance"][data-first-use-state="split"] #demo-canvas {
+    display: flex !important;
+  }
+  body[data-mobile-surface="conversation"] #demo-canvas {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  body[data-mobile-surface="guidance"] .mobile-surface-switch {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-surface-tab {
+    transition: none !important;
+  }
+}
+
 .choreo-cursor__arrow {
   position: relative;
   z-index: 2;
@@ -1076,57 +1288,85 @@ body.first-use-shell--no-motion .demo-canvas {
 }
 
 /* #1114 — semantic "열린구청장실 바로가기" control.
-   Sibling of .entry-stage (which is aria-hidden), positioned to overlap the blue
-   button region of the mayor-card image. Geometry tracks the mayor card via the
-   same top/right/width anchors so it scales responsively with the image.
-   The green "매니페스토 바로가기" region is intentionally left non-interactive. */
+   Sibling of .entry-stage (aria-hidden) so it stays in the a11y tree.
+   Geometry is an explicit non-zero rectangle over the blue button band of
+   home-mayor-card.png (345×297). Green "매니페스토 바로가기" stays non-interactive.
+   Normal / hover / focus-visible share the same rectangle — no clip-path expansion. */
 .mayor-open-office-control {
+  --mayor-card-top: clamp(165px, 22vh, 218px);
+  --mayor-card-right: clamp(38px, 7.5vw, 118px);
+  --mayor-card-w: max(300px, min(25vw, 360px));
+  /* Image aspect 345×297; figcaption sits below the image and is not part of the hit band. */
+  --mayor-card-h: calc(var(--mayor-card-w) * 297 / 345);
+  /* Blue band: ~14%–50% x, ~77%–92% y of the card image. */
+  --mayor-blue-left-ratio: 0.14;
+  --mayor-blue-right-ratio: 0.50;
+  --mayor-blue-top-ratio: 0.77;
+  --mayor-blue-bottom-ratio: 0.92;
+
   position: absolute;
   z-index: 4;
-  /* match .entry-stage__mayor anchors */
-  top: clamp(165px, 22vh, 218px);
-  right: clamp(38px, 7.5vw, 118px);
-  width: min(25vw, 360px);
-  min-width: 300px;
-  height: auto;
+  top: calc(var(--mayor-card-top) + var(--mayor-card-h) * var(--mayor-blue-top-ratio));
+  /* Right edge of blue band = card right + (1 - right-ratio) * card width. */
+  right: calc(
+    var(--mayor-card-right) + var(--mayor-card-w) * (1 - var(--mayor-blue-right-ratio))
+  );
+  width: calc(
+    var(--mayor-card-w) * (var(--mayor-blue-right-ratio) - var(--mayor-blue-left-ratio))
+  );
+  height: calc(
+    var(--mayor-card-h) * (var(--mayor-blue-bottom-ratio) - var(--mayor-blue-top-ratio))
+  );
   margin: 0;
   padding: 0;
   border: 0;
+  border-radius: 8px;
   background: transparent;
   color: transparent;
-  cursor: pointer;
-  /* pin the hit area to the blue button band of the 345x297 card:
-     x ~14%..50%, y ~77%..92% */
-  clip-path: inset(77% 50% 8% 14%);
-  -webkit-clip-path: inset(77% 50% 8% 14%);
   font-size: 0;
-}
-
-.mayor-open-office-control:focus-visible {
-  outline: 3px solid var(--first-use-mint, #55dfc8);
-  outline-offset: 2px;
-  border-radius: 8px;
-  /* make focus visible even though the control is transparent */
-  background: rgba(85, 223, 200, 0.18);
+  line-height: 0;
+  overflow: hidden;
+  cursor: pointer;
+  /* Never use clip-path to define hit area — rectangle geometry is authoritative. */
   clip-path: none;
   -webkit-clip-path: none;
 }
 
 .mayor-open-office-control:hover {
-  background: rgba(85, 223, 200, 0.12);
-  border-radius: 8px;
-  clip-path: none;
-  -webkit-clip-path: none;
+  background: rgba(47, 111, 237, 0.12);
 }
 
-/* Hide the control when the entry stage is not the active surface (e.g. after split). */
+.mayor-open-office-control:focus-visible {
+  outline: 3px solid var(--first-use-mint, #55dfc8);
+  outline-offset: 2px;
+  background: rgba(85, 223, 200, 0.18);
+}
+
+/* AI cursor target highlight (reuses blue rectangle; does not enlarge hit area). */
+.mayor-open-office-control.executor-highlight,
+.mayor-open-office-control.is-agent-target {
+  outline: 3px solid #3182ce;
+  outline-offset: 2px;
+  box-shadow: 0 0 8px rgba(49, 130, 206, 0.5);
+  background: rgba(47, 111, 237, 0.16);
+}
+
+/* Mirror .entry-stage__mayor geometry at the 1180px layout step. */
+@media (max-width: 1180px) {
+  .mayor-open-office-control {
+    --mayor-card-right: 34px;
+    --mayor-card-w: max(270px, 29vw);
+  }
+}
+
+/* Hide when entry is not the active surface. */
 body[data-first-use-state="split"] .mayor-open-office-control,
 body[data-first-use-state="transitioning"] .mayor-open-office-control {
   display: none;
 }
 
-@media (max-width: 760px) {
-  /* Mayor card is hidden on small screens; the control is not reachable there. */
+/* Mayor card is hidden on mobile (≤767px); control must also be unreachable. */
+@media (max-width: 767px) {
   .mayor-open-office-control {
     display: none;
   }

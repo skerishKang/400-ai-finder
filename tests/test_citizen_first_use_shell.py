@@ -486,7 +486,8 @@ class TestResponsiveViewportContract:
         entry_block = block[block.index('body[data-first-use-state="entry"] .chat-shell'):]
         entry_block = entry_block[: entry_block.index("}") + 1]
         assert "width: calc(100% - 24px)" in entry_block
-        # left+right margin (12px each) must not exceed the 24px width reduction
+        # top+left/right+bottom margins match the canonical mobile entry spec
+        # (82px top clears the brand, 12px side/bottom symmetric).
         assert "margin: 82px 12px 12px" in entry_block
 
     def test_mobile_entry_margin_plus_width_stays_within_viewport(self):
@@ -496,7 +497,9 @@ class TestResponsiveViewportContract:
         entry_block = block[block.index('body[data-first-use-state="entry"] .chat-shell'):]
         entry_block = entry_block[: entry_block.index("}") + 1]
         assert "width: calc(100% - 24px)" in entry_block
-        assert "12px 12px" in entry_block or "margin: 82px 12px 12px" in entry_block
+        # bottom margin (12px) + reduced height keep the composer focus
+        # outline inside a 320px-tall viewport.
+        assert "82px 12px 12px" in entry_block or "margin: 82px 12px 12px" in entry_block
 
     def test_split_mobile_chat_and_canvas_use_full_width_with_min_width_zero(self):
         block = CSS[CSS.index("@media (max-width: 767px)"):]
@@ -539,3 +542,246 @@ class TestResponsiveViewportContract:
         assert "@media (max-width: 1180px)" in CSS
         # 768 is the first width above the 767px mobile cap → desktop split layout
         assert 'body[data-first-use-state="split"] .first-use-layout' in CSS
+
+
+# ── #1116 Stage A: mobile conversation / guidance surface ──────
+# Shell-level only. The guidance surface reuses the canonical
+# #demo-canvas (no DOM clone, no summary card). Desktop must keep
+# the legacy split grid and never expose the mobile switch.
+def test_mobile_surface_switch_present_and_desktop_hidden():
+    # HTML: a real group with two toggle buttons + aria-pressed wiring.
+    assert 'role="group"' in HTML
+    assert 'aria-label="서비스 화면"' in HTML
+    assert 'id="tab-conversation"' in HTML
+    assert 'id="tab-guidance"' in HTML
+    assert 'aria-pressed="true"' in HTML
+    assert 'aria-pressed="false"' in HTML
+    assert 'aria-controls="chat-shell"' in HTML
+    assert 'aria-controls="demo-canvas"' in HTML
+    assert 'data-mobile-surface-tab="conversation"' in HTML
+    assert 'data-mobile-surface-tab="guidance"' in HTML
+    # No tablist/tab/aria-selected semantics (replaced by group + aria-pressed).
+    assert 'role="tablist"' not in HTML
+    assert 'role="tab"' not in HTML
+    assert 'aria-selected=' not in HTML
+    # Labels: exact accessible names (whitespace inside button is fine).
+    assert "대화" in HTML
+    assert "안내 화면" in HTML
+
+
+def test_mobile_surface_switch_contract_in_shell_and_css():
+    # JS: surface state lives on a data attribute; desktop is ignored;
+    # the guidance surface is the canonical #demo-canvas (no clone).
+    assert "function isMobileSurfaceMode()" in JS
+    assert 'window.matchMedia("(max-width: 767px)")' in JS
+    assert "function setMobileSurface(" in JS
+    assert "function showMobileSurfaceSwitch()" in JS
+    assert "function hideMobileSurfaceSwitch()" in JS
+    assert "function focusComposerIfAllowed()" in JS
+    assert 'body.setAttribute("data-mobile-surface"' in JS
+    # setMobileSurface must drive aria-pressed (not aria-selected) and
+    # toggle inert/aria-hidden on the canonical chat + canvas DOMs.
+    assert "aria-pressed" in JS
+    assert 'chatShell.setAttribute("aria-hidden"' in JS or "chatShell.setAttribute('aria-hidden'" in JS
+    assert 'canvas.setAttribute("aria-hidden"' in JS or "canvas.setAttribute('aria-hidden'" in JS
+    assert 'chatShell.setAttribute("inert"' in JS or "chatShell.setAttribute('inert'" in JS
+    assert 'canvas.setAttribute("inert"' in JS
+    # Responsive resize cleanup is driven by a matchMedia change listener
+    # (no UA sniffing).
+    assert "addEventListener(\"change\"" in JS or "addListener(" in JS
+    assert "syncResponsiveMode" in JS
+    # CSS: switch hidden by default (desktop never shows it); only the
+    # ≤767px media query exposes it; [hidden] always wins.
+    assert ".mobile-surface-switch {" in CSS
+    assert "display: none;" in CSS
+    assert ".mobile-surface-switch[hidden] {" in CSS
+    assert "display: none !important;" in CSS
+    # Canonical canvas is reused as the guidance surface (no display:none
+    # clone, no summary card) — the mobile rule keeps #demo-canvas.
+    assert 'body[data-mobile-surface="guidance"][data-first-use-state="split"] #demo-canvas' in CSS
+    # Confirm-before-navigate composer blur is shell-level guarded by
+    # the mobile surface mode, not a UA sniff or global focus trap.
+    assert 'isMobileSurfaceMode() && chatInput' in JS
+    assert "chatInput.blur()" in JS
+    # No UA sniffing anywhere in the surface module.
+    assert "navigator.userAgent" not in JS
+    assert "navigator.platform" not in JS
+    # startChoreography must NOT unconditionally focus; mobile auto-focus
+    # is suppressed via the desktop-only guard.
+    assert "function startChoreography(" in JS
+    assert "focusComposerIfAllowed();" in JS
+
+
+def test_mobile_surface_choreography_focus_is_desktop_only():
+    # Choreography automated steps must NOT call .focus() directly on
+    # editable elements on mobile; they go through the desktop-only helper.
+    assert "function _focusEditableOnDesktopOnly(" in CHOREO
+    assert "function _blurActiveEditableForAutomatedMobileStep(" in CHOREO
+    # The automated action paths route editable focus via the helper.
+    assert "_focusEditableOnDesktopOnly(typeInput)" in CHOREO
+    assert "_focusEditableOnDesktopOnly(contentInput)" in CHOREO
+    # _executeStep must blur any active editable at step start on mobile.
+    assert "_blurActiveEditableForAutomatedMobileStep();" in CHOREO
+    # Stage 3 getter API must be preserved (no behavior change).
+    assert "getCurrentStepIndex" in CHOREO
+    assert "getTotalSteps" in CHOREO
+    assert "getSteps" in CHOREO
+
+
+
+def test_mobile_surface_does_not_clone_or_duplicate_canonical_doms():
+    # Stage A hard requirement: exactly one chat DOM and one civic DOM.
+    # The guidance surface IS #demo-canvas, so there must be no
+    # duplicate canvas clone or summary-card surface created.
+    assert HTML.count('id="demo-canvas"') == 1
+    assert HTML.count('id="chat-shell"') == 1
+    # No mobile summary/replacement surface is introduced before the switch.
+    assert "mobile-guidance-summary" not in HTML
+
+
+# ── #1114 mayor proposal entry (additive chip + hero control) ──
+
+
+def test_mayor_proposal_chip_is_additive_eighth():
+    """Exactly 8 chips: original 7 labels/questions preserved + mayor chip."""
+    import re
+
+    chips = re.findall(
+        r'data-chip-question="([^"]+)"',
+        HTML[HTML.index('id="chat-chips"') : HTML.index('id="chat-composer-form"')],
+    )
+    assert len(chips) == 8, f"expected 8 chips, got {len(chips)}: {chips}"
+    original_seven = [
+        "불법 주정차 신고는 어디서 하나요?",
+        "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+        "매트리스 폐기 신청은 어디서 하나요?",
+        "여권 발급은 어디서 하나요?",
+        "무인민원발급기 어디 있어요?",
+        "가로등이 고장났어요. 신고할게요",
+        "쓰레기 무단투기 신고할래 (AI 도움)",
+    ]
+    for q in original_seven:
+        assert q in chips
+    assert "구청장에게 제안하고 싶어요" in chips
+    assert chips.count("구청장에게 제안하고 싶어요") == 1
+
+
+def test_mayor_canonical_pair_and_shared_controller():
+    assert 'MAYOR_CANONICAL_QUESTION = "구청장에게 제안하고 싶어요"' in JS
+    assert 'MAYOR_CANONICAL_ACTION = "mayor_message_assist"' in JS
+    assert "function startMayorProposalEntry(" in JS
+    assert 'source: "chat"' in JS
+    assert "userInitiatedControlClick" in JS
+    # Shared controller is wired for chip/composer, MVP action, and hero.
+    assert "startMayorProposalEntry({" in JS
+    assert "useActionConfirm: true" in JS
+    assert 'source: "hero"' in JS
+    # Canonical action is actually consumed (not declaration-only).
+    assert "isMayorAction(action)" in JS or 'action === "mayor_message_assist"' in JS
+    assert "MAYOR_CANONICAL_ACTION" in JS
+    # No direct final-route jump past confirm-run for mayor.
+    assert "showConfirmRun" in JS
+    assert "showConfirmRunForAction" in JS
+
+
+def test_mayor_shared_journey_object_for_question_and_action():
+    assert "MAYOR_MESSAGE_ASSIST_JOURNEY" in CHOREO
+    assert '"mayor_message_assist": MAYOR_MESSAGE_ASSIST_JOURNEY' in CHOREO
+    assert '"구청장에게 제안하고 싶어요": MAYOR_MESSAGE_ASSIST_JOURNEY' in CHOREO
+    # Both keys must reference the same object (not a deep copy).
+    assert CHOREO.count("MAYOR_MESSAGE_ASSIST_JOURNEY") >= 3
+
+
+def test_mayor_display_labels_avoid_fallback():
+    quest_fn = JS[JS.index("function _questDisplayName(") : JS.index("function _actionDisplayName(")]
+    action_fn = JS[JS.index("function _actionDisplayName(") : JS.index("function startChoreography(")]
+    assert 'question.indexOf("구청장")' in quest_fn
+    assert '"구청장 제안 작성"' in quest_fn
+    assert 'action === "mayor_message_assist"' in action_fn
+    assert '"구청장 제안 작성"' in action_fn
+    # Fallback remains last resort, not the mayor path.
+    assert quest_fn.rfind("이 안내") > quest_fn.rfind("구청장 제안 작성")
+    assert action_fn.rfind("이 안내") > action_fn.rfind("구청장 제안 작성")
+
+
+def test_mayor_hero_control_geometry_is_explicit_rectangle():
+    assert 'id="mayor-open-office-control"' in HTML
+    assert 'aria-label="열린구청장실 바로가기"' in HTML
+    assert 'class="mayor-open-office-control"' in HTML
+    control_css = CSS[CSS.index(".mayor-open-office-control {") :]
+    control_css = control_css[: control_css.index("/* Hide when entry is not the active surface.")]
+    # Explicit non-zero rectangle (no height:auto / clip-path hit area).
+    assert "position: absolute" in control_css
+    assert "top: calc(" in control_css or "top:calc(" in control_css
+    assert "right: calc(" in control_css or "right:calc(" in control_css
+    assert "width: calc(" in control_css or "width:calc(" in control_css
+    assert "height: calc(" in control_css or "height:calc(" in control_css
+    assert "height: auto" not in control_css
+    assert "clip-path: inset" not in control_css
+    assert "clip-path: none" in control_css
+    # Hover/focus must not expand geometry via clip-path:none removal of inset.
+    hover = CSS[CSS.index(".mayor-open-office-control:hover") : CSS.index(".mayor-open-office-control:focus-visible")]
+    focus = CSS[
+        CSS.index(".mayor-open-office-control:focus-visible") : CSS.index(
+            ".mayor-open-office-control.executor-highlight"
+        )
+    ]
+    assert "clip-path: none" not in hover or "inset" not in hover
+    assert "clip-path: none" not in focus or "inset" not in focus
+    # Mobile: control hidden with mayor card (aligned to 767px surface breakpoint).
+    assert "@media (max-width: 767px)" in CSS
+    assert ".mayor-open-office-control" in CSS[CSS.index("@media (max-width: 767px)") :]
+
+
+def test_mayor_cursor_before_split_uses_existing_canvas_cursor():
+    controller = JS[
+        JS.index("function startMayorProposalEntry(") : JS.index(
+            "function beginMayorProposalEntry("
+        )
+    ]
+    # Existing canvas cursor API reused — no second cursor DOM constructed here.
+    assert "showCursorAt" in controller
+    assert "clickAnimation" in controller
+    assert "choreo-cursor" not in controller
+    assert "createElement" not in controller
+    assert "MAYOR_CONTROL_SELECTOR" in controller or "#mayor-open-office-control" in controller
+
+    # Semantic automated-path ordering (not file-global first occurrence).
+    # Manual early-return may call _beginMayorSplitContinuation before any
+    # showCursorAt appears in source; inspect only the automated sequence that
+    # starts at the first showCursorAt schedule.
+    automated = controller[controller.index("showCursorAt") :]
+    assert automated.index("showCursorAt") < automated.index("clickAnimation")
+    assert automated.index("clickAnimation") < automated.index(
+        "_beginMayorSplitContinuation({ useActionConfirm: useActionConfirm })"
+    )
+    # Cursor targets the semantic hero control via existing canvas API.
+    assert "showCursorAt(MAYOR_CONTROL_SELECTOR)" in automated or (
+        "showCursorAt" in automated and "MAYOR_CONTROL_SELECTOR" in automated
+    )
+    assert "clickAnimation(MAYOR_CONTROL_SELECTOR)" in automated or (
+        "clickAnimation" in automated and "MAYOR_CONTROL_SELECTOR" in automated
+    )
+
+    # Manual hero path: user click is the activation; no second auto-click.
+    assert "userInitiatedControlClick" in controller
+    assert 'source === "hero"' in controller or 'source === "hero"' in controller
+    manual = controller[
+        controller.index("userInitiatedControlClick") : controller.index(
+            "Chat / model path"
+        )
+        if "Chat / model path" in controller
+        else controller.index("showCursorAt")
+    ]
+    assert "_beginMayorSplitContinuation" in manual
+    assert "showCursorAt" not in manual
+    assert "clickAnimation" not in manual
+
+    # Canvas target resolution already falls back to document-level selectors.
+    assert "document.querySelector(selectorOrEl)" in CANVAS
+    assert "function _resolveCursorTarget" in CANVAS
+    assert "mobile-result-replacement" not in HTML
+    # No second civic surface element is introduced alongside the switch.
+    assert "demo-canvas__clone" not in HTML
+    assert "guidance-card" not in HTML
+    assert "mobile-guidance-copy" not in HTML

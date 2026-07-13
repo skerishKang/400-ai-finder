@@ -345,6 +345,132 @@
     }
   }
 
+  // ── Mobile surface switch (Stage A, shell-level only) ──────────────
+  // Exposes an explicit conversation / guidance surface on mobile. The
+  // guidance surface reuses the canonical #demo-canvas (no DOM clone,
+  // no summary card). Desktop ignores this entirely.
+  var mobileSurfaceSwitch = document.getElementById("mobile-surface-switch");
+  var tabConversation = document.getElementById("tab-conversation");
+  var tabGuidance = document.getElementById("tab-guidance");
+
+  function isMobileSurfaceMode() {
+    // Judged from the APPLIED responsive breakpoint (CSS media query
+    // match), NOT a user-agent string. Matches the @media (max-width:
+    // 767px) rule that switches the shell to the mobile column layout.
+    try {
+      return !!window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function setMobileSurface(surface) {
+    if (!isMobileSurfaceMode()) {
+      // Desktop: the switch is hidden and never drives layout.
+      return;
+    }
+    if (body) {
+      body.setAttribute("data-mobile-surface", surface);
+    }
+    if (tabConversation) {
+      tabConversation.setAttribute(
+        "aria-pressed",
+        surface === "conversation" ? "true" : "false"
+      );
+    }
+    if (tabGuidance) {
+      tabGuidance.setAttribute(
+        "aria-pressed",
+        surface === "guidance" ? "true" : "false"
+      );
+    }
+    if (surface === "conversation") {
+      // Activate conversation: chat-shell interactive, canvas inert+hidden.
+      if (chatShell) {
+        chatShell.removeAttribute("inert");
+        chatShell.setAttribute("aria-hidden", "false");
+      }
+      if (canvas) {
+        canvas.setAttribute("inert", "");
+        canvas.setAttribute("aria-hidden", "true");
+      }
+    } else if (surface === "guidance") {
+      // Activate guidance: canvas interactive, chat-shell inert+hidden.
+      if (canvas) {
+        canvas.removeAttribute("inert");
+        canvas.setAttribute("aria-hidden", "false");
+      }
+      if (chatShell) {
+        chatShell.setAttribute("inert", "");
+        chatShell.setAttribute("aria-hidden", "true");
+      }
+    }
+  }
+
+  // Synchronize surface/focus state when the responsive breakpoint flips
+  // (e.g. 767px → desktop). No UA sniffing; driven purely by matchMedia.
+  function syncResponsiveMode() {
+    if (isMobileSurfaceMode()) {
+      return;
+    }
+    // Desktop: drop the mobile surface override and hide the switch.
+    hideMobileSurfaceSwitch();
+    if (chatShell) {
+      // Remove the mobile-only inert/aria-hidden (desktop keeps both panes).
+      chatShell.removeAttribute("inert");
+      chatShell.setAttribute("aria-hidden", "false");
+    }
+    if (canvas) {
+      // Restore canvas availability to the current first-use state:
+      // available in split/transitioning, hidden in entry.
+      var state = body ? body.getAttribute("data-first-use-state") : "";
+      setCanvasAvailability(state === "split" || state === "transitioning");
+    }
+  }
+
+  var _mobileMedia = null;
+  try {
+    if (window.matchMedia) {
+      _mobileMedia = window.matchMedia("(max-width: 767px)");
+      var _onMobileChange = function () { syncResponsiveMode(); };
+      if (typeof _mobileMedia.addEventListener === "function") {
+        _mobileMedia.addEventListener("change", _onMobileChange);
+      } else if (typeof _mobileMedia.addListener === "function") {
+        // Legacy Safari/old Chromium fallback.
+        _mobileMedia.addListener(_onMobileChange);
+      }
+    }
+  } catch (_) {
+    /* matchMedia unavailable — responsive sync is best-effort only */
+  }
+
+  function showMobileSurfaceSwitch() {
+    if (mobileSurfaceSwitch && isMobileSurfaceMode()) {
+      mobileSurfaceSwitch.removeAttribute("hidden");
+    }
+  }
+
+  function hideMobileSurfaceSwitch() {
+    if (mobileSurfaceSwitch) {
+      mobileSurfaceSwitch.setAttribute("hidden", "");
+    }
+    if (body) {
+      body.removeAttribute("data-mobile-surface");
+    }
+  }
+
+  function focusComposerIfAllowed() {
+    // Shell-level composer focus guard: on mobile the conversation/
+    // guidance switch owns visibility, so the shell must NOT pull focus
+    // back into the composer during automated journey transitions,
+    // after journey completion, or after reset. Explicit user taps still
+    // focus (handled by the browser natively). Desktop keyboard
+    // behavior is preserved.
+    if (chatInput && !isMobileSurfaceMode()) {
+      chatInput.focus();
+    }
+  }
+
   // ── Static Bukgu Homepage Fixture ───────────────────────────────────
   // Renders the Bukgu Office main portal layout as a static fixture for the
   // initial left surface (first visible canvas content on split).
@@ -588,6 +714,7 @@
       if (chipsContainer) {
         chipsContainer.hidden = false;
       }
+      hideMobileSurfaceSwitch();
       return;
     }
 
@@ -600,6 +727,7 @@
       if (chipsContainer) {
         chipsContainer.hidden = true;
       }
+      hideMobileSurfaceSwitch();
       return;
     }
 
@@ -611,6 +739,9 @@
     if (chipsContainer) {
       chipsContainer.hidden = false;
     }
+    // Mobile: expose the conversation/guidance switch once split is live.
+    showMobileSurfaceSwitch();
+    setMobileSurface("conversation");
   }
 
   function clearChatMotionStyles() {
@@ -822,6 +953,8 @@
     if (question.indexOf("무인민원발급기") !== -1 || question.indexOf("민원서류") !== -1) return "무인민원발급기 안내";
     if (question.indexOf("가로등") !== -1) return "가로등 고장 신고";
     if (question.indexOf("쓰레기") !== -1) return "쓰레기 무단투기 신고";
+    // #1114 — mayor proposal writing assist (static question path)
+    if (question.indexOf("구청장") !== -1) return "구청장 제안 작성";
     return "이 안내";
   }
 
@@ -833,6 +966,8 @@
     if (action === "unmanned_kiosk") return "무인민원발급기 안내";
     if (action === "streetlight_report") return "가로등 고장 신고";
     if (action === "litter_ai_assist") return "쓰레기 무단투기 신고";
+    // #1114 — mayor proposal writing assist (model-backed action path)
+    if (action === "mayor_message_assist") return "구청장 제안 작성";
     return "이 안내";
   }
 
@@ -840,9 +975,10 @@
     if (window.CitizenFirstChoreography && question) {
       window.CitizenFirstChoreography.start(question);
     }
-    if (chatInput) {
-      chatInput.focus();
-    }
+    // Do NOT unconditionally pull focus into the composer. On mobile the
+    // conversation/guidance switch owns visibility and keyboard state; on
+    // desktop the existing keyboard flow is preserved via the guard.
+    focusComposerIfAllowed();
   }
 
   function showConfirmRun(question) {
@@ -871,6 +1007,12 @@
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      // Mobile: switch the active surface to guidance BEFORE the
+      // scripted navigation starts, and close the composer keyboard.
+      if (isMobileSurfaceMode() && chatInput) {
+        chatInput.blur();
+      }
+      setMobileSurface("guidance");
       startChoreography(question);
     });
 
@@ -882,7 +1024,7 @@
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
-      if (chatInput) chatInput.focus();
+      focusComposerIfAllowed();
     });
 
     btnRow.appendChild(yesBtn);
@@ -929,6 +1071,12 @@
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      // Mobile: switch to guidance + close composer keyboard before
+      // the scripted navigation starts.
+      if (isMobileSurfaceMode() && chatInput) {
+        chatInput.blur();
+      }
+      setMobileSurface("guidance");
       if (window.CitizenFirstChoreography && action) {
         window.CitizenFirstChoreography.start(action);
       }
@@ -942,7 +1090,7 @@
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
-      if (chatInput) chatInput.focus();
+      focusComposerIfAllowed();
     });
 
     btnRow.appendChild(yesBtn);
@@ -996,36 +1144,190 @@
   }
 
   // ── #1114: central mayor-proposal entry ─────────────────────────
-  // Both the chat chip/composer submission of "구청장에게 제안하고 싶어요" and the
-  // hero "열린구청장실 바로가기" control activation converge here. The canonical
-  // question + action are fixed; the user message is shown exactly once and the
-  // existing MAYOR_MESSAGE_ASSIST_JOURNEY is driven through the shared
-  // choreography — no duplicate dispatch, no direct final-route jump.
+  // Canonical pair used by chip / composer / static / MVP / manual hero:
+  //   question: 구청장에게 제안하고 싶어요
+  //   action:   mayor_message_assist
+  // Chat path shows the existing AI cursor click on the hero blue control
+  // BEFORE cinematic split. Manual hero click skips automated re-click.
+  // Shared continuation always uses MAYOR_MESSAGE_ASSIST_JOURNEY (confirm-run
+  // gate, no direct final-route jump, no second cursor DOM).
   var MAYOR_CANONICAL_QUESTION = "구청장에게 제안하고 싶어요";
   var MAYOR_CANONICAL_ACTION = "mayor_message_assist";
+  var MAYOR_CONTROL_SELECTOR = "#mayor-open-office-control";
+  var _mayorEntryInFlight = false;
+  var _mayorEntryTimer = null;
+  var _mayorEntryAuxTimers = [];
 
   function isMayorQuestion(value) {
     return normalizeQuestion(value) === MAYOR_CANONICAL_QUESTION;
   }
 
-  function beginMayorProposalEntry() {
-    if (!chatInput || currentState === STATE_TRANSITIONING) return;
-    // Idempotent guard: if already splitting for the same question, do nothing.
-    if (currentState === STATE_SPLIT && lastSplitQuestion === MAYOR_CANONICAL_QUESTION) {
-      return;
+  function isMayorAction(value) {
+    return value === MAYOR_CANONICAL_ACTION;
+  }
+
+  function _clearMayorEntryTimers() {
+    if (_mayorEntryTimer !== null) {
+      window.clearTimeout(_mayorEntryTimer);
+      _mayorEntryTimer = null;
     }
-    // Single user-message echo, shared by both entry points.
-    if (currentState !== STATE_SPLIT) {
-      appendChatMessage("user", MAYOR_CANONICAL_QUESTION);
-      if (chatInput) chatInput.value = "";
+    for (var i = 0; i < _mayorEntryAuxTimers.length; i++) {
+      window.clearTimeout(_mayorEntryAuxTimers[i]);
+    }
+    _mayorEntryAuxTimers = [];
+    _mayorEntryInFlight = false;
+    var control = document.getElementById("mayor-open-office-control");
+    if (control) {
+      control.classList.remove("executor-highlight");
+      control.classList.remove("is-agent-target");
+    }
+  }
+
+  function _scheduleMayorAux(fn, delayMs) {
+    var id = window.setTimeout(fn, delayMs);
+    _mayorEntryAuxTimers.push(id);
+    return id;
+  }
+
+  function _isMayorControlVisuallyAvailable(control) {
+    if (!control) return false;
+    var rect = control.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return false;
+    try {
+      var style = window.getComputedStyle(control);
+      if (!style) return true;
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      if (Number(style.opacity) === 0) return false;
+    } catch (_) {
+      /* getComputedStyle unavailable — rely on rect only */
+    }
+    return true;
+  }
+
+  function _beginMayorSplitContinuation(options) {
+    options = options || {};
+    var useActionConfirm = !!options.useActionConfirm;
+    // Keep lastSplitQuestion for the static confirm-run path. MVP confirm uses
+    // the action code via completeMvpSplit (MAYOR_CANONICAL_ACTION).
+    if (useActionConfirm) {
+      lastSplitQuestion = MAYOR_CANONICAL_QUESTION;
+      startCinematicSplit();
+      if (prefersReducedMotion()) {
+        completeMvpSplit(MAYOR_CANONICAL_ACTION);
+        return;
+      }
+      splitTimer = window.setTimeout(function () {
+        splitTimer = null;
+        completeMvpSplit(MAYOR_CANONICAL_ACTION);
+      }, TRANSITION_DURATION_MS);
+      return;
     }
     lastSplitQuestion = MAYOR_CANONICAL_QUESTION;
     startCinematicSplit();
     if (prefersReducedMotion()) {
       completeSplit();
-    } else {
-      splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
+      return;
     }
+    splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
+  }
+
+  /**
+   * Canonical mayor entry controller.
+   * @param {{
+   *   source?: "chat"|"hero",
+   *   userInitiatedControlClick?: boolean,
+   *   skipUserMessage?: boolean,
+   *   useActionConfirm?: boolean
+   * }} options
+   */
+  function startMayorProposalEntry(options) {
+    options = options || {};
+    var source = options.source === "hero" ? "hero" : "chat";
+    var userInitiatedControlClick = !!options.userInitiatedControlClick;
+    var skipUserMessage = !!options.skipUserMessage;
+    var useActionConfirm = !!options.useActionConfirm;
+
+    if (currentState === STATE_TRANSITIONING || _mayorEntryInFlight) {
+      return;
+    }
+    // Idempotent: already split for the same canonical mayor question.
+    if (
+      currentState === STATE_SPLIT &&
+      lastSplitQuestion === MAYOR_CANONICAL_QUESTION &&
+      !skipUserMessage
+    ) {
+      return;
+    }
+
+    // Single user-message echo for all entry points (unless already echoed).
+    if (!skipUserMessage && currentState !== STATE_SPLIT) {
+      appendChatMessage("user", MAYOR_CANONICAL_QUESTION);
+      if (chatInput) chatInput.value = "";
+    }
+
+    // Manual hero activation: the user click IS the canonical activation.
+    // Do not re-drive an automated second click on the same control.
+    if (userInitiatedControlClick || source === "hero") {
+      _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
+      return;
+    }
+
+    // Chat / model path: when the hero blue control is visible, show the
+    // existing AI cursor → highlight → click/ripple, then split. Stay on
+    // first-use-state=entry until the click animation finishes.
+    var control = document.getElementById("mayor-open-office-control");
+    var canvasApi = window.CitizenActionDemoCanvas;
+    var canAnimate =
+      _isMayorControlVisuallyAvailable(control) &&
+      canvasApi &&
+      typeof canvasApi.showCursorAt === "function" &&
+      typeof canvasApi.clickAnimation === "function";
+
+    if (!canAnimate) {
+      // Mobile (control hidden) or missing cursor API — keep order without a
+      // visible click, still one split / one confirm path.
+      _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
+      return;
+    }
+
+    _mayorEntryInFlight = true;
+    var reduced = prefersReducedMotion();
+    var moveDelay = reduced ? 0 : 100;
+    var clickDelay = reduced ? 40 : 920;
+    var afterClickDelay = reduced ? 80 : 560;
+    var splitAt = clickDelay + afterClickDelay;
+
+    if (typeof canvasApi.hideCursor === "function") {
+      canvasApi.hideCursor();
+    }
+    control.classList.add("executor-highlight");
+    control.classList.add("is-agent-target");
+
+    _scheduleMayorAux(function () {
+      if (!_mayorEntryInFlight) return;
+      canvasApi.showCursorAt(MAYOR_CONTROL_SELECTOR);
+    }, moveDelay);
+
+    _scheduleMayorAux(function () {
+      if (!_mayorEntryInFlight) return;
+      // Visual click only — do NOT fire a real DOM click (would re-enter).
+      canvasApi.clickAnimation(MAYOR_CONTROL_SELECTOR);
+    }, clickDelay);
+
+    _mayorEntryTimer = window.setTimeout(function () {
+      _mayorEntryTimer = null;
+      if (!_mayorEntryInFlight) return;
+      control.classList.remove("executor-highlight");
+      control.classList.remove("is-agent-target");
+      _mayorEntryInFlight = false;
+      _mayorEntryAuxTimers = [];
+      _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
+    }, splitAt);
+  }
+
+  // Back-compat alias used by earlier #1114 wiring.
+  function beginMayorProposalEntry() {
+    startMayorProposalEntry({ source: "hero", userInitiatedControlClick: true });
   }
 
   function handleSubmission(event) {
@@ -1033,13 +1335,19 @@
       event.preventDefault();
     }
 
+    // Bounded split/follow-up: never start another transition while one is in
+    // flight, and never run without a composer input element.
     if (currentState === STATE_TRANSITIONING || !chatInput) {
+      return;
+    }
+    // #1114: also block while mayor cursor→split sequence is scheduled.
+    if (_mayorEntryInFlight) {
       return;
     }
 
     var question = normalizeQuestion(chatInput.value);
     if (!question) {
-      chatInput.focus();
+      focusComposerIfAllowed();
       return;
     }
 
@@ -1051,6 +1359,18 @@
     if (currentState === STATE_SPLIT) {
       appendChatMessage("user", question);
       chatInput.value = "";
+      if (isMayorQuestion(question)) {
+        if (window.CitizenFirstChoreography) {
+          window.CitizenFirstChoreography.cancel();
+        }
+        // Control is hidden after split; skip automated cursor re-click.
+        startMayorProposalEntry({
+          source: "chat",
+          skipUserMessage: true,
+          userInitiatedControlClick: true
+        });
+        return;
+      }
       if (isSupportedQuestion(question)) {
         // Cancel current choreography and start new quest (no duplicate message)
         if (window.CitizenFirstChoreography) {
@@ -1065,8 +1385,14 @@
         }
       } else {
         appendChatMessage("ai", SPLIT_FOLLOW_UP_MESSAGE);
-        chatInput.focus();
+        focusComposerIfAllowed();
       }
+      return;
+    }
+
+    // Entry: mayor converges on the canonical controller (cursor → split).
+    if (isMayorQuestion(question)) {
+      startMayorProposalEntry({ source: "chat" });
       return;
     }
 
@@ -1081,7 +1407,7 @@
       "ai",
 "현재 첫 화면에서는 불법 주정차 신고, 공동주택 문의, 대형폐기물 처리, 여권 발급 안내, 무인민원발급기 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요."
     );
-    chatInput.focus();
+    focusComposerIfAllowed();
   }
 
   // ── MVP submission (#925 / #927) ───────────────────────────────
@@ -1100,14 +1426,14 @@
       if (token !== _mvpRequestToken) return; // superseded by a newer submit/reset
       if (!bridge || typeof bridge.ask !== "function") {
         setComposerDisabled(false);
-        if (chatInput) chatInput.focus();
+        focusComposerIfAllowed();
         appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
         return;
       }
       bridge.ask(question).then(function (result) {
         if (token !== _mvpRequestToken) return; // late/aborted response ignored
         setComposerDisabled(false);
-        if (chatInput) chatInput.focus();
+        focusComposerIfAllowed();
         // 5. assistant bubble MUST show the server's model answer, but only
         // for an explicit success. Any other result (ok:false, missing,
         // malformed, rejected, or ok:true with a blank answer) fails closed to
@@ -1156,6 +1482,15 @@
           beginMvpSplitThenChoreography(question, "streetlight_report");
         } else if (action === "litter_ai_assist") {
           beginMvpSplitThenChoreography(question, "litter_ai_assist");
+        } else if (isMayorAction(action) || action === "mayor_message_assist") {
+          // #1114: model-backed mayor action reuses the shared controller
+          // (cursor-before-split when hero control is visible). User message
+          // already echoed above; bridge already answered once.
+          startMayorProposalEntry({
+            source: "chat",
+            skipUserMessage: true,
+            useActionConfirm: true
+          });
         } else if (action === "none") {
           // Keep the entry chat; do not move the clone or start a choreography.
         }
@@ -1163,7 +1498,7 @@
       }).catch(function () {
         if (token !== _mvpRequestToken) return;
         setComposerDisabled(false);
-        if (chatInput) chatInput.focus();
+        focusComposerIfAllowed();
         appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
       });
     });
@@ -1202,7 +1537,7 @@
       if (window.CitizenFirstChoreography && action) {
         showConfirmRunForAction(action);
       }
-      if (chatInput) chatInput.focus();
+      focusComposerIfAllowed();
     }, 220);
   }
 
@@ -1216,6 +1551,12 @@
     }
     if (window.CitizenFirstChoreography) {
       window.CitizenFirstChoreography.cancel();
+    }
+    // Cancel any in-flight #1114 mayor cursor→split sequence.
+    _clearMayorEntryTimers();
+    if (window.CitizenActionDemoCanvas &&
+        typeof window.CitizenActionDemoCanvas.hideCursor === "function") {
+      window.CitizenActionDemoCanvas.hideCursor();
     }
     lastSplitQuestion = null;
     if (splitTimer !== null) {
@@ -1238,7 +1579,9 @@
     renderEntryConversation();
     if (chatInput) {
       chatInput.value = "";
-      chatInput.focus();
+      // Only refocus on desktop; on mobile the surface switch owns
+      // visibility and must NOT auto-focus the composer after reset.
+      focusComposerIfAllowed();
     }
     window.requestAnimationFrame(function () {
       body.classList.remove("first-use-shell--no-motion");
@@ -1251,6 +1594,30 @@
 
   if (resetButton) {
     resetButton.addEventListener("click", resetToEntry);
+  }
+
+  // Mobile surface tabs: switch the active surface. State (chat, route,
+  // prefilled values, confirmation, journey, cursor) is preserved because
+  // the canonical chat DOM and canonical civic DOM are never cloned.
+  function handleSurfaceTabClick(targetSurface) {
+    if (!isMobileSurfaceMode()) {
+      return;
+    }
+    if (targetSurface === "conversation") {
+      setMobileSurface("conversation");
+    } else if (targetSurface === "guidance") {
+      setMobileSurface("guidance");
+    }
+  }
+  if (tabConversation) {
+    tabConversation.addEventListener("click", function () {
+      handleSurfaceTabClick("conversation");
+    });
+  }
+  if (tabGuidance) {
+    tabGuidance.addEventListener("click", function () {
+      handleSurfaceTabClick("guidance");
+    });
   }
 
   // #965: chip click → submit question
@@ -1270,14 +1637,16 @@
     });
   }
 
-  // #1114: hero "열린구청장실 바로가기" control → same canonical mayor entry.
-  // No chat round-trip; converges on beginMayorProposalEntry so the user message
-  // is shown exactly once and no second bridge dispatch occurs.
+  // #1114: hero "열린구청장실 바로가기" → same canonical controller.
+  // Manual click is the activation; no automated second click / no bridge.
   var mayorControl = document.getElementById("mayor-open-office-control");
   if (mayorControl) {
     mayorControl.addEventListener("click", function (e) {
       e.preventDefault();
-      beginMayorProposalEntry();
+      startMayorProposalEntry({
+        source: "hero",
+        userInitiatedControlClick: true
+      });
     });
   }
 
@@ -1295,6 +1664,10 @@
     renderQuestProgressCard: renderQuestProgressCard,
     appendQuestProgressCard: appendQuestProgressCard,
     reset: resetToEntry,
+    // #1114 test/diagnostic surface — same controller used by chip/hero paths.
+    startMayorProposalEntry: startMayorProposalEntry,
+    mayorCanonicalQuestion: MAYOR_CANONICAL_QUESTION,
+    mayorCanonicalAction: MAYOR_CANONICAL_ACTION,
     states: Object.freeze({
       entry: STATE_ENTRY,
       transitioning: STATE_TRANSITIONING,

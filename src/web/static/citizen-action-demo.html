@@ -65,6 +65,19 @@
 <!-- ═══════════════════════════════════════════════════════
      Chat-first shell — the only visible surface on fresh load
      ═══════════════════════════════════════════════════════ -->
+<!-- Mobile surface switch: conversation / guidance. Hidden on desktop.
+     Stage A only (shell-level). Lives OUTSIDE #chat-shell so it stays
+     visible in both surfaces. The guidance panel reuses the canonical
+     #demo-canvas (no DOM clone, no summary card). -->
+<div class="mobile-surface-switch" id="mobile-surface-switch" role="group" aria-label="서비스 화면" hidden>
+  <button class="mobile-surface-tab" id="tab-conversation" type="button" aria-pressed="true" aria-controls="chat-shell" data-mobile-surface-tab="conversation">
+    대화
+  </button>
+  <button class="mobile-surface-tab" id="tab-guidance" type="button" aria-pressed="false" aria-controls="demo-canvas" data-mobile-surface-tab="guidance">
+    안내 화면
+  </button>
+</div>
+
 <aside class="chat-shell" id="chat-shell" role="complementary" aria-label="AI 민원 도우미" aria-busy="false">
   <div class="chat-shell__header">
     <div class="chat-shell__header-main">
