@@ -15,6 +15,7 @@ import importlib.util
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -201,6 +202,35 @@ class TestVendorManifestIntegrity:
             assert len(content) == entry["bytes"], (
                 f"byte count mismatch for {entry['path']}: "
                 f"expected {entry['bytes']}, got {len(content)}"
+            )
+
+    def test_vendor_manifest_checkout_policy_explicit(self):
+        # The vendor-manifest-covered files must be marked -text so Git never
+        # applies line-ending conversion (e.g. Windows core.autocrlf=true).
+        # This contract is OS-independent: if .gitattributes loses the -text
+        # rule, CI on any platform must flag it immediately.
+        for name in REQUIRED_VENDOR_FILES:
+            rel_path = os.path.join("src", "web", "examples", "page-agent", "vendor", name)
+            out = subprocess.run(
+                ["git", "check-attr", "text", "--", rel_path],
+                cwd=_REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            assert "text: unset" in out.stdout, (
+                f"vendor file {rel_path} must be -text in .gitattributes; "
+                f"got: {out.stdout.strip()}"
+            )
+
+    def test_vendor_manifest_working_tree_has_no_cr(self):
+        # The raw working-tree bytes must never contain CR on any clean
+        # checkout, otherwise the SHA-256/byte-count parity would break.
+        for name in REQUIRED_VENDOR_FILES:
+            path = os.path.join(_VENDOR_DIR, name)
+            content = _read_bytes(path)
+            assert b"\r" not in content, (
+                f"vendor file {name} contains CR bytes in working tree"
             )
 
 
