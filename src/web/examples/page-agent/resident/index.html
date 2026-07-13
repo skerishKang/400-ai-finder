@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-page-agent-plan-mode="local">
+<html lang="ko" data-page-agent-plan-mode="local" data-page-agent-plan-state="idle">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,9 +13,12 @@
     data-page-agent-plan-mode="server" (same-origin /api/page-agent/plan)
   Or inject window.__PAGE_AGENT_PLAN_CONFIG__ = { mode: "server" } from a
   controlled build/config script. Query-string alone never enables server mode.
+
+  Plan state axis (resident runtime):
+    idle | planning | executing | result | unsupported | disabled | error | cancelled
 -->
 </head>
-<body>
+<body data-page-agent-plan-mode="local" data-page-agent-plan-state="idle">
 <div class="resident-layout">
   <div class="resident-canvas" role="main" aria-label="북구청 안내 화면">
     <div id="demo-canvas"></div>
@@ -28,11 +31,17 @@
       </div>
       <div class="chat-header__sub">주민용 비교 데모 · 실시간 DOM 동작</div>
       <div class="chat-header__badges">
-        <span class="badge badge--offline" id="plan-mode-badge">🔒 오프라인/mock</span>
+        <span class="badge badge--offline" id="plan-mode-badge">기본 안내</span>
         <span class="badge badge--sameorigin">🏠 동일 출처</span>
         <span class="badge badge--nosubmit">🚫 제출 불가</span>
       </div>
       <div class="chat-header__status" id="chat-status">초기화 중...</div>
+      <p
+        id="page-agent-plan-status"
+        class="resident-plan-status"
+        role="status"
+        aria-live="polite"
+      >무엇을 도와드릴까요?</p>
     </div>
 
     <div class="chat-messages" id="chat-messages" aria-live="polite">

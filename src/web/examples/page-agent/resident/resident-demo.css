@@ -107,6 +107,11 @@ html, body {
   color: var(--badge-offline-text);
 }
 
+.badge--server {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
 .badge--sameorigin {
   background: var(--badge-origin);
   color: var(--badge-origin-text);
@@ -124,6 +129,44 @@ html, body {
   font-size: 0.78rem;
   margin-top: 6px;
   color: var(--muted);
+}
+
+/* Resident-facing plan status (single region; does not replace chat history) */
+.resident-plan-status {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #1f2937;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.resident-plan-status[data-state="planning"],
+.resident-plan-status[data-state="executing"] {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.resident-plan-status[data-state="result"] {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.resident-plan-status[data-state="unsupported"],
+.resident-plan-status[data-state="disabled"] {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.resident-plan-status[data-state="error"] {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.resident-plan-status[data-state="cancelled"] {
+  background: #f3f4f6;
+  color: #4b5563;
 }
 
 .chat-header__status--active {

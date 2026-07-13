@@ -13,6 +13,7 @@
   var _controller = null;
   var _token = 0;
   var _activeToken = 0;
+  var _activeRequestId = null;
 
   function readExplicitMode() {
     // 1) Build/runtime injected config (highest priority for controlled deploys).
@@ -39,9 +40,24 @@
     return mode === 'server' || mode === 'plan-server' || mode === 'server-plan';
   }
 
+  function getPlanMode() {
+    var mode = readExplicitMode();
+    if (mode === 'server' || mode === 'plan-server' || mode === 'server-plan') return 'server';
+    return 'local';
+  }
+
+  function getActiveToken() {
+    return _activeToken;
+  }
+
+  function getActiveRequestId() {
+    return _activeRequestId;
+  }
+
   function cancel() {
     _token += 1;
     _activeToken = _token;
+    _activeRequestId = null;
     if (_controller) {
       try {
         _controller.abort();
@@ -65,7 +81,7 @@
   /**
    * @param {string} question
    * @param {{ maxSteps?: number }} [opts]
-   * @returns {Promise<{ ok: true, plan: object, token: number } | { ok: false, error: string, detail?: string, token: number }>}
+   * @returns {Promise<{ ok: true, plan: object, token: number, request_id?: string } | { ok: false, error: string, detail?: string, token: number, request_id?: string, stale?: boolean }>}
    */
   function requestPlan(question, opts) {
     opts = opts || {};
@@ -75,6 +91,7 @@
         error: 'page_agent_server_mode_disabled',
         detail: 'explicit_mode_required',
         token: _activeToken,
+        request_id: null,
       });
     }
 
@@ -84,8 +101,11 @@
     _activeToken = token;
     _controller = new AbortController();
 
+    var requestId = 'resident-' + Date.now() + '-' + token;
+    _activeRequestId = requestId;
+
     var body = {
-      request_id: 'resident-' + Date.now() + '-' + token,
+      request_id: requestId,
       question: String(question || ''),
       current_route: currentRouteId(),
       available_actions: ['click', 'input', 'select', 'scroll', 'read', 'navigate'],
@@ -99,6 +119,7 @@
         error: 'page_agent_origin_blocked',
         detail: 'cross_origin_endpoint',
         token: token,
+        request_id: requestId,
       });
     }
 
@@ -112,9 +133,53 @@
     })
       .then(function (res) {
         if (token !== _activeToken) {
-          return { ok: false, error: 'page_agent_cancelled', detail: 'stale_token', token: token };
+          return {
+            ok: false,
+            error: 'page_agent_cancelled',
+            detail: 'stale_token',
+            token: token,
+            request_id: requestId,
+            stale: true,
+          };
         }
         return res.text().then(function (text) {
+          if (token !== _activeToken) {
+            return {
+              ok: false,
+              error: 'page_agent_cancelled',
+              detail: 'stale_token',
+              token: token,
+              request_id: requestId,
+              stale: true,
+            };
+          }
+
+          if (!res.ok && (res.status < 200 || res.status >= 300)) {
+            // Still try JSON body for structured errors; fall back to HTTP failure.
+            var httpData = null;
+            try {
+              httpData = text ? JSON.parse(text) : null;
+            } catch (_) {
+              httpData = null;
+            }
+            if (httpData && httpData.error) {
+              return {
+                ok: false,
+                error: httpData.error,
+                detail: httpData.detail || ('http_' + res.status),
+                token: token,
+                request_id: requestId,
+              };
+            }
+            return {
+              ok: false,
+              error: 'page_agent_http_failure',
+              detail: 'http_' + res.status,
+              token: token,
+              request_id: requestId,
+            };
+          }
+
           var data = null;
           try {
             data = text ? JSON.parse(text) : null;
@@ -124,6 +189,7 @@
               error: 'page_agent_malformed_response',
               detail: 'json_parse',
               token: token,
+              request_id: requestId,
             };
           }
           if (!data || typeof data !== 'object') {
@@ -132,31 +198,52 @@
               error: 'page_agent_malformed_response',
               detail: 'empty_body',
               token: token,
+              request_id: requestId,
             };
           }
           if (data.ok === true && data.plan && Array.isArray(data.plan.steps)) {
-            return { ok: true, plan: data.plan, token: token };
+            return {
+              ok: true,
+              plan: data.plan,
+              token: token,
+              request_id: requestId,
+            };
           }
           return {
             ok: false,
             error: data.error || 'page_agent_plan_failed',
             detail: data.detail || ('http_' + res.status),
             token: token,
+            request_id: requestId,
           };
         });
       })
       .catch(function (err) {
         if (token !== _activeToken) {
-          return { ok: false, error: 'page_agent_cancelled', detail: 'stale_token', token: token };
+          return {
+            ok: false,
+            error: 'page_agent_cancelled',
+            detail: 'stale_token',
+            token: token,
+            request_id: requestId,
+            stale: true,
+          };
         }
         if (err && err.name === 'AbortError') {
-          return { ok: false, error: 'page_agent_cancelled', detail: 'aborted', token: token };
+          return {
+            ok: false,
+            error: 'page_agent_cancelled',
+            detail: 'aborted',
+            token: token,
+            request_id: requestId,
+          };
         }
         return {
           ok: false,
           error: 'page_agent_network_error',
-          detail: err && err.message ? String(err.message).slice(0, 120) : 'fetch_failed',
+          detail: 'fetch_failed',
           token: token,
+          request_id: requestId,
         };
       })
       .then(function (result) {
@@ -299,7 +386,6 @@
         );
       }
 
-      // Walk plan steps; map click targets into Page Agent click_element_by_index.
       while (stepIdx < steps.length) {
         var step = steps[stepIdx];
         stepIdx += 1;
@@ -316,7 +402,6 @@
               })
             );
           }
-          // Target not visible yet — skip and try next planned step.
           continue;
         }
 
@@ -331,7 +416,6 @@
         }
 
         if (step.action === 'read' || step.action === 'navigate') {
-          // Terminal boundary inside the tool loop (done), not a direct route jump.
           finished = true;
           var doneText =
             (step.value && String(step.value)) ||
@@ -367,8 +451,11 @@
 
   window.PageAgentServerPlanClient = Object.freeze({
     isEnabled: isEnabled,
+    getPlanMode: getPlanMode,
     requestPlan: requestPlan,
     cancel: cancel,
+    getActiveToken: getActiveToken,
+    getActiveRequestId: getActiveRequestId,
     createPlanFetchAdapter: createPlanFetchAdapter,
     PLAN_PATH: PLAN_PATH,
   });
