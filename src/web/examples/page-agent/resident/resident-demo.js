@@ -9,6 +9,13 @@
   var modeBadge = document.getElementById("plan-mode-badge");
   var planStatusEl = document.getElementById("page-agent-plan-status");
 
+  var mobileSwitch = document.getElementById("page-agent-mobile-switch");
+  var tabConversation = document.getElementById("page-agent-tab-conversation");
+  var tabGuidance = document.getElementById("page-agent-tab-guidance");
+  var mobileCancel = document.getElementById("page-agent-mobile-cancel");
+  var guidanceSurface = document.getElementById("page-agent-guidance-surface");
+  var conversationSurface = document.getElementById("page-agent-conversation-surface");
+
   var agent = null;
   var isRunning = false;
   var timeoutId = null;
@@ -18,6 +25,11 @@
   var _planState = "idle";
   var _userCancelled = false;
   var _activeRequestId = null;
+
+  /** Independent of plan mode/state: "conversation" | "guidance" */
+  var _mobileSurface = "conversation";
+  var _isMobileViewport = false;
+  var MOBILE_MQ = "(max-width: 768px)";
 
   var PLAN_STATES = {
     idle: "무엇을 도와드릴까요?",
@@ -93,6 +105,127 @@
       return window.PageAgentServerPlanClient.getActiveRequestId() || _activeRequestId;
     }
     return _activeRequestId;
+  }
+
+  function getMobileSurface() {
+    return _mobileSurface;
+  }
+
+  /**
+   * Mobile surface only. Never touches plan mode/state, agent run, route,
+   * history, or focus. Accepts only "conversation" | "guidance".
+   */
+  function setMobileSurface(surface) {
+    if (surface !== "conversation" && surface !== "guidance") {
+      return;
+    }
+    _mobileSurface = surface;
+    document.documentElement.setAttribute("data-page-agent-mobile-surface", surface);
+    document.body.setAttribute("data-page-agent-mobile-surface", surface);
+    applyMobileSurfacePresentation();
+  }
+
+  function revealSurface(el) {
+    if (!el) return;
+    el.hidden = false;
+    el.inert = false;
+    el.removeAttribute("aria-hidden");
+  }
+
+  function concealSurface(el) {
+    if (!el) return;
+    el.hidden = true;
+    el.inert = true;
+    el.setAttribute("aria-hidden", "true");
+  }
+
+  function updateMobileCancelVisibility() {
+    if (!mobileCancel) return;
+    if (_isMobileViewport && isRunning) {
+      mobileCancel.hidden = false;
+    } else {
+      mobileCancel.hidden = true;
+    }
+  }
+
+  /**
+   * Owns hidden/inert/aria presentation for mobile vs desktop.
+   * Does not mutate plan state, agent, messages, or call .focus().
+   */
+  function applyMobileSurfacePresentation() {
+    if (mobileSwitch) {
+      mobileSwitch.hidden = !_isMobileViewport;
+    }
+
+    if (tabConversation) {
+      tabConversation.setAttribute(
+        "aria-pressed",
+        _mobileSurface === "conversation" ? "true" : "false"
+      );
+    }
+    if (tabGuidance) {
+      tabGuidance.setAttribute(
+        "aria-pressed",
+        _mobileSurface === "guidance" ? "true" : "false"
+      );
+    }
+
+    if (_isMobileViewport) {
+      if (_mobileSurface === "conversation") {
+        revealSurface(conversationSurface);
+        concealSurface(guidanceSurface);
+      } else {
+        revealSurface(guidanceSurface);
+        concealSurface(conversationSurface);
+      }
+    } else {
+      // Desktop: both surfaces always visible and interactive.
+      revealSurface(conversationSurface);
+      revealSurface(guidanceSurface);
+    }
+
+    updateMobileCancelVisibility();
+  }
+
+  function syncViewportMode() {
+    var mq = window.matchMedia(MOBILE_MQ);
+    _isMobileViewport = !!mq.matches;
+    applyMobileSurfacePresentation();
+  }
+
+  function initMobileSurfaces() {
+    // Materialize initial surface attribute (conversation).
+    document.documentElement.setAttribute("data-page-agent-mobile-surface", _mobileSurface);
+    document.body.setAttribute("data-page-agent-mobile-surface", _mobileSurface);
+
+    if (tabConversation) {
+      tabConversation.addEventListener("click", function () {
+        setMobileSurface("conversation");
+      });
+    }
+    if (tabGuidance) {
+      tabGuidance.addEventListener("click", function () {
+        setMobileSurface("guidance");
+      });
+    }
+    // Same cancel owner as #chat-cancel — no separate cancellation path.
+    if (mobileCancel) {
+      mobileCancel.addEventListener("click", onCancel);
+    }
+
+    var mq = window.matchMedia(MOBILE_MQ);
+    _isMobileViewport = !!mq.matches;
+    applyMobileSurfacePresentation();
+
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", function () {
+        syncViewportMode();
+      });
+    } else if (typeof mq.addListener === "function") {
+      mq.addListener(function () {
+        syncViewportMode();
+      });
+    }
   }
 
   /**
@@ -179,11 +312,16 @@
     chatInput.disabled = running;
     chatSend.disabled = running;
     if (chatCancel) chatCancel.style.display = running ? "inline-flex" : "none";
+    updateMobileCancelVisibility();
     if (running) {
       chatInput.placeholder = "안내를 진행하는 중입니다...";
     } else {
       chatInput.placeholder = "무엇을 도와드릴까요?";
-      if (!chatInput.disabled) chatInput.focus();
+      // Desktop: preserve existing post-run focus restore.
+      // Mobile: never auto-focus composer (avoids soft keyboard).
+      if (!_isMobileViewport && chatInput && !chatInput.disabled) {
+        chatInput.focus();
+      }
     }
   }
 
@@ -262,6 +400,8 @@
     if (options.silent) return;
     setStatus("취소됨", "");
     setPlanState("cancelled");
+    // Show cancelled status in conversation; no auto composer focus.
+    setMobileSurface("conversation");
   }
 
   function localCustomFetch(input, init) {
@@ -341,6 +481,7 @@
         _activeRequestId = null;
         setRunning(false);
         _userCancelled = false;
+        // Result keeps guidance surface; resident may manually switch to 대화.
       } else if (status === "error" || status === "stopped") {
         removeThinkingMessage();
         _planFetchAdapter = null;
@@ -355,12 +496,15 @@
           } else {
             setPlanState("cancelled");
           }
+          setMobileSurface("conversation");
         } else {
           setStatus("오류", "chat-header__status--error");
           if (!_userCancelled) {
             addErrorMessage("안내 진행 중 오류가 발생했습니다.");
             setPlanState("error");
           }
+          // Keep conversation so resident can read the error copy.
+          setMobileSurface("conversation");
         }
         _userCancelled = false;
       }
@@ -405,9 +549,13 @@
         stopAgent({ silent: true });
         setPlanState("error");
         setStatus("오류", "chat-header__status--error");
+        setMobileSurface("conversation");
       }
     }, TIMEOUT_MS);
     setPlanState("executing");
+    // Local + valid-server: switch to guidance immediately before action loop.
+    // No focus — avoids soft keyboard on mobile guidance.
+    setMobileSurface("guidance");
     agent.execute(text);
   }
 
@@ -434,11 +582,13 @@
     if (!serverPlanEnabled()) {
       setPlanState("executing");
       setRunning(true);
+      // Guidance switch happens in startAgentExecute, just before DOM work.
       startAgentExecute(text);
       return;
     }
 
     // ── Explicit server plan path ──
+    // Stay on conversation during planning so residents can read status.
     setRunning(true);
     setStatus("준비 중...", "chat-header__status--active");
     setPlanState("planning");
@@ -468,6 +618,8 @@
           addErrorMessage(PLAN_STATES[mapped.state] || PLAN_STATES.error);
         }
         _planFetchAdapter = null;
+        // disabled / unsupported / error / cancelled: keep conversation surface.
+        setMobileSurface("conversation");
         return;
       }
 
@@ -486,6 +638,7 @@
       );
       // Never jump to final route — Page Agent executes clicks in the canvas.
       setPlanState("executing");
+      // Guidance switch is inside startAgentExecute, just before action loop.
       startAgentExecute(text);
     });
   }
@@ -505,6 +658,7 @@
   function init() {
     setPlanModeAttr(getPlanMode());
     setPlanState("idle");
+    initMobileSurfaces();
 
     chatSend.addEventListener("click", onSend);
     chatInput.addEventListener("keydown", function (e) {
@@ -530,10 +684,13 @@
   }
 
   // Read-only diagnostic API (no enable/provider setters, no secrets).
+  // setMobileSurface accepts only conversation|guidance and never focuses.
   window.PageAgentResidentRuntime = Object.freeze({
     getPlanMode: getPlanMode,
     getPlanState: getPlanState,
     getActiveRequestId: getActiveRequestId,
+    getMobileSurface: getMobileSurface,
+    setMobileSurface: setMobileSurface,
     cancel: function () {
       stopAgent();
     },

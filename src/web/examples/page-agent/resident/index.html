@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-page-agent-plan-mode="local" data-page-agent-plan-state="idle">
+<html lang="ko" data-page-agent-plan-mode="local" data-page-agent-plan-state="idle" data-page-agent-mobile-surface="conversation">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,15 +16,67 @@
 
   Plan state axis (resident runtime):
     idle | planning | executing | result | unsupported | disabled | error | cancelled
+
+  Mobile surface axis (independent of plan mode/state):
+    data-page-agent-mobile-surface="conversation" | "guidance"
 -->
 </head>
-<body data-page-agent-plan-mode="local" data-page-agent-plan-state="idle">
+<body data-page-agent-plan-mode="local" data-page-agent-plan-state="idle" data-page-agent-mobile-surface="conversation">
+<div
+  class="resident-mobile-switch"
+  id="page-agent-mobile-switch"
+  role="group"
+  aria-label="서비스 화면"
+  hidden
+>
+  <button
+    class="resident-mobile-switch__tab"
+    id="page-agent-tab-conversation"
+    type="button"
+    aria-pressed="true"
+    aria-controls="page-agent-conversation-surface"
+    data-page-agent-surface-tab="conversation"
+  >
+    대화
+  </button>
+
+  <button
+    class="resident-mobile-switch__tab"
+    id="page-agent-tab-guidance"
+    type="button"
+    aria-pressed="false"
+    aria-controls="page-agent-guidance-surface"
+    data-page-agent-surface-tab="guidance"
+  >
+    안내 화면
+  </button>
+
+  <button
+    class="resident-mobile-switch__cancel"
+    id="page-agent-mobile-cancel"
+    type="button"
+    hidden
+  >
+    진행 취소
+  </button>
+</div>
+
 <div class="resident-layout">
-  <div class="resident-canvas" role="main" aria-label="북구청 안내 화면">
+  <div
+    class="resident-canvas"
+    id="page-agent-guidance-surface"
+    role="main"
+    aria-label="북구청 안내 화면"
+  >
     <div id="demo-canvas"></div>
   </div>
 
-  <aside class="resident-chat" role="complementary" aria-label="Page Agent 챗봇">
+  <aside
+    class="resident-chat"
+    id="page-agent-conversation-surface"
+    role="complementary"
+    aria-label="Page Agent AI 민원 안내"
+  >
     <div class="chat-header">
       <div class="chat-header__title">
         <span>🤖</span> Page Agent형 AI 북구청
