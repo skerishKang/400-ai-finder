@@ -55,6 +55,9 @@
   // #1067: SR-only journey progress (not a conversation message / not #chat-thread).
   var journeyStatusEl = document.getElementById("chat-journey-status");
   var splitTimer = null;
+  // #1132: pending layout completion callback so reduced-motion can finish
+  // entry→split without waiting on a decorative TRANSITION_DURATION timer.
+  var _pendingSplitComplete = null;
   var lastSplitQuestion = null;
   var currentState = STATE_ENTRY;
   var currentJourneyState = JOURNEY_ENTRY;
@@ -65,6 +68,16 @@
   // #1067: suppress repeated polite status announcements for the same phase.
   var _lastJourneyAnnouncement = "";
   var _lastAnnouncedJourneyState = "";
+
+  // ── #1132: motion preference (canonical owner for shell + choreography) ──
+  // Materialized on body as data-reduced-motion. Runtime OS changes update
+  // the attribute and emit citizen:motion-preferencechange without resetting
+  // journey/layout/surface/chat/choreography state.
+  var reducedMotionQuery =
+    typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)")
+      : null;
+  var reducedMotion = Boolean(reducedMotionQuery && reducedMotionQuery.matches);
 
   // ── MVP mode (#925 / #927) ──────────────────────────────────────
   // Enabled only with ?mvp=1. In MVP mode the shell calls the model-backed
@@ -178,8 +191,102 @@
       journeyState: currentJourneyState,
       announcedState: _lastAnnouncedJourneyState,
       chatBusy: !!(chatShell && chatShell.getAttribute("aria-busy") === "true"),
-      canvasBusy: !!(canvas && canvas.getAttribute("aria-busy") === "true")
+      canvasBusy: !!(canvas && canvas.getAttribute("aria-busy") === "true"),
+      reducedMotion: reducedMotion
     };
+  }
+
+  /**
+   * #1132: materialize body data-reduced-motion and notify listeners.
+   * Does not change journey/layout/surface/chat/choreography state.
+   * Does not call .focus().
+   * @param {boolean} nextReduced
+   * @param {{ emit?: boolean }} [options]
+   */
+  function setReducedMotionPreference(nextReduced, options) {
+    options = options || {};
+    var next = !!nextReduced;
+    var prev = reducedMotion;
+    reducedMotion = next;
+    if (body) {
+      body.setAttribute("data-reduced-motion", next ? "true" : "false");
+    }
+    // Only on normal → reduced: collapse decorative waits mid-flight.
+    // Does not cancel journey, reset chat, or change surface/route.
+    if (next && !prev) {
+      if (currentState === STATE_TRANSITIONING) {
+        finishPendingSplitTransition();
+      }
+      if (_mayorEntryInFlight) {
+        finishMayorEntryWithoutMotion();
+      }
+    }
+    if (options.emit === false) {
+      return;
+    }
+    if (prev === next) {
+      return;
+    }
+    try {
+      if (typeof window !== "undefined" && typeof window.CustomEvent === "function") {
+        window.dispatchEvent(new CustomEvent("citizen:motion-preferencechange", {
+          detail: { reduced: next }
+        }));
+      }
+    } catch (_) {
+      /* CustomEvent unavailable */
+    }
+  }
+
+  function finishPendingSplitTransition() {
+    if (splitTimer !== null) {
+      window.clearTimeout(splitTimer);
+      splitTimer = null;
+    }
+    if (typeof _pendingSplitComplete === "function") {
+      var complete = _pendingSplitComplete;
+      _pendingSplitComplete = null;
+      complete();
+      return;
+    }
+    if (currentState === STATE_TRANSITIONING) {
+      completeSplit();
+    }
+  }
+
+  /**
+   * Schedule entry→split completion. Under reduced motion, run immediately
+   * (no TRANSITION_DURATION wait). Stores a pending callback for runtime
+   * preference changes mid-transition.
+   * @param {function(): void} completeFn
+   */
+  function scheduleSplitCompletion(completeFn) {
+    if (splitTimer !== null) {
+      window.clearTimeout(splitTimer);
+      splitTimer = null;
+    }
+    _pendingSplitComplete = completeFn;
+    if (prefersReducedMotion()) {
+      _pendingSplitComplete = null;
+      completeFn();
+      return;
+    }
+    splitTimer = window.setTimeout(function () {
+      splitTimer = null;
+      var fn = _pendingSplitComplete;
+      _pendingSplitComplete = null;
+      if (typeof fn === "function") {
+        fn();
+      }
+    }, TRANSITION_DURATION_MS);
+  }
+
+  /**
+   * #1132: ack/confirm bubble delay after split paint.
+   * Reduced motion keeps a 0ms task boundary (async order preserved via setTimeout 0).
+   */
+  function splitAckDelayMs() {
+    return prefersReducedMotion() ? 0 : 220;
   }
 
   /**
@@ -476,11 +583,13 @@
     return Boolean(SUPPORTED_QUESTION_ACTIONS[normalizeQuestion(value)]);
   }
 
+  /**
+   * #1132: read-only motion preference. Canonical owner for this shell;
+   * choreography prefers this over its own matchMedia fallback.
+   * Does not call .focus() or mutate journey/layout state.
+   */
   function prefersReducedMotion() {
-    return Boolean(
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    );
+    return reducedMotion;
   }
 
   function isLegacyJourneyLoad() {
@@ -1287,11 +1396,13 @@
 
   function completeSplit() {
     splitTimer = null;
+    _pendingSplitComplete = null;
     setState(STATE_SPLIT);
     clearChatMotionStyles();
     fitOfficialCanvas();
-    // Delay chat message slightly so the canvas fade-in is visible first
-    setTimeout(function () {
+    // Delay chat message slightly so the canvas fade-in is visible first.
+    // #1132: reduced motion uses 0ms task boundary (still async; no 220ms wait).
+    window.setTimeout(function () {
       appendChatMessage(
         "ai",
         "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
@@ -1302,7 +1413,7 @@
         showConfirmRun(lastSplitQuestion);
       }
       lastSplitQuestion = null;
-    }, 220);
+    }, splitAckDelayMs());
   }
 
   function beginSupportedTransition(question) {
@@ -1313,13 +1424,7 @@
     }
 
     startCinematicSplit();
-
-    if (prefersReducedMotion()) {
-      completeSplit();
-      return;
-    }
-
-    splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
+    scheduleSplitCompletion(completeSplit);
   }
 
   // ── #1114: central mayor-proposal entry ─────────────────────────
@@ -1336,6 +1441,8 @@
   var _mayorEntryInFlight = false;
   var _mayorEntryTimer = null;
   var _mayorEntryAuxTimers = [];
+  // #1132: options for mid-flight reduced-motion flush (not a public API).
+  var _mayorEntryPendingOptions = null;
 
   function isMayorQuestion(value) {
     return normalizeQuestion(value) === MAYOR_CANONICAL_QUESTION;
@@ -1355,6 +1462,7 @@
     }
     _mayorEntryAuxTimers = [];
     _mayorEntryInFlight = false;
+    _mayorEntryPendingOptions = null;
     var control = document.getElementById("mayor-open-office-control");
     if (control) {
       control.classList.remove("executor-highlight");
@@ -1391,23 +1499,34 @@
     if (useActionConfirm) {
       lastSplitQuestion = MAYOR_CANONICAL_QUESTION;
       startCinematicSplit();
-      if (prefersReducedMotion()) {
+      scheduleSplitCompletion(function () {
         completeMvpSplit(MAYOR_CANONICAL_ACTION);
-        return;
-      }
-      splitTimer = window.setTimeout(function () {
-        splitTimer = null;
-        completeMvpSplit(MAYOR_CANONICAL_ACTION);
-      }, TRANSITION_DURATION_MS);
+      });
       return;
     }
     lastSplitQuestion = MAYOR_CANONICAL_QUESTION;
     startCinematicSplit();
-    if (prefersReducedMotion()) {
-      completeSplit();
+    scheduleSplitCompletion(completeSplit);
+  }
+
+  /**
+   * #1132: when motion is reduced mid mayor cursor→split, finish decorative
+   * delays without canceling the journey or moving focus.
+   */
+  function finishMayorEntryWithoutMotion() {
+    if (!_mayorEntryInFlight) {
       return;
     }
-    splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
+    var pending = _mayorEntryPendingOptions || {};
+    if (window.CitizenActionDemoCanvas &&
+        typeof window.CitizenActionDemoCanvas.hideCursor === "function") {
+      window.CitizenActionDemoCanvas.hideCursor();
+    }
+    // Clear decorative timers/highlights, then continue the same confirm path.
+    _clearMayorEntryTimers();
+    _beginMayorSplitContinuation({
+      useActionConfirm: !!pending.useActionConfirm
+    });
   }
 
   /**
@@ -1470,10 +1589,31 @@
     }
 
     _mayorEntryInFlight = true;
+    _mayorEntryPendingOptions = { useActionConfirm: useActionConfirm };
     var reduced = prefersReducedMotion();
-    var moveDelay = reduced ? 0 : 100;
-    var clickDelay = reduced ? 40 : 920;
-    var afterClickDelay = reduced ? 80 : 560;
+
+    // #1132: reduced motion keeps static highlight only — no cursor/ripple wait.
+    if (reduced) {
+      control.classList.add("executor-highlight");
+      control.classList.add("is-agent-target");
+      if (typeof canvasApi.hideCursor === "function") {
+        canvasApi.hideCursor();
+      }
+      window.setTimeout(function () {
+        if (!_mayorEntryInFlight) return;
+        control.classList.remove("executor-highlight");
+        control.classList.remove("is-agent-target");
+        _mayorEntryInFlight = false;
+        _mayorEntryPendingOptions = null;
+        _mayorEntryAuxTimers = [];
+        _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
+      }, 0);
+      return;
+    }
+
+    var moveDelay = 100;
+    var clickDelay = 920;
+    var afterClickDelay = 560;
     var splitAt = clickDelay + afterClickDelay;
 
     if (typeof canvasApi.hideCursor === "function") {
@@ -1499,6 +1639,7 @@
       control.classList.remove("executor-highlight");
       control.classList.remove("is-agent-target");
       _mayorEntryInFlight = false;
+      _mayorEntryPendingOptions = null;
       _mayorEntryAuxTimers = [];
       _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
     }, splitAt);
@@ -1557,11 +1698,7 @@
         }
         lastSplitQuestion = question;
         startCinematicSplit();
-        if (prefersReducedMotion()) {
-          completeSplit();
-        } else {
-          splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
-        }
+        scheduleSplitCompletion(completeSplit);
       } else {
         appendChatMessage("ai", SPLIT_FOLLOW_UP_MESSAGE);
         setJourneyState(JOURNEY_ANSWER);
@@ -1694,23 +1831,20 @@
   function beginMvpSplitThenChoreography(question, action) {
     lastSplitQuestion = question;
     startCinematicSplit();
-    if (prefersReducedMotion()) {
+    scheduleSplitCompletion(function () {
       completeMvpSplit(action);
-      return;
-    }
-    splitTimer = window.setTimeout(function () {
-      splitTimer = null;
-      completeMvpSplit(action);
-    }, TRANSITION_DURATION_MS);
+    });
   }
 
   function completeMvpSplit(action) {
     splitTimer = null;
+    _pendingSplitComplete = null;
     setState(STATE_SPLIT);
     clearChatMotionStyles();
     fitOfficialCanvas();
-    // Delay chat message slightly so the canvas fade-in is visible first
-    setTimeout(function () {
+    // Delay chat message slightly so the canvas fade-in is visible first.
+    // #1132: reduced motion uses 0ms task boundary (confirm-run still after ack).
+    window.setTimeout(function () {
       appendChatMessage(
         "ai",
         "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
@@ -1727,7 +1861,7 @@
         showConfirmRunForAction(action);
       }
       focusComposerIfAllowed();
-    }, 220);
+    }, splitAckDelayMs());
   }
 
   function resetToEntry() {
@@ -1756,6 +1890,7 @@
       window.clearTimeout(splitTimer);
       splitTimer = null;
     }
+    _pendingSplitComplete = null;
     clearChatMotionStyles();
 
     // Clear canvas content so split-state HTML isn't left behind
@@ -1853,6 +1988,22 @@
     window.addEventListener("citizen:choreography-statechange", _onChoreographyStateChange);
   }
 
+  // #1132: materialize motion preference before first paint consumers read it.
+  setReducedMotionPreference(reducedMotion, { emit: false });
+  if (reducedMotionQuery) {
+    var _onReducedMotionMediaChange = function (event) {
+      var matches = event && typeof event.matches === "boolean"
+        ? event.matches
+        : !!(reducedMotionQuery && reducedMotionQuery.matches);
+      setReducedMotionPreference(matches);
+    };
+    if (typeof reducedMotionQuery.addEventListener === "function") {
+      reducedMotionQuery.addEventListener("change", _onReducedMotionMediaChange);
+    } else if (typeof reducedMotionQuery.addListener === "function") {
+      reducedMotionQuery.addListener(_onReducedMotionMediaChange);
+    }
+  }
+
   if (isLegacyJourneyLoad()) {
     setState(STATE_SPLIT);
     setJourneyState(JOURNEY_ENTRY);
@@ -1866,6 +2017,8 @@
     getState: function () { return currentState; },
     getJourneyState: getJourneyState,
     getJourneyAccessibilityState: getJourneyAccessibilityState,
+    // #1132: read-only motion preference (canonical owner).
+    prefersReducedMotion: prefersReducedMotion,
     getQuestRuntimeResult: function () { return _questRuntimeResult; },
     isSupportedQuestion: isSupportedQuestion,
     renderQuestProgressCard: renderQuestProgressCard,

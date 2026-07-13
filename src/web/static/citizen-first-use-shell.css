@@ -874,19 +874,116 @@ body.first-use-shell--no-motion .demo-canvas {
   }
 }
 
+/* #1132: reduced-motion contract — media query covers first paint before JS.
+   body[data-reduced-motion] covers runtime OS preference changes (see shell). */
 @media (prefers-reduced-motion: reduce) {
   .first-use-layout,
   .first-use-layout .demo-canvas,
-  .first-use-layout .chat-shell {
+  .first-use-layout .chat-shell,
+  .entry-stage,
+  .chat-decision__button,
+  .mobile-surface-tab,
+  .chat-shell__reset,
+  .chat-chip {
     transition: none !important;
   }
 
   .entry-stage,
   .entry-stage *,
+  .entry-stage__aurora,
+  .entry-stage__mayor,
+  .entry-stage__signal i,
+  .entry-stage__eyebrow i,
   .first-use-layout::after,
-  .demo-canvas {
+  .demo-canvas,
+  .chat-msg,
+  .chat-msg--confirm-run .chat-bubble--ai,
+  .chat-msg--temp .chat-bubble--ai::after,
+  .choreo-cursor,
+  .choreo-cursor *,
+  .choreo-cursor[data-agent-status="moving"] .choreo-cursor__halo,
+  .bg-dept-search__btn.executor-search-busy::after,
+  .executor-highlight,
+  .executor-highlight[data-action-target="complaint-illegal-parking-report"],
+  .mayor-open-office-control.executor-highlight {
     animation: none !important;
   }
+
+  .chat-msg,
+  .chat-msg--confirm-run .chat-bubble--ai {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .chat-msg--temp .chat-bubble--ai::after {
+    content: none !important;
+  }
+
+  .chat-decision__button:hover,
+  .chat-decision__button:active {
+    transform: none !important;
+  }
+
+  .choreo-cursor__arrow {
+    transition: none !important;
+  }
+
+  .executor-typing {
+    transition: none !important;
+  }
+}
+
+/* #1132: runtime body attribute mirror (shell materializes on load + change). */
+body[data-reduced-motion="true"] .first-use-layout,
+body[data-reduced-motion="true"] .first-use-layout .demo-canvas,
+body[data-reduced-motion="true"] .first-use-layout .chat-shell,
+body[data-reduced-motion="true"] .entry-stage,
+body[data-reduced-motion="true"] .chat-decision__button,
+body[data-reduced-motion="true"] .mobile-surface-tab,
+body[data-reduced-motion="true"] .chat-shell__reset,
+body[data-reduced-motion="true"] .chat-chip,
+body[data-reduced-motion="true"] .choreo-cursor__arrow {
+  transition: none !important;
+}
+
+body[data-reduced-motion="true"] .entry-stage,
+body[data-reduced-motion="true"] .entry-stage *,
+body[data-reduced-motion="true"] .entry-stage__aurora,
+body[data-reduced-motion="true"] .entry-stage__mayor,
+body[data-reduced-motion="true"] .entry-stage__signal i,
+body[data-reduced-motion="true"] .entry-stage__eyebrow i,
+body[data-reduced-motion="true"] .first-use-layout::after,
+body[data-reduced-motion="true"] .demo-canvas,
+body[data-reduced-motion="true"] .chat-msg,
+body[data-reduced-motion="true"] .chat-msg--confirm-run .chat-bubble--ai,
+body[data-reduced-motion="true"] .chat-msg--temp .chat-bubble--ai::after,
+body[data-reduced-motion="true"] .choreo-cursor,
+body[data-reduced-motion="true"] .choreo-cursor *,
+body[data-reduced-motion="true"] .choreo-cursor[data-agent-status="moving"] .choreo-cursor__halo,
+body[data-reduced-motion="true"] .bg-dept-search__btn.executor-search-busy::after,
+body[data-reduced-motion="true"] .executor-highlight,
+body[data-reduced-motion="true"] .executor-highlight[data-action-target="complaint-illegal-parking-report"],
+body[data-reduced-motion="true"] .mayor-open-office-control.executor-highlight {
+  animation: none !important;
+}
+
+body[data-reduced-motion="true"] .chat-msg,
+body[data-reduced-motion="true"] .chat-msg--confirm-run .chat-bubble--ai {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+body[data-reduced-motion="true"] .chat-msg--temp .chat-bubble--ai::after {
+  content: none !important;
+}
+
+body[data-reduced-motion="true"] .chat-decision__button:hover,
+body[data-reduced-motion="true"] .chat-decision__button:active {
+  transform: none !important;
+}
+
+body[data-reduced-motion="true"] .executor-typing {
+  transition: none !important;
 }
 
 /* Decision controls used by both independent AI writing journeys. */
@@ -1230,11 +1327,7 @@ body.first-use-shell--no-motion .demo-canvas {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .mobile-surface-tab {
-    transition: none !important;
-  }
-}
+/* mobile-surface-tab reduced-motion covered in #1132 global block above */
 
 .choreo-cursor__arrow {
   position: relative;
@@ -1323,13 +1416,7 @@ body.first-use-shell--no-motion .demo-canvas {
   to { background-position: -120% 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .choreo-cursor *,
-  .bg-dept-search__btn.executor-search-busy::after {
-    animation: none !important;
-    transition: none !important;
-  }
-}
+/* choreo-cursor / search-busy reduced-motion covered in #1132 global block above */
 
 /* #1114 — semantic "열린구청장실 바로가기" control.
    Sibling of .entry-stage (aria-hidden) so it stays in the a11y tree.

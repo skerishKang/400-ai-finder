@@ -32,10 +32,18 @@
   var _state = STATE_IDLE;
   var _timer = null;
   var _auxTimers = [];
+  // #1132: typing timers are separate from substantive action/step timers so
+  // runtime normal→reduced can flush in-flight character typing without
+  // cancelling route/click/submit progression.
+  var _typingTimers = [];
+  var _activeTypingOperations = [];
+  var _tempIndicatorTimers = [];
   var _currentStep = -1;
   var _currentJourneyId = null;
   var _steps = [];
   var _highlightedEls = [];
+  // #1132: cached reduced-motion flag; shell is canonical owner when present.
+  var _reducedMotion = false;
 
   function _apartmentDeptSnapshot() {
     var snapshots = window.__BUKGU_OFFICIAL_SNAPSHOTS__;
@@ -377,11 +385,21 @@
   function _showTempIndicator(text, delayMs) {
     var el = _appendChatMessage("ai", text, true);
     if (el && delayMs > 0) {
-      window.setTimeout(function () {
+      var timerId = window.setTimeout(function () {
+        var idx = _tempIndicatorTimers.indexOf(timerId);
+        if (idx !== -1) _tempIndicatorTimers.splice(idx, 1);
         if (el.parentNode) el.parentNode.removeChild(el);
       }, delayMs);
+      _tempIndicatorTimers.push(timerId);
     }
     return el;
+  }
+
+  function _clearTempIndicatorTimers() {
+    for (var i = 0; i < _tempIndicatorTimers.length; i++) {
+      window.clearTimeout(_tempIndicatorTimers[i]);
+    }
+    _tempIndicatorTimers = [];
   }
 
   function _clearHighlights() {
@@ -422,11 +440,124 @@
     _auxTimers = [];
   }
 
-  function _prefersReducedMotion() {
+  function _scheduleTyping(callback, delayMs) {
+    var timerId = window.setTimeout(function () {
+      var timerIndex = _typingTimers.indexOf(timerId);
+      if (timerIndex !== -1) _typingTimers.splice(timerIndex, 1);
+      if (_state === STATE_RUNNING) callback();
+    }, delayMs);
+    _typingTimers.push(timerId);
+    return timerId;
+  }
+
+  function _clearTypingTimers() {
+    for (var i = 0; i < _typingTimers.length; i++) {
+      window.clearTimeout(_typingTimers[i]);
+    }
+    _typingTimers = [];
+  }
+
+  /**
+   * #1132: complete in-flight character typing immediately (decorative only).
+   * Does not clear substantive route/click/submit timers.
+   */
+  function _flushTypingOperations() {
+    _clearTypingTimers();
+    for (var i = 0; i < _activeTypingOperations.length; i++) {
+      var op = _activeTypingOperations[i];
+      if (!op || !op.input) continue;
+      op.cancelled = true;
+      op.input.value = op.finalValue;
+      op.input.removeAttribute("data-agent-typing");
+      // Keep executor-typing as a static progress cue until next highlight clear.
+      _dispatchInputEvent(op.input);
+    }
+    _activeTypingOperations = [];
+  }
+
+  function _readReducedMotionPreference() {
+    if (
+      window.CitizenFirstUseShell &&
+      typeof window.CitizenFirstUseShell.prefersReducedMotion === "function"
+    ) {
+      return !!window.CitizenFirstUseShell.prefersReducedMotion();
+    }
     return Boolean(
       window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     );
+  }
+
+  /**
+   * #1132: prefer shell owner, then cached event value, then matchMedia.
+   * Does not call .focus().
+   */
+  function _prefersReducedMotion() {
+    if (
+      window.CitizenFirstUseShell &&
+      typeof window.CitizenFirstUseShell.prefersReducedMotion === "function"
+    ) {
+      return !!window.CitizenFirstUseShell.prefersReducedMotion();
+    }
+    return _reducedMotion;
+  }
+
+  /**
+   * #1132 timing contract:
+   * - decorative delays → 0
+   * - step progression → 0–100ms task boundary (order preserved)
+   * - confirmation never auto-approved
+   * - normal motion keeps existing floors
+   */
+  function _stepProgressionDelayMs(requestedMs, visualActionDelay) {
+    if (_prefersReducedMotion()) {
+      var reducedBoundary = Math.max(0, visualActionDelay || 0);
+      return Math.min(100, reducedBoundary);
+    }
+    return Math.max(requestedMs || 0, (visualActionDelay || 0) + 120, 320);
+  }
+
+  function _decorativeDelayMs(normalMs) {
+    return _prefersReducedMotion() ? 0 : normalMs;
+  }
+
+  function _scrollBehavior() {
+    return _prefersReducedMotion() ? "auto" : "smooth";
+  }
+
+  function _applyStaticTargetHighlight(selector) {
+    if (!selector) return null;
+    var demoEl = _getCanvasEl();
+    var el = null;
+    try {
+      el = demoEl
+        ? demoEl.querySelector(selector)
+        : document.querySelector(selector);
+    } catch (_) {
+      el = null;
+    }
+    if (el) {
+      el.classList.add(HIGHLIGHT_CLASS);
+      _highlightedEls.push(el);
+      try {
+        el.scrollIntoView({ behavior: _scrollBehavior(), block: "center" });
+      } catch (_) {
+        /* noop */
+      }
+    }
+    return el;
+  }
+
+  function _onMotionPreferenceChange(event) {
+    var next =
+      event && event.detail && typeof event.detail.reduced === "boolean"
+        ? event.detail.reduced
+        : _readReducedMotionPreference();
+    _reducedMotion = !!next;
+    // Flush decorative typing only — never cancel journey or substantive timers.
+    if (_reducedMotion) {
+      _flushTypingOperations();
+    }
   }
 
   function _dispatchInputEvent(input) {
@@ -437,16 +568,19 @@
   function _typeIntoSearch(input, value, startDelayMs, requestedCharDelayMs) {
     if (!input) return 0;
     var text = String(value || "");
-    var charDelayMs = _prefersReducedMotion()
+    var reduced = _prefersReducedMotion();
+    var charDelayMs = reduced
       ? 0
       : (typeof requestedCharDelayMs === "number" ? Math.max(8, requestedCharDelayMs) : 115);
-    var startDelay = _prefersReducedMotion() ? 0 : startDelayMs;
+    var startDelay = reduced ? 0 : startDelayMs;
 
     input.value = "";
     input.classList.add(TYPING_CLASS);
+    input.classList.add(HIGHLIGHT_CLASS);
     input.setAttribute("data-agent-typing", "true");
     _highlightedEls.push(input);
 
+    // Reduced motion: full string immediately; keep static typing highlight.
     if (!charDelayMs) {
       input.value = text;
       input.removeAttribute("data-agent-typing");
@@ -454,13 +588,19 @@
       return 0;
     }
 
+    var operation = { input: input, finalValue: text, cancelled: false };
+    _activeTypingOperations.push(operation);
+
     for (var i = 0; i < text.length; i++) {
       (function (characterIndex) {
-        _scheduleAux(function () {
+        _scheduleTyping(function () {
+          if (operation.cancelled) return;
           input.value = text.slice(0, characterIndex + 1);
           _dispatchInputEvent(input);
           if (characterIndex === text.length - 1) {
             input.removeAttribute("data-agent-typing");
+            var opIndex = _activeTypingOperations.indexOf(operation);
+            if (opIndex !== -1) _activeTypingOperations.splice(opIndex, 1);
           }
         }, startDelay + (characterIndex * charDelayMs));
       })(i);
@@ -561,6 +701,13 @@
   function _executeStep(index) {
     if (_state !== STATE_RUNNING) return;
     if (index >= _steps.length) {
+      // #1132: clear static progress cues so result does not look still-running.
+      _clearHighlights();
+      _removeTempMessages();
+      if (window.CitizenActionDemoCanvas &&
+          typeof window.CitizenActionDemoCanvas.hideCursor === "function") {
+        window.CitizenActionDemoCanvas.hideCursor();
+      }
       _setState(STATE_DONE);
       return;
     }
@@ -575,7 +722,19 @@
 
     // Execute DOM action FIRST so left-pane visuals render before
     // the chat message appears — 박사님 choreography ordering requirement (#965).
-    if (step.routeId || step.routeIdAfterClick || step.targetId || step.journeyState || step.focusSearch || step.typeQuery || step.typeContent || step.submitSearch) {
+    // Always clear prior static progress cues so only the current target shows.
+    if (
+      step.routeId ||
+      step.routeIdAfterClick ||
+      step.targetId ||
+      step.journeyState ||
+      step.focusSearch ||
+      step.typeQuery ||
+      step.typeContent ||
+      step.submitSearch ||
+      step.cursorTarget ||
+      step.clickTarget
+    ) {
       _clearHighlights();
     }
 
@@ -590,7 +749,9 @@
         var el = canvas.getTargetElement(step.targetId);
         if (el) {
           el.classList.add(HIGHLIGHT_CLASS);
-          try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) { /* noop */ }
+          try {
+            el.scrollIntoView({ behavior: _scrollBehavior(), block: "center" });
+          } catch (_) { /* noop */ }
           _highlightedEls.push(el);
         }
       }
@@ -627,60 +788,77 @@
 
       // Cursor, click, typing, and state changes play after the narration so the
       // resident can watch the agent act instead of seeing a finished state pop in.
+      // #1132: reduced motion keeps static highlight + immediate commits (no
+      // cursor interpolation / click ripple / long decorative waits).
       var visualActionDelay = 0;
-      var cursorDelay = _prefersReducedMotion() ? 0 : 120;
-      var clickDelay = _prefersReducedMotion() ? 0 : 180;
-      var actionCommitDelay = _prefersReducedMotion() ? 0 : 1080;
+      var reduced = _prefersReducedMotion();
+      var cursorDelay = _decorativeDelayMs(120);
+      var clickDelay = _decorativeDelayMs(180);
+      var actionCommitDelay = reduced ? 0 : 1080;
 
       if (step.cursorTarget) {
         var cCanvas = window.CitizenActionDemoCanvas;
-        if (cCanvas) {
-          if (cCanvas.hideCursor) cCanvas.hideCursor();
-          if (cCanvas.showCursorAt) {
-            _scheduleAux(function () {
-              cCanvas.showCursorAt(step.cursorTarget);
-            }, cursorDelay);
-            visualActionDelay = Math.max(visualActionDelay, cursorDelay + 780);
-          }
+        if (cCanvas && cCanvas.hideCursor) cCanvas.hideCursor();
+        if (reduced) {
+          // Static progress cue — no cursor animation.
+          _applyStaticTargetHighlight(step.cursorTarget);
+        } else if (cCanvas && cCanvas.showCursorAt) {
+          _scheduleAux(function () {
+            cCanvas.showCursorAt(step.cursorTarget);
+          }, cursorDelay);
+          visualActionDelay = Math.max(visualActionDelay, cursorDelay + 780);
         }
       }
       if (step.clickTarget) {
-        var kCanvas = window.CitizenActionDemoCanvas;
-        if (kCanvas && kCanvas.clickAnimation) {
-          _scheduleAux(function () {
-            kCanvas.clickAnimation(step.clickTarget);
-          }, clickDelay);
-          visualActionDelay = Math.max(visualActionDelay, actionCommitDelay);
+        if (reduced) {
+          // Static highlight only; substantive route/journey commit below.
+          _applyStaticTargetHighlight(step.clickTarget);
+        } else {
+          var kCanvas = window.CitizenActionDemoCanvas;
+          if (kCanvas && kCanvas.clickAnimation) {
+            _scheduleAux(function () {
+              kCanvas.clickAnimation(step.clickTarget);
+            }, clickDelay);
+            visualActionDelay = Math.max(visualActionDelay, actionCommitDelay);
+          }
         }
       }
 
       if (step.routeIdAfterClick) {
-        _scheduleAux(function () {
-          var routeCanvas = window.CitizenActionDemoCanvas;
-          if (routeCanvas && routeCanvas.navigateToRoute) {
-            routeCanvas.navigateToRoute(step.routeIdAfterClick);
+        if (reduced) {
+          var routeCanvasNow = window.CitizenActionDemoCanvas;
+          if (routeCanvasNow && routeCanvasNow.navigateToRoute) {
+            routeCanvasNow.navigateToRoute(step.routeIdAfterClick);
           }
-        }, actionCommitDelay);
-        visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 420);
+        } else {
+          _scheduleAux(function () {
+            var routeCanvas = window.CitizenActionDemoCanvas;
+            if (routeCanvas && routeCanvas.navigateToRoute) {
+              routeCanvas.navigateToRoute(step.routeIdAfterClick);
+            }
+          }, actionCommitDelay);
+          visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 420);
+        }
       }
 
       if (step.typeQuery) {
         var typeDemoEl = _getCanvasEl();
         var typeInput = typeDemoEl && typeDemoEl.querySelector(step.querySelector || ".bg-dept-search__input");
-        var typingStartDelay = step.cursorTarget ? 850 : 160;
+        var typingStartDelay = reduced ? 0 : (step.cursorTarget ? 850 : 160);
         visualActionDelay = Math.max(
           visualActionDelay,
           _typeIntoSearch(typeInput, step.typeQuery, typingStartDelay)
         );
         // Desktop-only: focus the search field so the typing caret is
         // visible. On mobile the automated step must NOT pull focus.
+        // #1132 helpers never focus under reduced-motion change paths either.
         _focusEditableOnDesktopOnly(typeInput);
       }
 
       if (step.typeContent) {
         var contentDemoEl = _getCanvasEl();
         var contentInput = contentDemoEl && contentDemoEl.querySelector(step.contentSelector || "#board-write-content");
-        var contentTypingStartDelay = step.cursorTarget ? 850 : 160;
+        var contentTypingStartDelay = reduced ? 0 : (step.cursorTarget ? 850 : 160);
         // Desktop-only: focus the body field so the typing caret is
         // visible. On mobile the automated step must NOT pull focus.
         _focusEditableOnDesktopOnly(contentInput);
@@ -691,10 +869,14 @@
       }
 
       if (step.journeyStateAfterClick) {
-        _scheduleAux(function () {
+        if (reduced) {
           _applyJourneyState(step.journeyStateAfterClick);
-        }, actionCommitDelay);
-        visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 320);
+        } else {
+          _scheduleAux(function () {
+            _applyJourneyState(step.journeyStateAfterClick);
+          }, actionCommitDelay);
+          visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 320);
+        }
       }
 
       if (step.submitSearch) {
@@ -702,11 +884,17 @@
         var submitButton = submitDemoEl && submitDemoEl.querySelector(".bg-dept-search__btn");
         if (submitButton) {
           submitButton.classList.add(SEARCH_BUSY_CLASS);
+          submitButton.classList.add(HIGHLIGHT_CLASS);
           _highlightedEls.push(submitButton);
-          _scheduleAux(function () {
+          if (reduced) {
+            // Substantive click immediately; no sweep animation wait.
             submitButton.click();
-          }, actionCommitDelay);
-          visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 420);
+          } else {
+            _scheduleAux(function () {
+              submitButton.click();
+            }, actionCommitDelay);
+            visualActionDelay = Math.max(visualActionDelay, actionCommitDelay + 420);
+          }
         }
       }
       stepVisualActionDelay = visualActionDelay;
@@ -717,32 +905,47 @@
     // regardless of which branch above displayed the message.
     function _advanceAfterStep() {
       if (step.requiresChoice) {
-        var effectiveDelayChoice = Math.max(step.delayMs || 0, stepVisualActionDelay + 120, 320);
+        // Confirm/choice boundary: never auto-approve; only shorten pre-prompt wait.
+        var effectiveDelayChoice = _stepProgressionDelayMs(
+          step.delayMs || 0,
+          stepVisualActionDelay
+        );
         _timer = window.setTimeout(function () {
           _timer = null;
           _setState("waiting_choice");
           _renderChoicePrompt(index);
         }, effectiveDelayChoice);
       } else if (step.requiresConfirmation) {
-        var effectiveDelayConfirm = Math.max(step.delayMs || 0, stepVisualActionDelay + 120, 320);
+        var effectiveDelayConfirm = _stepProgressionDelayMs(
+          step.delayMs || 0,
+          stepVisualActionDelay
+        );
         _timer = window.setTimeout(function () {
           _timer = null;
           _setState("waiting_confirmation");
           _renderConfirmationPrompt(index);
         }, effectiveDelayConfirm);
       } else if (typeof step.delayMs === "number" && step.delayMs > 0) {
-        var effectiveDelay = Math.max(step.delayMs, stepVisualActionDelay + 120, 320);
+        var effectiveDelay = _stepProgressionDelayMs(step.delayMs, stepVisualActionDelay);
         _timer = window.setTimeout(function () {
           _timer = null;
           _executeStep(index + 1);
         }, effectiveDelay);
       } else {
         // No delay → terminal step (done message)
+        _clearHighlights();
+        _removeTempMessages();
+        if (window.CitizenActionDemoCanvas &&
+            typeof window.CitizenActionDemoCanvas.hideCursor === "function") {
+          window.CitizenActionDemoCanvas.hideCursor();
+        }
         _setState(STATE_DONE);
       }
     }
 
-    if (step.thinkingText) {
+    // #1132: reduced motion skips temporary thinking/searching indicators
+    // (no looping dots, no duplicate live-region chatter). Permanent messages stay.
+    if (step.thinkingText && !_prefersReducedMotion()) {
       // Show thinking/searching indicator, then replace with permanent message
       var thinkMs = (typeof step.thinkingMs === "number") ? step.thinkingMs : 800;
       var tempEl;
@@ -801,6 +1004,16 @@
     if (_state === STATE_IDLE) return;
     _clearTimer();
     _clearAuxTimers();
+    _clearTypingTimers();
+    _clearTempIndicatorTimers();
+    // Mark typing ops cancelled so late char timers (if any) are no-ops.
+    for (var t = 0; t < _activeTypingOperations.length; t++) {
+      if (_activeTypingOperations[t]) {
+        _activeTypingOperations[t].cancelled = true;
+      }
+    }
+    _activeTypingOperations = [];
+    _removeTempMessages();
     _clearHighlights();
     // Emit cancelled while journeyId/step still known, then clear.
     _setState(STATE_CANCELLED);
@@ -878,14 +1091,22 @@
       submitButton.disabled = false;
       submitButton.setAttribute("aria-disabled", "false");
       submitButton.textContent = "제출하는 중...";
+      if (_prefersReducedMotion()) {
+        submitButton.classList.add(HIGHLIGHT_CLASS);
+        _highlightedEls.push(submitButton);
+      }
     }
-    if (cCanvas && cCanvas.clickAnimation) cCanvas.clickAnimation(submitSelector);
+    // #1132: skip click ripple under reduced motion; keep substantive route commit.
+    if (!_prefersReducedMotion() && cCanvas && cCanvas.clickAnimation) {
+      cCanvas.clickAnimation(submitSelector);
+    }
 
     if (isMayorJourney) {
+      var mayorSubmitDelay = _prefersReducedMotion() ? 0 : 620;
       window.setTimeout(function () {
         if (cCanvas && cCanvas.navigateToRoute) cCanvas.navigateToRoute("mayor-complaint-receipt");
         _executeStep(index + 1);
-      }, 620);
+      }, mayorSubmitDelay);
       return;
     }
 
@@ -921,6 +1142,12 @@
   /** @returns {Array} copy of the action step descriptors */
   function getSteps() {
     return _steps ? _steps.slice() : [];
+  }
+
+  // #1132: cache motion preference; shell is canonical owner when available.
+  _reducedMotion = _readReducedMotionPreference();
+  if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+    window.addEventListener("citizen:motion-preferencechange", _onMotionPreferenceChange);
   }
 
   window.CitizenFirstChoreography = Object.freeze({
