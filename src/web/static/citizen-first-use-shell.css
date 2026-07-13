@@ -420,6 +420,25 @@ body[data-first-use-state="split"] .chat-shell {
   border-right: 0;
   border-bottom: 0;
   border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* #1142: keep last AI message + decision actions above sticky chips/composer. */
+body[data-first-use-state="transitioning"] .chat-thread,
+body[data-first-use-state="split"] .chat-thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scroll-padding-bottom: 28px;
+  padding-bottom: 20px;
+}
+
+body[data-first-use-state="transitioning"] .chat-chips,
+body[data-first-use-state="split"] .chat-chips,
+body[data-first-use-state="transitioning"] .chat-composer,
+body[data-first-use-state="split"] .chat-composer {
+  flex-shrink: 0;
 }
 
 body[data-first-use-state="transitioning"] .entry-stage,

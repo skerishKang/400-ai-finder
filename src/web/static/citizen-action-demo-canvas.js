@@ -2580,7 +2580,7 @@
   function _renderMayorOffice() {
     return '<div class="bg-page bg-page--full bg-page--mayor" data-product-proposal="true">' + _renderMayorHeader() +
       '<main class="bg-mayor-main"><section class="bg-mayor-hero"><div class="bg-mayor-hero__copy"><div class="bg-mayor-dots" aria-hidden="true"><i></i><i></i><i></i><i class="is-active"></i><i></i></div>' +
-        '<p class="bg-product-eyebrow">OPEN MAYOR OFFICE</p><h1>참여로 실현하는<br>주민주권 도시</h1><p>주민과 함께 만드는 주민주권 북구를 만들겠습니다.</p>' +
+        '<p class="bg-product-eyebrow">OPEN MAYOR OFFICE</p><h1><span>참여로 실현하는</span><span>주민주권 도시</span></h1><p>주민과 함께 만드는 주민주권 북구를 만들겠습니다.</p>' +
         '<div class="bg-mayor-hero__actions"><button type="button" class="bg-mayor-cta" id="btn-mayor-message" data-action-target="mayor-message-write">구청장에게 바란다 <span>→</span></button>' +
           '<button type="button" class="bg-mayor-cta bg-mayor-cta--outline">구정방향 및 전략 <span>→</span></button></div></div>' +
         '<div class="bg-mayor-hero__portrait"><img src="/static/images/bukgu-current/mayor/visual04.png" alt="주민과 현장에서 소통하는 신수정 북구청장" /></div></section>' +
@@ -3160,36 +3160,55 @@
   }
 
   function clickAnimation(selectorOrEl, retryCount) {
-    var el = _resolveCursorTarget(selectorOrEl);
-    if (!el) {
-      if (typeof selectorOrEl === "string" && !retryCount) {
-        setTimeout(function () { clickAnimation(selectorOrEl, 1); }, 180);
+    // #1142: resolve when click visual finishes so route commits wait for it.
+    return new Promise(function (resolve) {
+      var el = _resolveCursorTarget(selectorOrEl);
+      if (!el) {
+        if (typeof selectorOrEl === "string" && !retryCount) {
+          setTimeout(function () {
+            var retried = clickAnimation(selectorOrEl, 1);
+            if (retried && typeof retried.then === "function") {
+              retried.then(resolve, resolve);
+            } else {
+              resolve();
+            }
+          }, 180);
+          return;
+        }
+        resolve();
+        return;
       }
-      return;
-    }
-    var rect = el.getBoundingClientRect();
-    // Guard: skip if element has zero dimensions (hidden, not yet laid out)
-    if (!rect || (rect.width === 0 && rect.height === 0)) {
-      if (typeof selectorOrEl === "string" && !retryCount) {
-        setTimeout(function () { clickAnimation(selectorOrEl, 1); }, 180);
+      var rect = el.getBoundingClientRect();
+      if (!rect || (rect.width === 0 && rect.height === 0)) {
+        if (typeof selectorOrEl === "string" && !retryCount) {
+          setTimeout(function () {
+            var retried = clickAnimation(selectorOrEl, 1);
+            if (retried && typeof retried.then === "function") {
+              retried.then(resolve, resolve);
+            } else {
+              resolve();
+            }
+          }, 180);
+          return;
+        }
+        resolve();
+        return;
       }
-      return;
-    }
-    // Step 1: move cursor to target
-    showCursorAt(el);
-    var cx = rect.left + rect.width / 2;
-    var cy = rect.top + rect.height / 2;
-    // Step 2: after move + dwell, fire double ripple (outer faster + inner slower).
-    setTimeout(function () {
-      if (_cursorEl) _cursorEl.setAttribute("data-agent-status", "clicking");
-      _createRipple(cx, cy, "rgba(239,106,76,0.45)", 500);
+      showCursorAt(el);
+      var cx = rect.left + rect.width / 2;
+      var cy = rect.top + rect.height / 2;
       setTimeout(function () {
-        _createRipple(cx, cy, "rgba(239,106,76,0.25)", 350);
-      }, 80);
-      setTimeout(function () {
-        if (_cursorEl) _cursorEl.setAttribute("data-agent-status", "ready");
-      }, 520);
-    }, CURSOR_CLICK_AT_MS);
+        if (_cursorEl) _cursorEl.setAttribute("data-agent-status", "clicking");
+        _createRipple(cx, cy, "rgba(239,106,76,0.45)", 500);
+        setTimeout(function () {
+          _createRipple(cx, cy, "rgba(239,106,76,0.25)", 350);
+        }, 80);
+        setTimeout(function () {
+          if (_cursorEl) _cursorEl.setAttribute("data-agent-status", "ready");
+          resolve();
+        }, 520);
+      }, CURSOR_CLICK_AT_MS);
+    });
   }
   // -----------------------------------------------------------------------
   var _delegationAttached = false;
