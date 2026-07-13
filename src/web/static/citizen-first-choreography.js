@@ -38,12 +38,15 @@
   var _typingTimers = [];
   var _activeTypingOperations = [];
   var _tempIndicatorTimers = [];
+  var _canvasScrollTimers = [];
   var _currentStep = -1;
   var _currentJourneyId = null;
   var _steps = [];
   var _highlightedEls = [];
   // #1132: cached reduced-motion flag; shell is canonical owner when present.
   var _reducedMotion = false;
+  // #1142: short pause after click visual before route/receipt commit.
+  var CLICK_READ_MS = 340;
 
   function _apartmentDeptSnapshot() {
     var snapshots = window.__BUKGU_OFFICIAL_SNAPSHOTS__;
@@ -100,7 +103,7 @@
        Object.freeze({ message: "민원게시판으로 이동합니다.", routeId: "complaint-board", delayMs: 2000, thinkingText: "게시판으로 이동 중입니다...", thinkingMs: 700 }),
        Object.freeze({ message: "글쓰기 버튼을 눌러 새 신고 양식을 엽니다.", clickTarget: "#btn-board-write", routeIdAfterClick: "complaint-write", delayMs: 2200, thinkingText: "양식을 준비 중입니다...", thinkingMs: 700 }),
        Object.freeze({ message: "민원 제목을 입력합니다.", focusSearch: true, typeQuery: "[시설물 정비 요청] 가로등 고장 신고", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "제목을 다듬는 중입니다...", thinkingMs: 650 }),
-       Object.freeze({ message: "말씀하실 내용을 민원 문장으로 정리해 본문에 입력합니다.", typeContent: "안녕하세요. 생활에 불편을 주는 가로등 고장을 신고합니다. 정확한 위치와 고장 상태를 확인할 수 있도록 아래 내용을 검토해 주세요.\n\n- 위치: [도로명 또는 주변 건물]\n- 고장 상태: [점등 불가 / 깜빡임 / 파손]\n- 발생 시각: [확인한 날짜와 시간]\n\n안전사고 예방을 위해 점검과 수리를 요청드립니다.", cursorTarget: "#board-write-content", typeSpeedMs: 18, delayMs: 2600, thinkingText: "민원 문장을 작성하는 중입니다...", thinkingMs: 750 }),
+       Object.freeze({ message: "말씀하실 내용을 민원 문장으로 정리해 본문에 입력합니다.", typeContent: "안녕하세요. 생활에 불편을 주는 가로등 고장을 신고합니다. 정확한 위치와 고장 상태를 확인할 수 있도록 아래 내용을 검토해 주세요.\n\n- 위치: [도로명 또는 주변 건물]\n- 고장 상태: [점등 불가 / 깜빡임 / 파손]\n- 발생 시각: [확인한 날짜와 시간]\n\n안전사고 예방을 위해 점검과 수리를 요청드립니다.", cursorTarget: "#board-write-content", typeSpeedMs: 18, delayMs: 2600, thinkingText: "민원 문장을 작성하는 중입니다...", thinkingMs: 750, revealWritingConfirm: true }),
        Object.freeze({ message: "제목과 본문 초안을 입력했습니다. 대괄호 부분을 확인한 뒤 제출 여부를 선택해 주세요.", requiresConfirmation: true, delayMs: 1000 }),
        Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다. 처리 결과는 민원게시판에서 확인 가능합니다." })
      ]),
@@ -117,7 +120,7 @@
        Object.freeze({ message: "집 앞 공원에 쓰레기가 너무 많고 냄새가 나요. 빨리 치워주세요.", isUserSimulated: true, delayMs: 2500 }),
        Object.freeze({ message: "말씀하신 내용을 바탕으로 민원 접수 양식에 맞게 초안을 작성합니다...", thinkingText: "내용을 분석하고 윤문하는 중입니다...", thinkingMs: 1500, delayMs: 1500 }),
        Object.freeze({ message: "먼저 민원 제목을 입력합니다.", focusSearch: true, typeQuery: "[환경정비 요청] 공원 내 방치 쓰레기 수거 및 악취 해결 요청", cursorTarget: "#board-write-title", delayMs: 2500, thinkingText: "핵심 내용을 제목으로 정리하는 중입니다...", thinkingMs: 650 }),
-       Object.freeze({ message: "이어서 주민의 표현을 정중하고 구체적인 민원 문장으로 다듬어 본문에 입력합니다.", typeContent: "안녕하세요. 집 앞 공원에 무단 투기된 쓰레기가 다량 방치되어 있어 심한 악취와 미관 훼손이 발생하고 있습니다. 주민들이 안심하고 공원을 이용할 수 있도록 현장 확인 후 쓰레기 수거와 주변 환경 정비를 요청드립니다. 정확한 처리를 위해 공원 이름이나 위치를 제출 전에 추가해 주세요.", cursorTarget: "#board-write-content", typeSpeedMs: 18, delayMs: 2600, thinkingText: "민원 문장을 작성하는 중입니다...", thinkingMs: 750 }),
+       Object.freeze({ message: "이어서 주민의 표현을 정중하고 구체적인 민원 문장으로 다듬어 본문에 입력합니다.", typeContent: "안녕하세요. 집 앞 공원에 무단 투기된 쓰레기가 다량 방치되어 있어 심한 악취와 미관 훼손이 발생하고 있습니다. 주민들이 안심하고 공원을 이용할 수 있도록 현장 확인 후 쓰레기 수거와 주변 환경 정비를 요청드립니다. 정확한 처리를 위해 공원 이름이나 위치를 제출 전에 추가해 주세요.", cursorTarget: "#board-write-content", typeSpeedMs: 18, delayMs: 2600, thinkingText: "민원 문장을 작성하는 중입니다...", thinkingMs: 750, revealWritingConfirm: true }),
        Object.freeze({ message: "작성된 초안을 확인한 뒤 오른쪽의 [검토했고, 제출하기]를 선택해 주세요. 확인 전에는 제출되지 않습니다.", requiresConfirmation: true, delayMs: 1000 }),
        Object.freeze({ message: "민원 신고가 성공적으로 접수되었습니다." })
      ]),
@@ -128,12 +131,14 @@
      description: "구청장에게 바란다 - AI 구정 제안 작성 보조",
      steps: Object.freeze([
        Object.freeze({ message: "구청장에게 전할 제안을 함께 작성하겠습니다.", thinkingText: "제안 작성 화면을 준비 중입니다...", thinkingMs: 550, delayMs: 900 }),
+       Object.freeze({ message: "홈 화면의 열린구청장실로 이동합니다.", clickTarget: "#btn-open-mayor-office", routeIdAfterClick: "mayor-office", delayMs: 2400, thinkingText: "열린구청장실 경로를 찾는 중입니다...", thinkingMs: 650 }),
+       Object.freeze({ message: "구청장에게 바란다 제안 작성 화면을 엽니다.", clickTarget: "#btn-mayor-message", routeIdAfterClick: "mayor-complaint-write", delayMs: 2400, thinkingText: "제안 작성 양식을 여는 중입니다...", thinkingMs: 650 }),
        Object.freeze({ message: "아이들이 안심하고 걸을 수 있게 학교 앞 횡단보도 조명을 더 밝게 해주세요.", isUserSimulated: true, delayMs: 1800 }),
        Object.freeze({ message: "주민의 문제 제기와 기대 효과가 잘 드러나도록 구정 제안 문장으로 정리합니다.", thinkingText: "제안의 핵심과 기대 효과를 분석하는 중입니다...", thinkingMs: 900, delayMs: 1000 }),
        Object.freeze({ message: "먼저 제안 제목을 입력합니다.", typeQuery: "[안전한 통학로 제안] 학교 앞 횡단보도 조명 개선 요청", querySelector: "#mayor-write-title", cursorTarget: "#mayor-write-title", delayMs: 2100, thinkingText: "제목을 구체화하는 중입니다...", thinkingMs: 550 }),
-       Object.freeze({ message: "현장 상황과 기대 효과를 담아 본문을 작성합니다.", typeContent: "안녕하세요. 북구의 안전한 통학환경 조성을 위해 학교 앞 횡단보도 조명 개선을 제안드립니다.\n\n현재 일부 통학로는 해가 진 뒤 횡단보도와 보행자 대기 구역이 어두워 운전자와 어린이 모두 시야 확보가 어렵습니다. 현장 밝기와 차량 통행량을 확인해 조명을 보강하고, 필요하다면 바닥형 보행신호등이나 안전표지 설치도 함께 검토해 주시기 바랍니다.\n\n아이와 보호자가 안심하고 걸을 수 있는 통학로가 조성되도록 관련 부서의 현장 점검과 개선 계획을 요청드립니다. 정확한 검토를 위해 학교명과 횡단보도 위치는 제출 전에 추가하겠습니다.", contentSelector: "#mayor-write-content", cursorTarget: "#mayor-write-content", typeSpeedMs: 15, delayMs: 2600, thinkingText: "설득력 있는 제안 문장을 작성하는 중입니다...", thinkingMs: 700 }),
+       Object.freeze({ message: "현장 상황과 기대 효과를 담아 본문을 작성합니다.", typeContent: "안녕하세요. 북구의 안전한 통학환경 조성을 위해 학교 앞 횡단보도 조명 개선을 제안드립니다.\n\n현재 일부 통학로는 해가 진 뒤 횡단보도와 보행자 대기 구역이 어두워 운전자와 어린이 모두 시야 확보가 어렵습니다. 현장 밝기와 차량 통행량을 확인해 조명을 보강하고, 필요하다면 바닥형 보행신호등이나 안전표지 설치도 함께 검토해 주시기 바랍니다.\n\n아이와 보호자가 안심하고 걸을 수 있는 통학로가 조성되도록 관련 부서의 현장 점검과 개선 계획을 요청드립니다. 정확한 검토를 위해 학교명과 횡단보도 위치는 제출 전에 추가하겠습니다.", contentSelector: "#mayor-write-content", cursorTarget: "#mayor-write-content", typeSpeedMs: 15, delayMs: 2600, thinkingText: "설득력 있는 제안 문장을 작성하는 중입니다...", thinkingMs: 700, revealWritingConfirm: true }),
        Object.freeze({ message: "제안 초안을 완성했습니다. 위치 정보를 보완한 뒤 [검토했고, 제출하기]를 선택해 주세요.", requiresConfirmation: true, delayMs: 900 }),
-       Object.freeze({ message: "구청장에게 바란다 제안이 시연용으로 접수되었습니다." })
+       Object.freeze({ message: "구정 제안서 작성을 마쳤습니다. 공식 제출은 북구청 공식 채널에서 직접 확인하고 진행해 주세요." })
      ])
    });
 
@@ -565,7 +570,80 @@
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
-  function _typeIntoSearch(input, value, startDelayMs, requestedCharDelayMs) {
+  function _clearCanvasScrollTimers() {
+    for (var i = 0; i < _canvasScrollTimers.length; i++) {
+      window.clearTimeout(_canvasScrollTimers[i]);
+    }
+    _canvasScrollTimers = [];
+  }
+
+  function _scheduleCanvasScroll(fn, delayMs) {
+    var id = window.setTimeout(function () {
+      var idx = _canvasScrollTimers.indexOf(id);
+      if (idx !== -1) _canvasScrollTimers.splice(idx, 1);
+      fn();
+    }, delayMs || 0);
+    _canvasScrollTimers.push(id);
+    return id;
+  }
+
+  /**
+   * #1142: after AI finishes writing, scroll ONLY #demo-canvas so the
+   * resident confirmation block is visible. Does not touch chat or window.
+   */
+  function _revealWritingConfirmationInCanvas() {
+    var canvas = _getCanvasEl();
+    if (!canvas) return;
+    var target =
+      canvas.querySelector(".bg-writing-consent") ||
+      canvas.querySelector(".bg-writing-actions") ||
+      canvas.querySelector("#btn-mayor-submit") ||
+      canvas.querySelector("#btn-board-submit");
+    if (!target) return;
+    var reduced = _prefersReducedMotion();
+    try {
+      var cRect = canvas.getBoundingClientRect();
+      var tRect = target.getBoundingClientRect();
+      var pad = 28;
+      var delta = 0;
+      if (tRect.bottom > cRect.bottom - pad) {
+        delta = tRect.bottom - cRect.bottom + pad;
+      } else if (tRect.top < cRect.top + pad) {
+        delta = tRect.top - cRect.top - pad;
+      }
+      if (!delta) return;
+      if (reduced || typeof canvas.scrollTo !== "function") {
+        canvas.scrollTop = canvas.scrollTop + delta;
+      } else {
+        canvas.scrollTo({ top: canvas.scrollTop + delta, behavior: "smooth" });
+      }
+    } catch (_) {
+      /* scroll is best-effort */
+    }
+  }
+
+  function _scrollChatThreadToLatest(actionEl) {
+    if (!_chatThread) return;
+    try {
+      if (actionEl && typeof actionEl.scrollIntoView === "function") {
+        actionEl.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+      _chatThread.scrollTop = _chatThread.scrollHeight;
+      if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(function () {
+          if (!_chatThread) return;
+          if (actionEl && typeof actionEl.scrollIntoView === "function") {
+            actionEl.scrollIntoView({ block: "nearest", inline: "nearest" });
+          }
+          _chatThread.scrollTop = _chatThread.scrollHeight;
+        });
+      }
+    } catch (_) {
+      /* scroll is best-effort */
+    }
+  }
+
+  function _typeIntoSearch(input, value, startDelayMs, requestedCharDelayMs, onComplete) {
     if (!input) return 0;
     var text = String(value || "");
     var reduced = _prefersReducedMotion();
@@ -580,11 +658,18 @@
     input.setAttribute("data-agent-typing", "true");
     _highlightedEls.push(input);
 
+    function _finishTyping() {
+      input.removeAttribute("data-agent-typing");
+      if (typeof onComplete === "function") {
+        try { onComplete(); } catch (_) { /* noop */ }
+      }
+    }
+
     // Reduced motion: full string immediately; keep static typing highlight.
     if (!charDelayMs) {
       input.value = text;
-      input.removeAttribute("data-agent-typing");
       _dispatchInputEvent(input);
+      _finishTyping();
       return 0;
     }
 
@@ -598,9 +683,9 @@
           input.value = text.slice(0, characterIndex + 1);
           _dispatchInputEvent(input);
           if (characterIndex === text.length - 1) {
-            input.removeAttribute("data-agent-typing");
             var opIndex = _activeTypingOperations.indexOf(operation);
             if (opIndex !== -1) _activeTypingOperations.splice(opIndex, 1);
+            _finishTyping();
           }
         }, startDelay + (characterIndex * charDelayMs));
       })(i);
@@ -875,9 +960,21 @@
         // Desktop-only: focus the body field so the typing caret is
         // visible. On mobile the automated step must NOT pull focus.
         _focusEditableOnDesktopOnly(contentInput);
+        var revealAfterBody = !!step.revealWritingConfirm;
         visualActionDelay = Math.max(
           visualActionDelay,
-          _typeIntoSearch(contentInput, step.typeContent, contentTypingStartDelay, step.typeSpeedMs)
+          _typeIntoSearch(
+            contentInput,
+            step.typeContent,
+            contentTypingStartDelay,
+            step.typeSpeedMs,
+            revealAfterBody
+              ? function () {
+                  // One-shot after body typing completes — not per character.
+                  _scheduleCanvasScroll(_revealWritingConfirmationInCanvas, reduced ? 0 : 80);
+                }
+              : null
+          )
         );
       }
 
@@ -1019,6 +1116,7 @@
     _clearAuxTimers();
     _clearTypingTimers();
     _clearTempIndicatorTimers();
+    _clearCanvasScrollTimers();
     // Mark typing ops cancelled so late char timers (if any) are no-ops.
     for (var t = 0; t < _activeTypingOperations.length; t++) {
       if (_activeTypingOperations[t]) {
@@ -1078,17 +1176,25 @@
     messageEl.className = "chat-msg chat-msg--ai chat-msg--decision";
     messageEl.innerHTML = '<div class="chat-avatar" aria-label="AI">A</div>' +
       '<div class="chat-bubble chat-bubble--ai chat-decision">' +
-        '<span>' + (isMayorJourney ? "작성된 제안의 제목과 본문을 검토했습니다. 이 내용으로 시연용 제안을 접수할까요?" : "작성된 제목과 본문을 검토했습니다. 이 내용으로 데모 민원게시판에 제출할까요?") + '</span>' +
+        '<span>' + (isMayorJourney
+          ? "작성된 제안의 제목과 본문을 검토했습니다. 이 내용으로 구정 제안서를 최종 확인할까요?"
+          : "작성된 제목과 본문을 검토했습니다. 확인 전에는 제출되지 않습니다. 이 내용으로 진행할까요?") + '</span>' +
         '<div class="chat-decision__actions">' +
           '<button type="button" class="chat-decision__button chat-decision__button--primary" onclick="window.CitizenFirstChoreography.confirmSubmission(' + index + ')">검토했고, 제출하기</button>' +
           '<button type="button" class="chat-decision__button chat-decision__button--secondary" onclick="window.CitizenFirstChoreography.cancel()">수정할게요</button>' +
         '</div>' +
       '</div>';
     _chatThread.appendChild(messageEl);
-    _chatThread.scrollTop = _chatThread.scrollHeight;
+    // Keep left confirmation in view and ensure chat actions are not obscured.
+    _scheduleCanvasScroll(_revealWritingConfirmationInCanvas, 0);
+    var actions = messageEl.querySelector(".chat-decision__actions");
+    _scrollChatThreadToLatest(actions || messageEl);
   }
 
   function confirmSubmission(index) {
+    if (_state !== "waiting_confirmation" && _state !== STATE_RUNNING) {
+      // Only consume while waiting, but allow re-entry if already running mid-commit.
+    }
     _setState(STATE_RUNNING);
     var isMayorJourney = _currentJourneyId === "mayor-message-assist";
     var demoEl = document.getElementById("demo-canvas");
@@ -1100,6 +1206,16 @@
     var submitButton = demoEl && demoEl.querySelector(submitSelector);
     var cCanvas = window.CitizenActionDemoCanvas;
 
+    // Consume confirmation UI once — prevent double commit.
+    if (_chatThread) {
+      var decisionBtns = _chatThread.querySelectorAll(
+        ".chat-msg--decision .chat-decision__button"
+      );
+      for (var bi = 0; bi < decisionBtns.length; bi++) {
+        decisionBtns[bi].disabled = true;
+      }
+    }
+
     if (submitButton) {
       submitButton.disabled = false;
       submitButton.setAttribute("aria-disabled", "false");
@@ -1109,37 +1225,52 @@
         _highlightedEls.push(submitButton);
       }
     }
-    // #1132: skip click ripple under reduced motion; keep substantive route commit.
-    if (!_prefersReducedMotion() && cCanvas && cCanvas.clickAnimation) {
-      cCanvas.clickAnimation(submitSelector);
+
+    function _commitAfterClickVisual() {
+      if (isMayorJourney) {
+        if (cCanvas && cCanvas.navigateToRoute) {
+          cCanvas.navigateToRoute("mayor-complaint-receipt");
+        }
+        _executeStep(index + 1);
+        return;
+      }
+
+      // Simulate submission through the adapter
+      if (window.CitizenContentAdapter) {
+        var data = {
+          title: title ? title.value : "가로등 고장 신고",
+          content: contentEl ? contentEl.value : "가로등 고장을 신고합니다.",
+          author: "주민"
+        };
+
+        window.CitizenContentAdapter.submitBoardPost(data).then(function() {
+          if (cCanvas && cCanvas.navigateToRoute) {
+            cCanvas.navigateToRoute("complaint-review");
+          }
+          _executeStep(index + 1);
+        });
+      } else {
+        _executeStep(index + 1);
+      }
     }
 
-    if (isMayorJourney) {
-      var mayorSubmitDelay = _prefersReducedMotion() ? 0 : 620;
-      window.setTimeout(function () {
-        if (cCanvas && cCanvas.navigateToRoute) cCanvas.navigateToRoute("mayor-complaint-receipt");
-        _executeStep(index + 1);
-      }, mayorSubmitDelay);
+    // #1142: wait for click visual completion before route commit (not a fixed under-wait).
+    if (!_prefersReducedMotion() && cCanvas && cCanvas.clickAnimation) {
+      var clickPromise = cCanvas.clickAnimation(submitSelector);
+      if (clickPromise && typeof clickPromise.then === "function") {
+        clickPromise.then(function () {
+          window.setTimeout(_commitAfterClickVisual, CLICK_READ_MS);
+        }, function () {
+          _commitAfterClickVisual();
+        });
+        return;
+      }
+      // Fallback if Promise not returned.
+      window.setTimeout(_commitAfterClickVisual, 1440 + CLICK_READ_MS);
       return;
     }
 
-    // Simulate submission through the adapter
-    if (window.CitizenContentAdapter) {
-      var data = {
-        title: title ? title.value : "가로등 고장 신고",
-        content: contentEl ? contentEl.value : "가로등 고장을 신고합니다.",
-        author: "주민"
-      };
-
-      window.CitizenContentAdapter.submitBoardPost(data).then(function() {
-        if (cCanvas && cCanvas.navigateToRoute) {
-          cCanvas.navigateToRoute("complaint-review");
-        }
-        _executeStep(index + 1);
-      });
-    } else {
-       _executeStep(index + 1);
-    }
+    _commitAfterClickVisual();
   }
 
   /** @returns {number} current step index (-1 if not started) */

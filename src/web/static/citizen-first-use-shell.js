@@ -1667,9 +1667,25 @@
     });
   }
 
-  function scrollChatToLatest() {
-    if (chatThread) {
+  function scrollChatToLatest(actionEl) {
+    // #1142: single entry for thread scroll; rAF correction after layout settles.
+    if (!chatThread) {
+      return;
+    }
+    function _doScroll() {
+      if (!chatThread) return;
+      try {
+        if (actionEl && typeof actionEl.scrollIntoView === "function") {
+          actionEl.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
+      } catch (_) {
+        /* ignore */
+      }
       chatThread.scrollTop = chatThread.scrollHeight;
+    }
+    _doScroll();
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(_doScroll);
     }
   }
 
@@ -2176,11 +2192,10 @@
       return;
     }
 
-    // #1140: align with canvas cursor move(1140)+dwell(300)+click-read(340).
+    // #1142: commit split only after clickAnimation resolves (move+dwell+ripple).
     var moveDelay = 100;
     var clickDelay = 120;
-    var afterClickDelay = 1440 + 340;
-    var splitAt = clickDelay + afterClickDelay;
+    var clickReadMs = 340;
 
     if (typeof canvasApi.hideCursor === "function") {
       canvasApi.hideCursor();
@@ -2196,19 +2211,31 @@
     _scheduleMayorAux(function () {
       if (!_mayorEntryInFlight) return;
       // Visual click only — do NOT fire a real DOM click (would re-enter).
-      canvasApi.clickAnimation(MAYOR_CONTROL_SELECTOR);
+      var clickDone = canvasApi.clickAnimation(MAYOR_CONTROL_SELECTOR);
+      function _finishMayorEntry() {
+        if (!_mayorEntryInFlight) return;
+        control.classList.remove("executor-highlight");
+        control.classList.remove("is-agent-target");
+        _mayorEntryInFlight = false;
+        _mayorEntryPendingOptions = null;
+        _mayorEntryAuxTimers = [];
+        if (_mayorEntryTimer) {
+          window.clearTimeout(_mayorEntryTimer);
+          _mayorEntryTimer = null;
+        }
+        _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
+      }
+      if (clickDone && typeof clickDone.then === "function") {
+        clickDone.then(function () {
+          _scheduleMayorAux(_finishMayorEntry, clickReadMs);
+        }, function () {
+          _finishMayorEntry();
+        });
+      } else {
+        // Fallback if Promise unavailable.
+        _mayorEntryTimer = window.setTimeout(_finishMayorEntry, 1440 + clickReadMs);
+      }
     }, clickDelay);
-
-    _mayorEntryTimer = window.setTimeout(function () {
-      _mayorEntryTimer = null;
-      if (!_mayorEntryInFlight) return;
-      control.classList.remove("executor-highlight");
-      control.classList.remove("is-agent-target");
-      _mayorEntryInFlight = false;
-      _mayorEntryPendingOptions = null;
-      _mayorEntryAuxTimers = [];
-      _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
-    }, splitAt);
   }
 
   // Back-compat alias used by earlier #1114 wiring.
