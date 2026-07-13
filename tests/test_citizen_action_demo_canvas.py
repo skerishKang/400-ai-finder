@@ -365,10 +365,18 @@ class TestRouteStructure:
         assert "bg-page-header" in js
         assert "bg-page-header__title" in js
 
-    def test_each_route_renders_poc_banner(self):
+    def test_resident_routes_do_not_render_poc_or_demo_overlay(self):
+        # #1139/#1141: PoC/demo render helpers removed. Class name may remain only
+        # as a single non-visible inert stub (display:none + aria-hidden).
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "_renderPocBanner" in js
-        assert "bg-poc-banner" in js
+        assert "_renderPocBanner" not in js
+        assert "_renderDemoOverlay" not in js
+        assert "bg-demo-overlay" not in js
+        assert js.count("bg-poc-banner") == 1
+        assert (
+            '<div class="bg-poc-banner" style="display:none !important;" '
+            'aria-hidden="true"></div>'
+        ) in js
 
 
 class TestMvpRouteVocabulary:
