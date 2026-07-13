@@ -95,6 +95,15 @@
       새로 시작
     </button>
   </div>
+  <!-- #1067: semantic journey progress for AT only (not a chat message).
+       id avoids legacy #journey-status in the hidden copilot rail. -->
+  <p
+    id="chat-journey-status"
+    class="chat-shell__journey-status"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  ></p>
 
   <div class="chat-thread" id="chat-thread" aria-live="polite">
     <div class="chat-msg chat-msg--ai">

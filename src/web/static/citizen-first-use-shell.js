@@ -52,6 +52,8 @@
   var chatSend = document.getElementById("chat-composer-send");
   var resetButton = document.getElementById("chat-reset");
   var chipsContainer = document.getElementById("chat-chips");
+  // #1067: SR-only journey progress (not a conversation message / not #chat-thread).
+  var journeyStatusEl = document.getElementById("chat-journey-status");
   var splitTimer = null;
   var lastSplitQuestion = null;
   var currentState = STATE_ENTRY;
@@ -60,6 +62,9 @@
   var _journeyResetting = false;
   // #1067: invalidate confirm-run / decision buttons created before a reset.
   var _confirmGeneration = 0;
+  // #1067: suppress repeated polite status announcements for the same phase.
+  var _lastJourneyAnnouncement = "";
+  var _lastAnnouncedJourneyState = "";
 
   // ── MVP mode (#925 / #927) ──────────────────────────────────────
   // Enabled only with ?mvp=1. In MVP mode the shell calls the model-backed
@@ -71,10 +76,74 @@
   var _questRuntimeResult = null;
 
   /**
+   * #1067: aria-busy for website choreography progress only.
+   * Layout transitioning and MVP composer-lock use data-chat-busy instead.
+   * Does not move focus.
+   */
+  function _applyJourneyBusy(journeyState) {
+    var busy = journeyState === JOURNEY_NAVIGATE;
+    if (chatShell) {
+      chatShell.setAttribute("aria-busy", busy ? "true" : "false");
+    }
+    if (canvas) {
+      canvas.setAttribute("aria-busy", busy ? "true" : "false");
+    }
+  }
+
+  /**
+   * #1067: single owner for semantic journey SR announcements + busy flags.
+   * Does not re-read AI answers or confirm bubbles (#chat-thread owns those).
+   * Does not call .focus().
+   *
+   * @param {string} nextState
+   * @param {{ announceReset?: boolean }} [options]
+   */
+  function syncJourneyAccessibility(nextState, options) {
+    options = options || {};
+    _applyJourneyBusy(nextState);
+
+    // Explicit reset may re-announce the same entry phrase later; clear guard.
+    if (options.announceReset) {
+      _lastJourneyAnnouncement = "";
+      _lastAnnouncedJourneyState = "";
+    }
+
+    var text = null;
+    if (nextState === JOURNEY_ENTRY && options.announceReset) {
+      text = "새 질문을 입력할 수 있습니다.";
+    } else if (nextState === JOURNEY_NAVIGATE) {
+      text = "북구청 안내 화면에서 경로를 진행하고 있습니다.";
+    } else if (nextState === JOURNEY_RESULT) {
+      text =
+        "안내 경로가 완료되었습니다. 대화로 돌아가 새 질문을 입력할 수 있습니다.";
+    }
+    // answer / confirm / cold entry: no status-region copy
+    // (answer + confirm content already live in #chat-thread).
+
+    if (text === null) {
+      return;
+    }
+    if (
+      text === _lastJourneyAnnouncement &&
+      nextState === _lastAnnouncedJourneyState
+    ) {
+      return;
+    }
+    _lastJourneyAnnouncement = text;
+    _lastAnnouncedJourneyState = nextState;
+    if (journeyStatusEl) {
+      journeyStatusEl.textContent = text;
+    }
+  }
+
+  /**
    * #1067: set semantic journey state on body. Layout state (data-first-use-state)
    * is independent and unchanged by this axis.
+   * @param {string} nextState
+   * @param {{ announceReset?: boolean }} [options]
    */
-  function setJourneyState(nextState) {
+  function setJourneyState(nextState, options) {
+    options = options || {};
     if (_journeyResetting && nextState !== JOURNEY_ENTRY) {
       return;
     }
@@ -87,17 +156,30 @@
     ) {
       return;
     }
+    var changed = currentJourneyState !== nextState;
     if (body && body.getAttribute("data-journey-state") !== nextState) {
       body.setAttribute("data-journey-state", nextState);
     }
-    if (currentJourneyState === nextState) {
+    if (!changed && !options.announceReset) {
+      // Re-assert busy if composer lock flipped aria-busy via legacy path.
+      _applyJourneyBusy(currentJourneyState);
       return;
     }
     currentJourneyState = nextState;
+    syncJourneyAccessibility(nextState, options);
   }
 
   function getJourneyState() {
     return currentJourneyState;
+  }
+
+  function getJourneyAccessibilityState() {
+    return {
+      journeyState: currentJourneyState,
+      announcedState: _lastAnnouncedJourneyState,
+      chatBusy: !!(chatShell && chatShell.getAttribute("aria-busy") === "true"),
+      canvasBusy: !!(canvas && canvas.getAttribute("aria-busy") === "true")
+    };
   }
 
   /**
@@ -773,9 +855,12 @@
       chatSend.disabled = isDisabled;
     }
     if (chatShell) {
+      // Composer lock CSS signal only. Semantic aria-busy is owned by journey
+      // navigate (website choreography), not MVP answer wait / layout transition.
       chatShell.setAttribute("data-chat-busy", isDisabled ? "true" : "false");
-      chatShell.setAttribute("aria-busy", isDisabled ? "true" : "false");
     }
+    // Keep journey busy mapping authoritative after any composer lock toggle.
+    _applyJourneyBusy(currentJourneyState);
   }
 
   function setState(nextState) {
@@ -1680,7 +1765,8 @@
 
     body.classList.add("first-use-shell--no-motion");
     setState(STATE_ENTRY);
-    setJourneyState(JOURNEY_ENTRY);
+    // #1067: explicit reset announces readiness; cold load does not.
+    setJourneyState(JOURNEY_ENTRY, { announceReset: true });
     // Reset scroll position to top
     if (chatThread) {
       chatThread.scrollTop = 0;
@@ -1690,6 +1776,7 @@
       chatInput.value = "";
       // Only refocus on desktop; on mobile the surface switch owns
       // visibility and must NOT auto-focus the composer after reset.
+      // setJourneyState / syncJourneyAccessibility never call .focus().
       focusComposerIfAllowed();
     }
     _journeyResetting = false;
@@ -1778,6 +1865,7 @@
   window.CitizenFirstUseShell = Object.freeze({
     getState: function () { return currentState; },
     getJourneyState: getJourneyState,
+    getJourneyAccessibilityState: getJourneyAccessibilityState,
     getQuestRuntimeResult: function () { return _questRuntimeResult; },
     isSupportedQuestion: isSupportedQuestion,
     renderQuestProgressCard: renderQuestProgressCard,

@@ -460,6 +460,20 @@ body[data-first-use-state="split"] .demo-canvas {
   gap: 2px;
 }
 
+/* #1067: semantic journey status — SR-only, no layout impact.
+   Do not use display:none / visibility:hidden / [hidden]. */
+.chat-shell__journey-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* #1121: keep attribution muted and subordinate on narrow first-use shells. */
 .chat-shell__attribution {
   font-size: 0.66rem;
