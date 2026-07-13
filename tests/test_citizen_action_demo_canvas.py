@@ -834,6 +834,11 @@ class TestFidelityAndSeparation:
         assert 'disabled' in html
         assert 'safety-stop-overlay' in html
         assert 'Safety Stop' in html
+        # #1138/#1139: no hard-coded illegal-parking office; category mapping present
+        assert "북구청 교통과" not in html
+        assert "불법 주정차 신고" not in html
+        assert "_getComplaintReviewServiceMeta" in _read_static("citizen-action-demo-canvas.js")
+        assert "생활민원" in html  # neutral fallback when no category selected
 
     def test_no_whole_page_screenshots_as_backgrounds(self):
         """Verify canvas.js source does not load raw full screenshot images directly as background or img."""

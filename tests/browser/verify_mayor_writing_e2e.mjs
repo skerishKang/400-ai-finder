@@ -428,6 +428,15 @@ async function runViewport(browser, viewport) {
     .locator(".bg-page--mayor-receipt")
     .waitFor({ state: "visible", timeout: 5000 });
 
+  // #1139: truthful pre-submit completion (no fake receipt / demo copy)
+  const receiptText = await page.locator(".bg-page--mayor-receipt").innerText();
+  assert.ok(receiptText.includes("구정 제안서가 작성되었습니다"), `[${viewportLabel}] receipt title`);
+  assert.ok(receiptText.includes("공식 제출 전"), `[${viewportLabel}] pre-submit status`);
+  assert.ok(receiptText.includes("공식 채널에서 확인 및 제출"), `[${viewportLabel}] official handoff`);
+  for (const banned of ["시연용", "DEMO-", "PoC", "접수 완료"]) {
+    assert.ok(!receiptText.includes(banned), `[${viewportLabel}] banned copy: ${banned}`);
+  }
+
   if (isMobileViewport(viewport)) {
     const receiptSurface = await readSurfaceState(page);
     assert.strictEqual(
