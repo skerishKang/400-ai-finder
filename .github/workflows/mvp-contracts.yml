@@ -156,6 +156,9 @@ jobs:
           node tests/browser/verify_mayor_writing_e2e.mjs \
             http://127.0.0.1:8768
 
+          node tests/browser/verify_clone_header_list_containment.mjs \
+            http://127.0.0.1:8768
+
       - name: Run Cloudflare MVP Function contract test
         env:
           RUN_CLOUDFLARE_FUNCTION_CONTRACTS: "1"
