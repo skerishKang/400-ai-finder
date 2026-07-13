@@ -1979,6 +1979,465 @@ async function assert1114InstrumentationClean(buckets, ctx) {
   );
 }
 
+// ── #1121 PADIEM service attribution ────────────────────────────────
+const PADIEM_COMPACT = "AI Agent by PADIEM";
+const PADIEM_DISCLOSURE =
+  "본 AI 행정서비스 시연 시스템은 주식회사 파디엠(PADIEM)이 기획·개발했습니다.";
+const PADIEM_VIEWPORTS = Object.freeze([
+  { width: 320, height: 568 },
+  { width: 390, height: 844 },
+  { width: 768, height: 1024 },
+  { width: 1440, height: 900 },
+]);
+
+function rectsOverlap(a, b, tol = 0.5) {
+  if (!a || !b) return false;
+  return !(
+    a.right <= b.left + tol ||
+    a.left >= b.right - tol ||
+    a.bottom <= b.top + tol ||
+    a.top >= b.bottom - tol
+  );
+}
+
+async function readPadiemSnapshot(page) {
+  return page.evaluate(
+    ({ compact, disclosure }) => {
+      const bodyText = document.body ? document.body.innerText || "" : "";
+      const countExact = (text) => {
+        if (!text) return 0;
+        let n = 0;
+        let from = 0;
+        while (from < bodyText.length) {
+          const i = bodyText.indexOf(text, from);
+          if (i === -1) break;
+          n += 1;
+          from = i + text.length;
+        }
+        return n;
+      };
+      const attr = document.querySelector(
+        '[data-service-attribution="padiem-compact"]',
+      );
+      const disc = document.querySelector(
+        '[data-service-attribution="padiem-disclosure"]',
+      );
+      const shell = document.getElementById("chat-shell");
+      const canvas = document.getElementById("demo-canvas");
+      const composer = document.getElementById("chat-composer-form");
+      const title = document.querySelector(".chat-shell__title");
+      const reset = document.getElementById("chat-reset");
+      const thread = document.getElementById("chat-thread");
+      const box = (el) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        return {
+          left: r.left,
+          top: r.top,
+          right: r.right,
+          bottom: r.bottom,
+          width: r.width,
+          height: r.height,
+          display: cs.display,
+          visibility: cs.visibility,
+          opacity: cs.opacity,
+          focusable:
+            el.tabIndex >= 0 ||
+            el.tagName === "A" ||
+            el.tagName === "BUTTON" ||
+            el.tagName === "INPUT",
+          tag: el.tagName,
+          ariaHidden: el.getAttribute("aria-hidden"),
+          text: (el.textContent || "").trim(),
+          inShell: !!(shell && shell.contains(el)),
+          inCanvas: !!(canvas && canvas.contains(el)),
+          inThread: !!(thread && thread.contains(el)),
+        };
+      };
+      const canvasText = canvas ? canvas.innerText || "" : "";
+      return {
+        state: document.body.getAttribute("data-first-use-state"),
+        mobileSurface: document.body.getAttribute("data-mobile-surface"),
+        compactCount: countExact(compact),
+        disclosureCount: countExact(disclosure),
+        attrNodes: document.querySelectorAll(
+          '[data-service-attribution="padiem-compact"]',
+        ).length,
+        discNodes: document.querySelectorAll(
+          '[data-service-attribution="padiem-disclosure"]',
+        ).length,
+        canvasPadiem:
+          (canvasText.match(/PADIEM/g) || []).length +
+          (canvasText.match(/파디엠/g) || []).length,
+        attr: box(attr),
+        disc: box(disc),
+        title: box(title),
+        reset: box(reset),
+        composer: box(composer),
+        shell: box(shell),
+        thread: box(thread),
+        overflow: {
+          htmlSW: document.documentElement.scrollWidth,
+          htmlCW: document.documentElement.clientWidth,
+          bodySW: document.body ? document.body.scrollWidth : 0,
+          bodyCW: document.body ? document.body.clientWidth : 0,
+        },
+      };
+    },
+    { compact: PADIEM_COMPACT, disclosure: PADIEM_DISCLOSURE },
+  );
+}
+
+function assertPadiemGeometry(snap, ctx) {
+  assert.equal(snap.attrNodes, 1, `compact nodes [${ctx}]`);
+  assert.equal(snap.discNodes, 1, `disclosure nodes [${ctx}]`);
+  assert.equal(snap.compactCount, 1, `compact text count [${ctx}]`);
+  assert.equal(snap.disclosureCount, 1, `disclosure text count [${ctx}]`);
+  assert.equal(snap.canvasPadiem, 0, `official canvas PADIEM count [${ctx}]`);
+  assert.ok(snap.attr, `attribution present [${ctx}]`);
+  assert.ok(snap.disc, `disclosure present [${ctx}]`);
+  assert.equal(snap.attr.text, PADIEM_COMPACT, `compact exact [${ctx}]`);
+  assert.equal(snap.disc.text, PADIEM_DISCLOSURE, `disclosure exact [${ctx}]`);
+  assert.equal(snap.attr.tag, "P", `attr tag p [${ctx}]`);
+  assert.equal(snap.disc.tag, "P", `disc tag p [${ctx}]`);
+  assert.equal(snap.attr.focusable, false, `attr not focusable [${ctx}]`);
+  assert.equal(snap.disc.focusable, false, `disc not focusable [${ctx}]`);
+  assert.ok(
+    snap.attr.ariaHidden === null || snap.attr.ariaHidden === "false",
+    `attr not aria-hidden [${ctx}]`,
+  );
+  assert.ok(
+    snap.disc.ariaHidden === null || snap.disc.ariaHidden === "false",
+    `disc not aria-hidden [${ctx}]`,
+  );
+  assert.ok(snap.attr.inShell, `attr in shell [${ctx}]`);
+  assert.ok(snap.disc.inShell, `disc in shell [${ctx}]`);
+  assert.equal(snap.attr.inCanvas, false, `attr not in canvas [${ctx}]`);
+  assert.equal(snap.disc.inCanvas, false, `disc not in canvas [${ctx}]`);
+  assert.equal(snap.attr.inThread, false, `attr not in thread [${ctx}]`);
+  assert.equal(snap.disc.inThread, false, `disc not in thread [${ctx}]`);
+  assert.ok(snap.attr.width > 0 && snap.attr.height > 0, `attr visible [${ctx}]`);
+  assert.ok(snap.disc.width > 0 && snap.disc.height > 0, `disc visible [${ctx}]`);
+  assert.ok(snap.composer && snap.composer.width > 0, `composer visible [${ctx}]`);
+  assert.ok(
+    !rectsOverlap(snap.attr, snap.reset) || !snap.reset || snap.reset.width === 0,
+    `attr/reset overlap [${ctx}]`,
+  );
+  assert.ok(
+    !rectsOverlap(snap.attr, snap.composer),
+    `attr/composer overlap [${ctx}]`,
+  );
+  assert.ok(
+    !rectsOverlap(snap.disc, snap.composer),
+    `disclosure/composer overlap [${ctx}]`,
+  );
+  assert.ok(
+    snap.attr.bottom <= snap.composer.top + 1.5,
+    `attr above composer [${ctx}]`,
+  );
+  assert.ok(
+    snap.composer.bottom <= snap.disc.top + 1.5,
+    `composer above disclosure [${ctx}]`,
+  );
+  assert.ok(
+    snap.overflow.htmlSW <= snap.overflow.htmlCW + 1.5,
+    `html horizontal overflow [${ctx}] ${snap.overflow.htmlSW}/${snap.overflow.htmlCW}`,
+  );
+  assert.ok(
+    snap.overflow.bodySW <= snap.overflow.bodyCW + 1.5,
+    `body horizontal overflow [${ctx}] ${snap.overflow.bodySW}/${snap.overflow.bodyCW}`,
+  );
+  if (snap.title) {
+    assert.ok(
+      snap.attr.top + 0.5 >= snap.title.top,
+      `attr not above title [${ctx}]`,
+    );
+  }
+}
+
+/**
+ * #1121 persistent browser contracts: PADIEM attribution uniqueness,
+ * geometry, and official-canvas exclusion across viewports/states.
+ */
+async function runPadiem1121Contracts(browser, base) {
+  console.log("\nRunning #1121 PADIEM attribution browser contracts:");
+  const allowedOrigin = new URL(base).origin;
+  const buckets = {
+    consoleErrors: [],
+    pageErrors: [],
+    requestFailures: [],
+    httpErrors: [],
+    externalRequestAttempts: [],
+  };
+  const sectionFailures = [];
+
+  async function section(name, fn) {
+    try {
+      await fn();
+      console.log(`${name} PASS`);
+    } catch (err) {
+      const msg = err && err.message ? err.message : String(err);
+      sectionFailures.push(`${name}: ${msg}`);
+      console.error(`${name} FAIL: ${msg}`);
+    }
+  }
+
+  const ctx = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+  });
+  let page;
+  try {
+    await ctx.route("**", (route) => {
+      const requestUrl = new URL(route.request().url());
+      if (requestUrl.origin === allowedOrigin) {
+        return route.continue();
+      }
+      if (requestUrl.pathname === "/favicon.ico") {
+        return route.abort();
+      }
+      buckets.externalRequestAttempts.push(requestUrl.toString());
+      return route.abort();
+    });
+    page = await ctx.newPage();
+    page.on("pageerror", (err) => {
+      buckets.pageErrors.push(String(err && err.message ? err.message : err));
+    });
+    page.on("console", (msg) => {
+      if (msg.type() === "error") buckets.consoleErrors.push(msg.text());
+    });
+    page.on("requestfailed", (req) => {
+      try {
+        const parsed = new URL(req.url());
+        if (parsed.pathname === "/favicon.ico") return;
+        if (parsed.origin !== allowedOrigin) return;
+      } catch {
+        /* count */
+      }
+      buckets.requestFailures.push(req.url());
+    });
+    page.on("response", (res) => {
+      try {
+        const parsed = new URL(res.url());
+        if (parsed.origin !== allowedOrigin) return;
+        if (parsed.pathname === "/favicon.ico") return;
+        if (res.status() >= 400) {
+          buckets.httpErrors.push(`${res.status()} ${res.url()}`);
+        }
+      } catch {
+        /* ignore */
+      }
+    });
+
+    for (const vp of PADIEM_VIEWPORTS) {
+      await section(`[1121 ${vp.width}x${vp.height}] entry geometry`, async () => {
+        await page.setViewportSize(vp);
+        const response = await page.goto(base, { waitUntil: "domcontentloaded" });
+        assert.ok(response, "no response");
+        assert.equal(response.status(), 200, `HTTP ${response.status()}`);
+        await page.waitForSelector('[data-service-attribution="padiem-compact"]', {
+          timeout: 10000,
+        });
+        await page.waitForSelector(
+          '[data-service-attribution="padiem-disclosure"]',
+          { timeout: 5000 },
+        );
+        const snap = await readPadiemSnapshot(page);
+        assert.equal(snap.state, "entry", "entry state");
+        assertPadiemGeometry(snap, `entry ${vp.width}x${vp.height}`);
+      });
+    }
+
+    // Desktop split / confirm / route / reset uniqueness.
+    await section("[1121 1440x900] split confirm reset uniqueness", async () => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(base, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#chat-chips", { timeout: 10000 });
+      const before = await readPadiemSnapshot(page);
+      assertPadiemGeometry(before, "pre-journey");
+
+      await page.click(
+        '[data-chip-question="불법 주정차 신고는 어디서 하나요?"]',
+      );
+      await page.waitForFunction(
+        () => {
+          const s = document.body.getAttribute("data-first-use-state");
+          return s === "transitioning" || s === "split";
+        },
+        null,
+        { timeout: 8000 },
+      );
+      // Mid-transition sample without arbitrary long sleep.
+      await page.waitForTimeout(350);
+      const mid = await readPadiemSnapshot(page);
+      assert.ok(
+        mid.state === "transitioning" || mid.state === "split",
+        `mid state ${mid.state}`,
+      );
+      assertPadiemGeometry(mid, "transitioning/split");
+
+      await page.waitForFunction(
+        () => document.body.getAttribute("data-first-use-state") === "split",
+        null,
+        { timeout: 12000 },
+      );
+      await page.waitForSelector(
+        '.chat-msg--confirm-run button:has-text("예, 안내해 주세요")',
+        { timeout: 8000 },
+      );
+      const splitSnap = await readPadiemSnapshot(page);
+      assertPadiemGeometry(splitSnap, "split-confirm");
+
+      await page.click(
+        '.chat-msg--confirm-run button:has-text("예, 안내해 주세요")',
+      );
+      await page.waitForFunction(
+        () => {
+          const thread = document.getElementById("chat-thread");
+          return (
+            thread &&
+            (thread.textContent || "").includes("불법 주정차 신고 경로를 안내")
+          );
+        },
+        null,
+        { timeout: 8000 },
+      );
+      const routeSnap = await readPadiemSnapshot(page);
+      assertPadiemGeometry(routeSnap, "route/result");
+
+      await page.click("#chat-reset");
+      await page.waitForFunction(
+        () => document.body.getAttribute("data-first-use-state") === "entry",
+        null,
+        { timeout: 5000 },
+      );
+      const resetSnap = await readPadiemSnapshot(page);
+      assertPadiemGeometry(resetSnap, "after-reset");
+
+      // Restart once more — still unique.
+      await page.click(
+        '[data-chip-question="여권 발급은 어디서 하나요?"]',
+      );
+      await page.waitForFunction(
+        () => document.body.getAttribute("data-first-use-state") === "split",
+        null,
+        { timeout: 12000 },
+      );
+      const restartSnap = await readPadiemSnapshot(page);
+      assertPadiemGeometry(restartSnap, "after-restart");
+    });
+
+    // Mobile surface switch must not duplicate attribution.
+    await section("[1121 390x844] mobile surface switch uniqueness", async () => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(base, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#chat-chips", { timeout: 10000 });
+      await page.click(
+        '[data-chip-question="불법 주정차 신고는 어디서 하나요?"]',
+      );
+      await page.waitForFunction(
+        () => document.body.getAttribute("data-first-use-state") === "split",
+        null,
+        { timeout: 12000 },
+      );
+      const yes = await page
+        .locator('.chat-msg--confirm-run button:has-text("예, 안내해 주세요")')
+        .count();
+      if (yes > 0) {
+        await page.click(
+          '.chat-msg--confirm-run button:has-text("예, 안내해 주세요")',
+        );
+      }
+      await page.waitForSelector("#mobile-surface-switch", {
+        state: "visible",
+        timeout: 8000,
+      });
+      const convSnap = await readPadiemSnapshot(page);
+      assertPadiemGeometry(convSnap, "mobile-conversation");
+
+      await page.click("#tab-guidance");
+      await page.waitForFunction(
+        () => document.body.getAttribute("data-mobile-surface") === "guidance",
+        null,
+        { timeout: 4000 },
+      );
+      // Attribution remains in the shell DOM (may be visually off-surface).
+      const guideNodes = await page.evaluate(() => ({
+        attr: document.querySelectorAll(
+          '[data-service-attribution="padiem-compact"]',
+        ).length,
+        disc: document.querySelectorAll(
+          '[data-service-attribution="padiem-disclosure"]',
+        ).length,
+        canvasPadiem: (
+          (document.getElementById("demo-canvas") || {}).innerText || ""
+        ).includes("PADIEM"),
+      }));
+      assert.equal(guideNodes.attr, 1, "guidance compact nodes");
+      assert.equal(guideNodes.disc, 1, "guidance disclosure nodes");
+      assert.equal(guideNodes.canvasPadiem, false, "canvas no PADIEM");
+
+      await page.click("#tab-conversation");
+      await page.waitForFunction(
+        () =>
+          document.body.getAttribute("data-mobile-surface") === "conversation",
+        null,
+        { timeout: 4000 },
+      );
+      const backSnap = await readPadiemSnapshot(page);
+      assertPadiemGeometry(backSnap, "mobile-back-conversation");
+    });
+
+    // Mayor path regression: attribution stays unique.
+    await section("[1121 1440x900] mayor journey uniqueness", async () => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(base, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#chat-chips", { timeout: 10000 });
+      await page.click('[data-chip-question="구청장에게 제안하고 싶어요"]');
+      await page.waitForFunction(
+        () => {
+          const s = document.body.getAttribute("data-first-use-state");
+          return s === "transitioning" || s === "split";
+        },
+        null,
+        { timeout: 10000 },
+      );
+      await page.waitForFunction(
+        () => document.body.getAttribute("data-first-use-state") === "split",
+        null,
+        { timeout: 15000 },
+      );
+      const mayorSnap = await readPadiemSnapshot(page);
+      assertPadiemGeometry(mayorSnap, "mayor-split");
+    });
+
+    await section("[1121] instrumentation clean", async () => {
+      assert.deepEqual(buckets.consoleErrors, [], "console errors");
+      assert.deepEqual(buckets.pageErrors, [], "page errors");
+      assert.deepEqual(buckets.requestFailures, [], "request failures");
+      assert.deepEqual(buckets.httpErrors, [], "http errors");
+      assert.deepEqual(
+        buckets.externalRequestAttempts,
+        [],
+        "external requests",
+      );
+    });
+
+    if (sectionFailures.length) {
+      throw new Error(sectionFailures.join("\n"));
+    }
+  } finally {
+    if (page) {
+      try {
+        await page.close();
+      } catch {
+        /* ignore */
+      }
+    }
+    await ctx.close();
+  }
+}
+
 // ── #1123 chat continuity across route transitions ─────────────────
 const CHAT_CONTINUITY_PARKING_Q = "불법 주정차 신고는 어디서 하나요?";
 const CHAT_CONTINUITY_MATRIX = Object.freeze([
@@ -4231,6 +4690,15 @@ async function main() {
           failures.push(`viewport=${vp.width}x${vp.height} state=${state}: ${err.message}`);
         }
       }
+    }
+
+    // #1121 PADIEM service attribution contracts.
+    try {
+      await runPadiem1121Contracts(browser, base);
+    } catch (err) {
+      failures.push(
+        `#1121 PADIEM attribution: ${err && err.message ? err.message : err}`,
+      );
     }
 
     // #1123 chat continuity across civic-route transitions.
