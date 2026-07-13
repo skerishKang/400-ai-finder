@@ -15,6 +15,12 @@
   var STATE_ENTRY = "entry";
   var STATE_TRANSITIONING = "transitioning";
   var STATE_SPLIT = "split";
+  // #1067 — semantic journey axis (independent of layout first-use-state).
+  var JOURNEY_ENTRY = "entry";
+  var JOURNEY_ANSWER = "answer";
+  var JOURNEY_CONFIRM = "confirm";
+  var JOURNEY_NAVIGATE = "navigate";
+  var JOURNEY_RESULT = "result";
   var TRANSITION_DURATION_MS = 1100;
   var SUPPORTED_QUESTION_ACTIONS = {
     "불법 주정차 신고는 어디서 하나요?": "illegal_parking",
@@ -49,6 +55,11 @@
   var splitTimer = null;
   var lastSplitQuestion = null;
   var currentState = STATE_ENTRY;
+  var currentJourneyState = JOURNEY_ENTRY;
+  // #1067: while true, choreography cancelled events must not map to answer.
+  var _journeyResetting = false;
+  // #1067: invalidate confirm-run / decision buttons created before a reset.
+  var _confirmGeneration = 0;
 
   // ── MVP mode (#925 / #927) ──────────────────────────────────────
   // Enabled only with ?mvp=1. In MVP mode the shell calls the model-backed
@@ -58,6 +69,72 @@
   // no fetch itself (the bridge file does, and is loaded only in MVP mode).
   var _mvpRequestToken = 0;
   var _questRuntimeResult = null;
+
+  /**
+   * #1067: set semantic journey state on body. Layout state (data-first-use-state)
+   * is independent and unchanged by this axis.
+   */
+  function setJourneyState(nextState) {
+    if (_journeyResetting && nextState !== JOURNEY_ENTRY) {
+      return;
+    }
+    if (
+      nextState !== JOURNEY_ENTRY &&
+      nextState !== JOURNEY_ANSWER &&
+      nextState !== JOURNEY_CONFIRM &&
+      nextState !== JOURNEY_NAVIGATE &&
+      nextState !== JOURNEY_RESULT
+    ) {
+      return;
+    }
+    if (currentJourneyState === nextState) {
+      return;
+    }
+    currentJourneyState = nextState;
+    if (body) {
+      body.setAttribute("data-journey-state", nextState);
+    }
+  }
+
+  function getJourneyState() {
+    return currentJourneyState;
+  }
+
+  /**
+   * Map choreography internal states onto the shared semantic journey axis.
+   * idle leaves the current shell journey state alone.
+   */
+  function _mapChoreographyToJourneyState(choreoState) {
+    if (_journeyResetting) {
+      setJourneyState(JOURNEY_ENTRY);
+      return;
+    }
+    if (choreoState === "running") {
+      setJourneyState(JOURNEY_NAVIGATE);
+      return;
+    }
+    if (choreoState === "waiting_choice" || choreoState === "waiting_confirmation") {
+      setJourneyState(JOURNEY_CONFIRM);
+      return;
+    }
+    if (choreoState === "done") {
+      setJourneyState(JOURNEY_RESULT);
+      return;
+    }
+    if (choreoState === "cancelled") {
+      // Explicit reset uses _journeyResetting; other cancels (아니요-style
+      // "직접 작성" / "수정할게요") return to answer.
+      setJourneyState(JOURNEY_ANSWER);
+    }
+    // idle: keep current journey state
+  }
+
+  function _onChoreographyStateChange(event) {
+    var detail = event && event.detail ? event.detail : null;
+    var choreoState = detail && detail.state ? detail.state : null;
+    if (!choreoState) return;
+    _mapChoreographyToJourneyState(choreoState);
+  }
 
   function isMvpMode() {
     // Live build injects ?mvp=1 into URL before shell init.
@@ -972,6 +1049,8 @@
   }
 
   function startChoreography(question) {
+    // #1067: positive confirm → navigate (choreography start also emits running).
+    setJourneyState(JOURNEY_NAVIGATE);
     if (window.CitizenFirstChoreography && question) {
       window.CitizenFirstChoreography.start(question);
     }
@@ -986,6 +1065,7 @@
     var msgDiv = document.createElement("div");
     msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
     msgDiv.setAttribute("data-msg-type", "confirm-run");
+    var gen = _confirmGeneration;
 
     var bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bubble--ai";
@@ -1004,6 +1084,7 @@
     yesBtn.textContent = "예, 안내해 주세요";
     yesBtn.style.cssText = "padding:8px 16px;border:0;border-radius:18px;background:#ef6a4c;color:#fff;font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;";
     yesBtn.addEventListener("click", function () {
+      if (gen !== _confirmGeneration) return;
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
@@ -1021,9 +1102,12 @@
     noBtn.textContent = "아니요";
     noBtn.style.cssText = "padding:8px 16px;border:1px solid #d0d0d5;border-radius:18px;background:#fff;color:#0d0d0f;font:inherit;font-size:0.85rem;cursor:pointer;";
     noBtn.addEventListener("click", function () {
+      if (gen !== _confirmGeneration) return;
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      // Decline navigation — remain on the answered chat without clone drive.
+      setJourneyState(JOURNEY_ANSWER);
       focusComposerIfAllowed();
     });
 
@@ -1040,6 +1124,8 @@
 
     chatThread.appendChild(msgDiv);
     chatThread.scrollTop = chatThread.scrollHeight;
+    // #1067: confirm-run bubble shown — wait for resident decision.
+    setJourneyState(JOURNEY_CONFIRM);
   }
 
   // MVP confirm-run step: mirrors showConfirmRun but maps an action code to a
@@ -1050,6 +1136,7 @@
     var msgDiv = document.createElement("div");
     msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
     msgDiv.setAttribute("data-msg-type", "confirm-run");
+    var gen = _confirmGeneration;
 
     var bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bubble--ai";
@@ -1068,6 +1155,7 @@
     yesBtn.textContent = "예, 안내해 주세요";
     yesBtn.style.cssText = "padding:8px 16px;border:0;border-radius:18px;background:#ef6a4c;color:#fff;font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;";
     yesBtn.addEventListener("click", function () {
+      if (gen !== _confirmGeneration) return;
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
@@ -1077,6 +1165,7 @@
         chatInput.blur();
       }
       setMobileSurface("guidance");
+      setJourneyState(JOURNEY_NAVIGATE);
       if (window.CitizenFirstChoreography && action) {
         window.CitizenFirstChoreography.start(action);
       }
@@ -1087,9 +1176,11 @@
     noBtn.textContent = "아니요";
     noBtn.style.cssText = "padding:8px 16px;border:1px solid #d0d0d5;border-radius:18px;background:#fff;color:#0d0d0f;font:inherit;font-size:0.85rem;cursor:pointer;";
     noBtn.addEventListener("click", function () {
+      if (gen !== _confirmGeneration) return;
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      setJourneyState(JOURNEY_ANSWER);
       focusComposerIfAllowed();
     });
 
@@ -1106,6 +1197,7 @@
 
     chatThread.appendChild(msgDiv);
     chatThread.scrollTop = chatThread.scrollHeight;
+    setJourneyState(JOURNEY_CONFIRM);
   }
 
   function completeSplit() {
@@ -1119,6 +1211,8 @@
         "ai",
         "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
       );
+      // Ack is an assistant answer before the confirm gate.
+      setJourneyState(JOURNEY_ANSWER);
       if (lastSplitQuestion) {
         showConfirmRun(lastSplitQuestion);
       }
@@ -1385,6 +1479,7 @@
         }
       } else {
         appendChatMessage("ai", SPLIT_FOLLOW_UP_MESSAGE);
+        setJourneyState(JOURNEY_ANSWER);
         focusComposerIfAllowed();
       }
       return;
@@ -1407,6 +1502,8 @@
       "ai",
 "현재 첫 화면에서는 불법 주정차 신고, 공동주택 문의, 대형폐기물 처리, 여권 발급 안내, 무인민원발급기 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요."
     );
+    // #1067: general/unsupported static answer — stay in answer, no navigation.
+    setJourneyState(JOURNEY_ANSWER);
     focusComposerIfAllowed();
   }
 
@@ -1428,6 +1525,7 @@
         setComposerDisabled(false);
         focusComposerIfAllowed();
         appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+        setJourneyState(JOURNEY_ANSWER);
         return;
       }
       bridge.ask(question).then(function (result) {
@@ -1458,6 +1556,8 @@
           : "현재 AI 안내를 연결하지 못했습니다.";
         var answerMessage = appendChatMessage("ai", answer);
         appendAnswerFreshness(answerMessage, result);
+        // #1067: model or fail-closed answer is always semantic "answer".
+        setJourneyState(JOURNEY_ANSWER);
         if (hasUsableMvpResult) {
           applyQuestRuntimeState(result);
         } else {
@@ -1493,6 +1593,7 @@
           });
         } else if (action === "none") {
           // Keep the entry chat; do not move the clone or start a choreography.
+          // Journey remains answer (set above).
         }
         // Any other value: treated as none (no split, no clone move).
       }).catch(function () {
@@ -1500,6 +1601,7 @@
         setComposerDisabled(false);
         focusComposerIfAllowed();
         appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+        setJourneyState(JOURNEY_ANSWER);
       });
     });
   }
@@ -1529,6 +1631,8 @@
         "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
       );
       appendQuestProgressCard(chatThread);
+      // Bridge answer already set answer; ack reinforces answer before confirm.
+      setJourneyState(JOURNEY_ANSWER);
       // MVP confirm-run step: do NOT start the local choreography until the
       // citizen explicitly confirms. The confirm bubble shows the resolved
       // action's display name and only starts Choreography.start(action) when
@@ -1542,6 +1646,10 @@
   }
 
   function resetToEntry() {
+    // #1067: guard so choreography cancelled events during reset cannot map
+    // to answer; final semantic state must be entry.
+    _journeyResetting = true;
+    _confirmGeneration++;
     // Invalidate any in-flight MVP response so a late answer cannot re-open the
     // clone or restart an action after the user reset.
     _mvpRequestToken++;
@@ -1572,6 +1680,7 @@
 
     body.classList.add("first-use-shell--no-motion");
     setState(STATE_ENTRY);
+    setJourneyState(JOURNEY_ENTRY);
     // Reset scroll position to top
     if (chatThread) {
       chatThread.scrollTop = 0;
@@ -1583,6 +1692,7 @@
       // visibility and must NOT auto-focus the composer after reset.
       focusComposerIfAllowed();
     }
+    _journeyResetting = false;
     window.requestAnimationFrame(function () {
       body.classList.remove("first-use-shell--no-motion");
     });
@@ -1650,15 +1760,24 @@
     });
   }
 
+  // #1067: subscribe to choreography state events for semantic journey mapping.
+  // Layout first-use-state remains independent of this axis.
+  if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+    window.addEventListener("citizen:choreography-statechange", _onChoreographyStateChange);
+  }
+
   if (isLegacyJourneyLoad()) {
     setState(STATE_SPLIT);
+    setJourneyState(JOURNEY_ENTRY);
   } else {
     setState(STATE_ENTRY);
+    setJourneyState(JOURNEY_ENTRY);
     renderEntryConversation();
   }
 
   window.CitizenFirstUseShell = Object.freeze({
     getState: function () { return currentState; },
+    getJourneyState: getJourneyState,
     getQuestRuntimeResult: function () { return _questRuntimeResult; },
     isSupportedQuestion: isSupportedQuestion,
     renderQuestProgressCard: renderQuestProgressCard,
@@ -1672,6 +1791,14 @@
       entry: STATE_ENTRY,
       transitioning: STATE_TRANSITIONING,
       split: STATE_SPLIT
+    }),
+    // #1067: semantic journey axis (shared static + MVP + desktop + mobile).
+    journeyStates: Object.freeze({
+      entry: JOURNEY_ENTRY,
+      answer: JOURNEY_ANSWER,
+      confirm: JOURNEY_CONFIRM,
+      navigate: JOURNEY_NAVIGATE,
+      result: JOURNEY_RESULT
     })
   });
 })();

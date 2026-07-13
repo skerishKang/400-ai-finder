@@ -469,9 +469,31 @@
     return startDelay + (text.length * charDelayMs) + 160;
   }
 
+  /**
+   * Update internal choreography state and notify same-window listeners.
+   * #1067: shell maps these events onto semantic data-journey-state.
+   * Local CustomEvent only - no network or persistence.
+   */
   function _setState(nextState) {
     _state = nextState;
-    _body.setAttribute("data-choreography-state", nextState);
+    if (_body) {
+      _body.setAttribute("data-choreography-state", nextState);
+    }
+    try {
+      var detail = {
+        state: nextState,
+        journeyId: _currentJourneyId,
+        stepIndex: _currentStep,
+        totalSteps: _steps ? _steps.length : 0
+      };
+      if (typeof window !== "undefined" && typeof window.CustomEvent === "function") {
+        window.dispatchEvent(new CustomEvent("citizen:choreography-statechange", {
+          detail: detail
+        }));
+      }
+    } catch (_) {
+      /* CustomEvent unavailable - shell will not receive mapping events */
+    }
   }
 
   // #927: drive an existing local clone journey state through the public
@@ -780,10 +802,11 @@
     _clearTimer();
     _clearAuxTimers();
     _clearHighlights();
+    // Emit cancelled while journeyId/step still known, then clear.
+    _setState(STATE_CANCELLED);
     _steps = [];
     _currentStep = -1;
     _currentJourneyId = null;
-    _setState(STATE_CANCELLED);
   }
 
   /** @returns {string} current state */
