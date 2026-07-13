@@ -9,9 +9,13 @@
 //     inside a minimal fake DOM/window with injected test doubles
 //     (window.CitizenMvpBridge, window.CitizenFirstChoreography).
 
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, rmSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
 import assert from "node:assert";
 import vm from "node:vm";
+import { fileURLToPath } from "node:url";
 
 const SHELL_PATH = new URL(
   "../../src/web/static/citizen-first-use-shell.js",
@@ -2022,6 +2026,136 @@ function assertMatchMediaIsolation() {
   );
 }
 
+// ── #1068 root citizen-entry build contracts (offline, no network) ──
+
+const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
+
+function pickPython() {
+  const candidates = ["python", "python3", "py"];
+  for (const cmd of candidates) {
+    const r = spawnSync(cmd, ["--version"], { encoding: "utf8" });
+    if (r.status === 0) return cmd === "py" ? ["py", "-3"] : [cmd];
+  }
+  // Windows common install path
+  const win = [
+    join(process.env.LOCALAPPDATA || "", "Programs", "Python", "Python312", "python.exe"),
+    join(process.env.LOCALAPPDATA || "", "Programs", "Python", "Python311", "python.exe"),
+  ];
+  for (const p of win) {
+    if (p && existsSync(p)) return [p];
+  }
+  throw new Error("python not found for #1068 root build contract");
+}
+
+function runCloudflareBuild(mode, outDir) {
+  const py = pickPython();
+  const args = [
+    ...py.slice(1),
+    "scripts/build_cloudflare_pages.py",
+    "--mode",
+    mode,
+    "--out-dir",
+    outDir,
+  ];
+  const r = spawnSync(py[0], args, {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    env: { ...process.env, PYTHONPATH: REPO_ROOT },
+    timeout: 120000,
+  });
+  if (r.status !== 0) {
+    throw new Error(
+      `build --mode ${mode} failed (status=${r.status})\n${r.stdout || ""}\n${r.stderr || ""}`,
+    );
+  }
+}
+
+function countId(html, id) {
+  const re = new RegExp(`id="${id}"`, "g");
+  return (html.match(re) || []).length;
+}
+
+function assertCitizenEntryHtml(html, mode, label) {
+  assert.strictEqual(countId(html, "chat-shell"), 1, `${label}: #chat-shell count`);
+  assert.strictEqual(countId(html, "chat-thread"), 1, `${label}: #chat-thread count`);
+  assert.ok(html.includes('id="chat-composer-form"'), `${label}: composer form`);
+  assert.ok(html.includes('id="chat-composer-input"'), `${label}: composer input`);
+  assert.ok(html.includes('id="chat-composer-send"'), `${label}: composer send`);
+  assert.ok(html.includes('id="demo-canvas"'), `${label}: official canvas`);
+  assert.ok(html.includes("data-chip-question="), `${label}: preset chips`);
+  assert.ok(html.includes('data-first-use-state="entry"'), `${label}: first-use entry`);
+  // No equal-choice artifact chooser on resident paths.
+  assert.ok(!html.includes('class="cards"'), `${label}: no cards chooser`);
+  assert.ok(!html.includes("정밀 구현형 AI 북구청"), `${label}: no chooser title`);
+  assert.ok(!html.includes("운영자 화면"), `${label}: no admin card on entry`);
+  assert.ok(!html.includes('href="admin.html"'), `${label}: no admin href card`);
+  assert.ok(!html.includes('href="mobile.html"'), `${label}: no mobile href card`);
+  if (mode === "static") {
+    assert.ok(
+      html.includes("window.location.pathname + window.location.hash"),
+      `${label}: static query sanitizer`,
+    );
+    assert.ok(!html.includes('"?mvp=1"'), `${label}: no live injector`);
+  } else {
+    assert.ok(
+      html.includes('"?mvp=1"') || html.includes("?mvp=1"),
+      `${label}: live mvp activation`,
+    );
+    assert.ok(
+      !html.includes("window.location.pathname + window.location.hash") ||
+        html.includes('"?mvp=1"'),
+      `${label}: live uses injector not sanitizer-only`,
+    );
+    // Live injector marker: pathname + "?mvp=1"
+    assert.ok(
+      html.includes('pathname + "?mvp=1"') ||
+        html.includes("pathname + \"?mvp=1\""),
+      `${label}: live ?mvp=1 injector present`,
+    );
+  }
+  // No external network assets in the entry document.
+  assert.ok(!/https?:\/\//i.test(html.replace(/<!--[\s\S]*?-->/g, "")),
+    `${label}: no external http(s) URLs`);
+}
+
+function scenarioRootCitizenEntryBuildContracts() {
+  const outRoot = mkdtempSync(join(tmpdir(), "400-ai-finder-1068-"));
+  try {
+    for (const mode of ["static", "live"]) {
+      const outDir = join(outRoot, mode);
+      runCloudflareBuild(mode, outDir);
+      const root = readFileSync(join(outDir, "index.html"), "utf8");
+      const mvp = readFileSync(join(outDir, "mvp", "index.html"), "utf8");
+      const mobile = readFileSync(join(outDir, "mobile.html"), "utf8");
+      const admin = readFileSync(join(outDir, "admin.html"), "utf8");
+      const internal = readFileSync(join(outDir, "internal", "index.html"), "utf8");
+
+      assert.strictEqual(root, mvp, `${mode}: / and /mvp/ must be identical`);
+      assertCitizenEntryHtml(root, mode, `${mode} /`);
+      assertCitizenEntryHtml(mvp, mode, `${mode} /mvp/`);
+
+      // Compatibility surfaces still exist and are not the root chooser.
+      assert.ok(mobile.length > 100, `${mode}: mobile.html present`);
+      assert.ok(admin.length > 100, `${mode}: admin.html present`);
+      assert.ok(internal.includes("내부 도구"), `${mode}: internal index present`);
+      assert.ok(
+        internal.includes("examples/page-agent") ||
+          internal.includes("../examples/page-agent/"),
+        `${mode}: internal keeps Page Agent link`,
+      );
+      // Root must not promote internal tools as primary cards.
+      assert.ok(!root.includes("내부 도구"), `${mode}: root is not internal index`);
+    }
+    console.log("  [28] #1068 root citizen entry build contracts (static+live): OK");
+  } finally {
+    try {
+      rmSync(outRoot, { recursive: true, force: true });
+    } catch {
+      /* ignore cleanup */
+    }
+  }
+}
+
 async function main() {
   console.log("Running MVP shell runtime scenarios (no network, no fetch):");
   assertMatchMediaIsolation();
@@ -2057,6 +2191,8 @@ async function main() {
   await scenarioStreetlightRouteContract();        // D
   await scenarioStreetlightReportProgression();    // progression: streetlight
   await scenarioLitterAiAssistProgression();        // progression: litter AI
+  // #1068 root is the citizen entry (offline build HTML contracts)
+  scenarioRootCitizenEntryBuildContracts();
   console.log("All MVP shell runtime scenarios passed.");
 }
 

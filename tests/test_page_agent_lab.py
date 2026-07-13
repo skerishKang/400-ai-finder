@@ -55,16 +55,20 @@ BUILD_OUTPUT_FILES = [
     "vendor/page-agent.iife.js",
 ]
 
-# ── Routes that must NOT contain Page Agent content ───────────────────────
+# ── Routes that must NOT expose ANY Page Agent discovery (name/link) ──────
+# #1068: the resident root (``/``) is the citizen assistant, so it is part of
+# the discovery-free set alongside /mvp/, /mobile.html, /admin.html.
 
-PROTECTED_ROUTES = [
-    "index.html",      # root landing
+DISCOVERY_FREE_ROUTES = [
+    "index.html",      # resident root (citizen assistant, NOT a discovery boundary)
     os.path.join("mvp", "index.html"),
     "mobile.html",
     "admin.html",
 ]
 
-# Discoverability: root gateway link + name only.
+# Discoverability signatures (name/link text). Used to assert the routes above
+# stay discovery-free and that the internal index is the ONLY place that may
+# surface these.
 PAGE_AGENT_DISCOVERY_SIGNATURES = [
     "Page Agent",
     "page-agent",
@@ -82,12 +86,14 @@ PAGE_AGENT_RUNTIME_SIGNATURES = [
     "Page Agent 1.12.1",
 ]
 
-# Routes that must not expose ANY Page Agent discovery (name/link) either.
-NON_ROOT_PROTECTED_ROUTES = [
-    os.path.join("mvp", "index.html"),
-    "mobile.html",
-    "admin.html",
-]
+# The ONLY discovery boundary. /internal/ may link to the resident and
+# developer Page Agent routes, but must never contain runtime leakage.
+INTERNAL_DISCOVERY_ROUTE = os.path.join("internal", "index.html")
+
+# Every route below must be free of Page Agent runtime signatures. This
+# includes both the discovery-free public surfaces AND the internal index
+# (discovery-only, runtime-free).
+RUNTIME_FREE_ROUTES = DISCOVERY_FREE_ROUTES + [INTERNAL_DISCOVERY_ROUTE]
 
 # ── Hosts that must appear in mocked blocklists ───────────────────────────
 
@@ -531,6 +537,13 @@ class TestBuildOutput:
 
 # ── Route isolation contracts ─────────────────────────────────────────────
 
+# Invariants enforced by this section (product design #1068):
+#   * resident root (``/``)          = discovery-free citizen assistant
+#   * internal route (``/internal/``) = discovery-only, runtime-free boundary
+#   * actual Page Agent route (``/examples/page-agent/``) = isolated runtime owner
+#     (its byte-parity / vendor integrity is verified by TestBuildOutput and
+#     TestVendorManifestIntegrity and must not be relaxed here).
+
 
 def _assert_no_page_agent_runtime(text, route, mode):
     for sig in PAGE_AGENT_RUNTIME_SIGNATURES:
@@ -547,67 +560,94 @@ def _assert_no_page_agent_discovery(text, route, mode):
 
 
 class TestRouteIsolation:
-    """Page Agent runtime must NOT leak into any protected route; the root
-    gateway may expose the discovery link/name, but the three non-root routes
-    (MVP / mobile / admin) must stay fully clean of both discovery and runtime.
+    """#1068 route-isolation invariants.
+
+    The resident root (``/``) and the other public surfaces (``/mvp/``,
+    ``/mobile.html``, ``/admin.html``) must stay Page Agent discovery-free.
+    ``/internal/`` is the ONLY discovery boundary: it may link to the resident
+    and developer Page Agent routes, but must contain no Page Agent runtime
+    leakage. ``/examples/page-agent/`` remains the isolated runtime owner
+    (verified by the build-output / vendor-manifest contracts).
     """
 
-    @pytest.mark.parametrize("route", PROTECTED_ROUTES)
+    @pytest.mark.parametrize("route", RUNTIME_FREE_ROUTES)
     def test_static_build_runtime_absent(self, route):
         out = _run_build("static")
         route_path = os.path.join(out, route)
         if os.path.isfile(route_path):
             _assert_no_page_agent_runtime(_read(route_path), route, "static")
 
-    @pytest.mark.parametrize("route", PROTECTED_ROUTES)
+    @pytest.mark.parametrize("route", RUNTIME_FREE_ROUTES)
     def test_live_build_runtime_absent(self, route):
         out = _run_build("live")
         route_path = os.path.join(out, route)
         if os.path.isfile(route_path):
             _assert_no_page_agent_runtime(_read(route_path), route, "live")
 
-    @pytest.mark.parametrize("route", NON_ROOT_PROTECTED_ROUTES)
+    @pytest.mark.parametrize("route", DISCOVERY_FREE_ROUTES)
     def test_static_build_discovery_absent(self, route):
         out = _run_build("static")
         route_path = os.path.join(out, route)
         if os.path.isfile(route_path):
             _assert_no_page_agent_discovery(_read(route_path), route, "static")
 
-    @pytest.mark.parametrize("route", NON_ROOT_PROTECTED_ROUTES)
+    @pytest.mark.parametrize("route", DISCOVERY_FREE_ROUTES)
     def test_live_build_discovery_absent(self, route):
         out = _run_build("live")
         route_path = os.path.join(out, route)
         if os.path.isfile(route_path):
             _assert_no_page_agent_discovery(_read(route_path), route, "live")
 
-    def test_static_root_is_only_discovery_boundary(self):
+    def test_static_root_has_no_page_agent_discovery(self):
         out = _run_build("static")
         index = _read(os.path.join(out, "index.html"))
-        # Exactly one same-origin gateway link to the demoted developer lab.
-        assert index.count('href="examples/page-agent/"') == 1
-        # The demoted developer lab uses the developer-artifact label.
-        assert index.count("Page Agent 개발자 실험실") == 1
-        # The old primary product label is gone.
-        assert index.count("Page Agent 실험실") == 0
-        # Exactly one primary resident Page Agent card link.
-        assert index.count('href="examples/page-agent/resident/"') == 1
-        assert index.count("Page Agent형 AI 북구청") == 1
-        # Developer lab is NOT a primary .card.
-        assert '<a class="card" href="examples/page-agent/"' not in index
-        # Root still contains no runtime leakage.
+        # Resident root is a citizen assistant, NOT a Page Agent discovery
+        # boundary. None of the discovery names/links may appear.
+        assert index.count("Page Agent형 AI 북구청") == 0
+        assert index.count("Page Agent 개발자 실험실") == 0
+        assert index.count('href="examples/page-agent/"') == 0
+        assert index.count('href="examples/page-agent/resident/"') == 0
+        # The citizen assistant shell must still be present (no artifact
+        # chooser returned to the resident root).
+        assert "citizen-first-use-shell.js" in index
+        assert "내부 도구" not in index
+        # No Page Agent runtime leakage at the resident root.
         _assert_no_page_agent_runtime(index, "index.html", "static")
 
-    def test_live_root_is_only_discovery_boundary(self):
+    def test_live_root_has_no_page_agent_discovery(self):
         out = _run_build("live")
         index = _read(os.path.join(out, "index.html"))
-        assert index.count('href="examples/page-agent/"') == 1
-        assert index.count("Page Agent 개발자 실험실") == 1
-        assert index.count("Page Agent 실험실") == 0
-        assert index.count('href="examples/page-agent/resident/"') == 1
-        assert index.count("Page Agent형 AI 북구청") == 1
-        # Developer lab is NOT a primary .card.
-        assert '<a class="card" href="examples/page-agent/"' not in index
+        assert index.count("Page Agent형 AI 북구청") == 0
+        assert index.count("Page Agent 개발자 실험실") == 0
+        assert index.count('href="examples/page-agent/"') == 0
+        assert index.count('href="examples/page-agent/resident/"') == 0
+        assert "citizen-first-use-shell.js" in index
+        assert "내부 도구" not in index
         _assert_no_page_agent_runtime(index, "index.html", "live")
+
+    def test_static_internal_is_only_discovery_boundary(self):
+        out = _run_build("static")
+        internal = _read(os.path.join(out, INTERNAL_DISCOVERY_ROUTE))
+        # Exactly one same-origin resident Page Agent route link.
+        assert internal.count('href="../examples/page-agent/resident/"') == 1
+        assert internal.count("Page Agent형 AI 북구청") == 1
+        # Exactly one same-origin developer lab route link.
+        assert internal.count('href="../examples/page-agent/"') == 1
+        assert internal.count("Page Agent 개발자 실험실") == 1
+        # Developer lab is NOT a primary .card.
+        assert '<a class="card" href="../examples/page-agent/"' not in internal
+        # Internal index is discovery-only: no Page Agent runtime leakage.
+        _assert_no_page_agent_runtime(internal, INTERNAL_DISCOVERY_ROUTE, "static")
+
+    def test_live_internal_is_only_discovery_boundary(self):
+        out = _run_build("live")
+        internal = _read(os.path.join(out, INTERNAL_DISCOVERY_ROUTE))
+        assert internal.count('href="../examples/page-agent/resident/"') == 1
+        assert internal.count("Page Agent형 AI 북구청") == 1
+        assert internal.count('href="../examples/page-agent/"') == 1
+        assert internal.count("Page Agent 개발자 실험실") == 1
+        assert '<a class="card" href="../examples/page-agent/"' not in internal
+        _assert_no_page_agent_runtime(internal, INTERNAL_DISCOVERY_ROUTE, "live")
 
 
 # ── API isolation contracts ───────────────────────────────────────────────
