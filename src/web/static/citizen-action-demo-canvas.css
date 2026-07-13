@@ -1193,6 +1193,21 @@
 }
 :is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__icon svg { width: 20px; height: 20px; }
 
+/* Dense/home shared shell: neutralize legacy .bg-gnb bar so home-style GNB
+   (dark text on white) is not painted as an unstyled green gradient strip. */
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header > .bg-gnb,
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header nav.bg-gnb {
+  min-width: 0;
+  background: transparent;
+  background-image: none;
+  border: 0;
+  border-image: none;
+  border-bottom: 0;
+  flex-shrink: 1;
+  height: auto;
+  padding: 0;
+}
+
 .bg-page--home .bg-home-search {
   min-height: 135px;
   background: linear-gradient(90deg, #fff 0%, #fbfdfd 72%, #eff8f6 100%);
@@ -3436,13 +3451,102 @@
   border-radius: 50%;
 }
 
+/*
+ * Official content lists (#1122): keep semantic markers visible while
+ * containing every marker/text box inside the content container.
+ * Outside markers need real padding-inline-start; nested lists inherit
+ * the same invariant so they never paint left of the content edge.
+ */
+.bg-official-content-html ul,
+.bg-official-content-html ol {
+  margin: 0 0 0.85em;
+  padding-inline-start: 2em;
+  list-style-position: outside;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.bg-official-content-html li {
+  margin: 0.35em 0;
+  padding-inline-start: 0.15em;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.bg-official-content-html li > ul,
+.bg-official-content-html li > ol {
+  margin: 0.4em 0 0.55em;
+  padding-inline-start: 1.85em;
+}
+
 .bg-official-content-html .dep03 {
-  margin: 0;
-  padding-left: 22px;
+  margin: 0 0 0.85em;
+  padding-inline-start: 2em;
+  list-style-type: disc;
+  list-style-position: outside;
 }
 
 .bg-official-content-html .dep03 li {
   margin: 5px 0;
+}
+
+/* depth4_tab keeps its non-marker tab strip (more specific, later-safe). */
+.bg-official-content-html .depth4_tab ul {
+  margin: 0;
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.bg-official-content-html .depth4_tab li {
+  margin: 0;
+  padding-inline-start: 0;
+}
+
+/* Passport process steps: official horizontal step strip, markers not free-floating. */
+.bg-official-content-html .step-list {
+  margin: 12px 0 22px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.bg-official-content-html .step-list > ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 100%;
+}
+
+.bg-official-content-html .step-list > ul > li {
+  flex: 1 1 110px;
+  margin: 0;
+  padding: 14px 12px;
+  min-width: 0;
+  list-style: none;
+  text-align: center;
+  border: 1px solid #d5deea;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f7fafc 0%, #fff 100%);
+  color: #172033;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  box-sizing: border-box;
+}
+
+.bg-official-content-html .step-list > ul > li strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #0f3f7a;
+  font-size: 0.95rem;
+}
+
+.bg-official-content-html .step-list > ul > li span {
+  display: block;
+  color: #5b677a;
+  font-size: 0.78rem;
 }
 
 .bg-official-content-html .infoBox {
