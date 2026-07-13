@@ -365,10 +365,18 @@ class TestRouteStructure:
         assert "bg-page-header" in js
         assert "bg-page-header__title" in js
 
-    def test_each_route_renders_poc_banner(self):
+    def test_resident_routes_do_not_render_poc_or_demo_overlay(self):
+        # #1139/#1141: PoC/demo render helpers removed. Class name may remain only
+        # as a single non-visible inert stub (display:none + aria-hidden).
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "_renderPocBanner" in js
-        assert "bg-poc-banner" in js
+        assert "_renderPocBanner" not in js
+        assert "_renderDemoOverlay" not in js
+        assert "bg-demo-overlay" not in js
+        assert js.count("bg-poc-banner") == 1
+        assert (
+            '<div class="bg-poc-banner" style="display:none !important;" '
+            'aria-hidden="true"></div>'
+        ) in js
 
 
 class TestMvpRouteVocabulary:
@@ -834,6 +842,11 @@ class TestFidelityAndSeparation:
         assert 'disabled' in html
         assert 'safety-stop-overlay' in html
         assert 'Safety Stop' in html
+        # #1138/#1139: no hard-coded illegal-parking office; category mapping present
+        assert "북구청 교통과" not in html
+        assert "불법 주정차 신고" not in html
+        assert "_getComplaintReviewServiceMeta" in _read_static("citizen-action-demo-canvas.js")
+        assert "생활민원" in html  # neutral fallback when no category selected
 
     def test_no_whole_page_screenshots_as_backgrounds(self):
         """Verify canvas.js source does not load raw full screenshot images directly as background or img."""

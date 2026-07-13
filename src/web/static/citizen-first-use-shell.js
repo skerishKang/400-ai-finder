@@ -2176,9 +2176,10 @@
       return;
     }
 
+    // #1140: align with canvas cursor move(1140)+dwell(300)+click-read(340).
     var moveDelay = 100;
-    var clickDelay = 920;
-    var afterClickDelay = 560;
+    var clickDelay = 120;
+    var afterClickDelay = 1440 + 340;
     var splitAt = clickDelay + afterClickDelay;
 
     if (typeof canvasApi.hideCursor === "function") {

@@ -965,92 +965,7 @@
     );
   }
 
-  function _renderPocBanner() {
-    return (
-      '<div style="display:none !important;" aria-hidden="true">PoC banner placeholder</div>'
-    );
-  }
 
-  // -----------------------------------------------------------------------
-  // Demo overlay — floating panel with AI guidance + category cards
-  // -----------------------------------------------------------------------
-  function _renderDemoOverlay() {
-    var categoryTargets = [];
-    var catRoute = _map.getRoute("complaint-category");
-    if (catRoute) {
-      categoryTargets = catRoute.navTargets;
-    }
-
-    var cardsHtml = '';
-    for (var i = 0; i < categoryTargets.length; i++) {
-      var tid = categoryTargets[i];
-      var label = _map.getCategoryLabel(tid) || tid;
-      var icons = {
-        "complaint-category-illegal-parking": "🚗",
-        "complaint-category-public-parking-inconvenience": "🅿️",
-        "complaint-category-residential-parking": "🏢",
-        "complaint-category-traffic-or-facility-safety": "⚠️",
-        "complaint-category-other-or-unsure": "📋",
-      };
-      var icon = icons[tid] || "📋";
-      cardsHtml +=
-        '<button class="bg-demo-overlay__card" data-action-target="' + _escHtml(tid) + '" type="button">' +
-          '<span class="bg-demo-overlay__card-icon">' + icon + '</span>' +
-          '<span class="bg-demo-overlay__card-label">' + _escHtml(label) + '</span>' +
-          '<span class="bg-demo-overlay__card-arrow" aria-hidden="true">›</span>' +
-        '</button>';
-    }
-
-    // Determine progress state based on current route
-    var progressSteps = [
-      { id: "home", label: "홈" },
-      { id: "civil-service", label: "신청" },
-      { id: "complaint-category", label: "안내" },
-      { id: "complaint-intake", label: "작성" },
-      { id: "handoff-stop", label: "종료" },
-    ];
-
-    var currentIdx = 0;
-    for (var j = 0; j < progressSteps.length; j++) {
-      if (progressSteps[j].id === _currentRouteId) {
-        currentIdx = j;
-        break;
-      }
-    }
-
-    var progressHtml = '';
-    for (var k = 0; k < progressSteps.length; k++) {
-      if (k > 0) {
-        progressHtml += '<span class="bg-demo-overlay__progress-sep">›</span>';
-      }
-      var cls = 'bg-demo-overlay__progress-step';
-      if (k < currentIdx) cls += ' bg-demo-overlay__progress-step--done';
-      else if (k === currentIdx) cls += ' bg-demo-overlay__progress-step--active';
-      progressHtml += '<span class="' + cls + '">' +
-        (k < currentIdx ? '✓' : (k === currentIdx ? '●' : '○')) +
-        ' ' + progressSteps[k].label + '</span>';
-    }
-
-    return (
-      '<div class="bg-demo-overlay" role="complementary" aria-label="AI 도우미">' +
-        '<div class="bg-demo-overlay__header">' +
-          '<span class="bg-demo-overlay__header-icon">🤖</span>' +
-          '<span>AI 도우미</span>' +
-        '</div>' +
-        '<div class="bg-demo-overlay__body">' +
-          '<div class="bg-demo-overlay__guidance">' +
-            '💡 <strong>불법 주정차 신고</strong> 관련 경로를 안내합니다.' +
-          '</div>' +
-          '<div class="bg-demo-overlay__cards">' +
-            cardsHtml +
-          '</div>' +
-        '</div>' +
-        '<div class="bg-demo-overlay__progress">' +
-          progressHtml +
-        '</div>' +
-      '</div>'
-    );
-  }
 
   // -----------------------------------------------------------------------
   // _renderHome — faithful Buk-gu Office main portal
@@ -2352,12 +2267,54 @@
   }
 
   // -----------------------------------------------------------------------
+  // Closed category -> review summary mapping (#1138). Fail-closed neutral fallback.
+  function _normalizeComplaintCategoryKey(categoryId) {
+    if (!categoryId || typeof categoryId !== "string") return "";
+    var key = categoryId;
+    if (key.indexOf("complaint-category-") === 0) {
+      key = key.slice("complaint-category-".length);
+    }
+    return key;
+  }
+
+  function _getComplaintReviewServiceMeta(categoryId) {
+    var key = _normalizeComplaintCategoryKey(categoryId);
+    var map = {
+      "illegal-parking": {
+        service: "불법주정차 민원",
+        office: "북구청 공식 신고 채널"
+      },
+      "public-parking-inconvenience": {
+        service: "공용주차장 불편 민원",
+        office: "북구청 공식 민원 채널"
+      },
+      "residential-parking": {
+        service: "공동주택 주차 민원",
+        office: "북구청 공식 민원 채널"
+      },
+      "traffic-or-facility-safety": {
+        service: "교통·시설 안전 민원",
+        office: "북구청 공식 민원 채널"
+      },
+      "other-or-unsure": {
+        service: "생활민원",
+        office: "북구청 공식 민원 채널"
+      }
+    };
+    if (map[key]) return map[key];
+    return {
+      service: "생활민원",
+      office: "북구청 공식 민원 채널"
+    };
+  }
+
   // _renderComplaintReview — pre-submit with Safety Stop modal
   // -----------------------------------------------------------------------
   function _renderComplaintReview(route) {
     var categoryLabel = _selectedCategory
       ? (_map.getCategoryLabel(_selectedCategory) || _selectedCategory)
       : "선택된 유형 없음";
+    var serviceMeta = _getComplaintReviewServiceMeta(_selectedCategory);
 
     return (
       '<div class="bg-page bg-page--full bg-page--dense">' +
@@ -2375,15 +2332,13 @@
 
           '<main class="bg-content bg-content--sub">' +
             _renderSubPageHeader("민원 신청 확인", "아래 내용을 확인하고 신청해 주세요.") +
-            _renderPocBanner() +
-
-            /* Review summary */
+            /* Review summary - category-aware (#1138) */
             '<div class="bg-review-summary">' +
               '<table class="bg-review-table">' +
                 '<tbody>' +
                   '<tr><th>유형</th><td>' + _escHtml(categoryLabel) + '</td></tr>' +
-                  '<tr><th>민원사무</th><td>불법 주정차 신고</td></tr>' +
-                  '<tr><th>제출처</th><td>북구청 교통과</td></tr>' +
+                  '<tr><th>민원사무</th><td>' + _escHtml(serviceMeta.service) + '</td></tr>' +
+                  '<tr><th>제출처</th><td>' + _escHtml(serviceMeta.office) + '</td></tr>' +
                   '<tr><th>첨부파일</th><td>없음</td></tr>' +
                 '</tbody>' +
               '</table>' +
@@ -2407,7 +2362,6 @@
               '</div>' +
             '</div>' +
 
-            _renderDemoOverlay() +
           '</main>' +
         '</div>' +
         _renderSubFooter() +
@@ -2653,9 +2607,9 @@
 
   function _renderMayorComplaintReceipt() {
     return '<div class="bg-page bg-page--full bg-page--mayor bg-page--mayor-receipt" data-product-proposal="true">' + _renderMayorHeader() +
-      '<main class="bg-receipt-main"><div class="bg-receipt-mark" aria-hidden="true"><span>✓</span></div><p class="bg-product-eyebrow">PROPOSAL RECEIVED</p>' +
-        '<h1>주민의 제안이<br>북구의 변화로 이어집니다</h1><p>시연용 제안 접수가 완료되었습니다. 실제 구축 시에는 북구청 통합인증과 담당 부서 배정 절차가 연결됩니다.</p>' +
-        '<section class="bg-receipt-card"><div><span>접수 유형</span><strong>구청장에게 바란다</strong></div><div><span>처리 상태</span><strong class="is-accent">접수 완료</strong></div><div><span>접수 번호</span><strong>DEMO-2026-0712</strong></div></section>' +
+      '<main class="bg-receipt-main"><div class="bg-receipt-mark" aria-hidden="true"><span>✓</span></div><p class="bg-product-eyebrow">PROPOSAL READY</p>' +
+        '<h1>구정 제안서가 작성되었습니다</h1><p>작성한 내용을 확인했습니다.<br>공식 제출은 북구청 공식 채널에서 시민이 직접 확인하고 진행합니다.</p>' +
+        '<section class="bg-receipt-card"><div><span>작성 유형</span><strong>구청장에게 바란다</strong></div><div><span>현재 상태</span><strong class="is-accent">공식 제출 전</strong></div><div><span>다음 단계</span><strong>공식 채널에서 확인 및 제출</strong></div></section>' +
         '<button type="button" class="bg-action-btn bg-action-btn--primary" data-action-target="mayor-receipt-home">북구청 홈으로</button></main></div>';
   }
 
@@ -2685,7 +2639,6 @@
         _renderDenseHeader('civil-service') +
         '<main class="bg-content bg-content--sub" id="bg-content-main">' +
           _renderSubPageHeader(route.title, route.purpose) +
-          _renderPocBanner() +
           '<div class="bg-handoff-box">' +
             '<div class="bg-handoff-box__title">✅ 안내 종료</div>' +
             '<div class="bg-handoff-box__body">' +
@@ -2925,7 +2878,7 @@
       "complaint-write": {title: "민원 글쓰기", purpose: "AI가 민원 제목과 본문 초안을 입력하고 제출 전에 주민 확인을 받습니다."},
       "mayor-office": {title: "열린구청장실", purpose: "주민과 함께 만드는 북구의 비전과 소통 창구를 안내합니다."},
       "mayor-complaint-write": {title: "구청장에게 바란다", purpose: "AI와 함께 구정 제안을 작성하고 제출 전에 직접 검토합니다."},
-      "mayor-complaint-receipt": {title: "제안 접수 완료", purpose: "시연용 구정 제안 접수 결과를 확인합니다."},
+      "mayor-complaint-receipt": {title: "구정 제안서가 작성되었습니다", purpose: "공식 제출 전 제안 내용을 확인합니다."},
       "bulky-waste-disposal": {title: "대형폐기물 배출방법", purpose: "수탁업체(녹색환경) 전화 신고 또는 여기로 어플을 통한 대형폐기물 배출방법을 안내합니다."},
       "apartment-dept": {title: "공동주택과", purpose: "공동주택과 조직 및 업무안내의 전체 공식 표를 보여줍니다."},
       "passport-guidance": {title: "여권민원 안내", purpose: "여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 안내합니다."},
@@ -3106,9 +3059,13 @@
   var _cursorEl = null;
   // Internal counter to deduplicate rapid cursor moves
   var _cursorMoveToken = 0;
+  // #1140: slower guided cursor - move, dwell, then click ripple.
+  var CURSOR_MOVE_MS = 1140;
+  var CURSOR_DWELL_MS = 300;
+  var CURSOR_CLICK_AT_MS = CURSOR_MOVE_MS + CURSOR_DWELL_MS;
   var _cursorTransition =
-    "opacity 220ms ease,left 760ms cubic-bezier(0.16,1,0.3,1)," +
-    "top 760ms cubic-bezier(0.16,1,0.3,1),transform 220ms ease";
+    "opacity 220ms ease,left " + CURSOR_MOVE_MS + "ms cubic-bezier(0.16,1,0.3,1)," +
+    "top " + CURSOR_MOVE_MS + "ms cubic-bezier(0.16,1,0.3,1),transform 220ms ease";
 
   function _ensureCursor() {
     if (_cursorEl) return _cursorEl;
@@ -3170,7 +3127,7 @@
       cursor.style.opacity = "1";
       setTimeout(function () {
         if (token === _cursorMoveToken) cursor.setAttribute("data-agent-status", "ready");
-      }, 780);
+      }, CURSOR_MOVE_MS);
     }, 40);
   }
 
@@ -3222,8 +3179,7 @@
     showCursorAt(el);
     var cx = rect.left + rect.width / 2;
     var cy = rect.top + rect.height / 2;
-    // Step 2: after cursor arrives (slightly less than transition time),
-    // fire a double ripple: outer (faster fade) + inner (slower)
+    // Step 2: after move + dwell, fire double ripple (outer faster + inner slower).
     setTimeout(function () {
       if (_cursorEl) _cursorEl.setAttribute("data-agent-status", "clicking");
       _createRipple(cx, cy, "rgba(239,106,76,0.45)", 500);
@@ -3233,7 +3189,7 @@
       setTimeout(function () {
         if (_cursorEl) _cursorEl.setAttribute("data-agent-status", "ready");
       }, 520);
-    }, 380);
+    }, CURSOR_CLICK_AT_MS);
   }
   // -----------------------------------------------------------------------
   var _delegationAttached = false;
