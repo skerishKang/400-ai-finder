@@ -35,6 +35,64 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Mobile surface switch — shown only on mobile via JS (hidden attr) + media query */
+.resident-mobile-switch {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--chat-border);
+  background: var(--bg);
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.resident-mobile-switch__tab {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  background: var(--chat-bg);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.resident-mobile-switch__tab[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.resident-mobile-switch__tab:focus-visible,
+.resident-mobile-switch__cancel:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.resident-mobile-switch__cancel {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border: 1px solid var(--error);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--error);
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.resident-mobile-switch__cancel:hover {
+  background: #fef2f2;
+}
+
 .resident-layout {
   display: flex;
   height: 100vh;
@@ -107,6 +165,11 @@ html, body {
   color: var(--badge-offline-text);
 }
 
+.badge--server {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
 .badge--sameorigin {
   background: var(--badge-origin);
   color: var(--badge-origin-text);
@@ -124,6 +187,44 @@ html, body {
   font-size: 0.78rem;
   margin-top: 6px;
   color: var(--muted);
+}
+
+/* Resident-facing plan status (single region; does not replace chat history) */
+.resident-plan-status {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #1f2937;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.resident-plan-status[data-state="planning"],
+.resident-plan-status[data-state="executing"] {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.resident-plan-status[data-state="result"] {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.resident-plan-status[data-state="unsupported"],
+.resident-plan-status[data-state="disabled"] {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.resident-plan-status[data-state="error"] {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.resident-plan-status[data-state="cancelled"] {
+  background: #f3f4f6;
+  color: #4b5563;
 }
 
 .chat-header__status--active {
@@ -236,6 +337,7 @@ html, body {
 
 .chat-input {
   flex: 1;
+  min-width: 0;
   padding: 10px 14px;
   border: 1px solid var(--chat-border);
   border-radius: 10px;
@@ -324,41 +426,78 @@ html, body {
   cursor: not-allowed;
 }
 
-/* ── Mobile layout ─────────────────────────────────────────────────── */
+/* ── Mobile surface mode (single active surface) ───────────────────── */
 @media (max-width: 768px) {
+  html,
+  body {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: 100%;
+  }
+
+  .resident-mobile-switch:not([hidden]) {
+    display: flex;
+  }
+
   .resident-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    width: 100%;
     flex-direction: column;
   }
 
-  .resident-canvas {
-    flex: 0 0 50vh;
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-  }
-
+  /* One surface at a time — no side-by-side width split */
+  .resident-canvas,
   .resident-chat {
-    flex: 1 1 50vh;
     width: 100%;
-    border-left: none;
-    border-top: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
   }
 
   .chat-input-row {
-    padding: 8px 14px 12px;
+    padding: 8px 12px 10px;
+    flex-wrap: wrap;
+  }
+
+  .chat-input {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+
+  .chat-send,
+  .chat-cancel {
+    flex: 0 0 auto;
   }
 
   .chat-suggestions {
-    padding: 0 14px 6px;
+    padding: 0 12px 6px;
   }
 }
 
 @media (max-width: 480px) {
-  .resident-canvas {
-    flex: 0 0 40vh;
+  .resident-mobile-switch {
+    padding: 6px 8px;
+    gap: 6px;
   }
 
-  .resident-chat {
-    flex: 1 1 60vh;
+  .resident-mobile-switch__tab {
+    padding: 8px 6px;
+    font-size: 0.8rem;
+  }
+
+  .resident-mobile-switch__cancel {
+    padding: 8px 8px;
+    font-size: 0.75rem;
   }
 
   .chat-header {
@@ -370,11 +509,34 @@ html, body {
   }
 
   .chat-input-row {
-    padding: 6px 12px 10px;
+    padding: 6px 10px 10px;
   }
 
   .chat-send {
     padding: 10px 12px;
     font-size: 0.85rem;
+  }
+
+  .chat-cancel {
+    padding: 10px 10px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ── Reduced motion: keep status affordances, stop decorative motion ─ */
+@media (prefers-reduced-motion: reduce) {
+  .chat-input,
+  .chat-send,
+  .chat-cancel,
+  .chat-suggestion,
+  .resident-mobile-switch__tab,
+  .resident-mobile-switch__cancel {
+    transition: none;
+  }
+
+  .chat-bubble--status .spinner {
+    animation: none;
+    border-top-color: var(--accent);
+    opacity: 0.85;
   }
 }

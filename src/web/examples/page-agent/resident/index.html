@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-page-agent-plan-mode="local" data-page-agent-plan-state="idle" data-page-agent-mobile-surface="conversation">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,25 +7,93 @@
 <link rel="stylesheet" href="../../../static/citizen-action-demo-canvas.css">
 <link rel="stylesheet" href="../../../static/citizen-copilot-shell.css">
 <link rel="stylesheet" href="resident-demo.css">
+<!--
+  Plan mode is explicit only:
+    data-page-agent-plan-mode="local"  (default offline mock)
+    data-page-agent-plan-mode="server" (same-origin /api/page-agent/plan)
+  Or inject window.__PAGE_AGENT_PLAN_CONFIG__ = { mode: "server" } from a
+  controlled build/config script. Query-string alone never enables server mode.
+
+  Plan state axis (resident runtime):
+    idle | planning | executing | result | unsupported | disabled | error | cancelled
+
+  Mobile surface axis (independent of plan mode/state):
+    data-page-agent-mobile-surface="conversation" | "guidance"
+-->
 </head>
-<body>
+<body data-page-agent-plan-mode="local" data-page-agent-plan-state="idle" data-page-agent-mobile-surface="conversation">
+<div
+  class="resident-mobile-switch"
+  id="page-agent-mobile-switch"
+  role="group"
+  aria-label="서비스 화면"
+  hidden
+>
+  <button
+    class="resident-mobile-switch__tab"
+    id="page-agent-tab-conversation"
+    type="button"
+    aria-pressed="true"
+    aria-controls="page-agent-conversation-surface"
+    data-page-agent-surface-tab="conversation"
+  >
+    대화
+  </button>
+
+  <button
+    class="resident-mobile-switch__tab"
+    id="page-agent-tab-guidance"
+    type="button"
+    aria-pressed="false"
+    aria-controls="page-agent-guidance-surface"
+    data-page-agent-surface-tab="guidance"
+  >
+    안내 화면
+  </button>
+
+  <button
+    class="resident-mobile-switch__cancel"
+    id="page-agent-mobile-cancel"
+    type="button"
+    hidden
+  >
+    진행 취소
+  </button>
+</div>
+
 <div class="resident-layout">
-  <div class="resident-canvas" role="main" aria-label="북구청 안내 화면">
+  <div
+    class="resident-canvas"
+    id="page-agent-guidance-surface"
+    role="main"
+    aria-label="북구청 안내 화면"
+  >
     <div id="demo-canvas"></div>
   </div>
 
-  <aside class="resident-chat" role="complementary" aria-label="Page Agent 챗봇">
+  <aside
+    class="resident-chat"
+    id="page-agent-conversation-surface"
+    role="complementary"
+    aria-label="Page Agent AI 민원 안내"
+  >
     <div class="chat-header">
       <div class="chat-header__title">
         <span>🤖</span> Page Agent형 AI 북구청
       </div>
       <div class="chat-header__sub">주민용 비교 데모 · 실시간 DOM 동작</div>
       <div class="chat-header__badges">
-        <span class="badge badge--offline">🔒 오프라인/mock</span>
+        <span class="badge badge--offline" id="plan-mode-badge">기본 안내</span>
         <span class="badge badge--sameorigin">🏠 동일 출처</span>
         <span class="badge badge--nosubmit">🚫 제출 불가</span>
       </div>
       <div class="chat-header__status" id="chat-status">초기화 중...</div>
+      <p
+        id="page-agent-plan-status"
+        class="resident-plan-status"
+        role="status"
+        aria-live="polite"
+      >무엇을 도와드릴까요?</p>
     </div>
 
     <div class="chat-messages" id="chat-messages" aria-live="polite">
@@ -51,7 +119,9 @@
 <script src="../../../static/citizen-action-demo-map.js"></script>
 <script src="../../../static/citizen-action-demo-canvas.js"></script>
 <script src="../vendor/page-agent.iife.js"></script>
+<script src="parity-scenarios.js"></script>
 <script src="resident-mock-model.js"></script>
+<script src="resident-server-plan-client.js"></script>
 <script src="resident-demo.js"></script>
 </body>
 </html>

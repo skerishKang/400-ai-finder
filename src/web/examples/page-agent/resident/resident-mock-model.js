@@ -1,62 +1,11 @@
 (function () {
   'use strict';
 
-  var SCENARIOS = [
-    // ── apartment_contact (navigate to civil-service, click-approved) ──
-    {
-      id: 'apartment_contact',
-      triggers: ['공동주택과 연락처 찾아줘','공동주택 연락처','아파트 연락처','공동주택과','apartment contact'],
-      routeId: 'apartment-dept',
-      navSteps: [
-        { target: 'nav-civil-service', description: '종합민원 → 민원 신청하기' },
-      ],
-      response: '공동주택과 조직 및 업무안내 화면입니다. 종합민원 메뉴에서 공동주택과 담당 업무와 연락처를 확인할 수 있습니다.',
-    },
-    // ── bulky_waste_menu (navigate to civil-service, click-approved) ──
-    {
-      id: 'bulky_waste_menu',
-      triggers: ['대형폐기물 신청 메뉴 찾아줘','대형폐기물 신청','대형폐기물 배출','폐기물 신청','bulky waste'],
-      routeId: 'bulky-waste-disposal',
-      navSteps: [
-        { target: 'nav-civil-service', description: '종합민원 → 민원 신청하기' },
-      ],
-      response: '대형폐기물 배출방법 안내 화면입니다. 종합민원 메뉴에서 대형폐기물 배출 신청 방법과 수수료를 확인할 수 있습니다.',
-    },
-    // ── passport_procedure (navigate to civil-service, click-approved) ──
-    {
-      id: 'passport_procedure',
-      triggers: ['여권 발급 절차를 찾아줘','여권 발급','여권 절차','여권','passport'],
-      routeId: 'passport-guidance',
-      navSteps: [
-        { target: 'nav-civil-service', description: '종합민원 → 민원 신청하기' },
-      ],
-      response: '여권민원 안내 화면입니다. 종합민원 메뉴에서 여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 확인할 수 있습니다.',
-    },
-    // ── complaint_screen (multi-step click navigation) ──
-    {
-      id: 'complaint_screen',
-      triggers: ['민원 작성 화면을 열어줘','민원 작성','민원 신청','민원 게시판','complaint'],
-      routeId: 'complaint-write',
-      navSteps: [
-        { target: 'nav-civil-service', description: '종합민원 → 민원 신청하기' },
-        { target: 'nav-complaint-category', description: '민원 유형 선택' },
-      ],
-      response: '민원 글쓰기 화면입니다. 종합민원 → 민원 유형 선택 후 민원 게시판에서 글쓰기를 통해 AI가 민원 초안 작성을 도와드립니다.',
-    },
-    // ── mayor_proposal_writing (multi-step click navigation) ──
-    {
-      id: 'mayor_proposal_writing',
-      triggers: ['구청장에게 제안할 글 작성을 도와줘','구청장에게 바란다','구청장 제안','구청장 글 작성','mayor proposal'],
-      routeId: 'mayor-complaint-write',
-      navSteps: [
-        { target: 'mayor-office-open', description: '열린구청장실 바로가기' },
-        { target: 'mayor-message-write', description: '구청장에게 바란다' },
-      ],
-      response: '구청장에게 바란다 작성 화면입니다. 열린구청장실에서 구청장에게 바란다를 통해 AI와 함께 구정 제안을 작성하고 제출 전에 직접 검토합니다.',
-    },
-  ];
-
+  // Scenario vocabulary lives in parity-scenarios.js (single browser owner).
+  var parity = window.PageAgentParityScenarios || {};
+  var SCENARIOS = parity.SCENARIOS || [];
   var UNKNOWN_RESPONSE =
+    parity.UNKNOWN_RESPONSE ||
     '다음 항목 중 하나를 선택해 주세요: 공동주택과 연락처 찾기, 대형폐기물 신청 메뉴 찾기, 여권 발급 절차 찾기, 민원 작성 화면 열기, 구청장에게 제안 글 작성';
 
   // ── Diagnostics ──────────────────────────────────────────────────────────
