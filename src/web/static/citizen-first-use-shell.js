@@ -87,13 +87,13 @@
     ) {
       return;
     }
+    if (body && body.getAttribute("data-journey-state") !== nextState) {
+      body.setAttribute("data-journey-state", nextState);
+    }
     if (currentJourneyState === nextState) {
       return;
     }
     currentJourneyState = nextState;
-    if (body) {
-      body.setAttribute("data-journey-state", nextState);
-    }
   }
 
   function getJourneyState() {
