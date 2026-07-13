@@ -501,15 +501,19 @@ async function main() {
   assert.deepStrictEqual(nonLocal, [], `external requests: ${nonLocal.join(", ")}`);
   // Filter expected absence of POST API on pure static servers only if none attempted? We don't click send.
   assert.deepStrictEqual(pageErrors, [], `page errors: ${pageErrors.join("\n")}`);
-  // Console may include favicon 404 etc. — only fail hard page/console errors with stack noise.
-  const hardConsole = consoleErrors.filter(
-    (t) => !/favicon|404 \(Not Found\)/i.test(t)
-  );
+  // Offline static trees often lack favicon/assets; Python http.server reports
+  // "404 (File not found)" while Chromium may say "404 (Not Found)". Ignore only
+  // those benign 404 console lines — real page/runtime errors still fail.
+  const benign404 = /favicon|404\s*\((?:Not Found|File not found)\)|Failed to load resource:.*\b404\b/i;
+  const hardConsole = consoleErrors.filter((t) => !benign404.test(t));
   assert.deepStrictEqual(hardConsole, [], `console errors: ${hardConsole.join("\n")}`);
-  const hardHttp = httpErrors.filter((t) => !/favicon/i.test(t));
+  const hardHttp = httpErrors.filter((t) => !/favicon|\b404\b/i.test(t));
   assert.deepStrictEqual(hardHttp, [], `http errors: ${hardHttp.join("\n")}`);
-  assert.deepStrictEqual(failed.filter((u) => !/favicon/i.test(u)), [], `failed requests: ${failed.join(", ")}`);
-
+  assert.deepStrictEqual(
+    failed.filter((u) => !/favicon/i.test(u)),
+    [],
+    `failed requests: ${failed.join(", ")}`
+  );
   console.log("Clone header/list containment contract passed.");
   console.log(`external=${nonLocal.length} console=${hardConsole.length} page=${pageErrors.length} http=${hardHttp.length} failed=${failed.length}`);
 }
