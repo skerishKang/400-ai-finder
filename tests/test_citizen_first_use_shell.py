@@ -637,6 +637,149 @@ def test_mobile_surface_does_not_clone_or_duplicate_canonical_doms():
     assert HTML.count('id="chat-shell"') == 1
     # No mobile summary/replacement surface is introduced before the switch.
     assert "mobile-guidance-summary" not in HTML
+
+
+# ── #1114 mayor proposal entry (additive chip + hero control) ──
+
+
+def test_mayor_proposal_chip_is_additive_eighth():
+    """Exactly 8 chips: original 7 labels/questions preserved + mayor chip."""
+    import re
+
+    chips = re.findall(
+        r'data-chip-question="([^"]+)"',
+        HTML[HTML.index('id="chat-chips"') : HTML.index('id="chat-composer-form"')],
+    )
+    assert len(chips) == 8, f"expected 8 chips, got {len(chips)}: {chips}"
+    original_seven = [
+        "불법 주정차 신고는 어디서 하나요?",
+        "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+        "매트리스 폐기 신청은 어디서 하나요?",
+        "여권 발급은 어디서 하나요?",
+        "무인민원발급기 어디 있어요?",
+        "가로등이 고장났어요. 신고할게요",
+        "쓰레기 무단투기 신고할래 (AI 도움)",
+    ]
+    for q in original_seven:
+        assert q in chips
+    assert "구청장에게 제안하고 싶어요" in chips
+    assert chips.count("구청장에게 제안하고 싶어요") == 1
+
+
+def test_mayor_canonical_pair_and_shared_controller():
+    assert 'MAYOR_CANONICAL_QUESTION = "구청장에게 제안하고 싶어요"' in JS
+    assert 'MAYOR_CANONICAL_ACTION = "mayor_message_assist"' in JS
+    assert "function startMayorProposalEntry(" in JS
+    assert 'source: "chat"' in JS
+    assert "userInitiatedControlClick" in JS
+    # Shared controller is wired for chip/composer, MVP action, and hero.
+    assert "startMayorProposalEntry({" in JS
+    assert "useActionConfirm: true" in JS
+    assert 'source: "hero"' in JS
+    # Canonical action is actually consumed (not declaration-only).
+    assert "isMayorAction(action)" in JS or 'action === "mayor_message_assist"' in JS
+    assert "MAYOR_CANONICAL_ACTION" in JS
+    # No direct final-route jump past confirm-run for mayor.
+    assert "showConfirmRun" in JS
+    assert "showConfirmRunForAction" in JS
+
+
+def test_mayor_shared_journey_object_for_question_and_action():
+    assert "MAYOR_MESSAGE_ASSIST_JOURNEY" in CHOREO
+    assert '"mayor_message_assist": MAYOR_MESSAGE_ASSIST_JOURNEY' in CHOREO
+    assert '"구청장에게 제안하고 싶어요": MAYOR_MESSAGE_ASSIST_JOURNEY' in CHOREO
+    # Both keys must reference the same object (not a deep copy).
+    assert CHOREO.count("MAYOR_MESSAGE_ASSIST_JOURNEY") >= 3
+
+
+def test_mayor_display_labels_avoid_fallback():
+    quest_fn = JS[JS.index("function _questDisplayName(") : JS.index("function _actionDisplayName(")]
+    action_fn = JS[JS.index("function _actionDisplayName(") : JS.index("function startChoreography(")]
+    assert 'question.indexOf("구청장")' in quest_fn
+    assert '"구청장 제안 작성"' in quest_fn
+    assert 'action === "mayor_message_assist"' in action_fn
+    assert '"구청장 제안 작성"' in action_fn
+    # Fallback remains last resort, not the mayor path.
+    assert quest_fn.rfind("이 안내") > quest_fn.rfind("구청장 제안 작성")
+    assert action_fn.rfind("이 안내") > action_fn.rfind("구청장 제안 작성")
+
+
+def test_mayor_hero_control_geometry_is_explicit_rectangle():
+    assert 'id="mayor-open-office-control"' in HTML
+    assert 'aria-label="열린구청장실 바로가기"' in HTML
+    assert 'class="mayor-open-office-control"' in HTML
+    control_css = CSS[CSS.index(".mayor-open-office-control {") :]
+    control_css = control_css[: control_css.index("/* Hide when entry is not the active surface.")]
+    # Explicit non-zero rectangle (no height:auto / clip-path hit area).
+    assert "position: absolute" in control_css
+    assert "top: calc(" in control_css or "top:calc(" in control_css
+    assert "right: calc(" in control_css or "right:calc(" in control_css
+    assert "width: calc(" in control_css or "width:calc(" in control_css
+    assert "height: calc(" in control_css or "height:calc(" in control_css
+    assert "height: auto" not in control_css
+    assert "clip-path: inset" not in control_css
+    assert "clip-path: none" in control_css
+    # Hover/focus must not expand geometry via clip-path:none removal of inset.
+    hover = CSS[CSS.index(".mayor-open-office-control:hover") : CSS.index(".mayor-open-office-control:focus-visible")]
+    focus = CSS[
+        CSS.index(".mayor-open-office-control:focus-visible") : CSS.index(
+            ".mayor-open-office-control.executor-highlight"
+        )
+    ]
+    assert "clip-path: none" not in hover or "inset" not in hover
+    assert "clip-path: none" not in focus or "inset" not in focus
+    # Mobile: control hidden with mayor card (aligned to 767px surface breakpoint).
+    assert "@media (max-width: 767px)" in CSS
+    assert ".mayor-open-office-control" in CSS[CSS.index("@media (max-width: 767px)") :]
+
+
+def test_mayor_cursor_before_split_uses_existing_canvas_cursor():
+    controller = JS[
+        JS.index("function startMayorProposalEntry(") : JS.index(
+            "function beginMayorProposalEntry("
+        )
+    ]
+    # Existing canvas cursor API reused — no second cursor DOM constructed here.
+    assert "showCursorAt" in controller
+    assert "clickAnimation" in controller
+    assert "choreo-cursor" not in controller
+    assert "createElement" not in controller
+    assert "MAYOR_CONTROL_SELECTOR" in controller or "#mayor-open-office-control" in controller
+
+    # Semantic automated-path ordering (not file-global first occurrence).
+    # Manual early-return may call _beginMayorSplitContinuation before any
+    # showCursorAt appears in source; inspect only the automated sequence that
+    # starts at the first showCursorAt schedule.
+    automated = controller[controller.index("showCursorAt") :]
+    assert automated.index("showCursorAt") < automated.index("clickAnimation")
+    assert automated.index("clickAnimation") < automated.index(
+        "_beginMayorSplitContinuation({ useActionConfirm: useActionConfirm })"
+    )
+    # Cursor targets the semantic hero control via existing canvas API.
+    assert "showCursorAt(MAYOR_CONTROL_SELECTOR)" in automated or (
+        "showCursorAt" in automated and "MAYOR_CONTROL_SELECTOR" in automated
+    )
+    assert "clickAnimation(MAYOR_CONTROL_SELECTOR)" in automated or (
+        "clickAnimation" in automated and "MAYOR_CONTROL_SELECTOR" in automated
+    )
+
+    # Manual hero path: user click is the activation; no second auto-click.
+    assert "userInitiatedControlClick" in controller
+    assert 'source === "hero"' in controller or 'source === "hero"' in controller
+    manual = controller[
+        controller.index("userInitiatedControlClick") : controller.index(
+            "Chat / model path"
+        )
+        if "Chat / model path" in controller
+        else controller.index("showCursorAt")
+    ]
+    assert "_beginMayorSplitContinuation" in manual
+    assert "showCursorAt" not in manual
+    assert "clickAnimation" not in manual
+
+    # Canvas target resolution already falls back to document-level selectors.
+    assert "document.querySelector(selectorOrEl)" in CANVAS
+    assert "function _resolveCursorTarget" in CANVAS
     assert "mobile-result-replacement" not in HTML
     # No second civic surface element is introduced alongside the switch.
     assert "demo-canvas__clone" not in HTML

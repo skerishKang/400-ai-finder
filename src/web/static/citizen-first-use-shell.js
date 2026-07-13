@@ -31,6 +31,8 @@
     "민원서류 발급받으려면 어디로 가야 해요?": "unmanned_kiosk",
     "가로등이 고장났어요. 신고할게요": "streetlight_report",
     "쓰레기 무단투기 신고할래 (AI 도움)": "litter_ai_assist",
+    // #1114 — mayor proposal entry (same journey object as the canonical question)
+    "구청장에게 제안하고 싶어요": "mayor_message_assist",
   };
   var SPLIT_FOLLOW_UP_MESSAGE =
     "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
@@ -73,7 +75,7 @@
   function normalizeMvpAction(result) {
     if (!result || result.ok !== true) return "none";
     var a = result.action;
-    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "passport_guidance" || a === "unmanned_kiosk" || a === "streetlight_report" || a === "litter_ai_assist" || a === "none") {
+    if (a === "illegal_parking" || a === "housing_department" || a === "bulky_waste" || a === "passport_guidance" || a === "unmanned_kiosk" || a === "streetlight_report" || a === "litter_ai_assist" || a === "mayor_message_assist" || a === "none") {
       return a;
     }
     return "none";
@@ -951,6 +953,8 @@
     if (question.indexOf("무인민원발급기") !== -1 || question.indexOf("민원서류") !== -1) return "무인민원발급기 안내";
     if (question.indexOf("가로등") !== -1) return "가로등 고장 신고";
     if (question.indexOf("쓰레기") !== -1) return "쓰레기 무단투기 신고";
+    // #1114 — mayor proposal writing assist (static question path)
+    if (question.indexOf("구청장") !== -1) return "구청장 제안 작성";
     return "이 안내";
   }
 
@@ -962,6 +966,8 @@
     if (action === "unmanned_kiosk") return "무인민원발급기 안내";
     if (action === "streetlight_report") return "가로등 고장 신고";
     if (action === "litter_ai_assist") return "쓰레기 무단투기 신고";
+    // #1114 — mayor proposal writing assist (model-backed action path)
+    if (action === "mayor_message_assist") return "구청장 제안 작성";
     return "이 안내";
   }
 
@@ -1137,12 +1143,205 @@
     splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
   }
 
+  // ── #1114: central mayor-proposal entry ─────────────────────────
+  // Canonical pair used by chip / composer / static / MVP / manual hero:
+  //   question: 구청장에게 제안하고 싶어요
+  //   action:   mayor_message_assist
+  // Chat path shows the existing AI cursor click on the hero blue control
+  // BEFORE cinematic split. Manual hero click skips automated re-click.
+  // Shared continuation always uses MAYOR_MESSAGE_ASSIST_JOURNEY (confirm-run
+  // gate, no direct final-route jump, no second cursor DOM).
+  var MAYOR_CANONICAL_QUESTION = "구청장에게 제안하고 싶어요";
+  var MAYOR_CANONICAL_ACTION = "mayor_message_assist";
+  var MAYOR_CONTROL_SELECTOR = "#mayor-open-office-control";
+  var _mayorEntryInFlight = false;
+  var _mayorEntryTimer = null;
+  var _mayorEntryAuxTimers = [];
+
+  function isMayorQuestion(value) {
+    return normalizeQuestion(value) === MAYOR_CANONICAL_QUESTION;
+  }
+
+  function isMayorAction(value) {
+    return value === MAYOR_CANONICAL_ACTION;
+  }
+
+  function _clearMayorEntryTimers() {
+    if (_mayorEntryTimer !== null) {
+      window.clearTimeout(_mayorEntryTimer);
+      _mayorEntryTimer = null;
+    }
+    for (var i = 0; i < _mayorEntryAuxTimers.length; i++) {
+      window.clearTimeout(_mayorEntryAuxTimers[i]);
+    }
+    _mayorEntryAuxTimers = [];
+    _mayorEntryInFlight = false;
+    var control = document.getElementById("mayor-open-office-control");
+    if (control) {
+      control.classList.remove("executor-highlight");
+      control.classList.remove("is-agent-target");
+    }
+  }
+
+  function _scheduleMayorAux(fn, delayMs) {
+    var id = window.setTimeout(fn, delayMs);
+    _mayorEntryAuxTimers.push(id);
+    return id;
+  }
+
+  function _isMayorControlVisuallyAvailable(control) {
+    if (!control) return false;
+    var rect = control.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return false;
+    try {
+      var style = window.getComputedStyle(control);
+      if (!style) return true;
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      if (Number(style.opacity) === 0) return false;
+    } catch (_) {
+      /* getComputedStyle unavailable — rely on rect only */
+    }
+    return true;
+  }
+
+  function _beginMayorSplitContinuation(options) {
+    options = options || {};
+    var useActionConfirm = !!options.useActionConfirm;
+    // Keep lastSplitQuestion for the static confirm-run path. MVP confirm uses
+    // the action code via completeMvpSplit (MAYOR_CANONICAL_ACTION).
+    if (useActionConfirm) {
+      lastSplitQuestion = MAYOR_CANONICAL_QUESTION;
+      startCinematicSplit();
+      if (prefersReducedMotion()) {
+        completeMvpSplit(MAYOR_CANONICAL_ACTION);
+        return;
+      }
+      splitTimer = window.setTimeout(function () {
+        splitTimer = null;
+        completeMvpSplit(MAYOR_CANONICAL_ACTION);
+      }, TRANSITION_DURATION_MS);
+      return;
+    }
+    lastSplitQuestion = MAYOR_CANONICAL_QUESTION;
+    startCinematicSplit();
+    if (prefersReducedMotion()) {
+      completeSplit();
+      return;
+    }
+    splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
+  }
+
+  /**
+   * Canonical mayor entry controller.
+   * @param {{
+   *   source?: "chat"|"hero",
+   *   userInitiatedControlClick?: boolean,
+   *   skipUserMessage?: boolean,
+   *   useActionConfirm?: boolean
+   * }} options
+   */
+  function startMayorProposalEntry(options) {
+    options = options || {};
+    var source = options.source === "hero" ? "hero" : "chat";
+    var userInitiatedControlClick = !!options.userInitiatedControlClick;
+    var skipUserMessage = !!options.skipUserMessage;
+    var useActionConfirm = !!options.useActionConfirm;
+
+    if (currentState === STATE_TRANSITIONING || _mayorEntryInFlight) {
+      return;
+    }
+    // Idempotent: already split for the same canonical mayor question.
+    if (
+      currentState === STATE_SPLIT &&
+      lastSplitQuestion === MAYOR_CANONICAL_QUESTION &&
+      !skipUserMessage
+    ) {
+      return;
+    }
+
+    // Single user-message echo for all entry points (unless already echoed).
+    if (!skipUserMessage && currentState !== STATE_SPLIT) {
+      appendChatMessage("user", MAYOR_CANONICAL_QUESTION);
+      if (chatInput) chatInput.value = "";
+    }
+
+    // Manual hero activation: the user click IS the canonical activation.
+    // Do not re-drive an automated second click on the same control.
+    if (userInitiatedControlClick || source === "hero") {
+      _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
+      return;
+    }
+
+    // Chat / model path: when the hero blue control is visible, show the
+    // existing AI cursor → highlight → click/ripple, then split. Stay on
+    // first-use-state=entry until the click animation finishes.
+    var control = document.getElementById("mayor-open-office-control");
+    var canvasApi = window.CitizenActionDemoCanvas;
+    var canAnimate =
+      _isMayorControlVisuallyAvailable(control) &&
+      canvasApi &&
+      typeof canvasApi.showCursorAt === "function" &&
+      typeof canvasApi.clickAnimation === "function";
+
+    if (!canAnimate) {
+      // Mobile (control hidden) or missing cursor API — keep order without a
+      // visible click, still one split / one confirm path.
+      _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
+      return;
+    }
+
+    _mayorEntryInFlight = true;
+    var reduced = prefersReducedMotion();
+    var moveDelay = reduced ? 0 : 100;
+    var clickDelay = reduced ? 40 : 920;
+    var afterClickDelay = reduced ? 80 : 560;
+    var splitAt = clickDelay + afterClickDelay;
+
+    if (typeof canvasApi.hideCursor === "function") {
+      canvasApi.hideCursor();
+    }
+    control.classList.add("executor-highlight");
+    control.classList.add("is-agent-target");
+
+    _scheduleMayorAux(function () {
+      if (!_mayorEntryInFlight) return;
+      canvasApi.showCursorAt(MAYOR_CONTROL_SELECTOR);
+    }, moveDelay);
+
+    _scheduleMayorAux(function () {
+      if (!_mayorEntryInFlight) return;
+      // Visual click only — do NOT fire a real DOM click (would re-enter).
+      canvasApi.clickAnimation(MAYOR_CONTROL_SELECTOR);
+    }, clickDelay);
+
+    _mayorEntryTimer = window.setTimeout(function () {
+      _mayorEntryTimer = null;
+      if (!_mayorEntryInFlight) return;
+      control.classList.remove("executor-highlight");
+      control.classList.remove("is-agent-target");
+      _mayorEntryInFlight = false;
+      _mayorEntryAuxTimers = [];
+      _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
+    }, splitAt);
+  }
+
+  // Back-compat alias used by earlier #1114 wiring.
+  function beginMayorProposalEntry() {
+    startMayorProposalEntry({ source: "hero", userInitiatedControlClick: true });
+  }
+
   function handleSubmission(event) {
     if (event) {
       event.preventDefault();
     }
 
+    // Bounded split/follow-up: never start another transition while one is in
+    // flight, and never run without a composer input element.
     if (currentState === STATE_TRANSITIONING || !chatInput) {
+      return;
+    }
+    // #1114: also block while mayor cursor→split sequence is scheduled.
+    if (_mayorEntryInFlight) {
       return;
     }
 
@@ -1160,6 +1359,18 @@
     if (currentState === STATE_SPLIT) {
       appendChatMessage("user", question);
       chatInput.value = "";
+      if (isMayorQuestion(question)) {
+        if (window.CitizenFirstChoreography) {
+          window.CitizenFirstChoreography.cancel();
+        }
+        // Control is hidden after split; skip automated cursor re-click.
+        startMayorProposalEntry({
+          source: "chat",
+          skipUserMessage: true,
+          userInitiatedControlClick: true
+        });
+        return;
+      }
       if (isSupportedQuestion(question)) {
         // Cancel current choreography and start new quest (no duplicate message)
         if (window.CitizenFirstChoreography) {
@@ -1176,6 +1387,12 @@
         appendChatMessage("ai", SPLIT_FOLLOW_UP_MESSAGE);
         focusComposerIfAllowed();
       }
+      return;
+    }
+
+    // Entry: mayor converges on the canonical controller (cursor → split).
+    if (isMayorQuestion(question)) {
+      startMayorProposalEntry({ source: "chat" });
       return;
     }
 
@@ -1265,6 +1482,15 @@
           beginMvpSplitThenChoreography(question, "streetlight_report");
         } else if (action === "litter_ai_assist") {
           beginMvpSplitThenChoreography(question, "litter_ai_assist");
+        } else if (isMayorAction(action) || action === "mayor_message_assist") {
+          // #1114: model-backed mayor action reuses the shared controller
+          // (cursor-before-split when hero control is visible). User message
+          // already echoed above; bridge already answered once.
+          startMayorProposalEntry({
+            source: "chat",
+            skipUserMessage: true,
+            useActionConfirm: true
+          });
         } else if (action === "none") {
           // Keep the entry chat; do not move the clone or start a choreography.
         }
@@ -1325,6 +1551,12 @@
     }
     if (window.CitizenFirstChoreography) {
       window.CitizenFirstChoreography.cancel();
+    }
+    // Cancel any in-flight #1114 mayor cursor→split sequence.
+    _clearMayorEntryTimers();
+    if (window.CitizenActionDemoCanvas &&
+        typeof window.CitizenActionDemoCanvas.hideCursor === "function") {
+      window.CitizenActionDemoCanvas.hideCursor();
     }
     lastSplitQuestion = null;
     if (splitTimer !== null) {
@@ -1405,6 +1637,19 @@
     });
   }
 
+  // #1114: hero "열린구청장실 바로가기" → same canonical controller.
+  // Manual click is the activation; no automated second click / no bridge.
+  var mayorControl = document.getElementById("mayor-open-office-control");
+  if (mayorControl) {
+    mayorControl.addEventListener("click", function (e) {
+      e.preventDefault();
+      startMayorProposalEntry({
+        source: "hero",
+        userInitiatedControlClick: true
+      });
+    });
+  }
+
   if (isLegacyJourneyLoad()) {
     setState(STATE_SPLIT);
   } else {
@@ -1419,6 +1664,10 @@
     renderQuestProgressCard: renderQuestProgressCard,
     appendQuestProgressCard: appendQuestProgressCard,
     reset: resetToEntry,
+    // #1114 test/diagnostic surface — same controller used by chip/hero paths.
+    startMayorProposalEntry: startMayorProposalEntry,
+    mayorCanonicalQuestion: MAYOR_CANONICAL_QUESTION,
+    mayorCanonicalAction: MAYOR_CANONICAL_ACTION,
     states: Object.freeze({
       entry: STATE_ENTRY,
       transitioning: STATE_TRANSITIONING,
