@@ -199,7 +199,14 @@ function buildDoc() {
   };
 }
 
-function buildWindow({ search, reducedMotion, bridge, choreo, setTimeoutImpl }) {
+function buildWindow({
+  search,
+  reducedMotion,
+  mobileViewport = false,
+  bridge,
+  choreo,
+  setTimeoutImpl,
+}) {
   const listeners = {};
   return {
     location: {
@@ -211,10 +218,19 @@ function buildWindow({ search, reducedMotion, bridge, choreo, setTimeoutImpl }) 
       pushState() {},
       replaceState() {},
     },
+    // Production uses two independent matchMedia queries. Never couple them:
+    // reducedMotion must not imply mobile, and vice versa.
     matchMedia(q) {
+      const media = String(q || "");
+      let matches = false;
+      if (media === "(prefers-reduced-motion: reduce)") {
+        matches = Boolean(reducedMotion);
+      } else if (media === "(max-width: 767px)") {
+        matches = Boolean(mobileViewport);
+      }
       return {
-        matches: !!reducedMotion,
-        media: q,
+        matches,
+        media,
         addListener() {},
         removeListener() {},
         addEventListener() {},
@@ -305,7 +321,14 @@ function makeChoreo() {
 
 // ── Scenario runner ───────────────────────────────────────────────────────
 
-function runScenario({ search, reducedMotion, bridge, choreo, fastTimers }) {
+function runScenario({
+  search,
+  reducedMotion,
+  mobileViewport = false,
+  bridge,
+  choreo,
+  fastTimers,
+}) {
   // fastTimers collapses production step/visual delays to a small fixed value
   // so progression scenarios can drive the REAL choreography to terminal
   // states (waiting_choice / waiting_confirmation) without waiting for the
@@ -314,7 +337,14 @@ function runScenario({ search, reducedMotion, bridge, choreo, fastTimers }) {
     ? (fn, ms) => setTimeout(fn, Math.min(typeof ms === "number" ? ms : 0, 2))
     : setTimeout;
   const doc = buildDoc();
-  const win = buildWindow({ search, reducedMotion, bridge, choreo, setTimeoutImpl });
+  const win = buildWindow({
+    search,
+    reducedMotion,
+    mobileViewport,
+    bridge,
+    choreo,
+    setTimeoutImpl,
+  });
   const context = {
     window: win,
     document: doc,
@@ -1964,8 +1994,37 @@ async function scenarioLitterAiAssistProgression() {
   console.log("  [27] 쓰레기 무단투기 AI 도움 journey progression (waiting_choice → waiting_confirmation, no auto-submit): OK");
 }
 
+function assertMatchMediaIsolation() {
+  const win = buildWindow({
+    search: "",
+    reducedMotion: true,
+    mobileViewport: false,
+    bridge: null,
+    choreo: null,
+  });
+
+  assert.strictEqual(
+    win.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    true,
+    "runtime shim: reduced-motion query must reflect reducedMotion",
+  );
+
+  assert.strictEqual(
+    win.matchMedia("(max-width: 767px)").matches,
+    false,
+    "runtime shim: desktop reduced-motion scenario must not be treated as mobile",
+  );
+
+  assert.strictEqual(
+    win.matchMedia("(unknown-feature: value)").matches,
+    false,
+    "runtime shim: unknown media queries must default to false",
+  );
+}
+
 async function main() {
   console.log("Running MVP shell runtime scenarios (no network, no fetch):");
+  assertMatchMediaIsolation();
   await scenarioIllegalParking();
   await scenarioHousingDepartment();
   await scenarioBulkyWaste();
