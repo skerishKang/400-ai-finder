@@ -1979,6 +1979,589 @@ async function assert1114InstrumentationClean(buckets, ctx) {
   );
 }
 
+// ── #1123 chat continuity across route transitions ─────────────────
+const CHAT_CONTINUITY_PARKING_Q = "불법 주정차 신고는 어디서 하나요?";
+const CHAT_CONTINUITY_MATRIX = Object.freeze([
+  {
+    label: "housing",
+    question: "공동주택 관련 문의는 어느 부서에 해야 하나요?",
+    fullTimeline: false,
+  },
+  {
+    label: "bulky",
+    question: "매트리스 폐기 신청은 어디서 하나요?",
+    fullTimeline: false,
+  },
+  {
+    label: "passport",
+    question: "여권 발급은 어디서 하나요?",
+    fullTimeline: false,
+  },
+  {
+    label: "kiosk",
+    question: "무인민원발급기 어디 있어요?",
+    fullTimeline: false,
+  },
+  {
+    label: "streetlight",
+    question: "가로등이 고장났어요. 신고할게요",
+    fullTimeline: false,
+  },
+  {
+    label: "litter",
+    question: "쓰레기 무단투기 신고할래 (AI 도움)",
+    fullTimeline: false,
+  },
+  {
+    label: "mayor",
+    question: "구청장에게 제안하고 싶어요",
+    fullTimeline: false,
+  },
+]);
+const CHAT_CONTINUITY_VIEWPORTS = Object.freeze([
+  { width: 390, height: 844 },
+  { width: 768, height: 1024 },
+  { width: 1440, height: 900 },
+]);
+const CONFIRM_YES_BTN =
+  '.chat-msg--confirm-run button:has-text("예, 안내해 주세요")';
+const HISTORICAL_CANNED_AI =
+  "북구청 홈페이지에서 신고 경로를 확인하겠습니다.";
+
+/**
+ * Install MutationObserver + identity tags for #1123 without mutating product
+ * state. Observes only #chat-thread childList mutations.
+ */
+async function installChatContinuityProbe(page) {
+  await page.evaluate(() => {
+    const w = window;
+    if (w.__1123ProbeInstalled) return;
+    w.__1123ProbeInstalled = true;
+    w.__1123Events = [];
+    // Permanent history removals only — intentional .chat-msg--temp thinking
+    // indicators are product narration chrome and may be discarded.
+    w.__1123Removed = 0;
+    w.__1123TempRemoved = 0;
+    w.__1123Added = 0;
+    const thread = document.getElementById("chat-thread");
+    if (!thread) return;
+    thread.setAttribute("data-1123-thread", "1");
+    Array.from(thread.children).forEach((el, i) => {
+      el.setAttribute("data-1123-node", "boot-" + i);
+    });
+    let seq = 0;
+    const isTempMsg = (n) =>
+      !!(n.classList && n.classList.contains("chat-msg--temp"));
+    w.__1123Observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const n of m.removedNodes || []) {
+          if (!n || n.nodeType !== 1) continue;
+          const temp = isTempMsg(n);
+          if (temp) {
+            w.__1123TempRemoved += 1;
+          } else {
+            w.__1123Removed += 1;
+          }
+          w.__1123Events.push({
+            type: temp ? "removed-temp" : "removed",
+            t: performance.now(),
+            state: document.body.getAttribute("data-first-use-state"),
+            node: n.getAttribute("data-1123-node"),
+            cls: n.className || "",
+            text: (n.textContent || "").trim().slice(0, 100),
+          });
+        }
+        for (const n of m.addedNodes || []) {
+          if (!n || n.nodeType !== 1) continue;
+          seq += 1;
+          const id = "n" + seq;
+          n.setAttribute("data-1123-node", id);
+          w.__1123Added += 1;
+          w.__1123Events.push({
+            type: isTempMsg(n) ? "added-temp" : "added",
+            t: performance.now(),
+            state: document.body.getAttribute("data-first-use-state"),
+            node: id,
+            cls: n.className || "",
+            text: (n.textContent || "").trim().slice(0, 100),
+          });
+        }
+      }
+    });
+    w.__1123Observer.observe(thread, { childList: true, subtree: false });
+  });
+}
+
+async function readChatContinuitySnapshot(page) {
+  return page.evaluate(() => {
+    const thread = document.getElementById("chat-thread");
+    const kids = thread ? Array.from(thread.children) : [];
+    const messages = kids.map((el) => ({
+      node: el.getAttribute("data-1123-node"),
+      cls: el.className || "",
+      role: el.classList.contains("chat-msg--user")
+        ? "user"
+        : el.classList.contains("chat-msg--ai")
+          ? "ai"
+          : el.classList.contains("chat-progress")
+            ? "progress"
+            : "other",
+      text: (el.textContent || "").trim(),
+    }));
+    return {
+      state: document.body.getAttribute("data-first-use-state"),
+      mobileSurface: document.body.getAttribute("data-mobile-surface"),
+      threadMarked: !!(thread && thread.getAttribute("data-1123-thread") === "1"),
+      threadChildCount: kids.length,
+      userCount: messages.filter((m) => m.role === "user").length,
+      aiCount: messages.filter((m) => m.role === "ai").length,
+      messages,
+      removed: window.__1123Removed || 0,
+      tempRemoved: window.__1123TempRemoved || 0,
+      added: window.__1123Added || 0,
+      events: window.__1123Events || [],
+      permanentEvents: (window.__1123Events || []).filter(
+        (e) => e.type === "removed" || e.type === "added",
+      ),
+      hasCannedHistorical: messages.some((m) =>
+        (m.text || "").includes("북구청 홈페이지에서 신고 경로를 확인하겠습니다."),
+      ),
+      greetingAlive: messages.some(
+        (m) =>
+          m.role === "ai" &&
+          (m.text || "").includes("안녕하세요. 북구청 민원 안내 AI입니다"),
+      ),
+      splitAckAlive: messages.some(
+        (m) =>
+          m.role === "ai" &&
+          (m.text || "").includes("질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."),
+      ),
+    };
+  });
+}
+
+async function waitForFirstUseState(page, expected, timeoutMs = 8000) {
+  await page.waitForFunction(
+    (s) => document.body.getAttribute("data-first-use-state") === s,
+    expected,
+    { timeout: timeoutMs },
+  );
+}
+
+/**
+ * Drive one chip journey through confirm (if present) and assert append-only
+ * continuity. fullTimeline=true for illegal parking; others are matrix checks.
+ */
+async function runChatContinuityJourney(page, base, viewport, journey, options = {}) {
+  const fullTimeline = options.fullTimeline === true || journey.fullTimeline === true;
+  const ctx = `1123 ${viewport.width}x${viewport.height} ${journey.label}`;
+  await page.setViewportSize({
+    width: viewport.width,
+    height: viewport.height,
+  });
+  const response = await page.goto(base, { waitUntil: "domcontentloaded" });
+  assert.ok(response, `no response [${ctx}]`);
+  assert.equal(response.status(), 200, `HTTP ${response.status()} [${ctx}]`);
+  await page.waitForSelector("#chat-thread", { timeout: 10000 });
+  await page.waitForSelector("#chat-chips", { timeout: 10000 });
+  await installChatContinuityProbe(page);
+
+  const boot = await readChatContinuitySnapshot(page);
+  assert.equal(boot.state, "entry", `boot state entry [${ctx}]`);
+  assert.ok(boot.threadMarked, `thread identity tag [${ctx}]`);
+  assert.ok(boot.greetingAlive, `entry greeting present [${ctx}]`);
+  assert.equal(boot.userCount, 0, `no user msg at boot [${ctx}]`);
+  assert.equal(boot.removed, 0, `no removals at boot [${ctx}]`);
+  const bootGreetingNode = boot.messages.find(
+    (m) => m.role === "ai" && (m.text || "").includes("안녕하세요. 북구청 민원 안내 AI입니다"),
+  );
+  assert.ok(bootGreetingNode, `greeting node tagged [${ctx}]`);
+
+  const chipSel = `[data-chip-question="${journey.question}"]`;
+  await page.click(chipSel);
+
+  // User message must appear and stay through transitioning.
+  await page.waitForFunction(
+    (q) => {
+      const bubbles = Array.from(
+        document.querySelectorAll("#chat-thread .chat-msg--user .chat-bubble"),
+      );
+      return bubbles.some((b) => (b.textContent || "").trim() === q);
+    },
+    journey.question,
+    { timeout: 5000 },
+  );
+
+  // Wait until transitioning or split (mayor cursor path may stay on entry briefly).
+  await page.waitForFunction(
+    () => {
+      const s = document.body.getAttribute("data-first-use-state");
+      return s === "transitioning" || s === "split";
+    },
+    null,
+    { timeout: 8000 },
+  );
+
+  // Sample mid-transition: canvas home paint is ~300ms after navigateToRoute.
+  await page.waitForTimeout(450);
+  const mid = await readChatContinuitySnapshot(page);
+  assert.ok(
+    mid.state === "transitioning" || mid.state === "split",
+    `mid state journey-active got ${mid.state} [${ctx}]`,
+  );
+  assert.ok(mid.threadMarked, `thread element identity mid [${ctx}]`);
+  assert.equal(mid.userCount, 1, `exactly one user msg mid [${ctx}]`);
+  assert.ok(mid.greetingAlive, `greeting survives mid transition [${ctx}]`);
+  assert.equal(
+    mid.removed,
+    0,
+    `permanent removed nodes mid must be 0 (got ${mid.removed}) events=${JSON.stringify(mid.events.filter((e) => e.type === "removed"))} [${ctx}]`,
+  );
+  assert.equal(
+    mid.hasCannedHistorical,
+    false,
+    `historical canned chat must not replace thread mid [${ctx}]`,
+  );
+  const midUser = mid.messages.find((m) => m.role === "user");
+  assert.ok(midUser, `user message mid [${ctx}]`);
+  assert.ok(
+    (midUser.text || "").includes(journey.question),
+    `user text mid expected to include question [${ctx}]`,
+  );
+  // Greeting node identity must be the same boot node.
+  const midGreeting = mid.messages.find(
+    (m) => m.role === "ai" && (m.text || "").includes("안녕하세요. 북구청 민원 안내 AI입니다"),
+  );
+  assert.ok(midGreeting, `greeting node mid [${ctx}]`);
+  assert.equal(
+    midGreeting.node,
+    bootGreetingNode.node,
+    `greeting node identity mid boot=${bootGreetingNode.node} mid=${midGreeting.node} [${ctx}]`,
+  );
+
+  await waitForFirstUseState(page, "split", 12000);
+  // completeSplit / completeMvpSplit appends ack after 220ms.
+  await page.waitForTimeout(400);
+  const afterSplit = await readChatContinuitySnapshot(page);
+  assert.equal(afterSplit.state, "split", `split state [${ctx}]`);
+  assert.ok(afterSplit.threadMarked, `thread identity after split [${ctx}]`);
+  assert.equal(afterSplit.userCount, 1, `one user after split [${ctx}]`);
+  assert.ok(afterSplit.greetingAlive, `greeting after split [${ctx}]`);
+  assert.equal(
+    afterSplit.removed,
+    0,
+    `permanent removed after split must be 0 got=${afterSplit.removed} [${ctx}]`,
+  );
+  assert.equal(
+    afterSplit.hasCannedHistorical,
+    false,
+    `no canned historical after split [${ctx}]`,
+  );
+  // Initial assistant path: greeting still present; split ack should append.
+  // Mayor cursor path also lands on confirm-run without wiping history.
+  assert.ok(
+    afterSplit.splitAckAlive ||
+      afterSplit.messages.some((m) => (m.cls || "").includes("chat-msg--confirm-run")),
+    `split ack or confirm-run present [${ctx}]`,
+  );
+
+  // Message order: greeting → user → later assistants (append-only).
+  const roles = afterSplit.messages.map((m) => m.role);
+  const firstUserIdx = roles.indexOf("user");
+  const firstAiIdx = roles.indexOf("ai");
+  assert.ok(firstAiIdx === 0, `greeting is first ai [${ctx}] roles=${roles}`);
+  assert.ok(firstUserIdx === 1, `user is second message [${ctx}] roles=${roles}`);
+  const afterUser = afterSplit.messages.slice(firstUserIdx + 1);
+  assert.ok(
+    afterUser.every((m) => m.role === "ai" || m.role === "progress" || m.role === "other"),
+    `only assistants/progress after user [${ctx}]`,
+  );
+  // No duplicate user messages.
+  assert.equal(
+    afterSplit.messages.filter((m) => m.role === "user").length,
+    1,
+    `no duplicate user [${ctx}]`,
+  );
+
+  // Confirm-run if present — choreography must append, not rewrite.
+  const confirmCount = await page.locator(CONFIRM_YES_BTN).count();
+  if (confirmCount > 0) {
+    const beforeConfirm = await readChatContinuitySnapshot(page);
+    const beforeNodes = beforeConfirm.messages.map((m) => m.node);
+    await page.click(CONFIRM_YES_BTN);
+    // Wait for at least one new assistant message after confirm.
+    await page.waitForFunction(
+      (prevCount) => {
+        const thread = document.getElementById("chat-thread");
+        return thread && thread.children.length > prevCount;
+      },
+      beforeConfirm.threadChildCount,
+      { timeout: 8000 },
+    );
+    await page.waitForTimeout(fullTimeline ? 1200 : 600);
+    const afterConfirm = await readChatContinuitySnapshot(page);
+    assert.equal(afterConfirm.userCount, 1, `one user after confirm [${ctx}]`);
+    assert.ok(afterConfirm.greetingAlive, `greeting after confirm [${ctx}]`);
+    assert.equal(
+      afterConfirm.removed,
+      0,
+      `permanent removed after confirm must be 0 got=${afterConfirm.removed} tempRemoved=${afterConfirm.tempRemoved} events=${JSON.stringify(afterConfirm.events.filter((e) => e.type === "removed"))} [${ctx}]`,
+    );
+    assert.equal(
+      afterConfirm.hasCannedHistorical,
+      false,
+      `no canned historical after confirm [${ctx}]`,
+    );
+    // Prior nodes must still be present (identity preserved).
+    const afterNodeSet = new Set(afterConfirm.messages.map((m) => m.node));
+    for (const n of beforeNodes) {
+      assert.ok(
+        afterNodeSet.has(n),
+        `prior node ${n} still present after confirm [${ctx}]`,
+      );
+    }
+    assert.ok(
+      afterConfirm.threadChildCount > beforeConfirm.threadChildCount,
+      `messages appended after confirm [${ctx}]`,
+    );
+
+    if (fullTimeline) {
+      // Illegal parking: choreography narration appears after the confirm block.
+      assert.ok(
+        afterConfirm.messages.some((m) =>
+          (m.text || "").includes("불법 주정차 신고 경로를 안내해 드립니다"),
+        ),
+        `parking choreography step present [${ctx}]`,
+      );
+      // Wait for a route-changing step; history must remain.
+      await page.waitForTimeout(2800);
+      const duringRoute = await readChatContinuitySnapshot(page);
+      assert.equal(duringRoute.userCount, 1, `one user during route [${ctx}]`);
+      assert.ok(duringRoute.greetingAlive, `greeting during route [${ctx}]`);
+      assert.equal(
+        duringRoute.removed,
+        0,
+        `permanent removed during route must be 0 got=${duringRoute.removed} [${ctx}]`,
+      );
+      assert.equal(
+        duringRoute.hasCannedHistorical,
+        false,
+        `no historical rewrite during route [${ctx}]`,
+      );
+      assert.ok(duringRoute.threadMarked, `thread identity during route [${ctx}]`);
+    }
+  }
+
+  // Mobile surface switch (≤767): history must survive conversation↔guidance.
+  if (viewport.width <= 767) {
+    const switchVisible = await page.evaluate(() => {
+      const sw = document.getElementById("mobile-surface-switch");
+      if (!sw || sw.hasAttribute("hidden")) return false;
+      const cs = getComputedStyle(sw);
+      return cs.display !== "none" && cs.visibility !== "hidden";
+    });
+    if (switchVisible) {
+      const beforeSwitch = await readChatContinuitySnapshot(page);
+      const beforeSwitchNodes = beforeSwitch.messages.map((m) => m.node);
+      await page.click("#tab-guidance");
+      await page.waitForFunction(
+        () => document.body.getAttribute("data-mobile-surface") === "guidance",
+        null,
+        { timeout: 3000 },
+      );
+      await page.click("#tab-conversation");
+      await page.waitForFunction(
+        () =>
+          document.body.getAttribute("data-mobile-surface") === "conversation",
+        null,
+        { timeout: 3000 },
+      );
+      const afterSwitch = await readChatContinuitySnapshot(page);
+      assert.equal(afterSwitch.userCount, 1, `user after surface switch [${ctx}]`);
+      assert.ok(afterSwitch.greetingAlive, `greeting after surface switch [${ctx}]`);
+      assert.equal(
+        afterSwitch.removed,
+        beforeSwitch.removed,
+        `surface switch must not remove messages [${ctx}]`,
+      );
+      const afterSwitchNodes = new Set(afterSwitch.messages.map((m) => m.node));
+      for (const n of beforeSwitchNodes) {
+        assert.ok(
+          afterSwitchNodes.has(n),
+          `node ${n} survives surface switch [${ctx}]`,
+        );
+      }
+    }
+  }
+
+  // Explicit reset must intentionally clear history.
+  const resetVisible = await page.locator("#chat-reset").isVisible().catch(() => false);
+  if (resetVisible) {
+    await page.click("#chat-reset");
+    await waitForFirstUseState(page, "entry", 5000);
+    const afterReset = await readChatContinuitySnapshot(page);
+    assert.equal(afterReset.state, "entry", `entry after reset [${ctx}]`);
+    assert.equal(afterReset.userCount, 0, `no user after reset [${ctx}]`);
+    assert.ok(afterReset.greetingAlive, `greeting restored after reset [${ctx}]`);
+    assert.equal(
+      afterReset.hasCannedHistorical,
+      false,
+      `no canned historical after reset [${ctx}]`,
+    );
+  }
+
+  return readChatContinuitySnapshot(page);
+}
+
+/**
+ * #1123 persistent browser contract: chat history is append-only across
+ * civic-route transitions (except explicit 새로 시작 reset).
+ */
+async function runChatContinuity1123Contracts(browser, base) {
+  console.log("\nRunning #1123 chat continuity browser contracts:");
+  const allowedOrigin = new URL(base).origin;
+  const buckets = {
+    consoleErrors: [],
+    pageErrors: [],
+    requestFailures: [],
+    httpErrors: [],
+    externalRequestAttempts: [],
+  };
+  const sectionFailures = [];
+
+  async function section(name, fn) {
+    try {
+      await fn();
+      console.log(`${name} PASS`);
+    } catch (err) {
+      const msg = err && err.message ? err.message : String(err);
+      sectionFailures.push(`${name}: ${msg}`);
+      console.error(`${name} FAIL: ${msg}`);
+    }
+  }
+
+  const ctx = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+  });
+  let page;
+  try {
+    await ctx.route("**", (route) => {
+      const requestUrl = new URL(route.request().url());
+      if (requestUrl.origin === allowedOrigin) {
+        return route.continue();
+      }
+      if (requestUrl.pathname === "/favicon.ico") {
+        return route.abort();
+      }
+      buckets.externalRequestAttempts.push(requestUrl.toString());
+      return route.abort();
+    });
+    page = await ctx.newPage();
+    page.on("pageerror", (err) => {
+      buckets.pageErrors.push(String(err && err.message ? err.message : err));
+    });
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
+        buckets.consoleErrors.push(msg.text());
+      }
+    });
+    page.on("requestfailed", (req) => {
+      try {
+        const parsed = new URL(req.url());
+        if (parsed.pathname === "/favicon.ico") return;
+        if (parsed.origin !== allowedOrigin) return;
+      } catch {
+        /* count */
+      }
+      buckets.requestFailures.push(req.url());
+    });
+    page.on("response", (res) => {
+      try {
+        const parsed = new URL(res.url());
+        if (parsed.origin !== allowedOrigin) return;
+        if (parsed.pathname === "/favicon.ico") return;
+        if (res.status() >= 400) {
+          buckets.httpErrors.push(`${res.status()} ${res.url()}`);
+        }
+      } catch {
+        /* ignore */
+      }
+    });
+
+    // Full timeline: illegal parking on required viewports.
+    for (const vp of CHAT_CONTINUITY_VIEWPORTS) {
+      await section(
+        `[1123 ${vp.width}x${vp.height}] illegal-parking full timeline`,
+        async () => {
+          await runChatContinuityJourney(
+            page,
+            base,
+            vp,
+            {
+              label: "illegal-parking",
+              question: CHAT_CONTINUITY_PARKING_Q,
+              fullTimeline: true,
+            },
+            { fullTimeline: true },
+          );
+        },
+      );
+    }
+
+    // Focused append-only matrix on desktop (avoids huge suite growth).
+    const matrixVp = { width: 1440, height: 900 };
+    for (const journey of CHAT_CONTINUITY_MATRIX) {
+      await section(
+        `[1123 ${matrixVp.width}x${matrixVp.height}] matrix ${journey.label}`,
+        async () => {
+          await runChatContinuityJourney(page, base, matrixVp, journey);
+        },
+      );
+    }
+
+    await section("[1123] instrumentation clean", async () => {
+      assert.deepEqual(
+        buckets.consoleErrors,
+        [],
+        `console errors: ${JSON.stringify(buckets.consoleErrors)}`,
+      );
+      assert.deepEqual(
+        buckets.pageErrors,
+        [],
+        `page errors: ${JSON.stringify(buckets.pageErrors)}`,
+      );
+      assert.deepEqual(
+        buckets.requestFailures,
+        [],
+        `request failures: ${JSON.stringify(buckets.requestFailures)}`,
+      );
+      assert.deepEqual(
+        buckets.httpErrors,
+        [],
+        `HTTP errors: ${JSON.stringify(buckets.httpErrors)}`,
+      );
+      assert.deepEqual(
+        buckets.externalRequestAttempts,
+        [],
+        `external requests: ${JSON.stringify(buckets.externalRequestAttempts)}`,
+      );
+    });
+
+    if (sectionFailures.length) {
+      throw new Error(sectionFailures.join("\n"));
+    }
+  } finally {
+    if (page) {
+      try {
+        await page.close();
+      } catch {
+        /* ignore */
+      }
+    }
+    await ctx.close();
+  }
+}
+
 /**
  * #1114 persistent browser contract suite.
  * Uses the existing browser + ephemeral static server; no second launch.
@@ -3648,6 +4231,15 @@ async function main() {
           failures.push(`viewport=${vp.width}x${vp.height} state=${state}: ${err.message}`);
         }
       }
+    }
+
+    // #1123 chat continuity across civic-route transitions.
+    try {
+      await runChatContinuity1123Contracts(browser, base);
+    } catch (err) {
+      failures.push(
+        `#1123 chat continuity: ${err && err.message ? err.message : err}`,
+      );
     }
 
     // #1114 mayor entry contracts (persistent CI path in this harness).
