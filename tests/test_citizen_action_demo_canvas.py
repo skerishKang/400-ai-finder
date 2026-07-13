@@ -2976,8 +2976,17 @@ class TestCloneHeaderListContainment1122:
 
     def test_dense_header_neutralizes_legacy_gnb_bar(self):
         css = _read_static("citizen-action-demo-canvas.css")
-        assert f"{self.FIVE_ROOT} .bg-home-header > .bg-gnb" in css
+        # Markup nests nav.bg-gnb under .bg-home-header__inner, not as a
+        # direct child of .bg-home-header. Contract requires a descendant
+        # neutralization selector that wins over base .bg-gnb.
+        assert f"{self.FIVE_ROOT} .bg-home-header nav.bg-gnb" in css
+        assert f"{self.FIVE_ROOT} .bg-home-header .bg-gnb" in css
         assert "background-image: none" in css
+        assert "border-image: none" in css
+        # Neutralization must appear after the base legacy gradient rule.
+        base_at = css.find(".bg-gnb {")
+        neutral_at = css.find(f"{self.FIVE_ROOT} .bg-home-header nav.bg-gnb")
+        assert base_at != -1 and neutral_at != -1 and neutral_at > base_at
         # Utility/GNB links must not fall back to UA underline blue styling.
         assert "text-decoration: none" in css
         assert ".bg-home-utility__menus a" in css

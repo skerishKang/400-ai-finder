@@ -43,7 +43,21 @@ function isLocalRequest(url) {
   }
 }
 
+/**
+ * navigateToRoute() sets getCurrentRouteId() immediately, then swaps DOM after
+ * ~300ms fade. Wait for the direct rendered root under .demo-canvas__inner to
+ * match the destination identity — never a stale previous .bg-page.
+ */
 async function revealSplitRoute(page, routeId) {
+  const prevRootId = await page.evaluate(() => {
+    const root = document.querySelector("#demo-canvas .demo-canvas__inner > .bg-page");
+    if (!root) return null;
+    if (!root.dataset.contractRootId) {
+      root.dataset.contractRootId = `root-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+    return root.dataset.contractRootId;
+  });
+
   await page.evaluate((rid) => {
     document.body.setAttribute("data-first-use-state", "split");
     const canvas = document.getElementById("demo-canvas");
@@ -53,22 +67,54 @@ async function revealSplitRoute(page, routeId) {
     }
     window.CitizenActionDemoCanvas.navigateToRoute(rid);
   }, routeId);
-  // navigateToRoute fades out for ~300ms before swapping HTML; wait for the
-  // destination route page (and official content when applicable).
+
   await page.waitForFunction(
-    (rid) => {
+    ({ rid, prevId }) => {
       if (!window.CitizenActionDemoCanvas) return false;
       if (window.CitizenActionDemoCanvas.getCurrentRouteId() !== rid) return false;
-      const pageEl = document.querySelector(".bg-page");
-      if (!pageEl) return false;
-      if (rid === "passport-guidance") {
-        return Boolean(document.querySelector(".bg-official-content-html, .bg-page--passport-guidance"));
+
+      const canvas = document.getElementById("demo-canvas");
+      if (!canvas) return false;
+      // Fade-in completed (opacity restored after delayed HTML swap).
+      const opacity = getComputedStyle(canvas).opacity;
+      if (opacity !== "1") return false;
+
+      const root = document.querySelector("#demo-canvas .demo-canvas__inner > .bg-page");
+      if (!root) return false;
+      // Previous root node must have been replaced for a real navigation.
+      if (prevId && root.dataset.contractRootId === prevId) return false;
+
+      if (rid === "home") {
+        return root.classList.contains("bg-page--home");
       }
-      return true;
+      if (rid === "passport-guidance") {
+        return (
+          root.getAttribute("data-official-route-id") === "passport-guidance" &&
+          root.classList.contains("bg-page--dense") &&
+          Boolean(root.querySelector(".bg-official-content-html"))
+        );
+      }
+      if (rid === "apartment-dept") {
+        return (
+          root.classList.contains("bg-page--dense") &&
+          (root.getAttribute("data-official-route-id") === "apartment-dept" ||
+            root.classList.contains("bg-page--dept-directory"))
+        );
+      }
+      if (rid === "complaint-illegal-parking") {
+        return (
+          root.classList.contains("bg-page--dense") &&
+          (root.classList.contains("bg-page--illegal-parking") ||
+            Boolean(root.querySelector("[data-action-target]")))
+        );
+      }
+      // Generic dense destination: require dense shell on the direct root.
+      return root.classList.contains("bg-page--dense") || root.classList.contains("bg-page--home");
     },
-    routeId,
-    { timeout: 8000 }
+    { rid: routeId, prevId: prevRootId },
+    { timeout: 10000 }
   );
+
   await page.evaluate(() => {
     if (typeof window.CitizenActionDemoCanvas.fitToViewport === "function") {
       window.CitizenActionDemoCanvas.fitToViewport();
@@ -78,13 +124,32 @@ async function revealSplitRoute(page, routeId) {
 
 function collectHeaderSnapshot() {
   return (() => {
-    const page = document.querySelector(".bg-page");
-    const dense = document.querySelector(".bg-page--dense, .bg-page--home");
-    const utilLinks = [...document.querySelectorAll(".bg-home-utility__menus a")];
-    const gnbLinks = [...document.querySelectorAll(".bg-home-gnb__link")];
-    const inner = document.querySelector(".bg-home-header__inner");
-    const gnbNav = document.querySelector(".bg-home-header nav.bg-gnb, .bg-home-header > .bg-gnb");
-    const icons = [...document.querySelectorAll(".bg-home-header__icon")];
+    // Always measure the direct destination root — not a stale sibling/page.
+    const page =
+      document.querySelector("#demo-canvas .demo-canvas__inner > .bg-page") ||
+      document.querySelector("#demo-canvas .bg-page");
+    if (!page) {
+      return {
+        bodyState: document.body.getAttribute("data-first-use-state"),
+        pageClass: null,
+        hasDenseShell: false,
+        routeId: window.CitizenActionDemoCanvas
+          ? window.CitizenActionDemoCanvas.getCurrentRouteId()
+          : null,
+        util: [],
+        gnb: [],
+        inner: null,
+        gnbNav: null,
+        icons: [],
+      };
+    }
+
+    const dense = page.matches(".bg-page--dense, .bg-page--home");
+    const utilLinks = [...page.querySelectorAll(".bg-home-utility__menus a")];
+    const gnbLinks = [...page.querySelectorAll(".bg-home-gnb__link")];
+    const inner = page.querySelector(".bg-home-header__inner");
+    const gnbNav = page.querySelector(".bg-home-header nav.bg-gnb, .bg-home-header .bg-gnb");
+    const icons = [...page.querySelectorAll(".bg-home-header__icon")];
 
     function isDefaultBlue(color) {
       const m = String(color).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
@@ -96,9 +161,12 @@ function collectHeaderSnapshot() {
       return r < 40 && g < 40 && b > 180;
     }
 
+    const gnbCs = gnbNav ? getComputedStyle(gnbNav) : null;
+
     return {
       bodyState: document.body.getAttribute("data-first-use-state"),
-      pageClass: page ? page.className : null,
+      pageClass: page.className,
+      officialRouteId: page.getAttribute("data-official-route-id"),
       hasDenseShell: Boolean(dense),
       routeId: window.CitizenActionDemoCanvas
         ? window.CitizenActionDemoCanvas.getCurrentRouteId()
@@ -131,10 +199,12 @@ function collectHeaderSnapshot() {
             height: getComputedStyle(inner).height,
           }
         : null,
-      gnbNav: gnbNav
+      gnbNav: gnbCs
         ? {
-            backgroundImage: getComputedStyle(gnbNav).backgroundImage,
-            backgroundColor: getComputedStyle(gnbNav).backgroundColor,
+            backgroundImage: gnbCs.backgroundImage,
+            backgroundColor: gnbCs.backgroundColor,
+            borderImage: gnbCs.borderImage,
+            borderImageSource: gnbCs.borderImageSource,
           }
         : null,
       icons: icons.map((el) => {
@@ -155,10 +225,17 @@ function collectHeaderSnapshot() {
 
 function collectListSnapshot() {
   return (() => {
+    const root =
+      document.querySelector("#demo-canvas .demo-canvas__inner > .bg-page") ||
+      document.querySelector("#demo-canvas .bg-page");
     const main =
+      (root && root.querySelector(".bg-official-content-main")) ||
       document.querySelector(".bg-official-content-main") ||
+      (root && root.querySelector(".bg-official-content-html")) ||
       document.querySelector(".bg-official-content-html");
-    const html = document.querySelector(".bg-official-content-html");
+    const html =
+      (root && root.querySelector(".bg-official-content-html")) ||
+      document.querySelector(".bg-official-content-html");
     if (!main || !html) {
       return { error: "official content missing", anyCross: false, rows: [] };
     }
@@ -291,6 +368,23 @@ function assertHeaderStyled(snap, label) {
     assert.ok(
       img === "none" || img === "",
       `${label}: legacy .bg-gnb gradient still painted (${img})`
+    );
+    const borderImg = String(snap.gnbNav.borderImageSource || snap.gnbNav.borderImage || "");
+    assert.ok(
+      !/gradient/i.test(borderImg) && !/linear-gradient/i.test(borderImg),
+      `${label}: legacy .bg-gnb border-image gradient residual (${borderImg})`
+    );
+  }
+  if (label.startsWith("passport")) {
+    assert.equal(
+      snap.officialRouteId,
+      "passport-guidance",
+      `${label}: destination root data-official-route-id mismatch (${snap.officialRouteId})`
+    );
+    assert.equal(
+      snap.routeId,
+      "passport-guidance",
+      `${label}: getCurrentRouteId mismatch (${snap.routeId})`
     );
   }
   assert.ok(snap.icons.length === 2, `${label}: expected 2 header icons`);

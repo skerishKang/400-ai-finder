@@ -1193,21 +1193,6 @@
 }
 :is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__icon svg { width: 20px; height: 20px; }
 
-/* Dense/home shared shell: neutralize legacy .bg-gnb bar so home-style GNB
-   (dark text on white) is not painted as an unstyled green gradient strip. */
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header > .bg-gnb,
-:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header nav.bg-gnb {
-  min-width: 0;
-  background: transparent;
-  background-image: none;
-  border: 0;
-  border-image: none;
-  border-bottom: 0;
-  flex-shrink: 1;
-  height: auto;
-  padding: 0;
-}
-
 .bg-page--home .bg-home-search {
   min-height: 135px;
   background: linear-gradient(90deg, #fff 0%, #fbfdfd 72%, #eff8f6 100%);
@@ -1496,11 +1481,31 @@
   background: #fff;
   border: 0;
 }
-.bg-page--home .bg-home-header > .bg-gnb {
+
+/*
+ * #1122 — neutralize legacy full-width .bg-gnb gradient/border-image when the
+ * home-style header embeds <nav class="bg-gnb"> under .bg-home-header__inner.
+ * Must come AFTER base .bg-gnb and .bg-page--home .bg-gnb so cascade wins
+ * without !important. Direct-child (>) alone never matches this markup.
+ */
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header .bg-gnb,
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header nav.bg-gnb,
+:is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense) .bg-home-header__inner > .bg-gnb {
   min-width: 0;
   background: transparent;
+  background-color: transparent;
+  background-image: none;
   border: 0;
+  border-bottom: 0;
+  border-image: none;
+  border-image-source: none;
+  border-image-slice: 100%;
+  border-image-width: 1;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
   flex-shrink: 1;
+  height: auto;
+  padding: 0;
 }
 
 /* #868 current Buk-gu home lower */
