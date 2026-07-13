@@ -92,8 +92,14 @@ def test_entry_stage_uses_bukgu_identity_and_mayor_media():
 
 def test_split_transition_prepaints_canvas_and_uses_cinematic_motion():
     assert "function startCinematicSplit()" in JS
-    transition_body = JS[JS.index("function startCinematicSplit()"):
-                         JS.index("function scrollChatToLatest()")]
+    # #1142: scrollChatToLatest may accept an optional actionEl for bounded scroll.
+    scroll_marker = (
+        "function scrollChatToLatest()"
+        if "function scrollChatToLatest()" in JS
+        else "function scrollChatToLatest(actionEl)"
+    )
+    assert scroll_marker in JS
+    transition_body = JS[JS.index("function startCinematicSplit()"): JS.index(scroll_marker)]
     assert transition_body.index("_renderBukguHomeFixture()") < transition_body.index(
         "setState(STATE_TRANSITIONING)"
     )
