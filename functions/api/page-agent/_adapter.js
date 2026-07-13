@@ -5,18 +5,17 @@
 //
 //   POST /api/page-agent/plan
 //
-// Responsibilities:
-//   * CORS / method gate (same family as /api/mvp/ask)
-//   * server-side enable flag only (never browser query)
-//   * strict request schema validation
-//   * provider-neutral stub interface (NO network, NO secrets)
-//   * plan validation (allowlist, max steps, same-origin navigate,
-//     repeated-action detection, timeout / cancellation structure)
+//   PAGE_AGENT_MODEL_ENABLED  — server-only
+//   PAGE_AGENT_MODEL_PROVIDER — server-only ("disabled" | "mock")
 //
-// Deterministic browser mock mode (examples/page-agent mock-model.js) is
-// intentionally untouched and remains the default offline path.
+// Deterministic browser mock mode (resident-mock-model.js) remains the
+// default offline path and is not replaced by this endpoint.
 // ═════════════════════════════════════════════════════════════════════════
 
+import {
+  createProvider,
+  isModelAdapterEnabled,
+} from './_providers.js';
 import * as S from './_schema.js';
 
 const PRODUCTION_ORIGIN = 'https://cgbukku.pages.dev';
@@ -51,19 +50,6 @@ export function buildHeaders(request) {
   };
 }
 
-/**
- * Enable only via server env. Browser query/body flags are ignored.
- * Truthy values: "1", "true", "yes", "on" (case-insensitive).
- */
-export function isModelAdapterEnabled(env) {
-  if (!env || typeof env !== 'object') return false;
-  const raw = env[S.ENABLE_FLAG];
-  if (raw === true || raw === 1) return true;
-  if (typeof raw !== 'string') return false;
-  const v = raw.trim().toLowerCase();
-  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
-}
-
 function resolveTimeoutMs(env) {
   const raw = env && env.PAGE_AGENT_MODEL_TIMEOUT_MS;
   const n = typeof raw === 'string' || typeof raw === 'number' ? Number(raw) : NaN;
@@ -71,49 +57,6 @@ function resolveTimeoutMs(env) {
   return Math.min(Math.floor(n), S.ABS_MAX_TIMEOUT_MS);
 }
 
-/**
- * Provider-neutral interface. Stage 4 ships only a non-network stub.
- * Real OpenAI/Gemini/Claude/Firecrawl implementations are intentionally
- * absent and must not be added without separate controlled-live approval.
- */
-export class PageAgentModelProvider {
-  /**
-   * @param {object} _request validated plan request
-   * @param {{ signal?: AbortSignal }} _options
-   * @returns {Promise<{ ok: boolean, plan?: object, error?: string, detail?: string }>}
-   */
-  async createPlan(_request, _options) {
-    throw new Error('page_agent_provider_not_implemented');
-  }
-}
-
-/**
- * Default stub: never performs network I/O and never loads secrets.
- * When the adapter is enabled without a real provider binding, this stub
- * fails closed with a structured provider error (not a plan).
- */
-export class DisabledStubProvider extends PageAgentModelProvider {
-  async createPlan(_request, options) {
-    const signal = options && options.signal;
-    if (signal && signal.aborted) {
-      const err = new Error('page_agent_cancelled');
-      err.code = 'page_agent_cancelled';
-      throw err;
-    }
-    // Explicit non-implementation: Stage 4 forbids live provider calls.
-    return {
-      ok: false,
-      error: 'page_agent_provider_not_configured',
-      detail: 'stage4_stub_only',
-    };
-  }
-}
-
-/**
- * Optional pure validator helper for offline unit tests / future wiring:
- * if a candidate plan is supplied (e.g. from a future mock provider),
- * enforce the same fail-closed schema.
- */
 export function validateProviderPlanResult(candidate, requestValue) {
   if (!candidate || typeof candidate !== 'object') {
     return { ok: false, error: 'provider_error', detail: 'malformed_provider_result' };
@@ -146,9 +89,6 @@ async function readJsonBody(request) {
   }
 }
 
-/**
- * Run a provider stub under timeout + cancellation. Never retries.
- */
 export async function runWithTimeout(factory, timeoutMs, externalSignal) {
   const controller = new AbortController();
   let timedOut = false;
@@ -202,10 +142,25 @@ export async function onRequest(context) {
     return jsonResponse(S.errorBody('method_not_allowed'), 405, headers);
   }
 
-  // Query-string activation is intentionally ignored.
-  // Only PAGE_AGENT_MODEL_ENABLED on the server enables the adapter.
+  // Query-string / body flags are ignored. Server env only.
   if (!isModelAdapterEnabled(env)) {
     return jsonResponse(S.disabledErrorBody(), 200, headers);
+  }
+
+  const selected = createProvider(env);
+  if (selected.kind === 'unsupported') {
+    return jsonResponse(
+      S.errorBody('page_agent_provider_unsupported', 'provider:' + selected.name),
+      200,
+      headers
+    );
+  }
+  if (selected.kind === 'not_configured' || !selected.provider) {
+    return jsonResponse(
+      S.errorBody('page_agent_provider_not_configured', 'provider_missing_or_disabled'),
+      200,
+      headers
+    );
   }
 
   const parsed = await readJsonBody(request);
@@ -219,7 +174,7 @@ export async function onRequest(context) {
   }
 
   const timeoutMs = resolveTimeoutMs(env);
-  const provider = new DisabledStubProvider();
+  const provider = selected.provider;
 
   const timed = await runWithTimeout(
     (signal) => provider.createPlan(validated.value, { signal: signal }),
@@ -234,10 +189,6 @@ export async function onRequest(context) {
   const providerResult = timed.value;
   const checked = validateProviderPlanResult(providerResult, validated.value);
   if (!checked.ok) {
-    // Provider stub path: structured fail-closed, never a partial plan.
-    if (checked.error === 'invalid_plan') {
-      return jsonResponse(S.errorBody(checked.error, checked.detail), 200, headers);
-    }
     return jsonResponse(
       S.errorBody(checked.error || 'provider_error', checked.detail),
       200,
@@ -248,4 +199,4 @@ export async function onRequest(context) {
   return jsonResponse(S.successBody(checked.plan), 200, headers);
 }
 
-export { S as schema };
+export { isModelAdapterEnabled, createProvider, S as schema };

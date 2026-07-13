@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-page-agent-plan-mode="local">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,13 @@
 <link rel="stylesheet" href="../../../static/citizen-action-demo-canvas.css">
 <link rel="stylesheet" href="../../../static/citizen-copilot-shell.css">
 <link rel="stylesheet" href="resident-demo.css">
+<!--
+  Plan mode is explicit only:
+    data-page-agent-plan-mode="local"  (default offline mock)
+    data-page-agent-plan-mode="server" (same-origin /api/page-agent/plan)
+  Or inject window.__PAGE_AGENT_PLAN_CONFIG__ = { mode: "server" } from a
+  controlled build/config script. Query-string alone never enables server mode.
+-->
 </head>
 <body>
 <div class="resident-layout">
@@ -21,7 +28,7 @@
       </div>
       <div class="chat-header__sub">주민용 비교 데모 · 실시간 DOM 동작</div>
       <div class="chat-header__badges">
-        <span class="badge badge--offline">🔒 오프라인/mock</span>
+        <span class="badge badge--offline" id="plan-mode-badge">🔒 오프라인/mock</span>
         <span class="badge badge--sameorigin">🏠 동일 출처</span>
         <span class="badge badge--nosubmit">🚫 제출 불가</span>
       </div>
@@ -51,7 +58,9 @@
 <script src="../../../static/citizen-action-demo-map.js"></script>
 <script src="../../../static/citizen-action-demo-canvas.js"></script>
 <script src="../vendor/page-agent.iife.js"></script>
+<script src="parity-scenarios.js"></script>
 <script src="resident-mock-model.js"></script>
+<script src="resident-server-plan-client.js"></script>
 <script src="resident-demo.js"></script>
 </body>
 </html>

@@ -6,11 +6,14 @@
   var chatSend = document.getElementById("chat-send");
   var chatCancel = document.getElementById("chat-cancel");
   var statusEl = document.getElementById("chat-status");
+  var modeBadge = document.getElementById("plan-mode-badge");
 
   var agent = null;
   var isRunning = false;
   var timeoutId = null;
   var TIMEOUT_MS = 60000; // 60-second bounded timeout
+  var _planFetchAdapter = null;
+  var _sendToken = 0;
 
   var SUGGESTIONS = [
     "공동주택과 연락처 찾아줘",
@@ -19,6 +22,14 @@
     "민원 작성 화면을 열어줘",
     "구청장에게 제안할 글 작성을 도와줘",
   ];
+
+  function serverPlanEnabled() {
+    return (
+      window.PageAgentServerPlanClient &&
+      typeof window.PageAgentServerPlanClient.isEnabled === "function" &&
+      window.PageAgentServerPlanClient.isEnabled()
+    );
+  }
 
   function addMessage(text, role) {
     var div = document.createElement("div");
@@ -104,11 +115,69 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
+  function mapPlanError(errCode) {
+    switch (errCode) {
+      case "page_agent_model_disabled":
+        return "서버 계획 어댑터가 비활성 상태입니다. 오프라인 mock 모드를 사용하거나 서버 설정을 확인하세요.";
+      case "page_agent_provider_not_configured":
+        return "서버 provider가 구성되지 않았습니다.";
+      case "page_agent_provider_unsupported":
+        return "지원하지 않는 서버 provider입니다.";
+      case "page_agent_unsupported_task":
+        return "지원하지 않는 질문입니다. 안내된 다섯 가지 업무 중 하나를 선택해 주세요.";
+      case "page_agent_timeout":
+        return "서버 계획 요청이 시간 초과되었습니다.";
+      case "page_agent_cancelled":
+        return "요청이 취소되었습니다.";
+      case "page_agent_malformed_response":
+        return "서버 응답 형식이 올바르지 않습니다.";
+      case "invalid_request":
+      case "invalid_plan":
+        return "서버 계획 검증에 실패했습니다.";
+      default:
+        return "서버 계획 요청에 실패했습니다" + (errCode ? " (" + errCode + ")" : "") + ".";
+    }
+  }
+
   function stopAgent() {
-    if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    _sendToken += 1;
+    if (window.PageAgentServerPlanClient && typeof window.PageAgentServerPlanClient.cancel === "function") {
+      window.PageAgentServerPlanClient.cancel();
+    }
+    _planFetchAdapter = null;
     if (agent && isRunning) {
       agent.stop();
     }
+  }
+
+  function localCustomFetch(input, init) {
+    // When a server plan is armed, drive the real Page Agent tool loop from it.
+    if (_planFetchAdapter && typeof _planFetchAdapter.respond === "function") {
+      var raw = input instanceof Request ? input.url : String(input);
+      var url = new URL(raw, window.location.href);
+      if (url.origin !== window.location.origin) {
+        return Promise.reject(new Error("Blocked external Page Agent request: " + url.href));
+      }
+      return _planFetchAdapter.respond(input, init);
+    }
+
+    // Default offline deterministic mock (unchanged owner: PageAgentMockModel).
+    var mockBaseUrl = new URL("./mock-llm/v1", window.location.href);
+    mockBaseUrl.pathname = mockBaseUrl.pathname.replace(/\/$/, "");
+    var raw2 = input instanceof Request ? input.url : String(input);
+    var url2 = new URL(raw2, window.location.href);
+    var expectedPath = mockBaseUrl.pathname + "/chat/completions";
+    if (url2.origin !== window.location.origin) {
+      return Promise.reject(new Error("Blocked external Page Agent request: " + url2.href));
+    }
+    if (url2.pathname !== expectedPath) {
+      return Promise.reject(new Error("Blocked unexpected request: " + url2.pathname));
+    }
+    return window.PageAgentMockModel.respond(input, init);
   }
 
   function initAgent() {
@@ -119,19 +188,6 @@
 
     var mockBaseUrl = new URL("./mock-llm/v1", window.location.href);
     mockBaseUrl.pathname = mockBaseUrl.pathname.replace(/\/$/, "");
-
-    function localCustomFetch(input, init) {
-      var raw = input instanceof Request ? input.url : String(input);
-      var url = new URL(raw, window.location.href);
-      var expectedPath = mockBaseUrl.pathname + "/chat/completions";
-      if (url.origin !== window.location.origin) {
-        return Promise.reject(new Error("Blocked external Page Agent request: " + url.href));
-      }
-      if (url.pathname !== expectedPath) {
-        return Promise.reject(new Error("Blocked unexpected request: " + url.pathname));
-      }
-      return window.PageAgentMockModel.respond(input, init);
-    }
 
     agent = new window.PageAgent({
       model: "resident-mock-local",
@@ -162,6 +218,7 @@
           setStatus("완료 (일부 실패)", "");
           addMessage(result ? result.text : "작업을 완료하지 못했습니다.", "agent");
         }
+        _planFetchAdapter = null;
         setRunning(false);
       } else if (status === "error" || status === "stopped") {
         removeThinkingMessage();
@@ -172,6 +229,7 @@
           setStatus("오류", "chat-header__status--error");
           addErrorMessage("작업 중 오류가 발생했습니다.");
         }
+        _planFetchAdapter = null;
         setRunning(false);
       }
     });
@@ -189,25 +247,77 @@
       }
     });
 
+    if (modeBadge) {
+      modeBadge.textContent = serverPlanEnabled() ? "서버 plan 경계" : "오프라인/mock";
+      modeBadge.className =
+        "badge " + (serverPlanEnabled() ? "badge--server" : "badge--offline");
+    }
+
     setStatus("준비", "");
+  }
+
+  function startAgentExecute(text) {
+    if (!agent) {
+      addErrorMessage("PageAgent가 아직 초기화되지 않았습니다.");
+      return;
+    }
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(function () {
+      if (isRunning) {
+        addErrorMessage("60초가 초과되어 작업이 중단되었습니다.");
+        stopAgent();
+      }
+    }, TIMEOUT_MS);
+    agent.execute(text);
   }
 
   function sendMessage(text) {
     if (!text.trim() || isRunning) return;
     addMessage(text, "user");
-    if (agent) {
-      // Bounded timeout
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(function () {
-        if (isRunning) {
-          addErrorMessage("60초가 초과되어 작업이 중단되었습니다.");
-          stopAgent();
-        }
-      }, TIMEOUT_MS);
-      agent.execute(text);
-    } else {
-      addErrorMessage("PageAgent가 아직 초기화되지 않았습니다.");
+
+    // Default path: offline deterministic mock → Page Agent loop.
+    if (!serverPlanEnabled()) {
+      _planFetchAdapter = null;
+      startAgentExecute(text);
+      return;
     }
+
+    // Explicit server mode: request plan from same-origin adapter, then run
+    // the real Page Agent action loop with a plan-driven customFetch.
+    _sendToken += 1;
+    var token = _sendToken;
+    setRunning(true);
+    setStatus("서버 계획 요청...", "chat-header__status--active");
+    addThinkingMessage();
+
+    window.PageAgentServerPlanClient.requestPlan(text, { maxSteps: 10 }).then(function (result) {
+      if (token !== _sendToken) return; // superseded / cancelled
+      removeThinkingMessage();
+
+      if (!result || result.ok !== true) {
+        setRunning(false);
+        setStatus("오류", "chat-header__status--error");
+        addErrorMessage(mapPlanError(result && result.error));
+        _planFetchAdapter = null;
+        return;
+      }
+
+      var doneText = "";
+      var steps = result.plan.steps || [];
+      for (var i = 0; i < steps.length; i++) {
+        if (steps[i].action === "read" && steps[i].value) {
+          doneText = String(steps[i].value);
+          break;
+        }
+      }
+
+      _planFetchAdapter = window.PageAgentServerPlanClient.createPlanFetchAdapter(
+        result.plan,
+        doneText
+      );
+      // Important: do not jump to final route; Page Agent executes clicks.
+      startAgentExecute(text);
+    });
   }
 
   function onSend() {
@@ -237,7 +347,9 @@
       var btn = document.createElement("button");
       btn.className = "chat-suggestion";
       btn.textContent = s;
-      btn.addEventListener("click", function () { sendMessage(s); });
+      btn.addEventListener("click", function () {
+        sendMessage(s);
+      });
       suggestionsContainer.appendChild(btn);
     });
 
