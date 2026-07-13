@@ -499,6 +499,39 @@ body.compact-drawer-open .compact-toggle .toggle-icon {
   border-radius: 20px;
 }
 
+/* #1121: compact partner attribution under the service title (shell only). */
+.chat-shell__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.chat-shell__attribution {
+  margin: 0;
+  max-width: 100%;
+  font-size: 0.68rem;
+  font-weight: var(--mvp-weight-medium, 500);
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  color: var(--mvp-color-text-muted, #8e8ea0);
+  word-break: break-word;
+}
+/* #1121: service disclosure below the composer (not official canvas). */
+.chat-shell__disclosure {
+  margin: 0;
+  flex-shrink: 0;
+  padding: 6px 14px 10px;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: var(--mvp-color-text-muted, #8e8ea0);
+  text-align: center;
+  border-top: 1px solid var(--mvp-color-divider);
+  background: var(--mvp-color-surface);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 /* Conversation thread */
 .chat-thread {
   flex: 1;
