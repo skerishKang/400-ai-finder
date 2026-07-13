@@ -2986,11 +2986,33 @@
     _demoCanvas.setAttribute("data-official-fit", "scaled");
   }
 
+  /**
+   * #1133: notify the shell after a closed route is actually committed to DOM.
+   * Local CustomEvent only - no network/persistence. Does not write history.
+   */
+  function _dispatchCanvasRouteChange(routeId, previousRouteId) {
+    try {
+      if (typeof window === "undefined" || typeof window.CustomEvent !== "function") {
+        return;
+      }
+      window.dispatchEvent(new CustomEvent("citizen:canvas-routechange", {
+        detail: {
+          routeId: routeId,
+          previousRouteId: previousRouteId,
+          source: "runtime"
+        }
+      }));
+    } catch (_) {
+      /* CustomEvent unavailable */
+    }
+  }
+
   function navigateToRoute(routeId) {
     if (!_map.isValidRoute(routeId)) {
       _assert(false, "invalid routeId: " + routeId);
       return;
     }
+    var previousRouteId = _currentRouteId;
     _currentRouteId = routeId;
     if (_demoCanvas) {
       // Clear any pending navigation timer
@@ -3013,14 +3035,27 @@
         void _demoCanvas.offsetHeight;
         _demoCanvas.style.transition = "opacity 350ms ease";
         _demoCanvas.style.opacity = "1";
+        // Emit only after the route DOM is committed.
+        _dispatchCanvasRouteChange(routeId, previousRouteId);
       }, 300);
       // Store timer reference for cleanup on rapid navigation
       _navFadeTimer = navTimer;
+    } else {
+      _dispatchCanvasRouteChange(routeId, previousRouteId);
     }
   }
 
   function getCurrentRouteId() {
     return _currentRouteId;
+  }
+
+  /** #1133: read-only closed-route membership (no arbitrary route setter). */
+  function hasRoute(routeId) {
+    return !!(
+      _map &&
+      typeof _map.isValidRoute === "function" &&
+      _map.isValidRoute(routeId)
+    );
   }
 
   function getTargetElement(targetId) {
@@ -3329,6 +3364,7 @@
   window.CitizenActionDemoCanvas = Object.freeze({
     navigateToRoute: navigateToRoute,
     getCurrentRouteId: getCurrentRouteId,
+    hasRoute: hasRoute,
     getTargetElement: getTargetElement,
     showCursorAt: showCursorAt,
     hideCursor: hideCursor,

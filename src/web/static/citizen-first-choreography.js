@@ -636,21 +636,31 @@
     }
   }
 
-  // #927: drive an existing local clone journey state through the public
-  // canvas API. Currently supports the approved J-DEPT-01 directory state,
-  // which renders the canonical 공동주택과 organization/work snapshot.
+  // #927 / #1133: drive an existing local clone journey state through the
+  // public canvas API. History writes are owned by CitizenFirstUseShell —
+  // choreography only requests a bounded commit (no direct pushState).
+  // Currently supports the approved J-DEPT-01 directory state, which renders
+  // the canonical 공동주택과 organization/work snapshot.
   function _applyJourneyState(journeyState) {
     if (!journeyState || typeof journeyState !== "string") return;
     var parts = journeyState.split(":");
     var journey = parts[0];
     var state = parts[1] || "";
     if (journey === "J-DEPT-01" && (state === "directory" || state === "result" || state === "menu")) {
-      if (typeof window !== "undefined" && window.location && window.history
-          && typeof window.history.pushState === "function") {
-        var params = new URLSearchParams(window.location.search);
-        params.set("journey", "J-DEPT-01");
-        params.set("dept-state", state);
-        window.history.pushState({}, "", "?" + params.toString());
+      try {
+        if (typeof window !== "undefined" && typeof window.CustomEvent === "function") {
+          window.dispatchEvent(new CustomEvent("citizen:history-commit-request", {
+            detail: {
+              routeId: "home",
+              query: {
+                journey: "J-DEPT-01",
+                deptState: state
+              }
+            }
+          }));
+        }
+      } catch (_) {
+        /* CustomEvent unavailable — shell history commit is best-effort */
       }
       var canvas = window.CitizenActionDemoCanvas;
       if (canvas && canvas.navigateToRoute) {
