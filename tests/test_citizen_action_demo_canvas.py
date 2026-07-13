@@ -1169,21 +1169,33 @@ class TestJDept01SpecificContracts:
             ".bg-home-header__actions",
             ".bg-home-header__icon"
         ]
-        # Accept 2-root, 3-root, 4-root, or 5-root (incl. bg-page--dense) :is() selector
+        # Accept 2–6 root :is() selectors. #1142 adds .bg-page--product so
+        # complaint-write reuses the dense public-shell header/footer styles.
         FOUR_ROOT = ":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info)"
         FIVE_ROOT = ":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense)"
+        SIX_ROOT = (
+            ":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info, "
+            ".bg-page--kiosk-info, .bg-page--dense, .bg-page--product)"
+        )
         for cls in required_classes:
             has_two_root = any(f":is(.bg-page--home, .bg-page--dept-directory) {cls}" in line for line in css.split("\n"))
             has_three_root = any(f":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info) {cls}" in line for line in css.split("\n"))
             has_four_root = any(f"{FOUR_ROOT} {cls}" in line for line in css.split("\n"))
             has_five_root = any(f"{FIVE_ROOT} {cls}" in line for line in css.split("\n"))
-            assert has_two_root or has_three_root or has_four_root or has_five_root, f"Missing shared scoping contract for: {cls}"
+            has_six_root = any(f"{SIX_ROOT} {cls}" in line for line in css.split("\n"))
+            assert (
+                has_two_root or has_three_root or has_four_root or has_five_root or has_six_root
+            ), f"Missing shared scoping contract for: {cls}"
 
-        # Assert the shared root selector defines --bg-home-width: 914px (2, 3, 4, or 5 roots)
+        # Assert the shared root selector is present (2–6 roots); lock product root.
         assert (any(":is(.bg-page--home, .bg-page--dept-directory)" in line for line in css.split("\n")) or
                 any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info)" in line for line in css.split("\n")) or
                 any(f"{FOUR_ROOT}" in line for line in css.split("\n")) or
-                any(f"{FIVE_ROOT}" in line for line in css.split("\n"))), "Missing shared root selector in CSS"
+                any(f"{FIVE_ROOT}" in line for line in css.split("\n")) or
+                any(f"{SIX_ROOT}" in line for line in css.split("\n"))), "Missing shared root selector in CSS"
+        assert ".bg-page--product" in SIX_ROOT and any(
+            f"{SIX_ROOT}" in line for line in css.split("\n")
+        ), "Missing #1142 product-page dense header scope (.bg-page--product)"
 
         # Verify custom property and outer strip scoped rules
         assert any("--bg-home-width: 914px;" in line for line in css.split("\n")), "Missing shared home-width custom property"
@@ -1191,7 +1203,10 @@ class TestJDept01SpecificContracts:
         has_three_strip = any(":is(.bg-page--home, .bg-page--dept-directory, .bg-page--park-info) .bg-home-gov-strip" in line for line in css.split("\n"))
         has_four_strip = any(f"{FOUR_ROOT} .bg-home-gov-strip" in line for line in css.split("\n"))
         has_five_strip = any(f"{FIVE_ROOT} .bg-home-gov-strip" in line for line in css.split("\n"))
-        assert has_two_strip or has_three_strip or has_four_strip or has_five_strip, "Missing shared gov-strip rule mapping"
+        has_six_strip = any(f"{SIX_ROOT} .bg-home-gov-strip" in line for line in css.split("\n"))
+        assert (
+            has_two_strip or has_three_strip or has_four_strip or has_five_strip or has_six_strip
+        ), "Missing shared gov-strip rule mapping"
 
         # Assert directory/result renders contain the correct root class
         html_dir = dept_render("?journey=J-DEPT-01&dept-state=directory")
@@ -2972,33 +2987,45 @@ class TestAutoReplayPhaseMismatchFailClosed:
 class TestCloneHeaderListContainment1122:
     """Static contracts for official-header styling and list marker containment."""
 
-    FIVE_ROOT = (
+    # #1142: complaint-write (.bg-page--product) shares dense public-shell header/footer.
+    SIX_ROOT = (
         ":is(.bg-page--home, .bg-page--dept-directory, "
-        ".bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense)"
+        ".bg-page--park-info, .bg-page--kiosk-info, .bg-page--dense, .bg-page--product)"
     )
 
     def test_dense_header_stylesheet_scope_present(self):
         css = _read_static("citizen-action-demo-canvas.css")
+        assert ".bg-page--product" in self.SIX_ROOT
+        # Prior five roots remain locked inside the six-root selector.
+        for root in (
+            ".bg-page--home",
+            ".bg-page--dept-directory",
+            ".bg-page--park-info",
+            ".bg-page--kiosk-info",
+            ".bg-page--dense",
+            ".bg-page--product",
+        ):
+            assert root in self.SIX_ROOT
         for cls in (
             ".bg-home-utility__menus a",
             ".bg-home-header__inner",
             ".bg-home-gnb__link",
             ".bg-home-header__icon",
         ):
-            assert f"{self.FIVE_ROOT} {cls}" in css, f"missing dense-scoped rule for {cls}"
+            assert f"{self.SIX_ROOT} {cls}" in css, f"missing dense-scoped rule for {cls}"
 
     def test_dense_header_neutralizes_legacy_gnb_bar(self):
         css = _read_static("citizen-action-demo-canvas.css")
         # Markup nests nav.bg-gnb under .bg-home-header__inner, not as a
         # direct child of .bg-home-header. Contract requires a descendant
         # neutralization selector that wins over base .bg-gnb.
-        assert f"{self.FIVE_ROOT} .bg-home-header nav.bg-gnb" in css
-        assert f"{self.FIVE_ROOT} .bg-home-header .bg-gnb" in css
+        assert f"{self.SIX_ROOT} .bg-home-header nav.bg-gnb" in css
+        assert f"{self.SIX_ROOT} .bg-home-header .bg-gnb" in css
         assert "background-image: none" in css
         assert "border-image: none" in css
         # Neutralization must appear after the base legacy gradient rule.
         base_at = css.find(".bg-gnb {")
-        neutral_at = css.find(f"{self.FIVE_ROOT} .bg-home-header nav.bg-gnb")
+        neutral_at = css.find(f"{self.SIX_ROOT} .bg-home-header nav.bg-gnb")
         assert base_at != -1 and neutral_at != -1 and neutral_at > base_at
         # Utility/GNB links must not fall back to UA underline blue styling.
         assert "text-decoration: none" in css
