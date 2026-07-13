@@ -68,6 +68,12 @@ html, body {
   color: #fff;
 }
 
+.resident-mobile-switch__tab:focus-visible,
+.resident-mobile-switch__cancel:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
 .resident-mobile-switch__cancel {
   flex: 0 0 auto;
   padding: 8px 10px;

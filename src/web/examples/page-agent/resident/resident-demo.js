@@ -129,13 +129,31 @@
     if (!el) return;
     el.hidden = false;
     el.inert = false;
+    el.removeAttribute("inert");
     el.removeAttribute("aria-hidden");
+  }
+
+  function blurFocusInside(surface) {
+    var active = document.activeElement;
+    if (
+      surface &&
+      active &&
+      active !== document.body &&
+      surface.contains(active) &&
+      typeof active.blur === "function"
+    ) {
+      active.blur();
+    }
   }
 
   function concealSurface(el) {
     if (!el) return;
+    // Never put aria-hidden/inert on a surface that still holds focus.
+    // Blur only — do not focus canvas or reopen the mobile soft keyboard.
+    blurFocusInside(el);
     el.hidden = true;
     el.inert = true;
+    el.setAttribute("inert", "");
     el.setAttribute("aria-hidden", "true");
   }
 
