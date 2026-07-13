@@ -2986,11 +2986,68 @@
     _demoCanvas.setAttribute("data-official-fit", "scaled");
   }
 
+  /**
+   * #1133: notify the shell after a closed route is actually committed to DOM.
+   * Local CustomEvent only - no network/persistence. Does not write history.
+   */
+  function _dispatchCanvasRouteChange(routeId, previousRouteId) {
+    try {
+      if (typeof window === "undefined" || typeof window.CustomEvent !== "function") {
+        return;
+      }
+      window.dispatchEvent(new CustomEvent("citizen:canvas-routechange", {
+        detail: {
+          routeId: routeId,
+          previousRouteId: previousRouteId,
+          source: "runtime"
+        }
+      }));
+    } catch (_) {
+      /* CustomEvent unavailable */
+    }
+  }
+
+  /**
+   * #1132: prefer shell motion owner; fall back to matchMedia.
+   * Used only to skip decorative route-fade waits under reduced motion.
+   */
+  function _prefersReducedMotionNav() {
+    try {
+      if (
+        typeof window !== "undefined" &&
+        window.CitizenFirstUseShell &&
+        typeof window.CitizenFirstUseShell.prefersReducedMotion === "function"
+      ) {
+        return !!window.CitizenFirstUseShell.prefersReducedMotion();
+      }
+      return !!(
+        window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function _commitRouteDom(routeId, previousRouteId) {
+    if (!_demoCanvas) {
+      _dispatchCanvasRouteChange(routeId, previousRouteId);
+      return;
+    }
+    _demoCanvas.innerHTML = '<div class="demo-canvas__inner">' + _renderRoute(routeId) + '</div>';
+    _demoCanvas.scrollTop = 0;
+    _demoCanvas.scrollLeft = 0;
+    _attachDelegation();
+    fitToViewport();
+    _dispatchCanvasRouteChange(routeId, previousRouteId);
+  }
+
   function navigateToRoute(routeId) {
     if (!_map.isValidRoute(routeId)) {
       _assert(false, "invalid routeId: " + routeId);
       return;
     }
+    var previousRouteId = _currentRouteId;
     _currentRouteId = routeId;
     if (_demoCanvas) {
       // Clear any pending navigation timer
@@ -2998,17 +3055,21 @@
         clearTimeout(_navFadeTimer);
         _navFadeTimer = null;
       }
+      // #1132: reduced motion commits immediately so choreography click/search
+      // targets exist before the next 0-100ms step boundary (housing J-DEPT path).
+      if (_prefersReducedMotionNav()) {
+        _demoCanvas.style.transition = "none";
+        _demoCanvas.style.opacity = "1";
+        _commitRouteDom(routeId, previousRouteId);
+        return;
+      }
       // Route content fade: fade out, swap html while invisible, fade in
       // Use a micro-sequence for smoother visual transition
       _demoCanvas.style.transition = "opacity 280ms ease";
       _demoCanvas.style.opacity = "0";
       var navTimer = setTimeout(function () {
         // HTML swap happens while opacity is 0 (invisible)
-        _demoCanvas.innerHTML = '<div class="demo-canvas__inner">' + _renderRoute(routeId) + '</div>';
-        _demoCanvas.scrollTop = 0;
-        _demoCanvas.scrollLeft = 0;
-        _attachDelegation();
-        fitToViewport();
+        _commitRouteDom(routeId, previousRouteId);
         // Force reflow then fade in
         void _demoCanvas.offsetHeight;
         _demoCanvas.style.transition = "opacity 350ms ease";
@@ -3016,11 +3077,22 @@
       }, 300);
       // Store timer reference for cleanup on rapid navigation
       _navFadeTimer = navTimer;
+    } else {
+      _dispatchCanvasRouteChange(routeId, previousRouteId);
     }
   }
 
   function getCurrentRouteId() {
     return _currentRouteId;
+  }
+
+  /** #1133: read-only closed-route membership (no arbitrary route setter). */
+  function hasRoute(routeId) {
+    return !!(
+      _map &&
+      typeof _map.isValidRoute === "function" &&
+      _map.isValidRoute(routeId)
+    );
   }
 
   function getTargetElement(targetId) {
@@ -3329,6 +3401,7 @@
   window.CitizenActionDemoCanvas = Object.freeze({
     navigateToRoute: navigateToRoute,
     getCurrentRouteId: getCurrentRouteId,
+    hasRoute: hasRoute,
     getTargetElement: getTargetElement,
     showCursorAt: showCursorAt,
     hideCursor: hideCursor,

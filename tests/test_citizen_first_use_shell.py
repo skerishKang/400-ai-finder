@@ -43,8 +43,10 @@ def test_first_use_shell_rerenders_entry_conversation_after_canvas_boot():
     chat thread; the shell must re-render the chat-first greeting on fresh
     entry loads."""
     fresh_entry_init = JS[JS.index("if (isLegacyJourneyLoad())"):]
-    assert "setState(STATE_ENTRY)" in fresh_entry_init
+    # #1133: cold entry materializes history with skipHistory, then one replace.
+    assert "setState(STATE_ENTRY, { skipHistory: true })" in fresh_entry_init
     assert "renderEntryConversation()" in fresh_entry_init
+    assert "materializeInitialHistory()" in fresh_entry_init
 
 
 def test_first_use_shell_is_local_only_and_fail_closed():
@@ -207,20 +209,23 @@ def test_choreography_terminal_step_preserves_highlight():
     """The completion step (no routeId/targetId) must not call _clearHighlights.
     _clearHighlights must be guarded by a routeId-or-targetId condition so
     message-only terminal steps preserve the previous step's highlight."""
-    # Verify the guard: _clearHighlights only runs when step has routeId or targetId
-    assert "step.routeId || step.routeIdAfterClick" in CHOREO
-    # Verify that a line matching the guard is directly followed by _clearHighlights
+    # Guard is multi-line: routeId / routeIdAfterClick / targetId / ... then clear.
+    assert "step.routeId ||" in CHOREO
+    assert "step.routeIdAfterClick ||" in CHOREO
+    assert "step.targetId ||" in CHOREO
     choreo_lines = CHOREO.splitlines()
     guard_found = False
     for i, line in enumerate(choreo_lines):
-        if "step.routeId || step.routeIdAfterClick" in line and "if (" in line:
-            for j in range(i + 1, min(i + 5, len(choreo_lines))):
+        if "step.routeId ||" in line:
+            # Walk forward through the multi-line if-condition to the body.
+            for j in range(i, min(i + 20, len(choreo_lines))):
                 stripped = choreo_lines[j].strip()
-                if stripped and not stripped.startswith("//") and not stripped.startswith("*"):
-                    assert "_clearHighlights" in stripped, (
-                        f"_clearHighlights must follow the guard; found '{stripped}'"
-                    )
+                if stripped.startswith("_clearHighlights"):
                     guard_found = True
+                    break
+                if stripped.startswith("if (step.routeId)") or stripped.startswith(
+                    "if (step.targetId)"
+                ):
                     break
             break
     assert guard_found, "Guard condition for _clearHighlights not found"
@@ -228,8 +233,11 @@ def test_choreography_terminal_step_preserves_highlight():
 
 def test_each_new_journey_resets_canvas_scroll_and_stale_department_state():
     assert "resetOfficialCanvasScroll" in JS
-    assert "params.delete(key)" in JS
-    assert '"journey", "dept-state"' in JS
+    # #1133: journey/dept-state cleared via shell-owned history dropJourneyQuery.
+    assert "clearPreviousJourneyLocationState" in JS
+    assert "dropJourneyQuery: true" in JS
+    assert 'journey: true' in JS or '"journey"' in JS
+    assert "dept-state" in JS
     assert "canvas.scrollTop = 0" in JS
 
 
@@ -410,9 +418,10 @@ def test_shell_mvp_request_token_invalidates_late_responses():
 
 def test_shell_reset_invalidates_pending_mvp_and_cancels_bridge():
     idx = JS.index("function resetToEntry()")
-    reset_body = JS[idx:idx + 600]
+    reset_body = JS[idx:idx + 900]
     assert "_mvpRequestToken++" in reset_body
-    assert "CitizenMvpBridge.cancel()" in reset_body
+    # Guarded cancel remains (window-qualified public API).
+    assert "window.CitizenMvpBridge.cancel()" in reset_body
     # Existing choreography cancellation must remain.
     assert "CitizenFirstChoreography.cancel()" in reset_body
 

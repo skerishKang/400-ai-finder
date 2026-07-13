@@ -15,6 +15,12 @@
   var STATE_ENTRY = "entry";
   var STATE_TRANSITIONING = "transitioning";
   var STATE_SPLIT = "split";
+  // #1067 — semantic journey axis (independent of layout first-use-state).
+  var JOURNEY_ENTRY = "entry";
+  var JOURNEY_ANSWER = "answer";
+  var JOURNEY_CONFIRM = "confirm";
+  var JOURNEY_NAVIGATE = "navigate";
+  var JOURNEY_RESULT = "result";
   var TRANSITION_DURATION_MS = 1100;
   var SUPPORTED_QUESTION_ACTIONS = {
     "불법 주정차 신고는 어디서 하나요?": "illegal_parking",
@@ -46,9 +52,32 @@
   var chatSend = document.getElementById("chat-composer-send");
   var resetButton = document.getElementById("chat-reset");
   var chipsContainer = document.getElementById("chat-chips");
+  // #1067: SR-only journey progress (not a conversation message / not #chat-thread).
+  var journeyStatusEl = document.getElementById("chat-journey-status");
   var splitTimer = null;
+  // #1132: pending layout completion callback so reduced-motion can finish
+  // entry→split without waiting on a decorative TRANSITION_DURATION timer.
+  var _pendingSplitComplete = null;
   var lastSplitQuestion = null;
   var currentState = STATE_ENTRY;
+  var currentJourneyState = JOURNEY_ENTRY;
+  // #1067: while true, choreography cancelled events must not map to answer.
+  var _journeyResetting = false;
+  // #1067: invalidate confirm-run / decision buttons created before a reset.
+  var _confirmGeneration = 0;
+  // #1067: suppress repeated polite status announcements for the same phase.
+  var _lastJourneyAnnouncement = "";
+  var _lastAnnouncedJourneyState = "";
+
+  // ── #1132: motion preference (canonical owner for shell + choreography) ──
+  // Materialized on body as data-reduced-motion. Runtime OS changes update
+  // the attribute and emit citizen:motion-preferencechange without resetting
+  // journey/layout/surface/chat/choreography state.
+  var reducedMotionQuery =
+    typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)")
+      : null;
+  var reducedMotion = Boolean(reducedMotionQuery && reducedMotionQuery.matches);
 
   // ── MVP mode (#925 / #927) ──────────────────────────────────────
   // Enabled only with ?mvp=1. In MVP mode the shell calls the model-backed
@@ -58,6 +87,798 @@
   // no fetch itself (the bridge file does, and is loaded only in MVP mode).
   var _mvpRequestToken = 0;
   var _questRuntimeResult = null;
+
+  // ── #1133: browser history owner (shell-only) ──────────────────────
+  // Single owner for history.state + popstate restore. Snapshots never store
+  // chat text, model answers, secrets, DOM HTML, or element references.
+  var HISTORY_OWNER = "citizen-first-shell";
+  var HISTORY_VERSION = 1;
+  var _historyFlowSequence = 1;
+  var _historyFlowId = "flow-1";
+  var _historyRestoring = false;
+  var _historyWriteSuppressed = false;
+  var _historyRouteSuppressToken = 0;
+  var _lastWrittenHistorySnapshot = null;
+  var _historyPopListenerBound = false;
+
+  /**
+   * #1067: aria-busy for website choreography progress only.
+   * Layout transitioning and MVP composer-lock use data-chat-busy instead.
+   * Does not move focus.
+   */
+  function _applyJourneyBusy(journeyState) {
+    var busy = journeyState === JOURNEY_NAVIGATE;
+    if (chatShell) {
+      chatShell.setAttribute("aria-busy", busy ? "true" : "false");
+    }
+    if (canvas) {
+      canvas.setAttribute("aria-busy", busy ? "true" : "false");
+    }
+  }
+
+  /**
+   * #1067: single owner for semantic journey SR announcements + busy flags.
+   * Does not re-read AI answers or confirm bubbles (#chat-thread owns those).
+   * Does not call .focus().
+   *
+   * @param {string} nextState
+   * @param {{ announceReset?: boolean }} [options]
+   */
+  function syncJourneyAccessibility(nextState, options) {
+    options = options || {};
+    _applyJourneyBusy(nextState);
+
+    // Explicit reset may re-announce the same entry phrase later; clear guard.
+    if (options.announceReset) {
+      _lastJourneyAnnouncement = "";
+      _lastAnnouncedJourneyState = "";
+    }
+
+    var text = null;
+    if (nextState === JOURNEY_ENTRY && options.announceReset) {
+      text = "새 질문을 입력할 수 있습니다.";
+    } else if (nextState === JOURNEY_NAVIGATE) {
+      text = "북구청 안내 화면에서 경로를 진행하고 있습니다.";
+    } else if (nextState === JOURNEY_RESULT) {
+      text =
+        "안내 경로가 완료되었습니다. 대화로 돌아가 새 질문을 입력할 수 있습니다.";
+    }
+    // answer / confirm / cold entry: no status-region copy
+    // (answer + confirm content already live in #chat-thread).
+
+    if (text === null) {
+      return;
+    }
+    if (
+      text === _lastJourneyAnnouncement &&
+      nextState === _lastAnnouncedJourneyState
+    ) {
+      return;
+    }
+    _lastJourneyAnnouncement = text;
+    _lastAnnouncedJourneyState = nextState;
+    if (journeyStatusEl) {
+      journeyStatusEl.textContent = text;
+    }
+  }
+
+  /**
+   * #1067: set semantic journey state on body. Layout state (data-first-use-state)
+   * is independent and unchanged by this axis.
+   * @param {string} nextState
+   * @param {{ announceReset?: boolean }} [options]
+   */
+  function setJourneyState(nextState, options) {
+    options = options || {};
+    if (_journeyResetting && nextState !== JOURNEY_ENTRY) {
+      return;
+    }
+    if (
+      nextState !== JOURNEY_ENTRY &&
+      nextState !== JOURNEY_ANSWER &&
+      nextState !== JOURNEY_CONFIRM &&
+      nextState !== JOURNEY_NAVIGATE &&
+      nextState !== JOURNEY_RESULT
+    ) {
+      return;
+    }
+    var changed = currentJourneyState !== nextState;
+    if (body && body.getAttribute("data-journey-state") !== nextState) {
+      body.setAttribute("data-journey-state", nextState);
+    }
+    if (!changed && !options.announceReset) {
+      // Re-assert busy if composer lock flipped aria-busy via legacy path.
+      _applyJourneyBusy(currentJourneyState);
+      return;
+    }
+    currentJourneyState = nextState;
+    syncJourneyAccessibility(nextState, options);
+    // Semantic-only changes use replaceState (never push).
+    if (!shouldSuppressHistoryWrite() && !options.skipHistory) {
+      writeHistorySnapshot("replace");
+    }
+  }
+
+  function getJourneyState() {
+    return currentJourneyState;
+  }
+
+  function getJourneyAccessibilityState() {
+    return {
+      journeyState: currentJourneyState,
+      announcedState: _lastAnnouncedJourneyState,
+      chatBusy: !!(chatShell && chatShell.getAttribute("aria-busy") === "true"),
+      canvasBusy: !!(canvas && canvas.getAttribute("aria-busy") === "true"),
+      reducedMotion: reducedMotion
+    };
+  }
+
+  // ── #1133 history helpers ──────────────────────────────────────────
+
+  function normalizeHistoryJourneyState(journeyState) {
+    if (journeyState === JOURNEY_ENTRY) return JOURNEY_ENTRY;
+    if (journeyState === JOURNEY_ANSWER) return JOURNEY_ANSWER;
+    if (journeyState === JOURNEY_CONFIRM) return JOURNEY_ANSWER;
+    if (journeyState === JOURNEY_NAVIGATE) return JOURNEY_ANSWER;
+    if (journeyState === JOURNEY_RESULT) return JOURNEY_RESULT;
+    return null;
+  }
+
+  function isClosedRouteId(routeId) {
+    if (typeof routeId !== "string" || !routeId || routeId.length > 96) {
+      return false;
+    }
+    if (
+      window.CitizenActionDemoCanvas &&
+      typeof window.CitizenActionDemoCanvas.hasRoute === "function"
+    ) {
+      return !!window.CitizenActionDemoCanvas.hasRoute(routeId);
+    }
+    if (
+      window.CitizenActionDemoMap &&
+      typeof window.CitizenActionDemoMap.isValidRoute === "function"
+    ) {
+      return !!window.CitizenActionDemoMap.isValidRoute(routeId);
+    }
+    return routeId === "home";
+  }
+
+  function getCurrentRouteIdSafe() {
+    if (
+      window.CitizenActionDemoCanvas &&
+      typeof window.CitizenActionDemoCanvas.getCurrentRouteId === "function"
+    ) {
+      var rid = window.CitizenActionDemoCanvas.getCurrentRouteId();
+      if (isClosedRouteId(rid)) return rid;
+    }
+    return "home";
+  }
+
+  function getMobileSurfaceForSnapshot() {
+    if (!body) return "conversation";
+    var surface = body.getAttribute("data-mobile-surface");
+    if (surface === "guidance") return "guidance";
+    return "conversation";
+  }
+
+  function getLayoutStateForSnapshot() {
+    if (currentState === STATE_SPLIT) return STATE_SPLIT;
+    // Never persist transitioning; treat in-flight reveal as entry.
+    return STATE_ENTRY;
+  }
+
+  function createHistorySnapshot(overrides) {
+    overrides = overrides || {};
+    var journey =
+      normalizeHistoryJourneyState(
+        overrides.journeyState != null ? overrides.journeyState : currentJourneyState
+      ) || JOURNEY_ENTRY;
+    var layout =
+      overrides.layoutState != null ? overrides.layoutState : getLayoutStateForSnapshot();
+    if (layout !== STATE_ENTRY && layout !== STATE_SPLIT) {
+      layout = STATE_ENTRY;
+    }
+    var routeId =
+      overrides.routeId != null ? overrides.routeId : getCurrentRouteIdSafe();
+    if (!isClosedRouteId(routeId)) {
+      routeId = "home";
+    }
+    var mobileSurface =
+      overrides.mobileSurface != null
+        ? overrides.mobileSurface
+        : getMobileSurfaceForSnapshot();
+    if (mobileSurface !== "guidance") {
+      mobileSurface = "conversation";
+    }
+    return {
+      owner: HISTORY_OWNER,
+      version: HISTORY_VERSION,
+      flowId: _historyFlowId,
+      layoutState: layout,
+      journeyState: journey,
+      routeId: routeId,
+      mobileSurface: mobileSurface
+    };
+  }
+
+  function validateHistorySnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== "object") return false;
+    if (snapshot.owner !== HISTORY_OWNER) return false;
+    if (snapshot.version !== HISTORY_VERSION) return false;
+    if (typeof snapshot.flowId !== "string" || !/^flow-\d+$/.test(snapshot.flowId)) {
+      return false;
+    }
+    if (snapshot.flowId.length > 32) return false;
+    if (snapshot.layoutState !== STATE_ENTRY && snapshot.layoutState !== STATE_SPLIT) {
+      return false;
+    }
+    if (
+      snapshot.journeyState !== JOURNEY_ENTRY &&
+      snapshot.journeyState !== JOURNEY_ANSWER &&
+      snapshot.journeyState !== JOURNEY_RESULT
+    ) {
+      return false;
+    }
+    if (!isClosedRouteId(snapshot.routeId)) return false;
+    if (
+      snapshot.mobileSurface !== "conversation" &&
+      snapshot.mobileSurface !== "guidance"
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  function coerceHistorySnapshot(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    var journey = normalizeHistoryJourneyState(raw.journeyState);
+    if (!journey) return null;
+    if (raw.layoutState === STATE_TRANSITIONING) return null;
+    var snapshot = {
+      owner: raw.owner,
+      version: raw.version,
+      flowId: raw.flowId,
+      layoutState: raw.layoutState,
+      journeyState: journey,
+      routeId: raw.routeId,
+      mobileSurface: raw.mobileSurface
+    };
+    if (!validateHistorySnapshot(snapshot)) return null;
+    return snapshot;
+  }
+
+  function historySnapshotsEqual(a, b) {
+    if (!a || !b) return false;
+    return (
+      a.owner === b.owner &&
+      a.version === b.version &&
+      a.flowId === b.flowId &&
+      a.layoutState === b.layoutState &&
+      a.journeyState === b.journeyState &&
+      a.routeId === b.routeId &&
+      a.mobileSurface === b.mobileSurface
+    );
+  }
+
+  function beginNewHistoryFlow() {
+    _historyFlowSequence += 1;
+    if (_historyFlowSequence > 1000000) {
+      _historyFlowSequence = 1;
+    }
+    _historyFlowId = "flow-" + _historyFlowSequence;
+    _lastWrittenHistorySnapshot = null;
+  }
+
+  /**
+   * Canonical same-document relative URL for history writes.
+   * Deduplicates keys, drops empty values, never changes pathname/hash/origin.
+   */
+  function buildCanonicalHistoryUrl(options) {
+    options = options || {};
+    var managed = {
+      journey: true,
+      "dept-state": true,
+      replay: true,
+      "replay-mode": true,
+      "replay-step": true
+    };
+    var current;
+    try {
+      current = new URLSearchParams(window.location.search || "");
+    } catch (_) {
+      current = new URLSearchParams();
+    }
+    var out = new URLSearchParams();
+    current.forEach(function (value, key) {
+      if (managed[key]) return;
+      if (out.has(key)) return;
+      if (value === "" || value == null) return;
+      if (String(key).length > 64 || String(value).length > 128) return;
+      out.set(key, value);
+    });
+
+    if (!options.dropJourneyQuery) {
+      var journeyVal = null;
+      var deptVal = null;
+      if (options.query && typeof options.query === "object") {
+        if (typeof options.query.journey === "string") {
+          journeyVal = options.query.journey;
+        }
+        if (typeof options.query.deptState === "string") {
+          deptVal = options.query.deptState;
+        } else if (typeof options.query["dept-state"] === "string") {
+          deptVal = options.query["dept-state"];
+        }
+      } else if (options.preserveJourneyQuery !== false) {
+        try {
+          var existingJourney = current.get("journey");
+          var existingDept = current.get("dept-state");
+          if (existingJourney === "J-DEPT-01") {
+            journeyVal = existingJourney;
+            if (
+              existingDept === "directory" ||
+              existingDept === "result" ||
+              existingDept === "menu"
+            ) {
+              deptVal = existingDept;
+            }
+          }
+        } catch (_) {
+          /* ignore */
+        }
+      }
+      if (
+        journeyVal === "J-DEPT-01" &&
+        journeyVal.length <= 32 &&
+        (deptVal === "directory" || deptVal === "result" || deptVal === "menu") &&
+        deptVal.length <= 32
+      ) {
+        out.set("journey", journeyVal);
+        out.set("dept-state", deptVal);
+      }
+    }
+
+    var path = window.location.pathname || "";
+    var hash = window.location.hash || "";
+    var qs = out.toString();
+    return path + (qs ? "?" + qs : "") + hash;
+  }
+
+  function shouldSuppressHistoryWrite() {
+    return _historyRestoring || _historyWriteSuppressed;
+  }
+
+  /**
+   * @param {"replace"|"push"} mode
+   * @param {{
+   *   force?: boolean,
+   *   dropJourneyQuery?: boolean,
+   *   preserveJourneyQuery?: boolean,
+   *   query?: { journey?: string, deptState?: string },
+   *   routeId?: string,
+   *   layoutState?: string,
+   *   journeyState?: string,
+   *   mobileSurface?: string
+   * }} [options]
+   */
+  function writeHistorySnapshot(mode, options) {
+    if (shouldSuppressHistoryWrite()) return;
+    if (!window.history) return;
+    options = options || {};
+    var writeMode = mode === "push" ? "push" : "replace";
+    if (
+      writeMode === "push" &&
+      typeof window.history.pushState !== "function"
+    ) {
+      return;
+    }
+    if (
+      writeMode === "replace" &&
+      typeof window.history.replaceState !== "function"
+    ) {
+      return;
+    }
+
+    var snapshot = createHistorySnapshot(options);
+    if (!validateHistorySnapshot(snapshot)) return;
+
+    var urlAffecting = !!(
+      options.force ||
+      options.dropJourneyQuery ||
+      (options.query && typeof options.query === "object")
+    );
+    if (
+      !urlAffecting &&
+      _lastWrittenHistorySnapshot &&
+      historySnapshotsEqual(_lastWrittenHistorySnapshot, snapshot)
+    ) {
+      return;
+    }
+
+    var url = buildCanonicalHistoryUrl(options);
+    try {
+      if (writeMode === "push") {
+        window.history.pushState(snapshot, "", url);
+      } else {
+        window.history.replaceState(snapshot, "", url);
+      }
+      _lastWrittenHistorySnapshot = {
+        owner: snapshot.owner,
+        version: snapshot.version,
+        flowId: snapshot.flowId,
+        layoutState: snapshot.layoutState,
+        journeyState: snapshot.journeyState,
+        routeId: snapshot.routeId,
+        mobileSurface: snapshot.mobileSurface
+      };
+    } catch (_) {
+      /* history write is best-effort; never throw */
+    }
+  }
+
+  function clearTransientHistoryIndicators() {
+    try {
+      var nodes = document.querySelectorAll(".executor-highlight, .is-agent-target");
+      for (var i = 0; i < nodes.length; i++) {
+        nodes[i].classList.remove("executor-highlight");
+        nodes[i].classList.remove("is-agent-target");
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    try {
+      if (chatThread) {
+        var temps = chatThread.querySelectorAll(".chat-msg--temp");
+        for (var t = 0; t < temps.length; t++) {
+          if (temps[t] && temps[t].parentNode) {
+            temps[t].parentNode.removeChild(temps[t]);
+          }
+        }
+      }
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function invalidateActiveRunsForHistoryRestore() {
+    _mvpRequestToken++;
+    _confirmGeneration++;
+    if (window.CitizenMvpBridge && typeof window.CitizenMvpBridge.cancel === "function") {
+      window.CitizenMvpBridge.cancel();
+    }
+    if (
+      window.CitizenFirstChoreography &&
+      typeof window.CitizenFirstChoreography.cancel === "function"
+    ) {
+      window.CitizenFirstChoreography.cancel();
+    }
+    if (typeof _clearMayorEntryTimers === "function") {
+      _clearMayorEntryTimers();
+    }
+    if (splitTimer !== null) {
+      window.clearTimeout(splitTimer);
+      splitTimer = null;
+    }
+    _pendingSplitComplete = null;
+    clearChatMotionStyles();
+    if (
+      window.CitizenActionDemoCanvas &&
+      typeof window.CitizenActionDemoCanvas.hideCursor === "function"
+    ) {
+      window.CitizenActionDemoCanvas.hideCursor();
+    }
+    clearTransientHistoryIndicators();
+    setComposerDisabled(false);
+  }
+
+  /**
+   * Restore a validated shell-owned snapshot without replaying chat, MVP,
+   * choreography, or confirm automation. Does not call .focus().
+   */
+  function restoreHistorySnapshot(snapshot) {
+    if (!validateHistorySnapshot(snapshot)) return false;
+    if (snapshot.flowId !== _historyFlowId) {
+      // Stale flow after reset: keep current UI; reassert current entry state.
+      writeHistorySnapshot("replace", { force: true, dropJourneyQuery: true });
+      return false;
+    }
+
+    _historyRestoring = true;
+    _historyWriteSuppressed = true;
+    _historyRouteSuppressToken += 1;
+    var routeGuard = _historyRouteSuppressToken;
+    try {
+      invalidateActiveRunsForHistoryRestore();
+
+      // 6. canvas route (routechange must not push while suppressed)
+      if (
+        window.CitizenActionDemoCanvas &&
+        typeof window.CitizenActionDemoCanvas.navigateToRoute === "function" &&
+        isClosedRouteId(snapshot.routeId)
+      ) {
+        window.CitizenActionDemoCanvas.navigateToRoute(snapshot.routeId);
+      }
+
+      // 7. layout — immediate, no decorative transition
+      if (body) {
+        body.classList.add("first-use-shell--no-motion");
+      }
+      if (snapshot.layoutState === STATE_SPLIT) {
+        setState(STATE_SPLIT, { preserveMobileSurface: true });
+      } else {
+        setState(STATE_ENTRY);
+      }
+      clearChatMotionStyles();
+      if (typeof window !== "undefined" && window.requestAnimationFrame) {
+        window.requestAnimationFrame(function () {
+          if (body) {
+            body.classList.remove("first-use-shell--no-motion");
+          }
+        });
+      } else if (body) {
+        body.classList.remove("first-use-shell--no-motion");
+      }
+
+      // 8. stable journey only (confirm/navigate already normalized to answer)
+      setJourneyState(snapshot.journeyState);
+
+      // 9. mobile surface via existing owner (no focus)
+      if (snapshot.layoutState === STATE_SPLIT && isMobileSurfaceMode()) {
+        showMobileSurfaceSwitch();
+        setMobileSurface(
+          snapshot.mobileSurface === "guidance" ? "guidance" : "conversation"
+        );
+      }
+
+      // 10. aria-busy false (restorable states are never navigate)
+      _applyJourneyBusy(currentJourneyState);
+      setComposerDisabled(false);
+
+      _lastWrittenHistorySnapshot = {
+        owner: snapshot.owner,
+        version: snapshot.version,
+        flowId: snapshot.flowId,
+        layoutState: snapshot.layoutState,
+        journeyState: snapshot.journeyState,
+        routeId: snapshot.routeId,
+        mobileSurface: snapshot.mobileSurface
+      };
+    } catch (_) {
+      /* restore is fail-closed; never throw to popstate */
+    } finally {
+      _historyRestoring = false;
+      // Canvas route commit is async (~300ms fade). Keep write suppression
+      // until after that window so restore cannot create a new push entry.
+      window.setTimeout(function () {
+        if (routeGuard !== _historyRouteSuppressToken) return;
+        _historyWriteSuppressed = false;
+        _lastWrittenHistorySnapshot = createHistorySnapshot();
+      }, 450);
+    }
+    return true;
+  }
+
+  function handleHistoryPopState(event) {
+    var raw = event ? event.state : null;
+    var snapshot = coerceHistorySnapshot(raw);
+    if (!snapshot) {
+      // null / foreign / malformed / unknown route — ignore safely
+      return;
+    }
+    if (snapshot.flowId !== _historyFlowId) {
+      writeHistorySnapshot("replace", { force: true, dropJourneyQuery: true });
+      return;
+    }
+    restoreHistorySnapshot(snapshot);
+  }
+
+  function handleCanvasRouteChange(event) {
+    if (shouldSuppressHistoryWrite()) return;
+    var detail = event && event.detail ? event.detail : null;
+    if (!detail || typeof detail !== "object") return;
+    var routeId = detail.routeId;
+    var previousRouteId = detail.previousRouteId;
+    if (!isClosedRouteId(routeId)) return;
+    // Same-route re-render: no browser history entry.
+    if (routeId === previousRouteId) return;
+    if (
+      _lastWrittenHistorySnapshot &&
+      _lastWrittenHistorySnapshot.routeId === routeId &&
+      _lastWrittenHistorySnapshot.flowId === _historyFlowId
+    ) {
+      writeHistorySnapshot("replace", { routeId: routeId });
+      return;
+    }
+    // Meaningful civic route change → bounded push.
+    writeHistorySnapshot("push", { routeId: routeId });
+  }
+
+  function handleHistoryCommitRequest(event) {
+    if (shouldSuppressHistoryWrite()) return;
+    var detail = event && event.detail ? event.detail : null;
+    if (!detail || typeof detail !== "object") return;
+
+    var routeId = detail.routeId;
+    var query = detail.query && typeof detail.query === "object" ? detail.query : null;
+    if (!query) return;
+    if (!isClosedRouteId(routeId)) return;
+
+    var journey = query.journey;
+    var deptState =
+      typeof query.deptState === "string"
+        ? query.deptState
+        : typeof query["dept-state"] === "string"
+          ? query["dept-state"]
+          : null;
+    if (journey !== "J-DEPT-01" || journey.length > 32) return;
+    if (
+      deptState !== "directory" &&
+      deptState !== "result" &&
+      deptState !== "menu"
+    ) {
+      return;
+    }
+    if (deptState.length > 32) return;
+
+    writeHistorySnapshot("push", {
+      routeId: routeId,
+      query: { journey: journey, deptState: deptState },
+      force: true
+    });
+  }
+
+  function materializeInitialHistory() {
+    // Exactly one replaceState on load. Never push the initial entry.
+    writeHistorySnapshot("replace", { force: true });
+  }
+
+  function getHistoryState() {
+    var snap = createHistorySnapshot();
+    return {
+      owner: snap.owner,
+      version: snap.version,
+      flowId: snap.flowId,
+      layoutState: snap.layoutState,
+      journeyState: snap.journeyState,
+      routeId: snap.routeId,
+      mobileSurface: snap.mobileSurface,
+      restoring: _historyRestoring
+    };
+  }
+
+  /**
+   * #1132: materialize body data-reduced-motion and notify listeners.
+   * Does not change journey/layout/surface/chat/choreography state.
+   * Does not call .focus().
+   * @param {boolean} nextReduced
+   * @param {{ emit?: boolean }} [options]
+   */
+  function setReducedMotionPreference(nextReduced, options) {
+    options = options || {};
+    var next = !!nextReduced;
+    var prev = reducedMotion;
+    reducedMotion = next;
+    if (body) {
+      body.setAttribute("data-reduced-motion", next ? "true" : "false");
+    }
+    // Only on normal → reduced: collapse decorative waits mid-flight.
+    // Does not cancel journey, reset chat, or change surface/route.
+    if (next && !prev) {
+      if (currentState === STATE_TRANSITIONING) {
+        finishPendingSplitTransition();
+      }
+      if (_mayorEntryInFlight) {
+        finishMayorEntryWithoutMotion();
+      }
+    }
+    if (options.emit === false) {
+      return;
+    }
+    if (prev === next) {
+      return;
+    }
+    try {
+      if (typeof window !== "undefined" && typeof window.CustomEvent === "function") {
+        window.dispatchEvent(new CustomEvent("citizen:motion-preferencechange", {
+          detail: { reduced: next }
+        }));
+      }
+    } catch (_) {
+      /* CustomEvent unavailable */
+    }
+  }
+
+  function finishPendingSplitTransition() {
+    if (splitTimer !== null) {
+      window.clearTimeout(splitTimer);
+      splitTimer = null;
+    }
+    if (typeof _pendingSplitComplete === "function") {
+      var complete = _pendingSplitComplete;
+      _pendingSplitComplete = null;
+      complete();
+      return;
+    }
+    if (currentState === STATE_TRANSITIONING) {
+      completeSplit();
+    }
+  }
+
+  /**
+   * Schedule entry→split completion. Under reduced motion, run immediately
+   * (no TRANSITION_DURATION wait). Stores a pending callback for runtime
+   * preference changes mid-transition.
+   * @param {function(): void} completeFn
+   */
+  function scheduleSplitCompletion(completeFn) {
+    if (splitTimer !== null) {
+      window.clearTimeout(splitTimer);
+      splitTimer = null;
+    }
+    _pendingSplitComplete = completeFn;
+    if (prefersReducedMotion()) {
+      _pendingSplitComplete = null;
+      completeFn();
+      return;
+    }
+    splitTimer = window.setTimeout(function () {
+      splitTimer = null;
+      var fn = _pendingSplitComplete;
+      _pendingSplitComplete = null;
+      if (typeof fn === "function") {
+        fn();
+      }
+    }, TRANSITION_DURATION_MS);
+  }
+
+  /**
+   * #1132: ack/confirm bubble delay after split paint.
+   * Reduced motion keeps a 0ms task boundary (async order preserved via setTimeout 0).
+   */
+  function splitAckDelayMs() {
+    return prefersReducedMotion() ? 0 : 220;
+  }
+
+  /**
+   * Map choreography internal states onto the shared semantic journey axis.
+   * idle leaves the current shell journey state alone.
+   */
+  function _mapChoreographyToJourneyState(choreoState) {
+    // #1133: history restore cancels active runs; do not let cancelled/running
+    // events overwrite the restored stable journey state.
+    if (_historyRestoring) {
+      return;
+    }
+    if (_journeyResetting) {
+      setJourneyState(JOURNEY_ENTRY);
+      return;
+    }
+    if (choreoState === "running") {
+      setJourneyState(JOURNEY_NAVIGATE);
+      return;
+    }
+    if (choreoState === "waiting_choice" || choreoState === "waiting_confirmation") {
+      setJourneyState(JOURNEY_CONFIRM);
+      return;
+    }
+    if (choreoState === "done") {
+      setJourneyState(JOURNEY_RESULT);
+      return;
+    }
+    if (choreoState === "cancelled") {
+      // Explicit reset uses _journeyResetting; other cancels (아니요-style
+      // "직접 작성" / "수정할게요") return to answer.
+      setJourneyState(JOURNEY_ANSWER);
+    }
+    // idle: keep current journey state
+  }
+
+  function _onChoreographyStateChange(event) {
+    var detail = event && event.detail ? event.detail : null;
+    var choreoState = detail && detail.state ? detail.state : null;
+    if (!choreoState) return;
+    _mapChoreographyToJourneyState(choreoState);
+  }
 
   function isMvpMode() {
     // Live build injects ?mvp=1 into URL before shell init.
@@ -317,11 +1138,13 @@
     return Boolean(SUPPORTED_QUESTION_ACTIONS[normalizeQuestion(value)]);
   }
 
+  /**
+   * #1132: read-only motion preference. Canonical owner for this shell;
+   * choreography prefers this over its own matchMedia fallback.
+   * Does not call .focus() or mutate journey/layout state.
+   */
   function prefersReducedMotion() {
-    return Boolean(
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    );
+    return reducedMotion;
   }
 
   function isLegacyJourneyLoad() {
@@ -696,12 +1519,16 @@
       chatSend.disabled = isDisabled;
     }
     if (chatShell) {
+      // Composer lock CSS signal only. Semantic aria-busy is owned by journey
+      // navigate (website choreography), not MVP answer wait / layout transition.
       chatShell.setAttribute("data-chat-busy", isDisabled ? "true" : "false");
-      chatShell.setAttribute("aria-busy", isDisabled ? "true" : "false");
     }
+    // Keep journey busy mapping authoritative after any composer lock toggle.
+    _applyJourneyBusy(currentJourneyState);
   }
 
-  function setState(nextState) {
+  function setState(nextState, options) {
+    options = options || {};
     currentState = nextState;
     body.setAttribute("data-first-use-state", nextState);
 
@@ -715,6 +1542,10 @@
         chipsContainer.hidden = false;
       }
       hideMobileSurfaceSwitch();
+      // Layout-only → replace (never push). Skip while history restore owns writes.
+      if (!shouldSuppressHistoryWrite() && !options.skipHistory) {
+        writeHistorySnapshot("replace");
+      }
       return;
     }
 
@@ -728,6 +1559,7 @@
         chipsContainer.hidden = true;
       }
       hideMobileSurfaceSwitch();
+      // transitioning is never persisted to history.state
       return;
     }
 
@@ -741,7 +1573,13 @@
     }
     // Mobile: expose the conversation/guidance switch once split is live.
     showMobileSurfaceSwitch();
-    setMobileSurface("conversation");
+    // #1133: history restore applies mobile surface after layout.
+    if (!options.preserveMobileSurface) {
+      setMobileSurface("conversation");
+    }
+    if (!shouldSuppressHistoryWrite() && !options.skipHistory) {
+      writeHistorySnapshot("replace");
+    }
   }
 
   function clearChatMotionStyles() {
@@ -766,18 +1604,12 @@
   }
 
   function clearPreviousJourneyLocationState() {
-    if (!window.location || !window.history || typeof window.history.replaceState !== "function") {
-      return;
-    }
+    // #1133: shell-owned replace only — never a bare pushState/empty state.
     try {
-      var params = new URLSearchParams(window.location.search || "");
-      ["journey", "dept-state", "replay", "replay-mode", "replay-step"].forEach(function (key) {
-        params.delete(key);
+      writeHistorySnapshot("replace", {
+        force: true,
+        dropJourneyQuery: true
       });
-      var query = params.toString();
-      var path = window.location.pathname || "";
-      var hash = window.location.hash || "";
-      window.history.replaceState({}, "", path + (query ? "?" + query : "") + hash);
     } catch (_) {
       // URL state is an enhancement; the DOM and scroll reset still proceed.
     }
@@ -843,6 +1675,10 @@
 
   function appendChatMessage(role, text) {
     if (!chatThread) {
+      return null;
+    }
+    // #1133: history restore must never append or replay messages.
+    if (_historyRestoring) {
       return null;
     }
 
@@ -972,6 +1808,8 @@
   }
 
   function startChoreography(question) {
+    // #1067: positive confirm → navigate (choreography start also emits running).
+    setJourneyState(JOURNEY_NAVIGATE);
     if (window.CitizenFirstChoreography && question) {
       window.CitizenFirstChoreography.start(question);
     }
@@ -986,6 +1824,7 @@
     var msgDiv = document.createElement("div");
     msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
     msgDiv.setAttribute("data-msg-type", "confirm-run");
+    var gen = _confirmGeneration;
 
     var bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bubble--ai";
@@ -1004,6 +1843,7 @@
     yesBtn.textContent = "예, 안내해 주세요";
     yesBtn.style.cssText = "padding:8px 16px;border:0;border-radius:18px;background:#ef6a4c;color:#fff;font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;";
     yesBtn.addEventListener("click", function () {
+      if (gen !== _confirmGeneration) return;
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
@@ -1021,9 +1861,12 @@
     noBtn.textContent = "아니요";
     noBtn.style.cssText = "padding:8px 16px;border:1px solid #d0d0d5;border-radius:18px;background:#fff;color:#0d0d0f;font:inherit;font-size:0.85rem;cursor:pointer;";
     noBtn.addEventListener("click", function () {
+      if (gen !== _confirmGeneration) return;
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      // Decline navigation — remain on the answered chat without clone drive.
+      setJourneyState(JOURNEY_ANSWER);
       focusComposerIfAllowed();
     });
 
@@ -1040,6 +1883,8 @@
 
     chatThread.appendChild(msgDiv);
     chatThread.scrollTop = chatThread.scrollHeight;
+    // #1067: confirm-run bubble shown — wait for resident decision.
+    setJourneyState(JOURNEY_CONFIRM);
   }
 
   // MVP confirm-run step: mirrors showConfirmRun but maps an action code to a
@@ -1050,6 +1895,7 @@
     var msgDiv = document.createElement("div");
     msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
     msgDiv.setAttribute("data-msg-type", "confirm-run");
+    var gen = _confirmGeneration;
 
     var bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bubble--ai";
@@ -1068,6 +1914,7 @@
     yesBtn.textContent = "예, 안내해 주세요";
     yesBtn.style.cssText = "padding:8px 16px;border:0;border-radius:18px;background:#ef6a4c;color:#fff;font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;";
     yesBtn.addEventListener("click", function () {
+      if (gen !== _confirmGeneration) return;
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
@@ -1077,6 +1924,7 @@
         chatInput.blur();
       }
       setMobileSurface("guidance");
+      setJourneyState(JOURNEY_NAVIGATE);
       if (window.CitizenFirstChoreography && action) {
         window.CitizenFirstChoreography.start(action);
       }
@@ -1087,9 +1935,11 @@
     noBtn.textContent = "아니요";
     noBtn.style.cssText = "padding:8px 16px;border:1px solid #d0d0d5;border-radius:18px;background:#fff;color:#0d0d0f;font:inherit;font-size:0.85rem;cursor:pointer;";
     noBtn.addEventListener("click", function () {
+      if (gen !== _confirmGeneration) return;
       msgDiv.removeAttribute("data-msg-type");
       var btns = bubble.querySelectorAll("button");
       for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      setJourneyState(JOURNEY_ANSWER);
       focusComposerIfAllowed();
     });
 
@@ -1106,24 +1956,29 @@
 
     chatThread.appendChild(msgDiv);
     chatThread.scrollTop = chatThread.scrollHeight;
+    setJourneyState(JOURNEY_CONFIRM);
   }
 
   function completeSplit() {
     splitTimer = null;
+    _pendingSplitComplete = null;
     setState(STATE_SPLIT);
     clearChatMotionStyles();
     fitOfficialCanvas();
-    // Delay chat message slightly so the canvas fade-in is visible first
-    setTimeout(function () {
+    // Delay chat message slightly so the canvas fade-in is visible first.
+    // #1132: reduced motion uses 0ms task boundary (still async; no 220ms wait).
+    window.setTimeout(function () {
       appendChatMessage(
         "ai",
         "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
       );
+      // Ack is an assistant answer before the confirm gate.
+      setJourneyState(JOURNEY_ANSWER);
       if (lastSplitQuestion) {
         showConfirmRun(lastSplitQuestion);
       }
       lastSplitQuestion = null;
-    }, 220);
+    }, splitAckDelayMs());
   }
 
   function beginSupportedTransition(question) {
@@ -1134,13 +1989,7 @@
     }
 
     startCinematicSplit();
-
-    if (prefersReducedMotion()) {
-      completeSplit();
-      return;
-    }
-
-    splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
+    scheduleSplitCompletion(completeSplit);
   }
 
   // ── #1114: central mayor-proposal entry ─────────────────────────
@@ -1157,6 +2006,8 @@
   var _mayorEntryInFlight = false;
   var _mayorEntryTimer = null;
   var _mayorEntryAuxTimers = [];
+  // #1132: options for mid-flight reduced-motion flush (not a public API).
+  var _mayorEntryPendingOptions = null;
 
   function isMayorQuestion(value) {
     return normalizeQuestion(value) === MAYOR_CANONICAL_QUESTION;
@@ -1176,6 +2027,7 @@
     }
     _mayorEntryAuxTimers = [];
     _mayorEntryInFlight = false;
+    _mayorEntryPendingOptions = null;
     var control = document.getElementById("mayor-open-office-control");
     if (control) {
       control.classList.remove("executor-highlight");
@@ -1212,23 +2064,34 @@
     if (useActionConfirm) {
       lastSplitQuestion = MAYOR_CANONICAL_QUESTION;
       startCinematicSplit();
-      if (prefersReducedMotion()) {
+      scheduleSplitCompletion(function () {
         completeMvpSplit(MAYOR_CANONICAL_ACTION);
-        return;
-      }
-      splitTimer = window.setTimeout(function () {
-        splitTimer = null;
-        completeMvpSplit(MAYOR_CANONICAL_ACTION);
-      }, TRANSITION_DURATION_MS);
+      });
       return;
     }
     lastSplitQuestion = MAYOR_CANONICAL_QUESTION;
     startCinematicSplit();
-    if (prefersReducedMotion()) {
-      completeSplit();
+    scheduleSplitCompletion(completeSplit);
+  }
+
+  /**
+   * #1132: when motion is reduced mid mayor cursor→split, finish decorative
+   * delays without canceling the journey or moving focus.
+   */
+  function finishMayorEntryWithoutMotion() {
+    if (!_mayorEntryInFlight) {
       return;
     }
-    splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
+    var pending = _mayorEntryPendingOptions || {};
+    if (window.CitizenActionDemoCanvas &&
+        typeof window.CitizenActionDemoCanvas.hideCursor === "function") {
+      window.CitizenActionDemoCanvas.hideCursor();
+    }
+    // Clear decorative timers/highlights, then continue the same confirm path.
+    _clearMayorEntryTimers();
+    _beginMayorSplitContinuation({
+      useActionConfirm: !!pending.useActionConfirm
+    });
   }
 
   /**
@@ -1291,10 +2154,31 @@
     }
 
     _mayorEntryInFlight = true;
+    _mayorEntryPendingOptions = { useActionConfirm: useActionConfirm };
     var reduced = prefersReducedMotion();
-    var moveDelay = reduced ? 0 : 100;
-    var clickDelay = reduced ? 40 : 920;
-    var afterClickDelay = reduced ? 80 : 560;
+
+    // #1132: reduced motion keeps static highlight only — no cursor/ripple wait.
+    if (reduced) {
+      control.classList.add("executor-highlight");
+      control.classList.add("is-agent-target");
+      if (typeof canvasApi.hideCursor === "function") {
+        canvasApi.hideCursor();
+      }
+      window.setTimeout(function () {
+        if (!_mayorEntryInFlight) return;
+        control.classList.remove("executor-highlight");
+        control.classList.remove("is-agent-target");
+        _mayorEntryInFlight = false;
+        _mayorEntryPendingOptions = null;
+        _mayorEntryAuxTimers = [];
+        _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
+      }, 0);
+      return;
+    }
+
+    var moveDelay = 100;
+    var clickDelay = 920;
+    var afterClickDelay = 560;
     var splitAt = clickDelay + afterClickDelay;
 
     if (typeof canvasApi.hideCursor === "function") {
@@ -1320,6 +2204,7 @@
       control.classList.remove("executor-highlight");
       control.classList.remove("is-agent-target");
       _mayorEntryInFlight = false;
+      _mayorEntryPendingOptions = null;
       _mayorEntryAuxTimers = [];
       _beginMayorSplitContinuation({ useActionConfirm: useActionConfirm });
     }, splitAt);
@@ -1378,13 +2263,10 @@
         }
         lastSplitQuestion = question;
         startCinematicSplit();
-        if (prefersReducedMotion()) {
-          completeSplit();
-        } else {
-          splitTimer = window.setTimeout(completeSplit, TRANSITION_DURATION_MS);
-        }
+        scheduleSplitCompletion(completeSplit);
       } else {
         appendChatMessage("ai", SPLIT_FOLLOW_UP_MESSAGE);
+        setJourneyState(JOURNEY_ANSWER);
         focusComposerIfAllowed();
       }
       return;
@@ -1407,6 +2289,8 @@
       "ai",
 "현재 첫 화면에서는 불법 주정차 신고, 공동주택 문의, 대형폐기물 처리, 여권 발급 안내, 무인민원발급기 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요."
     );
+    // #1067: general/unsupported static answer — stay in answer, no navigation.
+    setJourneyState(JOURNEY_ANSWER);
     focusComposerIfAllowed();
   }
 
@@ -1428,6 +2312,7 @@
         setComposerDisabled(false);
         focusComposerIfAllowed();
         appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+        setJourneyState(JOURNEY_ANSWER);
         return;
       }
       bridge.ask(question).then(function (result) {
@@ -1458,6 +2343,8 @@
           : "현재 AI 안내를 연결하지 못했습니다.";
         var answerMessage = appendChatMessage("ai", answer);
         appendAnswerFreshness(answerMessage, result);
+        // #1067: model or fail-closed answer is always semantic "answer".
+        setJourneyState(JOURNEY_ANSWER);
         if (hasUsableMvpResult) {
           applyQuestRuntimeState(result);
         } else {
@@ -1493,6 +2380,7 @@
           });
         } else if (action === "none") {
           // Keep the entry chat; do not move the clone or start a choreography.
+          // Journey remains answer (set above).
         }
         // Any other value: treated as none (no split, no clone move).
       }).catch(function () {
@@ -1500,6 +2388,7 @@
         setComposerDisabled(false);
         focusComposerIfAllowed();
         appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+        setJourneyState(JOURNEY_ANSWER);
       });
     });
   }
@@ -1507,28 +2396,27 @@
   function beginMvpSplitThenChoreography(question, action) {
     lastSplitQuestion = question;
     startCinematicSplit();
-    if (prefersReducedMotion()) {
+    scheduleSplitCompletion(function () {
       completeMvpSplit(action);
-      return;
-    }
-    splitTimer = window.setTimeout(function () {
-      splitTimer = null;
-      completeMvpSplit(action);
-    }, TRANSITION_DURATION_MS);
+    });
   }
 
   function completeMvpSplit(action) {
     splitTimer = null;
+    _pendingSplitComplete = null;
     setState(STATE_SPLIT);
     clearChatMotionStyles();
     fitOfficialCanvas();
-    // Delay chat message slightly so the canvas fade-in is visible first
-    setTimeout(function () {
+    // Delay chat message slightly so the canvas fade-in is visible first.
+    // #1132: reduced motion uses 0ms task boundary (confirm-run still after ack).
+    window.setTimeout(function () {
       appendChatMessage(
         "ai",
         "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
       );
       appendQuestProgressCard(chatThread);
+      // Bridge answer already set answer; ack reinforces answer before confirm.
+      setJourneyState(JOURNEY_ANSWER);
       // MVP confirm-run step: do NOT start the local choreography until the
       // citizen explicitly confirms. The confirm bubble shows the resolved
       // action's display name and only starts Choreography.start(action) when
@@ -1538,10 +2426,16 @@
         showConfirmRunForAction(action);
       }
       focusComposerIfAllowed();
-    }, 220);
+    }, splitAckDelayMs());
   }
 
   function resetToEntry() {
+    // #1067: guard so choreography cancelled events during reset cannot map
+    // to answer; final semantic state must be entry.
+    _journeyResetting = true;
+    // #1133: new flow — prior history entries become stale and non-restorable.
+    beginNewHistoryFlow();
+    _confirmGeneration++;
     // Invalidate any in-flight MVP response so a late answer cannot re-open the
     // clone or restart an action after the user reset.
     _mvpRequestToken++;
@@ -1563,6 +2457,7 @@
       window.clearTimeout(splitTimer);
       splitTimer = null;
     }
+    _pendingSplitComplete = null;
     clearChatMotionStyles();
 
     // Clear canvas content so split-state HTML isn't left behind
@@ -1571,7 +2466,10 @@
     }
 
     body.classList.add("first-use-shell--no-motion");
-    setState(STATE_ENTRY);
+    // skipHistory: single replace after entry snapshot is fully ready.
+    setState(STATE_ENTRY, { skipHistory: true });
+    // #1067: explicit reset announces readiness; cold load does not.
+    setJourneyState(JOURNEY_ENTRY, { announceReset: true, skipHistory: true });
     // Reset scroll position to top
     if (chatThread) {
       chatThread.scrollTop = 0;
@@ -1581,8 +2479,13 @@
       chatInput.value = "";
       // Only refocus on desktop; on mobile the surface switch owns
       // visibility and must NOT auto-focus the composer after reset.
+      // setJourneyState / syncJourneyAccessibility never call .focus().
+      // History restore path never reaches here.
       focusComposerIfAllowed();
     }
+    _journeyResetting = false;
+    // #1133: reset never pushState; replace current entry with new-flow entry.
+    writeHistorySnapshot("replace", { force: true, dropJourneyQuery: true });
     window.requestAnimationFrame(function () {
       body.classList.remove("first-use-shell--no-motion");
     });
@@ -1607,7 +2510,11 @@
       setMobileSurface("conversation");
     } else if (targetSurface === "guidance") {
       setMobileSurface("guidance");
+    } else {
+      return;
     }
+    // #1133: mobile surface-only changes replace the current history entry.
+    writeHistorySnapshot("replace");
   }
   if (tabConversation) {
     tabConversation.addEventListener("click", function () {
@@ -1650,15 +2557,55 @@
     });
   }
 
+  // #1067: subscribe to choreography state events for semantic journey mapping.
+  // Layout first-use-state remains independent of this axis.
+  if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+    window.addEventListener("citizen:choreography-statechange", _onChoreographyStateChange);
+    // #1133: single popstate owner + canvas/choreography history contracts.
+    if (!_historyPopListenerBound) {
+      window.addEventListener("popstate", handleHistoryPopState);
+      _historyPopListenerBound = true;
+    }
+    window.addEventListener("citizen:canvas-routechange", handleCanvasRouteChange);
+    window.addEventListener("citizen:history-commit-request", handleHistoryCommitRequest);
+  }
+
+  // #1132: materialize motion preference before first paint consumers read it.
+  setReducedMotionPreference(reducedMotion, { emit: false });
+  if (reducedMotionQuery) {
+    var _onReducedMotionMediaChange = function (event) {
+      var matches = event && typeof event.matches === "boolean"
+        ? event.matches
+        : !!(reducedMotionQuery && reducedMotionQuery.matches);
+      setReducedMotionPreference(matches);
+    };
+    if (typeof reducedMotionQuery.addEventListener === "function") {
+      reducedMotionQuery.addEventListener("change", _onReducedMotionMediaChange);
+    } else if (typeof reducedMotionQuery.addListener === "function") {
+      reducedMotionQuery.addListener(_onReducedMotionMediaChange);
+    }
+  }
+
+  // Init layout/journey without intermediate history writes; one replace below.
   if (isLegacyJourneyLoad()) {
-    setState(STATE_SPLIT);
+    setState(STATE_SPLIT, { skipHistory: true });
+    setJourneyState(JOURNEY_ENTRY, { skipHistory: true });
   } else {
-    setState(STATE_ENTRY);
+    setState(STATE_ENTRY, { skipHistory: true });
+    setJourneyState(JOURNEY_ENTRY, { skipHistory: true });
     renderEntryConversation();
   }
+  // #1133: materialize exactly one shell-owned history entry (replace only).
+  materializeInitialHistory();
 
   window.CitizenFirstUseShell = Object.freeze({
     getState: function () { return currentState; },
+    getJourneyState: getJourneyState,
+    getJourneyAccessibilityState: getJourneyAccessibilityState,
+    // #1132: read-only motion preference (canonical owner).
+    prefersReducedMotion: prefersReducedMotion,
+    // #1133: read-only history diagnostic (no mutable setter).
+    getHistoryState: getHistoryState,
     getQuestRuntimeResult: function () { return _questRuntimeResult; },
     isSupportedQuestion: isSupportedQuestion,
     renderQuestProgressCard: renderQuestProgressCard,
@@ -1672,6 +2619,14 @@
       entry: STATE_ENTRY,
       transitioning: STATE_TRANSITIONING,
       split: STATE_SPLIT
+    }),
+    // #1067: semantic journey axis (shared static + MVP + desktop + mobile).
+    journeyStates: Object.freeze({
+      entry: JOURNEY_ENTRY,
+      answer: JOURNEY_ANSWER,
+      confirm: JOURNEY_CONFIRM,
+      navigate: JOURNEY_NAVIGATE,
+      result: JOURNEY_RESULT
     })
   });
 })();
