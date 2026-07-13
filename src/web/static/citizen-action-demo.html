@@ -81,8 +81,15 @@
 <aside class="chat-shell" id="chat-shell" role="complementary" aria-label="AI 민원 도우미" aria-busy="false">
   <div class="chat-shell__header">
     <div class="chat-shell__header-main">
-      <span class="chat-shell__title">북구청 AI 민원 안내</span>
-      <span class="chat-shell__badge">안내</span>
+      <div class="chat-shell__title-row">
+        <span class="chat-shell__title">북구청 AI 민원 안내</span>
+        <span class="chat-shell__badge">안내</span>
+      </div>
+      <!-- #1121: shell-level partner attribution (not a conversation message) -->
+      <p
+        class="chat-shell__attribution"
+        data-service-attribution="padiem-compact"
+      >AI Agent by PADIEM</p>
     </div>
     <button class="chat-shell__reset" id="chat-reset" type="button" hidden>
       새로 시작
@@ -149,6 +156,12 @@
     </div>
     <p class="chat-composer__hint">첫 질문 후 북구청 안내 화면과 함께 경로를 보여드립니다.</p>
   </form>
+  <!-- #1121: restrained service disclosure — AI shell only, not official canvas -->
+  <p
+    class="chat-shell__disclosure"
+    data-service-attribution="padiem-disclosure"
+    role="note"
+  >본 AI 행정서비스 시연 시스템은 주식회사 파디엠(PADIEM)이 기획·개발했습니다.</p>
 </aside>
 
     <!-- ═══════════════════════════════════════════════════════

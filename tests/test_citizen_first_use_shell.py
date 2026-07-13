@@ -802,3 +802,117 @@ def test_mayor_cursor_before_split_uses_existing_canvas_cursor():
     assert "demo-canvas__clone" not in HTML
     assert "guidance-card" not in HTML
     assert "mobile-guidance-copy" not in HTML
+
+
+# ── #1121 PADIEM service attribution ───────────────────────────────
+
+PADIEM_COMPACT = "AI Agent by PADIEM"
+PADIEM_DISCLOSURE = (
+    "본 AI 행정서비스 시연 시스템은 주식회사 파디엠(PADIEM)이 기획·개발했습니다."
+)
+
+
+def test_padiem_attribution_exact_strings_once_in_shell_html():
+    """Product runtime shell HTML owns each PADIEM string exactly once."""
+    assert HTML.count(PADIEM_COMPACT) == 1
+    assert HTML.count(PADIEM_DISCLOSURE) == 1
+    assert 'data-service-attribution="padiem-compact"' in HTML
+    assert 'data-service-attribution="padiem-disclosure"' in HTML
+    assert 'class="chat-shell__attribution"' in HTML
+    assert 'class="chat-shell__disclosure"' in HTML
+
+
+def test_padiem_attribution_lives_in_chat_shell_not_canvas_or_messages():
+    shell_start = HTML.index('id="chat-shell"')
+    shell_end = HTML.index("</aside>", shell_start)
+    shell = HTML[shell_start:shell_end]
+    assert PADIEM_COMPACT in shell
+    assert PADIEM_DISCLOSURE in shell
+
+    # Compact attribution sits under the service title inside header-main.
+    attr_idx = shell.index(PADIEM_COMPACT)
+    attr_open = shell.rfind("<p", 0, attr_idx)
+    attr_close = shell.index("</p>", attr_idx) + 4
+    attr_el = shell[attr_open:attr_close]
+    assert "chat-shell__attribution" in attr_el
+    assert "chat-shell__header-main" in shell[:attr_idx]
+    assert shell.index("chat-shell__title") < attr_idx
+    assert "<button" not in attr_el
+    assert "<a " not in attr_el
+    assert "href=" not in attr_el
+
+    # Disclosure is after the composer, still inside the shell.
+    assert shell.index("chat-composer-form") < shell.index(PADIEM_DISCLOSURE)
+    assert shell.index(PADIEM_COMPACT) < shell.index(PADIEM_DISCLOSURE)
+
+    # Not injected into conversation thread markup as a chat message.
+    thread = shell[shell.index('id="chat-thread"') : shell.index('id="chat-chips"')]
+    assert PADIEM_COMPACT not in thread
+    assert PADIEM_DISCLOSURE not in thread
+
+
+def test_padiem_attribution_not_in_official_or_canvas_sources():
+    """Official canvas / snapshot sources must not carry PADIEM partnership copy."""
+    forbidden = (
+        PADIEM_COMPACT,
+        PADIEM_DISCLOSURE,
+        "북구청 × PADIEM",
+        "공식 운영사",
+        "공식 공동운영",
+        "Buk-gu official partner",
+    )
+    for blob_name, blob in (
+        ("CANVAS", CANVAS),
+        ("OFFICIAL_SNAPSHOTS", OFFICIAL_SNAPSHOTS),
+        ("ADAPTER", ADAPTER),
+        ("CHOREO", CHOREO),
+    ):
+        for phrase in forbidden:
+            assert phrase not in blob, f"{phrase!r} must not appear in {blob_name}"
+
+
+def test_padiem_attribution_is_informational_not_interactive():
+    compact_idx = HTML.index(PADIEM_COMPACT)
+    compact_open = HTML.rfind("<", 0, compact_idx)
+    compact_tag = HTML[compact_open : compact_idx]
+    assert compact_tag.startswith("<p")
+    assert "href=" not in compact_tag
+    assert "button" not in compact_tag.lower()
+    assert "aria-hidden" not in compact_tag
+
+    disc_idx = HTML.index(PADIEM_DISCLOSURE)
+    disc_open = HTML.rfind("<", 0, disc_idx)
+    disc_tag = HTML[disc_open:disc_idx]
+    assert disc_tag.startswith("<p")
+    assert 'role="note"' in disc_tag or 'role="note"' in HTML[disc_open : disc_idx + 20]
+    assert "href=" not in disc_tag
+    assert "button" not in disc_tag.lower()
+    assert "aria-hidden" not in disc_tag
+
+
+def test_padiem_attribution_styles_are_restrained_shell_css():
+    assert ".chat-shell__attribution" in COPILOT_CSS
+    assert ".chat-shell__disclosure" in COPILOT_CSS
+    attr_block = COPILOT_CSS[COPILOT_CSS.index(".chat-shell__attribution") :]
+    attr_block = attr_block[: attr_block.index("}")]
+    assert "gradient" not in attr_block.lower()
+    assert "animation" not in attr_block.lower()
+    assert "text-muted" in attr_block or "#8e8ea0" in attr_block
+
+    # No CSS content: injection of the wordmark.
+    assert 'content: "AI Agent by PADIEM"' not in COPILOT_CSS
+    assert "content: 'AI Agent by PADIEM'" not in COPILOT_CSS
+    assert PADIEM_DISCLOSURE not in COPILOT_CSS
+    assert PADIEM_DISCLOSURE not in CSS
+
+
+def test_padiem_shell_js_does_not_reinsert_attribution():
+    """Attribution is static shell markup; shell JS must not re-append it."""
+    assert PADIEM_COMPACT not in JS
+    assert PADIEM_DISCLOSURE not in JS
+    assert "padiem-compact" not in JS
+    assert "padiem-disclosure" not in JS
+    # Chat rewrite paths stay limited to the thread, not the whole shell.
+    assert "chatThread.innerHTML" in JS
+    assert "chat-shell.innerHTML" not in JS
+    assert 'getElementById("chat-shell").innerHTML' not in JS
