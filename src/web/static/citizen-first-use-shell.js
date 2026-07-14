@@ -52,6 +52,76 @@
   var chatSend = document.getElementById("chat-composer-send");
   var resetButton = document.getElementById("chat-reset");
   var chipsContainer = document.getElementById("chat-chips");
+  var recommendationsToggle = null;
+  var recommendationsExpanded = true;
+  var recommendationsAutoCollapsed = false;
+
+  function _recommendationsToggleLabel() {
+    return recommendationsExpanded
+      ? _t("recommendations.hide", "Hide recommendations")
+      : _t("recommendations.show", "Show recommendations");
+  }
+
+  function _syncRecommendationsToggle() {
+    if (!recommendationsToggle) return;
+    recommendationsToggle.setAttribute(
+      "aria-expanded",
+      recommendationsExpanded ? "true" : "false"
+    );
+    recommendationsToggle.setAttribute("aria-label", _recommendationsToggleLabel());
+    recommendationsToggle.textContent = _recommendationsToggleLabel();
+  }
+
+  function _applyRecommendationsState() {
+    if (recommendationsExpanded) {
+      if (body) body.removeAttribute("data-recommendations-expanded");
+    } else if (body) {
+      body.setAttribute("data-recommendations-expanded", "false");
+    }
+    _syncRecommendationsToggle();
+  }
+
+  function _expandRecommendations() {
+    recommendationsExpanded = true;
+    recommendationsAutoCollapsed = false;
+    _applyRecommendationsState();
+  }
+
+  function _collapseRecommendations(opts) {
+    opts = opts || {};
+    if (!recommendationsExpanded && !opts.force) return;
+    recommendationsExpanded = false;
+    if (opts.manual) {
+      recommendationsAutoCollapsed = false;
+    } else {
+      recommendationsAutoCollapsed = true;
+    }
+    _applyRecommendationsState();
+  }
+
+  function _toggleRecommendations() {
+    if (recommendationsExpanded) {
+      _collapseRecommendations({ manual: true });
+    } else {
+      _expandRecommendations();
+    }
+  }
+
+  function _initRecommendationsToggle() {
+    if (!chipsContainer) return;
+    recommendationsToggle = document.createElement("button");
+    recommendationsToggle.type = "button";
+    recommendationsToggle.className = "chat-recommendations-toggle";
+    recommendationsToggle.setAttribute("aria-expanded", "true");
+    recommendationsToggle.setAttribute("aria-controls", "chat-chips");
+    recommendationsToggle.textContent = _recommendationsToggleLabel();
+    recommendationsToggle.addEventListener("click", function () {
+      _toggleRecommendations();
+    });
+    chipsContainer.insertBefore(recommendationsToggle, chipsContainer.firstChild);
+    _applyRecommendationsState();
+  }
+
   // #1067: SR-only journey progress (not a conversation message / not #chat-thread).
   var journeyStatusEl = document.getElementById("chat-journey-status");
   var splitTimer = null;
@@ -1723,7 +1793,7 @@
     if (value === "official_snapshot") return "북구청 공식 스냅샷";
     if (value === "live_web") return "최신 웹자료 확인 · 공식 출처 재확인 필요";
     if (value === "model_only") return "현재 공식 출처 없음";
-    return "최신성 확인 불가";
+    return "";
   }
 
   function formatRetrievedAt(value) {
@@ -2333,6 +2403,10 @@
       return;
     }
 
+    if (currentState === STATE_ENTRY && !recommendationsAutoCollapsed) {
+      _collapseRecommendations();
+    }
+
     if (isMvpMode()) {
       handleMvpSubmission(question);
       return;
@@ -2753,6 +2827,7 @@
       try {
         if (typeof resetToEntry === "function") resetToEntry();
       } catch (_) { /* ignore */ }
+      _expandRecommendations();
       localizeShell();
     });
     // Keep locale consistent across browser back/forward.

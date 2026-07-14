@@ -35,7 +35,7 @@
   // any missing key.
   var UI = Object.freeze({
     ko: Object.freeze({
-      "chat.title": "북구청 AI 민원 안내",
+      "chat.title": "북구청 AI 민원 네비게이터",
       "chat.badge": "안내",
       "chat.attribution": "AI 행정 브라우저",
       "chat.welcome":
@@ -45,6 +45,8 @@
       "chat.placeholder": "여기에 물어보세요",
       "chat.inputAria": "메시지 입력",
       "chat.recommendationsAria": "추천 질문",
+      "recommendations.show": "추천 질문 보기",
+      "recommendations.hide": "추천 질문 숨기기",
       "chat.hint": "첫 질문 후 북구청 안내 화면과 함께 경로를 보여드립니다.",
       "chat.disclosure":
         "이 안내는 시연용이며 실제 민원 접수나 개인정보 전송은 하지 않습니다.",
@@ -56,7 +58,7 @@
       "chip.bulkyWaste": "대형폐기물 배출",
       "chip.passport": "여권 발급 안내",
       "chip.kiosk": "무인민원발급기 안내",
-      "chip.streetlight": "가로등 고장 신고",
+      "chip.streetlight": "가로등 고장 신고 (AI 도움)",
       "chip.litter": "쓰레기 무단투기 (AI 도움)",
 
       "action.yesGuide": "예, 안내해 주세요",
@@ -115,7 +117,7 @@
     }),
 
     en: Object.freeze({
-      "chat.title": "Bukgu-gu AI Civil Guide",
+      "chat.title": "Bukgu-gu AI Civic Navigator",
       "chat.badge": "Guide",
       "chat.attribution": "AI Administrative Browser",
       "chat.welcome":
@@ -125,6 +127,8 @@
       "chat.placeholder": "Ask here",
       "chat.inputAria": "Type a message",
       "chat.recommendationsAria": "Suggested questions",
+      "recommendations.show": "Show recommendations",
+      "recommendations.hide": "Hide recommendations",
       "chat.hint":
         "After your first question, I will show the route together with the Bukgu-gu guide screen.",
       "chat.disclosure":
@@ -137,7 +141,7 @@
       "chip.bulkyWaste": "Bulky waste disposal",
       "chip.passport": "Passport issuance guide",
       "chip.kiosk": "Unmanned document kiosk",
-      "chip.streetlight": "Broken streetlight report",
+      "chip.streetlight": "Broken streetlight report (AI help)",
       "chip.litter": "Illegal dumping (AI help)",
 
       "action.yesGuide": "Yes, please guide me",
@@ -207,6 +211,8 @@
       "chat.placeholder": "Nhập câu hỏi tại đây",
       "chat.inputAria": "Nhập tin nhắn",
       "chat.recommendationsAria": "Câu hỏi gợi ý",
+      "recommendations.show": "Hiện gợi ý",
+      "recommendations.hide": "Ẩn gợi ý",
       "chat.hint":
         "Sau câu hỏi đầu tiên, tôi sẽ hiện đường dẫn cùng màn hình hướng dẫn của Bukgu-gu.",
       "chat.disclosure":
@@ -219,7 +225,7 @@
       "chip.bulkyWaste": "Vứt bỏ rác cồng kềnh",
       "chip.passport": "Hướng dẫn cấp hộ chiếu",
       "chip.kiosk": "Hướng dẫn máy cấp giấy tờ tự động",
-      "chip.streetlight": "Báo cáo đèn đường hỏng",
+      "chip.streetlight": "Báo cáo đèn đường hỏng (có AI hỗ trợ)",
       "chip.litter": "Vứt rác bừa bãi (có AI hỗ trợ)",
 
       "action.yesGuide": "Vâng, hãy hướng dẫn tôi",
@@ -289,6 +295,8 @@
       "chat.placeholder": "พิมพ์คำถามที่นี่",
       "chat.inputAria": "พิมพ์ข้อความ",
       "chat.recommendationsAria": "คำถามแนะนำ",
+      "recommendations.show": "แสดงคำแนะนำ",
+      "recommendations.hide": "ซ่อนคำแนะนำ",
       "chat.hint":
         "หลังคำถามแรก ฉันจะแสดงเส้นทางพร้อมหน้าจอแนะนำของเขต Bukgu-gu",
       "chat.disclosure":
@@ -301,7 +309,7 @@
       "chip.bulkyWaste": "ทิ้งขยะชิ้นใหญ่",
       "chip.passport": "คู่มือการทำหนังสือเดินทาง",
       "chip.kiosk": "คู่มือเครื่องออกเอกสารอัตโนมัติ",
-      "chip.streetlight": "แจ้งโคมไฟถนนเสีย",
+      "chip.streetlight": "แจ้งโคมไฟถนนเสีย (มี AI ช่วย)",
       "chip.litter": "ทิ้งขยะมิชอบ (มี AI ช่วย)",
 
       "action.yesGuide": "ใช่ ค่อยแนะนำด้วย",
@@ -371,6 +379,8 @@
       "chat.placeholder": "Tanyakan di sini",
       "chat.inputAria": "Ketik pesan",
       "chat.recommendationsAria": "Pertanyaan yang disarankan",
+      "recommendations.show": "Tampilkan saran",
+      "recommendations.hide": "Sembunyikan saran",
       "chat.hint":
         "Setelah pertanyaan pertama, saya akan menampilkan rute beserta layar panduan Bukgu-gu.",
       "chat.disclosure":
@@ -383,7 +393,7 @@
       "chip.bulkyWaste": "Pembuangan sampah besar",
       "chip.passport": "Panduan pembuatan paspor",
       "chip.kiosk": "Panduan mesin layanan mandiri",
-      "chip.streetlight": "Laporan lampu jalan rusak",
+      "chip.streetlight": "Laporan lampu jalan rusak (bantuan AI)",
       "chip.litter": "Membuang sampah sembarangan (bantuan AI)",
 
       "action.yesGuide": "Ya, bantu saya",

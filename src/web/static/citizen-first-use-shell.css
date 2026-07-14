@@ -1272,6 +1272,35 @@ body[data-reduced-motion="true"] .executor-typing {
   display: none;
 }
 
+/* #1146 — Collapsible recommendations */
+.chat-recommendations-toggle {
+  align-self: flex-end;
+  border: 0;
+  background: transparent;
+  color: #7a8290;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 2px 4px;
+  text-transform: uppercase;
+  transition: color 120ms ease;
+}
+.chat-recommendations-toggle:hover {
+  color: #0d0d0f;
+}
+.chat-recommendations-toggle:focus-visible {
+  outline: 3px solid #8dc7ef;
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+body[data-recommendations-expanded="false"] #chat-chips {
+  display: none;
+}
+
 @media (max-width: 767px) {
   body[data-first-use-state="split"] .chat-chips,
   body[data-first-use-state="transitioning"] .chat-chips {
