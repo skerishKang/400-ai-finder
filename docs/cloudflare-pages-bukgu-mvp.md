@@ -234,7 +234,7 @@ curl -sI https://cgbukku.pages.dev/admin   # HTTP 200 (from /admin.html 308)
 | 경로 | title |
 |---|---|
 | `/` | `400 AI 파인더 — 정적 시연 (Cloudflare Pages)` |
-| `/mvp/` | `시민 행정 도우미 — 로컬 시연용` |
+| `/mvp/` | `북구청 AI 민원 네비게이터 — 로컬 시연용` |
 | `/mobile` | `400 AI 파인더` |
 | `/admin` | `운영자 화면 — AI 홈페이지 파인더` |
 

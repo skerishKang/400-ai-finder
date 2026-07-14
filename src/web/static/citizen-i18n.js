@@ -117,7 +117,7 @@
     }),
 
     en: Object.freeze({
-      "chat.title": "Bukgu-gu AI Civic Navigator",
+      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
       "chat.badge": "Guide",
       "chat.attribution": "AI Administrative Browser",
       "chat.welcome":
@@ -201,7 +201,7 @@
     }),
 
     vi: Object.freeze({
-      "chat.title": "Trợ lý AI tiếp dân Bukgu-gu",
+      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
       "chat.badge": "Hướng dẫn",
       "chat.attribution": "Trình duyệt hành chính AI",
       "chat.welcome":
@@ -285,7 +285,7 @@
     }),
 
     th: Object.freeze({
-      "chat.title": "ผู้ช่วย AI งานทะเบียน Bukgu-gu",
+      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
       "chat.badge": "คู่มือ",
       "chat.attribution": "เบราว์เซอร์งานราชการ AI",
       "chat.welcome":
@@ -369,7 +369,7 @@
     }),
 
     id: Object.freeze({
-      "chat.title": "Panduan Pengaduan Warga AI Bukgu-gu",
+      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
       "chat.badge": "Panduan",
       "chat.attribution": "Peramban Administrasi AI",
       "chat.welcome":
