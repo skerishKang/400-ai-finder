@@ -89,9 +89,12 @@
         data-service-attribution="padiem-compact"
       >AI Agent by PADIEM</p>
     </div>
-    <button class="chat-shell__reset" id="chat-reset" type="button" hidden>
-      새로 시작
-    </button>
+    <div class="chat-shell__header-tools">
+      <select class="chat-shell__lang" id="chat-lang" aria-label="언어"></select>
+      <button class="chat-shell__reset" id="chat-reset" type="button" hidden>
+        새로 시작
+      </button>
+    </div>
   </div>
   <!-- #1067: semantic journey progress for AT only (not a chat message).
        id avoids legacy #journey-status in the hidden copilot rail. -->
@@ -163,7 +166,9 @@
     </div>
     <p class="chat-composer__hint">첫 질문 후 북구청 안내 화면과 함께 경로를 보여드립니다.</p>
   </form>
-  <!-- #1121: restrained service disclosure — AI shell only, not official canvas -->
+  <!-- #1121: restrained service disclosure — AI shell only, not official canvas.
+       Placed as a footer outside the composer form so it never overlaps the
+       input/submit controls on any viewport. -->
   <p
     class="chat-shell__disclosure"
     data-service-attribution="padiem-disclosure"
@@ -293,6 +298,7 @@
   <script src="/static/citizen-complaint-journey.js"></script>
   <script src="/static/citizen-complaint-journey-ui.js"></script>
   <script src="/static/citizen-content-adapter.js"></script>
+  <script src="/static/citizen-i18n.js"></script>
   <script src="/static/citizen-first-use-shell.js"></script>
   <script src="/static/citizen-first-choreography.js"></script>
 </body>

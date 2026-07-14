@@ -504,6 +504,88 @@ body[data-first-use-state="split"] .demo-canvas {
   padding: 5px 12px 8px;
 }
 
+/* #1143: draft role labels in chat (non-Korean original + Korean admin draft). */
+.chat-draft-label {
+  margin: 0 0 6px;
+  color: #0c5f8a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.chat-draft-body {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.chat-msg[data-draft-role="original-resident"] .chat-bubble,
+.chat-msg[data-draft-role="korean-administrative-draft"] .chat-bubble {
+  border: 1px solid #d7e2ef;
+  background: #f7fafc;
+}
+
+/* #1143: five-language selector (restrained, text-only, no flags). */
+.chat-shell__header-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.chat-shell__lang {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1.1;
+  color: #0d0d0f;
+  background: #ffffff;
+  border: 1px solid #c8d5e6;
+  border-radius: 14px;
+  padding: 5px 22px 5px 10px;
+  max-width: 140px;
+  min-width: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%238e8ea0' stroke-width='1.5' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.chat-shell__lang:focus-visible {
+  outline: 3px solid #8dc7ef;
+  outline-offset: 2px;
+}
+
+.chat-shell__lang option {
+  color: #0d0d0f;
+  background: #ffffff;
+}
+
+/* Mobile: keep the header row from overflowing — compact the language
+   selector so Thai/Vietnamese/Indonesian labels never clip. */
+@media (max-width: 480px) {
+  .chat-shell__lang {
+    font-size: 0.7rem;
+    max-width: 118px;
+    padding-right: 18px;
+  }
+  body[data-first-use-state="entry"] .chat-shell__header {
+    padding: 12px 14px;
+    gap: 6px;
+  }
+  .chat-shell__header-tools {
+    gap: 6px;
+  }
+}
+
+.chat-shell__header-tools .chat-shell__reset {
+  margin-left: 0;
+}
+
 .chat-shell__reset {
   margin-left: auto;
   border: 1px solid #c8d5e6;

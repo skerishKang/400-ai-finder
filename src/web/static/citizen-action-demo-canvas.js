@@ -2522,12 +2522,62 @@
     );
   }
 
+  /**
+   * #1143: non-Korean locales show an original-language resident message card
+   * and a Korean administrative draft label. Korean title/body fields stay
+   * Korean; this is not an official translation claim.
+   */
+  function _renderWritingLocaleDraftMeta() {
+    var i18n = window.CitizenI18n;
+    if (!i18n || typeof i18n.getLocale !== "function" || i18n.getLocale() === "ko") {
+      return "";
+    }
+    var originalLabel =
+      typeof i18n.t === "function"
+        ? i18n.t("draft.originalResidentMessage")
+        : "Original resident message";
+    var koreanLabel =
+      typeof i18n.t === "function"
+        ? i18n.t("draft.koreanAdministrativeDraft")
+        : "Korean administrative draft";
+    var helper =
+      typeof i18n.t === "function"
+        ? i18n.t("draft.translatedForDraft")
+        : "Translation for drafting assistance";
+    var originalText =
+      typeof i18n.getResidentMessage === "function" ? i18n.getResidentMessage() : "";
+    if (!originalText) originalText = "";
+    return (
+      '<aside class="bg-writing-locale-meta" data-draft-meta="true" aria-label="' +
+        _escHtml(originalLabel) +
+      '">' +
+        '<section class="bg-writing-locale-meta__card" data-draft-role="original-resident">' +
+          '<p class="bg-writing-locale-meta__label">' +
+            _escHtml(originalLabel) +
+          "</p>" +
+          '<p class="bg-writing-locale-meta__body" data-draft-original-text="true">' +
+            _escHtml(originalText).replace(/\n/g, "<br>") +
+          "</p>" +
+        "</section>" +
+        '<section class="bg-writing-locale-meta__card" data-draft-role="korean-administrative-draft">' +
+          '<p class="bg-writing-locale-meta__label">' +
+            _escHtml(koreanLabel) +
+          "</p>" +
+          '<p class="bg-writing-locale-meta__hint">' +
+            _escHtml(helper) +
+          "</p>" +
+        "</section>" +
+      "</aside>"
+    );
+  }
+
   function _renderWritingWorkspace(config) {
     return (
       '<main class="bg-writing-main">' +
         _renderProductBreadcrumb(config.breadcrumbs) +
         '<header class="bg-writing-heading"><div><p class="bg-product-eyebrow">AI WRITING ASSIST</p><h1>' + _escHtml(config.title) + '</h1>' +
           '<p>' + _escHtml(config.description) + '</p></div><span class="bg-writing-heading__badge">' + _escHtml(config.badge) + '</span></header>' +
+        _renderWritingLocaleDraftMeta() +
         '<div class="bg-writing-layout">' +
           '<section class="bg-writing-card" aria-labelledby="' + _escHtml(config.titleId) + '">' +
             '<div class="bg-writing-card__top"><div><span>작성 단계</span><strong id="' + _escHtml(config.titleId) + '">민원 내용을 확인해 주세요</strong></div>' +

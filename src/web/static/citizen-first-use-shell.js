@@ -1784,6 +1784,75 @@
     scrollChatToLatest();
   }
 
+  function _i18n() {
+    return window.CitizenI18n || null;
+  }
+
+  // Map a canonical question or MVP action to its i18n chip key so service
+  // names render in the active locale (never flags-only; always text).
+  var CANONICAL_TO_CHIPKEY = Object.freeze({
+    "구청장에게 제안하고 싶어요": "chip.mayor",
+    "불법 주정차 신고는 어디서 하나요?": "chip.illegalParking",
+    "공동주택 관련 문의는 어느 부서에 해야 하나요?": "chip.apartment",
+    "침대 매트리스 버리고 싶어요": "chip.bulkyWaste",
+    "대형폐기물은 어떻게 버리나요?": "chip.bulkyWaste",
+    "가구 버리려면 어디서 신청해요?": "chip.bulkyWaste",
+    "매트리스 폐기 신청은 어디서 하나요?": "chip.bulkyWaste",
+    "여권 발급은 어디서 하나요?": "chip.passport",
+    "여권 재발급은 어떻게 하나요?": "chip.passport",
+    "무인민원발급기 어디 있어요?": "chip.kiosk",
+    "무인민원발급기로 뭘 발급받을 수 있어요?": "chip.kiosk",
+    "무인민원발급기 이용방법 알려줘": "chip.kiosk",
+    "민원서류 발급받으려면 어디로 가야 해요?": "chip.kiosk",
+    "가로등이 고장났어요. 신고할게요": "chip.streetlight",
+    "쓰레기 무단투기 신고할래 (AI 도움)": "chip.litter",
+    "illegal_parking": "chip.illegalParking",
+    "housing_department": "chip.apartment",
+    "bulky_waste": "chip.bulkyWaste",
+    "passport_guidance": "chip.passport",
+    "unmanned_kiosk": "chip.kiosk",
+    "streetlight_report": "chip.streetlight",
+    "litter_ai_assist": "chip.litter",
+    "mayor_message_assist": "chip.mayor"
+  });
+
+  // Echo text for a submitted question: canonical chip questions show their
+  // localized label so the chat never mixes Korean with another language.
+  function _userEchoText(question) {
+    if (CANONICAL_TO_CHIPKEY[question]) return _localizedServiceName(question);
+    return question;
+  }
+
+  function _localizedServiceName(canonical) {
+    var i18n = _i18n();
+    var key = CANONICAL_TO_CHIPKEY[canonical];
+    if (i18n && key) {
+      var translated = i18n.t(key);
+      if (translated && translated !== key) return translated;
+    }
+    if (canonical && canonical.indexOf("구청장") !== -1) return "구청장에게 제안하고 싶어요";
+    if (canonical && canonical.indexOf("불법 주정차") !== -1) return "불법 주정차 신고";
+    if (canonical && canonical.indexOf("공동주택") !== -1) return "공동주택 부서 문의";
+    if (canonical && canonical.indexOf("침대") !== -1) return "대형폐기물 배출";
+    if (canonical && canonical.indexOf("대형폐기물") !== -1) return "대형폐기물 배출";
+    if (canonical && canonical.indexOf("가구") !== -1) return "대형폐기물 배출";
+    if (canonical && canonical.indexOf("매트리스") !== -1) return "대형폐기물 배출";
+    if (canonical && canonical.indexOf("여권") !== -1) return "여권 발급 안내";
+    if (canonical && canonical.indexOf("무인민원발급기") !== -1) return "무인민원발급기 안내";
+    if (canonical && canonical.indexOf("가로등") !== -1) return "가로등 고장 신고";
+    if (canonical && canonical.indexOf("쓰레기") !== -1) return "쓰레기 무단투기 (AI 도움)";
+    return canonical ? String(canonical) : "";
+  }
+
+  function _t(key, fallback) {
+    var i18n = _i18n();
+    if (i18n) {
+      var v = i18n.t(key);
+      if (v && v !== key) return v;
+    }
+    return fallback;
+  }
+
   function renderEntryConversation() {
     if (!chatThread) {
       return;
@@ -1791,7 +1860,8 @@
     chatThread.innerHTML = "";
     appendChatMessage(
       "ai",
-      "안녕하세요. 북구청 민원 안내 AI입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다."
+      _t("chat.welcome",
+        "안녕하세요. 북구청 민원 안내 AI입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다.")
     );
   }
 
@@ -1836,18 +1906,18 @@
   }
 
   function showConfirmRun(question) {
-    var displayName = _questDisplayName(question);
+    var displayName = _localizedServiceName(question);
+    var gen = _confirmGeneration;
     var msgDiv = document.createElement("div");
     msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
     msgDiv.setAttribute("data-msg-type", "confirm-run");
-    var gen = _confirmGeneration;
 
     var bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bubble--ai";
 
     var text = document.createElement("p");
     text.style.margin = "0 0 10px 0";
-    text.textContent = displayName + "에 대해 안내해 드릴까요?";
+    text.textContent = displayName + _t("split.confirm", "에 대해 안내해 드릴까요?");
     bubble.appendChild(text);
 
     var btnRow = document.createElement("div");
@@ -1856,7 +1926,7 @@
 
     var yesBtn = document.createElement("button");
     yesBtn.type = "button";
-    yesBtn.textContent = "예, 안내해 주세요";
+    yesBtn.textContent = _t("action.yesGuide", "예, 안내해 주세요");
     yesBtn.style.cssText = "padding:8px 16px;border:0;border-radius:18px;background:#ef6a4c;color:#fff;font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;";
     yesBtn.addEventListener("click", function () {
       if (gen !== _confirmGeneration) return;
@@ -1874,7 +1944,7 @@
 
     var noBtn = document.createElement("button");
     noBtn.type = "button";
-    noBtn.textContent = "아니요";
+    noBtn.textContent = _t("action.no", "아니요");
     noBtn.style.cssText = "padding:8px 16px;border:1px solid #d0d0d5;border-radius:18px;background:#fff;color:#0d0d0f;font:inherit;font-size:0.85rem;cursor:pointer;";
     noBtn.addEventListener("click", function () {
       if (gen !== _confirmGeneration) return;
@@ -1907,18 +1977,18 @@
   // display name instead of a free-text question. The local choreography must
   // NOT start until the citizen explicitly chooses [예, 안내해 주세요].
   function showConfirmRunForAction(action) {
-    var displayName = _actionDisplayName(action);
+    var displayName = _localizedServiceName(action);
+    var gen = _confirmGeneration;
     var msgDiv = document.createElement("div");
     msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
     msgDiv.setAttribute("data-msg-type", "confirm-run");
-    var gen = _confirmGeneration;
 
     var bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bubble--ai";
 
     var text = document.createElement("p");
     text.style.margin = "0 0 10px 0";
-    text.textContent = displayName + "에 대해 안내해 드릴까요?";
+    text.textContent = displayName + _t("split.confirm", "에 대해 안내해 드릴까요?");
     bubble.appendChild(text);
 
     var btnRow = document.createElement("div");
@@ -1927,7 +1997,7 @@
 
     var yesBtn = document.createElement("button");
     yesBtn.type = "button";
-    yesBtn.textContent = "예, 안내해 주세요";
+    yesBtn.textContent = _t("action.yesGuide", "예, 안내해 주세요");
     yesBtn.style.cssText = "padding:8px 16px;border:0;border-radius:18px;background:#ef6a4c;color:#fff;font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;";
     yesBtn.addEventListener("click", function () {
       if (gen !== _confirmGeneration) return;
@@ -1948,7 +2018,7 @@
 
     var noBtn = document.createElement("button");
     noBtn.type = "button";
-    noBtn.textContent = "아니요";
+    noBtn.textContent = _t("action.no", "아니요");
     noBtn.style.cssText = "padding:8px 16px;border:1px solid #d0d0d5;border-radius:18px;background:#fff;color:#0d0d0f;font:inherit;font-size:0.85rem;cursor:pointer;";
     noBtn.addEventListener("click", function () {
       if (gen !== _confirmGeneration) return;
@@ -1986,10 +2056,9 @@
     window.setTimeout(function () {
       appendChatMessage(
         "ai",
-        "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
+        _t("split.ready",
+          "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다.")
       );
-      // Ack is an assistant answer before the confirm gate.
-      setJourneyState(JOURNEY_ANSWER);
       if (lastSplitQuestion) {
         showConfirmRun(lastSplitQuestion);
       }
@@ -1999,7 +2068,7 @@
 
   function beginSupportedTransition(question) {
     lastSplitQuestion = question;
-    appendChatMessage("user", question);
+    appendChatMessage("user", _userEchoText(question));
     if (chatInput) {
       chatInput.value = "";
     }
@@ -2140,7 +2209,7 @@
 
     // Single user-message echo for all entry points (unless already echoed).
     if (!skipUserMessage && currentState !== STATE_SPLIT) {
-      appendChatMessage("user", MAYOR_CANONICAL_QUESTION);
+      appendChatMessage("user", _userEchoText(MAYOR_CANONICAL_QUESTION));
       if (chatInput) chatInput.value = "";
     }
 
@@ -2270,7 +2339,7 @@
     }
 
     if (currentState === STATE_SPLIT) {
-      appendChatMessage("user", question);
+      appendChatMessage("user", _userEchoText(question));
       chatInput.value = "";
       if (isMayorQuestion(question)) {
         if (window.CitizenFirstChoreography) {
@@ -2293,7 +2362,7 @@
         startCinematicSplit();
         scheduleSplitCompletion(completeSplit);
       } else {
-        appendChatMessage("ai", SPLIT_FOLLOW_UP_MESSAGE);
+        appendChatMessage("ai", _t("split.followUp", SPLIT_FOLLOW_UP_MESSAGE));
         setJourneyState(JOURNEY_ANSWER);
         focusComposerIfAllowed();
       }
@@ -2311,11 +2380,12 @@
       return;
     }
 
-    appendChatMessage("user", question);
+    appendChatMessage("user", _userEchoText(question));
     chatInput.value = "";
     appendChatMessage(
       "ai",
-"현재 첫 화면에서는 불법 주정차 신고, 공동주택 문의, 대형폐기물 처리, 여권 발급 안내, 무인민원발급기 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요."
+      _t("unsupported",
+"현재 첫 화면에서는 불법 주정차 신고, 공동주택 문의, 대형폐기물 처리, 여권 발급 안내, 무인민원발급기 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요.")
     );
     // #1067: general/unsupported static answer — stay in answer, no navigation.
     setJourneyState(JOURNEY_ANSWER);
@@ -2327,7 +2397,7 @@
   function handleMvpSubmission(question) {
     clearQuestRuntimeState();
     // 1. echo user message
-    appendChatMessage("user", question);
+    appendChatMessage("user", _userEchoText(question));
     if (chatInput) chatInput.value = "";
     // 2. lock composer against duplicate submission
     setComposerDisabled(true);
@@ -2583,6 +2653,118 @@
         userInitiatedControlClick: true
       });
     });
+  }
+
+  // ── #1143: five-language i18n shell wiring ──────────────────────
+  // Localizes every static shell string, the recommendation chips, the
+  // composer, the reset control, and keeps the language selector in sync.
+  // The left Bukgu-gu canvas stays Korean by design.
+  var langSelector = document.getElementById("chat-lang");
+
+  function _setText(el, text) {
+    if (el && typeof text === "string") el.textContent = text;
+  }
+
+  function localizeShell() {
+    var i18n = _i18n();
+    if (!i18n) return;
+
+    var titleEl = chatShell ? chatShell.querySelector(".chat-shell__title") : null;
+    _setText(titleEl, i18n.t("chat.title"));
+
+    var badgeEl = chatShell ? chatShell.querySelector(".chat-shell__badge") : null;
+    _setText(badgeEl, i18n.t("chat.badge"));
+
+    // #1121: PADIEM attribution + disclosure stay fixed shell markup
+    // (not localized / not rewritten by JS).
+
+    if (resetButton) _setText(resetButton, i18n.t("chat.reset"));
+    if (chatSend) _setText(chatSend, i18n.t("chat.send"));
+
+    if (chatInput) {
+      chatInput.placeholder = i18n.t("chat.placeholder");
+      chatInput.setAttribute("aria-label", i18n.t("chat.inputAria"));
+    }
+    if (chipsContainer) {
+      chipsContainer.setAttribute("aria-label", i18n.t("chat.recommendationsAria"));
+    }
+    var hintEl = chatShell ? chatShell.querySelector(".chat-composer__hint") : null;
+    _setText(hintEl, i18n.t("chat.hint"));
+
+    // Chips: keep data-chip-question (Korean canonical) for routing; localize label.
+    if (chipsContainer) {
+      var chipNodes = chipsContainer.querySelectorAll("[data-chip-question]");
+      for (var i = 0; i < chipNodes.length; i++) {
+        var q = chipNodes[i].getAttribute("data-chip-question");
+        var key = CANONICAL_TO_CHIPKEY[q];
+        if (!key) continue;
+        var labelEl = chipNodes[i].querySelector(".chat-chip__label");
+        _setText(labelEl, i18n.t(key));
+        chipNodes[i].setAttribute("title", i18n.t(key));
+      }
+    }
+
+    _syncLanguageSelector();
+  }
+
+  function _buildLanguageSelectorOptions() {
+    if (!langSelector) return;
+    if (langSelector.options && langSelector.options.length === 5) return;
+    langSelector.innerHTML = "";
+    var locales = (window.CitizenI18n ? window.CitizenI18n.supportedLocales() : ["ko", "en", "vi", "th", "id"]);
+    var names = (window.CitizenI18n ? window.CitizenI18n.localeName : null);
+    for (var i = 0; i < locales.length; i++) {
+      var opt = document.createElement("option");
+      opt.value = locales[i];
+      opt.textContent = names ? names(locales[i]) : locales[i];
+      langSelector.appendChild(opt);
+    }
+  }
+
+  function _syncLanguageSelector() {
+    if (!langSelector || !window.CitizenI18n) return;
+    _buildLanguageSelectorOptions();
+    langSelector.value = window.CitizenI18n.getLocale();
+    langSelector.setAttribute("aria-label", window.CitizenI18n.t("chat.languageLabel"));
+  }
+
+  // Changing the language immediately resets the active journey (no confirm
+  // dialog), clears any pending timers/typing/cursor/confirmation, and returns
+  // the left canvas to a safe start — preventing mixed-language chat history.
+  function changeLocale(nextLocale) {
+    var i18n = _i18n();
+    if (!i18n) return;
+    var applied = i18n.applyLocale(nextLocale);
+    // applyLocale notifies subscribers (reset + re-localize).
+    if (applied === nextLocale) {
+      _syncLanguageSelector();
+    }
+  }
+
+  if (langSelector) {
+    langSelector.addEventListener("change", function () {
+      changeLocale(langSelector.value);
+    });
+  }
+
+  // Reset the journey + re-localize whenever the locale actually changes.
+  if (window.CitizenI18n) {
+    window.CitizenI18n.onLocaleChange(function () {
+      try {
+        if (typeof resetToEntry === "function") resetToEntry();
+      } catch (_) { /* ignore */ }
+      localizeShell();
+    });
+    // Keep locale consistent across browser back/forward.
+    window.addEventListener("popstate", function () {
+      var current = window.CitizenI18n.getLocale();
+      var fromUrl = window.CitizenI18n.readLangFromUrl();
+      if (fromUrl !== current) {
+        window.CitizenI18n.applyLocale(fromUrl);
+      }
+    });
+    window.CitizenI18n.initFromUrl();
+    localizeShell();
   }
 
   // #1067: subscribe to choreography state events for semantic journey mapping.
