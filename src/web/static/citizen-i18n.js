@@ -35,16 +35,18 @@
   // any missing key.
   var UI = Object.freeze({
     ko: Object.freeze({
-      "chat.title": "북구청 AI 민원 안내",
+      "chat.title": "북구청 AI 민원 네비게이터",
       "chat.badge": "안내",
       "chat.attribution": "AI 행정 브라우저",
       "chat.welcome":
-        "안녕하세요. 북구청 민원 안내 AI입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다.",
+        "안녕하세요. 북구청 AI 민원 네비게이터입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다.",
       "chat.reset": "새로 시작",
       "chat.send": "보내기",
       "chat.placeholder": "여기에 물어보세요",
       "chat.inputAria": "메시지 입력",
       "chat.recommendationsAria": "추천 질문",
+      "recommendations.show": "추천 질문 보기",
+      "recommendations.hide": "추천 질문 숨기기",
       "chat.hint": "첫 질문 후 북구청 안내 화면과 함께 경로를 보여드립니다.",
       "chat.disclosure":
         "이 안내는 시연용이며 실제 민원 접수나 개인정보 전송은 하지 않습니다.",
@@ -56,7 +58,7 @@
       "chip.bulkyWaste": "대형폐기물 배출",
       "chip.passport": "여권 발급 안내",
       "chip.kiosk": "무인민원발급기 안내",
-      "chip.streetlight": "가로등 고장 신고",
+      "chip.streetlight": "가로등 고장 신고 (AI 도움)",
       "chip.litter": "쓰레기 무단투기 (AI 도움)",
 
       "action.yesGuide": "예, 안내해 주세요",
@@ -115,16 +117,18 @@
     }),
 
     en: Object.freeze({
-      "chat.title": "Bukgu-gu AI Civil Guide",
+      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
       "chat.badge": "Guide",
       "chat.attribution": "AI Administrative Browser",
       "chat.welcome":
-        "Hello. I am the Bukgu-gu civil guide AI. Ask about any public service and I will open the related screen and guide you through the steps.",
+        "Hello. I am BUKGU AI CIVIC NAVIGATOR. Ask about a public service and I will open the relevant screen and guide you through the steps.",
       "chat.reset": "Start over",
       "chat.send": "Send",
       "chat.placeholder": "Ask here",
       "chat.inputAria": "Type a message",
       "chat.recommendationsAria": "Suggested questions",
+      "recommendations.show": "Show recommendations",
+      "recommendations.hide": "Hide recommendations",
       "chat.hint":
         "After your first question, I will show the route together with the Bukgu-gu guide screen.",
       "chat.disclosure":
@@ -137,7 +141,7 @@
       "chip.bulkyWaste": "Bulky waste disposal",
       "chip.passport": "Passport issuance guide",
       "chip.kiosk": "Unmanned document kiosk",
-      "chip.streetlight": "Broken streetlight report",
+      "chip.streetlight": "Broken streetlight report (AI help)",
       "chip.litter": "Illegal dumping (AI help)",
 
       "action.yesGuide": "Yes, please guide me",
@@ -197,16 +201,18 @@
     }),
 
     vi: Object.freeze({
-      "chat.title": "Trợ lý AI tiếp dân Bukgu-gu",
+      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
       "chat.badge": "Hướng dẫn",
       "chat.attribution": "Trình duyệt hành chính AI",
       "chat.welcome":
-        "Xin chào. Tôi là AI hướng dẫn tiếp dân của Bukgu-gu. Hãy đặt câu hỏi về dịch vụ công, tôi sẽ mở màn hình liên quan và hướng dẫn bạn từng bước.",
+        "Xin chào. Tôi là BUKGU AI CIVIC NAVIGATOR. Hãy đặt câu hỏi về dịch vụ công, tôi sẽ mở màn hình liên quan và hướng dẫn bạn từng bước.",
       "chat.reset": "Bắt đầu lại",
       "chat.send": "Gửi",
       "chat.placeholder": "Nhập câu hỏi tại đây",
       "chat.inputAria": "Nhập tin nhắn",
       "chat.recommendationsAria": "Câu hỏi gợi ý",
+      "recommendations.show": "Hiện gợi ý",
+      "recommendations.hide": "Ẩn gợi ý",
       "chat.hint":
         "Sau câu hỏi đầu tiên, tôi sẽ hiện đường dẫn cùng màn hình hướng dẫn của Bukgu-gu.",
       "chat.disclosure":
@@ -219,7 +225,7 @@
       "chip.bulkyWaste": "Vứt bỏ rác cồng kềnh",
       "chip.passport": "Hướng dẫn cấp hộ chiếu",
       "chip.kiosk": "Hướng dẫn máy cấp giấy tờ tự động",
-      "chip.streetlight": "Báo cáo đèn đường hỏng",
+      "chip.streetlight": "Báo cáo đèn đường hỏng (có AI hỗ trợ)",
       "chip.litter": "Vứt rác bừa bãi (có AI hỗ trợ)",
 
       "action.yesGuide": "Vâng, hãy hướng dẫn tôi",
@@ -279,16 +285,18 @@
     }),
 
     th: Object.freeze({
-      "chat.title": "ผู้ช่วย AI งานทะเบียน Bukgu-gu",
+      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
       "chat.badge": "คู่มือ",
       "chat.attribution": "เบราว์เซอร์งานราชการ AI",
       "chat.welcome":
-        "สวัสดีค่ะ/ครับ ฉันคือ AI ผู้ช่วยงานทะเบียนของเขต Bukgu-gu หากมีคำถามเรื่องบริการสาธารณะ บอกได้เลย ฉันจะเปิดหน้าจอที่เกี่ยวข้องและนำทางให้ทีละขั้นตอน",
+        "สวัสดีค่ะ/ครับ ฉันคือ BUKGU AI CIVIC NAVIGATOR หากมีคำถามเรื่องบริการสาธารณะ บอกได้เลย ฉันจะเปิดหน้าจอที่เกี่ยวข้องและนำทางให้ทีละขั้นตอน",
       "chat.reset": "เริ่มใหม่",
       "chat.send": "ส่ง",
       "chat.placeholder": "พิมพ์คำถามที่นี่",
       "chat.inputAria": "พิมพ์ข้อความ",
       "chat.recommendationsAria": "คำถามแนะนำ",
+      "recommendations.show": "แสดงคำแนะนำ",
+      "recommendations.hide": "ซ่อนคำแนะนำ",
       "chat.hint":
         "หลังคำถามแรก ฉันจะแสดงเส้นทางพร้อมหน้าจอแนะนำของเขต Bukgu-gu",
       "chat.disclosure":
@@ -301,7 +309,7 @@
       "chip.bulkyWaste": "ทิ้งขยะชิ้นใหญ่",
       "chip.passport": "คู่มือการทำหนังสือเดินทาง",
       "chip.kiosk": "คู่มือเครื่องออกเอกสารอัตโนมัติ",
-      "chip.streetlight": "แจ้งโคมไฟถนนเสีย",
+      "chip.streetlight": "แจ้งโคมไฟถนนเสีย (มี AI ช่วย)",
       "chip.litter": "ทิ้งขยะมิชอบ (มี AI ช่วย)",
 
       "action.yesGuide": "ใช่ ค่อยแนะนำด้วย",
@@ -361,16 +369,18 @@
     }),
 
     id: Object.freeze({
-      "chat.title": "Panduan Pengaduan Warga AI Bukgu-gu",
+      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
       "chat.badge": "Panduan",
       "chat.attribution": "Peramban Administrasi AI",
       "chat.welcome":
-        "Halo. Saya adalah AI panduan pengaduan warga Bukgu-gu. Tanyakan layanan publik apa pun, dan saya akan membuka layar terkait serta memandu Anda langkah demi langkah.",
+        "Halo. Saya adalah BUKGU AI CIVIC NAVIGATOR. Tanyakan layanan publik apa pun, dan saya akan membuka layar terkait serta memandu Anda langkah demi langkah.",
       "chat.reset": "Mulai ulang",
       "chat.send": "Kirim",
       "chat.placeholder": "Tanyakan di sini",
       "chat.inputAria": "Ketik pesan",
       "chat.recommendationsAria": "Pertanyaan yang disarankan",
+      "recommendations.show": "Tampilkan saran",
+      "recommendations.hide": "Sembunyikan saran",
       "chat.hint":
         "Setelah pertanyaan pertama, saya akan menampilkan rute beserta layar panduan Bukgu-gu.",
       "chat.disclosure":
@@ -383,7 +393,7 @@
       "chip.bulkyWaste": "Pembuangan sampah besar",
       "chip.passport": "Panduan pembuatan paspor",
       "chip.kiosk": "Panduan mesin layanan mandiri",
-      "chip.streetlight": "Laporan lampu jalan rusak",
+      "chip.streetlight": "Laporan lampu jalan rusak (bantuan AI)",
       "chip.litter": "Membuang sampah sembarangan (bantuan AI)",
 
       "action.yesGuide": "Ya, bantu saya",

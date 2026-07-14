@@ -2588,7 +2588,7 @@ async function readChatContinuitySnapshot(page) {
       greetingAlive: messages.some(
         (m) =>
           m.role === "ai" &&
-          (m.text || "").includes("안녕하세요. 북구청 민원 안내 AI입니다"),
+          (m.text || "").includes("안녕하세요. 북구청 AI 민원 네비게이터입니다"),
       ),
       splitAckAlive: messages.some(
         (m) =>
@@ -2632,7 +2632,7 @@ async function runChatContinuityJourney(page, base, viewport, journey, options =
   assert.equal(boot.userCount, 0, `no user msg at boot [${ctx}]`);
   assert.equal(boot.removed, 0, `no removals at boot [${ctx}]`);
   const bootGreetingNode = boot.messages.find(
-    (m) => m.role === "ai" && (m.text || "").includes("안녕하세요. 북구청 민원 안내 AI입니다"),
+    (m) => m.role === "ai" && (m.text || "").includes("안녕하세요. 북구청 AI 민원 네비게이터입니다"),
   );
   assert.ok(bootGreetingNode, `greeting node tagged [${ctx}]`);
 
@@ -2690,7 +2690,7 @@ async function runChatContinuityJourney(page, base, viewport, journey, options =
   );
   // Greeting node identity must be the same boot node.
   const midGreeting = mid.messages.find(
-    (m) => m.role === "ai" && (m.text || "").includes("안녕하세요. 북구청 민원 안내 AI입니다"),
+    (m) => m.role === "ai" && (m.text || "").includes("안녕하세요. 북구청 AI 민원 네비게이터입니다"),
   );
   assert.ok(midGreeting, `greeting node mid [${ctx}]`);
   assert.equal(
