@@ -68,10 +68,9 @@ def live_build_dir():
 # ---------------------------------------------------------------------------
 # Live-mode activation / artifact markers
 # ---------------------------------------------------------------------------
-# Live MVP entry activates the MVP bridge via a single ?mvp=1 query injector.
-# #1143: injector preserves other params (e.g. lang) while still emitting the
-# literal "?mvp=1" marker the live-activation contract checks for.
-LIVE_INJECTOR = 'var force = "?mvp=1"'
+# Live MVP entry activates the MVP bridge via a semantic ?mvp=1 injector
+# that sets the mvp param and preserves all other query params (e.g. lang).
+LIVE_INJECTOR = 'searchParams.set("mvp", "1")'
 # Static public entry removes only the live-bridge `mvp` flag and preserves
 # other params such as `lang` (#1143 multilingual entry).
 STATIC_SANITIZER = 'searchParams.delete("mvp")'
@@ -354,6 +353,10 @@ def test_mvp_entry_generated(build_dir):
     assert html.index("history.replaceState") < html.index("citizen-first-use-shell.js")
     # Sanitizer removes only the live mvp flag; lang and other params remain.
     assert STATIC_SANITIZER in html
+    assert "u.pathname + u.search + u.hash" in html
+    assert LIVE_INJECTOR not in html
+    assert 'u.pathname + "?mvp=1"' not in html
+    assert 'data-mvp="1"' not in html
 
     # The live bridge script must never be referenced from the public entry.
     assert '<script src="/static/citizen-mvp-bridge.js"' not in html
@@ -406,51 +409,66 @@ def test_mvp_static_has_query_sanitizer(build_dir):
 
 
 def test_mvp_static_has_no_live_injector(build_dir):
-    """#1053: Static output must NOT have live ?mvp=1 injector."""
+    """#1053: Static output must NOT have live mvp injector."""
     mvp_index = os.path.join(build_dir, "mvp", "index.html")
     html = open(mvp_index, encoding="utf-8").read()
-    assert LIVE_INJECTOR not in html, "static mvp must NOT have live ?mvp=1 injector"
-    assert '"?mvp=1" + window.location.hash' not in html
+    assert LIVE_INJECTOR not in html, "static mvp must NOT have live mvp injector"
+    assert 'u.pathname + "?mvp=1"' not in html, "static mvp must NOT use legacy literal injector"
+    assert '"?mvp=1"' not in html, "static mvp must NOT have ?mvp=1 literal"
 
 
 def test_mvp_live_has_injector():
-    """#1053: Live mode build must have ?mvp=1 injector before first shell script."""
+    """#1053: Live mode build must have a semantic mvp injector before the
+    first shell script, and must NOT contain the static sanitizer / data-mvp
+    marker / legacy literal injector."""
     mod = _load_build_module()
     with tempfile.TemporaryDirectory() as tmp:
         out = os.path.join(tmp, "out")
         mod.build(out_dir=out, mode="live")
         mvp_index = os.path.join(out, "mvp", "index.html")
         html = open(mvp_index, encoding="utf-8").read()
-        # Live injector must be present
-        assert '"?mvp=1"' in html or '"\\u003Fmvp=1"' in html, \
-            "live mode mvp must have ?mvp=1 injector"
-        # Live injector runs before citizen-first-use-shell.js
+        # Live injector sets mvp semantically via searchParams.set.
+        assert LIVE_INJECTOR in html, \
+            "live mode mvp must set mvp via searchParams.set"
+        # Injector rebuilds pathname + search + hash.
+        assert "u.pathname + u.search + u.hash" in html, \
+            "live mode mvp must rebuild pathname + search + hash"
+        # Live injector runs before citizen-first-use-shell.js.
         injector_idx = html.find("history.replaceState")
         shell_idx = html.find("citizen-first-use-shell.js")
         assert injector_idx >= 0 and injector_idx < shell_idx, \
             "live injector must run before shell script"
-        # Live output must NOT have static query sanitizer.
+        # Live injector must NOT delete mvp.
+        assert 'searchParams.delete("mvp")' not in html, \
+            "live mode must NOT delete mvp"
+        # Live output must NOT have static query sanitizer marker.
         assert STATIC_SANITIZER not in html, \
             "live mode must NOT have static query sanitizer"
         # Live output must NOT have data-mvp="1".
         assert 'data-mvp="1"' not in html, \
             "live mode must NOT have data-mvp=1"
+        # Live output must NOT use the legacy pathname + "?mvp=1" injector.
+        assert 'u.pathname + "?mvp=1"' not in html, \
+            "live mode must NOT use legacy pathname+?mvp=1 injector"
+        # Live output must NOT require a literal "?mvp=1" string.
+        assert '"?mvp=1"' not in html, \
+            "live mode must NOT rely on a simple ?mvp=1 literal"
 
 
 def test_mvp_live_has_no_static_sanitizer():
-    """#1053: Live output must NOT have static query sanitizer."""
+    """#1053: Live output must NOT have static query sanitizer (searchParams.delete)."""
     mod = _load_build_module()
     with tempfile.TemporaryDirectory() as tmp:
         out = os.path.join(tmp, "out")
         mod.build(out_dir=out, mode="live")
         mvp_index = os.path.join(out, "mvp", "index.html")
         html = open(mvp_index, encoding="utf-8").read()
-        # Live output must NOT have the static query sanitizer pattern.
+        # Live output must NOT have the static query sanitizer (delete mvp).
         assert STATIC_SANITIZER not in html, \
             "live mode must NOT have static query sanitizer"
-        # Live output must have the ?mvp=1 injector.
-        assert '"?mvp=1"' in html or '"\\u003Fmvp=1"' in html, \
-            "live mode must have ?mvp=1 injector"
+        # Live output must have the semantic mvp injector (set mvp).
+        assert LIVE_INJECTOR in html, \
+            "live mode must have mvp injector"
 
 
 def test_mvp_build_does_not_modify_source():
@@ -512,13 +530,14 @@ def test_live_mobile_uses_mvp_endpoint(live_build_dir):
 
 
 def test_live_mvp_activation_is_single_injector(live_build_dir):
-    """#1054 C: Live /mvp/index.html has exactly one ?mvp=1 injector that runs
-    before the shell script, and no static sanitizer / data-mvp marker."""
+    """#1054 C: Live /mvp/index.html has exactly one semantic mvp injector
+    that runs before the shell script, and no static sanitizer / data-mvp
+    marker."""
     mvp_index = os.path.join(live_build_dir, "mvp", "index.html")
     html = open(mvp_index, encoding="utf-8").read()
 
     # Exactly one live injector.
-    assert html.count(LIVE_INJECTOR) == 1, "live mvp must have exactly one ?mvp=1 injector"
+    assert html.count(LIVE_INJECTOR) == 1, "live mvp must have exactly one mvp injector"
 
     # Injector runs before the first-use shell script.
     injector_idx = html.index(LIVE_INJECTOR)
@@ -546,8 +565,8 @@ def test_live_entries_have_no_static_shim(live_build_dir):
 def test_live_root_is_citizen_assistant_with_mvp_activation(live_build_dir):
     """#1068 / #1054 E: Live root IS the citizen entry with live MVP activation.
 
-    Root and /mvp/ share the same HTML; both force ?mvp=1. Artifact chooser
-    cards must not appear on the resident root.
+    Root and /mvp/ share the same HTML; both activate mvp=1 semantically.
+    Artifact chooser cards must not appear on the resident root.
     """
     index = open(os.path.join(live_build_dir, "index.html"), encoding="utf-8").read()
     mvp = open(os.path.join(live_build_dir, "mvp", "index.html"), encoding="utf-8").read()

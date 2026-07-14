@@ -2091,26 +2091,47 @@ function assertCitizenEntryHtml(html, mode, label) {
   assert.ok(!html.includes('href="admin.html"'), `${label}: no admin href card`);
   assert.ok(!html.includes('href="mobile.html"'), `${label}: no mobile href card`);
   if (mode === "static") {
+    // New static contract: sanitizer strips mvp only, preserves other params.
     assert.ok(
-      html.includes("window.location.pathname + window.location.hash"),
-      `${label}: static query sanitizer`,
+      html.includes('u.searchParams.delete("mvp")'),
+      `${label}: static mvp sanitizer`,
     );
-    assert.ok(!html.includes('"?mvp=1"'), `${label}: no live injector`);
-  } else {
     assert.ok(
-      html.includes('"?mvp=1"') || html.includes("?mvp=1"),
+      html.includes("u.pathname + u.search + u.hash"),
+      `${label}: sanitized url shape`,
+    );
+    assert.ok(
+      !html.includes('u.searchParams.set("mvp", "1")'),
+      `${label}: static does not set mvp`,
+    );
+    // No live injector / dummy marker present.
+    assert.ok(!html.includes('"?mvp=1"'), `${label}: no live injector`);
+    assert.ok(!html.includes("window.location.pathname + window.location.hash"),
+      `${label}: no stale runtime contract string`);
+  } else {
+    // New live contract: preserves existing params, sets mvp=1.
+    assert.ok(
+      html.includes('u.searchParams.set("mvp", "1")'),
       `${label}: live mvp activation`,
     );
     assert.ok(
-      !html.includes("window.location.pathname + window.location.hash") ||
-        html.includes('"?mvp=1"'),
-      `${label}: live uses injector not sanitizer-only`,
+      html.includes("u.pathname + u.search + u.hash"),
+      `${label}: live url shape`,
     );
-    // Live injector marker: pathname + "?mvp=1"
     assert.ok(
-      html.includes('pathname + "?mvp=1"') ||
-        html.includes("pathname + \"?mvp=1\""),
-      `${label}: live ?mvp=1 injector present`,
+      !html.includes('u.searchParams.delete("mvp")'),
+      `${label}: live does not delete mvp`,
+    );
+    // Not a static-sanitizer-only structure.
+    assert.ok(
+      !html.includes('u.searchParams.delete("mvp")'),
+      `${label}: live is not static-sanitizer-only`,
+    );
+    // Legacy dummy marker must be absent.
+    assert.ok(!html.includes('pathname + "?mvp=1"'), `${label}: no legacy marker`);
+    assert.ok(
+      !html.includes('"window.location.pathname + window.location.hash"'),
+      `${label}: no stale runtime contract string`,
     );
   }
   // No external network assets in the entry document.

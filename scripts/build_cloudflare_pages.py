@@ -151,10 +151,8 @@ MVP_MODE_INJECTOR = (
     '(function () {\n'
     '  "use strict";\n'
     "  if (window.history && window.history.replaceState) {\n"
-    '    var force = "?mvp=1";\n'
     "    var u = new URL(window.location.href);\n"
     "    u.searchParams.set(\"mvp\", \"1\");\n"
-    "    void force;\n"
     "    window.history.replaceState(null, \"\", u.pathname + u.search + u.hash);\n"
     "  }\n"
     "})();\n"
