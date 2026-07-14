@@ -764,7 +764,7 @@
               '<nav class="bg-gnb" aria-label="주메뉴">' +
                 '<div class="bg-home-gnb">' +
                   '<a href="#" class="bg-home-gnb__link bg-home-gnb__link--active" data-action-target="nav-civil-service">종합민원</a>' +
-                  '<a href="#" class="bg-home-gnb__link">소통광장</a>' +
+                  '<a href="#" class="bg-home-gnb__link" data-action-target="nav-complaint-board">소통광장</a>' +
                   '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
                   '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
                   '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
@@ -1051,7 +1051,7 @@
             '<nav class="bg-gnb" aria-label="주메뉴">' +
               '<div class="bg-home-gnb">' +
               '<a href="#" class="bg-home-gnb__link bg-home-gnb__link--active" data-action-target="nav-civil-service">종합민원</a>' +
-              '<a href="#" class="bg-home-gnb__link">소통광장</a>' +
+              '<a href="#" class="bg-home-gnb__link" data-action-target="nav-complaint-board">소통광장</a>' +
               '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
               '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
               '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
@@ -1171,11 +1171,11 @@
                 '</nav>' +
               '</div>' +
               '<div class="bg-home-field-info__links">' +
-                '<a href="#">행정조직도 <span aria-hidden="true">›</span></a>' +
+                '<a href="#" data-action-target="nav-apartment-dept">행정조직도 <span aria-hidden="true">›</span></a>' +
                 '<a href="#">주정차단속문자알림 <span aria-hidden="true">›</span></a>' +
-                '<a href="#">여권 발급 <span aria-hidden="true">›</span></a>' +
+                '<a href="#" data-action-target="nav-passport-guidance">여권 발급 <span aria-hidden="true">›</span></a>' +
                 '<a href="#">보건증 발급 <span aria-hidden="true">›</span></a>' +
-                '<a href="#">대형폐기물 처리 <span aria-hidden="true">›</span></a>' +
+                '<a href="#" data-action-target="nav-bulky-waste-disposal">대형폐기물 처리 <span aria-hidden="true">›</span></a>' +
                 '<a href="#">온라인 민원발급(정부24) <span aria-hidden="true">›</span></a>' +
                 '<a href="#">취업지원프로그램안내 <span aria-hidden="true">›</span></a>' +
                 '<a href="#">소화기 사용법 <span aria-hidden="true">›</span></a>' +
@@ -2726,7 +2726,7 @@
           '<nav class="bg-gnb" aria-label="주메뉴">' +
             '<div class="bg-home-gnb">' +
             '<a href="#" class="bg-home-gnb__link' + _gnbActive('civil-service') + '" data-action-target="nav-civil-service">종합민원</a>' +
-            '<a href="#" class="bg-home-gnb__link' + _gnbActive('communication') + '">소통광장</a>' +
+            '<a href="#" class="bg-home-gnb__link' + _gnbActive('communication') + '" data-action-target="nav-complaint-board">소통광장</a>' +
             '<a href="#" class="bg-home-gnb__link' + _gnbActive('welfare') + '">더불어복지</a>' +
             '<a href="#" class="bg-home-gnb__link' + _gnbActive('field-info') + '">분야별정보</a>' +
             '<a href="#" class="bg-home-gnb__link' + _gnbActive('info-open') + '">정보공개</a>' +
@@ -3350,7 +3350,11 @@
   function _targetToNextRoute(targetId) {
     var flow = {
       "nav-civil-service":             "civil-service",
+      "nav-apartment-dept":            "apartment-dept",
+      "nav-bulky-waste-disposal":      "bulky-waste-disposal",
+      "nav-passport-guidance":         "passport-guidance",
       "nav-complaint-category":        "complaint-category",
+      "nav-complaint-board":           "complaint-board",
       "complaint-category-illegal-parking":              "complaint-intake",
       "complaint-category-public-parking-inconvenience": "complaint-intake",
       "complaint-category-residential-parking":           "complaint-intake",
