@@ -368,7 +368,7 @@ await assert('action with no canonical snapshot answers without request-time off
   try {
     mockFetchSequence([{ body: chatResponse('일반 민원 안내입니다.') }]);
     const { data } = await requestJson('POST', JSON.stringify({
-      question: '오늘 기준 북구청 대표전화와 민원실 운영시간을 알려줘',
+      question: '북구청 대표전화와 민원실 운영시간을 알려줘',
     }), { GEMINI_API_KEY: 'test-gemini' });
     expectEqual(data.ok, true, 'ok');
     expectEqual(data.freshness_state, 'snapshot_unavailable', 'freshness_state');
@@ -601,7 +601,7 @@ await assert('optional Gemini Interactions keeps grounding but never promotes to
   };
   try {
     mockFetchSequence([{ body: groundedInteraction('공식 공지를 확인했습니다.', [officialCitation]) }]);
-    const { data } = await requestJson('POST', JSON.stringify({ question: '최신 공지 알려줘' }), {
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 절차 알려줘' }), {
       GEMINI_API_KEY: 'test-gemini',
       GEMINI_API_STYLE: 'interactions',
       GEMINI_MODEL: 'gemini-3.5-flash',

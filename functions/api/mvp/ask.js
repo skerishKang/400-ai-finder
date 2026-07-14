@@ -1,4 +1,5 @@
 import { BUKGU_OFFICIAL_SNAPSHOTS } from './bukgu-official-snapshots.js';
+import { classifyTemporalIntent, retrieveLiveFreshness } from './official-freshness.js';
 
 // Cloudflare Pages Function for the live Buk-gu civic assistant.
 // Provider keys stay in Pages secrets; requests are handled statelessly.
@@ -663,6 +664,7 @@ export async function onRequest(context) {
   }
 
   const deterministicAction = classifyAction(question);
+  const temporalIntent = classifyTemporalIntent(question);
   const hasConfiguredProvider = providerOrder.some((provider) => providerConfig(provider, env).key);
   let officialContext = {
     ok: false,
@@ -679,10 +681,42 @@ export async function onRequest(context) {
     canonicalSha256: '',
   };
   if (hasConfiguredProvider) {
-    try {
-      officialContext = await retrieveOfficialContext(question, deterministicAction);
-    } catch (_) {
-      // Official retrieval is fail-soft so the configured model can still answer.
+    if (temporalIntent === 'temporal') {
+      const freshnessResult = await retrieveLiveFreshness(question);
+      if (freshnessResult.ok) {
+        officialContext = {
+          ok: true,
+          evidence: freshnessResult.evidence,
+          sources: [{
+            title: freshnessResult.sourceTitle,
+            url: freshnessResult.sourceUrl,
+            official: true,
+            captured_at: freshnessResult.retrievedAt,
+            verified_at: freshnessResult.retrievedAt,
+          }],
+          sourceUrl: freshnessResult.sourceUrl,
+          searchQueries: freshnessResult.searchQueries || [],
+          freshnessState: 'live_verified',
+          capturedAt: freshnessResult.retrievedAt,
+          verifiedAt: freshnessResult.retrievedAt,
+        };
+      } else {
+        return jsonResponse(Object.assign(
+          failurePayload(question, primaryConfig.provider, primaryConfig.model, freshnessResult.failureCode, retrievedAt, currentTime),
+          {
+            answer: '현재 공식 출처에서 최신 정보를 확인하지 못했습니다. 이전 정보를 최신 사실처럼 안내하지 않겠습니다.',
+            action: deterministicAction !== 'none' ? deterministicAction : 'none',
+            freshness_state: 'unverified',
+            official_source: false,
+          }
+        ), 200, headers);
+      }
+    } else {
+      try {
+        officialContext = await retrieveOfficialContext(question, deterministicAction);
+      } catch (_) {
+        // Official retrieval is fail-soft so the configured model can still answer.
+      }
     }
   }
   let configuredProviderCount = 0;
@@ -720,6 +754,8 @@ export async function onRequest(context) {
       current_time: currentTime,
       retrieved_at: retrievedAt.toISOString(),
       freshness_state: result.freshnessState,
+      official_source: result.freshnessState === 'live_verified',
+      source_title: result.sources.length > 0 ? result.sources[0].title : '',
       source_url: result.sourceUrl,
       sources: result.sources,
       search_queries: result.searchQueries,
