@@ -39,7 +39,7 @@
       "chat.badge": "안내",
       "chat.attribution": "AI 행정 브라우저",
       "chat.welcome":
-        "안녕하세요. 북구청 민원 안내 AI입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다.",
+        "안녕하세요. 북구청 AI 민원 네비게이터입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다.",
       "chat.reset": "새로 시작",
       "chat.send": "보내기",
       "chat.placeholder": "여기에 물어보세요",
@@ -121,7 +121,7 @@
       "chat.badge": "Guide",
       "chat.attribution": "AI Administrative Browser",
       "chat.welcome":
-        "Hello. I am the Bukgu-gu civil guide AI. Ask about any public service and I will open the related screen and guide you through the steps.",
+        "Hello. I am BUKGU AI CIVIC NAVIGATOR. Ask about a public service and I will open the relevant screen and guide you through the steps.",
       "chat.reset": "Start over",
       "chat.send": "Send",
       "chat.placeholder": "Ask here",
@@ -205,7 +205,7 @@
       "chat.badge": "Hướng dẫn",
       "chat.attribution": "Trình duyệt hành chính AI",
       "chat.welcome":
-        "Xin chào. Tôi là AI hướng dẫn tiếp dân của Bukgu-gu. Hãy đặt câu hỏi về dịch vụ công, tôi sẽ mở màn hình liên quan và hướng dẫn bạn từng bước.",
+        "Xin chào. Tôi là BUKGU AI CIVIC NAVIGATOR. Hãy đặt câu hỏi về dịch vụ công, tôi sẽ mở màn hình liên quan và hướng dẫn bạn từng bước.",
       "chat.reset": "Bắt đầu lại",
       "chat.send": "Gửi",
       "chat.placeholder": "Nhập câu hỏi tại đây",
@@ -289,7 +289,7 @@
       "chat.badge": "คู่มือ",
       "chat.attribution": "เบราว์เซอร์งานราชการ AI",
       "chat.welcome":
-        "สวัสดีค่ะ/ครับ ฉันคือ AI ผู้ช่วยงานทะเบียนของเขต Bukgu-gu หากมีคำถามเรื่องบริการสาธารณะ บอกได้เลย ฉันจะเปิดหน้าจอที่เกี่ยวข้องและนำทางให้ทีละขั้นตอน",
+        "สวัสดีค่ะ/ครับ ฉันคือ BUKGU AI CIVIC NAVIGATOR หากมีคำถามเรื่องบริการสาธารณะ บอกได้เลย ฉันจะเปิดหน้าจอที่เกี่ยวข้องและนำทางให้ทีละขั้นตอน",
       "chat.reset": "เริ่มใหม่",
       "chat.send": "ส่ง",
       "chat.placeholder": "พิมพ์คำถามที่นี่",
@@ -373,7 +373,7 @@
       "chat.badge": "Panduan",
       "chat.attribution": "Peramban Administrasi AI",
       "chat.welcome":
-        "Halo. Saya adalah AI panduan pengaduan warga Bukgu-gu. Tanyakan layanan publik apa pun, dan saya akan membuka layar terkait serta memandu Anda langkah demi langkah.",
+        "Halo. Saya adalah BUKGU AI CIVIC NAVIGATOR. Tanyakan layanan publik apa pun, dan saya akan membuka layar terkait serta memandu Anda langkah demi langkah.",
       "chat.reset": "Mulai ulang",
       "chat.send": "Kirim",
       "chat.placeholder": "Tanyakan di sini",

@@ -21,11 +21,11 @@ const BASE_ORIGIN = (function validate(raw) {
 const LOCALE_ASSERTIONS = {
   // locale: { shellTitle, chipPrefix, confirmText }
   // Values from citizen-i18n.js locale dictionary
-  ko: { shellTitle: "북구청 AI 민원 안내", chipPrefix: "구청장에게 제안", confirmText: "예, 안내해 주세요" },
-  en: { shellTitle: "Bukgu-gu AI Civil Guide", chipPrefix: "I want to propose", confirmText: "Yes, please guide me" },
-  vi: { shellTitle: "Trợ lý AI tiếp dân Bukgu-gu", chipPrefix: "gửi đề xuất", confirmText: "Vâng, hãy hướng dẫn tôi" },
-  th: { shellTitle: "ผู้ช่วย AI งานทะเบียน Bukgu-gu", chipPrefix: "ฉันอยากส่งข้อเสนอ", confirmText: "ใช่ ค่อยแนะนำด้วย" },
-  id: { shellTitle: "Panduan Pengaduan Warga AI Bukgu-gu", chipPrefix: "Saya ingin mengusulkan", confirmText: "Ya, bantu saya" },
+  ko: { shellTitle: "북구청 AI 민원 네비게이터", chipPrefix: "구청장에게 제안", confirmText: "예, 안내해 주세요" },
+  en: { shellTitle: "BUKGU AI CIVIC NAVIGATOR", chipPrefix: "I want to propose", confirmText: "Yes, please guide me" },
+  vi: { shellTitle: "BUKGU AI CIVIC NAVIGATOR", chipPrefix: "gửi đề xuất", confirmText: "Vâng, hãy hướng dẫn tôi" },
+  th: { shellTitle: "BUKGU AI CIVIC NAVIGATOR", chipPrefix: "ฉันอยากส่งข้อเสนอ", confirmText: "ใช่ ค่อยแนะนำด้วย" },
+  id: { shellTitle: "BUKGU AI CIVIC NAVIGATOR", chipPrefix: "Saya ingin mengusulkan", confirmText: "Ya, bantu saya" },
 };
 
 async function launchBrowser() {

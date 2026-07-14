@@ -81,6 +81,19 @@ function makeEl(tag) {
       c._parent = this;
       return c;
     },
+    insertBefore(c, ref) {
+      const idx = ref ? this._children.indexOf(ref) : -1;
+      if (idx >= 0) {
+        this._children.splice(idx, 0, c);
+      } else {
+        this._children.push(c);
+      }
+      c._parent = this;
+      return c;
+    },
+    get parentNode() {
+      return this._parent;
+    },
     removeChild(c) {
       const i = this._children.indexOf(c);
       if (i >= 0) {
