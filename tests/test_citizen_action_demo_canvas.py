@@ -785,7 +785,7 @@ class TestSemanticReconstruction:
         """HTML must have chat-shell as primary right-side panel."""
         html = _read_static("citizen-action-demo.html")
         assert 'class="chat-shell"' in html, "chat-shell not found in HTML"
-        assert "AI 민원 도우미" in html, "AI 민원 도우미 title missing"
+        assert "AI 민원 네비게이터" in html, "AI 민원 네비게이터 title missing"
         assert 'class="chat-composer"' in html, "chat-composer not found"
         assert "보내기" in html, "보내기 button missing"
 

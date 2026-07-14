@@ -84,7 +84,7 @@ def test_owner_approved_product_directive_supersedes_static_scope():
 
 def test_entry_stage_uses_bukgu_identity_and_mayor_media():
     assert 'class="entry-stage"' in HTML
-    assert "BUKGU AI CIVIC BROWSER" in HTML
+    assert "BUKGU AI CIVIC NAVIGATOR" in HTML
     assert "home-identity.png" in HTML
     assert "home-mayor-card.png" in HTML
     assert "북구의 모든 행정" in HTML
