@@ -118,7 +118,7 @@
     recommendationsToggle.addEventListener("click", function () {
       _toggleRecommendations();
     });
-    chipsContainer.insertBefore(recommendationsToggle, chipsContainer.firstChild);
+    chipsContainer.parentNode.insertBefore(recommendationsToggle, chipsContainer);
     _applyRecommendationsState();
   }
 
@@ -1819,16 +1819,23 @@
       ? (result.verified_at || result.captured_at)
       : result.retrieved_at;
     var retrievedAt = formatRetrievedAt(provenanceTime);
-    if (!retrievedAt && !sources.length && !result.freshness_state) return;
+    var label = freshnessLabel(result.freshness_state);
+    if (!label && !retrievedAt && !sources.length) return;
 
     var meta = document.createElement("div");
     meta.className = "chat-answer-meta";
     meta.setAttribute("data-freshness-state", result.freshness_state || "unknown");
 
-    var status = document.createElement("span");
-    status.className = "chat-answer-meta__status";
-    status.textContent = freshnessLabel(result.freshness_state) + (retrievedAt ? " · " + retrievedAt : "");
-    meta.appendChild(status);
+    if (label || retrievedAt) {
+      var status = document.createElement("span");
+      status.className = "chat-answer-meta__status";
+      if (label && retrievedAt) {
+        status.textContent = label + " · " + retrievedAt;
+      } else {
+        status.textContent = label || retrievedAt;
+      }
+      meta.appendChild(status);
+    }
 
     sources.forEach(function (source) {
       if (!source || typeof source.url !== "string") return;
@@ -2638,6 +2645,7 @@
     }
 
     body.classList.add("first-use-shell--no-motion");
+    _expandRecommendations();
     // skipHistory: single replace after entry snapshot is fully ready.
     setState(STATE_ENTRY, { skipHistory: true });
     // #1067: explicit reset announces readiness; cold load does not.
@@ -2870,6 +2878,8 @@
       reducedMotionQuery.addListener(_onReducedMotionMediaChange);
     }
   }
+
+  _initRecommendationsToggle();
 
   // Init layout/journey without intermediate history writes; one replace below.
   if (isLegacyJourneyLoad()) {

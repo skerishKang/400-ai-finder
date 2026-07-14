@@ -353,7 +353,7 @@ Cloudflare Pages는 GitHub `main` push 시 **자동으로** `python3 scripts/bui
 | 경로 | 설명 |
 |---|---|
 | `/` | 정적 랜딩 페이지 (MVP 카드 포함) |
-| `/mvp/` | 시민 첫 화면 및 AI 행정 브라우저 시연 entry |
+| `/mvp/` | 시민 첫 화면 및 북구청 AI 민원 네비게이터 시연 entry |
 | `/mobile` | 모바일 챗 데모 (`/mobile.html` → 308 redirect) |
 | `/admin` | 운영자 화면 (`/admin.html` → 308 redirect) |
 
