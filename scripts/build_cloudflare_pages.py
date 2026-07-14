@@ -124,37 +124,37 @@ def list_all_profiles() -> list[dict]:
 BODY_OPEN = "<body>"
 
 # Public first-use MVP entry (/mvp/) boots into the deterministic default flow
-# only. If anyone opens it with a query string (e.g. ?mvp=1), strip the query
-# with replaceState BEFORE citizen-first-use-shell.js runs, so the shell never
-# enters live bridge/API mode. No network/redirect/provider call is made.
+# only. If anyone opens it with a query string (e.g. ?mvp=1), strip the mvp
+# param with replaceState BEFORE citizen-first-use-shell.js runs, so the shell
+# never enters live bridge/API mode. Other query fields (lang etc.) are
+# preserved. No network/redirect/provider call is made.
 MVP_QUERY_SANITIZER = (
     '<script>\n'
     '(function () {\n'
     '  "use strict";\n'
     "  if (window.location.search && window.history && window.history.replaceState) {\n"
-    "    window.history.replaceState(\n"
-    "      null,\n"
-    '      "",\n'
-    "      window.location.pathname + window.location.hash\n"
-    "    );\n"
+    "    var u = new URL(window.location.href);\n"
+    "    u.searchParams.delete(\"mvp\");\n"
+    "    window.history.replaceState(null, \"\", u.pathname + u.search + u.hash);\n"
     "  }\n"
     "})();\n"
     "</script>"
 )
 
-# Live mode MVP entry injects ?mvp=1 via replaceState so that
-# citizen-first-use-shell.js loads the MVP bridge even when the user
-# arrives without the query string.
+# Live mode MVP entry injects ?mvp=1 via URLSearchParams + replaceState
+# so that citizen-first-use-shell.js loads the MVP bridge even when the user
+# arrives without the query string. The injector sets the mvp param
+# semantically (searchParams.set) and preserves every other query field
+# (lang etc.) by rebuilding pathname + search + hash. No simple
+# "?mvp=1" string literal is emitted.
 MVP_MODE_INJECTOR = (
     '<script>\n'
     '(function () {\n'
     '  "use strict";\n'
     "  if (window.history && window.history.replaceState) {\n"
-    "    window.history.replaceState(\n"
-    "      null,\n"
-    '      "",\n'
-    "      window.location.pathname + \"?mvp=1\" + window.location.hash\n"
-    "    );\n"
+    "    var u = new URL(window.location.href);\n"
+    "    u.searchParams.set(\"mvp\", \"1\");\n"
+    "    window.history.replaceState(null, \"\", u.pathname + u.search + u.hash);\n"
     "  }\n"
     "})();\n"
     "</script>\n"

@@ -208,10 +208,17 @@ function buildWindow({
   setTimeoutImpl,
 }) {
   const listeners = {};
+  // Parse search into a URLSearchParams so production code that reads
+  // location.search or uses new URL(href).searchParams sees the same
+  // view as the built page. The live injector sets mvp via
+  // searchParams.set("mvp", "1"), so tests pass ?mvp=1 here.
+  const searchParams = new URLSearchParams(search || "");
+  const baseHref = "http://localhost/" + (search || "");
   return {
     location: {
       search: search || "",
-      href: "http://localhost/" + (search || ""),
+      searchParams,
+      href: baseHref,
       pathname: "/",
     },
     history: {
