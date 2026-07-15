@@ -416,7 +416,6 @@ body[data-first-use-state="split"] .chat-shell {
   align-self: stretch;
   width: var(--first-use-chat-width);
   height: 100vh;
-  height: 100%;
   flex-shrink: 0;
   border-top: 0;
   border-right: 0;
