@@ -24,6 +24,64 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+
+// #1155 — header/content overlap contract. The chat header sits in normal
+// document flow above the conversation thread; the first VISIBLE conversation
+// node (greeting, answer, metadata, acknowledgement, confirmation) must never
+// render above the header bottom. Content scrolled above the thread's visible
+// area (clipped by overflow) is excluded. TOL absorbs sub-pixel rounding.
+const HEADER_OVERLAP_TOL = 1.0;
+async function assertNoHeaderContentOverlap(page, ctx) {
+  const res = await page.evaluate((tol) => {
+    const header = document.querySelector(".chat-shell__header");
+    if (!header) return { ok: true, skip: "no-header" };
+    const headerRect = header.getBoundingClientRect();
+    const headerBottom = headerRect.bottom;
+    const thread = document.querySelector(".chat-thread");
+    const threadRect = thread ? thread.getBoundingClientRect() : null;
+    const threadTop = threadRect ? threadRect.top : 0;
+    const threadBottom = threadRect ? threadRect.bottom : Infinity;
+    const candidates = [
+      ...Array.from(document.querySelectorAll(".chat-msg")),
+      ...Array.from(document.querySelectorAll(".chat-answer-meta")),
+    ].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return r.height > 0 && r.width > 0;
+    });
+    const visible = candidates
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return { el, top: r.top, bottom: r.bottom };
+      })
+      .filter((c) => {
+        const visibleTop = Math.max(c.top, threadTop);
+        const visibleBottom = Math.min(c.bottom, threadBottom);
+        return visibleBottom - visibleTop > 0;
+      })
+      .sort((a, b) => a.top - b.top);
+    const first = visible[0];
+    if (!first) return { ok: true, skip: "no-content" };
+    const contentTop = Math.max(first.top, threadTop);
+    return {
+      ok: contentTop >= headerBottom - tol,
+      viewport: `${Math.round(window.innerWidth)}x${Math.round(window.innerHeight)}`,
+      headerBottom: Math.round(headerBottom),
+      contentTop: Math.round(contentTop),
+      gap: Math.round(contentTop - headerBottom),
+    };
+  }, HEADER_OVERLAP_TOL);
+  if (res.skip) return;
+  assert.ok(
+    res.ok,
+    `chat content must not overlap header: ${JSON.stringify({
+      viewport: res.viewport,
+      headerBottom: res.headerBottom,
+      contentTop: res.contentTop,
+      gap: res.gap,
+      ctx,
+    })}`,
+  );
+}
 import { chromium } from "playwright";
 
 const REPO = path.resolve(fileURLToPath(import.meta.url), "../../..");
@@ -37,6 +95,7 @@ const SCREENSHOT_DIR = path.join(
 
 const VIEWPORTS = [
   { width: 320, height: 568 },
+  { width: 360, height: 800 },
   { width: 390, height: 844 },
   { width: 768, height: 1024 },
   { width: 1440, height: 900 },
@@ -4687,6 +4746,8 @@ async function main() {
           const r = await runOneState(page, vp, state, base);
           results.push(r);
           await verifyStateExtra(page, vp, state, base);
+          // #1155 — header must not overlap the first conversation node.
+          await assertNoHeaderContentOverlap(page, `viewport=${vp.width}x${vp.height} state=${state}`);
         } catch (err) {
           failures.push(`viewport=${vp.width}x${vp.height} state=${state}: ${err.message}`);
         }

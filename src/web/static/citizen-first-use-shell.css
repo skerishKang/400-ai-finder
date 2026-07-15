@@ -416,6 +416,8 @@ body[data-first-use-state="split"] .chat-shell {
   align-self: stretch;
   width: var(--first-use-chat-width);
   height: 100vh;
+  height: 100%;
+  flex-shrink: 0;
   border-top: 0;
   border-right: 0;
   border-bottom: 0;
@@ -789,11 +791,14 @@ body.first-use-shell--no-motion .demo-canvas {
 
   .first-use-layout .chat-shell {
     order: 1;
+    flex: 1 1 auto;
     width: 100%;
     max-width: none;
     min-width: 0;
     height: 100vh;
+    height: 100%;
     min-height: 100vh;
+    min-height: 100%;
     border-left: 0;
     box-shadow: none;
   }
