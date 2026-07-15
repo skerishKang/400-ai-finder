@@ -12,7 +12,7 @@ permissions:
 jobs:
   mvp-contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -328,6 +328,9 @@ jobs:
 
       - name: Run resident mock model contract (unit-level)
         run: node tests/browser/verify_resident_mock_model.mjs
+
+      - name: Run Page Agent production-gap browser contract
+        run: node tests/browser/verify_page_agent_production_gaps_e2e.mjs
 
       - name: Run Stage 3 browser comparison harness (static build, port 8765, 1 rep)
         if: github.event_name == 'push' || github.event_name == 'pull_request'
