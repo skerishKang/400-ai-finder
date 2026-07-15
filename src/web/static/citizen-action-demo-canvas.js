@@ -2523,13 +2523,26 @@
   }
 
   /**
-   * #1143: non-Korean locales show an original-language resident message card
-   * and a Korean administrative draft label. Korean title/body fields stay
-   * Korean; this is not an official translation claim.
+   * #1143 / #1152: non-Korean locales may show locale draft meta on the left
+   * writing surface. #1152 gates Korean-admin meta until Stage 2+ so the form
+   * does not claim a Korean draft before the resident confirms meaning.
+   * Korean title/body fields stay Korean; this is not an official translation.
    */
   function _renderWritingLocaleDraftMeta() {
     var i18n = window.CitizenI18n;
     if (!i18n || typeof i18n.getLocale !== "function" || i18n.getLocale() === "ko") {
+      return "";
+    }
+    var draftStage =
+      typeof document !== "undefined" && document.body
+        ? document.body.getAttribute("data-draft-stage") || "idle"
+        : "idle";
+    // Stage 1 (or earlier): suppress left-canvas draft meta entirely so the
+    // chat-owned Stage 1 card is the only resident draft surface.
+    if (
+      draftStage === "idle" ||
+      draftStage === "resident_draft_review"
+    ) {
       return "";
     }
     var originalLabel =
@@ -2544,9 +2557,22 @@
       typeof i18n.t === "function"
         ? i18n.t("draft.translatedForDraft")
         : "Translation for drafting assistance";
-    var originalText =
-      typeof i18n.getResidentMessage === "function" ? i18n.getResidentMessage() : "";
+    var originalText = "";
+    var choreo = window.CitizenFirstChoreography;
+    if (
+      choreo &&
+      typeof choreo.getDraftStageState === "function"
+    ) {
+      var st = choreo.getDraftStageState();
+      if (st && st.residentBody) originalText = st.residentBody;
+      else if (st && st.residentTitle) originalText = st.residentTitle;
+    }
+    if (!originalText && typeof i18n.getResidentMessage === "function") {
+      originalText = i18n.getResidentMessage();
+    }
     if (!originalText) originalText = "";
+    var showKorean =
+      draftStage === "korean_draft_review" || draftStage === "form_populated";
     return (
       '<aside class="bg-writing-locale-meta" data-draft-meta="true" aria-label="' +
         _escHtml(originalLabel) +
@@ -2559,14 +2585,16 @@
             _escHtml(originalText).replace(/\n/g, "<br>") +
           "</p>" +
         "</section>" +
-        '<section class="bg-writing-locale-meta__card" data-draft-role="korean-administrative-draft">' +
-          '<p class="bg-writing-locale-meta__label">' +
-            _escHtml(koreanLabel) +
-          "</p>" +
-          '<p class="bg-writing-locale-meta__hint">' +
-            _escHtml(helper) +
-          "</p>" +
-        "</section>" +
+        (showKorean
+          ? '<section class="bg-writing-locale-meta__card" data-draft-role="korean-administrative-draft">' +
+            '<p class="bg-writing-locale-meta__label">' +
+              _escHtml(koreanLabel) +
+            "</p>" +
+            '<p class="bg-writing-locale-meta__hint">' +
+              _escHtml(helper) +
+            "</p>" +
+          "</section>"
+          : "") +
       "</aside>"
     );
   }
