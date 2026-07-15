@@ -28,8 +28,32 @@ GENERATOR_PATH = ROOT / "scripts" / "build_official_home_clone_fixture.py"
 READINESS_PATH = ROOT / "docs" / "artifacts" / "1166-home-renderer-readiness.md"
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-APPROVED_PREFIX = "https://bukgu.gwangju.kr"
 FORBIDDEN_PLACEHOLDERS = ("-", "TBD", "TODO", "N/A", "placeholder")
+
+APPROVED_URL_CASES = [
+    "https://bukgu.gwangju.kr/",
+    "https://bukgu.gwangju.kr/menu.es?mid=test",
+    "https://bukgu.gwangju.kr:443/",
+]
+
+REJECTED_URL_CASES = [
+    "http://bukgu.gwangju.kr/",
+    "https://bukgu.gwangju.kr.evil.test/",
+    "https://evil-bukgu.gwangju.kr/",
+    "https://user@bukgu.gwangju.kr/",
+    "https://user:pass@bukgu.gwangju.kr/",
+    "https://bukgu.gwangju.kr:444/",
+    "https://bukgu.gwangju.kr:notaport/",
+    "https://bukgu.gwangju.kr:99999/",
+    "https://[invalid/",
+    "javascript:alert(1)",
+    "data:text/plain,test",
+    "//bukgu.gwangju.kr/",
+    "",
+    None,
+    123,
+    {"url": "https://bukgu.gwangju.kr/"},
+]
 
 
 def _load_generator():
@@ -101,10 +125,88 @@ def test_capture_route_and_source_url_identity():
     meta = _load_json(META_PATH)
     assert meta["route_id"] == "home"
     source = meta["source"]
-    assert source["requested_url"].startswith(APPROVED_PREFIX)
-    assert source["final_resolved_url"].startswith(APPROVED_PREFIX)
-    assert source["requested_url"].startswith("https://")
+    # Exact origin helper — never startswith-based trust.
+    assert gen.is_approved_bukgu_url(source["requested_url"]) is True
+    assert gen.is_approved_bukgu_url(source["final_resolved_url"]) is True
     assert source["official_page_title"].strip()
+
+
+@pytest.mark.parametrize("url", APPROVED_URL_CASES)
+def test_is_approved_bukgu_url_accepts_exact_origin(url):
+    assert gen.is_approved_bukgu_url(url) is True
+
+
+@pytest.mark.parametrize("url", REJECTED_URL_CASES, ids=lambda v: repr(v)[:60])
+def test_is_approved_bukgu_url_rejects_untrusted_inputs(url):
+    assert gen.is_approved_bukgu_url(url) is False
+
+
+def test_require_approved_bukgu_url_raises_fixture_build_error_not_value_error():
+    with pytest.raises(gen.FixtureBuildError):
+        gen.require_approved_bukgu_url(
+            "https://bukgu.gwangju.kr:notaport/", "source.requested_url"
+        )
+    with pytest.raises(gen.FixtureBuildError):
+        gen.require_approved_bukgu_url(None, "source.final_resolved_url")
+
+
+def _write_meta_with_recomputed_checksum(meta: dict) -> None:
+    """Persist metadata with a valid metadata_sha256 so URL policy is exercised."""
+    meta["metadata_sha256"] = gen.metadata_checksum(meta)
+    META_PATH.write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+@pytest.mark.parametrize(
+    "field,bad_url",
+    [
+        ("requested_url", "https://bukgu.gwangju.kr.evil.test/"),
+        ("final_resolved_url", "https://user@bukgu.gwangju.kr/"),
+        ("requested_url", "http://bukgu.gwangju.kr/"),
+        ("final_resolved_url", "https://bukgu.gwangju.kr:444/"),
+        ("requested_url", "https://bukgu.gwangju.kr:notaport/"),
+        ("final_resolved_url", ""),
+    ],
+    ids=[
+        "deceptive_suffix_host",
+        "userinfo_url",
+        "http_url",
+        "wrong_port",
+        "malformed_port",
+        "blank_final_url",
+    ],
+)
+def test_verify_inputs_fail_closed_on_invalid_source_urls(field, bad_url):
+    original = META_PATH.read_text(encoding="utf-8")
+    try:
+        meta = json.loads(original)
+        meta["source"][field] = bad_url
+        # Keep the sibling URL valid so rejection is specifically for this field.
+        other = "final_resolved_url" if field == "requested_url" else "requested_url"
+        meta["source"][other] = "https://bukgu.gwangju.kr/"
+        _write_meta_with_recomputed_checksum(meta)
+        try:
+            gen.verify_inputs()
+            raised = None
+        except gen.FixtureBuildError as exc:
+            raised = exc
+        except ValueError as exc:  # pragma: no cover - must not escape
+            pytest.fail(f"raw ValueError escaped: {exc!r}")
+        assert raised is not None, "invalid source identity must raise FixtureBuildError"
+        assert field in str(raised) or "approved Buk-gu" in str(raised)
+    finally:
+        META_PATH.write_text(original, encoding="utf-8", newline="\n")
+
+
+def test_valid_capture_fixture_sha_unchanged_after_origin_hardening():
+    """Committed capture URLs are valid; fixture body should stay stable."""
+    expected_sha = _load_json(FIXTURE_PATH)["fixture_sha256"]
+    rebuilt = gen.build_fixture()
+    assert rebuilt["fixture_sha256"] == expected_sha
+    assert gen.check_fixture() == []
 
 
 # ── Determinism / generation ───────────────────────────────────────

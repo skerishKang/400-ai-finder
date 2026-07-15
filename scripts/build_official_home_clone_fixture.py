@@ -21,7 +21,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any, Mapping
-from urllib.parse import urlparse
+from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,7 +43,7 @@ GENERATOR_ID = "scripts/build_official_home_clone_fixture.py"
 GENERATOR_VERSION = "1.0.0"
 SCHEMA_VERSION = 1
 FIXTURE_KIND = "official_home_clone_fixture"
-APPROVED_ORIGIN = "https://bukgu.gwangju.kr"
+APPROVED_HOST = "bukgu.gwangju.kr"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 # Regions the clone plan expects. Only mark ready when capture evidence exists.
@@ -164,21 +164,53 @@ def fixture_body_checksum(fixture: Mapping[str, Any]) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def assert_approved_https(url: str, label: str) -> None:
-    if not isinstance(url, str) or not url.startswith(APPROVED_ORIGIN):
-        # Allow pure fragments for in-page anchors recorded by capture.
-        if isinstance(url, str) and url.startswith("#"):
-            return
-        parsed = urlparse(url) if isinstance(url, str) else None
-        if parsed and parsed.scheme in ("", "http", "https"):
-            # Relative paths are ok (same-origin portal paths).
-            if url.startswith("/") or not parsed.netloc:
-                return
-        if parsed and parsed.netloc and parsed.netloc != "bukgu.gwangju.kr":
-            # External destinations may appear on the official homepage; record as-is.
-            return
-        if not isinstance(url, str) or not url.strip():
-            raise FixtureBuildError(f"{label} must be a non-empty URL string")
+def is_approved_bukgu_url(value: object) -> bool:
+    """Exact official-origin validation for home source identity URLs.
+
+    Policy (no startswith host trust):
+      - absolute URL only
+      - scheme exactly https
+      - hostname exactly bukgu.gwangju.kr
+      - username/password absent
+      - port absent or 443
+      - malformed authority / non-string / blank → False
+    """
+    if not isinstance(value, str) or not value.strip():
+        return False
+    # Scheme-relative and non-http(s) schemes are never approved origins.
+    if value.startswith("//") or "://" not in value:
+        return False
+    try:
+        parts = urlsplit(value)
+    except Exception:
+        return False
+    try:
+        # Accessing .port may raise ValueError for malformed ports.
+        port = parts.port
+    except ValueError:
+        return False
+    if parts.scheme.lower() != "https":
+        return False
+    if parts.username is not None or parts.password is not None:
+        return False
+    # Require absolute authority (hostname present); bare paths rejected.
+    host = (parts.hostname or "").lower()
+    if host != APPROVED_HOST:
+        return False
+    if not parts.netloc:
+        return False
+    if port not in (None, 443):
+        return False
+    return True
+
+
+def require_approved_bukgu_url(value: object, label: str) -> str:
+    """Return the URL string or raise FixtureBuildError (never raw ValueError)."""
+    if not is_approved_bukgu_url(value):
+        raise FixtureBuildError(
+            f"{label} must be an exact approved Buk-gu HTTPS origin URL"
+        )
+    return str(value)
 
 
 def verify_inputs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], bytes]:
@@ -202,13 +234,11 @@ def verify_inputs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], byt
     if not isinstance(source, Mapping):
         raise FixtureBuildError("metadata.source must be an object")
 
-    requested = source.get("requested_url")
-    final_url = source.get("final_resolved_url")
-    if requested != f"{APPROVED_ORIGIN}/" and not str(requested).startswith(APPROVED_ORIGIN):
-        raise FixtureBuildError("source.requested_url must be approved Buk-gu HTTPS origin")
-    if final_url != f"{APPROVED_ORIGIN}/" and not str(final_url).startswith(APPROVED_ORIGIN):
-        raise FixtureBuildError("source.final_resolved_url must be approved Buk-gu HTTPS origin")
-
+    # Each source identity URL is validated independently (no compensation).
+    require_approved_bukgu_url(source.get("requested_url"), "source.requested_url")
+    require_approved_bukgu_url(
+        source.get("final_resolved_url"), "source.final_resolved_url"
+    )
     raw_sha = sha256_bytes(raw)
     claimed_raw = source.get("raw_content_sha256")
     if raw_sha != claimed_raw:
