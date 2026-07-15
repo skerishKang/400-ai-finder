@@ -743,6 +743,12 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
         _copy_tree(examples_src, os.path.join(dist_root, "examples", "page-agent"))
         print("[build] copied examples/page-agent")
 
+    # 9b. Copy compare (stakeholder comparison gateway) — static page only.
+    compare_src = os.path.join(WEB_DIR, "compare")
+    if os.path.isdir(compare_src):
+        _copy_tree(compare_src, os.path.join(dist_root, "compare"))
+        print("[build] copied compare")
+
     print(f"[build] done -> {dist_root}")
 
 

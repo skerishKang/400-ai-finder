@@ -1,11 +1,13 @@
 # Page Agent형 vs 정밀 구현형 비교 데모 — Stage 3 비교 증거 보고서
 
 - **Track**: #1109 — experiment(page-agent): parity Buk-gu AI demo and comparison track
-- **Stage**: 3 — comparison harness and evidence (수정됨)
-- **Date**: 2026-07-13
+- **Stage**: 3 — comparison harness and evidence (refreshed for #1145 parity integration)
+- **Date**: 2026-07-15
 - **Owner**: Computer 2
-- **Branch**: `experiment/1109-stage3-comparison-evidence`
+- **Branch**: `feat/1145-page-agent-parity-integration`
 - **Base SHA**: `5ad20ad027f993cb522a49c90f39523211e6c5cd`
+- **Evidence**: `docs/artifacts/1109-stage3-comparison/comparison-evidence.json`
+- **Evidence generated_at**: `2026-07-15T06:37:53.848Z`
 
 ---
 
@@ -63,6 +65,7 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 - **Artifact**: Cloudflare Pages static build (`dist/cloudflare-pages/`)
 - **HTTP Server**: Python http.server, localhost 전용 포트
 - **Repetitions**: scenario/mode 조합당 3회 (총 30회 primary runs)
+- **Current methodology**: offline/static-build parity comparison with a deterministic resident mock adapter for Page Agent (not a live LLM provider)
 
 ---
 
@@ -147,11 +150,15 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 
 ## 알려진 Parity Gap
 
-1. ~~passport_procedure / deterministic: 기대 route는 `passport-guidance`이나 `bulky-waste-disposal`로 잘못 탐지됨~~ → **해결됨**. Canvas route 클래스 매핑에서 `bg-page--official-content`가 bulky-waste로 우선 분류되던 문제를 수정했다. 새 evidence에서는 passport_procedure가 `passport-guidance` route로 정상 탐지된다.
+현재 30-run evidence 기준으로 **route/success 실패는 없다**. 남아 있는 gap은 구현 설계 차이와 mock 범위다.
 
-2. **complaint_screen / deterministic**: 정확히 일치하는 journey가 없어 `streetlight_report`(가로등 고장 신고)로 대체 실행. pass criteria는 통과할 수 있으나 의도한 "민원 작성 화면 열기" 범위와 다름. 향후 Stage에서 전용 journey 추가가 필요.
+1. **complaint_screen / deterministic trigger mapping**: 정확히 일치하는 journey가 없어 `streetlight_report`(가로등 고장 신고)로 대체 실행한다. 기대 route(`complaint-write`)와 pass criteria는 통과하지만, 의도한 "민원 작성 화면 열기" 범위와 트리거 시맨틱이 완전히 동일하지는 않다. 향후 전용 journey 추가가 필요하다.
 
-3. **Page Agent canvas route**: resident mock model이 canvas navigation을 route API 대신 click_element_by_index로만 수행하므로, canvas의 bg-page--* class가 제대로 갱신되지 않아 route detection이 실패할 수 있음. mayor_complaint_write는 canvas route가 정상 탐지됨.
+2. **Mock adapter scope**: Page Agent 모드는 실제 LLM이 아니라 deterministic resident mock adapter를 사용한다. action 선택 품질, 경로 이탈율, 에러 복구 등 live LLM 지표는 이 비교의 대상이 아니다.
+
+3. **Action-step / elapsed 정의 차이**: deterministic은 choreography step과 의도된 UI animation delay를, page_agent는 tool call 기반 step을 기록한다. elapsed와 action step 수치는 구조가 다르므로 직접 비교해 승패를 가리지 않는다.
+
+4. **실행 범위**: harness는 Chrome + `dist/cloudflare-pages` 정적 빌드(localhost) 범위다. 다른 브라우저, live Functions, 실제공식 사이트 제어는 포함되지 않는다.
 
 ---
 
@@ -160,57 +167,63 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 | 지표 | Deterministic | Page Agent |
 |------|--------------|------------|
 | 총 실행 | 15 | 15 |
-| 성공 | 12 | 3 |
-| 실패 | 3 | 12 |
-| 성공률 | 80.0% | 20.0% |
-| Median elapsed (ms) (All runs) | 11,875 | 1,962 |
-| Median elapsed (ms) (Successful runs only) | 13,927.5 | 2,420 |
+| 성공 | 15 | 15 |
+| 실패 | 0 | 0 |
+| 성공률 | 100% | 100% |
+| Median elapsed (ms) (All runs) | 17,660 | 2,068 |
+| Median elapsed (ms) (Successful runs only) | 17,660 | 2,068 |
 | Median action steps (All runs) | 4 | 1 |
-| Median action steps (Successful runs only) | 4 | 2 |
-| Total wrong route actions | 3 | 12 |
+| Median action steps (Successful runs only) | 4 | 1 |
+| Total wrong route actions | 0 | 0 |
 | 외부 요청 | 0 | 0 |
 | No-submit 위반 | 0 | 0 |
 
-*(상세 집계는 evidence JSON 파일의 aggregate 필드 참조)*
+*(상세 집계는 evidence JSON 파일의 aggregate 필드 참조. elapsed는 intentional delay / mock path 차이로 직접 비교 대상이 아니다.)*
 
 ### Overall (both modes, 30 runs)
 
 | 지표 | 값 |
 |------|-----|
-| 총 실행 / 성공 / 실패 | 30 / 15 / 15 |
-| 성공률 | 50.0% |
-| Median elapsed (ms) — All runs | 4,281 |
-| Median elapsed (ms) — Successful runs only | 10,498 |
+| 총 실행 / 성공 / 실패 | 30 / 30 / 0 |
+| 성공률 | 100% |
+| Median elapsed (ms) — All runs | 4,286 |
+| Median elapsed (ms) — Successful runs only | 4,286 |
 | Median action steps — All runs | 2 |
-| Median action steps — Successful runs only | 4 |
-| Total wrong route actions | 15 (deterministic 3 + page_agent 12) |
+| Median action steps — Successful runs only | 2 |
+| Total wrong route actions | 0 (deterministic 0 + page_agent 0) |
 | Console error (합계) | 0 |
 | Page error (합계) | 0 |
 | HTTP error responses (합계) | 0 |
 | Request failure (합계) | 0 |
 | External request (합계) | 0 |
 | No-submit 위반 | 0 |
+| Reproducibility | true |
 
 ### Scenario별 결과
 
 | Scenario | Mode | 성공/전체 | 관찰된 Route (3회) | Wrong Route |
 |----------|------|----------|-------------------|-------------|
 | apartment_contact | deterministic | 3/3 | apartment-dept | 0 |
-| apartment_contact | page_agent | 0/3 | official-content | 3 |
+| apartment_contact | page_agent | 3/3 | apartment-dept | 0 |
 | bulky_waste_menu | deterministic | 3/3 | bulky-waste-disposal | 0 |
-| bulky_waste_menu | page_agent | 0/3 | official-content | 3 |
+| bulky_waste_menu | page_agent | 3/3 | bulky-waste-disposal | 0 |
 | passport_procedure | deterministic | 3/3 | passport-guidance | 0 |
-| passport_procedure | page_agent | 0/3 | official-content | 3 |
+| passport_procedure | page_agent | 3/3 | passport-guidance | 0 |
 | complaint_screen | deterministic | 3/3 | complaint-write | 0 |
-| complaint_screen | page_agent | 0/3 | official-content | 3 |
-| mayor_proposal_writing | deterministic | 0/3 | home | 3 |
+| complaint_screen | page_agent | 3/3 | complaint-write | 0 |
+| mayor_proposal_writing | deterministic | 3/3 | mayor-complaint-write | 0 |
 | mayor_proposal_writing | page_agent | 3/3 | mayor-complaint-write | 0 |
 
 #### Failure 분석
 
-**Deterministic mayor_proposal_writing (0/3)**: choreography 완료 후 `mayor-complaint-write`가 아닌 `home` route로 복귀. 기대 route 불일치로 wrong_route=3.
+현재 evidence 기준 **primary run 실패는 0건**이다.
 
-**Page Agent (4/5 scenarios 0/3)**: canvas route가 `official-content`로 탐지되어 거의 모든 시나리오에서 route 불일치 발생. `mayor-complaint-write`만 유일하게 canvas route가 정상 탐지됨.
+- deterministic: 15/15 성공, wrong route 0
+- Page Agent: 15/15 성공, wrong route 0
+- 외부 요청 / request failure / console error / page error / no-submit 위반: 모두 0
+- reproducibility: true
+
+남아 있는 이슈는 실패가 아니라 설계 gap이다: complaint_screen deterministic trigger가 `streetlight_report` 매핑을 사용하고, Page Agent는 live LLM이 아닌 mock adapter이며, elapsed/action-step 정의가 모드마다 다르다.
 
 ---
 
@@ -231,15 +244,15 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 
 ## 한계
 
-1. **Elapsed time 불일치**: deterministic 모드는 의도적인 UI animation delay(thinking text, cursor animation, typing simulation)를 포함하므로 elapsed_ms가 page_agent보다 크게 나타난다. 이는 LLM latency나 엔진 성능 차이가 아니라 의도된 demo UX 설계 때문이다.
+1. **Elapsed time 불일치**: deterministic 모드는 의도적인 UI animation delay(thinking text, cursor animation, typing simulation)를 포함하므로 elapsed_ms가 page_agent보다 크게 나타난다. 이는 LLM latency나 엔진 성능 차이가 아니라 의도된 demo UX 설계 때문이다. elapsed times are not directly comparable.
 
 2. **Mock vs Real**: Page Agent 모드는 실제 LLM이 아니라 deterministic resident mock adapter를 사용한다. 따라서 action 선택 품질, 경로 이탈율, 에러 복구 등 LLM 관련 지표는 이 비교의 대상이 아니다.
 
 3. **Action step 정의 차이**: deterministic 모드는 choreography step을, page_agent 모드는 Page Agent tool call을 각각 action_step으로 카운트한다. 두 정의는 구조가 다르므로 직접 비교할 수 없다.
 
-4. **Trigger 불일치**: deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 trigger key를 사용한다. 이로 인해 complaint_screen 시나리오는 deterministic에서 가장 유사한 journey(streetlight_report → complaint-board-write)로 대체되었다.
+4. **Trigger 불일치**: deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 trigger key를 사용한다. 이로 인해 complaint_screen 시나리오는 deterministic에서 가장 유사한 journey(streetlight_report)로 대체되었다.
 
-5. **Coverage gap**: deterministic 모드는 complaint_screen 시나리오에 정확히 일치하는 journey가 없다. 가장 가까운 streetlight_report(report streetlight malfunction) journey로 실행했으며, 이는 "민원 작성 화면 열기"와 범위가 다르다.
+5. **Coverage gap**: deterministic 모드는 complaint_screen 시나리오에 정확히 일치하는 journey가 없다. 가장 가까운 streetlight_report journey로 실행했으며, 이는 "민원 작성 화면 열기"와 범위가 다르다.
 
 6. **Chrome 전용**: harness는 Playwright + Chrome/Chromium에서만 검증되었다. 다른 브라우저에서의 동작은 보장되지 않는다.
 
@@ -261,21 +274,33 @@ deterministic 모드의 JOURNEY_MAP은 canonical parity 문구와 다른 키를 
 
 ---
 
+## Stage 5 Live-Provider Validation
+
+- Status: BLOCKED / NOT EXECUTED
+- No live provider/API call was performed.
+- Execution requires separate explicit owner approval, provider selection,
+  credential configuration, cost boundary, and controlled-live validation scope.
+- The current result is offline/mock parity evidence only.
+
+---
+
 ## 결론
 
-수정된 harness로 30회 비교 실행을 완료했다. 핵심 측정 결과:
+수정된 harness와 #1145 parity 통합 이후 30회 비교 실행 증거:
 
-- **Pass criteria 평가**: 각 run의 3개 pass criteria를 DOM canvas route와 텍스트 증거로 실제 평가. criterion별 `passed: true/false`와 `evidence` 문자열 기록 완료.
-- **Route 검증**: `final_route`를 expectations fixture의 `expected_final_route`와 비교. deterministic 3건, page_agent 12건의 route 불일치 탐지.
-- **Action trace 기록**: deterministic action step count median 4 (all/success 동일), page_agent median 1 (all) / 2 (success only). Choreography step과 tool call의 구조적 차이 반영.
-- **No-submit**: 30/30 run에서 실제 제출 없음 확인. 강제 true 없이 상태 머신 + DOM badge로 검증.
-- **Console error**: 30/30 run 모두 0건. Fresh static build 기준, 브라우저 자동 `/favicon.ico` 요청(벤ign resource 404)은 애플리케이션 console error 계측에서 제외됨.
-- **Request failure**: 30/30 run 모두 0건.
-- **외부 요청**: 모든 run에서 0건.
+- **총 실행 / 성공 / 실패**: 30 / 30 / 0 (성공률 100%)
+- **모드별 성공**: deterministic 15/15, Page Agent 15/15
+- **Wrong route**: deterministic 0, Page Agent 0
+- **Safety**: external requests 0, request failures 0, console errors 0, page errors 0, no-submit 위반 0
+- **Reproducibility**: true
+- **Pass criteria 평가**: 공유 pass criteria를 DOM canvas route·텍스트 증거로 평가
+- **Action trace**: deterministic median action steps 4, page_agent median action steps 1 (정의가 다르므로 직접 비교하지 않음)
+- **No-submit**: 30/30 run에서 실제 제출 없음 확인
 
-**알려진 parity gap**:
-- deterministic mayor_proposal_writing: 완료 후 home으로 복귀하여 route 불일치 (3/15 wrong route의 전부)
-- Page Agent canvas route: 4/5 시나리오에서 `official-content`로 탐지되어 route 검증 실패 (12/15 wrong route)
-- complaint_screen: deterministic에 정확히 일치하는 journey 없음 (streetlight_report로 대체)
+**남아 있는 parity gap (실패가 아닌 설계 한계)**:
+- complaint_screen deterministic trigger는 `streetlight_report` 매핑을 사용
+- Page Agent는 deterministic resident mock adapter (not a real LLM)
+- elapsed time과 action-step 정의는 모드 간 직접 비교 대상이 아님
+- Chrome + static-build 범위
 
-**위너 선언 없음** — 단순 성공률(det 80.0% vs pa 20.0%)과 elapsed time 차이로 한 모드가 우수하다고 결론 내리지 않는다. 두 모드는 서로 다른 설계 철학을 대표하며, 수정된 harness는 더 엄격한 pass criteria 평가와 route 검증을 제공한다. 모든 변경사항은 `experiment/1109-stage3-comparison-evidence` 브랜치에 additive commit으로 커밋되었다.
+**위너 선언 없음** — 성공률이 동일(100%)하고 safety 지표도 동일하므로, 이 결과는 offline/mock parity 증거일 뿐 한 모드의 우수성을 주장하지 않는다. Stage 5 live-provider validation은 BLOCKED / NOT EXECUTED 상태다.
