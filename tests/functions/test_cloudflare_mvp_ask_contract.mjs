@@ -844,6 +844,36 @@ await assert('too_long failure is localized', async () => {
   expectEqual(en.answer, 'Your question is too long. Please keep it within 300 characters.', 'en too_long answer');
 });
 
+await assert('configured provider upstream failure returns localized upstream_error', async () => {
+  try {
+    mockFetchSequence([
+      { status: 500, body: 'Internal Server Error' },
+    ]);
+    const { data: en } = await requestJson('POST', JSON.stringify({ question: 'hello', locale: 'en' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(en.ok, false, 'en ok');
+    expectEqual(en.failure_code, 'upstream_error', 'en failure_code');
+    expectEqual(en.locale, 'en', 'en locale');
+    expectEqual(en.answer, 'The AI guide could not be reached. Please try again later.', 'en localized upstream_error');
+    expectEqual(providerFetchCalls().length, 1, 'en provider call count');
+
+    mockFetchSequence([
+      { status: 503, body: 'Service Unavailable' },
+    ]);
+    const { data: vi } = await requestJson('POST', JSON.stringify({ question: 'xin chao', locale: 'vi' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(vi.ok, false, 'vi ok');
+    expectEqual(vi.failure_code, 'upstream_error', 'vi failure_code');
+    expectEqual(vi.locale, 'vi', 'vi locale');
+    expectEqual(vi.answer, 'Không thể kết nối hướng dẫn AI. Vui lòng thử lại sau.', 'vi localized upstream_error');
+    expectEqual(providerFetchCalls().length, 1, 'vi provider call count');
+  } finally {
+    restoreFetch();
+  }
+});
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
 globalThis.fetch = ORIGINAL_FETCH;
 

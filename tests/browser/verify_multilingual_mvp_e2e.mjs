@@ -28,6 +28,7 @@ const LOCALE_ASSERTIONS = {
     noText: "아니요",
     ack: "질문을 확인했습니다",
     allowForbidden: true,
+    expectedAnswer: "공동주택 관련 문의는 공동주택과에서 안내합니다.",
   },
   en: {
     shellTitle: "BUKGU AI CIVIC NAVIGATOR",
@@ -36,6 +37,7 @@ const LOCALE_ASSERTIONS = {
     noText: "No",
     ack: "I have your question",
     allowForbidden: false,
+    expectedAnswer: "The Apartment Housing Division handles apartment-related inquiries.",
   },
   vi: {
     shellTitle: "BUKGU AI CIVIC NAVIGATOR",
@@ -44,6 +46,7 @@ const LOCALE_ASSERTIONS = {
     noText: "Không",
     ack: "Tôi đã nhận câu hỏi",
     allowForbidden: false,
+    expectedAnswer: "Phòng Quản lý nhà chung cư phụ trách các yêu cầu liên quan đến chung cư.",
   },
   th: {
     shellTitle: "BUKGU AI CIVIC NAVIGATOR",
@@ -52,6 +55,7 @@ const LOCALE_ASSERTIONS = {
     noText: "ไม่",
     ack: "ได้รับคำถาม",
     allowForbidden: false,
+    expectedAnswer: "ฝ่ายที่อยู่อาศัยรวมดูแลคำถามที่เกี่ยวข้องกับอาคารชุด",
   },
   id: {
     shellTitle: "BUKGU AI CIVIC NAVIGATOR",
@@ -60,6 +64,7 @@ const LOCALE_ASSERTIONS = {
     noText: "Tidak",
     ack: "Pertanyaan sudah saya terima",
     allowForbidden: false,
+    expectedAnswer: "Divisi Perumahan menangani pertanyaan terkait apartemen.",
   },
 };
 
@@ -186,7 +191,7 @@ async function runLocaleTest(browser, origin, locale, expectations) {
       contentType: "application/json; charset=utf-8",
       body: JSON.stringify({
         ok: true,
-        answer: `Answer in ${locale}.`,
+        answer: expectations.expectedAnswer,
         action: "housing_department",
         confidence: 1,
         failure_code: "",
@@ -248,10 +253,11 @@ async function runLocaleTest(browser, origin, locale, expectations) {
   // 5. Type a question into the composer and submit
   const composer = page.locator("input.chat-composer__input").first();
   await composer.fill("공동주택 관련 문의는 어느 부서에 해야 하나요?");
-  await page.getByRole("button", { name: /보내기|Send|Gửi|ส่ง|Kirim/i }).first().click();
 
-  // 4. (Requirements) /api/mvp/ask 요청이 관찰될 때까지 조건 기반으로 기다린다
-  await page.waitForResponse("**/api/mvp/ask", { timeout: 10000 });
+  const [response] = await Promise.all([
+    page.waitForResponse("**/api/mvp/ask", { timeout: 10000 }),
+    page.getByRole("button", { name: /보내기|Send|Gửi|ส่ง|Kirim/i }).first().click(),
+  ]);
 
   assert.strictEqual(apiRequestCount > 0, true, `[${label}] /api/mvp/ask was called`);
 
@@ -260,6 +266,12 @@ async function runLocaleTest(browser, origin, locale, expectations) {
     return typeof window.CitizenMvpBridge !== "undefined" || document.querySelector('script[data-mvp-bridge="1"]');
   }, { timeout: 5000 });
   console.log(`[${label}] MVP Bridge loaded after submit`);
+
+  // Verify answer bubble explicitly
+  const finalAnswerBubble = page.locator(".chat-bubble--ai").filter({ hasText: expectations.expectedAnswer }).first();
+  await finalAnswerBubble.waitFor({ state: "visible", timeout: 10000 });
+  const finalAnswerText = await finalAnswerBubble.innerText();
+  assert.ok(finalAnswerText.includes(expectations.expectedAnswer), `[${label}] expected answer mismatch. Got: ${finalAnswerText}`);
 
   const bodyText = await page.evaluate(() => document.body.innerText);
 
@@ -338,12 +350,10 @@ async function runLocaleTransitionTest(browser, origin) {
     if (msg.type() === "error") errors.push(msg.text());
   });
 
-  let requestCount = 0;
   let resolveAsk;
   const pendingAsk = new Promise(r => { resolveAsk = r; });
 
   await page.route("**/api/mvp/ask", async (route) => {
-    requestCount++;
     await pendingAsk;
     await route.fulfill({
       status: 200,
@@ -361,38 +371,102 @@ async function runLocaleTransitionTest(browser, origin) {
     });
   });
 
-  // Start with ko
+  // 1. /mvp/?lang=ko 로드
   await page.goto(`${origin}/mvp/?lang=ko`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => window.location.search.includes("mvp=1"));
+
+  // 3. 한국어 질문 제출
   const composer = page.locator("input.chat-composer__input").first();
   await composer.fill("공동주택 관련 문의");
-  await page.getByRole("button", { name: "보내기" }).first().click();
 
-  // Wait until request is fired
-  await page.waitForRequest("**/api/mvp/ask");
-  // We can just wait a short moment or wait for the bubble
-  await page.waitForSelector(".chat-msg--ai", { state: "attached" });
+  // 4. 요청이 실제 시작된 것을 확인 (사전 waiter 등록)
+  const [request] = await Promise.all([
+    page.waitForRequest("**/api/mvp/ask"),
+    page.getByRole("button", { name: "보내기" }).first().click(),
+  ]);
 
-  // Now, navigate away to English before the answer arrives
-  await page.goto(`${origin}/mvp/?lang=en`, { waitUntil: "networkidle" });
-  await page.waitForFunction(() => window.location.search.includes("mvp=1"));
+  // 5. 같은 페이지의 #chat-lang 에서 언어 변경
+  await page.locator("#chat-lang").selectOption("en");
 
-  // Resolve the first ask now
+  // 6. 다음 조건이 안정화될 때까지 기다림
+  // - document.documentElement.lang === "en"
+  await page.waitForFunction(() => document.documentElement.lang === "en");
+
+  // - English greeting 표시 및 이전 한국어 user message 제거
+  await page.waitForFunction(() => {
+    const userBubbles = document.querySelectorAll(".chat-bubble--user");
+    return userBubbles.length === 0;
+  });
+
+  // 7. 지연된 한국어 응답을 resolve
   resolveAsk();
 
-  // Wait a bit to ensure it doesn't leak
+  // late callback 방지를 위한 짧은 대기
   await page.waitForTimeout(500);
 
-  // Check no Korean answer leaked into the English UI
+  // 8. 조건 기반으로 확인
   const bodyText = await page.evaluate(() => document.body.innerText);
-  assert.ok(!bodyText.includes("Delayed answer ko"), `[${label}] previous language answer leaked`);
+  assert.ok(!bodyText.includes("Delayed answer ko"), `[${label}] delayed ko leaked`);
+  assert.ok(!bodyText.includes("질문을 확인했습니다"), `[${label}] ko ack leaked`);
 
-  // Also check back navigation does not restore old conversation
-  await page.goBack({ waitUntil: "networkidle" });
-  const koBody = await page.evaluate(() => document.body.innerText);
-  assert.ok(!koBody.includes("공동주택 관련 문의"), `[${label}] Back navigation restored old conversation`);
-
+  assert.ok(await composer.isEnabled(), `[${label}] composer usable`);
   assert.deepStrictEqual(errors, [], `[${label}] no errors: ${errors.join(" | ")}`);
+
+  await context.close();
+  console.log(`[${label}] PASS`);
+}
+
+async function runBackNavigationTest(browser, origin) {
+  const label = "back-navigation";
+  console.log(`[${label}] start`);
+
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: "reduce",
+  });
+
+  const page = await context.newPage();
+
+  await page.route("**/api/mvp/ask", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json; charset=utf-8",
+      body: JSON.stringify({
+        ok: true,
+        answer: "Answer ko",
+        action: "none",
+        confidence: 1,
+        failure_code: "",
+        locale: "ko",
+        freshness_state: "unavailable",
+        sources: []
+      })
+    });
+  });
+
+  await page.goto(`${origin}/mvp/?lang=ko`, { waitUntil: "networkidle" });
+  await page.waitForFunction(() => window.location.search.includes("mvp=1"));
+
+  const composer = page.locator("input.chat-composer__input").first();
+  await composer.fill("이전 대화 복원 테스트");
+
+  await Promise.all([
+    page.waitForResponse("**/api/mvp/ask"),
+    page.getByRole("button", { name: "보내기" }).first().click(),
+  ]);
+
+  // Wait for the answer to appear
+  await page.locator(".chat-bubble--ai").nth(1).waitFor({ state: "visible" });
+
+  // Navigate away
+  await page.goto("about:blank");
+
+  // Go back
+  await page.goBack({ waitUntil: "networkidle" });
+
+  // Check if old conversation is restored
+  const bodyText = await page.evaluate(() => document.body.innerText);
+  assert.ok(!bodyText.includes("이전 대화 복원 테스트"), `[${label}] previous conversation restored`);
 
   await context.close();
   console.log(`[${label}] PASS`);
@@ -407,9 +481,8 @@ async function main() {
     for (const [locale, expectations] of Object.entries(LOCALE_ASSERTIONS)) {
       await runLocaleTest(browser, origin, locale, expectations);
     }
-
-    // Additional regression test: "한국어 요청 진행 중 영어 또는 태국어로 전환... 이전 요청이 늦게 완료돼도 이전 언어 답변이 삽입되지 않음"
     await runLocaleTransitionTest(browser, origin);
+    await runBackNavigationTest(browser, origin);
   } finally {
     await browser.close();
     cleanup();

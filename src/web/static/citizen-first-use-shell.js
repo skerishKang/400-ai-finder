@@ -1697,22 +1697,21 @@
     clearPreviousJourneyLocationState();
     resetOfficialCanvasScroll();
 
+    var reduced = prefersReducedMotion() || !chatShell || !window.requestAnimationFrame;
+    var firstRect = reduced ? null : chatShell.getBoundingClientRect();
+
+    setState(STATE_TRANSITIONING);
+
     // Paint the official canvas before the reveal starts so the animation
     // exposes a complete page rather than a loading placeholder.
     _renderBukguHomeFixture();
+    fitOfficialCanvas();
     resetOfficialCanvasScroll();
 
-    if (prefersReducedMotion() || !chatShell || !window.requestAnimationFrame) {
-      setState(STATE_TRANSITIONING);
-      fitOfficialCanvas();
-      resetOfficialCanvasScroll();
+    if (reduced) {
       return;
     }
 
-    var firstRect = chatShell.getBoundingClientRect();
-    setState(STATE_TRANSITIONING);
-    fitOfficialCanvas();
-    resetOfficialCanvasScroll();
     var lastRect = chatShell.getBoundingClientRect();
     var scaleX = lastRect.width ? firstRect.width / lastRect.width : 1;
     var scaleY = lastRect.height ? firstRect.height / lastRect.height : 1;

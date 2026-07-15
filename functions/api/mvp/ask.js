@@ -37,31 +37,31 @@ export function normalizeLocale(value) {
 const FAILURE_ANSWERS = Object.freeze({
   ko: {
     config_error: '현재 AI 안내 설정을 확인하고 있습니다.',
-    upstrerror: '현재 AI 안내를 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    upstream_error: '현재 AI 안내를 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
     invalid_input: '잘못된 요청 형식입니다.',
     too_long: '질문이 너무 깁니다. 300자 이내로 입력해 주세요.',
   },
   en: {
     config_error: 'The AI guide settings are being checked.',
-    upstrerror: 'The AI guide could not be reached. Please try again later.',
+    upstream_error: 'The AI guide could not be reached. Please try again later.',
     invalid_input: 'Invalid request format.',
     too_long: 'Your question is too long. Please keep it within 300 characters.',
   },
   vi: {
     config_error: 'Đang kiểm tra cài đặt hướng dẫn AI.',
-    upstrerror: 'Không thể kết nối hướng dẫn AI. Vui lòng thử lại sau.',
+    upstream_error: 'Không thể kết nối hướng dẫn AI. Vui lòng thử lại sau.',
     invalid_input: 'Định dạng yêu cầu không hợp lệ.',
     too_long: 'Câu hỏi quá dài. Vui lòng nhập dưới 300 ký tự.',
   },
   th: {
     config_error: 'กำลังตรวจสอบการตั้งค่าคำแนะนำ AI',
-    upstrerror: 'ไม่สามารถเชื่อมต่อคำแนะนำ AI ได้ โปรดลองอีกครั้งในภายหลัง',
+    upstream_error: 'ไม่สามารถเชื่อมต่อคำแนะนำ AI ได้ โปรดลองอีกครั้งในภายหลัง',
     invalid_input: 'รูปแบบคำขอไม่ถูกต้อง',
     too_long: 'คำถามยาวเกินไป โปรดระบุไม่เกิน 300 ตัวอักษร',
   },
   id: {
     config_error: 'Pengaturan panduan AI sedang diperiksa.',
-    upstrerror: 'Panduan AI tidak dapat dihubungi. Silakan coba lagi nanti.',
+    upstream_error: 'Panduan AI tidak dapat dihubungi. Silakan coba lagi nanti.',
     invalid_input: 'Format permintaan tidak valid.',
     too_long: 'Pertanyaan terlalu panjang. Mohon batasi di bawah 300 karakter.',
   },
@@ -69,7 +69,7 @@ const FAILURE_ANSWERS = Object.freeze({
 
 function localizedFailureAnswer(locale, failureCode) {
   const table = FAILURE_ANSWERS[locale] || FAILURE_ANSWERS.ko;
-  return table[failureCode] || table.upstrerror;
+  return table[failureCode] || table.upstream_error;
 }
 
 export const PROVIDER_DEFAULTS = Object.freeze({
