@@ -9,6 +9,7 @@ JS = (STATIC / "citizen-first-use-shell.js").read_text(encoding="utf-8")
 CSS = (STATIC / "citizen-first-use-shell.css").read_text(encoding="utf-8")
 CHOREO = (STATIC / "citizen-first-choreography.js").read_text(encoding="utf-8")
 CANVAS = (STATIC / "citizen-action-demo-canvas.js").read_text(encoding="utf-8")
+I18N = (STATIC / "citizen-i18n.js").read_text(encoding="utf-8")
 OFFICIAL_SNAPSHOTS = (STATIC / "bukgu-official-snapshots.js").read_text(encoding="utf-8")
 ADAPTER = (STATIC / "citizen-content-adapter.js").read_text(encoding="utf-8")
 COPILOT_CSS = (STATIC / "citizen-copilot-shell.css").read_text(encoding="utf-8")
@@ -258,6 +259,47 @@ def test_ai_writing_journey_types_title_and_body_before_confirmation():
     assert 'cursorTarget: "#board-write-content"' in CHOREO
     assert "typeContent:" in CHOREO
     assert CHOREO.index("typeContent:") < CHOREO.index("requiresConfirmation: true")
+
+
+def test_two_stage_bilingual_draft_state_model_and_safety():
+    """#1152: explicit draft stages, dual confirmation, no storage/network."""
+    assert 'DRAFT_STAGE_RESIDENT = "resident_draft_review"' in CHOREO
+    assert 'DRAFT_STAGE_KOREAN = "korean_draft_review"' in CHOREO
+    assert 'DRAFT_STAGE_FORM = "form_populated"' in CHOREO
+    assert "confirmResidentDraftContent" in CHOREO
+    assert "confirmKoreanDraftInsert" in CHOREO
+    assert "reviseResidentDraft" in CHOREO
+    assert "BILINGUAL_DRAFT_FIXTURES" in CHOREO
+    assert "mayor-message-assist" in CHOREO
+    assert "complaint-ai-assist" in CHOREO
+    assert "complaint-board-write" in CHOREO
+    # Cancel/reset must clear draft stage state.
+    cancel_start = CHOREO.index("function cancel()")
+    cancel_end = CHOREO.index("function getState()")
+    cancel_body = CHOREO[cancel_start:cancel_end]
+    assert "_resetDraftStageState" in cancel_body
+    # No browser persistence or live translation path in choreography draft handoff.
+    assert "localStorage" not in CHOREO
+    assert "sessionStorage" not in CHOREO
+    assert "firecrawl" not in CHOREO.lower()
+
+
+def test_two_stage_bilingual_i18n_keys_present_for_required_locales():
+    required_keys = [
+        "action.confirmContent",
+        "action.reviseDraft",
+        "action.confirmInsertForm",
+        "action.backEditDraft",
+        "draft.stage1Intro",
+        "draft.stage1Explain",
+        "draft.stage2Explain",
+        "draft.formPopulatedNotice",
+        "draft.residentDraftLabel",
+    ]
+    for locale in ("ko", "en", "vi", "th", "id"):
+        assert f"{locale}:" in I18N or f"{locale}: Object.freeze" in I18N or f"{locale}:Object.freeze" in I18N or f"    {locale}:" in I18N
+    for key in required_keys:
+        assert f'"{key}"' in I18N, f"missing i18n key {key}"
 
 
 def test_content_adapter_distinguishes_local_demo_freshness_metadata():

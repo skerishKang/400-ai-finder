@@ -980,7 +980,7 @@ async function runVietnameseMayorChipFlow(browser) {
   const threadText = await chatThread.innerText();
   assert.ok(threadText.includes("Xin chào"), `[${label}] thread contains Vietnamese AI greeting: ${threadText.substring(0, 100)}`);
 
-  // Poll journey through to confirmation
+  // #1152: poll through Stage 1 (resident draft) before form population.
   const order = [];
   const seen = new Set();
   const deadline = Date.now() + 90000;
@@ -995,10 +995,12 @@ async function runVietnameseMayorChipFlow(browser) {
       order.push(routeId);
       console.log(`[${label}] route`, routeId);
     }
-    const waiting = await page.evaluate(
-      () => document.body.getAttribute("data-choreography-state") === "waiting_confirmation",
+    const waitingResident = await page.evaluate(
+      () =>
+        document.body.getAttribute("data-choreography-state") === "waiting_resident_draft" ||
+        document.body.getAttribute("data-draft-stage") === "resident_draft_review",
     );
-    if (waiting) break;
+    if (waitingResident) break;
     await page.waitForTimeout(400);
   }
 
@@ -1008,26 +1010,71 @@ async function runVietnameseMayorChipFlow(browser) {
     `[${label}] visited mayor-complaint-write: ${order.join(">")}`,
   );
 
-  // Verify Vietnamese confirm button text
-  const confirmBtn = page.locator(".chat-decision__button--primary").first();
-  await confirmBtn.waitFor({ state: "visible", timeout: 5000 });
-  const btnText = await confirmBtn.innerText();
-  assert.ok(btnText.includes("Đã xem xét"), `[${label}] confirm button Vietnamese: ${btnText}`);
+  // Stage 1: form still empty; Korean draft absent.
+  const stage1 = await page.evaluate(() => {
+    const title = document.getElementById("mayor-write-title");
+    const body = document.getElementById("mayor-write-content");
+    return {
+      draftStage: document.body.getAttribute("data-draft-stage"),
+      choreo: document.body.getAttribute("data-choreography-state"),
+      title: title ? title.value : "",
+      body: body ? body.value : "",
+      koreanCard: !!document.querySelector(
+        '[data-bilingual-draft-card="stage2"], [data-draft-role="korean-administrative-draft"]',
+      ),
+      residentCard: !!document.querySelector(
+        '[data-bilingual-draft-card="stage1"], [data-draft-field="resident-title"]',
+      ),
+    };
+  });
+  assert.strictEqual(stage1.draftStage, "resident_draft_review", `[${label}] Stage 1 draft stage`);
+  assert.strictEqual(stage1.title, "", `[${label}] Stage 1 form title empty`);
+  assert.strictEqual(stage1.body, "", `[${label}] Stage 1 form body empty`);
+  assert.equal(stage1.koreanCard, false, `[${label}] Stage 1 Korean draft absent`);
+  assert.ok(stage1.residentCard, `[${label}] Stage 1 resident draft card visible`);
 
-  // Draft labels must come from the locale registry (not test-only literals).
-  const draftLabels = await page.evaluate(() => {
+  // Edit resident source so Stage 2 must reflect latest values.
+  const editedTitle = "Tiêu đề đã chỉnh sửa cho an toàn học đường";
+  const editedBody =
+    "Đoạn đã chỉnh: lối qua đường trước trường quá tối vào ban đêm. Xin cải thiện chiếu sáng.";
+  await page.locator('[data-draft-field="resident-title"]').fill(editedTitle);
+  await page.locator('[data-draft-field="resident-body"]').fill(editedBody);
+
+  const stage1Confirm = page.locator('[data-draft-action="confirm-content"]');
+  await stage1Confirm.waitFor({ state: "visible", timeout: 5000 });
+  const stage1BtnText = await stage1Confirm.innerText();
+  assert.ok(
+    stage1BtnText.includes("ý nghĩa") || stage1BtnText.includes("đúng"),
+    `[${label}] Stage 1 confirm Vietnamese: ${stage1BtnText}`,
+  );
+  await stage1Confirm.click();
+
+  await page.waitForFunction(
+    () =>
+      document.body.getAttribute("data-draft-stage") === "korean_draft_review" ||
+      document.body.getAttribute("data-choreography-state") === "waiting_korean_draft",
+    null,
+    { timeout: 10000 },
+  );
+
+  // Stage 2: both drafts visible; form still empty.
+  const stage2 = await page.evaluate(() => {
     const i18n = window.CitizenI18n;
     const originalExpected = i18n.t("draft.originalResidentMessage");
     const koreanExpected = i18n.t("draft.koreanAdministrativeDraft");
     const originalNode = document.querySelector(
-      '[data-draft-role="original-resident"] [data-draft-label], [data-draft-role="original-resident"] .bg-writing-locale-meta__label, [data-draft-role="original-resident"] .chat-draft-label',
+      '[data-draft-role="original-resident"] [data-draft-label], [data-draft-role="original-resident"] .chat-draft-label',
     );
     const koreanNode = document.querySelector(
-      '[data-draft-role="korean-administrative-draft"] [data-draft-label], [data-draft-role="korean-administrative-draft"] .bg-writing-locale-meta__label, [data-draft-role="korean-administrative-draft"] .chat-draft-label',
+      '[data-draft-role="korean-administrative-draft"] [data-draft-label], [data-draft-role="korean-administrative-draft"] .chat-draft-label',
     );
     const originalText = document.querySelector(
-      '[data-draft-role="original-resident"] [data-draft-original-text], [data-draft-role="original-resident"] .chat-draft-body, [data-draft-role="original-resident"] .bg-writing-locale-meta__body',
+      '[data-draft-role="original-resident"] [data-draft-original-text], [data-draft-role="original-resident"] .chat-draft-body',
     );
+    const originalTitle = document.querySelector(
+      '[data-draft-role="original-resident"] [data-draft-original-title]',
+    );
+    const title = document.getElementById("mayor-write-title");
     const body = document.getElementById("mayor-write-content");
     return {
       originalExpected,
@@ -1035,48 +1082,89 @@ async function runVietnameseMayorChipFlow(browser) {
       originalLabelText: originalNode ? originalNode.textContent.trim() : "",
       koreanLabelText: koreanNode ? koreanNode.textContent.trim() : "",
       originalBody: originalText ? originalText.textContent.trim() : "",
-      title: document.getElementById("mayor-write-title")
-        ? document.getElementById("mayor-write-title").value
-        : "",
+      originalTitle: originalTitle ? originalTitle.textContent.trim() : "",
+      title: title ? title.value : "",
       body: body ? body.value : "",
-      bodyAtBottom: body
-        ? body.scrollTop + body.clientHeight >= body.scrollHeight - 4
-        : false,
-      scrollHeight: body ? body.scrollHeight : 0,
-      clientHeight: body ? body.clientHeight : 0,
+      draftStage: document.body.getAttribute("data-draft-stage"),
     };
   });
-  assert.ok(draftLabels.originalExpected, `[${label}] registry original label exists`);
-  assert.ok(draftLabels.koreanExpected, `[${label}] registry korean draft label exists`);
+  assert.strictEqual(stage2.draftStage, "korean_draft_review", `[${label}] Stage 2 draft stage`);
+  assert.strictEqual(stage2.title, "", `[${label}] Stage 2 form title still empty`);
+  assert.strictEqual(stage2.body, "", `[${label}] Stage 2 form body still empty`);
+  assert.ok(stage2.originalExpected, `[${label}] registry original label exists`);
+  assert.ok(stage2.koreanExpected, `[${label}] registry korean draft label exists`);
   assert.strictEqual(
-    draftLabels.originalLabelText,
-    draftLabels.originalExpected,
+    stage2.originalLabelText,
+    stage2.originalExpected,
     `[${label}] original-language label visible from registry`,
   );
   assert.strictEqual(
-    draftLabels.koreanLabelText,
-    draftLabels.koreanExpected,
+    stage2.koreanLabelText,
+    stage2.koreanExpected,
     `[${label}] Korean administrative draft label visible from registry`,
   );
   assert.ok(
-    draftLabels.originalBody.length > 10,
-    `[${label}] original resident text visible`,
+    stage2.originalBody.includes("Đoạn đã chỉnh") || stage2.originalTitle.includes("chỉnh sửa"),
+    `[${label}] Stage 2 uses latest edited source`,
+  );
+
+  const insertBtn = page.locator('[data-draft-action="confirm-insert"]');
+  await insertBtn.waitFor({ state: "visible", timeout: 5000 });
+  await insertBtn.click();
+
+  // After second confirmation: form receives Korean title/body; still pre-submit.
+  await page.waitForFunction(
+    () => {
+      const title = document.getElementById("mayor-write-title");
+      const body = document.getElementById("mayor-write-content");
+      return (
+        title &&
+        body &&
+        title.value.includes("통학로") &&
+        body.value.includes("제출 전에 추가하겠습니다")
+      );
+    },
+    null,
+    { timeout: 10000 },
+  );
+
+  const afterInsert = await page.evaluate(() => {
+    const title = document.getElementById("mayor-write-title");
+    const body = document.getElementById("mayor-write-content");
+    const submit = document.getElementById("btn-mayor-submit");
+    return {
+      draftStage: document.body.getAttribute("data-draft-stage"),
+      title: title ? title.value : "",
+      body: body ? body.value : "",
+      submitDisabled: submit ? submit.disabled : null,
+      hasReceipt: !!document.querySelector(".bg-page--mayor-receipt"),
+    };
+  });
+  assert.ok(
+    afterInsert.title.includes("통학로") || afterInsert.title.length > 5,
+    `[${label}] Korean title populated after second confirm`,
   );
   assert.ok(
-    draftLabels.title.includes("통학로") || draftLabels.title.length > 5,
-    `[${label}] Korean title distinct field present`,
+    afterInsert.body.includes("제출 전에 추가하겠습니다"),
+    `[${label}] Korean body populated after second confirm`,
   );
+  assert.equal(afterInsert.hasReceipt, false, `[${label}] no receipt on form insert`);
   assert.ok(
-    draftLabels.body.includes("제출 전에 추가하겠습니다"),
-    `[${label}] Korean body last sentence present`,
+    afterInsert.submitDisabled === true || afterInsert.submitDisabled === null,
+    `[${label}] submit remains disabled after insert`,
   );
-  assert.ok(
-    !draftLabels.originalBody.includes(draftLabels.title),
-    `[${label}] original text is distinct from Korean title`,
+
+  // Final existing submit-confirm path (demo receipt) — still no real submission.
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-choreography-state") === "waiting_confirmation",
+    null,
+    { timeout: 15000 },
   );
-  if (draftLabels.scrollHeight > draftLabels.clientHeight + 2) {
-    assert.ok(draftLabels.bodyAtBottom, `[${label}] textarea scrolled to bottom`);
-  }
+  const confirmBtn = page.locator(".chat-msg--decision .chat-decision__button--primary").last();
+  await confirmBtn.waitFor({ state: "visible", timeout: 5000 });
+  const btnText = await confirmBtn.innerText();
+  assert.ok(btnText.includes("Đã xem xét"), `[${label}] confirm button Vietnamese: ${btnText}`);
+
   const bannedTranslationClaims = ["공식 번역", "공인 통역", "official translation", "certified interpreter"];
   const pageText = await page.locator("body").innerText();
   for (const banned of bannedTranslationClaims) {
