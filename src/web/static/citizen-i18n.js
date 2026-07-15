@@ -70,6 +70,10 @@
       "action.chooseAi": "AI 도움 받기",
       "action.writeMyself": "직접 작성",
       "action.restart": "다시 시작",
+      "action.confirmContent": "네, 의미가 맞습니다",
+      "action.reviseDraft": "다시 다듬기",
+      "action.confirmInsertForm": "한국어 초안을 양식에 넣기",
+      "action.backEditDraft": "돌아가서 수정",
 
       "status.thinking": "잠시만 기다려 주세요...",
       "status.searching": "검색 중입니다...",
@@ -93,6 +97,21 @@
       "draft.koreanAdministrativeDraft": "한국어 행정 초안",
       "draft.translatedForDraft": "작성 보조를 위한 번역",
       "draft.reviewBeforeSubmission": "제출 전에 다시 확인해 주세요.",
+      "draft.residentDraftLabel": "주민 언어 초안",
+      "draft.residentTitleLabel": "제목 (주민 언어)",
+      "draft.residentBodyLabel": "본문 (주민 언어)",
+      "draft.stage1Intro":
+        "먼저 선택하신 언어로 초안을 준비했습니다. 한국어 행정 문장을 만들기 전에 의미와 내용을 확인해 주세요.",
+      "draft.stage1Explain":
+        "이 초안이 의도하신 내용과 맞는지 확인해 주세요. 아직 제출되지 않았습니다.",
+      "draft.stage2Explain":
+        "원문 초안과 한국어 행정 초안을 비교해 보세요. 공식 제출은 아직 하지 않았습니다.",
+      "draft.formPopulatedNotice":
+        "왼쪽 양식에 한국어 초안을 넣었습니다. 필드는 계속 수정할 수 있습니다. 아직 제출되지 않았습니다.",
+      "draft.preSubmitTerminal":
+        "현재는 공식 제출 전 초안 상태입니다. 여기서는 공식 제출을 진행하지 않습니다.",
+      "draft.unsupportedOfflineEdit":
+        "이 오프라인 시연에서는 검수된 예시 초안만 이어서 진행할 수 있습니다. 예시 문구를 복원하거나 '다시 다듬기'를 선택한 뒤 다시 확인해 주세요.",
 
       "confirm.mayor": "작성된 제안의 제목과 본문을 검토했습니다. 이 내용으로 구정 제안서를 최종 확인할까요?",
       "confirm.generic": "작성된 제목과 본문을 검토했습니다. 확인 전에는 제출되지 않습니다. 이 내용으로 진행할까요?",
@@ -169,6 +188,10 @@
       "action.chooseAi": "Get AI help",
       "action.writeMyself": "Write myself",
       "action.restart": "Restart",
+      "action.confirmContent": "Yes, the meaning is correct",
+      "action.reviseDraft": "Revise draft",
+      "action.confirmInsertForm": "Insert Korean draft into the form",
+      "action.backEditDraft": "Back and edit",
 
       "status.thinking": "Please wait a moment...",
       "status.searching": "Searching...",
@@ -192,6 +215,21 @@
       "draft.koreanAdministrativeDraft": "Korean administrative draft",
       "draft.translatedForDraft": "Translation for drafting assistance",
       "draft.reviewBeforeSubmission": "Please review again before submitting.",
+      "draft.residentDraftLabel": "Your draft",
+      "draft.residentTitleLabel": "Title (your language)",
+      "draft.residentBodyLabel": "Body (your language)",
+      "draft.stage1Intro":
+        "I prepared a draft in your language first. Please review and edit it before any Korean administrative text is created.",
+      "draft.stage1Explain":
+        "Please check whether this draft matches what you mean. Nothing has been submitted.",
+      "draft.stage2Explain":
+        "Compare your original draft with the Korean administrative draft. Nothing has been officially submitted.",
+      "draft.formPopulatedNotice":
+        "I entered the Korean draft into the form on the left. Fields stay editable. Nothing has been submitted yet.",
+      "draft.preSubmitTerminal":
+        "This remains a pre-submission draft. Official submission is not performed here.",
+      "draft.unsupportedOfflineEdit":
+        "This offline demo can only continue with the reviewed sample drafts. Please restore the sample text or choose Revise draft, then confirm again.",
 
       "confirm.mayor": "I have reviewed the title and body of the proposal. Shall we finalize this district proposal?",
       "confirm.generic":
@@ -269,6 +307,10 @@
       "action.chooseAi": "Nhờ AI hỗ trợ",
       "action.writeMyself": "Tự tôi viết",
       "action.restart": "Bắt đầu lại",
+      "action.confirmContent": "Vâng, ý nghĩa đã đúng",
+      "action.reviseDraft": "Chỉnh lại bản nháp",
+      "action.confirmInsertForm": "Đưa bản nháp tiếng Hàn vào biểu mẫu",
+      "action.backEditDraft": "Quay lại chỉnh sửa",
 
       "status.thinking": "Xin vui lòng đợi một chút...",
       "status.searching": "Đang tìm kiếm...",
@@ -292,6 +334,21 @@
       "draft.koreanAdministrativeDraft": "Bản nháp hành chính tiếng Hàn",
       "draft.translatedForDraft": "Bản dịch hỗ trợ soạn thảo",
       "draft.reviewBeforeSubmission": "Vui lòng xem lại trước khi gửi.",
+      "draft.residentDraftLabel": "Bản nháp của bạn",
+      "draft.residentTitleLabel": "Tiêu đề (ngôn ngữ của bạn)",
+      "draft.residentBodyLabel": "Nội dung (ngôn ngữ của bạn)",
+      "draft.stage1Intro":
+        "Tôi đã chuẩn bị bản nháp bằng ngôn ngữ của bạn trước. Hãy xem và chỉnh trước khi tạo văn bản hành chính tiếng Hàn.",
+      "draft.stage1Explain":
+        "Vui lòng kiểm tra xem bản nháp này có đúng ý bạn không. Chưa có gì được gửi.",
+      "draft.stage2Explain":
+        "Hãy so sánh bản nháp gốc với bản nháp hành chính tiếng Hàn. Chưa có việc nộp chính thức nào.",
+      "draft.formPopulatedNotice":
+        "Tôi đã đưa bản nháp tiếng Hàn vào biểu mẫu bên trái. Các trường vẫn chỉnh được. Chưa gửi.",
+      "draft.preSubmitTerminal":
+        "Đây vẫn là bản nháp trước khi nộp chính thức. Không thực hiện nộp chính thức tại đây.",
+      "draft.unsupportedOfflineEdit":
+        "Bản demo ngoại tuyến này chỉ tiếp tục với các bản nháp mẫu đã được duyệt. Hãy khôi phục văn bản mẫu hoặc chọn Chỉnh lại bản nháp, rồi xác nhận lại.",
 
       "confirm.mayor": "Tôi đã xem xét tiêu đề và nội dung của đề xuất. Xin hãy xác nhận bản đề xuất này gửi đến quận trưởng?",
       "confirm.generic":
@@ -369,6 +426,10 @@
       "action.chooseAi": "ขอความช่วยเหลือจาก AI",
       "action.writeMyself": "เขียนเอง",
       "action.restart": "เริ่มใหม่",
+      "action.confirmContent": "ใช่ ความหมายถูกต้อง",
+      "action.reviseDraft": "ปรับร่างใหม่",
+      "action.confirmInsertForm": "ใส่ร่างภาษาเกาหลีลงในแบบฟอร์ม",
+      "action.backEditDraft": "กลับไปแก้ไข",
 
       "status.thinking": "โปรดรอสักครู่...",
       "status.searching": "กำลังค้นหา...",
@@ -392,6 +453,21 @@
       "draft.koreanAdministrativeDraft": "ร่างเอกสารราชการภาษาเกาหลี",
       "draft.translatedForDraft": "คำแปลเพื่อช่วยร่างเอกสาร",
       "draft.reviewBeforeSubmission": "โปรดตรวจสอบอีกครั้งก่อนส่ง",
+      "draft.residentDraftLabel": "ร่างของคุณ",
+      "draft.residentTitleLabel": "หัวข้อ (ภาษาของคุณ)",
+      "draft.residentBodyLabel": "เนื้อหา (ภาษาของคุณ)",
+      "draft.stage1Intro":
+        "ฉันเตรียมร่างเป็นภาษาของคุณก่อน โปรดตรวจและแก้ไขก่อนสร้างข้อความราชการภาษาเกาหลี",
+      "draft.stage1Explain":
+        "โปรดตรวจว่าร่างนี้ตรงกับความหมายที่คุณต้องการหรือไม่ ยังไม่ได้ส่งเรื่อง",
+      "draft.stage2Explain":
+        "โปรดเปรียบเทียบร่างต้นฉบับกับร่างเอกสารราชการภาษาเกาหลี ยังไม่มีการส่งเรื่องทางการ",
+      "draft.formPopulatedNotice":
+        "ฉันใส่ร่างภาษาเกาหลีลงในแบบฟอร์มด้านซ้ายแล้ว ยังแก้ไขได้ และยังไม่ได้ส่งเรื่อง",
+      "draft.preSubmitTerminal":
+        "นี่ยังคงเป็นร่างก่อนส่งเรื่องทางการ ที่นี่จะไม่ดำเนินการส่งเรื่องทางการ",
+      "draft.unsupportedOfflineEdit":
+        "การสาธิตออฟไลน์นี้ดำเนินการต่อได้เฉพาะร่างตัวอย่างที่ตรวจแล้วเท่านั้น กรุณากู้คืนข้อความตัวอย่าง หรือเลือกปรับร่างใหม่ แล้วยืนยันอีกครั้ง",
 
       "confirm.mayor": "ฉันได้ตรวจสอบหัวข้อและเนื้อหาของข้อเสนอแล้ว ยืนยันร่างข้อเสนอนี้ถึงนายกเทศมนตรีเขตหรือไม่?",
       "confirm.generic":
@@ -469,6 +545,10 @@
       "action.chooseAi": "Gunakan bantuan AI",
       "action.writeMyself": "Tulis sendiri",
       "action.restart": "Mulai ulang",
+      "action.confirmContent": "Ya, maknanya sudah benar",
+      "action.reviseDraft": "Perbaiki draf",
+      "action.confirmInsertForm": "Masukkan draf Korea ke formulir",
+      "action.backEditDraft": "Kembali dan edit",
 
       "status.thinking": "Mohon tunggu sebentar...",
       "status.searching": "Sedang mencari...",
@@ -492,6 +572,21 @@
       "draft.koreanAdministrativeDraft": "Draf administratif bahasa Korea",
       "draft.translatedForDraft": "Terjemahan bantuan penyusunan",
       "draft.reviewBeforeSubmission": "Harap periksa kembali sebelum mengirim.",
+      "draft.residentDraftLabel": "Draf Anda",
+      "draft.residentTitleLabel": "Judul (bahasa Anda)",
+      "draft.residentBodyLabel": "Isi (bahasa Anda)",
+      "draft.stage1Intro":
+        "Saya menyiapkan draf dalam bahasa Anda terlebih dahulu. Harap tinjau dan edit sebelum teks administratif Korea dibuat.",
+      "draft.stage1Explain":
+        "Harap periksa apakah draf ini sesuai maksud Anda. Belum ada yang dikirim.",
+      "draft.stage2Explain":
+        "Bandingkan draf asli Anda dengan draf administratif bahasa Korea. Belum ada pengiriman resmi.",
+      "draft.formPopulatedNotice":
+        "Saya memasukkan draf Korea ke formulir di kiri. Kolom tetap dapat diedit. Belum dikirim.",
+      "draft.preSubmitTerminal":
+        "Ini tetap draf pra-pengiriman. Pengiriman resmi tidak dilakukan di sini.",
+      "draft.unsupportedOfflineEdit":
+        "Demo offline ini hanya dapat dilanjutkan dengan draf contoh yang telah ditinjau. Pulihkan teks contoh atau pilih Perbaiki draf, lalu konfirmasi lagi.",
 
       "confirm.mayor": "Saya telah meninjau judul dan isi usulan. Yakin menyelesaikan usulan kepada bupati ini?",
       "confirm.generic":
