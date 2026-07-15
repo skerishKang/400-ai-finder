@@ -13,9 +13,11 @@
   },
   "scan": {
     "method": "git_ls_files",
+    "enumerated_tracked_path_count": 626,
     "eligible_tracked_file_count": 622,
-    "excluded_path_count": 0,
+    "excluded_path_count": 4,
     "lfs_pointer_count": 0,
+    "missing_or_unreadable_count": 0,
     "manifest_sha256": "86c372bacd9a867e8407ab854b9c4766c3c0193f4c6e4244a7f613a4767eabda"
   },
   "summary": {
@@ -24,9 +26,13 @@
     "partial_prefix_hash_count": 5,
     "unhashed_count": 134,
     "invalid_evidence_count": 0,
+    "evaluated_full_hash_count": 35,
     "one_exact_candidate_count": 0,
     "multiple_exact_candidates_count": 0,
     "no_exact_match_count": 35,
+    "not_evaluated_partial_count": 5,
+    "not_evaluated_unhashed_count": 134,
+    "not_evaluated_invalid_count": 0,
     "by_asset_type": {
       "css": 13,
       "javascript": 9,
@@ -63,7 +69,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/css/layout.css",
@@ -79,7 +85,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/css/layout_pad.css",
@@ -95,7 +101,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/css/layout_mbl.css",
@@ -111,7 +117,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/css/main.css?v=20260715",
@@ -127,7 +133,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/css/main_pad.css?v=20260715",
@@ -143,7 +149,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/css/main_mbl.css?v=20260715",
@@ -159,7 +165,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/css/main_es.css",
@@ -175,7 +181,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/jquery/css/jquery.bxslider.css",
@@ -191,7 +197,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/jquery/css/slick.css?v=20260715",
@@ -207,7 +213,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/jquery/css/swiper-11.1.4.min.css",
@@ -223,7 +229,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/jquery/js/jquery-1.11.2.min.js",
@@ -236,10 +242,10 @@
       "hash_scope": "first_65536_bytes",
       "hashed_byte_count": 65536,
       "evidence_class": "partial_prefix_hash",
-      "match_status": "non_authoritative_candidates",
+      "match_status": "not_evaluated_partial_hash",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "partial prefix hash cannot establish full-file identity"
     },
     {
       "source_url": "/js/global.js",
@@ -255,7 +261,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/jquery/js/jquery.bxslider.min.js",
@@ -271,7 +277,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/jquery/js/slick.1.8.1.js",
@@ -284,10 +290,10 @@
       "hash_scope": "first_65536_bytes",
       "hashed_byte_count": 65536,
       "evidence_class": "partial_prefix_hash",
-      "match_status": "non_authoritative_candidates",
+      "match_status": "not_evaluated_partial_hash",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "partial prefix hash cannot establish full-file identity"
     },
     {
       "source_url": "/jquery/js/swiper-11.1.4.min.js",
@@ -300,10 +306,10 @@
       "hash_scope": "first_65536_bytes",
       "hashed_byte_count": 65536,
       "evidence_class": "partial_prefix_hash",
-      "match_status": "non_authoritative_candidates",
+      "match_status": "not_evaluated_partial_hash",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "partial prefix hash cannot establish full-file identity"
     },
     {
       "source_url": "/jquery/js/gsap.min.js",
@@ -316,10 +322,10 @@
       "hash_scope": "first_65536_bytes",
       "hashed_byte_count": 65536,
       "evidence_class": "partial_prefix_hash",
-      "match_status": "non_authoritative_candidates",
+      "match_status": "not_evaluated_partial_hash",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "partial prefix hash cannot establish full-file identity"
     },
     {
       "source_url": "/favicon.ico",
@@ -335,7 +341,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/favicon_m.png",
@@ -351,7 +357,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/common/head-logo.svg",
@@ -367,7 +373,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/common/icon-korea.gif",
@@ -383,7 +389,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/main/weather02.png",
@@ -399,7 +405,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/main/sns-blog.png",
@@ -415,7 +421,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/main/sns-kch.png",
@@ -431,7 +437,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/main/sns-kst.png",
@@ -447,7 +453,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/main/sns-insta.png",
@@ -463,7 +469,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/main/sns-fb.png",
@@ -479,7 +485,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/main/sns-x.png",
@@ -495,7 +501,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/main/sns-utube.png",
@@ -511,7 +517,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/main/sns-dangn.png",
@@ -527,7 +533,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/common/mn-bg01.png",
@@ -543,7 +549,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/common/mn-bg02.png",
@@ -559,7 +565,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/common/mn-bg03.png",
@@ -575,7 +581,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/common/mn-bg04.png",
@@ -591,7 +597,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/common/mn-bg05.png",
@@ -607,7 +613,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/common/mn-bg07.png",
@@ -623,7 +629,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/kor/img/main/slogan.svg",
@@ -639,7 +645,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/upload/visual/a1/178329976724000.jpg",
@@ -655,7 +661,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/upload/visual/a1/178400172865900.gif",
@@ -671,7 +677,7 @@
       "match_status": "no_repo_exact_match",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no exact match"
+      "reason": "full hash evaluated; no equal-size/equal-sha tracked file"
     },
     {
       "source_url": "/upload/visual/a1/178407391898200.gif",
@@ -684,10 +690,10 @@
       "hash_scope": "first_65536_bytes",
       "hashed_byte_count": 65536,
       "evidence_class": "partial_prefix_hash",
-      "match_status": "non_authoritative_candidates",
+      "match_status": "not_evaluated_partial_hash",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "partial prefix hash cannot establish full-file identity"
     },
     {
       "source_url": "/upload/visual/a1/178305593223400.jpg",
@@ -700,10 +706,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178365867641700.jpg",
@@ -716,10 +722,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178409060920100.gif",
@@ -732,10 +738,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178282033979100.gif",
@@ -748,10 +754,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178287085409400.gif",
@@ -764,10 +770,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178282030299600.jpg",
@@ -780,10 +786,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178295852113200.jpg",
@@ -796,10 +802,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178304259361700.gif",
@@ -812,10 +818,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178304280435800.gif",
@@ -828,10 +834,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178340217030700.gif",
@@ -844,10 +850,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178282032539500.gif",
@@ -860,10 +866,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/visual/a1/178287108647200.gif",
@@ -876,10 +882,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu02.png",
@@ -892,10 +898,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu03.png",
@@ -908,10 +914,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu19.png",
@@ -924,10 +930,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu21.png",
@@ -940,10 +946,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu04.png",
@@ -956,10 +962,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu15.png",
@@ -972,10 +978,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu07.png",
@@ -988,10 +994,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu18.png",
@@ -1004,10 +1010,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu05.png",
@@ -1020,10 +1026,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu09.png",
@@ -1036,10 +1042,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu10.png",
@@ -1052,10 +1058,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/most-menu13.png",
@@ -1068,10 +1074,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site07.png",
@@ -1084,10 +1090,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site01.png",
@@ -1100,10 +1106,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site04.png",
@@ -1116,10 +1122,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site02.png",
@@ -1132,10 +1138,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site16.png",
@@ -1148,10 +1154,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site05.png",
@@ -1164,10 +1170,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site06.png",
@@ -1180,10 +1186,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site03.png",
@@ -1196,10 +1202,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site13.png",
@@ -1212,10 +1218,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site08.png",
@@ -1228,10 +1234,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site11.png",
@@ -1244,10 +1250,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site12.png",
@@ -1260,10 +1266,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site21.png",
@@ -1276,10 +1282,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site18.png",
@@ -1292,10 +1298,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site14.png",
@@ -1308,10 +1314,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site22.png",
@@ -1324,10 +1330,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site19.png",
@@ -1340,10 +1346,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site20.png",
@@ -1356,10 +1362,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site24.png",
@@ -1372,10 +1378,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site23.png",
@@ -1388,10 +1394,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/main/family-site25.png",
@@ -1404,10 +1410,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1730423014123.jpg",
@@ -1420,10 +1426,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1730422909293.jpg",
@@ -1436,10 +1442,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1730423472437.jpg",
@@ -1452,10 +1458,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524832462.png",
@@ -1468,10 +1474,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524651174.jpg",
@@ -1484,10 +1490,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524603293.jpg",
@@ -1500,10 +1506,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524508340.jpg",
@@ -1516,10 +1522,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524447948.jpg",
@@ -1532,10 +1538,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524307768.jpg",
@@ -1548,10 +1554,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524167087.jpg",
@@ -1564,10 +1570,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728523678264.jpg",
@@ -1580,10 +1586,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728523594236.png",
@@ -1596,10 +1602,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728523350481.jpg",
@@ -1612,10 +1618,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522826269.png",
@@ -1628,10 +1634,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522692080.jpg",
@@ -1644,10 +1650,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522650286.jpg",
@@ -1660,10 +1666,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522609826.jpg",
@@ -1676,10 +1682,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522511339.jpg",
@@ -1692,10 +1698,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522430251.jpg",
@@ -1708,10 +1714,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522409787.jpg",
@@ -1724,10 +1730,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1773299530408.jpg",
@@ -1740,10 +1746,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1773302775827.png",
@@ -1756,10 +1762,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522204685.jpg",
@@ -1772,10 +1778,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522162216.jpg",
@@ -1788,10 +1794,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522070374.jpg",
@@ -1804,10 +1810,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/m_172852201002300.jpg",
@@ -1820,10 +1826,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521867955.jpg",
@@ -1836,10 +1842,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521839208.jpg",
@@ -1852,10 +1858,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521771281.jpg",
@@ -1868,10 +1874,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521712039.jpg",
@@ -1884,10 +1890,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521617814.jpg",
@@ -1900,10 +1906,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521542391.jpg",
@@ -1916,10 +1922,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521432013.jpg",
@@ -1932,10 +1938,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521330096.jpg",
@@ -1948,10 +1954,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521223375.jpg",
@@ -1964,10 +1970,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521144704.jpg",
@@ -1980,10 +1986,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719993939950.jpg",
@@ -1996,10 +2002,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719993124944.jpg",
@@ -2012,10 +2018,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719992962659.jpg",
@@ -2028,10 +2034,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719909603394.jpg",
@@ -2044,10 +2050,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719909451331.jpg",
@@ -2060,10 +2066,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719909294401.jpg",
@@ -2076,10 +2082,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719909109447.png",
@@ -2092,10 +2098,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1713321959967.jpg",
@@ -2108,10 +2114,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0041/m_178410057592500.jpg",
@@ -2124,10 +2130,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0041/m_178408876659800.jpg",
@@ -2140,10 +2146,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0041/m_178408875247800.jpg",
@@ -2156,10 +2162,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0041/m_178408873417900.jpg",
@@ -2172,10 +2178,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/gallery/0086/thumb_1783920425651.gif",
@@ -2188,10 +2194,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/popupzone/a1/178399125637000.gif",
@@ -2204,10 +2210,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/popupzone/a1/178399411112200.gif",
@@ -2220,10 +2226,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/popupzone/a1/178407434270800.gif",
@@ -2236,10 +2242,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/popupzone/a1/178391907269900.png",
@@ -2252,10 +2258,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/popupzone/a1/178391980685400.gif",
@@ -2268,10 +2274,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/popupzone/a1/178391998249800.gif",
@@ -2284,10 +2290,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/popupzone/a1/178305801802900.gif",
@@ -2300,10 +2306,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/popupzone/a1/178305685292000.jpg",
@@ -2316,10 +2322,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/popupzone/a1/178271160267400.gif",
@@ -2332,10 +2338,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/upload/popupzone/a1/178227447651800.gif",
@@ -2348,10 +2354,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/jquery/css/slick.css",
@@ -2364,10 +2370,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/jquery/js/slick.js",
@@ -2380,10 +2386,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/176403787724200.gif",
@@ -2396,10 +2402,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/173388998826300.gif",
@@ -2412,10 +2418,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/170260083811400.gif",
@@ -2428,10 +2434,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/155313407541600.gif",
@@ -2444,10 +2450,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/156455012051000.gif",
@@ -2460,10 +2466,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/155313373309200.gif",
@@ -2476,10 +2482,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/156738978614800.gif",
@@ -2492,10 +2498,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/158952199214100.gif",
@@ -2508,10 +2514,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/177431715422600.gif",
@@ -2524,10 +2530,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/170200083470100.gif",
@@ -2540,10 +2546,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/161188458030400.gif",
@@ -2556,10 +2562,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/177500798673500.gif",
@@ -2572,10 +2578,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/161699848963000.gif",
@@ -2588,10 +2594,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/158433316116900.png",
@@ -2604,10 +2610,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/155313381780200.gif",
@@ -2620,10 +2626,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/166736332059900.gif",
@@ -2636,10 +2642,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/155313375207900.gif",
@@ -2652,10 +2658,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/162492884492600.gif",
@@ -2668,10 +2674,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/156533183659600.gif",
@@ -2684,10 +2690,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/156446990997900.gif",
@@ -2700,10 +2706,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/157127945903200.gif",
@@ -2716,10 +2722,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/170864793116200.gif",
@@ -2732,10 +2738,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/common/openMark.svg",
@@ -2748,10 +2754,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/common/WA_Mark.svg",
@@ -2764,10 +2770,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/img/common/QR-code.png",
@@ -2780,10 +2786,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/css/printArea.css",
@@ -2796,10 +2802,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/js/menu.js",
@@ -2812,10 +2818,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     },
     {
       "source_url": "/kor/js/main.js",
@@ -2828,10 +2834,10 @@
       "hash_scope": null,
       "hashed_byte_count": null,
       "evidence_class": "unhashed",
-      "match_status": "no_repo_exact_match",
+      "match_status": "not_evaluated_unhashed",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "evidence incomplete for exact match"
+      "reason": "no captured hash available"
     }
   ]
 }
