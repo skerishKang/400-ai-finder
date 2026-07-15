@@ -137,7 +137,7 @@ def test_drift():
         f.seek(0)
         f.write(content.replace("asset_total", "asset_totax"))
         f.truncate()
-        
+
     try:
         result = subprocess.run(["python", "scripts/audit_bukgu_home_asset_identity.py", "--check"], capture_output=True)
         assert result.returncode != 0
