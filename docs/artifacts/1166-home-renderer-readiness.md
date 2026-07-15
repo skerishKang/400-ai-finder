@@ -1,7 +1,7 @@
 # #1166 Home renderer readiness
 
-**Status:** canonical fixture preparation only  
-**Home route clone status:** `capture_required` (unchanged)  
+**Status:** canonical fixture preparation only
+**Home route clone status:** `capture_required` (unchanged)
 **Exact clone claim:** **not made**
 
 Governing policy: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md) (`exact-official-site-clone-invariant.md`).
