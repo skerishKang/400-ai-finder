@@ -1,16 +1,7 @@
 """Phase-1 official-source freshness retrieval contracts (#1150).
 
-Covers:
-
-* time-sensitive question classification
-* official Buk-gu allowlist policy
-* mock transport retrieval
-* HTML parsing / fact normalization
-* freshness timestamps (fresh / stale / invalid)
-* fail-closed error taxonomy
-* no-network import and construction boundary
-
-No live official-page, Firecrawl, paid provider, or external API call.
+Offline deterministic tests only. No live network, provider, Firecrawl,
+or browser automation.
 """
 
 from __future__ import annotations
@@ -32,6 +23,7 @@ from src.official_source import (
     OfficialSourceResult,
     TransportResponse,
     assess_freshness,
+    assess_url_allowlist,
     classify_question,
     get_policy_for_fact,
     is_url_allowlisted,
@@ -40,20 +32,17 @@ from src.official_source.extraction import (
     AmbiguousValueError,
     FactAbsentError,
     MalformedHtmlError,
-    extract_fact_candidates,
+    SourceIdentityMismatchError,
     resolve_single_fact,
 )
 from src.official_source.freshness import InvalidTimestampError, parse_utc_timestamp
 from src.official_source.normalize import normalize_fact_value
-from src.official_source.policy import (
-    OFFICIAL_HOST,
-    allowlisted_urls,
-    canonicalize_official_url,
-)
+from src.official_source.policy import OFFICIAL_HOST, allowlisted_urls
 from src.official_source.transport import LiveTransportNotAuthorized
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "official_source"
+PACKAGE_DIR = REPO_ROOT / "src" / "official_source"
 
 MAYOR_URL = "https://bukgu.gwangju.kr/menu.es?mid=a10101010100"
 JURISDICTION_URL = "https://bukgu.gwangju.kr/"
@@ -74,6 +63,7 @@ def _ok_response(
     retrieved_at: str = FRESH_RETRIEVED_AT,
     final_url: str | None = None,
     redirected: bool = False,
+    content_type: str = "text/html; charset=utf-8",
 ) -> TransportResponse:
     return TransportResponse(
         ok=True,
@@ -82,7 +72,7 @@ def _ok_response(
         status_code=200,
         title=title,
         html=html,
-        content_type="text/html; charset=utf-8",
+        content_type=content_type,
         retrieved_at=retrieved_at,
         redirected=redirected,
     )
@@ -95,31 +85,30 @@ def _service_with(responses: dict[str, TransportResponse]) -> OfficialSourceFres
 
 
 # ---------------------------------------------------------------------------
-# No-network boundary
+# Import / construction / transport selection — zero network
 # ---------------------------------------------------------------------------
 
 
 class TestNoNetworkBoundary:
-    def test_import_and_construction_do_not_open_sockets(self, monkeypatch):
-        calls: list[tuple] = []
+    def test_import_and_construction_zero_network(self, monkeypatch):
+        calls: list[object] = []
 
         def blocked(*args, **kwargs):
             calls.append((args, kwargs))
-            raise AssertionError("network call attempted during import/construction")
+            raise AssertionError("network call attempted")
 
         monkeypatch.setattr(socket.socket, "connect", blocked)
         monkeypatch.setattr(socket.socket, "connect_ex", blocked)
 
-        # Re-import path already loaded; still construct service + classify.
         service = OfficialSourceFreshnessService()
         assert service.transport_name == "mock_official_source"
-        result = classify_question("북구 구청장 누구야")
-        assert result.supported is True
+        assert classify_question("현재 북구청장은 누구인가요?").supported is True
+        _ = MockOfficialSourceTransport()
+        _ = LiveTransportNotAuthorized()
         assert calls == []
 
-    def test_package_source_has_no_network_imports(self):
-        package_dir = REPO_ROOT / "src" / "official_source"
-        forbidden = {
+    def test_package_has_no_network_imports(self):
+        forbidden_modules = {
             "urllib.request",
             "urllib.client",
             "http.client",
@@ -129,32 +118,26 @@ class TestNoNetworkBoundary:
             "firecrawl",
             "socket",
         }
-        for path in package_dir.glob("*.py"):
+        forbidden_roots = {"requests", "httpx", "aiohttp", "firecrawl"}
+        for path in PACKAGE_DIR.glob("*.py"):
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        root = alias.name.split(".")[0]
-                        assert alias.name not in forbidden and root not in {
-                            "requests",
-                            "httpx",
-                            "aiohttp",
-                            "firecrawl",
-                        }, f"{path.name} imports {alias.name}"
+                        assert alias.name not in forbidden_modules
+                        assert alias.name.split(".")[0] not in forbidden_roots
                 if isinstance(node, ast.ImportFrom) and node.module:
-                    assert node.module not in forbidden, (
-                        f"{path.name} imports from {node.module}"
-                    )
-                    root = node.module.split(".")[0]
-                    assert root not in {"requests", "httpx", "aiohttp", "firecrawl"}
+                    assert node.module not in forbidden_modules
+                    assert node.module.split(".")[0] not in forbidden_roots
 
-    def test_live_transport_not_authorized_fails_closed(self):
-        transport = LiveTransportNotAuthorized()
-        service = OfficialSourceFreshnessService(transport=transport)
-        result = service.retrieve("현재 북구 구청장은 누구인가요?", evaluated_at=EVALUATED_AT)
-        assert result.success is False
-        assert result.fact is None
-        assert result.error_code is ErrorCode.TRANSPORT_FAILURE
+    def test_live_transport_not_authorized(self):
+        service = OfficialSourceFreshnessService(transport=LiveTransportNotAuthorized())
+        result = service.retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        assert result.ok is False
+        assert result.value is None
+        assert result.failure_code is ErrorCode.TRANSPORT_ERROR
 
 
 # ---------------------------------------------------------------------------
@@ -166,27 +149,26 @@ class TestClassification:
     @pytest.mark.parametrize(
         "question",
         [
+            "현재 북구청장은 누구인가요?",
+            "지금 광주 북구청장은 누구야?",
             "현재 북구 구청장은 누구인가요?",
-            "구청장 이름 알려줘",
-            "지금 구청장",
-            "Who is the current Buk-gu mayor?",
         ],
     )
-    def test_classifies_current_mayor(self, question: str):
+    def test_supported_mayor(self, question: str):
         result = classify_question(question)
         assert result.supported is True
         assert result.fact_kind is FactKind.CURRENT_MAYOR
+        assert result.failure_code is None
+        assert result.fact_type == "current_mayor"
 
     @pytest.mark.parametrize(
         "question",
         [
-            "북구청 공식 기관 명칭이 뭐야?",
-            "관할 구역 이름",
-            "organization name",
-            "이 사이트가 어디 기관이야?",
+            "북구청의 현재 기관명은 무엇인가요?",
+            "현재 공식 자치구 명칭을 알려줘",
         ],
     )
-    def test_classifies_jurisdiction(self, question: str):
+    def test_supported_jurisdiction(self, question: str):
         result = classify_question(question)
         assert result.supported is True
         assert result.fact_kind is FactKind.JURISDICTION_NAME
@@ -194,18 +176,27 @@ class TestClassification:
     @pytest.mark.parametrize(
         "question",
         [
-            "오늘 날씨 알려줘",
-            "대형폐기물 신청 방법",
-            "여권 발급 절차",
-            "",
-            "   ",
-            "arbitrary web search about politics",
+            "북구청에 민원 넣어줘",
+            "여권 신청해줘",
+            "쓰레기 신고해줘",
+            "광주시장은 누구야",
+            "전국 구청장 목록을 알려줘",
         ],
     )
-    def test_unsupported_questions(self, question: str):
+    def test_unsupported(self, question: str):
         result = classify_question(question)
         assert result.supported is False
         assert result.fact_kind is None
+        assert result.failure_code is ErrorCode.UNSUPPORTED_QUESTION
+
+    @pytest.mark.parametrize("question", [None, 123, "", "   "])
+    def test_invalid_input(self, question):
+        result = classify_question(question)
+        assert result.supported is False
+        assert result.failure_code in {
+            ErrorCode.INVALID_REQUEST,
+            ErrorCode.UNSUPPORTED_QUESTION,
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -214,167 +205,173 @@ class TestClassification:
 
 
 class TestAllowlistPolicy:
-    def test_official_policies_are_allowlisted(self):
+    def test_approved_canonical_accepted(self):
         for kind in FactKind:
             policy = get_policy_for_fact(kind)
             assert is_url_allowlisted(policy.url, kind)
+            assert assess_url_allowlist(policy.url, kind)["allowed"] is True
             assert OFFICIAL_HOST in policy.url
 
-    def test_non_allowlisted_url_rejected(self):
-        assert is_url_allowlisted("https://example.com/", FactKind.CURRENT_MAYOR) is False
-        assert is_url_allowlisted("https://www.gwangju.go.kr/", FactKind.CURRENT_MAYOR) is False
-        assert (
-            is_url_allowlisted(
-                "https://bukgu.gwangju.kr/menu.es?mid=not-allowlisted",
-                FactKind.CURRENT_MAYOR,
-            )
-            is False
-        )
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://bukgu.example.com/",
+            "https://official-bukgu.example.net/",
+            "https://approved-host.example.com.evil.test/",
+            "https://user@bukgu.gwangju.kr/",
+            "http://bukgu.gwangju.kr/",
+            "javascript:alert(1)",
+            "data:text/html,hi",
+            "//bukgu.gwangju.kr/",
+            "https://bukgu.gwangju.kr:8443/",
+            "https://evil-bukgu.gwangju.kr.evil.test/",
+            "https://not-bukgu.gwangju.kr/",
+        ],
+    )
+    def test_rejects_unsafe_urls(self, url: str):
+        assert is_url_allowlisted(url) is False
+        assert assess_url_allowlist(url)["allowed"] is False
 
-    def test_wrong_fact_url_not_allowlisted_for_other_kind(self):
-        mayor_policy = get_policy_for_fact(FactKind.CURRENT_MAYOR)
-        assert is_url_allowlisted(mayor_policy.url, FactKind.JURISDICTION_NAME) is False
+    def test_wrong_fact_path_rejected(self):
+        mayor = get_policy_for_fact(FactKind.CURRENT_MAYOR)
+        assert is_url_allowlisted(mayor.url, FactKind.JURISDICTION_NAME) is False
 
-    def test_canonicalize_strips_default_noise(self):
-        a = canonicalize_official_url(
-            "https://bukgu.gwangju.kr/menu.es?mid=a10101010100"
-        )
-        b = canonicalize_official_url(
-            "https://BUKGU.GWANGJU.KR/menu.es?mid=a10101010100"
-        )
-        assert a == b
-        assert a is not None
-
-    def test_allowlisted_urls_closed_set(self):
-        urls = allowlisted_urls()
-        assert len(urls) == 2
-        assert all(OFFICIAL_HOST in u for u in urls)
+    def test_allowlisted_set_closed(self):
+        assert len(allowlisted_urls()) == 2
 
 
 # ---------------------------------------------------------------------------
-# Extraction / parsing / normalization
+# Extraction / identity / placeholders
 # ---------------------------------------------------------------------------
 
 
-class TestExtractionAndNormalize:
-    def test_extract_mayor_from_fixture(self):
-        html = _read_fixture("mayor_page.html")
-        fact, title = resolve_single_fact(
-            html,
+class TestExtraction:
+    def test_mayor_fixture(self):
+        fact, title, extractor = resolve_single_fact(
+            _read_fixture("mayor_page.html"),
             fact_kind=FactKind.CURRENT_MAYOR,
             fact_marker="current_mayor",
+            expected_title_tokens=("구청장",),
         )
-        assert fact.value == "문인"
+        assert fact.value == "픽스처성명"
         assert "구청장" in title
+        assert extractor
 
-    def test_extract_jurisdiction_from_fixture(self):
-        html = _read_fixture("jurisdiction_page.html")
-        fact, _title = resolve_single_fact(
-            html,
+    def test_jurisdiction_fixture(self):
+        fact, _title, _ = resolve_single_fact(
+            _read_fixture("jurisdiction_page.html"),
             fact_kind=FactKind.JURISDICTION_NAME,
             fact_marker="jurisdiction_name",
+            expected_title_tokens=("북구",),
         )
-        assert fact.value == "광주광역시 북구청"
+        assert "북구" in fact.value
 
-    def test_malformed_html_raises(self):
-        html = _read_fixture("malformed.html")
+    def test_malformed(self):
         with pytest.raises(MalformedHtmlError):
-            extract_fact_candidates(
-                html,
+            resolve_single_fact(
+                _read_fixture("malformed.html"),
                 fact_kind=FactKind.CURRENT_MAYOR,
                 fact_marker="current_mayor",
+                expected_title_tokens=("구청장",),
             )
 
-    def test_missing_fact_raises(self):
-        html = _read_fixture("missing_fact.html")
+    def test_missing(self):
         with pytest.raises(FactAbsentError):
             resolve_single_fact(
-                html,
+                _read_fixture("missing_fact.html"),
                 fact_kind=FactKind.CURRENT_MAYOR,
                 fact_marker="current_mayor",
+                expected_title_tokens=("구청장",),
             )
 
-    def test_ambiguous_values_raise(self):
-        html = _read_fixture("ambiguous_mayor.html")
+    def test_ambiguous(self):
         with pytest.raises(AmbiguousValueError):
             resolve_single_fact(
-                html,
+                _read_fixture("ambiguous_mayor.html"),
                 fact_kind=FactKind.CURRENT_MAYOR,
                 fact_marker="current_mayor",
+                expected_title_tokens=("구청장",),
             )
 
-    def test_normalize_strips_honorific(self):
-        fact = normalize_fact_value(FactKind.CURRENT_MAYOR, "문인 구청장")
-        assert fact is not None
-        assert fact.value == "문인"
-        assert fact.raw_value == "문인 구청장"
+    def test_wrong_identity(self):
+        with pytest.raises(SourceIdentityMismatchError):
+            resolve_single_fact(
+                _read_fixture("wrong_identity.html"),
+                fact_kind=FactKind.CURRENT_MAYOR,
+                fact_marker="current_mayor",
+                expected_title_tokens=("구청장",),
+            )
 
-    def test_heuristic_mayor_extraction(self):
-        html = "<html><body><p>구청장 : 문인</p></body></html>"
-        fact, _ = resolve_single_fact(
-            html,
-            fact_kind=FactKind.CURRENT_MAYOR,
-            fact_marker="current_mayor",
-        )
-        assert fact.value == "문인"
-
-    def test_heuristic_does_not_match_prose_without_separator(self):
-        html = "<html><body><p>이 페이지에는 구청장 정보가 없습니다.</p></body></html>"
+    def test_placeholder_rejected(self):
         with pytest.raises(FactAbsentError):
             resolve_single_fact(
-                html,
+                _read_fixture("placeholder_mayor.html"),
                 fact_kind=FactKind.CURRENT_MAYOR,
                 fact_marker="current_mayor",
+                expected_title_tokens=("구청장",),
             )
 
+    def test_normalize_placeholder(self):
+        assert normalize_fact_value(FactKind.CURRENT_MAYOR, "미정") is None
+        assert normalize_fact_value(FactKind.CURRENT_MAYOR, "N/A") is None
+
 
 # ---------------------------------------------------------------------------
-# Freshness timestamps
+# Freshness
 # ---------------------------------------------------------------------------
 
 
-class TestFreshnessTimestamp:
-    def test_fresh_within_max_age(self):
-        assessment = assess_freshness(
+class TestFreshness:
+    def test_fresh(self):
+        a = assess_freshness(
             retrieved_at=FRESH_RETRIEVED_AT,
             max_age_seconds=7 * 24 * 3600,
             evaluated_at=EVALUATED_AT,
         )
-        assert assessment.status is FreshnessStatus.FRESH
-        assert assessment.age_seconds == 2 * 3600
+        assert a.status is FreshnessStatus.FRESH
+        assert a.age_seconds == 2 * 3600
 
-    def test_stale_beyond_max_age(self):
-        assessment = assess_freshness(
+    def test_stale(self):
+        a = assess_freshness(
             retrieved_at=STALE_RETRIEVED_AT,
             max_age_seconds=7 * 24 * 3600,
             evaluated_at=EVALUATED_AT,
         )
-        assert assessment.status is FreshnessStatus.STALE
-        assert assessment.age_seconds is not None
-        assert assessment.age_seconds > 7 * 24 * 3600
+        assert a.status is FreshnessStatus.STALE
 
-    def test_invalid_timestamp_rejected(self):
+    def test_missing_unknown(self):
+        a = assess_freshness(
+            retrieved_at="",
+            max_age_seconds=100,
+            evaluated_at=EVALUATED_AT,
+        )
+        assert a.status is FreshnessStatus.UNKNOWN
+
+    def test_naive_invalid(self):
         with pytest.raises(InvalidTimestampError):
-            parse_utc_timestamp("not-a-timestamp")
-        with pytest.raises(InvalidTimestampError):
-            parse_utc_timestamp("2026-07-15T12:00:00")  # naive
-        with pytest.raises(InvalidTimestampError):
-            parse_utc_timestamp("")
+            parse_utc_timestamp("2026-07-15T12:00:00")
+
+    def test_future_beyond_skew_invalid(self):
         with pytest.raises(InvalidTimestampError):
             assess_freshness(
-                retrieved_at="2026-07-16T00:00:00Z",  # future vs evaluated
+                retrieved_at="2026-07-16T00:00:00Z",
                 max_age_seconds=100,
                 evaluated_at=EVALUATED_AT,
+                clock_skew_seconds=60,
             )
 
+    def test_unparseable_invalid(self):
+        with pytest.raises(InvalidTimestampError):
+            parse_utc_timestamp("yesterday")
+
 
 # ---------------------------------------------------------------------------
-# Mock retrieval success path
+# Mock retrieval success
 # ---------------------------------------------------------------------------
 
 
-class TestMockRetrievalSuccess:
-    def test_current_mayor_success_payload(self):
+class TestMockSuccess:
+    def test_mayor_success_public_fields(self):
         service = _service_with(
             {
                 MAYOR_URL: _ok_response(
@@ -385,26 +382,25 @@ class TestMockRetrievalSuccess:
             }
         )
         result = service.retrieve(
-            "현재 북구 구청장은 누구인가요?",
-            evaluated_at=EVALUATED_AT,
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
         )
+        assert result.ok is True
         assert result.success is True
-        assert result.error_code is None
-        assert result.fact is not None
-        assert result.fact.kind is FactKind.CURRENT_MAYOR
-        assert result.fact.value == "문인"
-        assert result.source is not None
-        assert result.source.url == MAYOR_URL
-        assert result.source.retrieved_at == FRESH_RETRIEVED_AT
-        assert result.source.title
+        assert result.failure_code is None
+        assert result.fact_type == "current_mayor"
+        assert result.value == "픽스처성명"
+        assert result.source_url == MAYOR_URL
+        assert result.source_title
+        assert result.retrieved_at == FRESH_RETRIEVED_AT
         assert result.freshness_status is FreshnessStatus.FRESH
-        assert result.max_age_seconds == 7 * 24 * 3600
+        assert result.public_safe_message == ""
         payload = result.to_dict()
-        assert payload["success"] is True
-        assert payload["fact"]["value"] == "문인"
-        assert payload["source"]["url"] == MAYOR_URL
+        assert payload["ok"] is True
+        assert payload["value"] == "픽스처성명"
+        assert "cookie" not in str(payload).lower()
+        assert "authorization" not in str(payload).lower()
 
-    def test_jurisdiction_success_payload(self):
+    def test_jurisdiction_success(self):
         service = _service_with(
             {
                 JURISDICTION_URL: _ok_response(
@@ -415,124 +411,195 @@ class TestMockRetrievalSuccess:
             }
         )
         result = service.retrieve(
-            "북구청 공식 기관 명칭이 뭐야?",
-            evaluated_at=EVALUATED_AT,
+            "북구청의 현재 기관명은 무엇인가요?", evaluated_at=EVALUATED_AT
         )
-        assert result.success is True
-        assert result.fact is not None
-        assert result.fact.kind is FactKind.JURISDICTION_NAME
-        assert "북구" in result.fact.value
+        assert result.ok is True
+        assert result.fact_kind is FactKind.JURISDICTION_NAME
+        assert "북구" in (result.value or "")
 
-    def test_explicit_fact_kind_request(self):
+    def test_deterministic_repeat(self):
         service = _service_with(
-            {
-                MAYOR_URL: _ok_response(MAYOR_URL, _read_fixture("mayor_page.html"))
-            }
+            {MAYOR_URL: _ok_response(MAYOR_URL, _read_fixture("mayor_page.html"))}
         )
-        result = service.retrieve_request(
-            OfficialSourceRequest(
-                question="ignored when fact_kind set",
-                fact_kind=FactKind.CURRENT_MAYOR,
-                evaluated_at=EVALUATED_AT,
-            )
-        )
-        assert result.success is True
-        assert result.fact is not None
-        assert result.fact.value == "문인"
+        a = service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT)
+        b = service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT)
+        assert a.to_dict() == b.to_dict()
 
 
 # ---------------------------------------------------------------------------
-# Fail-closed error taxonomy
+# Fail-closed taxonomy
 # ---------------------------------------------------------------------------
 
 
-class TestFailClosedTaxonomy:
-    def test_error_codes_are_closed_vocabulary(self):
-        assert "unsupported_question" in ERROR_CODES
-        assert "stale_retrieval" in ERROR_CODES
-        assert "external_origin" in ERROR_CODES
-        assert len(ERROR_CODES) >= 12
+class TestFailClosed:
+    def test_error_codes_closed(self):
+        required = {
+            "unsupported_question",
+            "invalid_request",
+            "source_not_allowlisted",
+            "external_redirect",
+            "transport_timeout",
+            "transport_error",
+            "http_error",
+            "invalid_content_type",
+            "empty_content",
+            "malformed_content",
+            "source_identity_mismatch",
+            "fact_not_found",
+            "ambiguous_fact",
+            "invalid_timestamp",
+            "stale_source",
+        }
+        assert required.issubset(ERROR_CODES)
 
-    def _assert_fail_closed(self, result: OfficialSourceResult, code: ErrorCode):
-        assert result.success is False
+    def _assert_fail(self, result: OfficialSourceResult, code: ErrorCode):
+        assert result.ok is False
+        assert result.value is None
         assert result.fact is None
-        assert result.error_code is code
-        assert result.error_message
-        payload = result.to_dict()
-        assert payload["fact"] is None
-        assert payload["error_code"] == code.value
+        assert result.failure_code is code
+        assert result.public_safe_message
+        assert "api_key" not in result.public_safe_message.lower()
+        assert "cookie" not in result.public_safe_message.lower()
 
     def test_unsupported_question(self):
-        service = OfficialSourceFreshnessService()
-        result = service.retrieve("오늘 날씨 알려줘", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.UNSUPPORTED_QUESTION)
-
-    def test_missing_source(self):
-        # Empty mock → no configured response.
-        service = OfficialSourceFreshnessService(transport=MockOfficialSourceTransport())
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.MISSING_SOURCE)
-
-    def test_transport_failure(self):
-        service = _service_with(
-            {
-                MAYOR_URL: TransportResponse(
-                    ok=False,
-                    requested_url=MAYOR_URL,
-                    status_code=500,
-                    error="upstream_5xx",
-                    retrieved_at=FRESH_RETRIEVED_AT,
-                )
-            }
+        result = OfficialSourceFreshnessService().retrieve(
+            "쓰레기 신고해줘", evaluated_at=EVALUATED_AT
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.TRANSPORT_FAILURE)
+        self._assert_fail(result, ErrorCode.UNSUPPORTED_QUESTION)
 
-    def test_transport_timeout(self):
+    def test_transport_missing(self):
+        result = OfficialSourceFreshnessService().retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._assert_fail(result, ErrorCode.TRANSPORT_ERROR)
+
+    def test_timeout(self):
         service = _service_with(
             {
                 MAYOR_URL: TransportResponse(
                     ok=False,
                     requested_url=MAYOR_URL,
                     timed_out=True,
-                    error="deadline exceeded",
-                    retrieved_at="",
+                    error="timeout",
                 )
             }
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.TRANSPORT_TIMEOUT)
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.TRANSPORT_TIMEOUT,
+        )
 
-    def test_malformed_html(self):
+    def test_transport_exception(self):
         service = _service_with(
             {
-                MAYOR_URL: _ok_response(MAYOR_URL, _read_fixture("malformed.html"))
+                MAYOR_URL: TransportResponse(
+                    ok=False,
+                    requested_url=MAYOR_URL,
+                    raise_exception=True,
+                    exception_message="boom",
+                )
             }
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.MALFORMED_HTML)
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.TRANSPORT_ERROR,
+        )
 
-    def test_fact_absent(self):
+    def test_http_error(self):
         service = _service_with(
             {
-                MAYOR_URL: _ok_response(MAYOR_URL, _read_fixture("missing_fact.html"))
+                MAYOR_URL: TransportResponse(
+                    ok=False,
+                    requested_url=MAYOR_URL,
+                    status_code=500,
+                    error="server",
+                )
             }
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.FACT_ABSENT)
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.HTTP_ERROR,
+        )
 
-    def test_ambiguous_multiple_values(self):
+    def test_wrong_content_type(self):
         service = _service_with(
             {
                 MAYOR_URL: _ok_response(
-                    MAYOR_URL, _read_fixture("ambiguous_mayor.html")
+                    MAYOR_URL,
+                    _read_fixture("mayor_page.html"),
+                    content_type="application/json",
                 )
             }
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.AMBIGUOUS_VALUE)
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.INVALID_CONTENT_TYPE,
+        )
 
-    def test_stale_retrieval_metadata(self):
+    def test_empty_body(self):
+        service = _service_with(
+            {
+                MAYOR_URL: TransportResponse(
+                    ok=True,
+                    requested_url=MAYOR_URL,
+                    final_url=MAYOR_URL,
+                    status_code=200,
+                    html="   ",
+                    content_type="text/html",
+                    retrieved_at=FRESH_RETRIEVED_AT,
+                )
+            }
+        )
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.EMPTY_CONTENT,
+        )
+
+    def test_oversized_body(self):
+        huge = "<html><body>" + ("x" * 600_000) + "</body></html>"
+        service = _service_with({MAYOR_URL: _ok_response(MAYOR_URL, huge)})
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.MALFORMED_CONTENT,
+        )
+
+    def test_malformed_html(self):
+        service = _service_with(
+            {MAYOR_URL: _ok_response(MAYOR_URL, _read_fixture("malformed.html"))}
+        )
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.MALFORMED_CONTENT,
+        )
+
+    def test_fact_not_found(self):
+        service = _service_with(
+            {MAYOR_URL: _ok_response(MAYOR_URL, _read_fixture("missing_fact.html"))}
+        )
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.FACT_NOT_FOUND,
+        )
+
+    def test_ambiguous(self):
+        service = _service_with(
+            {MAYOR_URL: _ok_response(MAYOR_URL, _read_fixture("ambiguous_mayor.html"))}
+        )
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.AMBIGUOUS_FACT,
+        )
+
+    def test_wrong_identity(self):
+        service = _service_with(
+            {MAYOR_URL: _ok_response(MAYOR_URL, _read_fixture("wrong_identity.html"))}
+        )
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.SOURCE_IDENTITY_MISMATCH,
+        )
+
+    def test_stale(self):
         service = _service_with(
             {
                 MAYOR_URL: _ok_response(
@@ -542,11 +609,11 @@ class TestFailClosedTaxonomy:
                 )
             }
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.STALE_RETRIEVAL)
+        result = service.retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._assert_fail(result, ErrorCode.STALE_SOURCE)
         assert result.freshness_status is FreshnessStatus.STALE
-        assert result.source is not None
-        assert result.source.retrieved_at == STALE_RETRIEVED_AT
 
     def test_invalid_timestamp(self):
         service = _service_with(
@@ -554,12 +621,15 @@ class TestFailClosedTaxonomy:
                 MAYOR_URL: _ok_response(
                     MAYOR_URL,
                     _read_fixture("mayor_page.html"),
-                    retrieved_at="yesterday-ish",
+                    retrieved_at="not-a-ts",
                 )
             }
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.INVALID_TIMESTAMP)
+        result = service.retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._assert_fail(result, ErrorCode.INVALID_TIMESTAMP)
+        assert result.freshness_status is FreshnessStatus.INVALID
 
     def test_missing_timestamp(self):
         service = _service_with(
@@ -574,24 +644,12 @@ class TestFailClosedTaxonomy:
                 )
             }
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.INVALID_TIMESTAMP)
-
-    def test_unexpected_redirect_to_other_official_path(self):
-        service = _service_with(
-            {
-                MAYOR_URL: _ok_response(
-                    MAYOR_URL,
-                    _read_fixture("mayor_page.html"),
-                    final_url="https://bukgu.gwangju.kr/menu.es?mid=other",
-                    redirected=True,
-                )
-            }
+        result = service.retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.UNEXPECTED_REDIRECT)
+        self._assert_fail(result, ErrorCode.INVALID_TIMESTAMP)
 
-    def test_external_origin_redirect(self):
+    def test_external_redirect(self):
         service = _service_with(
             {
                 MAYOR_URL: _ok_response(
@@ -602,31 +660,21 @@ class TestFailClosedTaxonomy:
                 )
             }
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.EXTERNAL_ORIGIN)
-
-    def test_non_allowlisted_final_url_without_redirect_flag(self):
-        # External final URL still fails closed even if redirected=False.
-        service = _service_with(
-            {
-                MAYOR_URL: TransportResponse(
-                    ok=True,
-                    requested_url=MAYOR_URL,
-                    final_url="https://not-bukgu.example/",
-                    status_code=200,
-                    html=_read_fixture("mayor_page.html"),
-                    retrieved_at=FRESH_RETRIEVED_AT,
-                    redirected=False,
-                )
-            }
+        self._assert_fail(
+            service.retrieve("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT),
+            ErrorCode.EXTERNAL_REDIRECT,
         )
-        result = service.retrieve("구청장 누구야", evaluated_at=EVALUATED_AT)
-        self._assert_fail_closed(result, ErrorCode.EXTERNAL_ORIGIN)
 
-    def test_unsuccessful_never_guesses_fact(self):
-        service = OfficialSourceFreshnessService()
-        for question in ("날씨", "구청장 누구야", "관할 구역 이름"):
-            result = service.retrieve(question, evaluated_at=EVALUATED_AT)
-            if not result.success:
-                assert result.fact is None
-                assert result.error_code is not None
+    def test_explicit_fact_kind_request(self):
+        service = _service_with(
+            {MAYOR_URL: _ok_response(MAYOR_URL, _read_fixture("mayor_page.html"))}
+        )
+        result = service.retrieve_request(
+            OfficialSourceRequest(
+                question="ignored",
+                fact_kind=FactKind.CURRENT_MAYOR,
+                evaluated_at=EVALUATED_AT,
+            )
+        )
+        assert result.ok is True
+        assert result.value == "픽스처성명"

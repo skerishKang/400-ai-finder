@@ -1,34 +1,34 @@
-"""Freshness metadata: retrieved-at timestamps and fresh/stale assessment."""
+"""Freshness metadata: retrieved-at timestamps and fresh/stale assessment.
+
+Deterministic tests must inject ``evaluated_at`` (or a clock callable) and
+must not depend on the real wall clock.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Final
+from typing import Callable, Final
 
 from .models import FreshnessStatus
+from .policy import DEFAULT_CLOCK_SKEW_SECONDS, DEFAULT_MAX_AGE_SECONDS
 
-_ISO_Z_RE_SUFFIX: Final[str] = "Z"
+Clock = Callable[[], datetime]
 
 
 class InvalidTimestampError(ValueError):
-    """Raised when a retrieved-at / evaluated-at timestamp cannot be parsed."""
+    """Raised when a retrieved-at / evaluated-at timestamp cannot be used."""
 
 
 def parse_utc_timestamp(value: str) -> datetime:
     """Parse an ISO-8601 UTC timestamp into an aware datetime.
 
-    Accepts:
-      * ``2026-07-15T06:37:53Z``
-      * ``2026-07-15T06:37:53+00:00``
-      * ``2026-07-15T06:37:53.848Z``
-
+    Accepts ``...Z`` and ``...+00:00`` (optional fractional seconds).
     Rejects naive timestamps, empty strings, and non-UTC offsets.
     """
     if not isinstance(value, str) or not value.strip():
         raise InvalidTimestampError("timestamp must be a non-empty string")
     raw = value.strip()
-    # Normalize trailing Z to +00:00 for fromisoformat.
     if raw.endswith("Z"):
         raw = raw[:-1] + "+00:00"
     try:
@@ -69,31 +69,56 @@ class FreshnessAssessment:
 
 def assess_freshness(
     *,
-    retrieved_at: str,
-    max_age_seconds: int,
+    retrieved_at: str | None,
+    max_age_seconds: int = DEFAULT_MAX_AGE_SECONDS,
     evaluated_at: str | None = None,
+    clock: Clock | None = None,
+    clock_skew_seconds: int = DEFAULT_CLOCK_SKEW_SECONDS,
 ) -> FreshnessAssessment:
-    """Compare retrieval time to evaluation clock and max age.
+    """Compare retrieval time to an evaluation clock and max age.
 
-    Raises ``InvalidTimestampError`` for unusable timestamps.
+    * Missing ``retrieved_at`` → status ``unknown`` (caller may fail closed).
+    * Unparseable / naive / beyond skew future → raises ``InvalidTimestampError``
+      (caller maps to ``invalid`` freshness + ``invalid_timestamp`` failure).
     """
     if not isinstance(max_age_seconds, int) or isinstance(max_age_seconds, bool):
         raise InvalidTimestampError("max_age_seconds must be an int")
     if max_age_seconds < 0:
         raise InvalidTimestampError("max_age_seconds must be >= 0")
+    if not isinstance(clock_skew_seconds, int) or clock_skew_seconds < 0:
+        raise InvalidTimestampError("clock_skew_seconds must be an int >= 0")
 
-    retrieved = parse_utc_timestamp(retrieved_at)
-    if evaluated_at is None or evaluated_at == "":
-        evaluated = datetime.now(timezone.utc)
-        evaluated_label = format_utc_timestamp(evaluated)
-    else:
+    if evaluated_at:
         evaluated = parse_utc_timestamp(evaluated_at)
         evaluated_label = format_utc_timestamp(evaluated)
+    elif clock is not None:
+        evaluated = clock()
+        if evaluated.tzinfo is None:
+            raise InvalidTimestampError("clock must return timezone-aware datetime")
+        evaluated = evaluated.astimezone(timezone.utc)
+        evaluated_label = format_utc_timestamp(evaluated)
+    else:
+        # Production fallback only — tests must inject evaluated_at/clock.
+        evaluated = datetime.now(timezone.utc)
+        evaluated_label = format_utc_timestamp(evaluated)
 
+    if retrieved_at is None or (isinstance(retrieved_at, str) and not retrieved_at.strip()):
+        return FreshnessAssessment(
+            status=FreshnessStatus.UNKNOWN,
+            age_seconds=None,
+            max_age_seconds=max_age_seconds,
+            retrieved_at="",
+            evaluated_at=evaluated_label,
+        )
+
+    retrieved = parse_utc_timestamp(retrieved_at)
     age = (evaluated - retrieved).total_seconds()
+    if age < -float(clock_skew_seconds):
+        raise InvalidTimestampError(
+            "retrieved_at is in the future beyond allowed clock skew"
+        )
     if age < 0:
-        # Future retrieval clock is treated as invalid metadata.
-        raise InvalidTimestampError("retrieved_at is in the future relative to evaluated_at")
+        age = 0.0
 
     status = FreshnessStatus.FRESH if age <= max_age_seconds else FreshnessStatus.STALE
     return FreshnessAssessment(
@@ -106,6 +131,8 @@ def assess_freshness(
 
 
 __all__ = [
+    "Clock",
+    "DEFAULT_MAX_AGE_SECONDS",
     "FreshnessAssessment",
     "InvalidTimestampError",
     "assess_freshness",

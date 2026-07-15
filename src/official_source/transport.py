@@ -1,7 +1,7 @@
 """Transport interface and mock provider for official-source retrieval.
 
-Phase 1 ships only a mock transport. Construction and default use perform
-no network I/O. A live transport is intentionally not provided here.
+Importing and constructing transports performs no network I/O.
+Phase 1 routine tests use ``MockOfficialSourceTransport`` only.
 """
 
 from __future__ import annotations
@@ -10,10 +10,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from .models import OfficialSourceRequest
+
 
 @dataclass(frozen=True)
 class TransportResponse:
-    """Raw transport outcome for a single official-source request URL."""
+    """Raw transport outcome for one official-source request."""
 
     ok: bool
     requested_url: str
@@ -26,6 +28,9 @@ class TransportResponse:
     error: str = ""
     timed_out: bool = False
     redirected: bool = False
+    # When True, mock raises a transport exception (caught by service).
+    raise_exception: bool = False
+    exception_message: str = ""
     extra: Mapping[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -41,12 +46,14 @@ class TransportResponse:
             "error": self.error,
             "timed_out": self.timed_out,
             "redirected": self.redirected,
+            "raise_exception": self.raise_exception,
+            "exception_message": self.exception_message,
             "extra": dict(self.extra),
         }
 
 
 class OfficialSourceTransport(ABC):
-    """Abstract transport. Implementations must not run network on import."""
+    """Injectable transport. Implementations must not network on import."""
 
     @property
     @abstractmethod
@@ -54,16 +61,20 @@ class OfficialSourceTransport(ABC):
         ...
 
     @abstractmethod
-    def fetch(self, url: str) -> TransportResponse:
-        """Fetch ``url`` and return a transport response (no exceptions for I/O)."""
+    def fetch(self, request: OfficialSourceRequest) -> TransportResponse:
+        """Fetch the request target. Prefer structured responses over exceptions."""
         ...
+
+
+class TransportException(RuntimeError):
+    """Simulated transport-layer failure for mock/tests."""
 
 
 class MockOfficialSourceTransport(OfficialSourceTransport):
     """In-memory mock transport for deterministic unit tests.
 
-    Configure per-URL responses via ``responses``. Missing URLs fail closed
-    with ``ok=False`` (MISSING-style transport failure), never invent content.
+    Keyed by ``request.target_url`` (or ``request.question`` fallback).
+    Missing keys fail closed — never invent content.
     """
 
     def __init__(
@@ -87,12 +98,12 @@ class MockOfficialSourceTransport(OfficialSourceTransport):
     def set_response(self, url: str, response: TransportResponse) -> None:
         self._responses[url] = response
 
-    def fetch(self, url: str) -> TransportResponse:
+    def fetch(self, request: OfficialSourceRequest) -> TransportResponse:
+        url = request.target_url or ""
         self._call_log.append(url)
-        if url in self._responses:
-            return self._responses[url]
-        if self._default_failure is not None:
-            return TransportResponse(
+        response = self._responses.get(url)
+        if response is None and self._default_failure is not None:
+            response = TransportResponse(
                 ok=self._default_failure.ok,
                 requested_url=url,
                 final_url=self._default_failure.final_url or url,
@@ -104,26 +115,35 @@ class MockOfficialSourceTransport(OfficialSourceTransport):
                 error=self._default_failure.error or "mock_default_failure",
                 timed_out=self._default_failure.timed_out,
                 redirected=self._default_failure.redirected,
+                raise_exception=self._default_failure.raise_exception,
+                exception_message=self._default_failure.exception_message,
                 extra=self._default_failure.extra,
             )
-        return TransportResponse(
-            ok=False,
-            requested_url=url,
-            final_url=url,
-            status_code=0,
-            error="mock_transport_no_response_configured",
-            retrieved_at="",
-        )
+        if response is None:
+            return TransportResponse(
+                ok=False,
+                requested_url=url,
+                final_url=url,
+                status_code=0,
+                error="mock_transport_no_response_configured",
+                retrieved_at="",
+            )
+        if response.raise_exception:
+            raise TransportException(
+                response.exception_message or response.error or "mock_transport_exception"
+            )
+        return response
 
 
 class LiveTransportNotAuthorized(OfficialSourceTransport):
-    """Explicit fail-closed stand-in: live retrieval is not authorized in Phase 1."""
+    """Fail-closed stand-in: live retrieval is not authorized in Phase 1."""
 
     @property
     def name(self) -> str:
         return "live_not_authorized"
 
-    def fetch(self, url: str) -> TransportResponse:
+    def fetch(self, request: OfficialSourceRequest) -> TransportResponse:
+        url = request.target_url or ""
         return TransportResponse(
             ok=False,
             requested_url=url,
@@ -138,5 +158,6 @@ __all__ = [
     "LiveTransportNotAuthorized",
     "MockOfficialSourceTransport",
     "OfficialSourceTransport",
+    "TransportException",
     "TransportResponse",
 ]
