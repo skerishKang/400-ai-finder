@@ -809,3 +809,149 @@ class TestReportEvidenceParity:
             assert agg[mode_name]["median_action_step_count_success"] == expected_success, (
                 f"{mode_name} median_action_step_count_success mismatch"
             )
+
+
+# ---------------------------------------------------------------------------
+# Report must reflect the current passing 30-run evidence (not stale failures)
+# ---------------------------------------------------------------------------
+
+
+class TestReportEvidenceConsistency:
+    """Markdown report must agree with the refreshed JSON evidence aggregates.
+
+    Asserts success totals, per-mode 15/15, zero wrong routes, Stage 5 blocked
+    wording, mock-adapter limitation, and absence of a winner declaration.
+    Does not hard-code volatile elapsed milliseconds.
+    """
+
+    STALE_FAILURE_PHRASES = (
+        "deterministic 12/15",
+        "Page Agent 3/15",
+        "Page Agent 4/5 scenario",
+        "official-content route failures",
+        "mayor deterministic route failure",
+        "det 80% vs pa 20%",
+        "det 80.0% vs pa 20.0%",
+        "80.0% | 20.0%",
+        "성공 | 12 | 3",
+        "실패 | 3 | 12",
+        "30 / 15 / 15",
+        "성공률 | 50.0%",
+        "Total wrong route actions | 3 | 12",
+        "Total wrong route actions | 15 (deterministic 3 + page_agent 12)",
+        "page_agent | 0/3 | official-content",
+        "mayor_proposal_writing | deterministic | 0/3 | home",
+        "4/5 scenarios 0/3",
+        "12/15 wrong route",
+        "3/15 wrong route",
+    )
+
+    @pytest.fixture(autouse=True)
+    def load(self):
+        if not os.path.isfile(_EVIDENCE_PATH):
+            pytest.skip("evidence not yet generated")
+        if not os.path.isfile(_REPORT_PATH):
+            pytest.skip("report not yet generated")
+        self.data = _read_json(_EVIDENCE_PATH)
+        self.report = _read(_REPORT_PATH)
+        self.agg = self.data["aggregate"]
+        self.by_mode = self.agg["by_mode"]
+
+    def test_evidence_is_full_pass(self):
+        assert self.agg["total_runs"] == 30
+        assert self.agg["successful"] == 30
+        assert self.agg["failed"] == 0
+        assert abs(self.agg["success_rate"] - 1.0) < 1e-9
+        assert self.by_mode["deterministic"]["successful"] == 15
+        assert self.by_mode["deterministic"]["failed"] == 0
+        assert self.by_mode["page_agent"]["successful"] == 15
+        assert self.by_mode["page_agent"]["failed"] == 0
+        assert self.by_mode["deterministic"]["total_wrong_route_actions"] == 0
+        assert self.by_mode["page_agent"]["total_wrong_route_actions"] == 0
+        assert self.agg.get("reproducibility") is True
+
+    def test_report_contains_overall_30_30_0(self):
+        assert "30 / 30 / 0" in self.report, (
+            "Report must state overall total/success/fail as 30 / 30 / 0"
+        )
+        assert re.search(r"성공률\s*\|\s*100%", self.report) or "100%" in self.report
+
+    def test_report_contains_mode_15_of_15(self):
+        text = self.report
+        assert re.search(r"deterministic\s+15/15", text, re.IGNORECASE) or (
+            "deterministic" in text and "15/15" in text
+        )
+        assert re.search(r"Page Agent:\s*15/15", text) or (
+            "Page Agent" in text and "15/15" in text
+        )
+        # Mode aggregate table rows: success 15 / fail 0 for both modes
+        assert re.search(
+            r"\|\s*성공\s*\|\s*15\s*\|\s*15\s*\|",
+            text,
+        ), "Report mode table must show success 15 | 15"
+        assert re.search(
+            r"\|\s*실패\s*\|\s*0\s*\|\s*0\s*\|",
+            text,
+        ), "Report mode table must show failed 0 | 0"
+
+    def test_report_wrong_route_zero(self):
+        text = self.report
+        assert re.search(
+            r"Total wrong route actions\s*\|\s*0\s*\|\s*0\s*\|",
+            text,
+        ), "Mode table must show Total wrong route actions | 0 | 0"
+        assert "deterministic 0 + page_agent 0" in text
+        assert re.search(r"wrong route\s*0", text, re.IGNORECASE)
+
+    def test_report_stage5_blocked_not_executed(self):
+        assert "## Stage 5 Live-Provider Validation" in self.report
+        assert "BLOCKED / NOT EXECUTED" in self.report
+        assert "No live provider/API call was performed." in self.report
+        assert "offline/mock parity evidence only" in self.report
+
+    def test_report_mentions_mock_adapter_limitation(self):
+        text = self.report.lower()
+        assert "mock adapter" in text or "resident mock adapter" in text
+        assert "실제 llm이 아니라" in text or "not a real llm" in text or "not a live llm" in text
+
+    def test_report_no_winner_declaration(self):
+        text = self.report
+        assert "위너 선언 없음" in text or "no winner" in text.lower()
+        for pattern in FORBIDDEN_WINNER_PATTERNS:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            assert not matches, f"Forbidden winner pattern in report: {matches}"
+        # Explicit non-claim of superiority from success-rate comparison
+        assert "한 모드의 우수성" in text or "우수하다고 결론 내리지" in text
+
+    def test_stale_failure_phrases_absent(self):
+        text = self.report
+        for phrase in self.STALE_FAILURE_PHRASES:
+            assert phrase not in text, f"Stale failure phrase still present: {phrase!r}"
+
+    def test_report_safety_zeros_align_with_evidence(self):
+        runs = self.data["primary_runs"]
+        assert sum(r["external_request_count"] for r in runs) == 0
+        assert sum(r["request_failure_count"] for r in runs) == 0
+        assert sum(r["console_error_count"] for r in runs) == 0
+        assert sum(r["page_error_count"] for r in runs) == 0
+        assert all(r["no_submit_preserved"] is True for r in runs)
+        text = self.report
+        assert "External request (합계) | 0" in text or "외부 요청" in text
+        assert "Request failure (합계) | 0" in text or "request failure" in text.lower()
+        assert "Console error (합계) | 0" in text
+        assert "Page error (합계) | 0" in text
+        assert "No-submit 위반 | 0" in text or "no-submit 위반" in text.lower()
+
+    def test_report_reproducibility_true(self):
+        assert self.agg.get("reproducibility") is True
+        assert re.search(r"[Rr]eproducibility\s*\|\s*true", self.report) or (
+            "reproducibility: true" in self.report.lower()
+        )
+
+    def test_report_keeps_valid_limitations(self):
+        text = self.report
+        assert "streetlight_report" in text
+        assert "elapsed" in text.lower()
+        assert "action step" in text.lower() or "action-step" in text.lower()
+        assert "Chrome" in text or "chrome" in text
+        assert "static" in text.lower() or "정적" in text

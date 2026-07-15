@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 북구청 비교 · 정밀 구현형 vs Page Agent형</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    background: #f7f8fa;
+    color: #1a1a2e;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid #e4e4ea;
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header .logo {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #1a1a2e;
+    text-decoration: none;
+  }
+  header .logo span { color: #0e7c7b; }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+    flex: 1;
+  }
+  .page-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+  }
+  .page-sub {
+    color: #6b6b7a;
+    font-size: 0.95rem;
+    margin-bottom: 48px;
+    line-height: 1.55;
+  }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 600px) {
+    .compare-grid { grid-template-columns: 1fr; }
+  }
+  .product-card {
+    background: #fff;
+    border: 1.5px solid #e4e4ea;
+    border-radius: 18px;
+    padding: 32px 28px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+    cursor: pointer;
+  }
+  .product-card:hover {
+    border-color: #0e7c7b;
+    box-shadow: 0 4px 24px rgba(14,124,123,0.1);
+    transform: translateY(-2px);
+  }
+  .product-card:focus-visible {
+    outline: 3px solid #0e7c7b;
+    outline-offset: 3px;
+  }
+  .card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #0e7c7b;
+    background: #eefaf9;
+    border: 1px solid #b0e4e3;
+    border-radius: 100px;
+    padding: 4px 10px;
+    width: fit-content;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+    color: #1a1a2e;
+  }
+  .card-desc {
+    font-size: 0.875rem;
+    color: #6b6b7a;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    flex: 1;
+  }
+  .card-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .card-features li {
+    font-size: 0.82rem;
+    color: #4a4a5a;
+    padding-left: 18px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .card-features li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0e7c7b;
+    opacity: 0.6;
+  }
+  .card-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #0e7c7b;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 12px 20px;
+    text-decoration: none;
+    transition: background 0.15s;
+    margin-top: auto;
+  }
+  .product-card:hover .card-cta { background: #0a6b6a; }
+  .product-card--pa .card-badge {
+    color: #7c5e0e;
+    background: #fef9e7;
+    border-color: #f0d98c;
+  }
+  .product-card--pa:hover {
+    border-color: #c97d0e;
+    box-shadow: 0 4px 24px rgba(196,125,14,0.1);
+  }
+  .product-card--pa .card-features li::before { background: #c97d0e; }
+  .product-card--pa .card-cta { background: #c97d0e; }
+  .product-card--pa:hover .card-cta { background: #a56808; }
+  footer {
+    background: #fff;
+    border-top: 1px solid #e4e4ea;
+    padding: 20px 24px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #9b9ba5;
+  }
+  .footer-note { margin-top: 4px; font-size: 0.78rem; color: #b0b0bc; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../" class="logo">🏛️ <span>북구청</span> AI 안내</a>
+</header>
+
+<div class="container">
+  <h1 class="page-title">AI 북구청 비교</h1>
+  <p class="page-sub">
+    같은 북구청 안내 작업을 두 가지 다른 방식으로 구현했습니다.<br>
+    원하는 구현 방식을 선택하여 시연을 진행할 수 있습니다.
+  </p>
+
+  <div class="compare-grid">
+
+    <a class="product-card" href="../mvp/" tabindex="0" aria-label="정밀 구현형 AI 북구청 시작">
+      <div class="card-badge">🛠️ 정밀 구현형</div>
+      <h2 class="card-title">정밀 구현형 AI 북구청</h2>
+      <p class="card-desc">
+        미리 작성된 경로·전환·답변 플로우를 따라 동작하는 결정적(deterministic) 구현입니다.
+        모든 안내 경로가 사전에 프로그래밍되어 있어 높은 안정성과 재현성을 보장합니다.
+      </p>
+      <ul class="card-features">
+        <li>미리 작성된 안내 시나리오</li>
+        <li>결정적 경로 탐색</li>
+        <li>높은 안정성과 재현성</li>
+        <li>빠른 응답 시간</li>
+      </ul>
+      <div class="card-cta">시작하기 →</div>
+    </a>
+
+    <a class="product-card product-card--pa" href="../examples/page-agent/resident/" tabindex="0" aria-label="Page Agent형 AI 북구청 시작">
+      <div class="card-badge">🤖 Page Agent형</div>
+      <h2 class="card-title">Page Agent형 AI 북구청</h2>
+      <p class="card-desc">
+        AI 모델이 북구청 화면의 요소를 직접 조작하며 안내하는 방식입니다.
+        북구청 안내 화면에서 실제 DOM 작업을 통해 동적으로 경로를 탐색합니다.
+      </p>
+      <ul class="card-features">
+        <li>실제 DOM 조작 기반 탐색</li>
+        <li>관찰 가능한 AI 작업 로그</li>
+        <li>동적 경로 계획</li>
+        <li>사람이 클릭하는 동작을 AI가 수행</li>
+      </ul>
+      <div class="card-cta">시작하기 →</div>
+    </a>
+
+  </div>
+</div>
+
+<footer>
+  두 구현 모두 동일한 주민 안내 데이터를 사용하며 실제 북구청 공식 사이트를 직접 제어하지 않습니다.
+  <div class="footer-note">
+    비교 데모 · 모든 안내는 오프라인 환경에서 안전하게 실행됩니다
+  </div>
+</footer>
+
+</body>
+</html>
