@@ -1296,19 +1296,29 @@
         chatShell.removeAttribute("inert");
         chatShell.setAttribute("aria-hidden", "false");
       }
+      if (chatThread) {
+        chatThread.removeAttribute("aria-hidden");
+      }
       if (canvas) {
         canvas.setAttribute("inert", "");
         canvas.setAttribute("aria-hidden", "true");
       }
     } else if (surface === "guidance") {
-      // Activate guidance: canvas interactive, chat-shell inert+hidden.
+      // Activate guidance: canvas interactive. #1174: keep the same chat-shell
+      // (and composer) non-inert so multi-step 예-flow never drops the
+      // composer to 0×0 / inaccessible — header/thread hide via CSS only.
       if (canvas) {
         canvas.removeAttribute("inert");
         canvas.setAttribute("aria-hidden", "false");
       }
       if (chatShell) {
-        chatShell.setAttribute("inert", "");
-        chatShell.setAttribute("aria-hidden", "true");
+        chatShell.removeAttribute("inert");
+        chatShell.setAttribute("aria-hidden", "false");
+      }
+      if (chatThread) {
+        // Thread is visually hidden on guidance; keep it out of the a11y tree
+        // while the docked composer remains operable.
+        chatThread.setAttribute("aria-hidden", "true");
       }
     }
   }
