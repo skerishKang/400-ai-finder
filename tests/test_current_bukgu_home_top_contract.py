@@ -1,4 +1,4 @@
-"""Contract checks for the #868 current Buk-gu home top viewport."""
+"""#1170: home top contracts — fixture-driven home replaces #868 synthetic top."""
 
 from pathlib import Path
 
@@ -6,13 +6,16 @@ ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "src" / "web" / "static"
 JS = (STATIC / "citizen-action-demo-canvas.js").read_text(encoding="utf-8")
 CSS = (STATIC / "citizen-action-demo-canvas.css").read_text(encoding="utf-8")
+FIXTURE_JS = (STATIC / "bukgu-home-clone-fixture.js").read_text(encoding="utf-8")
+HTML = (STATIC / "citizen-action-demo.html").read_text(encoding="utf-8")
 
 
 def _home_block() -> str:
     start = JS.index("  function _renderHome(")
-    # Find end of _renderHome function (next top-level function or utility)
-    candidates = ["\n  // -----------------------------------------------------------------------\n  // _renderCivilService",
-                  "\n  function _renderCivilService"]
+    candidates = [
+        "\n  // -----------------------------------------------------------------------\n  // _renderCivilService",
+        "\n  function _renderCivilService",
+    ]
     end = len(JS)
     for c in candidates:
         idx = JS.find(c, start + 50)
@@ -21,112 +24,52 @@ def _home_block() -> str:
     return JS[start:end]
 
 
-def test_current_home_uses_approved_identity_and_exact_gnb_order():
+def test_home_renderer_is_fixture_driven():
     home = _home_block()
-    assert 'alt="전남광주통합특별시북구"' in home
-    assert 'data-action-target="nav-civil-service">종합민원' in home
-    expected = ["종합민원", "소통광장", "더불어복지", "분야별정보", "정보공개", "북구소개"]
-    offsets = [home.index(label) for label in expected]
-    assert offsets == sorted(offsets)
-
-    # Validate quick service order and labels
-    expected_quick = [
-        "업무검색",
-        "청사안내",
-        "고향사랑기부제",
-        "부끄머니",
-        "통합예약",
-        "일반민원 대기현황",
-    ]
-    for label in expected_quick:
-        assert label in home
-    quick_offsets = [home.index(label) for label in expected_quick]
-    assert quick_offsets == sorted(quick_offsets)
-    assert "부꾸머니" not in home
-
-    assert 'alt="빛나는 북구, 함께하는 북구 - 행복한 구민을 위한 따뜻한 변화"' in home
-    assert 'alt="내 삶이 행복한 주민주권도시 으뜸북구"' not in home
-
-    expected_hashtags = [
-        "#공동주택과",
-        "#위생과",
-        "#폐기물",
-        "#부끄머니",
-    ]
-    for label in expected_hashtags:
-        assert label in home
-    hashtag_offsets = [home.index(label) for label in expected_hashtags]
-    assert hashtag_offsets == sorted(hashtag_offsets)
-    for legacy_tag in ["#주정차", "#채용", "#건축과"]:
-        assert legacy_tag not in home
-
-    expected_notice_tabs = [
-        "공지사항",
-        "보도자료",
-        "고시/공고",
-    ]
-    for label in expected_notice_tabs:
-        assert label in home
-    notice_offsets = [home.index(label) for label in expected_notice_tabs]
-    assert notice_offsets == sorted(notice_offsets)
-    for legacy_tab in ["고시공고", "입찰공고", "채용공고", "문화행사"]:
-        assert legacy_tab not in home
-
-
-def test_current_home_top_uses_only_approved_derived_assets():
-    home = _home_block()
-    # Default R-HOME-01 asset set
-    assets = [
-        "home-government-notice.png",
-        "home-identity.png",
-        "home-civic-brand.png",
-        "home-mayor-card.png",
-        "home-alert-banner.png",
-        "home-quick-work.png",
-        "home-quick-office.png",
-        "home-quick-donation.png",
-        "home-quick-money.png",
-        "home-quick-reservation.png",
-        "home-quick-waiting.png",
-    ]
-    for asset in assets:
-        assert asset in home, f"default asset {asset} missing from home block"
-        assert (STATIC / "images" / "bukgu-current" / asset).is_file(), f"file missing: {asset}"
-    # Alternate R-HOME-02 state asset must exist as file (used via ?home-reference=R-HOME-02)
-    assert "home-alert-banner-r-home-02.png" in JS, "R-HOME-02 alternate asset not referenced in JS"
-    assert (STATIC / "images" / "bukgu-current" / "home-alert-banner-r-home-02.png").is_file(), "R-HOME-02 crop file missing"
+    assert "_getCanonicalHomeFixture" in JS
+    assert "__BUKGU_HOME_CLONE_FIXTURE__" in home or "__BUKGU_HOME_CLONE_FIXTURE__" in JS
+    assert "data-home-fixture-sha256" in JS
+    assert "data-home-region-id" in JS
+    assert "home-mayor-card.png" not in home
+    assert "home-alert-banner.png" not in home
     assert "bukgu_home.png" not in home
-    assert "bukgu_menu.png" not in home
-    assert "bukgu_intake.png" not in home
 
 
-def test_current_home_has_semantic_top_structure_and_no_legacy_english_utility():
-    home = _home_block()
-    for class_name in [
-        "bg-home-gov-strip",
-        "bg-home-utility",
-        "bg-home-header",
-        "bg-home-gnb",
-        "bg-home-search",
-        "bg-home-lead",
-        "bg-home-quick",
-        "bg-home-notice-sites",
+def test_projection_script_loads_before_canvas():
+    assert "bukgu-home-clone-fixture.js" in HTML
+    assert HTML.index("bukgu-home-clone-fixture.js") < HTML.index(
+        "citizen-action-demo-canvas.js"
+    )
+
+
+def test_projection_contains_canonical_regions_and_sha():
+    assert "81b27b98fadc091ca852079f89ea93da45b93f250372835b8b352726b2faeaed" in FIXTURE_JS
+    for rid in [
+        "utility_navigation",
+        "main_banner",
+        "resident_service_shortcuts",
+        "notice_news",
+        "related_site_controls",
+        "footer_identity_contact",
     ]:
-        assert class_name in home
-    for old_label in ["English", "Chinese", "Site Map", "LOGIN", "JOIN"]:
-        assert old_label not in home
+        assert rid in FIXTURE_JS
 
 
-def test_current_home_css_is_scoped_to_home_root():
-    for selector in [
-        "bg-home-gov-strip",
-        "bg-home-utility",
-        "bg-home-header",
-        "bg-home-gnb",
-        "bg-home-search",
-        "bg-home-lead",
-        "bg-home-quick",
-        "bg-home-notice-sites",
+def test_fixture_css_is_scoped_to_home_root():
+    assert ".bg-page--home .bg-home-fixture-root" in CSS
+    assert ".bg-page--home .bg-home-fixture-region" in CSS
+    assert ".bg-page--home .bg-home-fixture-item--hidden" in CSS
+    assert "body {" not in CSS[CSS.index(".bg-home-fixture-root") : CSS.index(".bg-home-fixture-root") + 400]
+
+
+def test_page_agent_home_targets_have_exact_mapping_evidence():
+    for target in [
+        "nav-civil-service",
+        "nav-complaint-board",
+        "nav-apartment-dept",
+        "nav-passport-guidance",
+        "nav-bulky-waste-disposal",
+        "mayor-office-open",
     ]:
-        assert f".bg-page--home .{selector}" in CSS
-    assert "/* #868 current Buk-gu home top viewport */" in CSS
+        assert target in FIXTURE_JS
+        assert target in JS
