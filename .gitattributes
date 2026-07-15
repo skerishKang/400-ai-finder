@@ -4,3 +4,8 @@
 # never applies line-ending conversion on checkout.
 src/web/examples/page-agent/vendor/LICENSE -text
 src/web/examples/page-agent/vendor/page-agent.iife.js -text
+
+# #1160/#1166 official home capture + generated clone fixture are byte-stable
+# checksum identity sources. Keep LF bytes on every OS checkout.
+data/official_captures/bukgu_gwangju/home/** -text
+data/official_clone_fixtures/** -text
