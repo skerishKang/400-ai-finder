@@ -40,11 +40,23 @@ FIXTURE_PATH = (
 )
 
 GENERATOR_ID = "scripts/build_official_home_clone_fixture.py"
-GENERATOR_VERSION = "1.0.0"
+GENERATOR_VERSION = "1.1.0"
 SCHEMA_VERSION = 1
 FIXTURE_KIND = "official_home_clone_fixture"
 APPROVED_HOST = "bukgu.gwangju.kr"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+# Regions segmented from committed raw HTML (#1168).
+HTML_SEGMENTED_REGION_IDS = frozenset(
+    {
+        "utility_navigation",
+        "main_banner",
+        "resident_service_shortcuts",
+        "notice_news",
+        "related_site_controls",
+        "footer_identity_contact",
+    }
+)
 
 # Regions the clone plan expects. Only mark ready when capture evidence exists.
 EXPECTED_REGION_SPECS: tuple[dict[str, str], ...] = (
@@ -63,8 +75,8 @@ EXPECTED_REGION_SPECS: tuple[dict[str, str], ...] = (
     {
         "region_id": "utility_navigation",
         "label": "utility navigation",
-        "evidence_mode": "unresolved",
-        "evidence_value": "no deterministic source boundary distinct from global header nav",
+        "evidence_mode": "html_segment",
+        "evidence_value": "utility_navigation",
     },
     {
         "region_id": "global_navigation",
@@ -75,26 +87,26 @@ EXPECTED_REGION_SPECS: tuple[dict[str, str], ...] = (
     {
         "region_id": "main_banner",
         "label": "main/banner regions",
-        "evidence_mode": "unresolved",
-        "evidence_value": "no deterministic source boundary in capture hierarchy",
+        "evidence_mode": "html_segment",
+        "evidence_value": "main_banner",
     },
     {
         "region_id": "resident_service_shortcuts",
         "label": "resident service shortcuts",
-        "evidence_mode": "unresolved",
-        "evidence_value": "no deterministic source boundary in capture hierarchy",
+        "evidence_mode": "html_segment",
+        "evidence_value": "resident_service_shortcuts",
     },
     {
         "region_id": "notice_news",
         "label": "notice/news regions",
-        "evidence_mode": "unresolved",
-        "evidence_value": "no deterministic source boundary in capture hierarchy",
+        "evidence_mode": "html_segment",
+        "evidence_value": "notice_news",
     },
     {
         "region_id": "related_site_controls",
         "label": "related-site controls",
-        "evidence_mode": "unresolved",
-        "evidence_value": "no deterministic source boundary in capture hierarchy",
+        "evidence_mode": "html_segment",
+        "evidence_value": "related_site_controls",
     },
     {
         "region_id": "footer_navigation",
@@ -105,8 +117,8 @@ EXPECTED_REGION_SPECS: tuple[dict[str, str], ...] = (
     {
         "region_id": "footer_identity_contact",
         "label": "footer identity/contact/copyright regions",
-        "evidence_mode": "unresolved",
-        "evidence_value": "footer section captured as links only; identity/contact blocks not separately bounded",
+        "evidence_mode": "html_segment",
+        "evidence_value": "footer_identity_contact",
     },
     {
         "region_id": "document_skip_and_misc",
@@ -416,7 +428,10 @@ def build_assets(
 
 
 def build_regions(
-    nav: Mapping[str, Any], navigation_items: list[dict[str, Any]]
+    nav: Mapping[str, Any],
+    navigation_items: list[dict[str, Any]],
+    *,
+    html_segmentation: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     hierarchy = list(nav.get("hierarchy") or [])
     hierarchy_order = {
@@ -427,6 +442,10 @@ def build_regions(
     for item in navigation_items:
         section = item.get("region_identity") or "document"
         by_section.setdefault(str(section), []).append(item["item_id"])
+
+    html_regions: dict[str, Any] = {}
+    if html_segmentation and isinstance(html_segmentation.get("regions"), Mapping):
+        html_regions = dict(html_segmentation["regions"])
 
     regions: list[dict[str, Any]] = []
     # First emit hierarchy nodes in capture order (header then footer).
@@ -465,7 +484,44 @@ def build_regions(
             "navigation_item_ids": [],
             "reason": None,
         }
-        if mode == "unresolved":
+        if mode == "html_segment":
+            seg = html_regions.get(value) or html_regions.get(spec["region_id"])
+            if not isinstance(seg, Mapping):
+                region["status"] = "unresolved"
+                region["reason"] = "html segmentation missing for region"
+                region["source_evidence"] = {
+                    "status": "unresolved",
+                    "reason": region["reason"],
+                }
+                region["candidate_count"] = 0
+                region["item_count"] = 0
+                region["items"] = []
+            else:
+                region["status"] = seg.get("status") or "unresolved"
+                region["reason"] = seg.get("reason")
+                region["source_evidence"] = seg.get("source_evidence")
+                region["secondary_evidence"] = seg.get("secondary_evidence") or []
+                region["candidate_count"] = seg.get("candidate_count")
+                region["item_count"] = seg.get("item_count", len(seg.get("items") or []))
+                region["items"] = list(seg.get("items") or [])
+                region["groups"] = seg.get("groups")
+                region["controls"] = seg.get("controls")
+                region["heading"] = seg.get("heading")
+                region["variant_counts"] = seg.get("variant_counts")
+                se = region.get("source_evidence") or {}
+                if isinstance(se, Mapping) and se.get("source_order") is not None:
+                    region["dom_order"] = se.get("source_order")
+                # Fail closed: resolved without evidence is invalid.
+                if region["status"] != "unresolved":
+                    if not isinstance(se, Mapping) or not se.get("fragment_sha256"):
+                        raise FixtureBuildError(
+                            f"resolved region {spec['region_id']} missing fragment evidence"
+                        )
+                    if not se.get("ancestor_path"):
+                        raise FixtureBuildError(
+                            f"resolved region {spec['region_id']} missing ancestor_path"
+                        )
+        elif mode == "unresolved":
             region["status"] = "unresolved"
             region["reason"] = value
             region["source_evidence"] = {
@@ -535,7 +591,24 @@ def build_fixture() -> dict[str, Any]:
     local_index = index_local_files_by_full_sha256()
     navigation_items = build_navigation_items(nav)
     asset_items = build_assets(assets, local_index)
-    regions = build_regions(nav, navigation_items)
+
+    # #1168: offline HTML region segmentation from committed raw capture only.
+    raw_text = raw.decode("utf-8")
+    try:
+        from src.official_clone.home_region_parser import (  # noqa: WPS433
+            HomeRegionParseError,
+            segment_home_regions,
+        )
+    except ImportError as exc:  # pragma: no cover
+        raise FixtureBuildError(f"home region parser import failed: {exc}") from exc
+    try:
+        html_segmentation = segment_home_regions(raw_text)
+    except HomeRegionParseError as exc:
+        raise FixtureBuildError(f"home region segmentation failed: {exc}") from exc
+
+    regions = build_regions(
+        nav, navigation_items, html_segmentation=html_segmentation
+    )
 
     ready_assets = sum(1 for a in asset_items if a["status"] == "ready-with-existing-local-asset")
     unresolved_assets = sum(1 for a in asset_items if a["status"] == "unresolved-asset")
@@ -545,6 +618,19 @@ def build_fixture() -> dict[str, Any]:
         if r["status"] in ("ready", "fixture-ready-renderer-not-wired")
     )
     unresolved_regions = sum(1 for r in regions if r["status"] == "unresolved")
+    html_ready = sum(
+        1
+        for rid in HTML_SEGMENTED_REGION_IDS
+        for r in regions
+        if r["region_id"] == rid
+        and r["status"] == "fixture-ready-renderer-not-wired"
+    )
+    html_unresolved = sum(
+        1
+        for rid in HTML_SEGMENTED_REGION_IDS
+        for r in regions
+        if r["region_id"] == rid and r["status"] == "unresolved"
+    )
 
     captured_at = source["captured_at"]
     # Derive snapshot date portion from capture metadata only (no wall clock).
@@ -585,6 +671,12 @@ def build_fixture() -> dict[str, Any]:
             "asset_inventory": meta["files"]["asset_inventory"],
             "capture_notes": meta["files"]["capture_notes"],
         },
+        "html_region_segmentation": {
+            "parser_id": html_segmentation.get("parser_id"),
+            "parser_version": html_segmentation.get("parser_version"),
+            "hash_rule": html_segmentation.get("hash_rule"),
+            "counts": html_segmentation.get("counts"),
+        },
         "hierarchy": list(nav.get("hierarchy") or []),
         "regions": regions,
         "navigation": navigation_items,
@@ -593,6 +685,9 @@ def build_fixture() -> dict[str, Any]:
             "regions": len(regions),
             "regions_ready": ready_regions,
             "regions_unresolved": unresolved_regions,
+            "html_target_regions": len(HTML_SEGMENTED_REGION_IDS),
+            "html_target_regions_ready": html_ready,
+            "html_target_regions_unresolved": html_unresolved,
             "navigation_items": len(navigation_items),
             "navigation_blank_labels": nav.get("blank_label_count"),
             "assets": len(asset_items),
