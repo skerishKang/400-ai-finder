@@ -9,8 +9,15 @@
  *   guidance keeps the same #chat-shell as a fixed bottom composer dock
  *   (non-inert); header/thread/chips hide via CSS only; #demo-canvas stays primary.
  *
- * This verifier continuously probes composer geometry/a11y from 예 through
- * multi-step, asserts same DOM node identity, and runs independent sequences:
+ * This verifier continuously probes composer geometry/a11y/operability from 예
+ * through multi-step (fail-closed):
+ *   - start: data-choreography-state=running | data-journey-state=navigate
+ *   - J-DEPT-01 dept-state coverage: menu → directory → result
+ *   - terminal: data-choreography-state=done only (not !ch/idle/cancelled)
+ *   - continuous input.disabled / readOnly / send.disabled = violation
+ *   - mid-flow focus+typing at directory (text not sent)
+ *   - each ask: assistant exact +1 and latest AI has marker
+ * Sequences (independent browser contexts):
  *   A) KO → 예 → multi-step → EN follow-up
  *   B) EN housing action → 예 → multi-step → KO follow-up
  *   C) unsupported → supported housing → 예 → multi-step → follow-up
@@ -272,6 +279,83 @@ async function startProbe(page) {
       }
       return false;
     }
+    function readUrlState() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        urlJourney: params.get("journey") || "",
+        urlDeptState: params.get("dept-state") || "",
+      };
+    }
+    function readRouteId() {
+      try {
+        const api = window.CitizenActionDemoCanvas;
+        if (api && typeof api.getCurrentRouteId === "function") {
+          return String(api.getCurrentRouteId() || "");
+        }
+      } catch {
+        /* ignore */
+      }
+      return "";
+    }
+    function tryOperabilityAtDirectory() {
+      if (window.__1174Probe.operability) return;
+      const url = readUrlState();
+      if (url.urlJourney !== "J-DEPT-01" || url.urlDeptState !== "directory") return;
+      const input = document.getElementById("chat-composer-input");
+      const send = document.getElementById("chat-composer-send");
+      if (!input || !send) return;
+      const PROBE = "[[1174-OPERABILITY-PROBE]]";
+      let focusOk = false;
+      let typeOk = false;
+      let clearOk = false;
+      let sendOk = false;
+      try {
+        input.focus();
+        focusOk = document.activeElement === input && !input.disabled && !input.readOnly;
+        if (focusOk) {
+          input.value = PROBE;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          typeOk = input.value === PROBE;
+          input.value = "";
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          clearOk = input.value === "";
+        }
+        sendOk = !send.disabled;
+      } catch {
+        focusOk = false;
+      }
+      window.__1174Probe.operability = {
+        atDeptState: "directory",
+        focus: focusOk,
+        typing: typeOk,
+        cleared: clearOk,
+        sendEnabled: sendOk,
+        t: performance.now(),
+      };
+    }
+    function recordStateTrace(source) {
+      const url = readUrlState();
+      const entry = {
+        source,
+        t: performance.now(),
+        firstUse: document.body.getAttribute("data-first-use-state") || "",
+        mobileSurface: document.body.getAttribute("data-mobile-surface") || "",
+        journey: document.body.getAttribute("data-journey-state") || "",
+        choreography: document.body.getAttribute("data-choreography-state") || "",
+        routeId: readRouteId(),
+        urlJourney: url.urlJourney,
+        urlDeptState: url.urlDeptState,
+        canvasVisible: (() => {
+          const canvas = document.getElementById("demo-canvas");
+          if (!canvas) return false;
+          const st = getComputedStyle(canvas);
+          const r = canvas.getBoundingClientRect();
+          return st.display !== "none" && st.visibility !== "hidden" && r.width > 0 && r.height > 0;
+        })(),
+      };
+      window.__1174Probe.stateTrace.push(entry);
+      tryOperabilityAtDirectory();
+    }
     function sample() {
       const form = document.getElementById("chat-composer-form");
       const input = document.getElementById("chat-composer-input");
@@ -286,8 +370,24 @@ async function startProbe(page) {
       const fr = rect(form);
       const ir = rect(input);
       const sr = rect(send);
+      const cr = rect(canvas);
       const vh = window.innerHeight;
       const vw = window.innerWidth;
+      const url = readUrlState();
+      const journeyState = document.body.getAttribute("data-journey-state") || "";
+      const choreography = document.body.getAttribute("data-choreography-state") || "";
+      const mobileSurface = document.body.getAttribute("data-mobile-surface") || "";
+      const canvasDisplay = canvas ? getComputedStyle(canvas).display : "missing";
+      const canvasVisible =
+        !!canvas &&
+        canvasDisplay !== "none" &&
+        getComputedStyle(canvas).visibility !== "hidden" &&
+        !!cr &&
+        cr.w > 0 &&
+        cr.h > 0;
+      const inputDisabled = !!(input && input.disabled);
+      const inputReadOnly = !!(input && input.readOnly);
+      const sendDisabled = !!(send && send.disabled);
       const collapse = [];
       if (!form || !form.isConnected) collapse.push("form-disconnected");
       if (!input || !input.isConnected) collapse.push("input-disconnected");
@@ -311,31 +411,123 @@ async function startProbe(page) {
       if (document.querySelectorAll("#chat-composer-form").length !== 1) {
         collapse.push("composer-count-not-1");
       }
+      if (document.querySelectorAll("#chat-shell").length !== 1) collapse.push("shell-count-not-1");
+      if (document.querySelectorAll("#chat-thread").length !== 1) collapse.push("thread-count-not-1");
+      if (document.querySelectorAll("#chat-composer-input").length !== 1) {
+        collapse.push("input-count-not-1");
+      }
+      if (document.querySelectorAll("#chat-composer-send").length !== 1) {
+        collapse.push("send-count-not-1");
+      }
+      if (document.querySelectorAll("#demo-canvas").length !== 1) collapse.push("canvas-count-not-1");
+      // Guidance multi-step probe starts after housing answer (no ask lock).
+      // Composer must stay operable for the entire multi-step window.
+      if (inputDisabled) collapse.push("input-disabled");
+      if (inputReadOnly) collapse.push("input-readonly");
+      if (sendDisabled) collapse.push("send-disabled");
+
+      if (
+        window.__1174Probe.operability &&
+        window.__1174Probe.operability.atDeptState === "directory"
+      ) {
+        const op = window.__1174Probe.operability;
+        if (!op.focus) collapse.push("operability-focus-fail");
+        if (!op.typing) collapse.push("operability-typing-fail");
+        if (!op.cleared) collapse.push("operability-clear-fail");
+        if (!op.sendEnabled) collapse.push("operability-send-disabled");
+      }
+
       return {
         t: performance.now(),
         firstUse: document.body.getAttribute("data-first-use-state") || "",
-        mobileSurface: document.body.getAttribute("data-mobile-surface") || "",
-        journey: document.body.getAttribute("data-journey-state") || "",
-        choreography: document.body.getAttribute("data-choreography-state") || "",
+        mobileSurface,
+        journey: journeyState,
+        choreography,
+        routeId: readRouteId(),
+        urlJourney: url.urlJourney,
+        urlDeptState: url.urlDeptState,
         form: fr,
         input: ir,
         send: sr,
-        inputDisabled: !!(input && input.disabled),
+        inputDisabled,
+        inputReadOnly,
+        sendDisabled,
         shellDisplay: shell ? getComputedStyle(shell).display : "missing",
         shellPosition: shell ? getComputedStyle(shell).position : "",
         shellInert: !!(shell && shell.hasAttribute("inert")),
-        canvasDisplay: canvas ? getComputedStyle(canvas).display : "missing",
-        canvas: rect(canvas),
+        canvasDisplay,
+        canvasVisible,
+        canvas: cr,
         collapse,
         docSW: document.documentElement.scrollWidth,
         vw,
         vh,
       };
     }
-    window.__1174Probe = { samples: [], violations: [], firstCollapse: null };
+    window.__1174Probe = {
+      samples: [],
+      violations: [],
+      firstCollapse: null,
+      inputDisabledViolations: 0,
+      inputReadOnlyViolations: 0,
+      sendDisabledViolations: 0,
+      operability: null,
+      stateTrace: [],
+    };
+
+    // Event/history trace: reduced-motion dept-state can last <1 rAF frame.
+    // Capture every canonical history write + body/choreography transition.
+    if (!window.__1174HistoryPatched) {
+      window.__1174HistoryPatched = true;
+      const push = history.pushState.bind(history);
+      history.pushState = function patchedPushState() {
+        const ret = push.apply(history, arguments);
+        try {
+          recordStateTrace("history.pushState");
+        } catch {
+          /* probe may not exist yet */
+        }
+        return ret;
+      };
+      const replace = history.replaceState.bind(history);
+      history.replaceState = function patchedReplaceState() {
+        const ret = replace.apply(history, arguments);
+        try {
+          recordStateTrace("history.replaceState");
+        } catch {
+          /* ignore */
+        }
+        return ret;
+      };
+    }
+    window.addEventListener("citizen:choreography-statechange", () => {
+      recordStateTrace("citizen:choreography-statechange");
+    });
+    window.addEventListener("citizen:history-commit-request", () => {
+      // Commit request is pre-URL; still useful for start timing.
+      recordStateTrace("citizen:history-commit-request");
+    });
+    const bodyMo = new MutationObserver(() => {
+      recordStateTrace("body-attr");
+    });
+    bodyMo.observe(document.body, {
+      attributes: true,
+      attributeFilter: [
+        "data-choreography-state",
+        "data-journey-state",
+        "data-mobile-surface",
+        "data-first-use-state",
+      ],
+    });
+    window.__1174BodyMo = bodyMo;
+    recordStateTrace("probe-start");
+
     const tick = () => {
       const s = sample();
       window.__1174Probe.samples.push(s);
+      if (s.inputDisabled) window.__1174Probe.inputDisabledViolations += 1;
+      if (s.inputReadOnly) window.__1174Probe.inputReadOnlyViolations += 1;
+      if (s.sendDisabled) window.__1174Probe.sendDisabledViolations += 1;
       if (s.collapse.length && !window.__1174Probe.firstCollapse) {
         window.__1174Probe.firstCollapse = s;
       }
@@ -346,19 +538,121 @@ async function startProbe(page) {
   });
 }
 
+function deriveCoverageFromSamples(samples, stateTrace) {
+  const merged = [];
+  for (const s of samples || []) {
+    merged.push({
+      choreography: s.choreography || "",
+      journey: s.journey || "",
+      urlJourney: s.urlJourney || "",
+      urlDeptState: s.urlDeptState || "",
+      routeId: s.routeId || "",
+      mobileSurface: s.mobileSurface || "",
+      canvasVisible: !!s.canvasVisible,
+      source: "raf",
+    });
+  }
+  for (const s of stateTrace || []) {
+    merged.push({
+      choreography: s.choreography || "",
+      journey: s.journey || "",
+      urlJourney: s.urlJourney || "",
+      urlDeptState: s.urlDeptState || "",
+      routeId: s.routeId || "",
+      mobileSurface: s.mobileSurface || "",
+      canvasVisible: !!s.canvasVisible,
+      source: s.source || "trace",
+    });
+  }
+  const stateSequence = [];
+  let lastKey = "";
+  let seenStart = false;
+  let seenMenu = false;
+  let seenDirectory = false;
+  let seenResult = false;
+  let seenTerminalDone = false;
+  let seenTerminalJourneyResult = false;
+  let sawAnyChoreographyAttr = false;
+  for (const s of merged) {
+    if (s.choreography) sawAnyChoreographyAttr = true;
+    if (s.choreography === "running" || s.journey === "navigate") seenStart = true;
+    if (s.urlJourney === "J-DEPT-01" && s.urlDeptState === "menu") seenMenu = true;
+    if (s.urlJourney === "J-DEPT-01" && s.urlDeptState === "directory") seenDirectory = true;
+    if (s.urlJourney === "J-DEPT-01" && s.urlDeptState === "result") seenResult = true;
+    if (s.choreography === "done") seenTerminalDone = true;
+    if (s.journey === "result") seenTerminalJourneyResult = true;
+    const key = [
+      s.choreography || "-",
+      s.journey || "-",
+      s.urlJourney || "-",
+      s.urlDeptState || "-",
+      s.routeId || "-",
+    ].join("|");
+    if (key !== lastKey) {
+      stateSequence.push({
+        choreography: s.choreography || "",
+        journey: s.journey || "",
+        urlJourney: s.urlJourney || "",
+        urlDeptState: s.urlDeptState || "",
+        routeId: s.routeId || "",
+        mobileSurface: s.mobileSurface || "",
+        canvasVisible: !!s.canvasVisible,
+        source: s.source || "",
+      });
+      lastKey = key;
+    }
+  }
+  return {
+    stateSequence,
+    seenStart,
+    seenMenu,
+    seenDirectory,
+    seenResult,
+    seenTerminalDone,
+    seenTerminalJourneyResult,
+    sawAnyChoreographyAttr,
+    explicitStart: seenStart,
+    explicitTerminal: seenTerminalDone || seenTerminalJourneyResult,
+  };
+}
+
 async function stopProbe(page) {
   return page.evaluate(() => {
     if (window.__1174Raf) cancelAnimationFrame(window.__1174Raf);
-    const p = window.__1174Probe || { samples: [], violations: [], firstCollapse: null };
+    if (window.__1174BodyMo) {
+      try {
+        window.__1174BodyMo.disconnect();
+      } catch {
+        /* ignore */
+      }
+      window.__1174BodyMo = null;
+    }
+    const p = window.__1174Probe || {
+      samples: [],
+      violations: [],
+      firstCollapse: null,
+      inputDisabledViolations: 0,
+      inputReadOnlyViolations: 0,
+      sendDisabledViolations: 0,
+      operability: null,
+      stateTrace: [],
+    };
+    const samples = p.samples || [];
     return {
-      sampleCount: p.samples.length,
-      violationCount: p.violations.length,
+      sampleCount: samples.length,
+      violationCount: (p.violations || []).length,
       firstCollapse: p.firstCollapse,
-      last: p.samples[p.samples.length - 1] || null,
-      minFormW: Math.min(...p.samples.map((s) => (s.form ? s.form.w : 0))),
-      minFormH: Math.min(...p.samples.map((s) => (s.form ? s.form.h : 0))),
-      minInputW: Math.min(...p.samples.map((s) => (s.input ? s.input.w : 0))),
-      minInputH: Math.min(...p.samples.map((s) => (s.input ? s.input.h : 0))),
+      last: samples[samples.length - 1] || null,
+      samples,
+      stateTrace: p.stateTrace || [],
+      minFormW: samples.length ? Math.min(...samples.map((s) => (s.form ? s.form.w : 0))) : 0,
+      minFormH: samples.length ? Math.min(...samples.map((s) => (s.form ? s.form.h : 0))) : 0,
+      minInputW: samples.length ? Math.min(...samples.map((s) => (s.input ? s.input.w : 0))) : 0,
+      minInputH: samples.length ? Math.min(...samples.map((s) => (s.input ? s.input.h : 0))) : 0,
+      inputDisabledViolations: p.inputDisabledViolations || 0,
+      inputReadOnlyViolations: p.inputReadOnlyViolations || 0,
+      sendDisabledViolations: p.sendDisabledViolations || 0,
+      operability: p.operability || null,
     };
   });
 }
@@ -370,10 +664,42 @@ async function assertProbeClean(summary, label) {
     0,
     `[${label}] continuous probe violations=${summary.violationCount} first=${JSON.stringify(summary.firstCollapse)}`,
   );
+  assert.strictEqual(
+    summary.inputDisabledViolations,
+    0,
+    `[${label}] input-disabled violations=${summary.inputDisabledViolations}`,
+  );
+  assert.strictEqual(
+    summary.inputReadOnlyViolations,
+    0,
+    `[${label}] input-readonly violations=${summary.inputReadOnlyViolations}`,
+  );
+  assert.strictEqual(
+    summary.sendDisabledViolations,
+    0,
+    `[${label}] send-disabled violations=${summary.sendDisabledViolations}`,
+  );
   assert.ok(summary.minFormW > 40, `[${label}] min form width ${summary.minFormW}`);
   assert.ok(summary.minFormH > 20, `[${label}] min form height ${summary.minFormH}`);
   assert.ok(summary.minInputW > 40, `[${label}] min input width ${summary.minInputW}`);
   assert.ok(summary.minInputH > 20, `[${label}] min input height ${summary.minInputH}`);
+}
+
+function assertMultistepCoverage(coverage, label) {
+  assert.ok(coverage.sawAnyChoreographyAttr, `[${label}] choreography attribute never appeared`);
+  assert.ok(coverage.seenStart, `[${label}] explicit start not observed (running|navigate)`);
+  assert.ok(coverage.seenMenu, `[${label}] expected dept-state=menu not observed`);
+  assert.ok(coverage.seenDirectory, `[${label}] expected dept-state=directory not observed`);
+  assert.ok(coverage.seenResult, `[${label}] expected dept-state=result not observed`);
+  assert.ok(
+    coverage.seenTerminalDone,
+    `[${label}] explicit terminal data-choreography-state=done not observed`,
+  );
+  // Fail-closed: unknown/missing/idle/cancelled are not success terminals.
+  assert.ok(
+    coverage.explicitTerminal,
+    `[${label}] explicit terminal missing: ${JSON.stringify(coverage.stateSequence.slice(-3))}`,
+  );
 }
 
 async function pinNodes(page) {
@@ -506,13 +832,67 @@ async function sendAsk(page, question, marker, action, ctx) {
   await page.waitForFunction(
     () => {
       const input = document.getElementById("chat-composer-input");
-      return input && !input.disabled && input.offsetParent !== null ||
-        (input && !input.disabled && getComputedStyle(document.getElementById("chat-shell") || document.body).position === "fixed");
+      const shell = document.getElementById("chat-shell");
+      if (!input || input.disabled) return false;
+      if (input.offsetParent !== null) return true;
+      const pos = shell ? getComputedStyle(shell).position : "";
+      return pos === "fixed" || pos === "sticky";
     },
     null,
     { timeout: 15000 },
   );
-  // Prefer visible input; force fill if fixed dock
+
+  // Mutation trace: capture exact assistant +1 landing even if split ack races next task.
+  await page.evaluate(
+    ({ m, prevUser, prevAi }) => {
+      const thread = document.getElementById("chat-thread");
+      if (window.__1174AskObs) {
+        try {
+          window.__1174AskObs.disconnect();
+        } catch {
+          /* ignore */
+        }
+      }
+      window.__1174AskTrace = {
+        marker: m,
+        prevUser,
+        prevAi,
+        events: [],
+        landed: null,
+      };
+      const snap = () => {
+        const ais = Array.from(document.querySelectorAll(".chat-msg--ai"));
+        const users = document.querySelectorAll(".chat-msg--user").length;
+        const last = ais.length ? ais[ais.length - 1] : null;
+        const lastText = last ? last.textContent || "" : "";
+        const markerCount = ais.filter((el) => (el.textContent || "").includes(m)).length;
+        const event = {
+          t: performance.now(),
+          user: users,
+          ai: ais.length,
+          lastHasMarker: lastText.includes(m),
+          markerCount,
+        };
+        window.__1174AskTrace.events.push(event);
+        if (
+          !window.__1174AskTrace.landed &&
+          event.user === prevUser + 1 &&
+          event.ai === prevAi + 1 &&
+          event.lastHasMarker &&
+          event.markerCount === 1
+        ) {
+          // Exact response landing: latest assistant IS the current marker response.
+          window.__1174AskTrace.landed = event;
+        }
+      };
+      const obs = new MutationObserver(snap);
+      if (thread) obs.observe(thread, { childList: true, subtree: true });
+      window.__1174AskObs = obs;
+      snap();
+    },
+    { m: marker, prevUser: before.user, prevAi: before.ai },
+  );
+
   const input = page.locator("#chat-composer-input");
   await input.fill(question);
   const respP = page.waitForResponse(
@@ -534,17 +914,45 @@ async function sendAsk(page, question, marker, action, ctx) {
     assert.strictEqual(body.action, action, `[${ctx}] action`);
   }
 
+  // Fail-closed: MutationObserver must have seen exact user+1 / ai+1 / latest marker.
   await page.waitForFunction(
-    ({ prevUser, marker }) => {
-      const user = document.querySelectorAll(".chat-msg--user").length;
-      if (user !== prevUser + 1) return false;
-      return Array.from(document.querySelectorAll(".chat-msg--ai")).some((el) =>
-        (el.textContent || "").includes(marker),
-      );
-    },
-    { prevUser: before.user, marker },
+    () => !!(window.__1174AskTrace && window.__1174AskTrace.landed),
+    null,
     { timeout: 15000 },
   );
+
+  const landing = await page.evaluate(() => {
+    if (window.__1174AskObs) {
+      try {
+        window.__1174AskObs.disconnect();
+      } catch {
+        /* ignore */
+      }
+      window.__1174AskObs = null;
+    }
+    const ais = Array.from(document.querySelectorAll(".chat-msg--ai"));
+    const m = (window.__1174AskTrace && window.__1174AskTrace.marker) || "";
+    const markerCount = ais.filter((el) => (el.textContent || "").includes(m)).length;
+    return {
+      user: document.querySelectorAll(".chat-msg--user").length,
+      ai: ais.length,
+      markerCount,
+      landed: (window.__1174AskTrace && window.__1174AskTrace.landed) || null,
+    };
+  });
+
+  assert.ok(landing.landed, `[${ctx}] missing exact assistant +1 landing trace`);
+  assert.strictEqual(landing.landed.user, before.user + 1, `[${ctx}] landing user +1`);
+  assert.strictEqual(landing.landed.ai, before.ai + 1, `[${ctx}] landing assistant exact +1`);
+  assert.ok(landing.landed.lastHasMarker, `[${ctx}] landing latest assistant must contain marker`);
+  assert.strictEqual(landing.landed.markerCount, 1, `[${ctx}] landing marker count`);
+  assert.strictEqual(landing.user, before.user + 1, `[${ctx}] user +1 stable`);
+  assert.strictEqual(landing.markerCount, 1, `[${ctx}] marker should appear once, got ${landing.markerCount}`);
+
+  // Allow follow-on split/confirm AI bubbles after the exact response landing.
+  if (action === "housing_department") {
+    await page.waitForSelector(".chat-msg--confirm-run button", { timeout: 20000 });
+  }
 
   const after = await page.evaluate(() => ({
     user: document.querySelectorAll(".chat-msg--user").length,
@@ -557,9 +965,15 @@ async function sendAsk(page, question, marker, action, ctx) {
       ).length,
     marker,
   );
-  assert.strictEqual(after.user, before.user + 1, `[${ctx}] user +1`);
-  assert.strictEqual(markerCount, 1, `[${ctx}] marker should appear once, got ${markerCount}`);
-  return { before, after };
+  assert.strictEqual(after.user, before.user + 1, `[${ctx}] user +1 after settle`);
+  assert.strictEqual(markerCount, 1, `[${ctx}] marker still once after settle, got ${markerCount}`);
+  return {
+    before,
+    after,
+    landing,
+    assistantExactPlusOne: true,
+    latestAssistantHasMarker: true,
+  };
 }
 
 async function clickYes(page, ctx) {
@@ -574,38 +988,81 @@ async function clickYes(page, ctx) {
   );
 }
 
-async function waitMultistepProgress(page) {
+/**
+ * Fail-closed multi-step wait aligned with housing quest + J-DEPT-01 contracts.
+ *
+ * Under reduced-motion, menu/directory may last only a few rAF frames, so
+ * intermediate coverage is proven from the continuous probe samples — not from
+ * sequential waitForFunction on each dept-state (that race is fail-open for
+ * "already past" and fail-flaky for "too short").
+ *
+ * Start: data-choreography-state=running OR data-journey-state=navigate
+ * Steps: journey=J-DEPT-01 + dept-state menu → directory → result (via samples)
+ * Terminal: data-choreography-state=done (same as verify_housing_quest_e2e.mjs)
+ * Forbidden: text.length heuristics, !ch / idle / cancelled as success.
+ */
+async function waitMultistepWithCoverage(page, label) {
+  // Explicit start — must not use canvas text length.
+  // Also accept done if the whole reduced-motion run finished before the poll
+  // (coverage is still enforced from rAF samples afterward).
   await page.waitForFunction(
     () => {
       const ch = document.body.getAttribute("data-choreography-state");
       const j = document.body.getAttribute("data-journey-state");
-      const canvas = document.getElementById("demo-canvas");
-      const text = canvas ? canvas.innerText || "" : "";
-      const disp = canvas ? getComputedStyle(canvas).display : "none";
-      return (
-        disp !== "none" &&
-        (ch === "running" ||
-          ch === "done" ||
-          j === "navigate" ||
-          j === "result" ||
-          text.length > 30)
-      );
+      return ch === "running" || j === "navigate" || ch === "done";
     },
     null,
     { timeout: 25000 },
   );
-  // Sample a few moments during flow without swallowing failures on measure
-  for (const ms of [300, 900, 1800]) {
-    await page.waitForTimeout(ms);
-  }
+  console.log(`  [${label}] multi-step progress signal observed (running|navigate|done)`);
+
+  // Terminal: canonical housing verifier contract — choreography done only.
   await page.waitForFunction(
-    () => {
-      const ch = document.body.getAttribute("data-choreography-state");
-      return !ch || ch === "done" || ch === "idle" || ch === "cancelled";
-    },
+    () => document.body.getAttribute("data-choreography-state") === "done",
     null,
     { timeout: 60000 },
   );
+  console.log(`  [${label}] explicit terminal data-choreography-state=done`);
+
+  const snapshot = await page.evaluate(() => {
+    const params = new URLSearchParams(window.location.search);
+    let routeId = "";
+    try {
+      routeId =
+        (window.CitizenActionDemoCanvas &&
+          typeof window.CitizenActionDemoCanvas.getCurrentRouteId === "function" &&
+          window.CitizenActionDemoCanvas.getCurrentRouteId()) ||
+        "";
+    } catch {
+      routeId = "";
+    }
+    return {
+      choreography: document.body.getAttribute("data-choreography-state") || "",
+      journey: document.body.getAttribute("data-journey-state") || "",
+      urlJourney: params.get("journey") || "",
+      urlDeptState: params.get("dept-state") || "",
+      routeId: String(routeId || ""),
+    };
+  });
+  assert.strictEqual(snapshot.choreography, "done", `[${label}] terminal choreography`);
+  // Terminal must be real completion — journey result and/or final dept-state.
+  assert.ok(
+    snapshot.journey === "result" || snapshot.urlDeptState === "result",
+    `[${label}] terminal journey/result missing: ${JSON.stringify(snapshot)}`,
+  );
+  if (snapshot.urlJourney) {
+    assert.strictEqual(snapshot.urlJourney, "J-DEPT-01", `[${label}] terminal journey URL`);
+  }
+  if (snapshot.urlDeptState) {
+    assert.strictEqual(snapshot.urlDeptState, "result", `[${label}] terminal dept-state`);
+  }
+
+  return {
+    explicitStart: "running|navigate",
+    observedSteps: ["menu", "directory", "result"],
+    explicitTerminal: "done",
+    snapshot,
+  };
 }
 
 async function toggleSurfaces(page, label) {
@@ -668,34 +1125,50 @@ async function runMobileSequence(browser, origin, safety, viewport, sequence) {
   );
   await measureNow(page, `${label}-after-housing-answer`);
 
+  // Probe starts after housing answer, immediately before 예 (no ask lock window).
   await startProbe(page);
   await clickYes(page, `${label}-yes`);
   await measureNow(page, `${label}-after-yes`);
-  await waitMultistepProgress(page);
+  const multistep = await waitMultistepWithCoverage(page, label);
   const probe = await stopProbe(page);
   await assertProbeClean(probe, label);
+
+  const coverage = deriveCoverageFromSamples(probe.samples, probe.stateTrace);
+  assertMultistepCoverage(coverage, label);
+  // In-page mid-flow operability at first directory observation (rAF probe).
+  assert.ok(probe.operability, `[${label}] mid-flow operability never ran at directory`);
+  assert.ok(probe.operability.focus, `[${label}] operability focus`);
+  assert.ok(probe.operability.typing, `[${label}] operability typing`);
+  assert.ok(probe.operability.cleared, `[${label}] operability clear`);
+  assert.ok(probe.operability.sendEnabled, `[${label}] operability send enabled`);
+  console.log(
+    `  [${label}] state coverage: start/menu/directory/result/done + mid-flow operability PASS`,
+  );
+  console.log(
+    `  [${label}] stateSequence=${JSON.stringify(
+      coverage.stateSequence.map((s) => `${s.choreography}/${s.journey}/${s.urlDeptState || "-"}`),
+    )}`,
+  );
+
   await measureNow(page, `${label}-after-multistep`);
   await assertSameNodes(page, `${label}-post-multistep`);
 
-  // Ensure canvas was guidance during flow (last probe sample)
-  assert.ok(
-    probe.last &&
-      (probe.last.canvasDisplay === "flex" ||
-        probe.last.canvasDisplay === "block" ||
-        (probe.last.canvas && probe.last.canvas.w > 0)),
-    `[${label}] guidance canvas not shown during multi-step`,
-  );
+  // Canvas must have been visible during guidance multi-step samples.
+  const anyCanvasVisible = (probe.samples || []).some((s) => s.canvasVisible);
+  assert.ok(anyCanvasVisible, `[${label}] guidance canvas never visible during multi-step`);
 
   await toggleSurfaces(page, label);
   // Back to guidance if needed for follow-up from dock (composer works on either)
   await measureNow(page, `${label}-pre-followup`);
-  await sendAsk(
+  const follow = await sendAsk(
     page,
     sequence.follow.q,
     sequence.follow.marker,
     "none",
     `${label}-followup`,
   );
+  assert.ok(follow.assistantExactPlusOne, `[${label}] follow-up assistant exact +1`);
+  assert.ok(follow.latestAssistantHasMarker, `[${label}] follow-up latest assistant marker`);
   await measureNow(page, `${label}-after-followup`);
   await assertSameNodes(page, `${label}-final`);
 
@@ -709,6 +1182,35 @@ async function runMobileSequence(browser, origin, safety, viewport, sequence) {
   );
   assert.strictEqual(housingMarkers, 1, `[${label}] housing marker count`);
 
+  // No stale busy/inert/loading on composer after multi-step.
+  const stale = await page.evaluate(() => {
+    const form = document.getElementById("chat-composer-form");
+    const input = document.getElementById("chat-composer-input");
+    const send = document.getElementById("chat-composer-send");
+    const shell = document.getElementById("chat-shell");
+    function hasInert(el) {
+      let n = el;
+      while (n) {
+        if (n.hasAttribute && n.hasAttribute("inert")) return true;
+        n = n.parentElement;
+      }
+      return false;
+    }
+    return {
+      inputDisabled: !!(input && input.disabled),
+      inputReadOnly: !!(input && input.readOnly),
+      sendDisabled: !!(send && send.disabled),
+      shellBusy: !!(shell && shell.getAttribute("aria-busy") === "true"),
+      chatBusy: !!(shell && shell.getAttribute("data-chat-busy") === "true"),
+      inert: form ? hasInert(form) : true,
+    };
+  });
+  assert.ok(!stale.inputDisabled, `[${label}] stale input disabled`);
+  assert.ok(!stale.inputReadOnly, `[${label}] stale input readOnly`);
+  assert.ok(!stale.sendDisabled, `[${label}] stale send disabled`);
+  assert.ok(!stale.chatBusy, `[${label}] stale data-chat-busy`);
+  assert.ok(!stale.inert, `[${label}] stale inert on composer`);
+
   await context.close();
   return {
     label,
@@ -718,6 +1220,24 @@ async function runMobileSequence(browser, origin, safety, viewport, sequence) {
     minInputH: probe.minInputH,
     probeSamples: probe.sampleCount,
     firstCollapse: probe.firstCollapse,
+    inputDisabledViolations: probe.inputDisabledViolations,
+    inputReadOnlyViolations: probe.inputReadOnlyViolations,
+    sendDisabledViolations: probe.sendDisabledViolations,
+    stateSequence: coverage.stateSequence,
+    explicitStart: multistep.explicitStart,
+    explicitTerminal: multistep.explicitTerminal,
+    observedSteps: multistep.observedSteps,
+    coverage: {
+      seenStart: coverage.seenStart,
+      seenMenu: coverage.seenMenu,
+      seenDirectory: coverage.seenDirectory,
+      seenResult: coverage.seenResult,
+      seenTerminalDone: coverage.seenTerminalDone,
+      sawAnyChoreographyAttr: coverage.sawAnyChoreographyAttr,
+    },
+    operability: probe.operability,
+    followUpAssistantExactPlusOne: follow.assistantExactPlusOne,
+    terminalSnapshot: multistep.snapshot,
   };
 }
 
@@ -785,7 +1305,7 @@ async function runDesktopRegression(browser, origin, safety) {
 }
 
 async function main() {
-  console.log("#1174 mobile multistep composer E2E (continuous probe)");
+  console.log("#1174 mobile multistep composer E2E (fail-closed state coverage + continuous probe)");
   const { origin, cleanup } = await buildAndServe();
   const { browser, source } = await launchBrowser();
   console.log(`Browser: ${source}`);
