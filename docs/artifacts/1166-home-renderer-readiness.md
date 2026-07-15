@@ -32,6 +32,19 @@ This report describes readiness after promoting the committed #1160 home capture
 - Skip `script` / `style` subtrees for content walks
 - `fragment_sha256 = SHA-256(UTF-8 serialization)`
 
+### Same-origin and visibility (#1168 hardening)
+
+- **same-origin** means exact scheme/host/effective-port match to
+  `https://bukgu.gwangju.kr:443` (no subdomain suffix trust, no `startswith`).
+- Relative `/path`, `path`, and `#fragment` resolve to that origin (`true`).
+- Subdomains such as `lib.bukgu.gwangju.kr` / `council.bukgu.gwangju.kr` are **false**.
+- **variant counts are ancestor-aware** with precedence
+  `hidden > template > mobile > desktop`.
+- Utility language entries **ENG / CHN / JPN** are **hidden** (descendants of
+  `ul#language.site.close`) and remain represented rather than removed.
+- Item fields include `local_variant`, `effective_variant`, and renderer-facing
+  `variant` / `visibility` (effective).
+
 Regeneration:
 
 ```powershell
@@ -50,7 +63,7 @@ python scripts/build_official_home_clone_fixture.py --check
 | captured_at | `2026-07-15T17:12:33+09:00` |
 | raw capture SHA-256 | `b47910217ecdb58b508cfd69d34a9a3a6e2c731f84a6db877ad01ebb04f5a6f5` |
 | capture metadata SHA-256 | `52aa1a64745d6f6d570f03ef38a245ba6ba0b2475fbe3e8bbf032783ac06df5d` |
-| generated fixture SHA-256 | `c43469da51236e91b2ba97c70a930a7097f3241093557d1a6c748aa4234e4c85` |
+| generated fixture SHA-256 | `81b27b98fadc091ca852079f89ea93da45b93f250372835b8b352726b2faeaed` |
 
 ## Counts (summary)
 
@@ -71,12 +84,12 @@ python scripts/build_official_home_clone_fixture.py --check
 
 | Region | Previous (#1166) | New status | Candidates | Items | Source evidence | Variants (items) | Remaining blocker |
 |--------|------------------|------------|------------|------:|-----------------|------------------|-------------------|
-| utility_navigation | unresolved | fixture-ready-renderer-not-wired | 1 | 21 | unique `div.slidelist` (+ optional `sitemap-btn`) | from item variants | renderer not wired |
-| main_banner | unresolved | fixture-ready-renderer-not-wired | 1 | 31 | unique `div.visual` | from item variants | renderer + assets |
-| resident_service_shortcuts | unresolved | fixture-ready-renderer-not-wired | 1 | 14 | unique `#favorites.most-menu` | from item variants | renderer not wired |
-| notice_news | unresolved | fixture-ready-renderer-not-wired | 1 | 36 | unique `div.board` (6 article groups) | from item variants | dynamic board bodies remain JS-fed; labels/links from HTML only |
-| related_site_controls | unresolved | fixture-ready-renderer-not-wired | 1 | 21 | unique `div.family-site` | from item variants | renderer + assets |
-| footer_identity_contact | unresolved | fixture-ready-renderer-not-wired | 1 | 8 | unique `div.address` (+ `p.copyright`, `div.foot-link`) | from item variants | renderer not wired |
+| utility_navigation | unresolved | fixture-ready-renderer-not-wired | 1 | 21 | unique `div.slidelist` (+ optional `sitemap-btn`) | desktop:18 hidden:3 (ENG/CHN/JPN) | renderer not wired |
+| main_banner | unresolved | fixture-ready-renderer-not-wired | 1 | 31 | unique `div.visual` | desktop (ancestor-aware) | renderer + assets |
+| resident_service_shortcuts | unresolved | fixture-ready-renderer-not-wired | 1 | 14 | unique `#favorites.most-menu` | desktop (ancestor-aware) | renderer not wired |
+| notice_news | unresolved | fixture-ready-renderer-not-wired | 1 | 36 | unique `div.board` (6 article groups) | desktop (ancestor-aware) | dynamic board bodies remain JS-fed; labels/links from HTML only |
+| related_site_controls | unresolved | fixture-ready-renderer-not-wired | 1 | 21 | unique `div.family-site` | desktop (ancestor-aware) | renderer + assets |
+| footer_identity_contact | unresolved | fixture-ready-renderer-not-wired | 1 | 8 | unique `div.address` (+ `p.copyright`, `div.foot-link`) | desktop (ancestor-aware) | renderer not wired |
 
 ### Newly resolved
 

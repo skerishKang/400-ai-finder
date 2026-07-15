@@ -11,9 +11,10 @@ Fragment identity rule (canonical subtree serialization, not browser outerHTML):
   and a trailing newline.
 
 Visibility / variant:
-  - media max-width / min-width classes are not fully evaluated; variant is
-    inferred from id/class tokens: mbl/mobile → mobile, hide/hidden/close/display:none
-    style → hidden, template/mw_temp → template, else desktop/unknown.
+  - local_variant: markers on the node alone
+  - effective_variant / visibility / variant: ancestor-aware with precedence
+    hidden > template > mobile > desktop
+  - Token matching only (no substring false-positives like automobile)
 """
 
 from __future__ import annotations
@@ -26,6 +27,8 @@ from urllib.parse import urljoin, urlsplit
 
 
 APPROVED_HOST = "bukgu.gwangju.kr"
+APPROVED_SCHEME = "https"
+APPROVED_PORT = 443
 BASE_URL = "https://bukgu.gwangju.kr/"
 VOID_TAGS = frozenset(
     {
@@ -45,6 +48,13 @@ VOID_TAGS = frozenset(
         "wbr",
     }
 )
+
+# Exact class tokens (not substrings of larger tokens).
+_MOBILE_CLASS_TOKENS = frozenset({"mobile", "mbl"})
+_HIDDEN_CLASS_TOKENS = frozenset({"hidden", "hide"})
+_TEMPLATE_CLASS_TOKENS = frozenset({"template"})
+_MOBILE_ID_EXACT = frozenset({"mobile", "mbl"})
+_TEMPLATE_ID_MARKERS = ("mw_temp",)  # documented id family substrings
 
 
 class HomeRegionParseError(ValueError):
@@ -66,23 +76,90 @@ def _attr_map(attrs: list[tuple[str, str | None]]) -> dict[str, str]:
     return out
 
 
-def is_same_origin_url(url: str | None) -> bool | None:
-    if url is None or url == "":
+def effective_port(scheme: str, port: int | None) -> int | None:
+    """Canonical effective port for origin comparison."""
+    if port is not None:
+        return port
+    s = (scheme or "").lower()
+    if s == "https":
+        return 443
+    if s == "http":
+        return 80
+    return None
+
+
+def is_same_origin_url(url: object) -> bool | None:
+    """Exact same-origin vs https://bukgu.gwangju.kr:443.
+
+    Returns:
+      True  — same origin (including absolute https host:443 and relative /path, path, #frag)
+      False — different origin or non-navigable scheme
+      None  — empty/missing URL (field contract: unknown)
+
+    Never raises ValueError for malformed ports/URLs.
+    """
+    if url is None:
         return None
-    if url.startswith("#") or url.startswith("javascript:"):
-        return True if url.startswith("#") else False
+    if not isinstance(url, str):
+        return False
+    if url == "":
+        return None
+
+    # Fragment-only references resolve against the page origin.
+    if url.startswith("#"):
+        return True
+
+    # Non-HTTP navigational schemes are never same-origin page resources.
+    lower = url.lower()
+    if lower.startswith(("javascript:", "mailto:", "tel:", "data:")):
+        return False
+
+    # Scheme-relative must still parse as absolute with host.
+    if url.startswith("//"):
+        try:
+            parts = urlsplit("https:" + url)
+        except Exception:
+            return False
+        return _parts_are_approved_origin(parts)
+
+    # Absolute path on this origin.
     if url.startswith("/"):
         return True
+
+    # Absolute URL with scheme.
+    if "://" in url:
+        try:
+            parts = urlsplit(url)
+        except Exception:
+            return False
+        return _parts_are_approved_origin(parts)
+
+    # Relative path/query without leading slash (e.g. menu.es?mid=a101).
+    # Reject empty-looking or scheme-like garbage.
+    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", url):
+        # Unknown scheme
+        return False
+    return True
+
+
+def _parts_are_approved_origin(parts: Any) -> bool:
     try:
-        parts = urlsplit(url)
-    except Exception:
-        return None
-    if not parts.scheme:
-        return True
-    if parts.scheme.lower() not in ("http", "https"):
+        port = parts.port
+    except ValueError:
+        return False
+    scheme = (parts.scheme or "").lower()
+    if scheme != APPROVED_SCHEME:
+        return False
+    if parts.username is not None or parts.password is not None:
         return False
     host = (parts.hostname or "").lower()
-    return host == APPROVED_HOST or host.endswith(".bukgu.gwangju.kr")
+    if host != APPROVED_HOST:
+        return False
+    if not parts.netloc:
+        return False
+    if effective_port(scheme, port) != APPROVED_PORT:
+        return False
+    return True
 
 
 def resolve_url(href: str | None) -> str | None:
@@ -227,24 +304,90 @@ def ancestor_path(node: _Node) -> list[str]:
     return list(reversed(tags))
 
 
-def infer_variant(node: _Node) -> str:
-    classes = set(_classes(node.attrs))
+def _local_variant_flags(node: _Node) -> set[str]:
+    """Return local variant markers present on this node alone."""
+    flags: set[str] = set()
+    classes = {c.lower() for c in _classes(node.attrs)}
     style = (node.attrs.get("style") or "").lower().replace(" ", "")
     nid = (node.attrs.get("id") or "").lower()
-    blob = " ".join(classes).lower() + " " + nid
+    aria_hidden = (node.attrs.get("aria-hidden") or "").lower()
+
+    # hidden
+    if "hidden" in node.attrs:  # boolean HTML attribute present
+        flags.add("hidden")
+    if aria_hidden == "true":
+        flags.add("hidden")
     if "display:none" in style or "visibility:hidden" in style:
+        flags.add("hidden")
+    if classes & _HIDDEN_CLASS_TOKENS:
+        flags.add("hidden")
+    # Collapsed site/language/menu panel: class "close" with site/language context.
+    if "close" in classes and (
+        "site" in classes
+        or "language" in classes
+        or "language" in nid
+        or "menu" in classes
+        or "gnb" in classes
+    ):
+        flags.add("hidden")
+
+    # template
+    if classes & _TEMPLATE_CLASS_TOKENS:
+        flags.add("template")
+    if any(marker in nid for marker in _TEMPLATE_ID_MARKERS):
+        flags.add("template")
+    if "template" in nid.split("-") or "template" in nid.split("_"):
+        flags.add("template")
+
+    # mobile — exact class tokens only
+    if classes & _MOBILE_CLASS_TOKENS:
+        flags.add("mobile")
+    if nid in _MOBILE_ID_EXACT:
+        flags.add("mobile")
+    # id tokens split by -/_
+    id_tokens = set(re.split(r"[-_]+", nid)) if nid else set()
+    if id_tokens & _MOBILE_CLASS_TOKENS:
+        flags.add("mobile")
+
+    return flags
+
+
+def _pick_variant(flags: set[str]) -> str:
+    """Precedence: hidden > template > mobile > desktop."""
+    if "hidden" in flags:
         return "hidden"
-    if "hidden" in classes or "hide" in classes or "close" in classes:
-        # site close panels may still be template toggles
-        if "close" in classes and ("site" in classes or "language" in nid):
-            return "hidden"
-        if "hidden" in classes or "hide" in classes:
-            return "hidden"
-    if "mw_temp" in nid or "template" in blob:
+    if "template" in flags:
         return "template"
-    if "mbl" in blob or "mobile" in blob:
+    if "mobile" in flags:
         return "mobile"
     return "desktop"
+
+
+def infer_variant(node: _Node) -> str:
+    """Local-only variant (node itself). Kept for compatibility."""
+    return _pick_variant(_local_variant_flags(node))
+
+
+def infer_effective_variant(node: _Node) -> str:
+    """Ancestor-aware variant with precedence hidden > template > mobile > desktop."""
+    flags: set[str] = set()
+    cur: _Node | None = node
+    while cur is not None and cur.tag != "[document]":
+        flags |= _local_variant_flags(cur)
+        cur = cur.parent
+    return _pick_variant(flags)
+
+
+def visibility_fields(node: _Node) -> dict[str, str]:
+    local = infer_variant(node)
+    effective = infer_effective_variant(node)
+    return {
+        "local_variant": local,
+        "effective_variant": effective,
+        # Renderer-facing fields use effective ancestor-aware state.
+        "variant": effective,
+        "visibility": effective,
+    }
 
 
 def serialize_subtree(node: _Node) -> str:
@@ -302,6 +445,8 @@ def _unique_or_error(nodes: list[_Node], label: str) -> _Node:
 
 
 def _source_evidence(node: _Node, *, occurrence_count: int, variant: str | None = None) -> dict[str, Any]:
+    local = infer_variant(node)
+    effective = variant or infer_effective_variant(node)
     return {
         "tag": node.tag,
         "id": node.attrs.get("id") or None,
@@ -309,7 +454,9 @@ def _source_evidence(node: _Node, *, occurrence_count: int, variant: str | None 
         "ancestor_path": ancestor_path(node),
         "source_order": node.source_order,
         "occurrence_count": occurrence_count,
-        "variant": variant or infer_variant(node),
+        "local_variant": local,
+        "effective_variant": effective,
+        "variant": effective,
         "fragment_sha256": fragment_sha256(node),
         "hash_rule": "canonical_subtree_serialization_v1",
     }
@@ -350,22 +497,20 @@ def _link_items(node: _Node, *, item_prefix: str) -> list[dict[str, Any]]:
             if d.tag == "span" and "date" in _classes(d.attrs):
                 date_text = node_text(d)
                 break
-        items.append(
-            {
-                "item_id": f"{item_prefix}-{order:04d}",
-                "order": order,
-                "text": text,
-                "date_text": date_text or None,
-                "href": href,
-                "resolved_url": resolve_url(href),
-                "same_origin": is_same_origin_url(href if href else None),
-                "dom_order": n.source_order,
-                "visibility": infer_variant(n),
-                "variant": infer_variant(n),
-                "title_attr": n.attrs.get("title") or "",
-                "target": n.attrs.get("target") or "",
-            }
-        )
+        item = {
+            "item_id": f"{item_prefix}-{order:04d}",
+            "order": order,
+            "text": text,
+            "date_text": date_text or None,
+            "href": href,
+            "resolved_url": resolve_url(href),
+            "same_origin": is_same_origin_url(href if href else None),
+            "dom_order": n.source_order,
+            "title_attr": n.attrs.get("title") or "",
+            "target": n.attrs.get("target") or "",
+        }
+        item.update(visibility_fields(n))
+        items.append(item)
     return items
 
 
@@ -377,20 +522,18 @@ def _image_items(node: _Node, *, item_prefix: str, start_order: int = 0) -> list
             continue
         order += 1
         src = n.attrs.get("src")
-        items.append(
-            {
-                "item_id": f"{item_prefix}-img-{order:04d}",
-                "order": order,
-                "text": n.attrs.get("alt") or "",
-                "href": None,
-                "asset_url": src,
-                "resolved_url": resolve_url(src),
-                "same_origin": is_same_origin_url(src),
-                "dom_order": n.source_order,
-                "visibility": infer_variant(n),
-                "variant": infer_variant(n),
-            }
-        )
+        item = {
+            "item_id": f"{item_prefix}-img-{order:04d}",
+            "order": order,
+            "text": n.attrs.get("alt") or "",
+            "href": None,
+            "asset_url": src,
+            "resolved_url": resolve_url(src),
+            "same_origin": is_same_origin_url(src),
+            "dom_order": n.source_order,
+        }
+        item.update(visibility_fields(n))
+        items.append(item)
     return items
 
 
@@ -589,20 +732,18 @@ def segment_home_regions(raw_html: str) -> dict[str, Any]:
         addr = addresses[0]
         items: list[dict[str, Any]] = []
         # address block text + tel links
-        items.append(
-            {
-                "item_id": "footer-identity-0001",
-                "order": 1,
-                "text": node_text(addr),
-                "href": None,
-                "resolved_url": None,
-                "same_origin": None,
-                "dom_order": addr.source_order,
-                "kind": "address_block",
-                "visibility": infer_variant(addr),
-                "variant": infer_variant(addr),
-            }
-        )
+        addr_item = {
+            "item_id": "footer-identity-0001",
+            "order": 1,
+            "text": node_text(addr),
+            "href": None,
+            "resolved_url": None,
+            "same_origin": None,
+            "dom_order": addr.source_order,
+            "kind": "address_block",
+        }
+        addr_item.update(visibility_fields(addr))
+        items.append(addr_item)
         for it in _link_items(addr, item_prefix="footer-identity-tel"):
             it["kind"] = "contact_link"
             items.append(it)
@@ -610,20 +751,18 @@ def segment_home_regions(raw_html: str) -> dict[str, Any]:
         if len(copyrights) == 1:
             cp = copyrights[0]
             secondary.append(_source_evidence(cp, occurrence_count=1))
-            items.append(
-                {
-                    "item_id": "footer-identity-copyright",
-                    "order": len(items) + 1,
-                    "text": node_text(cp),
-                    "href": None,
-                    "resolved_url": None,
-                    "same_origin": None,
-                    "dom_order": cp.source_order,
-                    "kind": "copyright",
-                    "visibility": infer_variant(cp),
-                    "variant": infer_variant(cp),
-                }
-            )
+            cp_item = {
+                "item_id": "footer-identity-copyright",
+                "order": len(items) + 1,
+                "text": node_text(cp),
+                "href": None,
+                "resolved_url": None,
+                "same_origin": None,
+                "dom_order": cp.source_order,
+                "kind": "copyright",
+            }
+            cp_item.update(visibility_fields(cp))
+            items.append(cp_item)
         # foot-link legal links if unique
         foot_links = find_by_exact_class(root, "foot-link")
         if len(foot_links) == 1:
@@ -695,7 +834,12 @@ def _count_variants(items: list[dict[str, Any]]) -> dict[str, int]:
         "unknown": 0,
     }
     for it in items:
-        v = it.get("variant") or it.get("visibility") or "unknown"
+        v = (
+            it.get("effective_variant")
+            or it.get("variant")
+            or it.get("visibility")
+            or "unknown"
+        )
         if v not in counts:
             counts[v] = 0
         counts[v] += 1

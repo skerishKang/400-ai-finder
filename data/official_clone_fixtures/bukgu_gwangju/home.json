@@ -658,6 +658,8 @@
         ],
         "source_order": 72,
         "occurrence_count": 1,
+        "local_variant": "desktop",
+        "effective_variant": "desktop",
         "variant": "desktop",
         "fragment_sha256": "4380dd3d96fe07344d65675a81538bed032f411cbd6fefb1edd031d2d2ce2fb8",
         "hash_rule": "canonical_subtree_serialization_v1"
@@ -682,6 +684,8 @@
           ],
           "source_order": 133,
           "occurrence_count": 1,
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
           "variant": "desktop",
           "fragment_sha256": "acedf17435a6014f85bbd34514fe103398284990007602d5ea38ba9c6aa59a7e",
           "hash_rule": "canonical_subtree_serialization_v1"
@@ -699,10 +703,12 @@
           "resolved_url": "#topSite",
           "same_origin": true,
           "dom_order": 75,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0002",
@@ -713,10 +719,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/culture/",
           "same_origin": true,
           "dom_order": 79,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "문화관광 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0003",
@@ -727,10 +735,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/health/",
           "same_origin": true,
           "dom_order": 81,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "보건소 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0004",
@@ -739,12 +749,14 @@
           "date_text": null,
           "href": "https://lib.bukgu.gwangju.kr/",
           "resolved_url": "https://lib.bukgu.gwangju.kr/",
-          "same_origin": true,
+          "same_origin": false,
           "dom_order": 83,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "도서관 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0005",
@@ -755,10 +767,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/dong/",
           "same_origin": true,
           "dom_order": 85,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "동행정복지센터 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0006",
@@ -767,12 +781,14 @@
           "date_text": null,
           "href": "https://council.bukgu.gwangju.kr/",
           "resolved_url": "https://council.bukgu.gwangju.kr/",
-          "same_origin": true,
+          "same_origin": false,
           "dom_order": 87,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "북구의회 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0007",
@@ -783,10 +799,12 @@
           "resolved_url": "https://gbfmc.or.kr/",
           "same_origin": false,
           "dom_order": 89,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "시설관리공단 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0008",
@@ -797,10 +815,12 @@
           "resolved_url": "#SNS",
           "same_origin": true,
           "dom_order": 92,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0009",
@@ -811,10 +831,12 @@
           "resolved_url": "http://blog.naver.com/gjbukgu",
           "same_origin": false,
           "dom_order": 96,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "네이버블로그 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0010",
@@ -825,10 +847,12 @@
           "resolved_url": "http://pf.kakao.com/_Jxhucj",
           "same_origin": false,
           "dom_order": 99,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "카카오톡 채널 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0011",
@@ -839,10 +863,12 @@
           "resolved_url": "https://story.kakao.com/ch/gjbukgu",
           "same_origin": false,
           "dom_order": 102,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "카카오스토리 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0012",
@@ -853,10 +879,12 @@
           "resolved_url": "https://www.instagram.com/gjbukgu/",
           "same_origin": false,
           "dom_order": 105,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "인스타그램 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0013",
@@ -867,10 +895,12 @@
           "resolved_url": "https://www.facebook.com/광주-북구청-110226931729204",
           "same_origin": false,
           "dom_order": 108,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "페이스북 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0014",
@@ -881,10 +911,12 @@
           "resolved_url": "https://x.com/gjbukgu",
           "same_origin": false,
           "dom_order": 111,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "엑스((구)트위터) 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0015",
@@ -895,10 +927,12 @@
           "resolved_url": "https://www.youtube.com/channel/UCOUWDDkH2m4dvJvXP-GObHw",
           "same_origin": false,
           "dom_order": 114,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0016",
@@ -909,10 +943,12 @@
           "resolved_url": "https://www.daangn.com/kr/business-profiles/%EA%B4%91%EC%A3%BC-%EB%B6%81%EA%B5%AC-cbeee05dec91403aa544e581e4a5fab8/",
           "same_origin": false,
           "dom_order": 117,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "당근 새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0017",
@@ -923,10 +959,12 @@
           "resolved_url": "#language",
           "same_origin": true,
           "dom_order": 121,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "접힘",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "utility_navigation-0018",
@@ -937,10 +975,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/eng/",
           "same_origin": true,
           "dom_order": 125,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "영문사이트 새창으로 열기",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "hidden",
+          "variant": "hidden",
+          "visibility": "hidden"
         },
         {
           "item_id": "utility_navigation-0019",
@@ -951,10 +991,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/chn/",
           "same_origin": true,
           "dom_order": 127,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "중문사이트 새창으로 열기",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "hidden",
+          "variant": "hidden",
+          "visibility": "hidden"
         },
         {
           "item_id": "utility_navigation-0020",
@@ -965,10 +1007,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/jpn/",
           "same_origin": true,
           "dom_order": 129,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "일문사이트 새창으로 열기",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "hidden",
+          "variant": "hidden",
+          "visibility": "hidden"
         },
         {
           "item_id": "utility_navigation-0021",
@@ -979,10 +1023,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/sitemap_search.es?sid=a1",
           "same_origin": true,
           "dom_order": 134,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "sitemap-btn"
         }
       ],
@@ -1003,10 +1049,12 @@
               "resolved_url": "#topSite",
               "same_origin": true,
               "dom_order": 75,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "",
-              "target": ""
+              "target": "",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-family_site-0002",
@@ -1017,10 +1065,12 @@
               "resolved_url": "https://bukgu.gwangju.kr/culture/",
               "same_origin": true,
               "dom_order": 79,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "문화관광 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-family_site-0003",
@@ -1031,10 +1081,12 @@
               "resolved_url": "https://bukgu.gwangju.kr/health/",
               "same_origin": true,
               "dom_order": 81,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "보건소 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-family_site-0004",
@@ -1043,12 +1095,14 @@
               "date_text": null,
               "href": "https://lib.bukgu.gwangju.kr/",
               "resolved_url": "https://lib.bukgu.gwangju.kr/",
-              "same_origin": true,
+              "same_origin": false,
               "dom_order": 83,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "도서관 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-family_site-0005",
@@ -1059,10 +1113,12 @@
               "resolved_url": "https://bukgu.gwangju.kr/dong/",
               "same_origin": true,
               "dom_order": 85,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "동행정복지센터 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-family_site-0006",
@@ -1071,12 +1127,14 @@
               "date_text": null,
               "href": "https://council.bukgu.gwangju.kr/",
               "resolved_url": "https://council.bukgu.gwangju.kr/",
-              "same_origin": true,
+              "same_origin": false,
               "dom_order": 87,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "북구의회 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-family_site-0007",
@@ -1087,10 +1145,12 @@
               "resolved_url": "https://gbfmc.or.kr/",
               "same_origin": false,
               "dom_order": 89,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "시설관리공단 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             }
           ]
         },
@@ -1110,10 +1170,12 @@
               "resolved_url": "#SNS",
               "same_origin": true,
               "dom_order": 92,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "",
-              "target": ""
+              "target": "",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-sns-0002",
@@ -1124,10 +1186,12 @@
               "resolved_url": "http://blog.naver.com/gjbukgu",
               "same_origin": false,
               "dom_order": 96,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "네이버블로그 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-sns-0003",
@@ -1138,10 +1202,12 @@
               "resolved_url": "http://pf.kakao.com/_Jxhucj",
               "same_origin": false,
               "dom_order": 99,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "카카오톡 채널 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-sns-0004",
@@ -1152,10 +1218,12 @@
               "resolved_url": "https://story.kakao.com/ch/gjbukgu",
               "same_origin": false,
               "dom_order": 102,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "카카오스토리 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-sns-0005",
@@ -1166,10 +1234,12 @@
               "resolved_url": "https://www.instagram.com/gjbukgu/",
               "same_origin": false,
               "dom_order": 105,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "인스타그램 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-sns-0006",
@@ -1180,10 +1250,12 @@
               "resolved_url": "https://www.facebook.com/광주-북구청-110226931729204",
               "same_origin": false,
               "dom_order": 108,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "페이스북 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-sns-0007",
@@ -1194,10 +1266,12 @@
               "resolved_url": "https://x.com/gjbukgu",
               "same_origin": false,
               "dom_order": 111,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "엑스((구)트위터) 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-sns-0008",
@@ -1208,10 +1282,12 @@
               "resolved_url": "https://www.youtube.com/channel/UCOUWDDkH2m4dvJvXP-GObHw",
               "same_origin": false,
               "dom_order": 114,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-sns-0009",
@@ -1222,10 +1298,12 @@
               "resolved_url": "https://www.daangn.com/kr/business-profiles/%EA%B4%91%EC%A3%BC-%EB%B6%81%EA%B5%AC-cbeee05dec91403aa544e581e4a5fab8/",
               "same_origin": false,
               "dom_order": 117,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "당근 새창으로 열림",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             }
           ]
         },
@@ -1245,10 +1323,12 @@
               "resolved_url": "#language",
               "same_origin": true,
               "dom_order": 121,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "접힘",
-              "target": ""
+              "target": "",
+              "local_variant": "desktop",
+              "effective_variant": "desktop",
+              "variant": "desktop",
+              "visibility": "desktop"
             },
             {
               "item_id": "util-group-language-0002",
@@ -1259,10 +1339,12 @@
               "resolved_url": "https://bukgu.gwangju.kr/eng/",
               "same_origin": true,
               "dom_order": 125,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "영문사이트 새창으로 열기",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "hidden",
+              "variant": "hidden",
+              "visibility": "hidden"
             },
             {
               "item_id": "util-group-language-0003",
@@ -1273,10 +1355,12 @@
               "resolved_url": "https://bukgu.gwangju.kr/chn/",
               "same_origin": true,
               "dom_order": 127,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "중문사이트 새창으로 열기",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "hidden",
+              "variant": "hidden",
+              "visibility": "hidden"
             },
             {
               "item_id": "util-group-language-0004",
@@ -1287,10 +1371,12 @@
               "resolved_url": "https://bukgu.gwangju.kr/jpn/",
               "same_origin": true,
               "dom_order": 129,
-              "visibility": "desktop",
-              "variant": "desktop",
               "title_attr": "일문사이트 새창으로 열기",
-              "target": "_blank"
+              "target": "_blank",
+              "local_variant": "desktop",
+              "effective_variant": "hidden",
+              "variant": "hidden",
+              "visibility": "hidden"
             }
           ]
         }
@@ -1298,9 +1384,9 @@
       "controls": null,
       "heading": null,
       "variant_counts": {
-        "desktop": 21,
+        "desktop": 18,
         "mobile": 0,
-        "hidden": 0,
+        "hidden": 3,
         "template": 0,
         "unknown": 0
       }
@@ -1706,6 +1792,8 @@
         ],
         "source_order": 1001,
         "occurrence_count": 1,
+        "local_variant": "desktop",
+        "effective_variant": "desktop",
         "variant": "desktop",
         "fragment_sha256": "1b19086f6beb91bb010177e12197734a0af71fddb578be6c5262cd2636161404",
         "hash_rule": "canonical_subtree_serialization_v1"
@@ -1726,10 +1814,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a50808000000",
           "same_origin": true,
           "dom_order": 1004,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0002",
@@ -1740,10 +1830,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201010000&bid=0114&list_no=15150&nPage=1&act=view",
           "same_origin": true,
           "dom_order": 1007,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": "_self"
+          "target": "_self",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0003",
@@ -1754,10 +1846,12 @@
           "resolved_url": "https://form.naver.com/response/EsrjsIzGXMp",
           "same_origin": false,
           "dom_order": 1010,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0004",
@@ -1768,10 +1862,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201010000&bid=0114&list_no=15138&act=view",
           "same_origin": true,
           "dom_order": 1013,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": "_self"
+          "target": "_self",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0005",
@@ -1782,10 +1878,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=b60703000000&bid=0310&act=view&list_no=73",
           "same_origin": true,
           "dom_order": 1016,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0006",
@@ -1796,10 +1894,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201010000&bid=0114&act=view&list_no=15156",
           "same_origin": true,
           "dom_order": 1019,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": "_self"
+          "target": "_self",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0007",
@@ -1810,10 +1910,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201010000&bid=0114&list_no=14893&nPage=1&act=view",
           "same_origin": true,
           "dom_order": 1022,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": "_self"
+          "target": "_self",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0008",
@@ -1824,10 +1926,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a60401000000&bid=0060&act=view&list_no=2653",
           "same_origin": true,
           "dom_order": 1025,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0009",
@@ -1838,10 +1942,12 @@
           "resolved_url": "https://www.ecensus.go.kr/ma/echpma100m01.html;echpsessionid=oQPeAJuOcunR2odlVysDXDPmD8ZaShIa7BrOdoe",
           "same_origin": false,
           "dom_order": 1028,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0010",
@@ -1852,10 +1958,12 @@
           "resolved_url": "https://form.naver.com/response/uuoPvD004k_L-2ininEKjg",
           "same_origin": false,
           "dom_order": 1031,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0011",
@@ -1866,10 +1974,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201010000&bid=0114&list_no=15124&act=view",
           "same_origin": true,
           "dom_order": 1034,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": "_self"
+          "target": "_self",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0012",
@@ -1880,10 +1990,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=b80101010100&bid=0318&act=view&list_no=772",
           "same_origin": true,
           "dom_order": 1037,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0013",
@@ -1894,10 +2006,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a60606000000&bid=0378&act=view&list_no=12",
           "same_origin": true,
           "dom_order": 1040,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0014",
@@ -1908,10 +2022,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10210010500",
           "same_origin": true,
           "dom_order": 1043,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": "_self"
+          "target": "_self",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0015",
@@ -1922,10 +2038,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10211030000",
           "same_origin": true,
           "dom_order": 1046,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": "_self"
+          "target": "_self",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0016",
@@ -1936,10 +2054,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10817000000",
           "same_origin": true,
           "dom_order": 1058,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0017",
@@ -1950,8 +2070,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178329976724000.jpg",
           "same_origin": true,
           "dom_order": 1005,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0018",
@@ -1962,8 +2084,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178400172865900.gif",
           "same_origin": true,
           "dom_order": 1008,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0019",
@@ -1974,8 +2098,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178407391898200.gif",
           "same_origin": true,
           "dom_order": 1011,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0020",
@@ -1986,8 +2112,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178305593223400.jpg",
           "same_origin": true,
           "dom_order": 1014,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0021",
@@ -1998,8 +2126,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178365867641700.jpg",
           "same_origin": true,
           "dom_order": 1017,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0022",
@@ -2010,8 +2140,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178409060920100.gif",
           "same_origin": true,
           "dom_order": 1020,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0023",
@@ -2022,8 +2154,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178282033979100.gif",
           "same_origin": true,
           "dom_order": 1023,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0024",
@@ -2034,8 +2168,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178287085409400.gif",
           "same_origin": true,
           "dom_order": 1026,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0025",
@@ -2046,8 +2182,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178282030299600.jpg",
           "same_origin": true,
           "dom_order": 1029,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0026",
@@ -2058,8 +2196,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178295852113200.jpg",
           "same_origin": true,
           "dom_order": 1032,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0027",
@@ -2070,8 +2210,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178304259361700.gif",
           "same_origin": true,
           "dom_order": 1035,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0028",
@@ -2082,8 +2224,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178304280435800.gif",
           "same_origin": true,
           "dom_order": 1038,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0029",
@@ -2094,8 +2238,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178340217030700.gif",
           "same_origin": true,
           "dom_order": 1041,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0030",
@@ -2106,8 +2252,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178282032539500.gif",
           "same_origin": true,
           "dom_order": 1044,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "main_banner-0031",
@@ -2118,8 +2266,10 @@
           "resolved_url": "https://bukgu.gwangju.kr/upload/visual/a1/178287108647200.gif",
           "same_origin": true,
           "dom_order": 1047,
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         }
       ],
       "groups": null,
@@ -2169,6 +2319,8 @@
         ],
         "source_order": 1061,
         "occurrence_count": 1,
+        "local_variant": "desktop",
+        "effective_variant": "desktop",
         "variant": "desktop",
         "fragment_sha256": "912060748f17a61b3e85ddb362f622c242cfb8d15bf6092df4604e5575962d47",
         "hash_rule": "canonical_subtree_serialization_v1"
@@ -2189,10 +2341,12 @@
           "resolved_url": "javascript:;",
           "same_origin": false,
           "dom_order": 1064,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0002",
@@ -2203,10 +2357,12 @@
           "resolved_url": "javascript:;",
           "same_origin": false,
           "dom_order": 1067,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0003",
@@ -2217,10 +2373,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/organization.es?mid=a10602020000",
           "same_origin": true,
           "dom_order": 1071,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0004",
@@ -2231,10 +2389,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10602030100",
           "same_origin": true,
           "dom_order": 1075,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0005",
@@ -2245,10 +2405,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10210010500",
           "same_origin": true,
           "dom_order": 1079,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0006",
@@ -2259,10 +2421,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10409100100",
           "same_origin": true,
           "dom_order": 1083,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0007",
@@ -2273,10 +2437,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10207000000",
           "same_origin": true,
           "dom_order": 1087,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0008",
@@ -2287,10 +2453,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10101100000",
           "same_origin": true,
           "dom_order": 1091,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0009",
@@ -2301,10 +2469,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10402060000",
           "same_origin": true,
           "dom_order": 1095,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0010",
@@ -2315,10 +2485,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10406070000",
           "same_origin": true,
           "dom_order": 1099,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0011",
@@ -2329,10 +2501,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10101040000&bid=0214",
           "same_origin": true,
           "dom_order": 1103,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0012",
@@ -2343,10 +2517,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10208010000",
           "same_origin": true,
           "dom_order": 1107,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0013",
@@ -2357,10 +2533,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201090000&bid=0263",
           "same_origin": true,
           "dom_order": 1111,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
-          "target": ""
+          "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "resident_service_shortcuts-0014",
@@ -2369,12 +2547,14 @@
           "date_text": null,
           "href": "https://parkingsms.bukgu.gwangju.kr/WizshotCarControl/member/",
           "resolved_url": "https://parkingsms.bukgu.gwangju.kr/WizshotCarControl/member/",
-          "same_origin": true,
+          "same_origin": false,
           "dom_order": 1115,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         }
       ],
       "groups": null,
@@ -2409,6 +2589,8 @@
         ],
         "source_order": 1118,
         "occurrence_count": 1,
+        "local_variant": "desktop",
+        "effective_variant": "desktop",
         "variant": "desktop",
         "fragment_sha256": "6cf89ca1634fbce0959f574a5f1cf6025e2908ef348a7302fcdff896153e54df",
         "hash_rule": "canonical_subtree_serialization_v1"
@@ -2429,10 +2611,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1122,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "공지사항",
           "group_order": 1
         },
@@ -2445,10 +2629,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201010000&bid=0114&list_no=15155&nPage=1&act=view",
           "same_origin": true,
           "dom_order": 1126,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "공지사항",
           "group_order": 1
         },
@@ -2461,10 +2647,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201010000&bid=0114&list_no=15156&act=view",
           "same_origin": true,
           "dom_order": 1133,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "공지사항",
           "group_order": 1
         },
@@ -2477,10 +2665,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201010000&bid=0114&list_no=15157&act=view",
           "same_origin": true,
           "dom_order": 1140,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "공지사항",
           "group_order": 1
         },
@@ -2493,10 +2683,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201010000&bid=0114&list_no=15158&act=view",
           "same_origin": true,
           "dom_order": 1147,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "공지사항",
           "group_order": 1
         },
@@ -2509,10 +2701,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10201010000",
           "same_origin": true,
           "dom_order": 1154,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "공지사항",
           "group_order": 1
         },
@@ -2525,10 +2719,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1157,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "고시공고",
           "group_order": 2
         },
@@ -2541,10 +2737,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1162,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "고시공고",
           "group_order": 2
         },
@@ -2557,10 +2755,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1167,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "고시공고",
           "group_order": 2
         },
@@ -2573,10 +2773,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1172,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "고시공고",
           "group_order": 2
         },
@@ -2589,10 +2791,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1177,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "고시공고",
           "group_order": 2
         },
@@ -2605,10 +2809,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10201050000",
           "same_origin": true,
           "dom_order": 1182,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "고시공고",
           "group_order": 2
         },
@@ -2621,10 +2827,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1185,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "입찰공고",
           "group_order": 3
         },
@@ -2637,10 +2845,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1190,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "입찰공고",
           "group_order": 3
         },
@@ -2653,10 +2863,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1195,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "입찰공고",
           "group_order": 3
         },
@@ -2669,10 +2881,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1200,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "입찰공고",
           "group_order": 3
         },
@@ -2685,10 +2899,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1205,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "입찰공고",
           "group_order": 3
         },
@@ -2701,10 +2917,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10201070000",
           "same_origin": true,
           "dom_order": 1210,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "입찰공고",
           "group_order": 3
         },
@@ -2717,10 +2935,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1213,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "채용공고",
           "group_order": 4
         },
@@ -2733,10 +2953,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1218,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "채용공고",
           "group_order": 4
         },
@@ -2749,10 +2971,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1223,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "채용공고",
           "group_order": 4
         },
@@ -2765,10 +2989,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1228,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "채용공고",
           "group_order": 4
         },
@@ -2781,10 +3007,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1233,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "채용공고",
           "group_order": 4
         },
@@ -2797,10 +3025,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10201060000",
           "same_origin": true,
           "dom_order": 1238,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "채용공고",
           "group_order": 4
         },
@@ -2813,10 +3043,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1241,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "보도자료",
           "group_order": 5
         },
@@ -2829,10 +3061,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1259,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "보도자료",
           "group_order": 5
         },
@@ -2845,10 +3079,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1264,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "보도자료",
           "group_order": 5
         },
@@ -2861,10 +3097,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1269,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "보도자료",
           "group_order": 5
         },
@@ -2877,10 +3115,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1274,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "보도자료",
           "group_order": 5
         },
@@ -2893,10 +3133,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10201020000",
           "same_origin": true,
           "dom_order": 1279,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "보도자료",
           "group_order": 5
         },
@@ -2909,10 +3151,12 @@
           "resolved_url": "#",
           "same_origin": true,
           "dom_order": 1282,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "문화행사",
           "group_order": 6
         },
@@ -2925,10 +3169,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201110000&bid=0315&list_no=1222&nPage=1&act=view",
           "same_origin": true,
           "dom_order": 1286,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "문화행사",
           "group_order": 6
         },
@@ -2941,10 +3187,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201110000&bid=0315&list_no=1221&act=view",
           "same_origin": true,
           "dom_order": 1291,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "문화행사",
           "group_order": 6
         },
@@ -2957,10 +3205,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201110000&bid=0315&list_no=1220&act=view",
           "same_origin": true,
           "dom_order": 1296,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "문화행사",
           "group_order": 6
         },
@@ -2973,10 +3223,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/board.es?mid=a10201110000&bid=0315&list_no=1219&act=view",
           "same_origin": true,
           "dom_order": 1301,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "문화행사",
           "group_order": 6
         },
@@ -2989,10 +3241,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10201110000",
           "same_origin": true,
           "dom_order": 1306,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "group": "문화행사",
           "group_order": 6
         }
@@ -3091,6 +3345,8 @@
         ],
         "source_order": 1307,
         "occurrence_count": 1,
+        "local_variant": "desktop",
+        "effective_variant": "desktop",
         "variant": "desktop",
         "fragment_sha256": "9ffaa06cd1ae2234bcdb470ea993bd805b2a649bd04c0795bdc1a670ee947cb3",
         "hash_rule": "canonical_subtree_serialization_v1"
@@ -3111,10 +3367,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/stat/",
           "same_origin": true,
           "dom_order": 1311,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0002",
@@ -3125,10 +3383,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/edu/",
           "same_origin": true,
           "dom_order": 1315,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0003",
@@ -3139,10 +3399,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/youth/",
           "same_origin": true,
           "dom_order": 1319,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0004",
@@ -3153,10 +3415,12 @@
           "resolved_url": "https://gbfmc.or.kr/bcc/",
           "same_origin": false,
           "dom_order": 1323,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0005",
@@ -3167,10 +3431,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/park/",
           "same_origin": true,
           "dom_order": 1327,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0006",
@@ -3181,10 +3447,12 @@
           "resolved_url": "https://rsve.gbfmc.or.kr:444/",
           "same_origin": false,
           "dom_order": 1332,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0007",
@@ -3195,10 +3463,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/drone/",
           "same_origin": true,
           "dom_order": 1337,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0008",
@@ -3209,10 +3479,12 @@
           "resolved_url": "https://gbfmc.or.kr/namdofood/",
           "same_origin": false,
           "dom_order": 1342,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0009",
@@ -3223,10 +3495,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/shihwa/",
           "same_origin": true,
           "dom_order": 1347,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0010",
@@ -3237,10 +3511,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/life/",
           "same_origin": true,
           "dom_order": 1352,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0011",
@@ -3251,10 +3527,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/biz/",
           "same_origin": true,
           "dom_order": 1356,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0012",
@@ -3265,10 +3543,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/se/",
           "same_origin": true,
           "dom_order": 1360,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0013",
@@ -3279,10 +3559,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/jaminazip/",
           "same_origin": true,
           "dom_order": 1364,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0014",
@@ -3293,10 +3575,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/kids/",
           "same_origin": true,
           "dom_order": 1369,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0015",
@@ -3305,12 +3589,14 @@
           "date_text": null,
           "href": "https://lib.bukgu.gwangju.kr/",
           "resolved_url": "https://lib.bukgu.gwangju.kr/",
-          "same_origin": true,
+          "same_origin": false,
           "dom_order": 1374,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0016",
@@ -3321,10 +3607,12 @@
           "resolved_url": "https://buksoemall.com/",
           "same_origin": false,
           "dom_order": 1378,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0017",
@@ -3335,10 +3623,12 @@
           "resolved_url": "http://gjbukgu.kr/",
           "same_origin": false,
           "dom_order": 1383,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0018",
@@ -3347,12 +3637,14 @@
           "date_text": null,
           "href": "https://parking.bukgu.gwangju.kr:444/",
           "resolved_url": "https://parking.bukgu.gwangju.kr:444/",
-          "same_origin": true,
+          "same_origin": false,
           "dom_order": 1388,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0019",
@@ -3363,10 +3655,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/golmok/",
           "same_origin": true,
           "dom_order": 1392,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0020",
@@ -3377,10 +3671,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/sbiz",
           "same_origin": true,
           "dom_order": 1397,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "related_site_controls-0021",
@@ -3391,10 +3687,12 @@
           "resolved_url": "https://www.gbcnsc.or.kr/",
           "same_origin": false,
           "dom_order": 1402,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "새창으로 열림",
-          "target": "_blank"
+          "target": "_blank",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         }
       ],
       "groups": null,
@@ -3589,6 +3887,8 @@
         ],
         "source_order": 2243,
         "occurrence_count": 1,
+        "local_variant": "desktop",
+        "effective_variant": "desktop",
         "variant": "desktop",
         "fragment_sha256": "de530c34a1d048c2e67d31b5665cace0e8c7765ab081583a4325b044a4b63e7b",
         "hash_rule": "canonical_subtree_serialization_v1"
@@ -3613,6 +3913,8 @@
           ],
           "source_order": 2256,
           "occurrence_count": 1,
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
           "variant": "desktop",
           "fragment_sha256": "fa77bc7a290b0b0af710f0995952dd0dc464e4407e97371166c835451dfa2215",
           "hash_rule": "canonical_subtree_serialization_v1"
@@ -3633,6 +3935,8 @@
           ],
           "source_order": 2250,
           "occurrence_count": 1,
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
           "variant": "desktop",
           "fragment_sha256": "a7f85876734bd5f9c8a3f8f46b01d984da91687bdd06db38bfc91cbe11389ce7",
           "hash_rule": "canonical_subtree_serialization_v1"
@@ -3650,8 +3954,10 @@
           "same_origin": null,
           "dom_order": 2243,
           "kind": "address_block",
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "footer_identity_contact-0002",
@@ -3662,10 +3968,12 @@
           "resolved_url": "tel:062-410-8000",
           "same_origin": false,
           "dom_order": 2248,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "kind": "contact_link"
         },
         {
@@ -3677,8 +3985,10 @@
           "same_origin": null,
           "dom_order": 2256,
           "kind": "copyright",
-          "visibility": "desktop",
-          "variant": "desktop"
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop"
         },
         {
           "item_id": "footer_identity_contact-0004",
@@ -3689,10 +3999,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10807000000",
           "same_origin": true,
           "dom_order": 2251,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "kind": "legal_link"
         },
         {
@@ -3704,10 +4016,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10801000000",
           "same_origin": true,
           "dom_order": 2252,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "kind": "legal_link"
         },
         {
@@ -3719,10 +4033,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10802000000",
           "same_origin": true,
           "dom_order": 2253,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "kind": "legal_link"
         },
         {
@@ -3734,10 +4050,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10805000000",
           "same_origin": true,
           "dom_order": 2254,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "kind": "legal_link"
         },
         {
@@ -3749,10 +4067,12 @@
           "resolved_url": "https://bukgu.gwangju.kr/menu.es?mid=a10803000000",
           "same_origin": true,
           "dom_order": 2255,
-          "visibility": "desktop",
-          "variant": "desktop",
           "title_attr": "",
           "target": "",
+          "local_variant": "desktop",
+          "effective_variant": "desktop",
+          "variant": "desktop",
+          "visibility": "desktop",
           "kind": "legal_link"
         }
       ],
@@ -24391,5 +24711,5 @@
     "exact_clone_claimed": false,
     "home_remains_capture_required": true
   },
-  "fixture_sha256": "d06ce98508e8141ea90201777c3f9a4656928f59cc65a354e6bf2b614f443dfc"
+  "fixture_sha256": "81b27b98fadc091ca852079f89ea93da45b93f250372835b8b352726b2faeaed"
 }

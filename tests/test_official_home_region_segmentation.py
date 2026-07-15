@@ -249,3 +249,200 @@ def test_manual_fixture_edit_fails_check():
         assert problems
     finally:
         FIXTURE_PATH.write_text(original, encoding="utf-8", newline="\n")
+
+
+# ── Same-origin exact policy ───────────────────────────────────────
+
+
+SAME_ORIGIN_TRUE = [
+    "/",
+    "/menu.es?mid=a101",
+    "menu.es?mid=a101",
+    "#section",
+    "https://bukgu.gwangju.kr/",
+    "https://bukgu.gwangju.kr/menu.es",
+    "https://bukgu.gwangju.kr:443/menu.es",
+]
+
+SAME_ORIGIN_FALSE = [
+    "http://bukgu.gwangju.kr/",
+    "http://bukgu.gwangju.kr:80/",
+    "https://bukgu.gwangju.kr:444/",
+    "https://lib.bukgu.gwangju.kr/",
+    "https://council.bukgu.gwangju.kr/",
+    "https://evil.bukgu.gwangju.kr/",
+    "https://user@bukgu.gwangju.kr/",
+    "https://user:pass@bukgu.gwangju.kr/",
+    "https://bukgu.gwangju.kr.evil.test/",
+    "javascript:void(0)",
+    "mailto:test@example.com",
+    "tel:123",
+    "data:text/plain,test",
+]
+
+MALFORMED_URLS = [
+    "https://bukgu.gwangju.kr:notaport/",
+    "https://bukgu.gwangju.kr:99999/",
+    "https://[invalid/",
+    "",
+    None,
+    123,
+]
+
+
+@pytest.mark.parametrize("url", SAME_ORIGIN_TRUE)
+def test_is_same_origin_url_true_cases(url):
+    assert parser.is_same_origin_url(url) is True
+
+
+@pytest.mark.parametrize("url", SAME_ORIGIN_FALSE)
+def test_is_same_origin_url_false_cases(url):
+    assert parser.is_same_origin_url(url) is False
+
+
+@pytest.mark.parametrize("url", MALFORMED_URLS, ids=lambda v: repr(v)[:40])
+def test_is_same_origin_url_malformed_never_raises_or_true(url):
+    try:
+        result = parser.is_same_origin_url(url)
+    except ValueError as exc:  # pragma: no cover
+        pytest.fail(f"raw ValueError escaped: {exc!r}")
+    assert result is not True
+    assert result in (False, None)
+
+
+def test_committed_fixture_same_origin_values():
+    """Inspect generated region items for exact origin semantics."""
+    fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    util = next(r for r in fixture["regions"] if r["region_id"] == "utility_navigation")
+    related = next(
+        r for r in fixture["regions"] if r["region_id"] == "related_site_controls"
+    )
+
+    def items_by_href_substr(region, needle):
+        return [
+            it
+            for it in region.get("items") or []
+            if needle in str(it.get("href") or "")
+            or needle in str(it.get("resolved_url") or "")
+        ]
+
+    # Relative portal paths → same-origin true
+    culture = [
+        it
+        for it in util.get("items") or []
+        if (it.get("href") or "").startswith("/culture")
+        or "문화관광" in str(it.get("text") or "")
+    ]
+    assert culture, "expected 문화관광 utility link"
+    for it in culture:
+        if (it.get("href") or "").startswith("/"):
+            assert it["same_origin"] is True
+
+    # Absolute official host
+    abs_portal = [
+        it
+        for it in related.get("items") or []
+        if str(it.get("resolved_url") or "").startswith("https://bukgu.gwangju.kr/")
+    ]
+    assert abs_portal
+    for it in abs_portal:
+        assert it["same_origin"] is True
+
+    # Subdomains must be false
+    for needle, expected in [
+        ("lib.bukgu.gwangju.kr", False),
+        ("council.bukgu.gwangju.kr", False),
+        ("gbfmc.or.kr", False),
+        ("blog.naver.com", False),
+        ("pf.kakao.com", False),
+    ]:
+        hits = items_by_href_substr(related, needle) + items_by_href_substr(util, needle)
+        # utility SNS may hold kakao/naver
+        if not hits and needle in ("blog.naver.com", "pf.kakao.com"):
+            hits = items_by_href_substr(util, needle)
+        if hits:
+            for it in hits:
+                assert it["same_origin"] is expected, (needle, it)
+
+
+def test_committed_language_links_are_hidden():
+    fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    util = next(r for r in fixture["regions"] if r["region_id"] == "utility_navigation")
+    for label in ("ENG", "CHN", "JPN"):
+        hits = [it for it in util.get("items") or [] if it.get("text") == label]
+        assert hits, f"missing language item {label}"
+        for it in hits:
+            assert it["variant"] == "hidden"
+            assert it["visibility"] == "hidden"
+            assert it.get("effective_variant") == "hidden"
+            # Local may still be desktop; effective inherits hidden from #language.site.close
+            assert it.get("local_variant") in ("desktop", "hidden")
+
+
+def test_committed_utility_desktop_links_remain_visible():
+    fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    util = next(r for r in fixture["regions"] if r["region_id"] == "utility_navigation")
+    for label in ("문화관광", "보건소", "전체메뉴"):
+        hits = [it for it in util.get("items") or [] if label in str(it.get("text") or "")]
+        assert hits, f"missing utility link {label}"
+        for it in hits:
+            assert it["variant"] == "desktop", (label, it)
+            assert it["visibility"] == "desktop"
+
+
+# ── Ancestor-aware variant unit tests ──────────────────────────────
+
+
+def _segment_fragment(html: str) -> dict:
+    # Wrap with html/body so parser is happy
+    doc = f"<html><body>{html}</body></html>"
+    root = parser.parse_dom(doc)
+    # Return first anchor under body with visibility fields
+    anchors = [n for n in parser.walk(root) if n.tag == "a"]
+    assert anchors
+    out = []
+    for a in anchors:
+        fields = parser.visibility_fields(a)
+        out.append({"text": parser.node_text(a), **fields})
+    return out
+
+
+def test_ancestor_variant_synthetic_cases():
+    cases = [
+        ('<div style="display:none"><a href="/a">A</a></div>', "A", "hidden"),
+        ('<div class="hidden"><a href="/b">B</a></div>', "B", "hidden"),
+        (
+            '<ul class="site close" id="language"><li><a href="/eng/">ENG</a></li></ul>',
+            "ENG",
+            "hidden",
+        ),
+        ('<div class="mobile"><a href="/m">M</a></div>', "M", "mobile"),
+        ('<div id="mw_temp"><a href="/t">T</a></div>', "T", "template"),
+    ]
+    for html, text, expected in cases:
+        items = _segment_fragment(html)
+        hit = next(it for it in items if it["text"] == text)
+        assert hit["variant"] == expected
+        assert hit["visibility"] == expected
+        assert hit["effective_variant"] == expected
+
+
+def test_ancestor_variant_precedence():
+    cases = [
+        (
+            '<div class="hidden"><div class="mobile"><a href="/x">X</a></div></div>',
+            "hidden",
+        ),
+        (
+            '<div class="hidden"><div id="mw_temp"><a href="/y">Y</a></div></div>',
+            "hidden",
+        ),
+        (
+            '<div id="mw_temp"><div class="mobile"><a href="/z">Z</a></div></div>',
+            "template",
+        ),
+    ]
+    for html, expected in cases:
+        items = _segment_fragment(html)
+        assert items[0]["effective_variant"] == expected
+        assert items[0]["variant"] == expected
