@@ -6,6 +6,72 @@ import { join, extname } from "node:path";
 import { tmpdir } from "node:os";
 import http from "node:http";
 
+// #1155 — deterministic geometry contract: the chat header must never overlap
+// the conversation content (greeting / answer / metadata / acknowledgement /
+// confirmation actions) on any supported viewport. Header is in normal document
+// flow; the first VISIBLE conversation rect top must sit at or below the header
+// bottom. Content scrolled above the thread's visible area (clipped by overflow)
+// is excluded — only elements that intersect the thread's scrollport count.
+// TOL absorbs sub-pixel rounding.
+const GEOM_TOL = 1.0;
+function assertNoHeaderContentOverlap(page, ctx) {
+  return page.evaluate((tol) => {
+    const header = document.querySelector(".chat-shell__header");
+    const headerRect = header ? header.getBoundingClientRect() : null;
+    if (!headerRect) return { ok: true, skip: "no-header" };
+    const headerBottom = headerRect.bottom;
+    const thread = document.querySelector(".chat-thread");
+    const threadRect = thread ? thread.getBoundingClientRect() : null;
+    const threadTop = threadRect ? threadRect.top : 0;
+    const threadBottom = threadRect ? threadRect.bottom : Infinity;
+    // First visible conversation element: greeting/answer bubble or answer meta.
+    const candidates = [
+      ...Array.from(document.querySelectorAll(".chat-msg")),
+      ...Array.from(document.querySelectorAll(".chat-answer-meta")),
+    ].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return r.height > 0 && r.width > 0;
+    });
+    // Pick the topmost candidate that intersects the thread's visible scrollport
+    // (at least partially visible — not fully scrolled above or below).
+    const visible = candidates
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return { el, top: r.top, bottom: r.bottom };
+      })
+      .filter((c) => {
+        const visibleTop = Math.max(c.top, threadTop);
+        const visibleBottom = Math.min(c.bottom, threadBottom);
+        return visibleBottom - visibleTop > 0; // at least 1px visible
+      })
+      .sort((a, b) => a.top - b.top);
+    const first = visible[0];
+    if (!first) return { ok: true, skip: "no-content" };
+    // The visible portion of this element starts at its intersection with thread.
+    const contentTop = Math.max(first.top, threadTop);
+    const gap = contentTop - headerBottom;
+    return {
+      ok: gap >= -tol,
+      viewport: `${Math.round(window.innerWidth)}x${Math.round(window.innerHeight)}`,
+      headerBottom: Math.round(headerBottom),
+      contentTop: Math.round(contentTop),
+      gap: Math.round(gap),
+    };
+  }, GEOM_TOL).then((res) => {
+    if (res.skip) return;
+    assert.ok(
+      res.ok,
+      `chat content must not overlap header: ${JSON.stringify({
+        viewport: res.viewport,
+        headerBottom: res.headerBottom,
+        contentTop: res.contentTop,
+        gap: res.gap,
+        ctx,
+      })}`,
+    );
+  });
+}
+
 // Forbidden stale Korean journey copy (allowed only when locale === ko).
 const FORBIDDEN_KO = [
   "질문을 확인했습니다",
@@ -154,12 +220,13 @@ function localeFromBody(text) {
   }
 }
 
-async function runLocaleTest(browser, origin, locale, expectations) {
-  const label = `multilingual-${locale}`;
+async function runLocaleTest(browser, origin, locale, expectations, viewport) {
+  const vp = viewport || { width: 1440, height: 900 };
+  const label = `multilingual-${locale}-${vp.width}x${vp.height}`;
   console.log(`[${label}] start`);
 
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
+    viewport: { width: vp.width, height: vp.height },
     reducedMotion: "reduce",
   });
 
@@ -273,6 +340,10 @@ async function runLocaleTest(browser, origin, locale, expectations) {
   const finalAnswerText = await finalAnswerBubble.innerText();
   assert.ok(finalAnswerText.includes(expectations.expectedAnswer), `[${label}] expected answer mismatch. Got: ${finalAnswerText}`);
 
+  // #1155 — answer + metadata + acknowledgement/confirmation must not overlap header.
+  await page.waitForTimeout(300);
+  await assertNoHeaderContentOverlap(page, `${label} answer`);
+
   const bodyText = await page.evaluate(() => document.body.innerText);
 
   // 6a. acknowledgement localized
@@ -333,12 +404,13 @@ async function runLocaleTest(browser, origin, locale, expectations) {
   console.log(`[${label}] PASS`);
 }
 
-async function runLocaleTransitionTest(browser, origin) {
-  const label = "locale-transition";
+async function runLocaleTransitionTest(browser, origin, viewport) {
+  const vp = viewport || { width: 1440, height: 900 };
+  const label = `locale-transition-${vp.width}x${vp.height}`;
   console.log(`[${label}] start`);
 
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
+    viewport: { width: vp.width, height: vp.height },
     reducedMotion: "reduce",
   });
 
@@ -422,6 +494,10 @@ async function runLocaleTransitionTest(browser, origin) {
   assert.ok(await composer.isEnabled(), `[${label}] composer usable`);
   assert.deepStrictEqual(errors, [], `[${label}] no errors: ${errors.join(" | ")}`);
 
+  // #1155 — after same-page locale change, content must not overlap header.
+  await page.waitForTimeout(300);
+  await assertNoHeaderContentOverlap(page, `${label} after-locale-change`);
+
   await context.close();
   console.log(`[${label}] PASS`);
 }
@@ -488,10 +564,27 @@ async function main() {
 
   const browser = await launchBrowser();
   try {
-    for (const [locale, expectations] of Object.entries(LOCALE_ASSERTIONS)) {
-      await runLocaleTest(browser, origin, locale, expectations);
+    // #1155 geometry matrix: viewport × locale.
+    const GEOM_MATRIX = [
+      { width: 390, height: 844, locales: ["ko", "en", "vi", "th", "id"] },
+      { width: 360, height: 800, locales: ["vi", "th", "id"] },
+      { width: 1440, height: 900, locales: ["ko", "en"] },
+    ];
+    for (const { width, height, locales } of GEOM_MATRIX) {
+      const vp = { width, height };
+      for (const locale of locales) {
+        await runLocaleTest(browser, origin, locale, LOCALE_ASSERTIONS[locale], vp);
+      }
     }
-    await runLocaleTransitionTest(browser, origin);
+    // Keep the prior full-locale 1440×900 coverage for copy contracts.
+    for (const [locale, expectations] of Object.entries(LOCALE_ASSERTIONS)) {
+      if (!GEOM_MATRIX[2].locales.includes(locale)) {
+        await runLocaleTest(browser, origin, locale, expectations, { width: 1440, height: 900 });
+      }
+    }
+    await runLocaleTransitionTest(browser, origin, { width: 390, height: 844 });
+    await runLocaleTransitionTest(browser, origin, { width: 360, height: 800 });
+    await runLocaleTransitionTest(browser, origin, { width: 1440, height: 900 });
     await runBackNavigationTest(browser, origin);
   } finally {
     await browser.close();
