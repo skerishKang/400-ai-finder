@@ -108,6 +108,10 @@
         "원문 초안과 한국어 행정 초안을 비교해 보세요. 공식 제출은 아직 하지 않았습니다.",
       "draft.formPopulatedNotice":
         "왼쪽 양식에 한국어 초안을 넣었습니다. 필드는 계속 수정할 수 있습니다. 아직 제출되지 않았습니다.",
+      "draft.preSubmitTerminal":
+        "현재는 공식 제출 전 초안 상태입니다. 여기서는 공식 제출을 진행하지 않습니다.",
+      "draft.unsupportedOfflineEdit":
+        "이 오프라인 시연에서는 검수된 예시 초안만 이어서 진행할 수 있습니다. 예시 문구를 복원하거나 '다시 다듬기'를 선택한 뒤 다시 확인해 주세요.",
 
       "confirm.mayor": "작성된 제안의 제목과 본문을 검토했습니다. 이 내용으로 구정 제안서를 최종 확인할까요?",
       "confirm.generic": "작성된 제목과 본문을 검토했습니다. 확인 전에는 제출되지 않습니다. 이 내용으로 진행할까요?",
@@ -222,6 +226,10 @@
         "Compare your original draft with the Korean administrative draft. Nothing has been officially submitted.",
       "draft.formPopulatedNotice":
         "I entered the Korean draft into the form on the left. Fields stay editable. Nothing has been submitted yet.",
+      "draft.preSubmitTerminal":
+        "This remains a pre-submission draft. Official submission is not performed here.",
+      "draft.unsupportedOfflineEdit":
+        "This offline demo can only continue with the reviewed sample drafts. Please restore the sample text or choose Revise draft, then confirm again.",
 
       "confirm.mayor": "I have reviewed the title and body of the proposal. Shall we finalize this district proposal?",
       "confirm.generic":
@@ -337,6 +345,10 @@
         "Hãy so sánh bản nháp gốc với bản nháp hành chính tiếng Hàn. Chưa có việc nộp chính thức nào.",
       "draft.formPopulatedNotice":
         "Tôi đã đưa bản nháp tiếng Hàn vào biểu mẫu bên trái. Các trường vẫn chỉnh được. Chưa gửi.",
+      "draft.preSubmitTerminal":
+        "Đây vẫn là bản nháp trước khi nộp chính thức. Không thực hiện nộp chính thức tại đây.",
+      "draft.unsupportedOfflineEdit":
+        "Bản demo ngoại tuyến này chỉ tiếp tục với các bản nháp mẫu đã được duyệt. Hãy khôi phục văn bản mẫu hoặc chọn Chỉnh lại bản nháp, rồi xác nhận lại.",
 
       "confirm.mayor": "Tôi đã xem xét tiêu đề và nội dung của đề xuất. Xin hãy xác nhận bản đề xuất này gửi đến quận trưởng?",
       "confirm.generic":
@@ -452,6 +464,10 @@
         "โปรดเปรียบเทียบร่างต้นฉบับกับร่างเอกสารราชการภาษาเกาหลี ยังไม่มีการส่งเรื่องทางการ",
       "draft.formPopulatedNotice":
         "ฉันใส่ร่างภาษาเกาหลีลงในแบบฟอร์มด้านซ้ายแล้ว ยังแก้ไขได้ และยังไม่ได้ส่งเรื่อง",
+      "draft.preSubmitTerminal":
+        "นี่ยังคงเป็นร่างก่อนส่งเรื่องทางการ ที่นี่จะไม่ดำเนินการส่งเรื่องทางการ",
+      "draft.unsupportedOfflineEdit":
+        "การสาธิตออฟไลน์นี้ดำเนินการต่อได้เฉพาะร่างตัวอย่างที่ตรวจแล้วเท่านั้น กรุณากู้คืนข้อความตัวอย่าง หรือเลือกปรับร่างใหม่ แล้วยืนยันอีกครั้ง",
 
       "confirm.mayor": "ฉันได้ตรวจสอบหัวข้อและเนื้อหาของข้อเสนอแล้ว ยืนยันร่างข้อเสนอนี้ถึงนายกเทศมนตรีเขตหรือไม่?",
       "confirm.generic":
@@ -567,6 +583,10 @@
         "Bandingkan draf asli Anda dengan draf administratif bahasa Korea. Belum ada pengiriman resmi.",
       "draft.formPopulatedNotice":
         "Saya memasukkan draf Korea ke formulir di kiri. Kolom tetap dapat diedit. Belum dikirim.",
+      "draft.preSubmitTerminal":
+        "Ini tetap draf pra-pengiriman. Pengiriman resmi tidak dilakukan di sini.",
+      "draft.unsupportedOfflineEdit":
+        "Demo offline ini hanya dapat dilanjutkan dengan draf contoh yang telah ditinjau. Pulihkan teks contoh atau pilih Perbaiki draf, lalu konfirmasi lagi.",
 
       "confirm.mayor": "Saya telah meninjau judul dan isi usulan. Yakin menyelesaikan usulan kepada bupati ini?",
       "confirm.generic":

@@ -266,13 +266,24 @@ def test_two_stage_bilingual_draft_state_model_and_safety():
     assert 'DRAFT_STAGE_RESIDENT = "resident_draft_review"' in CHOREO
     assert 'DRAFT_STAGE_KOREAN = "korean_draft_review"' in CHOREO
     assert 'DRAFT_STAGE_FORM = "form_populated"' in CHOREO
+    assert 'CHOREO_WAITING_FORM_REVIEW = "waiting_form_review"' in CHOREO
     assert "confirmResidentDraftContent" in CHOREO
     assert "confirmKoreanDraftInsert" in CHOREO
     assert "reviseResidentDraft" in CHOREO
+    assert "_resolveReviewedKoreanDraft" in CHOREO
     assert "BILINGUAL_DRAFT_FIXTURES" in CHOREO
+    assert "koreanRevise" in CHOREO
     assert "mayor-message-assist" in CHOREO
     assert "complaint-ai-assist" in CHOREO
     assert "complaint-board-write" in CHOREO
+    # Stage 1 must not pre-create Korean draft.
+    begin = CHOREO[CHOREO.index("function _beginBilingualDraftHandoff"): CHOREO.index("function reviseResidentDraft")]
+    assert '_draftStage.koreanTitle = ""' in begin
+    assert '_draftStage.koreanBody = ""' in begin
+    # Non-ko path must not resume legacy requiresConfirmation after insert.
+    insert = CHOREO[CHOREO.index("function confirmKoreanDraftInsert"): CHOREO.index("function getDraftStageState")]
+    assert "_executeStep(resume)" not in insert
+    assert "CHOREO_WAITING_FORM_REVIEW" in insert
     # Cancel/reset must clear draft stage state.
     cancel_start = CHOREO.index("function cancel()")
     cancel_end = CHOREO.index("function getState()")
@@ -294,6 +305,8 @@ def test_two_stage_bilingual_i18n_keys_present_for_required_locales():
         "draft.stage1Explain",
         "draft.stage2Explain",
         "draft.formPopulatedNotice",
+        "draft.preSubmitTerminal",
+        "draft.unsupportedOfflineEdit",
         "draft.residentDraftLabel",
     ]
     for locale in ("ko", "en", "vi", "th", "id"):

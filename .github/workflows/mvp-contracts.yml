@@ -159,6 +159,9 @@ jobs:
           node tests/browser/verify_clone_header_list_containment.mjs \
             http://127.0.0.1:8768
 
+      - name: Run two-stage bilingual draft browser contract
+        run: node tests/browser/verify_two_stage_bilingual_draft_e2e.mjs
+
       - name: Run Cloudflare MVP Function contract test
         env:
           RUN_CLOUDFLARE_FUNCTION_CONTRACTS: "1"

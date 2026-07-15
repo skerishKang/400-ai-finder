@@ -557,6 +557,17 @@ body[data-first-use-state="split"] .demo-canvas {
   font-size: 0.72rem;
 }
 
+.chat-bilingual-draft__unsupported {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #f1c40f;
+  background: #fffbeb;
+  color: #854d0e;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
 .chat-bilingual-draft__fields {
   display: flex;
   flex-direction: column;

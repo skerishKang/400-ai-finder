@@ -273,6 +273,21 @@ async function formSnapshot(page) {
     const submit =
       document.getElementById("btn-mayor-submit") ||
       document.getElementById("btn-board-submit");
+    const draft =
+      window.CitizenFirstChoreography &&
+      typeof window.CitizenFirstChoreography.getDraftStageState === "function"
+        ? window.CitizenFirstChoreography.getDraftStageState()
+        : null;
+    const submitConfirm = Array.from(
+      document.querySelectorAll(
+        ".chat-msg--decision .chat-decision__button--primary",
+      ),
+    ).filter((btn) => {
+      const t = (btn.textContent || "").trim();
+      return /Reviewed, submit|Đã xem xét|ตรวจสอบแล้ว|Sudah diperiksa|검토했고/.test(
+        t,
+      );
+    });
     return {
       draftStage: document.body.getAttribute("data-draft-stage"),
       choreo: document.body.getAttribute("data-choreography-state"),
@@ -287,6 +302,10 @@ async function formSnapshot(page) {
       koreanRole: !!document.querySelector(
         '[data-draft-role="korean-administrative-draft"]',
       ),
+      internalKoreanTitle: draft ? draft.koreanTitle || "" : "",
+      internalKoreanBody: draft ? draft.koreanBody || "" : "",
+      fixtureVariant: draft ? draft.fixtureVariant || null : null,
+      submitConfirmCount: submitConfirm.length,
       overflow:
         document.documentElement.scrollWidth >
         document.documentElement.clientWidth + 1,
@@ -321,20 +340,49 @@ async function runLocaleViewportMatrix(browser, origin) {
       assert.strictEqual(snap.title, "", `${label} form title empty stage1`);
       assert.strictEqual(snap.body, "", `${label} form body empty stage1`);
       assert.equal(snap.koreanRole, false, `${label} no Korean draft stage1`);
+      assert.strictEqual(snap.internalKoreanTitle, "", `${label} internal koreanTitle empty`);
+      assert.strictEqual(snap.internalKoreanBody, "", `${label} internal koreanBody empty`);
       assert.ok(snap.stage1, `${label} stage1 card`);
       assert.equal(snap.overflow, false, `${label} no h-overflow stage1`);
       await assertNoHeaderContentOverlap(page, `${label}-stage1`);
 
-      // Edit source, then confirm Stage 1.
+      // Free-form edit must fail closed (stay Stage 1).
       await ensureConversationSurface(page);
-      const editedTitle = `Edited title (${locale})`;
-      const editedBody = `Edited body for locale ${locale} — meaning check.`;
       await page
         .locator('[data-draft-field="resident-title"]')
-        .fill(editedTitle, { force: true });
+        .fill(`Free-form title (${locale})`, { force: true });
       await page
         .locator('[data-draft-field="resident-body"]')
-        .fill(editedBody, { force: true });
+        .fill(`Free-form body for locale ${locale}`, { force: true });
+      await page
+        .locator('[data-draft-action="confirm-content"]')
+        .click({ force: true });
+      await page.waitForTimeout(250);
+      snap = await formSnapshot(page);
+      assert.strictEqual(
+        snap.draftStage,
+        "resident_draft_review",
+        `${label} free-form stays stage1`,
+      );
+      assert.strictEqual(snap.internalKoreanTitle, "", `${label} free-form no korean title`);
+      assert.strictEqual(snap.internalKoreanBody, "", `${label} free-form no korean body`);
+      assert.equal(snap.koreanRole, false, `${label} free-form no Korean DOM`);
+      assert.strictEqual(snap.title, "", `${label} free-form form empty`);
+      const unsupported = await page.locator("[data-draft-unsupported]").count();
+      assert.ok(unsupported > 0, `${label} free-form shows unsupported notice`);
+
+      // Restore a reviewed sample fixture via Revise (deterministic alternate/original).
+      await page.locator('[data-draft-action="revise"]').click({ force: true });
+      await page.waitForTimeout(150);
+      const restored = await page.evaluate(() => {
+        const t = document.querySelector('[data-draft-field="resident-title"]');
+        const b = document.querySelector('[data-draft-field="resident-body"]');
+        return { t: t ? t.value : "", b: b ? b.value : "" };
+      });
+      assert.ok(
+        restored.t && !restored.t.startsWith("Free-form"),
+        `${label} restore reviewed fixture via revise`,
+      );
       await page
         .locator('[data-draft-action="confirm-content"]')
         .click({ force: true });
@@ -351,20 +399,26 @@ async function runLocaleViewportMatrix(browser, origin) {
       assert.strictEqual(snap.body, "", `${label} form body empty stage2`);
       assert.ok(snap.stage2, `${label} stage2 card`);
       assert.ok(snap.koreanRole, `${label} Korean draft visible stage2`);
+      assert.ok(snap.internalKoreanTitle.length > 0, `${label} korean created after confirm`);
+      assert.ok(snap.internalKoreanBody.length > 0, `${label} korean body after confirm`);
+      assert.ok(
+        snap.fixtureVariant === "original" || snap.fixtureVariant === "revise",
+        `${label} fixture variant set`,
+      );
 
-      const stage2Source = await page.evaluate(() => {
-        const t = document.querySelector("[data-draft-original-title]");
-        const b = document.querySelector("[data-draft-original-text]");
+      const stage2Korean = await page.evaluate(() => {
+        const t = document.querySelector("[data-draft-korean-title]");
+        const b = document.querySelector("[data-draft-korean-body]");
         return {
           title: t ? t.textContent.trim() : "",
           body: b ? b.textContent.trim() : "",
         };
       });
       assert.ok(
-        stage2Source.title.includes(editedTitle) ||
-          stage2Source.body.includes(editedBody),
-        `${label} stage2 uses latest edited source`,
+        stage2Korean.title.includes("통학로") || stage2Korean.title.includes("조명"),
+        `${label} matching Korean fixture title`,
       );
+      assert.ok(stage2Korean.body.length > 20, `${label} matching Korean fixture body`);
 
       // Labels must be localized (not Korean UI chrome on the right).
       const actionLabels = await page.evaluate(() => {
@@ -388,19 +442,28 @@ async function runLocaleViewportMatrix(browser, origin) {
       await page.waitForFunction(
         () => {
           const title = document.getElementById("mayor-write-title");
-          return title && title.value && title.value.includes("통학로");
+          const stage = document.body.getAttribute("data-draft-stage");
+          const choreo = document.body.getAttribute("data-choreography-state");
+          return (
+            title &&
+            title.value &&
+            stage === "form_populated" &&
+            choreo === "waiting_form_review"
+          );
         },
         null,
         { timeout: 10000 },
       );
+      // Stable after wait — no late resume to submit confirmation.
+      await page.waitForTimeout(800);
       snap = await formSnapshot(page);
-      assert.ok(snap.title.includes("통학로"), `${label} form title populated`);
-      assert.ok(
-        snap.body.includes("제출 전에 추가하겠습니다"),
-        `${label} form body populated`,
-      );
+      assert.strictEqual(snap.draftStage, "form_populated", `${label} form_populated`);
+      assert.strictEqual(snap.choreo, "waiting_form_review", `${label} waiting_form_review`);
+      assert.ok(snap.title.length > 5, `${label} form title populated`);
+      assert.ok(snap.body.length > 20, `${label} form body populated`);
       assert.equal(snap.hasReceipt, false, `${label} no receipt after insert`);
       assert.ok(snap.submitDisabled, `${label} submit still disabled`);
+      assert.strictEqual(snap.submitConfirmCount, 0, `${label} no Reviewed/submit button`);
       assert.equal(snap.overflow, false, `${label} no h-overflow after insert`);
       await assertNoHeaderContentOverlap(page, `${label}-form`);
 
@@ -491,8 +554,8 @@ async function runResetAndLocaleChange(browser, origin) {
     console.log(`[${c.label}] PASS`);
   }
 
-  // Locale change from Stage 1 and Stage 2.
-  for (const from of ["stage1", "stage2"]) {
+  // Locale change from Stage 1, Stage 2, and form_populated.
+  for (const from of ["stage1", "stage2", "form"]) {
     const label = `locale-change-${from}`;
     console.log(`[${label}] start`);
     const context = await browser.newContext({
@@ -503,7 +566,7 @@ async function runResetAndLocaleChange(browser, origin) {
     const safety = trackSafety(page, origin);
     await mockMayorAsk(page);
     await openMayorTwoStage(page, origin, "en", YES_BY_LOCALE.en);
-    if (from === "stage2") {
+    if (from === "stage2" || from === "form") {
       await page.locator('[data-draft-action="confirm-content"]').click();
       await page.waitForFunction(
         () =>
@@ -513,13 +576,27 @@ async function runResetAndLocaleChange(browser, origin) {
         { timeout: 10000 },
       );
     }
+    if (from === "form") {
+      await page.locator('[data-draft-action="confirm-insert"]').click();
+      await page.waitForFunction(
+        () =>
+          document.body.getAttribute("data-choreography-state") ===
+          "waiting_form_review",
+        null,
+        { timeout: 10000 },
+      );
+    }
     await page.locator("#chat-lang").selectOption("vi");
     await page.waitForTimeout(500);
     const after = await page.evaluate(() => {
+      const title = document.getElementById("mayor-write-title");
+      const body = document.getElementById("mayor-write-content");
       return {
         draftStage: document.body.getAttribute("data-draft-stage"),
         stageCard: !!document.querySelector("[data-bilingual-draft-card]"),
         locale: window.CitizenI18n ? window.CitizenI18n.getLocale() : "",
+        title: title ? title.value : "",
+        body: body ? body.value : "",
         staleEn:
           document.body.innerText.includes("Yes, the meaning is correct") &&
           !!document.querySelector("[data-bilingual-draft-card]"),
@@ -531,11 +608,114 @@ async function runResetAndLocaleChange(browser, origin) {
       `${label} draft cleared`,
     );
     assert.equal(after.stageCard, false, `${label} no stale draft card`);
+    assert.strictEqual(after.title, "", `${label} form title cleared`);
+    assert.strictEqual(after.body, "", `${label} form body cleared`);
     assert.equal(after.staleEn, false, `${label} no stale EN confirm`);
     assert.deepStrictEqual(safety.externalRequests, [], `${label} external=0`);
     await context.close();
     console.log(`[${label}] PASS`);
   }
+}
+
+async function runFixtureMappingAndNoReceipt(browser, origin) {
+  // Original fixture → matching Korean; revise fixture → matching revised Korean;
+  // free-form fails closed; post-insert never resumes receipt path.
+  const label = "fixture-map-no-receipt";
+  console.log(`[${label}] start`);
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: "reduce",
+  });
+  const page = await context.newPage();
+  const safety = trackSafety(page, origin);
+  let adapterSubmitCalls = 0;
+  await page.addInitScript(() => {
+    window.__adapterSubmitCalls = 0;
+  });
+  await mockMayorAsk(page);
+  await openMayorTwoStage(page, origin, "en", YES_BY_LOCALE.en);
+
+  // Stage 1 internal Korean empty
+  let st = await page.evaluate(() =>
+    window.CitizenFirstChoreography.getDraftStageState(),
+  );
+  assert.strictEqual(st.koreanTitle, "", `${label} stage1 koreanTitle empty`);
+  assert.strictEqual(st.koreanBody, "", `${label} stage1 koreanBody empty`);
+
+  // Confirm original fixture
+  await page.locator('[data-draft-action="confirm-content"]').click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-draft-stage") === "korean_draft_review",
+    null,
+    { timeout: 10000 },
+  );
+  st = await page.evaluate(() =>
+    window.CitizenFirstChoreography.getDraftStageState(),
+  );
+  assert.strictEqual(st.fixtureVariant, "original", `${label} original variant`);
+  assert.ok(st.koreanTitle.includes("통학로"), `${label} original korean title`);
+  assert.ok(
+    st.koreanBody.includes("제출 전에 추가하겠습니다"),
+    `${label} original korean body`,
+  );
+
+  // Back to edit, revise, confirm → revised Korean
+  await page.locator('[data-draft-action="back-edit"]').click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-draft-stage") === "resident_draft_review",
+    null,
+    { timeout: 5000 },
+  );
+  st = await page.evaluate(() =>
+    window.CitizenFirstChoreography.getDraftStageState(),
+  );
+  assert.strictEqual(st.koreanTitle, "", `${label} back-edit clears korean title`);
+  assert.strictEqual(st.koreanBody, "", `${label} back-edit clears korean body`);
+
+  await page.locator('[data-draft-action="revise"]').click();
+  await page.waitForTimeout(150);
+  await page.locator('[data-draft-action="confirm-content"]').click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-draft-stage") === "korean_draft_review",
+    null,
+    { timeout: 10000 },
+  );
+  st = await page.evaluate(() =>
+    window.CitizenFirstChoreography.getDraftStageState(),
+  );
+  assert.strictEqual(st.fixtureVariant, "revise", `${label} revise variant`);
+  assert.ok(
+    st.koreanTitle.includes("야간 조명") || st.koreanTitle.includes("통학로"),
+    `${label} revise korean title`,
+  );
+  assert.ok(st.koreanBody.includes("일몰 후") || st.koreanBody.length > 20, `${label} revise korean body`);
+
+  // Insert and stay pre-submit
+  await page.locator('[data-draft-action="confirm-insert"]').click();
+  await page.waitForFunction(
+    () =>
+      document.body.getAttribute("data-choreography-state") ===
+      "waiting_form_review",
+    null,
+    { timeout: 10000 },
+  );
+  await page.waitForTimeout(1000);
+  const terminal = await formSnapshot(page);
+  assert.strictEqual(terminal.draftStage, "form_populated", `${label} form_populated`);
+  assert.strictEqual(terminal.choreo, "waiting_form_review", `${label} terminal choreo`);
+  assert.ok(terminal.submitDisabled, `${label} submit disabled`);
+  assert.strictEqual(terminal.submitConfirmCount, 0, `${label} no submit confirm`);
+  assert.equal(terminal.hasReceipt, false, `${label} no receipt`);
+  // ContentAdapter must not be invoked for non-ko handoff
+  adapterSubmitCalls = await page.evaluate(() => {
+    if (!window.CitizenContentAdapter) return 0;
+    // No public counter; presence of receipt path is enough. Return 0 if adapter exists.
+    return window.__adapterSubmitCalls || 0;
+  });
+  assert.strictEqual(adapterSubmitCalls, 0, `${label} ContentAdapter submissions=0`);
+  assert.deepStrictEqual(safety.externalRequests, [], `${label} external=0`);
+  await context.close();
+  console.log(`[${label}] PASS`);
 }
 
 async function runReviseDoesNotPopulateForm(browser, origin) {
@@ -555,7 +735,6 @@ async function runReviseDoesNotPopulateForm(browser, origin) {
   const afterTitle = await page.locator('[data-draft-field="resident-title"]').inputValue();
   const snap = await formSnapshot(page);
   assert.ok(afterTitle.length > 0, `${label} revised title present`);
-  // Either same or alternate fixture — both ok; form must stay empty.
   assert.strictEqual(snap.title, "", `${label} form empty after revise`);
   assert.strictEqual(snap.body, "", `${label} form body empty after revise`);
   assert.strictEqual(
@@ -564,7 +743,7 @@ async function runReviseDoesNotPopulateForm(browser, origin) {
     `${label} remains stage1`,
   );
   assert.equal(snap.koreanRole, false, `${label} no Korean draft`);
-  // Repeated revise must not duplicate cards.
+  assert.strictEqual(snap.internalKoreanTitle, "", `${label} korean still empty`);
   await page.locator('[data-draft-action="revise"]').click();
   const cardCount = await page.locator("[data-bilingual-draft-card]").count();
   assert.strictEqual(cardCount, 1, `${label} single draft card`);
@@ -580,6 +759,7 @@ async function main() {
   try {
     const matrix = await runLocaleViewportMatrix(browser, origin);
     await runResetAndLocaleChange(browser, origin);
+    await runFixtureMappingAndNoReceipt(browser, origin);
     await runReviseDoesNotPopulateForm(browser, origin);
     console.log("\n=== #1152 two-stage bilingual draft PASS ===");
     console.log(

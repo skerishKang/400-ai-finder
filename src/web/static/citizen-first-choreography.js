@@ -62,6 +62,8 @@
   var DRAFT_STAGE_FORM = "form_populated";
   var CHOREO_WAITING_RESIDENT_DRAFT = "waiting_resident_draft";
   var CHOREO_WAITING_KOREAN_DRAFT = "waiting_korean_draft";
+  // Terminal non-Korean handoff state: form filled, still pre-submit, no receipt path.
+  var CHOREO_WAITING_FORM_REVIEW = "waiting_form_review";
 
   var _draftStage = {
     stage: DRAFT_STAGE_IDLE,
@@ -74,22 +76,31 @@
     koreanBody: "",
     titleSelector: "",
     contentSelector: "",
-    resumeStepIndex: -1,
+    // original | revise | null — set only after Stage 1 confirmation resolves a fixture.
+    fixtureVariant: null,
     revisionIndex: 0,
     generation: 0,
     cardEl: null,
   };
 
-  // Deterministic reviewed fixtures: resident-language source + Korean admin draft.
+  // Deterministic reviewed fixtures: each resident/revise pack maps to a
+  // paired Korean administrative draft. Free-form edits fail closed.
   // Keys match choreography journey ids.
   var BILINGUAL_DRAFT_FIXTURES = Object.freeze({
     "mayor-message-assist": Object.freeze({
       actionId: "mayor_message_assist",
       titleSelector: "#mayor-write-title",
       contentSelector: "#mayor-write-content",
-      koreanTitle: "[안전한 통학로 제안] 학교 앞 횡단보도 조명 개선 요청",
-      koreanBody:
-        "안녕하세요. 북구의 안전한 통학환경 조성을 위해 학교 앞 횡단보도 조명 개선을 제안드립니다.\n\n현재 일부 통학로는 해가 진 뒤 횡단보도와 보행자 대기 구역이 어두워 운전자와 어린이 모두 시야 확보가 어렵습니다. 현장 밝기와 차량 통행량을 확인해 조명을 보강하고, 필요하다면 바닥형 보행신호등이나 안전표지 설치도 함께 검토해 주시기 바랍니다.\n\n아이와 보호자가 안심하고 걸을 수 있는 통학로가 조성되도록 관련 부서의 현장 점검과 개선 계획을 요청드립니다. 정확한 검토를 위해 학교명과 횡단보도 위치는 제출 전에 추가하겠습니다.",
+      korean: Object.freeze({
+        title: "[안전한 통학로 제안] 학교 앞 횡단보도 조명 개선 요청",
+        body:
+          "안녕하세요. 북구의 안전한 통학환경 조성을 위해 학교 앞 횡단보도 조명 개선을 제안드립니다.\n\n현재 일부 통학로는 해가 진 뒤 횡단보도와 보행자 대기 구역이 어두워 운전자와 어린이 모두 시야 확보가 어렵습니다. 현장 밝기와 차량 통행량을 확인해 조명을 보강하고, 필요하다면 바닥형 보행신호등이나 안전표지 설치도 함께 검토해 주시기 바랍니다.\n\n아이와 보호자가 안심하고 걸을 수 있는 통학로가 조성되도록 관련 부서의 현장 점검과 개선 계획을 요청드립니다. 정확한 검토를 위해 학교명과 횡단보도 위치는 제출 전에 추가하겠습니다.",
+      }),
+      koreanRevise: Object.freeze({
+        title: "[안전한 통학로 제안] 학교 앞 횡단보도 야간 조명 보강 요청",
+        body:
+          "안녕하세요. 일몰 후 학교 앞 횡단보도 시인성이 낮아 어린이와 보호자의 보행 안전이 우려됩니다. 현장 밝기를 확인해 조명을 보강하고, 필요 시 바닥형 보행신호등이나 안전표지 설치도 함께 검토해 주시기 바랍니다. 정확한 검토를 위해 학교명과 횡단보도 위치는 제출 전에 추가하겠습니다.",
+      }),
       resident: Object.freeze({
         en: Object.freeze({
           title: "Please brighten the school crosswalk at night",
@@ -131,9 +142,16 @@
       actionId: "litter_ai_assist",
       titleSelector: "#board-write-title",
       contentSelector: "#board-write-content",
-      koreanTitle: "[환경정비 요청] 공원 내 방치 쓰레기 수거 및 악취 해결 요청",
-      koreanBody:
-        "안녕하세요. 집 앞 공원에 무단 투기된 쓰레기가 다량 방치되어 있어 심한 악취와 미관 훼손이 발생하고 있습니다. 주민들이 안심하고 공원을 이용할 수 있도록 현장 확인 후 쓰레기 수거와 주변 환경 정비를 요청드립니다. 정확한 처리를 위해 공원 이름이나 위치를 제출 전에 추가해 주세요.",
+      korean: Object.freeze({
+        title: "[환경정비 요청] 공원 내 방치 쓰레기 수거 및 악취 해결 요청",
+        body:
+          "안녕하세요. 집 앞 공원에 무단 투기된 쓰레기가 다량 방치되어 있어 심한 악취와 미관 훼손이 발생하고 있습니다. 주민들이 안심하고 공원을 이용할 수 있도록 현장 확인 후 쓰레기 수거와 주변 환경 정비를 요청드립니다. 정확한 처리를 위해 공원 이름이나 위치를 제출 전에 추가해 주세요.",
+      }),
+      koreanRevise: Object.freeze({
+        title: "[환경정비 요청] 공원 입구 무단투기 쓰레기 수거 및 악취 해소",
+        body:
+          "안녕하세요. 공원 입구 인근 무단투기로 강한 악취가 발생하고 있습니다. 현장 확인 후 쓰레기를 수거하고 주변 환경을 복구해 주시기를 요청드립니다. 정확한 처리를 위해 공원 이름이나 위치를 제출 전에 추가해 주세요.",
+      }),
       resident: Object.freeze({
         en: Object.freeze({
           title: "Please clean dumped trash in the park near my home",
@@ -175,9 +193,16 @@
       actionId: "streetlight_report",
       titleSelector: "#board-write-title",
       contentSelector: "#board-write-content",
-      koreanTitle: "[시설물 정비 요청] 가로등 고장 신고",
-      koreanBody:
-        "안녕하세요. 생활에 불편을 주는 가로등 고장을 신고합니다. 정확한 위치와 고장 상태를 확인할 수 있도록 아래 내용을 검토해 주세요.\n\n- 위치: [도로명 또는 주변 건물]\n- 고장 상태: [점등 불가 / 깜빡임 / 파손]\n- 발생 시각: [확인한 날짜와 시간]\n\n안전사고 예방을 위해 점검과 수리를 요청드립니다.",
+      korean: Object.freeze({
+        title: "[시설물 정비 요청] 가로등 고장 신고",
+        body:
+          "안녕하세요. 생활에 불편을 주는 가로등 고장을 신고합니다. 정확한 위치와 고장 상태를 확인할 수 있도록 아래 내용을 검토해 주세요.\n\n- 위치: [도로명 또는 주변 건물]\n- 고장 상태: [점등 불가 / 깜빡임 / 파손]\n- 발생 시각: [확인한 날짜와 시간]\n\n안전사고 예방을 위해 점검과 수리를 요청드립니다.",
+      }),
+      koreanRevise: Object.freeze({
+        title: "[시설물 정비 요청] 점등 불가 가로등 수리 요청",
+        body:
+          "안녕하세요. 가로등이 점등되지 않아 보행자가 불안을 느끼고 있습니다. 위치를 확인한 뒤 점검과 수리를 요청드립니다.\n\n- 위치: [도로명 또는 주변 건물]\n- 고장 상태: [점등 불가]\n- 발생 시각: [확인한 날짜와 시간]",
+      }),
       resident: Object.freeze({
         en: Object.freeze({
           title: "Broken streetlight report near my street",
@@ -245,6 +270,79 @@
     return journeyId && BILINGUAL_DRAFT_FIXTURES[journeyId]
       ? BILINGUAL_DRAFT_FIXTURES[journeyId]
       : null;
+  }
+
+  function _normalizeDraftText(value) {
+    return String(value == null ? "" : value)
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .trim();
+  }
+
+  function _draftTextsEqual(a, b) {
+    return _normalizeDraftText(a) === _normalizeDraftText(b);
+  }
+
+  /**
+   * Offline fail-closed resolver: only exact reviewed resident/revise fixtures
+   * map to a paired Korean draft. Free-form edits return null.
+   */
+  function _resolveReviewedKoreanDraft(fixture, locale, title, body) {
+    if (!fixture) return null;
+    var loc = locale || "en";
+    var original = fixture.resident && (fixture.resident[loc] || fixture.resident.en);
+    var revised = fixture.revise && (fixture.revise[loc] || fixture.revise.en);
+    if (
+      original &&
+      _draftTextsEqual(title, original.title) &&
+      _draftTextsEqual(body, original.body) &&
+      fixture.korean
+    ) {
+      return {
+        variant: "original",
+        koreanTitle: fixture.korean.title,
+        koreanBody: fixture.korean.body,
+      };
+    }
+    if (
+      revised &&
+      _draftTextsEqual(title, revised.title) &&
+      _draftTextsEqual(body, revised.body) &&
+      fixture.koreanRevise
+    ) {
+      return {
+        variant: "revise",
+        koreanTitle: fixture.koreanRevise.title,
+        koreanBody: fixture.koreanRevise.body,
+      };
+    }
+    return null;
+  }
+
+  function _showUnsupportedOfflineEditNotice() {
+    // Prefer an in-card notice so Stage 1 stays focused; also announce via chat.
+    if (_draftStage.cardEl) {
+      var existing = _draftStage.cardEl.querySelector("[data-draft-unsupported]");
+      var msg = _i18nT(
+        "draft.unsupportedOfflineEdit",
+        "This offline demo can only continue with the reviewed sample drafts. Please restore the sample text or choose Revise draft, then confirm again."
+      );
+      if (existing) {
+        existing.textContent = msg;
+      } else {
+        var p = document.createElement("p");
+        p.className = "chat-bilingual-draft__unsupported";
+        p.setAttribute("data-draft-unsupported", "true");
+        p.setAttribute("role", "status");
+        p.textContent = msg;
+        var actions = _draftStage.cardEl.querySelector("[data-draft-actions]");
+        if (actions && actions.parentNode) {
+          actions.parentNode.insertBefore(p, actions);
+        } else {
+          _draftStage.cardEl.appendChild(p);
+        }
+      }
+    }
   }
 
   function _syncDraftStageAttr() {
@@ -317,7 +415,7 @@
     _draftStage.koreanBody = "";
     _draftStage.titleSelector = "";
     _draftStage.contentSelector = "";
-    _draftStage.resumeStepIndex = -1;
+    _draftStage.fixtureVariant = null;
     _draftStage.revisionIndex = 0;
     _syncDraftStageAttr();
   }
@@ -559,16 +657,8 @@
     var pack = fixture.resident[locale] || fixture.resident.en;
     if (!pack) return false;
 
-    // Find the paired body-typing step; resume at the step after it.
-    var bodyStepIndex = titleStepIndex + 1;
-    var resumeAt = titleStepIndex + 2;
     var titleStep = _steps[titleStepIndex] || {};
-    var bodyStep = _steps[bodyStepIndex] || {};
-    var koreanTitle =
-      (bodyStep && titleStep.typeQuery) || fixture.koreanTitle;
-    if (titleStep.typeQuery) koreanTitle = titleStep.typeQuery;
-    var koreanBody =
-      bodyStep && bodyStep.typeContent ? bodyStep.typeContent : fixture.koreanBody;
+    var bodyStep = _steps[titleStepIndex + 1] || {};
     var titleSelector =
       titleStep.querySelector ||
       titleStep.cursorTarget ||
@@ -585,11 +675,12 @@
     _draftStage.actionId = fixture.actionId || _currentJourneyId;
     _draftStage.residentTitle = pack.title;
     _draftStage.residentBody = pack.body;
-    _draftStage.koreanTitle = koreanTitle;
-    _draftStage.koreanBody = koreanBody;
+    // #1152: Korean draft must not exist until Stage 1 confirmation.
+    _draftStage.koreanTitle = "";
+    _draftStage.koreanBody = "";
+    _draftStage.fixtureVariant = null;
     _draftStage.titleSelector = titleSelector;
     _draftStage.contentSelector = contentSelector;
-    _draftStage.resumeStepIndex = resumeAt;
     _draftStage.revisionIndex = 0;
     _syncDraftStageAttr();
 
@@ -624,7 +715,10 @@
     if (!pick) return;
     _draftStage.residentTitle = pick.title;
     _draftStage.residentBody = pick.body;
-    // Stay in Stage 1; do not touch form or Korean draft.
+    // Stay in Stage 1; Korean draft still not created.
+    _draftStage.koreanTitle = "";
+    _draftStage.koreanBody = "";
+    _draftStage.fixtureVariant = null;
     _renderResidentDraftCard();
     _setState(CHOREO_WAITING_RESIDENT_DRAFT);
   }
@@ -634,14 +728,29 @@
     if (_state !== CHOREO_WAITING_RESIDENT_DRAFT) return;
     var gen = _draftStage.generation;
     _readResidentDraftFields();
-    _disableDraftCardButtons(_draftStage.cardEl);
-    // Create Korean draft only after explicit Stage 1 confirmation.
-    // Uses deterministic reviewed fixture (not a live translator).
     var fixture = _getDraftFixture(_draftStage.journeyId || _currentJourneyId);
-    if (fixture) {
-      if (!_draftStage.koreanTitle) _draftStage.koreanTitle = fixture.koreanTitle;
-      if (!_draftStage.koreanBody) _draftStage.koreanBody = fixture.koreanBody;
+    var resolved = _resolveReviewedKoreanDraft(
+      fixture,
+      _draftStage.locale || _activeLocale(),
+      _draftStage.residentTitle,
+      _draftStage.residentBody
+    );
+    // Free-form edits fail closed: remain Stage 1, no Korean draft, form empty.
+    if (!resolved) {
+      _draftStage.koreanTitle = "";
+      _draftStage.koreanBody = "";
+      _draftStage.fixtureVariant = null;
+      _clearWritingFormFields(_draftStage.titleSelector, _draftStage.contentSelector);
+      _showUnsupportedOfflineEditNotice();
+      _setState(CHOREO_WAITING_RESIDENT_DRAFT);
+      return;
     }
+
+    _disableDraftCardButtons(_draftStage.cardEl);
+    // Create Korean draft only after explicit Stage 1 confirmation + exact fixture match.
+    _draftStage.koreanTitle = resolved.koreanTitle;
+    _draftStage.koreanBody = resolved.koreanBody;
+    _draftStage.fixtureVariant = resolved.variant;
     _draftStage.stage = DRAFT_STAGE_KOREAN;
     _syncDraftStageAttr();
     // Form must still be empty.
@@ -655,7 +764,10 @@
     if (_draftStage.stage !== DRAFT_STAGE_KOREAN) return;
     if (_state !== CHOREO_WAITING_KOREAN_DRAFT) return;
     _draftStage.stage = DRAFT_STAGE_RESIDENT;
-    // Drop Korean exposure when returning to edit source.
+    // Drop Korean draft when returning to edit source.
+    _draftStage.koreanTitle = "";
+    _draftStage.koreanBody = "";
+    _draftStage.fixtureVariant = null;
     _syncDraftStageAttr();
     _clearWritingFormFields(_draftStage.titleSelector, _draftStage.contentSelector);
     _renderResidentDraftCard();
@@ -665,6 +777,7 @@
   function confirmKoreanDraftInsert() {
     if (_draftStage.stage !== DRAFT_STAGE_KOREAN) return;
     if (_state !== CHOREO_WAITING_KOREAN_DRAFT) return;
+    if (!_draftStage.koreanTitle || !_draftStage.koreanBody) return;
     var gen = _draftStage.generation;
     var journeyGen = _journeyGeneration;
     _disableDraftCardButtons(_draftStage.cardEl);
@@ -708,7 +821,7 @@
     if (gen !== _draftStage.generation) return;
     if (journeyGen !== _journeyGeneration) return;
 
-    // Keep compare card visible; append a short handoff note.
+    // Keep compare card visible; append a short pre-submit handoff note.
     _appendChatMessage(
       "ai",
       _i18nT(
@@ -717,13 +830,18 @@
       ),
       false
     );
+    _appendChatMessage(
+      "ai",
+      _i18nT(
+        "draft.preSubmitTerminal",
+        "This remains a pre-submission draft. Official submission is not performed here."
+      ),
+      false
+    );
 
-    // Resume journey at requiresConfirmation (submit remains a later explicit step).
-    var resume = _draftStage.resumeStepIndex;
-    _setState(STATE_RUNNING);
-    if (typeof resume === "number" && resume >= 0) {
-      _executeStep(resume);
-    }
+    // #1152: non-Korean path terminates here — do NOT resume requiresConfirmation,
+    // confirmSubmission, receipt routes, or ContentAdapter.submitBoardPost.
+    _setState(CHOREO_WAITING_FORM_REVIEW);
   }
 
   function getDraftStageState() {
@@ -736,6 +854,7 @@
       residentBody: _draftStage.residentBody,
       koreanTitle: _draftStage.koreanTitle,
       koreanBody: _draftStage.koreanBody,
+      fixtureVariant: _draftStage.fixtureVariant,
     };
   }
 
@@ -1912,6 +2031,7 @@
       _state === "waiting_choice" ||
       _state === CHOREO_WAITING_RESIDENT_DRAFT ||
       _state === CHOREO_WAITING_KOREAN_DRAFT ||
+      _state === CHOREO_WAITING_FORM_REVIEW ||
       _state === STATE_DONE ||
       _state === STATE_CANCELLED
     ) {
@@ -2160,6 +2280,7 @@
       cancelled: STATE_CANCELLED,
       waiting_resident_draft: CHOREO_WAITING_RESIDENT_DRAFT,
       waiting_korean_draft: CHOREO_WAITING_KOREAN_DRAFT,
+      waiting_form_review: CHOREO_WAITING_FORM_REVIEW,
       waiting_confirmation: "waiting_confirmation",
       waiting_choice: "waiting_choice",
     }),
