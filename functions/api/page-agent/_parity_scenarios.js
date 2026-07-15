@@ -42,7 +42,7 @@ export const PARITY_SCENARIOS = Object.freeze([
       'apartment contact',
     ]),
     routeId: 'apartment-dept',
-    actionTargets: Object.freeze(['nav-civil-service']),
+    actionTargets: Object.freeze(['nav-apartment-dept']),
     response:
       '공동주택과 조직 및 업무안내 화면입니다. 종합민원 메뉴에서 공동주택과 담당 업무와 연락처를 확인할 수 있습니다.',
   }),
@@ -56,7 +56,7 @@ export const PARITY_SCENARIOS = Object.freeze([
       'bulky waste',
     ]),
     routeId: 'bulky-waste-disposal',
-    actionTargets: Object.freeze(['nav-civil-service']),
+    actionTargets: Object.freeze(['nav-bulky-waste-disposal']),
     response:
       '대형폐기물 배출방법 안내 화면입니다. 종합민원 메뉴에서 대형폐기물 배출 신청 방법과 수수료를 확인할 수 있습니다.',
   }),
@@ -70,7 +70,7 @@ export const PARITY_SCENARIOS = Object.freeze([
       'passport',
     ]),
     routeId: 'passport-guidance',
-    actionTargets: Object.freeze(['nav-civil-service']),
+    actionTargets: Object.freeze(['nav-passport-guidance']),
     response:
       '여권민원 안내 화면입니다. 종합민원 메뉴에서 여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 확인할 수 있습니다.',
   }),
@@ -84,7 +84,7 @@ export const PARITY_SCENARIOS = Object.freeze([
       'complaint',
     ]),
     routeId: 'complaint-write',
-    actionTargets: Object.freeze(['nav-civil-service', 'nav-complaint-category']),
+    actionTargets: Object.freeze(['nav-complaint-board', 'complaint-write']),
     response:
       '민원 글쓰기 화면입니다. 종합민원 → 민원 유형 선택 후 민원 게시판에서 글쓰기를 통해 AI가 민원 초안 작성을 도와드립니다.',
   }),

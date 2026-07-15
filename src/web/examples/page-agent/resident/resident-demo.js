@@ -598,6 +598,10 @@
 
     // ── Local deterministic mock path (default) ──
     if (!serverPlanEnabled()) {
+      // Reset mock model session for fresh top-level request
+      if (window.PageAgentMockModel && typeof window.PageAgentMockModel.resetSession === 'function') {
+        window.PageAgentMockModel.resetSession();
+      }
       setPlanState("executing");
       setRunning(true);
       // Guidance switch happens in startAgentExecute, just before DOM work.

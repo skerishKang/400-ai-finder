@@ -371,9 +371,13 @@ class TestResidentRouteStub:
         assert all(rid.strip() for rid in route_ids), "blank routeId in parity table"
 
         # Nav step targets (data-action-target sequences) live on the owner.
+        # Direct targets (not nav-civil-service) match canvas data-action-target attrs.
         assert "navSteps" in parity_src
-        assert "nav-civil-service" in parity_src
-        assert "nav-complaint-category" in parity_src
+        assert "nav-apartment-dept" in parity_src
+        assert "nav-bulky-waste-disposal" in parity_src
+        assert "nav-passport-guidance" in parity_src
+        assert "nav-complaint-board" in parity_src
+        assert "complaint-write" in parity_src
         assert "mayor-office-open" in parity_src
         assert "mayor-message-write" in parity_src
 
