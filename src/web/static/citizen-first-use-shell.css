@@ -527,6 +527,144 @@ body[data-first-use-state="split"] .demo-canvas {
   background: #f7fafc;
 }
 
+/* #1152: two-stage bilingual draft review cards (chat-owned, editable Stage 1). */
+.chat-msg--bilingual-draft {
+  width: 100%;
+  max-width: 100%;
+}
+
+.chat-bilingual-draft {
+  width: 100%;
+  max-width: min(100%, 34rem);
+  border: 1px solid #d7e2ef;
+  background: #f7fafc;
+  box-sizing: border-box;
+}
+
+.chat-bilingual-draft__hint,
+.chat-bilingual-draft__safety,
+.chat-bilingual-draft__assist {
+  margin: 0 0 10px;
+  color: #334155;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.chat-bilingual-draft__safety {
+  margin-top: 10px;
+  margin-bottom: 0;
+  color: #475569;
+  font-size: 0.72rem;
+}
+
+.chat-bilingual-draft__unsupported {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #f1c40f;
+  background: #fffbeb;
+  color: #854d0e;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.chat-bilingual-draft__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.chat-bilingual-draft__field label {
+  display: block;
+  margin-bottom: 4px;
+  color: #0f172a;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.chat-bilingual-draft__input,
+.chat-bilingual-draft__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #c8d5e6;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.chat-bilingual-draft__textarea {
+  min-height: 6.5rem;
+  white-space: pre-wrap;
+}
+
+.chat-bilingual-draft__input:focus-visible,
+.chat-bilingual-draft__textarea:focus-visible {
+  outline: 2px solid #0c5f8a;
+  outline-offset: 1px;
+}
+
+.chat-bilingual-draft__actions {
+  margin-top: 4px;
+}
+
+.chat-bilingual-draft__compare {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.chat-bilingual-draft__panel {
+  border: 1px solid #d7e2ef;
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.chat-bilingual-draft__panel-title {
+  margin: 0 0 6px;
+  color: #0f172a;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.chat-bilingual-draft__panel .chat-draft-body {
+  color: #1e293b;
+  font-size: 0.8rem;
+  word-break: break-word;
+}
+
+/* Desktop: side-by-side compare when chat shell has width. */
+@media (min-width: 900px) {
+  .chat-bilingual-draft--compare {
+    max-width: min(100%, 40rem);
+  }
+
+  .chat-bilingual-draft__compare {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-msg--bilingual-draft {
+    transition: none;
+  }
+}
+
+body[data-reduced-motion="true"] .chat-msg--bilingual-draft {
+  transition: none;
+}
+
 /* #1143: five-language selector (restrained, text-only, no flags). */
 .chat-shell__header-tools {
   display: flex;
@@ -863,6 +1001,24 @@ body.first-use-shell--no-motion .demo-canvas {
     max-width: 100%;
     height: min(58vh, 520px);
     min-height: 360px;
+  }
+
+  /* #1152: mobile bilingual draft — stack compare panels; avoid nested x-scroll. */
+  .chat-bilingual-draft {
+    max-width: 100%;
+  }
+
+  .chat-bilingual-draft__compare {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-bilingual-draft__actions {
+    flex-wrap: wrap;
+  }
+
+  .chat-bilingual-draft__input,
+  .chat-bilingual-draft__textarea {
+    font-size: 16px; /* prevent iOS zoom on focus */
   }
 
 }

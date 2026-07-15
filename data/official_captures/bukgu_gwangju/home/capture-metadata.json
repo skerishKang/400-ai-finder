@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "inventory_kind": "official_home_source_inventory",
+  "status": "capture_only",
+  "route_id": "home",
+  "site_id": "bukgu_gwangju",
+  "site_name": "전남광주통합특별시 북구",
+  "source": {
+    "requested_url": "https://bukgu.gwangju.kr/",
+    "final_resolved_url": "https://bukgu.gwangju.kr/",
+    "redirect_chain": [
+      {
+        "url": "https://bukgu.gwangju.kr/",
+        "status": 200,
+        "location": null
+      }
+    ],
+    "http_status": 200,
+    "content_type": "text/html;charset=UTF-8",
+    "character_encoding": "utf-8",
+    "official_page_title": "전남광주통합특별시 북구",
+    "captured_at": "2026-07-15T17:12:33+09:00",
+    "capture_finished_at": "2026-07-15T17:12:33+09:00",
+    "source_updated_at": null,
+    "source_updated_at_absence_reason": "not-shown-on-homepage-html",
+    "capture_method": "python-urllib read-only HTTP GET inventory capture",
+    "capture_tool": "scripts/capture_official_home_inventory.py",
+    "raw_content_sha256": "b47910217ecdb58b508cfd69d34a9a3a6e2c731f84a6db877ad01ebb04f5a6f5",
+    "raw_byte_length": 159185,
+    "sanitization_notes": [
+      "normalize_crlf_and_cr_to_lf",
+      "expand_tabs_to_spaces",
+      "strip_trailing_whitespace_per_line",
+      "redact_session_csrf_meta_and_input_values"
+    ]
+  },
+  "files": {
+    "raw_snapshot": "data/official_captures/bukgu_gwangju/home/raw-homepage.html",
+    "navigation_inventory": "data/official_captures/bukgu_gwangju/home/navigation-inventory.json",
+    "asset_inventory": "data/official_captures/bukgu_gwangju/home/asset-inventory.json",
+    "capture_notes": "data/official_captures/bukgu_gwangju/home/CAPTURE-NOTES.md"
+  },
+  "counts": {
+    "navigation_items": 722,
+    "blank_labels": 2,
+    "assets_listed": 174,
+    "assets_probed": 40,
+    "partial_hash_assets": 40,
+    "redirected_assets": 0,
+    "hierarchy_nodes": 2
+  },
+  "boundaries": {
+    "firecrawl": false,
+    "provider_api": false,
+    "login": false,
+    "form_submission": false,
+    "payment": false,
+    "pii": false,
+    "canvas_integration": false,
+    "route_status_change": false
+  },
+  "metadata_sha256": "52aa1a64745d6f6d570f03ef38a245ba6ba0b2475fbe3e8bbf032783ac06df5d"
+}

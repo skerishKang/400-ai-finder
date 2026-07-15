@@ -927,7 +927,13 @@
       setJourneyState(JOURNEY_NAVIGATE);
       return;
     }
-    if (choreoState === "waiting_choice" || choreoState === "waiting_confirmation") {
+    if (
+      choreoState === "waiting_choice" ||
+      choreoState === "waiting_confirmation" ||
+      choreoState === "waiting_resident_draft" ||
+      choreoState === "waiting_korean_draft" ||
+      choreoState === "waiting_form_review"
+    ) {
       setJourneyState(JOURNEY_CONFIRM);
       return;
     }

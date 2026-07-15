@@ -51,6 +51,813 @@
   // locale reset never resume a stale journey.
   var _journeyGeneration = 0;
 
+  // ═══════════════════════════════════════════════════════════════════
+  // #1152: two-stage bilingual draft handoff (non-Korean writing journeys)
+  // Stages: idle → resident_draft_review → korean_draft_review → form_populated
+  // Public-safe in-memory only — no storage, network, or PII.
+  // ═══════════════════════════════════════════════════════════════════
+  var DRAFT_STAGE_IDLE = "idle";
+  var DRAFT_STAGE_RESIDENT = "resident_draft_review";
+  var DRAFT_STAGE_KOREAN = "korean_draft_review";
+  var DRAFT_STAGE_FORM = "form_populated";
+  var CHOREO_WAITING_RESIDENT_DRAFT = "waiting_resident_draft";
+  var CHOREO_WAITING_KOREAN_DRAFT = "waiting_korean_draft";
+  // Terminal non-Korean handoff state: form filled, still pre-submit, no receipt path.
+  var CHOREO_WAITING_FORM_REVIEW = "waiting_form_review";
+
+  var _draftStage = {
+    stage: DRAFT_STAGE_IDLE,
+    locale: null,
+    journeyId: null,
+    actionId: null,
+    residentTitle: "",
+    residentBody: "",
+    koreanTitle: "",
+    koreanBody: "",
+    titleSelector: "",
+    contentSelector: "",
+    // original | revise | null — set only after Stage 1 confirmation resolves a fixture.
+    fixtureVariant: null,
+    revisionIndex: 0,
+    generation: 0,
+    cardEl: null,
+  };
+
+  // Deterministic reviewed fixtures: each resident/revise pack maps to a
+  // paired Korean administrative draft. Free-form edits fail closed.
+  // Keys match choreography journey ids.
+  var BILINGUAL_DRAFT_FIXTURES = Object.freeze({
+    "mayor-message-assist": Object.freeze({
+      actionId: "mayor_message_assist",
+      titleSelector: "#mayor-write-title",
+      contentSelector: "#mayor-write-content",
+      korean: Object.freeze({
+        title: "[안전한 통학로 제안] 학교 앞 횡단보도 조명 개선 요청",
+        body:
+          "안녕하세요. 북구의 안전한 통학환경 조성을 위해 학교 앞 횡단보도 조명 개선을 제안드립니다.\n\n현재 일부 통학로는 해가 진 뒤 횡단보도와 보행자 대기 구역이 어두워 운전자와 어린이 모두 시야 확보가 어렵습니다. 현장 밝기와 차량 통행량을 확인해 조명을 보강하고, 필요하다면 바닥형 보행신호등이나 안전표지 설치도 함께 검토해 주시기 바랍니다.\n\n아이와 보호자가 안심하고 걸을 수 있는 통학로가 조성되도록 관련 부서의 현장 점검과 개선 계획을 요청드립니다. 정확한 검토를 위해 학교명과 횡단보도 위치는 제출 전에 추가하겠습니다.",
+      }),
+      koreanRevise: Object.freeze({
+        title: "[안전한 통학로 제안] 학교 앞 횡단보도 야간 조명 보강 요청",
+        body:
+          "안녕하세요. 일몰 후 학교 앞 횡단보도 시인성이 낮아 어린이와 보호자의 보행 안전이 우려됩니다. 현장 밝기를 확인해 조명을 보강하고, 필요 시 바닥형 보행신호등이나 안전표지 설치도 함께 검토해 주시기 바랍니다. 정확한 검토를 위해 학교명과 횡단보도 위치는 제출 전에 추가하겠습니다.",
+      }),
+      resident: Object.freeze({
+        en: Object.freeze({
+          title: "Please brighten the school crosswalk at night",
+          body: "The crosswalk in front of the school is too dark at night.\nPlease improve the lighting so children can cross safely.",
+        }),
+        vi: Object.freeze({
+          title: "Xin làm sáng lối qua đường trước trường vào ban đêm",
+          body: "Lối qua đường trước trường quá tối vào ban đêm.\nXin hãy cải thiện hệ thống chiếu sáng để trẻ em có thể qua đường an toàn.",
+        }),
+        th: Object.freeze({
+          title: "กรุณาเพิ่มแสงทางม้าลายหน้าโรงเรียนตอนกลางคืน",
+          body: "ทางม้าลายหน้าโรงเรียนมืดเกินไปในเวลากลางคืน\nกรุณาปรับปรุงแสงสว่างเพื่อให้เด็ก ๆ ข้ามถนนได้อย่างปลอดภัย",
+        }),
+        id: Object.freeze({
+          title: "Terangi penyeberangan sekolah di malam hari",
+          body: "Penyeberangan di depan sekolah terlalu gelap pada malam hari.\nMohon tingkatkan penerangannya agar anak-anak dapat menyeberang dengan aman.",
+        }),
+      }),
+      revise: Object.freeze({
+        en: Object.freeze({
+          title: "Safer school route: better crosswalk lighting",
+          body: "After sunset the school-front crosswalk is hard to see.\nPlease reinforce lighting so children and caregivers can walk safely.",
+        }),
+        vi: Object.freeze({
+          title: "Lối đến trường an toàn hơn: cải thiện đèn đường",
+          body: "Sau hoàng hôn, lối qua đường trước trường khó nhìn thấy.\nXin tăng cường chiếu sáng để trẻ em và người đưa đón đi bộ an toàn.",
+        }),
+        th: Object.freeze({
+          title: "เส้นทางโรงเรียนที่ปลอดภัยขึ้น: ปรับปรุงไฟทางม้าลาย",
+          body: "หลังพระอาทิตย์ตก ทางม้าลายหน้าโรงเรียนมองเห็นได้ยาก\nกรุณาเสริมแสงสว่างเพื่อให้เด็กและผู้ปกครองเดินได้อย่างปลอดภัย",
+        }),
+        id: Object.freeze({
+          title: "Rute sekolah lebih aman: penerangan penyeberangan",
+          body: "Setelah matahari terbenam, penyeberangan di depan sekolah sulit dilihat.\nMohon perkuat penerangan agar anak dan pendamping dapat berjalan dengan aman.",
+        }),
+      }),
+    }),
+    "complaint-ai-assist": Object.freeze({
+      actionId: "litter_ai_assist",
+      titleSelector: "#board-write-title",
+      contentSelector: "#board-write-content",
+      korean: Object.freeze({
+        title: "[환경정비 요청] 공원 내 방치 쓰레기 수거 및 악취 해결 요청",
+        body:
+          "안녕하세요. 집 앞 공원에 무단 투기된 쓰레기가 다량 방치되어 있어 심한 악취와 미관 훼손이 발생하고 있습니다. 주민들이 안심하고 공원을 이용할 수 있도록 현장 확인 후 쓰레기 수거와 주변 환경 정비를 요청드립니다. 정확한 처리를 위해 공원 이름이나 위치를 제출 전에 추가해 주세요.",
+      }),
+      koreanRevise: Object.freeze({
+        title: "[환경정비 요청] 공원 입구 무단투기 쓰레기 수거 및 악취 해소",
+        body:
+          "안녕하세요. 공원 입구 인근 무단투기로 강한 악취가 발생하고 있습니다. 현장 확인 후 쓰레기를 수거하고 주변 환경을 복구해 주시기를 요청드립니다. 정확한 처리를 위해 공원 이름이나 위치를 제출 전에 추가해 주세요.",
+      }),
+      resident: Object.freeze({
+        en: Object.freeze({
+          title: "Please clean dumped trash in the park near my home",
+          body: "There is too much dumped trash in the park near my home and it smells bad.\nPlease clean it up soon so residents can use the park safely.",
+        }),
+        vi: Object.freeze({
+          title: "Xin dọn rác bị đổ bừa bãi ở công viên gần nhà",
+          body: "Công viên gần nhà tôi có quá nhiều rác bị đổ bừa bãi và mùi hôi rất nặng.\nXin hãy dọn sớm để cư dân yên tâm sử dụng công viên.",
+        }),
+        th: Object.freeze({
+          title: "กรุณาเก็บขยะทิ้งในสวนสาธารณะใกล้บ้าน",
+          body: "สวนสาธารณะใกล้บ้านมีขยะทิ้งมากและมีกลิ่นเหม็น\nกรุณาเก็บกวาดโดยเร็วเพื่อให้ผู้อยู่อาศัยใช้สวนได้อย่างปลอดภัย",
+        }),
+        id: Object.freeze({
+          title: "Mohon bersihkan sampah dibuang di taman dekat rumah",
+          body: "Taman di dekat rumah saya penuh sampah yang dibuang sembarangan dan baunya menyengat.\nMohon segera dibersihkan agar warga bisa memakai taman dengan aman.",
+        }),
+      }),
+      revise: Object.freeze({
+        en: Object.freeze({
+          title: "Park cleanup request: illegal dumping and odor",
+          body: "Illegal dumping near the park entrance is creating a strong odor.\nPlease remove the trash and restore the area for residents.",
+        }),
+        vi: Object.freeze({
+          title: "Yêu cầu dọn công viên: đổ rác trái phép và mùi hôi",
+          body: "Rác đổ trái phép gần lối vào công viên gây mùi hôi nặng.\nXin thu gom rác và khôi phục khu vực cho cư dân.",
+        }),
+        th: Object.freeze({
+          title: "คำขอทำความสะอาดสวน: ทิ้งขยะผิดกฎหมายและกลิ่นเหม็น",
+          body: "การทิ้งขยะผิดกฎหมายใกล้ทางเข้าสวนทำให้มีกลิ่นแรง\nกรุณาเก็บขยะและฟื้นฟูพื้นที่เพื่อผู้อยู่อาศัย",
+        }),
+        id: Object.freeze({
+          title: "Permintaan bersihkan taman: buang sampah liar dan bau",
+          body: "Pembuangan sampah liar dekat pintu masuk taman menimbulkan bau kuat.\nMohon angkat sampah dan pulihkan area untuk warga.",
+        }),
+      }),
+    }),
+    "complaint-board-write": Object.freeze({
+      actionId: "streetlight_report",
+      titleSelector: "#board-write-title",
+      contentSelector: "#board-write-content",
+      korean: Object.freeze({
+        title: "[시설물 정비 요청] 가로등 고장 신고",
+        body:
+          "안녕하세요. 생활에 불편을 주는 가로등 고장을 신고합니다. 정확한 위치와 고장 상태를 확인할 수 있도록 아래 내용을 검토해 주세요.\n\n- 위치: [도로명 또는 주변 건물]\n- 고장 상태: [점등 불가 / 깜빡임 / 파손]\n- 발생 시각: [확인한 날짜와 시간]\n\n안전사고 예방을 위해 점검과 수리를 요청드립니다.",
+      }),
+      koreanRevise: Object.freeze({
+        title: "[시설물 정비 요청] 점등 불가 가로등 수리 요청",
+        body:
+          "안녕하세요. 가로등이 점등되지 않아 보행자가 불안을 느끼고 있습니다. 위치를 확인한 뒤 점검과 수리를 요청드립니다.\n\n- 위치: [도로명 또는 주변 건물]\n- 고장 상태: [점등 불가]\n- 발생 시각: [확인한 날짜와 시간]",
+      }),
+      resident: Object.freeze({
+        en: Object.freeze({
+          title: "Broken streetlight report near my street",
+          body: "A streetlight near my home is broken and the area is too dark at night.\nPlease inspect and repair it for safety.",
+        }),
+        vi: Object.freeze({
+          title: "Báo cáo đèn đường hỏng gần đường nhà tôi",
+          body: "Đèn đường gần nhà tôi bị hỏng và khu vực tối vào ban đêm.\nXin kiểm tra và sửa để đảm bảo an toàn.",
+        }),
+        th: Object.freeze({
+          title: "แจ้งโคมไฟถนนเสียใกล้ถนนบ้าน",
+          body: "โคมไฟถนนใกล้บ้านเสียและบริเวณมืดในตอนกลางคืน\nกรุณาตรวจสอบและซ่อมเพื่อความปลอดภัย",
+        }),
+        id: Object.freeze({
+          title: "Laporan lampu jalan rusak di dekat rumah",
+          body: "Lampu jalan dekat rumah saya rusak dan area menjadi gelap di malam hari.\nMohon diperiksa dan diperbaiki demi keselamatan.",
+        }),
+      }),
+      revise: Object.freeze({
+        en: Object.freeze({
+          title: "Please fix the non-working streetlight",
+          body: "The streetlight no longer turns on and pedestrians feel unsafe.\nPlease schedule a repair after checking the location.",
+        }),
+        vi: Object.freeze({
+          title: "Xin sửa đèn đường không hoạt động",
+          body: "Đèn đường không còn sáng và người đi bộ cảm thấy không an toàn.\nXin lên lịch sửa sau khi kiểm tra vị trí.",
+        }),
+        th: Object.freeze({
+          title: "กรุณาซ่อมโคมไฟถนนที่ใช้งานไม่ได้",
+          body: "โคมไฟถนนไม่ติดอีกต่อไป และคนเดินเท้าไม่รู้สึกปลอดภัย\nกรุณานัดซ่อมหลังจากตรวจสอบตำแหน่ง",
+        }),
+        id: Object.freeze({
+          title: "Mohon perbaiki lampu jalan yang tidak menyala",
+          body: "Lampu jalan tidak menyala lagi dan pejalan kaki merasa tidak aman.\nMohon jadwalkan perbaikan setelah lokasi dicek.",
+        }),
+      }),
+    }),
+  });
+
+  function _isNonKoLocale() {
+    return Boolean(
+      window.CitizenI18n &&
+        typeof window.CitizenI18n.getLocale === "function" &&
+        window.CitizenI18n.getLocale() !== "ko"
+    );
+  }
+
+  function _activeLocale() {
+    return window.CitizenI18n && typeof window.CitizenI18n.getLocale === "function"
+      ? window.CitizenI18n.getLocale()
+      : "ko";
+  }
+
+  function _isWritingTitleStep(step) {
+    if (!step || !step.typeQuery) return false;
+    var sel = step.querySelector || step.cursorTarget || "";
+    return (
+      sel === "#board-write-title" ||
+      sel === "#mayor-write-title" ||
+      sel.indexOf("write-title") !== -1
+    );
+  }
+
+  function _getDraftFixture(journeyId) {
+    return journeyId && BILINGUAL_DRAFT_FIXTURES[journeyId]
+      ? BILINGUAL_DRAFT_FIXTURES[journeyId]
+      : null;
+  }
+
+  function _normalizeDraftText(value) {
+    return String(value == null ? "" : value)
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .trim();
+  }
+
+  function _draftTextsEqual(a, b) {
+    return _normalizeDraftText(a) === _normalizeDraftText(b);
+  }
+
+  /**
+   * Offline fail-closed resolver: only exact reviewed resident/revise fixtures
+   * map to a paired Korean draft. Free-form edits return null.
+   */
+  function _resolveReviewedKoreanDraft(fixture, locale, title, body) {
+    if (!fixture) return null;
+    var loc = locale || "en";
+    var original = fixture.resident && (fixture.resident[loc] || fixture.resident.en);
+    var revised = fixture.revise && (fixture.revise[loc] || fixture.revise.en);
+    if (
+      original &&
+      _draftTextsEqual(title, original.title) &&
+      _draftTextsEqual(body, original.body) &&
+      fixture.korean
+    ) {
+      return {
+        variant: "original",
+        koreanTitle: fixture.korean.title,
+        koreanBody: fixture.korean.body,
+      };
+    }
+    if (
+      revised &&
+      _draftTextsEqual(title, revised.title) &&
+      _draftTextsEqual(body, revised.body) &&
+      fixture.koreanRevise
+    ) {
+      return {
+        variant: "revise",
+        koreanTitle: fixture.koreanRevise.title,
+        koreanBody: fixture.koreanRevise.body,
+      };
+    }
+    return null;
+  }
+
+  function _showUnsupportedOfflineEditNotice() {
+    // Prefer an in-card notice so Stage 1 stays focused; also announce via chat.
+    if (_draftStage.cardEl) {
+      var existing = _draftStage.cardEl.querySelector("[data-draft-unsupported]");
+      var msg = _i18nT(
+        "draft.unsupportedOfflineEdit",
+        "This offline demo can only continue with the reviewed sample drafts. Please restore the sample text or choose Revise draft, then confirm again."
+      );
+      if (existing) {
+        existing.textContent = msg;
+      } else {
+        var p = document.createElement("p");
+        p.className = "chat-bilingual-draft__unsupported";
+        p.setAttribute("data-draft-unsupported", "true");
+        p.setAttribute("role", "status");
+        p.textContent = msg;
+        var actions = _draftStage.cardEl.querySelector("[data-draft-actions]");
+        if (actions && actions.parentNode) {
+          actions.parentNode.insertBefore(p, actions);
+        } else {
+          _draftStage.cardEl.appendChild(p);
+        }
+      }
+    }
+  }
+
+  function _syncDraftStageAttr() {
+    if (!_body) return;
+    if (_draftStage.stage === DRAFT_STAGE_IDLE) {
+      _body.removeAttribute("data-draft-stage");
+    } else {
+      _body.setAttribute("data-draft-stage", _draftStage.stage);
+    }
+  }
+
+  function _clearWritingFormFields(titleSelector, contentSelector) {
+    var demoEl = _getCanvasEl();
+    if (!demoEl) return;
+    var title = titleSelector ? demoEl.querySelector(titleSelector) : null;
+    var content = contentSelector ? demoEl.querySelector(contentSelector) : null;
+    if (title && "value" in title) {
+      title.value = "";
+      try {
+        title.dispatchEvent(new Event("input", { bubbles: true }));
+      } catch (_) { /* ignore */ }
+    }
+    if (content && "value" in content) {
+      content.value = "";
+      try {
+        content.dispatchEvent(new Event("input", { bubbles: true }));
+      } catch (_) { /* ignore */ }
+    }
+    var submit =
+      demoEl.querySelector("#btn-mayor-submit") ||
+      demoEl.querySelector("#btn-board-submit");
+    if (submit) {
+      submit.disabled = true;
+      submit.setAttribute("aria-disabled", "true");
+      if (submit.getAttribute("data-default-label")) {
+        submit.textContent = submit.getAttribute("data-default-label");
+      }
+    }
+  }
+
+  function _removeDraftCards() {
+    if (!_chatThread) return;
+    var nodes = _chatThread.querySelectorAll(
+      ".chat-msg--bilingual-draft, [data-bilingual-draft-card]"
+    );
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      if (nodes[i] && nodes[i].parentNode) {
+        nodes[i].parentNode.removeChild(nodes[i]);
+      }
+    }
+    _draftStage.cardEl = null;
+  }
+
+  function _resetDraftStageState(options) {
+    options = options || {};
+    _draftStage.generation += 1;
+    var titleSel = _draftStage.titleSelector;
+    var contentSel = _draftStage.contentSelector;
+    if (options.clearForm !== false && (titleSel || contentSel)) {
+      _clearWritingFormFields(titleSel, contentSel);
+    }
+    _removeDraftCards();
+    _draftStage.stage = DRAFT_STAGE_IDLE;
+    _draftStage.locale = null;
+    _draftStage.journeyId = null;
+    _draftStage.actionId = null;
+    _draftStage.residentTitle = "";
+    _draftStage.residentBody = "";
+    _draftStage.koreanTitle = "";
+    _draftStage.koreanBody = "";
+    _draftStage.titleSelector = "";
+    _draftStage.contentSelector = "";
+    _draftStage.fixtureVariant = null;
+    _draftStage.revisionIndex = 0;
+    _syncDraftStageAttr();
+  }
+
+  function _readResidentDraftFields() {
+    if (!_draftStage.cardEl) return;
+    var titleInput = _draftStage.cardEl.querySelector(
+      '[data-draft-field="resident-title"]'
+    );
+    var bodyInput = _draftStage.cardEl.querySelector(
+      '[data-draft-field="resident-body"]'
+    );
+    if (titleInput && typeof titleInput.value === "string") {
+      _draftStage.residentTitle = titleInput.value;
+    }
+    if (bodyInput && typeof bodyInput.value === "string") {
+      _draftStage.residentBody = bodyInput.value;
+    }
+  }
+
+  function _escAttr(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function _escHtmlText(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function _renderResidentDraftCard() {
+    if (!_chatThread) return;
+    _removeDraftCards();
+    var gen = _draftStage.generation;
+    var locale = _draftStage.locale || _activeLocale();
+    var titleId = "bilingual-draft-title-" + gen;
+    var bodyId = "bilingual-draft-body-" + gen;
+    var messageEl = document.createElement("div");
+    messageEl.className = "chat-msg chat-msg--ai chat-msg--bilingual-draft";
+    messageEl.setAttribute("data-bilingual-draft-card", "stage1");
+    messageEl.setAttribute("data-draft-role", "original-resident");
+    messageEl.setAttribute("data-draft-stage", DRAFT_STAGE_RESIDENT);
+    messageEl.innerHTML =
+      '<div class="chat-avatar" aria-label="AI">A</div>' +
+      '<div class="chat-bubble chat-bubble--ai chat-bilingual-draft">' +
+        '<p class="chat-draft-label" data-draft-label="original-resident">' +
+          _escHtmlText(_i18nT("draft.residentDraftLabel", "Your draft")) +
+        "</p>" +
+        '<p class="chat-bilingual-draft__hint" data-draft-hint="stage1">' +
+          _escHtmlText(
+            _i18nT(
+              "draft.stage1Explain",
+              "Please check whether this draft matches what you mean. Nothing has been submitted."
+            )
+          ) +
+        "</p>" +
+        '<div class="chat-bilingual-draft__fields">' +
+          '<div class="chat-bilingual-draft__field">' +
+            '<label for="' +
+            titleId +
+            '">' +
+            _escHtmlText(_i18nT("draft.residentTitleLabel", "Title (your language)")) +
+            "</label>" +
+            '<input type="text" id="' +
+            titleId +
+            '" class="chat-bilingual-draft__input" data-draft-field="resident-title" maxlength="120" autocomplete="off" value="' +
+            _escAttr(_draftStage.residentTitle) +
+            '" />' +
+          "</div>" +
+          '<div class="chat-bilingual-draft__field">' +
+            '<label for="' +
+            bodyId +
+            '">' +
+            _escHtmlText(_i18nT("draft.residentBodyLabel", "Body (your language)")) +
+            "</label>" +
+            '<textarea id="' +
+            bodyId +
+            '" class="chat-bilingual-draft__textarea" data-draft-field="resident-body" rows="5" maxlength="2000">' +
+            _escHtmlText(_draftStage.residentBody) +
+            "</textarea>" +
+          "</div>" +
+        "</div>" +
+        '<div class="chat-decision__actions chat-bilingual-draft__actions" data-draft-actions="stage1">' +
+          '<button type="button" class="chat-decision__button chat-decision__button--secondary" data-draft-action="revise">' +
+            _escHtmlText(_i18nT("action.reviseDraft", "Revise draft")) +
+          "</button>" +
+          '<button type="button" class="chat-decision__button chat-decision__button--primary" data-draft-action="confirm-content">' +
+            _escHtmlText(_i18nT("action.confirmContent", "Yes, the meaning is correct")) +
+          "</button>" +
+        "</div>" +
+        '<p class="chat-bilingual-draft__safety" data-draft-safety="true">' +
+          _escHtmlText(
+            _i18nT(
+              "safety.draftOnly",
+              "This screen is for drafting only. No real submission is made."
+            )
+          ) +
+        "</p>" +
+      "</div>";
+    _chatThread.appendChild(messageEl);
+    _draftStage.cardEl = messageEl;
+    _bindDraftCardActions(messageEl, gen);
+    _scrollChatThreadToLatest(messageEl.querySelector(".chat-bilingual-draft__actions") || messageEl);
+    var titleInput = messageEl.querySelector("#" + titleId);
+    _focusEditableOnDesktopOnly(titleInput);
+  }
+
+  function _renderKoreanDraftCard() {
+    if (!_chatThread) return;
+    _removeDraftCards();
+    var gen = _draftStage.generation;
+    var messageEl = document.createElement("div");
+    messageEl.className = "chat-msg chat-msg--ai chat-msg--bilingual-draft";
+    messageEl.setAttribute("data-bilingual-draft-card", "stage2");
+    messageEl.setAttribute("data-draft-stage", DRAFT_STAGE_KOREAN);
+    messageEl.innerHTML =
+      '<div class="chat-avatar" aria-label="AI">A</div>' +
+      '<div class="chat-bubble chat-bubble--ai chat-bilingual-draft chat-bilingual-draft--compare">' +
+        '<p class="chat-bilingual-draft__hint" data-draft-hint="stage2">' +
+          _escHtmlText(
+            _i18nT(
+              "draft.stage2Explain",
+              "Compare your original draft with the Korean administrative draft. Nothing has been officially submitted."
+            )
+          ) +
+        "</p>" +
+        '<div class="chat-bilingual-draft__compare" data-draft-compare="true">' +
+          '<section class="chat-bilingual-draft__panel" data-draft-role="original-resident">' +
+            '<p class="chat-draft-label" data-draft-label="original-resident">' +
+              _escHtmlText(
+                _i18nT("draft.originalResidentMessage", "Original resident message")
+              ) +
+            "</p>" +
+            '<p class="chat-bilingual-draft__panel-title" data-draft-original-title="true">' +
+              _escHtmlText(_draftStage.residentTitle) +
+            "</p>" +
+            '<p class="chat-draft-body" data-draft-original-text="true">' +
+              _escHtmlText(_draftStage.residentBody) +
+            "</p>" +
+          "</section>" +
+          '<section class="chat-bilingual-draft__panel" data-draft-role="korean-administrative-draft">' +
+            '<p class="chat-draft-label" data-draft-label="korean-administrative-draft">' +
+              _escHtmlText(
+                _i18nT("draft.koreanAdministrativeDraft", "Korean administrative draft")
+              ) +
+            "</p>" +
+            '<p class="chat-bilingual-draft__assist" data-draft-assist="true">' +
+              _escHtmlText(
+                _i18nT(
+                  "draft.translatedForDraft",
+                  "Translation for drafting assistance"
+                )
+              ) +
+            "</p>" +
+            '<p class="chat-bilingual-draft__panel-title" data-draft-korean-title="true">' +
+              _escHtmlText(_draftStage.koreanTitle) +
+            "</p>" +
+            '<p class="chat-draft-body" data-draft-korean-body="true">' +
+              _escHtmlText(_draftStage.koreanBody) +
+            "</p>" +
+          "</section>" +
+        "</div>" +
+        '<div class="chat-decision__actions chat-bilingual-draft__actions" data-draft-actions="stage2">' +
+          '<button type="button" class="chat-decision__button chat-decision__button--secondary" data-draft-action="back-edit">' +
+            _escHtmlText(_i18nT("action.backEditDraft", "Back and edit")) +
+          "</button>" +
+          '<button type="button" class="chat-decision__button chat-decision__button--primary" data-draft-action="confirm-insert">' +
+            _escHtmlText(
+              _i18nT(
+                "action.confirmInsertForm",
+                "Insert Korean draft into the form"
+              )
+            ) +
+          "</button>" +
+        "</div>" +
+        '<p class="chat-bilingual-draft__safety" data-draft-safety="true">' +
+          _escHtmlText(
+            _i18nT(
+              "safety.noSubmission",
+              "Only guidance is provided; no real complaint is submitted."
+            )
+          ) +
+        "</p>" +
+      "</div>";
+    _chatThread.appendChild(messageEl);
+    _draftStage.cardEl = messageEl;
+    _bindDraftCardActions(messageEl, gen);
+    _scrollChatThreadToLatest(messageEl.querySelector(".chat-bilingual-draft__actions") || messageEl);
+  }
+
+  function _bindDraftCardActions(cardEl, gen) {
+    if (!cardEl) return;
+    var buttons = cardEl.querySelectorAll("[data-draft-action]");
+    for (var i = 0; i < buttons.length; i++) {
+      (function (btn) {
+        btn.addEventListener("click", function () {
+          if (gen !== _draftStage.generation) return;
+          var action = btn.getAttribute("data-draft-action");
+          if (action === "confirm-content") {
+            confirmResidentDraftContent();
+          } else if (action === "revise") {
+            reviseResidentDraft();
+          } else if (action === "confirm-insert") {
+            confirmKoreanDraftInsert();
+          } else if (action === "back-edit") {
+            backToResidentDraftEdit();
+          }
+        });
+      })(buttons[i]);
+    }
+    var titleInput = cardEl.querySelector('[data-draft-field="resident-title"]');
+    var bodyInput = cardEl.querySelector('[data-draft-field="resident-body"]');
+    function onEdit() {
+      if (gen !== _draftStage.generation) return;
+      _readResidentDraftFields();
+    }
+    if (titleInput) titleInput.addEventListener("input", onEdit);
+    if (bodyInput) bodyInput.addEventListener("input", onEdit);
+  }
+
+  function _disableDraftCardButtons(cardEl) {
+    if (!cardEl) return;
+    var buttons = cardEl.querySelectorAll("button[data-draft-action]");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].disabled = true;
+    }
+  }
+
+  function _beginBilingualDraftHandoff(titleStepIndex) {
+    var fixture = _getDraftFixture(_currentJourneyId);
+    if (!fixture) return false;
+    var locale = _activeLocale();
+    if (locale === "ko") return false;
+    var pack = fixture.resident[locale] || fixture.resident.en;
+    if (!pack) return false;
+
+    var titleStep = _steps[titleStepIndex] || {};
+    var bodyStep = _steps[titleStepIndex + 1] || {};
+    var titleSelector =
+      titleStep.querySelector ||
+      titleStep.cursorTarget ||
+      fixture.titleSelector;
+    var contentSelector =
+      (bodyStep && bodyStep.contentSelector) ||
+      (bodyStep && bodyStep.cursorTarget) ||
+      fixture.contentSelector;
+
+    _draftStage.generation += 1;
+    _draftStage.stage = DRAFT_STAGE_RESIDENT;
+    _draftStage.locale = locale;
+    _draftStage.journeyId = _currentJourneyId;
+    _draftStage.actionId = fixture.actionId || _currentJourneyId;
+    _draftStage.residentTitle = pack.title;
+    _draftStage.residentBody = pack.body;
+    // #1152: Korean draft must not exist until Stage 1 confirmation.
+    _draftStage.koreanTitle = "";
+    _draftStage.koreanBody = "";
+    _draftStage.fixtureVariant = null;
+    _draftStage.titleSelector = titleSelector;
+    _draftStage.contentSelector = contentSelector;
+    _draftStage.revisionIndex = 0;
+    _syncDraftStageAttr();
+
+    // Ensure form remains empty until second confirmation.
+    _clearWritingFormFields(titleSelector, contentSelector);
+
+    // Narration + Stage 1 card (no Korean draft yet).
+    _removeTempMessages();
+    _appendChatMessage(
+      "ai",
+      _i18nT(
+        "draft.stage1Intro",
+        "I prepared a draft in your language first. Please review and edit it before any Korean administrative text is created."
+      ),
+      false
+    );
+    _renderResidentDraftCard();
+    _setState(CHOREO_WAITING_RESIDENT_DRAFT);
+    return true;
+  }
+
+  function reviseResidentDraft() {
+    if (_draftStage.stage !== DRAFT_STAGE_RESIDENT) return;
+    if (_state !== CHOREO_WAITING_RESIDENT_DRAFT) return;
+    var fixture = _getDraftFixture(_draftStage.journeyId || _currentJourneyId);
+    if (!fixture) return;
+    var locale = _draftStage.locale || _activeLocale();
+    var alt = fixture.revise && (fixture.revise[locale] || fixture.revise.en);
+    var base = fixture.resident && (fixture.resident[locale] || fixture.resident.en);
+    _draftStage.revisionIndex += 1;
+    var pick = _draftStage.revisionIndex % 2 === 1 && alt ? alt : base;
+    if (!pick) return;
+    _draftStage.residentTitle = pick.title;
+    _draftStage.residentBody = pick.body;
+    // Stay in Stage 1; Korean draft still not created.
+    _draftStage.koreanTitle = "";
+    _draftStage.koreanBody = "";
+    _draftStage.fixtureVariant = null;
+    _renderResidentDraftCard();
+    _setState(CHOREO_WAITING_RESIDENT_DRAFT);
+  }
+
+  function confirmResidentDraftContent() {
+    if (_draftStage.stage !== DRAFT_STAGE_RESIDENT) return;
+    if (_state !== CHOREO_WAITING_RESIDENT_DRAFT) return;
+    var gen = _draftStage.generation;
+    _readResidentDraftFields();
+    var fixture = _getDraftFixture(_draftStage.journeyId || _currentJourneyId);
+    var resolved = _resolveReviewedKoreanDraft(
+      fixture,
+      _draftStage.locale || _activeLocale(),
+      _draftStage.residentTitle,
+      _draftStage.residentBody
+    );
+    // Free-form edits fail closed: remain Stage 1, no Korean draft, form empty.
+    if (!resolved) {
+      _draftStage.koreanTitle = "";
+      _draftStage.koreanBody = "";
+      _draftStage.fixtureVariant = null;
+      _clearWritingFormFields(_draftStage.titleSelector, _draftStage.contentSelector);
+      _showUnsupportedOfflineEditNotice();
+      _setState(CHOREO_WAITING_RESIDENT_DRAFT);
+      return;
+    }
+
+    _disableDraftCardButtons(_draftStage.cardEl);
+    // Create Korean draft only after explicit Stage 1 confirmation + exact fixture match.
+    _draftStage.koreanTitle = resolved.koreanTitle;
+    _draftStage.koreanBody = resolved.koreanBody;
+    _draftStage.fixtureVariant = resolved.variant;
+    _draftStage.stage = DRAFT_STAGE_KOREAN;
+    _syncDraftStageAttr();
+    // Form must still be empty.
+    _clearWritingFormFields(_draftStage.titleSelector, _draftStage.contentSelector);
+    if (gen !== _draftStage.generation) return;
+    _renderKoreanDraftCard();
+    _setState(CHOREO_WAITING_KOREAN_DRAFT);
+  }
+
+  function backToResidentDraftEdit() {
+    if (_draftStage.stage !== DRAFT_STAGE_KOREAN) return;
+    if (_state !== CHOREO_WAITING_KOREAN_DRAFT) return;
+    _draftStage.stage = DRAFT_STAGE_RESIDENT;
+    // Drop Korean draft when returning to edit source.
+    _draftStage.koreanTitle = "";
+    _draftStage.koreanBody = "";
+    _draftStage.fixtureVariant = null;
+    _syncDraftStageAttr();
+    _clearWritingFormFields(_draftStage.titleSelector, _draftStage.contentSelector);
+    _renderResidentDraftCard();
+    _setState(CHOREO_WAITING_RESIDENT_DRAFT);
+  }
+
+  function confirmKoreanDraftInsert() {
+    if (_draftStage.stage !== DRAFT_STAGE_KOREAN) return;
+    if (_state !== CHOREO_WAITING_KOREAN_DRAFT) return;
+    if (!_draftStage.koreanTitle || !_draftStage.koreanBody) return;
+    var gen = _draftStage.generation;
+    var journeyGen = _journeyGeneration;
+    _disableDraftCardButtons(_draftStage.cardEl);
+
+    // Populate ONLY Korean title/body fields — no submit, no receipt, no navigation.
+    var demoEl = _getCanvasEl();
+    var title = demoEl && _draftStage.titleSelector
+      ? demoEl.querySelector(_draftStage.titleSelector)
+      : null;
+    var content = demoEl && _draftStage.contentSelector
+      ? demoEl.querySelector(_draftStage.contentSelector)
+      : null;
+    if (title && "value" in title) {
+      title.value = _draftStage.koreanTitle || "";
+      try {
+        title.dispatchEvent(new Event("input", { bubbles: true }));
+      } catch (_) { /* ignore */ }
+    }
+    if (content && "value" in content) {
+      content.value = _draftStage.koreanBody || "";
+      try {
+        content.dispatchEvent(new Event("input", { bubbles: true }));
+      } catch (_) { /* ignore */ }
+      _scrollEditableToEnd(content);
+    }
+
+    // Keep submit disabled — still pre-submission.
+    var submit =
+      demoEl &&
+      (demoEl.querySelector("#btn-mayor-submit") ||
+        demoEl.querySelector("#btn-board-submit"));
+    if (submit) {
+      submit.disabled = true;
+      submit.setAttribute("aria-disabled", "true");
+    }
+
+    _draftStage.stage = DRAFT_STAGE_FORM;
+    _syncDraftStageAttr();
+    _scheduleCanvasScroll(_revealWritingConfirmationInCanvas, 0);
+
+    if (gen !== _draftStage.generation) return;
+    if (journeyGen !== _journeyGeneration) return;
+
+    // Keep compare card visible; append a short pre-submit handoff note.
+    _appendChatMessage(
+      "ai",
+      _i18nT(
+        "draft.formPopulatedNotice",
+        "I entered the Korean draft into the form on the left. Fields stay editable. Nothing has been submitted yet."
+      ),
+      false
+    );
+    _appendChatMessage(
+      "ai",
+      _i18nT(
+        "draft.preSubmitTerminal",
+        "This remains a pre-submission draft. Official submission is not performed here."
+      ),
+      false
+    );
+
+    // #1152: non-Korean path terminates here — do NOT resume requiresConfirmation,
+    // confirmSubmission, receipt routes, or ContentAdapter.submitBoardPost.
+    _setState(CHOREO_WAITING_FORM_REVIEW);
+  }
+
+  function getDraftStageState() {
+    return {
+      stage: _draftStage.stage,
+      locale: _draftStage.locale,
+      journeyId: _draftStage.journeyId,
+      actionId: _draftStage.actionId,
+      residentTitle: _draftStage.residentTitle,
+      residentBody: _draftStage.residentBody,
+      koreanTitle: _draftStage.koreanTitle,
+      koreanBody: _draftStage.koreanBody,
+      fixtureVariant: _draftStage.fixtureVariant,
+    };
+  }
+
   function _apartmentDeptSnapshot() {
     var snapshots = window.__BUKGU_OFFICIAL_SNAPSHOTS__;
     return snapshots && snapshots["apartment-dept"] ? snapshots["apartment-dept"] : null;
@@ -887,6 +1694,20 @@
     _currentStep = index;
     var step = _steps[index];
 
+    // #1152: non-Korean writing journeys open Stage 1 (resident-language draft)
+    // before any Korean title/body is typed into the official-looking form.
+    if (
+      _isNonKoLocale() &&
+      _isWritingTitleStep(step) &&
+      _getDraftFixture(_currentJourneyId)
+    ) {
+      _blurActiveEditableForAutomatedMobileStep();
+      _clearHighlights();
+      if (_beginBilingualDraftHandoff(index)) {
+        return;
+      }
+    }
+
     // On mobile, an automated step must never steal focus into an editable
     // field — the resident taps fields explicitly. Blur any active editable
     // before the action drives the canvas. Desktop is unaffected.
@@ -1204,12 +2025,24 @@
    * @returns {boolean} true if a matching journey was found and started
    */
   function start(journeyKey) {
-    if (_state === STATE_RUNNING || _state === "waiting_confirmation") cancel();
+    if (
+      _state === STATE_RUNNING ||
+      _state === "waiting_confirmation" ||
+      _state === "waiting_choice" ||
+      _state === CHOREO_WAITING_RESIDENT_DRAFT ||
+      _state === CHOREO_WAITING_KOREAN_DRAFT ||
+      _state === CHOREO_WAITING_FORM_REVIEW ||
+      _state === STATE_DONE ||
+      _state === STATE_CANCELLED
+    ) {
+      cancel();
+    }
 
     var entry = JOURNEY_MAP[journeyKey];
     if (!entry) return false;
 
     _journeyGeneration += 1;
+    _resetDraftStageState({ clearForm: true });
     _currentJourneyId = entry.id;
     _steps = entry.steps;
     _currentStep = -1;
@@ -1220,7 +2053,7 @@
 
   /** Cancel a running choreography. Safe to call in any state. */
   function cancel() {
-    if (_state === STATE_IDLE) return;
+    if (_state === STATE_IDLE && _draftStage.stage === DRAFT_STAGE_IDLE) return;
     _journeyGeneration += 1;
     _clearTimer();
     _clearAuxTimers();
@@ -1236,6 +2069,8 @@
     _activeTypingOperations = [];
     _removeTempMessages();
     _clearHighlights();
+    // #1152: clear bilingual draft cards, stage state, and journey-populated fields.
+    _resetDraftStageState({ clearForm: true });
     // Emit cancelled while journeyId/step still known, then clear.
     _setState(STATE_CANCELLED);
     _steps = [];
@@ -1432,11 +2267,28 @@
     getCurrentStepIndex: getCurrentStepIndex,
     getTotalSteps: getTotalSteps,
     getSteps: getSteps,
+    // #1152 two-stage bilingual draft handoff
+    confirmResidentDraftContent: confirmResidentDraftContent,
+    confirmKoreanDraftInsert: confirmKoreanDraftInsert,
+    reviseResidentDraft: reviseResidentDraft,
+    backToResidentDraftEdit: backToResidentDraftEdit,
+    getDraftStageState: getDraftStageState,
     states: Object.freeze({
       idle: STATE_IDLE,
       running: STATE_RUNNING,
       done: STATE_DONE,
       cancelled: STATE_CANCELLED,
+      waiting_resident_draft: CHOREO_WAITING_RESIDENT_DRAFT,
+      waiting_korean_draft: CHOREO_WAITING_KOREAN_DRAFT,
+      waiting_form_review: CHOREO_WAITING_FORM_REVIEW,
+      waiting_confirmation: "waiting_confirmation",
+      waiting_choice: "waiting_choice",
+    }),
+    draftStages: Object.freeze({
+      idle: DRAFT_STAGE_IDLE,
+      resident_draft_review: DRAFT_STAGE_RESIDENT,
+      korean_draft_review: DRAFT_STAGE_KOREAN,
+      form_populated: DRAFT_STAGE_FORM,
     }),
   });
 })();
