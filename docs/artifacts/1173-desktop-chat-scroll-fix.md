@@ -2,7 +2,8 @@
 
 **Issue:** #1173  
 **Branch:** `fix/1173-desktop-chat-scroll-containment`  
-**Status:** fixed + permanent regression contract (fail-closed E2E)  
+**Status:** fixed + permanent regression contract (fail-closed E2E)
+
 
 ## Latest verification snapshot
 
@@ -15,7 +16,7 @@
 | `pytest` citizen shell + home audit | **119 passed** |
 | `verify_mobile_link_safety.mjs` | **PASS** (local dist on `127.0.0.1`) |
 
-Safety counters from final E2E run: console/page/failed/external/nav/popup/liveApi = **0**.  
+Safety counters from final E2E run: console/page/failed/external/nav/popup/liveApi = **0**.
 Network / Firecrawl / official-site access: **0**.
 
 ## Before (reproduction)
