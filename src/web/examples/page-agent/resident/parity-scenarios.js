@@ -53,7 +53,17 @@
     },
     {
       id: 'complaint_screen',
-      triggers: ['민원 작성 화면을 열어줘', '민원 작성', '민원 신청', '민원 게시판', 'complaint'],
+      triggers: [
+        '민원 작성 화면을 열어줘',
+        '민원 작성',
+        '민원 신청',
+        '민원 게시판',
+        // #1164 stakeholder phrasing observed in Production
+        '가로등이 고장 났어요',
+        '가로등이 고장났어요',
+        '가로등 고장',
+        'complaint',
+      ],
       routeId: 'complaint-write',
       navSteps: [
         { target: 'nav-complaint-board', description: '소통광장' },
@@ -69,6 +79,9 @@
         '구청장에게 바란다',
         '구청장 제안',
         '구청장 글 작성',
+        // #1164 stakeholder phrasing observed in Production
+        '북구청장에게 글을 쓰고 싶어요',
+        '북구청장에게 글 쓰고 싶어요',
         'mayor proposal',
       ],
       routeId: 'mayor-complaint-write',
