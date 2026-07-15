@@ -8,15 +8,43 @@
 - **Total Assets**: 174
 - **Partial Hash Limit**: 65,536 bytes
 
-## 2. Scan Scope
+## 2. Scan Scope (point-in-time / frozen)
 
-- **Method**: Repository tracked files only (`git ls-files -z`)
-- **Enumerated Tracked Paths**: 626
-- **Eligible Tracked Files**: 622
-- **Excluded Paths**: 4 (Audit outputs, test and scripts)
-- **LFS Pointers**: 0 (Ignored if any)
+This audit is a **point-in-time historical identity check** for repository
+blob contents at a fixed snapshot commit. It is **not** a live index of
+whatever files happen to be tracked on the current branch.
+
+- **Snapshot commit**: `0a86d643b5bc8f4379bafd2aa42704c579de6c9b`
+- **Frozen scan manifest**:
+  `data/official_clone_asset_audits/bukgu_gwangju/home-repository-scan-manifest.json`
+- **Method (normal / `--check`)**: load frozen manifest only
+  (**does not** run `git ls-files` or re-hash the working tree)
+- **Method (explicit refresh only)**: Git object bytes via
+  `git ls-tree` + `git cat-file` / batch at a chosen `--snapshot-ref`
+- **Enumerated Tracked Paths** (snapshot): 626
+- **Eligible Tracked Files** (snapshot): 622
+- **Excluded Paths** (snapshot): 4 (audit self-artifacts present in that tree)
+- **LFS Pointers**: 0
 - **Missing or Unreadable Paths**: 0
-- **Manifest SHA**: `86c372bacd9a867e8407ab854b9c4766c3c0193f4c6e4244a7f613a4767eabda`
+- **Canonical Manifest SHA-256 (Git blob pin)**:
+  `1997cac4b492034649a0920afa2672fcf93cec287b5b685eb8ff609f1172dd0e`
+- **Legacy working-tree pin (superseded, CRLF-sensitive)**:
+  `86c372bacd9a867e8407ab854b9c4766c3c0193f4c6e4244a7f613a4767eabda`
+
+### Semantics (#1177)
+
+| Path | Behavior |
+|------|----------|
+| `python scripts/audit_bukgu_home_asset_identity.py` | Recompute report from **frozen** manifest + inventory |
+| `… --check` | Same recompute; byte-compare committed report |
+| `… --refresh-scan-manifest --snapshot-ref <ref>` | **Only** path that rebuilds the frozen manifest from Git objects |
+
+- Files added after the snapshot commit are **not** automatically included in
+  the historical eligible set or in this audit’s conclusions.
+- Discovering new exact repository candidates requires an **explicit**
+  manifest refresh **and** a separate human review; CI/`--check` never refresh.
+- The conclusion **exact match count = 0** applies to this snapshot only.
+- Asset download / promotion was **not** performed.
 
 ## 3. Evidence Classification Rules
 
@@ -62,7 +90,8 @@ A match requires both:
 - None (0)
 
 ### No-Match Assets
-- 35 full-body-equivalent items were evaluated for exact offline matching against tracked repository files, but zero candidates were found.
+- 35 full-body-equivalent items were evaluated for exact offline matching against
+  tracked repository files **at the snapshot commit**, but zero candidates were found.
 
 ### Partial/Unhashed Assets
 - Partial/unhashed/invalid evidence was not evaluated for repository exact identity. Only full-body-equivalent hashes received exact-match outcomes.
@@ -75,5 +104,7 @@ A match requires both:
   1. Complete a secure download mechanism to fetch unhashed or partial-prefix assets safely.
   2. Maintain strict integrity checks during download and promote assets only when the hash matches.
   3. Wire the downloaded local assets into the official clone fixtures incrementally, replacing absolute URLs.
+  4. If the historical scan universe must be updated, run an **explicit**
+     `--refresh-scan-manifest` against a reviewed commit and re-audit.
 
 No asset download was performed or authorized in this issue.
