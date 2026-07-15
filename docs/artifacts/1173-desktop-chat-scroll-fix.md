@@ -2,7 +2,21 @@
 
 **Issue:** #1173  
 **Branch:** `fix/1173-desktop-chat-scroll-containment`  
-**Status:** fixed + permanent regression contract  
+**Status:** fixed + permanent regression contract (fail-closed E2E)  
+
+## Latest verification snapshot
+
+| Field | Value |
+|-------|--------|
+| Merged main SHA | `5d085ff408f64b4a94df86e0de5fa8906496bc40` |
+| Verifier | `tests/browser/verify_desktop_chat_scroll_containment_e2e.mjs` |
+| Fail-closed | per-turn HTTP 200 + body marker + exact user/assistant +1 |
+| Home audit `--check` | **PASS** (frozen #1177 manifest; no refresh) |
+| `pytest` citizen shell + home audit | **119 passed** |
+| `verify_mobile_link_safety.mjs` | **PASS** (local dist on `127.0.0.1`) |
+
+Safety counters from final E2E run: console/page/failed/external/nav/popup/liveApi = **0**.  
+Network / Firecrawl / official-site access: **0**.
 
 ## Before (reproduction)
 
@@ -79,36 +93,46 @@ Static build + local server + mocked `/api/mvp/ask` only.
 
 ### 1440×1000 after 15 mixed turns (measured)
 
+Baseline (post-warmup split): doc/shell/canvas **1000**. After 15 chat-only turns:
+
 | Metric | After fix |
 |--------|-----------|
-| document / body scrollHeight | **1000 / 1000** (viewport-bounded) |
-| `#chat-thread` clientHeight | **742** (bounded scrollport) |
-| `#chat-thread` scrollHeight | **11327** (internal overflow) |
+| document / body scrollHeight | **1000 / 1000** (= baseline; delta 0) |
+| `#chat-thread` clientHeight | **742** |
+| `#chat-thread` scrollHeight | **11610** (internal overflow) |
 | `.chat-shell` height | **1000** |
-| left canvas height | **1000** (not grown by chat history) |
-| composer | inside viewport, input/send operable |
-| page scrollY | ~0 |
+| left canvas height | **1000** |
+| user / assistant delta vs post-warmup | **+15 / +15** |
+| composer | inside viewport, operable |
+| bottom-pinned last assistant | **PASS** |
+| reading-history (assistant complete, no yank) | **PASS** |
+| re-pin auto-scroll | **PASS** |
 
 ### 1024×768 after 15 mixed turns (measured)
 
+Baseline (post-warmup split): doc/shell/canvas **768**. After 15 turns:
+
 | Metric | After fix |
 |--------|-----------|
-| document / body scrollHeight | **768 / 768** |
+| document / body scrollHeight | **768 / 768** (delta 0) |
 | `#chat-thread` clientHeight | **510** |
-| `#chat-thread` scrollHeight | **11327** |
+| `#chat-thread` scrollHeight | **11610** |
 | `.chat-shell` height | **768** |
 | left canvas height | **768** |
-| composer | inside viewport, operable |
+| user / assistant delta | **+15 / +15** |
+| bottom-pinned / reading-history / re-pin | **PASS** |
 
 ### 390×844 regression (measured)
 
-Baseline conversation only (a few turns; never clicks **예**):
+Six chat-only turns (never clicks **예**) plus bottom-pin check:
 
 | Metric | Result |
 |--------|--------|
-| document scrollHeight | **844** |
-| `#chat-thread` clientHeight / scrollHeight | **514 / 2526** |
-| composer box | **364×97** (non-zero, operable) |
+| document scrollHeight | **844** (= baseline 844) |
+| `#chat-thread` clientHeight / scrollHeight | **514 / 5027** (`scrollHeight > clientHeight`) |
+| user / assistant delta | **+6 / +6** |
+| composer box | **364×97**, in viewport, operable |
+| bottom-pinned latest assistant | **PASS** |
 
 **Does not** enter the #1174 multi-step path after **예**. That composer
 0×0 defect remains a separate issue.
@@ -170,6 +194,19 @@ Then chat-only mixed turns (paraphrases; not exact `SUPPORTED_QUESTION_ACTIONS` 
 13. KO unsupported — 주식 종목 추천해줘  
 14. EN supported — What steps are needed for bulky waste pickup?  
 15. KO supported — 민원서류 무인발급 가능 시간을 알려주세요  
+
+## Fail-closed E2E contract notes
+
+Removed fail-open patterns from the verifier:
+
+- no `.catch(() => null)` / `.catch(() => {})` on response or message waits
+- each turn: `waitForResponse` POST `/api/mvp/ask` must be HTTP **200** with JSON `ok:true` and deterministic **marker** in `answer`
+- each chat-only turn: user count **+1**, assistant count **+1**, last AI text contains marker
+- after 15 turns: user/assistant deltas exactly **15**; all 15 markers present (no duplicates)
+- `assertLatestAssistantVisible` targets last **assistant** message + marker, not generic `.chat-msg`
+- reading-history asserts after **assistant response completes** (marker present, `scrollTop` not yanked)
+- document/shell containment uses **baseline delta** (not only absolute `< 4000`)
+- mobile requires internal overflow (`scrollHeight > clientHeight`) and per-turn count growth
 
 ## How to run
 

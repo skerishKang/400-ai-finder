@@ -1,20 +1,16 @@
 /**
- * #1173 — permanent desktop chat scroll containment contract.
+ * #1173 — permanent desktop chat scroll containment contract (fail-closed).
  *
  * Root cause under test:
  *   desktop transitioning/split `.chat-shell` must keep `height: 100vh`
  *   and must NOT be overridden by a trailing `height: 100%` that lets the
  *   shell grow with chat history (document/body scroll hijack).
  *
- * Also locks:
- *   - chat-thread internal overflow (not document overflow)
- *   - composer remains viewport-visible + operable after 15 turns
- *   - left civic canvas height is not driven by chat history
- *   - bottom-pinned auto-scroll of new replies
- *   - reading-history scroll position is preserved across DOM updates
- *   - 1024×768 same containment
- *   - 390×844 baseline conversation + internal scroll regression only
- *     (#1174 multi-step "예" composer collapse is intentionally out of scope)
+ * Fail-closed rules:
+ *   - every turn waits for a real 200 /api/mvp/ask response (no swallowed timeouts)
+ *   - user + assistant counts must each increase by exactly +1 per turn
+ *   - last assistant message must contain that turn's deterministic marker
+ *   - containment deltas are measured against viewport/baseline, not loose caps
  *
  * Safety:
  *   - repository-controlled static build only
@@ -43,29 +39,51 @@ const VIEWPORTS = {
   mobile: { width: 390, height: 844, label: "390x844" },
 };
 
-// Warmup uses one exact product prompt so desktop reaches split (left canvas).
-// The 15-turn mixed sequence intentionally avoids SUPPORTED_QUESTION_ACTIONS
-// exact keys so each turn stays chat-only (no re-entrant cinematic split /
-// confirm stack). Supported vs unsupported is still mixed KO/EN content.
 const WARMUP_SPLIT_QUESTION = "공동주택 관련 문의는 어느 부서에 해야 하나요?";
+const WARMUP_MARKER = "[[1173-WARMUP-SPLIT-MARKER]]";
 
-// Mixed 15-turn sequence: KO/EN × supported/unsupported, no pure repeats.
+// Mixed 15-turn sequence: KO/EN × supported/unsupported, unique markers.
 const FIFTEEN_TURNS = Object.freeze([
-  { q: "공동주택과 담당 연락처를 알려주세요", kind: "ko-supported" },
-  { q: "내일 날씨가 어때?", kind: "ko-unsupported" },
-  { q: "Please explain how illegal parking reports work in Buk-gu", kind: "en-supported" },
-  { q: "What will the weather be tomorrow?", kind: "en-unsupported" },
-  { q: "대형폐기물 수수료 납부 방법을 알려줘", kind: "ko-supported" },
-  { q: "How do passport applications work at the district office?", kind: "en-supported" },
-  { q: "비트코인 가격 알려줘", kind: "ko-unsupported" },
-  { q: "Tell me a joke please", kind: "en-unsupported" },
-  { q: "주정차 단속 기준이 궁금해요", kind: "ko-supported" },
-  { q: "Where can residents find unmanned certificate kiosks?", kind: "en-supported" },
-  { q: "여권 사진 규격이 어떻게 되나요?", kind: "ko-supported" },
-  { q: "Recommend a restaurant nearby", kind: "en-unsupported" },
-  { q: "주식 종목 추천해줘", kind: "ko-unsupported" },
-  { q: "What steps are needed for bulky waste pickup?", kind: "en-supported" },
-  { q: "민원서류 무인발급 가능 시간을 알려주세요", kind: "ko-supported" },
+  { q: "공동주택과 담당 연락처를 알려주세요", kind: "ko-supported", marker: "[[1173-T01-KO-SUP]]" },
+  { q: "내일 날씨가 어때?", kind: "ko-unsupported", marker: "[[1173-T02-KO-UNS]]" },
+  { q: "Please explain how illegal parking reports work in Buk-gu", kind: "en-supported", marker: "[[1173-T03-EN-SUP]]" },
+  { q: "What will the weather be tomorrow?", kind: "en-unsupported", marker: "[[1173-T04-EN-UNS]]" },
+  { q: "대형폐기물 수수료 납부 방법을 알려줘", kind: "ko-supported", marker: "[[1173-T05-KO-SUP]]" },
+  { q: "How do passport applications work at the district office?", kind: "en-supported", marker: "[[1173-T06-EN-SUP]]" },
+  { q: "비트코인 가격 알려줘", kind: "ko-unsupported", marker: "[[1173-T07-KO-UNS]]" },
+  { q: "Tell me a joke please", kind: "en-unsupported", marker: "[[1173-T08-EN-UNS]]" },
+  { q: "주정차 단속 기준이 궁금해요", kind: "ko-supported", marker: "[[1173-T09-KO-SUP]]" },
+  { q: "Where can residents find unmanned certificate kiosks?", kind: "en-supported", marker: "[[1173-T10-EN-SUP]]" },
+  { q: "여권 사진 규격이 어떻게 되나요?", kind: "ko-supported", marker: "[[1173-T11-KO-SUP]]" },
+  { q: "Recommend a restaurant nearby", kind: "en-unsupported", marker: "[[1173-T12-EN-UNS]]" },
+  { q: "주식 종목 추천해줘", kind: "ko-unsupported", marker: "[[1173-T13-KO-UNS]]" },
+  { q: "What steps are needed for bulky waste pickup?", kind: "en-supported", marker: "[[1173-T14-EN-SUP]]" },
+  { q: "민원서류 무인발급 가능 시간을 알려주세요", kind: "ko-supported", marker: "[[1173-T15-KO-SUP]]" },
+]);
+
+const BOTTOM_PIN_TURN = {
+  q: "공동주택과 담당 연락처를 알려주세요",
+  kind: "ko-supported",
+  marker: "[[1173-BOTTOM-PIN]]",
+};
+const READ_HISTORY_TURN = {
+  q: "내일 날씨가 어때?",
+  kind: "ko-unsupported",
+  marker: "[[1173-READ-HISTORY]]",
+};
+const REPIN_TURN = {
+  q: "Please explain how illegal parking reports work in Buk-gu",
+  kind: "en-supported",
+  marker: "[[1173-REPIN]]",
+};
+
+const MOBILE_TURNS = Object.freeze([
+  { q: "공동주택과 담당 연락처를 알려주세요", kind: "ko-supported", marker: "[[1173-MOB-T01]]" },
+  { q: "내일 날씨가 어때?", kind: "ko-unsupported", marker: "[[1173-MOB-T02]]" },
+  { q: "Please explain how illegal parking reports work in Buk-gu", kind: "en-supported", marker: "[[1173-MOB-T03]]" },
+  { q: "What will the weather be tomorrow?", kind: "en-unsupported", marker: "[[1173-MOB-T04]]" },
+  { q: "대형폐기물 수수료 납부 방법을 알려줘", kind: "ko-supported", marker: "[[1173-MOB-T05]]" },
+  { q: "How do passport applications work at the district office?", kind: "en-supported", marker: "[[1173-MOB-T06]]" },
 ]);
 
 const LONG_ANSWER_PAD =
@@ -73,17 +91,36 @@ const LONG_ANSWER_PAD =
   "이 답변은 로컬 정적 픽스처로 제공되며 실제 관공서 사이트나 외부 API를 호출하지 않습니다. " +
   "대화가 길어져도 chat-shell 높이는 viewport에 고정되어야 하고 스크롤은 chat-thread 내부에서만 발생해야 합니다. ";
 
-function buildMockAnswer(kind, question) {
+const DOC_GROWTH_TOL = 48;
+const SHELL_GROWTH_TOL = 8;
+const CANVAS_GROWTH_TOL = 40;
+const SCROLL_TOP_TOL = 40;
+const PIN_THRESHOLD = 72;
+
+function turnLookup(question) {
+  if (question === WARMUP_SPLIT_QUESTION) {
+    return { kind: "ko-supported", marker: WARMUP_MARKER, q: question };
+  }
+  for (const t of FIFTEEN_TURNS) if (t.q === question) return t;
+  for (const t of MOBILE_TURNS) if (t.q === question) return t;
+  if (question === BOTTOM_PIN_TURN.q && question.includes("공동주택과")) {
+    // Ambiguous with T01; prefer explicit markers from sendTurn options.
+  }
+  if (question === BOTTOM_PIN_TURN.q) return BOTTOM_PIN_TURN;
+  if (question === READ_HISTORY_TURN.q) return READ_HISTORY_TURN;
+  if (question === REPIN_TURN.q) return REPIN_TURN;
+  return null;
+}
+
+function buildMockAnswer(kind, question, marker) {
   const supported = kind === "ko-supported" || kind === "en-supported";
-  // Always return ok:true with a long body so chat-thread scrollHeight grows.
-  // action:"none" keeps the 15-turn sequence in chat-only mode (no re-split).
-  // Warmup split is driven by the exact product prompt map, not this action.
+  const tag = marker || "[[1173-UNKNOWN]]";
   if (!supported) {
     return {
       ok: true,
       question,
       answer:
-        "현재 안내 범위 밖의 질문입니다. 북구청 민원 안내 범위의 질문을 다시 입력해 주세요. " +
+        `${tag} 현재 안내 범위 밖의 질문입니다. 북구청 민원 안내 범위의 질문을 다시 입력해 주세요. ` +
         LONG_ANSWER_PAD.repeat(3),
       action: "none",
       confidence: 0.1,
@@ -97,7 +134,7 @@ function buildMockAnswer(kind, question) {
     ok: true,
     question,
     answer:
-      `「${question}」에 대한 공식 안내입니다. 담당 창구와 신청 절차를 확인하세요.` +
+      `${tag} 「${question}」에 대한 공식 안내입니다. 담당 창구와 신청 절차를 확인하세요.` +
       LONG_ANSWER_PAD.repeat(4),
     action: "none",
     confidence: 1,
@@ -247,10 +284,8 @@ function createSafetyTracker(origin) {
     });
     page.on("requestfailed", (req) => {
       const url = req.url();
-      // Favicon / benign aborts are not product asset failures.
       if (/favicon\.ico$/i.test(url)) return;
       if (req.failure() && /net::ERR_ABORTED/i.test(req.failure().errorText || "")) {
-        // aborted by our route handler for external URLs
         return;
       }
       state.failedResources.push(url);
@@ -279,7 +314,7 @@ function createSafetyTracker(origin) {
           state.externalNavigations.push(frame.url());
         }
       } catch {
-        /* ignore */
+        /* ignore parse errors for about:blank etc. */
       }
     });
     page.on("popup", () => {
@@ -290,8 +325,11 @@ function createSafetyTracker(origin) {
   return { state, attach };
 }
 
+/** Pending marker for the next ask fulfillment (set by sendTurn). */
+let pendingAskMarker = null;
+let pendingAskKind = null;
+
 async function installRoutes(page, origin) {
-  // Abort any non-origin request (safety net; never hit live providers/sites).
   await page.route("**/*", async (route) => {
     const url = route.request().url();
     if (url.startsWith("data:") || url.startsWith("blob:")) {
@@ -311,26 +349,15 @@ async function installRoutes(page, origin) {
 
   await page.route("**/api/mvp/ask", async (route) => {
     let question = "";
-    let kind = "ko-unsupported";
     try {
       const body = JSON.parse(route.request().postData() || "{}");
       question = body.question || "";
     } catch {
-      /* ignore */
+      question = "";
     }
-    if (question === WARMUP_SPLIT_QUESTION) {
-      kind = "ko-supported";
-    } else {
-      const turn = FIFTEEN_TURNS.find((t) => t.q === question);
-      if (turn) kind = turn.kind;
-      else if (/weather|joke|restaurant|bitcoin|주식|날씨|추천/i.test(question)) {
-        kind = "en-unsupported";
-      } else {
-        kind = "ko-supported";
-      }
-    }
-    const payload = buildMockAnswer(kind, question);
-    // Warmup exact prompt is resolved via SUPPORTED_QUESTION_ACTIONS in shell.
+    const kind = pendingAskKind || "ko-unsupported";
+    const marker = pendingAskMarker || "[[1173-UNSET]]";
+    const payload = buildMockAnswer(kind, question, marker);
     await route.fulfill({
       status: 200,
       contentType: "application/json; charset=utf-8",
@@ -339,12 +366,38 @@ async function installRoutes(page, origin) {
   });
 }
 
+async function collectCounts(page) {
+  return page.evaluate(() => {
+    const user = document.querySelectorAll(".chat-msg--user").length;
+    const ai = document.querySelectorAll(".chat-msg--ai").length;
+    const thread = document.getElementById("chat-thread");
+    const input =
+      document.getElementById("chat-composer-input") ||
+      document.querySelector(".chat-composer__input");
+    const lastAi = document.querySelector(".chat-msg--ai:last-of-type") ||
+      Array.from(document.querySelectorAll(".chat-msg--ai")).at(-1);
+    return {
+      user,
+      ai,
+      total: document.querySelectorAll(".chat-msg").length,
+      scrollTop: thread ? thread.scrollTop : -1,
+      scrollHeight: thread ? thread.scrollHeight : 0,
+      clientHeight: thread ? thread.clientHeight : 0,
+      composerDisabled: !!(input && input.disabled),
+      lastAiText: lastAi ? (lastAi.textContent || "").trim() : "",
+      journey: document.body.getAttribute("data-journey-state") || "",
+      firstUse: document.body.getAttribute("data-first-use-state") || "",
+    };
+  });
+}
+
 async function collectMetrics(page) {
   return page.evaluate(() => {
     const html = document.documentElement;
     const body = document.body;
     const thread = document.getElementById("chat-thread");
-    const composer = document.getElementById("chat-composer-form") ||
+    const composer =
+      document.getElementById("chat-composer-form") ||
       document.querySelector(".chat-composer");
     const input =
       document.getElementById("chat-composer-input") ||
@@ -358,6 +411,8 @@ async function collectMetrics(page) {
     const shell =
       document.getElementById("chat-shell") ||
       document.querySelector(".chat-shell");
+    const lastAi =
+      Array.from(document.querySelectorAll(".chat-msg--ai")).at(-1) || null;
 
     const rect = (el) => {
       if (!el) return null;
@@ -372,6 +427,7 @@ async function collectMetrics(page) {
       };
     };
     const composerRect = rect(composer);
+    const lastAiRect = rect(lastAi);
     const vh = window.innerHeight;
     const vw = window.innerWidth;
     const composerInViewport = !!(
@@ -411,52 +467,98 @@ async function collectMetrics(page) {
       sendEnabled,
       canvas: rect(canvas),
       canvasHeight: canvas ? canvas.getBoundingClientRect().height : 0,
+      userCount: document.querySelectorAll(".chat-msg--user").length,
+      aiCount: document.querySelectorAll(".chat-msg--ai").length,
       msgCount: document.querySelectorAll(".chat-msg").length,
+      lastAi: lastAiRect,
+      lastAiText: lastAi ? (lastAi.textContent || "").trim() : "",
     };
   });
 }
 
 async function dismissConfirmIfPresent(page) {
   // Stay in chat multi-turn mode; do not enter #1174 multi-step mobile flow.
-  // Only click an *enabled* confirm decline — disabled historical 아니요 buttons
-  // remain in the thread and must not be targeted (Playwright can scroll them
-  // into view and yank reading position / bottom pin).
   const noBtn = page.getByRole("button", {
     name: /^(아니요|No)$/i,
     disabled: false,
   });
-  if ((await noBtn.count()) > 0) {
-    const first = noBtn.first();
-    if (await first.isVisible().catch(() => false)) {
-      await first.click({ force: true }).catch(() => {});
-      await page.waitForTimeout(120);
-    }
-  }
+  const n = await noBtn.count();
+  if (n === 0) return;
+  const first = noBtn.first();
+  const visible = await first.isVisible();
+  if (!visible) return;
+  await first.click({ force: true });
+  await page.waitForTimeout(120);
 }
 
 async function ensureConversationSurface(page) {
-  const needsSwitch = await page.evaluate(() => {
+  const state = await page.evaluate(() => {
     const w = window.innerWidth || 0;
-    if (w > 767) return false;
-    return document.body.getAttribute("data-mobile-surface") !== "conversation";
+    const surface = document.body.getAttribute("data-mobile-surface") || "";
+    const tab = document.getElementById("tab-conversation");
+    const input =
+      document.getElementById("chat-composer-input") ||
+      document.querySelector(".chat-composer__input");
+    const inputVisible = !!(
+      input &&
+      input.offsetParent !== null &&
+      getComputedStyle(input).visibility !== "hidden"
+    );
+    return {
+      narrow: w <= 767,
+      surface,
+      hasTab: !!tab,
+      tabPressed: tab ? tab.getAttribute("aria-pressed") === "true" : false,
+      tabVisible: !!(
+        tab &&
+        tab.offsetParent !== null &&
+        getComputedStyle(tab).visibility !== "hidden" &&
+        tab.getBoundingClientRect().height > 0
+      ),
+      inputVisible,
+    };
   });
-  if (!needsSwitch) return;
+  if (!state.narrow) return;
+  if (state.surface === "conversation" || state.tabPressed) return;
+  // Composer already usable — do not force a hidden tab click.
+  if (state.inputVisible && !state.tabVisible) return;
+  assert.ok(
+    state.hasTab,
+    "mobile conversation tab missing when surface switch required",
+  );
   const tab = page.locator("#tab-conversation");
-  if ((await tab.count()) > 0) {
-    await tab.click({ force: true }).catch(() => {});
-    await page
-      .waitForFunction(
-        () => document.body.getAttribute("data-mobile-surface") === "conversation",
-        null,
-        { timeout: 5000 },
-      )
-      .catch(() => {});
-  }
+  await tab.click({ force: true });
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-mobile-surface") === "conversation",
+    null,
+    { timeout: 8000 },
+  );
 }
 
-async function sendTurn(page, question) {
+/**
+ * Fail-closed turn: real 200 /api/mvp/ask, exact +1 user, assistant growth,
+ * and the expected marker present in the AI thread.
+ *
+ * @param {{ exactAiDelta?: boolean }} opts
+ *   exactAiDelta (default true): require assistant count +1 and last AI = marker.
+ *   Set false for warmup exact-product prompts that also append split/confirm AI bubbles.
+ */
+async function sendTurn(page, turnSpec, ctx = "turn", opts = {}) {
+  const exactAiDelta = opts.exactAiDelta !== false;
+  const question = typeof turnSpec === "string" ? turnSpec : turnSpec.q;
+  const marker =
+    typeof turnSpec === "string"
+      ? (turnLookup(question) || {}).marker || "[[1173-UNSET]]"
+      : turnSpec.marker;
+  const kind =
+    typeof turnSpec === "string"
+      ? (turnLookup(question) || {}).kind || "ko-unsupported"
+      : turnSpec.kind;
+
+  pendingAskMarker = marker;
+  pendingAskKind = kind;
+
   await ensureConversationSurface(page);
-  // Composer must be free (not disabled mid-request).
   await page.waitForFunction(
     () => {
       const input =
@@ -467,28 +569,63 @@ async function sendTurn(page, question) {
     null,
     { timeout: 15000 },
   );
+
+  const before = await collectCounts(page);
   const input = page.locator("#chat-composer-input, .chat-composer__input").first();
   await input.waitFor({ state: "visible", timeout: 10000 });
   await input.fill(question);
-  const prevCount = await page.locator(".chat-msg").count();
-  await Promise.all([
-    page.waitForResponse(
-      (r) => r.url().includes("/api/mvp/ask") && r.status() === 200,
-      { timeout: 15000 },
-    ).catch(() => null),
-    page.locator("#chat-composer-send, .chat-composer__send").first().click(),
-  ]);
-  await page
-    .waitForFunction(
-      (prev) => document.querySelectorAll(".chat-msg").length > prev,
-      prevCount,
-      { timeout: 12000 },
-    )
-    .catch(() => {});
-  // Split/confirm can land after reduced-motion timeouts; wait briefly.
-  await page.waitForTimeout(450);
+
+  const responsePromise = page.waitForResponse(
+    (r) => {
+      if (!r.url().includes("/api/mvp/ask")) return false;
+      if (r.request().method() !== "POST") return false;
+      return true;
+    },
+    { timeout: 15000 },
+  );
+
+  await page.locator("#chat-composer-send, .chat-composer__send").first().click();
+  const response = await responsePromise;
+  assert.strictEqual(
+    response.status(),
+    200,
+    `[${ctx}] /api/mvp/ask status ${response.status()} for ${question}`,
+  );
+  const bodyText = await response.text();
+  let bodyJson;
+  try {
+    bodyJson = JSON.parse(bodyText);
+  } catch (e) {
+    throw new Error(`[${ctx}] invalid JSON from /api/mvp/ask: ${bodyText.slice(0, 200)}`);
+  }
+  assert.ok(bodyJson && bodyJson.ok === true, `[${ctx}] mock body.ok not true`);
+  assert.ok(
+    typeof bodyJson.answer === "string" && bodyJson.answer.includes(marker),
+    `[${ctx}] response answer missing marker ${marker}`,
+  );
+
+  await page.waitForFunction(
+    ({ prevUser, prevAi, marker, exactAiDelta }) => {
+      const user = document.querySelectorAll(".chat-msg--user").length;
+      const ai = document.querySelectorAll(".chat-msg--ai").length;
+      if (user !== prevUser + 1) return false;
+      if (ai < prevAi + 1) return false;
+      const ais = Array.from(document.querySelectorAll(".chat-msg--ai"));
+      const hasMarker = ais.some((el) => (el.textContent || "").includes(marker));
+      if (!hasMarker) return false;
+      if (exactAiDelta) {
+        if (ai !== prevAi + 1) return false;
+        const lastAi = ais.at(-1);
+        return !!(lastAi && (lastAi.textContent || "").includes(marker));
+      }
+      return true;
+    },
+    { prevUser: before.user, prevAi: before.ai, marker, exactAiDelta },
+    { timeout: 15000 },
+  );
+
   await dismissConfirmIfPresent(page);
-  // Wait for composer unlock after any confirm dismissal.
+
   await page.waitForFunction(
     () => {
       const input =
@@ -498,26 +635,71 @@ async function sendTurn(page, question) {
     },
     null,
     { timeout: 10000 },
-  ).catch(() => {});
-  await page.waitForTimeout(80);
+  );
+
+  const after = await collectCounts(page);
+  assert.strictEqual(
+    after.user,
+    before.user + 1,
+    `[${ctx}] user count ${before.user} -> ${after.user}`,
+  );
+  assert.ok(
+    after.ai >= before.ai + 1,
+    `[${ctx}] assistant count did not grow: ${before.ai} -> ${after.ai}`,
+  );
+  if (exactAiDelta) {
+    assert.strictEqual(
+      after.ai,
+      before.ai + 1,
+      `[${ctx}] assistant count ${before.ai} -> ${after.ai}`,
+    );
+    assert.ok(
+      after.lastAiText.includes(marker),
+      `[${ctx}] last assistant missing marker ${marker}: ${after.lastAiText.slice(0, 120)}`,
+    );
+  } else {
+    const markerPresent = await page.evaluate((m) => {
+      return Array.from(document.querySelectorAll(".chat-msg--ai")).some((el) =>
+        (el.textContent || "").includes(m),
+      );
+    }, marker);
+    assert.ok(markerPresent, `[${ctx}] assistant marker missing ${marker}`);
+  }
+
+  pendingAskMarker = null;
+  pendingAskKind = null;
+  return { before, after, marker, question };
 }
 
-function assertContainment(m, ctx, baselineDoc, baselineCanvas) {
-  const tol = 4;
-  // Document/body must not grow with full chat history (viewport-bounded shell).
+function assertContainment(m, ctx, baseline) {
+  assert.ok(m, `[${ctx}] metrics missing`);
   assert.ok(
-    m.documentScrollHeight <= m.viewportHeight + 80,
-    `[${ctx}] document.scrollHeight ${m.documentScrollHeight} exceeds viewport ${m.viewportHeight}+80`,
+    m.documentScrollHeight <= m.viewportHeight + DOC_GROWTH_TOL,
+    `[${ctx}] document.scrollHeight ${m.documentScrollHeight} > viewport ${m.viewportHeight}+${DOC_GROWTH_TOL}`,
   );
   assert.ok(
-    m.bodyScrollHeight <= m.viewportHeight + 80,
-    `[${ctx}] body.scrollHeight ${m.bodyScrollHeight} exceeds viewport ${m.viewportHeight}+80`,
+    m.bodyScrollHeight <= m.viewportHeight + DOC_GROWTH_TOL,
+    `[${ctx}] body.scrollHeight ${m.bodyScrollHeight} > viewport ${m.viewportHeight}+${DOC_GROWTH_TOL}`,
   );
-  if (baselineDoc != null) {
+  if (baseline) {
     assert.ok(
-      m.documentScrollHeight <= baselineDoc + 40,
-      `[${ctx}] document grew with chat history: ${baselineDoc} -> ${m.documentScrollHeight}`,
+      m.documentScrollHeight <= baseline.documentScrollHeight + DOC_GROWTH_TOL,
+      `[${ctx}] document grew vs baseline: ${baseline.documentScrollHeight} -> ${m.documentScrollHeight}`,
     );
+    assert.ok(
+      m.bodyScrollHeight <= baseline.bodyScrollHeight + DOC_GROWTH_TOL,
+      `[${ctx}] body grew vs baseline: ${baseline.bodyScrollHeight} -> ${m.bodyScrollHeight}`,
+    );
+    assert.ok(
+      m.shellHeight <= baseline.shellHeight + SHELL_GROWTH_TOL,
+      `[${ctx}] shell height grew: ${baseline.shellHeight} -> ${m.shellHeight}`,
+    );
+    if (baseline.canvasHeight > 0 && m.canvasHeight > 0) {
+      assert.ok(
+        m.canvasHeight <= baseline.canvasHeight + CANVAS_GROWTH_TOL,
+        `[${ctx}] canvas grew with chat: ${baseline.canvasHeight} -> ${m.canvasHeight}`,
+      );
+    }
   }
   assert.ok(
     m.threadClientHeight > 80,
@@ -542,45 +724,90 @@ function assertContainment(m, ctx, baselineDoc, baselineCanvas) {
   assert.ok(m.inputEnabled, `[${ctx}] composer input not operable`);
   assert.ok(m.sendEnabled, `[${ctx}] composer send not operable`);
   assert.ok(
-    Math.abs(m.pageScrollY) <= tol,
+    Math.abs(m.pageScrollY) <= 4,
     `[${ctx}] page scrollY should stay ~0, got ${m.pageScrollY}`,
   );
-  if (baselineCanvas != null && m.canvasHeight > 0) {
-    assert.ok(
-      m.canvasHeight <= baselineCanvas + 40,
-      `[${ctx}] left canvas height grew with chat: ${baselineCanvas} -> ${m.canvasHeight}`,
-    );
-  }
   assert.ok(
-    m.shellHeight <= m.viewportHeight + tol,
+    m.shellHeight <= m.viewportHeight + SHELL_GROWTH_TOL,
     `[${ctx}] chat-shell height ${m.shellHeight} exceeds viewport ${m.viewportHeight}`,
   );
 }
 
-async function assertLatestMessageVisible(page, ctx) {
-  const res = await page.evaluate(() => {
-    const thread = document.getElementById("chat-thread");
-    const msgs = thread ? thread.querySelectorAll(".chat-msg") : [];
-    const last = msgs[msgs.length - 1];
-    if (!thread || !last) return { ok: false, reason: "missing" };
-    const tr = thread.getBoundingClientRect();
-    const mr = last.getBoundingClientRect();
-    const visible =
-      mr.bottom > tr.top + 2 &&
-      mr.top < tr.bottom - 2 &&
-      mr.height > 0;
-    return {
-      ok: visible,
-      threadTop: tr.top,
-      threadBottom: tr.bottom,
-      msgTop: mr.top,
-      msgBottom: mr.bottom,
-      scrollTop: thread.scrollTop,
-      scrollHeight: thread.scrollHeight,
-      clientHeight: thread.clientHeight,
-    };
+async function assertLatestAssistantVisible(page, marker, ctx) {
+  const res = await page.evaluate(
+    ({ marker, pinThreshold }) => {
+      const thread = document.getElementById("chat-thread");
+      const ais = Array.from(document.querySelectorAll(".chat-msg--ai"));
+      const last = ais[ais.length - 1];
+      const composer =
+        document.getElementById("chat-composer-form") ||
+        document.querySelector(".chat-composer");
+      if (!thread || !last) {
+        return { ok: false, reason: "missing-thread-or-assistant" };
+      }
+      const text = last.textContent || "";
+      if (!text.includes(marker)) {
+        return {
+          ok: false,
+          reason: "marker-mismatch",
+          text: text.slice(0, 160),
+        };
+      }
+      const tr = thread.getBoundingClientRect();
+      const mr = last.getBoundingClientRect();
+      const cr = composer ? composer.getBoundingClientRect() : null;
+      const vh = window.innerHeight;
+      const assistantVisible =
+        mr.bottom > tr.top + 2 && mr.top < tr.bottom - 2 && mr.height > 0;
+      const composerInVp = !!(
+        cr &&
+        cr.width > 0 &&
+        cr.height > 0 &&
+        cr.top >= -1 &&
+        cr.bottom <= vh + 1
+      );
+      const distBottom =
+        thread.scrollHeight - thread.scrollTop - thread.clientHeight;
+      return {
+        ok: assistantVisible && composerInVp,
+        assistantVisible,
+        composerInVp,
+        distBottom,
+        nearBottom: distBottom <= pinThreshold + 8,
+        threadTop: tr.top,
+        threadBottom: tr.bottom,
+        msgTop: mr.top,
+        msgBottom: mr.bottom,
+        pageScrollY: window.scrollY || 0,
+      };
+    },
+    { marker, pinThreshold: PIN_THRESHOLD },
+  );
+  assert.ok(
+    res.ok,
+    `[${ctx}] latest assistant not properly visible: ${JSON.stringify(res)}`,
+  );
+  assert.ok(
+    Math.abs(res.pageScrollY) <= 4,
+    `[${ctx}] document scroll required for composer/assistant: pageScrollY=${res.pageScrollY}`,
+  );
+}
+
+async function pinThreadToBottom(page) {
+  await page.evaluate(async () => {
+    const t = document.getElementById("chat-thread");
+    if (!t) throw new Error("chat-thread missing");
+    t.scrollTop = t.scrollHeight;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    t.scrollTop = t.scrollHeight;
   });
-  assert.ok(res.ok, `[${ctx}] latest message not visible: ${JSON.stringify(res)}`);
+  const pinCheck = await page.evaluate((threshold) => {
+    const t = document.getElementById("chat-thread");
+    if (!t) return { ok: false };
+    const dist = t.scrollHeight - t.scrollTop - t.clientHeight;
+    return { ok: dist <= threshold, dist, scrollTop: t.scrollTop };
+  }, PIN_THRESHOLD);
+  assert.ok(pinCheck.ok, `failed to pin chat to bottom: ${JSON.stringify(pinCheck)}`);
 }
 
 async function runDesktopViewport(browser, origin, safety, viewport) {
@@ -602,39 +829,44 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
     timeout: 10000,
   });
 
-  const firstMetrics = await collectMetrics(page);
-  const baselineDoc = firstMetrics.documentScrollHeight;
+  const entryBaseline = await collectMetrics(page);
+  const countsAtEntry = await collectCounts(page);
 
-  // Warmup: exact product prompt → split layout (left canvas baseline).
-  await sendTurn(page, WARMUP_SPLIT_QUESTION);
+  // Warmup: exact product prompt → split layout (extra AI bubbles after answer).
+  await sendTurn(
+    page,
+    { q: WARMUP_SPLIT_QUESTION, kind: "ko-supported", marker: WARMUP_MARKER },
+    `${label} warmup`,
+    { exactAiDelta: false },
+  );
   await page.waitForFunction(
     () => document.body.getAttribute("data-first-use-state") === "split",
     null,
-    { timeout: 10000 },
-  ).catch(() => {});
-  // Snap to bottom after split ack settles so the 15-turn run starts pinned.
-  await page.evaluate(async () => {
-    const t = document.getElementById("chat-thread");
-    if (!t) return;
-    t.scrollTop = t.scrollHeight;
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    t.scrollTop = t.scrollHeight;
-  });
-  const warmupMetrics = await collectMetrics(page);
-  const baselineCanvas = warmupMetrics.canvasHeight;
+    { timeout: 12000 },
+  );
+  await pinThreadToBottom(page);
+  const splitBaseline = await collectMetrics(page);
   console.log(
-    `  warmup split: state=${warmupMetrics.state} canvas=${Math.round(baselineCanvas)} ` +
-      `thread c=${warmupMetrics.threadClientHeight}/s=${warmupMetrics.threadScrollHeight}/top=${Math.round(warmupMetrics.threadScrollTop)}`,
+    `  warmup split: state=${splitBaseline.state} canvas=${Math.round(splitBaseline.canvasHeight)} ` +
+      `doc=${splitBaseline.documentScrollHeight} shell=${Math.round(splitBaseline.shellHeight)} ` +
+      `thread c=${splitBaseline.threadClientHeight}/s=${splitBaseline.threadScrollHeight}`,
   );
 
+  const countsAfterWarmup = await collectCounts(page);
   const turnMetrics = [];
+  const seenMarkers = new Set([WARMUP_MARKER]);
+
   for (let i = 0; i < FIFTEEN_TURNS.length; i++) {
     const turn = FIFTEEN_TURNS[i];
-    await sendTurn(page, turn.q);
+    const result = await sendTurn(page, turn, `${label} turn-${i + 1}`);
+    assert.ok(!seenMarkers.has(turn.marker), `duplicate marker ${turn.marker}`);
+    seenMarkers.add(turn.marker);
     const m = await collectMetrics(page);
-    turnMetrics.push(m);
+    assertContainment(m, `${label} turn-${i + 1}`, splitBaseline);
+    turnMetrics.push({ ...m, marker: turn.marker, user: result.after.user, ai: result.after.ai });
     console.log(
       `  turn ${i + 1}/${FIFTEEN_TURNS.length} [${turn.kind}] ` +
+        `user=${result.after.user} ai=${result.after.ai} marker=${turn.marker} ` +
         `doc=${m.documentScrollHeight} body=${m.bodyScrollHeight} ` +
         `thread c=${m.threadClientHeight}/s=${m.threadScrollHeight}/top=${Math.round(m.threadScrollTop)} ` +
         `shell=${Math.round(m.shellHeight)} canvas=${Math.round(m.canvasHeight)} ` +
@@ -643,98 +875,100 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
   }
 
   const after15 = turnMetrics[turnMetrics.length - 1];
-  assertContainment(after15, `${label} after-15`, baselineDoc, baselineCanvas);
-  assert.ok(
-    after15.msgCount >= 15,
-    `[${label}] expected accumulated messages, got ${after15.msgCount}`,
+  assertContainment(after15, `${label} after-15`, splitBaseline);
+  const countsAfter15 = await collectCounts(page);
+  assert.strictEqual(
+    countsAfter15.user,
+    countsAfterWarmup.user + 15,
+    `[${label}] user messages after 15 turns: expected ${countsAfterWarmup.user + 15}, got ${countsAfter15.user}`,
   );
+  assert.strictEqual(
+    countsAfter15.ai,
+    countsAfterWarmup.ai + 15,
+    `[${label}] assistant messages after 15 turns: expected ${countsAfterWarmup.ai + 15}, got ${countsAfter15.ai}`,
+  );
+  for (const t of FIFTEEN_TURNS) {
+    const present = await page.evaluate((marker) => {
+      return Array.from(document.querySelectorAll(".chat-msg--ai")).some((el) =>
+        (el.textContent || "").includes(marker),
+      );
+    }, t.marker);
+    assert.ok(present, `[${label}] missing assistant marker ${t.marker}`);
+  }
 
-  // 7. bottom-pinned: latest message visible after a fresh chat-only send.
-  await page.evaluate(async () => {
-    const t = document.getElementById("chat-thread");
-    if (!t) return;
-    t.scrollTop = t.scrollHeight;
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    t.scrollTop = t.scrollHeight;
-  });
-  const pinCheck = await page.evaluate(() => {
-    const t = document.getElementById("chat-thread");
-    if (!t) return { ok: false };
-    const dist = t.scrollHeight - t.scrollTop - t.clientHeight;
-    return { ok: dist <= 72, dist, scrollTop: t.scrollTop, scrollHeight: t.scrollHeight };
-  });
-  assert.ok(pinCheck.ok, `[${label}] failed to pin to bottom before send: ${JSON.stringify(pinCheck)}`);
-  await sendTurn(page, "공동주택과 담당 연락처를 알려주세요");
-  await page.waitForTimeout(250);
-  await assertLatestMessageVisible(page, `${label} bottom-pinned`);
+  // Bottom-pinned: latest assistant visible.
+  await pinThreadToBottom(page);
+  await sendTurn(page, BOTTOM_PIN_TURN, `${label} bottom-pin`);
+  await assertLatestAssistantVisible(page, BOTTOM_PIN_TURN.marker, `${label} bottom-pinned`);
   console.log(`  bottom-pinned: PASS`);
 
-  // 8. reading-history: scroll up, append via send, scrollTop must not jump to bottom.
+  // Reading-history: scroll up, complete assistant response without yank.
   await page.evaluate(() => {
     const t = document.getElementById("chat-thread");
-    if (t) t.scrollTop = 0;
+    if (!t) throw new Error("chat-thread missing");
+    t.scrollTop = 0;
   });
   await page.waitForTimeout(80);
   const beforeRead = await page.evaluate(() => {
     const t = document.getElementById("chat-thread");
     return {
-      scrollTop: t ? t.scrollTop : -1,
-      scrollHeight: t ? t.scrollHeight : 0,
-      clientHeight: t ? t.clientHeight : 0,
+      scrollTop: t.scrollTop,
+      scrollHeight: t.scrollHeight,
+      clientHeight: t.clientHeight,
+      distBottom: t.scrollHeight - t.scrollTop - t.clientHeight,
     };
   });
   assert.ok(
-    beforeRead.scrollHeight - beforeRead.clientHeight > 80,
-    `[${label}] not enough internal scroll range to test reading-history`,
+    beforeRead.distBottom > PIN_THRESHOLD + 20,
+    `[${label}] not far enough from bottom for reading-history: ${JSON.stringify(beforeRead)}`,
   );
-  // Send while scrolled to top — must preserve reading position (not yank to bottom).
-  await sendTurn(page, "내일 날씨가 어때?");
-  await page.waitForTimeout(200);
+  await sendTurn(page, READ_HISTORY_TURN, `${label} reading-history`);
   const afterRead = await page.evaluate(() => {
     const t = document.getElementById("chat-thread");
+    const lastAi = Array.from(document.querySelectorAll(".chat-msg--ai")).at(-1);
     return {
-      scrollTop: t ? t.scrollTop : -1,
-      scrollHeight: t ? t.scrollHeight : 0,
-      clientHeight: t ? t.clientHeight : 0,
-      distanceFromBottom: t
-        ? t.scrollHeight - t.scrollTop - t.clientHeight
-        : -1,
+      scrollTop: t.scrollTop,
+      scrollHeight: t.scrollHeight,
+      clientHeight: t.clientHeight,
+      distBottom: t.scrollHeight - t.scrollTop - t.clientHeight,
+      lastAiText: lastAi ? lastAi.textContent || "" : "",
     };
   });
   assert.ok(
-    afterRead.distanceFromBottom > 72,
-    `[${label}] reading-history yanked to bottom: ${JSON.stringify({ beforeRead, afterRead })}`,
+    afterRead.lastAiText.includes(READ_HISTORY_TURN.marker),
+    `[${label}] reading-history assistant marker missing`,
   );
   assert.ok(
-    afterRead.scrollTop <= beforeRead.scrollTop + 40,
+    afterRead.distBottom > PIN_THRESHOLD,
+    `[${label}] reading-history yanked toward bottom: ${JSON.stringify({ beforeRead, afterRead })}`,
+  );
+  assert.ok(
+    afterRead.scrollTop <= beforeRead.scrollTop + SCROLL_TOP_TOL,
     `[${label}] reading-history scrollTop jumped: ${beforeRead.scrollTop} -> ${afterRead.scrollTop}`,
   );
   console.log(`  reading-history preserve: PASS`);
 
-  // 9. return near bottom + send → auto-scroll restores latest visibility.
-  await page.evaluate(async () => {
-    const t = document.getElementById("chat-thread");
-    if (!t) return;
-    t.scrollTop = t.scrollHeight;
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    t.scrollTop = t.scrollHeight;
-  });
-  await page.waitForTimeout(80);
-  await sendTurn(page, "Please explain how illegal parking reports work in Buk-gu");
-  await page.waitForTimeout(250);
-  await assertLatestMessageVisible(page, `${label} re-pin auto-scroll`);
+  // Re-pin + auto-scroll.
+  await pinThreadToBottom(page);
+  await sendTurn(page, REPIN_TURN, `${label} re-pin`);
+  await assertLatestAssistantVisible(page, REPIN_TURN.marker, `${label} re-pin auto-scroll`);
   console.log(`  re-pin auto-scroll: PASS`);
 
   const finalMetrics = await collectMetrics(page);
-  assertContainment(finalMetrics, `${label} final`, baselineDoc, baselineCanvas);
+  assertContainment(finalMetrics, `${label} final`, splitBaseline);
 
   await context.close();
   return {
     label,
+    entryBaseline,
+    splitBaseline,
     after15,
     finalMetrics,
-    baselineDoc,
-    baselineCanvas,
+    countsAtEntry,
+    countsAfterWarmup,
+    countsAfter15,
+    userDelta15: countsAfter15.user - countsAfterWarmup.user,
+    aiDelta15: countsAfter15.ai - countsAfterWarmup.ai,
   };
 }
 
@@ -761,44 +995,80 @@ async function runMobileBaseline(browser, origin, safety) {
     timeout: 10000,
   });
 
+  const baseline = await collectMetrics(page);
+  const countsStart = await collectCounts(page);
+
   // #1174 boundary: only basic conversation — never click "예".
-  // Avoid exact SUPPORTED map prompts that open multi-step guidance.
-  const mobileTurns = [
-    "공동주택과 담당 연락처를 알려주세요",
-    "내일 날씨가 어때?",
-    "Please explain how illegal parking reports work in Buk-gu",
-  ];
-  for (const q of mobileTurns) {
-    await sendTurn(page, q);
+  for (let i = 0; i < MOBILE_TURNS.length; i++) {
+    const turn = MOBILE_TURNS[i];
+    const result = await sendTurn(page, turn, `${label} turn-${i + 1}`);
+    const m = await collectMetrics(page);
+    assert.strictEqual(result.after.user, countsStart.user + i + 1);
+    assert.strictEqual(result.after.ai, countsStart.ai + i + 1);
+    assert.ok(
+      m.documentScrollHeight <= baseline.documentScrollHeight + DOC_GROWTH_TOL,
+      `[${label}] document grew: ${baseline.documentScrollHeight} -> ${m.documentScrollHeight}`,
+    );
+    assert.ok(
+      m.shellHeight <= baseline.shellHeight + SHELL_GROWTH_TOL ||
+        m.shellHeight <= m.viewportHeight + SHELL_GROWTH_TOL,
+      `[${label}] shell height grew with chat: ${baseline.shellHeight} -> ${m.shellHeight}`,
+    );
+    console.log(
+      `  mobile turn ${i + 1}: user=${result.after.user} ai=${result.after.ai} ` +
+        `doc=${m.documentScrollHeight} thread c=${m.threadClientHeight}/s=${m.threadScrollHeight}`,
+    );
   }
 
   const m = await collectMetrics(page);
+  const countsEnd = await collectCounts(page);
+  assert.strictEqual(countsEnd.user, countsStart.user + MOBILE_TURNS.length);
+  assert.strictEqual(countsEnd.ai, countsStart.ai + MOBILE_TURNS.length);
   assert.ok(
     m.composer && m.composer.width > 40 && m.composer.height > 20,
     `[${label}] composer collapsed: ${JSON.stringify(m.composer)}`,
   );
+  assert.ok(m.composerInViewport, `[${label}] composer not in viewport`);
   assert.ok(m.inputEnabled, `[${label}] input not operable`);
   assert.ok(m.sendEnabled, `[${label}] send not operable`);
   assert.ok(
     m.threadClientHeight > 40,
     `[${label}] thread clientHeight regression: ${m.threadClientHeight}`,
   );
-  // Internal scroll should exist after a few long answers (or at least not explode document).
   assert.ok(
-    m.documentScrollHeight < 4000,
-    `[${label}] document scrollHeight exploded: ${m.documentScrollHeight}`,
+    m.threadScrollHeight > m.threadClientHeight + 8,
+    `[${label}] expected internal overflow: s=${m.threadScrollHeight} c=${m.threadClientHeight}`,
   );
   assert.ok(
-    m.msgCount >= 3,
-    `[${label}] expected conversation messages, got ${m.msgCount}`,
+    m.documentScrollHeight <= baseline.documentScrollHeight + DOC_GROWTH_TOL,
+    `[${label}] document scrollHeight grew: ${baseline.documentScrollHeight} -> ${m.documentScrollHeight}`,
   );
+
+  await pinThreadToBottom(page);
+  await sendTurn(
+    page,
+    { q: "공동주택과 담당 연락처를 알려주세요", kind: "ko-supported", marker: "[[1173-MOB-PIN]]" },
+    `${label} bottom-pin`,
+  );
+  await assertLatestAssistantVisible(page, "[[1173-MOB-PIN]]", `${label} bottom-pinned`);
+
   console.log(
     `  mobile baseline: composer=${Math.round(m.composer.width)}x${Math.round(m.composer.height)} ` +
-      `thread c=${m.threadClientHeight}/s=${m.threadScrollHeight} doc=${m.documentScrollHeight} PASS`,
+      `thread c=${m.threadClientHeight}/s=${m.threadScrollHeight} ` +
+      `doc=${m.documentScrollHeight} (baseline ${baseline.documentScrollHeight}) ` +
+      `user+${MOBILE_TURNS.length} ai+${MOBILE_TURNS.length} PASS`,
   );
 
   await context.close();
-  return { label, metrics: m };
+  return {
+    label,
+    baseline,
+    metrics: m,
+    countsStart,
+    countsEnd,
+    userDelta: countsEnd.user - countsStart.user,
+    aiDelta: countsEnd.ai - countsStart.ai,
+  };
 }
 
 function assertSafety(state) {
@@ -832,11 +1102,11 @@ function assertSafety(state) {
 }
 
 async function main() {
-  console.log("#1173 desktop chat scroll containment E2E");
-  console.log(`warmup split: ${WARMUP_SPLIT_QUESTION}`);
+  console.log("#1173 desktop chat scroll containment E2E (fail-closed)");
+  console.log(`warmup split: ${WARMUP_SPLIT_QUESTION} marker=${WARMUP_MARKER}`);
   console.log("15-turn request list:");
   FIFTEEN_TURNS.forEach((t, i) => {
-    console.log(`  ${i + 1}. [${t.kind}] ${t.q}`);
+    console.log(`  ${i + 1}. [${t.kind}] ${t.marker} ${t.q}`);
   });
 
   const { origin, cleanup } = await buildAndServe();
@@ -863,7 +1133,7 @@ async function main() {
     assertSafety(safety.state);
     results = { large, small, mobile, safety: safety.state };
   } finally {
-    await browser.close().catch(() => {});
+    await browser.close();
     cleanup();
   }
 
@@ -878,6 +1148,9 @@ async function main() {
           threadScroll: results.large.after15.threadScrollHeight,
           shell: results.large.after15.shellHeight,
           canvas: results.large.after15.canvasHeight,
+          userDelta15: results.large.userDelta15,
+          aiDelta15: results.large.aiDelta15,
+          baselineDoc: results.large.splitBaseline.documentScrollHeight,
         },
         smallAfter15: {
           doc: results.small.after15.documentScrollHeight,
@@ -886,10 +1159,17 @@ async function main() {
           threadScroll: results.small.after15.threadScrollHeight,
           shell: results.small.after15.shellHeight,
           canvas: results.small.after15.canvasHeight,
+          userDelta15: results.small.userDelta15,
+          aiDelta15: results.small.aiDelta15,
+          baselineDoc: results.small.splitBaseline.documentScrollHeight,
         },
         mobile: {
           doc: results.mobile.metrics.documentScrollHeight,
+          baselineDoc: results.mobile.baseline.documentScrollHeight,
           threadClient: results.mobile.metrics.threadClientHeight,
+          threadScroll: results.mobile.metrics.threadScrollHeight,
+          userDelta: results.mobile.userDelta,
+          aiDelta: results.mobile.aiDelta,
           composer: results.mobile.metrics.composer,
         },
         safety: {
