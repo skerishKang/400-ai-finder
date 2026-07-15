@@ -3401,6 +3401,10 @@
     var flow = {
       "nav-civil-service":             "civil-service",
       "nav-complaint-category":        "complaint-category",
+      "nav-apartment-dept":            "apartment-dept",
+      "nav-bulky-waste-disposal":       "bulky-waste-disposal",
+      "nav-passport-guidance":         "passport-guidance",
+      "nav-complaint-board":           "complaint-board",
       "complaint-category-illegal-parking":              "complaint-intake",
       "complaint-category-public-parking-inconvenience": "complaint-intake",
       "complaint-category-residential-parking":           "complaint-intake",
