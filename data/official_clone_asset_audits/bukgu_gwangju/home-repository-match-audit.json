@@ -3,7 +3,7 @@
   "audit_kind": "official_home_asset_repository_identity_audit",
   "audit_generator": {
     "id": "scripts/audit_bukgu_home_asset_identity.py",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "source": {
     "path": "data/official_captures/bukgu_gwangju/home/asset-inventory.json",
@@ -24,15 +24,15 @@
     "asset_total": 174,
     "full_body_equivalent_hash_count": 35,
     "partial_prefix_hash_count": 5,
-    "unhashed_count": 134,
-    "invalid_evidence_count": 0,
+    "unhashed_count": 0,
+    "invalid_evidence_count": 134,
     "evaluated_full_hash_count": 35,
     "one_exact_candidate_count": 0,
     "multiple_exact_candidates_count": 0,
     "no_exact_match_count": 35,
     "not_evaluated_partial_count": 5,
-    "not_evaluated_unhashed_count": 134,
-    "not_evaluated_invalid_count": 0,
+    "not_evaluated_unhashed_count": 0,
+    "not_evaluated_invalid_count": 134,
     "by_asset_type": {
       "css": 13,
       "javascript": 9,
@@ -705,11 +705,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178365867641700.jpg",
@@ -721,11 +721,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178409060920100.gif",
@@ -737,11 +737,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178282033979100.gif",
@@ -753,11 +753,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178287085409400.gif",
@@ -769,11 +769,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178282030299600.jpg",
@@ -785,11 +785,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178295852113200.jpg",
@@ -801,11 +801,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178304259361700.gif",
@@ -817,11 +817,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178304280435800.gif",
@@ -833,11 +833,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178340217030700.gif",
@@ -849,11 +849,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178282032539500.gif",
@@ -865,11 +865,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/visual/a1/178287108647200.gif",
@@ -881,11 +881,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu02.png",
@@ -897,11 +897,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu03.png",
@@ -913,11 +913,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu19.png",
@@ -929,11 +929,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu21.png",
@@ -945,11 +945,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu04.png",
@@ -961,11 +961,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu15.png",
@@ -977,11 +977,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu07.png",
@@ -993,11 +993,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu18.png",
@@ -1009,11 +1009,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu05.png",
@@ -1025,11 +1025,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu09.png",
@@ -1041,11 +1041,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu10.png",
@@ -1057,11 +1057,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/most-menu13.png",
@@ -1073,11 +1073,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site07.png",
@@ -1089,11 +1089,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site01.png",
@@ -1105,11 +1105,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site04.png",
@@ -1121,11 +1121,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site02.png",
@@ -1137,11 +1137,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site16.png",
@@ -1153,11 +1153,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site05.png",
@@ -1169,11 +1169,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site06.png",
@@ -1185,11 +1185,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site03.png",
@@ -1201,11 +1201,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site13.png",
@@ -1217,11 +1217,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site08.png",
@@ -1233,11 +1233,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site11.png",
@@ -1249,11 +1249,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site12.png",
@@ -1265,11 +1265,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site21.png",
@@ -1281,11 +1281,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site18.png",
@@ -1297,11 +1297,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site14.png",
@@ -1313,11 +1313,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site22.png",
@@ -1329,11 +1329,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site19.png",
@@ -1345,11 +1345,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site20.png",
@@ -1361,11 +1361,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site24.png",
@@ -1377,11 +1377,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site23.png",
@@ -1393,11 +1393,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/main/family-site25.png",
@@ -1409,11 +1409,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1730423014123.jpg",
@@ -1425,11 +1425,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1730422909293.jpg",
@@ -1441,11 +1441,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1730423472437.jpg",
@@ -1457,11 +1457,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524832462.png",
@@ -1473,11 +1473,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524651174.jpg",
@@ -1489,11 +1489,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524603293.jpg",
@@ -1505,11 +1505,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524508340.jpg",
@@ -1521,11 +1521,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524447948.jpg",
@@ -1537,11 +1537,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524307768.jpg",
@@ -1553,11 +1553,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728524167087.jpg",
@@ -1569,11 +1569,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728523678264.jpg",
@@ -1585,11 +1585,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728523594236.png",
@@ -1601,11 +1601,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728523350481.jpg",
@@ -1617,11 +1617,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522826269.png",
@@ -1633,11 +1633,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522692080.jpg",
@@ -1649,11 +1649,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522650286.jpg",
@@ -1665,11 +1665,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522609826.jpg",
@@ -1681,11 +1681,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522511339.jpg",
@@ -1697,11 +1697,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522430251.jpg",
@@ -1713,11 +1713,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522409787.jpg",
@@ -1729,11 +1729,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1773299530408.jpg",
@@ -1745,11 +1745,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1773302775827.png",
@@ -1761,11 +1761,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522204685.jpg",
@@ -1777,11 +1777,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522162216.jpg",
@@ -1793,11 +1793,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728522070374.jpg",
@@ -1809,11 +1809,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/m_172852201002300.jpg",
@@ -1825,11 +1825,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521867955.jpg",
@@ -1841,11 +1841,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521839208.jpg",
@@ -1857,11 +1857,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521771281.jpg",
@@ -1873,11 +1873,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521712039.jpg",
@@ -1889,11 +1889,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521617814.jpg",
@@ -1905,11 +1905,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521542391.jpg",
@@ -1921,11 +1921,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521432013.jpg",
@@ -1937,11 +1937,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521330096.jpg",
@@ -1953,11 +1953,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521223375.jpg",
@@ -1969,11 +1969,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1728521144704.jpg",
@@ -1985,11 +1985,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719993939950.jpg",
@@ -2001,11 +2001,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719993124944.jpg",
@@ -2017,11 +2017,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719992962659.jpg",
@@ -2033,11 +2033,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719909603394.jpg",
@@ -2049,11 +2049,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719909451331.jpg",
@@ -2065,11 +2065,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719909294401.jpg",
@@ -2081,11 +2081,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1719909109447.png",
@@ -2097,11 +2097,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0112/thumb_1713321959967.jpg",
@@ -2113,11 +2113,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0041/m_178410057592500.jpg",
@@ -2129,11 +2129,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0041/m_178408876659800.jpg",
@@ -2145,11 +2145,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0041/m_178408875247800.jpg",
@@ -2161,11 +2161,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0041/m_178408873417900.jpg",
@@ -2177,11 +2177,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/gallery/0086/thumb_1783920425651.gif",
@@ -2193,11 +2193,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/popupzone/a1/178399125637000.gif",
@@ -2209,11 +2209,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/popupzone/a1/178399411112200.gif",
@@ -2225,11 +2225,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/popupzone/a1/178407434270800.gif",
@@ -2241,11 +2241,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/popupzone/a1/178391907269900.png",
@@ -2257,11 +2257,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/popupzone/a1/178391980685400.gif",
@@ -2273,11 +2273,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/popupzone/a1/178391998249800.gif",
@@ -2289,11 +2289,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/popupzone/a1/178305801802900.gif",
@@ -2305,11 +2305,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/popupzone/a1/178305685292000.jpg",
@@ -2321,11 +2321,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/popupzone/a1/178271160267400.gif",
@@ -2337,11 +2337,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/upload/popupzone/a1/178227447651800.gif",
@@ -2353,11 +2353,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/jquery/css/slick.css",
@@ -2369,11 +2369,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/jquery/js/slick.js",
@@ -2385,11 +2385,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/176403787724200.gif",
@@ -2401,11 +2401,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/173388998826300.gif",
@@ -2417,11 +2417,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/170260083811400.gif",
@@ -2433,11 +2433,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/155313407541600.gif",
@@ -2449,11 +2449,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/156455012051000.gif",
@@ -2465,11 +2465,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/155313373309200.gif",
@@ -2481,11 +2481,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/156738978614800.gif",
@@ -2497,11 +2497,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/158952199214100.gif",
@@ -2513,11 +2513,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/177431715422600.gif",
@@ -2529,11 +2529,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/170200083470100.gif",
@@ -2545,11 +2545,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/161188458030400.gif",
@@ -2561,11 +2561,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/177500798673500.gif",
@@ -2577,11 +2577,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/161699848963000.gif",
@@ -2593,11 +2593,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/158433316116900.png",
@@ -2609,11 +2609,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/155313381780200.gif",
@@ -2625,11 +2625,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/166736332059900.gif",
@@ -2641,11 +2641,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/155313375207900.gif",
@@ -2657,11 +2657,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/162492884492600.gif",
@@ -2673,11 +2673,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/156533183659600.gif",
@@ -2689,11 +2689,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/156446990997900.gif",
@@ -2705,11 +2705,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/157127945903200.gif",
@@ -2721,11 +2721,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "https://bukgu.gwangju.kr/upload/banner/a1/170864793116200.gif",
@@ -2737,11 +2737,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/common/openMark.svg",
@@ -2753,11 +2753,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/common/WA_Mark.svg",
@@ -2769,11 +2769,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/img/common/QR-code.png",
@@ -2785,11 +2785,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/css/printArea.css",
@@ -2801,11 +2801,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/js/menu.js",
@@ -2817,11 +2817,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     },
     {
       "source_url": "/kor/js/main.js",
@@ -2833,11 +2833,11 @@
       "sha256": null,
       "hash_scope": null,
       "hashed_byte_count": null,
-      "evidence_class": "unhashed",
-      "match_status": "not_evaluated_unhashed",
+      "evidence_class": "invalid_evidence",
+      "match_status": "not_evaluated_invalid_evidence",
       "candidate_paths": [],
       "candidate_count": 0,
-      "reason": "no captured hash available"
+      "reason": "capture evidence is invalid"
     }
   ]
 }
