@@ -3,7 +3,7 @@
   "audit_kind": "official_home_asset_repository_identity_audit",
   "audit_generator": {
     "id": "scripts/audit_bukgu_home_asset_identity.py",
-    "version": "2.0.0"
+    "version": "2.0.1"
   },
   "source": {
     "path": "data/official_captures/bukgu_gwangju/home/asset-inventory.json",
@@ -15,6 +15,7 @@
     "method": "frozen_repository_scan_manifest",
     "frozen_manifest_path": "data/official_clone_asset_audits/bukgu_gwangju/home-repository-scan-manifest.json",
     "manifest_schema_version": 1,
+    "snapshot_repository": "skerishKang/400-ai-finder",
     "snapshot_commit_sha": "0a86d643b5bc8f4379bafd2aa42704c579de6c9b",
     "enumerated_tracked_path_count": 626,
     "eligible_tracked_file_count": 622,

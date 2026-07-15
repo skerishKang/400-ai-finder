@@ -90,11 +90,12 @@ LEGACY_WORKING_TREE_MANIFEST_SHA256 = (
     "86c372bacd9a867e8407ab854b9c4766c3c0193f4c6e4244a7f613a4767eabda"
 )
 DEFAULT_SNAPSHOT_COMMIT = "0a86d643b5bc8f4379bafd2aa42704c579de6c9b"
+EXPECTED_REPOSITORY = "skerishKang/400-ai-finder"
 
 MANIFEST_SCHEMA_VERSION = 1
 MANIFEST_KIND = "official_home_asset_repository_scan_manifest"
 REPORT_SCHEMA_VERSION = 2
-AUDIT_GENERATOR_VERSION = "2.0.0"
+AUDIT_GENERATOR_VERSION = "2.0.1"
 
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -156,10 +157,25 @@ def resolve_commit_sha(ref: str, *, cwd=None) -> str:
 
 
 def normalize_repo_path(path: str) -> str:
-    if not isinstance(path, str) or not path.strip():
+    """
+    Strict Git tree path validation (fail closed).
+
+    Does not rewrite separators. Paths with backslash, pipe, CR/LF/NUL, or
+    other ASCII controls are rejected so canonical lines
+    (`path|size|sha256\\n`) and `git cat-file --batch` input stay unambiguous.
+    """
+    if not isinstance(path, str) or path == "" or path.strip() == "":
         raise ManifestValidationError("path must be a non-blank string")
-    if "\\" in path:
-        raise ManifestValidationError(f"backslash forbidden in path: {path!r}")
+    for ch in path:
+        code = ord(ch)
+        if code < 32 or code == 127:
+            raise ManifestValidationError(
+                f"ASCII control character forbidden in path: {path!r}"
+            )
+        if ch == "\\":
+            raise ManifestValidationError(f"backslash forbidden in path: {path!r}")
+        if ch == "|":
+            raise ManifestValidationError(f"pipe forbidden in path: {path!r}")
     if path.startswith("/") or re.match(r"^[A-Za-z]:", path):
         raise ManifestValidationError(f"absolute path forbidden: {path!r}")
     if path.startswith("./"):
@@ -205,7 +221,8 @@ def list_tree_paths(commit_sha: str, *, cwd=None) -> list[str]:
             path = raw.decode("utf-8")
         except UnicodeDecodeError as exc:
             raise ManifestValidationError(f"non-utf8 tree path: {raw!r}") from exc
-        paths.append(normalize_repo_path(path.replace("\\", "/")))
+        # Do not rewrite separators; fail closed on backslash/control/pipe.
+        paths.append(normalize_repo_path(path))
     return sorted(paths)
 
 
@@ -290,7 +307,7 @@ def build_scan_manifest_from_git(
     snapshot_ref: str,
     *,
     cwd=None,
-    repository: str = "skerishKang/400-ai-finder",
+    repository: str = EXPECTED_REPOSITORY,
 ) -> dict:
     """
     Build a frozen scan manifest from Git object bytes only.
@@ -393,6 +410,11 @@ def validate_scan_manifest(manifest) -> dict:
 
     if not isinstance(snapshot["repository"], str) or not snapshot["repository"].strip():
         raise ManifestValidationError("snapshot.repository must be a non-blank string")
+    if snapshot["repository"] != EXPECTED_REPOSITORY:
+        raise ManifestValidationError(
+            f"snapshot.repository must be exactly {EXPECTED_REPOSITORY!r}, "
+            f"got {snapshot['repository']!r}"
+        )
     commit_sha = snapshot["commit_sha"]
     if not isinstance(commit_sha, str) or not COMMIT_SHA_RE.fullmatch(commit_sha):
         raise ManifestValidationError(
@@ -530,6 +552,7 @@ def repo_data_from_scan_manifest(manifest: dict) -> dict:
             "method": "frozen_repository_scan_manifest",
             "frozen_manifest_path": SCAN_MANIFEST_REL,
             "manifest_schema_version": manifest["schema_version"],
+            "snapshot_repository": snap["repository"],
             "snapshot_commit_sha": snap["commit_sha"],
             "entry_count": snap["eligible_entry_count"],
             "canonical_manifest_sha256": manifest["canonical_manifest_sha256"],
@@ -558,7 +581,8 @@ def build_repo_index(tracked_files=None):
     manifest_hasher = hashlib.sha256()
 
     for relative_path in tracked_files:
-        path = relative_path.replace("\\", "/")
+        # Test helper only: still apply strict path rules (no silent rewrite).
+        path = normalize_repo_path(relative_path)
         if path in EXCLUDED_PATHS:
             excluded_count += 1
             continue
@@ -610,6 +634,7 @@ def build_repo_index(tracked_files=None):
             "method": "test_explicit_tracked_files",
             "frozen_manifest_path": None,
             "manifest_schema_version": None,
+            "snapshot_repository": EXPECTED_REPOSITORY,
             "snapshot_commit_sha": None,
             "entry_count": eligible_count,
             "canonical_manifest_sha256": manifest_hasher.hexdigest(),
@@ -846,6 +871,9 @@ def audit_inventory(inventory, repo_data, inventory_hash):
             ),
             "manifest_schema_version": scan_meta.get(
                 "manifest_schema_version", MANIFEST_SCHEMA_VERSION
+            ),
+            "snapshot_repository": scan_meta.get(
+                "snapshot_repository", EXPECTED_REPOSITORY
             ),
             "snapshot_commit_sha": scan_meta.get("snapshot_commit_sha"),
             "enumerated_tracked_path_count": repo_data["enumerated_count"],

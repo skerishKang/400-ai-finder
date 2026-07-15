@@ -22,6 +22,7 @@ import pytest
 import scripts.audit_bukgu_home_asset_identity as audit_module
 from scripts.audit_bukgu_home_asset_identity import (
     DEFAULT_SNAPSHOT_COMMIT,
+    EXPECTED_REPOSITORY,
     EXCLUDED_PATHS,
     HISTORICAL_CANONICAL_MANIFEST_SHA256,
     LEGACY_WORKING_TREE_MANIFEST_SHA256,
@@ -39,6 +40,7 @@ from scripts.audit_bukgu_home_asset_identity import (
     generate_report_from_frozen_manifest,
     load_scan_manifest,
     main,
+    normalize_repo_path,
     repo_data_from_scan_manifest,
     validate_scan_manifest,
 )
@@ -63,7 +65,7 @@ def _valid_manifest_skeleton(entries=None, **snapshot_overrides):
     entries = sorted(entries, key=lambda e: e["path"])
     canonical = compute_canonical_manifest_sha256(entries)
     snapshot = {
-        "repository": "skerishKang/400-ai-finder",
+        "repository": EXPECTED_REPOSITORY,
         "commit_sha": DEFAULT_SNAPSHOT_COMMIT,
         "enumerated_tracked_path_count": len(entries) + 1,
         "eligible_entry_count": len(entries),
@@ -533,6 +535,56 @@ def test_validate_manifest_backslash_path():
         validate_scan_manifest(m)
 
 
+def test_normalize_repo_path_rejects_delimiters_and_controls():
+    with pytest.raises(ManifestValidationError, match="backslash"):
+        normalize_repo_path("foo\\bar")
+    with pytest.raises(ManifestValidationError, match="pipe"):
+        normalize_repo_path("foo|bar")
+    with pytest.raises(ManifestValidationError, match="control"):
+        normalize_repo_path("foo\rbar")
+    with pytest.raises(ManifestValidationError, match="control"):
+        normalize_repo_path("foo\nbar")
+    with pytest.raises(ManifestValidationError, match="control"):
+        normalize_repo_path("foo\x00bar")
+    with pytest.raises(ManifestValidationError, match="control"):
+        normalize_repo_path("foo\tbar")
+    with pytest.raises(ManifestValidationError, match="absolute"):
+        normalize_repo_path("/abs/path")
+    with pytest.raises(ManifestValidationError, match="absolute"):
+        normalize_repo_path("C:/windows/path")
+
+
+def test_normalize_repo_path_allows_utf8_and_spaces():
+    assert normalize_repo_path("docs/한글 경로/file.txt") == "docs/한글 경로/file.txt"
+    assert normalize_repo_path("a b/c d.txt") == "a b/c d.txt"
+
+
+def test_list_tree_paths_does_not_rewrite_backslash(monkeypatch):
+    """Refresh must not convert backslash paths; fail closed instead."""
+    # Simulate a tree that returns a backslash path (would be invalid in real Git).
+    def fake_run(args, **kwargs):
+        class R:
+            returncode = 0
+            stdout = b"evil\\path.txt\0"
+            stderr = b""
+
+        if args[:1] == ["ls-tree"] or (len(args) > 1 and args[0] == "ls-tree"):
+            return R()
+        # rev-parse etc.
+        if "rev-parse" in args:
+            class S:
+                returncode = 0
+                stdout = (DEFAULT_SNAPSHOT_COMMIT + "\n").encode()
+                stderr = b""
+
+            return S()
+        raise AssertionError(args)
+
+    monkeypatch.setattr(audit_module, "_run_git", lambda args, cwd=None, check=True: fake_run(args))
+    with pytest.raises(ManifestValidationError, match="backslash"):
+        audit_module.list_tree_paths(DEFAULT_SNAPSHOT_COMMIT)
+
+
 def test_validate_manifest_bool_size():
     m = _valid_manifest_skeleton(
         commit_sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -651,8 +703,9 @@ def test_report_summary_counts_stable():
     assert s["multiple_exact_candidates_count"] == 0
     assert s["no_exact_match_count"] == 35
     assert report["schema_version"] == 2
-    assert report["audit_generator"]["version"] == "2.0.0"
+    assert report["audit_generator"]["version"] == "2.0.1"
     assert report["scan"]["method"] == "frozen_repository_scan_manifest"
+    assert report["scan"]["snapshot_repository"] == EXPECTED_REPOSITORY
     assert report["scan"]["snapshot_commit_sha"] == DEFAULT_SNAPSHOT_COMMIT
     assert report["scan"]["entry_count"] == 622
     assert (
@@ -805,35 +858,9 @@ def test_unrelated_tracked_file_does_not_break_check(tmp_path, monkeypatch):
     monkeypatch.setattr(
         audit_module, "DEFAULT_SNAPSHOT_COMMIT", commit
     )
-    # Avoid historical pin mismatch for this disposable commit.
-    monkeypatch.setattr(
-        audit_module,
-        "HISTORICAL_CANONICAL_MANIFEST_SHA256",
-        "0" * 64,
-    )
-
-    # Bypass historical pin in validate by using a non-default commit check:
-    # patch validate to skip historical pin only for this test via commit match.
-    def _validate_no_hist(manifest):
-        # temporarily clear historical pin enforcement
-        orig = audit_module.HISTORICAL_CANONICAL_MANIFEST_SHA256
-        audit_module.HISTORICAL_CANONICAL_MANIFEST_SHA256 = "SKIP"
-        try:
-            # reimplement soft pin: only enforce when equal to DEFAULT and pin is 64 hex of real
-            if not isinstance(manifest, dict):
-                raise ManifestValidationError("manifest root must be an object")
-            # call original after disabling pin by setting commit != DEFAULT
-            snap = dict(manifest.get("snapshot") or {})
-            # force pin skip by rewriting commit to non-default during validation
-            # Actually simpler: call original validate after monkeypatching constant to recomputed
-            return None
-        finally:
-            audit_module.HISTORICAL_CANONICAL_MANIFEST_SHA256 = orig
-
     # Build manifest using git blobs in temp repo.
     manifest = build_scan_manifest_from_git(commit, cwd=repo)
-    # Write without historical pin (commit != DEFAULT_SNAPSHOT_COMMIT after our monkeypatch DEFAULT=commit
-    # so pin will fire). Temporarily set HISTORICAL to the computed value.
+    # Pin historical check to this disposable commit's canonical SHA.
     monkeypatch.setattr(
         audit_module,
         "HISTORICAL_CANONICAL_MANIFEST_SHA256",
@@ -932,6 +959,22 @@ def test_tamper_snapshot_count_fails_validation():
         validate_scan_manifest(man2)
 
 
+def test_tamper_repository_identity_fails(tmp_path, monkeypatch):
+    man = load_scan_manifest()
+    man2 = copy.deepcopy(man)
+    man2["snapshot"]["repository"] = "other-org/other-repo"
+    # Keep entries + canonical SHA unchanged.
+    with pytest.raises(ManifestValidationError, match="repository"):
+        validate_scan_manifest(man2)
+
+    man_path = tmp_path / "m.json"
+    man_path.write_bytes(dump_json_bytes(man2))
+    monkeypatch.setattr(audit_module, "SCAN_MANIFEST_PATH", man_path)
+    with pytest.raises(SystemExit) as exc:
+        main(["--check"])
+    assert exc.value.code != 0
+
+
 # ── cross-platform canonical bytes ───────────────────────────────────────
 
 
@@ -991,3 +1034,235 @@ def test_snapshot_ref_requires_refresh():
     with pytest.raises(SystemExit) as exc:
         main(["--snapshot-ref", DEFAULT_SNAPSHOT_COMMIT])
     assert exc.value.code == 2
+
+
+def test_gitattributes_autocrlf_clean_checkout_keeps_lf_json(tmp_path):
+    """
+    Isolated temp Git repo: with the same narrow -text rules, a clean checkout
+    under core.autocrlf=true must keep LF JSON bytes and --check must PASS.
+    """
+    bare = tmp_path / "bare.git"
+    work = tmp_path / "work"
+    checkout = tmp_path / "checkout"
+    bare.mkdir()
+    work.mkdir()
+
+    subprocess.run(["git", "init"], cwd=work, check=True, capture_output=True)
+    for k, v in (
+        ("user.email", "test@example.com"),
+        ("user.name", "test"),
+        ("core.autocrlf", "false"),
+    ):
+        subprocess.run(
+            ["git", "config", k, v], cwd=work, check=True, capture_output=True
+        )
+
+    # Mirror production layout needed by the audit script.
+    inv_dir = work / "data" / "official_captures" / "bukgu_gwangju" / "home"
+    audit_dir = work / "data" / "official_clone_asset_audits" / "bukgu_gwangju"
+    scripts_dir = work / "scripts"
+    tests_dir = work / "tests"
+    inv_dir.mkdir(parents=True)
+    audit_dir.mkdir(parents=True)
+    scripts_dir.mkdir(parents=True)
+    tests_dir.mkdir(parents=True)
+
+    payload = b"asset-bytes-stable"
+    (work / "tracked-asset.bin").write_bytes(payload)
+    inv = {
+        "captured_at": "2026-07-15T17:12:33+09:00",
+        "item_count": 1,
+        "items": [
+            {
+                "asset_type": "image",
+                "section": "document",
+                "resolved_url": "https://example.invalid/a.png",
+                "size_bytes": len(payload),
+                "hashed_byte_count": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+                "hash_scope": "full",
+            }
+        ],
+    }
+    inv_path = inv_dir / "asset-inventory.json"
+    inv_path.write_bytes(dump_json_bytes(inv))
+    assert b"\r\n" not in inv_path.read_bytes()
+
+    # Copy production audit module into the temp repo.
+    src_script = REPO_ROOT / "scripts" / "audit_bukgu_home_asset_identity.py"
+    (scripts_dir / "audit_bukgu_home_asset_identity.py").write_bytes(
+        src_script.read_bytes()
+    )
+    (scripts_dir / "__init__.py").write_bytes(b"")
+    (work / "scripts").mkdir(exist_ok=True)
+    # package import path: scripts is a namespace via PYTHONPATH=work
+    (work / "tests" / "__init__.py").write_bytes(b"")
+
+    # Narrow -text rules matching production .gitattributes.
+    (work / ".gitattributes").write_text(
+        "data/official_clone_asset_audits/bukgu_gwangju/home-repository-match-audit.json -text\n"
+        "data/official_clone_asset_audits/bukgu_gwangju/home-repository-scan-manifest.json -text\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    subprocess.run(["git", "add", "-A"], cwd=work, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "seed"],
+        cwd=work,
+        check=True,
+        capture_output=True,
+    )
+    commit = (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=work,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        .stdout.strip()
+        .lower()
+    )
+
+    # Build frozen manifest + report inside work using production helpers.
+    env = {**os.environ, "PYTHONPATH": str(work)}
+    # Point constants via a small runner script executed in work.
+    runner = work / "_build_audit.py"
+    runner.write_text(
+        f"""
+import scripts.audit_bukgu_home_asset_identity as m
+from pathlib import Path
+m.ROOT = Path(r'''{work}''')
+m.INVENTORY_PATH = m.ROOT / "data/official_captures/bukgu_gwangju/home/asset-inventory.json"
+m.REPORT_PATH = m.ROOT / "data/official_clone_asset_audits/bukgu_gwangju/home-repository-match-audit.json"
+m.SCAN_MANIFEST_PATH = m.ROOT / "data/official_clone_asset_audits/bukgu_gwangju/home-repository-scan-manifest.json"
+m.EXCLUDED_PATHS = frozenset()
+m.DEFAULT_SNAPSHOT_COMMIT = "{commit}"
+man = m.build_scan_manifest_from_git("{commit}", cwd=m.ROOT)
+m.HISTORICAL_CANONICAL_MANIFEST_SHA256 = man["canonical_manifest_sha256"]
+m.write_scan_manifest(man)
+rep = m.generate_report_from_frozen_manifest()
+m.REPORT_PATH.write_bytes(m.dump_json_bytes(rep))
+print("built", man["canonical_manifest_sha256"])
+""",
+        encoding="utf-8",
+        newline="\n",
+    )
+    subprocess.run(
+        [sys.executable, str(runner)],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        env=env,
+    )
+
+    # Commit LF audit JSON with -text attributes.
+    subprocess.run(["git", "add", "-A"], cwd=work, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "audit-artifacts"],
+        cwd=work,
+        check=True,
+        capture_output=True,
+    )
+    head = (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=work,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        .stdout.strip()
+    )
+
+    # Separate clean checkout with core.autocrlf=true.
+    subprocess.run(
+        ["git", "clone", str(work), str(checkout)],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "core.autocrlf", "true"],
+        cwd=checkout,
+        check=True,
+        capture_output=True,
+    )
+    # Force re-checkout of the two JSON files under autocrlf=true.
+    subprocess.run(
+        ["git", "checkout", "-f", "HEAD", "--",
+         "data/official_clone_asset_audits/bukgu_gwangju/home-repository-match-audit.json",
+         "data/official_clone_asset_audits/bukgu_gwangju/home-repository-scan-manifest.json"],
+        cwd=checkout,
+        check=True,
+        capture_output=True,
+    )
+
+    report_p = (
+        checkout
+        / "data"
+        / "official_clone_asset_audits"
+        / "bukgu_gwangju"
+        / "home-repository-match-audit.json"
+    )
+    man_p = (
+        checkout
+        / "data"
+        / "official_clone_asset_audits"
+        / "bukgu_gwangju"
+        / "home-repository-scan-manifest.json"
+    )
+    report_bytes = report_p.read_bytes()
+    man_bytes = man_p.read_bytes()
+    assert b"\r\n" not in report_bytes, "report acquired CRLF on autocrlf checkout"
+    assert b"\r\n" not in man_bytes, "manifest acquired CRLF on autocrlf checkout"
+
+    # --check in the clean checkout must PASS (byte-identical regenerate).
+    env2 = {**os.environ, "PYTHONPATH": str(checkout)}
+    check_runner = checkout / "_check_audit.py"
+    check_runner.write_text(
+        f"""
+import scripts.audit_bukgu_home_asset_identity as m
+from pathlib import Path
+m.ROOT = Path(r'''{checkout}''')
+m.INVENTORY_PATH = m.ROOT / "data/official_captures/bukgu_gwangju/home/asset-inventory.json"
+m.REPORT_PATH = m.ROOT / "data/official_clone_asset_audits/bukgu_gwangju/home-repository-match-audit.json"
+m.SCAN_MANIFEST_PATH = m.ROOT / "data/official_clone_asset_audits/bukgu_gwangju/home-repository-scan-manifest.json"
+m.EXCLUDED_PATHS = frozenset()
+# historical pin to whatever is in the frozen manifest
+import json
+man = json.loads(m.SCAN_MANIFEST_PATH.read_bytes().decode("utf-8"))
+m.DEFAULT_SNAPSHOT_COMMIT = man["snapshot"]["commit_sha"]
+m.HISTORICAL_CANONICAL_MANIFEST_SHA256 = man["canonical_manifest_sha256"]
+m.main(["--check"])
+print("check-ok")
+""",
+        encoding="utf-8",
+        newline="\n",
+    )
+    # Ensure scripts package importable
+    (checkout / "scripts" / "__init__.py").write_bytes(b"")
+    result = subprocess.run(
+        [sys.executable, str(check_runner)],
+        cwd=checkout,
+        capture_output=True,
+        env=env2,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "check-ok" in result.stdout or "Check passed" in result.stdout or result.returncode == 0
+
+
+def test_explicit_refresh_byte_identical_to_committed():
+    before = SCAN_MANIFEST_PATH.read_bytes()
+    # Refresh to a temp path then compare content equality to committed.
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        out = Path(td) / "m.json"
+        man = build_scan_manifest_from_git(DEFAULT_SNAPSHOT_COMMIT)
+        audit_module.write_scan_manifest(man, path=out)
+        after = out.read_bytes()
+    assert after == before
+    assert man["canonical_manifest_sha256"] == HISTORICAL_CANONICAL_MANIFEST_SHA256
+    assert man["snapshot"]["eligible_entry_count"] == 622
