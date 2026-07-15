@@ -105,9 +105,9 @@ Baseline (post-warmup split): doc/shell/canvas **1000**. After 15 chat-only turn
 | left canvas height | **1000** |
 | user / assistant delta vs post-warmup | **+15 / +15** |
 | composer | inside viewport, operable |
-| bottom-pinned last assistant | **PASS** |
-| reading-history (assistant complete, no yank) | **PASS** |
-| re-pin auto-scroll | **PASS** |
+| bottom-pinned last assistant | **PASS** (`distBottom=0`, near-bottom required) |
+| reading-history (assistant complete, no yank) | **PASS** (unpinned; `distBottom≈12209`) |
+| re-pin auto-scroll | **PASS** (`distBottom=0`, near-bottom required) |
 
 ### 1024×768 after 15 mixed turns (measured)
 
@@ -121,7 +121,8 @@ Baseline (post-warmup split): doc/shell/canvas **768**. After 15 turns:
 | `.chat-shell` height | **768** |
 | left canvas height | **768** |
 | user / assistant delta | **+15 / +15** |
-| bottom-pinned / reading-history / re-pin | **PASS** |
+| bottom-pinned / re-pin | **PASS** (`distBottom=0` each; near-bottom required) |
+| reading-history | **PASS** (unpinned; `distBottom≈12441`) |
 
 ### 390×844 regression (measured)
 
@@ -133,7 +134,7 @@ Six chat-only turns (never clicks **예**) plus bottom-pin check:
 | `#chat-thread` clientHeight / scrollHeight | **514 / 5027** (`scrollHeight > clientHeight`) |
 | user / assistant delta | **+6 / +6** |
 | composer box | **364×97**, in viewport, operable |
-| bottom-pinned latest assistant | **PASS** |
+| bottom-pinned latest assistant | **PASS** (`distBottom=0`, near-bottom required) |
 
 **Does not** enter the #1174 multi-step path after **예**. That composer
 0×0 defect remains a separate issue.
@@ -204,7 +205,7 @@ Removed fail-open patterns from the verifier:
 - each turn: `waitForResponse` POST `/api/mvp/ask` must be HTTP **200** with JSON `ok:true` and deterministic **marker** in `answer`
 - each chat-only turn: user count **+1**, assistant count **+1**, last AI text contains marker
 - after 15 turns: user/assistant deltas exactly **15**; all 15 markers present (no duplicates)
-- `assertLatestAssistantVisible` targets last **assistant** message + marker, not generic `.chat-msg`
+- `assertLatestAssistantVisible` requires last **assistant** + marker + composer in viewport + **`distBottom <= PIN_THRESHOLD+8`** (near-bottom); partial bubble intersection alone fails
 - reading-history asserts after **assistant response completes** (marker present, `scrollTop` not yanked)
 - document/shell containment uses **baseline delta** (not only absolute `< 4000`)
 - mobile requires internal overflow (`scrollHeight > clientHeight`) and per-turn count growth

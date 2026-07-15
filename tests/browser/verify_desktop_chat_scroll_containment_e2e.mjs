@@ -733,6 +733,11 @@ function assertContainment(m, ctx, baseline) {
   );
 }
 
+/**
+ * Bottom-pinned acceptance: last assistant (with marker) visible in thread,
+ * composer in viewport, document not scrolled, and thread actually near bottom.
+ * Must NOT be used for reading-history (unpinned) paths.
+ */
 async function assertLatestAssistantVisible(page, marker, ctx) {
   const res = await page.evaluate(
     ({ marker, pinThreshold }) => {
@@ -743,7 +748,13 @@ async function assertLatestAssistantVisible(page, marker, ctx) {
         document.getElementById("chat-composer-form") ||
         document.querySelector(".chat-composer");
       if (!thread || !last) {
-        return { ok: false, reason: "missing-thread-or-assistant" };
+        return {
+          ok: false,
+          reason: "missing-thread-or-assistant",
+          nearBottom: false,
+          distBottom: -1,
+          pageScrollY: window.scrollY || 0,
+        };
       }
       const text = last.textContent || "";
       if (!text.includes(marker)) {
@@ -751,6 +762,10 @@ async function assertLatestAssistantVisible(page, marker, ctx) {
           ok: false,
           reason: "marker-mismatch",
           text: text.slice(0, 160),
+          nearBottom: false,
+          distBottom:
+            thread.scrollHeight - thread.scrollTop - thread.clientHeight,
+          pageScrollY: window.scrollY || 0,
         };
       }
       const tr = thread.getBoundingClientRect();
@@ -768,12 +783,16 @@ async function assertLatestAssistantVisible(page, marker, ctx) {
       );
       const distBottom =
         thread.scrollHeight - thread.scrollTop - thread.clientHeight;
+      // Fail-closed: partial intersection of a tall bubble is not enough;
+      // the thread must actually be bottom-pinned.
+      const nearBottom = distBottom <= pinThreshold + 8;
       return {
-        ok: assistantVisible && composerInVp,
+        ok: assistantVisible && composerInVp && nearBottom,
         assistantVisible,
         composerInVp,
         distBottom,
-        nearBottom: distBottom <= pinThreshold + 8,
+        nearBottom,
+        pinThreshold,
         threadTop: tr.top,
         threadBottom: tr.bottom,
         msgTop: mr.top,
@@ -785,12 +804,17 @@ async function assertLatestAssistantVisible(page, marker, ctx) {
   );
   assert.ok(
     res.ok,
-    `[${ctx}] latest assistant not properly visible: ${JSON.stringify(res)}`,
+    `[${ctx}] latest assistant not properly bottom-pinned/visible: ${JSON.stringify(res)}`,
+  );
+  assert.ok(
+    res.nearBottom === true,
+    `[${ctx}] chat thread is not bottom-pinned: distBottom=${res.distBottom}`,
   );
   assert.ok(
     Math.abs(res.pageScrollY) <= 4,
     `[${ctx}] document scroll required for composer/assistant: pageScrollY=${res.pageScrollY}`,
   );
+  return res;
 }
 
 async function pinThreadToBottom(page) {
@@ -899,8 +923,14 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
   // Bottom-pinned: latest assistant visible.
   await pinThreadToBottom(page);
   await sendTurn(page, BOTTOM_PIN_TURN, `${label} bottom-pin`);
-  await assertLatestAssistantVisible(page, BOTTOM_PIN_TURN.marker, `${label} bottom-pinned`);
-  console.log(`  bottom-pinned: PASS`);
+  const bottomPinRes = await assertLatestAssistantVisible(
+    page,
+    BOTTOM_PIN_TURN.marker,
+    `${label} bottom-pinned`,
+  );
+  console.log(
+    `  bottom-pinned: PASS distBottom=${bottomPinRes.distBottom} nearBottom=${bottomPinRes.nearBottom}`,
+  );
 
   // Reading-history: scroll up, complete assistant response without yank.
   await page.evaluate(() => {
@@ -951,8 +981,14 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
   // Re-pin + auto-scroll.
   await pinThreadToBottom(page);
   await sendTurn(page, REPIN_TURN, `${label} re-pin`);
-  await assertLatestAssistantVisible(page, REPIN_TURN.marker, `${label} re-pin auto-scroll`);
-  console.log(`  re-pin auto-scroll: PASS`);
+  const repinRes = await assertLatestAssistantVisible(
+    page,
+    REPIN_TURN.marker,
+    `${label} re-pin auto-scroll`,
+  );
+  console.log(
+    `  re-pin auto-scroll: PASS distBottom=${repinRes.distBottom} nearBottom=${repinRes.nearBottom}`,
+  );
 
   const finalMetrics = await collectMetrics(page);
   assertContainment(finalMetrics, `${label} final`, splitBaseline);
@@ -969,6 +1005,9 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
     countsAfter15,
     userDelta15: countsAfter15.user - countsAfterWarmup.user,
     aiDelta15: countsAfter15.ai - countsAfterWarmup.ai,
+    bottomPinDistBottom: bottomPinRes.distBottom,
+    repinDistBottom: repinRes.distBottom,
+    readingHistoryDistBottom: afterRead.distBottom,
   };
 }
 
@@ -1050,13 +1089,18 @@ async function runMobileBaseline(browser, origin, safety) {
     { q: "공동주택과 담당 연락처를 알려주세요", kind: "ko-supported", marker: "[[1173-MOB-PIN]]" },
     `${label} bottom-pin`,
   );
-  await assertLatestAssistantVisible(page, "[[1173-MOB-PIN]]", `${label} bottom-pinned`);
+  const mobPinRes = await assertLatestAssistantVisible(
+    page,
+    "[[1173-MOB-PIN]]",
+    `${label} bottom-pinned`,
+  );
 
   console.log(
     `  mobile baseline: composer=${Math.round(m.composer.width)}x${Math.round(m.composer.height)} ` +
       `thread c=${m.threadClientHeight}/s=${m.threadScrollHeight} ` +
       `doc=${m.documentScrollHeight} (baseline ${baseline.documentScrollHeight}) ` +
-      `user+${MOBILE_TURNS.length} ai+${MOBILE_TURNS.length} PASS`,
+      `user+${MOBILE_TURNS.length} ai+${MOBILE_TURNS.length} ` +
+      `bottomPin distBottom=${mobPinRes.distBottom} PASS`,
   );
 
   await context.close();
@@ -1068,6 +1112,7 @@ async function runMobileBaseline(browser, origin, safety) {
     countsEnd,
     userDelta: countsEnd.user - countsStart.user,
     aiDelta: countsEnd.ai - countsStart.ai,
+    bottomPinDistBottom: mobPinRes.distBottom,
   };
 }
 
@@ -1151,6 +1196,9 @@ async function main() {
           userDelta15: results.large.userDelta15,
           aiDelta15: results.large.aiDelta15,
           baselineDoc: results.large.splitBaseline.documentScrollHeight,
+          bottomPinDistBottom: results.large.bottomPinDistBottom,
+          repinDistBottom: results.large.repinDistBottom,
+          readingHistoryDistBottom: results.large.readingHistoryDistBottom,
         },
         smallAfter15: {
           doc: results.small.after15.documentScrollHeight,
@@ -1162,6 +1210,9 @@ async function main() {
           userDelta15: results.small.userDelta15,
           aiDelta15: results.small.aiDelta15,
           baselineDoc: results.small.splitBaseline.documentScrollHeight,
+          bottomPinDistBottom: results.small.bottomPinDistBottom,
+          repinDistBottom: results.small.repinDistBottom,
+          readingHistoryDistBottom: results.small.readingHistoryDistBottom,
         },
         mobile: {
           doc: results.mobile.metrics.documentScrollHeight,
@@ -1171,6 +1222,7 @@ async function main() {
           userDelta: results.mobile.userDelta,
           aiDelta: results.mobile.aiDelta,
           composer: results.mobile.metrics.composer,
+          bottomPinDistBottom: results.mobile.bottomPinDistBottom,
         },
         safety: {
           consoleErrors: results.safety.consoleErrors.length,
