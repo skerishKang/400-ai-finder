@@ -66,7 +66,7 @@ re-pins on repository blob bytes for cross-platform stability.
 | multiple_exact_candidates_count | 0 |
 | no_exact_match_count | 35 |
 
-Generator `2.0.0`, report `schema_version` `2`.
+Generator `2.0.1`, report `schema_version` `2`.
 
 ## Boundaries
 
