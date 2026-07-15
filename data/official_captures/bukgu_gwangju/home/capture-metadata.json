@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "inventory_kind": "official_home_source_inventory",
+  "status": "capture_only",
+  "route_id": "home",
+  "site_id": "bukgu_gwangju",
+  "site_name": "전남광주통합특별시 북구",
+  "source": {
+    "requested_url": "https://bukgu.gwangju.kr/",
+    "final_resolved_url": "https://bukgu.gwangju.kr/",
+    "redirect_chain": [
+      {
+        "url": "https://bukgu.gwangju.kr/",
+        "status": 200,
+        "location": null
+      }
+    ],
+    "http_status": 200,
+    "content_type": "text/html;charset=UTF-8",
+    "character_encoding": "utf-8",
+    "official_page_title": "전남광주통합특별시 북구",
+    "captured_at": "2026-07-15T16:53:08+09:00",
+    "capture_finished_at": "2026-07-15T16:53:10+09:00",
+    "source_updated_at": null,
+    "source_updated_at_absence_reason": "not-shown-on-homepage-html",
+    "capture_method": "python-urllib read-only HTTP GET inventory capture",
+    "capture_tool": "scripts/capture_official_home_inventory.py",
+    "raw_content_sha256": "e08513493f831b130f4f6775f0ecc585fbc029cb5e65aa2a55f0867b1281866e",
+    "raw_byte_length": 140865
+  },
+  "files": {
+    "raw_snapshot": "data/official_captures/bukgu_gwangju/home/raw-homepage.html",
+    "navigation_inventory": "data/official_captures/bukgu_gwangju/home/navigation-inventory.json",
+    "asset_inventory": "data/official_captures/bukgu_gwangju/home/asset-inventory.json",
+    "capture_notes": "data/official_captures/bukgu_gwangju/home/CAPTURE-NOTES.md"
+  },
+  "counts": {
+    "navigation_items": 722,
+    "assets_listed": 174,
+    "assets_probed": 40
+  },
+  "boundaries": {
+    "firecrawl": false,
+    "provider_api": false,
+    "login": false,
+    "form_submission": false,
+    "payment": false,
+    "pii": false,
+    "canvas_integration": false,
+    "route_status_change": false
+  },
+  "metadata_sha256": "0aba72b62efc2283f9b7331cd30e7256f1cef65dee2f6adca80b37a3f2dc6a70"
+}
