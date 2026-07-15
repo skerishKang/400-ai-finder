@@ -17,13 +17,23 @@
 (function () {
   "use strict";
 
+  var SUPPORTED_LOCALES = ["ko", "en", "vi", "th", "id"];
+
+  function _localizedFailAnswer() {
+    if (window.CitizenI18n && typeof window.CitizenI18n.t === "function") {
+      var v = window.CitizenI18n.t("error.aiUnavailable");
+      if (v && v !== "error.aiUnavailable") return v;
+    }
+    return "현재 AI 안내를 연결하지 못했습니다.";
+  }
+
   var MVP_FAILURE_ANSWER = "현재 AI 안내를 연결하지 못했습니다.";
   var _controller = null;
 
   function _stableFailure() {
     return {
       ok: false,
-      answer: MVP_FAILURE_ANSWER,
+      answer: _localizedFailAnswer(),
       action: "none",
       confidence: 0.0,
       provider: "",
@@ -44,6 +54,17 @@
     };
   }
 
+  function _captureLocale() {
+    if (window.CitizenI18n && typeof window.CitizenI18n.getLocale === "function") {
+      var loc = window.CitizenI18n.getLocale();
+      if (SUPPORTED_LOCALES.indexOf(loc) !== -1) return loc;
+    }
+    if (window.CitizenI18n && typeof window.CitizenI18n.normalizeLocale === "function") {
+      return window.CitizenI18n.normalizeLocale(loc);
+    }
+    return "ko";
+  }
+
   function ask(question) {
     if (_controller) {
       _controller.abort();
@@ -51,10 +72,14 @@
     var controller = ("AbortController" in window) ? new AbortController() : null;
     _controller = controller;
 
+    // Capture the active locale at request start; the bridge never mutates
+    // locale, so a later locale change keeps this request scoped to its start.
+    var requestLocale = _captureLocale();
+
     var fetchOpts = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: question || "" }),
+      body: JSON.stringify({ question: question || "", locale: requestLocale }),
     };
     if (controller) {
       fetchOpts.signal = controller.signal;
@@ -68,7 +93,7 @@
           }
           return {
             ok: data && data.ok !== false,
-            answer: data ? data.answer : MVP_FAILURE_ANSWER,
+            answer: data ? data.answer : _localizedFailAnswer(),
             action: data ? data.action : "none",
             confidence: data ? data.confidence : 0.0,
             provider: data ? data.provider : "",

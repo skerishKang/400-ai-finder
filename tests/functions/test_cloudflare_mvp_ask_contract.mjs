@@ -691,6 +691,159 @@ await assert('all seven visible prompts classify deterministically', async () =>
   expectEqual(functionModule.classifyAction('안녕하세요'), 'none', 'unknown action');
 });
 
+await assert('normalizeLocale: missing locale falls back to ko', async () => {
+  expectEqual(functionModule.normalizeLocale(undefined), 'ko', 'undefined');
+  expectEqual(functionModule.normalizeLocale(null), 'ko', 'null');
+  expectEqual(functionModule.normalizeLocale(''), 'ko', 'empty');
+  expectEqual(functionModule.normalizeLocale('   '), 'ko', 'whitespace');
+  expectEqual(functionModule.normalizeLocale(123), 'ko', 'non-string');
+});
+
+await assert('normalizeLocale: blank and unsupported map to ko', async () => {
+  expectEqual(functionModule.normalizeLocale('  '), 'ko', 'blank');
+  expectEqual(functionModule.normalizeLocale('xx'), 'ko', 'unsupported');
+  expectEqual(functionModule.normalizeLocale('EN'), 'en', 'uppercase en');
+  expectEqual(functionModule.normalizeLocale(' Vi '), 'vi', 'padded vi');
+});
+
+await assert('normalizeLocale: supported locales pass through unchanged', async () => {
+  for (const loc of ['ko', 'en', 'vi', 'th', 'id']) {
+    expectEqual(functionModule.normalizeLocale(loc), loc, loc);
+  }
+});
+
+await assert('SUPPORTED_LOCALES export is the closed five-set', async () => {
+  const set = functionModule.SUPPORTED_LOCALES;
+  expectEqual(JSON.stringify(set), JSON.stringify(['ko', 'en', 'vi', 'th', 'id']), 'set');
+});
+
+await assert('locale request body: English prompt is localized and no fixed Korean directive', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('Housing department handles apartments.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: 'Apartment housing department',
+      locale: 'en',
+    }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.locale, 'en', 'normalized locale echoed');
+    const prompt = JSON.parse(providerFetchCalls()[0].body).messages[0].content;
+    if (prompt.includes('자연스러운 한국어 2~5문장')) {
+      throw new Error('fixed Korean output directive still present');
+    }
+    if (!/English/i.test(prompt)) throw new Error('English target language not stated');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('locale request body: Vietnamese prompt states Vietnamese target', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('Phòng quản lý nhà chung cư phụ trách.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: 'Hỏi đáp phòng quản lý nhà chung cư',
+      locale: 'vi',
+    }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.locale, 'vi', 'normalized locale echoed');
+    const prompt = JSON.parse(providerFetchCalls()[0].body).messages[0].content;
+    if (prompt.includes('자연스러운 한국어 2~5문장')) {
+      throw new Error('fixed Korean output directive still present');
+    }
+    if (!/tiếng Việt/i.test(prompt)) throw new Error('Vietnamese target language not stated');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('locale request body: Thai and Indonesian also normalize and localize', async () => {
+  for (const [loc, marker] of [['th', 'ภาษาไทย'], ['id', 'bahasa Indonesia']]) {
+    try {
+      mockFetchSequence([{ body: chatResponse('ok') }]);
+      const { data } = await requestJson('POST', JSON.stringify({
+        question: 'test',
+        locale: loc,
+      }), { GEMINI_API_KEY: 'test-gemini' });
+      expectEqual(data.locale, loc, `${loc} echoed`);
+      const prompt = JSON.parse(providerFetchCalls()[0].body).messages[0].content;
+      if (prompt.includes('자연스러운 한국어 2~5문장')) {
+        throw new Error(`${loc}: fixed Korean output directive still present`);
+      }
+      if (!new RegExp(marker, 'i').test(prompt)) throw new Error(`${loc}: target language not stated`);
+    } finally {
+      restoreFetch();
+    }
+  }
+});
+
+await assert('missing locale on request defaults to ko and keeps Korean directive', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('공동주택과 안내') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '공동주택 문의' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(data.locale, 'ko', 'default ko');
+    const prompt = JSON.parse(providerFetchCalls()[0].body).messages[0].content;
+    if (!prompt.includes('자연스러운 한국어')) throw new Error('Korean directive missing for ko default');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('unsupported locale on request falls back to ko', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('공동주택과 안내') }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: '공동주택 문의',
+      locale: 'zz',
+    }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.locale, 'ko', 'fallback ko');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('failure answer is localized per locale', async () => {
+  const { data: ko } = await requestJson('POST', JSON.stringify({ question: 'anything' }));
+  expectEqual(ko.locale, 'ko', 'ko locale echoed');
+  expectEqual(ko.answer, '현재 AI 안내 설정을 확인하고 있습니다.', 'ko config_error answer');
+
+  const { data: en } = await requestJson('POST', JSON.stringify({ question: 'anything', locale: 'en' }));
+  expectEqual(en.locale, 'en', 'en locale echoed');
+  expectEqual(en.answer, 'The AI guide settings are being checked.', 'en config_error answer');
+
+  const { data: vi } = await requestJson('POST', JSON.stringify({ question: 'anything', locale: 'vi' }));
+  expectEqual(vi.locale, 'vi', 'vi locale echoed');
+  expectEqual(vi.answer, 'Đang kiểm tra cài đặt hướng dẫn AI.', 'vi config_error answer');
+
+  const { data: th } = await requestJson('POST', JSON.stringify({ question: 'anything', locale: 'th' }));
+  expectEqual(th.locale, 'th', 'th locale echoed');
+  expectEqual(th.answer, 'กำลังตรวจสอบการตั้งค่าคำแนะนำ AI', 'th config_error answer');
+
+  const { data: id } = await requestJson('POST', JSON.stringify({ question: 'anything', locale: 'id' }));
+  expectEqual(id.locale, 'id', 'id locale echoed');
+  expectEqual(id.answer, 'Pengaturan panduan AI sedang diperiksa.', 'id config_error answer');
+});
+
+await assert('invalid_input failure is localized and no provider call is made', async () => {
+  const { data: en } = await requestJson('POST', JSON.stringify({ question: 123, locale: 'en' }));
+  expectEqual(en.ok, false, 'ok');
+  expectEqual(en.failure_code, 'invalid_input', 'failure_code');
+  expectEqual(en.locale, 'en', 'en locale echoed');
+  expectEqual(en.answer, 'Invalid request format.', 'en invalid_input answer');
+  expectEqual(providerFetchCalls().length, 0, 'no provider call');
+
+  const { data: vi } = await requestJson('POST', JSON.stringify({ question: 123, locale: 'vi' }));
+  expectEqual(vi.answer, 'Định dạng yêu cầu không hợp lệ.', 'vi invalid_input answer');
+});
+
+await assert('too_long failure is localized', async () => {
+  const longQ = '가'.repeat(301);
+  const { data: en } = await requestJson('POST', JSON.stringify({ question: longQ, locale: 'en' }));
+  expectEqual(en.failure_code, 'invalid_input', 'failure_code');
+  expectEqual(en.locale, 'en', 'en locale echoed');
+  expectEqual(en.answer, 'Your question is too long. Please keep it within 300 characters.', 'en too_long answer');
+});
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
 globalThis.fetch = ORIGINAL_FETCH;
 

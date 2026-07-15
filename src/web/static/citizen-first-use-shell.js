@@ -206,12 +206,12 @@
 
     var text = null;
     if (nextState === JOURNEY_ENTRY && options.announceReset) {
-      text = "새 질문을 입력할 수 있습니다.";
+      text = _t("journey.entryReady", "새 질문을 입력할 수 있습니다.");
     } else if (nextState === JOURNEY_NAVIGATE) {
-      text = "북구청 안내 화면에서 경로를 진행하고 있습니다.";
+      text = _t("journey.navigating", "북구청 안내 화면에서 경로를 진행하고 있습니다.");
     } else if (nextState === JOURNEY_RESULT) {
-      text =
-        "안내 경로가 완료되었습니다. 대화로 돌아가 새 질문을 입력할 수 있습니다.";
+      text = _t("journey.completed",
+        "안내 경로가 완료되었습니다. 대화로 돌아가 새 질문을 입력할 수 있습니다.");
     }
     // answer / confirm / cold entry: no status-region copy
     // (answer + confirm content already live in #chat-thread).
@@ -1789,17 +1789,29 @@
   }
 
   function freshnessLabel(value) {
-    if (value === "live_official") return "최신 공식자료 확인";
-    if (value === "official_snapshot") return "북구청 공식 스냅샷";
-    if (value === "live_web") return "최신 웹자료 확인 · 공식 출처 재확인 필요";
-    if (value === "model_only") return "현재 공식 출처 없음";
+    if (value === "live_official") return _t("freshness.liveOfficial", "최신 공식자료 확인");
+    if (value === "official_snapshot") return _t("freshness.officialSnapshot", "북구청 공식 스냅샷");
+    if (value === "live_web") return _t("freshness.liveWeb", "최신 웹자료 확인 · 공식 출처 재확인 필요");
+    if (value === "model_only") return _t("freshness.modelOnly", "현재 공식 출처 없음");
     return "";
+  }
+
+  function _activeLocaleTag() {
+    var loc = (window.CitizenI18n && typeof window.CitizenI18n.getLocale === "function")
+      ? window.CitizenI18n.getLocale()
+      : "ko";
+    if (loc === "ko") return "ko-KR";
+    if (loc === "en") return "en-US";
+    if (loc === "vi") return "vi-VN";
+    if (loc === "th") return "th-TH";
+    if (loc === "id") return "id-ID";
+    return "ko-KR";
   }
 
   function formatRetrievedAt(value) {
     if (!value) return "";
     try {
-      return new Date(value).toLocaleString("ko-KR", {
+      return new Date(value).toLocaleString(_activeLocaleTag(), {
         timeZone: "Asia/Seoul",
         year: "numeric",
         month: "2-digit",
@@ -1851,8 +1863,12 @@
       link.className = "chat-answer-meta__source";
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = source.official ? "공식 출처" : "참고 출처";
-      link.setAttribute("aria-label", (source.title || "답변 출처") + " 새 창 열기");
+      link.textContent = source.official
+        ? _t("source.official", "공식 출처")
+        : _t("source.reference", "참고 출처");
+      link.setAttribute("aria-label",
+        (source.title || _t("source.answerSource", "답변 출처")) +
+        " " + _t("source.openNewWindow", "새 창 열기"));
       meta.appendChild(link);
     });
 
@@ -2490,7 +2506,7 @@
       if (!bridge || typeof bridge.ask !== "function") {
         setComposerDisabled(false);
         focusComposerIfAllowed();
-        appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+        appendChatMessage("ai", _t("error.aiUnavailable", "현재 AI 안내를 연결하지 못했습니다."));
         setJourneyState(JOURNEY_ANSWER);
         return;
       }
@@ -2519,7 +2535,7 @@
 
         var answer = hasUsableMvpResult
           ? normalizedAnswer
-          : "현재 AI 안내를 연결하지 못했습니다.";
+          : _t("error.aiUnavailable", "현재 AI 안내를 연결하지 못했습니다.");
         var answerMessage = appendChatMessage("ai", answer);
         appendAnswerFreshness(answerMessage, result);
         // #1067: model or fail-closed answer is always semantic "answer".
@@ -2566,7 +2582,7 @@
         if (token !== _mvpRequestToken) return;
         setComposerDisabled(false);
         focusComposerIfAllowed();
-        appendChatMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+        appendChatMessage("ai", _t("error.aiUnavailable", "현재 AI 안내를 연결하지 못했습니다."));
         setJourneyState(JOURNEY_ANSWER);
       });
     });
@@ -2591,7 +2607,8 @@
     window.setTimeout(function () {
       appendChatMessage(
         "ai",
-        "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다."
+        _t("split.ready",
+          "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다.")
       );
       appendQuestProgressCard(chatThread);
       // Bridge answer already set answer; ack reinforces answer before confirm.

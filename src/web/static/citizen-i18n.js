@@ -114,6 +114,22 @@
       "apartment.table.prefix": "공식 조직 및 업무안내의 전체 ",
       "apartment.table.tail": "명 표를 열고 대표 연락처 행을 확인했습니다.",
       "apartment.missing": "공동주택과 공식 스냅샷을 불러오지 못했습니다.",
+
+      "error.aiUnavailable": "현재 AI 안내를 연결하지 못했습니다.",
+
+      "journey.entryReady": "새 질문을 입력할 수 있습니다.",
+      "journey.navigating": "북구청 안내 화면에서 경로를 진행하고 있습니다.",
+      "journey.completed": "안내 경로가 완료되었습니다. 대화로 돌아가 새 질문을 입력할 수 있습니다.",
+
+      "freshness.liveOfficial": "최신 공식자료 확인",
+      "freshness.officialSnapshot": "북구청 공식 스냅샷",
+      "freshness.liveWeb": "최신 웹자료 확인 · 공식 출처 재확인 필요",
+      "freshness.modelOnly": "현재 공식 출처 없음",
+
+      "source.official": "공식 출처",
+      "source.reference": "참고 출처",
+      "source.answerSource": "답변 출처",
+      "source.openNewWindow": "새 창 열기",
     }),
 
     en: Object.freeze({
@@ -198,6 +214,22 @@
       "apartment.table.prefix": "I've opened the full official organization table with ",
       "apartment.table.tail": " rows and highlighted the main contact row.",
       "apartment.missing": "Could not load the Apartment Housing Division official snapshot.",
+
+      "error.aiUnavailable": "The AI guide is currently unavailable. Please try again later.",
+
+      "journey.entryReady": "You can enter a new question.",
+      "journey.navigating": "Guiding you along the route on the Bukgu-gu screen.",
+      "journey.completed": "The guidance route is complete. Return to the chat to enter a new question.",
+
+      "freshness.liveOfficial": "Live official source verified",
+      "freshness.officialSnapshot": "Bukgu-gu official snapshot",
+      "freshness.liveWeb": "Live web source · confirm official source again",
+      "freshness.modelOnly": "No official source available now",
+
+      "source.official": "Official source",
+      "source.reference": "Reference source",
+      "source.answerSource": "Answer source",
+      "source.openNewWindow": "Open in new window",
     }),
 
     vi: Object.freeze({
@@ -282,6 +314,22 @@
       "apartment.table.prefix": "Tôi đã mở bảng tổ chức và công việc chính thức với ",
       "apartment.table.tail": " dòng và làm nổi bật hàng liên hệ chính.",
       "apartment.missing": "Không thể tải ảnh chụp chính thức phòng Quản lý nhà chung cư.",
+
+      "error.aiUnavailable": "Hiện không kết nối được hướng dẫn AI. Vui lòng thử lại sau.",
+
+      "journey.entryReady": "Bạn có thể nhập câu hỏi mới.",
+      "journey.navigating": "Đang dẫn đường trên màn hình hướng dẫn Bukgu-gu.",
+      "journey.completed": "Lộ trình hướng dẫn đã hoàn tất. Quay lại trò chuyện để nhập câu hỏi mới.",
+
+      "freshness.liveOfficial": "Đã xác minh nguồn chính thức trực tiếp",
+      "freshness.officialSnapshot": "Ảnh chụp chính thức Bukgu-gu",
+      "freshness.liveWeb": "Nguồn web trực tiếp · vui lòng xác nhận nguồn chính thức lại",
+      "freshness.modelOnly": "Hiện không có nguồn chính thức",
+
+      "source.official": "Nguồn chính thức",
+      "source.reference": "Nguồn tham khảo",
+      "source.answerSource": "Nguồn câu trả lời",
+      "source.openNewWindow": "Mở trong cửa sổ mới",
     }),
 
     th: Object.freeze({
@@ -366,6 +414,22 @@
       "apartment.table.prefix": "ฉันเปิดตารางองค์กรและงานทางการทั้งหมด ",
       "apartment.table.tail": " แถว และเน้นแถวติดต่อหลักแล้ว",
       "apartment.missing": "ไม่สามารถโหลดสแนปช็อตทางการของแผนกอาคารชุดได้",
+
+      "error.aiUnavailable": "ขณะนี้ไม่สามารถเชื่อมต่อคำแนะนำ AI ได้ โปรดลองอีกครั้งในภายหลัง",
+
+      "journey.entryReady": "คุณสามารถพิมพ์คำถามใหม่ได้",
+      "journey.navigating": "กำลังนำทางบนหน้าจอแนะนำของเขต Bukgu-gu",
+      "journey.completed": "เส้นทางแนะนำเสร็จสิ้น กลับไปที่การสนทนาเพื่อพิมพ์คำถามใหม่",
+
+      "freshness.liveOfficial": "ตรวจสอบแหล่งทางการสดแล้ว",
+      "freshness.officialSnapshot": "สแนปช็อตทางการของเขต Bukgu-gu",
+      "freshness.liveWeb": "แหล่งเว็บสด · โปรดตรวจสอบแหล่งทางการอีกครั้ง",
+      "freshness.modelOnly": "ขณะนี้ไม่มีแหล่งทางการ",
+
+      "source.official": "แหล่งทางการ",
+      "source.reference": "แหล่งอ้างอิง",
+      "source.answerSource": "แหล่งคำตอบ",
+      "source.openNewWindow": "เปิดในหน้าต่างใหม่",
     }),
 
     id: Object.freeze({
@@ -450,6 +514,22 @@
       "apartment.table.prefix": "Saya telah membuka tabel organisasi dan tugas resmi dengan ",
       "apartment.table.tail": " baris dan menyoroti baris kontak utama.",
       "apartment.missing": "Tidak dapat memuat snapshot resmi Divisi Perumahan.",
+
+      "error.aiUnavailable": "Panduan AI saat ini tidak tersambung. Silakan coba lagi nanti.",
+
+      "journey.entryReady": "Anda dapat memasukkan pertanyaan baru.",
+      "journey.navigating": "Memandu Anda menyusuri rute di layar panduan Bukgu-gu.",
+      "journey.completed": "Rute panduan telah selesai. Kembali ke percakapan untuk memasukkan pertanyaan baru.",
+
+      "freshness.liveOfficial": "Sumber resmi langsung telah diverifikasi",
+      "freshness.officialSnapshot": "Snapshot resmi Bukgu-gu",
+      "freshness.liveWeb": "Sumber web langsung · harap verifikasi sumber resmi kembali",
+      "freshness.modelOnly": "Tidak ada sumber resmi saat ini",
+
+      "source.official": "Sumber resmi",
+      "source.reference": "Sumber referensi",
+      "source.answerSource": "Sumber jawaban",
+      "source.openNewWindow": "Buka di jendela baru",
     }),
   });
 

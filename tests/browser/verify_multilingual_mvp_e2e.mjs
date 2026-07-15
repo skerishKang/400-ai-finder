@@ -1,32 +1,137 @@
-/**
- * Browser E2E for MVP multilingual shell — verifies each of the 5 locales
- * (ko, en, vi, th, id) loads with correct localized shell title, chip text,
- * and confirm-run button text.
- */
-
 import assert from "assert";
 import { chromium } from "playwright";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, statSync, readFileSync } from "node:fs";
+import { join, extname } from "node:path";
+import { tmpdir } from "node:os";
+import http from "node:http";
 
-const BASE_ORIGIN = (function validate(raw) {
-  const parsed = new URL(process.argv[2] || "http://127.0.0.1:8080");
-  if (
-    parsed.protocol !== "http:" ||
-    !new Set(["127.0.0.1", "localhost", "::1"]).has(parsed.hostname)
-  ) {
-    throw new Error("Multilingual E2E accepts only a local http origin.");
-  }
-  return parsed.origin;
-})();
+// Forbidden stale Korean journey copy (allowed only when locale === ko).
+const FORBIDDEN_KO = [
+  "질문을 확인했습니다",
+  "현재 AI 안내를 연결하지 못했습니다",
+  "새 질문을 입력할 수 있습니다",
+  "북구청 안내 화면에서 경로를 진행하고 있습니다",
+  "최신 공식자료 확인",
+  "북구청 공식 스냅샷",
+  "공식 출처",
+  "참고 출처",
+  "예, 안내해 주세요",
+  "아니요",
+];
 
 const LOCALE_ASSERTIONS = {
-  // locale: { shellTitle, chipPrefix, confirmText }
-  // Values from citizen-i18n.js locale dictionary
-  ko: { shellTitle: "북구청 AI 민원 네비게이터", chipPrefix: "구청장에게 제안", confirmText: "예, 안내해 주세요" },
-  en: { shellTitle: "BUKGU AI CIVIC NAVIGATOR", chipPrefix: "I want to propose", confirmText: "Yes, please guide me" },
-  vi: { shellTitle: "BUKGU AI CIVIC NAVIGATOR", chipPrefix: "gửi đề xuất", confirmText: "Vâng, hãy hướng dẫn tôi" },
-  th: { shellTitle: "BUKGU AI CIVIC NAVIGATOR", chipPrefix: "ฉันอยากส่งข้อเสนอ", confirmText: "ใช่ ค่อยแนะนำด้วย" },
-  id: { shellTitle: "BUKGU AI CIVIC NAVIGATOR", chipPrefix: "Saya ingin mengusulkan", confirmText: "Ya, bantu saya" },
+  ko: {
+    shellTitle: "북구청 AI 민원 네비게이터",
+    chipPrefix: "구청장에게 제안",
+    yesText: "예, 안내해 주세요",
+    noText: "아니요",
+    ack: "질문을 확인했습니다",
+    allowForbidden: true,
+  },
+  en: {
+    shellTitle: "BUKGU AI CIVIC NAVIGATOR",
+    chipPrefix: "I want to propose",
+    yesText: "Yes, please guide me",
+    noText: "No",
+    ack: "I have your question",
+    allowForbidden: false,
+  },
+  vi: {
+    shellTitle: "BUKGU AI CIVIC NAVIGATOR",
+    chipPrefix: "gửi đề xuất",
+    yesText: "Vâng, hãy hướng dẫn tôi",
+    noText: "Không",
+    ack: "Tôi đã nhận câu hỏi",
+    allowForbidden: false,
+  },
+  th: {
+    shellTitle: "BUKGU AI CIVIC NAVIGATOR",
+    chipPrefix: "ฉันอยากส่งข้อเสนอ",
+    yesText: "ใช่ ค่อยแนะนำด้วย",
+    noText: "ไม่",
+    ack: "ได้รับคำถาม",
+    allowForbidden: false,
+  },
+  id: {
+    shellTitle: "BUKGU AI CIVIC NAVIGATOR",
+    chipPrefix: "Saya ingin mengusulkan",
+    yesText: "Ya, bantu saya",
+    noText: "Tidak",
+    ack: "Pertanyaan sudah saya terima",
+    allowForbidden: false,
+  },
 };
+
+function buildAndServe() {
+  const tmpDir = mkdtempSync(join(tmpdir(), "cf-mvp-e2e-"));
+  console.log("Building to tmp dir:", tmpDir);
+  const res = spawnSync("python", ["scripts/build_cloudflare_pages.py", "--mode", "live", "--out-dir", tmpDir], { stdio: "inherit", env: process.env });
+  if (res.error || res.status !== 0) {
+    throw new Error("Build failed");
+  }
+
+  const server = http.createServer((req, res) => {
+    try {
+      const urlPath = new URL(req.url, "http://127.0.0.1").pathname;
+      let filePath = join(tmpDir, urlPath === "/" ? "index.html" : urlPath);
+
+      let stat;
+      try {
+        stat = statSync(filePath);
+      } catch (e) {
+        try {
+          stat = statSync(filePath + ".html");
+          filePath = filePath + ".html";
+        } catch (e2) {
+          try {
+             stat = statSync(join(filePath, "index.html"));
+             filePath = join(filePath, "index.html");
+          } catch(e3) {
+             res.writeHead(404);
+             res.end("Not found");
+             return;
+          }
+        }
+      }
+
+      if (stat.isDirectory()) {
+         try {
+             stat = statSync(join(filePath, "index.html"));
+             filePath = join(filePath, "index.html");
+         } catch(e) {
+             res.writeHead(404);
+             res.end("Not found");
+             return;
+         }
+      }
+
+      const content = readFileSync(filePath);
+      const ext = extname(filePath);
+      const mime = ext === ".js" ? "application/javascript" : ext === ".css" ? "text/css" : "text/html";
+      res.writeHead(200, { "Content-Type": mime });
+      res.end(content);
+    } catch (e) {
+      console.error(e);
+      res.writeHead(500);
+      res.end(e.toString());
+    }
+  });
+
+  return new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", () => {
+      const port = server.address().port;
+      console.log(`Server listening on port ${port}`);
+      resolve({
+        origin: `http://127.0.0.1:${port}`,
+        cleanup: () => {
+          server.close();
+          rmSync(tmpDir, { recursive: true, force: true });
+        }
+      });
+    });
+  });
+}
 
 async function launchBrowser() {
   try {
@@ -36,7 +141,15 @@ async function launchBrowser() {
   }
 }
 
-async function runLocaleTest(browser, locale, expectations) {
+function localeFromBody(text) {
+  try {
+    return JSON.parse(text).locale || null;
+  } catch {
+    return null;
+  }
+}
+
+async function runLocaleTest(browser, origin, locale, expectations) {
   const label = `multilingual-${locale}`;
   console.log(`[${label}] start`);
 
@@ -44,6 +157,179 @@ async function runLocaleTest(browser, locale, expectations) {
     viewport: { width: 1440, height: 900 },
     reducedMotion: "reduce",
   });
+
+  const page = await context.newPage();
+  const errors = [];
+  const requestLocales = [];
+  let apiRequestCount = 0;
+
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (msg) => {
+    if (msg.type() === "error") errors.push(msg.text());
+  });
+
+  // Check for unwanted external requests
+  page.on("request", (req) => {
+    const u = new URL(req.url());
+    if (u.origin !== origin && u.hostname !== "127.0.0.1" && u.hostname !== "localhost") {
+       errors.push(`External request forbidden: ${req.url()}`);
+    }
+  });
+
+  await page.route("**/api/mvp/ask", async (route) => {
+    apiRequestCount++;
+    const postBody = route.request().postData();
+    const bodyLocale = localeFromBody(postBody);
+    if (bodyLocale) requestLocales.push(bodyLocale);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json; charset=utf-8",
+      body: JSON.stringify({
+        ok: true,
+        answer: `Answer in ${locale}.`,
+        action: "housing_department",
+        confidence: 1,
+        failure_code: "",
+        locale: bodyLocale || "ko",
+        freshness_state: "official_snapshot",
+        sources: [
+          { title: "북구청 공동주택 안내", url: "https://bukgu.gwangju.kr/board.es?mid=a10602012601", official: true },
+        ],
+        captured_at: "2026-07-15T01:00:00.000Z",
+        verified_at: "2026-07-15T01:00:00.000Z",
+      }),
+    });
+  });
+
+  // Use bare live entry without mvp=1 explicitly
+  await page.goto(`${origin}/mvp/?lang=${locale}`, {
+    waitUntil: "networkidle",
+    timeout: 20000,
+  });
+
+  // 1. window.location.search에 mvp=1이 주입됐는가
+  await page.waitForFunction(() => window.location.search.includes("mvp=1"), { timeout: 5000 });
+  console.log(`[${label}] mvp=1 injected successfully`);
+
+  // 1b. Shell title localized (wait until attached and populated)
+  await page.waitForSelector(".chat-shell__title", { state: "attached", timeout: 8000 });
+  await page.waitForFunction((expected) => {
+    const el = document.querySelector(".chat-shell__title");
+    return el && el.innerText === expected;
+  }, expectations.shellTitle, { timeout: 8000 });
+  console.log(`[${label}] shell title verified`);
+
+  // 2. document.documentElement.lang
+  const docLang = await page.evaluate(() => document.documentElement.lang);
+  assert.strictEqual(docLang, locale, `[${label}] documentElement.lang`);
+
+  // 3. Greeting localized (no Korean greeting in non-ko shell)
+  await page.waitForSelector(".chat-bubble--ai", { state: "visible" });
+  const greeting = await page.evaluate(() => {
+    const el = document.querySelector(".chat-bubble--ai");
+    return el ? el.innerText : "";
+  });
+  if (!expectations.allowForbidden) {
+    assert.ok(!/안녕하세요/.test(greeting), `[${label}] Korean greeting leaked: ${greeting}`);
+  }
+
+  // 4. Recommendation chip localized
+  const chip = page.locator(".chat-chip").filter({ hasText: expectations.chipPrefix }).first();
+  await chip.waitFor({ state: "visible", timeout: 5000 });
+  const chipText = await chip.innerText();
+  assert.ok(chipText.includes(expectations.chipPrefix), `[${label}] chip prefix: ${chipText}`);
+  console.log(`[${label}] chip verified`);
+
+  // 2. (Requirements) 질문 제출 전 CitizenMvpBridge가 undefined여도 실패 처리하지 않는다
+  const bridgeBefore = await page.evaluate(() => typeof window.CitizenMvpBridge);
+  console.log(`[${label}] bridge typeof before submit: ${bridgeBefore}`);
+  // It's totally fine if it's undefined.
+
+  // 5. Type a question into the composer and submit
+  const composer = page.locator("input.chat-composer__input").first();
+  await composer.fill("공동주택 관련 문의는 어느 부서에 해야 하나요?");
+  await page.getByRole("button", { name: /보내기|Send|Gửi|ส่ง|Kirim/i }).first().click();
+
+  // 4. (Requirements) /api/mvp/ask 요청이 관찰될 때까지 조건 기반으로 기다린다
+  await page.waitForResponse("**/api/mvp/ask", { timeout: 10000 });
+
+  assert.strictEqual(apiRequestCount > 0, true, `[${label}] /api/mvp/ask was called`);
+
+  // 5. (Requirements) 제출 후 bridge script 또는 window.CitizenMvpBridge가 로드됐는지 확인
+  await page.waitForFunction(() => {
+    return typeof window.CitizenMvpBridge !== "undefined" || document.querySelector('script[data-mvp-bridge="1"]');
+  }, { timeout: 5000 });
+  console.log(`[${label}] MVP Bridge loaded after submit`);
+
+  const bodyText = await page.evaluate(() => document.body.innerText);
+
+  // 6a. acknowledgement localized
+  assert.ok(bodyText.includes(expectations.ack), `[${label}] split.ready ack missing: ${expectations.ack}`);
+
+  // 6b. no forbidden Korean journey copy in non-Korean shell
+  if (!expectations.allowForbidden) {
+    for (const lit of FORBIDDEN_KO) {
+      assert.ok(!bodyText.includes(lit), `[${label}] forbidden Korean copy: "${lit}"`);
+    }
+  }
+
+  // 7. yes/no actions localized
+  const yesBtn = page.getByRole("button", { name: expectations.yesText, exact: true });
+  const noBtn = page.getByRole("button", { name: expectations.noText, exact: true });
+  assert.strictEqual(await yesBtn.count(), 1, `[${label}] yes button`);
+  assert.strictEqual(await noBtn.count(), 1, `[${label}] no button`);
+
+  // 8. journey status localized
+  const journeyStatus = await page.evaluate(() => {
+    const el = document.getElementById("chat-journey-status");
+    return el ? el.textContent : "";
+  });
+  if (!expectations.allowForbidden && journeyStatus) {
+    for (const lit of FORBIDDEN_KO) {
+      assert.ok(!journeyStatus.includes(lit), `[${label}] journey status KO: "${lit}"`);
+    }
+  }
+
+  // 9. freshness + source label localized
+  const freshnessText = await page.evaluate(() => {
+    const el = document.querySelector(".chat-answer-meta__status");
+    return el ? el.textContent : "";
+  });
+  if (!expectations.allowForbidden && freshnessText) {
+    assert.ok(!/최신 공식자료 확인|북구청 공식 스냅샷/.test(freshnessText),
+      `[${label}] freshness Korean: ${freshnessText}`);
+  }
+  const sourceLabel = await page.evaluate(() => {
+    const el = document.querySelector(".chat-answer-meta__source");
+    return el ? el.textContent : "";
+  });
+  if (!expectations.allowForbidden && sourceLabel) {
+    assert.ok(!/공식 출처|참고 출처/.test(sourceLabel), `[${label}] source Korean: ${sourceLabel}`);
+  }
+
+  // 10. request body carried the locale
+  assert.strictEqual(requestLocales.length > 0, true, `[${label}] /api/mvp/ask fired`);
+  assert.ok(
+    requestLocales.every((l) => l === locale),
+    `[${label}] request locale mismatch: ${JSON.stringify(requestLocales)} expected ${locale}`,
+  );
+
+  // 11. no errors
+  assert.deepStrictEqual(errors, [], `[${label}] no errors: ${errors.join(" | ")}`);
+
+  await context.close();
+  console.log(`[${label}] PASS`);
+}
+
+async function runLocaleTransitionTest(browser, origin) {
+  const label = "locale-transition";
+  console.log(`[${label}] start`);
+
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: "reduce",
+  });
+
   const page = await context.newPage();
   const errors = [];
 
@@ -52,79 +338,83 @@ async function runLocaleTest(browser, locale, expectations) {
     if (msg.type() === "error") errors.push(msg.text());
   });
 
-  // Mock MVP API — return mayor action for any question
+  let requestCount = 0;
+  let resolveAsk;
+  const pendingAsk = new Promise(r => { resolveAsk = r; });
+
   await page.route("**/api/mvp/ask", async (route) => {
+    requestCount++;
+    await pendingAsk;
     await route.fulfill({
       status: 200,
       contentType: "application/json; charset=utf-8",
       body: JSON.stringify({
         ok: true,
-        answer: "Answer placeholder.",
-        action: "mayor_message_assist",
+        answer: "Delayed answer ko.",
+        action: "housing_department",
         confidence: 1,
         failure_code: "",
+        locale: "ko",
+        freshness_state: "official_snapshot",
+        sources: [],
       }),
     });
   });
 
-  await page.goto(`${BASE_ORIGIN}/mvp/?lang=${locale}`, {
-    waitUntil: "networkidle",
-    timeout: 20000,
-  });
+  // Start with ko
+  await page.goto(`${origin}/mvp/?lang=ko`, { waitUntil: "networkidle" });
+  await page.waitForFunction(() => window.location.search.includes("mvp=1"));
+  const composer = page.locator("input.chat-composer__input").first();
+  await composer.fill("공동주택 관련 문의");
+  await page.getByRole("button", { name: "보내기" }).first().click();
 
-  // 1. Shell title is localized
-  const shellTitle = page.locator(".chat-shell__title");
-  await shellTitle.waitFor({ state: "visible", timeout: 5000 });
-  const titleText = await shellTitle.innerText();
-  assert.strictEqual(
-    titleText,
-    expectations.shellTitle,
-    `[${label}] shell title matches`,
-  );
-  console.log(`[${label}] shell title verified`);
+  // Wait until request is fired
+  await page.waitForRequest("**/api/mvp/ask");
+  // We can just wait a short moment or wait for the bubble
+  await page.waitForSelector(".chat-msg--ai", { state: "attached" });
 
-  // 2. Mayor chip text is localized
-  const mayorChip = page.locator(".chat-chip--mayor-primary").first();
-  await mayorChip.waitFor({ state: "visible", timeout: 5000 });
-  const chipText = await mayorChip.innerText();
-  assert.ok(
-    chipText.includes(expectations.chipPrefix),
-    `[${label}] chip contains "${expectations.chipPrefix}": ${chipText}`,
-  );
-  console.log(`[${label}] chip text verified`);
+  // Now, navigate away to English before the answer arrives
+  await page.goto(`${origin}/mvp/?lang=en`, { waitUntil: "networkidle" });
+  await page.waitForFunction(() => window.location.search.includes("mvp=1"));
 
-  // 3. Click chip → confirm-run text is localized
-  await mayorChip.click();
+  // Resolve the first ask now
+  resolveAsk();
 
-  const confirmBtn = page.getByRole("button", {
-    name: expectations.confirmText,
-    exact: true,
-  });
-  await confirmBtn.waitFor({ state: "visible", timeout: 5000 });
-  console.log(`[${label}] confirm button verified`);
+  // Wait a bit to ensure it doesn't leak
+  await page.waitForTimeout(500);
 
-  // 4. No browser errors during shell localization
-  assert.deepStrictEqual(
-    errors,
-    [],
-    `[${label}] no console/page errors: ${errors.join(" | ")}`,
-  );
-  console.log(`[${label}] no errors`);
+  // Check no Korean answer leaked into the English UI
+  const bodyText = await page.evaluate(() => document.body.innerText);
+  assert.ok(!bodyText.includes("Delayed answer ko"), `[${label}] previous language answer leaked`);
+
+  // Also check back navigation does not restore old conversation
+  await page.goBack({ waitUntil: "networkidle" });
+  const koBody = await page.evaluate(() => document.body.innerText);
+  assert.ok(!koBody.includes("공동주택 관련 문의"), `[${label}] Back navigation restored old conversation`);
+
+  assert.deepStrictEqual(errors, [], `[${label}] no errors: ${errors.join(" | ")}`);
 
   await context.close();
   console.log(`[${label}] PASS`);
 }
 
 async function main() {
+  const { origin, cleanup } = await buildAndServe();
+  console.log(`Serving from ${origin}`);
+
   const browser = await launchBrowser();
   try {
     for (const [locale, expectations] of Object.entries(LOCALE_ASSERTIONS)) {
-      await runLocaleTest(browser, locale, expectations);
+      await runLocaleTest(browser, origin, locale, expectations);
     }
+
+    // Additional regression test: "한국어 요청 진행 중 영어 또는 태국어로 전환... 이전 요청이 늦게 완료돼도 이전 언어 답변이 삽입되지 않음"
+    await runLocaleTransitionTest(browser, origin);
   } finally {
     await browser.close();
+    cleanup();
   }
-  console.log("Multilingual MVP E2E: all 5 locales PASSED.");
+  console.log("Multilingual MVP E2E: all locales & transition PASSED.");
 }
 
 main().catch((error) => {
