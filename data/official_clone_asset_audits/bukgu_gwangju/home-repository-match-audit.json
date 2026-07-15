@@ -1,9 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "audit_kind": "official_home_asset_repository_identity_audit",
   "audit_generator": {
     "id": "scripts/audit_bukgu_home_asset_identity.py",
-    "version": "1.1.0"
+    "version": "2.0.0"
   },
   "source": {
     "path": "data/official_captures/bukgu_gwangju/home/asset-inventory.json",
@@ -12,13 +12,19 @@
     "item_count": 174
   },
   "scan": {
-    "method": "git_ls_files",
+    "method": "frozen_repository_scan_manifest",
+    "frozen_manifest_path": "data/official_clone_asset_audits/bukgu_gwangju/home-repository-scan-manifest.json",
+    "manifest_schema_version": 1,
+    "snapshot_commit_sha": "0a86d643b5bc8f4379bafd2aa42704c579de6c9b",
     "enumerated_tracked_path_count": 626,
     "eligible_tracked_file_count": 622,
     "excluded_path_count": 4,
     "lfs_pointer_count": 0,
     "missing_or_unreadable_count": 0,
-    "manifest_sha256": "86c372bacd9a867e8407ab854b9c4766c3c0193f4c6e4244a7f613a4767eabda"
+    "entry_count": 622,
+    "manifest_sha256": "1997cac4b492034649a0920afa2672fcf93cec287b5b685eb8ff609f1172dd0e",
+    "canonical_manifest_sha256": "1997cac4b492034649a0920afa2672fcf93cec287b5b685eb8ff609f1172dd0e",
+    "semantics": "point_in_time_explicit_refresh"
   },
   "summary": {
     "asset_total": 174,
