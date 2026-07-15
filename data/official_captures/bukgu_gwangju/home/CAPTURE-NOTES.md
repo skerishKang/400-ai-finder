@@ -14,8 +14,8 @@ Status: **capture_only** — not integrated into civic canvas; route remains `ca
 - Official page title: `전남광주통합특별시 북구`
 - Captured at: `2026-07-15T16:53:08+09:00`
 - Source-visible update date: `not-shown-on-homepage-html`
-- Raw SHA-256: `e08513493f831b130f4f6775f0ecc585fbc029cb5e65aa2a55f0867b1281866e`
-- Metadata SHA-256: `0aba72b62efc2283f9b7331cd30e7256f1cef65dee2f6adca80b37a3f2dc6a70`
+- Raw SHA-256: `5ab8e26074bdf91a045ed68185e606871460633755bd6ec89da853eb4f93c45e`
+- Metadata SHA-256: `cdf5abfbc089341d34fb39fadd184f2781fac34fc60e8260415417f69a3418c4`
 
 ## Redirect chain
 
@@ -52,3 +52,16 @@ This capture does **not**:
 - change manifest status from `capture_required` to `exact`
 - localize assets into `src/web/static`
 - execute any official-site write action
+
+## Sanitization
+
+- Raw HTML newlines normalized to LF for repository `git diff --check` hygiene.
+- Session-bound `_csrf` meta token redacted; capture-time request token, not user PII.
+
+## Sanitization
+
+- Raw HTML newlines normalized to LF.
+- Trailing per-line whitespace stripped for `git diff --check` hygiene.
+- Session-bound `_csrf` values redacted (`[REDACTED_SESSION_CSRF]`).
+
+- Tabs expanded to spaces in raw HTML for `git diff --check` hygiene.

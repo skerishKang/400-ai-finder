@@ -25,8 +25,14 @@
     "source_updated_at_absence_reason": "not-shown-on-homepage-html",
     "capture_method": "python-urllib read-only HTTP GET inventory capture",
     "capture_tool": "scripts/capture_official_home_inventory.py",
-    "raw_content_sha256": "e08513493f831b130f4f6775f0ecc585fbc029cb5e65aa2a55f0867b1281866e",
-    "raw_byte_length": 140865
+    "raw_content_sha256": "5ab8e26074bdf91a045ed68185e606871460633755bd6ec89da853eb4f93c45e",
+    "raw_byte_length": 159141,
+    "sanitization_notes": [
+      "normalized_to_lf_newlines",
+      "stripped_trailing_line_whitespace",
+      "redacted_session_csrf_tokens",
+      "expanded_tabs_to_spaces"
+    ]
   },
   "files": {
     "raw_snapshot": "data/official_captures/bukgu_gwangju/home/raw-homepage.html",
@@ -49,5 +55,5 @@
     "canvas_integration": false,
     "route_status_change": false
   },
-  "metadata_sha256": "0aba72b62efc2283f9b7331cd30e7256f1cef65dee2f6adca80b37a3f2dc6a70"
+  "metadata_sha256": "cdf5abfbc089341d34fb39fadd184f2781fac34fc60e8260415417f69a3418c4"
 }
