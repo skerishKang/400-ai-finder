@@ -55,7 +55,11 @@
 
   var CLOSED_TARGET_IDS = Object.freeze([
     "nav-civil-service",
+      "nav-apartment-dept",
+      "nav-bulky-waste-disposal",
+      "nav-passport-guidance",
     "nav-complaint-category",
+      "nav-complaint-board",
     "complaint-category-illegal-parking",
     "complaint-category-public-parking-inconvenience",
     "complaint-category-residential-parking",

@@ -20,7 +20,7 @@
       ],
       routeId: 'apartment-dept',
       navSteps: [
-        { target: 'nav-civil-service', description: '종합민원 → 민원 신청하기' },
+        { target: 'nav-apartment-dept', description: '홈 → 행정조직도' },
       ],
       response:
         '공동주택과 조직 및 업무안내 화면입니다. 종합민원 메뉴에서 공동주택과 담당 업무와 연락처를 확인할 수 있습니다.',
@@ -36,7 +36,7 @@
       ],
       routeId: 'bulky-waste-disposal',
       navSteps: [
-        { target: 'nav-civil-service', description: '종합민원 → 민원 신청하기' },
+        { target: 'nav-bulky-waste-disposal', description: '대형폐기물 처리' },
       ],
       response:
         '대형폐기물 배출방법 안내 화면입니다. 종합민원 메뉴에서 대형폐기물 배출 신청 방법과 수수료를 확인할 수 있습니다.',
@@ -46,7 +46,7 @@
       triggers: ['여권 발급 절차를 찾아줘', '여권 발급', '여권 절차', '여권', 'passport'],
       routeId: 'passport-guidance',
       navSteps: [
-        { target: 'nav-civil-service', description: '종합민원 → 민원 신청하기' },
+        { target: 'nav-passport-guidance', description: '여권 발급' },
       ],
       response:
         '여권민원 안내 화면입니다. 종합민원 메뉴에서 여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 확인할 수 있습니다.',
@@ -56,8 +56,8 @@
       triggers: ['민원 작성 화면을 열어줘', '민원 작성', '민원 신청', '민원 게시판', 'complaint'],
       routeId: 'complaint-write',
       navSteps: [
-        { target: 'nav-civil-service', description: '종합민원 → 민원 신청하기' },
-        { target: 'nav-complaint-category', description: '민원 유형 선택' },
+        { target: 'nav-complaint-board', description: '소통광장' },
+        { target: 'complaint-write', description: '글쓰기' },
       ],
       response:
         '민원 글쓰기 화면입니다. 종합민원 → 민원 유형 선택 후 민원 게시판에서 글쓰기를 통해 AI가 민원 초안 작성을 도와드립니다.',
