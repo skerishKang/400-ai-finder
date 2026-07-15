@@ -69,6 +69,22 @@ function createStaticServer() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
+/**
+ * Launch Chromium when available; fall back to system Google Chrome.
+ * Used so CI (npm ci without playwright install) and local dev both work.
+ * Only catches browser-process launch failures — not test assertions.
+ */
+async function launchBrowser() {
+  try {
+    return await chromium.launch({ headless: true });
+  } catch (error) {
+    return chromium.launch({
+      headless: true,
+      channel: "chrome",
+    });
+  }
+}
+
 function callRespond(page, userRequestText, browserStateContent) {
   const rawMessage =
     `<user_request>${userRequestText}</user_request>` +
@@ -576,7 +592,7 @@ async function main() {
   console.log(`Static server at ${baseUrl}`);
   console.log(`Resident demo at ${residentUrl}`);
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchBrowser();
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
     locale: "ko-KR",
