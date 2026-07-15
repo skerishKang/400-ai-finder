@@ -582,6 +582,10 @@
    * Page Agent request. Prevents stale non-home routes (e.g. apartment-dept)
    * from causing target-missing failures on the next task without page reload.
    * Does not force a final success route — only returns to home entry surface.
+   *
+   * Note: CitizenActionDemoCanvas.navigateToRoute fades for ~300ms before the
+   * home DOM commit; getCurrentRouteId() updates immediately. Callers that
+   * start Page Agent must wait until home targets exist in the DOM.
    */
   function restoreCanvasToSafeHome() {
     try {
@@ -599,6 +603,54 @@
       /* canvas optional in unit harness */
     }
     return false;
+  }
+
+  function homeTargetsReady() {
+    try {
+      var canvas = window.CitizenActionDemoCanvas;
+      if (!canvas) return true;
+      if (typeof canvas.getTargetElement === "function") {
+        // Representative home entry targets used by parity scenarios.
+        return !!(
+          canvas.getTargetElement("nav-apartment-dept") ||
+          canvas.getTargetElement("nav-bulky-waste-disposal") ||
+          canvas.getTargetElement("nav-passport-guidance")
+        );
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    return true;
+  }
+
+  /**
+   * Start the action loop only after the restored home surface has committed
+   * its DOM (canvas may still show the previous route during the fade-out).
+   */
+  function scheduleAgentExecute(text) {
+    var started = false;
+    var attempts = 0;
+    function run() {
+      if (started) return;
+      started = true;
+      startAgentExecute(text);
+    }
+    function tick() {
+      attempts += 1;
+      if (homeTargetsReady() || attempts >= 24) {
+        run();
+        return;
+      }
+      setTimeout(tick, 50);
+    }
+    // First probe after one frame; then poll up to ~1.2s for fade commit.
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(function () {
+        tick();
+      });
+    } else {
+      setTimeout(tick, 0);
+    }
   }
 
   function sendMessage(text) {
@@ -629,8 +681,9 @@
       restoreCanvasToSafeHome();
       setPlanState("executing");
       setRunning(true);
-      // Guidance switch happens in startAgentExecute, just before DOM work.
-      startAgentExecute(text);
+      // Defer one frame so Page Agent observation sees restored home targets
+      // after a prior task left a non-home route (A→B without reload).
+      scheduleAgentExecute(text);
       return;
     }
 

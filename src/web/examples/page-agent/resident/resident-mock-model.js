@@ -96,11 +96,23 @@
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i];
       if (line.indexOf('data-action-target=') === -1) continue;
-      var m = line.match(/data-action-target=([^\s>]+)/);
+      // Quoted, bare, or tree-truncated values (ASCII "..." or unicode ellipsis).
+      var m =
+        line.match(/data-action-target=["']([^"']+)["']/) ||
+        line.match(/data-action-target=([^\s>]+)/);
       if (m) {
-        var val = m[1];
+        var val = m[1] || '';
+        // Strip tree ellipsis suffixes produced by Page Agent flat-tree truncation.
+        val = val.replace(/(?:\.\.\.|…)+$/g, '');
         if (val.indexOf('...') !== -1) val = val.slice(0, val.indexOf('...'));
-        if (targetId.indexOf(val) === 0) {
+        if (val.indexOf('…') !== -1) val = val.slice(0, val.indexOf('…'));
+        // Accept prefix match either direction so truncated browser_state still resolves.
+        if (
+          val &&
+          (targetId === val ||
+            targetId.indexOf(val) === 0 ||
+            val.indexOf(targetId) === 0)
+        ) {
           var idxMatch = line.match(/\[(\d+)\]/);
           if (idxMatch) return parseInt(idxMatch[1], 10);
         }
