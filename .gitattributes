@@ -9,3 +9,8 @@ src/web/examples/page-agent/vendor/page-agent.iife.js -text
 # checksum identity sources. Keep LF bytes on every OS checkout.
 data/official_captures/bukgu_gwangju/home/** -text
 data/official_clone_fixtures/** -text
+
+# #1177 home asset identity audit report + frozen scan manifest must keep
+# committed LF JSON bytes on every OS (including core.autocrlf=true).
+data/official_clone_asset_audits/bukgu_gwangju/home-repository-match-audit.json -text
+data/official_clone_asset_audits/bukgu_gwangju/home-repository-scan-manifest.json -text
