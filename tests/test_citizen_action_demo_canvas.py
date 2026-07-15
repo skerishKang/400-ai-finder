@@ -276,12 +276,16 @@ class TestComplaintJourney:
 
     def test_civil_service_has_nav_complaint_category(self):
         js = _read_static("citizen-action-demo-map.js")
-        block = js[js.find('"civil-service"'):js.find('"civil-service"') + 500]
+        idx = js.find('"civil-service": Object.freeze')
+        assert idx != -1, "civil-service route not found"
+        block = js[idx:idx + 600]
         assert "nav-complaint-category" in block
 
     def test_complaint_category_has_all_five_category_targets(self):
         js = _read_static("citizen-action-demo-map.js")
-        block = js[js.find('"complaint-category"'):js.find('"complaint-category"') + 800]
+        idx = js.find('"complaint-category": Object.freeze')
+        assert idx != -1, "complaint-category route not found"
+        block = js[idx:idx + 1000]
         for cat in [
             "complaint-category-illegal-parking",
             "complaint-category-public-parking-inconvenience",

@@ -113,7 +113,7 @@
   var _sessionTask = null;       // Current scenario object
   var _sessionNavIdx = 0;        // Current nav step index
   var _sessionDone = false;      // Has returned done already?
-    var _lastSessionKey = '';  // Last seen user request (session dedup)
+  var _lastSessionKey = '';      // Last seen user request (session dedup)
 
   function resetSession() {
     _sessionTask = null;
@@ -187,9 +187,10 @@
       });
     }
 
-    // New user request → reset navigation progress (but keep across turns with same request)
+    // New user request → reset all navigation progress and stale task
     if (sessionKey !== _lastSessionKey) {
       _lastSessionKey = sessionKey;
+      _sessionTask = null;  // Clear stale task from previous request
       _sessionNavIdx = 0;
       _sessionDone = false;
     }
@@ -226,20 +227,45 @@
           headers: { 'Content-Type': 'application/json' },
         });
       } else {
-        // Target element not found in page state → skip to next step or done
-        _sessionNavIdx++;
+        // Target element not found in page state → fail closed
+        _sessionDone = true;
+        var missingTargetMsg = '안내 화면에서 필요한 요소를 찾을 수 없습니다: ' + step.target + '. 페이지 상태를 확인해 주세요.';
+        var failAction = { done: { text: missingTargetMsg, success: false } };
+        recordDiag(macroToolName, 'done', scenario.id, false, missingTargetMsg);
+
+        return new Response(JSON.stringify(buildToolResponse(macroToolName, failAction)), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
     }
 
-    // ── No more nav steps → done ──
+    // ── No more nav steps → validate final route before success ──
     _sessionDone = true;
-    var doneAction = { done: { text: scenario.response, success: true } };
-    recordDiag(macroToolName, 'done', scenario.id, true, scenario.response);
+    var canvasRoute = null;
+    try {
+      if (typeof window !== 'undefined' && window.CitizenActionDemoCanvas && typeof window.CitizenActionDemoCanvas.getCurrentRouteId === 'function') {
+        canvasRoute = window.CitizenActionDemoCanvas.getCurrentRouteId();
+      }
+    } catch (_) { /* canvas unavailable */ }
 
-    return new Response(JSON.stringify(buildToolResponse(macroToolName, doneAction)), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    var expectedRoute = scenario.routeId;
+    if (canvasRoute === expectedRoute) {
+      var doneAction = { done: { text: scenario.response, success: true } };
+      recordDiag(macroToolName, 'done', scenario.id, true, scenario.response);
+      return new Response(JSON.stringify(buildToolResponse(macroToolName, doneAction)), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      var wrongRouteMsg = '안내 경로가 올바르지 않습니다. 예상 경로: ' + expectedRoute + ', 실제 경로: ' + (canvasRoute || 'unknown') + '. 다시 시도해 주세요.';
+      var failAction = { done: { text: wrongRouteMsg, success: false } };
+      recordDiag(macroToolName, 'done', scenario.id, false, wrongRouteMsg);
+      return new Response(JSON.stringify(buildToolResponse(macroToolName, failAction)), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   // Try to elide {navSteps} from serialization for clean JSON test assertions.
@@ -261,6 +287,7 @@
     getPublicScenarios: getPublicScenarios,
     getDiagnostics: function () { return _diag; },
     resetDiagnostics: resetDiagnostics,
+    resetSession: resetSession,
     respond: respond,
     handleCompletion: function (url, payload) {
       return respond(url, { body: JSON.stringify(payload || {}) }).then(function (r) { return r.json(); });

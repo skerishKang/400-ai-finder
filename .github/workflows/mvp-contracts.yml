@@ -326,6 +326,9 @@ jobs:
           node tests/browser/verify_resident_e2e.mjs \
             http://127.0.0.1:8766
 
+      - name: Run resident mock model contract (unit-level)
+        run: node tests/browser/verify_resident_mock_model.mjs
+
       - name: Run Stage 3 browser comparison harness (static build, port 8765, 1 rep)
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         shell: bash
