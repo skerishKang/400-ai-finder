@@ -17,6 +17,61 @@ export const VALID_ACTIONS = Object.freeze([
 
 export const DEFAULT_PROVIDER_ORDER = Object.freeze(['gemini', 'hy3']);
 
+export const SUPPORTED_LOCALES = Object.freeze([
+  'ko',
+  'en',
+  'vi',
+  'th',
+  'id',
+]);
+
+// Closed locale set with ko fallback. Network-free, deterministic.
+export function normalizeLocale(value) {
+  if (!value || typeof value !== 'string') return 'ko';
+  const v = value.trim().toLowerCase();
+  return SUPPORTED_LOCALES.indexOf(v) !== -1 ? v : 'ko';
+}
+
+// Resident-facing failure answers keyed by locale. failure_code stays
+// untranslated; only the citizen-visible answer text is localized.
+const FAILURE_ANSWERS = Object.freeze({
+  ko: {
+    config_error: '현재 AI 안내 설정을 확인하고 있습니다.',
+    upstream_error: '현재 AI 안내를 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    invalid_input: '잘못된 요청 형식입니다.',
+    too_long: '질문이 너무 깁니다. 300자 이내로 입력해 주세요.',
+  },
+  en: {
+    config_error: 'The AI guide settings are being checked.',
+    upstream_error: 'The AI guide could not be reached. Please try again later.',
+    invalid_input: 'Invalid request format.',
+    too_long: 'Your question is too long. Please keep it within 300 characters.',
+  },
+  vi: {
+    config_error: 'Đang kiểm tra cài đặt hướng dẫn AI.',
+    upstream_error: 'Không thể kết nối hướng dẫn AI. Vui lòng thử lại sau.',
+    invalid_input: 'Định dạng yêu cầu không hợp lệ.',
+    too_long: 'Câu hỏi quá dài. Vui lòng nhập dưới 300 ký tự.',
+  },
+  th: {
+    config_error: 'กำลังตรวจสอบการตั้งค่าคำแนะนำ AI',
+    upstream_error: 'ไม่สามารถเชื่อมต่อคำแนะนำ AI ได้ โปรดลองอีกครั้งในภายหลัง',
+    invalid_input: 'รูปแบบคำขอไม่ถูกต้อง',
+    too_long: 'คำถามยาวเกินไป โปรดระบุไม่เกิน 300 ตัวอักษร',
+  },
+  id: {
+    config_error: 'Pengaturan panduan AI sedang diperiksa.',
+    upstream_error: 'Panduan AI tidak dapat dihubungi. Silakan coba lagi nanti.',
+    invalid_input: 'Format permintaan tidak valid.',
+    too_long: 'Pertanyaan terlalu panjang. Mohon batasi di bawah 300 karakter.',
+  },
+});
+
+function localizedFailureAnswer(locale, failureCode) {
+  const table = FAILURE_ANSWERS[locale] || FAILURE_ANSWERS.ko;
+  return table[failureCode] || table.upstream_error;
+}
+
 export const PROVIDER_DEFAULTS = Object.freeze({
   gemini: Object.freeze({
     model: 'gemini-3.1-flash-lite',
@@ -283,12 +338,24 @@ function formatSeoulTime(date) {
   }).format(date);
 }
 
-function buildSystemPrompt(currentTime, officialContext) {
+function buildSystemPrompt(currentTime, officialContext, locale) {
+  const target = normalizeLocale(locale);
+  const langInstruction = (() => {
+    switch (target) {
+      case 'en': return 'Answer the resident in clear, natural English, 2–5 sentences.';
+      case 'vi': return 'Trả lời cư dân bằng tiếng Việt tự nhiên, dễ hiểu, 2–5 câu.';
+      case 'th': return 'ตอบประชาชนเป็นภาษาไทยที่เป็นธรรมชาติ 2–5 ประโยค.';
+      case 'id': return 'Jawab warga dalam bahasa Indonesia yang alami, 2–5 kalimat.';
+      case 'ko':
+      default: return '주민에게 바로 도움이 되도록 자연스러운 한국어 2~5문장으로 답하세요.';
+    }
+  })();
   const lines = [
     '당신은 광주 북구 주민을 돕는 "북구 도우미"입니다.',
     `현재 대한민국 표준시각은 ${currentTime}입니다. 이 시각을 기준으로 답하세요.`,
     '북구 행정, 연락처, 비용, 일정처럼 변경될 수 있는 내용은 근거가 없으면 추측하지 마세요.',
-    '주민에게 바로 도움이 되도록 자연스러운 한국어 2~5문장으로 답하세요.',
+    langInstruction,
+    '공식 한국어 부서명, 서비스명, 전화번호, 주소, URL, 법정 명칭은 원문 그대로 사용하세요.',
     '반드시 아래 JSON 객체만 반환하고 마크다운 코드 블록이나 다른 설명을 붙이지 마세요.',
     '{"answer":"주민에게 보여줄 답변","action":"허용된 action","confidence":0.0}',
     `action은 다음 중 하나입니다: ${VALID_ACTIONS.join(', ')}`,
@@ -307,9 +374,9 @@ function buildSystemPrompt(currentTime, officialContext) {
   return lines.join('\n');
 }
 
-function buildGroundedPrompt(question, currentTime, officialContext) {
+function buildGroundedPrompt(question, currentTime, officialContext, locale) {
   return [
-    buildSystemPrompt(currentTime, officialContext),
+    buildSystemPrompt(currentTime, officialContext, locale),
     '',
     '반드시 Google 검색 도구로 현재 정보를 확인하세요.',
     '북구 행정 관련 질문은 bukgu.gwangju.kr, search.bukgu.gwangju.kr 및 공공기관 도메인을 우선하세요.',
@@ -491,7 +558,7 @@ function mergeQueries(...groups) {
   return merged.slice(0, 5);
 }
 
-async function requestOpenAICompatible(config, question, currentTime, officialContext) {
+async function requestOpenAICompatible(config, question, currentTime, officialContext, locale) {
   const upstream = await fetch(config.endpoint, {
     method: 'POST',
     headers: {
@@ -501,7 +568,7 @@ async function requestOpenAICompatible(config, question, currentTime, officialCo
     body: JSON.stringify({
       model: config.model,
       messages: [
-        { role: 'system', content: buildSystemPrompt(currentTime, officialContext) },
+        { role: 'system', content: buildSystemPrompt(currentTime, officialContext, locale) },
         { role: 'user', content: question },
       ],
       temperature: 0.1,
@@ -535,7 +602,7 @@ async function requestOpenAICompatible(config, question, currentTime, officialCo
   };
 }
 
-async function requestGeminiInteractions(config, question, currentTime, officialContext) {
+async function requestGeminiInteractions(config, question, currentTime, officialContext, locale) {
   const upstream = await fetch(config.endpoint, {
     method: 'POST',
     headers: {
@@ -544,7 +611,7 @@ async function requestGeminiInteractions(config, question, currentTime, official
     },
     body: JSON.stringify({
       model: config.model,
-      input: buildGroundedPrompt(question, currentTime, officialContext),
+      input: buildGroundedPrompt(question, currentTime, officialContext, locale),
       tools: [{ type: 'google_search' }],
       store: false,
     }),
@@ -586,25 +653,25 @@ async function requestGeminiInteractions(config, question, currentTime, official
   };
 }
 
-async function requestProvider(config, question, currentTime, officialContext) {
+async function requestProvider(config, question, currentTime, officialContext, locale) {
   if (config.provider === 'gemini' && config.apiStyle === 'interactions') {
-    return requestGeminiInteractions(config, question, currentTime, officialContext);
+    return requestGeminiInteractions(config, question, currentTime, officialContext, locale);
   }
-  return requestOpenAICompatible(config, question, currentTime, officialContext);
+  return requestOpenAICompatible(config, question, currentTime, officialContext, locale);
 }
 
-function failurePayload(question, provider, model, failureCode, retrievedAt, currentTime) {
+function failurePayload(question, provider, model, failureCode, retrievedAt, currentTime, locale) {
+  const loc = normalizeLocale(locale);
   return {
     ok: false,
     question,
-    answer: failureCode === 'config_error'
-      ? '현재 AI 안내 설정을 확인하고 있습니다.'
-      : '현재 AI 안내를 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    answer: localizedFailureAnswer(loc, failureCode),
     action: question ? classifyAction(question) : 'none',
     confidence: 0.0,
     provider,
     model,
     failure_code: failureCode,
+    locale: loc,
     current_time: currentTime,
     retrieved_at: retrievedAt.toISOString(),
     freshness_state: 'unavailable',
@@ -638,18 +705,20 @@ export async function onRequest(context) {
     body = await request.json();
   } catch (_) {
     return jsonResponse(Object.assign(
-      failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime),
-      { answer: '잘못된 요청 형식입니다.' },
+      failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, 'ko'),
+      { answer: localizedFailureAnswer('ko', 'invalid_input') },
     ), 200, headers);
   }
+
+  const requestLocale = normalizeLocale(body && typeof body.locale === 'string' ? body.locale : 'ko');
 
   if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.question !== 'string') {
     if (body && typeof body === 'object' && !Array.isArray(body) && !Object.prototype.hasOwnProperty.call(body, 'question')) {
       return jsonResponse({ ok: false, error: 'Missing question' }, 400, headers);
     }
     return jsonResponse(Object.assign(
-      failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime),
-      { answer: '잘못된 요청 형식입니다.' },
+      failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, requestLocale),
+      { answer: localizedFailureAnswer(requestLocale, 'invalid_input') },
     ), 200, headers);
   }
 
@@ -657,8 +726,8 @@ export async function onRequest(context) {
   if (!question) return jsonResponse({ ok: false, error: 'Missing question' }, 400, headers);
   if (question.length > 300) {
     return jsonResponse(Object.assign(
-      failurePayload(question, primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime),
-      { answer: '질문이 너무 깁니다. 300자 이내로 입력해 주세요.' },
+      failurePayload(question, primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, requestLocale),
+      { answer: localizedFailureAnswer(requestLocale, 'too_long') },
     ), 200, headers);
   }
 
@@ -695,7 +764,7 @@ export async function onRequest(context) {
 
     let result;
     try {
-      result = await requestProvider(config, question, currentTime, officialContext);
+      result = await requestProvider(config, question, currentTime, officialContext, requestLocale);
     } catch (_) {
       result = { ok: false, failureCode: 'upstream_error' };
     }
@@ -711,6 +780,7 @@ export async function onRequest(context) {
     return jsonResponse({
       ok: true,
       question,
+      locale: requestLocale,
       answer: result.answer,
       action: VALID_ACTIONS.includes(action) ? action : 'none',
       confidence,
@@ -735,7 +805,7 @@ export async function onRequest(context) {
 
   const failureCode = configuredProviderCount ? lastFailureCode : 'config_error';
   return jsonResponse(
-    failurePayload(question, primaryConfig.provider, primaryConfig.model, failureCode, retrievedAt, currentTime),
+    failurePayload(question, primaryConfig.provider, primaryConfig.model, failureCode, retrievedAt, currentTime, requestLocale),
     200,
     headers,
   );

@@ -100,8 +100,8 @@ def test_split_transition_prepaints_canvas_and_uses_cinematic_motion():
     )
     assert scroll_marker in JS
     transition_body = JS[JS.index("function startCinematicSplit()"): JS.index(scroll_marker)]
-    assert transition_body.index("_renderBukguHomeFixture()") < transition_body.index(
-        "setState(STATE_TRANSITIONING)"
+    assert transition_body.index("setState(STATE_TRANSITIONING)") < transition_body.index(
+        "_renderBukguHomeFixture()"
     )
     assert "TRANSITION_DURATION_MS = 1100" in JS
     assert "firstUseCanvasReveal" in CSS
