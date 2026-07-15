@@ -132,17 +132,17 @@ def test_drift():
     assert result.returncode == 0
 
     # modify report
-    with open("data/official_clone_asset_audits/bukgu_gwangju/home-repository-match-audit.json", "r+", encoding="utf-8") as f:
+    with open("data/official_clone_asset_audits/bukgu_gwangju/home-repository-match-audit.json", "r+", encoding="utf-8", newline="\n") as f:
         content = f.read()
         f.seek(0)
         f.write(content.replace("asset_total", "asset_totax"))
         f.truncate()
-
+        
     try:
         result = subprocess.run(["python", "scripts/audit_bukgu_home_asset_identity.py", "--check"], capture_output=True)
         assert result.returncode != 0
     finally:
-        with open("data/official_clone_asset_audits/bukgu_gwangju/home-repository-match-audit.json", "w", encoding="utf-8") as f:
+        with open("data/official_clone_asset_audits/bukgu_gwangju/home-repository-match-audit.json", "w", encoding="utf-8", newline="\n") as f:
             f.write(content)
 
 def test_inventory_mutation():
