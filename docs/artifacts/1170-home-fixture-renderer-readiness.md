@@ -1,9 +1,9 @@
 # #1170 Home fixture canvas renderer readiness
 
-**Status:** structural fixture renderer wired  
-**Home route clone status:** `capture_required` (unchanged)  
-**Exact clone claim:** **not made**  
-**Actual-site Stage 5:** deferred  
+**Status:** structural fixture renderer wired
+**Home route clone status:** `capture_required` (unchanged)
+**Exact clone claim:** **not made**
+**Actual-site Stage 5:** deferred
 **Unresolved assets:** **174** (exact local mapping still 0)
 
 Governing policy: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md).
