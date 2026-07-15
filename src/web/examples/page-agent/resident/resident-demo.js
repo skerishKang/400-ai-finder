@@ -577,6 +577,30 @@
     agent.execute(text);
   }
 
+  /**
+   * #1164: restore civic canvas to a safe home surface before a new top-level
+   * Page Agent request. Prevents stale non-home routes (e.g. apartment-dept)
+   * from causing target-missing failures on the next task without page reload.
+   * Does not force a final success route — only returns to home entry surface.
+   */
+  function restoreCanvasToSafeHome() {
+    try {
+      var canvas = window.CitizenActionDemoCanvas;
+      if (!canvas || typeof canvas.navigateToRoute !== "function") return false;
+      var current =
+        typeof canvas.getCurrentRouteId === "function"
+          ? canvas.getCurrentRouteId()
+          : "";
+      if (current && current !== "home") {
+        canvas.navigateToRoute("home");
+        return true;
+      }
+    } catch (_) {
+      /* canvas optional in unit harness */
+    }
+    return false;
+  }
+
   function sendMessage(text) {
     if (!text.trim() || isRunning) return;
 
@@ -598,10 +622,11 @@
 
     // ── Local deterministic mock path (default) ──
     if (!serverPlanEnabled()) {
-      // Reset mock model session for fresh top-level request
+      // Fresh top-level request: isolate mock session + restore home surface.
       if (window.PageAgentMockModel && typeof window.PageAgentMockModel.resetSession === 'function') {
         window.PageAgentMockModel.resetSession();
       }
+      restoreCanvasToSafeHome();
       setPlanState("executing");
       setRunning(true);
       // Guidance switch happens in startAgentExecute, just before DOM work.
@@ -611,6 +636,8 @@
 
     // ── Explicit server plan path ──
     // Stay on conversation during planning so residents can read status.
+    // New top-level request still starts from a safe home surface for targets.
+    restoreCanvasToSafeHome();
     setRunning(true);
     setStatus("준비 중...", "chat-header__status--active");
     setPlanState("planning");
