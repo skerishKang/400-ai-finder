@@ -13,6 +13,17 @@ Layers (dependency direction):
 Phase 1 supports only current Buk-gu mayor and jurisdiction/organization name.
 No live official-page, Firecrawl, paid provider, or external API call is
 performed on import, construction, unit tests, or default service use.
+
+Truthfulness / scope (Phase 1):
+
+* ``data-official-fact`` markers are deterministic mock-fixture scaffolding
+* the current branch does not prove parsing against the live official mayor page
+* no live official-page validation was executed
+* no live validation of live official DOM parsing has been verified
+* actual official DOM selectors/extraction require a separately approved
+  validation/integration phase
+* this package is not live-ready, not production-ready, and does not complete
+  answer-time live retrieval
 """
 
 from __future__ import annotations

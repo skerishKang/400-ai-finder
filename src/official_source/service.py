@@ -38,7 +38,6 @@ from .policy import (
     canonicalize_official_url,
     get_policy_for_fact,
     is_official_host,
-    is_url_allowlisted,
 )
 from .transport import (
     MockOfficialSourceTransport,
@@ -174,30 +173,39 @@ class OfficialSourceFreshnessService:
                 fact_kind=fact_kind,
             )
 
-        final_url = response.final_url or response.requested_url or policy_url
-        origin_error = self._check_origin_and_redirect(
+        # Exact requested URL must equal the policy URL (no blank→policy fallback).
+        requested_error = self._require_exact_policy_url(
+            url=response.requested_url,
             policy_url=policy_url,
-            final_url=final_url,
-            redirected=response.redirected,
             fact_kind=fact_kind,
+            role="requested",
+            redirected=False,
+            policy_title=policy_title,
+            content_type=response.content_type,
+            retrieved_at=response.retrieved_at or "",
         )
-        if origin_error is not None:
-            return origin_error
+        if requested_error is not None:
+            return requested_error
 
-        if not is_url_allowlisted(final_url, fact_kind) and not is_url_allowlisted(
-            response.requested_url, fact_kind
-        ):
-            return unsuccessful(
-                failure_code=ErrorCode.SOURCE_NOT_ALLOWLISTED,
-                fact_kind=fact_kind,
-                source=SourceMetadata(
-                    url=policy_url,
-                    title=response.title or policy_title,
-                    retrieved_at=response.retrieved_at or "",
-                    final_url=final_url,
-                    content_type=response.content_type,
-                ),
-            )
+        # Exact final URL must equal the policy URL. Do not trust redirected flag
+        # for trust decisions; only use it to select public-safe error codes.
+        # Blank final_url fails closed — never fall back to policy_url.
+        final_url = response.final_url if response.final_url is not None else ""
+        final_error = self._require_exact_policy_url(
+            url=final_url,
+            policy_url=policy_url,
+            fact_kind=fact_kind,
+            role="final",
+            redirected=bool(response.redirected),
+            policy_title=policy_title,
+            content_type=response.content_type,
+            retrieved_at=response.retrieved_at or "",
+        )
+        if final_error is not None:
+            return final_error
+
+        # Canonical equality established — use policy URL as stable final.
+        final_url = policy_url
 
         content_type = (response.content_type or "").split(";")[0].strip().lower()
         if content_type and not any(
@@ -369,44 +377,87 @@ class OfficialSourceFreshnessService:
             age_seconds=freshness.age_seconds,
         )
 
-    def _check_origin_and_redirect(
+    def _require_exact_policy_url(
         self,
         *,
+        url: str | None,
         policy_url: str,
-        final_url: str,
-        redirected: bool,
         fact_kind: FactKind,
+        role: str,
+        redirected: bool,
+        policy_title: str,
+        content_type: str | None,
+        retrieved_at: str,
     ) -> OfficialSourceResult | None:
-        if not is_official_host(final_url):
+        """Require canonical(url) == canonical(policy_url). Never trusts flags.
+
+        Returns an unsuccessful result on failure, or None when exact match holds.
+        Blank / malformed / external / wrong-path all fail closed.
+        """
+        raw = "" if url is None else str(url)
+        display_final = raw.strip() if role == "final" else (
+            raw.strip() or None
+        )
+
+        if not raw.strip():
             return unsuccessful(
-                failure_code=ErrorCode.EXTERNAL_REDIRECT
-                if redirected
-                else ErrorCode.SOURCE_NOT_ALLOWLISTED,
+                failure_code=ErrorCode.SOURCE_NOT_ALLOWLISTED,
                 fact_kind=fact_kind,
                 source=SourceMetadata(
                     url=policy_url,
-                    title="",
-                    retrieved_at="",
-                    final_url=final_url,
+                    title=policy_title,
+                    retrieved_at=retrieved_at,
+                    final_url=display_final if role == "final" else None,
+                    content_type=content_type,
                 ),
             )
 
         policy_canon = canonicalize_official_url(policy_url)
-        final_canon = canonicalize_official_url(final_url)
-        if redirected and policy_canon != final_canon:
-            if not is_url_allowlisted(final_url, fact_kind):
-                return unsuccessful(
-                    failure_code=ErrorCode.EXTERNAL_REDIRECT
-                    if not is_official_host(final_url)
-                    else ErrorCode.SOURCE_NOT_ALLOWLISTED,
-                    fact_kind=fact_kind,
-                    source=SourceMetadata(
-                        url=policy_url,
-                        title="",
-                        retrieved_at="",
-                        final_url=final_url,
-                    ),
-                )
+        url_canon = canonicalize_official_url(raw)
+        if policy_canon is None:
+            return unsuccessful(
+                failure_code=ErrorCode.SOURCE_NOT_ALLOWLISTED,
+                fact_kind=fact_kind,
+            )
+
+        if url_canon is None:
+            # Malformed or non-allowlisted shape. Prefer external_redirect when
+            # a final URL was claimed to redirect off-policy; otherwise
+            # source_not_allowlisted. Never expose raw transport errors.
+            failure = ErrorCode.SOURCE_NOT_ALLOWLISTED
+            if role == "final" and redirected and not is_official_host(raw):
+                failure = ErrorCode.EXTERNAL_REDIRECT
+            elif role == "final" and not redirected and not is_official_host(raw):
+                # External without redirect flag: still untrusted.
+                failure = ErrorCode.SOURCE_NOT_ALLOWLISTED
+            return unsuccessful(
+                failure_code=failure,
+                fact_kind=fact_kind,
+                source=SourceMetadata(
+                    url=policy_url,
+                    title=policy_title,
+                    retrieved_at=retrieved_at,
+                    final_url=raw.strip() if role == "final" else None,
+                    content_type=content_type,
+                ),
+            )
+
+        if url_canon != policy_canon:
+            failure = ErrorCode.SOURCE_NOT_ALLOWLISTED
+            if role == "final" and redirected and not is_official_host(raw):
+                failure = ErrorCode.EXTERNAL_REDIRECT
+            return unsuccessful(
+                failure_code=failure,
+                fact_kind=fact_kind,
+                source=SourceMetadata(
+                    url=policy_url,
+                    title=policy_title,
+                    retrieved_at=retrieved_at,
+                    final_url=raw.strip() if role == "final" else None,
+                    content_type=content_type,
+                ),
+            )
+
         return None
 
 

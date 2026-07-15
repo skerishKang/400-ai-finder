@@ -2,6 +2,15 @@
 
 Stdlib HTML parser only. Fail-closed: missing, ambiguous, placeholder, or
 wrong page identity never invents a civic fact.
+
+Phase-1 truthfulness:
+
+* ``data-official-fact`` markers are deterministic mock-fixture scaffolding
+* the current branch does not prove parsing against the live official mayor page
+* no live official-page validation was executed
+* live official DOM parsing is not yet verified
+* actual official DOM selectors/extraction require a separately approved
+  validation/integration phase
 """
 
 from __future__ import annotations

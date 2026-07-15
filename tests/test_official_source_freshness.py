@@ -37,7 +37,12 @@ from src.official_source.extraction import (
 )
 from src.official_source.freshness import InvalidTimestampError, parse_utc_timestamp
 from src.official_source.normalize import normalize_fact_value
-from src.official_source.policy import OFFICIAL_HOST, allowlisted_urls
+from src.official_source.policy import (
+    OFFICIAL_HOST,
+    allowlisted_urls,
+    canonicalize_official_url,
+    is_official_host,
+)
 from src.official_source.transport import LiveTransportNotAuthorized
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -238,6 +243,21 @@ class TestAllowlistPolicy:
 
     def test_allowlisted_set_closed(self):
         assert len(allowlisted_urls()) == 2
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://bukgu.gwangju.kr:notaport/",
+            "https://bukgu.gwangju.kr:99999/",
+            "https://[invalid/",
+            r"https://bukgu.gwangju.kr\@evil.test/",
+        ],
+    )
+    def test_malformed_port_and_authority_never_raise(self, url: str):
+        assert assess_url_allowlist(url)["allowed"] is False
+        assert canonicalize_official_url(url) is None
+        assert is_official_host(url) is False
+        assert is_url_allowlisted(url) is False
 
 
 # ---------------------------------------------------------------------------
@@ -678,3 +698,189 @@ class TestFailClosed:
         )
         assert result.ok is True
         assert result.value == "픽스처성명"
+
+
+# ---------------------------------------------------------------------------
+# Exact requested / final URL boundary (PR-readiness)
+# ---------------------------------------------------------------------------
+
+
+class TestExactResponseUrls:
+    def _fail(
+        self,
+        result: OfficialSourceResult,
+        code: ErrorCode,
+    ) -> None:
+        assert result.ok is False
+        assert result.value is None
+        assert result.fact is None
+        assert result.failure_code is code
+        assert result.public_safe_message
+        # No raw transport error leakage.
+        assert "boom" not in result.public_safe_message.lower()
+        assert "traceback" not in result.public_safe_message.lower()
+        assert "exception" not in result.public_safe_message.lower()
+
+    def _mayor_service(self, response: TransportResponse) -> OfficialSourceFreshnessService:
+        # Key mock by policy URL (what service requests); response fields vary.
+        return _service_with({MAYOR_URL: response})
+
+    def test_blank_requested_url(self):
+        response = _ok_response(MAYOR_URL, _read_fixture("mayor_page.html"))
+        response = TransportResponse(
+            ok=True,
+            requested_url="",
+            final_url=MAYOR_URL,
+            status_code=200,
+            html=response.html,
+            content_type=response.content_type,
+            retrieved_at=FRESH_RETRIEVED_AT,
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._fail(result, ErrorCode.SOURCE_NOT_ALLOWLISTED)
+
+    def test_mismatched_requested_url(self):
+        response = _ok_response(
+            "https://bukgu.gwangju.kr/menu.es?mid=wrong",
+            _read_fixture("mayor_page.html"),
+            final_url=MAYOR_URL,
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._fail(result, ErrorCode.SOURCE_NOT_ALLOWLISTED)
+
+    def test_same_host_wrong_requested_path(self):
+        wrong = "https://bukgu.gwangju.kr/menu.es?mid=a10406070000"
+        response = _ok_response(
+            wrong, _read_fixture("mayor_page.html"), final_url=MAYOR_URL
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._fail(result, ErrorCode.SOURCE_NOT_ALLOWLISTED)
+
+    def test_external_requested_url(self):
+        response = _ok_response(
+            "https://evil.example/phish",
+            _read_fixture("mayor_page.html"),
+            final_url=MAYOR_URL,
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._fail(result, ErrorCode.SOURCE_NOT_ALLOWLISTED)
+
+    def test_blank_final_url(self):
+        response = TransportResponse(
+            ok=True,
+            requested_url=MAYOR_URL,
+            final_url="",
+            status_code=200,
+            html=_read_fixture("mayor_page.html"),
+            content_type="text/html",
+            retrieved_at=FRESH_RETRIEVED_AT,
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._fail(result, ErrorCode.SOURCE_NOT_ALLOWLISTED)
+
+    def test_same_host_wrong_final_path_redirected_false(self):
+        wrong = "https://bukgu.gwangju.kr/menu.es?mid=a10406070000"
+        response = _ok_response(
+            MAYOR_URL,
+            _read_fixture("mayor_page.html"),
+            final_url=wrong,
+            redirected=False,
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._fail(result, ErrorCode.SOURCE_NOT_ALLOWLISTED)
+
+    def test_same_host_wrong_final_path_redirected_true(self):
+        wrong = "https://bukgu.gwangju.kr/menu.es?mid=a10406070000"
+        response = _ok_response(
+            MAYOR_URL,
+            _read_fixture("mayor_page.html"),
+            final_url=wrong,
+            redirected=True,
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._fail(result, ErrorCode.SOURCE_NOT_ALLOWLISTED)
+
+    def test_external_final_redirected_false(self):
+        response = _ok_response(
+            MAYOR_URL,
+            _read_fixture("mayor_page.html"),
+            final_url="https://evil.example/phish",
+            redirected=False,
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._fail(result, ErrorCode.SOURCE_NOT_ALLOWLISTED)
+
+    def test_external_final_redirected_true(self):
+        response = _ok_response(
+            MAYOR_URL,
+            _read_fixture("mayor_page.html"),
+            final_url="https://evil.example/phish",
+            redirected=True,
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        self._fail(result, ErrorCode.EXTERNAL_REDIRECT)
+
+    def test_exact_final_url_success(self):
+        response = _ok_response(
+            MAYOR_URL,
+            _read_fixture("mayor_page.html"),
+            final_url=MAYOR_URL,
+            redirected=False,
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        assert result.ok is True
+        assert result.value == "픽스처성명"
+
+    def test_exact_final_url_success_with_redirected_true(self):
+        # redirected flag alone does not block exact canonical equality.
+        response = _ok_response(
+            MAYOR_URL,
+            _read_fixture("mayor_page.html"),
+            final_url=MAYOR_URL,
+            redirected=True,
+        )
+        result = self._mayor_service(response).retrieve(
+            "현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT
+        )
+        assert result.ok is True
+        assert result.value == "픽스처성명"
+
+
+class TestPhase1DocumentationContract:
+    def test_package_docs_state_mock_and_no_live_validation(self):
+        init_text = (PACKAGE_DIR / "__init__.py").read_text(encoding="utf-8")
+        extract_text = (PACKAGE_DIR / "extraction.py").read_text(encoding="utf-8")
+        combined = init_text + "\n" + extract_text
+        assert "mock-fixture" in combined or "mock fixture" in combined.lower()
+        assert "no live official-page validation was executed" in combined
+        assert (
+            "live official DOM parsing is not yet verified" in combined
+            or "live official DOM parsing not yet verified" in combined
+            or "does not prove parsing against the live official mayor page" in combined
+        )
+        # Must not claim readiness (allow explicit "not live-ready" denials).
+        lowered = combined.lower()
+        assert "is live-ready" not in lowered
+        assert "is production-ready" not in lowered
+        assert "answer-time live retrieval complete" not in lowered
+        assert "not live-ready" in lowered or "not production-ready" in lowered

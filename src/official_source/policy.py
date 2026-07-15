@@ -88,7 +88,10 @@ def all_policies() -> tuple[OfficialSourcePolicy, ...]:
 
 
 def _reject_reason(url: object) -> str | None:
-    """Return a rejection reason code, or None if the URL shape is acceptable."""
+    """Return a rejection reason code, or None if the URL shape is acceptable.
+
+    Never raises — malformed ports/authority always return a reason string.
+    """
     if not isinstance(url, str) or not url.strip():
         return "empty_url"
     raw = url.strip()
@@ -112,95 +115,134 @@ def _reject_reason(url: object) -> str | None:
         return "disallowed_scheme"
     if not parsed.netloc:
         return "missing_host"
-    if parsed.username is not None or parsed.password is not None or "@" in parsed.netloc:
+
+    # Access authority fields defensively — ``parsed.port`` raises ValueError
+    # for non-numeric or out-of-range ports.
+    try:
+        username = parsed.username
+        password = parsed.password
+        host = (parsed.hostname or "").lower()
+        port = parsed.port
+    except ValueError:
+        return "malformed_port"
+
+    if username is not None or password is not None or "@" in parsed.netloc:
         return "userinfo_present"
 
-    host = (parsed.hostname or "").lower()
     if not host:
         return "missing_host"
     # Exact host match only — reject deceptive suffix/prefix hosts.
     if host != OFFICIAL_HOST:
         return "non_allowlisted_host"
-    if host.endswith(f".{OFFICIAL_HOST}") or OFFICIAL_HOST in host and host != OFFICIAL_HOST:
+    if host.endswith(f".{OFFICIAL_HOST}") or (
+        OFFICIAL_HOST in host and host != OFFICIAL_HOST
+    ):
         return "deceptive_host"
 
-    port = parsed.port
     if port is not None and port != 443:
         return "unexpected_port"
     return None
 
 
 def canonicalize_official_url(url: str) -> str | None:
-    """Return a comparable canonical HTTPS form, or None if rejected."""
-    if _reject_reason(url) is not None:
+    """Return a comparable canonical HTTPS form, or None if rejected.
+
+    Never raises for malformed inputs.
+    """
+    try:
+        if _reject_reason(url) is not None:
+            return None
+        raw = url.strip()
+        parsed = urlparse(raw)
+        try:
+            host = (parsed.hostname or "").lower()
+            _ = parsed.port  # may raise ValueError for malformed ports
+        except ValueError:
+            return None
+        path = parsed.path or "/"
+        if path != "/" and path.endswith("/"):
+            path = path.rstrip("/")
+        query = ""
+        if parsed.query:
+            qs = parse_qs(parsed.query, keep_blank_values=True)
+            parts: list[str] = []
+            for key in sorted(qs.keys()):
+                for value in qs[key]:
+                    parts.append(f"{key}={value}")
+            query = "&".join(parts)
+        return urlunparse(("https", host, path, "", query, ""))
+    except Exception:
         return None
-    raw = url.strip()
-    parsed = urlparse(raw)
-    host = (parsed.hostname or "").lower()
-    path = parsed.path or "/"
-    if path != "/" and path.endswith("/"):
-        path = path.rstrip("/")
-    query = ""
-    if parsed.query:
-        qs = parse_qs(parsed.query, keep_blank_values=True)
-        parts: list[str] = []
-        for key in sorted(qs.keys()):
-            for value in qs[key]:
-                parts.append(f"{key}={value}")
-        query = "&".join(parts)
-    return urlunparse(("https", host, path, "", query, ""))
 
 
 def is_official_host(url: str) -> bool:
-    if _reject_reason(url) is not None:
+    """True only for the exact official HTTPS host. Never raises."""
+    try:
+        if _reject_reason(url) is not None:
+            return False
+        parsed = urlparse(url.strip())
+        try:
+            host = (parsed.hostname or "").lower()
+            _ = parsed.port
+        except ValueError:
+            return False
+        return host == OFFICIAL_HOST
+    except Exception:
         return False
-    parsed = urlparse(url.strip())
-    return (parsed.hostname or "").lower() == OFFICIAL_HOST
 
 
 def assess_url_allowlist(
     url: str,
     fact_kind: FactKind | None = None,
 ) -> dict[str, object]:
-    """Assess whether ``url`` is on the closed official allowlist."""
-    reason = _reject_reason(url)
-    if reason is not None:
-        code = ErrorCode.SOURCE_NOT_ALLOWLISTED
-        if reason == "http_downgrade":
-            code = ErrorCode.SOURCE_NOT_ALLOWLISTED
-        return {
-            "allowed": False,
-            "reason": reason,
-            "failure_code": code,
-            "canonical": None,
-        }
+    """Assess whether ``url`` is on the closed official allowlist. Never raises."""
+    try:
+        reason = _reject_reason(url)
+        if reason is not None:
+            return {
+                "allowed": False,
+                "reason": reason,
+                "failure_code": ErrorCode.SOURCE_NOT_ALLOWLISTED,
+                "canonical": None,
+            }
 
-    canon = canonicalize_official_url(url)
-    if canon is None:
+        canon = canonicalize_official_url(url)
+        if canon is None:
+            return {
+                "allowed": False,
+                "reason": "canonicalize_failed",
+                "failure_code": ErrorCode.SOURCE_NOT_ALLOWLISTED,
+                "canonical": None,
+            }
+
+        if fact_kind is not None:
+            policy = get_policy_for_fact(fact_kind)
+            policy_canon = canonicalize_official_url(policy.url)
+            allowed = canon == policy_canon
+        else:
+            allowed = canon in allowlisted_urls()
+
+        return {
+            "allowed": allowed,
+            "reason": "ok" if allowed else "path_not_allowlisted",
+            "failure_code": None if allowed else ErrorCode.SOURCE_NOT_ALLOWLISTED,
+            "canonical": canon,
+        }
+    except Exception:
         return {
             "allowed": False,
-            "reason": "canonicalize_failed",
+            "reason": "assessment_error",
             "failure_code": ErrorCode.SOURCE_NOT_ALLOWLISTED,
             "canonical": None,
         }
 
-    if fact_kind is not None:
-        policy = get_policy_for_fact(fact_kind)
-        policy_canon = canonicalize_official_url(policy.url)
-        allowed = canon == policy_canon
-    else:
-        allowed = canon in allowlisted_urls()
-
-    return {
-        "allowed": allowed,
-        "reason": "ok" if allowed else "path_not_allowlisted",
-        "failure_code": None if allowed else ErrorCode.SOURCE_NOT_ALLOWLISTED,
-        "canonical": canon,
-    }
-
 
 def is_url_allowlisted(url: str, fact_kind: FactKind | None = None) -> bool:
-    return bool(assess_url_allowlist(url, fact_kind)["allowed"])
+    """Never raises — returns False for any malformed or non-allowlisted input."""
+    try:
+        return bool(assess_url_allowlist(url, fact_kind)["allowed"])
+    except Exception:
+        return False
 
 
 def allowlisted_urls() -> frozenset[str]:
