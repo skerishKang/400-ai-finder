@@ -389,14 +389,23 @@ async function runLocaleTransitionTest(browser, origin) {
   await page.locator("#chat-lang").selectOption("en");
 
   // 6. 다음 조건이 안정화될 때까지 기다림
-  // - document.documentElement.lang === "en"
   await page.waitForFunction(() => document.documentElement.lang === "en");
+  await page.waitForFunction(() => document.body.getAttribute("data-first-use-state") === "entry");
 
-  // - English greeting 표시 및 이전 한국어 user message 제거
-  await page.waitForFunction(() => {
+  const expectedEnWelcome = "Hello. I am BUKGU AI CIVIC NAVIGATOR. Ask about a public service and I will open the relevant screen and guide you through the steps.";
+
+  await page.waitForFunction((expected) => {
     const userBubbles = document.querySelectorAll(".chat-bubble--user");
-    return userBubbles.length === 0;
-  });
+    if (userBubbles.length !== 0) return false;
+
+    const aiBubbles = Array.from(document.querySelectorAll(".chat-bubble--ai"));
+    const hasEnWelcome = aiBubbles.some(b => b.innerText && b.innerText.includes(expected));
+    const hasKoWelcome = aiBubbles.some(b => b.innerText && b.innerText.includes("안녕하세요"));
+
+    return hasEnWelcome && !hasKoWelcome;
+  }, expectedEnWelcome);
+
+  assert.ok(await composer.isEnabled(), `[${label}] composer usable after reset`);
 
   // 7. 지연된 한국어 응답을 resolve
   resolveAsk();
@@ -408,6 +417,7 @@ async function runLocaleTransitionTest(browser, origin) {
   const bodyText = await page.evaluate(() => document.body.innerText);
   assert.ok(!bodyText.includes("Delayed answer ko"), `[${label}] delayed ko leaked`);
   assert.ok(!bodyText.includes("질문을 확인했습니다"), `[${label}] ko ack leaked`);
+  assert.ok(bodyText.includes(expectedEnWelcome), `[${label}] english greeting retained`);
 
   assert.ok(await composer.isEnabled(), `[${label}] composer usable`);
   assert.deepStrictEqual(errors, [], `[${label}] no errors: ${errors.join(" | ")}`);
