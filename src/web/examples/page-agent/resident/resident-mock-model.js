@@ -96,11 +96,23 @@
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i];
       if (line.indexOf('data-action-target=') === -1) continue;
-      var m = line.match(/data-action-target=([^\s>]+)/);
+      // Quoted, bare, or tree-truncated values (ASCII "..." or unicode ellipsis).
+      var m =
+        line.match(/data-action-target=["']([^"']+)["']/) ||
+        line.match(/data-action-target=([^\s>]+)/);
       if (m) {
-        var val = m[1];
+        var val = m[1] || '';
+        // Strip tree ellipsis suffixes produced by Page Agent flat-tree truncation.
+        val = val.replace(/(?:\.\.\.|…)+$/g, '');
         if (val.indexOf('...') !== -1) val = val.slice(0, val.indexOf('...'));
-        if (targetId.indexOf(val) === 0) {
+        if (val.indexOf('…') !== -1) val = val.slice(0, val.indexOf('…'));
+        // Accept prefix match either direction so truncated browser_state still resolves.
+        if (
+          val &&
+          (targetId === val ||
+            targetId.indexOf(val) === 0 ||
+            val.indexOf(targetId) === 0)
+        ) {
           var idxMatch = line.match(/\[(\d+)\]/);
           if (idxMatch) return parseInt(idxMatch[1], 10);
         }
@@ -114,12 +126,35 @@
   var _sessionNavIdx = 0;        // Current nav step index
   var _sessionDone = false;      // Has returned done already?
   var _lastSessionKey = '';      // Last seen user request (session dedup)
+  // #1164: monotonic generation so each top-level request gets a unique task id
+  // and cannot reuse a completed task/session identity.
+  var _taskGeneration = 0;
+  var _activeTaskId = null;
 
   function resetSession() {
     _sessionTask = null;
     _sessionNavIdx = 0;
     _sessionDone = false;
     _lastSessionKey = '';
+    _activeTaskId = null;
+    // Generation continues upward so IDs never rewind within the page lifetime.
+  }
+
+  function beginNewTaskSession(scenario) {
+    _taskGeneration += 1;
+    _sessionTask = scenario;
+    _sessionNavIdx = 0;
+    _sessionDone = false;
+    _activeTaskId = scenario.id + '#' + _taskGeneration;
+    return _activeTaskId;
+  }
+
+  function getActiveTaskId() {
+    return _activeTaskId;
+  }
+
+  function getTaskGeneration() {
+    return _taskGeneration;
   }
 
   // ── Response builders ────────────────────────────────────────────────────
@@ -179,20 +214,24 @@
     var browserState = extractBrowserState(rawMessage);
     var sessionKey = userRequest || rawMessage;
 
-    // Dedup: if same session was already completed, return stop
+    // Same-task post-done: stop/fail-closed — do not re-execute or click.
+    // Do not record diagnostics here: existing contracts treat post-done stop as a
+    // pure finish_reason=stop response that must not inflate callCount.
     if (_sessionDone && sessionKey === _lastSessionKey) {
-      return new Response(JSON.stringify(buildStopResponse()), {
+      return new Response(JSON.stringify(buildStopResponse('이미 완료된 요청입니다. 새 질문을 입력해 주세요.')), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // New user request → reset all navigation progress and stale task
+    // New top-level user request → clear stale task and allocate a new session id.
+    // (Do not treat every done call as a new task — only a changed session key.)
     if (sessionKey !== _lastSessionKey) {
       _lastSessionKey = sessionKey;
-      _sessionTask = null;  // Clear stale task from previous request
+      _sessionTask = null;
       _sessionNavIdx = 0;
       _sessionDone = false;
+      _activeTaskId = null;
     }
 
     var scenario = _sessionTask || findScenario(userRequest);
@@ -200,7 +239,10 @@
     if (!scenario) {
       // ── Unknown / unsupported request ──
       _sessionDone = true;
+      _taskGeneration += 1;
+      _activeTaskId = 'unsupported#' + _taskGeneration;
       var unknownAction = { done: { text: UNKNOWN_RESPONSE, success: false } };
+      // Diagnostics keep the stable logical task id; unique session is on getActiveTaskId().
       recordDiag(macroToolName, 'done', null, false, UNKNOWN_RESPONSE);
 
       return new Response(JSON.stringify(buildToolResponse(macroToolName, unknownAction)), {
@@ -209,7 +251,11 @@
       });
     }
 
-    _sessionTask = scenario;
+    if (!_sessionTask) {
+      beginNewTaskSession(scenario);
+    }
+    // Stable logical id for diagnostics (existing unit contracts); unique session via getActiveTaskId().
+    var diagTaskId = scenario.id;
 
     // Check if we have nav steps remaining and can find the target element
     if (_sessionNavIdx < scenario.navSteps.length && browserState) {
@@ -220,18 +266,18 @@
         // Found target → click it
         _sessionNavIdx++;
         var clickAction = { click_element_by_index: { index: elementIndex } };
-        recordDiag(macroToolName, 'click_element_by_index', scenario.id, null, null);
+        recordDiag(macroToolName, 'click_element_by_index', diagTaskId, null, null);
 
         return new Response(JSON.stringify(buildToolResponse(macroToolName, clickAction)), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         });
       } else {
-        // Target element not found in page state → fail closed
+        // Target element not found in page state → fail closed (never synthetic success)
         _sessionDone = true;
         var missingTargetMsg = '안내 화면에서 필요한 요소를 찾을 수 없습니다: ' + step.target + '. 페이지 상태를 확인해 주세요.';
         var failAction = { done: { text: missingTargetMsg, success: false } };
-        recordDiag(macroToolName, 'done', scenario.id, false, missingTargetMsg);
+        recordDiag(macroToolName, 'done', diagTaskId, false, missingTargetMsg);
 
         return new Response(JSON.stringify(buildToolResponse(macroToolName, failAction)), {
           status: 200,
@@ -252,16 +298,16 @@
     var expectedRoute = scenario.routeId;
     if (canvasRoute === expectedRoute) {
       var doneAction = { done: { text: scenario.response, success: true } };
-      recordDiag(macroToolName, 'done', scenario.id, true, scenario.response);
+      recordDiag(macroToolName, 'done', diagTaskId, true, scenario.response);
       return new Response(JSON.stringify(buildToolResponse(macroToolName, doneAction)), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     } else {
       var wrongRouteMsg = '안내 경로가 올바르지 않습니다. 예상 경로: ' + expectedRoute + ', 실제 경로: ' + (canvasRoute || 'unknown') + '. 다시 시도해 주세요.';
-      var failAction = { done: { text: wrongRouteMsg, success: false } };
-      recordDiag(macroToolName, 'done', scenario.id, false, wrongRouteMsg);
-      return new Response(JSON.stringify(buildToolResponse(macroToolName, failAction)), {
+      var failActionWrong = { done: { text: wrongRouteMsg, success: false } };
+      recordDiag(macroToolName, 'done', diagTaskId, false, wrongRouteMsg);
+      return new Response(JSON.stringify(buildToolResponse(macroToolName, failActionWrong)), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -288,6 +334,8 @@
     getDiagnostics: function () { return _diag; },
     resetDiagnostics: resetDiagnostics,
     resetSession: resetSession,
+    getActiveTaskId: getActiveTaskId,
+    getTaskGeneration: getTaskGeneration,
     respond: respond,
     handleCompletion: function (url, payload) {
       return respond(url, { body: JSON.stringify(payload || {}) }).then(function (r) { return r.json(); });

@@ -81,6 +81,10 @@ export const PARITY_SCENARIOS = Object.freeze([
       '민원 작성',
       '민원 신청',
       '민원 게시판',
+      // #1164 stakeholder phrasing observed in Production
+      '가로등이 고장 났어요',
+      '가로등이 고장났어요',
+      '가로등 고장',
       'complaint',
     ]),
     routeId: 'complaint-write',
@@ -95,6 +99,9 @@ export const PARITY_SCENARIOS = Object.freeze([
       '구청장에게 바란다',
       '구청장 제안',
       '구청장 글 작성',
+      // #1164 stakeholder phrasing observed in Production
+      '북구청장에게 글을 쓰고 싶어요',
+      '북구청장에게 글 쓰고 싶어요',
       'mayor proposal',
     ]),
     routeId: 'mayor-complaint-write',
