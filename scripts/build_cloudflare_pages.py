@@ -51,6 +51,7 @@ import os
 import re
 import shutil
 import sys
+from pathlib import Path
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.abspath(os.path.join(_THIS_DIR, ".."))
@@ -62,10 +63,33 @@ _SAFE_STATIC_RE = re.compile(r"^[가-힣A-Za-z0-9\s\-_,.()/:·]*$")
 
 
 def _ensure_repo_on_path() -> None:
+    """Put this repo first and drop foreign PYTHONPATH ``src`` packages."""
     global _SYS_PATH_SET
-    if not _SYS_PATH_SET:
-        sys.path.insert(0, _REPO_ROOT)
-        _SYS_PATH_SET = True
+    cleaned: list[str] = [_REPO_ROOT]
+    for entry in sys.path:
+        if not entry or entry == _REPO_ROOT:
+            continue
+        path = Path(entry)
+        try:
+            if (path / "src" / "__init__.py").is_file():
+                continue
+            if path.name == "src" and (path / "__init__.py").is_file():
+                continue
+        except OSError:
+            pass
+        cleaned.append(entry)
+    sys.path[:] = cleaned
+    for key in list(sys.modules):
+        if key == "src" or key.startswith("src."):
+            mod = sys.modules[key]
+            file_hint = getattr(mod, "__file__", "") or ""
+            if file_hint and not file_hint.startswith(_REPO_ROOT):
+                del sys.modules[key]
+            elif key == "src":
+                paths = list(getattr(mod, "__path__", []) or [])
+                if paths and not any(p.startswith(_REPO_ROOT) for p in paths):
+                    del sys.modules[key]
+    _SYS_PATH_SET = True
 
 
 # ---------------------------------------------------------------------------
@@ -611,6 +635,9 @@ def _write_file(path: str, content: str) -> None:
 def build(out_dir: str | None = None, mode: str = "static") -> None:
     _ensure_repo_on_path()
     from scripts.generate_bukgu_official_snapshots import check_generated_artifacts
+    from scripts.generate_bukgu_home_clone_fixture import (
+        check_generated_artifacts as check_home_clone_fixture_artifacts,
+    )
 
     stale_snapshot_artifacts = check_generated_artifacts()
     if stale_snapshot_artifacts:
@@ -618,6 +645,16 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
         raise RuntimeError(
             "generated official snapshot artifacts are stale; run "
             f"python scripts/generate_bukgu_official_snapshots.py ({stale})"
+        )
+
+    stale_home_fixture_artifacts = check_home_clone_fixture_artifacts()
+    if stale_home_fixture_artifacts:
+        stale = ", ".join(
+            str(path.relative_to(_REPO_ROOT)) for path in stale_home_fixture_artifacts
+        )
+        raise RuntimeError(
+            "generated home clone fixture artifacts are stale; run "
+            f"python scripts/generate_bukgu_home_clone_fixture.py ({stale})"
         )
 
     # 1. Refresh dist/cloudflare-pages (build-time only output).
