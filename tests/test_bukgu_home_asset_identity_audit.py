@@ -13,15 +13,65 @@ def test_classify_evidence():
     assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100}) == "unhashed"
 
     # Invalid tests
-    assert classify_evidence({"size_bytes": -1, "hashed_byte_count": 100, "sha256": "a"*64}) == "invalid_capture_evidence"
-    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 200, "sha256": "a"*64}) == "invalid_capture_evidence"
-    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "g"*64}) == "invalid_capture_evidence"
-    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "A"*64}) == "invalid_capture_evidence"
-    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "a"*63}) == "invalid_capture_evidence"
-    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "a"*65}) == "invalid_capture_evidence"
-    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "-"*64}) == "invalid_capture_evidence"
-    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "a"*63 + " "}) == "invalid_capture_evidence"
-    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": 123}) == "invalid_capture_evidence"
+    assert classify_evidence({"size_bytes": -1, "hashed_byte_count": 100, "sha256": "a"*64}) == "invalid_evidence"
+    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 200, "sha256": "a"*64}) == "invalid_evidence"
+    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "g"*64}) == "invalid_evidence"
+    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "A"*64}) == "invalid_evidence"
+    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "a"*63}) == "invalid_evidence"
+    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "a"*65}) == "invalid_evidence"
+    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "-"*64}) == "invalid_evidence"
+    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": "a"*63 + " "}) == "invalid_evidence"
+    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 100, "sha256": 123}) == "invalid_evidence"
+
+    # bool tests
+    assert classify_evidence({"size_bytes": True, "hashed_byte_count": 100, "sha256": "a"*64}) == "invalid_evidence"
+    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": False, "sha256": "a"*64}) == "invalid_evidence"
+
+    # SHA=None with invalid size or hashed count
+    assert classify_evidence({"size_bytes": -1, "hashed_byte_count": 100, "sha256": None}) == "invalid_evidence"
+    assert classify_evidence({"size_bytes": 100, "hashed_byte_count": 200, "sha256": None}) == "invalid_evidence"
+
+def test_audit_inventory_invalid_item():
+    import scripts.audit_bukgu_home_asset_identity as audit_module
+
+    item = {
+        "size_bytes": -1,
+        "hashed_byte_count": 100,
+        "sha256": "a"*64,
+        "asset_type": "image"
+    }
+    repo_data = {
+        "enumerated_count": 0,
+        "eligible_count": 0,
+        "excluded_count": 0,
+        "lfs_count": 0,
+        "missing_unreadable_count": 0,
+        "manifest_sha256": "dummy",
+        "index": {}
+    }
+    report = audit_module.audit_inventory({"item_count": 1, "items": [item]}, repo_data, "dummy")
+    summary = report["summary"]
+
+    assert summary["invalid_evidence_count"] == 1
+    assert summary["not_evaluated_invalid_count"] == 1
+    assert report["items"][0]["match_status"] == "not_evaluated_invalid_evidence"
+    assert "invalid_capture_evidence_count" not in summary
+
+    # Evidence class partition sum validation
+    assert summary["full_body_equivalent_hash_count"] + summary["partial_prefix_hash_count"] + summary["unhashed_count"] + summary["invalid_evidence_count"] == summary["asset_total"]
+
+    # Full-hash match outcome partition sum validation
+    assert summary["one_exact_candidate_count"] + summary["multiple_exact_candidates_count"] + summary["no_exact_match_count"] == summary["evaluated_full_hash_count"]
+
+    # Summary exact key-set validation
+    expected_keys = {
+        "asset_total", "full_body_equivalent_hash_count", "partial_prefix_hash_count",
+        "unhashed_count", "invalid_evidence_count", "evaluated_full_hash_count",
+        "one_exact_candidate_count", "multiple_exact_candidates_count", "no_exact_match_count",
+        "not_evaluated_partial_count", "not_evaluated_unhashed_count", "not_evaluated_invalid_count",
+        "by_asset_type", "by_extension", "by_source_section"
+    }
+    assert set(summary.keys()) == expected_keys
 
 def test_exact_matching():
     import scripts.audit_bukgu_home_asset_identity as audit_module

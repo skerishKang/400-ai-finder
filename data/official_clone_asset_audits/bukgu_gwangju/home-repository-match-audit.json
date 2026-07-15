@@ -3,7 +3,7 @@
   "audit_kind": "official_home_asset_repository_identity_audit",
   "audit_generator": {
     "id": "scripts/audit_bukgu_home_asset_identity.py",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "source": {
     "path": "data/official_captures/bukgu_gwangju/home/asset-inventory.json",

@@ -112,20 +112,26 @@ def classify_evidence(item):
     size = item.get("size_bytes")
     hashed_byte_count = item.get("hashed_byte_count")
 
+    if size is not None:
+        if isinstance(size, bool) or not isinstance(size, int) or size < 0:
+            return "invalid_evidence"
+
+    if hashed_byte_count is not None:
+        if isinstance(hashed_byte_count, bool) or not isinstance(hashed_byte_count, int) or hashed_byte_count < 0:
+            return "invalid_evidence"
+
+    if size is not None and hashed_byte_count is not None:
+        if hashed_byte_count > size:
+            return "invalid_evidence"
+
     if sha is None:
         return "unhashed"
 
+    if size is None or hashed_byte_count is None:
+        return "invalid_evidence"
+
     if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha):
-        return "invalid_capture_evidence"
-
-    if size is None or not isinstance(size, int) or size < 0:
-        return "invalid_capture_evidence"
-
-    if hashed_byte_count is None or not isinstance(hashed_byte_count, int) or hashed_byte_count < 0:
-        return "invalid_capture_evidence"
-
-    if hashed_byte_count > size:
-        return "invalid_capture_evidence"
+        return "invalid_evidence"
 
     if hashed_byte_count == size and size > 0:
         return "full_body_equivalent_hash"
@@ -181,22 +187,30 @@ def audit_inventory(inventory, repo_data, inventory_hash):
                 summary["multiple_exact_candidates_count"] += 1
             elif match_status == "no_repo_exact_match":
                 summary["no_exact_match_count"] += 1
+            summary["full_body_equivalent_hash_count"] += 1
 
         elif evidence_class == "partial_prefix_hash":
             match_status = "not_evaluated_partial_hash"
             reason = "partial prefix hash cannot establish full-file identity"
             summary["not_evaluated_partial_count"] += 1
+            summary["partial_prefix_hash_count"] += 1
+
         elif evidence_class == "unhashed":
             match_status = "not_evaluated_unhashed"
             reason = "no captured hash available"
             summary["not_evaluated_unhashed_count"] += 1
-        elif evidence_class == "invalid_capture_evidence":
+            summary["unhashed_count"] += 1
+
+        elif evidence_class == "invalid_evidence":
             match_status = "not_evaluated_invalid_evidence"
             reason = "capture evidence is invalid"
             summary["not_evaluated_invalid_count"] += 1
+            summary["invalid_evidence_count"] += 1
+
+        else:
+            raise ValueError(f"Unknown evidence class: {evidence_class}")
 
         candidate_count = len(candidate_paths)
-        summary[evidence_class + "_count"] = summary.get(evidence_class + "_count", 0) + 1
 
         a_type = item.get("asset_type", "unknown")
         summary["by_asset_type"][a_type] = summary["by_asset_type"].get(a_type, 0) + 1
@@ -229,12 +243,44 @@ def audit_inventory(inventory, repo_data, inventory_hash):
             "reason": reason
         })
 
+    if summary["asset_total"] != len(out_items):
+        raise ValueError("Invariant violation: asset_total != len(items)")
+
+    if summary["full_body_equivalent_hash_count"] + summary["partial_prefix_hash_count"] + summary["unhashed_count"] + summary["invalid_evidence_count"] != summary["asset_total"]:
+        raise ValueError("Invariant violation: full + partial + unhashed + invalid != asset_total")
+
+    if summary["evaluated_full_hash_count"] != summary["full_body_equivalent_hash_count"]:
+        raise ValueError("Invariant violation: evaluated_full_hash_count != full_body_equivalent_hash_count")
+
+    if summary["one_exact_candidate_count"] + summary["multiple_exact_candidates_count"] + summary["no_exact_match_count"] != summary["evaluated_full_hash_count"]:
+        raise ValueError("Invariant violation: one + multiple + no-match != evaluated_full_hash_count")
+
+    if summary["not_evaluated_partial_count"] != summary["partial_prefix_hash_count"]:
+        raise ValueError("Invariant violation: not_evaluated_partial_count != partial_prefix_hash_count")
+
+    if summary["not_evaluated_unhashed_count"] != summary["unhashed_count"]:
+        raise ValueError("Invariant violation: not_evaluated_unhashed_count != unhashed_count")
+
+    if summary["not_evaluated_invalid_count"] != summary["invalid_evidence_count"]:
+        raise ValueError("Invariant violation: not_evaluated_invalid_count != invalid_evidence_count")
+
+    expected_keys = {
+        "asset_total", "full_body_equivalent_hash_count", "partial_prefix_hash_count",
+        "unhashed_count", "invalid_evidence_count", "evaluated_full_hash_count",
+        "one_exact_candidate_count", "multiple_exact_candidates_count", "no_exact_match_count",
+        "not_evaluated_partial_count", "not_evaluated_unhashed_count", "not_evaluated_invalid_count",
+        "by_asset_type", "by_extension", "by_source_section"
+    }
+
+    if set(summary.keys()) != expected_keys:
+        raise ValueError("Invariant violation: unexpected keys in summary")
+
     report = {
         "schema_version": 1,
         "audit_kind": "official_home_asset_repository_identity_audit",
         "audit_generator": {
             "id": "scripts/audit_bukgu_home_asset_identity.py",
-            "version": "1.0.0"
+            "version": "1.1.0"
         },
         "source": {
             "path": "data/official_captures/bukgu_gwangju/home/asset-inventory.json",

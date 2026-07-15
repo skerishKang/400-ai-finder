@@ -24,7 +24,7 @@ Captured assets are classified into one of the following based on provided evide
 - `full_body_equivalent_hash`: The hash covers the full file (`hashed_byte_count == size_bytes` and size > 0).
 - `partial_prefix_hash`: The hash only covers a prefix of the file (`hashed_byte_count < size_bytes`).
 - `unhashed`: The hash is missing or null.
-- `invalid_capture_evidence`: The hash is malformed (violates strict lowercase hexadecimal SHA rule) or the size values are invalid (fail-closed).
+- `invalid_evidence`: The hash is malformed (violates strict lowercase hexadecimal SHA rule) or the size values are invalid (fail-closed).
 
 ## 4. Exact Match Rule
 
