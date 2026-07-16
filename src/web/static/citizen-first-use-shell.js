@@ -1812,6 +1812,17 @@
     }
   }
 
+  function prepareChatForExplicitTurn() {
+    // #1200: before appending a new user message from an explicit turn (chip
+    // click or composer submit), pin the thread to the latest message so that
+    // the subsequent appendChatMessage/wasPinned flow auto-scrolls the
+    // response into view. This preserves #1173 reading-history protection
+    // for passive DOM updates while ensuring explicit user questions are
+    // always visible.
+    if (!chatThread) return;
+    chatThread.scrollTop = chatThread.scrollHeight;
+  }
+
   function appendChatMessage(role, text) {
     if (!chatThread) {
       return null;
@@ -2483,6 +2494,11 @@
       return;
     }
 
+    // #1200: pin chat to latest before any explicit user turn (chip click or
+    // composer submit) so the new user message and AI response are visible.
+    // #1173 reading-history protection continues for passive DOM updates.
+    prepareChatForExplicitTurn();
+
     // #1197: keep recommendation chips expanded after first-question transition.
     // Manual hide/show remains available via the recommendations toggle.
 
@@ -2596,9 +2612,8 @@
         var action = resolveMvpActionForQuestion(question, result, hasUsableMvpResult);
 
         // Supported question with unusable bridge result: suppress the
-        // "연결하지 못했습니다" bubble and fall back to the existing
-        // deterministic local journey. The user message is already echoed
-        // above; split.ready and confirm-run each appear exactly once.
+        // "연결하지 못했습니다" bubble and fall back to the existing deterministic local journey.
+        // The user message is already echoed above; split.ready and confirm-run each appear exactly once.
         if (!hasUsableMvpResult && action !== "none") {
           clearQuestRuntimeState();
           _executeSplitAction(question, action);
