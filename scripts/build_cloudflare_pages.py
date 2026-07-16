@@ -777,7 +777,34 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
     #    the Buk-gu MVP or its live bridge.
     examples_src = os.path.join(EXAMPLES_DIR, "page-agent")
     if os.path.isdir(examples_src):
-        _copy_tree(examples_src, os.path.join(dist_root, "examples", "page-agent"))
+        examples_dst = os.path.join(dist_root, "examples", "page-agent")
+        _copy_tree(examples_src, examples_dst)
+        # #1170: resident embeds the civic canvas, which fail-closes home without
+        # the browser fixture global. Ensure the script is present even if a
+        # stale examples tree is copied.
+        resident_index = os.path.join(examples_dst, "resident", "index.html")
+        if os.path.isfile(resident_index):
+            with open(resident_index, encoding="utf-8") as handle:
+                resident_html = handle.read()
+            fixture_tag = (
+                '<script src="../../../static/bukgu-home-clone-fixture.js"></script>'
+            )
+            if "bukgu-home-clone-fixture.js" not in resident_html:
+                if "bukgu-official-snapshots.js" in resident_html:
+                    resident_html = resident_html.replace(
+                        '<script src="../../../static/bukgu-official-snapshots.js"></script>',
+                        '<script src="../../../static/bukgu-official-snapshots.js"></script>\n'
+                        + fixture_tag,
+                        1,
+                    )
+                else:
+                    resident_html = resident_html.replace(
+                        '<script src="../../../static/citizen-action-demo-canvas.js"></script>',
+                        fixture_tag
+                        + '\n<script src="../../../static/citizen-action-demo-canvas.js"></script>',
+                        1,
+                    )
+                _write_file(resident_index, resident_html)
         print("[build] copied examples/page-agent")
 
     # 9b. Copy compare (stakeholder comparison gateway) — static page only.

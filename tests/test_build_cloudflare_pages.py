@@ -206,6 +206,22 @@ def test_static_html_loads_first_use_shell_in_order(build_dir):
         "citizen-first-use-shell.js must load before citizen-first-choreography.js"
     )
 
+
+def test_resident_demo_loads_home_clone_fixture_before_canvas(build_dir):
+    """#1170: resident embeds civic canvas and must load the home fixture global
+    before canvas so Page Agent home targets remain available."""
+    html_path = os.path.join(
+        build_dir, "examples", "page-agent", "resident", "index.html"
+    )
+    assert os.path.isfile(html_path), "resident demo index missing from build"
+    html = open(html_path, encoding="utf-8").read()
+    snapshot_idx = html.index("bukgu-official-snapshots.js")
+    fixture_idx = html.index("bukgu-home-clone-fixture.js")
+    canvas_idx = html.index("citizen-action-demo-canvas.js")
+    assert snapshot_idx < fixture_idx < canvas_idx, (
+        "resident must load home fixture after snapshots and before canvas"
+    )
+
     built_snapshot = os.path.join(build_dir, "static", "bukgu-official-snapshots.js")
     source_snapshot = os.path.join(
         _REPO_ROOT, "src", "web", "static", "bukgu-official-snapshots.js"
