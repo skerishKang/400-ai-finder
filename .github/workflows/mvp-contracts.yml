@@ -77,6 +77,9 @@ jobs:
       - name: Run responsive browser contract
         run: node tests/browser/verify_first_use_responsive.mjs
 
+      - name: Run entry chat space browser contract (#1190)
+        run: node tests/browser/verify_entry_chat_space_e2e.mjs
+
       - name: Run decorative AI labels a11y browser contract (#1175)
         run: node tests/browser/verify_decorative_ai_labels_a11y.mjs
 

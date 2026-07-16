@@ -1022,3 +1022,66 @@ def test_padiem_shell_js_does_not_reinsert_attribution():
     assert "chatThread.innerHTML" in JS
     assert "chat-shell.innerHTML" not in JS
     assert 'getElementById("chat-shell").innerHTML' not in JS
+
+# ── #1190: entry chat space reclaim + recommendations utility toggle ──
+
+
+def test_entry_chat_chips_do_not_flex_grow_empty_space():
+    """Entry chips must size to content (flex-grow 0), not claim leftover height."""
+    marker = 'body[data-first-use-state="entry"] .chat-chips {'
+    assert marker in CSS
+    # Use the first (desktop base) entry chips rule, not the mobile override later.
+    start = CSS.index(marker)
+    block = CSS[start : CSS.index("}", start) + 1]
+    assert "flex: 0 1 auto" in block or "flex: 0 0 auto" in block
+    assert "flex: 1 1 auto" not in block
+    assert "flex-wrap: wrap" in block
+
+    thread_marker = 'body[data-first-use-state="entry"] .chat-thread {'
+    assert thread_marker in CSS
+    t_start = CSS.index(thread_marker)
+    t_block = CSS[t_start : CSS.index("}", t_start) + 1]
+    assert "flex: 1 1 auto" in t_block or "flex: 1" in t_block
+    assert "min-height: 0" in t_block
+    assert "overflow-y: auto" in t_block
+
+
+def test_composer_utility_hosts_recommendations_toggle_mount():
+    """Hint + toggle mount live in composer footer utility (not above chips)."""
+    assert 'class="chat-composer__utility"' in HTML
+    assert 'id="chat-recommendations-toggle-mount"' in HTML
+    assert 'class="chat-composer__hint"' in HTML
+    utility = HTML[
+        HTML.index('class="chat-composer__utility"') : HTML.index(
+            "</div>", HTML.index('class="chat-composer__utility"')
+        )
+        + 6
+    ]
+    assert "chat-composer__hint" in utility
+    assert "chat-recommendations-toggle-mount" in utility
+    # Mount is inside the form after the input row.
+    assert HTML.index("chat-composer-form") < HTML.index("chat-composer__utility")
+    assert HTML.index("chat-composer-input") < HTML.index("chat-composer__utility")
+    assert HTML.index("chat-chips") < HTML.index("chat-composer__utility")
+
+
+def test_recommendations_toggle_mounts_in_utility_not_before_chips():
+    assert "function _initRecommendationsToggle" in JS
+    init = JS[JS.index("function _initRecommendationsToggle") : JS.index("function _initRecommendationsToggle") + 1200]
+    assert "chat-recommendations-toggle-mount" in init
+    assert "appendChild(recommendationsToggle)" in init
+    assert "insertBefore(recommendationsToggle, chipsContainer)" not in JS
+    assert 'aria-controls", "chat-chips"' in JS or "aria-controls\", \"chat-chips\"" in JS
+    assert "data-recommendations-expanded" in JS
+    assert "_collapseRecommendations" in JS
+    assert "_expandRecommendations" in JS
+
+
+def test_composer_utility_css_wrap_contract():
+    assert ".chat-composer__utility {" in CSS
+    util = CSS[CSS.index(".chat-composer__utility {") :]
+    util = util[: util.index("}") + 1]
+    assert "display: flex" in util
+    assert "flex-wrap: wrap" in util
+    assert "justify-content: space-between" in util
+    assert "max-width: 100%" in util
