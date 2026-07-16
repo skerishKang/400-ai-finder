@@ -35,7 +35,9 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Mobile surface switch — shown only on mobile via JS (hidden attr) + media query */
+/* Mobile surface switch — shown only on mobile via JS (hidden attr) + media query.
+   #1183: keep above canvas during guidance so the cancel control is the real
+   pointer hit target (conversation chrome is inert while guidance is active). */
 .resident-mobile-switch {
   display: none;
   align-items: center;
@@ -44,7 +46,8 @@ html, body {
   border-bottom: 1px solid var(--chat-border);
   background: var(--bg);
   flex-shrink: 0;
-  z-index: 2;
+  position: relative;
+  z-index: 20;
 }
 
 .resident-mobile-switch__tab {
@@ -87,6 +90,13 @@ html, body {
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
+  pointer-events: auto;
+  position: relative;
+  z-index: 21;
+}
+
+.resident-mobile-switch__cancel[hidden] {
+  display: none !important;
 }
 
 .resident-mobile-switch__cancel:hover {
