@@ -1099,6 +1099,36 @@
     return item.effective_variant || item.variant || item.visibility || "desktop";
   }
 
+  function _homeItemHasText(item) {
+    return !!(item && item.text != null && String(item.text).replace(/\s+/g, "").length);
+  }
+
+  function _homeItemHasDate(item) {
+    return !!(item && item.date_text != null && String(item.date_text).replace(/\s+/g, "").length);
+  }
+
+  function _homeItemHasHref(item) {
+    return !!(
+      (item && item.href != null && String(item.href) !== "") ||
+      (item && item.resolved_url != null && String(item.resolved_url) !== "")
+    );
+  }
+
+  // #1192: main_banner link-only structural stubs (no copy/asset, no local action).
+  // Keep DOM metadata; do not participate in visual rail layout.
+  function _isMainBannerMetadataOnly(item, regionId, actionTarget) {
+    if (regionId !== "main_banner") return false;
+    if (actionTarget) return false;
+    if (item && item.asset_url) return false;
+    if (_homeItemHasText(item) || _homeItemHasDate(item)) return false;
+    return _homeItemHasHref(item);
+  }
+
+  // #1192: primary visual campaign cards (unresolved official bitmaps → local fallback UI).
+  function _isMainBannerVisualCard(item, regionId) {
+    return regionId === "main_banner" && !!(item && item.asset_url) && _homeItemHasText(item);
+  }
+
   // Emit mayor entry as a source literal so permanent snapshot contracts can
   // statically verify independent mayor-journey wiring without weakening checks.
   function _homeActionTargetAttr(actionTarget) {
@@ -1108,12 +1138,17 @@
     return ' data-action-target="' + _escHtml(actionTarget) + '"';
   }
 
-  function _renderHomeFixtureItem(item, actionTarget) {
+  function _renderHomeFixtureItem(item, actionTarget, regionId) {
     var variant = _homeItemVariant(item);
     var hidden = _homeItemIsHidden(item);
+    var rid = regionId || "";
+    var metadataOnly = _isMainBannerMetadataOnly(item, rid, actionTarget);
+    var visualCard = _isMainBannerVisualCard(item, rid);
     var classes = "bg-home-fixture-item bg-home-fixture-item--" + _escHtml(variant);
     if (hidden) classes += " bg-home-fixture-item--hidden";
     if (item.group) classes += " bg-home-fixture-item--grouped";
+    if (metadataOnly) classes += " bg-home-fixture-item--metadata-only";
+    if (visualCard) classes += " bg-home-fixture-item--visual-card";
 
     var attrs =
       ' data-home-item-id="' + _escHtml(item.item_id) + '"' +
@@ -1145,10 +1180,29 @@
     if (item.title_attr) {
       attrs += ' title="' + _escHtml(String(item.title_attr)) + '"';
     }
+    if (metadataOnly) {
+      attrs += ' data-home-presentation="metadata-only"';
+    } else if (visualCard) {
+      attrs += ' data-home-presentation="visual-card" data-asset-state="unresolved"';
+    } else if (rid === "main_banner" && _homeItemHasText(item) && !item.asset_url) {
+      // e.g. "비주얼 모아보기" control — keep visible, not a campaign card.
+      attrs += ' data-home-presentation="control"';
+    }
 
     var body = "";
     if (item.asset_url) {
-      body += '<span class="bg-home-fixture-asset" aria-hidden="true"></span>';
+      if (visualCard) {
+        // Deliberate local-only fallback: never remote official bitmap src.
+        body +=
+          '<span class="bg-home-fixture-asset bg-home-fixture-asset--unresolved"' +
+            ' data-asset-state="unresolved" role="img"' +
+            ' aria-label="원본 배너 이미지 미연결">' +
+            '<span class="bg-home-fixture-asset__panel" aria-hidden="true"></span>' +
+            '<span class="bg-home-fixture-sr-only">원본 배너 이미지 미연결</span>' +
+          "</span>";
+      } else {
+        body += '<span class="bg-home-fixture-asset" aria-hidden="true"></span>';
+      }
     }
     if (item.date_text) {
       body += '<span class="bg-home-fixture-item__date">' + _escHtml(String(item.date_text)) + '</span>';
@@ -1162,6 +1216,7 @@
     var canMap =
       !!actionTarget &&
       !hidden &&
+      !metadataOnly &&
       item.same_origin === true;
 
     if (canMap) {
@@ -1174,9 +1229,9 @@
       );
     }
 
-    // Cross-origin / unmapped / hidden: inert, never remote navigation.
+    // Cross-origin / unmapped / hidden / metadata-only: inert, never remote navigation.
     var inertAttrs = attrs;
-    if (hidden) {
+    if (hidden || metadataOnly) {
       inertAttrs += ' aria-hidden="true" tabindex="-1"';
     } else {
       inertAttrs += ' tabindex="-1" aria-disabled="true"';
@@ -1239,21 +1294,33 @@
           var item = region.items[i];
           if ((item.group || "") !== label) continue;
           rendered[item.item_id] = true;
-          html += _renderHomeFixtureItem(item, actionMap["item:" + item.item_id] || null);
+          html += _renderHomeFixtureItem(
+            item,
+            actionMap["item:" + item.item_id] || null,
+            region.region_id
+          );
         }
         html += '</div>';
       }
       for (var j = 0; j < region.items.length; j++) {
         var it = region.items[j];
         if (rendered[it.item_id]) continue;
-        html += _renderHomeFixtureItem(it, actionMap["item:" + it.item_id] || null);
+        html += _renderHomeFixtureItem(
+          it,
+          actionMap["item:" + it.item_id] || null,
+          region.region_id
+        );
       }
       html += '</div>';
     } else {
       html += '<div class="bg-home-fixture-items">';
       for (var k = 0; k < region.items.length; k++) {
         var row = region.items[k];
-        html += _renderHomeFixtureItem(row, actionMap["item:" + row.item_id] || null);
+        html += _renderHomeFixtureItem(
+          row,
+          actionMap["item:" + row.item_id] || null,
+          region.region_id
+        );
       }
       html += '</div>';
     }
