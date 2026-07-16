@@ -36,19 +36,19 @@
 
 ## Desktop full / default (1440×900)
 
-<!-- Reference screenshot at 1440×900 full-width state and candidate screenshot at same viewport. N/A with explicit reason permitted only when the state does not exist for the route. Forbidden for first promotion, material visual composition change, and baseline supersession. -->
+<!-- Reference screenshot at 1440×900 full-width state and candidate screenshot at same viewport. N/A with an explicit reason is permitted when: the state does not exist for the route; or the PR is docs-only, policy-only, or otherwise non-visual. Viewport evidence N/A is forbidden for: first promotion; material visual composition changes; and baseline supersession. -->
 
 ## Desktop split (1440×900)
 
-<!-- Reference screenshot at 1440×900 desktop split state and candidate screenshot at same viewport. N/A with explicit reason permitted only when the state does not exist for the route. Forbidden for first promotion, material visual composition change, and baseline supersession. -->
+<!-- Reference screenshot at 1440×900 desktop split state and candidate screenshot at same viewport. N/A with an explicit reason is permitted when: the state does not exist for the route; or the PR is docs-only, policy-only, or otherwise non-visual. Viewport evidence N/A is forbidden for: first promotion; material visual composition changes; and baseline supersession. -->
 
 ## Desktop split (1440×760)
 
-<!-- Reference screenshot at 1440×760 desktop split state and candidate screenshot at same viewport. N/A with explicit reason permitted only when the state does not exist for the route. Forbidden for first promotion, material visual composition change, and baseline supersession. -->
+<!-- Reference screenshot at 1440×760 desktop split state and candidate screenshot at same viewport. N/A with an explicit reason is permitted when: the state does not exist for the route; or the PR is docs-only, policy-only, or otherwise non-visual. Viewport evidence N/A is forbidden for: first promotion; material visual composition changes; and baseline supersession. -->
 
 ## Mobile entry / guidance (390×844)
 
-<!-- Reference screenshot(s) at 390×844 mobile state(s) and candidate screenshot(s) at same viewport. N/A with explicit reason permitted only when the state does not exist for the route. If entry and guidance states both exist and have visibly different compositions, both must be captured. Forbidden for first promotion, material visual composition change, and baseline supersession. -->
+<!-- Reference screenshot(s) at 390×844 mobile state(s) and candidate screenshot(s) at same viewport. N/A with an explicit reason is permitted when: the state does not exist for the route; or the PR is docs-only, policy-only, or otherwise non-visual. If entry and guidance states both exist and have visibly different compositions, both states must be captured. Viewport evidence N/A is forbidden for: first promotion; material visual composition changes; and baseline supersession. -->
 
 ## Material visual differences
 
