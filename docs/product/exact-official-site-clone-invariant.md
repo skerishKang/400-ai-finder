@@ -5,6 +5,11 @@
 > product direction / design direction / route·quest / civic canvas / build·deploy /
 > reference ledger / visual review / official-site integration / fixture·snapshot /
 > testing 문서는 이 문서를 단일 원천(canonical)으로 인용한다.
+>
+> Supplemental policy: [`docs/product/clone-visual-fidelity-and-promotion-policy.md`](./clone-visual-fidelity-and-promotion-policy.md)
+> governs visual approval, resident-default promotion, and incident procedures.
+> This invariant defines the content and structure requirements for exact clone;
+> the supplemental policy defines how a renderer becomes an approved resident-facing default.
 
 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
 
@@ -165,9 +170,40 @@
 - milestone, snapshot, closeout 문서는 남은 capture_required 항목을 정직하게 반영해야 한다.
 - 목표 또는 정책으로서의 exact clone 요구는 허용된다 (예: "Exact clone is the required target").
 
+## Fixture completeness와 visual approval 분리
+
+structural fixture completeness와 visual approval은 별개의 readiness dimension이다.
+
+- fixture가 official page의 모든 text/link/DOM 구조를 포함해도 visual approval이 완료된 것은 아니다.
+- manifest의 `capture_required` 상태는 해당 route가 exact도 아니고 resident-default approved도 아님을 의미한다.
+- text/link/DOM completeness만으로 `exact`를 주장할 수 없다.
+- unresolved official imagery를 generic visual fallback, emoji, 또는 임의 placeholder로 대체한 결과는 exact resident-facing clone이 아니다.
+- preview/debug 경로의 candidate renderer가 resident default route를 자동으로 통제하지 않는다.
+
+## Screenshot evidence와 approval 분리
+
+- screenshot을 생성했다는 사실만으로 visual approval이 이루어지지 않는다.
+- side-by-side reference comparison이 없는 screenshot은 증거(evidence)일 뿐이며 approval이 아니다.
+- CI, automated screenshot diff, model review, developer self-review, local-worker 보고는 승인 권한(authority)이 없다. 이들은 project owner에게 증거를 제공할 뿐이다.
+
+## Promotion 승인
+
+- 최초 resident-default promotion 승인자는 **project owner**이다. Project owner만이 직접 시각 검토 후 명시적 기록으로 승인할 수 있다.
+- CI, model, developer, local worker는 증거 제공자이며 승인자가 아니다.
+- 승인된 renderer는 다음 정보로 식별되어야 한다: renderer identity, PR head SHA, approval baseline SHA, approval record path.
+
+## 승인 기록
+
+- 각 promotion은 `docs/artifacts/visual-approvals/<site_id>/<route_id>/<pr-number>-<head-sha>/approval.md`에 기록된다.
+- 승인 기록이 없거나 불완전하면 resident default로 승격하지 않는다.
+
+정책 전반은 [`docs/product/clone-visual-fidelity-and-promotion-policy.md`](./clone-visual-fidelity-and-promotion-policy.md)를 참조한다.
+
 ## 관련 문서
 
 - primary README — 좌측 화면 exact clone 철칙 명시 + 본 문서 링크
+- `docs/product/clone-visual-fidelity-and-promotion-policy.md` — promotion 정책, approval gate, incident 절차
+- `docs/product/clone-first-general-site-platform-strategy.md` — clone-first multi-site 전략
 - `docs/mvp-demo-milestone-snapshot.md`
 - `docs/design_mockups.md`
 - `docs/ui-comparison-analysis-2026-07-10.md`
