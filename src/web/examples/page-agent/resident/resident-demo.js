@@ -329,7 +329,15 @@
     isRunning = running;
     chatInput.disabled = running;
     chatSend.disabled = running;
-    if (chatCancel) chatCancel.style.display = running ? "inline-flex" : "none";
+    // Desktop: #chat-cancel is the owner. Mobile guidance conceals conversation
+    // (inert/hidden), so #page-agent-mobile-cancel is the canonical owner.
+    if (chatCancel) {
+      if (_isMobileViewport) {
+        chatCancel.style.display = "none";
+      } else {
+        chatCancel.style.display = running ? "inline-flex" : "none";
+      }
+    }
     updateMobileCancelVisibility();
     if (running) {
       chatInput.placeholder = "안내를 진행하는 중입니다...";
@@ -405,17 +413,24 @@
 
   function stopAgent(options) {
     options = options || {};
+    // #1183: cancel is terminal for this generation. Keep the flag until a
+    // fresh sendMessage so late Page Agent lifecycle events cannot revive the
+    // run as success/result.
     _userCancelled = true;
     _sendToken += 1;
     clearActiveWork();
-    if (agent && isRunning) {
+    // Always request agent stop when present (do not depend on isRunning race).
+    if (agent) {
       try {
         agent.stop();
       } catch (_) {}
     }
     removeThinkingMessage();
     setRunning(false);
-    if (options.silent) return;
+    if (options.silent) {
+      setPlanState("cancelled");
+      return;
+    }
     setStatus("취소됨", "");
     setPlanState("cancelled");
     // Show cancelled status in conversation; no auto composer focus.
@@ -423,6 +438,11 @@
   }
 
   function localCustomFetch(input, init) {
+    // #1183: refuse further model/tool loop traffic after user cancel.
+    if (_userCancelled) {
+      return Promise.reject(new Error("page_agent_cancelled"));
+    }
+
     // Server plan armed → drive real Page Agent tool loop from plan steps.
     if (_planFetchAdapter && typeof _planFetchAdapter.respond === "function") {
       var raw = input instanceof Request ? input.url : String(input);
@@ -444,6 +464,9 @@
     }
     if (url2.pathname !== expectedPath) {
       return Promise.reject(new Error("Blocked unexpected request"));
+    }
+    if (_userCancelled) {
+      return Promise.reject(new Error("page_agent_cancelled"));
     }
     return window.PageAgentMockModel.respond(input, init);
   }
@@ -473,6 +496,29 @@
 
     agent.addEventListener("statuschange", function () {
       var status = agent.status;
+
+      // #1183: user cancel is terminal. Ignore late running/completed events that
+      // would otherwise rewrite cancelled → executing/result with lastSuccess=true.
+      if (_userCancelled || _planState === "cancelled") {
+        if (status === "running") {
+          try {
+            agent.stop();
+          } catch (_) {}
+          return;
+        }
+        if (status === "completed" || status === "error" || status === "stopped") {
+          removeThinkingMessage();
+          _planFetchAdapter = null;
+          _activeRequestId = null;
+          setRunning(false);
+          setStatus("취소됨", "");
+          setPlanState("cancelled");
+          setMobileSurface("conversation");
+          // Keep _userCancelled until the next sendMessage.
+        }
+        return;
+      }
+
       if (status === "running") {
         setStatus("실행 중...", "chat-header__status--active");
         setRunning(true);
@@ -498,7 +544,6 @@
         _planFetchAdapter = null;
         _activeRequestId = null;
         setRunning(false);
-        _userCancelled = false;
         // Result keeps guidance surface; resident may manually switch to 대화.
       } else if (status === "error" || status === "stopped") {
         removeThinkingMessage();
@@ -507,28 +552,22 @@
         setRunning(false);
         if (status === "stopped") {
           setStatus("취소됨", "");
-          // User cancel already set cancelled; agent stop after cancel should not
-          // flip success/history. If stop arrived without user cancel, mark cancelled.
-          if (_userCancelled || _planState === "cancelled") {
-            setPlanState("cancelled");
-          } else {
-            setPlanState("cancelled");
-          }
+          setPlanState("cancelled");
           setMobileSurface("conversation");
         } else {
           setStatus("오류", "chat-header__status--error");
-          if (!_userCancelled) {
-            addErrorMessage("안내 진행 중 오류가 발생했습니다.");
-            setPlanState("error");
-          }
+          addErrorMessage("안내 진행 중 오류가 발생했습니다.");
+          setPlanState("error");
           // Keep conversation so resident can read the error copy.
           setMobileSurface("conversation");
         }
-        _userCancelled = false;
       }
     });
 
     agent.addEventListener("activity", function (e) {
+      if (_userCancelled || _planState === "cancelled") {
+        return;
+      }
       var detail = e.detail;
       if (detail && detail.type === "executing") {
         var toolName = detail.tool;
