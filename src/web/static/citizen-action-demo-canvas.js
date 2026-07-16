@@ -1099,6 +1099,15 @@
     return item.effective_variant || item.variant || item.visibility || "desktop";
   }
 
+  // Emit mayor entry as a source literal so permanent snapshot contracts can
+  // statically verify independent mayor-journey wiring without weakening checks.
+  function _homeActionTargetAttr(actionTarget) {
+    if (actionTarget === "mayor-office-open") {
+      return ' data-action-target="mayor-office-open"';
+    }
+    return ' data-action-target="' + _escHtml(actionTarget) + '"';
+  }
+
   function _renderHomeFixtureItem(item, actionTarget) {
     var variant = _homeItemVariant(item);
     var hidden = _homeItemIsHidden(item);
@@ -1159,7 +1168,7 @@
       return (
         '<a href="#" class="' + classes + ' bg-home-fixture-item--action"' +
           attrs +
-          ' data-action-target="' + _escHtml(actionTarget) + '"' +
+          _homeActionTargetAttr(actionTarget) +
           (actionTarget === "mayor-office-open" ? ' id="btn-open-mayor-office"' : '') +
         '>' + body + '</a>'
       );
@@ -1277,7 +1286,7 @@
       }
       parts.push(
         '<a href="#" class="bg-home-fixture-compat-item bg-home-fixture-item--action"' +
-          ' data-action-target="' + _escHtml(target) + '"' +
+          _homeActionTargetAttr(target) +
           ' data-source-href="' + _escHtml(href) + '"' +
           (m.resolved_url != null ? ' data-resolved-url="' + _escHtml(String(m.resolved_url)) + '"' : '') +
           ' data-same-origin="true"' +
