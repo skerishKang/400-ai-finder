@@ -77,6 +77,14 @@ _POLICIES: Final[dict[FactKind, OfficialSourcePolicy]] = {
 
 
 def get_policy_for_fact(fact_kind: FactKind) -> OfficialSourcePolicy:
+    """Return Phase-1 HTML allowlist policy when defined.
+
+    Expanded fact kinds without a dedicated HTML policy raise KeyError so
+    callers use the search pipeline instead of inventing a URL.
+    ``DISTRICT_EXECUTIVE`` maps to the Phase-1 mayor page policy.
+    """
+    if fact_kind is FactKind.DISTRICT_EXECUTIVE:
+        return _POLICIES[FactKind.CURRENT_MAYOR]
     try:
         return _POLICIES[fact_kind]
     except KeyError as exc:
@@ -84,7 +92,8 @@ def get_policy_for_fact(fact_kind: FactKind) -> OfficialSourcePolicy:
 
 
 def all_policies() -> tuple[OfficialSourcePolicy, ...]:
-    return tuple(_POLICIES[kind] for kind in FactKind)
+    """Return only configured HTML allowlist policies (not every FactKind)."""
+    return tuple(_POLICIES.values())
 
 
 def _reject_reason(url: object) -> str | None:

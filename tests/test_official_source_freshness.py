@@ -184,7 +184,6 @@ class TestClassification:
             "북구청에 민원 넣어줘",
             "여권 신청해줘",
             "쓰레기 신고해줘",
-            "광주시장은 누구야",
             "전국 구청장 목록을 알려줘",
         ],
     )
@@ -193,6 +192,12 @@ class TestClassification:
         assert result.supported is False
         assert result.fact_kind is None
         assert result.failure_code is ErrorCode.UNSUPPORTED_QUESTION
+
+    def test_regional_executive_is_supported_not_rejected(self):
+        # Expanded #1150: city-mayor seat is a current-fact kind (values from retrieval).
+        result = classify_question("광주시장은 누구야")
+        assert result.supported is True
+        assert result.fact_kind is FactKind.REGIONAL_EXECUTIVE
 
     @pytest.mark.parametrize("question", [None, 123, "", "   "])
     def test_invalid_input(self, question):
@@ -211,8 +216,10 @@ class TestClassification:
 
 class TestAllowlistPolicy:
     def test_approved_canonical_accepted(self):
-        for kind in FactKind:
-            policy = get_policy_for_fact(kind)
+        from src.official_source.policy import all_policies
+
+        for policy in all_policies():
+            kind = policy.fact_kind
             assert is_url_allowlisted(policy.url, kind)
             assert assess_url_allowlist(policy.url, kind)["allowed"] is True
             assert OFFICIAL_HOST in policy.url
