@@ -5,11 +5,11 @@ Buk-gu Gwangju MVP resident-task shell **without reading implementation
 history**. It is docs-only guidance for the locked local/static surface.
 
 > 좌측 시민 사이트 공식 페이지 clone은 canonical invariant를 따른다:
-> [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md).
+> [product/exact-official-site-clone-invariant.md](product/exact-official-site-clone-invariant.md).
 > 이 runbook은 exact-clone 계약을 약화하지 않는다.
 > Live retrieval이나 분석은 canonical fixture 기반 왼쪽 화면을 대체하지 않는다.
 > Visual fidelity and promotion governance:
-> [docs/product/clone-visual-fidelity-and-promotion-policy.md](docs/product/clone-visual-fidelity-and-promotion-policy.md).
+> [product/clone-visual-fidelity-and-promotion-policy.md](product/clone-visual-fidelity-and-promotion-policy.md).
 > Fixture/structural readiness는 visual approval과 별개이며, resident-default promotion은 해당 정책을 따른다.
 
 > **Related contract:** [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md)
@@ -290,7 +290,7 @@ node tests/browser/verify_mvp_shell_runtime.mjs
 Fidelity contract (locked paths, prohibited regressions, E2E file mapping):
 
 - [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md)
-- [`docs/product/exact-official-site-clone-invariant.md`](docs/product/exact-official-site-clone-invariant.md)
+- [`product/exact-official-site-clone-invariant.md`](product/exact-official-site-clone-invariant.md)
 
 Static Pages build / deploy context (backend-free artifact):
 

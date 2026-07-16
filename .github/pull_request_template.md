@@ -36,19 +36,19 @@
 
 ## Desktop full / default (1440×900)
 
-<!-- Reference screenshot at 1440×900 full-width state and candidate screenshot at same viewport. N/A requires explicit reason. Forbidden for first promotion and material visual composition change. -->
+<!-- Reference screenshot at 1440×900 full-width state and candidate screenshot at same viewport. N/A with explicit reason permitted only when the state does not exist for the route. Forbidden for first promotion, material visual composition change, and baseline supersession. -->
 
 ## Desktop split (1440×900)
 
-<!-- Reference screenshot at 1440×900 desktop split state and candidate screenshot at same viewport. N/A requires explicit reason. Forbidden for first promotion and material visual composition change. -->
+<!-- Reference screenshot at 1440×900 desktop split state and candidate screenshot at same viewport. N/A with explicit reason permitted only when the state does not exist for the route. Forbidden for first promotion, material visual composition change, and baseline supersession. -->
 
 ## Desktop split (1440×760)
 
-<!-- Reference screenshot at 1440×760 desktop split state and candidate screenshot at same viewport. N/A requires explicit reason. Forbidden for first promotion and material visual composition change. -->
+<!-- Reference screenshot at 1440×760 desktop split state and candidate screenshot at same viewport. N/A with explicit reason permitted only when the state does not exist for the route. Forbidden for first promotion, material visual composition change, and baseline supersession. -->
 
 ## Mobile entry / guidance (390×844)
 
-<!-- Reference screenshot(s) at 390×844 mobile state(s) and candidate screenshot(s) at same viewport. If entry and guidance states both exist and have visibly different compositions, both must be captured. N/A with explicit reason permitted only when the state does not exist for the route. Forbidden for first promotion and material visual composition change. -->
+<!-- Reference screenshot(s) at 390×844 mobile state(s) and candidate screenshot(s) at same viewport. N/A with explicit reason permitted only when the state does not exist for the route. If entry and guidance states both exist and have visibly different compositions, both must be captured. Forbidden for first promotion, material visual composition change, and baseline supersession. -->
 
 ## Material visual differences
 
