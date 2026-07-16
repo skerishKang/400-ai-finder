@@ -2596,9 +2596,9 @@
         var action = resolveMvpActionForQuestion(question, result, hasUsableMvpResult);
 
         // Supported question with unusable bridge result: suppress the
-        // "연결하지 못했습니다" bubble and go directly to the deterministic
-        // local fallback journey. The user message is already echoed above;
-        // split.ready and confirm-run each appear exactly once.
+        // "연결하지 못했습니다" bubble and fall back to the existing
+        // deterministic local journey. The user message is already echoed
+        // above; split.ready and confirm-run each appear exactly once.
         if (!hasUsableMvpResult && action !== "none") {
           clearQuestRuntimeState();
           _executeSplitAction(question, action);
@@ -2655,8 +2655,10 @@
         skipUserMessage: true,
         useActionConfirm: true
       });
+    } else if (action === "none") {
+      // Keep the entry chat; do not move the clone or start a choreography.
     }
-    // "none" or any other value: no clone move (silent noop).
+    // Any other value: treated as none (no split, no clone move).
   }
 
   function beginMvpSplitThenChoreography(question, action) {
