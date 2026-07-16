@@ -1312,6 +1312,83 @@
     );
   }
 
+  // Compatibility chrome only (not exact-clone). Uses local dense-shell assets so
+  // permanent #1122 header/list containment and Page Agent GNB targets remain
+  // available while #1170 fixture regions own the six-region body projection.
+  function _renderHomeCompatChrome(isDeptJourney, deptState) {
+    var assets = "/static/images/bukgu-current";
+    var searchIcon =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.4 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var menuIcon =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var gnbDept = isDeptJourney
+      ? (
+          '<div class="bg-home-gnb__item bg-home-gnb__item--dept' +
+            (deptState === "menu" ? " bg-home-gnb__item--active" : "") +
+          '">' +
+            '<a href="#" class="bg-home-gnb__link' +
+              (deptState === "menu" ? " bg-home-gnb__link--active" : "") +
+              '" data-dept-action="open-menu" aria-haspopup="true">북구소개</a>' +
+            '<div class="bg-dept-mega-menu' +
+              (deptState === "menu" ? " bg-dept-mega-menu--visible" : "") +
+              '" aria-label="북구소개 하위 메뉴">' +
+              '<div class="bg-dept-mega-menu__inner">' +
+                '<div class="bg-dept-mega-menu__col">' +
+                  '<h3>구청안내</h3>' +
+                  '<a href="#" data-dept-action="go-directory">업무 및 전화번호 안내</a>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+        )
+      : '<a href="#" class="bg-home-gnb__link">북구소개</a>';
+
+    return (
+      '<div class="bg-home-gov-strip">' +
+        '<div class="bg-home-gov-strip__inner">' +
+          '<img src="' + assets + '/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+        '</div>' +
+      '</div>' +
+      '<div class="bg-home-utility" aria-label="사이트 도구">' +
+        '<div class="bg-home-utility__inner">' +
+          '<div class="bg-home-utility__weather">' +
+            '<strong>26°C</strong>' +
+            '<span>미세먼지 <b>좋음</b></span>' +
+            '<span>초미세먼지 <b>좋음</b></span>' +
+          '</div>' +
+          '<div class="bg-home-utility__menus">' +
+            '<a href="#">주요사이트 <span aria-hidden="true">▾</span></a>' +
+            '<a href="#">SNS <span aria-hidden="true">▾</span></a>' +
+            '<a href="#">KOR <span aria-hidden="true">▾</span></a>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<header class="bg-header">' +
+        '<div class="bg-home-header">' +
+          '<div class="bg-home-header__inner">' +
+            '<a href="#" class="bg-home-header__identity" aria-label="전남광주통합특별시북구 홈">' +
+              '<img src="' + assets + '/home-identity.png" alt="전남광주통합특별시북구" />' +
+            '</a>' +
+            '<nav class="bg-gnb" aria-label="주메뉴">' +
+              '<div class="bg-home-gnb">' +
+                '<a href="#" class="bg-home-gnb__link bg-home-gnb__link--active" data-action-target="nav-civil-service">종합민원</a>' +
+                '<a href="#" class="bg-home-gnb__link" data-action-target="nav-complaint-board">소통광장</a>' +
+                '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
+                '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
+                '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
+                gnbDept +
+              '</div>' +
+            '</nav>' +
+            '<div class="bg-home-header__actions">' +
+              '<button type="button" class="bg-home-header__icon" aria-label="통합검색">' + searchIcon + '<span>통합검색</span></button>' +
+              '<button type="button" class="bg-home-header__icon" aria-label="전체메뉴">' + menuIcon + '<span>전체메뉴</span></button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</header>'
+    );
+  }
+
   function _renderHome(state) {
     var deptJourney = _resolveDeptJourneyState(typeof window !== "undefined" && window.location ? window.location.search : "");
     var deptReplay = _resolveDeptReplayState(typeof window !== "undefined" && window.location ? window.location.search : "");
@@ -1330,24 +1407,7 @@
       regionsHtml += _renderHomeFixtureRegion(fixture.regions[rid], actionMap);
     }
     var compatHtml = _renderHomeCompatTargets(fixture, actionMap);
-
-    var deptBlock = "";
-    if (isDeptJourney) {
-      deptBlock =
-        '<div class="bg-home-fixture-dept" data-home-dept-journey="true">' +
-          '<div class="bg-home-gnb__item bg-home-gnb__item--dept' + (deptState === "menu" ? " bg-home-gnb__item--active" : "") + '">' +
-            '<a href="#" class="bg-home-gnb__link' + (deptState === "menu" ? " bg-home-gnb__link--active" : "") + '" data-dept-action="open-menu" aria-haspopup="true">북구소개</a>' +
-            '<div class="bg-dept-mega-menu' + (deptState === "menu" ? " bg-dept-mega-menu--visible" : "") + '" aria-label="북구소개 하위 메뉴">' +
-              '<div class="bg-dept-mega-menu__inner">' +
-                '<div class="bg-dept-mega-menu__col">' +
-                  '<h3>구청안내</h3>' +
-                  '<a href="#" data-dept-action="go-directory">업무 및 전화번호 안내</a>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>';
-    }
+    var chromeHtml = _renderHomeCompatChrome(isDeptJourney, deptState);
 
     return (
       '<div class="bg-page bg-page--full bg-page--home bg-page--home-fixture"' +
@@ -1360,8 +1420,8 @@
         (deptReplay.isReplay ? ' data-dept-replay="true" data-dept-replay-step="ready"' : '') +
       '>' +
         '<div class="bg-skip"><a href="#bg-content-main">본문으로 바로가기</a></div>' +
+        chromeHtml +
         (deptReplay.isReplay ? '<div class="bg-dept-replay-home-controls">' + _renderDeptReplayControls("ready") + '</div>' : '') +
-        deptBlock +
         compatHtml +
         '<main id="bg-content-main" class="bg-home-main bg-home-fixture-root"' +
           ' data-home-fixture-id="' + _escHtml(String(fixture.fixture_id || "")) + '"' +
