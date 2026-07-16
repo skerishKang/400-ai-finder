@@ -1,14 +1,15 @@
-# Page Agent형 vs 정밀 구현형 비교 데모 — Phase B 비교 증거 보고서
+# Page Agent형 vs 정밀 구현형 비교 데모 — Phase B 최종 비교 증거 보고서
 
 - **Track**: #1109 / #1145 — stakeholder comparison gate and five-scenario parity
-- **Stage**: Phase B (merged with #1170 / PR #1182 home fixture renderer)
+- **Stage**: Phase B final (merged #1170 home fixture + #1183 mobile cancellation)
 - **Date**: 2026-07-16
-- **Owner**: Computer 1-2
+- **Owner**: Computer 2
 - **Branch**: `feat/1145-page-agent-final-parity`
-- **Merged main SHA**: `2cc1e7d4a317a4859e2c24384d046f74a27af801`
-- **Evidence (canonical Phase B)**: `docs/artifacts/1109-stage3-comparison/comparison-evidence.json`
-- **Evidence generated_at**: `2026-07-16T02:45:53.138Z`
-- **Phase A offline artifacts (pre-#1170 merge)**: `docs/artifacts/1145-phase-a/` — historical baseline only; not the Phase B verdict
+- **Base SHA**: `5ad20ad027f993cb522a49c90f39523211e6c5cd`
+- **Merged origin/main (finalization)**: `24428065cdaed114ba2f603d0e727f09d6699671` (#1183 / PR #1184)
+- **Evidence (canonical Phase B final)**: `docs/artifacts/1109-stage3-comparison/comparison-evidence.json`
+- **Evidence generated_at**: `2026-07-16T03:24:55.126Z`
+- **Phase A offline artifacts (pre-#1170 merge)**: `docs/artifacts/1145-phase-a/` — historical only; not this verdict
 
 ---
 
@@ -21,7 +22,7 @@
 - deterministic 모드는 의도적인 UI animation delay(thinking text, cursor, typing simulation)를 포함하므로 elapsed time이 부풀려진다.
 - Page Agent 모드는 실제 LLM이 아니라 deterministic resident mock adapter를 사용한다.
 - 따라서 단순 elapsed 차이로 한 모드가 우수하다고 결론 내리지 않는다.
-- Phase A evidence / production browser baseline과 이 Phase B offline static-build evidence는 목적이 다르다.
+- Phase A evidence 및 별도 production browser baseline은 이 Phase B offline static-build 증거와 목적이 다르다.
 
 ---
 
@@ -65,12 +66,14 @@
 - **Harness**: `scripts/run_page_agent_comparison.mjs` (Playwright)
 - **Browser**: Google Chrome (channel), headless v150.0.7871.115
 - **Viewport**: 1440x900 (desktop comparison harness primary)
-- **Artifact**: Cloudflare Pages static offline build (`_phaseB_build/`) after merge of #1170
+- **Artifact**: Cloudflare Pages static offline build after merge of #1170 and #1183
 - **HTTP Server**: Python http.server, localhost 전용 포트
 - **Repetitions**: scenario/mode 조합당 3회 (총 30회 primary runs)
 - **Current methodology**: offline/static-build parity comparison with a deterministic resident mock adapter for Page Agent (not a live LLM provider)
 
-Resident browser E2E (separate): desktop 1440×900 five scenarios + mobile 390×844 surface contract — all passed on the same Phase B build.
+Resident browser E2E: desktop 1440×900 five scenarios + mobile 390×844 surface contract — passed on the same Phase B final build.
+
+Cancellation contract: `tests/browser/verify_mobile_resident_cancellation_e2e.mjs` (permanent CI step in `.github/workflows/mvp-contracts.yml` from #1183).
 
 ---
 
@@ -105,8 +108,8 @@ Resident browser E2E (separate): desktop 1440×900 five scenarios + mobile 390×
 | 성공 | 15 | 15 |
 | 실패 | 0 | 0 |
 | 성공률 | 100% | 100% |
-| Median elapsed (ms) (All runs) | 17,664 | 2,032 |
-| Median elapsed (ms) (Successful runs only) | 17,664 | 2,032 |
+| Median elapsed (ms) (All runs) | 17,640 | 2,030 |
+| Median elapsed (ms) (Successful runs only) | 17,640 | 2,030 |
 | Median action steps (All runs) | 4 | 1 |
 | Median action steps (Successful runs only) | 4 | 1 |
 | Total wrong route actions | 0 | 0 |
@@ -121,7 +124,6 @@ Resident browser E2E (separate): desktop 1440×900 five scenarios + mobile 390×
 |------|-----|
 | 총 실행 / 성공 / 실패 | 30 / 30 / 0 |
 | 성공률 | 100% |
-| Median elapsed (ms) — All runs | (mode-specific; see by_mode) |
 | Total wrong route actions | 0 (deterministic 0 + page_agent 0) |
 | Console error (합계) | 0 |
 | Page error (합계) | 0 |
@@ -150,7 +152,7 @@ Mode totals: **deterministic 15/15**, **Page Agent: 15/15**.
 
 #### Failure 분석
 
-현재 Phase B evidence 기준 **primary run 실패는 0건**이다.
+현재 Phase B final evidence 기준 **primary run 실패는 0건**이다.
 
 - deterministic: 15/15 성공, wrong route 0
 - Page Agent: 15/15 성공, wrong route 0
@@ -159,7 +161,7 @@ Mode totals: **deterministic 15/15**, **Page Agent: 15/15**.
 
 ---
 
-## Unsupported / Cancellation 결과 (offline harness)
+## Unsupported / Cancellation 결과
 
 ### Unsupported prompt ("오늘 날씨 알려줘")
 
@@ -168,19 +170,30 @@ Mode totals: **deterministic 15/15**, **Page Agent: 15/15**.
 | deterministic | `hasJourney()` returns false | Journey 없음 → choreography 시작 안 함, safe terminal |
 | page_agent | Mock model: done/success=false | click 없이 safe response 반환 |
 
-### Cancellation (offline harness, desktop chat-cancel)
+### Cancellation — #1183 merged contract
 
-| Mode | 취소 방식 | 지원 여부 |
-|------|-----------|----------|
-| deterministic | `CitizenFirstChoreography.cancel()` API | supported (terminal cancelled) |
-| page_agent | `#chat-cancel` button click | supported (terminal 취소됨) |
+- **#1183 merged at**: `24428065cdaed114ba2f603d0e727f09d6699671` (PR #1184 squash)
+- **Permanent CI contract**: `.github/workflows/mvp-contracts.yml` step runs `verify_mobile_resident_cancellation_e2e.mjs`
+- **Desktop cancel owner**: `#chat-cancel` preserved
+- **Mobile cancel owner**: canonical `#page-agent-mobile-cancel`
+- **Terminal cancellation**: plan state `cancelled`, cancelled customFetch blocked, late lifecycle blocked
 
-### Known blocker (#1183 — out of #1145 scope)
+#### Matrix result (`verify_mobile_resident_cancellation_e2e.mjs`)
 
-Production mobile cancellation was measured separately as **0/6 fail-closed click effectiveness** on production (not fixed here).
-#1183 is owned by Computer 1-1. This Phase B branch **does not** modify mobile cancel runtime/CSS/tests/workflows and **does not claim** mobile cancel is fixed.
+| Viewport | Timing | Reps | plan | actionsAfterCancel | lastSuccess | result |
+|----------|--------|------|------|--------------------|-------------|--------|
+| 1440×900 | 250 / 1000 / 2500 ms | 2 each | cancelled | 0 | not true | **PASS** |
+| 390×844 | 250 / 1000 / 2500 ms | 2 each | cancelled | 0 | not true | **PASS** |
 
-Offline harness cancellation above uses desktop `#chat-cancel` path and is **not** a substitute for the production mobile cancel defect.
+**Cancellation matrix: desktop PASS · mobile PASS · overall 12/12 contract cases.**
+
+Real pointer click only (no force click / no evaluate-cancel). Composer/restart operable. Safety counters 0.
+
+Offline comparison harness boundary probes also report: det `cancelled`, page_agent `취소됨`.
+
+### Cancellation blocker status
+
+Earlier intermediate Phase B note treated production mobile cancel 0/6 as a known blocker. **That blocker is resolved after #1183 merge** on this branch (mobile cancellation matrix PASS; permanent CI included). Do not retain “not fixed here” wording for the final Phase B report.
 
 ---
 
@@ -189,7 +202,6 @@ Offline harness cancellation above uses desktop `#chat-cancel` path and is **not
 1. **complaint_screen / deterministic trigger mapping**: 정확히 일치하는 journey가 없어 `streetlight_report`로 대체 실행한다.
 2. **Mock adapter scope**: Page Agent 모드는 실제 LLM이 아니라 deterministic resident mock adapter를 사용한다.
 3. **Action-step / elapsed 정의 차이**: 모드 간 직접 비교로 승패를 가리지 않는다.
-4. **#1183 mobile cancel**: production mobile cancel remains a known blocker outside this branch.
 
 ---
 
@@ -204,7 +216,7 @@ Offline harness cancellation above uses desktop `#chat-cancel` path and is **not
 | 모든 run에서 page error = 0 | **통과** (30/30) |
 | Unsupported prompt: 외부 요청 없음 | 통과 |
 | Unsupported prompt: submit 없음 | 통과 |
-| Cancellation: terminal cancelled/중단 | 통과 (deterministic: cancelled, page_agent: 취소됨) |
+| Cancellation: terminal cancelled/중단 | 통과 (desktop + mobile matrix + harness probes) |
 
 ---
 
@@ -224,6 +236,7 @@ Offline harness cancellation above uses desktop `#chat-cancel` path and is **not
 - **고위험·공식 완료·제출 직전**: 두 모드 모두 **no-submit 경계를 보존**한다.
 - **탐색·메뉴 이동·정보 발견**: page_agent는 mock navSteps + click_element_by_index; deterministic은 choreography step list.
 - **폼 작성 보조**: deterministic은 typing/confirmation; page_agent mock은 navigation + done 중심.
+- **취소**: #1183 이후 desktop `#chat-cancel`과 mobile `#page-agent-mobile-cancel`이 동일 terminal cancel 경로를 공유한다.
 
 ---
 
@@ -239,7 +252,7 @@ Offline harness cancellation above uses desktop `#chat-cancel` path and is **not
 
 ## 결론
 
-#1170 merge 이후 Phase B 30회 offline 비교 실행 증거:
+#1170 + #1183 merge 이후 Phase B final 30회 offline 비교 실행 증거:
 
 - **총 실행 / 성공 / 실패**: 30 / 30 / 0 (성공률 100%)
 - **모드별 성공**: deterministic 15/15, Page Agent 15/15
@@ -247,6 +260,6 @@ Offline harness cancellation above uses desktop `#chat-cancel` path and is **not
 - **Safety**: external requests 0, request failures 0, console errors 0, page errors 0, no-submit 위반 0
 - **Reproducibility**: true
 - **#1170 home fixture targets**: resident Page Agent e2e 5/5 유지
-- **#1183 mobile cancel**: known blocker (not fixed in this branch)
+- **#1183 mobile cancellation**: matrix PASS; permanent CI included; cancellation blocker **resolved**
 
 **위너 선언 없음** — 성공률이 동일(100%)하고 safety 지표도 동일하므로, 이 결과는 offline/mock parity 증거일 뿐 한 모드의 우수성을 주장하지 않는다. Stage 5 live-provider validation은 BLOCKED / NOT EXECUTED 상태다.

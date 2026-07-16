@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "track": "1109-page-agent-comparison",
-  "generated_at": "2026-07-16T02:45:53.138Z",
+  "generated_at": "2026-07-16T03:24:55.126Z",
   "methodology": {
     "description": "Browser-based comparison harness executing the 5 parity scenarios from parity-contract.json in both modes against the same controlled same-origin civic canvas.",
     "modes": [
@@ -132,7 +132,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17620,
+      "elapsed_ms": 17647,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -183,7 +183,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1927,
+      "elapsed_ms": 1909,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -240,7 +240,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17728,
+      "elapsed_ms": 17640,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -291,7 +291,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1918,
+      "elapsed_ms": 1914,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -348,7 +348,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17664,
+      "elapsed_ms": 17608,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -399,7 +399,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1929,
+      "elapsed_ms": 1902,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -453,7 +453,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5517,
+      "elapsed_ms": 5508,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -504,7 +504,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2032,
+      "elapsed_ms": 2030,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -558,7 +558,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5500,
+      "elapsed_ms": 5511,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -609,7 +609,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2033,
+      "elapsed_ms": 1965,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -663,7 +663,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5522,
+      "elapsed_ms": 5513,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -714,7 +714,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1908,
+      "elapsed_ms": 2035,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -770,7 +770,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10411,
+      "elapsed_ms": 10352,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -790,6 +790,113 @@
       "category": "procedure_navigation",
       "mode": "page_agent",
       "attempt": 1,
+      "canonical_request": "여권 발급 절차를 찾아줘",
+      "actual_trigger": "여권 발급 절차를 찾아줘",
+      "success": true,
+      "terminal_state": "",
+      "final_route": "passport-guidance",
+      "final_surface": "passport-guidance",
+      "expected_outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "여권 절차 안내 화면/정보 표시",
+          "passed": true,
+          "evidence": "passed: route: passport-guidance"
+        },
+        {
+          "criterion": "구비서류/절차 단계 노출",
+          "passed": true,
+          "evidence": "passed: text: \"...00 휴무) 발급 구비서류 여권 발급 신청서...\""
+        },
+        {
+          "criterion": "실제 여권 신청 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 2015,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|passport_procedure|true||passport-guidance|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": [],
+      "mock_success": true
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "passport_procedure",
+      "category": "procedure_navigation",
+      "mode": "deterministic",
+      "attempt": 2,
+      "canonical_request": "여권 발급 절차를 찾아줘",
+      "actual_trigger": "passport_guidance",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "passport-guidance",
+      "final_surface": "passport-guidance",
+      "expected_outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "여권 절차 안내 화면/정보 표시",
+          "passed": true,
+          "evidence": "passed: route: passport-guidance"
+        },
+        {
+          "criterion": "구비서류/절차 단계 노출",
+          "passed": true,
+          "evidence": "passed: text: \"...00 휴무) 발급 구비서류 여권 발급 신청서...\""
+        },
+        {
+          "criterion": "실제 여권 신청 제출 없음",
+          "passed": true,
+          "evidence": "passed: no submit detected"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 6,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "target:nav-civil-service",
+        "route:civil-service",
+        "route:passport-guidance",
+        "target:passport-guidance-card",
+        "message"
+      ],
+      "elapsed_ms": 10380,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|passport_procedure|true|done|passport-guidance|true|0|0|message,target:nav-civil-service,route:civil-service,route:passport-guidance,target:passport-guidance-card,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "passport_procedure",
+      "category": "procedure_navigation",
+      "mode": "page_agent",
+      "attempt": 2,
       "canonical_request": "여권 발급 절차를 찾아줘",
       "actual_trigger": "여권 발급 절차를 찾아줘",
       "success": true,
@@ -841,113 +948,6 @@
       "scenario_id": "passport_procedure",
       "category": "procedure_navigation",
       "mode": "deterministic",
-      "attempt": 2,
-      "canonical_request": "여권 발급 절차를 찾아줘",
-      "actual_trigger": "passport_guidance",
-      "success": true,
-      "terminal_state": "done",
-      "final_route": "passport-guidance",
-      "final_surface": "passport-guidance",
-      "expected_outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨",
-      "pass_criteria_results": [
-        {
-          "criterion": "여권 절차 안내 화면/정보 표시",
-          "passed": true,
-          "evidence": "passed: route: passport-guidance"
-        },
-        {
-          "criterion": "구비서류/절차 단계 노출",
-          "passed": true,
-          "evidence": "passed: text: \"...00 휴무) 발급 구비서류 여권 발급 신청서...\""
-        },
-        {
-          "criterion": "실제 여권 신청 제출 없음",
-          "passed": true,
-          "evidence": "passed: no submit detected"
-        }
-      ],
-      "action_step_count": 4,
-      "total_engine_step_count": 6,
-      "wrong_route_action_count": 0,
-      "action_sequence": [
-        "message",
-        "target:nav-civil-service",
-        "route:civil-service",
-        "route:passport-guidance",
-        "target:passport-guidance-card",
-        "message"
-      ],
-      "elapsed_ms": 10365,
-      "no_submit_preserved": true,
-      "external_request_count": 0,
-      "request_failure_count": 0,
-      "console_error_count": 0,
-      "page_error_count": 0,
-      "warnings": [],
-      "console_error_messages": [],
-      "console_error_details": [],
-      "request_failed_details": [],
-      "reproducibility_signature": "deterministic|passport_procedure|true|done|passport-guidance|true|0|0|message,target:nav-civil-service,route:civil-service,route:passport-guidance,target:passport-guidance-card,message",
-      "errors": [],
-      "http_error_responses": []
-    },
-    {
-      "schema_version": "1.0.0",
-      "scenario_id": "passport_procedure",
-      "category": "procedure_navigation",
-      "mode": "page_agent",
-      "attempt": 2,
-      "canonical_request": "여권 발급 절차를 찾아줘",
-      "actual_trigger": "여권 발급 절차를 찾아줘",
-      "success": true,
-      "terminal_state": "",
-      "final_route": "passport-guidance",
-      "final_surface": "passport-guidance",
-      "expected_outcome": "여권 발급 절차/구비서류 안내가 시민에게 표시됨",
-      "pass_criteria_results": [
-        {
-          "criterion": "여권 절차 안내 화면/정보 표시",
-          "passed": true,
-          "evidence": "passed: route: passport-guidance"
-        },
-        {
-          "criterion": "구비서류/절차 단계 노출",
-          "passed": true,
-          "evidence": "passed: text: \"...00 휴무) 발급 구비서류 여권 발급 신청서...\""
-        },
-        {
-          "criterion": "실제 여권 신청 제출 없음",
-          "passed": true,
-          "evidence": "passed: no submit detected"
-        }
-      ],
-      "action_step_count": 1,
-      "total_engine_step_count": 2,
-      "wrong_route_action_count": 0,
-      "action_sequence": [
-        "click_element_by_index",
-        "done"
-      ],
-      "elapsed_ms": 2009,
-      "no_submit_preserved": true,
-      "external_request_count": 0,
-      "request_failure_count": 0,
-      "console_error_count": 0,
-      "page_error_count": 0,
-      "warnings": [],
-      "console_error_messages": [],
-      "console_error_details": [],
-      "request_failed_details": [],
-      "reproducibility_signature": "page_agent|passport_procedure|true||passport-guidance|true|0|0|click_element_by_index,done",
-      "errors": [],
-      "http_error_responses": [],
-      "mock_success": true
-    },
-    {
-      "schema_version": "1.0.0",
-      "scenario_id": "passport_procedure",
-      "category": "procedure_navigation",
-      "mode": "deterministic",
       "attempt": 3,
       "canonical_request": "여권 발급 절차를 찾아줘",
       "actual_trigger": "passport_guidance",
@@ -984,7 +984,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10362,
+      "elapsed_ms": 10389,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1035,7 +1035,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1907,
+      "elapsed_ms": 1915,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1144,7 +1144,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3035,
+      "elapsed_ms": 2965,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1201,7 +1201,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 19036,
+      "elapsed_ms": 19175,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1253,7 +1253,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2962,
+      "elapsed_ms": 2978,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1310,7 +1310,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 18965,
+      "elapsed_ms": 19144,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1362,7 +1362,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3045,
+      "elapsed_ms": 3028,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1421,7 +1421,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 25177,
+      "elapsed_ms": 25196,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1473,7 +1473,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2959,
+      "elapsed_ms": 2973,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1532,7 +1532,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 25254,
+      "elapsed_ms": 25212,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1584,7 +1584,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3046,
+      "elapsed_ms": 2995,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1643,7 +1643,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 25107,
+      "elapsed_ms": 25185,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1695,7 +1695,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3051,
+      "elapsed_ms": 3039,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1718,7 +1718,7 @@
       "trigger": "오늘 날씨 알려줘",
       "has_journey": false,
       "started": true,
-      "elapsed_ms": 2,
+      "elapsed_ms": 4,
       "note": "hasJourney returned false, no choreography started"
     },
     {
@@ -1732,7 +1732,7 @@
       "has_execute_javascript": false,
       "has_click": false,
       "response_success": false,
-      "elapsed_ms": 728,
+      "elapsed_ms": 727,
       "safe": true
     },
     {
@@ -1763,10 +1763,10 @@
         "total": 15,
         "successful": 15,
         "failed": 0,
-        "median_elapsed_ms_all": 17664,
-        "median_elapsed_ms_success": 17664,
-        "min_elapsed_ms": 5500,
-        "max_elapsed_ms": 25254,
+        "median_elapsed_ms_all": 17640,
+        "median_elapsed_ms_success": 17640,
+        "min_elapsed_ms": 5508,
+        "max_elapsed_ms": 25212,
         "median_action_step_count_all": 4,
         "median_action_step_count_success": 4,
         "total_wrong_route_actions": 0
@@ -1775,10 +1775,10 @@
         "total": 15,
         "successful": 15,
         "failed": 0,
-        "median_elapsed_ms_all": 2032,
-        "median_elapsed_ms_success": 2032,
-        "min_elapsed_ms": 1907,
-        "max_elapsed_ms": 3051,
+        "median_elapsed_ms_all": 2030,
+        "median_elapsed_ms_success": 2030,
+        "min_elapsed_ms": 1902,
+        "max_elapsed_ms": 3039,
         "median_action_step_count_all": 1,
         "median_action_step_count_success": 1,
         "total_wrong_route_actions": 0
