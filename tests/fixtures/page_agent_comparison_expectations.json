@@ -16,9 +16,11 @@
       "page_agent": {
         "trigger": "공동주택과 연락처 찾아줘",
         "expected_final_route": "apartment-dept",
+        "forbidden_intermediate_routes": ["home", "civil-service", "official-content"],
         "expected_action_sequence": ["click_element_by_index", "done"],
         "expected_nav_steps": 1,
-        "expected_call_count": 2
+        "expected_call_count": 2,
+        "required_visible_any": ["공동주택", "연락처", "전화"]
       }
     },
     {
@@ -33,9 +35,11 @@
       "page_agent": {
         "trigger": "대형폐기물 신청 메뉴 찾아줘",
         "expected_final_route": "bulky-waste-disposal",
+        "forbidden_intermediate_routes": ["home", "civil-service", "official-content"],
         "expected_action_sequence": ["click_element_by_index", "done"],
         "expected_nav_steps": 1,
-        "expected_call_count": 2
+        "expected_call_count": 2,
+        "required_visible_any": ["대형폐기물", "배출", "신청"]
       }
     },
     {
@@ -50,9 +54,11 @@
       "page_agent": {
         "trigger": "여권 발급 절차를 찾아줘",
         "expected_final_route": "passport-guidance",
+        "forbidden_intermediate_routes": ["home", "civil-service", "official-content"],
         "expected_action_sequence": ["click_element_by_index", "done"],
         "expected_nav_steps": 1,
-        "expected_call_count": 2
+        "expected_call_count": 2,
+        "required_visible_any": ["여권", "구비서류", "수수료", "발급"]
       }
     },
     {
@@ -68,9 +74,11 @@
       "page_agent": {
         "trigger": "민원 작성 화면을 열어줘",
         "expected_final_route": "complaint-write",
+        "forbidden_intermediate_routes": ["home", "civil-service", "complaint-category", "complaint-board", "official-content"],
         "expected_action_sequence": ["click_element_by_index", "click_element_by_index", "done"],
         "expected_nav_steps": 2,
-        "expected_call_count": 3
+        "expected_call_count": 3,
+        "required_visible_any": ["제목", "작성", "민원"]
       }
     },
     {
@@ -85,9 +93,11 @@
       "page_agent": {
         "trigger": "구청장에게 제안할 글 작성을 도와줘",
         "expected_final_route": "mayor-complaint-write",
+        "forbidden_intermediate_routes": ["home", "mayor-office", "official-content"],
         "expected_action_sequence": ["click_element_by_index", "click_element_by_index", "done"],
         "expected_nav_steps": 2,
-        "expected_call_count": 3
+        "expected_call_count": 3,
+        "required_visible_any": ["구청장", "제목", "제안"]
       }
     }
   ],
