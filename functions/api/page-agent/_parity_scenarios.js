@@ -31,6 +31,16 @@ function clickStep(actionTarget) {
  */
 
 /** @type {readonly ParityScenario[]} */
+/** Intermediate routes that must never count as final success (#1145). */
+export const FORBIDDEN_SUCCESS_ROUTES = Object.freeze([
+  'home',
+  'civil-service',
+  'complaint-category',
+  'complaint-board',
+  'mayor-office',
+  'official-content',
+]);
+
 export const PARITY_SCENARIOS = Object.freeze([
   Object.freeze({
     id: 'apartment_contact',
@@ -43,6 +53,7 @@ export const PARITY_SCENARIOS = Object.freeze([
     ]),
     routeId: 'apartment-dept',
     actionTargets: Object.freeze(['nav-apartment-dept']),
+    requiredVisible: Object.freeze(['공동주택', '연락처', '전화']),
     response:
       '공동주택과 조직 및 업무안내 화면입니다. 종합민원 메뉴에서 공동주택과 담당 업무와 연락처를 확인할 수 있습니다.',
   }),
@@ -57,6 +68,7 @@ export const PARITY_SCENARIOS = Object.freeze([
     ]),
     routeId: 'bulky-waste-disposal',
     actionTargets: Object.freeze(['nav-bulky-waste-disposal']),
+    requiredVisible: Object.freeze(['대형폐기물', '배출', '신청']),
     response:
       '대형폐기물 배출방법 안내 화면입니다. 종합민원 메뉴에서 대형폐기물 배출 신청 방법과 수수료를 확인할 수 있습니다.',
   }),
@@ -71,6 +83,7 @@ export const PARITY_SCENARIOS = Object.freeze([
     ]),
     routeId: 'passport-guidance',
     actionTargets: Object.freeze(['nav-passport-guidance']),
+    requiredVisible: Object.freeze(['여권', '구비서류', '수수료', '발급']),
     response:
       '여권민원 안내 화면입니다. 종합민원 메뉴에서 여권 종류, 유효기간, 발급수수료, 신청절차, 구비서류를 확인할 수 있습니다.',
   }),
@@ -89,6 +102,7 @@ export const PARITY_SCENARIOS = Object.freeze([
     ]),
     routeId: 'complaint-write',
     actionTargets: Object.freeze(['nav-complaint-board', 'complaint-write']),
+    requiredVisible: Object.freeze(['제목', '작성', '민원']),
     response:
       '민원 글쓰기 화면입니다. 종합민원 → 민원 유형 선택 후 민원 게시판에서 글쓰기를 통해 AI가 민원 초안 작성을 도와드립니다.',
   }),
@@ -106,6 +120,7 @@ export const PARITY_SCENARIOS = Object.freeze([
     ]),
     routeId: 'mayor-complaint-write',
     actionTargets: Object.freeze(['mayor-office-open', 'mayor-message-write']),
+    requiredVisible: Object.freeze(['구청장', '제목', '제안']),
     response:
       '구청장에게 바란다 작성 화면입니다. 열린구청장실에서 구청장에게 바란다를 통해 AI와 함께 구정 제안을 작성하고 제출 전에 직접 검토합니다.',
   }),

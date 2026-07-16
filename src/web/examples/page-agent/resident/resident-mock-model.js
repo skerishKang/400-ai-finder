@@ -4,6 +4,14 @@
   // Scenario vocabulary lives in parity-scenarios.js (single browser owner).
   var parity = window.PageAgentParityScenarios || {};
   var SCENARIOS = parity.SCENARIOS || [];
+  var FORBIDDEN_SUCCESS_ROUTES = parity.FORBIDDEN_SUCCESS_ROUTES || [
+    'home',
+    'civil-service',
+    'complaint-category',
+    'complaint-board',
+    'mayor-office',
+    'official-content',
+  ];
   var UNKNOWN_RESPONSE =
     parity.UNKNOWN_RESPONSE ||
     '다음 항목 중 하나를 선택해 주세요: 공동주택과 연락처 찾기, 대형폐기물 신청 메뉴 찾기, 여권 발급 절차 찾기, 민원 작성 화면 열기, 구청장에게 제안 글 작성';
@@ -119,6 +127,54 @@
       }
     }
     return null;
+  }
+
+  function readCanvasRouteId() {
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        window.CitizenActionDemoCanvas &&
+        typeof window.CitizenActionDemoCanvas.getCurrentRouteId === 'function'
+      ) {
+        return window.CitizenActionDemoCanvas.getCurrentRouteId();
+      }
+    } catch (_) { /* canvas unavailable */ }
+    return null;
+  }
+
+  function readVisibleSurfaceText(browserState) {
+    var parts = [];
+    try {
+      if (typeof document !== 'undefined') {
+        var canvas = document.getElementById('demo-canvas');
+        if (canvas && typeof canvas.innerText === 'string') {
+          parts.push(canvas.innerText);
+        }
+      }
+    } catch (_) { /* DOM unavailable in unit harness */ }
+    if (typeof browserState === 'string' && browserState) {
+      parts.push(browserState);
+    }
+    return parts.join('\n');
+  }
+
+  function hasRequiredVisibleContent(scenario, browserState) {
+    var required = scenario.requiredVisible || [];
+    if (!required.length) return true;
+    var surface = readVisibleSurfaceText(browserState);
+    if (!surface) return false;
+    for (var i = 0; i < required.length; i++) {
+      if (surface.indexOf(required[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  function isForbiddenSuccessRoute(routeId) {
+    if (!routeId) return true;
+    for (var i = 0; i < FORBIDDEN_SUCCESS_ROUTES.length; i++) {
+      if (FORBIDDEN_SUCCESS_ROUTES[i] === routeId) return true;
+    }
+    return false;
   }
 
   // ── Navigation state ─────────────────────────────────────────────────────
@@ -286,25 +342,20 @@
       }
     }
 
-    // ── No more nav steps → validate final route before success ──
+    // ── No more nav steps → fail-closed final route + visible content ──
+    // Never treat civil-service / complaint-category / generic official-content
+    // or "text visible anywhere" as success. Route + required content only.
     _sessionDone = true;
-    var canvasRoute = null;
-    try {
-      if (typeof window !== 'undefined' && window.CitizenActionDemoCanvas && typeof window.CitizenActionDemoCanvas.getCurrentRouteId === 'function') {
-        canvasRoute = window.CitizenActionDemoCanvas.getCurrentRouteId();
-      }
-    } catch (_) { /* canvas unavailable */ }
-
+    var canvasRoute = readCanvasRouteId();
     var expectedRoute = scenario.routeId;
-    if (canvasRoute === expectedRoute) {
-      var doneAction = { done: { text: scenario.response, success: true } };
-      recordDiag(macroToolName, 'done', diagTaskId, true, scenario.response);
-      return new Response(JSON.stringify(buildToolResponse(macroToolName, doneAction)), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } else {
-      var wrongRouteMsg = '안내 경로가 올바르지 않습니다. 예상 경로: ' + expectedRoute + ', 실제 경로: ' + (canvasRoute || 'unknown') + '. 다시 시도해 주세요.';
+
+    if (!canvasRoute || isForbiddenSuccessRoute(canvasRoute) || canvasRoute !== expectedRoute) {
+      var wrongRouteMsg =
+        '안내 경로가 올바르지 않습니다. 예상 경로: ' +
+        expectedRoute +
+        ', 실제 경로: ' +
+        (canvasRoute || 'unknown') +
+        '. 다시 시도해 주세요.';
       var failActionWrong = { done: { text: wrongRouteMsg, success: false } };
       recordDiag(macroToolName, 'done', diagTaskId, false, wrongRouteMsg);
       return new Response(JSON.stringify(buildToolResponse(macroToolName, failActionWrong)), {
@@ -312,6 +363,26 @@
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    if (!hasRequiredVisibleContent(scenario, browserState)) {
+      var missingContentMsg =
+        '최종 화면 경로(' +
+        expectedRoute +
+        ')에 도착했지만 필요한 안내 내용이 보이지 않습니다. 다시 시도해 주세요.';
+      var failActionContent = { done: { text: missingContentMsg, success: false } };
+      recordDiag(macroToolName, 'done', diagTaskId, false, missingContentMsg);
+      return new Response(JSON.stringify(buildToolResponse(macroToolName, failActionContent)), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    var doneAction = { done: { text: scenario.response, success: true } };
+    recordDiag(macroToolName, 'done', diagTaskId, true, scenario.response);
+    return new Response(JSON.stringify(buildToolResponse(macroToolName, doneAction)), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   // Try to elide {navSteps} from serialization for clean JSON test assertions.
@@ -322,6 +393,7 @@
         id: s.id,
         triggers: s.triggers,
         routeId: s.routeId,
+        requiredVisible: s.requiredVisible || [],
         response: s.response,
       };
     });
