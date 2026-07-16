@@ -127,7 +127,7 @@ These stay **adapter-owned** until an extraction issue lands:
 | Civic copy / quest content | quest registry, official snapshots, canvas strings |
 | Parity scenario → route mappings | `parity-scenarios.js` / expectations fixture |
 | Mayor / complaint / housing journeys | shell + choreography + journey modules |
-| Buk-gu safety stop surfaces | `handoff-stop`, disabled submit, pre-submit receipts |
+| Buk-gu safety stop surfaces | `handoff-stop`, disabled submit; `mayor-complaint-receipt` is a **local simulated/demo receipt** only (no external submission; not an official receipt) |
 
 ---
 
@@ -139,7 +139,7 @@ Candidates that already have a **clear seam** in the golden tree:
 |------|----------|-------|
 | Site profile / municipal config | `configs/`, crawl filter contracts, profile onboarding docs | Onboarding boundary docs exist; not a full SiteSpec |
 | Capture → canonical fixture → generator → browser artifact | home pipeline | Proven pattern for other pages later |
-| Closed route/target interface | map `isKnownRoute` / `isKnownTarget` | Generic interface can wrap, not rename, Buk-gu IDs |
+| Closed route/target interface | map `isValidRoute` / `isValidTarget` (plus `getRouteIds`, `getTargetIds`, `getRoute`, `getCategoryLabel`) | Generic interface can wrap, not rename, Buk-gu IDs |
 | Canvas public API | `window.CitizenActionDemoCanvas` | Consumers already depend on freeze surface |
 | Shell / choreography state axes | `data-first-use-state`, `data-journey-state`, `data-choreography-state` | Additive states only with tests |
 | Safety policy | no-submit, no external nav in controlled tests, fail-closed | Must remain site-agnostic policy |

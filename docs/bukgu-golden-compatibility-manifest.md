@@ -74,7 +74,7 @@ Owner of packaging: `scripts/build_cloudflare_pages.py` (static/live modes).
 | `handoff-stop` | **Terminal safety** | map + canvas | Explicit no-submit handoff | Frozen safety |
 | `mayor-office` | Intermediate | map + canvas | Open mayor office | Frozen intermediate (not Page Agent final success) |
 | `mayor-complaint-write` | **Terminal** (pre-submit) | map + canvas + choreography | Mayor proposal writing | Frozen terminal |
-| `mayor-complaint-receipt` | Pre-submit receipt | map + canvas | Truthful pre-submit receipt | Frozen |
+| `mayor-complaint-receipt` | Local simulated/demo receipt | map + canvas | **Not** an official receipt; no external submission occurred | Frozen safety |
 | `bulky-waste-disposal` | Guidance terminal | map + official snapshot content | Bulky waste | Frozen |
 | `passport-guidance` | Guidance terminal | map + official snapshot content | Passport | Frozen |
 | `unmanned-kiosk-guidance` | Guidance terminal | map + official snapshot content | Kiosk | Frozen |
@@ -87,33 +87,50 @@ Owner of packaging: `scripts/build_cloudflare_pages.py` (static/live modes).
 
 ---
 
-## 3. Action-target contracts (selected closed set)
+## 3. Complete closed action-target vocabulary
 
-**Source:** `CLOSED_TARGET_IDS` in `citizen-action-demo-map.js` + producers in `citizen-action-demo-canvas.js` / fixture mappings / shell.
+**Source of truth:** `CLOSED_TARGET_IDS` in `citizen-action-demo-map.js`.
 
-| Target ID | Producer | Consumers | Typical terminal route | Classification |
-|-----------|----------|-----------|------------------------|----------------|
-| `mayor-office-open` | Home fixture / shell / canvas | Page Agent parity, mayor E2E, a11y | `mayor-office` | **Frozen** |
-| `mayor-message-write` | Mayor office page | Parity, mayor journey | `mayor-complaint-write` | Frozen |
-| `mayor-receipt-home` | Receipt UI | Journey return | `home` | Frozen |
-| `nav-civil-service` | GNB / home | Flows into civil tree | intermediate | Frozen |
-| `nav-complaint-board` | GNB / home | Complaint path | → `complaint-board` | Frozen |
-| `nav-apartment-dept` | Home fixture/compat | Housing parity | `apartment-dept` | Frozen |
-| `nav-bulky-waste-disposal` | Home fixture region | Bulky parity | `bulky-waste-disposal` | Frozen |
-| `nav-passport-guidance` | Home fixture/compat | Passport parity | `passport-guidance` | Frozen |
-| `nav-complaint-category` | Civil service LNB | Category path | intermediate | Frozen |
-| `complaint-write` | Board write control | Complaint parity step 2 | `complaint-write` | Frozen |
-| `complaint-body` | Write form | Executor / draft | form surface | Frozen |
-| `complaint-draft-review` | Write UI | Review path | review | Frozen |
-| `confirm-draft-prefill` | Submit-like control | Must stay disabled / pre-submit | safety | Frozen safety |
-| `handoff-notice` | Handoff UI | No real submit | `handoff-stop` | Frozen safety |
-| `complaint-illegal-parking-report` | Parking card | Parking journey | parking surface | Frozen |
-| `bulky-waste-guidance-card` | Guidance card | Bulky | bulky | Frozen |
-| `passport-guidance-card` | Guidance card | Passport | passport | Frozen |
-| `unmanned-kiosk-card` | Guidance card | Kiosk | kiosk | Frozen |
-| `apartment-guidance-card` / `apartment-dept-card` / `apartment-life-card` | Apt surfaces | Housing | apt routes | Frozen |
+**Count at golden SHA:** **28** closed target IDs (complete set — every ID is listed below; do not treat this as a selected subset).
 
-Full closed list is code-owned in `CLOSED_TARGET_IDS` — this table highlights golden demo critical targets.
+**DOM producer owner:** `citizen-action-demo-canvas.js` (and home fixture projection for home-region nav targets) via `data-action-target`.
+
+**Navigation owner:** canvas `_targetToNextRoute` / special-case handlers (and category → `complaint-intake` branch).
+
+**Breaking-change rule (all rows):** no silent rename/removal of any target ID without a dedicated migration issue, dual mapping or versioning plan, updated golden contracts/tests, exact-head CI, and stakeholder impact review.
+
+| Target ID | Producer / owner | Consumer or journey | Next route or non-navigation behavior | Classification | Breaking-change rule |
+|-----------|------------------|---------------------|---------------------------------------|----------------|----------------------|
+| `nav-civil-service` | Canvas home GNB / fixture home | Civil-service entry; executor choreography | → `civil-service` | **Frozen** | Migration issue required |
+| `nav-apartment-dept` | Home fixture region / home nav | Housing parity (`apartment_contact`) | → `apartment-dept` | Frozen | Migration issue required |
+| `nav-bulky-waste-disposal` | Home fixture region / home nav | Bulky parity (`bulky_waste_menu`) | → `bulky-waste-disposal` | Frozen | Migration issue required |
+| `nav-passport-guidance` | Home fixture region / home nav | Passport parity (`passport_procedure`) | → `passport-guidance` | Frozen | Migration issue required |
+| `nav-complaint-category` | Civil-service LNB | Category tree entry | → `complaint-category` | Frozen | Migration issue required |
+| `nav-complaint-board` | Home GNB / fixture | Complaint parity step 1 | → `complaint-board` | Frozen | Migration issue required |
+| `complaint-category-illegal-parking` | Category cards (canvas) | Illegal-parking category selection | → `complaint-intake` (stores selected category) | Frozen | Migration issue required |
+| `complaint-category-public-parking-inconvenience` | Category cards (canvas) | Public-parking category selection | → `complaint-intake` | Frozen | Migration issue required |
+| `complaint-category-residential-parking` | Category cards (canvas) | Residential-parking category selection | → `complaint-intake` | Frozen | Migration issue required |
+| `complaint-category-traffic-or-facility-safety` | Category cards (canvas) | Traffic/facility category selection | → `complaint-intake` | Frozen | Migration issue required |
+| `complaint-category-other-or-unsure` | Category cards (canvas) | Other/unsure category selection | → `complaint-intake` | Frozen | Migration issue required |
+| `complaint-illegal-parking-report` | Illegal-parking guidance card | Parking journey handoff | → `handoff-stop` (no real report submit) | Frozen safety | Migration issue required |
+| `complaint-write` | Board write control (`#btn-board-write`) | Complaint parity step 2 | → `complaint-write` | Frozen | Migration issue required |
+| `complaint-board-return` | Complaint write “이전으로” | Return from write form | → `complaint-board` | Frozen | Migration issue required |
+| `mayor-office-open` | Home fixture / shell / `#btn-open-mayor-office` | Mayor parity + mayor E2E + a11y | → `mayor-office` | Frozen | Migration issue required |
+| `mayor-message-write` | Mayor office CTA | Mayor proposal writing choreography | → `mayor-complaint-write` (then may start `mayor_message_assist`) | Frozen | Migration issue required |
+| `mayor-write-return` | Mayor write “이전으로” | Return from mayor form | → `mayor-office` | Frozen | Migration issue required |
+| `mayor-receipt-home` | Local simulated receipt UI | Demo-only return home | → `home` | Frozen safety | Migration issue required |
+| `complaint-body` | Intake / write textarea | Executor prefill / draft highlight | **Non-navigation** form field (no route change) | Frozen | Migration issue required |
+| `complaint-draft-review` | Intake form link | Review path | → `complaint-review` | Frozen | Migration issue required |
+| `confirm-draft-prefill` | Disabled submit-like control | Safety boundary (must stay non-submitting) | → `handoff-stop` when activated in flow; control remains disabled for real submit | Frozen safety | Migration issue required |
+| `handoff-notice` | Handoff / safety-stop UI | Explicit no-submit handoff | → `handoff-stop` | Frozen safety | Migration issue required |
+| `bulky-waste-guidance-card` | Bulky guidance page card | Bulky guidance highlight / choreography | **Non-navigation** surface anchor (route already `bulky-waste-disposal`) | Frozen | Migration issue required |
+| `passport-guidance-card` | Passport guidance page card | Passport guidance highlight | **Non-navigation** surface anchor | Frozen | Migration issue required |
+| `unmanned-kiosk-card` | Kiosk guidance page card | Kiosk guidance highlight | **Non-navigation** surface anchor | Frozen | Migration issue required |
+| `apartment-guidance-card` | Apartment-info page card | Apartment info highlight | **Non-navigation** surface anchor | Frozen | Migration issue required |
+| `apartment-dept-card` | Apartment-dept official table | Housing dept terminal highlight | **Non-navigation** surface anchor (route `apartment-dept`) | Frozen | Migration issue required |
+| `apartment-life-card` | Apartment-info life card | Apartment info secondary card | **Non-navigation** surface anchor | Frozen | Migration issue required |
+
+**Additive rule:** new targets require map `CLOSED_TARGET_IDS` + canvas producer + tests; must not repurpose existing IDs.
 
 ---
 
@@ -236,21 +253,46 @@ Golden comparison **does not** validate live LLM quality.
 
 ## 7. Public JavaScript / window APIs
 
-| API | Owner | Known consumers | Classification |
-|-----|-------|-----------------|----------------|
-| `window.CitizenActionDemoCanvas` | canvas.js | shell, choreography, executor, tests, Page Agent | **Frozen public** |
-| `.navigateToRoute` / `.getCurrentRouteId` / `.getTargetElement` | canvas | journeys, tests | Frozen |
-| `.showCursorAt` / `.hideCursor` / `.clickAnimation` / `.fitToViewport` | canvas | choreography, mobile fit | Frozen / additive methods need review |
-| `window.CitizenActionDemoMap` | map.js | canvas | Frozen closed vocabulary |
-| `window.CitizenFirstUseShell` | shell.js | canvas, tests | Frozen public |
-| `window.CitizenFirstChoreography` | choreography.js | shell, canvas, tests | Frozen public |
-| `window.__BUKGU_HOME_CLONE_FIXTURE__` | generated projection | canvas home | Frozen global name |
-| `window.__BUKGU_OFFICIAL_SNAPSHOTS__` | snapshots | canvas official routes | Frozen global name |
-| `window.PageAgentMockModel` | resident-mock-model.js | resident, comparison | Frozen mock diagnostics surface |
-| `window.PageAgentParityScenarios` | parity-scenarios.js | mock model | Frozen scenario vocabulary |
-| `window.PageAgentResidentRuntime` | resident-demo.js | tests/diagnostics | Frozen read-only control surface |
+Export source of truth: `window.* = Object.freeze({...})` in each owner file.
+Internal helpers that are not exported are **not** public API.
 
-Internal helpers (non-exported functions) are **not** public API.
+### `window.CitizenActionDemoMap` (`citizen-action-demo-map.js`)
+
+| Method | Owner | Known consumers | Classification | Breaking-change requirement |
+|--------|-------|-----------------|----------------|------------------------------|
+| `getRouteIds` | map.js | canvas, tests, docs contracts | **Frozen public** | Migration issue + dual-read |
+| `getTargetIds` | map.js | canvas, tests, docs contracts | Frozen public | Migration issue + dual-read |
+| `getRoute` | map.js | canvas click/category flow | Frozen public | Migration issue + dual-read |
+| `getCategoryLabel` | map.js | canvas category labels | Frozen public | Migration issue + dual-read |
+| `isValidRoute` | map.js | canvas navigation guards | Frozen public | Migration issue + dual-read |
+| `isValidTarget` | map.js | canvas click delegation | Frozen public | Migration issue + dual-read |
+
+Closed-vocabulary validation uses `isValidRoute` / `isValidTarget` only.
+
+### `window.CitizenActionDemoCanvas` (`citizen-action-demo-canvas.js`)
+
+| Method | Owner | Known consumers | Classification | Breaking-change requirement |
+|--------|-------|-----------------|----------------|------------------------------|
+| `navigateToRoute` | canvas.js | shell, choreography, executor, Page Agent, tests | **Frozen public** | Migration issue + dual-read |
+| `getCurrentRouteId` | canvas.js | journeys, executor, tests | Frozen public | Migration issue + dual-read |
+| `hasRoute` | canvas.js | consumers checking route availability | Frozen public | Migration issue + dual-read |
+| `getTargetElement` | canvas.js | executor highlight/click, tests | Frozen public | Migration issue + dual-read |
+| `showCursorAt` | canvas.js | choreography cursor | Frozen public | Migration issue + dual-read |
+| `hideCursor` | canvas.js | choreography cancel/cleanup | Frozen public | Migration issue + dual-read |
+| `clickAnimation` | canvas.js | choreography click cue | Frozen public | Migration issue + dual-read |
+| `fitToViewport` | canvas.js | mobile/desktop fit, resize | Frozen public | Migration issue + dual-read |
+
+### Other frozen globals
+
+| API | Owner | Known consumers | Classification | Breaking-change requirement |
+|-----|-------|-----------------|----------------|------------------------------|
+| `window.CitizenFirstUseShell` | shell.js | canvas, tests | Frozen public | Migration issue + dual-read |
+| `window.CitizenFirstChoreography` | choreography.js | shell, canvas, tests | Frozen public | Migration issue + dual-read |
+| `window.__BUKGU_HOME_CLONE_FIXTURE__` | generated projection | canvas home | Frozen global name | Generator + identity program |
+| `window.__BUKGU_OFFICIAL_SNAPSHOTS__` | snapshots | canvas official routes | Frozen global name | Migration issue |
+| `window.PageAgentMockModel` | resident-mock-model.js | resident, comparison | Frozen mock diagnostics | Migration issue |
+| `window.PageAgentParityScenarios` | parity-scenarios.js | mock model | Frozen scenario vocabulary | Migration issue |
+| `window.PageAgentResidentRuntime` | resident-demo.js | tests/diagnostics | Frozen read-only control | Migration issue |
 
 ---
 
@@ -359,7 +401,7 @@ Local-only tests that are **not** in this workflow must not be described as perm
 | Boundary | Golden enforcement |
 |----------|--------------------|
 | No actual official-site control | Clone/fixture only in product paths |
-| No real civic submission | Disabled submit; handoff-stop; pre-submit receipts |
+| No real civic submission | Disabled submit; handoff-stop; `mayor-complaint-receipt` is a **local simulated/demo receipt route** only — **no external submission** occurred and it **must not** be interpreted as an **official receipt** or proof of submission |
 | No login / payment / PII transmission | Browser contracts assert zero |
 | No external navigation in controlled tests | Origin allow-lists; request filters |
 | No live provider / Firecrawl in golden comparison | Mock / offline adapters |

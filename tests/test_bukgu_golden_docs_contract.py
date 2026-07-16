@@ -20,6 +20,31 @@ CANONICAL_EVIDENCE = (
 )
 MAP_JS = ROOT / "src" / "web" / "static" / "citizen-action-demo-map.js"
 
+MAP_PUBLIC_METHODS = (
+    "getRouteIds",
+    "getTargetIds",
+    "getRoute",
+    "getCategoryLabel",
+    "isValidRoute",
+    "isValidTarget",
+)
+
+CANVAS_PUBLIC_METHODS = (
+    "navigateToRoute",
+    "getCurrentRouteId",
+    "hasRoute",
+    "getTargetElement",
+    "showCursorAt",
+    "hideCursor",
+    "clickAnimation",
+    "fitToViewport",
+)
+
+PROHIBITED_MAP_API_NAMES = (
+    "isKnownRoute",
+    "isKnownTarget",
+)
+
 # Claims that must not appear as active golden truth in the new platform docs.
 PROHIBITED_GOLDEN_CLAIM_PATTERNS = [
     re.compile(r"\blive-ready\b", re.I),
@@ -31,6 +56,16 @@ PROHIBITED_GOLDEN_CLAIM_PATTERNS = [
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _parse_closed_ids(map_text: str, const_name: str) -> list[str]:
+    match = re.search(
+        rf"{const_name}\s*=\s*Object\.freeze\(\[(.*?)\]\)",
+        map_text,
+        re.S,
+    )
+    assert match, f"{const_name} not found in citizen-action-demo-map.js"
+    return re.findall(r'"([^"]+)"', match.group(1))
 
 
 def test_golden_docs_exist():
@@ -70,19 +105,54 @@ def test_canonical_and_historical_evidence_paths():
 
 def test_manifest_records_closed_route_count_matching_map():
     map_text = _read(MAP_JS)
-    match = re.search(
-        r"CLOSED_ROUTE_IDS\s*=\s*Object\.freeze\(\[(.*?)\]\)",
-        map_text,
-        re.S,
-    )
-    assert match, "CLOSED_ROUTE_IDS not found in citizen-action-demo-map.js"
-    route_ids = re.findall(r'"([^"]+)"', match.group(1))
+    route_ids = _parse_closed_ids(map_text, "CLOSED_ROUTE_IDS")
     assert len(route_ids) == 17, f"expected 17 closed routes, got {len(route_ids)}"
 
     manifest = _read(MANIFEST)
     assert re.search(r"\b17\b", manifest), "manifest must state closed route count 17"
     for route_id in route_ids:
         assert route_id in manifest, f"manifest missing route id {route_id}"
+
+
+def test_manifest_records_complete_closed_target_vocabulary():
+    map_text = _read(MAP_JS)
+    target_ids = _parse_closed_ids(map_text, "CLOSED_TARGET_IDS")
+    assert len(target_ids) == 28, f"expected 28 closed targets, got {len(target_ids)}"
+
+    manifest = _read(MANIFEST)
+    assert "Complete closed action-target vocabulary" in manifest
+    assert re.search(r"\b28\b", manifest), "manifest must state closed target count 28"
+    for target_id in target_ids:
+        assert target_id in manifest, f"manifest missing target id {target_id}"
+
+
+def test_docs_record_map_public_api_and_forbid_isKnown():
+    for path in (MANIFEST, ADR):
+        text = _read(path)
+        for method in MAP_PUBLIC_METHODS:
+            assert method in text, f"{path.name} missing Map API method {method}"
+        for bad in PROHIBITED_MAP_API_NAMES:
+            assert bad not in text, f"{path.name} must not present obsolete API name {bad}"
+
+
+def test_manifest_records_canvas_public_api():
+    manifest = _read(MANIFEST)
+    for method in CANVAS_PUBLIC_METHODS:
+        assert method in manifest, f"manifest missing Canvas API method {method}"
+
+
+def test_receipt_route_safety_non_claims():
+    for path in (MANIFEST, ADR):
+        text = _read(path).lower()
+        assert "simulated" in text or "demo receipt" in text, (
+            f"{path.name} must describe mayor receipt as simulated/demo"
+        )
+        assert "no external submission" in text, (
+            f"{path.name} must state no external submission"
+        )
+        assert "official receipt" in text, (
+            f"{path.name} must warn against treating receipt as official"
+        )
 
 
 def test_manifest_states_explicit_non_claims():
