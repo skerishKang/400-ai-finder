@@ -79,6 +79,8 @@ var sandbox = {
   URLSearchParams: URLSearchParams
 };
 sandbox.window = sandbox;
+// #1197: fixture projection is explicit opt-in (not resident default home).
+sandbox.window.location = { search: '?home-fixture=1' };
 var cx = vm.createContext(sandbox);
 vm.runInContext(%s, cx);
 vm.runInContext(%s, cx);
@@ -241,11 +243,13 @@ var sandbox = {
   URLSearchParams: URLSearchParams
 };
 sandbox.window = sandbox;
+// #1197: fixture fail-closed applies only on explicit fixture opt-in.
+sandbox.window.location = { search: '?home-fixture=1' };
 var cx = vm.createContext(sandbox);
 vm.runInContext(%s, cx);
 vm.runInContext(%s, cx);
 vm.runInContext(%s, cx);
-// intentionally skip home fixture projection
+// intentionally skip home fixture projection global
 sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
 process.stdout.write(capturedHTML);
 """ % (

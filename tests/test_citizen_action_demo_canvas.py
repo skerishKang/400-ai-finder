@@ -803,7 +803,7 @@ class TestSemanticReconstruction:
         """HTML must have chat-shell as primary right-side panel."""
         html = _read_static("citizen-action-demo.html")
         assert 'class="chat-shell"' in html, "chat-shell not found in HTML"
-        assert "AI 민원 네비게이터" in html, "AI 민원 네비게이터 title missing"
+        assert "네비게이터" in html, "shell title 네비게이터 missing"
         assert 'class="chat-composer"' in html, "chat-composer not found"
         assert "보내기" in html, "보내기 button missing"
 
@@ -922,17 +922,23 @@ class TestFidelityAndSeparation:
         identity_img = Image.open(current_identity_path)
         assert identity_img.size == (170, 42), f"home-identity.png size mismatch: {identity_img.size}"
 
-        # b. Fixture-driven home root (no exact-clone claim; capture_required)
+        # b. #1197: resident default home is the approved designed portal (pre-#1182),
+        # not the fixture visual-card rail. Fixture projection remains opt-in.
         home_html = rendered_routes["home"]
-        assert 'data-home-fixture-sha256="81b27b98fadc091ca852079f89ea93da45b93f250372835b8b352726b2faeaed"' in home_html
-        assert 'data-home-clone-status="capture_required"' in home_html
-        assert 'data-home-exact-clone="false"' in home_html
-        assert "bg-home-fixture-root" in home_html
+        assert "bg-page--home" in home_html
+        assert "home-mayor-card.png" in home_html
+        assert "bg-home-quick-link" in home_html
+        assert "home-alert-banner.png" in home_html or "home-alert-banner-r-home-02.png" in home_html
+        assert "bg-home-fixture-root" not in home_html
+        assert "data-home-presentation=\"visual-card\"" not in home_html
+        assert 'data-action-target="nav-civil-service"' in home_html
+        assert 'data-action-target="nav-complaint-board"' in home_html
         assert "광주광역시 북구" not in home_html, "광주광역시 북구 must not appear in home rendered html"
 
-        # c. Home no longer embeds unresolved official assets as <img>
-        assert "home-logo-identity.png" not in home_html
+        # c. Fixture audit path still exists for explicit projection contracts.
         js = _read_static("citizen-action-demo-canvas.js")
+        assert "function _renderHomeFixtureProjection" in js
+        assert "function _wantsHomeFixtureProjection" in js
         assert '_svgLogo' not in js, "_svgLogo still in canvas.js"
         assert '_svgLogoWhite' not in js, "_svgLogoWhite still in canvas.js"
 

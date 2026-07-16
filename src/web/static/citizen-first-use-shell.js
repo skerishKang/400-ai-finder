@@ -2483,9 +2483,8 @@
       return;
     }
 
-    if (currentState === STATE_ENTRY && !recommendationsAutoCollapsed) {
-      _collapseRecommendations();
-    }
+    // #1197: keep recommendation chips expanded after first-question transition.
+    // Manual hide/show remains available via the recommendations toggle.
 
     if (isMvpMode()) {
       handleMvpSubmission(question);

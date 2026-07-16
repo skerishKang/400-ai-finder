@@ -35,7 +35,7 @@
   // any missing key.
   var UI = Object.freeze({
     ko: Object.freeze({
-      "chat.title": "북구청 AI 민원 네비게이터",
+      "chat.title": "네비게이터",
       "chat.badge": "안내",
       "chat.attribution": "AI 행정 브라우저",
       "chat.welcome":
@@ -58,8 +58,8 @@
       "chip.bulkyWaste": "대형폐기물 배출",
       "chip.passport": "여권 발급 안내",
       "chip.kiosk": "무인민원발급기 안내",
-      "chip.streetlight": "가로등 고장 신고 (AI 도움)",
-      "chip.litter": "쓰레기 무단투기 (AI 도움)",
+      "chip.streetlight": "가로등 고장 신고 (AI)",
+      "chip.litter": "쓰레기 무단투기 (AI)",
 
       "action.yesGuide": "예, 안내해 주세요",
       "action.no": "아니요",
@@ -152,7 +152,7 @@
     }),
 
     en: Object.freeze({
-      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
+      "chat.title": "NAVIGATOR",
       "chat.badge": "Guide",
       "chat.attribution": "AI Administrative Browser",
       "chat.welcome":
@@ -271,7 +271,7 @@
     }),
 
     vi: Object.freeze({
-      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
+      "chat.title": "NAVIGATOR",
       "chat.badge": "Hướng dẫn",
       "chat.attribution": "Trình duyệt hành chính AI",
       "chat.welcome":
@@ -390,7 +390,7 @@
     }),
 
     th: Object.freeze({
-      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
+      "chat.title": "NAVIGATOR",
       "chat.badge": "คู่มือ",
       "chat.attribution": "เบราว์เซอร์งานราชการ AI",
       "chat.welcome":
@@ -509,7 +509,7 @@
     }),
 
     id: Object.freeze({
-      "chat.title": "BUKGU AI CIVIC NAVIGATOR",
+      "chat.title": "NAVIGATOR",
       "chat.badge": "Panduan",
       "chat.attribution": "Peramban Administrasi AI",
       "chat.welcome":

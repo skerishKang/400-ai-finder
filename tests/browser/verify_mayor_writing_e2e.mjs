@@ -831,7 +831,7 @@ async function runStreetlightWriteHeaderFlow(browser) {
   });
 
   await page.goto(`${BASE_ORIGIN}/mvp/`, { waitUntil: "networkidle", timeout: 20000 });
-  await page.getByRole("button", { name: "가로등 고장 신고 (AI 도움)", exact: true }).click();
+  await page.getByRole("button", { name: "가로등 고장 신고 (AI)", exact: true }).click();
   await page.getByRole("button", { name: "예, 안내해 주세요" }).click();
 
   await page.waitForFunction(

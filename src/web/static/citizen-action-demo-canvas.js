@@ -1465,7 +1465,24 @@
     );
   }
 
-  function _renderHome(state) {
+  // #1197: fixture projection is opt-in for audit/E2E — never resident default.
+  function _wantsHomeFixtureProjection(search) {
+    try {
+      var s = search;
+      if (s == null || s === "") {
+        s = (typeof window !== "undefined" && window.location) ? window.location.search : "";
+      }
+      if (!s) return false;
+      var params = new URLSearchParams(s.charAt(0) === "?" ? s.slice(1) : s);
+      return params.get("home-fixture") === "1" || params.get("home-projection") === "fixture";
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  // #1197: canonical six-region fixture projection — explicit opt-in only
+  // (?home-fixture=1 or ?home-projection=fixture). Not the resident default home.
+  function _renderHomeFixtureProjection(state) {
     var deptJourney = _resolveDeptJourneyState(typeof window !== "undefined" && window.location ? window.location.search : "");
     var deptReplay = _resolveDeptReplayState(typeof window !== "undefined" && window.location ? window.location.search : "");
     var isDeptJourney = deptJourney.isDept;
@@ -1513,6 +1530,247 @@
   // -----------------------------------------------------------------------
   // _renderCivilService — intermediate route
   // -----------------------------------------------------------------------
+  function _renderHome(state) {
+    // #1197: resident default uses approved designed home (pre-#1182).
+    // Fixture rail is available only via explicit opt-in query.
+    if (_wantsHomeFixtureProjection(
+      typeof window !== "undefined" && window.location ? window.location.search : ""
+    )) {
+      return _renderHomeFixtureProjection(state);
+    }
+    var deptJourney = _resolveDeptJourneyState(typeof window !== "undefined" && window.location ? window.location.search : "");
+    var deptReplay = _resolveDeptReplayState(typeof window !== "undefined" && window.location ? window.location.search : "");
+    var isDeptJourney = deptJourney.isDept;
+    var deptState = deptJourney.state;
+
+    var assets = "/static/images/bukgu-current";
+    var bannerFile = state === "R-HOME-02"
+      ? "home-alert-banner-r-home-02.png"
+      : "home-alert-banner.png";
+    var searchIcon =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.4 4.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var menuIcon =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    var arrowLeft =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 5.5L8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var arrowRight =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.5 5.5L16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var quickItems = [
+      ["home-quick-work.png", "업무검색"],
+      ["home-quick-office.png", "청사안내"],
+      ["home-quick-donation.png", "고향사랑기부제"],
+      ["home-quick-money.png", "부끄머니"],
+      ["home-quick-reservation.png", "통합예약"],
+      ["home-quick-waiting.png", "일반민원 대기현황"],
+    ];
+    var quickHtml = "";
+    for (var i = 0; i < quickItems.length; i++) {
+      quickHtml +=
+        '<a href="#" class="bg-home-quick-link">' +
+          '<img src="' + assets + '/' + quickItems[i][0] + '" alt="" class="bg-home-quick-link__icon" />' +
+          '<span class="bg-home-quick-link__label">' + _escHtml(quickItems[i][1]) + '</span>' +
+        '</a>';
+    }
+
+    return (
+      '<div class="bg-page bg-page--full bg-page--home" data-home-reference-state="' + state + '"' + (isDeptJourney ? ' data-dept-journey="true"' : '') + (deptReplay.isReplay ? ' data-dept-replay="true" data-dept-replay-step="ready"' : '') + '>' +
+        '<div class="bg-skip"><a href="#bg-content-main">본문으로 바로가기</a></div>' +
+
+        '<div class="bg-home-gov-strip">' +
+          '<div class="bg-home-gov-strip__inner">' +
+            '<img src="' + assets + '/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="bg-home-utility" aria-label="사이트 도구">' +
+          '<div class="bg-home-utility__inner">' +
+            '<div class="bg-home-utility__weather">' +
+              '<strong>26°C</strong>' +
+              '<span>미세먼지 <b>좋음</b></span>' +
+              '<span>초미세먼지 <b>좋음</b></span>' +
+            '</div>' +
+            '<div class="bg-home-utility__menus">' +
+              '<a href="#">주요사이트 <span aria-hidden="true">▾</span></a>' +
+              '<a href="#">SNS <span aria-hidden="true">▾</span></a>' +
+              '<a href="#">KOR <span aria-hidden="true">▾</span></a>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+        '<header class="bg-header">' +
+          '<div class="bg-home-header">' +
+          '<div class="bg-home-header__inner">' +
+            '<a href="#" class="bg-home-header__identity" aria-label="전남광주통합특별시북구 홈">' +
+              '<img src="' + assets + '/home-identity.png" alt="전남광주통합특별시북구" />' +
+            '</a>' +
+            '<nav class="bg-gnb" aria-label="주메뉴">' +
+              '<div class="bg-home-gnb">' +
+              '<a href="#" class="bg-home-gnb__link bg-home-gnb__link--active" data-action-target="nav-civil-service">종합민원</a>' +
+              '<a href="#" class="bg-home-gnb__link" data-action-target="nav-complaint-board">소통광장</a>' +
+              '<a href="#" class="bg-home-gnb__link">더불어복지</a>' +
+              '<a href="#" class="bg-home-gnb__link">분야별정보</a>' +
+              '<a href="#" class="bg-home-gnb__link">정보공개</a>' +
+              (isDeptJourney ?
+                '<div class="bg-home-gnb__item bg-home-gnb__item--dept' + (deptState === 'menu' ? ' bg-home-gnb__item--active' : '') + '">' +
+                  '<a href="#" class="bg-home-gnb__link' + (deptState === 'menu' ? ' bg-home-gnb__link--active' : '') + '" data-dept-action="open-menu" aria-haspopup="true">북구소개</a>' +
+                  '<div class="bg-dept-mega-menu' + (deptState === 'menu' ? ' bg-dept-mega-menu--visible' : '') + '" aria-label="북구소개 하위 메뉴">' +
+                    '<div class="bg-dept-mega-menu__inner">' +
+                      '<div class="bg-dept-mega-menu__col">' +
+                        '<h3>구청안내</h3>' +
+                        '<a href="#" data-dept-action="go-directory">업무 및 전화번호 안내</a>' +
+                      '</div>' +
+                    '</div>' +
+                  '</div>' +
+                '</div>'
+              :
+                '<a href="#" class="bg-home-gnb__link">북구소개</a>'
+              ) +
+            '</div>' +
+            '</nav>' +
+            '<div class="bg-home-header__actions">' +
+              '<button type="button" class="bg-home-header__icon" aria-label="통합검색">' + searchIcon + '<span>통합검색</span></button>' +
+              '<button type="button" class="bg-home-header__icon" aria-label="전체메뉴">' + menuIcon + '<span>전체메뉴</span></button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '</header>' +
+        (deptReplay.isReplay ? '<div class="bg-dept-replay-home-controls">' + _renderDeptReplayControls("ready") + '</div>' : '') +
+
+        '<section class="bg-home-search" aria-label="통합검색">' +
+          '<div class="bg-home-search__inner">' +
+            '<img src="' + assets + '/home-civic-brand.png" alt="빛나는 북구, 함께하는 북구 - 행복한 구민을 위한 따뜻한 변화" class="bg-home-search__brand" />' +
+            '<div class="bg-home-search__cluster">' +
+              '<div class="bg-home-search__field">' +
+                '<input type="text" placeholder="검색어를 입력하세요." aria-label="검색어" disabled />' +
+                '<button type="button" aria-label="검색" disabled>' + searchIcon + '</button>' +
+              '</div>' +
+              '<div class="bg-home-search__tags"><span>#공동주택과</span><span>#위생과</span><span>#폐기물</span><span>#부끄머니</span></div>' +
+            '</div>' +
+          '</div>' +
+        '</section>' +
+
+        '<main id="bg-content-main" class="bg-home-main">' +
+          '<section class="bg-home-lead" aria-label="주요 안내">' +
+            '<article class="bg-home-lead__mayor">' +
+              '<img src="' + assets + '/home-mayor-card.png" alt="따뜻한 북구를 만들겠습니다. 북구청장 신수정입니다." />' +
+              '<button type="button" class="bg-home-mayor-hotspot" id="btn-open-mayor-office" ' +
+                'data-action-target="mayor-office-open" aria-label="열린구청장실 바로가기">' +
+                '<span>열린구청장실 바로가기</span><b aria-hidden="true">→</b>' +
+              '</button>' +
+            '</article>' +
+            '<article class="bg-home-lead__banner" aria-label="소속 공무원 사칭 피해주의 알림">' +
+              '<img src="' + assets + '/' + bannerFile + '" alt="주요 알림 배너" />' +
+            '</article>' +
+          '</section>' +
+
+          '<nav class="bg-home-quick" aria-label="빠른 서비스">' +
+            '<button type="button" class="bg-home-quick__arrow" aria-label="이전" disabled>' + arrowLeft + '</button>' +
+            '<div class="bg-home-quick__items">' + quickHtml + '</div>' +
+            '<button type="button" class="bg-home-quick__arrow" aria-label="다음" disabled>' + arrowRight + '</button>' +
+          '</nav>' +
+
+          '<section class="bg-home-notice-sites" aria-label="공지와 주요 사이트">' +
+            '<article class="bg-home-notice">' +
+              '<div class="bg-home-notice__tabs" role="tablist" aria-label="게시판">' +
+                '<button type="button" role="tab" aria-selected="true">공지사항</button>' +
+                '<button type="button" role="tab">보도자료</button>' +
+                '<button type="button" role="tab">고시/공고</button>' +
+                '<button type="button" class="bg-home-notice__more" aria-label="더보기">+</button>' +
+              '</div>' +
+              '<ul class="bg-home-notice__list">' +
+                '<li><b>03</b><span>2026년 국적취득비용(수수료) 지원사업 진행 안내</span></li>' +
+                '<li><b>03</b><span>2026년 축산물이력제 식육포장처리업소 이력번호 표시 지원사업 안내</span></li>' +
+                '<li><b>03</b><span>전남광주통합특별시 북구 소속 공무원 사칭 피해 주의 안내</span></li>' +
+                '<li><b>03</b><span>2026년도 위기 청소년 특별지원 사업 대상자 추가 모집 안내</span></li>' +
+              '</ul>' +
+            '</article>' +
+            '<article class="bg-home-sites">' +
+              '<div class="bg-home-sites__head"><h2>주요사이트</h2><span>‹&nbsp;&nbsp;3 / 4&nbsp;&nbsp;Ⅱ&nbsp;&nbsp;›</span></div>' +
+              '<div class="bg-home-sites__grid">' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--chart"></i>통계정보</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--school"></i>평생학습관</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--sun"></i>청년센터</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--culture"></i>문화센터</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--park"></i>공원시설<br>예약</a>' +
+                '<a href="#"><i class="bg-home-sites__glyph bg-home-sites__glyph--sport"></i>체육시설<br>예약</a>' +
+              '</div>' +
+            '</article>' +
+          '</section>' +
+          '<section class="bg-home-lower" aria-label="하단 소식과 분야별 정보">' +
+            '<section class="bg-home-lower-cards" aria-label="주요 소식">' +
+              '<article class="bg-home-lower-card bg-home-lower-card--donation">' +
+                '<div class="bg-home-lower-card__head"><h2>고향사랑기부제</h2><span aria-hidden="true">‹&nbsp;Ⅱ&nbsp;›&nbsp;+</span></div>' +
+                '<img src="' + assets + '/home-lower-hometown-donation.png" alt="고향사랑기부제 안내" />' +
+              '</article>' +
+              '<article class="bg-home-lower-card bg-home-lower-card--sketch">' +
+                '<div class="bg-home-lower-card__head"><h2>현장스케치</h2><span aria-hidden="true">‹&nbsp;<b>1</b> / 4&nbsp;Ⅱ&nbsp;›&nbsp;+</span></div>' +
+                '<img src="' + assets + '/home-lower-field-sketch.png" alt="현장스케치" />' +
+              '</article>' +
+              '<article class="bg-home-lower-card bg-home-lower-card--news">' +
+                '<div class="bg-home-lower-card__head"><h2>카드뉴스</h2><span aria-hidden="true">+</span></div>' +
+                '<img src="' + assets + '/home-lower-card-news.png" alt="카드뉴스" />' +
+              '</article>' +
+              '<article class="bg-home-lower-card bg-home-lower-card--notifier">' +
+                '<div class="bg-home-lower-card__head"><h2>알리미</h2><span aria-hidden="true">‹&nbsp;<b>1</b> / 4&nbsp;Ⅱ&nbsp;›&nbsp;+</span></div>' +
+                '<img src="' + assets + '/home-lower-notifier.png" alt="알리미" />' +
+              '</article>' +
+            '</section>' +
+
+            '<section class="bg-home-field-info" aria-labelledby="bg-home-field-info-title">' +
+              '<div class="bg-home-field-info__head">' +
+                '<div><h2 id="bg-home-field-info-title">분야별 정보</h2><p>각 분야별로 자주찾는 메뉴에 빠르게 이동할 수 있습니다.</p></div>' +
+                '<nav class="bg-home-field-info__tabs" aria-label="분야 선택">' +
+                  '<button type="button" aria-pressed="true"><span aria-hidden="true">☺</span>구민</button>' +
+                  '<button type="button" aria-pressed="false"><span aria-hidden="true">▦</span>기업/경제</button>' +
+                  '<button type="button" aria-pressed="false"><span aria-hidden="true">♜</span>관광</button>' +
+                '</nav>' +
+              '</div>' +
+              '<div class="bg-home-field-info__links">' +
+                '<a href="#" data-action-target="nav-apartment-dept">행정조직도 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">주정차단속문자알림 <span aria-hidden="true">›</span></a>' +
+                '<a href="#" data-action-target="nav-passport-guidance">여권 발급 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">보건증 발급 <span aria-hidden="true">›</span></a>' +
+                '<a href="#" data-action-target="nav-bulky-waste-disposal">대형폐기물 처리 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">온라인 민원발급(정부24) <span aria-hidden="true">›</span></a>' +
+                '<a href="#">취업지원프로그램안내 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">소화기 사용법 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">정보화교육 <span aria-hidden="true">›</span></a>' +
+                '<a href="#">공공데이터 <span aria-hidden="true">›</span></a>' +
+              '</div>' +
+            '</section>' +
+
+            '<section class="bg-home-partners" aria-label="배너 모음">' +
+              '<div class="bg-home-partners__head"><h2>배너모음</h2><span aria-hidden="true">‹&nbsp;Ⅱ&nbsp;›&nbsp;+</span></div>' +
+              '<div class="bg-home-partners__items">' +
+                '<a href="#">농림축산식품부</a>' +
+                '<a href="#" class="bg-home-partners__smart">Smart K-Factory</a>' +
+                '<a href="#" class="bg-home-partners__pis">PIS <small>행정정보공동이용센터</small></a>' +
+                '<a href="#">소비자24</a>' +
+                '<a href="#">수유시설</a>' +
+              '</div>' +
+            '</section>' +
+          '</section>' +
+        '</main>' +
+        '<footer class="bg-home-footer" aria-label="사이트 하단">' +
+          '<div class="bg-home-footer__inner">' +
+            '<nav class="bg-home-footer__nav" aria-label="하단 메뉴">' +
+              '<a href="#">누리집이용안내 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">개인정보처리방침 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">저작권 보호정책 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">이메일무단수집거부 <span aria-hidden="true">⌃</span></a>' +
+              '<a href="#">영상정보처리기기 운영·관리방침 <span aria-hidden="true">⌃</span></a>' +
+            '</nav>' +
+            '<div class="bg-home-footer__legal"><strong>전남광주통합특별시북구</strong><span></span></div>' +
+          '</div>' +
+        '</footer>' +
+      '</div>'
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // _renderCivilService — intermediate route
+  // -----------------------------------------------------------------------
+
   function _renderCivilService(route) {
     return (
       '<div class="bg-page bg-page--full bg-page--dense">' +

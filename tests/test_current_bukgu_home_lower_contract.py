@@ -9,7 +9,8 @@ CSS = (STATIC / "citizen-action-demo-canvas.css").read_text(encoding="utf-8")
 FIXTURE_JS = (STATIC / "bukgu-home-clone-fixture.js").read_text(encoding="utf-8")
 
 
-def test_lower_home_no_longer_uses_synthetic_card_assets_in_home_renderer():
+def test_approved_home_includes_lower_composition_assets():
+    """#1197: restored designed home keeps lower news/card composition assets."""
     start = JS.index("  function _renderHome(")
     end = JS.index(
         "  // -----------------------------------------------------------------------\n  // _renderCivilService",
@@ -22,7 +23,7 @@ def test_lower_home_no_longer_uses_synthetic_card_assets_in_home_renderer():
         "home-lower-card-news.png",
         "home-lower-notifier.png",
     ]:
-        assert asset not in home
+        assert asset in home
     assert "CaptureX_2026-07-05_150832_bukgu.gwangju.kr_full.png" not in home
 
 

@@ -88,7 +88,7 @@ const FORBIDDEN_KO = [
 
 const LOCALE_ASSERTIONS = {
   ko: {
-    shellTitle: "북구청 AI 민원 네비게이터",
+    shellTitle: "네비게이터",
     chipPrefix: "구청장에게 제안",
     yesText: "예, 안내해 주세요",
     noText: "아니요",

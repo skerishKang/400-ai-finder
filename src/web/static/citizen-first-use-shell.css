@@ -1491,6 +1491,20 @@ body[data-reduced-motion="true"] .executor-typing {
   flex: 0 1 auto;
 }
 
+/* #1197: desktop-only single-line for two AI-assisted compact chips.
+   Not applied globally / not forced on mobile. */
+@media (min-width: 768px) {
+  .chat-chip--ai-compact {
+    flex: 0 0 auto;
+    max-width: none;
+    white-space: nowrap;
+  }
+  .chat-chip--ai-compact .chat-chip__label {
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+}
+
 .chat-chips[hidden] {
   display: none;
 }
