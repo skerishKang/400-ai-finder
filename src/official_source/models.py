@@ -3,31 +3,23 @@
 Aligned with repository structured-result conventions (dataclasses, closed
 vocab failure codes, public-safe messages). Failures never invent civic facts.
 
-Phase 2 (#1150 expanded): broader FactKind vocabulary, RequestContext clock
-injection, and CurrentInformationAnswer public envelope. Product answers must
-still come from retrieval — never hard-coded civic names as permanent truth.
+Product answers must come from retrieval — never hard-coded civic names.
 """
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Final, Mapping
-from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 class FactKind(str, Enum):
-    """Closed fact vocabulary for current-information retrieval.
+    """Closed fact vocabulary for current-information retrieval."""
 
-    Phase-1 aliases ``current_mayor`` / ``jurisdiction_name`` remain for
-    backward-compatible contracts. Prefer ``district_executive`` /
-    ``jurisdiction_name`` for new callers.
-    """
-
-    # Phase-1 (kept)
     CURRENT_MAYOR = "current_mayor"
     JURISDICTION_NAME = "jurisdiction_name"
-    # Expanded
     REGIONAL_EXECUTIVE = "regional_executive"
     DISTRICT_EXECUTIVE = "district_executive"
     AGENCY_NAME = "agency_name"
@@ -49,6 +41,18 @@ class FreshnessStatus(str, Enum):
     UNKNOWN = "unknown"
     INVALID = "invalid"
     VERIFIED_CURRENT = "verified_current"
+    VERIFIED_AS_OF = "verified_as_of"
+
+
+class TemporalMode(str, Enum):
+    CURRENT = "current"
+    HISTORICAL = "historical"
+
+
+class TemporalPrecision(str, Enum):
+    DATE = "date"
+    YEAR = "year"
+    UNSPECIFIED = "unspecified"
 
 
 class QueryRoute(str, Enum):
@@ -77,6 +81,7 @@ class ErrorCode(str, Enum):
 
     UNSUPPORTED_QUESTION = "unsupported_question"
     INVALID_REQUEST = "invalid_request"
+    INVALID_TIMEZONE = "invalid_timezone"
     SOURCE_NOT_ALLOWLISTED = "source_not_allowlisted"
     EXTERNAL_REDIRECT = "external_redirect"
     TRANSPORT_TIMEOUT = "transport_timeout"
@@ -93,6 +98,10 @@ class ErrorCode(str, Enum):
     RETRIEVAL_FAILED = "retrieval_failed"
     NO_VERIFIED_SOURCE = "no_verified_source"
     SOURCE_CONFLICT_UNRESOLVED = "source_conflict_unresolved"
+    FACT_KIND_MISMATCH = "fact_kind_mismatch"
+    SOURCE_TYPE_MISMATCH = "source_type_mismatch"
+    TEMPORAL_SCOPE_MISMATCH = "temporal_scope_mismatch"
+    INVALID_SOURCE_METADATA = "invalid_source_metadata"
     INTERNAL_ERROR = "internal_error"
 
 
@@ -103,10 +112,10 @@ PIPELINE_ID: Final[str] = "official_source.current_information.v2"
 
 DEFAULT_TIMEZONE: Final[str] = "Asia/Seoul"
 
-# Public-safe messages for each failure code (no secrets / internals).
 _PUBLIC_MESSAGES: Final[dict[ErrorCode, str]] = {
     ErrorCode.UNSUPPORTED_QUESTION: "지원하지 않는 시급성 사실 질문입니다.",
     ErrorCode.INVALID_REQUEST: "요청이 올바르지 않습니다.",
+    ErrorCode.INVALID_TIMEZONE: "유효하지 않은 시간대입니다.",
     ErrorCode.SOURCE_NOT_ALLOWLISTED: "승인되지 않은 공식 출처입니다.",
     ErrorCode.EXTERNAL_REDIRECT: "외부 출처로 리다이렉트되어 차단되었습니다.",
     ErrorCode.TRANSPORT_TIMEOUT: "공식 출처 조회 시간이 초과되었습니다.",
@@ -123,6 +132,10 @@ _PUBLIC_MESSAGES: Final[dict[ErrorCode, str]] = {
     ErrorCode.RETRIEVAL_FAILED: "최신 정보 검색에 실패하여 사실을 확정할 수 없습니다.",
     ErrorCode.NO_VERIFIED_SOURCE: "검증된 출처가 없어 현재 사실을 확정할 수 없습니다.",
     ErrorCode.SOURCE_CONFLICT_UNRESOLVED: "출처 간 충돌을 안전하게 해소하지 못했습니다.",
+    ErrorCode.FACT_KIND_MISMATCH: "요청한 사실 종류와 검색 결과가 일치하지 않습니다.",
+    ErrorCode.SOURCE_TYPE_MISMATCH: "출처 유형이 제공자 정책과 일치하지 않습니다.",
+    ErrorCode.TEMPORAL_SCOPE_MISMATCH: "현재/과거 검색 범위가 일치하지 않습니다.",
+    ErrorCode.INVALID_SOURCE_METADATA: "출처 메타데이터가 올바르지 않습니다.",
     ErrorCode.INTERNAL_ERROR: "내부 처리 오류로 사실을 확정할 수 없습니다.",
 }
 
@@ -142,10 +155,19 @@ def format_utc_z(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def format_local_iso(dt: datetime) -> str:
+    """Format aware datetime with numeric UTC offset (e.g. +09:00)."""
+    if dt.tzinfo is None:
+        raise ValueError("datetime must be timezone-aware")
+    # %z → +0900; normalize to +09:00
+    raw = dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+    if len(raw) >= 5 and (raw[-5] in "+-" or raw[-5] == " "):
+        return raw[:-2] + ":" + raw[-2:]
+    return raw
+
+
 @dataclass(frozen=True)
 class RetrievalPolicy:
-    """Policy knobs for a single request (mock-safe, no network)."""
-
     prefer_official: bool = True
     allow_general_web: bool = True
     require_source_for_current_facts: bool = True
@@ -164,11 +186,7 @@ class RetrievalPolicy:
 
 @dataclass(frozen=True)
 class RequestContext:
-    """Per-request time and retrieval context (server clock injection).
-
-    Tests must inject ``clock`` or explicit timestamps — never web-search for
-    "what time is it".
-    """
+    """Per-request time and retrieval context (server clock + IANA timezone)."""
 
     request_started_at_utc: str
     request_started_at_local: str
@@ -176,7 +194,10 @@ class RequestContext:
     current_information_required: bool = False
     retrieval_policy: RetrievalPolicy = field(default_factory=RetrievalPolicy)
     historical_reference: bool = False
-    as_of_date: str | None = None  # when historical; ISO date if detected
+    temporal_mode: TemporalMode = TemporalMode.CURRENT
+    as_of_date: str | None = None
+    as_of_year: int | None = None
+    temporal_precision: TemporalPrecision = TemporalPrecision.UNSPECIFIED
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -186,8 +207,15 @@ class RequestContext:
             "current_information_required": self.current_information_required,
             "retrieval_policy": self.retrieval_policy.to_dict(),
             "historical_reference": self.historical_reference,
+            "temporal_mode": self.temporal_mode.value,
             "as_of_date": self.as_of_date,
+            "as_of_year": self.as_of_year,
+            "temporal_precision": self.temporal_precision.value,
         }
+
+
+class InvalidTimezoneError(ValueError):
+    """Raised when an IANA timezone name cannot be resolved."""
 
 
 def build_request_context(
@@ -198,10 +226,17 @@ def build_request_context(
     current_information_required: bool = False,
     retrieval_policy: RetrievalPolicy | None = None,
     historical_reference: bool = False,
+    temporal_mode: TemporalMode = TemporalMode.CURRENT,
     as_of_date: str | None = None,
-    local_offset_hours: int = 9,
+    as_of_year: int | None = None,
+    temporal_precision: TemporalPrecision = TemporalPrecision.UNSPECIFIED,
 ) -> RequestContext:
-    """Build RequestContext from injected clock or ISO UTC string."""
+    """Build RequestContext from injected clock or ISO UTC string + ZoneInfo."""
+    try:
+        zone = ZoneInfo(timezone_name)
+    except (ZoneInfoNotFoundError, KeyError, ValueError) as exc:
+        raise InvalidTimezoneError(f"invalid timezone: {timezone_name!r}") from exc
+
     if evaluated_at:
         raw = evaluated_at.strip()
         if raw.endswith("Z"):
@@ -218,32 +253,26 @@ def build_request_context(
     else:
         started = datetime.now(timezone.utc)
 
-    # Local wall clock for display (KST default offset). No network TZ DB.
-    from datetime import timedelta
-
-    local = started + timedelta(hours=local_offset_hours)
-    local_label = local.strftime("%Y-%m-%dT%H:%M:%S") + (
-        f"+{local_offset_hours:02d}:00" if local_offset_hours >= 0 else f"{local_offset_hours:03d}:00"
-    )
+    local = started.astimezone(zone)
     return RequestContext(
         request_started_at_utc=format_utc_z(started),
-        request_started_at_local=local_label,
+        request_started_at_local=format_local_iso(local),
         timezone=timezone_name,
         current_information_required=current_information_required,
         retrieval_policy=retrieval_policy or RetrievalPolicy(),
         historical_reference=historical_reference,
+        temporal_mode=temporal_mode,
         as_of_date=as_of_date,
+        as_of_year=as_of_year,
+        temporal_precision=temporal_precision,
     )
 
 
 @dataclass(frozen=True)
 class OfficialSourceRequest:
-    """Retrieval request model (classification + policy target + clock)."""
-
     question: str
     fact_kind: FactKind | None = None
     target_url: str | None = None
-    # Injected evaluation clock (ISO-8601 UTC). Required for deterministic tests.
     evaluated_at: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -257,8 +286,6 @@ class OfficialSourceRequest:
 
 @dataclass(frozen=True)
 class SourceMetadata:
-    """Official source URL/title and retrieval timestamp metadata."""
-
     url: str
     title: str
     retrieved_at: str
@@ -279,8 +306,6 @@ class SourceMetadata:
 
 @dataclass(frozen=True)
 class FactValue:
-    """Normalized civic fact extracted from an official source."""
-
     kind: FactKind
     value: str
     raw_value: str
@@ -295,13 +320,6 @@ class FactValue:
 
 @dataclass(frozen=True)
 class OfficialSourceResult:
-    """Structured success/failure payload for official-source freshness.
-
-    Public contract fields (also available via properties / to_dict):
-      ok, fact_type, value, source_url, source_title, retrieved_at,
-      freshness_status, failure_code, public_safe_message
-    """
-
     ok: bool
     fact_kind: FactKind | None = None
     fact: FactValue | None = None
@@ -315,7 +333,6 @@ class OfficialSourceResult:
     warnings: tuple[str, ...] = field(default_factory=tuple)
     schema_version: str = "1.0.0"
 
-    # Backward-compatible aliases used by earlier Phase-1 commits.
     @property
     def success(self) -> bool:
         return self.ok
@@ -352,7 +369,7 @@ class OfficialSourceResult:
         return {
             "schema_version": self.schema_version,
             "ok": self.ok,
-            "success": self.ok,  # alias
+            "success": self.ok,
             "fact_type": self.fact_type,
             "fact_kind": self.fact_type,
             "value": self.value,
@@ -374,12 +391,32 @@ class OfficialSourceResult:
 
 
 @dataclass(frozen=True)
-class CurrentInformationAnswer:
-    """Expanded public envelope for current-information answers (#1150).
+class CurrentInformationSource:
+    """Structured provenance for one retrieved source."""
 
-    Successful current-fact answers MUST include source_url, retrieved_at,
-    and current_as_of. Failures never attach invented civic names.
-    """
+    url: str
+    title: str
+    source_type: SourceType
+    retrieved_at: str
+    provider_name: str
+    rank: int = 0
+    snippet: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "url": self.url,
+            "title": self.title,
+            "source_type": self.source_type.value,
+            "retrieved_at": self.retrieved_at,
+            "provider_name": self.provider_name,
+            "rank": self.rank,
+            "snippet": self.snippet,
+        }
+
+
+@dataclass(frozen=True)
+class CurrentInformationAnswer:
+    """Public envelope for current/historical information answers."""
 
     ok: bool
     answer: str
@@ -392,12 +429,21 @@ class CurrentInformationAnswer:
     source_title: str | None = None
     source_type: SourceType = SourceType.NONE
     search_scope: SearchScope = SearchScope.NONE
+    sources: tuple[CurrentInformationSource, ...] = field(default_factory=tuple)
     warnings: tuple[str, ...] = field(default_factory=tuple)
     failure_code: ErrorCode | None = None
     route: QueryRoute | None = None
     journey_action: str | None = None
+    journey_preserved: bool = False
+    enrichment_fact_kind: FactKind | None = None
+    enrichment_value: str | None = None
     value: str | None = None
-    schema_version: str = "2.0.0"
+    temporal_mode: TemporalMode = TemporalMode.CURRENT
+    as_of_date: str | None = None
+    as_of_year: int | None = None
+    temporal_precision: TemporalPrecision = TemporalPrecision.UNSPECIFIED
+    request_context: dict[str, Any] | None = None
+    schema_version: str = "2.1.0"
     pipeline_id: str = PIPELINE_ID
 
     def to_dict(self) -> dict[str, Any]:
@@ -415,22 +461,23 @@ class CurrentInformationAnswer:
             "source_title": self.source_title,
             "source_type": self.source_type.value,
             "search_scope": self.search_scope.value,
+            "sources": [s.to_dict() for s in self.sources],
             "warnings": list(self.warnings),
             "failure_code": self.failure_code.value if self.failure_code else None,
             "route": self.route.value if self.route else None,
             "journey_action": self.journey_action,
+            "journey_preserved": self.journey_preserved,
+            "enrichment_fact_kind": (
+                self.enrichment_fact_kind.value if self.enrichment_fact_kind else None
+            ),
+            "enrichment_value": self.enrichment_value,
             "value": self.value,
+            "temporal_mode": self.temporal_mode.value,
+            "as_of_date": self.as_of_date,
+            "as_of_year": self.as_of_year,
+            "temporal_precision": self.temporal_precision.value,
+            "request_context": self.request_context,
         }
-
-    def assert_success_contract(self) -> None:
-        """Raise AssertionError if a successful current answer violates contract."""
-        if not self.ok:
-            return
-        if self.freshness_status is FreshnessStatus.VERIFIED_CURRENT:
-            if not self.source_url or not self.retrieved_at or not self.current_as_of:
-                raise AssertionError(
-                    "verified_current requires source_url, retrieved_at, current_as_of"
-                )
 
 
 def unsuccessful(
@@ -444,7 +491,6 @@ def unsuccessful(
     age_seconds: float | None = None,
     warnings: tuple[str, ...] = (),
 ) -> OfficialSourceResult:
-    """Construct a fail-closed unsuccessful result (never attaches a fact)."""
     return OfficialSourceResult(
         ok=False,
         fact_kind=fact_kind,
@@ -492,6 +538,12 @@ def failed_current_answer(
     warnings: tuple[str, ...] = (),
     search_scope: SearchScope = SearchScope.NONE,
     journey_action: str | None = None,
+    journey_preserved: bool = False,
+    temporal_mode: TemporalMode = TemporalMode.CURRENT,
+    as_of_date: str | None = None,
+    as_of_year: int | None = None,
+    temporal_precision: TemporalPrecision = TemporalPrecision.UNSPECIFIED,
+    request_context: dict[str, Any] | None = None,
 ) -> CurrentInformationAnswer:
     return CurrentInformationAnswer(
         ok=False,
@@ -505,11 +557,20 @@ def failed_current_answer(
         source_title=None,
         source_type=SourceType.NONE,
         search_scope=search_scope,
+        sources=(),
         warnings=warnings,
         failure_code=failure_code,
         route=route,
         journey_action=journey_action,
+        journey_preserved=journey_preserved,
+        enrichment_fact_kind=None,
+        enrichment_value=None,
         value=None,
+        temporal_mode=temporal_mode,
+        as_of_date=as_of_date,
+        as_of_year=as_of_year,
+        temporal_precision=temporal_precision,
+        request_context=request_context,
     )
 
 
@@ -520,10 +581,12 @@ __all__ = [
     "PIPELINE_ID",
     "Clock",
     "CurrentInformationAnswer",
+    "CurrentInformationSource",
     "ErrorCode",
     "FactKind",
     "FactValue",
     "FreshnessStatus",
+    "InvalidTimezoneError",
     "OfficialSourceRequest",
     "OfficialSourceResult",
     "QueryRoute",
@@ -532,11 +595,15 @@ __all__ = [
     "SearchScope",
     "SourceMetadata",
     "SourceType",
+    "TemporalMode",
+    "TemporalPrecision",
     "asdict",
     "build_request_context",
     "failed_current_answer",
+    "format_local_iso",
     "format_utc_z",
     "public_message_for",
+    "replace",
     "successful",
     "unsuccessful",
 ]

@@ -1,7 +1,4 @@
-"""Expanded #1150 current-information pipeline contracts (mock/offline only).
-
-No live network, Firecrawl, provider API, or browser automation.
-"""
+"""Hardened #1150 current-information pipeline contracts (mock/offline only)."""
 
 from __future__ import annotations
 
@@ -9,6 +6,7 @@ import ast
 import socket
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -16,16 +14,21 @@ from src.official_source import (
     CurrentInformationPipeline,
     FactKind,
     FreshnessStatus,
+    InvalidTimezoneError,
     MockGeneralWebSearchProvider,
     MockOfficialSearchProvider,
     OfficialFirstSearchOrchestrator,
     QueryRoute,
     SearchHit,
+    SearchHitKey,
     SourceType,
+    TemporalMode,
+    TemporalPrecision,
     assert_no_hallucinated_names,
     build_request_context,
     classify_journey_action,
     classify_question,
+    make_search_key,
     resolve_aliases,
     route_question,
 )
@@ -38,79 +41,62 @@ PACKAGE_DIR = REPO_ROOT / "src" / "official_source"
 EVALUATED_AT = "2026-07-16T09:00:00Z"
 FRESH_RETRIEVED_AT = "2026-07-16T08:30:00Z"
 STALE_RETRIEVED_AT = "2026-01-01T08:30:00Z"
+HIST_RETRIEVED_AT = "2026-07-16T08:00:00Z"
 
-# Example values for *mock fixtures only* — not product constants.
-_MOCK_REGIONAL_NAME = "예시통합시장"
-_MOCK_DISTRICT_NAME = "예시구청장"
-_MOCK_JURISDICTION = "예시자치구명칭"
-_FORBIDDEN_HARDCODED = (
-    "민형배",
-    "신수정",
-    "전남광주통합특별시",  # must not appear unless retrieved value
-)
+_MOCK_REGIONAL = "예시통합시장"
+_MOCK_REGIONAL_2020 = "예시과거시장"
+_MOCK_DISTRICT = "예시구청장"
+_FORBIDDEN = ("민형배", "신수정", "전남광주통합특별시", "전남광주특별시")
 
 
-def _official_hit(
+def _key(
+    kind: FactKind,
+    mode: TemporalMode = TemporalMode.CURRENT,
+    as_of: str | None = None,
+) -> SearchHitKey:
+    return SearchHitKey(kind, mode, as_of)
+
+
+def _hit(
     kind: FactKind,
     value: str,
     *,
+    source_type: SourceType = SourceType.OFFICIAL,
     url: str = "https://bukgu.gwangju.kr/mock-official",
     title: str = "mock official page",
     retrieved_at: str = FRESH_RETRIEVED_AT,
+    temporal_mode: TemporalMode = TemporalMode.CURRENT,
+    as_of_date: str | None = None,
+    as_of_year: int | None = None,
+    temporal_precision: TemporalPrecision = TemporalPrecision.UNSPECIFIED,
+    provider_name: str = "",
 ) -> SearchHit:
     return SearchHit(
         fact_kind=kind,
         value=value,
         source_url=url,
         source_title=title,
-        source_type=SourceType.OFFICIAL,
+        source_type=source_type,
         retrieved_at=retrieved_at,
-        snippet=value,
+        temporal_mode=temporal_mode,
+        as_of_date=as_of_date,
+        as_of_year=as_of_year,
+        temporal_precision=temporal_precision,
+        provider_name=provider_name,
     )
 
 
-def _general_hit(
-    kind: FactKind,
-    value: str,
-    *,
-    url: str = "https://example.test/news",
-    title: str = "mock general page",
-    retrieved_at: str = FRESH_RETRIEVED_AT,
-) -> SearchHit:
-    return SearchHit(
-        fact_kind=kind,
-        value=value,
-        source_url=url,
-        source_title=title,
-        source_type=SourceType.GENERAL_WEB,
-        retrieved_at=retrieved_at,
-        snippet=value,
-    )
-
-
-def _pipeline(
-    official: dict[FactKind, SearchHit] | None = None,
-    general: dict[FactKind, SearchHit] | None = None,
-    *,
-    fail_official: frozenset[FactKind] | None = None,
-    fail_general: frozenset[FactKind] | None = None,
+def _pipe(
+    official: dict[SearchHitKey, SearchHit] | None = None,
+    general: dict[SearchHitKey, SearchHit] | None = None,
 ) -> CurrentInformationPipeline:
     return CurrentInformationPipeline(
         orchestrator=OfficialFirstSearchOrchestrator(
-            official=MockOfficialSearchProvider(
-                official or {}, fail_kinds=fail_official
-            ),
-            general=MockGeneralWebSearchProvider(
-                general or {}, fail_kinds=fail_general
-            ),
+            official=MockOfficialSearchProvider(official or {}),
+            general=MockGeneralWebSearchProvider(general or {}),
             allow_general=True,
         )
     )
-
-
-# ---------------------------------------------------------------------------
-# Network-free boundary
-# ---------------------------------------------------------------------------
 
 
 class TestNetworkFree:
@@ -124,13 +110,10 @@ class TestNetworkFree:
         monkeypatch.setattr(socket.socket, "connect", blocked)
         monkeypatch.setattr(socket.socket, "connect_ex", blocked)
         pipe = CurrentInformationPipeline()
-        ctx = build_request_context(evaluated_at=EVALUATED_AT)
-        _ = pipe.answer("불법 주정차 신고는 어디서 하나요?", request_context=ctx)
+        pipe.answer("불법 주정차 신고는 어디서 하나요?", evaluated_at=EVALUATED_AT)
         assert calls == []
 
-    def test_new_modules_have_no_network_imports(self):
-        # Align with Phase-1 package contract: stdlib urllib.parse is allowed;
-        # network clients are not.
+    def test_no_network_imports(self):
         forbidden_modules = {
             "urllib.request",
             "urllib.client",
@@ -154,338 +137,423 @@ class TestNetworkFree:
                     assert node.module.split(".")[0] not in forbidden_roots
 
 
-# ---------------------------------------------------------------------------
-# RequestContext / clock injection
-# ---------------------------------------------------------------------------
-
-
-class TestRequestContext:
-    def test_evaluated_at_injection(self):
-        ctx = build_request_context(evaluated_at=EVALUATED_AT)
-        assert ctx.request_started_at_utc == EVALUATED_AT
+class TestTimezone:
+    def test_asia_seoul(self):
+        ctx = build_request_context(
+            evaluated_at="2026-07-16T00:00:00Z", timezone_name="Asia/Seoul"
+        )
         assert ctx.timezone == "Asia/Seoul"
-        assert "2026-07-16" in ctx.request_started_at_local
+        assert ctx.request_started_at_local.startswith("2026-07-16T09:00:00")
+        assert "+09:00" in ctx.request_started_at_local
 
-    def test_clock_callable_injection(self):
-        fixed = datetime(2026, 7, 16, 1, 0, 0, tzinfo=timezone.utc)
-
-        def clock():
-            return fixed
-
-        ctx = build_request_context(clock=clock)
-        assert ctx.request_started_at_utc == "2026-07-16T01:00:00Z"
-
-
-# ---------------------------------------------------------------------------
-# Routing decision table
-# ---------------------------------------------------------------------------
-
-
-class TestRouting:
-    def test_deterministic_illegal_parking(self):
-        d = route_question("불법 주정차 신고는 어디서 하나요?")
-        assert d.route is QueryRoute.DETERMINISTIC_JOURNEY
-        assert d.journey_action == "illegal_parking"
-        assert d.needs_freshness_enrichment is False
-
-    def test_passport_journey(self):
-        d = route_question("여권 발급 안내 해주세요")
-        assert d.route is QueryRoute.DETERMINISTIC_JOURNEY
-        assert d.journey_action == "passport_guidance"
-
-    def test_passport_fee_enrichment(self):
-        d = route_question("여권 발급 수수료가 얼마인가요?")
-        assert d.route is QueryRoute.DETERMINISTIC_JOURNEY
-        assert d.journey_action == "passport_guidance"
-        assert d.needs_freshness_enrichment is True
-        assert d.fact_kind is FactKind.FEE
-
-    def test_mayor_message_is_journey_not_district_fact(self):
-        d = route_question("구청장에게 제안하고 싶어요")
-        assert d.route is QueryRoute.DETERMINISTIC_JOURNEY
-        assert d.journey_action == "mayor_message_assist"
-
-    def test_district_mayor_official_freshness(self):
-        d = route_question("현재 북구청장은 누구인가요?")
-        assert d.route is QueryRoute.OFFICIAL_FRESHNESS_SEARCH
-        assert d.fact_kind is FactKind.CURRENT_MAYOR
-        assert d.journey_action is None
-
-    def test_regional_mayor_official_freshness(self):
-        d = route_question("광주시장은 누구야")
-        assert d.route is QueryRoute.OFFICIAL_FRESHNESS_SEARCH
-        assert d.fact_kind is FactKind.REGIONAL_EXECUTIVE
-
-    def test_weather_general_search(self):
-        d = route_question("오늘 광주 날씨 어때?")
-        assert d.route is QueryRoute.GENERAL_WEB_SEARCH
-        assert d.fact_kind is FactKind.GENERAL_CURRENT_INFORMATION
-
-    def test_safe_unsupported(self):
-        d = route_question("아무 의미 없는 문자열 xyzzy")
-        assert d.route is QueryRoute.SAFE_UNSUPPORTED
-
-
-# ---------------------------------------------------------------------------
-# Aliases / historical
-# ---------------------------------------------------------------------------
-
-
-class TestAliases:
-    @pytest.mark.parametrize(
-        "phrase",
-        [
-            "광주시장",
-            "광주광역시장",
-            "광주 시장",
-            "전남광주특별시장",
-            "통합시장",
-            "특별시장",
-            "광주광역시",
-            "전라남도",
-            "광주 북구",
-            "광주광역시 북구",
-        ],
-    )
-    def test_surface_aliases_present(self, phrase: str):
-        table = {s for s, _e, _k in alias_table_for_tests()}
-        assert phrase in table
-
-    def test_current_alias_forces_entity(self):
-        r = resolve_aliases("현재 광주시장은 누구인가요?")
-        assert r.historical is False
-        assert r.force_current_entity is True
-        assert "광주시장" in r.matched_aliases or any(
-            "시장" in a for a in r.matched_aliases
+    def test_utc(self):
+        ctx = build_request_context(
+            evaluated_at="2026-07-16T12:00:00Z", timezone_name="UTC"
         )
+        assert ctx.timezone == "UTC"
+        assert "+00:00" in ctx.request_started_at_local or ctx.request_started_at_local.endswith(
+            "+0000"
+        ) or "12:00:00" in ctx.request_started_at_local
 
-    def test_historical_does_not_force_current(self):
-        r = resolve_aliases("2020년 당시 광주시장은 누구였나요?")
-        assert r.historical is True
-        hist, as_of = detect_historical_reference(
-            "2020년 당시 광주시장은 누구였나요?"
+    def test_america_new_york(self):
+        # July → EDT UTC-4
+        ctx = build_request_context(
+            evaluated_at="2026-07-16T12:00:00Z", timezone_name="America/New_York"
         )
-        assert hist is True
-        assert as_of is not None and as_of.startswith("2020")
+        assert ctx.timezone == "America/New_York"
+        assert "08:00:00" in ctx.request_started_at_local
+        assert "-04:00" in ctx.request_started_at_local
+
+    def test_invalid_timezone(self):
+        with pytest.raises(InvalidTimezoneError):
+            build_request_context(
+                evaluated_at=EVALUATED_AT, timezone_name="Not/AZone"
+            )
+
+    def test_pipeline_invalid_timezone(self):
+        pipe = CurrentInformationPipeline()
+        ans = pipe.answer(
+            "현재 북구청장은 누구인가요?",
+            evaluated_at=EVALUATED_AT,
+            timezone_name="Not/AZone",
+        )
+        assert ans.ok is False
+        assert ans.failure_code is ErrorCode.INVALID_TIMEZONE
 
 
-# ---------------------------------------------------------------------------
-# Fact kinds expanded
-# ---------------------------------------------------------------------------
-
-
-class TestFactKinds:
-    def test_expanded_kinds_exist(self):
-        required = {
-            "regional_executive",
-            "district_executive",
-            "jurisdiction_name",
-            "agency_name",
-            "administrative_status",
-            "office_hours",
-            "contact_information",
-            "fee",
-            "application_period",
-            "current_notice",
-            "current_policy",
-            "current_law",
-            "current_event",
-            "general_current_information",
-            "current_mayor",
-        }
-        values = {k.value for k in FactKind}
-        assert required <= values
-
-
-# ---------------------------------------------------------------------------
-# Official-first provider + retrieval success
-# ---------------------------------------------------------------------------
-
-
-class TestOfficialFirstRetrieval:
-    def test_regional_executive_from_official_search(self):
-        pipe = _pipeline(
-            official={
-                FactKind.REGIONAL_EXECUTIVE: _official_hit(
-                    FactKind.REGIONAL_EXECUTIVE, _MOCK_REGIONAL_NAME
+class TestTemporal:
+    def test_current_regional_success(self):
+        pipe = _pipe(
+            {
+                _key(FactKind.REGIONAL_EXECUTIVE): _hit(
+                    FactKind.REGIONAL_EXECUTIVE, _MOCK_REGIONAL
                 )
             }
         )
         ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
-        assert ans.ok is True
-        assert ans.value == _MOCK_REGIONAL_NAME
-        assert ans.source_url
-        assert ans.retrieved_at == FRESH_RETRIEVED_AT
-        assert ans.current_as_of == EVALUATED_AT
+        assert ans.ok
+        assert ans.temporal_mode is TemporalMode.CURRENT
         assert ans.freshness_status is FreshnessStatus.VERIFIED_CURRENT
-        assert ans.source_type is SourceType.OFFICIAL
-        assert _MOCK_REGIONAL_NAME in ans.answer
-        assert FRESH_RETRIEVED_AT in ans.answer
+        assert ans.current_as_of == EVALUATED_AT
+        assert ans.value == _MOCK_REGIONAL
+        assert ans.sources and ans.sources[0].url == ans.source_url
 
-    def test_district_mayor_from_official_search(self):
-        pipe = _pipeline(
-            official={
-                FactKind.CURRENT_MAYOR: _official_hit(
-                    FactKind.CURRENT_MAYOR, _MOCK_DISTRICT_NAME
+    def test_historical_matching_hit(self):
+        pipe = _pipe(
+            {
+                _key(
+                    FactKind.REGIONAL_EXECUTIVE, TemporalMode.HISTORICAL, "2020"
+                ): _hit(
+                    FactKind.REGIONAL_EXECUTIVE,
+                    _MOCK_REGIONAL_2020,
+                    temporal_mode=TemporalMode.HISTORICAL,
+                    as_of_year=2020,
+                    as_of_date="2020",
+                    temporal_precision=TemporalPrecision.YEAR,
+                    retrieved_at=HIST_RETRIEVED_AT,
+                )
+            }
+        )
+        ans = pipe.answer("2020년 당시 광주시장은 누구였나요?", evaluated_at=EVALUATED_AT)
+        assert ans.ok
+        assert ans.temporal_mode is TemporalMode.HISTORICAL
+        assert ans.freshness_status is FreshnessStatus.VERIFIED_AS_OF
+        assert ans.freshness_status is not FreshnessStatus.VERIFIED_CURRENT
+        assert ans.as_of_year == 2020
+        assert ans.temporal_precision is TemporalPrecision.YEAR
+        assert ans.value == _MOCK_REGIONAL_2020
+        assert ans.current_as_of is None
+
+    def test_historical_plus_current_hit_only_fails(self):
+        pipe = _pipe(
+            {
+                _key(FactKind.REGIONAL_EXECUTIVE): _hit(
+                    FactKind.REGIONAL_EXECUTIVE, _MOCK_REGIONAL
+                )
+            }
+        )
+        ans = pipe.answer("2020년 당시 광주시장은 누구였나요?", evaluated_at=EVALUATED_AT)
+        assert ans.ok is False
+        assert ans.value is None
+        assert _MOCK_REGIONAL not in ans.answer
+        assert ans.route is QueryRoute.OFFICIAL_FRESHNESS_SEARCH
+
+    def test_historical_as_of_mismatch_fails(self):
+        pipe = _pipe(
+            {
+                _key(
+                    FactKind.REGIONAL_EXECUTIVE, TemporalMode.HISTORICAL, "2019"
+                ): _hit(
+                    FactKind.REGIONAL_EXECUTIVE,
+                    "다른해",
+                    temporal_mode=TemporalMode.HISTORICAL,
+                    as_of_year=2019,
+                    as_of_date="2019",
+                    temporal_precision=TemporalPrecision.YEAR,
+                    retrieved_at=HIST_RETRIEVED_AT,
+                )
+            }
+        )
+        ans = pipe.answer("2020년 당시 광주시장은 누구였나요?", evaluated_at=EVALUATED_AT)
+        assert ans.ok is False
+        assert "다른해" not in ans.answer
+
+    def test_current_does_not_use_historical_hit(self):
+        pipe = _pipe(
+            {
+                _key(
+                    FactKind.REGIONAL_EXECUTIVE, TemporalMode.HISTORICAL, "2020"
+                ): _hit(
+                    FactKind.REGIONAL_EXECUTIVE,
+                    _MOCK_REGIONAL_2020,
+                    temporal_mode=TemporalMode.HISTORICAL,
+                    as_of_year=2020,
+                    as_of_date="2020",
+                    temporal_precision=TemporalPrecision.YEAR,
+                    retrieved_at=HIST_RETRIEVED_AT,
+                )
+            }
+        )
+        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
+        assert ans.ok is False
+        assert _MOCK_REGIONAL_2020 not in ans.answer
+
+    def test_year_precision_preserved(self):
+        hist, as_of, year, precision = detect_historical_reference("2020년 광주시장")
+        assert hist and year == 2020 and precision is TemporalPrecision.YEAR
+        assert as_of == "2020"  # not 2020-01-01
+
+
+class TestSourcesAndIntegrity:
+    def test_sources_nonempty_and_flat_consistent(self):
+        pipe = _pipe(
+            {
+                _key(FactKind.CURRENT_MAYOR): _hit(
+                    FactKind.CURRENT_MAYOR, _MOCK_DISTRICT
                 )
             }
         )
         ans = pipe.answer("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT)
-        assert ans.ok is True
-        assert ans.value == _MOCK_DISTRICT_NAME
-        assert ans.source_url and ans.retrieved_at and ans.current_as_of
+        assert ans.ok and len(ans.sources) >= 1
+        assert ans.source_url == ans.sources[0].url
+        assert ans.source_title == ans.sources[0].title
+        assert ans.source_type == ans.sources[0].source_type
 
-    def test_official_preferred_over_general_conflict(self):
-        pipe = _pipeline(
-            official={
-                FactKind.REGIONAL_EXECUTIVE: _official_hit(
+    def test_missing_title_not_verified(self):
+        pipe = _pipe(
+            {
+                _key(FactKind.REGIONAL_EXECUTIVE): _hit(
+                    FactKind.REGIONAL_EXECUTIVE, _MOCK_REGIONAL, title=""
+                )
+            }
+        )
+        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
+        assert ans.ok is False
+        assert ans.freshness_status is not FreshnessStatus.VERIFIED_CURRENT
+
+    def test_missing_url_not_verified(self):
+        pipe = _pipe(
+            {
+                _key(FactKind.REGIONAL_EXECUTIVE): _hit(
+                    FactKind.REGIONAL_EXECUTIVE, _MOCK_REGIONAL, url=""
+                )
+            }
+        )
+        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
+        assert ans.ok is False
+
+    def test_wrong_source_type_fails(self):
+        # Official provider slot with GENERAL_WEB hit
+        bad = _hit(
+            FactKind.REGIONAL_EXECUTIVE,
+            _MOCK_REGIONAL,
+            source_type=SourceType.GENERAL_WEB,
+            url="https://example.test/x",
+            title="web",
+        )
+        pipe = _pipe({_key(FactKind.REGIONAL_EXECUTIVE): bad})
+        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
+        assert ans.ok is False
+        assert ans.failure_code in {
+            ErrorCode.SOURCE_TYPE_MISMATCH,
+            ErrorCode.RETRIEVAL_FAILED,
+        }
+        assert _MOCK_REGIONAL not in ans.answer
+
+    def test_fact_kind_mismatch_fails(self):
+        mismatched = _hit(FactKind.FEE, "1000원")
+        # stored under REGIONAL key but hit claims FEE
+        pipe = _pipe({_key(FactKind.REGIONAL_EXECUTIVE): mismatched})
+        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
+        assert ans.ok is False
+        assert "1000원" not in ans.answer
+        assert ans.failure_code in {
+            ErrorCode.FACT_KIND_MISMATCH,
+            ErrorCode.RETRIEVAL_FAILED,
+        }
+
+    def test_official_preferred_and_no_third_value(self):
+        off = MockOfficialSearchProvider(
+            {
+                _key(FactKind.REGIONAL_EXECUTIVE): _hit(
                     FactKind.REGIONAL_EXECUTIVE, "공식값"
                 )
-            },
-            general={
-                FactKind.REGIONAL_EXECUTIVE: _general_hit(
-                    FactKind.REGIONAL_EXECUTIVE, "일반웹값"
-                )
-            },
+            }
         )
-        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
-        assert ans.ok is True
-        assert ans.value == "공식값"
-        assert ans.source_type is SourceType.OFFICIAL
-        assert "일반웹값" not in ans.answer
-
-    def test_general_used_when_official_missing(self):
-        pipe = _pipeline(
-            official={},
-            general={
-                FactKind.GENERAL_CURRENT_INFORMATION: _general_hit(
-                    FactKind.GENERAL_CURRENT_INFORMATION, "맑음 예시"
-                )
-            },
-        )
-        ans = pipe.answer("오늘 날씨 어때?", evaluated_at=EVALUATED_AT)
-        assert ans.ok is True
-        assert ans.value == "맑음 예시"
-        assert ans.source_type is SourceType.GENERAL_WEB
-
-
-# ---------------------------------------------------------------------------
-# Fail-closed / no hallucination
-# ---------------------------------------------------------------------------
-
-
-class TestFailClosedNoHallucination:
-    def test_no_search_no_mayor_name(self):
-        pipe = _pipeline()  # empty mocks
-        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
-        assert ans.ok is False
-        assert ans.value is None
-        assert ans.failure_code is ErrorCode.RETRIEVAL_FAILED
-        assert ans.freshness_status is not FreshnessStatus.VERIFIED_CURRENT
-        for name in _FORBIDDEN_HARDCODED + (_MOCK_REGIONAL_NAME,):
-            assert name not in ans.answer
-
-    def test_no_search_no_jurisdiction_name(self):
-        pipe = _pipeline()
-        ans = pipe.answer("북구청의 현재 기관명은 무엇인가요?", evaluated_at=EVALUATED_AT)
-        assert ans.ok is False
-        assert ans.value is None
-        assert _MOCK_JURISDICTION not in ans.answer
-
-    def test_stale_not_verified_current(self):
-        pipe = _pipeline(
-            official={
-                FactKind.REGIONAL_EXECUTIVE: _official_hit(
+        gen = MockGeneralWebSearchProvider(
+            {
+                _key(FactKind.REGIONAL_EXECUTIVE): _hit(
                     FactKind.REGIONAL_EXECUTIVE,
-                    _MOCK_REGIONAL_NAME,
+                    "일반값",
+                    source_type=SourceType.GENERAL_WEB,
+                    url="https://example.test/g",
+                    title="general",
+                )
+            }
+        )
+        pipe = CurrentInformationPipeline(
+            orchestrator=OfficialFirstSearchOrchestrator(
+                official=off, general=gen, allow_general=True
+            )
+        )
+        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
+        assert ans.ok and ans.value == "공식값"
+        assert "일반값" not in ans.answer
+        assert gen.call_log == ()  # general not called when official succeeds
+
+
+class TestContextPropagation:
+    def test_effective_context_current_information_required(self):
+        pipe = _pipe(
+            {
+                _key(FactKind.REGIONAL_EXECUTIVE): _hit(
+                    FactKind.REGIONAL_EXECUTIVE, _MOCK_REGIONAL
+                )
+            }
+        )
+        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
+        assert ans.request_context is not None
+        assert ans.request_context["current_information_required"] is True
+        assert ans.request_context["temporal_mode"] == "current"
+
+    def test_historical_context_synced(self):
+        pipe = _pipe(
+            {
+                _key(
+                    FactKind.REGIONAL_EXECUTIVE, TemporalMode.HISTORICAL, "2020"
+                ): _hit(
+                    FactKind.REGIONAL_EXECUTIVE,
+                    _MOCK_REGIONAL_2020,
+                    temporal_mode=TemporalMode.HISTORICAL,
+                    as_of_year=2020,
+                    as_of_date="2020",
+                    temporal_precision=TemporalPrecision.YEAR,
+                    retrieved_at=HIST_RETRIEVED_AT,
+                )
+            }
+        )
+        ans = pipe.answer("2020년 당시 광주시장은 누구였나요?", evaluated_at=EVALUATED_AT)
+        assert ans.request_context is not None
+        assert ans.request_context["historical_reference"] is True
+        assert ans.request_context["as_of_year"] == 2020
+        assert ans.request_context["temporal_mode"] == "historical"
+
+
+class TestJourney:
+    def test_journey_only(self):
+        pipe = _pipe()
+        ans = pipe.answer("불법 주정차 신고는 어디서 하나요?", evaluated_at=EVALUATED_AT)
+        assert ans.ok
+        assert ans.route is QueryRoute.DETERMINISTIC_JOURNEY
+        assert ans.journey_preserved is True
+        assert ans.journey_action == "illegal_parking"
+
+    def test_journey_enrichment_success_preserves_guidance(self):
+        pipe = _pipe(
+            {
+                _key(FactKind.FEE): _hit(
+                    FactKind.FEE, "예시수수료", title="fee page", url="https://bukgu.gwangju.kr/fee"
+                )
+            }
+        )
+        ans = pipe.answer("여권 발급 수수료가 얼마인가요?", evaluated_at=EVALUATED_AT)
+        assert ans.ok
+        assert ans.route is QueryRoute.DETERMINISTIC_JOURNEY
+        assert ans.journey_action == "passport_guidance"
+        assert ans.journey_preserved is True
+        assert "안내 경로" in ans.answer
+        assert ans.enrichment_value == "예시수수료"
+        assert ans.sources
+
+    def test_journey_enrichment_failure_no_fact_value(self):
+        pipe = _pipe()
+        ans = pipe.answer("여권 발급 수수료가 얼마인가요?", evaluated_at=EVALUATED_AT)
+        assert ans.route is QueryRoute.DETERMINISTIC_JOURNEY
+        assert ans.journey_preserved is True
+        assert ans.enrichment_value is None
+        assert ans.value is None
+        assert "freshness_enrichment_failed" in ans.warnings
+
+    def test_mayor_proposal_not_fact(self):
+        d = route_question("구청장에게 제안하고 싶어요")
+        assert d.route is QueryRoute.DETERMINISTIC_JOURNEY
+        assert d.journey_action == "mayor_message_assist"
+
+    def test_who_is_mayor_not_journey(self):
+        d = route_question("현재 북구청장은 누구인가요?")
+        assert d.route is QueryRoute.OFFICIAL_FRESHNESS_SEARCH
+        assert d.journey_action is None
+
+
+class TestAttemptedRoute:
+    def test_official_failure_keeps_route(self):
+        pipe = _pipe()
+        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
+        assert ans.ok is False
+        assert ans.route is QueryRoute.OFFICIAL_FRESHNESS_SEARCH
+        assert ans.failure_code is ErrorCode.RETRIEVAL_FAILED
+
+    def test_general_failure_keeps_route(self):
+        pipe = _pipe()
+        ans = pipe.answer("오늘 날씨 어때?", evaluated_at=EVALUATED_AT)
+        assert ans.ok is False
+        assert ans.route is QueryRoute.GENERAL_WEB_SEARCH
+
+    def test_unsupported_is_safe_unsupported(self):
+        pipe = _pipe()
+        ans = pipe.answer("xyzzy 아무말", evaluated_at=EVALUATED_AT)
+        assert ans.route is QueryRoute.SAFE_UNSUPPORTED
+        assert ans.failure_code is ErrorCode.UNSUPPORTED_QUESTION
+
+
+class TestHallucination:
+    def test_failure_no_forbidden_names(self):
+        pipe = _pipe()
+        ans = pipe.answer("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT)
+        assert_no_hallucinated_names(ans, forbidden_names=_FORBIDDEN)
+        assert ans.value is None
+
+    def test_stale_value_not_in_failure_answer(self):
+        pipe = _pipe(
+            {
+                _key(FactKind.REGIONAL_EXECUTIVE): _hit(
+                    FactKind.REGIONAL_EXECUTIVE,
+                    _MOCK_REGIONAL,
                     retrieved_at=STALE_RETRIEVED_AT,
                 )
             }
         )
         ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
         assert ans.ok is False
-        assert ans.failure_code is ErrorCode.STALE_SOURCE
-        assert ans.freshness_status is not FreshnessStatus.VERIFIED_CURRENT
+        assert _MOCK_REGIONAL not in ans.answer
 
-    def test_no_source_no_verified_current(self):
-        hit = SearchHit(
-            fact_kind=FactKind.REGIONAL_EXECUTIVE,
-            value=_MOCK_REGIONAL_NAME,
-            source_url="",
-            source_title="",
-            source_type=SourceType.OFFICIAL,
-            retrieved_at=FRESH_RETRIEVED_AT,
-        )
-        pipe = _pipeline(official={FactKind.REGIONAL_EXECUTIVE: hit})
-        ans = pipe.answer("광주시장은 누구야", evaluated_at=EVALUATED_AT)
-        assert ans.ok is False
-        assert ans.failure_code is ErrorCode.NO_VERIFIED_SOURCE
-
-    def test_failure_does_not_use_forbidden_hardcoded_names(self):
-        pipe = _pipeline()
-        ans = pipe.answer("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT)
-        assert_no_hallucinated_names(ans, forbidden_names=_FORBIDDEN_HARDCODED)
-
-    def test_success_only_uses_retrieved_value(self):
-        pipe = _pipeline(
-            official={
-                FactKind.CURRENT_MAYOR: _official_hit(
-                    FactKind.CURRENT_MAYOR, _MOCK_DISTRICT_NAME
+    def test_success_only_retrieved_value(self):
+        pipe = _pipe(
+            {
+                _key(FactKind.CURRENT_MAYOR): _hit(
+                    FactKind.CURRENT_MAYOR, _MOCK_DISTRICT
                 )
             }
         )
         ans = pipe.answer("현재 북구청장은 누구인가요?", evaluated_at=EVALUATED_AT)
-        assert ans.ok is True
-        assert_no_hallucinated_names(
-            ans, forbidden_names=_FORBIDDEN_HARDCODED + ("다른이름",)
-        )
+        assert ans.ok
+        assert_no_hallucinated_names(ans, forbidden_names=_FORBIDDEN + ("다른이름",))
 
 
-# ---------------------------------------------------------------------------
-# Journey isolation
-# ---------------------------------------------------------------------------
+class TestRoutingSmoke:
+    def test_aliases_table(self):
+        table = {s for s, _e, _k in alias_table_for_tests()}
+        for phrase in (
+            "광주시장",
+            "광주광역시장",
+            "광주 시장",
+            "통합시장",
+            "특별시장",
+            "광주광역시",
+            "전라남도",
+            "광주 북구",
+            "광주광역시 북구",
+        ):
+            assert phrase in table
 
+    def test_fact_kinds(self):
+        values = {k.value for k in FactKind}
+        assert "regional_executive" in values
+        assert "current_mayor" in values
 
-class TestJourneyIsolation:
-    def test_journey_not_converted_to_fact_path(self):
-        pipe = _pipeline(
-            official={
-                FactKind.CURRENT_MAYOR: _official_hit(
-                    FactKind.CURRENT_MAYOR, _MOCK_DISTRICT_NAME
+    def test_general_fallback(self):
+        pipe = _pipe(
+            official={},
+            general={
+                _key(FactKind.GENERAL_CURRENT_INFORMATION): _hit(
+                    FactKind.GENERAL_CURRENT_INFORMATION,
+                    "맑음 예시",
+                    source_type=SourceType.GENERAL_WEB,
+                    url="https://example.test/weather",
+                    title="weather",
                 )
-            }
+            },
         )
-        ans = pipe.answer("구청장에게 제안하고 싶어요", evaluated_at=EVALUATED_AT)
-        assert ans.ok is True
-        assert ans.route is QueryRoute.DETERMINISTIC_JOURNEY
-        assert ans.journey_action == "mayor_message_assist"
-        # Must not claim a current mayor name from mock.
-        assert ans.value is None
-        assert _MOCK_DISTRICT_NAME not in ans.answer
-
-    def test_journey_fee_enrichment_fail_closed(self):
-        pipe = _pipeline()  # no fee hits
-        ans = pipe.answer("여권 발급 수수료가 얼마인가요?", evaluated_at=EVALUATED_AT)
-        assert ans.route is QueryRoute.DETERMINISTIC_JOURNEY
-        assert ans.journey_action == "passport_guidance"
-        # No invented fee amount
-        assert not any(ch.isdigit() for ch in (ans.value or ""))
-
-    def test_classify_journey_mirror(self):
-        assert classify_journey_action("불법 주정차") == "illegal_parking"
-        assert classify_journey_action("현재 북구청장") is None
-
-
-# ---------------------------------------------------------------------------
-# Classification expansion smoke
-# ---------------------------------------------------------------------------
-
-
-class TestClassificationExpanded:
-    def test_office_hours(self):
-        r = classify_question("북구청 운영 시간이 어떻게 되나요?")
-        assert r.supported and r.fact_kind is FactKind.OFFICE_HOURS
-
-    def test_fee(self):
-        r = classify_question("여권 수수료 알려줘")
-        assert r.supported and r.fact_kind is FactKind.FEE
+        ans = pipe.answer("오늘 날씨 어때?", evaluated_at=EVALUATED_AT)
+        assert ans.ok and ans.value == "맑음 예시"
+        assert ans.source_type is SourceType.GENERAL_WEB

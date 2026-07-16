@@ -1,8 +1,6 @@
 """Routing for deterministic journeys vs current-information search.
 
-Mirrors MVP ``classifyAction`` term sets as a *read-only Python mirror* so
-tests stay offline and do not import Cloudflare ask.js. Does not change the
-JS journey owner.
+Mirrors MVP ``classifyAction`` term sets as a read-only Python mirror.
 """
 
 from __future__ import annotations
@@ -13,12 +11,17 @@ from typing import Any
 
 from .aliases import resolve_aliases
 from .classification import classify_question
-from .models import FactKind, QueryRoute, RequestContext, SearchScope
+from .models import (
+    FactKind,
+    QueryRoute,
+    RequestContext,
+    SearchScope,
+    TemporalMode,
+    TemporalPrecision,
+)
 
 _WS_RE = re.compile(r"\s+")
 
-# Closed journey actions — must stay aligned with functions/api/mvp/ask.js
-# VALID_ACTIONS / ACTION_RULES (mirrored terms only; JS remains canonical UI owner).
 _JOURNEY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("illegal_parking", ("불법 주정차", "불법주정차", "주차 단속", "주정차 신고")),
     ("housing_department", ("공동주택", "아파트 부서", "아파트 문의")),
@@ -33,7 +36,6 @@ _JOURNEY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
 )
 
-# Volatile fact cues that may enrich a journey without replacing it.
 _VOLATILE_CUES: tuple[tuple[re.Pattern[str], FactKind], ...] = (
     (re.compile(r"수수료|요금|비용"), FactKind.FEE),
     (re.compile(r"운영\s*시간|근무\s*시간|몇\s*시|휴무|휴관"), FactKind.OFFICE_HOURS),
@@ -56,6 +58,10 @@ class RoutingDecision:
     search_scope: SearchScope
     reason: str
     historical: bool
+    temporal_mode: TemporalMode
+    as_of_date: str | None
+    as_of_year: int | None
+    temporal_precision: TemporalPrecision
     matched_aliases: tuple[str, ...]
 
     def to_dict(self) -> dict[str, Any]:
@@ -68,12 +74,15 @@ class RoutingDecision:
             "search_scope": self.search_scope.value,
             "reason": self.reason,
             "historical": self.historical,
+            "temporal_mode": self.temporal_mode.value,
+            "as_of_date": self.as_of_date,
+            "as_of_year": self.as_of_year,
+            "temporal_precision": self.temporal_precision.value,
             "matched_aliases": list(self.matched_aliases),
         }
 
 
 def classify_journey_action(question: str) -> str | None:
-    """Return journey action id or None. Offline mirror of ask.js terms."""
     if not isinstance(question, str):
         return None
     normalized = _WS_RE.sub(" ", question.strip().lower())
@@ -93,25 +102,42 @@ def _volatile_fact_kind(normalized: str) -> FactKind | None:
     return None
 
 
+def _looks_like_general_current(normalized: str) -> bool:
+    if not normalized:
+        return False
+    cues = ("날씨", "선거", "투표", "오늘", "현재", "지금", "최신", "weather", "current")
+    return any(c in normalized for c in cues)
+
+
 def route_question(
     question: str,
     context: RequestContext | None = None,
 ) -> RoutingDecision:
-    """Decide journey vs official freshness vs general web vs safe unsupported."""
     aliases = resolve_aliases(question if isinstance(question, str) else "")
     journey = classify_journey_action(question) if isinstance(question, str) else None
     classification = classify_question(question)
     normalized = (
-        _WS_RE.sub(" ", question.strip().lower())
-        if isinstance(question, str)
-        else ""
+        _WS_RE.sub(" ", question.strip().lower()) if isinstance(question, str) else ""
     )
     volatile = _volatile_fact_kind(normalized) if normalized else None
+    temporal_mode = aliases.temporal_mode
+    historical = aliases.historical
 
-    # 1) Deterministic journey wins; optional freshness enrichment for volatile facts.
+    def _base(**kwargs: Any) -> RoutingDecision:
+        defaults = dict(
+            historical=historical,
+            temporal_mode=temporal_mode,
+            as_of_date=aliases.as_of_date,
+            as_of_year=aliases.as_of_year,
+            temporal_precision=aliases.temporal_precision,
+            matched_aliases=aliases.matched_aliases,
+        )
+        defaults.update(kwargs)
+        return RoutingDecision(**defaults)  # type: ignore[arg-type]
+
     if journey is not None:
-        enrich = volatile is not None
-        return RoutingDecision(
+        enrich = volatile is not None and not historical
+        return _base(
             route=QueryRoute.DETERMINISTIC_JOURNEY,
             journey_action=journey,
             fact_kind=volatile if enrich else None,
@@ -121,16 +147,13 @@ def route_question(
                 SearchScope.OFFICIAL_THEN_GENERAL if enrich else SearchScope.NONE
             ),
             reason="matched_deterministic_journey",
-            historical=aliases.historical,
-            matched_aliases=aliases.matched_aliases,
         )
 
-    # Historical: search path without forcing current alias entity.
-    if aliases.historical and (
+    if historical and (
         classification.supported or aliases.preferred_fact_kind is not None
     ):
         kind = classification.fact_kind or aliases.preferred_fact_kind
-        return RoutingDecision(
+        return _base(
             route=QueryRoute.OFFICIAL_FRESHNESS_SEARCH,
             journey_action=None,
             fact_kind=kind,
@@ -138,19 +161,14 @@ def route_question(
             needs_freshness_enrichment=False,
             search_scope=SearchScope.OFFICIAL_THEN_GENERAL,
             reason="historical_fact_search",
-            historical=True,
-            matched_aliases=aliases.matched_aliases,
         )
 
-    # 2/3) Current-fact classification → official freshness (may fall back to general).
-    # General/weather-class facts prefer GENERAL_WEB_SEARCH route label while still
-    # using official-then-general search scope in the pipeline.
     if classification.supported and classification.fact_kind is not None:
         if classification.fact_kind is FactKind.GENERAL_CURRENT_INFORMATION:
             route = QueryRoute.GENERAL_WEB_SEARCH
         else:
             route = QueryRoute.OFFICIAL_FRESHNESS_SEARCH
-        return RoutingDecision(
+        return _base(
             route=route,
             journey_action=None,
             fact_kind=classification.fact_kind,
@@ -158,12 +176,10 @@ def route_question(
             needs_freshness_enrichment=False,
             search_scope=SearchScope.OFFICIAL_THEN_GENERAL,
             reason=classification.reason or "matched_current_fact",
-            historical=False,
-            matched_aliases=aliases.matched_aliases,
         )
 
     if aliases.force_current_entity and aliases.preferred_fact_kind is not None:
-        return RoutingDecision(
+        return _base(
             route=QueryRoute.OFFICIAL_FRESHNESS_SEARCH,
             journey_action=None,
             fact_kind=aliases.preferred_fact_kind,
@@ -171,14 +187,11 @@ def route_question(
             needs_freshness_enrichment=False,
             search_scope=SearchScope.OFFICIAL_THEN_GENERAL,
             reason="alias_current_entity",
-            historical=False,
-            matched_aliases=aliases.matched_aliases,
         )
 
-    # 4) General public current information (e.g. weather) when not a journey.
     if volatile is not None or _looks_like_general_current(normalized):
         kind = volatile or FactKind.GENERAL_CURRENT_INFORMATION
-        return RoutingDecision(
+        return _base(
             route=QueryRoute.GENERAL_WEB_SEARCH,
             journey_action=None,
             fact_kind=kind,
@@ -186,12 +199,9 @@ def route_question(
             needs_freshness_enrichment=False,
             search_scope=SearchScope.OFFICIAL_THEN_GENERAL,
             reason="general_current_information",
-            historical=aliases.historical,
-            matched_aliases=aliases.matched_aliases,
         )
 
-    # 5) Safe unsupported — no model-memory fill-in.
-    return RoutingDecision(
+    return _base(
         route=QueryRoute.SAFE_UNSUPPORTED,
         journey_action=None,
         fact_kind=None,
@@ -201,26 +211,7 @@ def route_question(
         needs_freshness_enrichment=False,
         search_scope=SearchScope.NONE,
         reason="safe_unsupported",
-        historical=aliases.historical,
-        matched_aliases=aliases.matched_aliases,
     )
-
-
-def _looks_like_general_current(normalized: str) -> bool:
-    if not normalized:
-        return False
-    cues = (
-        "날씨",
-        "선거",
-        "투표",
-        "오늘",
-        "현재",
-        "지금",
-        "최신",
-        "weather",
-        "current",
-    )
-    return any(c in normalized for c in cues)
 
 
 __all__ = [
