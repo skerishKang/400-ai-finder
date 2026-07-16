@@ -115,19 +115,13 @@ function startServer(dir) {
   });
 }
 
-function setupSafety(page, baseUrl) {
+/**
+ * Safety counters for this harness.
+ * External request blocking is owned only by installExternalRouteGuard (route.abort).
+ * Do not call Request.abort() — Playwright Request is not the abort owner.
+ */
+function setupSafety(page) {
   const t = { external: 0, console: 0, page: 0, texts: [] };
-  const origin = new URL(baseUrl).origin;
-  page.on("request", (req) => {
-    const u = req.url();
-    if (u.startsWith("data:") || u.startsWith("blob:")) return;
-    if (u.startsWith(origin) || u.startsWith("http://127.0.0.1") || u.startsWith("http://localhost")) {
-      return;
-    }
-    t.external += 1;
-    t.texts.push(`external:${u}`);
-    req.abort().catch(() => {});
-  });
   page.on("console", (msg) => {
     if (msg.type() === "error") {
       t.console += 1;
@@ -139,6 +133,26 @@ function setupSafety(page, baseUrl) {
     t.texts.push(`page:${err.message}`);
   });
   return t;
+}
+
+/** Sole owner of external request deny + single-count external counter. */
+async function installExternalRouteGuard(page, baseUrl, safety) {
+  const origin = new URL(baseUrl).origin;
+  await page.route("**/*", async (route) => {
+    const u = route.request().url();
+    if (
+      u.startsWith(origin) ||
+      u.startsWith("http://127.0.0.1") ||
+      u.startsWith("http://localhost") ||
+      u.startsWith("data:") ||
+      u.startsWith("blob:")
+    ) {
+      return route.continue();
+    }
+    safety.external += 1;
+    safety.texts.push(`external:${u}`);
+    return route.abort();
+  });
 }
 
 function assertSafety(t, ctx) {
@@ -311,23 +325,8 @@ async function runViewport(browser, baseUrl, vp) {
     viewport: { width: vp.width, height: vp.height },
   });
   const page = await context.newPage();
-  const safety = setupSafety(page, baseUrl);
-
-  await page.route("**/*", async (route) => {
-    const u = route.request().url();
-    if (
-      u.startsWith(baseUrl) ||
-      u.startsWith("http://127.0.0.1") ||
-      u.startsWith("http://localhost") ||
-      u.startsWith("data:") ||
-      u.startsWith("blob:")
-    ) {
-      return route.continue();
-    }
-    safety.external += 1;
-    safety.texts.push(`route-abort:${u}`);
-    return route.abort();
-  });
+  const safety = setupSafety(page);
+  await installExternalRouteGuard(page, baseUrl, safety);
 
   const response = await page.goto(`${baseUrl}/`, {
     waitUntil: "domcontentloaded",
