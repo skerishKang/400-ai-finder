@@ -3,9 +3,8 @@
 - **Track**: #1109 / #1145 — stakeholder comparison gate and five-scenario parity
 - **Stage**: Phase B final (merged #1170 home fixture + #1183 mobile cancellation)
 - **Date**: 2026-07-16
-- **Owner**: Computer 2
+- **Owner**: Computer 1-2
 - **Branch**: `feat/1145-page-agent-final-parity`
-- **Base SHA**: `5ad20ad027f993cb522a49c90f39523211e6c5cd`
 - **Merged origin/main (finalization)**: `24428065cdaed114ba2f603d0e727f09d6699671` (#1183 / PR #1184)
 - **Evidence (canonical Phase B final)**: `docs/artifacts/1109-stage3-comparison/comparison-evidence.json`
 - **Evidence generated_at**: `2026-07-16T03:24:55.126Z`

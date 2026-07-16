@@ -4,9 +4,9 @@
 
 | Merge | SHA | Note |
 |-------|-----|------|
-| #1170 / PR #1182 | `2cc1e7d` | home fixture renderer (earlier Phase B) |
-| #1183 / PR #1184 | `24428065cdaed114ba2f603d0e727f09d6699671` | mobile resident terminal cancellation |
-| Branch merge of #1183 | see `git log` | `merge: integrate #1183 mobile cancellation into #1145 parity` |
+| #1170 / PR #1182 (main) | `2cc1e7d4a317a4859e2c24384d046f74a27af801` | home fixture renderer landed on main |
+| #1183 / PR #1184 (main squash) | `24428065cdaed114ba2f603d0e727f09d6699671` | mobile resident terminal cancellation on main |
+| #1183 into #1145 branch (normal merge) | `b52e85722af9d46f8315a60c42494ef9cf9a64da` | `merge: integrate #1183 mobile cancellation into #1145 parity` |
 
 - Rebase: not used
 - Conflicts: none on both merges
