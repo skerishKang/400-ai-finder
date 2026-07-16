@@ -109,6 +109,14 @@
 
   function _initRecommendationsToggle() {
     if (!chipsContainer) return;
+    // #1190: single toggle lives in composer footer utility (hint row),
+    // not above #chat-chips. Prefer explicit mount; fall back to utility row.
+    var toggleMount =
+      document.getElementById("chat-recommendations-toggle-mount") ||
+      (chatForm && chatForm.querySelector
+        ? chatForm.querySelector(".chat-composer__utility")
+        : null);
+    if (!toggleMount) return;
     recommendationsToggle = document.createElement("button");
     recommendationsToggle.type = "button";
     recommendationsToggle.className = "chat-recommendations-toggle";
@@ -118,7 +126,7 @@
     recommendationsToggle.addEventListener("click", function () {
       _toggleRecommendations();
     });
-    chipsContainer.parentNode.insertBefore(recommendationsToggle, chipsContainer);
+    toggleMount.appendChild(recommendationsToggle);
     _applyRecommendationsState();
   }
 

@@ -164,7 +164,11 @@
         보내기
       </button>
     </div>
-    <p class="chat-composer__hint">첫 질문 후 북구청 안내 화면과 함께 경로를 보여드립니다.</p>
+    <!-- #1190: composer footer utility — hint (left) + recommendations toggle mount (right). -->
+    <div class="chat-composer__utility">
+      <p class="chat-composer__hint">첫 질문 후 북구청 안내 화면과 함께 경로를 보여드립니다.</p>
+      <span id="chat-recommendations-toggle-mount" class="chat-composer__utility-mount"></span>
+    </div>
   </form>
   <!-- #1121: restrained service disclosure — AI shell only, not official canvas.
        Placed as a footer outside the composer form so it never overlaps the

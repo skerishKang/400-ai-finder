@@ -358,15 +358,29 @@ body[data-first-use-state="entry"] .chat-shell {
   animation: firstUseChatArrive 900ms var(--first-use-ease) both;
 }
 
-/* #1114: keep the composer always visible when 8 chips wrap on short viewports.
-   Let the chips region scroll instead of pushing the composer below the fold.
-   flex-wrap remains wrap so long chip labels wrap within the chip rail. */
-body[data-first-use-state="entry"] .chat-chips {
+/* #1190: entry chips size to content — do not flex-grow leftover empty space
+   under the last chip row. Reclaimed height goes to #chat-thread.
+   flex-wrap remains wrap. On very short shells chips may shrink with overflow-y. */
+body[data-first-use-state="entry"] .chat-thread {
   flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+body[data-first-use-state="entry"] .chat-chips {
+  flex: 0 1 auto;
   flex-wrap: wrap;
   overflow-y: auto;
   align-content: flex-start;
   min-height: 0;
+  max-height: none;
+}
+
+/* Short entry shells: bound chips rail so composer stays fully visible. */
+@media (max-height: 760px) {
+  body[data-first-use-state="entry"] .chat-chips {
+    max-height: min(36vh, 220px);
+  }
 }
 
 body[data-first-use-state="entry"] .chat-composer {
@@ -758,6 +772,41 @@ body[data-reduced-motion="true"] .chat-msg--bilingual-draft {
   line-height: 1.45;
 }
 
+/* #1190: composer footer utility — hint left, recommendations toggle right. */
+.chat-composer__utility {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin-top: 6px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.chat-composer__utility .chat-composer__hint {
+  margin: 0;
+  flex: 1 1 12rem;
+  min-width: 0;
+  text-align: left;
+}
+
+.chat-composer__utility-mount {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chat-composer__utility .chat-recommendations-toggle {
+  align-self: center;
+  margin: 0;
+  white-space: nowrap;
+}
+
 .chat-shell[data-chat-busy="true"] .chat-composer__send,
 .chat-shell[data-chat-busy="true"] .chat-composer__input {
   cursor: progress;
@@ -1105,10 +1154,19 @@ body.first-use-shell--no-motion .demo-canvas {
     padding-top: 0;
   }
 
+  body[data-first-use-state="entry"] .chat-composer__utility {
+    margin-top: 3px;
+    gap: 4px 8px;
+  }
+
   body[data-first-use-state="entry"] .chat-composer__hint {
-    margin: 3px 0 0;
+    margin: 0;
     font-size: 0.66rem;
     line-height: 1.2;
+  }
+
+  body[data-first-use-state="entry"] .chat-recommendations-toggle {
+    font-size: 0.64rem;
   }
 
   body[data-first-use-state="entry"] .chat-composer__row {
@@ -1433,10 +1491,9 @@ body[data-reduced-motion="true"] .executor-typing {
   display: none;
 }
 
-/* #1146 — Collapsible recommendations */
+/* #1146 / #1190 — Collapsible recommendations (composer utility footer). */
 .chat-recommendations-toggle {
   flex-shrink: 0;
-  align-self: flex-end;
   border: 0;
   background: transparent;
   color: #7a8290;
@@ -1444,10 +1501,9 @@ body[data-reduced-motion="true"] .executor-typing {
   font: inherit;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
   padding: 2px 4px;
-  text-transform: uppercase;
   transition: color 120ms ease;
 }
 .chat-recommendations-toggle:hover {
@@ -1661,6 +1717,7 @@ body[data-recommendations-expanded="false"] #chat-chips {
     min-width: 64px;
     min-height: 44px;
   }
+  body[data-mobile-surface="guidance"] .chat-composer__utility,
   body[data-mobile-surface="guidance"] .chat-composer__hint {
     display: none;
   }
