@@ -559,33 +559,39 @@ class TestReportContract:
             "Report must acknowledge mock/deterministic nature"
         )
 
-    def test_report_owner_is_computer_2(self):
+    def test_report_owner_is_computer_1_2(self):
+        """#1145 Phase B final owner is Computer 1-2 (not a historical Computer 2 label)."""
         if not os.path.isfile(_REPORT_PATH):
             pytest.skip("report not yet generated")
         text = _read(_REPORT_PATH)
         m = re.search(r"Owner\*\*?:\s*([^\n]+)", text)
         assert m is not None, "Report must declare an Owner"
-        assert "Computer 2" in m.group(1), (
-            f"Report owner must be 'Computer 2' per #1109 CTO assignment, got: {m.group(1)!r}"
+        assert "Computer 1-2" in m.group(1), (
+            f"Report owner must be 'Computer 1-2' for #1145 Phase B final, got: {m.group(1)!r}"
         )
 
-    def test_report_base_sha_matches_fixture_provenance(self):
+    def test_report_merged_main_finalization_sha(self):
+        """Phase B final provenance is the merged origin/main that includes #1183.
+
+        Do not require the historical expectations fixture base_sha (pre-#1145 track).
+        """
         if not os.path.isfile(_REPORT_PATH):
             pytest.skip("report not yet generated")
 
         text = _read(_REPORT_PATH)
-        match = re.search(r"Base SHA\*\*?:\s*`?([0-9a-f]{40})`?", text)
-
-        assert match is not None, "Report must declare a 40-hex Base SHA"
-
-        report_sha = match.group(1)
-        expectations = _read_json(_EXPECTATIONS_PATH)
-        fixture_sha = expectations["base_sha"]
-
-        assert re.fullmatch(r"[0-9a-f]{40}", report_sha)
-        assert report_sha == fixture_sha, (
-            f"Report Base SHA {report_sha} "
-            f"!= fixture provenance SHA {fixture_sha}"
+        # Stale Stage-1 fixture SHA must not be presented as Phase B final base.
+        assert "5ad20ad027f993cb522a49c90f39523211e6c5cd" not in text, (
+            "Report must not cite historical #1113 Base SHA as Phase B final provenance"
+        )
+        match = re.search(
+            r"Merged origin/main \(finalization\)\*\*?:\s*`?([0-9a-f]{40})`?",
+            text,
+        )
+        assert match is not None, (
+            "Report must declare Merged origin/main (finalization) 40-hex SHA"
+        )
+        assert match.group(1) == "24428065cdaed114ba2f603d0e727f09d6699671", (
+            f"Finalization main SHA mismatch: {match.group(1)}"
         )
 
 

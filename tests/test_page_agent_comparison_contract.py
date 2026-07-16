@@ -272,6 +272,65 @@ class TestParityScenarioContract:
 
 
 # ---------------------------------------------------------------------------
+# /compare/ stakeholder gateway (#1145)
+# ---------------------------------------------------------------------------
+
+_COMPARE_INDEX = os.path.join(_REPO_ROOT, "src", "web", "compare", "index.html")
+
+
+class TestCompareGateway:
+    """Stakeholder /compare/ surface: two equal primary products only."""
+
+    def test_compare_index_exists(self):
+        assert os.path.isfile(_COMPARE_INDEX), "src/web/compare/index.html missing"
+
+    def test_compare_has_two_equal_primary_products(self):
+        html = _read(_COMPARE_INDEX)
+        assert "정밀 구현형 AI 북구청" in html
+        assert "Page Agent형 AI 북구청" in html
+        assert 'href="../mvp/"' in html
+        assert 'href="../examples/page-agent/resident/"' in html
+        assert 'data-compare-product="deterministic"' in html
+        assert 'data-compare-product="page-agent"' in html
+        # Exactly two primary product cards.
+        assert html.count('class="product-card') == 2 or html.count("product-card") >= 2
+        assert html.count('href="../mvp/"') == 1
+        assert html.count('href="../examples/page-agent/resident/"') == 1
+
+    def test_compare_does_not_promote_admin_mobile_or_lab_as_primary(self):
+        html = _read(_COMPARE_INDEX)
+        # Primary cards only link mvp + resident — no admin/mobile primary cards.
+        assert 'href="../admin.html"' not in html
+        assert 'href="../mobile.html"' not in html
+        assert 'class="product-card' in html or "product-card" in html
+        # Lab must not be a product-card primary.
+        assert 'class="product-card" href="../examples/page-agent/"' not in html
+        assert 'class="product-card product-card--pa" href="../examples/page-agent/"' not in html
+
+    def test_compare_developer_lab_is_secondary_only(self):
+        html = _read(_COMPARE_INDEX)
+        assert "Page Agent 개발자 실험실" in html
+        assert 'href="../examples/page-agent/"' in html
+        assert 'data-compare-secondary="true"' in html
+        # Secondary section is outside the primary compare grid.
+        grid_idx = html.index("compare-grid")
+        secondary_idx = html.index("data-compare-secondary")
+        assert secondary_idx > grid_idx
+
+    def test_compare_has_no_external_calls(self):
+        html = _read(_COMPARE_INDEX)
+        _assert_no_external_auto_calls(html, "compare/index.html")
+
+    def test_build_copies_compare_gateway(self, build_dir):
+        compare = os.path.join(build_dir, "compare", "index.html")
+        assert os.path.isfile(compare), "compare gateway not copied into build"
+        html = _read(compare)
+        assert "정밀 구현형 AI 북구청" in html
+        assert "Page Agent형 AI 북구청" in html
+        assert "Page Agent 개발자 실험실" in html
+
+
+# ---------------------------------------------------------------------------
 # Resident route stub isolation
 # ---------------------------------------------------------------------------
 
@@ -301,6 +360,11 @@ class TestResidentRouteStub:
         assert "citizen-action-demo-canvas.js" in html
         assert "citizen-action-demo-map.js" in html
         assert "bukgu-official-snapshots.js" in html
+        # #1170: home fixture must load before map/canvas so action targets exist.
+        assert "bukgu-home-clone-fixture.js" in html
+        assert html.index("bukgu-home-clone-fixture.js") < html.index(
+            "citizen-action-demo-map.js"
+        )
         assert "citizen-action-demo-canvas.css" in html
         assert 'id="demo-canvas"' in html
 

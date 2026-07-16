@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "track": "1109-page-agent-comparison",
-  "generated_at": "2026-07-15T06:37:53.848Z",
+  "generated_at": "2026-07-16T03:24:55.126Z",
   "methodology": {
     "description": "Browser-based comparison harness executing the 5 parity scenarios from parity-contract.json in both modes against the same controlled same-origin civic canvas.",
     "modes": [
@@ -49,7 +49,7 @@
     "total_primary_runs": 30,
     "browser": {
       "source": "channel: chrome",
-      "version": "150.0.7871.116"
+      "version": "150.0.7871.115"
     },
     "shared_invariants": [
       "same resident-oriented task vocabulary",
@@ -132,6 +132,114 @@
         "message",
         "message"
       ],
+      "elapsed_ms": 17647,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
+      "errors": [],
+      "http_error_responses": []
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "apartment_contact",
+      "category": "information_lookup",
+      "mode": "page_agent",
+      "attempt": 1,
+      "canonical_request": "공동주택과 연락처 찾아줘",
+      "actual_trigger": "공동주택과 연락처 찾아줘",
+      "success": true,
+      "terminal_state": "",
+      "final_route": "apartment-dept",
+      "final_surface": "apartment-dept",
+      "expected_outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "공동주택 안내 영역 노출",
+          "passed": true,
+          "evidence": "passed: route: apartment-dept"
+        },
+        {
+          "criterion": "담당 부서/연락처 정보 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...부서 데이터정보과 연락처 062-410-8...\""
+        },
+        {
+          "criterion": "오류 없이 정보 채워짐",
+          "passed": true,
+          "evidence": "passed: keywords excluded"
+        }
+      ],
+      "action_step_count": 1,
+      "total_engine_step_count": 2,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "click_element_by_index",
+        "done"
+      ],
+      "elapsed_ms": 1909,
+      "no_submit_preserved": true,
+      "external_request_count": 0,
+      "request_failure_count": 0,
+      "console_error_count": 0,
+      "page_error_count": 0,
+      "warnings": [],
+      "console_error_messages": [],
+      "console_error_details": [],
+      "request_failed_details": [],
+      "reproducibility_signature": "page_agent|apartment_contact|true||apartment-dept|true|0|0|click_element_by_index,done",
+      "errors": [],
+      "http_error_responses": [],
+      "mock_success": true
+    },
+    {
+      "schema_version": "1.0.0",
+      "scenario_id": "apartment_contact",
+      "category": "information_lookup",
+      "mode": "deterministic",
+      "attempt": 2,
+      "canonical_request": "공동주택과 연락처 찾아줘",
+      "actual_trigger": "housing_department",
+      "success": true,
+      "terminal_state": "done",
+      "final_route": "apartment-dept",
+      "final_surface": "apartment-dept",
+      "expected_outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨",
+      "pass_criteria_results": [
+        {
+          "criterion": "공동주택 안내 영역 노출",
+          "passed": true,
+          "evidence": "passed: route: apartment-dept"
+        },
+        {
+          "criterion": "담당 부서/연락처 정보 표시",
+          "passed": true,
+          "evidence": "passed: text: \"...부서 데이터정보과 연락처 062-410-8...\""
+        },
+        {
+          "criterion": "오류 없이 정보 채워짐",
+          "passed": true,
+          "evidence": "passed: keywords excluded"
+        }
+      ],
+      "action_step_count": 4,
+      "total_engine_step_count": 7,
+      "wrong_route_action_count": 0,
+      "action_sequence": [
+        "message",
+        "click:[data-dept-action=\"open-menu\"]",
+        "click:[data-dept-action=\"go-directory\"]",
+        "type+focusSearch",
+        "click:.bg-dept-search__btn+submitSearch",
+        "message",
+        "message"
+      ],
       "elapsed_ms": 17640,
       "no_submit_preserved": true,
       "external_request_count": 0,
@@ -151,113 +259,6 @@
       "scenario_id": "apartment_contact",
       "category": "information_lookup",
       "mode": "page_agent",
-      "attempt": 1,
-      "canonical_request": "공동주택과 연락처 찾아줘",
-      "actual_trigger": "공동주택과 연락처 찾아줘",
-      "success": true,
-      "terminal_state": "",
-      "final_route": "apartment-dept",
-      "final_surface": "apartment-dept",
-      "expected_outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨",
-      "pass_criteria_results": [
-        {
-          "criterion": "공동주택 안내 영역 노출",
-          "passed": true,
-          "evidence": "passed: route: apartment-dept"
-        },
-        {
-          "criterion": "담당 부서/연락처 정보 표시",
-          "passed": true,
-          "evidence": "passed: text: \"...부서 데이터정보과 연락처 062-410-8...\""
-        },
-        {
-          "criterion": "오류 없이 정보 채워짐",
-          "passed": true,
-          "evidence": "passed: keywords excluded"
-        }
-      ],
-      "action_step_count": 1,
-      "total_engine_step_count": 2,
-      "wrong_route_action_count": 0,
-      "action_sequence": [
-        "click_element_by_index",
-        "done"
-      ],
-      "elapsed_ms": 1966,
-      "no_submit_preserved": true,
-      "external_request_count": 0,
-      "request_failure_count": 0,
-      "console_error_count": 0,
-      "page_error_count": 0,
-      "warnings": [],
-      "console_error_messages": [],
-      "console_error_details": [],
-      "request_failed_details": [],
-      "reproducibility_signature": "page_agent|apartment_contact|true||apartment-dept|true|0|0|click_element_by_index,done",
-      "errors": [],
-      "http_error_responses": []
-    },
-    {
-      "schema_version": "1.0.0",
-      "scenario_id": "apartment_contact",
-      "category": "information_lookup",
-      "mode": "deterministic",
-      "attempt": 2,
-      "canonical_request": "공동주택과 연락처 찾아줘",
-      "actual_trigger": "housing_department",
-      "success": true,
-      "terminal_state": "done",
-      "final_route": "apartment-dept",
-      "final_surface": "apartment-dept",
-      "expected_outcome": "공동주택(아파트) 관련 안내와 담당 부서 연락처가 시민에게 표시됨",
-      "pass_criteria_results": [
-        {
-          "criterion": "공동주택 안내 영역 노출",
-          "passed": true,
-          "evidence": "passed: route: apartment-dept"
-        },
-        {
-          "criterion": "담당 부서/연락처 정보 표시",
-          "passed": true,
-          "evidence": "passed: text: \"...부서 데이터정보과 연락처 062-410-8...\""
-        },
-        {
-          "criterion": "오류 없이 정보 채워짐",
-          "passed": true,
-          "evidence": "passed: keywords excluded"
-        }
-      ],
-      "action_step_count": 4,
-      "total_engine_step_count": 7,
-      "wrong_route_action_count": 0,
-      "action_sequence": [
-        "message",
-        "click:[data-dept-action=\"open-menu\"]",
-        "click:[data-dept-action=\"go-directory\"]",
-        "type+focusSearch",
-        "click:.bg-dept-search__btn+submitSearch",
-        "message",
-        "message"
-      ],
-      "elapsed_ms": 17780,
-      "no_submit_preserved": true,
-      "external_request_count": 0,
-      "request_failure_count": 0,
-      "console_error_count": 0,
-      "page_error_count": 0,
-      "warnings": [],
-      "console_error_messages": [],
-      "console_error_details": [],
-      "request_failed_details": [],
-      "reproducibility_signature": "deterministic|apartment_contact|true|done|apartment-dept|true|0|0|message,click:[data-dept-action=\"open-menu\"],click:[data-dept-action=\"go-directory\"],type+focusSearch,click:.bg-dept-search__btn+submitSearch,message,message",
-      "errors": [],
-      "http_error_responses": []
-    },
-    {
-      "schema_version": "1.0.0",
-      "scenario_id": "apartment_contact",
-      "category": "information_lookup",
-      "mode": "page_agent",
       "attempt": 2,
       "canonical_request": "공동주택과 연락처 찾아줘",
       "actual_trigger": "공동주택과 연락처 찾아줘",
@@ -290,7 +291,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2061,
+      "elapsed_ms": 1914,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -302,7 +303,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|apartment_contact|true||apartment-dept|true|0|0|click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -346,7 +348,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 17660,
+      "elapsed_ms": 17608,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -397,7 +399,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2073,
+      "elapsed_ms": 1902,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -409,7 +411,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|apartment_contact|true||apartment-dept|true|0|0|click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -450,7 +453,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5518,
+      "elapsed_ms": 5508,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -501,7 +504,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1978,
+      "elapsed_ms": 2030,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -513,7 +516,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|bulky_waste_menu|true||bulky-waste-disposal|true|0|0|click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -554,7 +558,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5460,
+      "elapsed_ms": 5511,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -605,7 +609,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2068,
+      "elapsed_ms": 1965,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -617,7 +621,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|bulky_waste_menu|true||bulky-waste-disposal|true|0|0|click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -658,7 +663,7 @@
         "target:bulky-waste-guidance-card",
         "message"
       ],
-      "elapsed_ms": 5576,
+      "elapsed_ms": 5513,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -709,7 +714,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2066,
+      "elapsed_ms": 2035,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -721,7 +726,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|bulky_waste_menu|true||bulky-waste-disposal|true|0|0|click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -764,7 +770,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10363,
+      "elapsed_ms": 10352,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -815,7 +821,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1981,
+      "elapsed_ms": 2015,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -827,7 +833,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|passport_procedure|true||passport-guidance|true|0|0|click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -870,7 +877,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10448,
+      "elapsed_ms": 10380,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -921,7 +928,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1861,
+      "elapsed_ms": 1914,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -933,7 +940,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|passport_procedure|true||passport-guidance|true|0|0|click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -976,7 +984,7 @@
         "target:passport-guidance-card",
         "message"
       ],
-      "elapsed_ms": 10457,
+      "elapsed_ms": 10389,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1027,7 +1035,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 1979,
+      "elapsed_ms": 1915,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1039,7 +1047,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|passport_procedure|true||passport-guidance|true|0|0|click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -1083,7 +1092,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 19201,
+      "elapsed_ms": 19102,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1135,7 +1144,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3112,
+      "elapsed_ms": 2965,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1147,7 +1156,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|complaint_screen|true||complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -1191,7 +1201,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 19088,
+      "elapsed_ms": 19175,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1243,7 +1253,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3083,
+      "elapsed_ms": 2978,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1255,7 +1265,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|complaint_screen|true||complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -1299,7 +1310,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 19099,
+      "elapsed_ms": 19144,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1351,7 +1362,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 3070,
+      "elapsed_ms": 3028,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1363,7 +1374,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|complaint_screen|true||complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -1409,7 +1421,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 25322,
+      "elapsed_ms": 25196,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1461,7 +1473,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2574,
+      "elapsed_ms": 2973,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1473,7 +1485,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|mayor_proposal_writing|true||mayor-complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -1571,7 +1584,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2474,
+      "elapsed_ms": 2995,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1583,7 +1596,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|mayor_proposal_writing|true||mayor-complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     },
     {
       "schema_version": "1.0.0",
@@ -1629,7 +1643,7 @@
         "message",
         "message"
       ],
-      "elapsed_ms": 25278,
+      "elapsed_ms": 25185,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1681,7 +1695,7 @@
         "click_element_by_index",
         "done"
       ],
-      "elapsed_ms": 2481,
+      "elapsed_ms": 3039,
       "no_submit_preserved": true,
       "external_request_count": 0,
       "request_failure_count": 0,
@@ -1693,7 +1707,8 @@
       "request_failed_details": [],
       "reproducibility_signature": "page_agent|mayor_proposal_writing|true||mayor-complaint-write|true|0|0|click_element_by_index,click_element_by_index,done",
       "errors": [],
-      "http_error_responses": []
+      "http_error_responses": [],
+      "mock_success": true
     }
   ],
   "boundary_probes": [
@@ -1703,7 +1718,7 @@
       "trigger": "오늘 날씨 알려줘",
       "has_journey": false,
       "started": true,
-      "elapsed_ms": 2,
+      "elapsed_ms": 4,
       "note": "hasJourney returned false, no choreography started"
     },
     {
@@ -1717,7 +1732,7 @@
       "has_execute_javascript": false,
       "has_click": false,
       "response_success": false,
-      "elapsed_ms": 789,
+      "elapsed_ms": 727,
       "safe": true
     },
     {
@@ -1748,10 +1763,10 @@
         "total": 15,
         "successful": 15,
         "failed": 0,
-        "median_elapsed_ms_all": 17660,
-        "median_elapsed_ms_success": 17660,
-        "min_elapsed_ms": 5460,
-        "max_elapsed_ms": 25322,
+        "median_elapsed_ms_all": 17640,
+        "median_elapsed_ms_success": 17640,
+        "min_elapsed_ms": 5508,
+        "max_elapsed_ms": 25212,
         "median_action_step_count_all": 4,
         "median_action_step_count_success": 4,
         "total_wrong_route_actions": 0
@@ -1760,10 +1775,10 @@
         "total": 15,
         "successful": 15,
         "failed": 0,
-        "median_elapsed_ms_all": 2068,
-        "median_elapsed_ms_success": 2068,
-        "min_elapsed_ms": 1861,
-        "max_elapsed_ms": 3112,
+        "median_elapsed_ms_all": 2030,
+        "median_elapsed_ms_success": 2030,
+        "min_elapsed_ms": 1902,
+        "max_elapsed_ms": 3039,
         "median_action_step_count_all": 1,
         "median_action_step_count_success": 1,
         "total_wrong_route_actions": 0

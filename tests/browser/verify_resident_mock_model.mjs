@@ -583,6 +583,78 @@ async function testDiagnosticsIntegrity(page) {
   console.log("    Diagnostics integrity: PASS");
 }
 
+async function installCanvasRouteStub(page, routeId, canvasText) {
+  await page.evaluate(
+    ({ rid, text }) => {
+      window.CitizenActionDemoCanvas = {
+        getCurrentRouteId: () => rid,
+      };
+      const canvas = document.getElementById("demo-canvas");
+      if (canvas) {
+        // Isolate content checks from the live home fixture text.
+        canvas.textContent = text == null ? "" : String(text);
+      }
+    },
+    { rid: routeId, text: canvasText == null ? "" : canvasText }
+  );
+}
+
+async function testFinalRouteSuccessFailClosed(page) {
+  console.log("  10. Final route + required visible content (fail-closed)...");
+
+  // 10a. Intermediate civil-service must not succeed even if keywords appear.
+  await page.evaluate(() => window.PageAgentMockModel.resetSession());
+  await resetDiag(page);
+  await installCanvasRouteStub(page, "civil-service", "");
+  let browserState = browserStateWithTargets();
+  await callRespond(page, "공동주택과 연락처 찾아줘", browserState);
+  let done = await callRespond(
+    page,
+    "공동주택과 연락처 찾아줘",
+    "civil service page with 공동주택 text but wrong route"
+  );
+  assertDoneAction(getToolAction(done), false, "civil-service intermediate route");
+  console.log("    civil-service intermediate → success=false: PASS");
+
+  // 10b. Correct route without required visible content must fail.
+  await page.evaluate(() => window.PageAgentMockModel.resetSession());
+  await resetDiag(page);
+  await installCanvasRouteStub(page, "apartment-dept", "");
+  await callRespond(page, "공동주택과 연락처 찾아줘", browserState);
+  done = await callRespond(page, "공동주택과 연락처 찾아줘", "empty surface without keywords");
+  assertDoneAction(getToolAction(done), false, "route ok but content missing");
+  console.log("    apartment-dept without content → success=false: PASS");
+
+  // 10c. Correct route + required visible content succeeds.
+  await page.evaluate(() => window.PageAgentMockModel.resetSession());
+  await resetDiag(page);
+  await installCanvasRouteStub(
+    page,
+    "apartment-dept",
+    "공동주택과 연락처 안내 전화 062-000-0000"
+  );
+  await callRespond(page, "공동주택과 연락처 찾아줘", browserState);
+  done = await callRespond(page, "공동주택과 연락처 찾아줘", "post-nav observation");
+  assertDoneAction(getToolAction(done), true, "route+content success");
+  const diag = await getDiagnostics(page);
+  assert.strictEqual(diag.lastSuccess, true, "diag lastSuccess true");
+  console.log("    apartment-dept + content → success=true: PASS");
+
+  // 10d. complaint-board is intermediate — never final success.
+  await page.evaluate(() => window.PageAgentMockModel.resetSession());
+  await resetDiag(page);
+  await installCanvasRouteStub(page, "complaint-board", "민원 게시판 제목 작성 (board only)");
+  await callRespond(page, "민원 작성 화면을 열어줘", browserState);
+  await callRespond(page, "민원 작성 화면을 열어줘", browserState);
+  done = await callRespond(
+    page,
+    "민원 작성 화면을 열어줘",
+    "민원 게시판 제목 작성 (board only)"
+  );
+  assertDoneAction(getToolAction(done), false, "complaint-board intermediate");
+  console.log("    complaint-board intermediate → success=false: PASS");
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -621,6 +693,7 @@ async function main() {
     await testFiveScenariosSequential(page);
     await testComplaintTwoStep(page);
     await testDiagnosticsIntegrity(page);
+    await testFinalRouteSuccessFailClosed(page);
 
     allPassed = true;
     console.log("\n=== ALL TESTS PASSED ===\n");

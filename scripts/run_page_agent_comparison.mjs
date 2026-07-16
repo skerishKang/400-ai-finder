@@ -41,45 +41,60 @@ const SCHEMA_VERSION = "1.0.0";
 // ── Shared pass criteria from parity-contract.json indexed by scenario id ──
 // Each criterion is (description, evaluation function key) that is evaluated
 // against DOM evidence at runtime.
+// #1145: intermediate routes must never satisfy final-route criteria.
+const FORBIDDEN_SUCCESS_ROUTES = new Set([
+  "home",
+  "civil-service",
+  "complaint-category",
+  "complaint-board",
+  "mayor-office",
+  "official-content",
+  "",
+]);
+
 const PASS_CRITERIA_EVALUATORS = {
   apartment_contact: [
-    { label: "공동주택 안내 영역 노출", check: routeMatches(["apartment-dept"], ["공동주택"]) },
-    { label: "담당 부서/연락처 정보 표시", check: textContains(["연락처", "전화", "FAX"]) },
+    // Route match is strict: text-only must not pass (detector false positive).
+    { label: "공동주택 안내 영역 노출", check: routeMatchesExact(["apartment-dept"]) },
+    { label: "담당 부서/연락처 정보 표시", check: textContains(["연락처", "전화", "FAX", "공동주택"]) },
     { label: "오류 없이 정보 채워짐", check: textExcludes(["오류", "불러오지 못했습니다"]) },
   ],
   bulky_waste_menu: [
-    { label: "대형폐기물 화면 열림", check: routeMatches(["bulky-waste-disposal"], ["대형폐기물"]) },
+    { label: "대형폐기물 화면 열림", check: routeMatchesExact(["bulky-waste-disposal"]) },
     { label: "안내 텍스트 표시", check: textContains(["대형폐기물", "배출", "신청"]) },
     { label: "실제 제출 없음", check: noSubmitCheck() },
   ],
   passport_procedure: [
-    { label: "여권 절차 안내 화면/정보 표시", check: routeMatches(["passport-guidance"], ["여권"]) },
-    { label: "구비서류/절차 단계 노출", check: textContains(["구비서류", "수수료", "신청절차", "발급"]) },
+    { label: "여권 절차 안내 화면/정보 표시", check: routeMatchesExact(["passport-guidance"]) },
+    { label: "구비서류/절차 단계 노출", check: textContains(["구비서류", "수수료", "신청절차", "발급", "여권"]) },
     { label: "실제 여권 신청 제출 없음", check: noSubmitCheck() },
   ],
   complaint_screen: [
-    { label: "민원 작성 화면 열림", check: routeMatches(["complaint-write"], ["민원"]) },
+    { label: "민원 작성 화면 열림", check: routeMatchesExact(["complaint-write"]) },
     { label: "입력 필드/영역 식별됨", check: textContains(["제목", "입력", "작성"]) },
     { label: "임의 제출 없음", check: noSubmitCheck() },
   ],
   mayor_proposal_writing: [
-    { label: "작성 화면/보조 영역 열림", check: routeMatches(["mayor-complaint-write"], ["제안", "구청장"]) },
-    { label: "초안/입력 안내 제공됨", check: textContains(["제목", "초안", "내용"]) },
+    { label: "작성 화면/보조 영역 열림", check: routeMatchesExact(["mayor-complaint-write"]) },
+    { label: "초안/입력 안내 제공됨", check: textContains(["제목", "초안", "내용", "구청장", "제안"]) },
     { label: "실제 전송/제출 없음", check: noSubmitCheck() },
   ],
 };
 
-function routeMatches(expectedRoutes, contentKeywords) {
+/**
+ * Fail-closed final-route criterion.
+ * Never accept civil-service / complaint-category / generic official-content
+ * or "keyword appears somewhere" as a substitute for the expected route id.
+ */
+function routeMatchesExact(expectedRoutes) {
   return (route, canvasText) => {
-    if (expectedRoutes.includes(route)) return { passed: true, excerpt: `route: ${route}` };
-    for (const kw of contentKeywords) {
-      if (canvasText.includes(kw)) {
-        const idx = canvasText.indexOf(kw);
-        const excerpt = canvasText.substring(Math.max(0, idx - 10), Math.min(canvasText.length, idx + kw.length + 10)).replace(/\n/g, " ").trim();
-        return { passed: true, excerpt: `text: "...${excerpt}..."` };
-      }
+    if (FORBIDDEN_SUCCESS_ROUTES.has(route)) {
+      return { passed: false, excerpt: `forbidden intermediate route: ${route || "(empty)"}` };
     }
-    return { passed: false };
+    if (expectedRoutes.includes(route)) {
+      return { passed: true, excerpt: `route: ${route}` };
+    }
+    return { passed: false, excerpt: `route mismatch: got=${route || "(empty)"} expected=${expectedRoutes.join("|")}` };
   };
 }
 
@@ -247,24 +262,92 @@ async function launchBrowser() {
 
 async function detectCanvasRoute(page) {
   return page.evaluate(() => {
-    const canvas = document.getElementById("demo-canvas");
-    if (!canvas) return "";
-    const pageDiv = canvas.querySelector("[class*='bg-page']");
-    if (!pageDiv) return "";
-    // Check specific route markers first (more specific = checked earlier)
-    if (pageDiv.classList.contains("bg-page--home")) return "home";
-    if (pageDiv.classList.contains("bg-page--dept-directory") || pageDiv.classList.contains("bg-page--official-apartment-dept")) return "apartment-dept";
-    if (pageDiv.classList.contains("bg-page--bulky-waste") || pageDiv.classList.contains("bg-page--official-bulky-waste-disposal")) return "bulky-waste-disposal";
-    if (pageDiv.classList.contains("bg-page--passport-guidance") || pageDiv.classList.contains("bg-page--official-passport-guidance")) return "passport-guidance";
-    if (pageDiv.classList.contains("bg-page--complaint-write") || pageDiv.querySelector("#btn-board-write, #board-write-title, #complaint-write-title")) return "complaint-write";
-    if (pageDiv.classList.contains("bg-page--mayor-complaint-write") || pageDiv.querySelector("#mayor-write-title, #btn-mayor-submit, #mayor-proposal-title")) return "mayor-complaint-write";
-    // Generic fallback: extract from bg-page--* class (skip layout classes)
-    for (const cls of pageDiv.classList) {
-      if (cls.startsWith("bg-page--") && cls !== "bg-page--full" && cls !== "bg-page--dense" && cls !== "bg-page--official-content") {
-        return cls.replace("bg-page--", "").replace("official-", "");
+    // #1145 route resolution:
+    // 1) Prefer CitizenActionDemoCanvas.getCurrentRouteId when it is a
+    //    concrete non-home route (Page Agent real navigation).
+    // 2) Else use specific DOM final-route markers (deterministic housing
+    //    J-DEPT replay can leave API at "home" while the dept surface is shown).
+    // 3) Never invent success from keyword text alone or generic official-content.
+    let apiRoute = "";
+    try {
+      if (
+        window.CitizenActionDemoCanvas &&
+        typeof window.CitizenActionDemoCanvas.getCurrentRouteId === "function"
+      ) {
+        const rid = window.CitizenActionDemoCanvas.getCurrentRouteId();
+        if (typeof rid === "string" && rid) apiRoute = rid;
       }
+    } catch (_) { /* ignore */ }
+
+    const canvas = document.getElementById("demo-canvas");
+    if (!canvas) return apiRoute || "";
+    const pageDiv = canvas.querySelector("[class*='bg-page']");
+    if (!pageDiv) return apiRoute || "";
+
+    function detectDomRoute() {
+      // Specific final-route markers only.
+      if (
+        pageDiv.classList.contains("bg-page--dept-directory") ||
+        pageDiv.classList.contains("bg-page--official-apartment-dept") ||
+        pageDiv.classList.contains("bg-page--dept-replay")
+      ) {
+        return "apartment-dept";
+      }
+      if (
+        pageDiv.classList.contains("bg-page--bulky-waste") ||
+        pageDiv.classList.contains("bg-page--official-bulky-waste-disposal")
+      ) {
+        return "bulky-waste-disposal";
+      }
+      if (
+        pageDiv.classList.contains("bg-page--passport-guidance") ||
+        pageDiv.classList.contains("bg-page--official-passport-guidance")
+      ) {
+        return "passport-guidance";
+      }
+      // complaint-write: write-surface markers only (not board #btn-board-write alone)
+      if (
+        pageDiv.classList.contains("bg-page--complaint-write") ||
+        pageDiv.querySelector("#board-write-title, #complaint-write-title, #complaint-writing-title")
+      ) {
+        return "complaint-write";
+      }
+      if (
+        pageDiv.classList.contains("bg-page--mayor-complaint-write") ||
+        pageDiv.classList.contains("bg-page--mayor-writing") ||
+        pageDiv.querySelector("#mayor-write-title, #mayor-writing-title, #mayor-proposal-title")
+      ) {
+        return "mayor-complaint-write";
+      }
+      if (pageDiv.classList.contains("bg-page--complaint-board")) return "complaint-board";
+      if (pageDiv.classList.contains("bg-page--mayor") && !pageDiv.classList.contains("bg-page--mayor-writing")) {
+        return "mayor-office";
+      }
+      if (pageDiv.classList.contains("bg-page--home")) return "home";
+
+      for (const cls of pageDiv.classList) {
+        if (!cls.startsWith("bg-page--")) continue;
+        if (
+          cls === "bg-page--full" ||
+          cls === "bg-page--dense" ||
+          cls === "bg-page--product" ||
+          cls === "bg-page--official-content" ||
+          cls === "bg-page--mayor"
+        ) {
+          continue;
+        }
+        const raw = cls.replace("bg-page--", "").replace("official-", "");
+        if (raw) return raw;
+      }
+      return "";
     }
-    return "official-content";
+
+    const domRoute = detectDomRoute();
+    if (apiRoute && apiRoute !== "home" && apiRoute !== "official-content") {
+      return apiRoute;
+    }
+    if (domRoute) return domRoute;
+    return apiRoute || "";
   });
 }
 
@@ -997,15 +1080,26 @@ async function main() {
             record.warnings = tracker.warnings.map(w => w.text);
             record.http_error_responses = tracker.httpErrors;
 
-            // success: all pass criteria met, route matches expected, no-submit preserved, no external requests, no errors
+            // success: all pass criteria met, exact final route, mock done(success=true),
+            // no-submit preserved, no external requests, no errors.
+            // Never promote intermediate routes or detector-only text hits to success.
             const allPassCriteriaMet = record.pass_criteria_results.length > 0
               ? record.pass_criteria_results.every(cr => cr.passed)
               : false;
             const expectedRoute = getExpectedRoute(sid, "page_agent");
-            const routeMatchesExpected = !expectedRoute || record.final_route === expectedRoute;
+            const routeMatchesExpected = !!(expectedRoute && record.final_route === expectedRoute);
+            const forbiddenRoute = FORBIDDEN_SUCCESS_ROUTES.has(record.final_route);
+            const mockReportedSuccess = await page.evaluate(() => {
+              const m = window.PageAgentMockModel;
+              if (!m || !m.getDiagnostics) return null;
+              return m.getDiagnostics().lastSuccess;
+            }).catch(() => null);
+            record.mock_success = mockReportedSuccess;
             record.success = (
               allPassCriteriaMet &&
               routeMatchesExpected &&
+              !forbiddenRoute &&
+              mockReportedSuccess === true &&
               record.no_submit_preserved &&
               record.external_request_count === 0 &&
               record.console_error_count === 0 &&
@@ -1016,7 +1110,7 @@ async function main() {
             record.reproducibility_signature = computeSignature(record);
             record.errors = [];
 
-            console.log(`  [pag][${sid}] attempt=${attempt} success=${record.success} actions=${record.action_step_count}/${record.total_engine_step_count} wr=${record.wrong_route_action_count} route=${record.final_route} elapsed=${record.elapsed_ms}ms`);
+            console.log(`  [pag][${sid}] attempt=${attempt} success=${record.success} mock=${mockReportedSuccess} actions=${record.action_step_count}/${record.total_engine_step_count} wr=${record.wrong_route_action_count} route=${record.final_route} elapsed=${record.elapsed_ms}ms`);
           } catch (e) {
             record.success = false;
             record.errors.push(e.message || String(e));
