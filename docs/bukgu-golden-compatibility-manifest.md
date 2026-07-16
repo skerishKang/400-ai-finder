@@ -32,6 +32,8 @@ Clone fidelity policy still applies to the civic left surface where exact-clone
 is claimed; home fixture currently sets `exact_clone_claimed=false` /
 `capture_required`. See
 [`product/exact-official-site-clone-invariant.md`](product/exact-official-site-clone-invariant.md).
+Visual fidelity and promotion governance:
+[`product/clone-visual-fidelity-and-promotion-policy.md`](product/clone-visual-fidelity-and-promotion-policy.md).
 
 Related architecture decision: [`architecture/clone-first-platform-adr.md`](architecture/clone-first-platform-adr.md).
 

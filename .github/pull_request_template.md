@@ -20,11 +20,11 @@
 
 ## Readiness state before
 
-<!-- One or more of: capture_required, structure_ready, asset_mapping_ready, interaction_ready, visual_review_pending, resident_default_approved -->
+<!-- One or more of: capture_required, capture_ready, structure_ready, asset_mapping_ready, interaction_ready, visual_review_pending, visual_review_approved, visual_review_rejected, resident_default_approved, exact -->
 
 ## Readiness state after
 
-<!-- One or more of: capture_required, structure_ready, asset_mapping_ready, interaction_ready, visual_review_pending, resident_default_approved -->
+<!-- One or more of: capture_required, capture_ready, structure_ready, asset_mapping_ready, interaction_ready, visual_review_pending, visual_review_approved, visual_review_rejected, resident_default_approved, exact -->
 
 ## Accepted reference artifact path
 
@@ -34,13 +34,21 @@
 
 <!-- Path to the candidate renderer screenshot, or "N/A — docs-only PR / no visual change" with reason -->
 
-## Desktop viewport (reference / candidate)
+## Desktop full / default (1440×900)
 
-<!-- Reference screenshot at 1440×1000 and candidate screenshot at 1440×1000, or "N/A" with reason -->
+<!-- Reference screenshot at 1440×900 full-width state and candidate screenshot at same viewport. N/A requires explicit reason. Forbidden for first promotion and material visual composition change. -->
 
-## Mobile viewport (reference / candidate)
+## Desktop split (1440×900)
 
-<!-- Reference screenshot at 390×844 and candidate screenshot at 390×844, or "N/A" with reason -->
+<!-- Reference screenshot at 1440×900 desktop split state and candidate screenshot at same viewport. N/A requires explicit reason. Forbidden for first promotion and material visual composition change. -->
+
+## Desktop split (1440×760)
+
+<!-- Reference screenshot at 1440×760 desktop split state and candidate screenshot at same viewport. N/A requires explicit reason. Forbidden for first promotion and material visual composition change. -->
+
+## Mobile entry / guidance (390×844)
+
+<!-- Reference screenshot(s) at 390×844 mobile state(s) and candidate screenshot(s) at same viewport. If entry and guidance states both exist and have visibly different compositions, both must be captured. N/A with explicit reason permitted only when the state does not exist for the route. Forbidden for first promotion and material visual composition change. -->
 
 ## Material visual differences
 
@@ -60,7 +68,7 @@
 
 ## Project-owner approval record path
 
-<!-- Path to docs/artifacts/visual-approvals/<site_id>/<route_id>/<pr-number>-<head-sha>/approval.md, or explicit "not yet approved" with reason -->
+<!-- First promotion and material visual composition change: actual human project-owner direct approval required. CTO role, AI model, local worker, developer, and CI are not the project owner and cannot approve. "not yet approved" means the PR must not merge. Docs-only/policy-only PRs: N/A with explicit reason is permitted. -->
 
 ## Rollback renderer / SHA
 

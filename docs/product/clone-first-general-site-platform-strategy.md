@@ -18,9 +18,9 @@ Each new site follows six stages. No stage is implied by completion of an earlie
 
 ### 1. Capture completeness
 
-All target routes, regions, and assets for the site scope are captured from the official site via authorized reference capture. The manifest `capture_required` list is populated and tracked.
+Target routes, regions, and assets within the scoped site/route set are captured via authorized reference capture and committed to the repository. Routes within scope must be fully captured to reach `capture_ready`; remaining uncaptured routes stay `capture_required`.
 
-**Output:** capture inventory, authorization record, captured reference artifacts.
+**Output:** capture inventory, authorization record, captured reference artifacts, manifest with `capture_required`/`capture_ready` entries.
 
 ### 2. Structural / content parity
 
@@ -42,13 +42,13 @@ Within the fixture scope, user interactions produce the same visible outcomes as
 
 ### 5. Visual review
 
-The candidate renderer is compared side-by-side against the accepted visual reference at required viewports (1440×1000 desktop, 390×844 mobile minimum). Material differences are documented. CI screenshots, automated diffs, and model reviews are evidence — not approval.
+The candidate renderer is compared side-by-side against the accepted visual reference at required viewports (1440×900 full/split, 1440×760 split, 390×844 entry/guidance). Material differences are documented. CI screenshots, automated diffs, and model reviews are evidence — not approval.
 
 **Output:** visual comparison evidence, `comparison-notes.md`.
 
 ### 6. Resident-default promotion
 
-After visual review approval by the project owner, the renderer is promoted to the resident-facing default route. The approval record is stored in `docs/artifacts/visual-approvals/<site_id>/<route_id>/`.
+After visual review approval by the project owner, the renderer is promoted to the resident-facing default route. The approval record is stored in `docs/artifacts/visual-approvals/<site_id>/<route_id>/<pr-number>-<head-sha>/`.
 
 **Output:** `approval.md`, updated resident-default route configuration.
 

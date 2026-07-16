@@ -35,12 +35,12 @@ rg -n -i '(capture_required|resident.default.approved|visual.review.pending|proj
 ### Requires cross-reference
 
 | # | Document | Reason | Will correct? |
-|---|----------|--------|---------------|
-| 3 | `docs/architecture/clone-first-platform-adr.md` | Already correctly separates fixture completeness from exact clone; does not yet reference the new visual-fidelity policy. ADR records a docs-only planning decision; cross-reference addition sufficient | Add reference |
-| 4 | `docs/bukgu-golden-compatibility-manifest.md` | Already contains correct non-claims language and `capture_required` assertions; does not yet reference new governing policy | Add reference |
-| 5 | `docs/product/1078-corrective-note.md` | Already aligns with exact-clone invariant; does not yet reference new policy chain | Add reference |
-| 6 | `docs/mvp-demo-operator-runbook.md` | References exact-clone invariant correctly; does not reference promotion gate | Add reference |
-| 7 | `docs/mvp-demo-milestone-snapshot.md` | References exact-clone invariant correctly; does not reference promotion gate | Add reference |
+|===|==========|========|===============|
+| 3 | `docs/architecture/clone-first-platform-adr.md` | Already correctly separates fixture completeness from exact clone; does not yet reference the new visual-fidelity policy. ADR records a docs-only planning decision; cross-reference addition sufficient | Yes |
+| 4 | `docs/bukgu-golden-compatibility-manifest.md` | Already contains correct non-claims language and `capture_required` assertions; does not yet reference new governing policy. (Core content is already compliant; cross-reference addition only) | Yes |
+| 5 | `docs/product/1078-corrective-note.md` | Already aligns with exact-clone invariant; does not yet reference new policy chain | Yes |
+| 6 | `docs/mvp-demo-operator-runbook.md` | References exact-clone invariant correctly; does not reference promotion gate | Yes |
+| 7 | `docs/mvp-demo-milestone-snapshot.md` | References exact-clone invariant correctly; does not reference promotion gate | Yes |
 
 ### Already compliant
 
@@ -52,8 +52,6 @@ rg -n -i '(capture_required|resident.default.approved|visual.review.pending|proj
 | 11 | `docs/design/bukgu-ai-agent-product-directive.md` | Product direction; does not assert visual approval for current state | No |
 | 12 | `docs/design/863-local-execution-contract.md` | Historical design doc; does not claim resident-default status | No |
 | 13 | `docs/product/dynamic-retrieval-query-learning-strategy.md` | Retrieval strategy; clone invariant disclaimer present; no visual claims | No |
-| 14 | `docs/bukgu-golden-compatibility-manifest.md` (core content) | Correctly states fixture-backed renderer ≠ full exact official clone; `capture_required` correctly maintained; Section 8 correctly documents fixture provenance | Already compliant (cross-reference addition is below threshold) |
-
 ### Historical artifact requiring erratum
 
 | # | Document | Reason | Will correct? |

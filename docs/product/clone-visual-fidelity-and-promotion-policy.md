@@ -6,7 +6,7 @@ This policy governs **visual fidelity review** and **resident-default promotion*
 
 The policy establishes:
 
-- Independent readiness dimensions that must each be satisfied before promotion
+- Independent readiness dimensions that must each be evaluated and recorded before promotion
 - A fail-closed state model — no promotion without documented visual approval
 - Required evidence, viewport coverage, and human approval authority
 - Bounded maintenance rules that preserve approved baselines under narrow conditions
@@ -22,17 +22,17 @@ CI evidence, automated screenshots, model review, and developer self-review are 
 
 ## 3. Readiness dimensions
 
-The following six dimensions are **independent**. Progress in one does not imply progress in another.
+The following dimensions are **independent**. Progress in one does not imply progress in another. All dimensions must be independently evaluated and their states recorded. Only `resident_default_approved` confers control of the ordinary resident-facing default route. Incomplete dimensions must be disclosed in the approval record and PR body; they do not block evaluation but do block promotion until the promotion criteria are satisfied.
 
 ### 3.1 Capture completeness
 
-All official-site pages, regions, and assets within scope have been captured (via authorized reference capture or committed source inventory). The manifest `capture_required` list is empty for the route scope.
+All official-site pages, regions, and assets within a scoped route set have been captured via authorized reference capture and committed to the repository. The route scope's capture completeness is defined per issue/PR scope; remaining uncaptured routes stay `capture_required`.
 
-**State:** `capture_required` (incomplete), `capture_complete`
+**State:** `capture_required` (incomplete), `capture_ready`
 
 ### 3.2 Structural / content parity
 
-The fixture reproduces the official page's DOM structure, text content, link targets, tables, rows, controls, and ordered items. Interactivity (click, navigate, form) is wired as far as the fixture permits.
+The fixture reproduces the official page's DOM structure, text content, link targets, tables, rows, controls, and ordered items. Structural projection of controls is included; interactive behavior is evaluated separately under interaction parity.
 
 **State:** `structure_ready`
 
@@ -67,14 +67,17 @@ Terms **must not** be treated as interchangeable:
 | Term | Meaning |
 |------|---------|
 | `capture_required` | Incomplete capture; route not yet fixture-ready |
+| `capture_ready` | Capture complete for the scoped route set |
 | `structure_ready` | Structural/content parity achieved; visual fidelity not established |
 | `asset_mapping_ready` | Official asset inventory complete; local promotion not yet performed |
 | `interaction_ready` | Interaction parity achieved within fixture scope |
 | `visual_review_pending` | Visual comparison not yet completed or reviewed |
+| `visual_review_approved` | Visual review passed; pending resident-default approval |
+| `visual_review_rejected` | Visual review failed; promotion blocked |
 | `resident_default_approved` | Full approval granted; renderer serves as resident-facing default |
-| `exact` | Reserved for routes that satisfy all applicable dimensions and have explicit project-owner approval |
+| `exact` | Reserved for routes that satisfy all applicable exact-clone dimensions plus resident-default approval |
 
-`exact` is **not** a synonym for "structurally complete" or "textually complete."
+`exact` is **not** a synonym for "structurally complete" or "textually complete." `resident_default_approved` is a visual promotion state; `exact` additionally requires all applicable exact-clone dimensions to be satisfied. A route that is `capture_required` can never be `exact`.
 
 ## 5. Fail-closed state model
 
@@ -94,16 +97,20 @@ Each approved baseline requires:
 - **Candidate renderer identity**: the renderer module path, its integrity SHA, and its provenance chain (fixture JSON → generator → projection)
 - **Approval record**: the approval.md artifact (see §17–18) stored in the visual-approvals directory
 
-The accepted reference is **owned** by the project owner or their delegate. The reference must be an unmodified capture of the official site at a known point in time.
+The accepted reference is **owned** by the project owner. The reference must be an unmodified capture of the official site at a known point in time.
 
 ## 7. Required viewport evidence
 
-Visual comparison evidence must cover at minimum:
+Visual comparison evidence must cover at minimum the following viewports and states for home-like routes:
 
-- **Desktop**: 1440×1000 viewport (full page or content-area screenshot)
-- **Mobile**: 390×844 viewport (full page or content-area screenshot)
+1. **1440×900 full-width / default state**
+2. **1440×900 desktop split state**
+3. **1440×760 desktop split state**
+4. **390×844 mobile entry/guidance state**
 
-Additional viewports may be required by the project owner for routes with specific responsive behavior.
+If a route has both entry and guidance mobile states with visibly different compositions, both must be captured. Where a given state does not exist for a particular route, N/A with an explicit reason is permitted.
+
+Additional viewports may be required by the project owner for routes with specific responsive behavior. The `1440×1000` viewport may be retained as a supplemental viewport but does not replace the required viewports above.
 
 ## 8. Side-by-side visual review
 
@@ -124,12 +131,14 @@ Differences must be classified as:
 
 ## 9. Human approval authority
 
+"Project owner" means the actual human repository and product owner. CTO role, AI model, local worker, developer, and CI are **not** the project owner. Approval authority cannot be delegated for first promotion or material change.
+
 | Role | May approve |
 |------|-------------|
-| Project owner (CTO or designated representative) | First promotion, re-approval after drift, superseding baselines |
+| Project owner (actual human repository/product owner) | First promotion, re-approval after drift, superseding baselines |
 | Developer / CI / model / local worker | **No** — evidence contributor only |
 | Automated screenshot diff tool | **No** — evidence contributor only |
-| Third-party reviewer delegated by project owner | Yes, with explicit written delegation recorded in the approval artifact |
+| Third-party reviewer | **No** — may assist evidence collection and analysis but cannot grant approval |
 
 ## 10. Approved renderer identity and SHA
 
@@ -174,10 +183,10 @@ Promotion to the resident-default route removes preview-only affordances and set
 
 First promotion of any renderer to the resident-default route requires:
 
-1. All six readiness dimensions evaluated (§3)
+1. All readiness dimensions independently evaluated with recorded states (§3)
 2. Visual review evidence at required viewports (§7–8)
 3. Side-by-side comparison with accepted reference (§8)
-4. Project-owner direct visual review and explicit approval (§9)
+4. Project-owner direct visual review and explicit approval — no delegation (§9)
 5. Signed approval record (§18)
 6. Evidence-bearing PR (§16)
 
@@ -223,8 +232,10 @@ Every PR that proposes a visual change to an approved renderer or first-time pro
 | Readiness state after | §3 dimension states |
 | Accepted reference artifact path | Path to reference screenshot |
 | Candidate artifact path | Path to candidate screenshot |
-| Desktop viewport | Reference + candidate at 1440×1000 |
-| Mobile viewport | Reference + candidate at 390×844 |
+| Desktop full/default (1440×900) | Reference + candidate at 1440×900 full-width state |
+| Desktop split (1440×900) | Reference + candidate at 1440×900 desktop split state |
+| Desktop split (1440×760) | Reference + candidate at 1440×760 desktop split state |
+| Mobile entry/guidance (390×844) | Reference + candidate at 390×844 mobile state(s) |
 | Material visual differences | Description or "none" |
 | Unresolved assets and fallbacks | List of remaining unresolved assets |
 | Interaction parity evidence | Reference to E2E test results |
@@ -234,7 +245,13 @@ Every PR that proposes a visual change to an approved renderer or first-time pro
 | Network/live/provider activity | Declaration: "none" or detailed list |
 | Confidential-data declaration | Declaration that no confidential/PII data is included |
 
-`N/A` is permitted for fields that do not apply to a given PR, but the **reason** for `N/A` must be stated.
+`N/A` is permitted only with an explicit reason. Restrictions:
+
+- **First promotion** and **material visual composition change**: viewport evidence `N/A` is **forbidden**.
+- **Baseline supersession**: viewport evidence `N/A` is **forbidden**.
+- **Bounded maintenance**: viewport evidence `N/A` requires the approved baseline, automated comparison result, and documentation of bounded maintenance condition satisfaction.
+- **Docs-only, policy-only, non-visual changes**: `N/A` is permitted with an explicit reason.
+- Asserting "deterministic output" or "no visual difference expected" alone is **insufficient** to waive evidence — automated comparison or baseline proof must be provided.
 
 ## 17. Artifact storage and naming
 
@@ -247,15 +264,21 @@ docs/artifacts/visual-approvals/<site_id>/<route_id>/<pr-number>-<head-sha>/
 ### Required files
 
 ```
-reference-desktop-1440x1000.png
-candidate-desktop-1440x1000.png
-reference-mobile-390x844.png
-candidate-mobile-390x844.png
+reference-desktop-full-1440x900.png
+candidate-desktop-full-1440x900.png
+reference-desktop-split-1440x900.png
+candidate-desktop-split-1440x900.png
+reference-desktop-split-1440x760.png
+candidate-desktop-split-1440x760.png
+reference-mobile-entry-390x844.png
+candidate-mobile-entry-390x844.png
+reference-mobile-guidance-390x844.png
+candidate-mobile-guidance-390x844.png
 comparison-notes.md
 approval.md
 ```
 
-- Screenshots are optional when the PR explicitly states a reason for their absence (e.g., "fixture-only change, no visual difference expected — N/A because renderer output is deterministic text and layout with no external imagery").
+- Not all routes have both entry and guidance mobile states. When a given state does not exist for the route, `N/A` with an explicit reason is permitted.
 - `comparison-notes.md` documents the reviewer's findings during side-by-side comparison.
 - `approval.md` is the canonical approval record (see §18).
 
@@ -275,7 +298,7 @@ This PR (#1199) does **not** create or commit any screenshot binaries; it codifi
 | tested viewport | Viewport dimensions evaluated |
 | material differences | Description of any differences found and their classification |
 | unresolved assets / fallbacks | List of assets not yet resolved at approval time |
-| approver authority | Role (project owner / delegate) |
+| approver authority | Project owner (actual human repository/product owner) |
 | approval result | Approved, rejected, or conditionally approved with conditions listed |
 | approval date | ISO 8601 date |
 | superseded approval | Link to prior approval.md if replacing an existing baseline |
