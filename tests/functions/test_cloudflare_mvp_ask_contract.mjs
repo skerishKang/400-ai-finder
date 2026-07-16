@@ -464,7 +464,7 @@ await assert('action without a canonical snapshot answers honestly with no offic
 
 await assert('Gemini model and endpoint are operator-configurable', async () => {
   try {
-    mockFetchSequence([{ body: chatResponse('설정 반영') }]);
+    mockFetchSequence([{ body: chatResponse('요청하신 안내 설정이 반영되었습니다. 필요한 민원 경로를 확인해 주세요.') }]);
     await requestJson('POST', JSON.stringify({ question: '테스트' }), {
       GEMINI_API_KEY: 'test-gemini',
       GEMINI_MODEL: 'custom-gemini',
@@ -503,10 +503,11 @@ await assert('Gemini HTTP failure falls back to HY3', async () => {
 
 await assert('missing Gemini key skips directly to HY3', async () => {
   try {
-    mockFetchSequence([{ body: chatResponse('HY3 직접 응답') }]);
+    mockFetchSequence([{ body: chatResponse('HY3 모델이 직접 응답한 안내입니다. 관련 민원 경로를 확인해 주세요.') }]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '질문' }), {
       KILOCODE_API_KEY: 'test-hy3',
     });
+    expectEqual(data.ok, true, 'ok');
     expectEqual(data.provider, 'hy3', 'provider');
     expectEqual(data.fallback_used, true, 'fallback_used');
     expectEqual(providerFetchCalls().length, 1, 'provider fetch call count');
@@ -520,7 +521,7 @@ await assert('HY3 reasoning-only response supplies the final answer', async () =
     mockFetchSequence([{ body: {
       choices: [{ message: {
         content: '',
-        reasoning: '<think>internal notes</think>\n```json\n{"answer":"reasoning 폴백 답변","action":"none","confidence":0.7}\n```',
+        reasoning: '<think>internal notes</think>\n```json\n{"answer":"reasoning 경로로 제공된 안내 답변입니다. 관련 민원 경로를 확인해 주세요.","action":"none","confidence":0.7}\n```',
       } }],
     } }]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '질문' }), {
@@ -528,7 +529,7 @@ await assert('HY3 reasoning-only response supplies the final answer', async () =
       KILOCODE_API_KEY: 'test-hy3',
     });
     expectEqual(data.ok, true, 'ok');
-    expectEqual(data.answer, 'reasoning 폴백 답변', 'answer');
+    expectEqual(data.answer, 'reasoning 경로로 제공된 안내 답변입니다. 관련 민원 경로를 확인해 주세요.', 'answer');
     if (data.answer.includes('internal notes')) throw new Error('reasoning leaked');
   } finally {
     restoreFetch();
@@ -537,12 +538,13 @@ await assert('HY3 reasoning-only response supplies the final answer', async () =
 
 await assert('operator can make HY3 the primary provider', async () => {
   try {
-    mockFetchSequence([{ body: chatResponse('HY3 우선 응답') }]);
+    mockFetchSequence([{ body: chatResponse('HY3를 우선 제공자로 사용한 안내 응답입니다. 관련 민원 경로를 확인해 주세요.') }]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '질문' }), {
       MVP_LLM_ORDER: 'hy3,gemini',
       GEMINI_API_KEY: 'test-gemini',
       KILOCODE_API_KEY: 'test-hy3',
     });
+    expectEqual(data.ok, true, 'ok');
     expectEqual(data.provider, 'hy3', 'provider');
     expectEqual(data.fallback_used, false, 'fallback_used');
     expectEqual(data.freshness_state, 'snapshot_unavailable', 'freshness_state');
@@ -562,7 +564,7 @@ await assert('empty Gemini response falls back to HY3', async () => {
   try {
     mockFetchSequence([
       { body: { choices: [{ message: { content: '   ' } }] } },
-      { body: chatResponse('빈 응답 뒤 HY3') },
+      { body: chatResponse('빈 응답 이후 HY3가 이어서 안내합니다. 관련 민원 경로를 확인해 주세요.') },
     ]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '질문' }), {
       GEMINI_API_KEY: 'test-gemini',
@@ -642,7 +644,7 @@ await assert('housing_department canonical snapshot survives Gemini Interactions
     url: 'https://bukgu.gwangju.kr/board.es?mid=a10602012601',
   };
   try {
-    mockFetchSequence([{ body: groundedInteraction('공동주택과 안내입니다.', [providerCitation]) }]);
+    mockFetchSequence([{ body: groundedInteraction('공동주택 관련 문의는 조직 및 업무안내 표를 확인해 주세요.', [providerCitation]) }]);
     const { data } = await requestJson('POST', JSON.stringify({
       question: '공동주택 관련 문의는 어느 부서에 해야 하나요?',
     }), {
@@ -758,11 +760,15 @@ await assert('locale request body: Vietnamese prompt states Vietnamese target', 
 await assert('locale request body: Thai and Indonesian also normalize and localize', async () => {
   for (const [loc, marker] of [['th', 'ภาษาไทย'], ['id', 'bahasa Indonesia']]) {
     try {
-      mockFetchSequence([{ body: chatResponse('ok') }]);
+      const natural = loc === 'th'
+        ? 'กรุณาติดต่อสำนักงานเขตเพื่อสอบถามข้อมูลเพิ่มเติมเกี่ยวกับบริการ'
+        : 'Silakan hubungi kantor layanan warga untuk informasi lebih lanjut mengenai prosedur.';
+      mockFetchSequence([{ body: chatResponse(natural) }]);
       const { data } = await requestJson('POST', JSON.stringify({
         question: 'test',
         locale: loc,
       }), { GEMINI_API_KEY: 'test-gemini' });
+      expectEqual(data.ok, true, `${loc} ok`);
       expectEqual(data.locale, loc, `${loc} echoed`);
       const prompt = JSON.parse(providerFetchCalls()[0].body).messages[0].content;
       if (prompt.includes('자연스러운 한국어 2~5문장')) {
@@ -777,10 +783,11 @@ await assert('locale request body: Thai and Indonesian also normalize and locali
 
 await assert('missing locale on request defaults to ko and keeps Korean directive', async () => {
   try {
-    mockFetchSequence([{ body: chatResponse('공동주택과 안내') }]);
+    mockFetchSequence([{ body: chatResponse('공동주택 관련 문의는 해당 부서 업무안내를 확인해 주세요.') }]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '공동주택 문의' }), {
       GEMINI_API_KEY: 'test-gemini',
     });
+    expectEqual(data.ok, true, 'ok');
     expectEqual(data.locale, 'ko', 'default ko');
     const prompt = JSON.parse(providerFetchCalls()[0].body).messages[0].content;
     if (!prompt.includes('자연스러운 한국어')) throw new Error('Korean directive missing for ko default');
@@ -791,11 +798,12 @@ await assert('missing locale on request defaults to ko and keeps Korean directiv
 
 await assert('unsupported locale on request falls back to ko', async () => {
   try {
-    mockFetchSequence([{ body: chatResponse('공동주택과 안내') }]);
+    mockFetchSequence([{ body: chatResponse('공동주택 관련 문의는 해당 부서 업무안내를 확인해 주세요.') }]);
     const { data } = await requestJson('POST', JSON.stringify({
       question: '공동주택 문의',
       locale: 'zz',
     }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.ok, true, 'ok');
     expectEqual(data.locale, 'ko', 'fallback ko');
   } finally {
     restoreFetch();
@@ -869,6 +877,215 @@ await assert('configured provider upstream failure returns localized upstream_er
     expectEqual(vi.locale, 'vi', 'vi locale');
     expectEqual(vi.answer, 'Không thể kết nối hướng dẫn AI. Vui lòng thử lại sau.', 'vi localized upstream_error');
     expectEqual(providerFetchCalls().length, 1, 'vi provider call count');
+  } finally {
+    restoreFetch();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// #1191 answer-locale enforcement (offline pure helper + onRequest matrix)
+// ---------------------------------------------------------------------------
+
+const { assessAnswerLocale } = functionModule;
+
+await assert('assessAnswerLocale helper matrix (direct)', async () => {
+  const cases = [
+    ['ko', '공동주택 관련 문의는 해당 부서 업무안내를 확인해 주세요.', true],
+    ['ko', 'Please contact the housing department for apartment questions.', false],
+    ['en', 'Please contact the housing department for apartment questions at Buk-gu.', true],
+    ['en', '광주광역시 북구청장에게 제안하려면 열린구청장실을 이용하세요.', false],
+    ['en', 'To propose to the mayor, visit the 열린구청장실 office at 북구청.', true],
+    ['en', 'You can call 062-410-8000 or open https://bukgu.gwangju.kr/ for the 북구청 page.', true],
+    ['vi', 'Phòng quản lý nhà chung cư sẽ hỗ trợ các câu hỏi về căn hộ của bạn.', true],
+    ['vi', '광주광역시 북구청장에게 제안하려면 열린구청장실을 이용하세요.', false],
+    ['vi', 'Please contact the housing department for apartment questions.', false],
+    ['th', 'กรุณาติดต่อสำนักงานเขตเพื่อสอบถามข้อมูลเพิ่มเติมเกี่ยวกับบริการ', true],
+    ['th', 'Please contact the housing department for apartment questions.', false],
+    ['th', '공동주택 관련 문의는 해당 부서 업무안내를 확인해 주세요.', false],
+    ['id', 'Silakan hubungi kantor layanan warga untuk informasi lebih lanjut mengenai prosedur.', true],
+    ['id', '광주광역시 북구청장에게 제안하려면 열린구청장실을 이용하세요.', false],
+    ['id', 'Please contact the housing department for apartment questions.', false],
+    ['en', '', false],
+    ['en', '12345-67890', false],
+    ['en', 'ok', false],
+  ];
+  for (const [loc, answer, expectOk] of cases) {
+    const r = assessAnswerLocale(answer, loc);
+    if (r.ok !== expectOk) {
+      throw new Error(`${loc} / ${JSON.stringify(answer)} => ok=${r.ok} reason=${r.reason} expected ${expectOk}`);
+    }
+  }
+});
+
+await assert('en initial valid answer: single provider call', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('Please visit the mayor office page to submit your proposal.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: 'I want to propose to the mayor',
+      locale: 'en',
+    }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.locale, 'en', 'locale');
+    expectEqual(providerFetchCalls().length, 1, 'calls');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('en Korean initial then English correction succeeds (2 calls)', async () => {
+  try {
+    mockFetchSequence([
+      { body: chatResponse('광주광역시 북구청장에게 제안하려면 열린구청장실을 이용하세요.') },
+      { body: chatResponse('To propose to the mayor, please use the 열린구청장실 service.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: 'I want to propose to the mayor',
+      locale: 'en',
+    }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.locale, 'en', 'locale');
+    expectEqual(data.answer, 'To propose to the mayor, please use the 열린구청장실 service.', 'answer');
+    expectEqual(providerFetchCalls().length, 2, 'calls');
+    const correction = JSON.parse(providerFetchCalls()[1].body).messages[0].content;
+    if (!/English/i.test(correction) && !/selected locale "en"/i.test(correction)) {
+      throw new Error('correction prompt missing English rewrite requirement');
+    }
+    if (!correction.includes('<rejected_draft>')) throw new Error('missing rejected_draft wrapper');
+    if (!/untrusted/i.test(correction)) throw new Error('must treat rejected draft as untrusted');
+    if (!correction.includes('열린구청장실') && !correction.includes('rejected')) {
+      // rejected draft body should be present inside the wrapper
+    }
+    if (!providerFetchCalls()[1].body.includes('광주광역시')) {
+      throw new Error('rejected draft content missing from correction request');
+    }
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('en Korean initial and Korean correction fail closed without leaking draft', async () => {
+  try {
+    mockFetchSequence([
+      { body: chatResponse('광주광역시 북구청장에게 제안하려면 열린구청장실을 이용하세요.') },
+      { body: chatResponse('여전히 한국어로만 작성된 잘못된 안내 문장입니다.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: 'I want to propose to the mayor',
+      locale: 'en',
+    }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.ok, false, 'ok');
+    expectEqual(data.failure_code, 'answer_locale_mismatch', 'failure_code');
+    expectEqual(data.locale, 'en', 'locale');
+    expectEqual(data.answer, 'The AI guide could not be reached. Please try again later.', 'safe answer');
+    expectEqual(providerFetchCalls().length, 2, 'calls');
+    const payload = JSON.stringify(data);
+    if (payload.includes('여전히 한국어')) throw new Error('rejected draft leaked');
+    if (payload.includes('광주광역시 북구청장에게 제안하려면')) throw new Error('initial draft leaked');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('official Korean noun in English does not trigger retry', async () => {
+  try {
+    mockFetchSequence([{
+      body: chatResponse('For apartment questions, contact 공동주택과 at 북구청. Call 062-410-8000 or open https://bukgu.gwangju.kr/.'),
+    }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: 'Apartment housing department',
+      locale: 'en',
+    }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(providerFetchCalls().length, 1, 'no correction');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('first provider wrong twice then second provider valid (3 calls, one correction)', async () => {
+  try {
+    mockFetchSequence([
+      { body: chatResponse('광주광역시 북구청장에게 제안하려면 열린구청장실을 이용하세요.') },
+      { body: chatResponse('여전히 한국어로만 작성된 잘못된 안내 문장입니다.') },
+      { body: chatResponse('Please use the mayor proposal form for your request.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: 'I want to propose to the mayor',
+      locale: 'en',
+    }), {
+      GEMINI_API_KEY: 'test-gemini',
+      KILOCODE_API_KEY: 'test-hy3',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'hy3', 'provider');
+    expectEqual(data.fallback_used, true, 'fallback_used');
+    expectEqual(data.locale, 'en', 'locale');
+    expectEqual(providerFetchCalls().length, 3, 'calls');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('first provider upstream then second wrong then corrected valid (one global correction)', async () => {
+  try {
+    mockFetchSequence([
+      { status: 503, body: { error: 'unavailable' } },
+      { body: chatResponse('광주광역시 북구청장에게 제안하려면 열린구청장실을 이용하세요.') },
+      { body: chatResponse('Please use the mayor proposal form for your request.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: 'I want to propose to the mayor',
+      locale: 'en',
+    }), {
+      GEMINI_API_KEY: 'test-gemini',
+      KILOCODE_API_KEY: 'test-hy3',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'hy3', 'provider');
+    expectEqual(data.fallback_used, true, 'fallback_used');
+    expectEqual(providerFetchCalls().length, 3, 'calls');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('Gemini Interactions path enforces the same locale gate', async () => {
+  try {
+    mockFetchSequence([
+      { body: groundedInteraction('광주광역시 북구청장에게 제안하려면 열린구청장실을 이용하세요.') },
+      { body: groundedInteraction('Please use the mayor proposal form for your request.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: 'I want to propose to the mayor',
+      locale: 'en',
+    }), {
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_API_STYLE: 'interactions',
+      GEMINI_MODEL: 'gemini-3.5-flash',
+      GEMINI_API_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/interactions',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.locale, 'en', 'locale');
+    expectEqual(providerFetchCalls().length, 2, 'calls');
+    const correctionInput = JSON.parse(providerFetchCalls()[1].body).input;
+    if (!/untrusted/i.test(correctionInput)) throw new Error('interactions correction missing untrusted cue');
+    if (!correctionInput.includes('<rejected_draft>')) throw new Error('interactions correction missing rejected_draft');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('empty answer remains fail-closed without locale success', async () => {
+  try {
+    mockFetchSequence([{ body: { choices: [{ message: { content: '   ' } }] } }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: 'hello there',
+      locale: 'en',
+    }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.ok, false, 'ok');
+    // empty_response from provider before locale gate; no correction on non-ok
+    expectEqual(data.failure_code, 'empty_response', 'failure_code');
+    expectEqual(providerFetchCalls().length, 1, 'calls');
   } finally {
     restoreFetch();
   }
