@@ -4591,3 +4591,167 @@ body[data-first-use-state="transitioning"] .bg-mayor-hero h1 {
   line-height: 1.12;
   letter-spacing: -0.04em;
 }
+/* #1170 home fixture canvas renderer — scoped under .bg-page--home */
+.bg-page--home.bg-page--home-fixture {
+  --bg-home-fixture-max: 914px;
+  background: #fff;
+  color: #1a1a1a;
+}
+.bg-page--home .bg-home-fixture-root {
+  width: min(var(--bg-home-fixture-max, 914px), calc(100% - 32px));
+  margin: 0 auto;
+  padding: 12px 0 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-sizing: border-box;
+}
+.bg-page--home .bg-home-fixture-compat {
+  width: min(var(--bg-home-fixture-max, 914px), calc(100% - 32px));
+  margin: 8px auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  box-sizing: border-box;
+}
+.bg-page--home .bg-home-fixture-compat-item,
+.bg-page--home .bg-home-fixture-item--action {
+  color: #0b4f3a;
+  text-decoration: none;
+  font-size: 13px;
+  line-height: 1.4;
+  border-radius: 4px;
+}
+.bg-page--home .bg-home-fixture-compat-item:focus-visible,
+.bg-page--home .bg-home-fixture-item--action:focus-visible {
+  outline: 2px solid #117f91;
+  outline-offset: 2px;
+}
+.bg-page--home .bg-home-fixture-region {
+  border: 1px solid #e5ebe8;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fcfefd;
+  min-width: 0;
+}
+.bg-page--home .bg-home-fixture-region__heading {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #14352a;
+}
+.bg-page--home .bg-home-fixture-items,
+.bg-page--home .bg-home-fixture-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+}
+.bg-page--home .bg-home-fixture-region--notice_news .bg-home-fixture-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.bg-page--home .bg-home-fixture-group {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bg-page--home .bg-home-fixture-group__label {
+  font-weight: 700;
+  font-size: 13px;
+  color: #0f3d2f;
+}
+.bg-page--home .bg-home-fixture-item {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #222;
+  word-break: break-word;
+}
+.bg-page--home .bg-home-fixture-item__date {
+  flex: 0 0 auto;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}
+.bg-page--home .bg-home-fixture-item__text {
+  min-width: 0;
+}
+.bg-page--home .bg-home-fixture-item--hidden,
+.bg-page--home .bg-home-fixture-item--template {
+  display: none !important;
+}
+.bg-page--home .bg-home-fixture-item--inert {
+  cursor: default;
+  pointer-events: none;
+}
+.bg-page--home .bg-home-fixture-item--cross-origin {
+  color: #555;
+}
+.bg-page--home .bg-home-fixture-asset {
+  display: block;
+  width: 72px;
+  height: 48px;
+  border: 1px dashed #c5d0cb;
+  background: repeating-linear-gradient(
+    -45deg,
+    #f4f7f6,
+    #f4f7f6 6px,
+    #e9efec 6px,
+    #e9efec 12px
+  );
+  flex: 0 0 auto;
+}
+.bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+.bg-page--home .bg-home-fixture-region--utility_navigation .bg-home-fixture-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.bg-page--home .bg-home-fixture-region--footer_identity_contact .bg-home-fixture-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bg-page--home .bg-home-fixture-dept {
+  width: min(var(--bg-home-fixture-max, 914px), calc(100% - 32px));
+  margin: 8px auto 0;
+}
+.bg-page--home.bg-page--home-fixture-unavailable .bg-home-fixture-unavailable {
+  width: min(var(--bg-home-fixture-max, 914px), calc(100% - 32px));
+  margin: 40px auto;
+  padding: 24px;
+  border: 1px solid #d7e0dc;
+  border-radius: 8px;
+  background: #f8faf9;
+  color: #333;
+}
+.bg-page--home .bg-home-fixture-unavailable__title {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+.bg-page--home .bg-home-fixture-unavailable__detail {
+  margin: 0;
+  color: #555;
+  font-size: 13px;
+}
+@media (max-width: 430px) {
+  .bg-page--home .bg-home-fixture-root,
+  .bg-page--home .bg-home-fixture-compat,
+  .bg-page--home .bg-home-fixture-dept {
+    width: calc(100% - 16px);
+    overflow-x: hidden;
+  }
+  .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-items {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  }
+}

@@ -23,6 +23,7 @@ STATIC = os.path.join(os.path.dirname(__file__), "..", "src", "web", "static")
 REQUIRED_FILES = [
     "citizen-action-demo.html",
     "bukgu-official-snapshots.js",
+    "bukgu-home-clone-fixture.js",
     "citizen-action-demo-map.js",
     "citizen-action-demo-canvas.js",
     "citizen-action-demo-canvas.css",
@@ -144,9 +145,11 @@ var cx = vm.createContext(sandbox);
 
 // Evaluate the browser scripts in production order.
 var snapshotJS = %s;
+var homeFixtureJS = %s;
 var mapJS = %s;
 var canvasJS = %s;
 vm.runInContext(snapshotJS, cx);
+vm.runInContext(homeFixtureJS, cx);
 vm.runInContext(mapJS, cx);
 vm.runInContext(canvasJS, cx);
 
@@ -169,11 +172,18 @@ process.stdout.write(JSON.stringify(results));
 def _render_all_routes_via_node():
     """Call Node to render all routes, return dict of routeId -> html."""
     snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
+    home_fixture_js = json.dumps(_read_static("bukgu-home-clone-fixture.js"))
     map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
     canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
     routes_json = json.dumps(EXPECTED_ROUTE_IDS)
 
-    script = _RUNTIME_SCRIPT % (snapshot_js, map_js, canvas_js, routes_json)
+    script = _RUNTIME_SCRIPT % (
+        snapshot_js,
+        home_fixture_js,
+        map_js,
+        canvas_js,
+        routes_json,
+    )
 
     result = _run_node_script_file(script, timeout=30)
     if result.returncode != 0:
@@ -595,8 +605,12 @@ class TestRuntimeRender:
             # 1. Top Nav — semantic bg-nav-bar or bg-nav-bar__title
             # Home route has its own header/GNB (reconstructed homepage)
             if route_id == "home":
-                assert 'class="bg-header"' in html, f"route {route_id} missing header"
-                assert 'class="bg-gnb"' in html, f"route {route_id} missing GNB"
+                assert 'bg-page--home' in html, f"route {route_id} missing home page root"
+                assert (
+                    'bg-home-fixture-root' in html
+                    or 'data-home-fixture-sha256' in html
+                    or 'class="bg-header"' in html
+                ), f"route {route_id} missing fixture/header structure"
             else:
                 assert 'class="bg-nav-bar"' in html, f"route {route_id} missing nav bar"
 
@@ -794,12 +808,13 @@ class TestSemanticReconstruction:
         assert "보내기" in html, "보내기 button missing"
 
     def test_home_has_gnb_with_data_action_target(self):
-        """Home route must have GNB with data-action-target on 종합민원."""
+        """Home fixture projection maps exact 종합민원 evidence to nav-civil-service."""
         js = _read_static("citizen-action-demo-canvas.js")
-        assert 'data-action-target="nav-civil-service"' in js, \
-            "GNB 종합민원 must have data-action-target"
-        assert "종합민원" in js
+        fixture_js = _read_static("bukgu-home-clone-fixture.js")
+        assert "nav-civil-service" in fixture_js
+        assert "종합민원" in fixture_js
         assert "data-action-target" in js
+        assert "_renderHomeCompatTargets" in js or "action_target_mappings" in fixture_js
 
     def test_complaint_review_has_disabled_submit(self):
         """complaint-review route must have disabled submit button."""
@@ -811,9 +826,11 @@ class TestSemanticReconstruction:
         """Route metadata titles and purposes must be correct."""
         html = _read_static("citizen-action-demo.html")
         js = _read_static("citizen-action-demo-canvas.js")
-        assert "시민 행정 도우미" in html or "전남광주통합특별시북구" in js, "page title missing"
-        assert "전남광주통합특별시북구" in js, "header must use 전남광주통합특별시북구"
-        assert "북구청장 신수정" in js or "home-hero-mayor" in js, "hero must mention 북구청장 신수정"
+        fixture_js = _read_static("bukgu-home-clone-fixture.js")
+        assert "시민 행정 도우미" in html or "전남광주통합특별시" in fixture_js, "page title missing"
+        assert "전남광주통합특별시" in fixture_js or "전남광주통합특별시북구" in js
+        # Mayor identity remains on non-home mayor routes; home is fixture-driven.
+        assert "북구청장 신수정" in js or "열린구청장실" in fixture_js
 
 
 class TestFidelityAndSeparation:
@@ -896,27 +913,25 @@ class TestFidelityAndSeparation:
             assert f'data-action-target="{target}"' in combined, f"Target '{target}' not present in rendered HTML"
 
     def test_official_identity_crop_provenance(self, rendered_routes):
-        """Verify the current home identity asset is used correctly (current reference ledger)."""
+        """#1170: home renders fixture identity metadata (not synthetic identity crop)."""
         from PIL import Image
 
-        # a. Current identity asset exists at correct path
+        # a. Identity crop remains available for dense-shell routes / history.
         current_identity_path = os.path.join(STATIC, "images", "bukgu-current", "home-identity.png")
         assert os.path.exists(current_identity_path), "home-identity.png missing in bukgu-current"
         identity_img = Image.open(current_identity_path)
         assert identity_img.size == (170, 42), f"home-identity.png size mismatch: {identity_img.size}"
 
-        # b. The new asset path exists in rendered home HTML
+        # b. Fixture-driven home root (no exact-clone claim; capture_required)
         home_html = rendered_routes["home"]
-        assert "/static/images/bukgu-current/home-identity.png" in home_html, "home-identity.png missing in rendered html"
-        assert 'alt="전남광주통합특별시북구"' in home_html, \
-            'alt="전남광주통합특별시북구" missing in rendered html'
-
-        # c. No legacy identity expression in home renderer
-        assert "home-logo-identity.png" not in home_html, \
-            "legacy home-logo-identity.png still referenced in rendered html"
+        assert 'data-home-fixture-sha256="81b27b98fadc091ca852079f89ea93da45b93f250372835b8b352726b2faeaed"' in home_html
+        assert 'data-home-clone-status="capture_required"' in home_html
+        assert 'data-home-exact-clone="false"' in home_html
+        assert "bg-home-fixture-root" in home_html
         assert "광주광역시 북구" not in home_html, "광주광역시 북구 must not appear in home rendered html"
 
-        # Check canvas.js has no active _svgLogo/White in identity rendering
+        # c. Home no longer embeds unresolved official assets as <img>
+        assert "home-logo-identity.png" not in home_html
         js = _read_static("citizen-action-demo-canvas.js")
         assert '_svgLogo' not in js, "_svgLogo still in canvas.js"
         assert '_svgLogoWhite' not in js, "_svgLogoWhite still in canvas.js"
@@ -932,6 +947,7 @@ class TestJDept01SpecificContracts:
         """Helper to run Node and capture HTML under J-DEPT-01 query states."""
         def _render(query: str):
             snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
+            home_fixture_js = json.dumps(_read_static("bukgu-home-clone-fixture.js"))
             map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
             canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
             # Run with custom sandbox search query
@@ -980,11 +996,13 @@ class TestJDept01SpecificContracts:
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
             sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
             process.stdout.write(capturedHTML);
             """ % (
                 json.dumps(query),
                 snapshot_js,
+                home_fixture_js,
                 map_js,
                 canvas_js
             )
@@ -1240,6 +1258,7 @@ class TestJDept01SpecificContracts:
     def test_jdept01_exact_search_handler_execution(self):
         """8. Execute captured click handler and check pushState query resolution for exact-search."""
         snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
+        home_fixture_js = json.dumps(_read_static("bukgu-home-clone-fixture.js"))
         map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
         canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
 
@@ -1444,6 +1463,7 @@ class TestJDept01ReplayContracts:
     def replay_render(self):
         def _render(query: str):
             snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
+            home_fixture_js = json.dumps(_read_static("bukgu-home-clone-fixture.js"))
             map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
             canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
             sandbox_init = """
@@ -1485,9 +1505,10 @@ class TestJDept01ReplayContracts:
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
             sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
             process.stdout.write(JSON.stringify({ html: capturedHTML, chat: capturedChatHTML }));
-            """ % (json.dumps(query), snapshot_js, map_js, canvas_js)
+            """ % (json.dumps(query), snapshot_js, home_fixture_js, map_js, canvas_js)
             res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return json.loads(res.stdout)
@@ -1533,6 +1554,7 @@ class TestJDept01ReplayContracts:
 
     def test_replay_controls_are_user_advanced_and_local_only(self):
         snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
+        home_fixture_js = json.dumps(_read_static("bukgu-home-clone-fixture.js"))
         map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
         canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
         sandbox_init = """
@@ -1587,6 +1609,7 @@ class TestJDept01ReplayContracts:
         vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
         sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
 
         function click(action) {
@@ -1623,7 +1646,7 @@ class TestJDept01ReplayContracts:
           afterNext: afterNext,
           afterRestart: afterRestart
         }));
-        """ % (snapshot_js, map_js, canvas_js)
+        """ % (snapshot_js, home_fixture_js, map_js, canvas_js)
         res = _run_node_script_file(sandbox_init, timeout=10)
         assert res.returncode == 0, res.stderr
         data = json.loads(res.stdout)

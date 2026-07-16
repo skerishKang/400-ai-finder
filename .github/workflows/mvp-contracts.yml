@@ -68,6 +68,9 @@ jobs:
       - name: Install Node test dependencies
         run: npm ci --ignore-scripts
 
+      - name: Run home fixture canvas browser contract (#1170)
+        run: node tests/browser/verify_home_fixture_canvas_e2e.mjs
+
       - name: Run responsive browser contract
         run: node tests/browser/verify_first_use_responsive.mjs
 
