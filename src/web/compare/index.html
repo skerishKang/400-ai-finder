@@ -173,6 +173,29 @@
     color: #9b9ba5;
   }
   .footer-note { margin-top: 4px; font-size: 0.78rem; color: #b0b0bc; }
+  .secondary-links {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid #e4e4ea;
+    font-size: 0.82rem;
+    color: #6b6b7a;
+    line-height: 1.55;
+  }
+  .secondary-links a {
+    color: #4a4a5a;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .secondary-links a:hover { color: #1a1a2e; }
+  .secondary-links .secondary-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #9b9ba5;
+    margin-bottom: 6px;
+  }
 </style>
 </head>
 <body>
@@ -184,13 +207,13 @@
 <div class="container">
   <h1 class="page-title">AI 북구청 비교</h1>
   <p class="page-sub">
-    같은 북구청 안내 작업을 두 가지 다른 방식으로 구현했습니다.<br>
-    원하는 구현 방식을 선택하여 시연을 진행할 수 있습니다.
+    같은 북구청 안내 작업을 두 가지 동등한 제품 방식으로 시연합니다.<br>
+    주민 대상 primary choice는 아래 두 가지뿐입니다. 실제 북구청 공식 사이트는 제어하지 않습니다.
   </p>
 
-  <div class="compare-grid">
+  <div class="compare-grid" role="list" aria-label="주민용 비교 제품">
 
-    <a class="product-card" href="../mvp/" tabindex="0" aria-label="정밀 구현형 AI 북구청 시작">
+    <a class="product-card" href="../mvp/" tabindex="0" role="listitem" data-compare-product="deterministic" aria-label="정밀 구현형 AI 북구청 시작">
       <div class="card-badge">🛠️ 정밀 구현형</div>
       <h2 class="card-title">정밀 구현형 AI 북구청</h2>
       <p class="card-desc">
@@ -201,34 +224,40 @@
         <li>미리 작성된 안내 시나리오</li>
         <li>결정적 경로 탐색</li>
         <li>높은 안정성과 재현성</li>
-        <li>빠른 응답 시간</li>
+        <li>제출 전 주민 확인 경계 유지</li>
       </ul>
       <div class="card-cta">시작하기 →</div>
     </a>
 
-    <a class="product-card product-card--pa" href="../examples/page-agent/resident/" tabindex="0" aria-label="Page Agent형 AI 북구청 시작">
+    <a class="product-card product-card--pa" href="../examples/page-agent/resident/" tabindex="0" role="listitem" data-compare-product="page-agent" aria-label="Page Agent형 AI 북구청 시작">
       <div class="card-badge">🤖 Page Agent형</div>
       <h2 class="card-title">Page Agent형 AI 북구청</h2>
       <p class="card-desc">
-        AI 모델이 북구청 화면의 요소를 직접 조작하며 안내하는 방식입니다.
-        북구청 안내 화면에서 실제 DOM 작업을 통해 동적으로 경로를 탐색합니다.
+        동일 출처 안내 화면에서 Page Agent 런타임이 관찰 가능한 DOM 동작으로 경로를 탐색합니다.
+        주민 비교 데모의 기본 모드는 오프라인/mock입니다 (live provider 비활성).
       </p>
       <ul class="card-features">
         <li>실제 DOM 조작 기반 탐색</li>
         <li>관찰 가능한 AI 작업 로그</li>
-        <li>동적 경로 계획</li>
-        <li>사람이 클릭하는 동작을 AI가 수행</li>
+        <li>planning / result / unsupported / cancel 상태</li>
+        <li>제출 전 주민 확인 경계 유지</li>
       </ul>
       <div class="card-cta">시작하기 →</div>
     </a>
 
+  </div>
+
+  <div class="secondary-links" data-compare-secondary="true">
+    <span class="secondary-label">개발자용 (비-primary)</span>
+    <a href="../examples/page-agent/">Page Agent 개발자 실험실</a>
+    — 주민용 비교 제품이 아닌 격리된 developer lab 입니다.
   </div>
 </div>
 
 <footer>
   두 구현 모두 동일한 주민 안내 데이터를 사용하며 실제 북구청 공식 사이트를 직접 제어하지 않습니다.
   <div class="footer-note">
-    비교 데모 · 모든 안내는 오프라인 환경에서 안전하게 실행됩니다
+    비교 데모 · 모든 안내는 오프라인 환경에서 안전하게 실행됩니다 · Stage 5 live provider는 별도 승인 전까지 비활성
   </div>
 </footer>
 
