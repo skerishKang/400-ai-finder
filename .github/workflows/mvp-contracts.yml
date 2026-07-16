@@ -50,6 +50,9 @@ jobs:
             tests/test_bukgu_quest_to_action_plan.py \
             tests/test_mvp_golden_quest_fidelity_matrix.py
 
+      - name: Run Buk-gu golden docs contract (#1188)
+        run: python -m pytest -q tests/test_bukgu_golden_docs_contract.py
+
       - name: Run legacy requests transport contract tests
         run: python -m pytest -q tests/test_legacy_requests_transport.py
 

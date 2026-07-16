@@ -3,9 +3,17 @@
 > 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
 > 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
 
+> **Supersession note (#1188):** The six-route table below is a **historical #863-B
+> design snapshot**, not the current closed production route vocabulary.
+> Current closed set is **17** route IDs (including `home`) in
+> `src/web/static/citizen-action-demo-map.js` — see
+> [`bukgu-golden-compatibility-manifest.md`](bukgu-golden-compatibility-manifest.md).
+> Smoke-eval “14 scenarios” is a separate evaluation matrix and is also not the
+> canvas closed-route set.
+
 ## 1. Overview
 * **Goal**: Reconstruct Buk-gu Office portal pages as semantic HTML/CSS that renders the actual captured official portal pages verbatim, using actual screenshots as reference.
-* **Status**: All 6 routes implemented — `home`, `civil-service`, `complaint-category`, `complaint-intake`, `complaint-review`, `handoff-stop`.
+* **Status (historical #863-B snapshot)**: This report documented an early six-route slice — `home`, `civil-service`, `complaint-category`, `complaint-intake`, `complaint-review`, `handoff-stop`. **Current golden closed vocabulary is larger (17 routes); do not treat this status line as current truth.**
 
 ## 2. Architecture
 
