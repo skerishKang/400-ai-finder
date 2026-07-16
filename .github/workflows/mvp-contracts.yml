@@ -335,6 +335,9 @@ jobs:
           node tests/browser/verify_resident_e2e.mjs \
             http://127.0.0.1:8766
 
+      - name: Run mobile resident cancellation browser contract (#1183)
+        run: node tests/browser/verify_mobile_resident_cancellation_e2e.mjs
+
       - name: Run resident mock model contract (unit-level)
         run: node tests/browser/verify_resident_mock_model.mjs
 
