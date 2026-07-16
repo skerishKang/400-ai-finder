@@ -360,7 +360,8 @@ body[data-first-use-state="entry"] .chat-shell {
 
 /* #1190: entry chips size to content — do not flex-grow leftover empty space
    under the last chip row. Reclaimed height goes to #chat-thread.
-   flex-wrap remains wrap. On very short shells chips may shrink with overflow-y. */
+   flex-shrink stays 0 at normal heights so wrapped chips never clip (#1114 768×1024).
+   Only very short viewports apply max-height + overflow-y scroll (not flex-shrink). */
 body[data-first-use-state="entry"] .chat-thread {
   flex: 1 1 auto;
   min-height: 0;
@@ -368,18 +369,21 @@ body[data-first-use-state="entry"] .chat-thread {
 }
 
 body[data-first-use-state="entry"] .chat-chips {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   flex-wrap: wrap;
-  overflow-y: auto;
+  overflow-y: visible;
   align-content: flex-start;
   min-height: 0;
   max-height: none;
 }
 
-/* Short entry shells: bound chips rail so composer stays fully visible. */
+/* Short entry shells only (viewport height ≤760px): bound chips rail so
+   composer stays fully visible. 768×1024 is NOT short-height — do not apply. */
 @media (max-height: 760px) {
   body[data-first-use-state="entry"] .chat-chips {
+    /* Keep flex-grow/shrink 0; max-height alone provides the bound. */
     max-height: min(36vh, 220px);
+    overflow-y: auto;
   }
 }
 

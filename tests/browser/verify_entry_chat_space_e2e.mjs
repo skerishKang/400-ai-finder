@@ -38,7 +38,8 @@ const TOL = 2;
 
 const VIEWPORTS = [
   { name: "desktop-1440x900", width: 1440, height: 900 },
-  { name: "desktop-short-1440x760", width: 1440, height: 760 },
+  { name: "desktop-short-1440x760", width: 1440, height: 760, shortHeight: true },
+  { name: "tablet-768x1024", width: 768, height: 1024 },
   { name: "mobile-390x844", width: 390, height: 844 },
 ];
 
@@ -214,6 +215,24 @@ async function measureEntryLayout(page) {
       internalEmpty != null && chipsToComposer != null
         ? Math.max(0, internalEmpty) + Math.max(0, chipsToComposer)
         : null;
+    const chipContainment = chipEls.map((el, i) => {
+      const r = el.getBoundingClientRect();
+      const fully =
+        !!chipsRect &&
+        r.left >= chipsRect.left - 1 &&
+        r.right <= chipsRect.right + 1 &&
+        r.top >= chipsRect.top - 1 &&
+        r.bottom <= chipsRect.bottom + 1;
+      return {
+        i,
+        fully,
+        top: r.top,
+        bottom: r.bottom,
+        height: r.height,
+        visible: r.height > 0 && r.width > 0,
+      };
+    });
+    const maxHeightRaw = chipsCs ? chipsCs.maxHeight : "none";
     return {
       state: body.getAttribute("data-first-use-state"),
       recExpanded: body.getAttribute("data-recommendations-expanded"),
@@ -229,15 +248,29 @@ async function measureEntryLayout(page) {
       ariaExpanded: toggle ? toggle.getAttribute("aria-expanded") : null,
       chipsDisplay: chipsCs ? chipsCs.display : null,
       chipsFlexGrow: chipsCs ? chipsCs.flexGrow : null,
+      chipsFlexShrink: chipsCs ? chipsCs.flexShrink : null,
+      chipsFlex: chipsCs ? chipsCs.flex : null,
+      chipsMaxHeight: maxHeightRaw,
+      chipsOverflowY: chipsCs ? chipsCs.overflowY : null,
+      shortHeightFallback:
+        !!chipsCs &&
+        chipsCs.maxHeight !== "none" &&
+        parseFloat(chipsCs.maxHeight) > 0,
+      chipsClientHeight: chips ? chips.clientHeight : 0,
+      chipsScrollHeight: chips ? chips.scrollHeight : 0,
       threadFlexGrow: threadCs ? threadCs.flexGrow : null,
       threadMinHeight: threadCs ? threadCs.minHeight : null,
       threadOverflowY: threadCs ? threadCs.overflowY : null,
       lastChipBottom,
+      chipCount: chipEls.length,
+      chipContainment,
+      chip6: chipContainment[6] || null,
       internalEmpty,
       chipsToComposer,
       gap,
       gapBudget,
       chipsHeight: chipsRect ? chipsRect.height : 0,
+      chipsBottom: chipsRect ? chipsRect.bottom : null,
       threadHeight: threadRect ? threadRect.height : 0,
       composerFullyInViewport: composerRect
         ? composerRect.top >= -1 &&
@@ -280,12 +313,19 @@ async function assertToggleBasics(page, ctx, { expanded }) {
   return m;
 }
 
-async function assertExpandedLayout(page, ctx) {
+async function assertExpandedLayout(page, ctx, vp = {}) {
   const m = await measureEntryLayout(page);
+  const isShortHeight = Boolean(vp.shortHeight || m.shortHeightFallback);
   assert.equal(m.state, "entry", `entry state [${ctx}]`);
   assert.ok(
     Number(m.chipsFlexGrow) === 0,
     `chips flex-grow must be 0 (not fill leftover) got ${m.chipsFlexGrow} [${ctx}]`,
+  );
+  // Normal heights: flex-shrink must stay 0 so wrapped chips never clip
+  // (#1114 768×1024). Short heights may bound via max-height + overflow-y.
+  assert.ok(
+    Number(m.chipsFlexShrink) === 0,
+    `chips flex-shrink must be 0 got ${m.chipsFlexShrink} flex=${m.chipsFlex} [${ctx}]`,
   );
   assert.ok(
     Number(m.threadFlexGrow) >= 1,
@@ -312,6 +352,40 @@ async function assertExpandedLayout(page, ctx) {
     m.internalEmpty == null || m.internalEmpty <= GAP_BUDGET_PX + TOL,
     `chips internal empty under last chip ${m.internalEmpty}px [${ctx}]`,
   );
+
+  // Chip containment: all visible chips inside #chat-chips client box.
+  assert.ok(m.chipCount >= 8, `expected 8 chips got ${m.chipCount} [${ctx}]`);
+  for (const c of m.chipContainment || []) {
+    assert.ok(c.visible, `chip[${c.i}] not visible [${ctx}]`);
+    assert.ok(
+      c.fully,
+      `chip[${c.i}] not inside #chat-chips box [${ctx}] top=${c.top} bottom=${c.bottom}`,
+    );
+  }
+  if (m.lastChipBottom != null && m.chipsBottom != null) {
+    assert.ok(
+      m.lastChipBottom <= m.chipsBottom + TOL,
+      `last chip bottom ${m.lastChipBottom} > chips bottom ${m.chipsBottom} [${ctx}]`,
+    );
+  }
+  // Normal heights must not rely on vertical scroll-clip of chips.
+  // Short-height fallback (max-height: 760px media) may allow scrollHeight > clientHeight.
+  if (!isShortHeight) {
+    assert.equal(
+      m.shortHeightFallback,
+      false,
+      `short-height overflow fallback must not apply [${ctx}] maxHeight=${m.chipsMaxHeight}`,
+    );
+    assert.ok(
+      m.chipsScrollHeight <= m.chipsClientHeight + TOL,
+      `chips scrollHeight ${m.chipsScrollHeight} > clientHeight ${m.chipsClientHeight} [${ctx}]`,
+    );
+  }
+  if (m.chip6) {
+    assert.ok(m.chip6.visible, `chip[6] visible [${ctx}]`);
+    assert.ok(m.chip6.fully, `chip[6] fully inside chips box [${ctx}]`);
+  }
+
   assert.ok(m.composerFullyInViewport, `composer fully in viewport [${ctx}]`);
   assert.equal(m.horizontalOverflow, false, `no horizontal overflow [${ctx}]`);
   assert.ok(m.utilityWrap, `utility flex-wrap wrap [${ctx}]`);
@@ -338,9 +412,13 @@ async function runViewport(browser, baseUrl, vp) {
   await page.waitForSelector(".chat-recommendations-toggle", { timeout: 10000 });
   await page.waitForSelector(".chat-composer__utility", { timeout: 10000 });
 
-  // Desktop/mobile entry expanded
+  // Desktop/mobile/tablet entry expanded
   await assertToggleBasics(page, `${ctxName}/expanded`, { expanded: true });
-  const expanded = await assertExpandedLayout(page, `${ctxName}/expanded-layout`);
+  const expanded = await assertExpandedLayout(
+    page,
+    `${ctxName}/expanded-layout`,
+    vp,
+  );
 
   // Manual collapse
   await page.click(".chat-recommendations-toggle");
@@ -487,6 +565,11 @@ async function runViewport(browser, baseUrl, vp) {
     expandedGap: expanded.gap,
     expandedThreadHeight: expanded.threadHeight,
     chipsFlexGrow: expanded.chipsFlexGrow,
+    chipsFlexShrink: expanded.chipsFlexShrink,
+    chipsClientHeight: expanded.chipsClientHeight,
+    chipsScrollHeight: expanded.chipsScrollHeight,
+    shortHeightFallback: expanded.shortHeightFallback,
+    chip6: expanded.chip6,
   };
 }
 
