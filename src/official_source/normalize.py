@@ -50,18 +50,44 @@ def normalize_fact_value(kind: FactKind, raw_value: str) -> FactValue | None:
     if not raw or is_placeholder(raw):
         return None
 
-    if kind is FactKind.CURRENT_MAYOR:
+    if kind in {
+        FactKind.CURRENT_MAYOR,
+        FactKind.DISTRICT_EXECUTIVE,
+        FactKind.REGIONAL_EXECUTIVE,
+    }:
         value = _HONORIFIC_RE.sub("", raw).strip()
+        value = re.sub(r"(시장|통합특별시장|특별시장)$", "", value).strip()
         value = normalize_whitespace(value)
         if not value or is_placeholder(value):
             return None
         return FactValue(kind=kind, value=value, raw_value=raw)
 
-    if kind is FactKind.JURISDICTION_NAME:
+    if kind in {
+        FactKind.JURISDICTION_NAME,
+        FactKind.AGENCY_NAME,
+        FactKind.ADMINISTRATIVE_STATUS,
+    }:
         value = normalize_whitespace(raw)
         for suffix in (" 홈페이지", " 공식 홈페이지", " 누리집"):
             if value.endswith(suffix):
                 value = value[: -len(suffix)].strip()
+        if not value or is_placeholder(value):
+            return None
+        return FactValue(kind=kind, value=value, raw_value=raw)
+
+    # Other expanded kinds: non-empty non-placeholder string only (no invention).
+    if kind in {
+        FactKind.OFFICE_HOURS,
+        FactKind.CONTACT_INFORMATION,
+        FactKind.FEE,
+        FactKind.APPLICATION_PERIOD,
+        FactKind.CURRENT_NOTICE,
+        FactKind.CURRENT_POLICY,
+        FactKind.CURRENT_LAW,
+        FactKind.CURRENT_EVENT,
+        FactKind.GENERAL_CURRENT_INFORMATION,
+    }:
+        value = normalize_whitespace(raw)
         if not value or is_placeholder(value):
             return None
         return FactValue(kind=kind, value=value, raw_value=raw)
