@@ -1602,10 +1602,10 @@ body[data-recommendations-expanded="false"] #chat-chips {
     outline-offset: 2px;
   }
 
-  /* Surface visibility: only the active surface is rendered. The guidance
-     surface IS the canonical #demo-canvas (no clone). Inactive chat is
-     hidden so keyboard focus cannot enter it; inactive canvas is
-     aria-hidden + inert to remove it from the a11y tree and tab order. */
+  /* Surface visibility. Conversation: full chat-shell, canvas hidden.
+     Guidance (#1174): canvas is primary; the same #chat-shell stays mounted
+     as a bottom composer dock so multi-step 예-flow never collapses the
+     composer to 0×0. Header/thread/chips hide; no second composer DOM. */
   body[data-mobile-surface="conversation"] .chat-shell {
     display: flex !important;
   }
@@ -1615,10 +1615,65 @@ body[data-recommendations-expanded="false"] #chat-chips {
   }
 
   body[data-mobile-surface="guidance"] .chat-shell {
+    display: flex !important;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    border-top: 1px solid rgba(13, 13, 15, 0.1);
+    box-shadow: 0 -8px 24px rgba(7, 27, 58, 0.08);
+    background: #fff;
+  }
+  body[data-mobile-surface="guidance"] .chat-shell__header,
+  body[data-mobile-surface="guidance"] .chat-shell__journey-status,
+  body[data-mobile-surface="guidance"] .chat-thread,
+  body[data-mobile-surface="guidance"] .chat-chips,
+  body[data-mobile-surface="guidance"] .chat-shell__disclosure {
     display: none !important;
   }
-  body[data-mobile-surface="guidance"][data-first-use-state="split"] #demo-canvas {
+  body[data-mobile-surface="guidance"] .chat-composer {
+    display: block;
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 12px 12px;
+    background: #fff;
+  }
+  body[data-mobile-surface="guidance"] .chat-composer__row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  body[data-mobile-surface="guidance"] .chat-composer__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 44px;
+  }
+  body[data-mobile-surface="guidance"] .chat-composer__send {
+    flex: 0 0 auto;
+    min-width: 64px;
+    min-height: 44px;
+  }
+  body[data-mobile-surface="guidance"] .chat-composer__hint {
+    display: none;
+  }
+  body[data-mobile-surface="guidance"][data-first-use-state="split"] #demo-canvas,
+  body[data-mobile-surface="guidance"][data-first-use-state="transitioning"] #demo-canvas {
     display: flex !important;
+    flex: 1 1 auto;
+    order: 2;
+    width: 100%;
+    min-height: 42vh;
+    /* Leave room for the fixed composer dock (#1174). */
+    padding-bottom: 96px;
+    box-sizing: border-box;
   }
   body[data-mobile-surface="conversation"] #demo-canvas {
     display: none !important;

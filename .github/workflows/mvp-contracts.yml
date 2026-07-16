@@ -71,6 +71,12 @@ jobs:
       - name: Run responsive browser contract
         run: node tests/browser/verify_first_use_responsive.mjs
 
+      - name: Run mobile multistep composer browser contract (#1174)
+        run: node tests/browser/verify_mobile_multistep_composer_e2e.mjs
+
+      - name: Run desktop chat scroll containment browser contract (#1173)
+        run: node tests/browser/verify_desktop_chat_scroll_containment_e2e.mjs
+
       - name: Run mobile link safety browser contract (live build, port 8769)
         shell: bash
         run: |

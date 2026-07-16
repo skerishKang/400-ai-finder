@@ -674,12 +674,16 @@ def test_mobile_surface_switch_contract_in_shell_and_css():
     assert "function focusComposerIfAllowed()" in JS
     assert 'body.setAttribute("data-mobile-surface"' in JS
     # setMobileSurface must drive aria-pressed (not aria-selected) and
-    # toggle inert/aria-hidden on the canonical chat + canvas DOMs.
+    # toggle inert/aria-hidden on the canvas; #1174 keeps chat-shell non-inert
+    # on guidance so the same composer stays operable during multi-step 예-flow.
     assert "aria-pressed" in JS
     assert 'chatShell.setAttribute("aria-hidden"' in JS or "chatShell.setAttribute('aria-hidden'" in JS
     assert 'canvas.setAttribute("aria-hidden"' in JS or "canvas.setAttribute('aria-hidden'" in JS
-    assert 'chatShell.setAttribute("inert"' in JS or "chatShell.setAttribute('inert'" in JS
+    assert "chatShell.removeAttribute(\"inert\")" in JS or "chatShell.removeAttribute('inert')" in JS
     assert 'canvas.setAttribute("inert"' in JS
+    # Must not hide the entire shell with inert on guidance (composer dock).
+    assert "chatShell.setAttribute(\"inert\"" not in JS
+    assert "chatShell.setAttribute('inert'" not in JS
     # Responsive resize cleanup is driven by a matchMedia change listener
     # (no UA sniffing).
     assert "addEventListener(\"change\"" in JS or "addListener(" in JS
@@ -693,6 +697,12 @@ def test_mobile_surface_switch_contract_in_shell_and_css():
     # Canonical canvas is reused as the guidance surface (no display:none
     # clone, no summary card) — the mobile rule keeps #demo-canvas.
     assert 'body[data-mobile-surface="guidance"][data-first-use-state="split"] #demo-canvas' in CSS
+    # #1174: guidance keeps the same chat-shell/composer docked (not display:none).
+    assert 'body[data-mobile-surface="guidance"] .chat-shell' in CSS
+    assert 'body[data-mobile-surface="guidance"] .chat-composer' in CSS
+    assert "display: flex !important;" in CSS
+    # Must not hide the entire shell on guidance (composer would become 0×0).
+    assert 'body[data-mobile-surface="guidance"] .chat-shell {\n    display: none !important;' not in CSS
     # Confirm-before-navigate composer blur is shell-level guarded by
     # the mobile surface mode, not a UA sniff or global focus trap.
     assert 'isMobileSurfaceMode() && chatInput' in JS

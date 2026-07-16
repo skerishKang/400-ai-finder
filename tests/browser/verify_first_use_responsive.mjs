@@ -3712,15 +3712,17 @@ async function main() {
               false,
               `stageB ${vp.width}x${vp.height}: canvas must not be inert in guidance`,
             );
+            // #1174: guidance keeps chat-shell non-inert / not aria-hidden so the
+            // same composer dock remains interactive (thread hidden via CSS only).
             assert.equal(
               afterConfirm.chatAriaHidden,
-              "true",
-              `stageB ${vp.width}x${vp.height}: chat aria-hidden=true in guidance`,
+              "false",
+              `stageB ${vp.width}x${vp.height}: chat aria-hidden=false in guidance (#1174 composer dock)`,
             );
             assert.equal(
               afterConfirm.chatInert,
-              true,
-              `stageB ${vp.width}x${vp.height}: chat-shell inert in guidance`,
+              false,
+              `stageB ${vp.width}x${vp.height}: chat-shell not inert in guidance (#1174)`,
             );
             assert.equal(
               afterConfirm.composerEditableFocused,
@@ -3907,13 +3909,13 @@ async function main() {
             );
             assert.equal(
               afterSurface.chatAriaHidden,
-              "true",
-              `stageB ${vp.width}x${vp.height}: chat aria-hidden=true after guidance return`,
+              "false",
+              `stageB ${vp.width}x${vp.height}: chat aria-hidden=false after guidance return (#1174)`,
             );
             assert.equal(
               afterSurface.chatInert,
-              true,
-              `stageB ${vp.width}x${vp.height}: chat inert after guidance return`,
+              false,
+              `stageB ${vp.width}x${vp.height}: chat not inert after guidance return (#1174)`,
             );
             assert.equal(
               afterSurface.canvasInert,
