@@ -130,8 +130,8 @@
     if (!thread) return;
     thread.innerHTML =
       '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">북구청 청사부설주차장은 몇 시까지 유료이고 요금은 어떻게 되나요?</div></div>' +
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 주차장 이용안내에서 운영시간과 요금을 확인했습니다.</div></div>' +
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">평일(월~금) 08:00~19:00에 유료운영하며, 모든 민원인은 1시간 무료입니다. 이후 최초 30분은 500원, 기본 30분 이후에는 10분당 200원입니다. 야간 및 휴일에는 무료개방합니다.</div></div>';
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">북구청 주차장 이용안내에서 운영시간과 요금을 확인했습니다.</div></div>' +
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">평일(월~금) 08:00~19:00에 유료운영하며, 모든 민원인은 1시간 무료입니다. 이후 최초 30분은 500원, 기본 30분 이후에는 10분당 200원입니다. 야간 및 휴일에는 무료개방합니다.</div></div>';
   }
 
   function _renderParkInformation() {
@@ -273,8 +273,8 @@
     if (!thread) return;
     thread.innerHTML =
       '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">북구청 무인민원발급기는 어디에 있고 언제 이용할 수 있나요?</div></div>' +
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 무인민원발급기 설치장소에서 이용 정보를 확인했습니다.</div></div>' +
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 민원실과 북구청 민원실 2는 우치로 77에 있으며 24시간 이용할 수 있습니다. 발급 가능 민원서류는 각각 122종과 121종입니다.</div></div>';
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">북구청 무인민원발급기 설치장소에서 이용 정보를 확인했습니다.</div></div>' +
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">북구청 민원실과 북구청 민원실 2는 우치로 77에 있으며 24시간 이용할 수 있습니다. 발급 가능 민원서류는 각각 122종과 121종입니다.</div></div>';
   }
 
   function _renderKioskInformation() {
@@ -516,10 +516,10 @@
     if (!thread) return;
     var approvedChat = [
       '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">공동주택 관련 문의는 어느 부서에 해야 하나요?</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내 경로를 확인하겠습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구소개 메뉴에서 업무 및 전화번호 안내를 확인하고 있습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 담당 부서를 검색하고 있습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">' + _escHtml(_apartmentDeptAnswerText()) + '</div></div>'
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내 경로를 확인하겠습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">북구소개 메뉴에서 업무 및 전화번호 안내를 확인하고 있습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">공동주택 관련 담당 부서를 검색하고 있습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">' + _escHtml(_apartmentDeptAnswerText()) + '</div></div>'
     ];
     var renderCount;
     if (step === "ready" || step === "") {
@@ -608,9 +608,9 @@
     if (!thread) return;
     var messages = [
       '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">공동주택 관련 문의는 어느 부서에 해야 하나요?</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내에서 담당 부서를 찾겠습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구소개 &gt; 구청안내 &gt; 업무 및 전화번호 안내에서 담당 부서를 확인하고 있습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">' + _escHtml(_apartmentDeptAnswerText()) + '</div></div>'
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내에서 담당 부서를 찾겠습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">북구소개 &gt; 구청안내 &gt; 업무 및 전화번호 안내에서 담당 부서를 확인하고 있습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">' + _escHtml(_apartmentDeptAnswerText()) + '</div></div>'
     ];
     var renderCount = step === "ready" ? 2 : (step === "directory" ? 3 : 4);
     var html = "";
@@ -626,10 +626,10 @@
 
     var messages = [
       '<div class="chat-msg chat-msg--user"><div class="chat-bubble chat-bubble--user">공동주택 관련 문의는 어느 부서에 해야 하나요?</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내에서 담당 부서를 찾아보겠습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">북구소개 메뉴에서 구청안내를 확인했습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">업무 및 전화번호 안내에서 ‘공동주택’을 검색하고 있습니다.</div></div>',
-      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-label="AI">A</div><div class="chat-bubble chat-bubble--ai">' + _escHtml(_apartmentDeptAnswerText()) + '</div></div>'
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">북구청 업무 및 전화번호 안내에서 담당 부서를 찾아보겠습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">북구소개 메뉴에서 구청안내를 확인했습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">업무 및 전화번호 안내에서 ‘공동주택’을 검색하고 있습니다.</div></div>',
+      '<div class="chat-msg chat-msg--ai"><div class="chat-avatar" aria-hidden="true">A</div><div class="chat-bubble chat-bubble--ai">' + _escHtml(_apartmentDeptAnswerText()) + '</div></div>'
     ];
 
     var progressIndicator =
@@ -706,11 +706,11 @@
         '<div class="chat-bubble chat-bubble--user">불법 주정차 신고는 어디서 하나요?</div>' +
       '</div>' +
       '<div class="chat-msg chat-msg--ai">' +
-        '<div class="chat-avatar" aria-label="AI">A</div>' +
+        '<div class="chat-avatar" aria-hidden="true">A</div>' +
         '<div class="chat-bubble chat-bubble--ai">북구청 홈페이지에서 신고 경로를 확인하겠습니다.</div>' +
       '</div>' +
       '<div class="chat-msg chat-msg--ai">' +
-        '<div class="chat-avatar" aria-label="AI">A</div>' +
+        '<div class="chat-avatar" aria-hidden="true">A</div>' +
         '<div class="chat-bubble chat-bubble--ai">종합민원 메뉴에서 온라인 민원신청 경로를 찾고 있습니다.</div>' +
       '</div>' +
       '<div class="chat-progress">' +
@@ -3382,6 +3382,8 @@
     _cursorEl.className = "choreo-cursor";
     _cursorEl.setAttribute("data-agent-cursor", "true");
     _cursorEl.setAttribute("data-agent-status", "idle");
+    // #1175: visual-only cursor; keep out of the accessibility tree.
+    _cursorEl.setAttribute("aria-hidden", "true");
     _cursorEl.innerHTML =
       '<span class="choreo-cursor__halo"></span>' +
       '<svg class="choreo-cursor__arrow" width="24" height="31" viewBox="0 0 24 31" fill="none" aria-hidden="true">' +

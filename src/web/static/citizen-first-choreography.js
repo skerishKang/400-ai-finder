@@ -464,7 +464,7 @@
     messageEl.setAttribute("data-draft-role", "original-resident");
     messageEl.setAttribute("data-draft-stage", DRAFT_STAGE_RESIDENT);
     messageEl.innerHTML =
-      '<div class="chat-avatar" aria-label="AI">A</div>' +
+      '<div class="chat-avatar" aria-hidden="true">A</div>' +
       '<div class="chat-bubble chat-bubble--ai chat-bilingual-draft">' +
         '<p class="chat-draft-label" data-draft-label="original-resident">' +
           _escHtmlText(_i18nT("draft.residentDraftLabel", "Your draft")) +
@@ -537,7 +537,7 @@
     messageEl.setAttribute("data-bilingual-draft-card", "stage2");
     messageEl.setAttribute("data-draft-stage", DRAFT_STAGE_KOREAN);
     messageEl.innerHTML =
-      '<div class="chat-avatar" aria-label="AI">A</div>' +
+      '<div class="chat-avatar" aria-hidden="true">A</div>' +
       '<div class="chat-bubble chat-bubble--ai chat-bilingual-draft chat-bilingual-draft--compare">' +
         '<p class="chat-bilingual-draft__hint" data-draft-hint="stage2">' +
           _escHtmlText(
@@ -1187,7 +1187,7 @@
     if (role === "ai") {
       var avatar = document.createElement("div");
       avatar.className = "chat-avatar";
-      avatar.setAttribute("aria-label", "AI");
+      avatar.setAttribute("aria-hidden", "true");
       avatar.textContent = "A";
       messageEl.appendChild(avatar);
     }
@@ -2102,7 +2102,7 @@
     var aiText = t ? t("action.chooseAi", "AI 도움 받기") : "AI 도움 받기";
     var messageEl = document.createElement("div");
     messageEl.className = "chat-msg chat-msg--ai chat-msg--decision";
-    messageEl.innerHTML = '<div class="chat-avatar" aria-label="AI">A</div>' +
+    messageEl.innerHTML = '<div class="chat-avatar" aria-hidden="true">A</div>' +
       '<div class="chat-bubble chat-bubble--ai chat-decision">' +
         '<span>' + promptText + '</span>' +
         '<div class="chat-decision__actions">' +
@@ -2131,7 +2131,7 @@
     var editText = t ? t("action.edit", "수정할게요") : "수정할게요";
     var messageEl = document.createElement("div");
     messageEl.className = "chat-msg chat-msg--ai chat-msg--decision";
-    messageEl.innerHTML = '<div class="chat-avatar" aria-label="AI">A</div>' +
+    messageEl.innerHTML = '<div class="chat-avatar" aria-hidden="true">A</div>' +
       '<div class="chat-bubble chat-bubble--ai chat-decision">' +
         '<span>' + promptText + '</span>' +
         '<div class="chat-decision__actions">' +

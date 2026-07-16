@@ -1820,7 +1820,7 @@
     if (role === "ai") {
       var avatar = document.createElement("div");
       avatar.className = "chat-avatar";
-      avatar.setAttribute("aria-label", "AI");
+      avatar.setAttribute("aria-hidden", "true");
       avatar.textContent = "A";
       message.appendChild(avatar);
     }
@@ -2102,7 +2102,7 @@
 
     var avatar = document.createElement("div");
     avatar.className = "chat-avatar";
-    avatar.setAttribute("aria-label", "AI");
+    avatar.setAttribute("aria-hidden", "true");
     avatar.textContent = "A";
     msgDiv.appendChild(avatar);
     msgDiv.appendChild(bubble);
@@ -2176,7 +2176,7 @@
 
     var avatar = document.createElement("div");
     avatar.className = "chat-avatar";
-    avatar.setAttribute("aria-label", "AI");
+    avatar.setAttribute("aria-hidden", "true");
     avatar.textContent = "A";
     msgDiv.appendChild(avatar);
     msgDiv.appendChild(bubble);
