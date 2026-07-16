@@ -35,6 +35,7 @@ async function readSurfaceState(page) {
   return page.evaluate(() => {
     const body = document.body;
     const chat = document.getElementById("chat-shell");
+    const chatThread = document.getElementById("chat-thread");
     const canvas = document.getElementById("demo-canvas");
     const conversation = document.getElementById("tab-conversation");
     const guidance = document.getElementById("tab-guidance");
@@ -51,6 +52,9 @@ async function readSurfaceState(page) {
 
       chatAriaHidden: chat && chat.getAttribute("aria-hidden"),
       chatInert: chat ? chat.hasAttribute("inert") : null,
+      // #1174: guidance hides the thread only; the shell/composer stay operable.
+      chatThreadAriaHidden:
+        chatThread && chatThread.getAttribute("aria-hidden"),
 
       canvasAriaHidden: canvas && canvas.getAttribute("aria-hidden"),
       canvasInert: canvas ? canvas.hasAttribute("inert") : null,
@@ -111,12 +115,23 @@ async function selectMobileSurface(page, viewport, surface, label) {
       "true",
       `${label}: guidance aria-pressed=true`,
     );
+    // #1174: guidance keeps the same chat-shell/composer non-inert so multi-step
+    // 예-flow never collapses the dock. Only the thread is aria-hidden.
     assert.strictEqual(
       state.chatAriaHidden,
-      "true",
-      `${label}: chat aria-hidden=true`,
+      "false",
+      `${label}: chat aria-hidden=false (#1174 composer dock)`,
     );
-    assert.strictEqual(state.chatInert, true, `${label}: chat inert`);
+    assert.strictEqual(
+      state.chatInert,
+      false,
+      `${label}: chat not inert (#1174 composer dock)`,
+    );
+    assert.strictEqual(
+      state.chatThreadAriaHidden,
+      "true",
+      `${label}: chat-thread aria-hidden=true on guidance`,
+    );
     assert.strictEqual(
       state.canvasAriaHidden,
       "false",
@@ -140,6 +155,11 @@ async function selectMobileSurface(page, viewport, surface, label) {
       `${label}: chat aria-hidden=false`,
     );
     assert.strictEqual(state.chatInert, false, `${label}: chat not inert`);
+    assert.ok(
+      state.chatThreadAriaHidden === null ||
+        state.chatThreadAriaHidden === "false",
+      `${label}: chat-thread not aria-hidden on conversation`,
+    );
     assert.strictEqual(
       state.canvasAriaHidden,
       "true",
@@ -391,15 +411,21 @@ async function runViewport(browser, viewport) {
       false,
       `[${viewportLabel}] mayor writing: canvas not inert`,
     );
+    // #1174: mayor writing on guidance keeps the composer dock operable.
     assert.strictEqual(
       writingSurface.chatAriaHidden,
-      "true",
-      `[${viewportLabel}] mayor writing: chat aria-hidden=true`,
+      "false",
+      `[${viewportLabel}] mayor writing: chat aria-hidden=false (#1174)`,
     );
     assert.strictEqual(
       writingSurface.chatInert,
-      true,
-      `[${viewportLabel}] mayor writing: chat inert`,
+      false,
+      `[${viewportLabel}] mayor writing: chat not inert (#1174)`,
+    );
+    assert.strictEqual(
+      writingSurface.chatThreadAriaHidden,
+      "true",
+      `[${viewportLabel}] mayor writing: chat-thread aria-hidden=true`,
     );
   }
 
@@ -519,15 +545,21 @@ async function runViewport(browser, viewport) {
       false,
       `[${viewportLabel}] receipt: canvas not inert`,
     );
+    // #1174: receipt on guidance keeps the composer dock operable.
     assert.strictEqual(
       receiptSurface.chatAriaHidden,
-      "true",
-      `[${viewportLabel}] receipt: chat aria-hidden=true`,
+      "false",
+      `[${viewportLabel}] receipt: chat aria-hidden=false (#1174)`,
     );
     assert.strictEqual(
       receiptSurface.chatInert,
-      true,
-      `[${viewportLabel}] receipt: chat inert`,
+      false,
+      `[${viewportLabel}] receipt: chat not inert (#1174)`,
+    );
+    assert.strictEqual(
+      receiptSurface.chatThreadAriaHidden,
+      "true",
+      `[${viewportLabel}] receipt: chat-thread aria-hidden=true`,
     );
   }
 

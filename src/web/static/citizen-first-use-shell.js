@@ -1162,7 +1162,14 @@
     if (!container || typeof container.appendChild !== "function") return false;
     var card = renderQuestProgressCard(result);
     if (!card) return false;
+    // #1173: capture pin before mutation; unpinned reading-history must stay put,
+    // while bottom-pinned residents keep seeing the latest card.
+    var wasPinned =
+      container === chatThread ? isChatPinnedToBottom() : true;
     container.appendChild(card);
+    if (container === chatThread) {
+      scrollChatToLatest(card, { wasPinned: wasPinned });
+    }
     return true;
   }
 
@@ -1289,19 +1296,29 @@
         chatShell.removeAttribute("inert");
         chatShell.setAttribute("aria-hidden", "false");
       }
+      if (chatThread) {
+        chatThread.removeAttribute("aria-hidden");
+      }
       if (canvas) {
         canvas.setAttribute("inert", "");
         canvas.setAttribute("aria-hidden", "true");
       }
     } else if (surface === "guidance") {
-      // Activate guidance: canvas interactive, chat-shell inert+hidden.
+      // Activate guidance: canvas interactive. #1174: keep the same chat-shell
+      // (and composer) non-inert so multi-step 예-flow never drops the
+      // composer to 0×0 / inaccessible — header/thread hide via CSS only.
       if (canvas) {
         canvas.removeAttribute("inert");
         canvas.setAttribute("aria-hidden", "false");
       }
       if (chatShell) {
-        chatShell.setAttribute("inert", "");
-        chatShell.setAttribute("aria-hidden", "true");
+        chatShell.removeAttribute("inert");
+        chatShell.setAttribute("aria-hidden", "false");
+      }
+      if (chatThread) {
+        // Thread is visually hidden on guidance; keep it out of the a11y tree
+        // while the docked composer remains operable.
+        chatThread.setAttribute("aria-hidden", "true");
       }
     }
   }
@@ -1742,20 +1759,43 @@
     });
   }
 
-  function scrollChatToLatest(actionEl) {
+  // #1173: pin threshold for chat-thread auto-scroll. When the resident is
+  // reading older history (farther than this from the bottom), DOM updates
+  // must not yank the thread back to the latest message.
+  var CHAT_PIN_THRESHOLD_PX = 72;
+
+  function isChatPinnedToBottom() {
+    if (!chatThread) return true;
+    return (
+      chatThread.scrollHeight -
+        chatThread.scrollTop -
+        chatThread.clientHeight <=
+      CHAT_PIN_THRESHOLD_PX
+    );
+  }
+
+  function scrollChatToLatest(actionEl, options) {
     // #1142: single entry for thread scroll; rAF correction after layout settles.
+    // #1173: only auto-scroll while the resident is (or was) bottom-pinned so
+    // reading history is preserved across DOM updates. Callers that already
+    // mutated the thread must pass { wasPinned: true|false } from before the
+    // mutation — post-append distance is not a reliable pin signal.
+    //
+    // Do not call actionEl.scrollIntoView here: it can race with the explicit
+    // scrollTop assignment (and scroll non-thread ancestors), yanking a
+    // bottom-pinned thread back to a mid-history offset.
     if (!chatThread) {
+      return;
+    }
+    var force =
+      options && Object.prototype.hasOwnProperty.call(options, "wasPinned")
+        ? !!options.wasPinned
+        : isChatPinnedToBottom();
+    if (!force) {
       return;
     }
     function _doScroll() {
       if (!chatThread) return;
-      try {
-        if (actionEl && typeof actionEl.scrollIntoView === "function") {
-          actionEl.scrollIntoView({ block: "nearest", inline: "nearest" });
-        }
-      } catch (_) {
-        /* ignore */
-      }
       chatThread.scrollTop = chatThread.scrollHeight;
     }
     _doScroll();
@@ -1773,6 +1813,7 @@
       return null;
     }
 
+    var wasPinned = isChatPinnedToBottom();
     var message = document.createElement("div");
     message.className = "chat-msg chat-msg--" + role;
 
@@ -1789,7 +1830,7 @@
     bubble.textContent = text;
     message.appendChild(bubble);
     chatThread.appendChild(message);
-    scrollChatToLatest();
+    scrollChatToLatest(null, { wasPinned: wasPinned });
     return message;
   }
 
@@ -1877,9 +1918,10 @@
       meta.appendChild(link);
     });
 
+    var wasPinned = isChatPinnedToBottom();
     var bubble = message.querySelector && message.querySelector(".chat-bubble");
     (bubble || message).appendChild(meta);
-    scrollChatToLatest();
+    scrollChatToLatest(null, { wasPinned: wasPinned });
   }
 
   function _i18n() {
@@ -2065,8 +2107,9 @@
     msgDiv.appendChild(avatar);
     msgDiv.appendChild(bubble);
 
+    var wasPinned = isChatPinnedToBottom();
     chatThread.appendChild(msgDiv);
-    chatThread.scrollTop = chatThread.scrollHeight;
+    scrollChatToLatest(msgDiv, { wasPinned: wasPinned });
     // #1067: confirm-run bubble shown — wait for resident decision.
     setJourneyState(JOURNEY_CONFIRM);
   }
@@ -2138,8 +2181,9 @@
     msgDiv.appendChild(avatar);
     msgDiv.appendChild(bubble);
 
+    var wasPinned = isChatPinnedToBottom();
     chatThread.appendChild(msgDiv);
-    chatThread.scrollTop = chatThread.scrollHeight;
+    scrollChatToLatest(msgDiv, { wasPinned: wasPinned });
     setJourneyState(JOURNEY_CONFIRM);
   }
 
