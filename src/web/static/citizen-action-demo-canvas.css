@@ -4599,12 +4599,17 @@ body[data-first-use-state="transitioning"] .bg-mayor-hero h1 {
 }
 .bg-page--home .bg-home-fixture-root {
   width: min(var(--bg-home-fixture-max, 914px), calc(100% - 32px));
+  max-width: min(100%, var(--bg-home-fixture-max, 914px));
+  min-width: 0;
   margin: 0 auto;
   padding: 12px 0 28px;
   display: flex;
   flex-direction: column;
   gap: 18px;
   box-sizing: border-box;
+  /* Both axes: avoid overflow-x-only → overflow-y:auto quirk that can leak scrollWidth. */
+  overflow: hidden;
+  contain: inline-size;
 }
 .bg-page--home .bg-home-fixture-compat {
   width: min(var(--bg-home-fixture-max, 914px), calc(100% - 32px));
@@ -4707,11 +4712,118 @@ body[data-first-use-state="transitioning"] .bg-mayor-hero h1 {
   );
   flex: 0 0 auto;
 }
+
+/* #1192: main_banner — bounded horizontal visual rail (not dense auto-fill grid). */
+.bg-page--home .bg-home-fixture-region--main_banner {
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  contain: inline-size;
+}
 .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-items {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 8px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 220px);
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  padding-bottom: 6px;
+  box-sizing: border-box;
+  /* Prevent rail scrollWidth from contributing to ancestor max-content/fit scale. */
+  contain: inline-size;
 }
+.bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item[data-home-presentation="metadata-only"],
+.bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item--metadata-only {
+  /* DOM retained for canonical metadata; not part of visual layout. */
+  display: none !important;
+}
+.bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item[data-home-presentation="visual-card"],
+.bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item--visual-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 160px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #dce5e1;
+  border-radius: 10px;
+  background: #fff;
+  scroll-snap-align: start;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+.bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item[data-home-presentation="control"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 160px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid #d0dbd6;
+  border-radius: 10px;
+  background: #f7faf8;
+  scroll-snap-align: start;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item__text {
+  min-width: 4.5em;
+  max-width: 100%;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.4;
+  max-height: 5.6em;
+  overflow: hidden;
+}
+/* Unresolved official visual: solid local fallback panel (not dashed/striped, not remote img). */
+.bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-asset--unresolved {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  border: 0;
+  border-radius: 8px;
+  background: #e8eef0;
+  overflow: hidden;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+}
+.bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-asset__panel {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 72px;
+  background:
+    linear-gradient(180deg, #f2f6f7 0%, #e4ebed 100%);
+}
+.bg-page--home .bg-home-fixture-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .bg-page--home .bg-home-fixture-region--utility_navigation .bg-home-fixture-items {
   display: flex;
   flex-wrap: wrap;
@@ -4744,14 +4856,41 @@ body[data-first-use-state="transitioning"] .bg-mayor-hero h1 {
   color: #555;
   font-size: 13px;
 }
+@media (max-width: 767px) {
+  /*
+   * Mobile official-fit scales the canvas (~390/914 ≈ 0.427). Layout columns must
+   * be large enough that getBoundingClientRect visual width stays ≥ 140px after scale.
+   * 360 * (390/914) ≈ 153.6 visual px. Also keep page natural width near 914 so
+   * fitToViewport scale stays usable (rail must not inflate page.scrollWidth).
+   */
+  .bg-page--home.bg-page--home-fixture {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-items {
+    grid-auto-columns: minmax(360px, 400px);
+    gap: 12px;
+  }
+  .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item[data-home-presentation="visual-card"],
+  .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item--visual-card,
+  .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item[data-home-presentation="control"] {
+    min-width: 340px;
+  }
+  .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item__text {
+    min-width: 8em;
+  }
+}
 @media (max-width: 430px) {
   .bg-page--home .bg-home-fixture-root,
   .bg-page--home .bg-home-fixture-compat,
   .bg-page--home .bg-home-fixture-dept {
-    width: calc(100% - 16px);
+    /* Keep the 914px fixture cap — do not expand to inflated parent width. */
+    width: min(var(--bg-home-fixture-max, 914px), calc(100% - 16px));
+    max-width: 100%;
+    min-width: 0;
     overflow-x: hidden;
-  }
-  .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-items {
-    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    box-sizing: border-box;
   }
 }
