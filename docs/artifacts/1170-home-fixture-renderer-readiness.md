@@ -7,6 +7,27 @@
 **Unresolved assets:** **174** (exact local mapping still 0)
 
 Governing policy: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md).
+Supplemental: [`docs/product/clone-visual-fidelity-and-promotion-policy.md`](../product/clone-visual-fidelity-and-promotion-policy.md).
+
+---
+
+## Erratum (2026-07-17, #1199)
+
+This document established **structural fixture renderer readiness only**. The following were **not** established by this document and must not be inferred from it:
+
+- **Visual fidelity** was not established. The renderer was wired structurally but not compared against an accepted visual reference.
+- **Resident-default eligibility** was not established. This document only described renderer wiring, not promotion fitness.
+- At the time of writing, the home state was `capture_required`. That status remained unchanged.
+- **Exact visual parity** was not claimed, and is not claimed now.
+- **174 official assets** remained unresolved (exact local full-file identity = 0). That fact is unchanged.
+- The fixture renderer described here was subsequently promoted to resident-facing default. That promotion was later deemed **inappropriate** by project-owner direct review because the renderer had never passed a visual approval gate.
+- **#1197** (PR #1200, squash merge SHA `87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa`) restored the previously approved home composition, reversing the inappropriate promotion.
+- **#1198** tracks establishment of a permanent visual approval gate.
+- **#1199** codifies visual fidelity policy, promotion governance, and document erratum procedures.
+
+This erratum **corrects the interpretive scope** of the original document. It does **not delete or rewrite** the historical record. The original text below remains intact as an accurate description of what was achieved at the time.
+
+---
 
 This report describes wiring the committed #1166/#1168 canonical home fixture into the MVP clone canvas via **build-time browser projection**. It does **not** claim exact visual parity with the live official homepage.
 

@@ -1,6 +1,7 @@
 # Issue #1078 — Corrective Note: Exact Official-Site Clone Manifest Realignment
 
 > **Clone invariant:** 좌측 시민 사이트의 공식 페이지 clone은 [canonical invariant](exact-official-site-clone-invariant.md)를 따른다. 이 corrective note의 내용은 exact-clone 계약을 약화하지 않는다. Live retrieval이나 분석은 canonical fixture 기반 왼쪽 화면을 대체하지 않는다.
+> **Visual fidelity and promotion governance:** [clone-visual-fidelity-and-promotion-policy.md](clone-visual-fidelity-and-promotion-policy.md). Fixture/structural readiness는 visual approval과 별개이며, resident-default promotion은 해당 정책을 따른다.
 
 > Authoritative CTO clarification recorded under Issue #1078. This note ONLY
 > corrects documents that falsely described the current state. The full test

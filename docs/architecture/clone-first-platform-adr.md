@@ -87,6 +87,8 @@ Risks if we do not decide now:
 
 Exact-clone policy for civic surfaces:
 [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md).
+Visual fidelity and promotion governance:
+[`docs/product/clone-visual-fidelity-and-promotion-policy.md`](../product/clone-visual-fidelity-and-promotion-policy.md).
 Home fixture identity may still record `exact_clone_claimed=false` /
 `capture_required` (fixture-backed renderer ≠ full exact official clone).
 

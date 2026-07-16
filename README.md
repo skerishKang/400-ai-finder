@@ -22,6 +22,8 @@
 5. 신청 절차, 제출서류, 기한, 담당자 정보를 안내합니다.
 
 > **좌측 시민 사이트 화면 철칙**: 왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않는다. (canonical: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md))
+>
+> **Visual approval gate**: structurally complete fixture는 자동으로 resident-facing default가 될 수 없다. Resident-default promotion은 accepted reference와의 side-by-side 비교 및 project-owner의 명시적 승인이 필요하다. (policy: [docs/product/clone-visual-fidelity-and-promotion-policy.md](docs/product/clone-visual-fidelity-and-promotion-policy.md))
 6. 답변에 바로가기 링크와 근거를 포함합니다.
 
 ## 프로젝트 구조

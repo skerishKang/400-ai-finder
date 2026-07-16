@@ -5,8 +5,11 @@ It records what is complete now, what the demo is not, and what remains on the
 live/production tracks.
 
 > 좌측 시민 사이트 화면 철칙(Exact Official-Site Clone)을 따른다:
-> [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> [product/exact-official-site-clone-invariant.md](product/exact-official-site-clone-invariant.md)
 > 이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+> Visual fidelity and promotion governance:
+> [product/clone-visual-fidelity-and-promotion-policy.md](product/clone-visual-fidelity-and-promotion-policy.md).
+> Fixture/structural readiness는 visual approval과 별개이며, resident-default promotion은 해당 정책을 따른다.
 
 > **Not a changelog.** Prefer the runbook and fidelity matrix for day-to-day
 > operator and regression detail.
@@ -105,7 +108,7 @@ entire product.
 
 - [`docs/mvp-demo-operator-runbook.md`](mvp-demo-operator-runbook.md) — how to run, verify, and present the five locked flows
 - [`docs/mvp-golden-quest-fidelity-matrix.md`](mvp-golden-quest-fidelity-matrix.md) — locked paths, stop behavior, prohibited regressions
-- [`docs/product/exact-official-site-clone-invariant.md`](docs/product/exact-official-site-clone-invariant.md) — canonical invariant for left surface
+- [`product/exact-official-site-clone-invariant.md`](product/exact-official-site-clone-invariant.md) — canonical invariant for left surface
 
 ### Matrix regression test
 
