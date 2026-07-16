@@ -4599,12 +4599,17 @@ body[data-first-use-state="transitioning"] .bg-mayor-hero h1 {
 }
 .bg-page--home .bg-home-fixture-root {
   width: min(var(--bg-home-fixture-max, 914px), calc(100% - 32px));
+  max-width: min(100%, var(--bg-home-fixture-max, 914px));
+  min-width: 0;
   margin: 0 auto;
   padding: 12px 0 28px;
   display: flex;
   flex-direction: column;
   gap: 18px;
   box-sizing: border-box;
+  /* Both axes: avoid overflow-x-only → overflow-y:auto quirk that can leak scrollWidth. */
+  overflow: hidden;
+  contain: inline-size;
 }
 .bg-page--home .bg-home-fixture-compat {
   width: min(var(--bg-home-fixture-max, 914px), calc(100% - 32px));
@@ -4709,18 +4714,30 @@ body[data-first-use-state="transitioning"] .bg-mayor-hero h1 {
 }
 
 /* #1192: main_banner — bounded horizontal visual rail (not dense auto-fill grid). */
+.bg-page--home .bg-home-fixture-region--main_banner {
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  contain: inline-size;
+}
 .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-items {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(180px, 220px);
   gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
-  max-width: 100%;
   padding-bottom: 6px;
   box-sizing: border-box;
+  /* Prevent rail scrollWidth from contributing to ancestor max-content/fit scale. */
+  contain: inline-size;
 }
 .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item[data-home-presentation="metadata-only"],
 .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item--metadata-only {
@@ -4734,6 +4751,7 @@ body[data-first-use-state="transitioning"] .bg-mayor-hero h1 {
   align-items: stretch;
   gap: 8px;
   min-width: 160px;
+  width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   padding: 10px;
@@ -4750,6 +4768,7 @@ body[data-first-use-state="transitioning"] .bg-mayor-hero h1 {
   flex-direction: column;
   justify-content: center;
   min-width: 160px;
+  width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   padding: 12px 14px;
@@ -4838,21 +4857,40 @@ body[data-first-use-state="transitioning"] .bg-mayor-hero h1 {
   font-size: 13px;
 }
 @media (max-width: 767px) {
+  /*
+   * Mobile official-fit scales the canvas (~390/914 ≈ 0.427). Layout columns must
+   * be large enough that getBoundingClientRect visual width stays ≥ 140px after scale.
+   * 360 * (390/914) ≈ 153.6 visual px. Also keep page natural width near 914 so
+   * fitToViewport scale stays usable (rail must not inflate page.scrollWidth).
+   */
+  .bg-page--home.bg-page--home-fixture {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
   .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-items {
-    grid-auto-columns: minmax(150px, 72vw);
-    gap: 10px;
+    grid-auto-columns: minmax(360px, 400px);
+    gap: 12px;
   }
   .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item[data-home-presentation="visual-card"],
   .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item--visual-card,
   .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item[data-home-presentation="control"] {
-    min-width: 140px;
+    min-width: 340px;
+  }
+  .bg-page--home .bg-home-fixture-region--main_banner .bg-home-fixture-item__text {
+    min-width: 8em;
   }
 }
 @media (max-width: 430px) {
   .bg-page--home .bg-home-fixture-root,
   .bg-page--home .bg-home-fixture-compat,
   .bg-page--home .bg-home-fixture-dept {
-    width: calc(100% - 16px);
+    /* Keep the 914px fixture cap — do not expand to inflated parent width. */
+    width: min(var(--bg-home-fixture-max, 914px), calc(100% - 16px));
+    max-width: 100%;
+    min-width: 0;
     overflow-x: hidden;
+    box-sizing: border-box;
   }
 }

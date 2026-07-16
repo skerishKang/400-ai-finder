@@ -261,6 +261,7 @@ async function enterSplitViaFirstQuestion(page) {
   await page.waitForSelector("#chat-composer-input", { timeout: 10000 });
   await page.fill("#chat-composer-input", "불법 주정차 신고는 어디서 하나요?");
   await page.click("#chat-composer-send");
+  // Fail-closed: real first-question flow must reach split (no swallowed timeout).
   await page.waitForFunction(
     () => {
       const s = document.body.getAttribute("data-first-use-state");
@@ -269,13 +270,15 @@ async function enterSplitViaFirstQuestion(page) {
     null,
     { timeout: 15000 }
   );
-  await page
-    .waitForFunction(
-      () => document.body.getAttribute("data-first-use-state") === "split",
-      null,
-      { timeout: 15000 }
-    )
-    .catch(() => {});
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-first-use-state") === "split",
+    null,
+    { timeout: 15000 }
+  );
+  const state = await page.evaluate(() =>
+    document.body.getAttribute("data-first-use-state")
+  );
+  assert.strictEqual(state, "split", `enterSplitViaFirstQuestion: expected split, got ${state}`);
   await page.waitForTimeout(600);
   await page.evaluate(() => {
     if (
@@ -353,26 +356,59 @@ async function measureMainBanner(page, expectedSha, regionOrder) {
           r.height > 0
         );
       });
-      // Prefer layout box sizes (offsetWidth) over getBoundingClientRect so
-      // canvas CSS transforms on mobile guidance do not under-report widths.
-      const widths = visibleVisual
-        .map((el) => el.offsetWidth || el.getBoundingClientRect().width)
+      // Layout (offset*) vs visual (getBoundingClientRect) — pass criteria use visual only.
+      const layoutCardW = visibleVisual
+        .map((el) => el.offsetWidth)
+        .filter((w) => w > 0)
+        .sort((a, b) => a - b);
+      const visualCardW = visibleVisual
+        .map((el) => el.getBoundingClientRect().width)
+        .filter((w) => w > 0)
         .sort((a, b) => a - b);
       const texts = visibleVisual
         .map((el) => el.querySelector(".bg-home-fixture-item__text"))
         .filter(Boolean)
         .filter((t) => (t.textContent || "").replace(/\s+/g, "").length > 0);
-      const textW = texts
-        .map((el) => el.offsetWidth || el.getBoundingClientRect().width)
+      const layoutTextW = texts
+        .map((el) => el.offsetWidth)
+        .filter((w) => w > 0)
+        .sort((a, b) => a - b);
+      const visualTextW = texts
+        .map((el) => el.getBoundingClientRect().width)
+        .filter((w) => w > 0)
+        .sort((a, b) => a - b);
+      const visualFallbackW = visibleVisual
+        .map((el) => {
+          const fb = el.querySelector(
+            '.bg-home-fixture-asset[data-asset-state="unresolved"]'
+          );
+          return fb ? fb.getBoundingClientRect().width : null;
+        })
+        .filter((w) => w != null && w > 0)
         .sort((a, b) => a - b);
       const median = (arr) =>
         arr.length ? arr[Math.floor(arr.length / 2)] : null;
+      // Visual geometry only for wrap suspects (after canvas transform).
       let verticalCharWrapSuspect = 0;
       for (const t of texts) {
-        const w = t.offsetWidth || t.getBoundingClientRect().width;
-        const h = t.offsetHeight || t.getBoundingClientRect().height;
+        const r = t.getBoundingClientRect();
+        const w = r.width;
+        const h = r.height;
         if (w > 0 && w < 40 && h > 40) verticalCharWrapSuspect += 1;
       }
+      const sampleCard = visibleVisual[0] || null;
+      const sampleLayoutW = sampleCard ? sampleCard.offsetWidth : null;
+      const sampleVisualW = sampleCard
+        ? sampleCard.getBoundingClientRect().width
+        : null;
+      const visualTransformRatio =
+        sampleLayoutW && sampleLayoutW > 0 && sampleVisualW != null
+          ? sampleVisualW / sampleLayoutW
+          : null;
+      const canvasInner = document.querySelector(".demo-canvas__inner");
+      const canvasTransform = canvasInner
+        ? getComputedStyle(canvasInner).transform
+        : null;
       const rootEl = document.querySelector(".bg-home-fixture-root");
       const rootR = rootEl ? rootEl.getBoundingClientRect() : null;
       const regionR = region ? region.getBoundingClientRect() : null;
@@ -443,18 +479,45 @@ async function measureMainBanner(page, expectedSha, regionOrder) {
         }
         return el.offsetParent !== null || cs.position === "fixed";
       });
-      const collectView = document.querySelector(
-        '[data-home-region-id="main_banner"] [data-home-presentation="control"]'
-      );
-      const collectText = collectView
-        ? (collectView.textContent || "").replace(/\s+/g, " ").trim()
+      // 비주얼 모아보기: visible control, not metadata-only, non-zero box.
+      let collectControl = null;
+      for (const el of allItems) {
+        const t = (el.textContent || "").replace(/\s+/g, " ").trim();
+        if (/비주얼\s*모아보기/.test(t) || t === "비주얼 모아보기") {
+          collectControl = el;
+          break;
+        }
+      }
+      if (!collectControl) {
+        collectControl = document.querySelector(
+          '[data-home-region-id="main_banner"] [data-home-presentation="control"]'
+        );
+      }
+      const collectCs = collectControl ? getComputedStyle(collectControl) : null;
+      const collectR = collectControl
+        ? collectControl.getBoundingClientRect()
+        : null;
+      const collectPresentation = collectControl
+        ? collectControl.getAttribute("data-home-presentation")
+        : null;
+      const collectText = collectControl
+        ? (collectControl.textContent || "").replace(/\s+/g, " ").trim()
         : "";
-      const overflowX =
-        document.documentElement.scrollWidth >
-        document.documentElement.clientWidth + 1;
-      const pageEl = document.querySelector(".bg-page--home");
-      const bodyOverflow =
-        pageEl && pageEl.scrollWidth > pageEl.clientWidth + 2;
+      const collectVisible =
+        !!collectControl &&
+        collectPresentation !== "metadata-only" &&
+        collectCs &&
+        collectCs.display !== "none" &&
+        collectCs.visibility !== "hidden" &&
+        collectR &&
+        collectR.width > 0 &&
+        collectR.height > 0;
+      // Document/page overflow: viewport-level HTML/body only (not scaled canvas scrollWidth).
+      const html = document.documentElement;
+      const body = document.body;
+      const pageLevelOverflow =
+        html.scrollWidth > html.clientWidth + 1 ||
+        body.scrollWidth > body.clientWidth + 1;
       const targets = [
         "nav-civil-service",
         "nav-complaint-board",
@@ -482,17 +545,33 @@ async function measureMainBanner(page, expectedSha, regionOrder) {
         orderNonDecreasing,
         metaFocusable,
         collectTextHasVisual: /비주얼|모아보기/.test(collectText),
+        collectVisible,
+        collectPresentation,
+        collectVisualW: collectR ? collectR.width : null,
+        collectVisualH: collectR ? collectR.height : null,
         fixtureRootW: rootEl ? rootEl.getBoundingClientRect().width : null,
         regionW: region ? region.getBoundingClientRect().width : null,
         railClientW: itemsBox ? itemsBox.clientWidth : null,
         railScrollW: itemsBox ? itemsBox.scrollWidth : null,
+        railVisualW: itemsBox ? itemsBox.getBoundingClientRect().width : null,
         visibleVisualCount: visibleVisual.length,
-        cardWMin: widths[0] ?? null,
-        cardWMed: median(widths),
-        cardWMax: widths[widths.length - 1] ?? null,
-        textWMin: textW[0] ?? null,
-        textWMed: median(textW),
-        textWLt40: textW.filter((w) => w < 40).length,
+        // Layout diagnostics (offsetWidth) — not pass criteria.
+        layoutCardWMin: layoutCardW[0] ?? null,
+        layoutCardWMed: median(layoutCardW),
+        layoutCardWMax: layoutCardW[layoutCardW.length - 1] ?? null,
+        layoutTextWMin: layoutTextW[0] ?? null,
+        layoutTextWMed: median(layoutTextW),
+        // Visual pass criteria (getBoundingClientRect).
+        cardWMin: visualCardW[0] ?? null,
+        cardWMed: median(visualCardW),
+        cardWMax: visualCardW[visualCardW.length - 1] ?? null,
+        textWMin: visualTextW[0] ?? null,
+        textWMed: median(visualTextW),
+        textWLt40: visualTextW.filter((w) => w < 40).length,
+        visualFallbackWMin: visualFallbackW[0] ?? null,
+        visualFallbackWMed: median(visualFallbackW),
+        visualTransformRatio,
+        canvasTransform,
         verticalCharWrapSuspect,
         cardsOutsideRoot,
         fallbackOutsideCard,
@@ -500,7 +579,7 @@ async function measureMainBanner(page, expectedSha, regionOrder) {
         remoteOfficialImgs,
         brokenImgs,
         dashedLegacy,
-        overflowX: overflowX || !!bodyOverflow,
+        overflowX: pageLevelOverflow,
         docScrollW: document.documentElement.scrollWidth,
         docClientW: document.documentElement.clientWidth,
         state: document.body.getAttribute("data-first-use-state"),
@@ -528,6 +607,11 @@ function assertSafety(counters, label) {
     0,
     `${label}: page errors ${JSON.stringify(counters.pageErrorTexts)}`
   );
+  assert.strictEqual(
+    counters.requestFailures,
+    0,
+    `${label}: failed requests ${JSON.stringify(counters.failedRequests)}`
+  );
   assert.strictEqual(counters.formSubmissions, 0, `${label}: form submissions`);
   assert.strictEqual(counters.loginAttempts, 0, `${label}: login`);
   assert.strictEqual(counters.paymentAttempts, 0, `${label}: payment`);
@@ -552,16 +636,26 @@ function assertCoreHome(result, label) {
   assert.strictEqual(result.visualCardCount, 15, `${label}: visual-card count`);
   assert.ok(result.orderNonDecreasing, `${label}: item order non-decreasing`);
   assert.strictEqual(result.metaFocusable, 0, `${label}: metadata-only focusable`);
-  assert.ok(result.collectTextHasVisual, `${label}: 비주얼 모아보기 control visible`);
+  assert.ok(result.collectTextHasVisual, `${label}: 비주얼 모아보기 text present`);
+  assert.ok(
+    result.collectVisible,
+    `${label}: 비주얼 모아보기 not visually visible (presentation=${result.collectPresentation}, w=${result.collectVisualW}, h=${result.collectVisualH})`
+  );
+  assert.notStrictEqual(
+    result.collectPresentation,
+    "metadata-only",
+    `${label}: 비주얼 모아보기 must not be metadata-only`
+  );
   assert.strictEqual(result.unresolvedFallbacks, 15, `${label}: unresolved fallbacks`);
   assert.strictEqual(result.remoteOfficialImgs, 0, `${label}: remote official imgs`);
   assert.strictEqual(result.brokenImgs, 0, `${label}: broken imgs`);
   assert.strictEqual(result.dashedLegacy, 0, `${label}: dashed legacy placeholders`);
-  assert.strictEqual(result.textWLt40, 0, `${label}: text width <40 count`);
+  // Visual geometry pass criteria only (not offsetWidth/layout).
+  assert.strictEqual(result.textWLt40, 0, `${label}: visual text width <40 count`);
   assert.strictEqual(
     result.verticalCharWrapSuspect,
     0,
-    `${label}: vertical char wrap suspect`
+    `${label}: visual vertical char wrap suspect`
   );
   assert.strictEqual(result.cardsOutsideRoot, 0, `${label}: cards outside root`);
   assert.strictEqual(result.fallbackOutsideCard, 0, `${label}: fallback outside card`);
@@ -577,7 +671,7 @@ function assertCoreHome(result, label) {
   }
 }
 
-async function runScenario(browser, baseUrl, name, viewport, prepare) {
+async function runScenario(browser, baseUrl, name, viewport, prepare, expectations) {
   const context = await browser.newContext({
     viewport,
     reducedMotion: "reduce",
@@ -588,21 +682,44 @@ async function runScenario(browser, baseUrl, name, viewport, prepare) {
   if (prepare) await prepare(page);
   const result = await measureMainBanner(page, EXPECTED_FIXTURE_SHA, REGION_ORDER);
   assertCoreHome(result, name);
+  if (expectations) {
+    if (expectations.state != null) {
+      assert.strictEqual(
+        result.state,
+        expectations.state,
+        `${name}: expected state ${expectations.state}, got ${result.state}`
+      );
+    }
+    if (expectations.mobileSurface != null) {
+      assert.strictEqual(
+        result.mobileSurface,
+        expectations.mobileSurface,
+        `${name}: expected mobile surface ${expectations.mobileSurface}, got ${result.mobileSurface}`
+      );
+    }
+  }
   const minCard = viewport.width <= 430 ? MOBILE_MIN_CARD : DESKTOP_MIN_CARD;
+  // Pass criterion: visual (getBoundingClientRect) only — never offsetWidth.
   assert.ok(
     result.cardWMin != null && result.cardWMin + 0.5 >= minCard,
-    `${name}: visual card min width ${result.cardWMin} < ${minCard}`
+    `${name}: visual card min width ${result.cardWMin} < ${minCard} ` +
+      `(layoutMin=${result.layoutCardWMin}, ratio=${result.visualTransformRatio})`
   );
   assert.ok(
     result.textWMin == null || result.textWMin + 0.5 >= TEXT_MIN_W,
-    `${name}: text min width ${result.textWMin} < ${TEXT_MIN_W}`
+    `${name}: visual text min width ${result.textWMin} < ${TEXT_MIN_W} ` +
+      `(layoutMin=${result.layoutTextWMin}, ratio=${result.visualTransformRatio})`
   );
   assertSafety(counters, name);
   console.log(
     `  [${name}] state=${result.state} surface=${result.mobileSurface} ` +
-      `cards=${result.visibleVisualCount} wMin=${result.cardWMin?.toFixed?.(1) ?? result.cardWMin} ` +
-      `textMin=${result.textWMin?.toFixed?.(1) ?? result.textWMin} ` +
-      `rail=${result.railClientW}/${result.railScrollW} overflow=${result.overflowX}`
+      `visCardMin=${result.cardWMin?.toFixed?.(1) ?? result.cardWMin} ` +
+      `layCardMin=${result.layoutCardWMin?.toFixed?.(1) ?? result.layoutCardWMin} ` +
+      `visTextMin=${result.textWMin?.toFixed?.(1) ?? result.textWMin} ` +
+      `layTextMin=${result.layoutTextWMin?.toFixed?.(1) ?? result.layoutTextWMin} ` +
+      `ratio=${result.visualTransformRatio?.toFixed?.(3) ?? result.visualTransformRatio} ` +
+      `rail=${result.railClientW}/${result.railScrollW} overflow=${result.overflowX} ` +
+      `reqFail=${counters.requestFailures}`
   );
   await context.close();
   return { result, counters };
@@ -623,21 +740,24 @@ async function main() {
       baseUrl,
       "entry-1440x900",
       { width: 1440, height: 900 },
-      null
+      null,
+      { state: "entry" }
     );
     summary.split_1440x900 = await runScenario(
       browser,
       baseUrl,
       "split-1440x900",
       { width: 1440, height: 900 },
-      enterSplitViaFirstQuestion
+      enterSplitViaFirstQuestion,
+      { state: "split" }
     );
     summary.split_1440x760 = await runScenario(
       browser,
       baseUrl,
       "split-1440x760",
       { width: 1440, height: 760 },
-      enterSplitViaFirstQuestion
+      enterSplitViaFirstQuestion,
+      { state: "split" }
     );
     summary.mobile_guidance_390x844 = await runScenario(
       browser,
@@ -647,10 +767,13 @@ async function main() {
       async (page) => {
         await enterSplitViaFirstQuestion(page);
         const tab = await page.$("#tab-guidance");
-        if (tab) {
-          await tab.click();
-          await page.waitForTimeout(500);
-        }
+        assert.ok(tab, "mobile-guidance: #tab-guidance missing");
+        await tab.click();
+        await page.waitForFunction(
+          () => document.body.getAttribute("data-mobile-surface") === "guidance",
+          null,
+          { timeout: 10000 }
+        );
         await page.waitForSelector('[data-home-region-id="main_banner"]', {
           state: "visible",
           timeout: 10000,
@@ -665,7 +788,18 @@ async function main() {
           }
         });
         await page.waitForTimeout(300);
-      }
+        // Re-assert guidance surface after home navigation (still split shell).
+        await page.waitForFunction(
+          () => {
+            const state = document.body.getAttribute("data-first-use-state");
+            const surface = document.body.getAttribute("data-mobile-surface");
+            return state === "split" && surface === "guidance";
+          },
+          null,
+          { timeout: 10000 }
+        );
+      },
+      { state: "split", mobileSurface: "guidance" }
     );
 
     console.log("PASS #1170/#1192 home fixture canvas browser E2E");
@@ -677,15 +811,24 @@ async function main() {
             {
               viewport: v.result.viewport,
               state: v.result.state,
+              mobileSurface: v.result.mobileSurface,
               metadataOnly: v.result.metadataOnlyCount,
               visualCards: v.result.visualCardCount,
-              cardWMin: v.result.cardWMin,
-              cardWMed: v.result.cardWMed,
-              cardWMax: v.result.cardWMax,
-              textWMin: v.result.textWMin,
-              textWMed: v.result.textWMed,
+              layoutCardWMin: v.result.layoutCardWMin,
+              layoutCardWMed: v.result.layoutCardWMed,
+              layoutCardWMax: v.result.layoutCardWMax,
+              visualCardWMin: v.result.cardWMin,
+              visualCardWMed: v.result.cardWMed,
+              visualCardWMax: v.result.cardWMax,
+              layoutTextWMin: v.result.layoutTextWMin,
+              layoutTextWMed: v.result.layoutTextWMed,
+              visualTextWMin: v.result.textWMin,
+              visualTextWMed: v.result.textWMed,
               textWLt40: v.result.textWLt40,
               wrapSuspect: v.result.verticalCharWrapSuspect,
+              visualTransformRatio: v.result.visualTransformRatio,
+              visualFallbackWMin: v.result.visualFallbackWMin,
+              collectVisible: v.result.collectVisible,
               fallbacks: v.result.unresolvedFallbacks,
               remoteOfficial: v.result.remoteOfficialImgs,
               overflow: v.result.overflowX,
@@ -694,6 +837,7 @@ async function main() {
                 console: v.counters.consoleErrors,
                 page: v.counters.pageErrors,
                 external: v.counters.externalRequests,
+                requestFailures: v.counters.requestFailures,
                 remoteVisual: v.counters.remoteVisualRequests,
               },
             },
