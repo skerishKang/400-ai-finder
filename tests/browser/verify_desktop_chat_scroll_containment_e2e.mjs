@@ -932,7 +932,8 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
     `  bottom-pinned: PASS distBottom=${bottomPinRes.distBottom} nearBottom=${bottomPinRes.nearBottom}`,
   );
 
-  // Reading-history: scroll up, complete assistant response without yank.
+  // Reading-history → explicit turn: #1200 ensures composer submit always
+  // follows the latest message. Scroll up, submit, verify yank to bottom.
   await page.evaluate(() => {
     const t = document.getElementById("chat-thread");
     if (!t) throw new Error("chat-thread missing");
@@ -968,15 +969,12 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
     afterRead.lastAiText.includes(READ_HISTORY_TURN.marker),
     `[${label}] reading-history assistant marker missing`,
   );
+  // #1200: explicit composer submit while reading history now yanks to latest.
   assert.ok(
-    afterRead.distBottom > PIN_THRESHOLD,
-    `[${label}] reading-history yanked toward bottom: ${JSON.stringify({ beforeRead, afterRead })}`,
+    afterRead.distBottom <= PIN_THRESHOLD + 8,
+    `[${label}] explicit turn should yank to bottom: ${JSON.stringify({ beforeRead, afterRead })}`,
   );
-  assert.ok(
-    afterRead.scrollTop <= beforeRead.scrollTop + SCROLL_TOP_TOL,
-    `[${label}] reading-history scrollTop jumped: ${beforeRead.scrollTop} -> ${afterRead.scrollTop}`,
-  );
-  console.log(`  reading-history preserve: PASS`);
+  console.log(`  reading-history explicit-turn yank: PASS`);
 
   // Re-pin + auto-scroll.
   await pinThreadToBottom(page);

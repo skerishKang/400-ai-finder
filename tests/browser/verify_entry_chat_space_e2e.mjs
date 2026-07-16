@@ -3,7 +3,7 @@
  *
  * Asserts:
  * - single .chat-recommendations-toggle mounted in composer utility (not before chips)
- * - ARIA expanded/controls + click hide/show + first-question auto-collapse
+ * - ARIA expanded/controls + click hide/show; first question keeps chips expanded (#1197)
  * - no large artificial gap between last chip and composer utility
  * - chat-thread absorbs reclaimed height
  * - composer fully in viewport; horizontal overflow 0
@@ -525,26 +525,24 @@ async function runViewport(browser, baseUrl, vp) {
   );
   await assertToggleBasics(page, `${ctxName}/re-expanded`, { expanded: true });
 
-  // First question auto-collapse (type + submit without relying on network MVP answer).
+  // #1197: first question must NOT auto-collapse recommendations.
   await page.fill("#chat-composer-input", "불법 주정차 신고는 어디서 하나요?");
   await page.click("#chat-composer-send");
   await page.waitForFunction(
-    () =>
-      document.body.getAttribute("data-recommendations-expanded") === "false" ||
-      document.body.getAttribute("data-first-use-state") !== "entry",
+    () => document.body.getAttribute("data-first-use-state") !== "entry",
     null,
     { timeout: 8000 },
   );
   const afterAsk = await measureEntryLayout(page);
   assert.equal(
     afterAsk.ariaExpanded,
-    "false",
-    `auto-collapse after first question aria-expanded [${ctxName}]`,
+    "true",
+    `recommendations stay expanded after first question aria-expanded [${ctxName}]`,
   );
-  assert.equal(
+  assert.notEqual(
     afterAsk.recExpanded,
     "false",
-    `auto-collapse data-recommendations-expanded [${ctxName}]`,
+    `recommendations stay expanded after first question data attr [${ctxName}]`,
   );
 
   // Wait for layout state to leave pure transitioning when possible (attribute-

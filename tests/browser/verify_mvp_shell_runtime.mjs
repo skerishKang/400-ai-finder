@@ -1208,7 +1208,7 @@ async function scenarioFailureDiagnosticHidden(failureCode) {
     bridge,
     choreo,
   });
-  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  submit(s, "오늘 날씨 어떠세요?");
   await flush();
 
   const visibleText = s.doc.body.textContent;
@@ -1223,25 +1223,25 @@ async function scenarioFailureDiagnosticHidden(failureCode) {
     `failure(${failureCode}): choreography must NOT start on failure`,
   );
 
-  // Exact presentation prompts keep their deterministic route even when the
-  // live answer fails. The journey still waits for the resident's confirmation.
+  // Unsupported question with bridge failure: shell stays in entry state (no split).
   assert.strictEqual(
     s.win.CitizenFirstUseShell.getState(),
-    "split",
-    `failure(${failureCode}): supported prompt must retain its split fallback`,
+    "entry",
+    `failure(${failureCode}): unsupported prompt must stay in entry (no split)`,
   );
 
-  // Left fallback clone is visible, but choreography has not started.
+  // Left fallback clone must remain hidden/inert.
   assert.strictEqual(
     canvasAriaHidden(s),
-    "false",
-    `failure(${failureCode}): fallback clone must be visible`,
+    "true",
+    `failure(${failureCode}): left clone must remain hidden/inert`,
   );
   assert.strictEqual(
     canvasInert(s),
-    false,
-    `failure(${failureCode}): fallback clone must be interactive`,
+    true,
+    `failure(${failureCode}): left clone must remain inert`,
   );
+  assertComposerRecovered(s, `failure(${failureCode})`);
 
   console.log(`  [7] failure diagnostics hidden (${failureCode}): OK`);
 }
@@ -1273,7 +1273,7 @@ async function scenarioFailureUntrustedAnswer() {
     bridge,
     choreo,
   });
-  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  submit(s, "오늘 날씨 어떠세요?");
   await flush();
 
   const visibleText = s.doc.body.textContent;
@@ -1292,23 +1292,25 @@ async function scenarioFailureUntrustedAnswer() {
     "failure(untrusted answer): choreography must NOT start on failure",
   );
 
-  // The untrusted answer remains hidden while the exact chip route still opens.
+  // Unsupported question with bridge failure: shell stays in entry state (no split).
   assert.strictEqual(
     s.win.CitizenFirstUseShell.getState(),
-    "split",
-    "failure(untrusted answer): supported prompt keeps deterministic split fallback",
+    "entry",
+    "failure(untrusted answer): unsupported prompt must stay in entry (no split)",
   );
 
+  // Left fallback clone must remain hidden/inert.
   assert.strictEqual(
     canvasAriaHidden(s),
-    "false",
-    "failure(untrusted answer): fallback clone must be visible",
+    "true",
+    "failure(untrusted answer): left clone must remain hidden/inert",
   );
   assert.strictEqual(
     canvasInert(s),
-    false,
-    "failure(untrusted answer): fallback clone must be interactive",
+    true,
+    "failure(untrusted answer): left clone must remain inert",
   );
+  assertComposerRecovered(s, "failure(untrusted answer)");
 
   console.log("  [8] failure untrusted answer hidden: OK");
 }
@@ -1382,7 +1384,7 @@ async function scenarioMissingResult() {
     bridge,
     choreo,
   });
-  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  submit(s, "오늘 날씨 어떠세요?");
   await flush();
 
   const visibleText = s.doc.body.textContent;
@@ -1396,18 +1398,18 @@ async function scenarioMissingResult() {
   );
   assert.strictEqual(
     s.win.CitizenFirstUseShell.getState(),
-    "split",
-    "missing result: exact prompt must keep split fallback",
+    "entry",
+    "missing result: unsupported prompt must stay in entry (no split)",
   );
   assert.strictEqual(
     canvasAriaHidden(s),
-    "false",
-    "missing result: fallback clone must be visible",
+    "true",
+    "missing result: left clone must remain hidden/inert",
   );
   assert.strictEqual(
     canvasInert(s),
-    false,
-    "missing result: fallback clone must be interactive",
+    true,
+    "missing result: left clone must remain inert",
   );
   assertComposerRecovered(s, "missing result");
 
@@ -1445,7 +1447,7 @@ async function scenarioMalformedResult() {
       bridge,
       choreo,
     });
-    submit(s, "불법 주정차 신고는 어디서 하나요?");
+    submit(s, "오늘 날씨 어떠세요?");
     await flush();
 
     const visibleText = s.doc.body.textContent;
@@ -1459,18 +1461,18 @@ async function scenarioMalformedResult() {
     );
     assert.strictEqual(
       s.win.CitizenFirstUseShell.getState(),
-      "split",
-      `${label}: exact prompt must keep split fallback`,
+      "entry",
+      `${label}: unsupported prompt must stay in entry (no split)`,
     );
     assert.strictEqual(
       canvasAriaHidden(s),
-      "false",
-      `${label}: fallback clone must be visible`,
+      "true",
+      `${label}: left clone must remain hidden/inert`,
     );
     assert.strictEqual(
       canvasInert(s),
-      false,
-      `${label}: fallback clone must be interactive`,
+      true,
+      `${label}: left clone must remain inert`,
     );
     assertComposerRecovered(s, label);
   }
@@ -1494,7 +1496,7 @@ async function scenarioRejectedBridge() {
     bridge,
     choreo,
   });
-  submit(s, "불법 주정차 신고는 어디서 하나요?");
+  submit(s, "오늘 날씨 어떠세요?");
   await flush();
 
   const visibleText = s.doc.body.textContent;

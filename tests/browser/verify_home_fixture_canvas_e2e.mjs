@@ -240,7 +240,8 @@ function attachSafety(page, baseUrl) {
 }
 
 async function openHome(page, baseUrl) {
-  await page.goto(`${baseUrl}/static/citizen-action-demo.html`, {
+  // #1197: fixture visual-card rail is opt-in only (?home-fixture=1).
+  await page.goto(`${baseUrl}/static/citizen-action-demo.html?home-fixture=1`, {
     waitUntil: "domcontentloaded",
     timeout: 30000,
   });

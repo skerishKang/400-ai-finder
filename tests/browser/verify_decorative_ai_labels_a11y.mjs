@@ -216,7 +216,7 @@ async function collectAxInteractive(page) {
   // Count mayor/search via browser-computed names + Playwright role queries.
   const mayorByRole = [];
   for (const n of ["열린구청장실 바로가기", "열린구청장실바로가기"]) {
-    const loc = page.getByRole("button", { name: n, exact: true });
+    const loc = page.getByRole("button", { name: n, exact: true, disabled: false });
     const count = await loc.count();
     for (let i = 0; i < count; i++) {
       const el = loc.nth(i);
@@ -224,7 +224,7 @@ async function collectAxInteractive(page) {
         mayorByRole.push({ role: "button", name: n });
       }
     }
-    const link = page.getByRole("link", { name: n, exact: true });
+    const link = page.getByRole("link", { name: n, exact: true, disabled: false });
     const lcount = await link.count();
     for (let i = 0; i < lcount; i++) {
       const el = link.nth(i);
@@ -236,7 +236,7 @@ async function collectAxInteractive(page) {
 
   const searchByRole = [];
   for (const n of ["통합검색", "검색"]) {
-    const loc = page.getByRole("button", { name: n, exact: true });
+    const loc = page.getByRole("button", { name: n, exact: true, disabled: false });
     const count = await loc.count();
     for (let i = 0; i < count; i++) {
       const el = loc.nth(i);

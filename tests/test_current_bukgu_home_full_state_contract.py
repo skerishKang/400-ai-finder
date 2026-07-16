@@ -137,26 +137,35 @@ def test_banner_crop_matches_source_pixels():
     assert actual_pixels == expected_pixels, "banner crop pixel data mismatch"
 
 
-def test_home_renderer_is_fixture_driven_not_r_home_banner():
+def test_resident_default_home_uses_approved_design_not_fixture_rail():
+    """#1197: ordinary home restores pre-#1182 designed composition."""
     start = JS.index("  function _renderHome(")
     end = JS.index(
         "  // -----------------------------------------------------------------------\n  // _renderCivilService",
         start,
     )
     home_block = JS[start:end]
-    assert "_getCanonicalHomeFixture" in JS
-    assert "home-alert-banner-r-home-02.png" not in home_block
-    assert "home-alert-banner.png" not in home_block
+    assert "_wantsHomeFixtureProjection" in home_block
+    assert "_renderHomeFixtureProjection" in home_block
+    assert "home-mayor-card.png" in home_block
+    assert "home-alert-banner.png" in home_block
+    assert "bg-home-quick-link" in home_block
     assert "bukgu_home.png" not in home_block
+    assert "function _renderHomeFixtureProjection" in JS
     assert EXPECTED_FIXTURE_SHA in FIXTURE_JS
+
+
+def test_fixture_projection_opt_in_preserves_truthfulness_markers():
+    assert "function _renderHomeFixtureProjection" in JS
+    assert "data-home-fixture-sha256=" in JS
+    assert "data-home-clone-status=" in JS
+    assert "capture_required" in JS
+    assert 'data-home-exact-clone="false"' in JS
 
 
 def test_home_state_resolver_function_exists():
     assert "function _resolveHomeReferenceState(search)" in JS
 
 
-def test_home_root_has_fixture_and_reference_state_attributes():
+def test_home_root_has_reference_state_attribute():
     assert "data-home-reference-state=" in JS
-    assert "data-home-fixture-sha256=" in JS
-    assert "data-home-clone-status=" in JS
-    assert 'data-home-exact-clone="false"' in JS

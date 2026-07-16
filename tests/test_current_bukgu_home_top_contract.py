@@ -24,15 +24,24 @@ def _home_block() -> str:
     return JS[start:end]
 
 
-def test_home_renderer_is_fixture_driven():
+def test_resident_default_home_uses_approved_designed_composition():
+    """#1197: default _renderHome is approved design; fixture remains opt-in."""
     home = _home_block()
-    assert "_getCanonicalHomeFixture" in JS
-    assert "__BUKGU_HOME_CLONE_FIXTURE__" in home or "__BUKGU_HOME_CLONE_FIXTURE__" in JS
+    assert "_wantsHomeFixtureProjection" in home
+    assert "home-mayor-card.png" in home
+    assert "home-alert-banner.png" in home
+    assert "bg-home-quick-link" in home
+    assert "bukgu_home.png" not in home
+    assert "function _renderHomeFixtureProjection" in JS
     assert "data-home-fixture-sha256" in JS
     assert "data-home-region-id" in JS
-    assert "home-mayor-card.png" not in home
-    assert "home-alert-banner.png" not in home
-    assert "bukgu_home.png" not in home
+    assert "__BUKGU_HOME_CLONE_FIXTURE__" in JS
+
+
+def test_fixture_projection_function_still_available():
+    assert "function _renderHomeFixtureProjection" in JS
+    assert "home-fixture" in JS
+    assert "home-projection" in JS
 
 
 def test_projection_script_loads_before_canvas():

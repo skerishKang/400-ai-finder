@@ -831,7 +831,7 @@ async function runStreetlightWriteHeaderFlow(browser) {
   });
 
   await page.goto(`${BASE_ORIGIN}/mvp/`, { waitUntil: "networkidle", timeout: 20000 });
-  await page.getByRole("button", { name: "가로등 고장 신고 (AI 도움)", exact: true }).click();
+  await page.getByRole("button", { name: "가로등 고장 신고 (AI)", exact: true }).click();
   await page.getByRole("button", { name: "예, 안내해 주세요" }).click();
 
   await page.waitForFunction(
@@ -987,7 +987,7 @@ async function runVietnameseMayorChipFlow(browser) {
   // Shell language contract
   const shellTitle = page.locator(".chat-shell__title");
   await shellTitle.waitFor({ state: "visible", timeout: 5000 });
-  assert.strictEqual(await shellTitle.innerText(), "BUKGU AI CIVIC NAVIGATOR", `[${label}] shell title`);
+  assert.strictEqual(await shellTitle.innerText(), "NAVIGATOR", `[${label}] shell title`);
 
   const langSelect = page.locator("#chat-lang");
   assert.strictEqual(await langSelect.inputValue(), "vi", `[${label}] lang selector value`);
