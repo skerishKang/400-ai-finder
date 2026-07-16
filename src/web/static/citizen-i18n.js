@@ -35,7 +35,7 @@
   // any missing key.
   var UI = Object.freeze({
     ko: Object.freeze({
-      "chat.title": "네비게이터",
+      "chat.title": "AI 민원 네비게이터",
       "chat.badge": "안내",
       "chat.attribution": "AI 행정 브라우저",
       "chat.welcome":

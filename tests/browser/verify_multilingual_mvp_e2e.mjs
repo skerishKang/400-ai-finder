@@ -88,7 +88,7 @@ const FORBIDDEN_KO = [
 
 const LOCALE_ASSERTIONS = {
   ko: {
-    shellTitle: "네비게이터",
+    shellTitle: "AI 민원 네비게이터",
     chipPrefix: "구청장에게 제안",
     yesText: "예, 안내해 주세요",
     noText: "아니요",
@@ -97,7 +97,7 @@ const LOCALE_ASSERTIONS = {
     expectedAnswer: "공동주택 관련 문의는 공동주택과에서 안내합니다.",
   },
   en: {
-    shellTitle: "BUKGU AI CIVIC NAVIGATOR",
+    shellTitle: "NAVIGATOR",
     chipPrefix: "I want to propose",
     yesText: "Yes, please guide me",
     noText: "No",
@@ -106,7 +106,7 @@ const LOCALE_ASSERTIONS = {
     expectedAnswer: "The Apartment Housing Division handles apartment-related inquiries.",
   },
   vi: {
-    shellTitle: "BUKGU AI CIVIC NAVIGATOR",
+    shellTitle: "NAVIGATOR",
     chipPrefix: "gửi đề xuất",
     yesText: "Vâng, hãy hướng dẫn tôi",
     noText: "Không",
@@ -115,7 +115,7 @@ const LOCALE_ASSERTIONS = {
     expectedAnswer: "Phòng Quản lý nhà chung cư phụ trách các yêu cầu liên quan đến chung cư.",
   },
   th: {
-    shellTitle: "BUKGU AI CIVIC NAVIGATOR",
+    shellTitle: "NAVIGATOR",
     chipPrefix: "ฉันอยากส่งข้อเสนอ",
     yesText: "ใช่ ค่อยแนะนำด้วย",
     noText: "ไม่",
@@ -124,7 +124,7 @@ const LOCALE_ASSERTIONS = {
     expectedAnswer: "ฝ่ายที่อยู่อาศัยรวมดูแลคำถามที่เกี่ยวข้องกับอาคารชุด",
   },
   id: {
-    shellTitle: "BUKGU AI CIVIC NAVIGATOR",
+    shellTitle: "NAVIGATOR",
     chipPrefix: "Saya ingin mengusulkan",
     yesText: "Ya, bantu saya",
     noText: "Tidak",

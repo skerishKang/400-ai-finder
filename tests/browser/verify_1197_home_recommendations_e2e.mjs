@@ -203,7 +203,7 @@ async function runViewport(browser, baseUrl, name, viewport, afterFirstQuestion)
   }
 
   const m = await measure(page);
-  assert.strictEqual(m.title, "네비게이터", `${name}: title`);
+  assert.strictEqual(m.title, "AI 민원 네비게이터", `${name}: title`);
   assert.ok(m.hasHome, `${name}: home`);
   assert.strictEqual(m.hasFixtureRoot, false, `${name}: no fixture root`);
   assert.strictEqual(m.visualCardCount, 0, `${name}: no visual-card rail`);

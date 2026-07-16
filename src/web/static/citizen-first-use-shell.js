@@ -2562,8 +2562,13 @@
       if (!bridge || typeof bridge.ask !== "function") {
         setComposerDisabled(false);
         focusComposerIfAllowed();
-        appendChatMessage("ai", _t("error.aiUnavailable", "현재 AI 안내를 연결하지 못했습니다."));
-        setJourneyState(JOURNEY_ANSWER);
+        var fallbackAction = resolveMvpActionForQuestion(question, null, false);
+        if (fallbackAction !== "none") {
+          _executeSplitAction(question, fallbackAction);
+        } else {
+          appendChatMessage("ai", _t("error.aiUnavailable", "현재 AI 안내를 연결하지 못했습니다."));
+          setJourneyState(JOURNEY_ANSWER);
+        }
         return;
       }
       bridge.ask(question).then(function (result) {
@@ -2588,6 +2593,17 @@
         // rendered and the action is degraded to "none" so no split or
         // choreography can start from an untrusted/blank success.
         var hasUsableMvpResult = Boolean(normalizedAnswer);
+        var action = resolveMvpActionForQuestion(question, result, hasUsableMvpResult);
+
+        // Supported question with unusable bridge result: suppress the
+        // "연결하지 못했습니다" bubble and go directly to the deterministic
+        // local fallback journey. The user message is already echoed above;
+        // split.ready and confirm-run each appear exactly once.
+        if (!hasUsableMvpResult && action !== "none") {
+          clearQuestRuntimeState();
+          _executeSplitAction(question, action);
+          return;
+        }
 
         var answer = hasUsableMvpResult
           ? normalizedAnswer
@@ -2601,47 +2617,46 @@
         } else {
           clearQuestRuntimeState();
         }
-        // 4. inspect action; only approved local actions move the clone. If a
-        // usable MVP answer misses the action for the supported first question,
-        // fall back to the existing deterministic local journey instead of
-        // leaving the citizen-facing MVP stuck in chat-only mode.
-        var action = resolveMvpActionForQuestion(question, result, hasUsableMvpResult);
-        if (action === "illegal_parking") {
-          beginMvpSplitThenChoreography(question, "illegal_parking");
-        } else if (action === "housing_department") {
-          beginMvpSplitThenChoreography(question, "housing_department");
-        } else if (action === "bulky_waste") {
-          beginMvpSplitThenChoreography(question, "bulky_waste");
-        } else if (action === "passport_guidance") {
-          beginMvpSplitThenChoreography(question, "passport_guidance");
-        } else if (action === "unmanned_kiosk") {
-          beginMvpSplitThenChoreography(question, "unmanned_kiosk");
-        } else if (action === "streetlight_report") {
-          beginMvpSplitThenChoreography(question, "streetlight_report");
-        } else if (action === "litter_ai_assist") {
-          beginMvpSplitThenChoreography(question, "litter_ai_assist");
-        } else if (isMayorAction(action) || action === "mayor_message_assist") {
-          // #1114: model-backed mayor action reuses the shared controller
-          // (cursor-before-split when hero control is visible). User message
-          // already echoed above; bridge already answered once.
-          startMayorProposalEntry({
-            source: "chat",
-            skipUserMessage: true,
-            useActionConfirm: true
-          });
-        } else if (action === "none") {
-          // Keep the entry chat; do not move the clone or start a choreography.
-          // Journey remains answer (set above).
-        }
-        // Any other value: treated as none (no split, no clone move).
+
+        _executeSplitAction(question, action);
       }).catch(function () {
         if (token !== _mvpRequestToken) return;
         setComposerDisabled(false);
         focusComposerIfAllowed();
-        appendChatMessage("ai", _t("error.aiUnavailable", "현재 AI 안내를 연결하지 못했습니다."));
-        setJourneyState(JOURNEY_ANSWER);
+        var fallbackAction = resolveMvpActionForQuestion(question, null, false);
+        if (fallbackAction !== "none") {
+          _executeSplitAction(question, fallbackAction);
+        } else {
+          appendChatMessage("ai", _t("error.aiUnavailable", "현재 AI 안내를 연결하지 못했습니다."));
+          setJourneyState(JOURNEY_ANSWER);
+        }
       });
     });
+  }
+
+  function _executeSplitAction(question, action) {
+    if (action === "illegal_parking") {
+      beginMvpSplitThenChoreography(question, "illegal_parking");
+    } else if (action === "housing_department") {
+      beginMvpSplitThenChoreography(question, "housing_department");
+    } else if (action === "bulky_waste") {
+      beginMvpSplitThenChoreography(question, "bulky_waste");
+    } else if (action === "passport_guidance") {
+      beginMvpSplitThenChoreography(question, "passport_guidance");
+    } else if (action === "unmanned_kiosk") {
+      beginMvpSplitThenChoreography(question, "unmanned_kiosk");
+    } else if (action === "streetlight_report") {
+      beginMvpSplitThenChoreography(question, "streetlight_report");
+    } else if (action === "litter_ai_assist") {
+      beginMvpSplitThenChoreography(question, "litter_ai_assist");
+    } else if (isMayorAction(action) || action === "mayor_message_assist") {
+      startMayorProposalEntry({
+        source: "chat",
+        skipUserMessage: true,
+        useActionConfirm: true
+      });
+    }
+    // "none" or any other value: no clone move (silent noop).
   }
 
   function beginMvpSplitThenChoreography(question, action) {
@@ -2826,9 +2841,6 @@
 
     var titleEl = chatShell ? chatShell.querySelector(".chat-shell__title") : null;
     _setText(titleEl, i18n.t("chat.title"));
-
-    var badgeEl = chatShell ? chatShell.querySelector(".chat-shell__badge") : null;
-    _setText(badgeEl, i18n.t("chat.badge"));
 
     // #1121: PADIEM attribution + disclosure stay fixed shell markup
     // (not localized / not rewritten by JS).

@@ -987,7 +987,7 @@ async function runVietnameseMayorChipFlow(browser) {
   // Shell language contract
   const shellTitle = page.locator(".chat-shell__title");
   await shellTitle.waitFor({ state: "visible", timeout: 5000 });
-  assert.strictEqual(await shellTitle.innerText(), "BUKGU AI CIVIC NAVIGATOR", `[${label}] shell title`);
+  assert.strictEqual(await shellTitle.innerText(), "NAVIGATOR", `[${label}] shell title`);
 
   const langSelect = page.locator("#chat-lang");
   assert.strictEqual(await langSelect.inputValue(), "vi", `[${label}] lang selector value`);
