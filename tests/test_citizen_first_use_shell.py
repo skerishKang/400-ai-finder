@@ -548,6 +548,25 @@ def test_canvas_cursor_has_visible_ai_identity_and_canvas_scoped_targeting():
     assert "_demoCanvas.querySelector(selectorOrEl)" in CANVAS
 
 
+def test_decorative_ai_avatars_and_cursor_are_hidden_from_a11y_tree():
+    """#1175: visual AI/A markers stay; decorative labels leave the AX tree."""
+    # Welcome avatar in static HTML
+    assert 'class="chat-avatar" aria-hidden="true">A</div>' in HTML
+    assert 'class="chat-avatar" aria-label="AI"' not in HTML
+    # Runtime avatar constructors (shell + choreography)
+    assert 'avatar.setAttribute("aria-hidden", "true")' in JS
+    assert 'avatar.setAttribute("aria-label", "AI")' not in JS
+    assert 'avatar.setAttribute("aria-hidden", "true")' in CHOREO
+    assert 'avatar.setAttribute("aria-label", "AI")' not in CHOREO
+    # Choreography/canvas HTML strings
+    assert 'class="chat-avatar" aria-hidden="true"' in CHOREO
+    assert 'class="chat-avatar" aria-label="AI"' not in CHOREO
+    assert 'class="chat-avatar" aria-hidden="true"' in CANVAS
+    assert 'class="chat-avatar" aria-label="AI"' not in CANVAS
+    # Visual cursor keeps "AI" label but is decorative at the root
+    assert '_cursorEl.setAttribute("aria-hidden", "true")' in CANVAS
+
+
 def test_mobile_split_uniformly_scales_the_official_canvas():
     assert "function fitToViewport()" in CANVAS
     assert 'window.matchMedia("(max-width: 767px)")' in CANVAS
