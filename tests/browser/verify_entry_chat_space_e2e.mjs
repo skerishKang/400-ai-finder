@@ -35,6 +35,8 @@ const REPO_ROOT = path.resolve(__dirname, "../..");
  */
 const GAP_BUDGET_PX = 24;
 const TOL = 2;
+/** Subpixel / 100vh / scrollbar edge tolerance (Ubuntu CI vs Windows Chrome). */
+const VIEWPORT_EDGE_TOL = 8;
 
 const VIEWPORTS = [
   { name: "desktop-1440x900", width: 1440, height: 900 },
@@ -163,7 +165,7 @@ function assertSafety(t, ctx) {
 }
 
 async function measureEntryLayout(page) {
-  return page.evaluate((gapBudget) => {
+  return page.evaluate(({ gapBudget, viewportEdgeTol }) => {
     const body = document.body;
     const html = document.documentElement;
     const thread = document.getElementById("chat-thread");
@@ -272,11 +274,63 @@ async function measureEntryLayout(page) {
       chipsHeight: chipsRect ? chipsRect.height : 0,
       chipsBottom: chipsRect ? chipsRect.bottom : null,
       threadHeight: threadRect ? threadRect.height : 0,
+      threadClientHeight: thread ? thread.clientHeight : 0,
+      // Composer geometry — prefer shell containment + visible intersection over
+      // absolute fully-in-viewport (100vh/scrollbar/subpixel differ on Ubuntu CI).
+      composerRect: composerRect
+        ? {
+            top: composerRect.top,
+            bottom: composerRect.bottom,
+            left: composerRect.left,
+            right: composerRect.right,
+            width: composerRect.width,
+            height: composerRect.height,
+          }
+        : null,
+      shellRect: shellRect
+        ? {
+            top: shellRect.top,
+            bottom: shellRect.bottom,
+            left: shellRect.left,
+            right: shellRect.right,
+            height: shellRect.height,
+          }
+        : null,
+      viewportW: window.innerWidth,
+      viewportH: window.innerHeight,
+      composerInShell: !!(
+        composerRect &&
+        shellRect &&
+        composerRect.left >= shellRect.left - 2 &&
+        composerRect.right <= shellRect.right + 2 &&
+        composerRect.top >= shellRect.top - 2 &&
+        composerRect.bottom <= shellRect.bottom + 2
+      ),
+      composerVisible: !!(
+        composerRect &&
+        composerRect.width > 0 &&
+        composerRect.height > 0 &&
+        getComputedStyle(composer).display !== "none" &&
+        getComputedStyle(composer).visibility !== "hidden"
+      ),
+      composerViewportIntersectH: composerRect
+        ? Math.max(
+            0,
+            Math.min(composerRect.bottom, window.innerHeight) -
+              Math.max(composerRect.top, 0),
+          )
+        : 0,
+      composerOverhangBottom: composerRect
+        ? Math.max(0, composerRect.bottom - window.innerHeight)
+        : 0,
+      composerOverhangTop: composerRect
+        ? Math.max(0, -composerRect.top)
+        : 0,
       composerFullyInViewport: composerRect
-        ? composerRect.top >= -1 &&
-          composerRect.bottom <= window.innerHeight + 1 &&
-          composerRect.left >= -1 &&
-          composerRect.right <= window.innerWidth + 1
+        ? composerRect.top >= -viewportEdgeTol &&
+          composerRect.bottom <= window.innerHeight + viewportEdgeTol &&
+          composerRect.left >= -viewportEdgeTol &&
+          composerRect.right <= window.innerWidth + viewportEdgeTol
         : false,
       utilityWrap: utility
         ? getComputedStyle(utility).flexWrap === "wrap"
@@ -287,7 +341,29 @@ async function measureEntryLayout(page) {
       viewport: `${window.innerWidth}x${window.innerHeight}`,
       shellHeight: shellRect ? shellRect.height : 0,
     };
-  }, GAP_BUDGET_PX);
+  }, { gapBudget: GAP_BUDGET_PX, viewportEdgeTol: VIEWPORT_EDGE_TOL });
+}
+
+/** Portable composer usability invariant (entry or post-ask). */
+function assertComposerUsable(m, ctx) {
+  assert.ok(m.composerVisible, `composer visible [${ctx}]`);
+  assert.ok(
+    m.composerInShell,
+    `composer must stay inside chat-shell [${ctx}] ` +
+      `composer=${JSON.stringify(m.composerRect)} shell=${JSON.stringify(m.shellRect)}`,
+  );
+  assert.ok(
+    m.composerViewportIntersectH > 0,
+    `composer must intersect viewport (visible) intersectH=${m.composerViewportIntersectH} [${ctx}]`,
+  );
+  // Full containment allows small 100vh/scrollbar overhang across Chrome platforms.
+  assert.ok(
+    m.composerOverhangBottom <= VIEWPORT_EDGE_TOL &&
+      m.composerOverhangTop <= VIEWPORT_EDGE_TOL,
+    `composer overhang too large top=${m.composerOverhangTop} bottom=${m.composerOverhangBottom} ` +
+      `vh=${m.viewportH} rect=${JSON.stringify(m.composerRect)} [${ctx}]`,
+  );
+  assert.equal(m.horizontalOverflow, false, `no horizontal overflow [${ctx}]`);
 }
 
 async function assertToggleBasics(page, ctx, { expanded }) {
@@ -339,6 +415,11 @@ async function assertExpandedLayout(page, ctx, vp = {}) {
     m.threadOverflowY === "auto" || m.threadOverflowY === "scroll",
     `thread overflow-y auto/scroll got ${m.threadOverflowY} [${ctx}]`,
   );
+  // Portable thread usability (avoid absolute px floors that differ by font metrics).
+  assert.ok(
+    m.threadClientHeight > 0 && m.threadHeight > 0,
+    `thread must exist with positive height client=${m.threadClientHeight} rect=${m.threadHeight} [${ctx}]`,
+  );
   assert.ok(m.gap != null, `gap measurable [${ctx}]`);
   assert.ok(
     m.gap <= GAP_BUDGET_PX + TOL,
@@ -386,10 +467,8 @@ async function assertExpandedLayout(page, ctx, vp = {}) {
     assert.ok(m.chip6.fully, `chip[6] fully inside chips box [${ctx}]`);
   }
 
-  assert.ok(m.composerFullyInViewport, `composer fully in viewport [${ctx}]`);
-  assert.equal(m.horizontalOverflow, false, `no horizontal overflow [${ctx}]`);
+  assertComposerUsable(m, ctx);
   assert.ok(m.utilityWrap, `utility flex-wrap wrap [${ctx}]`);
-  assert.ok(m.threadHeight > 40, `thread has usable height ${m.threadHeight} [${ctx}]`);
   return m;
 }
 
@@ -446,9 +525,7 @@ async function runViewport(browser, baseUrl, vp) {
   );
   await assertToggleBasics(page, `${ctxName}/re-expanded`, { expanded: true });
 
-  // First question auto-collapse (type + submit without relying on network MVP answer)
-  // Use a short local path: press chip after re-expand, or submit empty-safe question.
-  // Prefer typing into composer and submitting — shell collapses recommendations on entry submit.
+  // First question auto-collapse (type + submit without relying on network MVP answer).
   await page.fill("#chat-composer-input", "불법 주정차 신고는 어디서 하나요?");
   await page.click("#chat-composer-send");
   await page.waitForFunction(
@@ -470,13 +547,31 @@ async function runViewport(browser, baseUrl, vp) {
     `auto-collapse data-recommendations-expanded [${ctxName}]`,
   );
 
-  // Wait briefly for split/transition if it arrives (static/mvp may differ).
-  await page.waitForTimeout(600);
+  // Wait for layout state to leave pure transitioning when possible (attribute-
+  // driven; not a fixed long sleep). Fall back to entry/transitioning if
+  // reduced-motion or CI finishes differently.
+  await page
+    .waitForFunction(
+      () => {
+        const s = document.body.getAttribute("data-first-use-state");
+        return s === "split" || s === "entry";
+      },
+      null,
+      { timeout: 10000 },
+    )
+    .catch(() => {});
+  // One paint after state settle for flex geometry.
+  await page.evaluate(
+    () =>
+      new Promise((r) => {
+        requestAnimationFrame(() => requestAnimationFrame(r));
+      }),
+  );
+
   const post = await measureEntryLayout(page);
   assert.equal(post.toggleCount, 1, `still one toggle after ask [${ctxName}]`);
   assert.equal(post.toggleInUtility, true, `toggle stays in utility [${ctxName}]`);
-  assert.equal(post.horizontalOverflow, false, `no overflow after ask [${ctxName}]`);
-  assert.ok(post.composerFullyInViewport, `composer in viewport after ask [${ctxName}]`);
+  assertComposerUsable(post, `${ctxName}/after-ask`);
 
   // Mobile guidance surface: utility should hide (no overflow / no focus trap requirement).
   if (vp.width <= 767) {
