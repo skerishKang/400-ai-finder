@@ -10,8 +10,37 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+
+
+def _prefer_repo_imports() -> None:
+    """Prefer this repository when a foreign PYTHONPATH ``src`` package exists."""
+    root = str(ROOT)
+    cleaned: list[str] = [root]
+    for entry in sys.path:
+        if not entry or entry == root:
+            continue
+        path = Path(entry)
+        # Drop another project's package root that owns src/__init__.py
+        if (path / "src" / "__init__.py").is_file():
+            continue
+        # Drop a path that *is* a foreign src package directory
+        if path.name == "src" and (path / "__init__.py").is_file():
+            continue
+        cleaned.append(entry)
+    sys.path[:] = cleaned
+    for key in list(sys.modules):
+        if key == "src" or key.startswith("src."):
+            mod = sys.modules[key]
+            file_hint = getattr(mod, "__file__", "") or ""
+            if file_hint and not file_hint.startswith(root):
+                del sys.modules[key]
+            elif key == "src":
+                paths = list(getattr(mod, "__path__", []) or [])
+                if paths and not any(p.startswith(root) for p in paths):
+                    del sys.modules[key]
+
+
+_prefer_repo_imports()
 
 from src.bukgu_official_snapshot import (  # noqa: E402
     SNAPSHOT_ROOT,

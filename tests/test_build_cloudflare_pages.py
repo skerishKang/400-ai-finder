@@ -177,6 +177,7 @@ def test_static_first_use_shell_files_exist(build_dir):
     required = [
         "citizen-action-demo.html",
         "bukgu-official-snapshots.js",
+        "bukgu-home-clone-fixture.js",
         "citizen-first-use-shell.js",
         "citizen-first-use-shell.css",
         "citizen-first-choreography.js",
@@ -191,14 +192,34 @@ def test_static_html_loads_first_use_shell_in_order(build_dir):
     html_path = os.path.join(build_dir, "static", "citizen-action-demo.html")
     html = open(html_path, encoding="utf-8").read()
     snapshot_idx = html.index("bukgu-official-snapshots.js")
+    home_fixture_idx = html.index("bukgu-home-clone-fixture.js")
     canvas_idx = html.index("citizen-action-demo-canvas.js")
     shell_idx = html.index("citizen-first-use-shell.js")
     choreo_idx = html.index("citizen-first-choreography.js")
     assert snapshot_idx < canvas_idx, (
         "bukgu-official-snapshots.js must load before citizen-action-demo-canvas.js"
     )
+    assert snapshot_idx < home_fixture_idx < canvas_idx, (
+        "bukgu-home-clone-fixture.js must load after snapshots and before canvas"
+    )
     assert shell_idx < choreo_idx, (
         "citizen-first-use-shell.js must load before citizen-first-choreography.js"
+    )
+
+
+def test_resident_demo_loads_home_clone_fixture_before_canvas(build_dir):
+    """#1170: resident embeds civic canvas and must load the home fixture global
+    before canvas so Page Agent home targets remain available."""
+    html_path = os.path.join(
+        build_dir, "examples", "page-agent", "resident", "index.html"
+    )
+    assert os.path.isfile(html_path), "resident demo index missing from build"
+    html = open(html_path, encoding="utf-8").read()
+    snapshot_idx = html.index("bukgu-official-snapshots.js")
+    fixture_idx = html.index("bukgu-home-clone-fixture.js")
+    canvas_idx = html.index("citizen-action-demo-canvas.js")
+    assert snapshot_idx < fixture_idx < canvas_idx, (
+        "resident must load home fixture after snapshots and before canvas"
     )
 
     built_snapshot = os.path.join(build_dir, "static", "bukgu-official-snapshots.js")
@@ -206,6 +227,12 @@ def test_static_html_loads_first_use_shell_in_order(build_dir):
         _REPO_ROOT, "src", "web", "static", "bukgu-official-snapshots.js"
     )
     assert open(built_snapshot, "rb").read() == open(source_snapshot, "rb").read()
+
+    built_home = os.path.join(build_dir, "static", "bukgu-home-clone-fixture.js")
+    source_home = os.path.join(
+        _REPO_ROOT, "src", "web", "static", "bukgu-home-clone-fixture.js"
+    )
+    assert open(built_home, "rb").read() == open(source_home, "rb").read()
 
 
 def test_live_official_snapshot_artifact_is_identical(live_build_dir):
