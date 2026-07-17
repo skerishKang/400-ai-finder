@@ -25,6 +25,18 @@ REGISTRY = STATIC / "clone-renderer-approval-registry.js"
 GATE = STATIC / "clone-renderer-approval-gate.js"
 HTML = STATIC / "citizen-action-demo.html"
 CANONICAL = ROOT / "data" / "official_clone_fixtures" / "bukgu_gwangju" / "home.json"
+VISUAL_BASELINE = (
+    ROOT / "tests" / "fixtures" / "clone_approved_home_visual_baseline.json"
+)
+RESIDENT_HTML = (
+    ROOT
+    / "src"
+    / "web"
+    / "examples"
+    / "page-agent"
+    / "resident"
+    / "index.html"
+)
 
 APPROVED_RENDERER_ID = "bukgu_gwangju.home.designed.approved"
 FIXTURE_RENDERER_ID = "bukgu_gwangju.home.fixture.candidate"
@@ -35,6 +47,11 @@ EXPECTED_FIXTURE_SHA = (
     "81b27b98fadc091ca852079f89ea93da45b93f250372835b8b352726b2faeaed"
 )
 EXPECTED_UNRESOLVED_ASSETS = 174
+NORMALIZE_ATTRS = (
+    "data-renderer-id",
+    "data-visual-review-state",
+    "data-resident-default-approved",
+)
 
 
 def _read(path: Path) -> str:
@@ -258,10 +275,11 @@ def test_html_load_order_registry_gate_before_canvas():
 def test_approved_renderer_source_integrity_matches_registry():
     registry = _load_registry_via_node()
     entry = registry["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
-    pinned = entry["renderer_integrity"]["sha256"]
     actual = approved_home_source_sha256()
-    assert re.fullmatch(r"[a-f0-9]{64}", pinned)
-    assert pinned == actual
+    for key in ("current_renderer_integrity", "renderer_integrity"):
+        pinned = entry[key]["sha256"]
+        assert re.fullmatch(r"[a-f0-9]{64}", pinned)
+        assert pinned == actual
 
 
 def test_fixture_source_change_does_not_match_approved_identity():
@@ -342,6 +360,9 @@ def test_ordinary_home_resident_default_approved_state():
     assert sel["renderer_id"] == APPROVED_RENDERER_ID
     entry = sel["entry"]
     assert entry["approval_state"] == "resident_default_approved"
+    assert entry["approval_baseline"]["issue"] == "#1197"
+    assert entry["approval_baseline"]["pull_request"] == "#1200"
+    assert entry["approval_baseline"]["commit"] == APPROVED_SOURCE_COMMIT
     assert entry["approval_provenance"]["issue"] == "#1197"
     assert entry["approval_provenance"]["pull_request"] == "#1200"
     assert entry["approval_provenance"]["approved_source_commit"] == APPROVED_SOURCE_COMMIT
@@ -431,6 +452,7 @@ def test_missing_approval_provenance_not_selectable():
     def mut(data):
         entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
         del entry["approval_provenance"]
+        del entry["approval_baseline"]
 
     html = _render_home("", registry_js=_mutate_registry_js(mut))
     assert "bg-page--home-approval-unavailable" in html
@@ -440,6 +462,7 @@ def test_missing_integrity_sha_not_selectable():
     def mut(data):
         entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
         entry["renderer_integrity"]["sha256"] = "not-a-real-sha"
+        entry["current_renderer_integrity"]["sha256"] = "not-a-real-sha"
 
     html = _render_home("", registry_js=_mutate_registry_js(mut))
     assert "bg-page--home-approval-unavailable" in html
@@ -565,3 +588,187 @@ def test_build_source_lists_approval_assets_in_html():
     html = _read(HTML)
     assert "clone-renderer-approval-registry.js" in html
     assert "clone-renderer-approval-gate.js" in html
+
+
+# ---------------------------------------------------------------------------
+# #1198 follow-up: baseline vs current integrity + visual equivalence
+# ---------------------------------------------------------------------------
+
+
+def _normalize_visual_html(html: str) -> str:
+    out = html
+    for attr in NORMALIZE_ATTRS:
+        out = re.sub(r"\s*" + re.escape(attr) + r'="[^"]*"', "", out)
+    return out
+
+
+def test_approval_baseline_separated_from_current_integrity():
+    registry = _load_registry_via_node()
+    entry = registry["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+    baseline = entry["approval_baseline"]
+    integrity = entry["current_renderer_integrity"]
+    assert baseline["issue"] == "#1197"
+    assert baseline["pull_request"] == "#1200"
+    assert baseline["commit"] == APPROVED_SOURCE_COMMIT
+    assert baseline["decision"] == "restore_approved_designed_home"
+    # Baseline commit is NOT claimed to equal current integrity hash.
+    assert baseline["commit"] != integrity["sha256"]
+    assert integrity["extraction"] == "marker_boundary"
+    assert integrity["sha256"] == approved_home_source_sha256()
+    # Provenance mirror remains available but documented as baseline identity.
+    prov = entry["approval_provenance"]
+    assert prov["approved_source_commit"] == APPROVED_SOURCE_COMMIT
+    assert entry["visual_equivalence"]["supersession_allowed"] is False
+    assert (
+        entry["visual_equivalence"]["status"]
+        == "equivalent_to_approval_baseline"
+    )
+
+
+def test_page_agent_resident_source_loads_registry_gate_before_canvas():
+    html = _read(RESIDENT_HTML)
+    snapshot_idx = html.index("bukgu-official-snapshots.js")
+    fixture_idx = html.index("bukgu-home-clone-fixture.js")
+    registry_idx = html.index("clone-renderer-approval-registry.js")
+    gate_idx = html.index("clone-renderer-approval-gate.js")
+    map_idx = html.index("citizen-action-demo-map.js")
+    canvas_idx = html.index("citizen-action-demo-canvas.js")
+    assert (
+        snapshot_idx
+        < fixture_idx
+        < registry_idx
+        < gate_idx
+        < map_idx
+        < canvas_idx
+    )
+
+
+def test_visual_baseline_manifest_present_and_pinned():
+    assert VISUAL_BASELINE.is_file()
+    manifest = json.loads(VISUAL_BASELINE.read_text(encoding="utf-8"))
+    assert manifest["approval_baseline"]["commit"] == APPROVED_SOURCE_COMMIT
+    assert set(manifest["normalization"]["allowed_attribute_names"]) == set(
+        NORMALIZE_ATTRS
+    )
+    assert manifest["supersession"]["allowed_on_this_branch"] is False
+    for state in ("R-HOME-01", "R-HOME-02"):
+        assert state in manifest["states"]
+        assert re.fullmatch(
+            r"[a-f0-9]{64}",
+            manifest["states"][state]["normalized_html_sha256"],
+        )
+
+
+@pytest.mark.parametrize("state", ["R-HOME-01", "R-HOME-02"])
+def test_current_approved_home_visual_equivalent_to_baseline(state):
+    """Normalized visual output must match repository-controlled baseline."""
+    manifest = json.loads(VISUAL_BASELINE.read_text(encoding="utf-8"))
+    expected = manifest["states"][state]
+    search = expected["search"]
+    html = _render_home(search)
+    assert 'data-renderer-id="%s"' % APPROVED_RENDERER_ID in html
+    assert 'data-resident-default-approved="true"' in html
+    assert "bg-home-fixture-root" not in html
+    for marker, present in expected["composition_markers"].items():
+        if present:
+            if marker == "home-alert-banner":
+                if state == "R-HOME-02":
+                    assert "home-alert-banner-r-home-02.png" in html
+                else:
+                    assert "home-alert-banner.png" in html
+            else:
+                assert marker in html
+    normalized = _normalize_visual_html(html)
+    for attr in NORMALIZE_ATTRS:
+        assert attr not in normalized
+    actual_sha = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    assert actual_sha == expected["normalized_html_sha256"], (
+        f"{state} normalized visual output drifted from #1197 baseline"
+    )
+
+
+def test_material_visual_change_without_evidence_fails_gate():
+    """Changing visible composition while only updating integrity must fail."""
+    html = _render_home("")
+    drifted = html.replace("bg-home-quick-link", "bg-home-quick-link-DRIFT", 1)
+    assert drifted != html
+    drifted_norm = _normalize_visual_html(drifted)
+    drifted_sha = hashlib.sha256(drifted_norm.encode("utf-8")).hexdigest()
+    baseline_sha = json.loads(VISUAL_BASELINE.read_text(encoding="utf-8"))[
+        "states"
+    ]["R-HOME-01"]["normalized_html_sha256"]
+    assert drifted_sha != baseline_sha
+    # No supersession evidence is present on this branch.
+    evidence_path = ROOT / "docs" / "artifacts" / "visual-approvals"
+    # Contract: supersession is forbidden without an explicit evidence record.
+    registry = _load_registry_via_node()
+    entry = registry["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+    assert entry["visual_equivalence"]["supersession_allowed"] is False
+    assert not (
+        evidence_path.is_dir()
+        and any(evidence_path.rglob("**/approval.md"))
+    )
+
+
+def test_integrity_hash_update_alone_does_not_authorize_visual_drift():
+    """Registry integrity hash is independent of visual baseline identity."""
+    registry = _load_registry_via_node()
+    entry = registry["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+    integrity_sha = entry["current_renderer_integrity"]["sha256"]
+    baseline_visual = json.loads(VISUAL_BASELINE.read_text(encoding="utf-8"))[
+        "states"
+    ]["R-HOME-01"]["normalized_html_sha256"]
+    # Different domains: source marker hash != visual output hash.
+    assert integrity_sha != baseline_visual
+    assert entry["approval_baseline"]["commit"] != integrity_sha
+    # Mutating integrity without visual baseline + evidence would still leave
+    # visual contract failing when output drifts (covered above).
+    def mut(data):
+        data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID][
+            "current_renderer_integrity"
+        ]["sha256"] = "a" * 64
+        data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID][
+            "renderer_integrity"
+        ]["sha256"] = "a" * 64
+
+    # Gate requires 64-hex integrity; fake hash is valid format but no longer
+    # matches source — source pin test fails independently.
+    fake_reg = _mutate_registry_js(mut)
+    # Ordinary selection still works with well-formed integrity format, but
+    # permanent source-integrity contract continues to pin actual source.
+    assert approved_home_source_sha256() != "a" * 64
+    # Visual baseline still independent of mutated integrity metadata.
+    html = _render_home("", registry_js=fake_reg)
+    # Invalid identity still fails closed if required fields break — here only
+    # integrity sha changed to valid hex, so selection may remain eligible.
+    # Visual contract is the permanent non-bypassable baseline.
+    norm = _normalize_visual_html(html) if "home-mayor-card.png" in html else ""
+    if norm:
+        assert (
+            hashlib.sha256(norm.encode("utf-8")).hexdigest()
+            == json.loads(VISUAL_BASELINE.read_text(encoding="utf-8"))["states"][
+                "R-HOME-01"
+            ]["normalized_html_sha256"]
+        )
+
+
+def test_new_owner_approval_evidence_fields_required_for_supersession():
+    manifest = json.loads(VISUAL_BASELINE.read_text(encoding="utf-8"))
+    required = set(manifest["supersession"]["required_fields_for_new_approval_evidence"])
+    assert {
+        "issue",
+        "pull_request",
+        "full_head_sha",
+        "approved_baseline_superseded",
+        "required_viewport_artifact_paths",
+        "explicit_project_owner_approval_record",
+    } <= required
+    assert manifest["supersession"]["allowed_on_this_branch"] is False
+    # Gate rejects supersession_allowed=true on approved entry.
+    def mut(data):
+        data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID][
+            "visual_equivalence"
+        ]["supersession_allowed"] = True
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" in html

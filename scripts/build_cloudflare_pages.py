@@ -779,9 +779,8 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
     if os.path.isdir(examples_src):
         examples_dst = os.path.join(dist_root, "examples", "page-agent")
         _copy_tree(examples_src, examples_dst)
-        # #1170: resident embeds the civic canvas, which fail-closes home without
-        # the browser fixture global. Ensure the script is present even if a
-        # stale examples tree is copied.
+        # #1170 / #1198: resident embeds civic canvas; fixture + approval gate
+        # must load before map/canvas even if a stale examples tree is copied.
         resident_index = os.path.join(examples_dst, "resident", "index.html")
         if os.path.isfile(resident_index):
             with open(resident_index, encoding="utf-8") as handle:
@@ -789,6 +788,22 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
             fixture_tag = (
                 '<script src="../../../static/bukgu-home-clone-fixture.js"></script>'
             )
+            registry_tag = (
+                '<script src="../../../static/clone-renderer-approval-registry.js">'
+                "</script>"
+            )
+            gate_tag = (
+                '<script src="../../../static/clone-renderer-approval-gate.js">'
+                "</script>"
+            )
+            map_tag = (
+                '<script src="../../../static/citizen-action-demo-map.js"></script>'
+            )
+            canvas_tag = (
+                '<script src="../../../static/citizen-action-demo-canvas.js">'
+                "</script>"
+            )
+            changed = False
             if "bukgu-home-clone-fixture.js" not in resident_html:
                 if "bukgu-official-snapshots.js" in resident_html:
                     resident_html = resident_html.replace(
@@ -799,11 +814,36 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
                     )
                 else:
                     resident_html = resident_html.replace(
-                        '<script src="../../../static/citizen-action-demo-canvas.js"></script>',
-                        fixture_tag
-                        + '\n<script src="../../../static/citizen-action-demo-canvas.js"></script>',
+                        canvas_tag,
+                        fixture_tag + "\n" + canvas_tag,
                         1,
                     )
+                changed = True
+            if "clone-renderer-approval-registry.js" not in resident_html:
+                if "bukgu-home-clone-fixture.js" in resident_html:
+                    resident_html = resident_html.replace(
+                        fixture_tag,
+                        fixture_tag + "\n" + registry_tag,
+                        1,
+                    )
+                else:
+                    resident_html = resident_html.replace(
+                        map_tag, registry_tag + "\n" + map_tag, 1
+                    )
+                changed = True
+            if "clone-renderer-approval-gate.js" not in resident_html:
+                if "clone-renderer-approval-registry.js" in resident_html:
+                    resident_html = resident_html.replace(
+                        registry_tag,
+                        registry_tag + "\n" + gate_tag,
+                        1,
+                    )
+                else:
+                    resident_html = resident_html.replace(
+                        map_tag, gate_tag + "\n" + map_tag, 1
+                    )
+                changed = True
+            if changed:
                 _write_file(resident_index, resident_html)
         print("[build] copied examples/page-agent")
 

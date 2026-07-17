@@ -2,8 +2,15 @@
  * Clone renderer approval registry (#1198).
  *
  * Repository-controlled, build-embedded metadata. Not fetched at runtime.
- * Records existing #1197 / PR #1200 restoration provenance only — does not
- * invent a new project-owner visual approval event.
+ *
+ * Separates:
+ *   approval_baseline  — which human decision (#1197 / PR #1200) authorized
+ *                        the designed-home resident default
+ *   current_renderer_integrity — marker-boundary SHA of today's source
+ *   visual_equivalence — why current source remains visual-equivalent to
+ *                        the #1197 baseline without inventing a new owner approval
+ *
+ * Does not invent a new project-owner visual approval event.
  */
 (function (root) {
   "use strict";
@@ -35,26 +42,67 @@
             resident_default_approved: true,
             exact: false,
             preview_only: false,
+            // Human decision that authorized this resident default.
+            // This is NOT the current branch head SHA and NOT the current
+            // source integrity hash.
+            approval_baseline: Object.freeze({
+              issue: "#1197",
+              pull_request: "#1200",
+              commit: "87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa",
+              decision: "restore_approved_designed_home",
+              note:
+                "Records the completed #1197 / PR #1200 restoration decision; " +
+                "does not invent a new project-owner visual approval artifact. " +
+                "This commit is the approval baseline identity, not a claim that " +
+                "today's source bytes equal that commit's source bytes.",
+            }),
+            // Backward-compatible provenance mirror of approval_baseline.
             approval_provenance: Object.freeze({
               issue: "#1197",
               pull_request: "#1200",
               decision: "restore_approved_designed_home",
               note:
-                "Records the completed #1197 / PR #1200 restoration decision; " +
-                "does not invent a new project-owner visual approval artifact.",
+                "Legacy field mirroring approval_baseline. " +
+                "approved_source_commit is the #1197 baseline commit identity, " +
+                "not the current source integrity hash.",
               approved_source_commit:
                 "87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa",
             }),
             rollback_renderer_identity: APPROVED_HOME_RENDERER_ID,
+            // Current repository source integrity (marker-boundary SHA).
+            // Independent of approval_baseline.commit.
+            current_renderer_integrity: Object.freeze({
+              algorithm: "sha256",
+              extraction: "marker_boundary",
+              source_path: "src/web/static/citizen-action-demo-canvas.js",
+              marker_begin: "CLONE_APPROVED_HOME_RENDERER_BEGIN",
+              marker_end: "CLONE_APPROVED_HOME_RENDERER_END",
+              sha256:
+                "9af7315fa70e0e9db93a75b0117598e21204f541e689df8773915da8cf294d91",
+            }),
+            // Legacy alias used by earlier #1198 gate checks.
             renderer_integrity: Object.freeze({
               algorithm: "sha256",
               extraction: "marker_boundary",
               source_path: "src/web/static/citizen-action-demo-canvas.js",
               marker_begin: "CLONE_APPROVED_HOME_RENDERER_BEGIN",
               marker_end: "CLONE_APPROVED_HOME_RENDERER_END",
-              // Marker-boundary SHA-256 of _renderApprovedHome source (exclusive of marker lines).
               sha256:
                 "9af7315fa70e0e9db93a75b0117598e21204f541e689df8773915da8cf294d91",
+            }),
+            visual_equivalence: Object.freeze({
+              status: "equivalent_to_approval_baseline",
+              reason:
+                "#1198 adds fail-closed selection metadata only; visible " +
+                "designed-home composition remains equivalent to the #1197 baseline.",
+              baseline_manifest:
+                "tests/fixtures/clone_approved_home_visual_baseline.json",
+              allowed_normalize_attributes: Object.freeze([
+                "data-renderer-id",
+                "data-visual-review-state",
+                "data-resident-default-approved",
+              ]),
+              supersession_allowed: false,
             }),
           }),
           "bukgu_gwangju.home.fixture.candidate": Object.freeze({

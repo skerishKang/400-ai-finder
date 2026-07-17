@@ -110,18 +110,35 @@
     // Pinned designed-home identity is not an exact-clone claim.
     if (entry.exact !== false) return false;
 
+    // approval_baseline: human decision identity (not current source hash).
+    var baseline = _asObject(entry.approval_baseline);
     var prov = _asObject(entry.approval_provenance);
-    if (!prov) return false;
-    if (prov.issue !== "#1197") return false;
-    if (prov.pull_request !== "#1200") return false;
-    if (
-      prov.approved_source_commit !==
-      "87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa"
-    ) {
-      return false;
+    if (!baseline && !prov) return false;
+    if (baseline) {
+      if (baseline.issue !== "#1197") return false;
+      if (baseline.pull_request !== "#1200") return false;
+      if (
+        baseline.commit !== "87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa"
+      ) {
+        return false;
+      }
+      if (baseline.decision !== "restore_approved_designed_home") return false;
+    }
+    if (prov) {
+      if (prov.issue !== "#1197") return false;
+      if (prov.pull_request !== "#1200") return false;
+      if (
+        prov.approved_source_commit !==
+        "87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa"
+      ) {
+        return false;
+      }
     }
 
-    var integrity = _asObject(entry.renderer_integrity);
+    // current_renderer_integrity (preferred) or legacy renderer_integrity.
+    var integrity =
+      _asObject(entry.current_renderer_integrity) ||
+      _asObject(entry.renderer_integrity);
     if (!integrity) return false;
     if (integrity.algorithm !== "sha256") return false;
     if (integrity.extraction !== "marker_boundary") return false;
@@ -136,6 +153,13 @@
       integrity.marker_end !== "CLONE_APPROVED_HOME_RENDERER_END"
     ) {
       return false;
+    }
+
+    // Visual equivalence must not claim a new owner approval on this baseline.
+    var ve = _asObject(entry.visual_equivalence);
+    if (ve) {
+      if (ve.supersession_allowed === true) return false;
+      if (ve.status !== "equivalent_to_approval_baseline") return false;
     }
     return true;
   }

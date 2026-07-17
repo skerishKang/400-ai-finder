@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "manifest_id": "clone_approved_home_visual_baseline.v1",
+  "purpose": "Repository-controlled visual baseline for the #1197 approved designed home renderer. Used to prove #1198 gate/metadata wiring remains visual-equivalent without inventing a new project-owner approval.",
+  "approval_baseline": {
+    "issue": "#1197",
+    "pull_request": "#1200",
+    "commit": "87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa",
+    "decision": "restore_approved_designed_home"
+  },
+  "renderer_id": "bukgu_gwangju.home.designed.approved",
+  "renderer_symbol": "_renderApprovedHome",
+  "normalization": {
+    "description": "Strip only non-visual #1198 approval identity attributes before hashing. Class, style, text, asset URL, element order, and responsive composition markers are never normalized.",
+    "allowed_attribute_names": [
+      "data-renderer-id",
+      "data-visual-review-state",
+      "data-resident-default-approved"
+    ]
+  },
+  "states": {
+    "R-HOME-01": {
+      "search": "",
+      "normalized_html_sha256": "3bf98c990278c1db7cdd8c6f91392ff4ac167048e776e6acb6f1c26cd1036734",
+      "reference_state": "R-HOME-01",
+      "composition_markers": {
+        "home-mayor-card.png": true,
+        "bg-home-quick-link": true,
+        "home-alert-banner": true
+      }
+    },
+    "R-HOME-02": {
+      "search": "?home-reference=R-HOME-02",
+      "normalized_html_sha256": "2e1152fe51ce8d0556c8917e16390f377be489a677636192f8affe510c7187eb",
+      "reference_state": "R-HOME-02",
+      "composition_markers": {
+        "home-mayor-card.png": true,
+        "bg-home-quick-link": true,
+        "home-alert-banner": true
+      }
+    }
+  },
+  "supersession": {
+    "allowed_on_this_branch": false,
+    "required_fields_for_new_approval_evidence": [
+      "issue",
+      "pull_request",
+      "full_head_sha",
+      "approved_baseline_superseded",
+      "required_viewport_artifact_paths",
+      "explicit_project_owner_approval_record"
+    ]
+  }
+}
