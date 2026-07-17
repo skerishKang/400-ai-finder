@@ -276,10 +276,13 @@ def test_approved_renderer_source_integrity_matches_registry():
     registry = _load_registry_via_node()
     entry = registry["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
     actual = approved_home_source_sha256()
-    for key in ("current_renderer_integrity", "renderer_integrity"):
-        pinned = entry[key]["sha256"]
-        assert re.fullmatch(r"[a-f0-9]{64}", pinned)
-        assert pinned == actual
+    # Canonical authorization object pins source integrity.
+    pinned = entry["current_renderer_integrity"]["sha256"]
+    assert re.fullmatch(r"[a-f0-9]{64}", pinned)
+    assert pinned == actual
+    # Legacy mirror may remain for read-compat but is not authorization source.
+    if "renderer_integrity" in entry:
+        assert entry["renderer_integrity"]["sha256"] == actual
 
 
 def test_fixture_source_change_does_not_match_approved_identity():
@@ -304,7 +307,7 @@ def test_approved_source_drift_fails_contract():
     drifted_hash = hashlib.sha256(drifted.encode("utf-8")).hexdigest()
     pinned = _load_registry_via_node()["routes"]["home"]["renderers"][
         APPROVED_RENDERER_ID
-    ]["renderer_integrity"]["sha256"]
+    ]["current_renderer_integrity"]["sha256"]
     assert drifted_hash != pinned
 
 
@@ -448,20 +451,20 @@ def test_resident_default_approved_false_not_selectable():
     assert "bg-page--home-approval-unavailable" in html
 
 
-def test_missing_approval_provenance_not_selectable():
+def test_missing_approval_baseline_not_selectable_even_with_legacy_provenance():
     def mut(data):
         entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
-        del entry["approval_provenance"]
         del entry["approval_baseline"]
+        # Legacy provenance intentionally retained — must not authorize alone.
 
     html = _render_home("", registry_js=_mutate_registry_js(mut))
     assert "bg-page--home-approval-unavailable" in html
+    assert "home-mayor-card.png" not in html
 
 
 def test_missing_integrity_sha_not_selectable():
     def mut(data):
         entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
-        entry["renderer_integrity"]["sha256"] = "not-a-real-sha"
         entry["current_renderer_integrity"]["sha256"] = "not-a-real-sha"
 
     html = _render_home("", registry_js=_mutate_registry_js(mut))
@@ -741,7 +744,9 @@ def test_integrity_hash_update_alone_does_not_authorize_visual_drift():
     html = _render_home("", registry_js=fake_reg)
     # Invalid identity still fails closed if required fields break — here only
     # integrity sha changed to valid hex, so selection may remain eligible.
-    # Visual contract is the permanent non-bypassable baseline.
+    # Visual output is checked by the repository-controlled permanent drift
+    # contract (baseline manifest); remote review is required for baseline
+    # changes and project-owner evidence is required for material supersession.
     norm = _normalize_visual_html(html) if "home-mayor-card.png" in html else ""
     if norm:
         assert (
@@ -772,3 +777,121 @@ def test_new_owner_approval_evidence_fields_required_for_supersession():
 
     html = _render_home("", registry_js=_mutate_registry_js(mut))
     assert "bg-page--home-approval-unavailable" in html
+
+
+# ---------------------------------------------------------------------------
+# Canonical schema v1: mandatory objects; legacy mirrors never authorize
+# ---------------------------------------------------------------------------
+
+
+def test_canonical_missing_baseline_legacy_provenance_kept_unavailable():
+    def mut(data):
+        entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+        del entry["approval_baseline"]
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" in html
+    assert "bg-home-fixture-root" not in html
+    assert "home-mayor-card.png" not in html
+
+
+def test_canonical_missing_current_integrity_legacy_integrity_kept_unavailable():
+    def mut(data):
+        entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+        del entry["current_renderer_integrity"]
+        # Legacy renderer_integrity intentionally retained.
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" in html
+    assert "home-mayor-card.png" not in html
+
+
+def test_canonical_missing_visual_equivalence_unavailable():
+    def mut(data):
+        entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+        del entry["visual_equivalence"]
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" in html
+    assert "home-mayor-card.png" not in html
+
+
+def test_canonical_missing_baseline_manifest_unavailable():
+    def mut(data):
+        entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+        del entry["visual_equivalence"]["baseline_manifest"]
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" in html
+
+
+def test_canonical_baseline_manifest_path_changed_unavailable():
+    def mut(data):
+        entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+        entry["visual_equivalence"]["baseline_manifest"] = (
+            "tests/fixtures/not-the-approved-baseline.json"
+        )
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" in html
+
+
+def test_canonical_normalization_item_removed_unavailable():
+    def mut(data):
+        entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+        entry["visual_equivalence"]["allowed_normalize_attributes"] = [
+            "data-renderer-id",
+            "data-visual-review-state",
+            # data-resident-default-approved removed
+        ]
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" in html
+
+
+def test_canonical_normalization_item_added_unavailable():
+    def mut(data):
+        entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+        entry["visual_equivalence"]["allowed_normalize_attributes"] = [
+            "data-renderer-id",
+            "data-visual-review-state",
+            "data-resident-default-approved",
+            "data-extra-normalize",
+        ]
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" in html
+
+
+def test_canonical_empty_reason_unavailable():
+    def mut(data):
+        entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+        entry["visual_equivalence"]["reason"] = ""
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" in html
+
+
+def test_canonical_supersession_allowed_true_unavailable():
+    def mut(data):
+        entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+        entry["visual_equivalence"]["supersession_allowed"] = True
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" in html
+
+
+def test_canonical_objects_only_without_legacy_mirrors_selects_approved_home():
+    """Legacy aliases may be absent; canonical schema alone must authorize."""
+
+    def mut(data):
+        entry = data["routes"]["home"]["renderers"][APPROVED_RENDERER_ID]
+        entry.pop("approval_provenance", None)
+        entry.pop("renderer_integrity", None)
+
+    html = _render_home("", registry_js=_mutate_registry_js(mut))
+    assert "bg-page--home-approval-unavailable" not in html
+    assert 'data-renderer-id="%s"' % APPROVED_RENDERER_ID in html
+    assert 'data-resident-default-approved="true"' in html
+    assert "home-mayor-card.png" in html
+    assert "bg-home-fixture-root" not in html

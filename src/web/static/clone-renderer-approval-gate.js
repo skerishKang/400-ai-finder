@@ -110,38 +110,30 @@
     // Pinned designed-home identity is not an exact-clone claim.
     if (entry.exact !== false) return false;
 
-    // approval_baseline: human decision identity (not current source hash).
+    // Canonical authorization sources only (schema v1).
+    // Legacy approval_provenance / renderer_integrity are read-compat mirrors
+    // and never authorize resident-default selection by themselves.
     var baseline = _asObject(entry.approval_baseline);
-    var prov = _asObject(entry.approval_provenance);
-    if (!baseline && !prov) return false;
-    if (baseline) {
-      if (baseline.issue !== "#1197") return false;
-      if (baseline.pull_request !== "#1200") return false;
-      if (
-        baseline.commit !== "87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa"
-      ) {
-        return false;
-      }
-      if (baseline.decision !== "restore_approved_designed_home") return false;
+    if (!baseline) return false;
+    if (baseline.issue !== "#1197") return false;
+    if (baseline.pull_request !== "#1200") return false;
+    if (
+      baseline.commit !== "87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa"
+    ) {
+      return false;
     }
-    if (prov) {
-      if (prov.issue !== "#1197") return false;
-      if (prov.pull_request !== "#1200") return false;
-      if (
-        prov.approved_source_commit !==
-        "87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa"
-      ) {
-        return false;
-      }
-    }
+    if (baseline.decision !== "restore_approved_designed_home") return false;
 
-    // current_renderer_integrity (preferred) or legacy renderer_integrity.
-    var integrity =
-      _asObject(entry.current_renderer_integrity) ||
-      _asObject(entry.renderer_integrity);
+    var integrity = _asObject(entry.current_renderer_integrity);
     if (!integrity) return false;
     if (integrity.algorithm !== "sha256") return false;
     if (integrity.extraction !== "marker_boundary") return false;
+    if (
+      integrity.source_path !==
+      "src/web/static/citizen-action-demo-canvas.js"
+    ) {
+      return false;
+    }
     if (
       typeof integrity.sha256 !== "string" ||
       !/^[a-f0-9]{64}$/.test(integrity.sha256)
@@ -155,11 +147,32 @@
       return false;
     }
 
-    // Visual equivalence must not claim a new owner approval on this baseline.
     var ve = _asObject(entry.visual_equivalence);
-    if (ve) {
-      if (ve.supersession_allowed === true) return false;
-      if (ve.status !== "equivalent_to_approval_baseline") return false;
+    if (!ve) return false;
+    if (ve.status !== "equivalent_to_approval_baseline") return false;
+    if (
+      ve.baseline_manifest !==
+      "tests/fixtures/clone_approved_home_visual_baseline.json"
+    ) {
+      return false;
+    }
+    if (ve.supersession_allowed !== false) return false;
+    if (
+      typeof ve.reason !== "string" ||
+      ve.reason.replace(/\s+/g, "") === ""
+    ) {
+      return false;
+    }
+    var allowed = ve.allowed_normalize_attributes;
+    if (!allowed || typeof allowed.length !== "number") return false;
+    var expectedAttrs = [
+      "data-renderer-id",
+      "data-visual-review-state",
+      "data-resident-default-approved",
+    ];
+    if (allowed.length !== expectedAttrs.length) return false;
+    for (var ai = 0; ai < expectedAttrs.length; ai++) {
+      if (allowed[ai] !== expectedAttrs[ai]) return false;
     }
     return true;
   }

@@ -56,21 +56,24 @@
                 "This commit is the approval baseline identity, not a claim that " +
                 "today's source bytes equal that commit's source bytes.",
             }),
-            // Backward-compatible provenance mirror of approval_baseline.
+            // Legacy read-compat mirror of approval_baseline only.
+            // NOT an authorization source: resident-default selection requires
+            // canonical approval_baseline (legacy alone cannot approve).
             approval_provenance: Object.freeze({
               issue: "#1197",
               pull_request: "#1200",
               decision: "restore_approved_designed_home",
               note:
-                "Legacy field mirroring approval_baseline. " +
+                "Legacy read-compatibility mirror of approval_baseline. " +
+                "Not used for resident-default authorization. " +
                 "approved_source_commit is the #1197 baseline commit identity, " +
                 "not the current source integrity hash.",
               approved_source_commit:
                 "87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa",
             }),
             rollback_renderer_identity: APPROVED_HOME_RENDERER_ID,
-            // Current repository source integrity (marker-boundary SHA).
-            // Independent of approval_baseline.commit.
+            // Canonical current repository source integrity (marker-boundary SHA).
+            // Independent of approval_baseline.commit. Authorization source.
             current_renderer_integrity: Object.freeze({
               algorithm: "sha256",
               extraction: "marker_boundary",
@@ -80,7 +83,9 @@
               sha256:
                 "9af7315fa70e0e9db93a75b0117598e21204f541e689df8773915da8cf294d91",
             }),
-            // Legacy alias used by earlier #1198 gate checks.
+            // Legacy read-compat mirror of current_renderer_integrity only.
+            // NOT an authorization source: selection requires
+            // current_renderer_integrity (legacy alone cannot approve).
             renderer_integrity: Object.freeze({
               algorithm: "sha256",
               extraction: "marker_boundary",
@@ -90,6 +95,7 @@
               sha256:
                 "9af7315fa70e0e9db93a75b0117598e21204f541e689df8773915da8cf294d91",
             }),
+            // Canonical visual-equivalence record (authorization source).
             visual_equivalence: Object.freeze({
               status: "equivalent_to_approval_baseline",
               reason:
