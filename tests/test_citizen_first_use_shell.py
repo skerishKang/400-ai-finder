@@ -431,6 +431,25 @@ def test_shell_mvp_submission_shows_server_answer_first():
     assert "appendChatMessage(\"ai\", answer)" in JS
 
 
+def test_answer_meta_shows_at_most_one_official_source_chip():
+    """Housing multi-provenance answers must not render duplicate 공식 출처 chips.
+
+    Official source URLs stay on the result.sources array; only the visible
+    meta chip is collapsed to a single official link next to the retrieved time.
+    """
+    assert "function appendAnswerFreshness(" in JS
+    assert "officialChipAdded" in JS
+    assert '_t("source.official", "공식 출처")' in JS
+    # Must not hide duplicates via CSS; collapse happens in the renderer.
+    meta_source_css = CSS[
+        CSS.index(".chat-answer-meta__source") : CSS.index(
+            ".chat-answer-meta__source:hover"
+        )
+    ]
+    assert "display: none" not in meta_source_css
+    assert "visibility: hidden" not in meta_source_css
+
+
 def test_shell_has_generic_action_plan_quest_card_renderer():
     assert "function renderQuestProgressCard(" in JS
     assert "function appendQuestProgressCard(" in JS
