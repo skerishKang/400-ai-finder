@@ -178,6 +178,8 @@ def test_static_first_use_shell_files_exist(build_dir):
         "citizen-action-demo.html",
         "bukgu-official-snapshots.js",
         "bukgu-home-clone-fixture.js",
+        "clone-renderer-approval-registry.js",
+        "clone-renderer-approval-gate.js",
         "citizen-first-use-shell.js",
         "citizen-first-use-shell.css",
         "citizen-first-choreography.js",
@@ -193,6 +195,8 @@ def test_static_html_loads_first_use_shell_in_order(build_dir):
     html = open(html_path, encoding="utf-8").read()
     snapshot_idx = html.index("bukgu-official-snapshots.js")
     home_fixture_idx = html.index("bukgu-home-clone-fixture.js")
+    approval_registry_idx = html.index("clone-renderer-approval-registry.js")
+    approval_gate_idx = html.index("clone-renderer-approval-gate.js")
     canvas_idx = html.index("citizen-action-demo-canvas.js")
     shell_idx = html.index("citizen-first-use-shell.js")
     choreo_idx = html.index("citizen-first-choreography.js")
@@ -202,37 +206,88 @@ def test_static_html_loads_first_use_shell_in_order(build_dir):
     assert snapshot_idx < home_fixture_idx < canvas_idx, (
         "bukgu-home-clone-fixture.js must load after snapshots and before canvas"
     )
+    assert (
+        home_fixture_idx
+        < approval_registry_idx
+        < approval_gate_idx
+        < canvas_idx
+    ), (
+        "approval registry/gate must load after home fixture and before canvas"
+    )
     assert shell_idx < choreo_idx, (
         "citizen-first-use-shell.js must load before citizen-first-choreography.js"
     )
 
 
+def test_approval_registry_and_gate_copied_verbatim(build_dir):
+    """#1198: approval static assets must be present and byte-identical."""
+    for name in (
+        "clone-renderer-approval-registry.js",
+        "clone-renderer-approval-gate.js",
+    ):
+        built = os.path.join(build_dir, "static", name)
+        source = os.path.join(_REPO_ROOT, "src", "web", "static", name)
+        assert os.path.isfile(built), f"missing built {name}"
+        assert open(built, "rb").read() == open(source, "rb").read()
+
+
 def test_resident_demo_loads_home_clone_fixture_before_canvas(build_dir):
-    """#1170: resident embeds civic canvas and must load the home fixture global
-    before canvas so Page Agent home targets remain available."""
+    """#1170/#1198: resident entry load order and approval static assets."""
+    source_html_path = os.path.join(
+        _REPO_ROOT,
+        "src",
+        "web",
+        "examples",
+        "page-agent",
+        "resident",
+        "index.html",
+    )
+    assert os.path.isfile(source_html_path), "resident source index missing"
+    source_html = open(source_html_path, encoding="utf-8").read()
+
     html_path = os.path.join(
         build_dir, "examples", "page-agent", "resident", "index.html"
     )
     assert os.path.isfile(html_path), "resident demo index missing from build"
     html = open(html_path, encoding="utf-8").read()
-    snapshot_idx = html.index("bukgu-official-snapshots.js")
-    fixture_idx = html.index("bukgu-home-clone-fixture.js")
-    canvas_idx = html.index("citizen-action-demo-canvas.js")
-    assert snapshot_idx < fixture_idx < canvas_idx, (
-        "resident must load home fixture after snapshots and before canvas"
-    )
 
-    built_snapshot = os.path.join(build_dir, "static", "bukgu-official-snapshots.js")
-    source_snapshot = os.path.join(
-        _REPO_ROOT, "src", "web", "static", "bukgu-official-snapshots.js"
-    )
-    assert open(built_snapshot, "rb").read() == open(source_snapshot, "rb").read()
+    for label, body in (("source", source_html), ("build", html)):
+        snapshot_idx = body.index("bukgu-official-snapshots.js")
+        fixture_idx = body.index("bukgu-home-clone-fixture.js")
+        registry_idx = body.index("clone-renderer-approval-registry.js")
+        gate_idx = body.index("clone-renderer-approval-gate.js")
+        map_idx = body.index("citizen-action-demo-map.js")
+        canvas_idx = body.index("citizen-action-demo-canvas.js")
+        assert (
+            snapshot_idx
+            < fixture_idx
+            < registry_idx
+            < gate_idx
+            < map_idx
+            < canvas_idx
+        ), (
+            f"resident {label} must load snapshot < fixture < registry < "
+            "gate < map < canvas"
+        )
 
-    built_home = os.path.join(build_dir, "static", "bukgu-home-clone-fixture.js")
-    source_home = os.path.join(
-        _REPO_ROOT, "src", "web", "static", "bukgu-home-clone-fixture.js"
+    for name in (
+        "bukgu-official-snapshots.js",
+        "bukgu-home-clone-fixture.js",
+        "clone-renderer-approval-registry.js",
+        "clone-renderer-approval-gate.js",
+    ):
+        built = os.path.join(build_dir, "static", name)
+        source = os.path.join(_REPO_ROOT, "src", "web", "static", name)
+        assert os.path.isfile(built), f"missing built static/{name}"
+        assert open(built, "rb").read() == open(source, "rb").read(), (
+            f"built static/{name} must be byte-identical to source"
+        )
+
+    built_resident = open(html_path, "rb").read()
+    source_resident = open(source_html_path, "rb").read()
+    assert built_resident == source_resident, (
+        "built resident index.html must match source after copy"
     )
-    assert open(built_home, "rb").read() == open(source_home, "rb").read()
 
 
 def test_live_official_snapshot_artifact_is_identical(live_build_dir):

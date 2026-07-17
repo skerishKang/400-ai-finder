@@ -1502,9 +1502,20 @@
     var compatHtml = _renderHomeCompatTargets(fixture, actionMap);
     var chromeHtml = _renderHomeCompatChrome(isDeptJourney, deptState);
 
+    var fixtureRendererId =
+      (typeof window !== "undefined" &&
+        window.CloneRendererApprovalGate &&
+        window.CloneRendererApprovalGate.FIXTURE_HOME_RENDERER_ID) ||
+      "bukgu_gwangju.home.fixture.candidate";
+
     return (
       '<div class="bg-page bg-page--full bg-page--home bg-page--home-fixture"' +
         ' data-home-reference-state="' + _escHtml(state) + '"' +
+        ' data-renderer-id="' + _escHtml(fixtureRendererId) + '"' +
+        ' data-renderer-readiness="capture_required"' +
+        ' data-visual-review-state="visual_review_pending"' +
+        ' data-resident-default-approved="false"' +
+        ' data-preview-only="true"' +
         ' data-home-fixture-id="' + _escHtml(String(fixture.fixture_id || "")) + '"' +
         ' data-home-fixture-sha256="' + _escHtml(String(fixture.fixture_sha256 || "")) + '"' +
         ' data-home-clone-status="capture_required"' +
@@ -1517,6 +1528,11 @@
         (deptReplay.isReplay ? '<div class="bg-dept-replay-home-controls">' + _renderDeptReplayControls("ready") + '</div>' : '') +
         compatHtml +
         '<main id="bg-content-main" class="bg-home-main bg-home-fixture-root"' +
+          ' data-renderer-id="' + _escHtml(fixtureRendererId) + '"' +
+          ' data-renderer-readiness="capture_required"' +
+          ' data-visual-review-state="visual_review_pending"' +
+          ' data-resident-default-approved="false"' +
+          ' data-preview-only="true"' +
           ' data-home-fixture-id="' + _escHtml(String(fixture.fixture_id || "")) + '"' +
           ' data-home-fixture-sha256="' + _escHtml(String(fixture.fixture_sha256 || "")) + '"' +
           ' data-home-clone-status="capture_required"' +
@@ -1528,16 +1544,54 @@
   }
 
   // -----------------------------------------------------------------------
-  // _renderCivilService — intermediate route
+  // #1198: fail-closed home renderer selection (approval gate)
   // -----------------------------------------------------------------------
-  function _renderHome(state) {
-    // #1197: resident default uses approved designed home (pre-#1182).
-    // Fixture rail is available only via explicit opt-in query.
-    if (_wantsHomeFixtureProjection(
-      typeof window !== "undefined" && window.location ? window.location.search : ""
-    )) {
-      return _renderHomeFixtureProjection(state);
+  function _resolveHomeRendererSelection(search) {
+    var gate =
+      typeof window !== "undefined" ? window.CloneRendererApprovalGate : null;
+    if (!gate || typeof gate.resolveHomeSelection !== "function") {
+      // Fixture integrity path stays independent of the approval gate module.
+      // Ordinary resident-default selection still fails closed without the gate.
+      if (_wantsHomeFixtureProjection(search)) {
+        return {
+          mode: "fixture_preview",
+          reason: "approval_gate_missing_fixture_opt_in",
+          preview_only: true,
+          resident_default_approved: false,
+        };
+      }
+      return { mode: "unavailable", reason: "approval_gate_missing" };
     }
+    return gate.resolveHomeSelection({
+      search: search,
+      registry:
+        typeof window !== "undefined"
+          ? window.__CLONE_RENDERER_APPROVAL_REGISTRY__
+          : null,
+    });
+  }
+
+  function _renderHomeApprovalUnavailable(reason, state) {
+    return (
+      '<div class="bg-page bg-page--full bg-page--home bg-page--home-approval-unavailable"' +
+        ' data-home-reference-state="' + _escHtml(state || "") + '"' +
+        ' data-renderer-readiness="approval_unavailable"' +
+        ' data-visual-review-state="unavailable"' +
+        ' data-resident-default-approved="false"' +
+        ' data-approval-failure-reason="' + _escHtml(reason || "unknown") + '"' +
+      '>' +
+        '<main id="bg-content-main" class="bg-home-approval-unavailable" role="status">' +
+          '<p class="bg-home-approval-unavailable__title">approved home renderer unavailable</p>' +
+          '<p class="bg-home-approval-unavailable__detail">visual approval gate failed closed</p>' +
+        '</main>' +
+      '</div>'
+    );
+  }
+
+  // CLONE_APPROVED_HOME_RENDERER_BEGIN
+  // #1197 / #1198: approved designed home (resident default). Integrity is
+  // pinned by marker-boundary SHA-256 in clone-renderer-approval-registry.js.
+  function _renderApprovedHome(state) {
     var deptJourney = _resolveDeptJourneyState(typeof window !== "undefined" && window.location ? window.location.search : "");
     var deptReplay = _resolveDeptReplayState(typeof window !== "undefined" && window.location ? window.location.search : "");
     var isDeptJourney = deptJourney.isDept;
@@ -1572,8 +1626,21 @@
         '</a>';
     }
 
+    var approvedRendererId =
+      (typeof window !== "undefined" &&
+        window.CloneRendererApprovalGate &&
+        window.CloneRendererApprovalGate.APPROVED_HOME_RENDERER_ID) ||
+      "bukgu_gwangju.home.designed.approved";
+
     return (
-      '<div class="bg-page bg-page--full bg-page--home" data-home-reference-state="' + state + '"' + (isDeptJourney ? ' data-dept-journey="true"' : '') + (deptReplay.isReplay ? ' data-dept-replay="true" data-dept-replay-step="ready"' : '') + '>' +
+      '<div class="bg-page bg-page--full bg-page--home"' +
+        ' data-home-reference-state="' + state + '"' +
+        ' data-renderer-id="' + approvedRendererId + '"' +
+        ' data-visual-review-state="visual_review_approved"' +
+        ' data-resident-default-approved="true"' +
+        (isDeptJourney ? ' data-dept-journey="true"' : '') +
+        (deptReplay.isReplay ? ' data-dept-replay="true" data-dept-replay-step="ready"' : '') +
+      '>' +
         '<div class="bg-skip"><a href="#bg-content-main">본문으로 바로가기</a></div>' +
 
         '<div class="bg-home-gov-strip">' +
@@ -1764,6 +1831,27 @@
           '</div>' +
         '</footer>' +
       '</div>'
+    );
+  }
+  // CLONE_APPROVED_HOME_RENDERER_END
+
+  function _renderHome(state) {
+    // #1198: ordinary home requires approval gate; fixture is explicit opt-in only.
+    // Never fall back to fixture / first registry entry / query-supplied renderer.
+    var search =
+      typeof window !== "undefined" && window.location
+        ? window.location.search
+        : "";
+    var selection = _resolveHomeRendererSelection(search);
+    if (selection && selection.mode === "fixture_preview") {
+      return _renderHomeFixtureProjection(state);
+    }
+    if (selection && selection.mode === "approved_default") {
+      return _renderApprovedHome(state);
+    }
+    return _renderHomeApprovalUnavailable(
+      (selection && selection.reason) || "approval_gate_failed",
+      state
     );
   }
 

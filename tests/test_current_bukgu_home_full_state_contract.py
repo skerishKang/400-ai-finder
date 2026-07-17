@@ -138,15 +138,21 @@ def test_banner_crop_matches_source_pixels():
 
 
 def test_resident_default_home_uses_approved_design_not_fixture_rail():
-    """#1197: ordinary home restores pre-#1182 designed composition."""
-    start = JS.index("  function _renderHome(")
-    end = JS.index(
+    """#1197/#1198: ordinary home restores pre-#1182 designed composition via gate."""
+    dispatch_start = JS.index("  function _renderHome(")
+    dispatch_end = JS.index(
         "  // -----------------------------------------------------------------------\n  // _renderCivilService",
-        start,
+        dispatch_start,
     )
-    home_block = JS[start:end]
-    assert "_wantsHomeFixtureProjection" in home_block
-    assert "_renderHomeFixtureProjection" in home_block
+    dispatch_block = JS[dispatch_start:dispatch_end]
+    assert "_resolveHomeRendererSelection" in dispatch_block
+    assert "_renderHomeFixtureProjection" in dispatch_block
+    assert "_renderApprovedHome" in dispatch_block
+    assert "approved_default" in dispatch_block
+
+    approved_start = JS.index("  function _renderApprovedHome(")
+    approved_end = JS.index("  // CLONE_APPROVED_HOME_RENDERER_END", approved_start)
+    home_block = JS[approved_start:approved_end]
     assert "home-mayor-card.png" in home_block
     assert "home-alert-banner.png" in home_block
     assert "bg-home-quick-link" in home_block

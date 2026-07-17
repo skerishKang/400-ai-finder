@@ -10,7 +10,13 @@ FIXTURE_JS = (STATIC / "bukgu-home-clone-fixture.js").read_text(encoding="utf-8"
 HTML = (STATIC / "citizen-action-demo.html").read_text(encoding="utf-8")
 
 
-def _home_block() -> str:
+def _approved_home_block() -> str:
+    start = JS.index("  function _renderApprovedHome(")
+    end = JS.index("  // CLONE_APPROVED_HOME_RENDERER_END", start)
+    return JS[start:end]
+
+
+def _home_dispatch_block() -> str:
     start = JS.index("  function _renderHome(")
     candidates = [
         "\n  // -----------------------------------------------------------------------\n  // _renderCivilService",
@@ -25,9 +31,12 @@ def _home_block() -> str:
 
 
 def test_resident_default_home_uses_approved_designed_composition():
-    """#1197: default _renderHome is approved design; fixture remains opt-in."""
-    home = _home_block()
-    assert "_wantsHomeFixtureProjection" in home
+    """#1197/#1198: gate selects approved design; fixture remains opt-in."""
+    dispatch = _home_dispatch_block()
+    assert "_resolveHomeRendererSelection" in dispatch
+    assert "_renderApprovedHome" in dispatch
+    assert "approved_default" in dispatch
+    home = _approved_home_block()
     assert "home-mayor-card.png" in home
     assert "home-alert-banner.png" in home
     assert "bg-home-quick-link" in home

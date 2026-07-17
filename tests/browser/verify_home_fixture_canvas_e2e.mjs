@@ -803,45 +803,259 @@ async function main() {
       { state: "split", mobileSurface: "guidance" }
     );
 
-    console.log("PASS #1170/#1192 home fixture canvas browser E2E");
+    // -----------------------------------------------------------------------
+    // #1198: ordinary approved home + fixture preview markers + fail-closed
+    // -----------------------------------------------------------------------
+    {
+      console.log("  [#1198] ordinary approved home (no fixture query)");
+      const context = await browser.newContext({
+        viewport: { width: 1440, height: 900 },
+      });
+      const page = await context.newPage();
+      const counters = attachSafety(page, baseUrl);
+      await page.goto(`${baseUrl}/static/citizen-action-demo.html`, {
+        waitUntil: "domcontentloaded",
+        timeout: 30000,
+      });
+      await page.waitForFunction(
+        () =>
+          window.CitizenActionDemoCanvas &&
+          typeof window.CitizenActionDemoCanvas.navigateToRoute === "function",
+        null,
+        { timeout: 15000 }
+      );
+      await page.evaluate(() => {
+        window.CitizenActionDemoCanvas.navigateToRoute("home");
+      });
+      await page.waitForSelector(
+        '[data-renderer-id="bukgu_gwangju.home.designed.approved"]',
+        { timeout: 10000 }
+      );
+      const ordinary = await page.evaluate(() => {
+        const root = document.querySelector(".bg-page--home");
+        return {
+          rendererId: root && root.getAttribute("data-renderer-id"),
+          visualReview: root && root.getAttribute("data-visual-review-state"),
+          residentDefault:
+            root && root.getAttribute("data-resident-default-approved"),
+          fixtureRoot: !!document.querySelector(".bg-home-fixture-root"),
+          mayor: !!document.querySelector('img[src*="home-mayor-card"]'),
+          quick: document.querySelectorAll(".bg-home-quick-link").length,
+          unavailable: !!document.querySelector(
+            ".bg-page--home-approval-unavailable"
+          ),
+        };
+      });
+      assert.strictEqual(
+        ordinary.rendererId,
+        "bukgu_gwangju.home.designed.approved"
+      );
+      assert.strictEqual(ordinary.visualReview, "visual_review_approved");
+      assert.strictEqual(ordinary.residentDefault, "true");
+      assert.strictEqual(ordinary.fixtureRoot, false);
+      assert.ok(ordinary.mayor, "approved home mayor card missing");
+      assert.ok(ordinary.quick >= 6, "approved home quick links missing");
+      assert.strictEqual(ordinary.unavailable, false);
+      assert.strictEqual(
+        counters.consoleErrors,
+        0,
+        counters.consoleErrorTexts.join(" | ")
+      );
+      assert.strictEqual(
+        counters.pageErrors,
+        0,
+        counters.pageErrorTexts.join(" | ")
+      );
+      assert.strictEqual(counters.externalRequests, 0);
+      summary.ordinary_home_1198 = { ordinary, counters };
+      await context.close();
+      console.log("  [#1198] ordinary approved home PASS");
+    }
+
+    {
+      console.log("  [#1198] fixture preview markers");
+      const context = await browser.newContext({
+        viewport: { width: 1440, height: 900 },
+      });
+      const page = await context.newPage();
+      const counters = attachSafety(page, baseUrl);
+      await page.goto(
+        `${baseUrl}/static/citizen-action-demo.html?home-fixture=1`,
+        { waitUntil: "domcontentloaded", timeout: 30000 }
+      );
+      await page.waitForFunction(
+        () =>
+          window.CitizenActionDemoCanvas &&
+          typeof window.CitizenActionDemoCanvas.navigateToRoute === "function",
+        null,
+        { timeout: 15000 }
+      );
+      await page.evaluate(() => {
+        window.CitizenActionDemoCanvas.navigateToRoute("home");
+      });
+      await page.waitForSelector(".bg-home-fixture-root", { timeout: 10000 });
+      const preview = await page.evaluate((expectedSha) => {
+        const root = document.querySelector(".bg-home-fixture-root");
+        const pageRoot = document.querySelector(".bg-page--home-fixture");
+        const regions = [
+          "utility_navigation",
+          "main_banner",
+          "resident_service_shortcuts",
+          "notice_news",
+          "related_site_controls",
+          "footer_identity_contact",
+        ].map((id) => !!document.querySelector(`[data-home-region-id="${id}"]`));
+        return {
+          rendererId: root && root.getAttribute("data-renderer-id"),
+          readiness: root && root.getAttribute("data-renderer-readiness"),
+          visualReview: root && root.getAttribute("data-visual-review-state"),
+          residentDefault:
+            root && root.getAttribute("data-resident-default-approved"),
+          previewOnly: root && root.getAttribute("data-preview-only"),
+          sha: root && root.getAttribute("data-home-fixture-sha256"),
+          approvedMarker: !!document.querySelector(
+            '[data-renderer-id="bukgu_gwangju.home.designed.approved"]'
+          ),
+          allRegions: regions.every(Boolean),
+          pagePreviewOnly:
+            pageRoot && pageRoot.getAttribute("data-preview-only"),
+          expectedShaOk:
+            root && root.getAttribute("data-home-fixture-sha256") === expectedSha,
+        };
+      }, EXPECTED_FIXTURE_SHA);
+      assert.strictEqual(
+        preview.rendererId,
+        "bukgu_gwangju.home.fixture.candidate"
+      );
+      assert.strictEqual(preview.visualReview, "visual_review_pending");
+      assert.strictEqual(preview.residentDefault, "false");
+      assert.strictEqual(preview.previewOnly, "true");
+      assert.strictEqual(preview.approvedMarker, false);
+      assert.ok(preview.allRegions, "canonical six regions missing");
+      assert.ok(preview.expectedShaOk, "fixture sha mismatch");
+      assert.strictEqual(counters.externalRequests, 0);
+      summary.fixture_preview_1198 = { preview, counters };
+      await context.close();
+      console.log("  [#1198] fixture preview markers PASS");
+    }
+
+    {
+      console.log("  [#1198] missing approval registry fail-closed");
+      // Isolated HTML without approval registry/gate scripts.
+      const isolatedHtml = `<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="/static/citizen-action-demo-canvas.css">
+</head><body>
+<div id="demo-canvas"></div>
+<script src="/static/bukgu-official-snapshots.js"></script>
+<script src="/static/bukgu-home-clone-fixture.js"></script>
+<script src="/static/citizen-action-demo-map.js"></script>
+<script src="/static/citizen-action-demo-canvas.js"></script>
+</body></html>`;
+      const context = await browser.newContext({
+        viewport: { width: 1440, height: 900 },
+      });
+      const page = await context.newPage();
+      const counters = attachSafety(page, baseUrl);
+      await page.route("**/isolated-no-approval.html", async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/html; charset=utf-8",
+          body: isolatedHtml,
+        });
+      });
+      await page.goto(`${baseUrl}/isolated-no-approval.html`, {
+        waitUntil: "domcontentloaded",
+        timeout: 30000,
+      });
+      await page.waitForFunction(
+        () =>
+          window.CitizenActionDemoCanvas &&
+          typeof window.CitizenActionDemoCanvas.navigateToRoute === "function",
+        null,
+        { timeout: 15000 }
+      );
+      await page.evaluate(() => {
+        window.CitizenActionDemoCanvas.navigateToRoute("home");
+      });
+      await page.waitForSelector(".bg-page--home-approval-unavailable", {
+        timeout: 10000,
+      });
+      const missing = await page.evaluate(() => ({
+        unavailable: !!document.querySelector(
+          ".bg-page--home-approval-unavailable"
+        ),
+        fixtureRoot: !!document.querySelector(".bg-home-fixture-root"),
+        mayor: !!document.querySelector('img[src*="home-mayor-card"]'),
+        reason:
+          document
+            .querySelector("[data-approval-failure-reason]")
+            ?.getAttribute("data-approval-failure-reason") || null,
+        residentDefault:
+          document
+            .querySelector("[data-resident-default-approved]")
+            ?.getAttribute("data-resident-default-approved") || null,
+      }));
+      assert.strictEqual(missing.unavailable, true);
+      assert.strictEqual(missing.fixtureRoot, false);
+      assert.strictEqual(missing.mayor, false);
+      assert.strictEqual(missing.residentDefault, "false");
+      assert.ok(
+        missing.reason === "approval_gate_missing" ||
+          missing.reason === "registry_missing",
+        `unexpected reason: ${missing.reason}`
+      );
+      // Controlled surface, not an uncaught page crash.
+      assert.strictEqual(
+        counters.pageErrors,
+        0,
+        counters.pageErrorTexts.join(" | ")
+      );
+      summary.missing_registry_1198 = { missing, counters };
+      await context.close();
+      console.log("  [#1198] missing approval registry fail-closed PASS");
+    }
+
+    console.log("PASS #1170/#1192/#1198 home fixture canvas browser E2E");
     console.log(
       JSON.stringify(
         Object.fromEntries(
           Object.entries(summary).map(([k, v]) => [
             k,
-            {
-              viewport: v.result.viewport,
-              state: v.result.state,
-              mobileSurface: v.result.mobileSurface,
-              metadataOnly: v.result.metadataOnlyCount,
-              visualCards: v.result.visualCardCount,
-              layoutCardWMin: v.result.layoutCardWMin,
-              layoutCardWMed: v.result.layoutCardWMed,
-              layoutCardWMax: v.result.layoutCardWMax,
-              visualCardWMin: v.result.cardWMin,
-              visualCardWMed: v.result.cardWMed,
-              visualCardWMax: v.result.cardWMax,
-              layoutTextWMin: v.result.layoutTextWMin,
-              layoutTextWMed: v.result.layoutTextWMed,
-              visualTextWMin: v.result.textWMin,
-              visualTextWMed: v.result.textWMed,
-              textWLt40: v.result.textWLt40,
-              wrapSuspect: v.result.verticalCharWrapSuspect,
-              visualTransformRatio: v.result.visualTransformRatio,
-              visualFallbackWMin: v.result.visualFallbackWMin,
-              collectVisible: v.result.collectVisible,
-              fallbacks: v.result.unresolvedFallbacks,
-              remoteOfficial: v.result.remoteOfficialImgs,
-              overflow: v.result.overflowX,
-              rail: `${v.result.railClientW}/${v.result.railScrollW}`,
-              safety: {
-                console: v.counters.consoleErrors,
-                page: v.counters.pageErrors,
-                external: v.counters.externalRequests,
-                requestFailures: v.counters.requestFailures,
-                remoteVisual: v.counters.remoteVisualRequests,
-              },
-            },
+            v.result
+              ? {
+                  viewport: v.result.viewport,
+                  state: v.result.state,
+                  mobileSurface: v.result.mobileSurface,
+                  metadataOnly: v.result.metadataOnlyCount,
+                  visualCards: v.result.visualCardCount,
+                  layoutCardWMin: v.result.layoutCardWMin,
+                  layoutCardWMed: v.result.layoutCardWMed,
+                  layoutCardWMax: v.result.layoutCardWMax,
+                  visualCardWMin: v.result.cardWMin,
+                  visualCardWMed: v.result.cardWMed,
+                  visualCardWMax: v.result.cardWMax,
+                  layoutTextWMin: v.result.layoutTextWMin,
+                  layoutTextWMed: v.result.layoutTextWMed,
+                  visualTextWMin: v.result.textWMin,
+                  visualTextWMed: v.result.textWMed,
+                  textWLt40: v.result.textWLt40,
+                  wrapSuspect: v.result.verticalCharWrapSuspect,
+                  visualTransformRatio: v.result.visualTransformRatio,
+                  visualFallbackWMin: v.result.visualFallbackWMin,
+                  collectVisible: v.result.collectVisible,
+                  fallbacks: v.result.unresolvedFallbacks,
+                  remoteOfficial: v.result.remoteOfficialImgs,
+                  overflow: v.result.overflowX,
+                  rail: `${v.result.railClientW}/${v.result.railScrollW}`,
+                  safety: {
+                    console: v.counters.consoleErrors,
+                    page: v.counters.pageErrors,
+                    external: v.counters.externalRequests,
+                    requestFailures: v.counters.requestFailures,
+                    remoteVisual: v.counters.remoteVisualRequests,
+                  },
+                }
+              : v,
           ])
         ),
         null,
