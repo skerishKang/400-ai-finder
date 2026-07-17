@@ -1914,28 +1914,83 @@
       meta.appendChild(status);
     }
 
-    sources.forEach(function (source) {
+    // Housing and other multi-provenance answers may carry several official
+    // source URLs (page + contact). The answer card shows one "공식 출처"
+    // chip next to the retrieved time — never repeat the same label.
+    // Source arrays on the result object remain intact (provenance not dropped).
+    var officialChipAdded = false;
+    var seenSourceUrls = Object.create(null);
+    var preferredOfficialUrl = "";
+    if (typeof result.source_url === "string" && result.source_url) {
+      try {
+        preferredOfficialUrl = new URL(result.source_url).toString();
+      } catch (_) {
+        preferredOfficialUrl = "";
+      }
+    }
+
+    function _appendSourceChip(source) {
       if (!source || typeof source.url !== "string") return;
       var link;
+      var href;
       try {
         var parsed = new URL(source.url);
         if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return;
-        link = document.createElement("a");
-        link.href = parsed.toString();
+        href = parsed.toString();
       } catch (_) {
         return;
       }
+      if (seenSourceUrls[href]) return;
+      var isOfficial = source.official === true;
+      if (isOfficial) {
+        if (officialChipAdded) return;
+        // Prefer canonical source_url when present among official entries.
+        if (preferredOfficialUrl && href !== preferredOfficialUrl) {
+          var hasPreferred = sources.some(function (s) {
+            if (!s || s.official !== true || typeof s.url !== "string") return false;
+            try {
+              return new URL(s.url).toString() === preferredOfficialUrl;
+            } catch (_e) {
+              return false;
+            }
+          });
+          if (hasPreferred) return;
+        }
+        officialChipAdded = true;
+      }
+      seenSourceUrls[href] = true;
+      link = document.createElement("a");
+      link.href = href;
       link.className = "chat-answer-meta__source";
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = source.official
+      link.textContent = isOfficial
         ? _t("source.official", "공식 출처")
         : _t("source.reference", "참고 출처");
       link.setAttribute("aria-label",
         (source.title || _t("source.answerSource", "답변 출처")) +
         " " + _t("source.openNewWindow", "새 창 열기"));
       meta.appendChild(link);
-    });
+    }
+
+    // Prefer preferred official URL first when listed, then remaining sources.
+    if (preferredOfficialUrl) {
+      for (var si = 0; si < sources.length; si++) {
+        var candidate = sources[si];
+        if (!candidate || candidate.official !== true || typeof candidate.url !== "string") {
+          continue;
+        }
+        try {
+          if (new URL(candidate.url).toString() === preferredOfficialUrl) {
+            _appendSourceChip(candidate);
+            break;
+          }
+        } catch (_e) {
+          // ignore invalid preferred candidate
+        }
+      }
+    }
+    sources.forEach(_appendSourceChip);
 
     var wasPinned = isChatPinnedToBottom();
     var bubble = message.querySelector && message.querySelector(".chat-bubble");
