@@ -30,6 +30,8 @@ const STATIC_BASE = new URL("../../src/web/static/", import.meta.url);
 const readStatic = (f) => readFileSync(new URL(f, STATIC_BASE), "utf8");
 const snapshotCode = readStatic("bukgu-official-snapshots.js");
 const homeFixtureCode = readStatic("bukgu-home-clone-fixture.js");
+const approvalRegistryCode = readStatic("clone-renderer-approval-registry.js");
+const approvalGateCode = readStatic("clone-renderer-approval-gate.js");
 const mapCode = readStatic("citizen-action-demo-map.js");
 const canvasCode = readStatic("citizen-action-demo-canvas.js");
 const adapterCode = readStatic("citizen-content-adapter.js");
@@ -393,6 +395,8 @@ function runScenario({
   // module so C/D/E assert against genuine runtime behavior.
   vm.runInContext(snapshotCode, context);
   vm.runInContext(homeFixtureCode, context);
+  vm.runInContext(approvalRegistryCode, context);
+  vm.runInContext(approvalGateCode, context);
   vm.runInContext(mapCode, context);
   vm.runInContext(canvasCode, context);
   vm.runInContext(adapterCode, context);
@@ -1742,6 +1746,8 @@ async function scenarioComplaintBoardRouteRegistered() {
   vm.createContext(ctx);
   vm.runInContext(snapshotCode, ctx);
   vm.runInContext(homeFixtureCode, ctx);
+  vm.runInContext(approvalRegistryCode, ctx);
+  vm.runInContext(approvalGateCode, ctx);
   vm.runInContext(mapCode, ctx);
   vm.runInContext(canvasCode, ctx);
   const map = w.CitizenActionDemoMap;

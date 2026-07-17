@@ -86,11 +86,15 @@ vm.runInContext(%s, cx);
 vm.runInContext(%s, cx);
 vm.runInContext(%s, cx);
 vm.runInContext(%s, cx);
+vm.runInContext(%s, cx);
+vm.runInContext(%s, cx);
 sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
 process.stdout.write(capturedHTML);
 """ % (
         json.dumps(_read("bukgu-official-snapshots.js")),
         json.dumps(_read("bukgu-home-clone-fixture.js")),
+        json.dumps(_read("clone-renderer-approval-registry.js")),
+        json.dumps(_read("clone-renderer-approval-gate.js")),
         json.dumps(_read("citizen-action-demo-map.js")),
         json.dumps(_read("citizen-action-demo-canvas.js")),
     )
@@ -115,6 +119,12 @@ def test_home_fixture_root_and_sha(home_html):
     assert 'data-home-exact-clone="false"' in home_html
     assert "bg-home-fixture-root" in home_html
     assert "bg-page--home-fixture-unavailable" not in home_html
+    # #1198: fixture projection is preview-only / not resident-default approved
+    assert 'data-renderer-id="bukgu_gwangju.home.fixture.candidate"' in home_html
+    assert 'data-visual-review-state="visual_review_pending"' in home_html
+    assert 'data-resident-default-approved="false"' in home_html
+    assert 'data-preview-only="true"' in home_html
+    assert 'data-renderer-id="bukgu_gwangju.home.designed.approved"' not in home_html
 
 
 def test_region_order_and_counts(home_html, fixture):

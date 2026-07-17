@@ -24,6 +24,8 @@ REQUIRED_FILES = [
     "citizen-action-demo.html",
     "bukgu-official-snapshots.js",
     "bukgu-home-clone-fixture.js",
+    "clone-renderer-approval-registry.js",
+    "clone-renderer-approval-gate.js",
     "citizen-action-demo-map.js",
     "citizen-action-demo-canvas.js",
     "citizen-action-demo-canvas.css",
@@ -146,10 +148,14 @@ var cx = vm.createContext(sandbox);
 // Evaluate the browser scripts in production order.
 var snapshotJS = %s;
 var homeFixtureJS = %s;
+var approvalRegistryJS = %s;
+var approvalGateJS = %s;
 var mapJS = %s;
 var canvasJS = %s;
 vm.runInContext(snapshotJS, cx);
 vm.runInContext(homeFixtureJS, cx);
+vm.runInContext(approvalRegistryJS, cx);
+vm.runInContext(approvalGateJS, cx);
 vm.runInContext(mapJS, cx);
 vm.runInContext(canvasJS, cx);
 
@@ -173,6 +179,10 @@ def _render_all_routes_via_node():
     """Call Node to render all routes, return dict of routeId -> html."""
     snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
     home_fixture_js = json.dumps(_read_static("bukgu-home-clone-fixture.js"))
+    approval_registry_js = json.dumps(
+        _read_static("clone-renderer-approval-registry.js")
+    )
+    approval_gate_js = json.dumps(_read_static("clone-renderer-approval-gate.js"))
     map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
     canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
     routes_json = json.dumps(EXPECTED_ROUTE_IDS)
@@ -180,6 +190,8 @@ def _render_all_routes_via_node():
     script = _RUNTIME_SCRIPT % (
         snapshot_js,
         home_fixture_js,
+        approval_registry_js,
+        approval_gate_js,
         map_js,
         canvas_js,
         routes_json,
@@ -605,12 +617,13 @@ class TestRuntimeRender:
             # 1. Top Nav — semantic bg-nav-bar or bg-nav-bar__title
             # Home route has its own header/GNB (reconstructed homepage)
             if route_id == "home":
+                # #1198: ordinary home is approved designed renderer only (not fixture).
                 assert 'bg-page--home' in html, f"route {route_id} missing home page root"
-                assert (
-                    'bg-home-fixture-root' in html
-                    or 'data-home-fixture-sha256' in html
-                    or 'class="bg-header"' in html
-                ), f"route {route_id} missing fixture/header structure"
+                assert 'class="bg-header"' in html, f"route {route_id} missing approved header"
+                assert 'bg-home-fixture-root' not in html, f"route {route_id} must not be fixture root"
+                assert 'data-home-fixture-sha256' not in html, f"route {route_id} must not expose fixture sha"
+                assert 'data-renderer-id="bukgu_gwangju.home.designed.approved"' in html
+                assert 'data-resident-default-approved="true"' in html
             else:
                 assert 'class="bg-nav-bar"' in html, f"route {route_id} missing nav bar"
 
@@ -922,15 +935,20 @@ class TestFidelityAndSeparation:
         identity_img = Image.open(current_identity_path)
         assert identity_img.size == (170, 42), f"home-identity.png size mismatch: {identity_img.size}"
 
-        # b. #1197: resident default home is the approved designed portal (pre-#1182),
-        # not the fixture visual-card rail. Fixture projection remains opt-in.
+        # b. #1197/#1198: ordinary home is approved designed portal only (fail-closed gate).
+        # Fixture projection remains explicit opt-in and must not appear on ordinary route.
         home_html = rendered_routes["home"]
         assert "bg-page--home" in home_html
         assert "home-mayor-card.png" in home_html
         assert "bg-home-quick-link" in home_html
         assert "home-alert-banner.png" in home_html or "home-alert-banner-r-home-02.png" in home_html
         assert "bg-home-fixture-root" not in home_html
+        assert "bg-page--home-fixture" not in home_html
+        assert "bg-page--home-approval-unavailable" not in home_html
         assert "data-home-presentation=\"visual-card\"" not in home_html
+        assert 'data-renderer-id="bukgu_gwangju.home.designed.approved"' in home_html
+        assert 'data-visual-review-state="visual_review_approved"' in home_html
+        assert 'data-resident-default-approved="true"' in home_html
         assert 'data-action-target="nav-civil-service"' in home_html
         assert 'data-action-target="nav-complaint-board"' in home_html
         assert "광주광역시 북구" not in home_html, "광주광역시 북구 must not appear in home rendered html"
@@ -939,6 +957,9 @@ class TestFidelityAndSeparation:
         js = _read_static("citizen-action-demo-canvas.js")
         assert "function _renderHomeFixtureProjection" in js
         assert "function _wantsHomeFixtureProjection" in js
+        assert "function _renderApprovedHome" in js
+        assert "function _resolveHomeRendererSelection" in js
+        assert "function _renderHomeApprovalUnavailable" in js
         assert '_svgLogo' not in js, "_svgLogo still in canvas.js"
         assert '_svgLogoWhite' not in js, "_svgLogoWhite still in canvas.js"
 
@@ -954,6 +975,12 @@ class TestJDept01SpecificContracts:
         def _render(query: str):
             snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
             home_fixture_js = json.dumps(_read_static("bukgu-home-clone-fixture.js"))
+            approval_registry_js = json.dumps(
+                _read_static("clone-renderer-approval-registry.js")
+            )
+            approval_gate_js = json.dumps(
+                _read_static("clone-renderer-approval-gate.js")
+            )
             map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
             canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
             # Run with custom sandbox search query
@@ -1003,12 +1030,16 @@ class TestJDept01SpecificContracts:
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
             sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
             process.stdout.write(capturedHTML);
             """ % (
                 json.dumps(query),
                 snapshot_js,
                 home_fixture_js,
+                approval_registry_js,
+                approval_gate_js,
                 map_js,
                 canvas_js
             )
@@ -1265,6 +1296,10 @@ class TestJDept01SpecificContracts:
         """8. Execute captured click handler and check pushState query resolution for exact-search."""
         snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
         home_fixture_js = json.dumps(_read_static("bukgu-home-clone-fixture.js"))
+        approval_registry_js = json.dumps(
+            _read_static("clone-renderer-approval-registry.js")
+        )
+        approval_gate_js = json.dumps(_read_static("clone-renderer-approval-gate.js"))
         map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
         canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
 
@@ -1325,6 +1360,9 @@ class TestJDept01SpecificContracts:
         sandbox.window = sandbox;
 
         var cx = vm.createContext(sandbox);
+        vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
@@ -1428,7 +1466,14 @@ class TestJDept01SpecificContracts:
         }
 
         process.stdout.write(JSON.stringify(testResults));
-        """ % (snapshot_js, map_js, canvas_js)
+        """ % (
+            snapshot_js,
+            home_fixture_js,
+            approval_registry_js,
+            approval_gate_js,
+            map_js,
+            canvas_js,
+        )
 
         res = _run_node_script_file(sandbox_init, timeout=10)
         assert res.returncode == 0, res.stderr
@@ -1470,6 +1515,12 @@ class TestJDept01ReplayContracts:
         def _render(query: str):
             snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
             home_fixture_js = json.dumps(_read_static("bukgu-home-clone-fixture.js"))
+            approval_registry_js = json.dumps(
+                _read_static("clone-renderer-approval-registry.js")
+            )
+            approval_gate_js = json.dumps(
+                _read_static("clone-renderer-approval-gate.js")
+            )
             map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
             canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
             sandbox_init = """
@@ -1512,9 +1563,19 @@ class TestJDept01ReplayContracts:
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
             sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
             process.stdout.write(JSON.stringify({ html: capturedHTML, chat: capturedChatHTML }));
-            """ % (json.dumps(query), snapshot_js, home_fixture_js, map_js, canvas_js)
+            """ % (
+                json.dumps(query),
+                snapshot_js,
+                home_fixture_js,
+                approval_registry_js,
+                approval_gate_js,
+                map_js,
+                canvas_js,
+            )
             res = _run_node_script_file(sandbox_init, timeout=10)
             assert res.returncode == 0, res.stderr
             return json.loads(res.stdout)
@@ -1561,6 +1622,10 @@ class TestJDept01ReplayContracts:
     def test_replay_controls_are_user_advanced_and_local_only(self):
         snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
         home_fixture_js = json.dumps(_read_static("bukgu-home-clone-fixture.js"))
+        approval_registry_js = json.dumps(
+            _read_static("clone-renderer-approval-registry.js")
+        )
+        approval_gate_js = json.dumps(_read_static("clone-renderer-approval-gate.js"))
         map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
         canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
         sandbox_init = """
@@ -1616,6 +1681,8 @@ class TestJDept01ReplayContracts:
         vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
         sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
 
         function click(action) {
@@ -1652,7 +1719,14 @@ class TestJDept01ReplayContracts:
           afterNext: afterNext,
           afterRestart: afterRestart
         }));
-        """ % (snapshot_js, home_fixture_js, map_js, canvas_js)
+        """ % (
+            snapshot_js,
+            home_fixture_js,
+            approval_registry_js,
+            approval_gate_js,
+            map_js,
+            canvas_js,
+        )
         res = _run_node_script_file(sandbox_init, timeout=10)
         assert res.returncode == 0, res.stderr
         data = json.loads(res.stdout)
@@ -1698,6 +1772,12 @@ class TestJPark01SpecificContracts:
     def park_render(self):
         """Helper to run Node and capture HTML under J-PARK-01 query."""
         def _render(query: str):
+            approval_registry_js = json.dumps(
+                _read_static("clone-renderer-approval-registry.js")
+            )
+            approval_gate_js = json.dumps(
+                _read_static("clone-renderer-approval-gate.js")
+            )
             map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
             canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
             sandbox_init = """
@@ -1735,10 +1815,14 @@ class TestJPark01SpecificContracts:
             var cx = vm.createContext(sandbox);
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
             sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
             process.stdout.write(JSON.stringify({html: capturedHTML, chat: capturedChatHTML}));
             """ % (
                 json.dumps(query),
+                approval_registry_js,
+                approval_gate_js,
                 map_js,
                 canvas_js
             )
@@ -1922,6 +2006,10 @@ class TestJPark01SpecificContracts:
         # Historical complaint route still works
         result_complaint = park_render("?journey=J-PARK-01")  # just ensure it doesn't break dept
         # Verify dept query still works independently
+        approval_registry_js = json.dumps(
+            _read_static("clone-renderer-approval-registry.js")
+        )
+        approval_gate_js = json.dumps(_read_static("clone-renderer-approval-gate.js"))
         map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
         canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
         sandbox_dept = """
@@ -1957,9 +2045,11 @@ class TestJPark01SpecificContracts:
         var cx = vm.createContext(sandbox);
         vm.runInContext(%s, cx);
         vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
+        vm.runInContext(%s, cx);
         sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
         process.stdout.write(capturedHTML);
-        """ % (map_js, canvas_js)
+        """ % (approval_registry_js, approval_gate_js, map_js, canvas_js)
         res = _run_node_script_file(sandbox_dept, timeout=10)
         assert res.returncode == 0, res.stderr
         html_dept_alone = res.stdout
@@ -2071,6 +2161,12 @@ class TestJKiosk01SpecificContracts:
     def kiosk_render(self):
         """Helper to run Node and capture HTML under J-KIOSK-01 query."""
         def _render(query: str):
+            approval_registry_js = json.dumps(
+                _read_static("clone-renderer-approval-registry.js")
+            )
+            approval_gate_js = json.dumps(
+                _read_static("clone-renderer-approval-gate.js")
+            )
             map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
             canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
             sandbox_init = """
@@ -2108,10 +2204,14 @@ class TestJKiosk01SpecificContracts:
             var cx = vm.createContext(sandbox);
             vm.runInContext(%s, cx);
             vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
+            vm.runInContext(%s, cx);
             sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
             process.stdout.write(JSON.stringify({html: capturedHTML, chat: capturedChatHTML}));
             """ % (
                 json.dumps(query),
+                approval_registry_js,
+                approval_gate_js,
                 map_js,
                 canvas_js
             )
@@ -2366,7 +2466,14 @@ AUTO_READY_QUERY = "?replay=J-DEPT-01&replay-mode=auto"
 AUTO_PHASES = ["route", "directory", "search", "result"]
 
 
-def _build_auto_replay_sandbox(initial_url: str, map_js: str, canvas_js: str, actions: list | None = None) -> str:
+def _build_auto_replay_sandbox(
+    initial_url: str,
+    approval_registry_js: str,
+    approval_gate_js: str,
+    map_js: str,
+    canvas_js: str,
+    actions: list | None = None,
+) -> str:
     snapshot_js = json.dumps(_read_static("bukgu-official-snapshots.js"))
     return """
 'use strict';
@@ -2460,6 +2567,8 @@ var cx = vm.createContext(sandbox);
 vm.runInContext(%s, cx);
 vm.runInContext(%s, cx);
 vm.runInContext(%s, cx);
+vm.runInContext(%s, cx);
+vm.runInContext(%s, cx);
 sandbox.window.CitizenActionDemoCanvas.navigateToRoute('home');
 
 var initial = snapshot();
@@ -2505,6 +2614,8 @@ if (!actionList || actionList.length === 0) {
 """ % (
         json.dumps(initial_url),
         snapshot_js,
+        approval_registry_js,
+        approval_gate_js,
         map_js,
         canvas_js,
         json.dumps(actions or []),
@@ -2512,9 +2623,20 @@ if (!actionList || actionList.length === 0) {
 
 
 def _run_auto_replay(query: str, actions: list | None = None) -> dict:
+    approval_registry_js = json.dumps(
+        _read_static("clone-renderer-approval-registry.js")
+    )
+    approval_gate_js = json.dumps(_read_static("clone-renderer-approval-gate.js"))
     map_js = json.dumps(_read_static("citizen-action-demo-map.js"))
     canvas_js = json.dumps(_read_static("citizen-action-demo-canvas.js"))
-    script = _build_auto_replay_sandbox(query, map_js, canvas_js, actions)
+    script = _build_auto_replay_sandbox(
+        query,
+        approval_registry_js,
+        approval_gate_js,
+        map_js,
+        canvas_js,
+        actions,
+    )
     res = _run_node_script_file(script, timeout=10)
     assert res.returncode == 0, res.stderr
     return json.loads(res.stdout)

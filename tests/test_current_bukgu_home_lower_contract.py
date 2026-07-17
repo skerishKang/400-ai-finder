@@ -10,12 +10,9 @@ FIXTURE_JS = (STATIC / "bukgu-home-clone-fixture.js").read_text(encoding="utf-8"
 
 
 def test_approved_home_includes_lower_composition_assets():
-    """#1197: restored designed home keeps lower news/card composition assets."""
-    start = JS.index("  function _renderHome(")
-    end = JS.index(
-        "  // -----------------------------------------------------------------------\n  // _renderCivilService",
-        start,
-    )
+    """#1197/#1198: restored designed home keeps lower news/card composition assets."""
+    start = JS.index("  function _renderApprovedHome(")
+    end = JS.index("  // CLONE_APPROVED_HOME_RENDERER_END", start)
     home = JS[start:end]
     for asset in [
         "home-lower-hometown-donation.png",

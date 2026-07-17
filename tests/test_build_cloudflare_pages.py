@@ -178,6 +178,8 @@ def test_static_first_use_shell_files_exist(build_dir):
         "citizen-action-demo.html",
         "bukgu-official-snapshots.js",
         "bukgu-home-clone-fixture.js",
+        "clone-renderer-approval-registry.js",
+        "clone-renderer-approval-gate.js",
         "citizen-first-use-shell.js",
         "citizen-first-use-shell.css",
         "citizen-first-choreography.js",
@@ -193,6 +195,8 @@ def test_static_html_loads_first_use_shell_in_order(build_dir):
     html = open(html_path, encoding="utf-8").read()
     snapshot_idx = html.index("bukgu-official-snapshots.js")
     home_fixture_idx = html.index("bukgu-home-clone-fixture.js")
+    approval_registry_idx = html.index("clone-renderer-approval-registry.js")
+    approval_gate_idx = html.index("clone-renderer-approval-gate.js")
     canvas_idx = html.index("citizen-action-demo-canvas.js")
     shell_idx = html.index("citizen-first-use-shell.js")
     choreo_idx = html.index("citizen-first-choreography.js")
@@ -202,9 +206,29 @@ def test_static_html_loads_first_use_shell_in_order(build_dir):
     assert snapshot_idx < home_fixture_idx < canvas_idx, (
         "bukgu-home-clone-fixture.js must load after snapshots and before canvas"
     )
+    assert (
+        home_fixture_idx
+        < approval_registry_idx
+        < approval_gate_idx
+        < canvas_idx
+    ), (
+        "approval registry/gate must load after home fixture and before canvas"
+    )
     assert shell_idx < choreo_idx, (
         "citizen-first-use-shell.js must load before citizen-first-choreography.js"
     )
+
+
+def test_approval_registry_and_gate_copied_verbatim(build_dir):
+    """#1198: approval static assets must be present and byte-identical."""
+    for name in (
+        "clone-renderer-approval-registry.js",
+        "clone-renderer-approval-gate.js",
+    ):
+        built = os.path.join(build_dir, "static", name)
+        source = os.path.join(_REPO_ROOT, "src", "web", "static", name)
+        assert os.path.isfile(built), f"missing built {name}"
+        assert open(built, "rb").read() == open(source, "rb").read()
 
 
 def test_resident_demo_loads_home_clone_fixture_before_canvas(build_dir):
