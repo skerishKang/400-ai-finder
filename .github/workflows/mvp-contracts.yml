@@ -53,6 +53,9 @@ jobs:
       - name: Run Buk-gu golden docs contract (#1188)
         run: python -m pytest -q tests/test_bukgu_golden_docs_contract.py
 
+      - name: Run site adapter contract matrix (#1221)
+        run: python -m pytest -q tests/test_site_adapter_contract_matrix.py
+
       - name: Run legacy requests transport contract tests
         run: python -m pytest -q tests/test_legacy_requests_transport.py
 
