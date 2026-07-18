@@ -317,6 +317,37 @@ const ACTION_RULES = Object.freeze([
   { action: 'mayor_message_assist', terms: ['구청장에게 제안', '구청장 제안', '제안하고 싶어요', '구청장 바란다'] },
 ]);
 
+// #1215 — indirect litter-dumping classification cues. Used only by
+// ``hasIndirectLitterSignal`` after the explicit ACTION_RULES loop. Mirrors
+// the Python cue groups in src/official_source/routing.py in the same order.
+const LITTER_TARGET_CUES = Object.freeze([
+  '쓰레기',
+  '폐기물',
+  '종량제봉투',
+  '쓰레기봉투',
+]);
+
+const LITTER_DUMPING_CUES = Object.freeze([
+  '몰래 버',
+  '버리고 갔',
+  '버렸',
+  '두고 도망',
+  '두고 갔',
+]);
+
+const LITTER_INTENT_CUES = Object.freeze([
+  '신고',
+  '민원',
+  '제보',
+]);
+
+const LITTER_COLLECTION_COMPLAINT_CUES = Object.freeze([
+  '수거가 안',
+  '수거 안',
+  '가져가지 않',
+  '수거 일정',
+]);
+
 const ACTION_SNAPSHOT_ROUTES = Object.freeze({
   housing_department: 'apartment-dept',
   bulky_waste: 'bulky-waste-disposal',
@@ -361,7 +392,29 @@ export function classifyAction(question) {
       return rule.action;
     }
   }
+  if (hasIndirectLitterSignal(normalized)) {
+    return 'litter_ai_assist';
+  }
   return 'none';
+}
+
+function hasIndirectLitterSignal(normalized) {
+  // #1215 — indirect litter-dumping detection. Runs only after the explicit
+  // ACTION_RULES loop misses, so explicit terms always win. Requires a target
+  // cue (waste), a dumping cue (surreptitious/abandoned act), and an intent
+  // cue (report/complaint). Collection complaints (sorted waste not yet
+  // collected) are explicitly excluded even if all three cues match.
+  const hasTarget = LITTER_TARGET_CUES.some((cue) => normalized.includes(cue));
+  const hasDumping = LITTER_DUMPING_CUES.some((cue) => normalized.includes(cue));
+  const hasIntent = LITTER_INTENT_CUES.some((cue) => normalized.includes(cue));
+
+  if (!(hasTarget && hasDumping && hasIntent)) {
+    return false;
+  }
+
+  return !LITTER_COLLECTION_COMPLAINT_CUES.some((cue) =>
+    normalized.includes(cue)
+  );
 }
 
 function plainTextFromOfficialHtml(html) {

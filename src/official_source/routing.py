@@ -22,6 +22,36 @@ from .models import (
 
 _WS_RE = re.compile(r"\s+")
 
+# #1215 — indirect litter-dumping classification cues. Used only by
+# ``_classify_indirect_litter`` after the explicit ``_JOURNEY_RULES`` loop.
+_LITTER_TARGET_CUES = (
+    "쓰레기",
+    "폐기물",
+    "종량제봉투",
+    "쓰레기봉투",
+)
+
+_LITTER_DUMPING_CUES = (
+    "몰래 버",
+    "버리고 갔",
+    "버렸",
+    "두고 도망",
+    "두고 갔",
+)
+
+_LITTER_INTENT_CUES = (
+    "신고",
+    "민원",
+    "제보",
+)
+
+_LITTER_COLLECTION_COMPLAINT_CUES = (
+    "수거가 안",
+    "수거 안",
+    "가져가지 않",
+    "수거 일정",
+)
+
 _JOURNEY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("illegal_parking", ("불법 주정차", "불법주정차", "주차 단속", "주정차 신고")),
     ("housing_department", ("공동주택", "아파트 부서", "아파트 문의")),
@@ -92,7 +122,26 @@ def classify_journey_action(question: str) -> str | None:
         for term in terms:
             if term.lower() in normalized:
                 return action
-    return None
+    return _classify_indirect_litter(normalized)
+
+
+def _classify_indirect_litter(normalized: str) -> str | None:
+    # #1215 — indirect litter-dumping detection. Runs only after the explicit
+    # ``_JOURNEY_RULES`` loop misses, so explicit terms always win. Requires a
+    # target cue (waste), a dumping cue (surreptitious/abandoned act), and an
+    # intent cue (report/complaint). Collection complaints (sorted waste not
+    # yet collected) are explicitly excluded even if all three cues match.
+    has_target = any(cue in normalized for cue in _LITTER_TARGET_CUES)
+    has_dumping = any(cue in normalized for cue in _LITTER_DUMPING_CUES)
+    has_intent = any(cue in normalized for cue in _LITTER_INTENT_CUES)
+
+    if not (has_target and has_dumping and has_intent):
+        return None
+
+    if any(cue in normalized for cue in _LITTER_COLLECTION_COMPLAINT_CUES):
+        return None
+
+    return "litter_ai_assist"
 
 
 def _volatile_fact_kind(normalized: str) -> FactKind | None:
