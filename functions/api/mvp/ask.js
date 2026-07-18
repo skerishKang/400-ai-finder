@@ -304,6 +304,135 @@ export const PROVIDER_DEFAULTS = Object.freeze({
   }),
 });
 
+// ---------------------------------------------------------------------------
+// Local loopback provider endpoint safety boundary (#1216)
+//
+// The operator endpoint overrides GEMINI_API_ENDPOINT / HY3_API_ENDPOINT are
+// ONLY honored as a loopback override when BOTH of the following hold:
+//   A. MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT === "1" (explicit opt-in)
+//   B. the incoming /api/mvp/ask request hostname is exactly 127.0.0.1 or
+//      localhost (the request itself must already be loopback)
+//
+// Otherwise the endpoint override is ignored and the official PROVIDER_DEFAULTS
+// endpoint is always used (no fail-closed config_error, just normal routing).
+// When the opt-in AND a loopback request are both active but the override
+// endpoint is missing/blank or an invalid loopback URL, a KEYED provider
+// (one that actually has a key) fails CLOSED with config_error and never
+// reaches fetch(); an UNKEYED provider is simply skipped (treated as
+// unconfigured) and does not mask a later keyed provider's real outcome.
+// ---------------------------------------------------------------------------
+
+export const LOCAL_PROVIDER_OPT_IN_ENV = 'MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT';
+
+export function isLocalOptInEnabled(env) {
+  return Boolean(env) && env[LOCAL_PROVIDER_OPT_IN_ENV] === '1';
+}
+
+export function isLocalRequestHostname(hostname) {
+  return hostname === '127.0.0.1' || hostname === 'localhost';
+}
+
+export function requestHostname(request) {
+  const raw = request && typeof request.url === 'string' && request.url.trim()
+    ? request.url.trim()
+    : '';
+  if (!raw) return '';
+  try {
+    return new URL(raw).hostname.toLowerCase();
+  } catch (_) {
+    return '';
+  }
+}
+
+// Strict validation for local loopback override endpoints. Rejects anything
+// that is not exactly http://127.0.0.1:<port> or http://localhost:<port>.
+// No credentials, no protocol other than http:, no 0.0.0.0, no IPv6, no file:
+// or data:, no deceptive hostnames (e.g. localhost.evil.example).
+//
+// NOTE on explicit ports: the WHATWG URL parser normalizes the default port
+// to empty string (e.g. http://127.0.0.1:80/x => parsed.port === ""). The
+// requirement is "an explicit numeric port 1..65535 is allowed", so a missing
+// port (no :<port> in the authority) is still invalid even though :80 would
+// be the normalized default. We therefore inspect the raw authority to decide
+// whether the operator actually supplied a colon-port segment.
+function explicitPortFromRawAuthority(rawUrl) {
+  // Strip everything up to and including the host-ish authority.
+  // Format after scheme: [user[:pass]@]host[:port][/path...]
+  const schemeMatch = rawUrl.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//);
+  if (!schemeMatch) return { hasPort: false, port: '' };
+  const afterScheme = rawUrl.slice(schemeMatch[0].length);
+  // Authority ends at the first '/', '?', or '#' (or end of string).
+  const authority = afterScheme.split(/[/?#]/)[0];
+  // Drop any userinfo (everything up to the last '@').
+  const hostPart = authority.includes('@')
+    ? authority.slice(authority.lastIndexOf('@') + 1)
+    : authority;
+  // IPv6 literal host is bracketed; ignore its colons.
+  if (hostPart.startsWith('[')) {
+    const close = hostPart.indexOf(']');
+    if (close === -1) return { hasPort: false, port: '' };
+    const afterBracket = hostPart.slice(close + 1);
+    const portMatch = afterBracket.match(/^:(\d*)$/);
+    return portMatch
+      ? { hasPort: true, port: portMatch[1] }
+      : { hasPort: false, port: '' };
+  }
+  const portMatch = hostPart.match(/:(\d*)$/);
+  if (!portMatch) return { hasPort: false, port: '' };
+  return { hasPort: true, port: portMatch[1] };
+}
+
+export function validateLocalEndpoint(rawUrl) {
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) {
+    return { ok: false, reason: 'empty' };
+  }
+  let parsed;
+  try {
+    parsed = new URL(rawUrl.trim());
+  } catch (_) {
+    return { ok: false, reason: 'malformed' };
+  }
+  if (parsed.protocol !== 'http:') {
+    return { ok: false, reason: `protocol_not_http:${parsed.protocol}` };
+  }
+  if (parsed.username || parsed.password) {
+    return { ok: false, reason: 'credentials' };
+  }
+  if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') {
+    return { ok: false, reason: `hostname:${parsed.hostname}` };
+  }
+  const explicit = explicitPortFromRawAuthority(rawUrl.trim());
+  if (!explicit.hasPort) return { ok: false, reason: 'missing_port' };
+  const port = explicit.port;
+  if (port === '') return { ok: false, reason: 'empty_port' };
+  const portNum = Number.parseInt(port, 10);
+  if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
+    return { ok: false, reason: 'invalid_port' };
+  }
+  // Return the operator-supplied URL unchanged so an explicit default port
+  // (e.g. :80) is preserved rather than normalized to empty string. The URL
+  // has already been validated as a safe loopback http endpoint above.
+  return { ok: true, url: rawUrl.trim() };
+}
+
+export function resolveProviderEndpoint(provider, env, requestHostnameValue) {
+  const defaultEndpoint = PROVIDER_DEFAULTS[provider] && PROVIDER_DEFAULTS[provider].endpoint;
+  if (!isLocalOptInEnabled(env) || !isLocalRequestHostname(requestHostnameValue)) {
+    // General / production mode: never trust the endpoint override.
+    return { endpoint: defaultEndpoint, localOverride: false };
+  }
+  const envName = provider === 'hy3' ? 'HY3_API_ENDPOINT' : 'GEMINI_API_ENDPOINT';
+  const raw = env && typeof env[envName] === 'string' ? env[envName].trim() : '';
+  if (!raw) {
+    return { error: 'config_error', reason: 'missing_local_endpoint' };
+  }
+  const validation = validateLocalEndpoint(raw);
+  if (!validation.ok) {
+    return { error: 'config_error', reason: `invalid_local_endpoint:${validation.reason}` };
+  }
+  return { endpoint: validation.url, localOverride: true };
+}
+
 const ACTION_RULES = Object.freeze([
   { action: 'illegal_parking', terms: ['불법 주정차', '불법주정차', '주차 단속', '주정차 신고'] },
   { action: 'housing_department', terms: ['공동주택', '아파트 부서', '아파트 문의'] },
@@ -577,13 +706,31 @@ function envText(env, name, fallback) {
   return typeof env[name] === 'string' && env[name].trim() ? env[name].trim() : fallback;
 }
 
-function providerConfig(provider, env) {
+function providerConfig(provider, env, requestHostnameValue) {
+  const endpointResolution = resolveProviderEndpoint(provider, env, requestHostnameValue);
+  if (endpointResolution.error) {
+    // Fail-closed: do not fetch an untrusted/invalid endpoint. The real key is
+    // still reported so callers can tell a keyed provider with a bad override
+    // (must fail-closed) from an unkeyed provider that would never be called.
+    const key = provider === 'hy3'
+      ? envText(env, 'KILOCODE_API_KEY', '')
+      : envText(env, 'GEMINI_API_KEY', '');
+    return {
+      provider,
+      error: endpointResolution.error,
+      endpointErrorReason: endpointResolution.reason,
+      key,
+      model: '',
+      endpoint: '',
+      apiStyle: 'openai',
+    };
+  }
   if (provider === 'hy3') {
     return {
       provider,
       key: envText(env, 'KILOCODE_API_KEY', ''),
       model: envText(env, 'HY3_MODEL', PROVIDER_DEFAULTS.hy3.model),
-      endpoint: envText(env, 'HY3_API_ENDPOINT', PROVIDER_DEFAULTS.hy3.endpoint),
+      endpoint: endpointResolution.endpoint,
       apiStyle: 'openai',
     };
   }
@@ -592,7 +739,7 @@ function providerConfig(provider, env) {
     provider: 'gemini',
     key: envText(env, 'GEMINI_API_KEY', ''),
     model: envText(env, 'GEMINI_MODEL', PROVIDER_DEFAULTS.gemini.model),
-    endpoint: envText(env, 'GEMINI_API_ENDPOINT', PROVIDER_DEFAULTS.gemini.endpoint),
+    endpoint: endpointResolution.endpoint,
     apiStyle: style === 'interactions' ? 'interactions' : 'openai',
   };
 }
@@ -897,6 +1044,7 @@ async function requestOpenAICompatible(config, question, currentTime, officialCo
     : buildSystemPrompt(currentTime, officialContext, locale);
   const upstream = await fetch(config.endpoint, {
     method: 'POST',
+    redirect: 'manual',
     headers: {
       'Authorization': `Bearer ${config.key}`,
       'Content-Type': 'application/json',
@@ -941,6 +1089,7 @@ async function requestOpenAICompatible(config, question, currentTime, officialCo
 async function requestGeminiInteractions(config, question, currentTime, officialContext, locale, options = {}) {
   const upstream = await fetch(config.endpoint, {
     method: 'POST',
+    redirect: 'manual',
     headers: {
       'x-goog-api-key': config.key,
       'Content-Type': 'application/json',
@@ -1033,7 +1182,8 @@ export async function onRequest(context) {
   const { request, env } = context;
   const headers = buildHeaders(request);
   const providerOrder = normalizeProviderOrder(env.MVP_LLM_ORDER);
-  const primaryConfig = providerConfig(providerOrder[0], env);
+  const reqHostname = requestHostname(request);
+  const primaryConfig = providerConfig(providerOrder[0], env, reqHostname);
   const retrievedAt = new Date();
   const currentTime = formatSeoulTime(retrievedAt);
 
@@ -1074,7 +1224,7 @@ export async function onRequest(context) {
   }
 
   const deterministicAction = classifyAction(question);
-  const hasConfiguredProvider = providerOrder.some((provider) => providerConfig(provider, env).key);
+  const hasConfiguredProvider = providerOrder.some((provider) => providerConfig(provider, env, reqHostname).key);
   let officialContext = {
     ok: false,
     evidence: '',
@@ -1137,7 +1287,19 @@ export async function onRequest(context) {
   }
 
   for (let index = 0; index < providerOrder.length; index += 1) {
-    const config = providerConfig(providerOrder[index], env);
+    const config = providerConfig(providerOrder[index], env, reqHostname);
+    if (config.error === 'config_error') {
+      // A keyed provider with a missing/invalid local override must fail-closed
+      // and is recorded as a configured-provider failure (so the request is not
+      // treated as "no providers configured"). An unkeyed provider would never
+      // be called anyway, so its missing endpoint is simply skipped and MUST
+      // NOT mask a later keyed provider's real outcome.
+      if (config.key) {
+        configuredProviderCount += 1;
+        lastFailureCode = 'config_error';
+      }
+      continue;
+    }
     if (!config.key) continue;
     configuredProviderCount += 1;
 
@@ -1200,6 +1362,8 @@ export async function onRequest(context) {
   if (configuredProviderCount) {
     // Prefer answer_locale_mismatch whenever wrong-language prose was observed,
     // even if a later provider ends with upstream_error / empty_response.
+    // Otherwise the most recent meaningful provider outcome (which may be a
+    // keyed provider's config_error or a later provider's upstream_error) wins.
     failureCode = sawAnswerLocaleMismatch
       ? 'answer_locale_mismatch'
       : (lastFailureCode || 'upstream_error');
