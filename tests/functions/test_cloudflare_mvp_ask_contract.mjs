@@ -18,9 +18,10 @@ function noNetworkStub() {
 
 globalThis.fetch = noNetworkStub;
 
-function createMockContext(method, body, envOverrides = {}) {
+function createMockContext(method, body, envOverrides = {}, requestUrl = '') {
   const request = {
     method,
+    url: requestUrl,
     headers: new Map([['Content-Type', 'application/json']]),
     json: async () => (body ? JSON.parse(body) : {}),
     text: async () => (body ? String(body) : ''),
@@ -59,8 +60,8 @@ async function assert(description, fn) {
   }
 }
 
-async function requestJson(method, body, envOverrides) {
-  const response = await onRequest(createMockContext(method, body, envOverrides));
+async function requestJson(method, body, envOverrides, requestUrl = '') {
+  const response = await onRequest(createMockContext(method, body, envOverrides, requestUrl));
   const text = await response.text();
   return { response, data: text ? JSON.parse(text) : null };
 }
@@ -462,7 +463,7 @@ await assert('action without a canonical snapshot answers honestly with no offic
   }
 });
 
-await assert('Gemini model and endpoint are operator-configurable', async () => {
+await assert('Gemini model endpoint override is ignored in production mode (#1216)', async () => {
   try {
     mockFetchSequence([{ body: chatResponse('요청하신 안내 설정이 반영되었습니다. 필요한 민원 경로를 확인해 주세요.') }]);
     await requestJson('POST', JSON.stringify({ question: '테스트' }), {
@@ -471,8 +472,12 @@ await assert('Gemini model and endpoint are operator-configurable', async () => 
       GEMINI_API_ENDPOINT: 'https://gemini.example.test/chat/completions',
     });
     const modelCall = providerFetchCalls()[0];
-    expectEqual(modelCall.url, 'https://gemini.example.test/chat/completions', 'custom endpoint');
-    expectEqual(JSON.parse(modelCall.body).model, 'custom-gemini', 'custom model');
+    expectEqual(
+      modelCall.url,
+      'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+      'production ignores endpoint override',
+    );
+    expectEqual(JSON.parse(modelCall.body).model, 'custom-gemini', 'custom model still honored');
   } finally {
     restoreFetch();
   }
@@ -1196,6 +1201,367 @@ await assert('empty answer remains fail-closed without locale success', async ()
     expectEqual(providerFetchCalls().length, 1, 'calls');
   } finally {
     restoreFetch();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// #1216 local loopback provider endpoint safety boundary
+// ---------------------------------------------------------------------------
+
+const { isLocalOptInEnabled, isLocalRequestHostname, validateLocalEndpoint, requestHostname, resolveProviderEndpoint } = functionModule;
+
+await assert('#1216 opt-in parsing: only "1" activates', async () => {
+  if (isLocalOptInEnabled({ MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1' }) !== true) throw new Error('"1" must activate');
+  for (const v of ['', undefined, 'true', 'local', 'test', '0', 'yes', ' 1 ', '1 ']) {
+    if (isLocalOptInEnabled({ MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: v }) !== false) {
+      throw new Error(`value ${JSON.stringify(v)} must NOT activate`);
+    }
+  }
+});
+
+await assert('#1216 request host classification: only loopback', async () => {
+  if (isLocalRequestHostname('127.0.0.1') !== true) throw new Error('127.0.0.1 must be local');
+  if (isLocalRequestHostname('localhost') !== true) throw new Error('localhost must be local');
+  for (const h of ['example.com', 'cgbukku.pages.dev', '0.0.0.0', '[::1]', 'localhost.evil.example', '127.0.0.1.example']) {
+    if (isLocalRequestHostname(h) !== false) throw new Error(`${h} must NOT be local`);
+  }
+  if (requestHostname({ url: 'http://127.0.0.1:8788/api/mvp/ask' }) !== '127.0.0.1') throw new Error('url parse 127');
+  if (requestHostname({ url: 'https://cgbukku.pages.dev/api/mvp/ask' }) !== 'cgbukku.pages.dev') throw new Error('url parse prod');
+  if (requestHostname({}) !== '') throw new Error('missing url => empty');
+});
+
+await assert('#1216 strict local endpoint validation', async () => {
+  const ok = [
+    'http://127.0.0.1:8080/v1/chat/completions',
+    'http://localhost:3000/',
+    'http://127.0.0.1:65535',
+    'http://127.0.0.1:80/v1/chat/completions',
+    'http://localhost:80/v1/chat/completions',
+  ];
+  for (const u of ok) {
+    if (!validateLocalEndpoint(u).ok) throw new Error(`expected valid: ${u}`);
+  }
+  const bad = [
+    'https://127.0.0.1:8080/v1/chat/completions',
+    'http://127.0.0.1/v1/chat/completions',
+    'http://localhost/v1/chat/completions',
+    'http://example.com:8080/v1/chat/completions',
+    'http://localhost.evil.example:8080/x',
+    'http://127.0.0.1.example:8080/x',
+    'http://user:pass@127.0.0.1:8080/x',
+    'http://0.0.0.0:8080/x',
+    'http://[::1]:8080/x',
+    'file:///etc/passwd',
+    'data:text/plain,hi',
+    'ftp://127.0.0.1:21/x',
+    'http://127.0.0.1:0/x',
+    'http://127.0.0.1:70000/x',
+    'not a url',
+    '',
+  ];
+  for (const u of bad) {
+    if (validateLocalEndpoint(u).ok) throw new Error(`expected invalid: ${JSON.stringify(u)}`);
+  }
+});
+
+await assert('#1216 production default: arbitrary endpoint env ignored', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('공식 기본 endpoint 안내입니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_API_ENDPOINT: 'https://evil.example.test/chat/completions',
+    }, 'https://cgbukku.pages.dev/api/mvp/ask');
+    expectEqual(data.ok, true, 'ok');
+    const calls = providerFetchCalls();
+    expectEqual(calls.length, 1, 'call count');
+    expectEqual(
+      calls[0].url,
+      'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+      'default endpoint used',
+    );
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1216 production request blocked even with opt-in + local endpoint env', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('프로덕션 요청은 로컬 override를 무시해야 합니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+      MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_API_ENDPOINT: 'http://127.0.0.1:8080/v1/chat/completions',
+    }, 'https://cgbukku.pages.dev/api/mvp/ask');
+    expectEqual(data.ok, true, 'ok');
+    const calls = providerFetchCalls();
+    expectEqual(calls.length, 1, 'call count');
+    expectEqual(
+      calls[0].url,
+      'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+      'production host ignores local override',
+    );
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1216 local 127.0.0.1 override allowed', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('로컬 루프백 제공자가 안내를 반환했습니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+      MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_API_ENDPOINT: 'http://127.0.0.1:8080/v1/chat/completions',
+    }, 'http://127.0.0.1:8788/api/mvp/ask');
+    expectEqual(data.ok, true, 'ok');
+    const calls = providerFetchCalls();
+    expectEqual(calls.length, 1, 'call count');
+    expectEqual(calls[0].url, 'http://127.0.0.1:8080/v1/chat/completions', 'local override used');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1216 local localhost override allowed', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('로컬 목업 제공자가 안내를 반환했습니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+      MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_API_ENDPOINT: 'http://localhost:9090/v1/chat/completions',
+    }, 'http://localhost:8788/api/mvp/ask');
+    expectEqual(data.ok, true, 'ok');
+    const calls = providerFetchCalls();
+    expectEqual(calls.length, 1, 'call count');
+    expectEqual(calls[0].url, 'http://localhost:9090/v1/chat/completions', 'local override used');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1216 invalid opt-in values do not activate override', async () => {
+  for (const optIn of ['true', 'local', 'test', '0', '', 'yes']) {
+    try {
+      mockFetchSequence([{ body: chatResponse('기본 endpoint를 사용한 안내입니다.') }]);
+      const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+        MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: optIn,
+        GEMINI_API_KEY: 'test-gemini',
+        GEMINI_API_ENDPOINT: 'http://127.0.0.1:8080/v1/chat/completions',
+      }, 'http://127.0.0.1:8788/api/mvp/ask');
+      expectEqual(data.ok, true, `ok (${optIn})`);
+      expectEqual(
+        providerFetchCalls()[0].url,
+        'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+        `default endpoint for opt-in=${optIn}`,
+      );
+    } finally {
+      restoreFetch();
+    }
+  }
+});
+
+await assert('#1216 invalid local endpoint returns config_error, no fetch', async () => {
+  const badEndpoints = [
+    'https://127.0.0.1:8080/v1/chat/completions',
+    'http://127.0.0.1/v1/chat/completions',
+    'http://example.com:8080/v1/chat/completions',
+    'http://localhost.evil.example:8080/x',
+    'http://127.0.0.1.example:8080/x',
+    'http://user:pass@127.0.0.1:8080/x',
+    'http://0.0.0.0:8080/x',
+    'http://[::1]:8080/x',
+    'file:///etc/passwd',
+    'data:text/plain,hi',
+    'ftp://127.0.0.1:21/x',
+    'http://127.0.0.1:0/x',
+    'http://127.0.0.1:70000/x',
+    'not a url',
+  ];
+  for (const ep of badEndpoints) {
+    restoreFetch();
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+      MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_API_ENDPOINT: ep,
+    }, 'http://127.0.0.1:8788/api/mvp/ask');
+    expectEqual(data.ok, false, `ok (${ep})`);
+    expectEqual(data.failure_code, 'config_error', `config_error (${ep})`);
+    expectEqual(fetchCalls.length, 0, `no fetch for ${ep}`);
+  }
+});
+
+await assert('#1216 missing/blank local endpoint returns config_error, no fetch', async () => {
+  for (const env of [
+    { MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1', GEMINI_API_KEY: 'test-gemini' },
+    { MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1', GEMINI_API_KEY: 'test-gemini', GEMINI_API_ENDPOINT: '   ' },
+  ]) {
+    restoreFetch();
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), env, 'http://127.0.0.1:8788/api/mvp/ask');
+    expectEqual(data.ok, false, 'ok');
+    expectEqual(data.failure_code, 'config_error', 'config_error');
+    expectEqual(fetchCalls.length, 0, 'no fetch');
+  }
+});
+
+await assert('#1216 redirect guard: fetch uses manual redirect and does not follow 302', async () => {
+  let capturedRedirect;
+  fetchCalls = [];
+  globalThis.fetch = async (url, requestOptions = {}) => {
+    const resolvedUrl = typeof url === 'string' ? url : url.toString();
+    fetchCalls.push({ url: resolvedUrl, redirect: requestOptions.redirect });
+    capturedRedirect = requestOptions.redirect;
+    return {
+      ok: false,
+      status: 302,
+      headers: { get: () => 'https://external.example.test/evil' },
+      text: async () => '',
+      json: async () => { throw new Error('no json'); },
+    };
+  };
+  try {
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    }, 'http://127.0.0.1:8788/api/mvp/ask');
+    expectEqual(capturedRedirect, 'manual', 'redirect must be manual');
+    expectEqual(data.ok, false, 'ok');
+    expectEqual(data.failure_code, 'upstream_error', 'fail-closed on 3xx');
+    expectEqual(fetchCalls.length, 1, 'exactly one upstream call');
+    expectEqual(fetchCalls[0].url, 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'official endpoint');
+    if (fetchCalls.some((c) => c.url.includes('external.example.test'))) {
+      throw new Error('followed external Location');
+    }
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1216 resolveProviderEndpoint: general mode uses default', async () => {
+  const prod = resolveProviderEndpoint('gemini', {
+    GEMINI_API_ENDPOINT: 'http://127.0.0.1:8080/x',
+  }, 'cgbukku.pages.dev');
+  expectEqual(prod.localOverride, false, 'not override');
+  expectEqual(prod.endpoint, 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'default');
+  expectEqual(typeof prod.error, 'undefined', 'no error');
+});
+
+await assert('#1216 resolveProviderEndpoint: local+optin honors valid loopback', async () => {
+  const r = resolveProviderEndpoint('hy3', {
+    MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+    HY3_API_ENDPOINT: 'http://127.0.0.1:7777/v1/chat/completions',
+  }, '127.0.0.1');
+  expectEqual(r.localOverride, true, 'override active');
+  expectEqual(r.endpoint, 'http://127.0.0.1:7777/v1/chat/completions', 'endpoint');
+  expectEqual(typeof r.error, 'undefined', 'no error');
+});
+
+await assert('#1216 resolveProviderEndpoint: local+optin invalid => config_error', async () => {
+  const r = resolveProviderEndpoint('hy3', {
+    MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+    HY3_API_ENDPOINT: 'https://127.0.0.1:7777/x',
+  }, '127.0.0.1');
+  expectEqual(r.error, 'config_error', 'config_error');
+  expectEqual(typeof r.endpoint, 'undefined', 'no endpoint returned');
+});
+
+// ---------------------------------------------------------------------------
+// #1216 fallback error priority: a provider with no key must not force
+// config_error; only a keyed provider's bad/invalid local endpoint fails
+// closed and must not mask a later provider's real upstream_error.
+// ---------------------------------------------------------------------------
+
+await assert('#1216 fallback A: unkeyed provider missing endpoint does not block keyed provider success', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('HY3가 안내를 반환했습니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+      MVP_LLM_ORDER: 'gemini,hy3',
+      MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+      KILOCODE_API_KEY: 'test-hy3',
+      HY3_API_ENDPOINT: 'http://127.0.0.1:8080/v1/chat/completions',
+      // Gemini has no key and no endpoint, but opt-in+local is active.
+    }, 'http://127.0.0.1:8788/api/mvp/ask');
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'hy3', 'provider');
+    expectEqual(providerFetchCalls().length, 1, 'call count');
+    expectEqual(providerFetchCalls()[0].url, 'http://127.0.0.1:8080/v1/chat/completions', 'hy3 loopback used');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1216 fallback B: unkeyed provider missing endpoint must not mask later upstream_error', async () => {
+  try {
+    mockFetchSequence([{ status: 500, body: { error: 'boom' } }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+      MVP_LLM_ORDER: 'gemini,hy3',
+      MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+      KILOCODE_API_KEY: 'test-hy3',
+      HY3_API_ENDPOINT: 'http://127.0.0.1:8080/v1/chat/completions',
+    }, 'http://127.0.0.1:8788/api/mvp/ask');
+    expectEqual(data.ok, false, 'ok');
+    expectEqual(data.failure_code, 'upstream_error', 'must be upstream_error, not config_error');
+    expectEqual(providerFetchCalls().length, 1, 'single call to hy3');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1216 fallback C: keyed provider with missing/invalid local endpoint fails closed, 0 fetch', async () => {
+  for (const ep of ['', 'https://127.0.0.1:8080/x', 'http://127.0.0.1/v1']) {
+    restoreFetch();
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+      MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_API_ENDPOINT: ep,
+    }, 'http://127.0.0.1:8788/api/mvp/ask');
+    expectEqual(data.ok, false, `ok (${ep})`);
+    expectEqual(data.failure_code, 'config_error', `config_error (${ep})`);
+    expectEqual(fetchCalls.length, 0, `no fetch (${ep})`);
+  }
+});
+
+await assert('#1216 fallback D: all providers without keys keeps missing-configuration config_error', async () => {
+  restoreFetch();
+  const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {}, 'http://127.0.0.1:8788/api/mvp/ask');
+  expectEqual(data.ok, false, 'ok');
+  expectEqual(data.failure_code, 'config_error', 'config_error');
+  expectEqual(fetchCalls.length, 0, 'no fetch');
+});
+
+await assert('#1216 fallback E: keyed provider endpoint config_error must not mask later upstream_error', async () => {
+  try {
+    mockFetchSequence([{ status: 500, body: { error: 'boom' } }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+      MVP_LLM_ORDER: 'gemini,hy3',
+      MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_API_ENDPOINT: 'http://127.0.0.1/v1/chat/completions',
+      KILOCODE_API_KEY: 'test-hy3',
+      HY3_API_ENDPOINT: 'http://127.0.0.1:8080/v1/chat/completions',
+    }, 'http://127.0.0.1:8788/api/mvp/ask');
+    expectEqual(data.ok, false, 'ok');
+    expectEqual(data.failure_code, 'upstream_error', 'must be upstream_error, not masked by Gemini config_error');
+    expectEqual(providerFetchCalls().length, 1, 'single call to hy3');
+    expectEqual(providerFetchCalls()[0].url, 'http://127.0.0.1:8080/v1/chat/completions', 'hy3 loopback used');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1216 explicit default port 80 is honored on localhost and 127.0.0.1', async () => {
+  for (const ep of ['http://127.0.0.1:80/v1/chat/completions', 'http://localhost:80/v1/chat/completions']) {
+    try {
+      mockFetchSequence([{ body: chatResponse('명시적 포트 80 안내입니다.') }]);
+      const { data } = await requestJson('POST', JSON.stringify({ question: '안내' }), {
+        MVP_ALLOW_LOCAL_PROVIDER_ENDPOINT: '1',
+        GEMINI_API_KEY: 'test-gemini',
+        GEMINI_API_ENDPOINT: ep,
+      }, 'http://127.0.0.1:8788/api/mvp/ask');
+      expectEqual(data.ok, true, `ok (${ep})`);
+      expectEqual(providerFetchCalls().length, 1, `call count (${ep})`);
+      expectEqual(providerFetchCalls()[0].url, ep, `explicit port 80 used (${ep})`);
+    } finally {
+      restoreFetch();
+    }
   }
 });
 
