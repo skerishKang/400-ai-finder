@@ -23,6 +23,7 @@ from src.llm.bukgu_mvp_router import (
     is_mvp_failure,
     parse_mvp_decision,
 )
+from src.official_source.routing import classify_journey_action
 from src.web.mobile_demo import create_app
 
 
@@ -550,3 +551,56 @@ class TestMvpAskProviderResolutionFailure:
         assert data["confidence"] == 0.0
         assert data["provider"] == "opencode-go"
         assert data["model"] == ""
+
+
+class TestMvpActionLitterIndirectClassification:
+    """#1215 — indirect litter-dumping classification boundary cases.
+
+    Exercises the real ``classify_journey_action`` classifier. Positive cases
+    cover representative indirect illegal-dumping reports (surreptitious /
+    abandoned act + intent). Negative cases cover pure collection complaints
+    (sorted waste not yet collected) and unrelated acts that share surface
+    cues but must not route to ``litter_ai_assist``. Existing explicit
+    journeys are also re-checked to confirm no regression.
+    """
+
+    POSITIVE = [
+        "쓰레기 무단투기 신고 내용을 정리해 주세요.",
+        "골목에 누가 쓰레기를 몰래 버렸어요. 신고하고 싶어요.",
+        "길가에 쓰레기를 몰래 버리고 갔는데 신고하려고 해요.",
+        "누가 공터에 쓰레기를 버렸습니다. 민원을 넣고 싶어요.",
+        "누가 골목에 종량제봉투를 몰래 버리고 갔어요. 신고할래요.",
+        "공터에 쓰레기봉투를 두고 도망간 사람이 있어 민원을 넣고 싶어요.",
+        "누가 쓰레기를 몰래 버렸는데 아직 수거되지 않았어요. 신고하고 싶어요.",
+        "공터에 쓰레기봉투를 두고 도망간 사람이 있어 수거와 신고를 요청하고 싶어요.",
+    ]
+
+    NEGATIVE = [
+        "일반 쓰레기를 버렸는데 수거가 안 돼서 민원을 넣고 싶어요.",
+        "쓰레기를 배출했는데 가져가지 않아서 신고하고 싶어요.",
+        "종량제봉투에 쓰레기를 버렸는데 수거가 안 됐어요.",
+        "폐기물을 버리는 방법이 맞는지 민원으로 문의하고 싶어요.",
+        "음식물 쓰레기를 버렸는데 수거 일정이 궁금해요.",
+        "신분증을 버렸습니다.",
+        "아이가 장난감을 두고 갔어요.",
+        "쓰레기를 몰래 버리는 방법이 궁금합니다.",
+    ]
+
+    PRESERVED = [
+        ("대형폐기물은 어떻게 버려요?", "bulky_waste"),
+        ("불법 주정차 신고는 어디서 하나요?", "illegal_parking"),
+        ("여권 발급은 어디서 하나요?", "passport_guidance"),
+        ("가로등이 고장났어요. 신고할게요", "streetlight_report"),
+    ]
+
+    @pytest.mark.parametrize("question", POSITIVE)
+    def test_positive_indirect_litter(self, question):
+        assert classify_journey_action(question) == "litter_ai_assist", question
+
+    @pytest.mark.parametrize("question", NEGATIVE)
+    def test_negative_not_litter(self, question):
+        assert classify_journey_action(question) is None, question
+
+    @pytest.mark.parametrize("question, expected", PRESERVED)
+    def test_existing_journeys_preserved(self, question, expected):
+        assert classify_journey_action(question) == expected, question
