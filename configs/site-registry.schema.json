@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "configs/site-registry.schema.json",
+  "title": "Site Compatibility Registry",
+  "description": "Machine-readable registry of frozen compatibility adapters. Data-only; no runtime loader or renderer meaning is implied.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "default_site_id", "adapters"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "default_site_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "adapters": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/adapter" }
+    }
+  },
+  "$defs": {
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "display_name",
+        "role",
+        "golden_commit",
+        "classification_tags",
+        "frozen_contract_sources"
+      ],
+      "properties": {
+        "site_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "const": "reference_adapter"
+        },
+        "golden_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "classification_tags": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["frozen", "additive", "internal", "historical"]
+          }
+        },
+        "frozen_contract_sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/contract_source" }
+        }
+      }
+    },
+    "contract_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "classification"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "closed_route_ids",
+            "closed_target_ids",
+            "resident_public_window_api",
+            "fixture_identity",
+            "compatibility_manifest",
+            "clone_first_adr"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?!\\.\\.$)(?!\\.\\.\\/)(?!.*\\/\\.\\.(?:\\/|$))[A-Za-z0-9_\\-\\.\\/]+$"
+        },
+        "classification": {
+          "type": "string",
+          "enum": ["frozen", "additive", "internal", "historical"]
+        },
+        "symbols": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

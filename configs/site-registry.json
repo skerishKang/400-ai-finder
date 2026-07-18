@@ -1,0 +1,57 @@
+{
+  "$schema": "configs/site-registry.schema.json",
+  "schema_version": "1.0.0",
+  "default_site_id": "bukgu",
+  "adapters": [
+    {
+      "site_id": "bukgu",
+      "display_name": "Gwangju Buk-gu (북구)",
+      "role": "reference_adapter",
+      "golden_commit": "7217c0f738a6aa4468bdde3119d8c2d1ec9dd610",
+      "classification_tags": ["frozen", "additive"],
+      "frozen_contract_sources": [
+        {
+          "kind": "closed_route_ids",
+          "path": "src/web/static/citizen-action-demo-map.js",
+          "classification": "frozen",
+          "symbols": ["CLOSED_ROUTE_IDS"]
+        },
+        {
+          "kind": "closed_target_ids",
+          "path": "src/web/static/citizen-action-demo-map.js",
+          "classification": "frozen",
+          "symbols": ["CLOSED_TARGET_IDS"]
+        },
+        {
+          "kind": "resident_public_window_api",
+          "path": "src/web/static/citizen-action-demo-map.js",
+          "classification": "frozen",
+          "symbols": ["window.CitizenActionDemoMap"]
+        },
+        {
+          "kind": "resident_public_window_api",
+          "path": "src/web/static/citizen-action-demo-canvas.js",
+          "classification": "frozen",
+          "symbols": ["window.CitizenActionDemoCanvas"]
+        },
+        {
+          "kind": "fixture_identity",
+          "path": "data/official_clone_fixtures/bukgu_gwangju/home.json",
+          "classification": "frozen"
+        },
+        {
+          "kind": "compatibility_manifest",
+          "path": "docs/bukgu-golden-compatibility-manifest.md",
+          "classification": "frozen",
+          "symbols": ["Buk-gu golden compatibility manifest"]
+        },
+        {
+          "kind": "clone_first_adr",
+          "path": "docs/architecture/clone-first-platform-adr.md",
+          "classification": "frozen",
+          "symbols": ["Clone-first multi-site platform (Buk-gu golden first)"]
+        }
+      ]
+    }
+  ]
+}
