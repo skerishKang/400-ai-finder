@@ -2762,11 +2762,25 @@
   }
 
   function armContinueReadingAfterMvpAnswer(answerMessage, answer, result) {
+    // Locale gate first: non-English paths must never touch continue-reading DOM.
+    if (!_isEnglishLocale()) return;
     if (!(result && result.ok === true)) return;
     if (typeof answer !== "string" || answer.trim() === "") return;
-    if (!answerMessage || !chatThread || !chatThread.contains(answerMessage)) return;
-    if (answerMessage.classList.contains("chat-msg--temp")) return;
-    if (!_isEnglishLocale()) return;
+    if (
+      !answerMessage ||
+      !chatThread ||
+      typeof chatThread.contains !== "function" ||
+      !chatThread.contains(answerMessage)
+    ) {
+      return;
+    }
+    if (
+      !answerMessage.classList ||
+      typeof answerMessage.classList.contains !== "function" ||
+      answerMessage.classList.contains("chat-msg--temp")
+    ) {
+      return;
+    }
     _continueReadingArmed = true;
     ensureContinueButton();
     updateContinueButton();

@@ -89,6 +89,28 @@ assert.ok(
 );
 ok("handleMvpSubmission entry disarms continue-reading");
 
+// ── armContinueReadingAfterMvpAnswer: locale gate before contains ──
+const armFnStart = JS.indexOf("function armContinueReadingAfterMvpAnswer");
+assert.ok(armFnStart > 0, "armContinueReadingAfterMvpAnswer found");
+const armFnEnd = JS.indexOf("\n  function handleMvpSubmission", armFnStart);
+const armFn = JS.slice(armFnStart, armFnEnd > 0 ? armFnEnd : armFnStart + 800);
+const localeIdx = armFn.indexOf("_isEnglishLocale()");
+const containsCallIdx = armFn.indexOf("chatThread.contains(");
+const containsTypeGuardIdx = armFn.indexOf(
+  'typeof chatThread.contains !== "function"',
+);
+assert.ok(localeIdx > 0, "arm uses _isEnglishLocale()");
+assert.ok(containsCallIdx > 0, "arm may call chatThread.contains");
+assert.ok(
+  localeIdx < containsCallIdx,
+  "_isEnglishLocale() must run before chatThread.contains()",
+);
+assert.ok(
+  containsTypeGuardIdx > 0 && containsTypeGuardIdx < containsCallIdx,
+  "chatThread.contains must be type-checked before call",
+);
+ok("arm locale gate before contains + contains type guard");
+
 // ── Accessibility + click behavior ───────────────────────────────
 assert.match(JS, /btn\.type\s*=\s*["']button["']/);
 assert.match(JS, /btn\.className\s*=\s*["']chat-continue-read["']/);
