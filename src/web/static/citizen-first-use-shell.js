@@ -166,6 +166,14 @@
   var _mvpRequestToken = 0;
   var _questRuntimeResult = null;
 
+  // ── English MVP Continue reading (locale-gated overflow pill) ──
+  // Boolean arm only — never store a message DOM target.
+  var _continueReadingArmed = false;
+  var _continueReadButton = null;
+  var _continueReadResizeObserver = null;
+  var _continueReadScrollBound = false;
+  var _continueReadResizeBound = false;
+
   // ── #1133: browser history owner (shell-only) ──────────────────────
   // Single owner for history.state + popstate restore. Snapshots never store
   // chat text, model answers, secrets, DOM HTML, or element references.
@@ -2618,7 +2626,171 @@
 
   // ── MVP submission (#925 / #927) ───────────────────────────────
 
+  // ── English MVP Continue reading helpers ─────────────────────────
+  // Scope: English locale + successful MVP answer only. Does not track a
+  // specific bubble; visibility is remaining chatThread scroll only.
+
+  function _isEnglishLocale() {
+    return !!(
+      window.CitizenI18n &&
+      typeof window.CitizenI18n.getLocale === "function" &&
+      window.CitizenI18n.getLocale() === "en"
+    );
+  }
+
+  function removeContinueButton() {
+    if (_continueReadResizeObserver) {
+      try {
+        _continueReadResizeObserver.disconnect();
+      } catch (_) { /* ignore */ }
+      _continueReadResizeObserver = null;
+    }
+    if (_continueReadButton && _continueReadButton.parentNode) {
+      _continueReadButton.parentNode.removeChild(_continueReadButton);
+    }
+    _continueReadButton = null;
+    // Defensive: remove any stray duplicate if present.
+    if (chatShell) {
+      var stray = chatShell.querySelectorAll(".chat-continue-read");
+      for (var i = 0; i < stray.length; i++) {
+        if (stray[i] && stray[i].parentNode) {
+          stray[i].parentNode.removeChild(stray[i]);
+        }
+      }
+    }
+  }
+
+  function _bindContinueReadObservers() {
+    if (chatThread && !_continueReadScrollBound) {
+      chatThread.addEventListener("scroll", function () {
+        updateContinueButton();
+      });
+      _continueReadScrollBound = true;
+    }
+    if (!_continueReadResizeBound) {
+      window.addEventListener("resize", function () {
+        positionContinueButton();
+        updateContinueButton();
+      });
+      _continueReadResizeBound = true;
+    }
+    if (
+      chatThread &&
+      !_continueReadResizeObserver &&
+      typeof ResizeObserver === "function"
+    ) {
+      _continueReadResizeObserver = new ResizeObserver(function () {
+        positionContinueButton();
+        updateContinueButton();
+      });
+      try {
+        _continueReadResizeObserver.observe(chatThread);
+      } catch (_) { /* ignore */ }
+    }
+  }
+
+  function ensureContinueButton() {
+    if (!_isEnglishLocale()) return;
+    if (!chatShell || !chatThread) return;
+    if (_continueReadButton && chatShell.contains(_continueReadButton)) {
+      return;
+    }
+    var existing = chatShell.querySelector(".chat-continue-read");
+    if (existing) {
+      _continueReadButton = existing;
+      _bindContinueReadObservers();
+      return;
+    }
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chat-continue-read";
+    btn.textContent = "↓ Continue reading";
+    btn.setAttribute("aria-label", "Continue reading");
+    btn.addEventListener("click", function () {
+      if (!chatThread) return;
+      chatThread.scrollBy({
+        top: chatThread.clientHeight * 0.8,
+        behavior: reducedMotion ? "auto" : "smooth"
+      });
+    });
+    chatShell.appendChild(btn);
+    _continueReadButton = btn;
+    _bindContinueReadObservers();
+  }
+
+  function positionContinueButton() {
+    if (!_continueReadButton || !chatShell || !chatThread) return;
+    if (_continueReadButton.style.display === "none") return;
+    var shellRect = chatShell.getBoundingClientRect();
+    var threadRect = chatThread.getBoundingClientRect();
+    var buttonRect = _continueReadButton.getBoundingClientRect();
+    var height = buttonRect.height || _continueReadButton.offsetHeight || 32;
+    var top = threadRect.bottom - shellRect.top - height - 10;
+    if (!isFinite(top)) return;
+    _continueReadButton.style.top = Math.max(0, top) + "px";
+    _continueReadButton.style.left = "50%";
+    _continueReadButton.style.right = "auto";
+    _continueReadButton.style.bottom = "auto";
+    _continueReadButton.style.transform = "translateX(-50%)";
+  }
+
+  function updateContinueButton() {
+    // Non-English: remove button entirely (do not merely hide).
+    if (!_isEnglishLocale()) {
+      if (_continueReadButton || (chatShell && chatShell.querySelector(".chat-continue-read"))) {
+        removeContinueButton();
+      }
+      return;
+    }
+    if (!_continueReadingArmed || !chatThread) {
+      if (_continueReadButton) {
+        _continueReadButton.style.display = "none";
+      }
+      return;
+    }
+    ensureContinueButton();
+    var btn = _continueReadButton;
+    if (!btn) return;
+    var remaining =
+      chatThread.scrollHeight - chatThread.scrollTop - chatThread.clientHeight;
+    var show = remaining > 8;
+    btn.style.display = show ? "block" : "none";
+    if (show) {
+      // Second pass after becoming visible so getBoundingClientRect has height.
+      positionContinueButton();
+    }
+  }
+
+  function armContinueReadingAfterMvpAnswer(answerMessage, answer, result) {
+    // Locale gate first: non-English paths must never touch continue-reading DOM.
+    if (!_isEnglishLocale()) return;
+    if (!(result && result.ok === true)) return;
+    if (typeof answer !== "string" || answer.trim() === "") return;
+    if (
+      !answerMessage ||
+      !chatThread ||
+      typeof chatThread.contains !== "function" ||
+      !chatThread.contains(answerMessage)
+    ) {
+      return;
+    }
+    if (
+      !answerMessage.classList ||
+      typeof answerMessage.classList.contains !== "function" ||
+      answerMessage.classList.contains("chat-msg--temp")
+    ) {
+      return;
+    }
+    _continueReadingArmed = true;
+    ensureContinueButton();
+    updateContinueButton();
+  }
+
   function handleMvpSubmission(question) {
+    // English Continue reading: clear any prior arm before a new ask starts.
+    // Re-arm only after a usable MVP success response below.
+    _continueReadingArmed = false;
+    removeContinueButton();
     clearQuestRuntimeState();
     // 1. echo user message
     appendChatMessage("user", _userEchoText(question));
@@ -2684,6 +2856,9 @@
         setJourneyState(JOURNEY_ANSWER);
         if (hasUsableMvpResult) {
           applyQuestRuntimeState(result);
+          // English MVP only: arm overflow pill after a real success answer.
+          // Does not target a specific bubble; remaining scroll gates visibility.
+          armContinueReadingAfterMvpAnswer(answerMessage, answer, result);
         } else {
           clearQuestRuntimeState();
         }
@@ -2778,6 +2953,9 @@
     // Invalidate any in-flight MVP response so a late answer cannot re-open the
     // clone or restart an action after the user reset.
     _mvpRequestToken++;
+    // English Continue reading: disarm and remove overlay on Start over / locale reset.
+    _continueReadingArmed = false;
+    removeContinueButton();
     clearQuestRuntimeState();
     if (window.CitizenMvpBridge && typeof window.CitizenMvpBridge.cancel === "function") {
       window.CitizenMvpBridge.cancel();
@@ -3037,6 +3215,8 @@
   }
 
   _initRecommendationsToggle();
+  // Continue reading: bind scroll/resize once; button DOM stays lazy.
+  _bindContinueReadObservers();
 
   // Init layout/journey without intermediate history writes; one replace below.
   if (isLegacyJourneyLoad()) {

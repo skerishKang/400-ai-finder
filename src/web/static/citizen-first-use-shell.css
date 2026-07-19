@@ -1938,3 +1938,41 @@ body[data-first-use-state="transitioning"] .mayor-open-office-control {
     display: none;
   }
 }
+
+
+/* ── English MVP Continue reading pill (absolute against chat-thread bottom) ── */
+/* Additive only: do not alter existing .chat-shell layout rules. */
+.first-use-layout .chat-shell {
+  position: relative;
+}
+
+.chat-continue-read {
+  display: none;
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 14px;
+  border: 1px solid var(--first-use-teal);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--first-use-teal);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(7, 27, 58, 0.12);
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+.chat-continue-read:hover {
+  background: #fff;
+  color: var(--first-use-teal);
+}
+
+.chat-continue-read:focus-visible {
+  outline: 2px solid var(--first-use-teal);
+  outline-offset: 2px;
+}
