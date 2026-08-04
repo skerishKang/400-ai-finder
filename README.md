@@ -1,5 +1,75 @@
 # 400-ai-finder
 
+> **현재 상태 — 2026-08-04**
+>
+> 이 저장소는 북구 golden clone, 공식 snapshot provenance, 결정형 시민 여정, 다국어 검증, Cloudflare AI API와 Page Agent 비교를 갖춘 **통제형 고급 MVP**입니다. 실제 시민 대상 상시 운영과 범용 다기관 플랫폼 전환은 아직 운영안전·근거정책·단일 원본·다기관 검증이 필요한 단계입니다.
+
+## 먼저 읽을 문서
+
+- [현재 기준 문서 인덱스](docs/CURRENT_STATUS.md)
+- [2026-08-04 프로젝트 감사](docs/audit/PROJECT_AUDIT_20260804.md)
+- [제품 트랙과 운영경계](docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md)
+- [Unified Runtime과 canonical SiteSpec](docs/architecture/UNIFIED_RUNTIME_AND_SITESPEC.md)
+- [공개 AI API 보안·개인정보 모델](docs/operations/PUBLIC_AI_API_SECURITY_AND_PRIVACY.md)
+- [구현 로드맵](docs/implementation/ROADMAP_20260804.md)
+- [출시 게이트](docs/implementation/RELEASE_GATES.md)
+- [저장소 거버넌스](docs/operations/REPOSITORY_GOVERNANCE.md)
+- [기여규칙](CONTRIBUTING.md)
+- [보안정책](SECURITY.md)
+
+## 현재 제품 판정
+
+| 영역 | 현재 상태 |
+|---|---|
+| 북구 clone·결정형 시민 여정 | Golden baseline과 회귀계약 보유 |
+| 공식 fixture·snapshot | Provenance·checksum·시각정보 관리 |
+| 다국어·접근성·모바일 | 강한 contract·browser E2E 보유 |
+| Cloudflare live AI | 구현됨. 공개운영 보호장치는 추가 필요 |
+| 공식정보 answer-time freshness | Offline/mock foundation 이후 실제 live 후속 필요 |
+| Multi-site platform | Site registry foundation. 실제 3유형 onboarding 미완료 |
+| Actual public-site integration | 기관 권한·credentials·운영책임 전에는 미승인 |
+| 라이선스·공개자산 | Inventory와 소유자 결정 필요 |
+
+## 운영 전 P0
+
+- [#1224 공개 AI API rate limit·비용·개인정보·비상차단](https://github.com/skerishKang/400-ai-finder/issues/1224)
+- [#1225 canonical SiteSpec와 기관 identity 단일화](https://github.com/skerishKang/400-ai-finder/issues/1225)
+- [#1226 근거등급별 행정정보 응답정책](https://github.com/skerishKang/400-ai-finder/issues/1226)
+- [#1227 timeout·관측성·API schema·kill switch](https://github.com/skerishKang/400-ai-finder/issues/1227)
+
+총괄 프로그램: [#1235 통제형 북구 MVP에서 안전한 다기관 운영플랫폼으로 전환](https://github.com/skerishKang/400-ai-finder/issues/1235)
+
+## 현재 안전경계
+
+- 실제 민원 제출, 로그인, 결제와 production write action을 수행하지 않습니다.
+- 주민등록번호·계좌·상세주소 등 고위험 개인정보를 입력·저장하는 서비스로 승인되지 않았습니다.
+- 공식도메인 citation과 검증된 canonical snapshot을 같은 상태로 취급하지 않습니다.
+- 근거가 없는 연락처·기한·수수료·제출서류는 확정정보로 제공하면 안 됩니다.
+- routine CI는 외부 provider·공식사이트 network 없이 재현 가능해야 합니다.
+- 북구 golden route·DOM·state와 resident-default는 migration·visual approval 없이 변경하지 않습니다.
+
+## 권장 개발순서
+
+```text
+#1224 endpoint protection
+→ #1227 timeout·observability·kill switch
+→ #1226 evidence policy
+→ #1225 canonical SiteSpec
+→ #1228 shared runtime contracts
+→ #1231 CI quality gates
+→ #1229 Cloudflare Function modularization
+→ #1230 citizen shell modularization
+→ #1080 fixture·visual coverage
+→ #1150 freshness staging
+→ #1232 multi-site onboarding
+→ #1233 / #1234 repository·license governance
+→ #862 / #873 authorized first-party integration
+```
+
+---
+
+## 프로젝트 소개
+
 400-ai-finder는 복잡한 기관 홈페이지, 공공기관 홈페이지, 대학 홈페이지, 기업 지원사업 홈페이지를 사용자가 자연어로 쉽게 탐색할 수 있도록 돕는 AI 기반 홈페이지 파인더입니다.
 
 사용자는 정확한 메뉴명이나 행정 용어를 몰라도 "신청서 어디 있어?", "지원사업 공고 어디서 봐?", "제출서류 뭐야?", "담당자 연락처 찾아줘"처럼 질문할 수 있습니다. AI파인더는 홈페이지 구조, 게시판, 공지사항, 첨부문서, 신청 절차를 분석하여 사용자가 원하는 페이지와 문서로 안내합니다.
@@ -73,7 +143,7 @@
 | `gwangju_go_kr` | 광주광역시청 | https://www.gwangju.go.kr/ | LEGACY_BOARD_SITE |
 
 - CLI 또는 서버 실행 시 `--site-id`로 기본 대상 기관을 지정합니다.
-- 운영자 대시보드에서는 등록된 site profile 목록을 불러와 테스트 대상 기관을 선택하고 전환할 수 있습니다.
+- 운영자 대시보드에서는 등록된 site profile 목록에서 북구청(`bukgu_gwangju`)과 광주광역시청(`gwangju_go_kr`)을 선택해 같은 대시보드에서 기관별 테스트를 전환할 수 있습니다.
 - 모바일 사용자 화면은 서버 실행 시 지정된 기본 기관을 유지하며, 운영자용 site 선택 UI를 노출하지 않습니다.
 
 ### 📱 모바일 ChatGPT형 사용자 UI (통합 실행: http://localhost:8400, 개별 실행: http://localhost:8080)
