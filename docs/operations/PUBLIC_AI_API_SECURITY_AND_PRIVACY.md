@@ -3,6 +3,7 @@
 - 상태: `canonical`
 - 기준일: 2026-08-04
 - 관련 이슈: #1224, #1226, #1227
+- 좌측 시민 clone canonical invariant: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md)
 
 ## 1. 적용범위
 
