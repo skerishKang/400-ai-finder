@@ -31,6 +31,7 @@
 - deterministic journey와 Page Agent 비교가 같은 controlled clone surface를 사용한다.
 - no-submit·no-login·no-payment·no-actual-site-control 경계가 있다.
 - golden baseline을 일반화 refactor보다 먼저 보호한다.
+- Canonical invariant: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md)
 
 ### 2.2 공식정보 provenance
 
