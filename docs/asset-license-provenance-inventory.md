@@ -1,6 +1,6 @@
 # Asset, license, and provenance inventory
 
-Status: **initial repository inventory / owner decision pending**
+Status: **active repository inventory / owner decision pending**
 
 Related issue: #1234
 
@@ -20,51 +20,51 @@ This document inventories the current repository's major copyright, license, and
 It is intentionally conservative:
 
 - it does **not** select a license for 400 AI Finder code;
-- it does **not** assume that public-government website content, screenshots, photographs, logos, icons, or visual design are freely redistributable;
+- it does **not** assume public-government website content, screenshots, photographs, logos, icons, or visual design are freely redistributable;
 - it does **not** treat a URL, public availability, or government authorship as sufficient reuse permission;
 - unknown or incomplete provenance is `REVIEW_REQUIRED`, not implicitly approved.
 
-This inventory covers Git-tracked/public-repository material. The Google Drive/local mirror may contain additional ignored, generated, cached, tool-owned, or local-only files; those files are governed separately by `docs/GOOGLE_DRIVE_MIRROR_SAFETY.md` and must not be deleted merely because they are absent from GitHub.
+The inventory covers Git-tracked/public-repository material. The Google Drive/local mirror can contain additional ignored, generated, cached, tool-owned, or local-only files; those files are governed separately by `docs/GOOGLE_DRIVE_MIRROR_SAFETY.md` and must not be deleted merely because they are absent from GitHub.
 
-## Repository-level license status
+## Repository-level status
 
 | Class | Current status | Decision |
 |---|---|---|
-| 400 AI Finder original source code | No root `LICENSE` found at this inventory baseline | `OWNER_DECISION_REQUIRED` |
-| Project documentation | No repository-wide explicit outbound license identified | `OWNER_DECISION_REQUIRED` |
-| Official-site captures / fixtures / screenshots | Source/provenance exists in parts of the project, but redistribution terms are not established by this inventory | `REVIEW_REQUIRED` |
-| Third-party vendored Page Agent runtime | Upstream/version/commit/license manifest and vendored license are present | `DOCUMENTED_THIRD_PARTY` |
-| npm dependency set | Direct dependency currently includes Playwright; dependency-specific notices still require automated/manual verification | `REVIEW_REQUIRED` |
-| Images / logos / official visual assets | Multiple Buk-gu-derived PNG assets are present; asset-by-asset permission status is not established here | `REVIEW_REQUIRED` |
-| Fonts/icons or other third-party design assets | No repository-wide manifest yet proves full coverage | `REVIEW_REQUIRED` |
+| 400 AI Finder original source code | No root project `LICENSE` approved | `OWNER_DECISION_REQUIRED` |
+| Project documentation | No repository-wide outbound license approved | `OWNER_DECISION_REQUIRED` |
+| Official-site captures / fixtures / screenshots | Technical provenance exists in parts of the project; redistribution terms are not established repository-wide | `REVIEW_REQUIRED` |
+| Third-party vendored Page Agent runtime | Upstream/version/commit/license manifest and synchronized vendored MIT license are present | `DOCUMENTED_THIRD_PARTY` |
+| Root Node dependency set | Lockfile-derived package/version/license inventory exists | `DOCUMENTED_PACKAGE_METADATA` |
+| Images / logos / official visual assets | Asset-by-asset permission status is not established | `REVIEW_REQUIRED` |
+| Fonts/icons or other third-party design assets | No repository-wide manifest yet proves complete coverage | `REVIEW_REQUIRED` |
 
-A missing root license means no new project license should be inferred from package metadata, third-party files, README language, or repository visibility.
+A missing project license means no project-wide license should be inferred from package metadata, third-party files, README language, or repository visibility.
 
 ## 1. Original project code
 
-The repository contains substantial first-party implementation in areas including `src/`, `functions/`, `scripts/`, `tests/`, `configs/`, project documentation, and build tooling.
+Substantial first-party implementation exists in `src/`, `functions/`, `scripts/`, `tests/`, `configs/`, project documentation, and build tooling.
 
 Current classification: `OWNER_DECISION_REQUIRED`.
 
 Before adding a root `LICENSE`, the repository owner must explicitly decide:
 
-1. who is authorized to license the project-owned code;
+1. who is authorized to license project-owned code;
 2. whether all contributors' contributions can be distributed under that license;
-3. whether code and non-code assets should use the same or different terms;
-4. whether any customer/institution-confidential material must be excluded before licensing.
+3. whether code and non-code assets use the same or different terms;
+4. whether customer/institution-confidential material must be excluded before licensing.
 
 No AI worker may choose MIT, Apache-2.0, GPL, proprietary, or another project-wide license on the owner's behalf.
 
 ## 2. Vendored Page Agent runtime
 
-Tracked provenance already exists at:
+Tracked provenance:
 
 - `src/web/examples/page-agent/source-manifest.json`
 - `src/web/examples/page-agent/vendor-manifest.json`
 - `src/web/examples/page-agent/vendor/page-agent.iife.js`
 - `src/web/examples/page-agent/vendor/LICENSE`
 
-The manifests identify:
+Current pinned identity:
 
 - source package: `@alicloud/page-agent`
 - upstream repository: `alibaba/page-agent`
@@ -73,9 +73,11 @@ The manifests identify:
 - upstream license: MIT
 - vendored runtime kind: custom non-demo IIFE built locally from pinned upstream source
 - vendored bundle size: 208,138 bytes
-- vendored license size: 1,070 bytes
-- bundle SHA-256: `ADE2BD44C77C2555143BD3D008FE9C3527D161C2C922A579471CE8A6C6FA3C74`
-- license SHA-256: `062A52901BED47A901076645239CE20B74EF9EDC8239149A7842CE153B959F9D`
+- vendored bundle SHA-256: `ADE2BD44C77C2555143BD3D008FE9C3527D161C2C922A579471CE8A6C6FA3C74`
+- vendored license size: 1,119 bytes
+- vendored license SHA-256: `393AD563CE5DD0BBE283EC40F9F5D631817262BC9BBD5EB17ED038A9D9F44803`
+
+The vendored `LICENSE` was rechecked against `alibaba/page-agent` at the exact pinned commit and synchronized to that revision. The pinned upstream notice contains the 2026 SimonLuvRamen and Alibaba Group Holding Limited copyright lines.
 
 The source manifest also records that demo auto-init/testing endpoints/CDN behavior were excluded from the controlled local build and that the local experiment is intended to run without non-local runtime requests.
 
@@ -83,26 +85,28 @@ Current classification: `DOCUMENTED_THIRD_PARTY`.
 
 Remaining work:
 
-- verify that the vendored `LICENSE` text exactly matches the upstream license at the pinned revision;
 - decide whether a root/project `NOTICE` should reproduce attribution for this component;
 - preserve manifest/version/commit/hash verification when the vendored file changes;
-- never remove the vendored license during bundling.
+- never remove the vendored license during bundling;
+- if the bundle is rebuilt from a different upstream revision, refresh source, license, hash, and build provenance together.
 
-## 3. npm / browser-test dependencies
+## 3. Node / browser-test dependencies
 
-Current root `package.json` directly declares `playwright: ^1.61.1`.
+The reproducible lockfile-derived report is:
 
-The lockfile remains the dependency-resolution source for CI, but a lockfile is not itself a license inventory.
+- `docs/legal/NODE_DEPENDENCY_LICENSE_REPORT.md`
 
-Current classification: `REVIEW_REQUIRED`.
+Current root lock state resolves:
 
-A reproducible dependency report should record at minimum:
+| Package | Version | Relationship | Lockfile license |
+|---|---:|---|---|
+| `playwright` | `1.61.1` | direct root dependency | `Apache-2.0` |
+| `playwright-core` | `1.61.1` | transitive dependency | `Apache-2.0` |
+| `fsevents` | `2.3.2` | optional transitive dependency, Darwin only | `MIT` |
 
-- package name and resolved version;
-- registry/source identity;
-- declared license;
-- notice/attribution requirement if any;
-- whether the package is test/development-only or shipped into public build output.
+Current classification: `DOCUMENTED_PACKAGE_METADATA`.
+
+This records package metadata, not a conclusion that every related browser binary or generated artifact is redistributed under those package licenses. If Playwright-managed browser binaries or package bytes are ever distributed, their actual distribution/notice requirements require separate review.
 
 Do not inventory `node_modules/` merely because the Drive mirror contains it. Dependency provenance should derive from committed dependency definitions/locks and actual build inclusion.
 
@@ -119,14 +123,14 @@ Current classification: `REVIEW_REQUIRED`.
 
 All technical exactness/provenance decisions continue to follow `docs/product/exact-official-site-clone-invariant.md`.
 
-Technical provenance (source URL, capture time, hash, route/page identity) is **not the same thing as copyright/reuse permission**.
+Technical provenance — source URL, capture time, hash, route/page identity — is **not the same thing as copyright/reuse permission**.
 
 For each published fixture/capture class, the final provenance manifest should record:
 
 - exact path or path pattern;
 - source institution/site and canonical URL where known;
 - capture/acquisition date;
-- whether the material is raw capture, structured extraction, screenshot, crop, transformation, or hand-authored reconstruction;
+- raw capture vs structured extraction vs screenshot/crop/transformation/reconstruction;
 - transformation details and intended use;
 - applicable public-data/copyright/license notice, if verified;
 - redistribution status: `APPROVED`, `RESTRICTED`, `REVIEW_REQUIRED`, or `INTERNAL_ONLY`;
@@ -136,7 +140,7 @@ Do not mark material `APPROVED` solely because it came from a government website
 
 ## 5. Buk-gu visual assets
 
-The synchronized source tree confirms tracked image classes under `src/web/static/images/`, including examples such as:
+Tracked image classes exist under `src/web/static/images/`, including:
 
 - `bukgu_home.png`
 - `bukgu_menu.png`
@@ -190,9 +194,9 @@ Rules:
 
 ## 8. Google Drive / local-only material
 
-The Drive mirror includes Git-tracked content plus additional working-state material such as `.git/`, dependency caches, virtual environments, generated output, AI-tool directories, logs, helper scripts, and other local-only files.
+The Drive mirror includes Git-tracked content plus additional working-state material such as dependency caches, virtual environments, generated output, AI-tool directories, logs, helper scripts, and other local-only files.
 
-This license inventory does not classify those paths as disposable and does not authorize their deletion.
+This inventory does not classify those paths as disposable and does not authorize their deletion.
 
 Apply `docs/GOOGLE_DRIVE_MIRROR_SAFETY.md`:
 
@@ -204,7 +208,7 @@ If a local-only artifact is later proposed for public inclusion, it must enter t
 
 ## 9. Required machine-readable manifest
 
-A follow-up PR should introduce a machine-readable provenance manifest only after the categories/fields are stable. Suggested record shape:
+A follow-up PR should introduce a machine-readable provenance manifest only after categories and fields are stable. Suggested record shape:
 
 ```json
 {
@@ -233,13 +237,13 @@ Before treating the public repository as license-complete:
 - [ ] repository owner explicitly approves the outbound license for project-owned code;
 - [ ] root `LICENSE` is added only after that approval;
 - [ ] `NOTICE`/attribution requirements are decided and implemented;
-- [ ] Page Agent vendored license/provenance is re-verified;
-- [ ] dependency license report is generated from committed locks;
+- [x] Page Agent vendored license is synchronized to the pinned upstream revision and its manifest identity is refreshed;
+- [x] basic Node dependency license report is generated from the committed lockfile;
 - [ ] official capture/fixture classes have reviewed redistribution statuses;
 - [ ] Buk-gu images/logos/photos/screenshots have asset-level provenance;
 - [ ] bundled fonts/icons/third-party design assets have license evidence;
 - [ ] presentation/document media is classified;
 - [ ] public repo contains no customer/institution-confidential asset;
-- [ ] new asset PR template/checklist requires provenance fields.
+- [x] existing PR template requires provenance information for new fixture/asset changes.
 
 Until those gates are satisfied, repository visibility must not be described as granting a project-wide open-source license.
