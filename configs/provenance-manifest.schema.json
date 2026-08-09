@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "configs/provenance-manifest.schema.json",
+  "title": "400 AI Finder provenance manifest",
+  "description": "Data-only schema for reviewed repository asset provenance. It does not grant rights, approve unknown redistribution, or imply runtime loading.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "records"],
+  "properties": {
+    "$schema": {"type": "string", "minLength": 1},
+    "schema_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "records": {"type": "array", "items": {"$ref": "#/$defs/record"}}
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset_id", "path", "asset_class", "provenance_status", "redistribution_status", "source", "integrity", "license_or_terms"],
+      "properties": {
+        "asset_id": {"type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+        "path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9_.\\-/]+$"},
+        "asset_class": {
+          "type": "string",
+          "enum": ["first_party_code", "first_party_documentation", "third_party_code", "official_public_text", "official_visual_asset", "generated_evidence", "third_party_design_asset", "other"]
+        },
+        "provenance_status": {
+          "type": "string",
+          "enum": ["DOCUMENTED_THIRD_PARTY", "DOCUMENTED_PACKAGE_METADATA", "OWNER_DECISION_REQUIRED", "REVIEW_REQUIRED", "RESTRICTED", "INTERNAL_ONLY"]
+        },
+        "redistribution_status": {
+          "type": "string",
+          "enum": ["APPROVED_WITH_TERMS", "OWNER_DECISION_REQUIRED", "REVIEW_REQUIRED", "RESTRICTED", "INTERNAL_ONLY"]
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repository", "revision"],
+          "properties": {
+            "repository": {"type": "string", "minLength": 1},
+            "revision": {"type": "string", "minLength": 1},
+            "package": {"type": ["string", "null"]},
+            "version": {"type": ["string", "null"]},
+            "source_path": {"type": ["string", "null"]}
+          }
+        },
+        "integrity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bytes", "sha256"],
+          "properties": {
+            "bytes": {"type": "integer", "minimum": 0},
+            "sha256": {"type": "string", "pattern": "^[0-9A-Fa-f]{64}$"}
+          }
+        },
+        "license_or_terms": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "identifier", "notice_path"],
+          "properties": {
+            "status": {"type": "string", "enum": ["VERIFIED", "OWNER_DECISION_REQUIRED", "REVIEW_REQUIRED", "RESTRICTED", "INTERNAL_ONLY"]},
+            "identifier": {"type": ["string", "null"]},
+            "notice_path": {"type": ["string", "null"]}
+          }
+        },
+        "modified": {"type": ["boolean", "null"]},
+        "notes": {"type": "string"}
+      }
+    }
+  }
+}
