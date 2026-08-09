@@ -1,0 +1,56 @@
+{
+  "$schema": "./provenance-manifest.schema.json",
+  "schema_version": "1.0.0",
+  "records": [
+    {
+      "asset_id": "page-agent-vendored-license",
+      "path": "src/web/examples/page-agent/vendor/LICENSE",
+      "asset_class": "third_party_code",
+      "provenance_status": "DOCUMENTED_THIRD_PARTY",
+      "redistribution_status": "APPROVED_WITH_TERMS",
+      "source": {
+        "repository": "alibaba/page-agent",
+        "revision": "fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7",
+        "package": "@alicloud/page-agent",
+        "version": "1.12.1",
+        "source_path": "LICENSE"
+      },
+      "integrity": {
+        "bytes": 1119,
+        "sha256": "393AD563CE5DD0BBE283EC40F9F5D631817262BC9BBD5EB17ED038A9D9F44803"
+      },
+      "license_or_terms": {
+        "status": "VERIFIED",
+        "identifier": "MIT",
+        "notice_path": "src/web/examples/page-agent/vendor/LICENSE"
+      },
+      "modified": false,
+      "notes": "License text verified against the exact pinned upstream revision. Keep the notice with redistributed vendored Page Agent material."
+    },
+    {
+      "asset_id": "page-agent-custom-iife",
+      "path": "src/web/examples/page-agent/vendor/page-agent.iife.js",
+      "asset_class": "third_party_code",
+      "provenance_status": "DOCUMENTED_THIRD_PARTY",
+      "redistribution_status": "APPROVED_WITH_TERMS",
+      "source": {
+        "repository": "alibaba/page-agent",
+        "revision": "fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7",
+        "package": "@alicloud/page-agent",
+        "version": "1.12.1",
+        "source_path": "packages/page-agent/src/PageAgent.ts"
+      },
+      "integrity": {
+        "bytes": 208138,
+        "sha256": "ADE2BD44C77C2555143BD3D008FE9C3527D161C2C922A579471CE8A6C6FA3C74"
+      },
+      "license_or_terms": {
+        "status": "VERIFIED",
+        "identifier": "MIT",
+        "notice_path": "src/web/examples/page-agent/vendor/LICENSE"
+      },
+      "modified": true,
+      "notes": "Controlled custom non-demo IIFE built locally from the pinned upstream source. Build provenance and excluded demo/network behavior remain documented in vendor-manifest.json and source-manifest.json."
+    }
+  ]
+}
