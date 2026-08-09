@@ -24,9 +24,9 @@
   "vendored_files": [
     {
       "path": "vendor/LICENSE",
-      "source": "alibaba/page-agent/LICENSE (MIT)",
-      "bytes": 1070,
-      "sha256": "062A52901BED47A901076645239CE20B74EF9EDC8239149A7842CE153B959F9D"
+      "source": "alibaba/page-agent@fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7/LICENSE (MIT)",
+      "bytes": 1119,
+      "sha256": "393AD563CE5DD0BBE283EC40F9F5D631817262BC9BBD5EB17ED038A9D9F44803"
     },
     {
       "path": "vendor/page-agent.iife.js",
@@ -36,8 +36,8 @@
     }
   ],
   "integrity": {
-    "verified_at": "2026-07-12T00:00:00Z",
-    "verified_by": "local-build",
-    "notes": "Offline vendored copy. Bundle is a controlled local build artifact; runtime performs no remote fetch."
+    "verified_at": "2026-08-09T19:49:00Z",
+    "verified_by": "pinned-upstream-license-sync",
+    "notes": "Offline vendored copy. LICENSE was verified against the pinned upstream commit; bundle is a controlled local build artifact and runtime performs no remote fetch."
   }
 }
