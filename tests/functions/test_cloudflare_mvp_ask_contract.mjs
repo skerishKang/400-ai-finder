@@ -1642,6 +1642,126 @@ await assert('#1215 indirect litter-dumping classification boundary cases', asyn
 
 
 // ---------------------------------------------------------------------------
+// #1227-B runtime kill switches: whole-AI, snapshot-only, provider disable.
+// ---------------------------------------------------------------------------
+
+await assert('#1227 runtime mode defaults enabled with no disabled providers', async () => {
+  const { data } = await requestJson('POST', JSON.stringify({ question: '안녕하세요' }));
+  expectEqual(data.meta.ai_mode, 'enabled', 'ai_mode');
+  expectEqual(data.meta.ai_mode_reason, 'default', 'ai_mode_reason');
+  expectEqual(data.meta.disabled_providers.length, 0, 'disabled provider count');
+});
+
+await assert('#1227 invalid AI mode fails closed with zero provider calls', async () => {
+  const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+    GEMINI_API_KEY: 'test-gemini',
+    MVP_AI_MODE: 'typo-mode',
+  });
+  expectEqual(data.ok, false, 'ok');
+  expectEqual(data.failure_code, 'service_disabled', 'failure_code');
+  expectEqual(data.meta.ai_mode, 'disabled', 'ai_mode');
+  expectEqual(data.meta.ai_mode_reason, 'invalid_mode_fail_closed', 'mode reason');
+  expectEqual(providerFetchCalls().length, 0, 'provider call count');
+});
+
+await assert('#1227 explicit disabled mode stops all provider work', async () => {
+  const { data } = await requestJson('POST', JSON.stringify({
+    question: 'Tell me how to contact the mayor',
+    locale: 'en',
+  }), {
+    GEMINI_API_KEY: 'test-gemini',
+    KILOCODE_API_KEY: 'test-hy3',
+    MVP_AI_MODE: 'disabled',
+  });
+  expectEqual(data.ok, false, 'ok');
+  expectEqual(data.failure_code, 'service_disabled', 'failure_code');
+  expectEqual(data.locale, 'en', 'locale');
+  expectEqual(data.meta.ai_mode, 'disabled', 'ai_mode');
+  expectEqual(providerFetchCalls().length, 0, 'provider call count');
+});
+
+await assert('#1227 snapshot-only mode returns canonical snapshot metadata without provider key', async () => {
+  const { data } = await requestJson('POST', JSON.stringify({
+    question: '공동주택 관련 문의는 어느 부서에 해야 하나요?',
+  }), {
+    MVP_AI_MODE: 'snapshot_only',
+  });
+  expectEqual(data.ok, false, 'ok');
+  expectEqual(data.failure_code, 'snapshot_only', 'failure_code');
+  expectEqual(data.meta.ai_mode, 'snapshot_only', 'ai_mode');
+  expectEqual(data.freshness_state, 'official_snapshot', 'freshness_state');
+  expectEqual(data.official_route_id, 'apartment-dept', 'official_route_id');
+  if (!data.canonical_sha256) throw new Error('canonical sha missing in snapshot-only mode');
+  if (!data.source_url.startsWith('https://bukgu.gwangju.kr/')) {
+    throw new Error(`official source missing: ${JSON.stringify(data.source_url)}`);
+  }
+  expectEqual(providerFetchCalls().length, 0, 'provider call count');
+});
+
+await assert('#1227 snapshot-only mode remains explicit when no canonical snapshot exists', async () => {
+  const { data } = await requestJson('POST', JSON.stringify({
+    question: '일반적인 민원 질문입니다',
+  }), {
+    MVP_AI_MODE: 'snapshot_only',
+  });
+  expectEqual(data.failure_code, 'snapshot_only', 'failure_code');
+  expectEqual(data.freshness_state, 'snapshot_unavailable', 'freshness_state');
+  expectEqual(data.source_url, '', 'source_url');
+  expectEqual(data.sources.length, 0, 'sources');
+  expectEqual(providerFetchCalls().length, 0, 'provider call count');
+});
+
+await assert('#1227 disabling Gemini skips it and allows HY3 fallback path', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('HY3 공급자만 사용한 정상적인 한국어 민원 안내입니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+      KILOCODE_API_KEY: 'test-hy3',
+      MVP_DISABLE_GEMINI: '1',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'hy3', 'provider');
+    expectEqual(data.fallback_used, true, 'fallback_used');
+    expectEqual(data.meta.disabled_providers.join(','), 'gemini', 'disabled providers');
+    expectEqual(providerFetchCalls().length, 1, 'provider call count');
+    if (!providerFetchCalls()[0].url.includes('kilo.ai')) {
+      throw new Error(`unexpected provider URL: ${JSON.stringify(providerFetchCalls()[0].url)}`);
+    }
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1227 both provider disables fail closed before fetch', async () => {
+  const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+    GEMINI_API_KEY: 'test-gemini',
+    KILOCODE_API_KEY: 'test-hy3',
+    MVP_DISABLE_GEMINI: '1',
+    MVP_DISABLE_HY3: '1',
+  });
+  expectEqual(data.failure_code, 'service_disabled', 'failure_code');
+  expectEqual(data.meta.disabled_providers.join(','), 'gemini,hy3', 'disabled providers');
+  expectEqual(providerFetchCalls().length, 0, 'provider call count');
+});
+
+await assert('#1227 malformed provider-disable flag fails closed for that provider', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('HY3 폴백 공급자의 안전한 한국어 안내입니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+      KILOCODE_API_KEY: 'test-hy3',
+      MVP_DISABLE_GEMINI: 'maybe',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'hy3', 'provider');
+    expectEqual(data.meta.disabled_providers.join(','), 'gemini', 'disabled providers');
+    expectEqual(providerFetchCalls().length, 1, 'provider call count');
+  } finally {
+    restoreFetch();
+  }
+});
+
+// ---------------------------------------------------------------------------
 // #1227-A runtime control foundation: request identity + bounded provider time.
 // ---------------------------------------------------------------------------
 

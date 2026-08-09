@@ -26,6 +26,8 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
 export const DEFAULT_PROVIDER_TIMEOUT_MS = 8000;
 export const MIN_TIMEOUT_MS = 10;
 export const MAX_TIMEOUT_MS = 60000;
+export const AI_RUNTIME_MODES = Object.freeze(['enabled', 'snapshot_only', 'disabled']);
+export const AI_MODE_ENV = 'MVP_AI_MODE';
 
 export const SUPPORTED_LOCALES = Object.freeze([
   'ko',
@@ -268,6 +270,8 @@ const FAILURE_ANSWERS = Object.freeze({
     config_error: '현재 AI 안내 설정을 확인하고 있습니다.',
     upstream_error: '현재 AI 안내를 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
     upstream_timeout: 'AI 안내 응답 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.',
+    service_disabled: '현재 AI 안내가 운영자에 의해 일시 중지되어 있습니다. 공식 홈페이지에서 확인해 주세요.',
+    snapshot_only: '현재 AI 연결은 일시 중지되어 확인된 공식 저장본만 사용합니다. 표시된 공식 출처에서 최신 정보를 확인해 주세요.',
     invalid_input: '잘못된 요청 형식입니다.',
     too_long: '질문이 너무 깁니다. 300자 이내로 입력해 주세요.',
   },
@@ -275,6 +279,8 @@ const FAILURE_ANSWERS = Object.freeze({
     config_error: 'The AI guide settings are being checked.',
     upstream_error: 'The AI guide could not be reached. Please try again later.',
     upstream_timeout: 'The AI guide timed out. Please try again.',
+    service_disabled: 'The AI guide is temporarily disabled by the operator. Please check the official website.',
+    snapshot_only: 'Live AI is temporarily disabled and only verified official snapshots are available. Please check the displayed official source for current information.',
     invalid_input: 'Invalid request format.',
     too_long: 'Your question is too long. Please keep it within 300 characters.',
   },
@@ -282,6 +288,8 @@ const FAILURE_ANSWERS = Object.freeze({
     config_error: 'Đang kiểm tra cài đặt hướng dẫn AI.',
     upstream_error: 'Không thể kết nối hướng dẫn AI. Vui lòng thử lại sau.',
     upstream_timeout: 'Hướng dẫn AI đã hết thời gian chờ. Vui lòng thử lại.',
+    service_disabled: 'Hướng dẫn AI đang tạm thời bị người vận hành vô hiệu hóa. Vui lòng kiểm tra trang web chính thức.',
+    snapshot_only: 'AI trực tiếp đang tạm dừng và chỉ sử dụng bản lưu chính thức đã xác minh. Vui lòng kiểm tra nguồn chính thức được hiển thị để biết thông tin mới nhất.',
     invalid_input: 'Định dạng yêu cầu không hợp lệ.',
     too_long: 'Câu hỏi quá dài. Vui lòng nhập dưới 300 ký tự.',
   },
@@ -289,6 +297,8 @@ const FAILURE_ANSWERS = Object.freeze({
     config_error: 'กำลังตรวจสอบการตั้งค่าคำแนะนำ AI',
     upstream_error: 'ไม่สามารถเชื่อมต่อคำแนะนำ AI ได้ โปรดลองอีกครั้งในภายหลัง',
     upstream_timeout: 'คำแนะนำ AI ใช้เวลานานเกินกำหนด โปรดลองอีกครั้ง',
+    service_disabled: 'ขณะนี้ผู้ดูแลระบบปิดใช้งานคำแนะนำ AI ชั่วคราว โปรดตรวจสอบเว็บไซต์ทางการ',
+    snapshot_only: 'ขณะนี้ปิดการเชื่อมต่อ AI สดและใช้เฉพาะสำเนาข้อมูลทางการที่ยืนยันแล้ว โปรดตรวจสอบแหล่งข้อมูลทางการที่แสดงสำหรับข้อมูลล่าสุด',
     invalid_input: 'รูปแบบคำขอไม่ถูกต้อง',
     too_long: 'คำถามยาวเกินไป โปรดระบุไม่เกิน 300 ตัวอักษร',
   },
@@ -296,6 +306,8 @@ const FAILURE_ANSWERS = Object.freeze({
     config_error: 'Pengaturan panduan AI sedang diperiksa.',
     upstream_error: 'Panduan AI tidak dapat dihubungi. Silakan coba lagi nanti.',
     upstream_timeout: 'Waktu respons panduan AI habis. Silakan coba lagi.',
+    service_disabled: 'Panduan AI untuk sementara dinonaktifkan oleh operator. Silakan periksa situs web resmi.',
+    snapshot_only: 'AI langsung untuk sementara dinonaktifkan dan hanya snapshot resmi terverifikasi yang digunakan. Periksa sumber resmi yang ditampilkan untuk informasi terbaru.',
     invalid_input: 'Format permintaan tidak valid.',
     too_long: 'Pertanyaan terlalu panjang. Mohon batasi di bawah 300 karakter.',
   },
@@ -501,6 +513,24 @@ const ACTION_SNAPSHOT_ROUTES = Object.freeze({
 
 function jsonResponse(payload, status, headers) {
   return new Response(JSON.stringify(payload), { status, headers });
+}
+
+export function resolveAiRuntimeMode(env) {
+  const raw = env && typeof env[AI_MODE_ENV] === 'string'
+    ? env[AI_MODE_ENV].trim().toLowerCase()
+    : '';
+  if (!raw) return { mode: 'enabled', reason: 'default' };
+  if (AI_RUNTIME_MODES.includes(raw)) return { mode: raw, reason: 'configured' };
+  return { mode: 'disabled', reason: 'invalid_mode_fail_closed' };
+}
+
+export function isProviderDisabled(env, provider) {
+  const envName = `MVP_DISABLE_${String(provider || '').toUpperCase()}`;
+  const raw = env && typeof env[envName] === 'string' ? env[envName].trim() : '';
+  if (!raw || raw === '0') return false;
+  // Any non-empty value other than explicit 0 fails closed. This prevents a
+  // typo in an emergency disable flag from silently leaving the provider live.
+  return true;
 }
 
 function timeoutMsFromEnv(env, name, fallback) {
@@ -1260,6 +1290,8 @@ export async function onRequest(context) {
   const providerAttempts = [];
   const headers = buildHeaders(request, requestId);
   const providerOrder = normalizeProviderOrder(env.MVP_LLM_ORDER);
+  const runtimeMode = resolveAiRuntimeMode(env);
+  const disabledProviders = providerOrder.filter((provider) => isProviderDisabled(env, provider));
   const reqHostname = requestHostname(request);
   const primaryConfig = providerConfig(providerOrder[0], env, reqHostname);
   const retrievedAt = new Date();
@@ -1276,6 +1308,9 @@ export async function onRequest(context) {
       request_timeout_ms: requestTimeoutMs,
       provider_timeout_ms: providerTimeoutMs,
       provider_attempts: providerAttempts.slice(),
+      ai_mode: runtimeMode.mode,
+      ai_mode_reason: runtimeMode.reason,
+      disabled_providers: disabledProviders.slice(),
     };
     const decorated = Object.assign({}, payload, {
       request_id: requestId,
@@ -1348,8 +1383,22 @@ export async function onRequest(context) {
     )), 200, headers);
   }
 
+  if (runtimeMode.mode === 'disabled') {
+    return jsonResponse(withRuntimeMeta(
+      failurePayload(question, primaryConfig.provider, primaryConfig.model, 'service_disabled', retrievedAt, currentTime, requestLocale),
+    ), 200, headers);
+  }
+
+  if (runtimeMode.mode === 'enabled' && disabledProviders.length === providerOrder.length) {
+    return jsonResponse(withRuntimeMeta(
+      failurePayload(question, primaryConfig.provider, primaryConfig.model, 'service_disabled', retrievedAt, currentTime, requestLocale),
+    ), 200, headers);
+  }
+
   const deterministicAction = classifyAction(question);
-  const hasConfiguredProvider = providerOrder.some((provider) => providerConfig(provider, env, reqHostname).key);
+  const hasConfiguredProvider = providerOrder.some((provider) =>
+    !isProviderDisabled(env, provider) && providerConfig(provider, env, reqHostname).key
+  );
   let officialContext = {
     ok: false,
     evidence: '',
@@ -1364,13 +1413,36 @@ export async function onRequest(context) {
     snapshotId: '',
     canonicalSha256: '',
   };
-  if (hasConfiguredProvider) {
+  if (hasConfiguredProvider || runtimeMode.mode === 'snapshot_only') {
     try {
       officialContext = await retrieveOfficialContext(question, deterministicAction);
     } catch (_) {
-      // Official retrieval is fail-soft so the configured model can still answer.
+      // Official retrieval is fail-soft; snapshot-only mode remains fail-closed.
     }
   }
+
+  if (runtimeMode.mode === 'snapshot_only') {
+    const payload = failurePayload(
+      question,
+      primaryConfig.provider,
+      primaryConfig.model,
+      'snapshot_only',
+      retrievedAt,
+      currentTime,
+      requestLocale,
+    );
+    payload.freshness_state = officialContext.freshnessState || 'unavailable';
+    payload.source_url = officialContext.sourceUrl || '';
+    payload.sources = Array.isArray(officialContext.sources) ? officialContext.sources : [];
+    payload.captured_at = officialContext.capturedAt || '';
+    payload.verified_at = officialContext.verifiedAt || '';
+    payload.official_route_id = officialContext.routeId || '';
+    payload.official_page_id = officialContext.pageId || '';
+    payload.snapshot_id = officialContext.snapshotId || '';
+    payload.canonical_sha256 = officialContext.canonicalSha256 || '';
+    return jsonResponse(withRuntimeMeta(payload), 200, headers);
+  }
+
   let configuredProviderCount = 0;
   let lastFailureCode = 'config_error';
   // Sticky flag so a later upstream/empty failure cannot hide a prior mismatch.
@@ -1412,6 +1484,7 @@ export async function onRequest(context) {
   }
 
   for (let index = 0; index < providerOrder.length; index += 1) {
+    if (isProviderDisabled(env, providerOrder[index])) continue;
     const config = providerConfig(providerOrder[index], env, reqHostname);
     if (config.error === 'config_error') {
       // A keyed provider with a missing/invalid local override must fail-closed
