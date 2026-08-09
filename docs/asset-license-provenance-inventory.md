@@ -83,9 +83,11 @@ The source manifest also records that demo auto-init/testing endpoints/CDN behav
 
 Current classification: `DOCUMENTED_THIRD_PARTY`.
 
+The controlled Pages build copies the Page Agent example tree including `vendor/LICENSE`, and CI asserts that the built license file exists. This preserves the verified MIT notice alongside the vendored runtime in that output.
+
 Remaining work:
 
-- decide whether a root/project `NOTICE` should reproduce attribution for this component;
+- decide whether a root/project `NOTICE` is needed for other present or future components beyond the already preserved vendored notice;
 - preserve manifest/version/commit/hash verification when the vendored file changes;
 - never remove the vendored license during bundling;
 - if the bundle is rebuilt from a different upstream revision, refresh source, license, hash, and build provenance together.
@@ -206,29 +208,23 @@ Apply `docs/GOOGLE_DRIVE_MIRROR_SAFETY.md`:
 
 If a local-only artifact is later proposed for public inclusion, it must enter this provenance process before being committed.
 
-## 9. Required machine-readable manifest
+## 9. Machine-readable provenance manifest
 
-A follow-up PR should introduce a machine-readable provenance manifest only after categories and fields are stable. Suggested record shape:
+The repository now defines a data-only provenance contract:
 
-```json
-{
-  "path": "src/web/static/images/example.png",
-  "class": "official_screenshot",
-  "source": {
-    "url": "...",
-    "captured_at": "..."
-  },
-  "license_or_terms": {
-    "status": "REVIEW_REQUIRED",
-    "identifier": null,
-    "notice": null,
-    "evidence": null
-  },
-  "redistribution": "REVIEW_REQUIRED"
-}
-```
+- `configs/provenance-manifest.schema.json`
+- `configs/provenance-manifest.json`
 
-Do not fill unknown license identifiers with guesses.
+The initial manifest is intentionally narrow. It seeds only the two Page Agent vendored artifacts whose upstream revision, MIT terms, integrity identity, and notice path are already verified:
+
+- `src/web/examples/page-agent/vendor/LICENSE`
+- `src/web/examples/page-agent/vendor/page-agent.iife.js`
+
+The schema keeps provenance state and redistribution state explicit and supports fail-closed values including `OWNER_DECISION_REQUIRED`, `REVIEW_REQUIRED`, `RESTRICTED`, and `INTERNAL_ONLY`.
+
+Do not add an official-site capture, image, logo, photograph, font, icon, presentation asset, or project-owned code record as approved unless its evidence supports that state. Unknown license identifiers remain null/review-required rather than guessed.
+
+The manifest is data-only: no runtime loader, renderer behavior, or release promotion is implied by the file's existence.
 
 ## 10. Release gate
 
@@ -236,9 +232,11 @@ Before treating the public repository as license-complete:
 
 - [ ] repository owner explicitly approves the outbound license for project-owned code;
 - [ ] root `LICENSE` is added only after that approval;
-- [ ] `NOTICE`/attribution requirements are decided and implemented;
+- [ ] `NOTICE`/attribution requirements are decided for all redistributed third-party material;
 - [x] Page Agent vendored license is synchronized to the pinned upstream revision and its manifest identity is refreshed;
+- [x] Page Agent vendored license is preserved in the controlled Pages output;
 - [x] basic Node dependency license report is generated from the committed lockfile;
+- [x] machine-readable provenance schema/manifest exists for currently verified vendored records;
 - [ ] official capture/fixture classes have reviewed redistribution statuses;
 - [ ] Buk-gu images/logos/photos/screenshots have asset-level provenance;
 - [ ] bundled fonts/icons/third-party design assets have license evidence;
