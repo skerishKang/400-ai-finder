@@ -112,6 +112,39 @@ function officialFetchCalls() {
   return fetchCalls.filter((call) => isOfficialFetchUrl(call.url));
 }
 
+function mockAbortError() {
+  const error = new Error('mock fetch aborted');
+  error.name = 'AbortError';
+  return error;
+}
+
+async function waitForMockDelay(delayMs, signal) {
+  if (!delayMs) return;
+  await new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (signal && typeof signal.removeEventListener === 'function') {
+        signal.removeEventListener('abort', onAbort);
+      }
+      fn(value);
+    };
+    const onAbort = () => finish(reject, mockAbortError());
+    const timer = setTimeout(() => finish(resolve), delayMs);
+    if (signal) {
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+      if (typeof signal.addEventListener === 'function') {
+        signal.addEventListener('abort', onAbort, { once: true });
+      }
+    }
+  });
+}
+
 function mockFetchSequence(responses, fixtures = {}) {
   fetchCalls = [];
   let providerIndex = 0;
@@ -122,6 +155,7 @@ function mockFetchSequence(responses, fixtures = {}) {
       method: requestOptions.method || 'GET',
       headers: requestOptions.headers || {},
       body: requestOptions.body || '',
+      signal: requestOptions.signal || null,
     });
     let response;
     if (resolvedUrl === 'https://bukgu.gwangju.kr/') {
@@ -133,6 +167,7 @@ function mockFetchSequence(responses, fixtures = {}) {
       providerIndex += 1;
     }
     if (!response) throw new Error(`No mock response configured for ${resolvedUrl}`);
+    await waitForMockDelay(response.delayMs || 0, requestOptions.signal);
     if (response.throw) throw response.throw;
     const status = response.status ?? 200;
     const payload = response.body ?? {};
@@ -1603,6 +1638,110 @@ await assert('#1215 indirect litter-dumping classification boundary cases', asyn
   for (const [question, expected] of PRESERVED) {
     expectEqual(functionModule.classifyAction(question), expected, question);
   }
+});
+
+
+// ---------------------------------------------------------------------------
+// #1227-A runtime control foundation: request identity + bounded provider time.
+// ---------------------------------------------------------------------------
+
+await assert('#1227 request metadata is present without exposing citizen input', async () => {
+  const { response, data } = await requestJson('POST', JSON.stringify({ question: '안녕하세요' }));
+  if (typeof data.request_id !== 'string' || data.request_id.length < 16) {
+    throw new Error(`request_id missing/short: ${JSON.stringify(data.request_id)}`);
+  }
+  expectEqual(response.headers.get('X-Request-ID'), data.request_id, 'response request id header');
+  expectEqual(data.schema_version, '1.0', 'schema_version');
+  expectEqual(data.policy_version, '2026-08-10.1', 'policy_version');
+  expectEqual(data.meta.request_id, data.request_id, 'meta request id');
+  expectEqual(data.meta.schema_version, data.schema_version, 'meta schema version');
+  expectEqual(data.meta.provider_attempts.length, 0, 'no provider attempts');
+  if (typeof data.meta.latency_ms !== 'number' || data.meta.latency_ms < 0) {
+    throw new Error(`invalid latency_ms: ${JSON.stringify(data.meta.latency_ms)}`);
+  }
+  const serializedMeta = JSON.stringify(data.meta);
+  if (serializedMeta.includes('안녕하세요')) throw new Error('raw question leaked into runtime meta');
+});
+
+await assert('#1227 provider timeout aborts Gemini then safely falls back to HY3', async () => {
+  try {
+    mockFetchSequence([
+      { delayMs: 120, body: chatResponse('이 응답은 timeout 전에 도착하면 안 됩니다.') },
+      { body: chatResponse('HY3 폴백이 제한 시간 안에 정상적으로 응답한 안내입니다.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+      KILOCODE_API_KEY: 'test-hy3',
+      MVP_PROVIDER_TIMEOUT_MS: '30',
+      MVP_REQUEST_TIMEOUT_MS: '500',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'hy3', 'provider');
+    expectEqual(data.fallback_used, true, 'fallback_used');
+    const calls = providerFetchCalls();
+    expectEqual(calls.length, 2, 'provider call count');
+    if (!calls[0].signal) throw new Error('Gemini fetch missing AbortController signal');
+    expectEqual(calls[0].signal.aborted, true, 'Gemini signal aborted');
+    if (!calls[1].signal) throw new Error('HY3 fetch missing AbortController signal');
+    expectEqual(data.meta.provider_attempts.length, 2, 'attempt count');
+    expectEqual(data.meta.provider_attempts[0].provider, 'gemini', 'attempt 1 provider');
+    expectEqual(data.meta.provider_attempts[0].outcome, 'upstream_timeout', 'attempt 1 outcome');
+    expectEqual(data.meta.provider_attempts[1].provider, 'hy3', 'attempt 2 provider');
+    expectEqual(data.meta.provider_attempts[1].outcome, 'success', 'attempt 2 outcome');
+    expectEqual(data.meta.provider_timeout_ms, 30, 'provider timeout metadata');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1227 overall request deadline prevents a second provider call and returns retryable timeout', async () => {
+  try {
+    mockFetchSequence([
+      { delayMs: 200, body: chatResponse('늦은 Gemini 응답입니다.') },
+      { body: chatResponse('두 번째 공급자는 호출되면 안 됩니다.') },
+    ]);
+    const { response, data } = await requestJson('POST', JSON.stringify({
+      question: 'please provide general guidance',
+      locale: 'en',
+    }), {
+      GEMINI_API_KEY: 'test-gemini',
+      KILOCODE_API_KEY: 'test-hy3',
+      MVP_PROVIDER_TIMEOUT_MS: '1000',
+      MVP_REQUEST_TIMEOUT_MS: '40',
+    });
+    expectEqual(data.ok, false, 'ok');
+    expectEqual(data.failure_code, 'upstream_timeout', 'failure_code');
+    expectEqual(data.answer, 'The AI guide timed out. Please try again.', 'localized timeout answer');
+    expectEqual(data.error.code, 'upstream_timeout', 'error code');
+    expectEqual(data.error.retryable, true, 'retryable');
+    expectEqual(data.error.request_id, data.request_id, 'error request id');
+    expectEqual(response.headers.get('X-Request-ID'), data.request_id, 'request id header');
+    expectEqual(providerFetchCalls().length, 1, 'global deadline stops fallback');
+    expectEqual(data.meta.provider_attempts.length, 1, 'one recorded attempt');
+    expectEqual(data.meta.provider_attempts[0].outcome, 'upstream_timeout', 'recorded timeout');
+    expectEqual(data.meta.request_timeout_ms, 40, 'request timeout metadata');
+    if (data.meta.latency_ms > 180) {
+      throw new Error(`overall deadline did not bound latency: ${data.meta.latency_ms}ms`);
+    }
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1227 timeout env overrides are bounded and invalid values fall back safely', async () => {
+  const { data: invalid } = await requestJson('POST', JSON.stringify({ question: 'hello', locale: 'en' }), {
+    MVP_REQUEST_TIMEOUT_MS: 'not-a-number',
+    MVP_PROVIDER_TIMEOUT_MS: '-5',
+  });
+  expectEqual(invalid.meta.request_timeout_ms, functionModule.DEFAULT_REQUEST_TIMEOUT_MS, 'invalid request timeout fallback');
+  expectEqual(invalid.meta.provider_timeout_ms, functionModule.DEFAULT_PROVIDER_TIMEOUT_MS, 'invalid provider timeout fallback');
+
+  const { data: clamped } = await requestJson('POST', JSON.stringify({ question: 'hello', locale: 'en' }), {
+    MVP_REQUEST_TIMEOUT_MS: '1',
+    MVP_PROVIDER_TIMEOUT_MS: '999999',
+  });
+  expectEqual(clamped.meta.request_timeout_ms, functionModule.MIN_TIMEOUT_MS, 'request timeout lower clamp');
+  expectEqual(clamped.meta.provider_timeout_ms, functionModule.MAX_TIMEOUT_MS, 'provider timeout upper clamp');
 });
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);

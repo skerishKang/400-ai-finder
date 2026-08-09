@@ -17,6 +17,16 @@ export const VALID_ACTIONS = Object.freeze([
 
 export const DEFAULT_PROVIDER_ORDER = Object.freeze(['gemini', 'hy3']);
 
+// Runtime control contract (#1227-A). These values are intentionally code-owned
+// defaults; bounded env overrides exist for staging/tests without allowing an
+// unbounded provider request.
+export const API_SCHEMA_VERSION = '1.0';
+export const POLICY_VERSION = '2026-08-10.1';
+export const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
+export const DEFAULT_PROVIDER_TIMEOUT_MS = 8000;
+export const MIN_TIMEOUT_MS = 10;
+export const MAX_TIMEOUT_MS = 60000;
+
 export const SUPPORTED_LOCALES = Object.freeze([
   'ko',
   'en',
@@ -257,30 +267,35 @@ const FAILURE_ANSWERS = Object.freeze({
   ko: {
     config_error: '현재 AI 안내 설정을 확인하고 있습니다.',
     upstream_error: '현재 AI 안내를 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    upstream_timeout: 'AI 안내 응답 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.',
     invalid_input: '잘못된 요청 형식입니다.',
     too_long: '질문이 너무 깁니다. 300자 이내로 입력해 주세요.',
   },
   en: {
     config_error: 'The AI guide settings are being checked.',
     upstream_error: 'The AI guide could not be reached. Please try again later.',
+    upstream_timeout: 'The AI guide timed out. Please try again.',
     invalid_input: 'Invalid request format.',
     too_long: 'Your question is too long. Please keep it within 300 characters.',
   },
   vi: {
     config_error: 'Đang kiểm tra cài đặt hướng dẫn AI.',
     upstream_error: 'Không thể kết nối hướng dẫn AI. Vui lòng thử lại sau.',
+    upstream_timeout: 'Hướng dẫn AI đã hết thời gian chờ. Vui lòng thử lại.',
     invalid_input: 'Định dạng yêu cầu không hợp lệ.',
     too_long: 'Câu hỏi quá dài. Vui lòng nhập dưới 300 ký tự.',
   },
   th: {
     config_error: 'กำลังตรวจสอบการตั้งค่าคำแนะนำ AI',
     upstream_error: 'ไม่สามารถเชื่อมต่อคำแนะนำ AI ได้ โปรดลองอีกครั้งในภายหลัง',
+    upstream_timeout: 'คำแนะนำ AI ใช้เวลานานเกินกำหนด โปรดลองอีกครั้ง',
     invalid_input: 'รูปแบบคำขอไม่ถูกต้อง',
     too_long: 'คำถามยาวเกินไป โปรดระบุไม่เกิน 300 ตัวอักษร',
   },
   id: {
     config_error: 'Pengaturan panduan AI sedang diperiksa.',
     upstream_error: 'Panduan AI tidak dapat dihubungi. Silakan coba lagi nanti.',
+    upstream_timeout: 'Waktu respons panduan AI habis. Silakan coba lagi.',
     invalid_input: 'Format permintaan tidak valid.',
     too_long: 'Pertanyaan terlalu panjang. Mohon batasi di bawah 300 karakter.',
   },
@@ -488,7 +503,35 @@ function jsonResponse(payload, status, headers) {
   return new Response(JSON.stringify(payload), { status, headers });
 }
 
-function buildHeaders(request) {
+function timeoutMsFromEnv(env, name, fallback) {
+  const raw = env && typeof env[name] === 'string' ? env[name].trim() : '';
+  if (!/^\d+$/.test(raw)) return fallback;
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed)) return fallback;
+  return Math.max(MIN_TIMEOUT_MS, Math.min(MAX_TIMEOUT_MS, parsed));
+}
+
+function createRequestId() {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  if (globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    return `req-${Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')}`;
+  }
+  // Last-resort runtime fallback. Never derives IDs from citizen content.
+  return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}`;
+}
+
+function safeCorrelationId(request) {
+  const raw = request && request.headers && typeof request.headers.get === 'function'
+    ? String(request.headers.get('CF-Ray') || '').trim()
+    : '';
+  return /^[A-Za-z0-9._:-]{1,128}$/.test(raw) ? raw : '';
+}
+
+function buildHeaders(request, requestId = '') {
   const productionOrigin = 'https://cgbukku.pages.dev';
   const origin = request.headers.get('Origin') || '';
   let allowedOrigin = productionOrigin;
@@ -504,7 +547,7 @@ function buildHeaders(request) {
     // Missing or malformed Origin uses the production origin.
   }
 
-  return {
+  const headers = {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -512,6 +555,8 @@ function buildHeaders(request) {
     'Vary': 'Origin',
     'Content-Type': 'application/json; charset=utf-8',
   };
+  if (requestId) headers['X-Request-ID'] = requestId;
+  return headers;
 }
 
 export function classifyAction(question) {
@@ -1038,11 +1083,37 @@ function mergeQueries(...groups) {
   return merged.slice(0, 5);
 }
 
+function upstreamTimeoutError() {
+  const error = new Error('UPSTREAM_TIMEOUT');
+  error.code = 'upstream_timeout';
+  return error;
+}
+
+function isUpstreamTimeoutError(error) {
+  return Boolean(error) && (error.code === 'upstream_timeout' || error.name === 'AbortError');
+}
+
+async function fetchWithDeadline(url, init, timeoutMs) {
+  const boundedTimeout = Math.max(MIN_TIMEOUT_MS, Math.min(MAX_TIMEOUT_MS, Number(timeoutMs) || DEFAULT_PROVIDER_TIMEOUT_MS));
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), boundedTimeout);
+  try {
+    return await fetch(url, Object.assign({}, init, { signal: controller.signal }));
+  } catch (error) {
+    if (controller.signal.aborted || isUpstreamTimeoutError(error)) {
+      throw upstreamTimeoutError();
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function requestOpenAICompatible(config, question, currentTime, officialContext, locale, options = {}) {
   const system = options.rejectedDraft
     ? buildCorrectiveSystemPrompt(currentTime, officialContext, locale, options.rejectedDraft)
     : buildSystemPrompt(currentTime, officialContext, locale);
-  const upstream = await fetch(config.endpoint, {
+  const upstream = await fetchWithDeadline(config.endpoint, {
     method: 'POST',
     redirect: 'manual',
     headers: {
@@ -1058,7 +1129,7 @@ async function requestOpenAICompatible(config, question, currentTime, officialCo
       temperature: 0.1,
       max_tokens: 700,
     }),
-  });
+  }, options.timeoutMs);
 
   if (!upstream.ok) {
     await upstream.text();
@@ -1087,7 +1158,7 @@ async function requestOpenAICompatible(config, question, currentTime, officialCo
 }
 
 async function requestGeminiInteractions(config, question, currentTime, officialContext, locale, options = {}) {
-  const upstream = await fetch(config.endpoint, {
+  const upstream = await fetchWithDeadline(config.endpoint, {
     method: 'POST',
     redirect: 'manual',
     headers: {
@@ -1106,7 +1177,7 @@ async function requestGeminiInteractions(config, question, currentTime, official
       tools: [{ type: 'google_search' }],
       store: false,
     }),
-  });
+  }, options.timeoutMs);
 
   if (!upstream.ok) {
     await upstream.text();
@@ -1180,47 +1251,101 @@ function failurePayload(question, provider, model, failureCode, retrievedAt, cur
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const headers = buildHeaders(request);
+  const startedAtMs = Date.now();
+  const requestId = createRequestId();
+  const correlationId = safeCorrelationId(request);
+  const requestTimeoutMs = timeoutMsFromEnv(env, 'MVP_REQUEST_TIMEOUT_MS', DEFAULT_REQUEST_TIMEOUT_MS);
+  const providerTimeoutMs = timeoutMsFromEnv(env, 'MVP_PROVIDER_TIMEOUT_MS', DEFAULT_PROVIDER_TIMEOUT_MS);
+  const deadlineAtMs = startedAtMs + requestTimeoutMs;
+  const providerAttempts = [];
+  const headers = buildHeaders(request, requestId);
   const providerOrder = normalizeProviderOrder(env.MVP_LLM_ORDER);
   const reqHostname = requestHostname(request);
   const primaryConfig = providerConfig(providerOrder[0], env, reqHostname);
   const retrievedAt = new Date();
   const currentTime = formatSeoulTime(retrievedAt);
 
+  function withRuntimeMeta(payload) {
+    const latencyMs = Math.max(0, Date.now() - startedAtMs);
+    const meta = {
+      schema_version: API_SCHEMA_VERSION,
+      policy_version: POLICY_VERSION,
+      request_id: requestId,
+      correlation_id: correlationId,
+      latency_ms: latencyMs,
+      request_timeout_ms: requestTimeoutMs,
+      provider_timeout_ms: providerTimeoutMs,
+      provider_attempts: providerAttempts.slice(),
+    };
+    const decorated = Object.assign({}, payload, {
+      request_id: requestId,
+      schema_version: API_SCHEMA_VERSION,
+      policy_version: POLICY_VERSION,
+      meta,
+    });
+    if (decorated.ok === false && typeof decorated.failure_code === 'string' && decorated.failure_code) {
+      decorated.error = {
+        code: decorated.failure_code,
+        retryable: decorated.failure_code === 'upstream_timeout' || decorated.failure_code === 'upstream_error',
+        request_id: requestId,
+      };
+    }
+    return decorated;
+  }
+
+  function remainingRequestBudgetMs() {
+    return Math.max(0, deadlineAtMs - Date.now());
+  }
+
+  function attemptTimeoutMs() {
+    return Math.min(providerTimeoutMs, remainingRequestBudgetMs());
+  }
+
+  function recordProviderAttempt(config, attemptKind, outcome, started, timeoutMs) {
+    providerAttempts.push({
+      provider: config.provider,
+      model: config.model,
+      attempt: attemptKind,
+      outcome,
+      latency_ms: Math.max(0, Date.now() - started),
+      timeout_ms: timeoutMs,
+    });
+  }
+
   if (request.method === 'OPTIONS') return new Response(null, { status: 200, headers });
   if (request.method !== 'POST') {
-    return jsonResponse({ ok: false, error: 'Method not allowed' }, 405, headers);
+    return jsonResponse(withRuntimeMeta({ ok: false, error: 'Method not allowed' }), 405, headers);
   }
 
   let body;
   try {
     body = await request.json();
   } catch (_) {
-    return jsonResponse(Object.assign(
+    return jsonResponse(withRuntimeMeta(Object.assign(
       failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, 'ko'),
       { answer: localizedFailureAnswer('ko', 'invalid_input') },
-    ), 200, headers);
+    )), 200, headers);
   }
 
   const requestLocale = normalizeLocale(body && typeof body.locale === 'string' ? body.locale : 'ko');
 
   if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.question !== 'string') {
     if (body && typeof body === 'object' && !Array.isArray(body) && !Object.prototype.hasOwnProperty.call(body, 'question')) {
-      return jsonResponse({ ok: false, error: 'Missing question' }, 400, headers);
+      return jsonResponse(withRuntimeMeta({ ok: false, error: 'Missing question' }), 400, headers);
     }
-    return jsonResponse(Object.assign(
+    return jsonResponse(withRuntimeMeta(Object.assign(
       failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, requestLocale),
       { answer: localizedFailureAnswer(requestLocale, 'invalid_input') },
-    ), 200, headers);
+    )), 200, headers);
   }
 
   const question = body.question.trim();
-  if (!question) return jsonResponse({ ok: false, error: 'Missing question' }, 400, headers);
+  if (!question) return jsonResponse(withRuntimeMeta({ ok: false, error: 'Missing question' }), 400, headers);
   if (question.length > 300) {
-    return jsonResponse(Object.assign(
+    return jsonResponse(withRuntimeMeta(Object.assign(
       failurePayload(question, primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, requestLocale),
       { answer: localizedFailureAnswer(requestLocale, 'too_long') },
-    ), 200, headers);
+    )), 200, headers);
   }
 
   const deterministicAction = classifyAction(question);
@@ -1303,20 +1428,45 @@ export async function onRequest(context) {
     if (!config.key) continue;
     configuredProviderCount += 1;
 
+    const primaryAttemptStarted = Date.now();
+    const primaryAttemptTimeout = attemptTimeoutMs();
+    if (primaryAttemptTimeout < MIN_TIMEOUT_MS) {
+      lastFailureCode = 'upstream_timeout';
+      break;
+    }
+
     let result;
     try {
-      result = await requestProvider(config, question, currentTime, officialContext, requestLocale);
-    } catch (_) {
-      result = { ok: false, failureCode: 'upstream_error' };
+      result = await requestProvider(
+        config,
+        question,
+        currentTime,
+        officialContext,
+        requestLocale,
+        { timeoutMs: primaryAttemptTimeout },
+      );
+    } catch (error) {
+      result = {
+        ok: false,
+        failureCode: isUpstreamTimeoutError(error) ? 'upstream_timeout' : 'upstream_error',
+      };
     }
+    recordProviderAttempt(
+      config,
+      'primary',
+      result.ok ? 'success' : (result.failureCode || 'upstream_error'),
+      primaryAttemptStarted,
+      primaryAttemptTimeout,
+    );
     if (!result.ok) {
       lastFailureCode = result.failureCode || 'upstream_error';
+      if (remainingRequestBudgetMs() < MIN_TIMEOUT_MS) break;
       continue;
     }
 
     let assessment = assessAnswerLocale(result.answer, requestLocale);
     if (assessment.ok) {
-      return jsonResponse(successPayload(config, result, index), 200, headers);
+      return jsonResponse(withRuntimeMeta(successPayload(config, result, index)), 200, headers);
     }
 
     sawAnswerLocaleMismatch = true;
@@ -1326,6 +1476,12 @@ export async function onRequest(context) {
     if (correctionBudget > 0) {
       correctionBudget -= 1;
       const rejectedDraft = result.answer;
+      const correctionAttemptStarted = Date.now();
+      const correctionAttemptTimeout = attemptTimeoutMs();
+      if (correctionAttemptTimeout < MIN_TIMEOUT_MS) {
+        lastFailureCode = 'upstream_timeout';
+        break;
+      }
       let corrected;
       try {
         corrected = await requestProvider(
@@ -1334,15 +1490,25 @@ export async function onRequest(context) {
           currentTime,
           officialContext,
           requestLocale,
-          { rejectedDraft },
+          { rejectedDraft, timeoutMs: correctionAttemptTimeout },
         );
-      } catch (_) {
-        corrected = { ok: false, failureCode: 'upstream_error' };
+      } catch (error) {
+        corrected = {
+          ok: false,
+          failureCode: isUpstreamTimeoutError(error) ? 'upstream_timeout' : 'upstream_error',
+        };
       }
+      recordProviderAttempt(
+        config,
+        'locale_correction',
+        corrected.ok ? 'success' : (corrected.failureCode || 'upstream_error'),
+        correctionAttemptStarted,
+        correctionAttemptTimeout,
+      );
       if (corrected.ok) {
         const correctedAssessment = assessAnswerLocale(corrected.answer, requestLocale);
         if (correctedAssessment.ok) {
-          return jsonResponse(successPayload(config, corrected, index), 200, headers);
+          return jsonResponse(withRuntimeMeta(successPayload(config, corrected, index)), 200, headers);
         }
         sawAnswerLocaleMismatch = true;
       } else {
@@ -1369,7 +1535,9 @@ export async function onRequest(context) {
       : (lastFailureCode || 'upstream_error');
   }
   return jsonResponse(
-    failurePayload(question, primaryConfig.provider, primaryConfig.model, failureCode, retrievedAt, currentTime, requestLocale),
+    withRuntimeMeta(
+      failurePayload(question, primaryConfig.provider, primaryConfig.model, failureCode, retrievedAt, currentTime, requestLocale),
+    ),
     200,
     headers,
   );
