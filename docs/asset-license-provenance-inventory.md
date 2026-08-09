@@ -4,6 +4,15 @@ Status: **initial repository inventory / owner decision pending**
 
 Related issue: #1234
 
+## Governing contracts
+
+This inventory is subordinate to the repository's clone and mirror safety contracts:
+
+- `docs/product/exact-official-site-clone-invariant.md` — canonical requirements for official-site clone evidence, provenance, fixture integrity, and exactness claims.
+- `docs/GOOGLE_DRIVE_MIRROR_SAFETY.md` — Google Drive/local mirror deletion-safety policy.
+
+Nothing in this inventory relaxes the exact-clone invariant. Technical capture provenance and copyright/reuse permission are separate questions and both must be satisfied where applicable.
+
 ## Purpose
 
 This document inventories the current repository's major copyright, license, and provenance classes before any project-wide license is selected.
@@ -33,20 +42,9 @@ A missing root license means no new project license should be inferred from pack
 
 ## 1. Original project code
 
-### Observed code areas
+The repository contains substantial first-party implementation in areas including `src/`, `functions/`, `scripts/`, `tests/`, `configs/`, project documentation, and build tooling.
 
-The repository contains substantial first-party implementation in areas including:
-
-- `src/`
-- `functions/`
-- `scripts/`
-- `tests/`
-- `configs/`
-- project-owned documentation and build tooling
-
-### Current classification
-
-`OWNER_DECISION_REQUIRED`
+Current classification: `OWNER_DECISION_REQUIRED`.
 
 Before adding a root `LICENSE`, the repository owner must explicitly decide:
 
@@ -59,23 +57,21 @@ No AI worker may choose MIT, Apache-2.0, GPL, proprietary, or another project-wi
 
 ## 2. Vendored Page Agent runtime
 
-### Tracked provenance already present
-
-Source tree:
+Tracked provenance already exists at:
 
 - `src/web/examples/page-agent/source-manifest.json`
 - `src/web/examples/page-agent/vendor-manifest.json`
 - `src/web/examples/page-agent/vendor/page-agent.iife.js`
 - `src/web/examples/page-agent/vendor/LICENSE`
 
-The existing manifests identify:
+The manifests identify:
 
 - source package: `@alicloud/page-agent`
 - upstream repository: `alibaba/page-agent`
 - version: `1.12.1`
 - pinned upstream commit: `fa4664dfa5379e6e91deaf85bc1db2ae14d8e1d7`
 - upstream license: MIT
-- vendored runtime kind: custom non-demo IIFE built locally from the pinned upstream source
+- vendored runtime kind: custom non-demo IIFE built locally from pinned upstream source
 - vendored bundle size: 208,138 bytes
 - vendored license size: 1,070 bytes
 - bundle SHA-256: `ADE2BD44C77C2555143BD3D008FE9C3527D161C2C922A579471CE8A6C6FA3C74`
@@ -83,66 +79,55 @@ The existing manifests identify:
 
 The source manifest also records that demo auto-init/testing endpoints/CDN behavior were excluded from the controlled local build and that the local experiment is intended to run without non-local runtime requests.
 
-### Current classification
+Current classification: `DOCUMENTED_THIRD_PARTY`.
 
-`DOCUMENTED_THIRD_PARTY`
-
-### Remaining work
+Remaining work:
 
 - verify that the vendored `LICENSE` text exactly matches the upstream license at the pinned revision;
-- determine whether a root/project `NOTICE` should reproduce attribution for this vendored component;
-- keep the manifest/version/commit/hash check as a provenance gate when the vendored file changes;
-- do not replace or remove the vendored license during bundling.
+- decide whether a root/project `NOTICE` should reproduce attribution for this component;
+- preserve manifest/version/commit/hash verification when the vendored file changes;
+- never remove the vendored license during bundling.
 
 ## 3. npm / browser-test dependencies
 
-Current root `package.json` directly declares:
+Current root `package.json` directly declares `playwright: ^1.61.1`.
 
-- `playwright: ^1.61.1`
+The lockfile remains the dependency-resolution source for CI, but a lockfile is not itself a license inventory.
 
-The lockfile should remain the resolution source for CI, but a lockfile is not a license inventory.
+Current classification: `REVIEW_REQUIRED`.
 
-### Current classification
+A reproducible dependency report should record at minimum:
 
-`REVIEW_REQUIRED`
-
-### Required follow-up
-
-Generate a reproducible dependency report from the committed lockfile containing, at minimum:
-
-- package name;
-- resolved version;
-- source/package registry identity;
+- package name and resolved version;
+- registry/source identity;
 - declared license;
 - notice/attribution requirement if any;
-- whether the package is development/test-only or shipped into public build output.
+- whether the package is test/development-only or shipped into public build output.
 
-Do not copy `node_modules/` into a provenance manifest merely because the Drive mirror contains it. Inventory should be derived from committed dependency definitions/lockfiles and actual build inclusion.
+Do not inventory `node_modules/` merely because the Drive mirror contains it. Dependency provenance should derive from committed dependency definitions/locks and actual build inclusion.
 
 ## 4. Official-site captures, snapshots, and fixture data
 
-Relevant tracked classes include official-source and clone material under paths such as:
+Relevant tracked classes include official-source and clone material such as:
 
 - `data/official_clone_fixtures/`
 - official snapshot fixtures used by the Buk-gu deterministic demo
 - capture/region/route manifests and provenance metadata
 - screenshots/crops used to validate or render the Buk-gu clone
 
-### Current classification
+Current classification: `REVIEW_REQUIRED`.
 
-`REVIEW_REQUIRED`
+All technical exactness/provenance decisions continue to follow `docs/product/exact-official-site-clone-invariant.md`.
 
 Technical provenance (source URL, capture time, hash, route/page identity) is **not the same thing as copyright/reuse permission**.
 
 For each published fixture/capture class, the final provenance manifest should record:
 
 - exact path or path pattern;
-- source institution/site;
-- canonical source URL where known;
+- source institution/site and canonical URL where known;
 - capture/acquisition date;
-- whether the stored material is raw capture, structured extraction, screenshot, crop, transformation, or hand-authored reconstruction;
-- transformation details;
-- intended project use (testing, fidelity comparison, demo rendering, documentation, etc.);
+- whether the material is raw capture, structured extraction, screenshot, crop, transformation, or hand-authored reconstruction;
+- transformation details and intended use;
 - applicable public-data/copyright/license notice, if verified;
 - redistribution status: `APPROVED`, `RESTRICTED`, `REVIEW_REQUIRED`, or `INTERNAL_ONLY`;
 - reviewer/evidence reference for any `APPROVED` decision.
@@ -159,15 +144,13 @@ The synchronized source tree confirms tracked image classes under `src/web/stati
 - `bukgu-crops/`
 - `bukgu-current/`
 
-The `bukgu-current/` group contains additional official-site-derived visual material such as current home/mayor/quick-menu/lower-section imagery.
+The `bukgu-current/` group contains additional official-site-derived home/mayor/quick-menu/lower-section imagery.
 
-### Current classification
+Current classification: `REVIEW_REQUIRED`.
 
-`REVIEW_REQUIRED`
+These assets must not automatically inherit an eventual source-code license. Logo/brand marks, photographs/portraits, official graphics, UI screenshots, and project-created graphics can have different rights and provenance.
 
-These assets must not be automatically assigned the eventual source-code license. Logo/brand, photograph, portrait, official graphic, UI screenshot, and hand-created project graphic can have different rights/provenance.
-
-Before public-release approval, produce an asset-level manifest that distinguishes at least:
+Before public-release approval, the asset-level manifest should distinguish at least:
 
 - official screenshot/crop;
 - official logo/brand mark;
@@ -179,9 +162,7 @@ Before public-release approval, produce an asset-level manifest that distinguish
 
 ## 6. Fonts and icons
 
-### Current classification
-
-`REVIEW_REQUIRED`
+Current classification: `REVIEW_REQUIRED`.
 
 A dedicated scan is still needed for:
 
@@ -198,9 +179,7 @@ The final report must distinguish a runtime remote reference from a redistribute
 
 Repository areas such as `presentation/`, `proposal/`, documentation screenshots, and comparison evidence may contain material whose redistribution terms differ from source code.
 
-### Current classification
-
-`REVIEW_REQUIRED`
+Current classification: `REVIEW_REQUIRED`.
 
 Rules:
 
