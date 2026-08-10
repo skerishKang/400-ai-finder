@@ -390,13 +390,15 @@ Turnstile `disabled`는 production emergency kill switch가 아니다. bot verif
 ## 13. Production readiness checklist
 
 - [ ] 서버측 rate limit
+- [x] Turnstile bot-defense code·offline contract
 - [ ] Turnstile production site key·encrypted secret·allowed hostname 설정 및 staging 검증
 - [x] request body·question limit
 - [x] provider·전체 timeout
 - [ ] concurrency limit
 - [ ] 일·월 비용상한
-- [ ] privacy warning
-- [ ] 최소 DLP·redaction 정책 전체범위
+- [x] privacy warning
+- [x] 최소 DLP·redaction baseline (resident-ID fail-closed + phone/email/precise-address redaction)
+- [ ] 확장 DLP (외국인등록번호·카드/계좌·자유서술 민감정보)
 - [x] raw transcript 기본 비보관 정책
 - [ ] evidence-gated high-risk claims 전체범위
 - [x] request ID·latency·attempt telemetry
