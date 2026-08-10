@@ -44,6 +44,16 @@ offline contract test**. It does not migrate or rewire any existing runtime.
   `configs/site-registry.json`, `docs/bukgu-golden-compatibility-manifest.md`,
   `docs/architecture/clone-first-platform-adr.md` (frozen baseline).
 
+## Clone governance
+
+The Buk-gu golden surface remains governed by the canonical clone invariant:
+
+[docs/product/exact-official-site-clone-invariant.md](../product/exact-official-site-clone-invariant.md)
+
+This SiteSpec is an identity data contract only. It does not relax, weaken, or
+restate that invariant, and it does not change the exact-clone obligations of
+the left civic-site surface.
+
 ## Non-goals (this phase)
 
 - No `configs/site-registry.json` migration.
