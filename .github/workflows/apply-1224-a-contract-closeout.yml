@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Install focused Python test dependency
+        run: python -m pip install --disable-pip-version-check pytest
       - name: Apply contract closeout anchors
         run: python scripts/apply_1224_a_contract_closeout.py
       - name: Syntax checks
