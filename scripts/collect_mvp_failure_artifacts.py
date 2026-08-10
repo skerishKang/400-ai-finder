@@ -40,7 +40,6 @@ _TEXT_SENSITIVE_RE = re.compile(
 
 
 def sanitize_log_text(text: str) -> str:
-    text = text[-MAX_LOG_BYTES:]
     text = _EMAIL_RE.sub("[redacted-email]", text)
     text = _PHONE_RE.sub("[redacted-phone]", text)
     text = _BEARER_RE.sub("Bearer [redacted]", text)
@@ -48,7 +47,17 @@ def sanitize_log_text(text: str) -> str:
     text = _JSON_SENSITIVE_RE.sub(lambda m: f'{m.group(1)}"[redacted]"', text)
     text = _TEXT_SENSITIVE_RE.sub(lambda m: f"{m.group(1)}=[redacted]", text)
     text = _QUERY_RE.sub(lambda m: f"{m.group(1)}?[redacted]", text)
-    return text
+
+    encoded = text.encode("utf-8")
+    if len(encoded) <= MAX_LOG_BYTES:
+        return text
+
+    tail = encoded[-MAX_LOG_BYTES:]
+    # The byte cap can land mid-code-point. Drop the partial leading UTF-8
+    # sequence (the source was read with errors="replace", so the payload is
+    # valid UTF-8 and only the cut boundary can be incomplete), then decode
+    # back to valid UTF-8 text.
+    return tail.decode("utf-8", errors="ignore")
 
 
 def summarize_comparison_evidence(payload: object) -> dict[str, object]:

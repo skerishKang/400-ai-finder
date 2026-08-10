@@ -20,7 +20,7 @@ def test_log_sanitizer_redacts_sensitive_values_and_bounds_output() -> None:
     assert "abcdefghijklmnop" not in safe
     assert "do not upload this" not in safe
     assert "full-resident-question" not in safe
-    assert len(safe.encode("utf-8")) <= MAX_LOG_BYTES + 4096
+    assert len(safe.encode("utf-8")) <= MAX_LOG_BYTES
 
 
 def test_comparison_artifact_is_whitelisted_summary(tmp_path: Path) -> None:
@@ -79,3 +79,28 @@ def test_collector_always_writes_manifest_for_missing_optional_logs(tmp_path: Pa
         "housing-e2e-server.log",
         "mobile-link-safety-server.log",
     ]
+
+def test_log_sanitizer_bounds_multibyte_output_by_utf8_bytes() -> None:
+    # Korean "가" is 3 UTF-8 bytes. A character-count cap would overshoot
+    # the 128 KiB byte limit, so the bound must be enforced on bytes.
+    raw = "가" * (MAX_LOG_BYTES + 1000)
+    safe = sanitize_log_text(raw)
+    assert len(safe.encode("utf-8")) <= MAX_LOG_BYTES
+
+
+def test_truncation_crossing_secret_is_fully_redacted() -> None:
+    # Place the secret line so the OLD truncate-first boundary
+    # (text[-MAX_LOG_BYTES:]) would cut through the marker and leave the
+    # raw secret tail alive. Redact-first must remove the whole secret.
+    unique = "mvp-1231-crossing-secret-9f4e2c7b"
+    marker = "Be" + "arer"
+    secret_line = "Authorization: " + marker + " " + unique
+    prefix = "a" * 64
+    suffix = " " * (MAX_LOG_BYTES - 30)
+    raw = prefix + secret_line + suffix
+    assert len(raw) > MAX_LOG_BYTES
+
+    safe = sanitize_log_text(raw)
+    assert unique not in safe
+    assert unique[-16:] not in safe
+    assert len(safe.encode("utf-8")) <= MAX_LOG_BYTES
