@@ -379,6 +379,18 @@ async function installTurnstileDisabledStub(page) {
   });
 }
 
+async function waitForChatScrollQuiescence(page) {
+  // #1173/#1231: product auto-scroll deliberately schedules one rAF
+  // correction after appending a message. Wait for that correction and the
+  // following paint before simulating a resident scroll into history. This is
+  // event/frame synchronization, not a timing sleep or relaxed assertion.
+  await page.evaluate(() => new Promise((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(resolve);
+    });
+  }));
+}
+
 async function collectCounts(page) {
   return page.evaluate(() => {
     const user = document.querySelectorAll(".chat-msg--user").length;
@@ -945,6 +957,7 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
   console.log(
     `  bottom-pinned: PASS distBottom=${bottomPinRes.distBottom} nearBottom=${bottomPinRes.nearBottom}`,
   );
+  await waitForChatScrollQuiescence(page);
 
   // Reading-history → explicit turn: #1200 ensures composer submit always
   // follows the latest message. Scroll up, submit, verify yank to bottom.
