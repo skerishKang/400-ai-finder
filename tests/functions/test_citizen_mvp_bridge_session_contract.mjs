@@ -50,6 +50,13 @@ function createBridgeHarness({ storageThrows = false } = {}) {
       normalizeLocale: (value) => value || 'ko',
       t: () => '현재 AI 안내를 연결하지 못했습니다.',
     },
+    // This suite isolates anonymous-session identity. Turnstile lifecycle has
+    // its own contract suite; an explicit disabled-mode client returns no token.
+    CitizenTurnstile: {
+      acquireToken: async () => '',
+      reset: () => {},
+      cancel: () => {},
+    },
     AbortController,
     crypto: {
       randomUUID() {
@@ -112,6 +119,7 @@ await check('browser request includes a random closed-format session_id', async 
   if (!SESSION_ID_RE.test(body.session_id)) throw new Error(`invalid session_id ${body.session_id}`);
   equal(body.session_id, '123e4567-e89b-12d3-a456-426614174000', 'uuid');
   if (body.session_id.includes('여권')) throw new Error('session_id derived from question');
+  if ('turnstile_token' in body) throw new Error('disabled Turnstile must not emit empty token field');
 });
 
 await check('session_id is reused within sessionStorage', async () => {
