@@ -1,4 +1,11 @@
 import { BUKGU_OFFICIAL_SNAPSHOTS } from './bukgu-official-snapshots.js';
+import {
+  MAX_QUESTION_CHARS,
+  SENSITIVE_CATEGORIES,
+  assessQuestionPrivacy,
+  readBoundedJsonBody,
+  validateRequestShape,
+} from './request-safety.js';
 
 // Cloudflare Pages Function for the live Buk-gu civic assistant.
 // Provider keys stay in Pages secrets; requests are handled statelessly.
@@ -1380,6 +1387,14 @@ export function buildSanitizedRuntimeLog(payload) {
       estimated_cost_usd: null,
     })),
     token_usage: sanitizeNormalizedTokenUsage(meta.token_usage),
+    privacy: {
+      sensitive_input_detected: Boolean(meta.privacy && meta.privacy.sensitive_input_detected),
+      categories: meta.privacy && Array.isArray(meta.privacy.categories)
+        ? meta.privacy.categories.filter((value) => typeof value === 'string' && SENSITIVE_CATEGORIES.includes(value)).slice(0, 8)
+        : [],
+      redacted: Boolean(meta.privacy && meta.privacy.redacted),
+      session_id_present: Boolean(meta.privacy && meta.privacy.session_id_present),
+    },
     cost: meta.cost && typeof meta.cost === 'object'
       ? { status: meta.cost.status || 'unavailable', estimated_usd: null, reason: meta.cost.reason || '' }
       : { status: 'unavailable', estimated_usd: null, reason: 'provider_cost_not_reported' },
@@ -1404,6 +1419,12 @@ export async function onRequest(context) {
   const providerTimeoutMs = timeoutMsFromEnv(env, 'MVP_PROVIDER_TIMEOUT_MS', DEFAULT_PROVIDER_TIMEOUT_MS);
   const deadlineAtMs = startedAtMs + requestTimeoutMs;
   const providerAttempts = [];
+  let privacyMeta = {
+    sensitive_input_detected: false,
+    categories: [],
+    redacted: false,
+    session_id_present: false,
+  };
   const headers = buildHeaders(request, requestId);
   const providerOrder = normalizeProviderOrder(env.MVP_LLM_ORDER);
   const runtimeMode = resolveAiRuntimeMode(env);
@@ -1428,6 +1449,12 @@ export async function onRequest(context) {
       ai_mode: runtimeMode.mode,
       ai_mode_reason: runtimeMode.reason,
       disabled_providers: disabledProviders.slice(),
+      privacy: {
+        sensitive_input_detected: privacyMeta.sensitive_input_detected === true,
+        categories: Array.isArray(privacyMeta.categories) ? privacyMeta.categories.slice(0, 8) : [],
+        redacted: privacyMeta.redacted === true,
+        session_id_present: privacyMeta.session_id_present === true,
+      },
       cost: {
         status: 'unavailable',
         estimated_usd: null,
@@ -1492,36 +1519,57 @@ export async function onRequest(context) {
     return jsonResponse(withRuntimeMeta({ ok: false, error: 'Method not allowed' }), 405, headers);
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch (_) {
-    return jsonResponse(withRuntimeMeta(Object.assign(
-      failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, 'ko'),
-      { answer: localizedFailureAnswer('ko', 'invalid_input') },
-    )), 200, headers);
+  const ingress = await readBoundedJsonBody(request, env);
+  if (!ingress.ok) {
+    const ingressFailure = failurePayload(
+      '',
+      primaryConfig.provider,
+      primaryConfig.model,
+      ingress.failureCode || 'invalid_input',
+      retrievedAt,
+      currentTime,
+      'ko',
+    );
+    ingressFailure.answer = localizedFailureAnswer('ko', 'invalid_input');
+    return jsonResponse(withRuntimeMeta(ingressFailure), ingress.status || 200, headers);
   }
 
+  const body = ingress.body;
   const requestLocale = normalizeLocale(body && typeof body.locale === 'string' ? body.locale : 'ko');
-
-  if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.question !== 'string') {
-    if (body && typeof body === 'object' && !Array.isArray(body) && !Object.prototype.hasOwnProperty.call(body, 'question')) {
+  const shape = validateRequestShape(body);
+  if (!shape.ok) {
+    if (shape.reason === 'missing_question') {
       return jsonResponse(withRuntimeMeta({ ok: false, error: 'Missing question' }), 400, headers);
     }
     return jsonResponse(withRuntimeMeta(Object.assign(
       failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, requestLocale),
       { answer: localizedFailureAnswer(requestLocale, 'invalid_input') },
-    )), 200, headers);
+    )), shape.status || 200, headers);
   }
 
-  const question = body.question.trim();
-  if (!question) return jsonResponse(withRuntimeMeta({ ok: false, error: 'Missing question' }), 400, headers);
-  if (question.length > 300) {
+  const rawQuestion = body.question.trim();
+  if (!rawQuestion) return jsonResponse(withRuntimeMeta({ ok: false, error: 'Missing question' }), 400, headers);
+  if (rawQuestion.length > MAX_QUESTION_CHARS) {
     return jsonResponse(withRuntimeMeta(Object.assign(
-      failurePayload(question, primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, requestLocale),
+      failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, requestLocale),
       { answer: localizedFailureAnswer(requestLocale, 'too_long') },
     )), 200, headers);
   }
+
+  const privacy = assessQuestionPrivacy(rawQuestion);
+  privacyMeta = {
+    sensitive_input_detected: privacy.categories.length > 0,
+    categories: privacy.categories.slice(),
+    redacted: privacy.redacted === true,
+    session_id_present: typeof body.session_id === 'string' && body.session_id.length > 0,
+  };
+  if (!privacy.ok) {
+    return jsonResponse(withRuntimeMeta(Object.assign(
+      failurePayload('', primaryConfig.provider, primaryConfig.model, privacy.failureCode || 'sensitive_input_rejected', retrievedAt, currentTime, requestLocale),
+      { answer: localizedFailureAnswer(requestLocale, 'invalid_input') },
+    )), 200, headers);
+  }
+  const question = privacy.question;
 
   if (runtimeMode.mode === 'disabled') {
     return jsonResponse(withRuntimeMeta(
