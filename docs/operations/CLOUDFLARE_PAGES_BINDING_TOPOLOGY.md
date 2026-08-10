@@ -6,6 +6,7 @@ Scope: `cgbukku` Cloudflare Pages deployment and the server-side rate-limit/conc
 
 Related contracts:
 
+- [`exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md) — canonical site-fidelity invariant
 - [`MVP_AI_RUNTIME_CONTRACT.md`](MVP_AI_RUNTIME_CONTRACT.md)
 - [`PUBLIC_AI_API_SECURITY_AND_PRIVACY.md`](PUBLIC_AI_API_SECURITY_AND_PRIVACY.md)
 - [`../cloudflare-pages-bukgu-mvp.md`](../cloudflare-pages-bukgu-mvp.md)
