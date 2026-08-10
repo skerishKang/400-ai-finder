@@ -123,9 +123,15 @@ Parity contracts enforced:
 - **Python profile identity** — SiteSpec `runtime.python_profile` equals the
   Python profile identifier, and the profile `site_id` equals the canonical
   SiteSpec `site_id` (`bukgu_gwangju`).
-- **Public domain parity** — `bukgu.gwangju.kr` exists in
-  `domains.public` and matches the profile `base_url` host and
-  `allowed_domains` (URL scheme/path normalized, host identity preserved).
+- **Public domain parity (exact allowlist)** — the SiteSpec `domains.public`
+  set and the Python profile `allowed_domains` set must be **exactly equal**
+  after host normalization (scheme/path/port ignored, host identity
+  preserved). Membership-only checks would let an unexpected domain sneak into
+  either allowlist undetected, so set equality is the parity mechanism. The
+  profile `base_url` host must be a member of the canonical SiteSpec
+  public-domain set. The frozen product fact that `bukgu.gwangju.kr` is the
+  current canonical public domain is asserted separately and is not the
+  parity mechanism.
 - **Compatibility registry projection** — `runtime.cloudflare_adapter` equals
   the frozen registry adapter `site_id`, and that adapter ID is a declared
   `legacy_ids` alias (not the canonical ID).
@@ -139,8 +145,10 @@ Parity contracts enforced:
 Drift regressions are tested on deep-copied configs only (product files are
 never mutated): python_profile mismatch, profile `site_id` mismatch,
 undeclared registry adapter, undeclared `default_site_id`, Cloudflare adapter
-mismatch, domain mismatch, golden mismatch. Display labels
-(`북구청`, `Gwangju Buk-gu`) and jurisdiction historical aliases
+mismatch, domain set mismatch (extra SiteSpec public domain, extra Python
+allowed domain, missing canonical domain, mismatched Python allowed domain),
+`base_url` host outside the canonical domain set, golden mismatch. Display
+labels (`북구청`, `Gwangju Buk-gu`) and jurisdiction historical aliases
 (`광주광역시 북구`) are **not** site identifiers and never satisfy parity.
 
 Phase C is projection parity / drift detection only — **no runtime wiring**:
@@ -159,7 +167,11 @@ remains untouched.
 ## Verification
 
 ```bash
-python -m pytest -q tests/test_sitespec_resolver.py tests/test_canonical_sitespec_contract.py tests/test_site_compatibility_registry.py
+python -m pytest -q \
+  tests/test_sitespec_projection_parity.py \
+  tests/test_sitespec_resolver.py \
+  tests/test_canonical_sitespec_contract.py \
+  tests/test_site_compatibility_registry.py
 python -m json.tool configs/sitespec.schema.json > /dev/null
 python -m json.tool configs/sites/bukgu_gwangju.sitespec.json > /dev/null
 git diff --check

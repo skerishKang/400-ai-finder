@@ -89,6 +89,19 @@ def _host_of(url: str) -> str:
     return netloc.split(":")[0].strip().lower()
 
 
+def _normalize_domain(value: str) -> str:
+    """Normalize a domain entry to a lowercase host-only token.
+
+    Handles both bare hosts (``bukgu.gwangju.kr``) and full URLs
+    (``https://bukgu.gwangju.kr/``) so set comparison never misses on
+    scheme/path/port differences.
+    """
+    v = value.strip().lower()
+    if "://" in v:
+        return _host_of(v)
+    return v.split("/")[0].split(":")[0].strip().lower()
+
+
 # ----------------------------------------------------------------------
 # Pure parity helper (in-test only, mirrors the contract; not shipped)
 # ----------------------------------------------------------------------
@@ -126,20 +139,27 @@ def parity_errors(
             f"profile site_id {profile_id!r} != canonical site_id {spec_site_id!r}"
         )
 
-    # B. Public domain parity
-    if PUBLIC_DOMAIN not in public_domains:
+    # B. Public domain parity — exact allowlist equality, no silent expansion.
+    # The canonical SiteSpec public-domain set and the Python profile
+    # allowed-domain set must be exactly equal; membership checks alone would
+    # let an unexpected domain sneak into either allowlist undetected.
+    spec_domains = {_normalize_domain(d) for d in public_domains}
+    profile_domains = {
+        _normalize_domain(d) for d in profile.get("allowed_domains", [])
+    }
+    if not spec_domains:
+        errors.append("SiteSpec domains.public is empty")
+    if spec_domains != profile_domains:
         errors.append(
-            f"public domain {PUBLIC_DOMAIN!r} missing from SiteSpec domains.public"
+            f"domain set mismatch: SiteSpec {sorted(spec_domains)!r} != "
+            f"profile {sorted(profile_domains)!r}"
         )
     base_host = _host_of(profile.get("base_url", ""))
-    if base_host != PUBLIC_DOMAIN:
+    if not base_host:
+        errors.append("profile base_url has no host")
+    elif base_host not in spec_domains:
         errors.append(
-            f"profile base_url host {base_host!r} != public domain {PUBLIC_DOMAIN!r}"
-        )
-    allowed = profile.get("allowed_domains", [])
-    if PUBLIC_DOMAIN not in allowed:
-        errors.append(
-            f"profile allowed_domains missing {PUBLIC_DOMAIN!r}: {allowed!r}"
+            f"profile base_url host {base_host!r} not in SiteSpec public-domain set"
         )
 
     # C. Compatibility registry projection
@@ -189,11 +209,29 @@ def test_python_profile_identity_parity():
 
 
 def test_public_domain_parity():
+    """SiteSpec public-domain set == Python allowed-domain set (exact)."""
+    spec = _load_sitespec()
+    profile = _load_profile_dict()
+    spec_domains = {_normalize_domain(d) for d in spec["domains"]["public"]}
+    profile_domains = {
+        _normalize_domain(d) for d in profile["allowed_domains"]
+    }
+    assert spec_domains == profile_domains == {PUBLIC_DOMAIN}
+    # base_url host must be a member of the canonical public-domain set.
+    assert _host_of(profile["base_url"]) in spec_domains
+
+
+def test_canonical_public_domain_frozen_assertion():
+    """Product-specific frozen fact: bukgu.gwangju.kr is the canonical public
+    domain today.
+
+    This is an explicit product assertion, not the parity mechanism — exact
+    set equality is what detects allowlist drift. Keeping this assertion
+    documents the frozen value without weakening parity detection.
+    """
     spec = _load_sitespec()
     profile = _load_profile_dict()
     assert PUBLIC_DOMAIN in spec["domains"]["public"]
-    # base_url host must equal the canonical public domain (scheme/path free).
-    assert _host_of(profile["base_url"]) == PUBLIC_DOMAIN
     assert PUBLIC_DOMAIN in profile["allowed_domains"]
 
 
@@ -308,6 +346,42 @@ def test_drift_domain_mismatch_rejected():
     profile["base_url"] = "https://other.example.kr/"
     errors = parity_errors(_load_sitespec(), _load_registry(), profile)
     assert any("base_url host" in e for e in errors), errors
+
+
+def test_drift_extra_sitespec_public_domain_rejected():
+    """An extra domain silently added to the SiteSpec allowlist must fail."""
+    spec = _load_sitespec()
+    spec = copy.deepcopy(spec)
+    spec["domains"]["public"].append("unexpected.example")
+    errors = parity_errors(spec, _load_registry(), _load_profile_dict())
+    assert any("domain set mismatch" in e for e in errors), errors
+
+
+def test_drift_extra_profile_allowed_domain_rejected():
+    """An extra domain silently added to the Python allowlist must fail."""
+    profile = _load_profile_dict()
+    profile = copy.deepcopy(profile)
+    profile["allowed_domains"].append("unexpected.example")
+    errors = parity_errors(_load_sitespec(), _load_registry(), profile)
+    assert any("domain set mismatch" in e for e in errors), errors
+
+
+def test_drift_missing_canonical_domain_rejected():
+    """Removing the canonical public domain from SiteSpec must fail."""
+    spec = _load_sitespec()
+    spec = copy.deepcopy(spec)
+    spec["domains"]["public"] = ["other.example"]
+    errors = parity_errors(spec, _load_registry(), _load_profile_dict())
+    assert any("domain set mismatch" in e for e in errors), errors
+
+
+def test_drift_mismatched_profile_allowed_domain_rejected():
+    """Replacing the Python allowed-domain set with a different host must fail."""
+    profile = _load_profile_dict()
+    profile = copy.deepcopy(profile)
+    profile["allowed_domains"] = ["other.example"]
+    errors = parity_errors(_load_sitespec(), _load_registry(), profile)
+    assert any("domain set mismatch" in e for e in errors), errors
 
 
 def test_drift_golden_mismatch_rejected():
