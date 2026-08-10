@@ -1,6 +1,8 @@
 name: Apply 1224-B remaining browser Turnstile stubs
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [feat/1224-turnstile-bot-defense]
 
@@ -9,6 +11,7 @@ permissions:
 
 jobs:
   apply-browser-turnstile-stubs:
+    if: github.head_ref == 'feat/1224-turnstile-bot-defense' || github.ref == 'refs/heads/feat/1224-turnstile-bot-defense'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
