@@ -1,5 +1,7 @@
 from pathlib import Path
 
+# Branch-only applicator: the paired workflow validates the production-gap E2E
+# and removes this file before committing the product patch.
 path = Path("tests/browser/verify_page_agent_production_gaps_e2e.mjs")
 text = path.read_text(encoding="utf-8")
 anchor = '''    const mvpSafety = createSafetyTracker(mvpSrv.origin);\n    attachSafety(mvpPage, mvpSafety);\n\n    await mvpPage.route("**/api/mvp/ask", async (route) => {\n'''
