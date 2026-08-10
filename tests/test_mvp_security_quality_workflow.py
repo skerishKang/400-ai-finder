@@ -33,7 +33,7 @@ PIP_AUDIT_VERSION = "2.10.1"
 
 BLOCKED_SECRET_ENVS = {
     "GEMINI_API_KEY",
-    "HY3_API_KEY",
+    "KILOCODE_API_KEY",
     "FIRECRAWL_API_KEY",
 }
 BLOCKED_ASSIGNMENTS = (
@@ -44,7 +44,7 @@ BLOCKED_ASSIGNMENTS = (
     ),
     re.compile(
         r"(?im)(?:^|[;&]\s*|\bexport\s+)"
-        r"(?:GEMINI_API_KEY|HY3_API_KEY|FIRECRAWL_API_KEY)\s*="
+        r"(?:GEMINI_API_KEY|KILOCODE_API_KEY|FIRECRAWL_API_KEY)\s*="
     ),
 )
 URL_RE = re.compile(r"https?://[^\s'\"`\\]+")
@@ -148,6 +148,16 @@ def test_security_tooling_is_not_added_to_runtime_requirements() -> None:
     requirements = REQUIREMENTS.read_text(encoding="utf-8").lower()
     assert "ruff==" not in requirements
     assert "pip-audit==" not in requirements
+
+
+def test_blocked_credential_vocabulary_uses_canonical_kilocode_key() -> None:
+    assert "KILOCODE_API_KEY" in BLOCKED_SECRET_ENVS
+    assert "HY3_API_KEY" not in BLOCKED_SECRET_ENVS
+
+    secret_assignment = BLOCKED_ASSIGNMENTS[-1]
+    assert secret_assignment.search("KILOCODE_API_KEY=dummy_value")
+    assert secret_assignment.search("export KILOCODE_API_KEY=dummy_value")
+    assert secret_assignment.search("HY3_API_KEY=dummy_value") is None
 
 
 def test_routine_ci_does_not_enable_external_provider_or_live_fetch_modes() -> None:
