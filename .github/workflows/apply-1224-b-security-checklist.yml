@@ -1,0 +1,35 @@
+name: Apply 1224-B security checklist closeout
+
+on:
+  push:
+    branches: [feat/1224-turnstile-bot-defense]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-1224-b-security-checklist:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/1224-turnstile-bot-defense
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply exact canonical checklist closeout
+        run: python scripts/apply_1224_b_security_checklist_closeout.py
+      - name: Remove temporary applicator files
+        run: |
+          rm .github/workflows/apply-1224-b-security-checklist.yml
+          rm scripts/apply_1224_b_security_checklist_closeout.py
+      - name: Diff check
+        run: git diff --check
+      - name: Commit closeout
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'docs(ops): close out 1224-B readiness checklist (#1224)'
+          git push origin HEAD:feat/1224-turnstile-bot-defense
