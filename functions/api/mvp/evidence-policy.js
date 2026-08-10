@@ -52,7 +52,7 @@ const MONEY_PATTERNS = Object.freeze([
 const DATE_YMD_RE = /(?:^|[^0-9])(20\d{2})[-/.](0?[1-9]|1[0-2])[-/.](0?[1-9]|[12]\d|3[01])(?=$|[^0-9])/g;
 const DATE_KO_RE = /(?:^|[^0-9])(20\d{2})년\s*(0?[1-9]|1[0-2])월\s*(0?[1-9]|[12]\d|3[01])일(?=$|[^0-9])/g;
 const DATE_MD_RE = /(?:^|[^0-9])(0?[1-9]|1[0-2])월\s*(0?[1-9]|[12]\d|3[01])일(?=$|[^0-9])/g;
-const DATE_DMY_RE = /(?:^|[^0-9])(0?[1-9]|[12]\d|3[01])\/(0?[1-9]|1[0-2])\/(20\d{2})(?=$|[^0-9])/g;
+const DATE_DMY_RE = /(?:^|[^0-9])(0?[1-9]|[12]\d|3[01])\/(0?[1-9]|[12]\d|3[01])\/(20\d{2})(?=$|[^0-9])/g;
 const DATE_EN_RE = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12]\d|3[01]),\s*(20\d{2})\b/gi;
 
 const EN_MONTHS = Object.freeze({
