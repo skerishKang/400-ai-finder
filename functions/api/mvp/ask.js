@@ -22,6 +22,7 @@ export const DEFAULT_PROVIDER_ORDER = Object.freeze(['gemini', 'hy3']);
 // unbounded provider request.
 export const API_SCHEMA_VERSION = '1.0';
 export const POLICY_VERSION = '2026-08-10.1';
+export const PROMPT_VERSION = '2026-08-10.1';
 export const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
 export const DEFAULT_PROVIDER_TIMEOUT_MS = 8000;
 export const MIN_TIMEOUT_MS = 10;
@@ -1331,6 +1332,69 @@ function failurePayload(question, provider, model, failureCode, retrievedAt, cur
   };
 }
 
+function sanitizeNormalizedTokenUsage(usage) {
+  if (!usage || typeof usage !== 'object') return null;
+  const normalized = {
+    input_tokens: safeTokenCount(usage.input_tokens),
+    output_tokens: safeTokenCount(usage.output_tokens),
+    total_tokens: safeTokenCount(usage.total_tokens),
+    reasoning_tokens: safeTokenCount(usage.reasoning_tokens),
+    cached_tokens: safeTokenCount(usage.cached_tokens),
+    tool_use_tokens: safeTokenCount(usage.tool_use_tokens),
+  };
+  return Object.values(normalized).some((value) => value !== null) ? normalized : null;
+}
+
+export function buildSanitizedRuntimeLog(payload) {
+  const value = payload && typeof payload === 'object' ? payload : {};
+  const meta = value.meta && typeof value.meta === 'object' ? value.meta : {};
+  const attempts = Array.isArray(meta.provider_attempts) ? meta.provider_attempts : [];
+  return {
+    event: 'mvp_ai_request',
+    request_id: typeof value.request_id === 'string' ? value.request_id : '',
+    correlation_id: typeof meta.correlation_id === 'string' ? meta.correlation_id : '',
+    schema_version: typeof value.schema_version === 'string' ? value.schema_version : '',
+    policy_version: typeof value.policy_version === 'string' ? value.policy_version : '',
+    prompt_version: typeof value.prompt_version === 'string' ? value.prompt_version : '',
+    ok: value.ok === true,
+    failure_code: typeof value.failure_code === 'string' ? value.failure_code : '',
+    provider: typeof value.provider === 'string' ? value.provider : '',
+    model: typeof value.model === 'string' ? value.model : '',
+    fallback_used: value.fallback_used === true,
+    selection_reason: typeof value.selection_reason === 'string' ? value.selection_reason : '',
+    latency_ms: safeTokenCount(meta.latency_ms),
+    ai_mode: typeof meta.ai_mode === 'string' ? meta.ai_mode : '',
+    provider_attempts: attempts.map((attempt) => ({
+      ordinal: safeTokenCount(attempt && attempt.ordinal),
+      provider: attempt && typeof attempt.provider === 'string' ? attempt.provider : '',
+      model: attempt && typeof attempt.model === 'string' ? attempt.model : '',
+      attempt: attempt && typeof attempt.attempt === 'string' ? attempt.attempt : '',
+      outcome: attempt && typeof attempt.outcome === 'string' ? attempt.outcome : '',
+      timed_out: Boolean(attempt && attempt.timed_out),
+      selected: Boolean(attempt && attempt.selected),
+      selection_reason: attempt && typeof attempt.selection_reason === 'string' ? attempt.selection_reason : '',
+      latency_ms: safeTokenCount(attempt && attempt.latency_ms),
+      timeout_ms: safeTokenCount(attempt && attempt.timeout_ms),
+      token_usage: sanitizeNormalizedTokenUsage(attempt && attempt.token_usage),
+      cost_status: attempt && typeof attempt.cost_status === 'string' ? attempt.cost_status : 'unavailable',
+      estimated_cost_usd: null,
+    })),
+    token_usage: sanitizeNormalizedTokenUsage(meta.token_usage),
+    cost: meta.cost && typeof meta.cost === 'object'
+      ? { status: meta.cost.status || 'unavailable', estimated_usd: null, reason: meta.cost.reason || '' }
+      : { status: 'unavailable', estimated_usd: null, reason: 'provider_cost_not_reported' },
+  };
+}
+
+function emitRuntimeLog(env, payload) {
+  if (env && String(env.MVP_RUNTIME_LOGS || '').trim() === '0') return;
+  try {
+    console.info(JSON.stringify(buildSanitizedRuntimeLog(payload)));
+  } catch (_) {
+    // Observability must never break the resident-facing response path.
+  }
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   const startedAtMs = Date.now();
@@ -1354,6 +1418,7 @@ export async function onRequest(context) {
     const meta = {
       schema_version: API_SCHEMA_VERSION,
       policy_version: POLICY_VERSION,
+      prompt_version: PROMPT_VERSION,
       request_id: requestId,
       correlation_id: correlationId,
       latency_ms: latencyMs,
@@ -1363,12 +1428,18 @@ export async function onRequest(context) {
       ai_mode: runtimeMode.mode,
       ai_mode_reason: runtimeMode.reason,
       disabled_providers: disabledProviders.slice(),
+      cost: {
+        status: 'unavailable',
+        estimated_usd: null,
+        reason: 'provider_cost_not_reported',
+      },
     };
     if (payload && payload.token_usage) meta.token_usage = payload.token_usage;
     const decorated = Object.assign({}, payload, {
       request_id: requestId,
       schema_version: API_SCHEMA_VERSION,
       policy_version: POLICY_VERSION,
+      prompt_version: PROMPT_VERSION,
       meta,
     });
     if (decorated.ok === false && typeof decorated.failure_code === 'string' && decorated.failure_code) {
@@ -1378,6 +1449,7 @@ export async function onRequest(context) {
         request_id: requestId,
       };
     }
+    emitRuntimeLog(env, decorated);
     return decorated;
   }
 
@@ -1390,15 +1462,29 @@ export async function onRequest(context) {
   }
 
   function recordProviderAttempt(config, attemptKind, outcome, started, timeoutMs, tokenUsage = null) {
-    providerAttempts.push({
+    const attempt = {
+      ordinal: providerAttempts.length + 1,
       provider: config.provider,
       model: config.model,
       attempt: attemptKind,
       outcome,
+      timed_out: outcome === 'upstream_timeout',
+      selected: false,
+      selection_reason: '',
       latency_ms: Math.max(0, Date.now() - started),
       timeout_ms: timeoutMs,
       token_usage: tokenUsage,
-    });
+      cost_status: 'unavailable',
+      estimated_cost_usd: null,
+    };
+    providerAttempts.push(attempt);
+    return attempt;
+  }
+
+  function selectProviderAttempt(attempt, reason) {
+    if (!attempt) return;
+    attempt.selected = true;
+    attempt.selection_reason = reason;
   }
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 200, headers });
@@ -1505,7 +1591,7 @@ export async function onRequest(context) {
   // (not once per provider).
   let correctionBudget = 1;
 
-  function successPayload(config, result, providerIndex) {
+  function successPayload(config, result, providerIndex, selectionReason) {
     const action = deterministicAction !== 'none' ? deterministicAction : result.action;
     const confidence = deterministicAction !== 'none'
       ? 1.0
@@ -1534,6 +1620,7 @@ export async function onRequest(context) {
       canonical_sha256: officialContext.canonicalSha256 || '',
       // Provider-index fallback only; corrective retry does not set this true.
       fallback_used: providerIndex > 0,
+      selection_reason: selectionReason || (providerIndex > 0 ? 'provider_fallback' : 'primary_provider'),
       token_usage: result.tokenUsage || null,
     };
   }
@@ -1579,7 +1666,7 @@ export async function onRequest(context) {
         failureCode: isUpstreamTimeoutError(error) ? 'upstream_timeout' : 'upstream_error',
       };
     }
-    recordProviderAttempt(
+    const primaryAttempt = recordProviderAttempt(
       config,
       'primary',
       result.ok ? 'success' : (result.failureCode || 'upstream_error'),
@@ -1595,9 +1682,13 @@ export async function onRequest(context) {
 
     let assessment = assessAnswerLocale(result.answer, requestLocale);
     if (assessment.ok) {
-      return jsonResponse(withRuntimeMeta(successPayload(config, result, index)), 200, headers);
+      const selectionReason = index > 0 ? 'provider_fallback' : 'primary_provider';
+      selectProviderAttempt(primaryAttempt, selectionReason);
+      return jsonResponse(withRuntimeMeta(successPayload(config, result, index, selectionReason)), 200, headers);
     }
 
+    primaryAttempt.outcome = 'answer_locale_mismatch';
+    primaryAttempt.selection_reason = 'locale_mismatch_rejected';
     sawAnswerLocaleMismatch = true;
 
     // Wrong-language / non-prose success: optional single global corrective retry
@@ -1627,7 +1718,7 @@ export async function onRequest(context) {
           failureCode: isUpstreamTimeoutError(error) ? 'upstream_timeout' : 'upstream_error',
         };
       }
-      recordProviderAttempt(
+      const correctionAttempt = recordProviderAttempt(
         config,
         'locale_correction',
         corrected.ok ? 'success' : (corrected.failureCode || 'upstream_error'),
@@ -1638,8 +1729,12 @@ export async function onRequest(context) {
       if (corrected.ok) {
         const correctedAssessment = assessAnswerLocale(corrected.answer, requestLocale);
         if (correctedAssessment.ok) {
-          return jsonResponse(withRuntimeMeta(successPayload(config, corrected, index)), 200, headers);
+          const selectionReason = index > 0 ? 'provider_fallback_corrective_retry' : 'corrective_retry';
+          selectProviderAttempt(correctionAttempt, selectionReason);
+          return jsonResponse(withRuntimeMeta(successPayload(config, corrected, index, selectionReason)), 200, headers);
         }
+        correctionAttempt.outcome = 'answer_locale_mismatch';
+        correctionAttempt.selection_reason = 'locale_mismatch_rejected';
         sawAnswerLocaleMismatch = true;
       } else {
         // Correction call itself failed (upstream/empty); keep mismatch sticky

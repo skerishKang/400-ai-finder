@@ -29,6 +29,7 @@ function createMockContext(method, body, envOverrides = {}, requestUrl = '') {
   const env = {
     GEMINI_API_KEY: '',
     KILOCODE_API_KEY: '',
+    MVP_RUNTIME_LOGS: '0',
     ...envOverrides,
   };
   return { request, env };
@@ -1884,6 +1885,152 @@ await assert('#1227 absent provider usage stays explicit null without inventing 
   }
 });
 
+
+// ---------------------------------------------------------------------------
+// #1227-E runtime observability/schema closeout.
+// ---------------------------------------------------------------------------
+
+await assert('#1227 runtime metadata includes prompt version and explicit unavailable cost semantics', async () => {
+  const { data } = await requestJson('POST', JSON.stringify({ question: 'hello', locale: 'en' }));
+  expectEqual(data.schema_version, functionModule.API_SCHEMA_VERSION, 'schema version');
+  expectEqual(data.policy_version, functionModule.POLICY_VERSION, 'policy version');
+  expectEqual(data.prompt_version, functionModule.PROMPT_VERSION, 'prompt version');
+  expectEqual(data.meta.prompt_version, functionModule.PROMPT_VERSION, 'meta prompt version');
+  expectEqual(data.meta.cost.status, 'unavailable', 'cost status');
+  expectEqual(data.meta.cost.estimated_usd, null, 'cost estimate');
+  expectEqual(data.meta.cost.reason, 'provider_cost_not_reported', 'cost reason');
+});
+
+await assert('#1227 selected primary provider records ordinal and selection reason', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('정상적인 한국어 민원 안내입니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.selection_reason, 'primary_provider', 'payload selection reason');
+    expectEqual(data.meta.provider_attempts.length, 1, 'attempt count');
+    const attempt = data.meta.provider_attempts[0];
+    expectEqual(attempt.ordinal, 1, 'ordinal');
+    expectEqual(attempt.selected, true, 'selected');
+    expectEqual(attempt.selection_reason, 'primary_provider', 'selection reason');
+    expectEqual(attempt.timed_out, false, 'timed_out');
+    expectEqual(attempt.cost_status, 'unavailable', 'attempt cost status');
+    expectEqual(attempt.estimated_cost_usd, null, 'attempt cost estimate');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1227 provider fallback records ordered attempts and explicit selection reason', async () => {
+  try {
+    mockFetchSequence([
+      { status: 500, body: { error: 'temporary' } },
+      { body: chatResponse('HY3 폴백 공급자의 정상적인 한국어 안내입니다.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+      KILOCODE_API_KEY: 'test-hy3',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'hy3', 'selected provider');
+    expectEqual(data.fallback_used, true, 'fallback_used');
+    expectEqual(data.selection_reason, 'provider_fallback', 'payload selection reason');
+    expectEqual(data.meta.provider_attempts.length, 2, 'attempt count');
+    expectEqual(data.meta.provider_attempts[0].ordinal, 1, 'first ordinal');
+    expectEqual(data.meta.provider_attempts[0].selected, false, 'first selected');
+    expectEqual(data.meta.provider_attempts[1].ordinal, 2, 'second ordinal');
+    expectEqual(data.meta.provider_attempts[1].selected, true, 'second selected');
+    expectEqual(data.meta.provider_attempts[1].selection_reason, 'provider_fallback', 'fallback reason');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1227 corrective retry marks rejected locale attempt and selected correction', async () => {
+  try {
+    mockFetchSequence([
+      { body: chatResponse('This answer is intentionally in English for a Korean request.') },
+      { body: chatResponse('수정된 정상적인 한국어 민원 안내입니다.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문', locale: 'ko' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.selection_reason, 'corrective_retry', 'payload selection reason');
+    expectEqual(data.meta.provider_attempts.length, 2, 'attempt count');
+    expectEqual(data.meta.provider_attempts[0].outcome, 'answer_locale_mismatch', 'rejected outcome');
+    expectEqual(data.meta.provider_attempts[0].selection_reason, 'locale_mismatch_rejected', 'rejected reason');
+    expectEqual(data.meta.provider_attempts[1].attempt, 'locale_correction', 'correction kind');
+    expectEqual(data.meta.provider_attempts[1].selected, true, 'correction selected');
+    expectEqual(data.meta.provider_attempts[1].selection_reason, 'corrective_retry', 'correction reason');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1227 sanitized runtime log excludes citizen question answer and arbitrary provider fields', async () => {
+  const event = functionModule.buildSanitizedRuntimeLog({
+    ok: true,
+    request_id: 'req-12345678',
+    schema_version: '1.0',
+    policy_version: 'policy-x',
+    prompt_version: 'prompt-x',
+    question: 'SECRET QUESTION',
+    answer: 'SECRET ANSWER',
+    provider: 'gemini',
+    model: 'model-x',
+    fallback_used: false,
+    selection_reason: 'primary_provider',
+    raw_provider_body: { secret: true },
+    meta: {
+      correlation_id: 'ray-12345678',
+      latency_ms: 12,
+      ai_mode: 'enabled',
+      provider_attempts: [{
+        ordinal: 1,
+        provider: 'gemini',
+        model: 'model-x',
+        attempt: 'primary',
+        outcome: 'success',
+        selected: true,
+        selection_reason: 'primary_provider',
+        latency_ms: 10,
+        timeout_ms: 8000,
+        token_usage: { input_tokens: 5, output_tokens: 3, total_tokens: 8, raw_token_blob: 'DO NOT LOG TOKENS' },
+        raw: 'DO NOT LOG',
+      }],
+      cost: { status: 'unavailable', estimated_usd: null, reason: 'provider_cost_not_reported' },
+    },
+  });
+  const serialized = JSON.stringify(event);
+  if (serialized.includes('SECRET QUESTION') || serialized.includes('SECRET ANSWER') || serialized.includes('DO NOT LOG')) {
+    throw new Error(`sensitive/raw field leaked: ${serialized}`);
+  }
+  expectEqual(event.request_id, 'req-12345678', 'request id');
+  expectEqual(event.provider_attempts[0].ordinal, 1, 'attempt ordinal');
+  expectEqual(event.cost.status, 'unavailable', 'cost status');
+});
+
+await assert('#1227 runtime emits one sanitized JSON log event when enabled', async () => {
+  const originalInfo = console.info;
+  const messages = [];
+  console.info = (value) => messages.push(String(value));
+  try {
+    const { data } = await requestJson('POST', JSON.stringify({ question: 'hello', locale: 'en' }), {
+      MVP_RUNTIME_LOGS: '1',
+    });
+    expectEqual(messages.length, 1, 'log event count');
+    const event = JSON.parse(messages[0]);
+    expectEqual(event.event, 'mvp_ai_request', 'event name');
+    expectEqual(event.request_id, data.request_id, 'request id correlation');
+    expectEqual(event.prompt_version, functionModule.PROMPT_VERSION, 'prompt version');
+    if ('question' in event || 'answer' in event) throw new Error('raw citizen content present in runtime log');
+  } finally {
+    console.info = originalInfo;
+  }
+});
+
 // ---------------------------------------------------------------------------
 // #1227-A runtime control foundation: request identity + bounded provider time.
 // ---------------------------------------------------------------------------
@@ -1962,6 +2109,8 @@ await assert('#1227 overall request deadline prevents a second provider call and
     expectEqual(providerFetchCalls().length, 1, 'global deadline stops fallback');
     expectEqual(data.meta.provider_attempts.length, 1, 'one recorded attempt');
     expectEqual(data.meta.provider_attempts[0].outcome, 'upstream_timeout', 'recorded timeout');
+    expectEqual(data.meta.provider_attempts[0].ordinal, 1, 'timeout ordinal');
+    expectEqual(data.meta.provider_attempts[0].timed_out, true, 'timeout boolean');
     expectEqual(data.meta.request_timeout_ms, 40, 'request timeout metadata');
     if (data.meta.latency_ms > 180) {
       throw new Error(`overall deadline did not bound latency: ${data.meta.latency_ms}ms`);
