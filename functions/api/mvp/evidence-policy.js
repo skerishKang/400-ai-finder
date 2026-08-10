@@ -241,20 +241,28 @@ export function extractConcreteClaims(text) {
     }
   }
 
+  // Full-date matchers record the source ranges they consume so the
+  // month-day matcher does not re-read an embedded month/day as a
+  // separate `--MM-DD` claim (Korean full-date overlap bug, #1226-A).
+  const fullDateRanges = [];
+
   DATE_YMD_RE.lastIndex = 0;
   while ((match = DATE_YMD_RE.exec(source)) !== null) {
+    fullDateRanges.push([match.index, match.index + match[0].length]);
     if (!validCalendarDate(match[1], match[2], match[3])) continue;
     pushUniqueClaim(claims, 'calendar_date', canonicalDate(match[1], match[2], match[3]));
   }
 
   DATE_KO_RE.lastIndex = 0;
   while ((match = DATE_KO_RE.exec(source)) !== null) {
+    fullDateRanges.push([match.index, match.index + match[0].length]);
     if (!validCalendarDate(match[1], match[2], match[3])) continue;
     pushUniqueClaim(claims, 'calendar_date', canonicalDate(match[1], match[2], match[3]));
   }
 
   DATE_EN_RE.lastIndex = 0;
   while ((match = DATE_EN_RE.exec(source)) !== null) {
+    fullDateRanges.push([match.index, match.index + match[0].length]);
     const month = EN_MONTHS[match[1].toLowerCase()];
     if (!month || !validCalendarDate(match[3], month, match[2])) continue;
     pushUniqueClaim(claims, 'calendar_date', canonicalDate(match[3], month, match[2]));
@@ -262,6 +270,7 @@ export function extractConcreteClaims(text) {
 
   DATE_DMY_RE.lastIndex = 0;
   while ((match = DATE_DMY_RE.exec(source)) !== null) {
+    fullDateRanges.push([match.index, match.index + match[0].length]);
     const first = Number(match[1]);
     const second = Number(match[2]);
     const year = match[3];
@@ -283,6 +292,8 @@ export function extractConcreteClaims(text) {
   DATE_MD_RE.lastIndex = 0;
   while ((match = DATE_MD_RE.exec(source)) !== null) {
     if (!validMonthDay(match[1], match[2])) continue;
+    const start = match.index;
+    if (rangesOverlap(start, start + match[0].length, fullDateRanges)) continue;
     pushUniqueClaim(
       claims,
       'calendar_date',

@@ -2042,7 +2042,7 @@ await assert('#1227 request metadata is present without exposing citizen input',
   }
   expectEqual(response.headers.get('X-Request-ID'), data.request_id, 'response request id header');
   expectEqual(data.schema_version, '1.0', 'schema_version');
-  expectEqual(data.policy_version, '2026-08-10.2', 'policy_version');
+  expectEqual(data.policy_version, '2026-08-10.1', 'policy_version');
   expectEqual(data.meta.request_id, data.request_id, 'meta request id');
   expectEqual(data.meta.schema_version, data.schema_version, 'meta schema version');
   expectEqual(data.meta.provider_attempts.length, 0, 'no provider attempts');

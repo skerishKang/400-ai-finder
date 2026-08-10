@@ -177,6 +177,33 @@ await check('bounded calendar forms canonicalize only the same actual date', asy
   equal(assessConcreteEvidence('Submit by 20/08/2026.', verified('기준일 2026년 8월 20일')).ok, true, 'day-first match');
 });
 
+await check('Korean full date produces exactly one full-date claim, no embedded month-day overlap', async () => {
+  const claims = extractConcreteClaims('2026년 8월 20일').filter((claim) => claim.kind === 'calendar_date');
+  const normalized = claims.map((claim) => claim.normalized).sort();
+  if (JSON.stringify(normalized) !== JSON.stringify(['2026-08-20'])) {
+    throw new Error(`expected single full-date claim, got: ${JSON.stringify(normalized)}`);
+  }
+  if (claims.some((claim) => claim.ambiguous)) throw new Error('full date must not be ambiguous');
+  if (claimMap('2026년 8월 20일').has('calendar_date:--08-20')) {
+    throw new Error('embedded month-day claim must not be emitted for Korean full date');
+  }
+});
+
+await check('Korean full date matches ISO and English evidence bidirectionally', async () => {
+  equal(assessConcreteEvidence('2026년 8월 20일', verified('2026-08-20')).ok, true, 'ko answer / iso evidence');
+  equal(assessConcreteEvidence('2026-08-20', verified('2026년 8월 20일')).ok, true, 'iso answer / ko evidence');
+  equal(assessConcreteEvidence('2026년 8월 20일', verified('August 20, 2026')).ok, true, 'ko answer / en evidence');
+  equal(assessConcreteEvidence('August 20, 2026', verified('2026년 8월 20일')).ok, true, 'en answer / ko evidence');
+});
+
+await check('standalone Korean month-day remains a month-day claim', async () => {
+  const claims = extractConcreteClaims('8월 20일').filter((claim) => claim.kind === 'calendar_date');
+  const normalized = claims.map((claim) => claim.normalized).sort();
+  if (JSON.stringify(normalized) !== JSON.stringify(['--08-20'])) {
+    throw new Error(`expected standalone month-day claim, got: ${JSON.stringify(normalized)}`);
+  }
+});
+
 await check('ambiguous numeric date is detected and always fails closed without guessing', async () => {
   const claims = extractConcreteClaims('Submit by 08/09/2026.');
   const ambiguous = claims.find((claim) => claim.kind === 'calendar_date');
