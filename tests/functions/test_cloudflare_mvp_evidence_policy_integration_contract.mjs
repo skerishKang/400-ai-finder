@@ -67,14 +67,14 @@ console.log('\n=== Cloudflare MVP evidence policy integration contract ===\n');
 askModule = await import('../../functions/api/mvp/ask.js');
 
 await check('runtime and evidence policy versions have independent ownership', async () => {
-  equal(askModule.POLICY_VERSION, '2026-08-10.1', 'runtime policy version');
+  equal(askModule.POLICY_VERSION, '2026-08-10.2', 'runtime policy version');
   const { data } = await invoke(
     '가로등 고장 신고는 어떻게 하나요?',
     'Please use the official reporting path and confirm the current guidance there.',
     'en',
   );
-  equal(data.policy_version, '2026-08-10.1', 'public runtime policy version');
-  equal(data.meta.policy_version, '2026-08-10.1', 'meta runtime policy version');
+  equal(data.policy_version, '2026-08-10.2', 'public runtime policy version');
+  equal(data.meta.policy_version, '2026-08-10.2', 'meta runtime policy version');
   equal(data.meta.evidence_policy.version, '2026-08-11.1', 'evidence policy version');
   if (data.policy_version === data.meta.evidence_policy.version) {
     throw new Error('runtime policy version is still implicitly coupled to evidence policy version');
@@ -170,8 +170,8 @@ await check('policy metadata and runtime log expose kinds only, never blocked va
     '공동주택 문의',
     `대표전화는 ${blocked}입니다. 담당 부서에 문의해 주세요.`,
   );
-  equal(data.policy_version, '2026-08-10.1', 'public runtime policy version');
-  equal(data.meta.policy_version, '2026-08-10.1', 'meta runtime policy version');
+  equal(data.policy_version, '2026-08-10.2', 'public runtime policy version');
+  equal(data.meta.policy_version, '2026-08-10.2', 'meta runtime policy version');
   equal(data.meta.evidence_policy.version, '2026-08-11.1', 'evidence policy version');
   const log = askModule.buildSanitizedRuntimeLog(data);
   equal(log.evidence_policy.decision, 'block', 'log decision');
