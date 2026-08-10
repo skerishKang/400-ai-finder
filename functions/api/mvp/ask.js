@@ -6,6 +6,15 @@ import {
   readBoundedJsonBody,
   validateRequestShape,
 } from './request-safety.js';
+import {
+  CONCRETE_SIGNAL_KINDS,
+  EVIDENCE_DECISIONS,
+  EVIDENCE_LEVELS,
+  EVIDENCE_POLICY_VERSION,
+  EVIDENCE_REASONS,
+  assessConcreteEvidence,
+  localizedEvidenceRequiredAnswer,
+} from './evidence-policy.js';
 
 // Cloudflare Pages Function for the live Buk-gu civic assistant.
 // Provider keys stay in Pages secrets; requests are handled statelessly.
@@ -28,7 +37,7 @@ export const DEFAULT_PROVIDER_ORDER = Object.freeze(['gemini', 'hy3']);
 // defaults; bounded env overrides exist for staging/tests without allowing an
 // unbounded provider request.
 export const API_SCHEMA_VERSION = '1.0';
-export const POLICY_VERSION = '2026-08-10.1';
+export const POLICY_VERSION = EVIDENCE_POLICY_VERSION;
 export const PROMPT_VERSION = '2026-08-10.1';
 export const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
 export const DEFAULT_PROVIDER_TIMEOUT_MS = 8000;
@@ -322,6 +331,9 @@ const FAILURE_ANSWERS = Object.freeze({
 });
 
 function localizedFailureAnswer(locale, failureCode) {
+  if (failureCode === 'evidence_required') {
+    return localizedEvidenceRequiredAnswer(locale);
+  }
   const table = FAILURE_ANSWERS[locale] || FAILURE_ANSWERS.ko;
   return table[failureCode] || table.upstream_error;
 }
@@ -1395,6 +1407,23 @@ export function buildSanitizedRuntimeLog(payload) {
       redacted: Boolean(meta.privacy && meta.privacy.redacted),
       session_id_present: Boolean(meta.privacy && meta.privacy.session_id_present),
     },
+    evidence_policy: {
+      version: meta.evidence_policy && meta.evidence_policy.version === EVIDENCE_POLICY_VERSION
+        ? EVIDENCE_POLICY_VERSION
+        : '',
+      decision: meta.evidence_policy && EVIDENCE_DECISIONS.includes(meta.evidence_policy.decision)
+        ? meta.evidence_policy.decision
+        : 'not_assessed',
+      evidence_level: meta.evidence_policy && EVIDENCE_LEVELS.includes(meta.evidence_policy.evidence_level)
+        ? meta.evidence_policy.evidence_level
+        : 'model_only',
+      signal_kinds: meta.evidence_policy && Array.isArray(meta.evidence_policy.signal_kinds)
+        ? meta.evidence_policy.signal_kinds.filter((value) => CONCRETE_SIGNAL_KINDS.includes(value)).slice(0, 5)
+        : [],
+      reason: meta.evidence_policy && EVIDENCE_REASONS.includes(meta.evidence_policy.reason)
+        ? meta.evidence_policy.reason
+        : 'not_assessed',
+    },
     cost: meta.cost && typeof meta.cost === 'object'
       ? { status: meta.cost.status || 'unavailable', estimated_usd: null, reason: meta.cost.reason || '' }
       : { status: 'unavailable', estimated_usd: null, reason: 'provider_cost_not_reported' },
@@ -1425,6 +1454,13 @@ export async function onRequest(context) {
     redacted: false,
     session_id_present: false,
   };
+  let evidencePolicyMeta = {
+    version: EVIDENCE_POLICY_VERSION,
+    decision: 'not_assessed',
+    evidence_level: 'model_only',
+    signal_kinds: [],
+    reason: 'not_assessed',
+  };
   const headers = buildHeaders(request, requestId);
   const providerOrder = normalizeProviderOrder(env.MVP_LLM_ORDER);
   const runtimeMode = resolveAiRuntimeMode(env);
@@ -1454,6 +1490,13 @@ export async function onRequest(context) {
         categories: Array.isArray(privacyMeta.categories) ? privacyMeta.categories.slice(0, 8) : [],
         redacted: privacyMeta.redacted === true,
         session_id_present: privacyMeta.session_id_present === true,
+      },
+      evidence_policy: {
+        version: evidencePolicyMeta.version,
+        decision: evidencePolicyMeta.decision,
+        evidence_level: evidencePolicyMeta.evidence_level,
+        signal_kinds: evidencePolicyMeta.signal_kinds.slice(0, 5),
+        reason: evidencePolicyMeta.reason,
       },
       cost: {
         status: 'unavailable',
@@ -1631,6 +1674,49 @@ export async function onRequest(context) {
     return jsonResponse(withRuntimeMeta(payload), 200, headers);
   }
 
+  function setEvidencePolicyMeta(decision) {
+    const value = decision && typeof decision === 'object' ? decision : {};
+    evidencePolicyMeta = {
+      version: EVIDENCE_POLICY_VERSION,
+      decision: EVIDENCE_DECISIONS.includes(value.decision) ? value.decision : 'not_assessed',
+      evidence_level: EVIDENCE_LEVELS.includes(value.evidenceLevel) ? value.evidenceLevel : 'model_only',
+      signal_kinds: Array.isArray(value.signalKinds)
+        ? value.signalKinds.filter((kind) => CONCRETE_SIGNAL_KINDS.includes(kind)).slice(0, 5)
+        : [],
+      reason: EVIDENCE_REASONS.includes(value.reason) ? value.reason : 'not_assessed',
+    };
+  }
+
+  function evidenceRequiredPayload(config, decision) {
+    setEvidencePolicyMeta(decision);
+    const payload = failurePayload(
+      question,
+      config.provider,
+      config.model,
+      'evidence_required',
+      retrievedAt,
+      currentTime,
+      requestLocale,
+    );
+    payload.answer = localizedEvidenceRequiredAnswer(requestLocale);
+    payload.freshness_state = officialContext.freshnessState || 'unavailable';
+    payload.source_url = officialContext.sourceUrl || '';
+    payload.sources = Array.isArray(officialContext.sources) ? officialContext.sources : [];
+    payload.captured_at = officialContext.capturedAt || '';
+    payload.verified_at = officialContext.verifiedAt || '';
+    payload.official_route_id = officialContext.routeId || '';
+    payload.official_page_id = officialContext.pageId || '';
+    payload.snapshot_id = officialContext.snapshotId || '';
+    payload.canonical_sha256 = officialContext.canonicalSha256 || '';
+    return payload;
+  }
+
+  function assessProviderEvidence(result) {
+    const decision = assessConcreteEvidence(result && result.answer, officialContext);
+    setEvidencePolicyMeta(decision);
+    return decision;
+  }
+
   let configuredProviderCount = 0;
   let lastFailureCode = 'config_error';
   // Sticky flag so a later upstream/empty failure cannot hide a prior mismatch.
@@ -1730,6 +1816,16 @@ export async function onRequest(context) {
 
     let assessment = assessAnswerLocale(result.answer, requestLocale);
     if (assessment.ok) {
+      const evidenceDecision = assessProviderEvidence(result);
+      if (!evidenceDecision.ok) {
+        primaryAttempt.outcome = 'evidence_required';
+        primaryAttempt.selection_reason = 'evidence_policy_rejected';
+        return jsonResponse(
+          withRuntimeMeta(evidenceRequiredPayload(config, evidenceDecision)),
+          200,
+          headers,
+        );
+      }
       const selectionReason = index > 0 ? 'provider_fallback' : 'primary_provider';
       selectProviderAttempt(primaryAttempt, selectionReason);
       return jsonResponse(withRuntimeMeta(successPayload(config, result, index, selectionReason)), 200, headers);
@@ -1777,6 +1873,16 @@ export async function onRequest(context) {
       if (corrected.ok) {
         const correctedAssessment = assessAnswerLocale(corrected.answer, requestLocale);
         if (correctedAssessment.ok) {
+          const evidenceDecision = assessProviderEvidence(corrected);
+          if (!evidenceDecision.ok) {
+            correctionAttempt.outcome = 'evidence_required';
+            correctionAttempt.selection_reason = 'evidence_policy_rejected';
+            return jsonResponse(
+              withRuntimeMeta(evidenceRequiredPayload(config, evidenceDecision)),
+              200,
+              headers,
+            );
+          }
           const selectionReason = index > 0 ? 'provider_fallback_corrective_retry' : 'corrective_retry';
           selectProviderAttempt(correctionAttempt, selectionReason);
           return jsonResponse(withRuntimeMeta(successPayload(config, corrected, index, selectionReason)), 200, headers);

@@ -47,6 +47,7 @@ The current contract intentionally preserves legacy HTTP behavior while making f
 | request body exceeds configured byte cap | 413 | `ok:false`, `failure_code:"payload_too_large"` |
 | malformed JSON / invalid typed input | 200 | `ok:false`, `failure_code:"invalid_input"` |
 | resident-ID-like or fully-redacted high-risk input | 200 | `ok:false`, `failure_code:"sensitive_input_rejected"` |
+| concrete civic value lacks matching verified evidence | 200 | `ok:false`, `failure_code:"evidence_required"` |
 | provider/config/runtime failure | 200 | `ok:false`, stable `failure_code` |
 | successful answer | 200 | `ok:true`, `failure_code:""` |
 
@@ -62,6 +63,7 @@ Current runtime failure-code vocabulary includes:
 - `unsupported_media_type`
 - `payload_too_large`
 - `sensitive_input_rejected`
+- `evidence_required`
 - `service_disabled`
 - `snapshot_only`
 
@@ -78,6 +80,8 @@ Current runtime failure-code vocabulary includes:
 - resident-ID-like input fails closed before provider execution; phone/email/precise-address-like spans are redacted before provider execution.
 
 The new ingress/privacy failures are non-retryable. Later #1224 rate-limit, challenge-verification, durable budget, and infrastructure controls must add their own documented status + `failure_code` mappings before deployment.
+
+#1226-A adds a concrete-value evidence gate after locale validation and before provider-result selection. Phone numbers, HTTP(S) URLs, HH:MM times, money/fee amounts, and calendar dates are allowed only when every detected value is present in verified `canonical_snapshot` or `verified_live_source` evidence. `model_only`, unavailable snapshot state, and supplementary official-domain citations are insufficient on their own. A blocked draft returns non-retryable `evidence_required`, preserves canonical source/provenance when available, and never exposes the blocked provider value in the fallback or policy metadata. The detailed contract is [`MVP_CONCRETE_EVIDENCE_POLICY.md`](MVP_CONCRETE_EVIDENCE_POLICY.md).
 
 ## 3. Request and correlation identity
 

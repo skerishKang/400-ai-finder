@@ -229,6 +229,12 @@ composer 근처에 다음 취지의 안내를 표시한다.
 - 법적효과
 - 신청 URL
 
+#1226-A에서 서버 강제가 완료된 concrete-value 범위는 [`MVP_CONCRETE_EVIDENCE_POLICY.md`](MVP_CONCRETE_EVIDENCE_POLICY.md)를 따른다.
+
+현재 강제되는 신호는 `phone`, `url`, `clock_time`, `money`, `calendar_date`이다. provider 답변에서 이 값이 발견되면 `canonical_snapshot` 또는 `verified_live_source`의 sanitized evidence 안에 동일하게 정규화되는 값이 모두 존재해야 한다. 하나라도 없거나 evidence level이 `model_only`이면 provider draft를 선택하지 않고 `evidence_required`로 fail closed한다. official-looking domain이나 supplementary citation만으로 evidence level을 승격하지 않는다.
+
+아직 #1226 후속 구현이 필요한 semantic claim은 담당부서의 실제 소관, 제출서류 목록, 자격·제외조건, 명시적 날짜가 없는 기한 의미, 법적효과, 절차 전제조건 등이다. #1226-A 완료를 이 전체 semantic 범위의 완료로 해석하지 않는다.
+
 ### 7.3 prompt injection 방어
 
 - source content를 instruction과 분리한다.
