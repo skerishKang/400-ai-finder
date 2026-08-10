@@ -12,6 +12,7 @@ def replace_once(path, old, new):
 safety = Path('functions/api/mvp/request-safety.js')
 ask = Path('functions/api/mvp/ask.js')
 test = Path('tests/functions/test_cloudflare_mvp_ask_contract.mjs')
+privacy_test = Path('tests/functions/test_cloudflare_mvp_request_safety_contract.mjs')
 
 replace_once(
     safety,
@@ -74,10 +75,13 @@ replace_once(
     "        retryable: decorated.failure_code === 'upstream_timeout' || decorated.failure_code === 'upstream_error',",
     "        retryable: decorated.failure_code === 'upstream_timeout' ||\n          decorated.failure_code === 'upstream_error' ||\n          decorated.failure_code === 'bot_verification_unavailable',",
 )
+
+# Privacy assessment intentionally runs before Turnstile. High-risk PII is
+# rejected without any outbound Siteverify call.
 replace_once(
     ask,
-    "  const privacy = assessQuestionPrivacy(rawQuestion);",
-    "  if (runtimeMode.mode === 'enabled' && disabledProviders.length !== providerOrder.length) {\n    const botVerification = await verifyTurnstileRequest({\n      env,\n      requestHostname: reqHostname,\n      token: body.turnstile_token,\n      fetchWithDeadline,\n      remainingRequestBudgetMs: remainingRequestBudgetMs(),\n    });\n    botDefenseMeta = {\n      mode: botVerification.bypassed ? 'disabled' : 'required',\n      verified: botVerification.verified === true,\n      bypassed: botVerification.bypassed === true,\n      reason: botVerification.reason || '',\n      action: botVerification.action || '',\n      hostname: botVerification.hostname || '',\n    };\n    if (!botVerification.ok) {\n      return jsonResponse(withRuntimeMeta(Object.assign(\n        failurePayload('', primaryConfig.provider, primaryConfig.model, botVerification.failureCode, retrievedAt, currentTime, requestLocale),\n        { answer: localizedFailureAnswer(requestLocale, botVerification.failureCode) },\n      )), botVerification.status || 403, headers);\n    }\n  } else {\n    botDefenseMeta = {\n      mode: 'not_applicable',\n      verified: false,\n      bypassed: false,\n      reason: runtimeMode.mode !== 'enabled' ? `ai_mode_${runtimeMode.mode}` : 'all_providers_disabled',\n      action: '',\n      hostname: '',\n    };\n  }\n\n  const privacy = assessQuestionPrivacy(rawQuestion);",
+    "  const question = privacy.question;\n\n  if (runtimeMode.mode === 'disabled') {",
+    "  const question = privacy.question;\n\n  if (runtimeMode.mode === 'enabled' && disabledProviders.length !== providerOrder.length) {\n    const botVerification = await verifyTurnstileRequest({\n      env,\n      requestHostname: reqHostname,\n      token: body.turnstile_token,\n      fetchWithDeadline,\n      remainingRequestBudgetMs: remainingRequestBudgetMs(),\n    });\n    botDefenseMeta = {\n      mode: botVerification.bypassed ? 'disabled' : 'required',\n      verified: botVerification.verified === true,\n      bypassed: botVerification.bypassed === true,\n      reason: botVerification.reason || '',\n      action: botVerification.action || '',\n      hostname: botVerification.hostname || '',\n    };\n    if (!botVerification.ok) {\n      return jsonResponse(withRuntimeMeta(Object.assign(\n        failurePayload('', primaryConfig.provider, primaryConfig.model, botVerification.failureCode, retrievedAt, currentTime, requestLocale),\n        { answer: localizedFailureAnswer(requestLocale, botVerification.failureCode) },\n      )), botVerification.status || 403, headers);\n    }\n  } else {\n    botDefenseMeta = {\n      mode: 'not_applicable',\n      verified: false,\n      bypassed: false,\n      reason: runtimeMode.mode !== 'enabled' ? `ai_mode_${runtimeMode.mode}` : 'all_providers_disabled',\n      action: '',\n      hostname: '',\n    };\n  }\n\n  if (runtimeMode.mode === 'disabled') {",
 )
 
 replace_once(
@@ -99,6 +103,20 @@ replace_once(
     test,
     "    if (resolvedUrl === 'https://bukgu.gwangju.kr/') {\n      response = fixtures.homepageResponse || { body: DEFAULT_HOME_HTML };\n    } else if (resolvedUrl.startsWith('https://search.bukgu.gwangju.kr/RSA/front/Search.jsp?')) {\n      response = fixtures.searchResponse || { body: DEFAULT_SEARCH_HTML };\n    } else {",
     "    if (resolvedUrl === 'https://bukgu.gwangju.kr/') {\n      response = fixtures.homepageResponse || { body: DEFAULT_HOME_HTML };\n    } else if (resolvedUrl.startsWith('https://search.bukgu.gwangju.kr/RSA/front/Search.jsp?')) {\n      response = fixtures.searchResponse || { body: DEFAULT_SEARCH_HTML };\n    } else if (isTurnstileFetchUrl(resolvedUrl)) {\n      response = fixtures.turnstileResponse || {\n        body: { success: true, action: 'mvp_ask', hostname: 'cgbukku.pages.dev' },\n      };\n    } else {",
+)
+
+# This suite isolates request/privacy behavior. It explicitly uses the
+# loopback-only Turnstile bypass so bot-defense configuration cannot mask the
+# privacy contract under test.
+replace_once(
+    privacy_test,
+    "    url: 'https://cgbukku.pages.dev/api/mvp/ask',",
+    "    url: 'http://localhost:8788/api/mvp/ask',",
+)
+replace_once(
+    privacy_test,
+    "      MVP_RUNTIME_LOGS: '0',\n      ...env,",
+    "      MVP_RUNTIME_LOGS: '0',\n      MVP_TURNSTILE_MODE: 'disabled',\n      ...env,",
 )
 
 print('1224-B server anchors applied successfully')
