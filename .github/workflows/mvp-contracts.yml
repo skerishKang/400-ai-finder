@@ -272,6 +272,18 @@ jobs:
       - name: Run two-stage bilingual draft browser contract
         run: node tests/browser/verify_two_stage_bilingual_draft_e2e.mjs
 
+      - name: Prepare privacy-safe failure artifacts
+        if: failure()
+        run: python scripts/collect_mvp_failure_artifacts.py --job citizen-browser --out-dir /tmp/mvp-failure-artifacts-citizen-browser
+
+      - name: Upload bounded failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: mvp-failure-artifacts-citizen-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/mvp-failure-artifacts-citizen-browser
+          retention-days: 5
+          if-no-files-found: warn
   page-agent:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -424,6 +436,18 @@ jobs:
       - name: Run Page Agent production-gap browser contract
         run: node tests/browser/verify_page_agent_production_gaps_e2e.mjs
 
+      - name: Prepare privacy-safe failure artifacts
+        if: failure()
+        run: python scripts/collect_mvp_failure_artifacts.py --job page-agent --out-dir /tmp/mvp-failure-artifacts-page-agent
+
+      - name: Upload bounded failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: mvp-failure-artifacts-page-agent-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/mvp-failure-artifacts-page-agent
+          retention-days: 5
+          if-no-files-found: warn
   comparison-evidence:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -614,6 +638,18 @@ jobs:
           )
           PY
 
+      - name: Prepare privacy-safe failure artifacts
+        if: failure()
+        run: python scripts/collect_mvp_failure_artifacts.py --job comparison-evidence --out-dir /tmp/mvp-failure-artifacts-comparison-evidence
+
+      - name: Upload bounded failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: mvp-failure-artifacts-comparison-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/mvp-failure-artifacts-comparison-evidence
+          retention-days: 5
+          if-no-files-found: warn
   mvp-contracts:
     if: always()
     needs:
