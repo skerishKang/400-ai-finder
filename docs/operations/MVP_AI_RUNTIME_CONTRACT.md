@@ -13,11 +13,15 @@ It does **not** authorize live provider testing, live official-site retrieval, o
 Every JSON response decorated by the runtime control layer carries:
 
 - `schema_version`: shape/compatibility version of the response contract;
-- `policy_version`: server-side safety/selection policy version;
+- `policy_version`: aggregate server-side safety/selection runtime policy version;
 - `prompt_version`: system/corrective prompt contract version;
 - `request_id`: per-request opaque correlation identifier.
 
-The same version values are repeated inside `meta` where relevant to operator diagnostics. The browser bridge may preserve only sanitized `request_id` and `schema_version`; it does not expose internal failure diagnostics by default.
+The same version values are repeated inside `meta` where relevant to operator diagnostics. Evidence-specific metadata separately carries `meta.evidence_policy.version`, owned by the concrete evidence module.
+
+The aggregate runtime `POLICY_VERSION` and `EVIDENCE_POLICY_VERSION` have independent ownership. An evidence detector revision does not implicitly bump unrelated runtime policy metadata, and the runtime version must not be implemented as a direct alias of the evidence-module version. The strings may coincidentally match in a future revision without creating an ownership dependency.
+
+The browser bridge may preserve only sanitized `request_id` and `schema_version`; it does not expose internal failure diagnostics by default.
 
 ### Compatibility rules
 
@@ -32,7 +36,7 @@ Within the current schema line:
 
 A removal, rename, incompatible type change, or semantic reinterpretation requires an explicit schema migration and version change. During a migration, the old and new representation must coexist for a defined transition window or the dependent client must be migrated in the same reviewed change.
 
-`policy_version` and `prompt_version` are operational versions, not client feature-negotiation signals. They change when safety/provider-selection policy or prompt semantics materially change, even when the response shape remains compatible.
+`policy_version` and `prompt_version` are operational versions, not client feature-negotiation signals. They change only when their own owned runtime/prompt semantics materially change, even when the response shape remains compatible.
 
 ## 2. HTTP and failure semantics
 
@@ -67,7 +71,7 @@ Current runtime failure-code vocabulary includes:
 - `service_disabled`
 - `snapshot_only`
 
-`error.retryable` is currently true only for `upstream_error` and `upstream_timeout`.
+`error.retryable` is currently true only for `upstream_error` and `upstream_timeout`. `evidence_required` is non-retryable.
 
 #1224-A establishes the public request-ingress boundary:
 
@@ -81,7 +85,7 @@ Current runtime failure-code vocabulary includes:
 
 The new ingress/privacy failures are non-retryable. Later #1224 rate-limit, challenge-verification, durable budget, and infrastructure controls must add their own documented status + `failure_code` mappings before deployment.
 
-#1226-A adds a concrete-value evidence gate after locale validation and before provider-result selection. Phone numbers, HTTP(S) URLs, HH:MM times, money/fee amounts, and calendar dates are allowed only when every detected value is present in verified `canonical_snapshot` or `verified_live_source` evidence. `model_only`, unavailable snapshot state, and supplementary official-domain citations are insufficient on their own. A blocked draft returns non-retryable `evidence_required`, preserves canonical source/provenance when available, and never exposes the blocked provider value in the fallback or policy metadata. The detailed contract is [`MVP_CONCRETE_EVIDENCE_POLICY.md`](MVP_CONCRETE_EVIDENCE_POLICY.md).
+#1226-A adds a concrete-value evidence gate after locale validation and before provider-result selection. Covered phone numbers, HTTP(S) URLs, clock times, bounded KRW/USD/EUR amounts, and explicit calendar dates are allowed only when every unambiguous detected value has the same normalized semantic identity in declared verified `canonical_snapshot` or `verified_live_source` evidence. Currency identity, meridiem meaning, URL fragment identity, and bounded phone/date normalization are preserved. Ambiguous concrete syntax is detected and fails closed instead of being guessed. `model_only`, unknown evidence levels (including historical `live_official`), unavailable snapshot state, and supplementary official-domain citations are insufficient on their own. A blocked draft returns non-retryable `evidence_required`, preserves canonical source/provenance when available, and never exposes the blocked provider value in fallback, policy metadata, or sanitized logs. The detailed contract is [`MVP_CONCRETE_EVIDENCE_POLICY.md`](MVP_CONCRETE_EVIDENCE_POLICY.md).
 
 ## 3. Request and correlation identity
 
@@ -133,8 +137,9 @@ Selection reasons currently include:
 - `corrective_retry`
 - `provider_fallback_corrective_retry`
 - `locale_mismatch_rejected` for a non-selected locale-mismatched attempt
+- `evidence_policy_rejected` for a non-selected concrete-evidence rejection
 
-A locale-mismatched provider response is not recorded as a successful selected attempt merely because the HTTP/provider call succeeded.
+A locale-mismatched provider response is not recorded as a successful selected attempt merely because the HTTP/provider call succeeded. An evidence-rejected attempt records `outcome:evidence_required`, remains `selected:false`, and terminates provider fallback for that request instead of retrying another provider to evade the gate.
 
 ## 6. Token and cost semantics
 
@@ -175,12 +180,14 @@ The emitted `mvp_ai_request` event is allowlist-built. It may contain:
 - AI runtime mode;
 - sanitized provider-attempt metadata;
 - normalized token usage;
+- evidence decision level/kinds/reason/version;
 - explicit cost-unavailable state.
 
 It MUST NOT include by default:
 
 - resident question text;
 - model answer text;
+- blocked concrete value or rejected provider draft;
 - provider raw response bodies;
 - API keys/secrets;
 - arbitrary request body fields;
@@ -216,6 +223,7 @@ Any PR changing `/api/mvp/ask` public/runtime semantics must answer:
 5. Does a new log field contain resident/model/provider raw content?
 6. Does token/cost reporting remain provider-reported or explicitly versioned?
 7. Are browser bridge compatibility and failure envelopes preserved?
-8. Are timeout, fallback, kill-switch, locale, and privacy contracts covered by offline tests?
+8. Are timeout, fallback, kill-switch, locale, privacy, and concrete-evidence contracts covered by offline tests?
+9. Does each version field change only with its owning contract rather than by direct alias to an unrelated module version?
 
 Do not perform live provider/network validation merely to satisfy this checklist. Live validation requires its own controlled stage and explicit authorization.
