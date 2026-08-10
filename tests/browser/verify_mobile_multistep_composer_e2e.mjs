@@ -1089,6 +1089,19 @@ async function measureSnapshot(page, label) {
   return measureNow(page, label);
 }
 
+async function installTurnstileDisabledStub(page) {
+  // This E2E isolates composer/multistep behavior. The Turnstile lifecycle is
+  // covered by dedicated #1224-B browser contracts, so this harness uses the
+  // explicit no-token client shape before application scripts execute.
+  await page.addInitScript(() => {
+    window.CitizenTurnstile = Object.freeze({
+      acquireToken() { return Promise.resolve(""); },
+      reset() {},
+      cancel() {},
+    });
+  });
+}
+
 async function runMobileSequence(browser, origin, safety, viewport, sequence) {
   const label = `${sequence.name}@${viewport.label}`;
   console.log(`\n=== ${label} ===`);
@@ -1099,6 +1112,7 @@ async function runMobileSequence(browser, origin, safety, viewport, sequence) {
     hasTouch: true,
   });
   const page = await context.newPage();
+  await installTurnstileDisabledStub(page);
   safety.attach(page);
   await installRoutes(page, origin);
 
@@ -1249,6 +1263,7 @@ async function runDesktopRegression(browser, origin, safety) {
     reducedMotion: "reduce",
   });
   const page = await context.newPage();
+  await installTurnstileDisabledStub(page);
   safety.attach(page);
   await installRoutes(page, origin);
   await page.goto(`${origin}/mvp/?lang=ko`, {
