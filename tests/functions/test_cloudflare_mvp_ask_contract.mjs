@@ -1038,7 +1038,7 @@ await assert('en Korean initial and Korean correction fail closed without leakin
 await assert('official Korean noun in English does not trigger retry', async () => {
   try {
     mockFetchSequence([{
-      body: chatResponse('For apartment questions, contact 공동주택과 at 북구청. Call 062-410-8000 or open https://bukgu.gwangju.kr/.'),
+      body: chatResponse('For apartment questions, contact 공동주택과 at 북구청 for assistance.'),
     }]);
     const { data } = await requestJson('POST', JSON.stringify({
       question: 'Apartment housing department',
@@ -2151,3 +2151,7 @@ await import('./test_cloudflare_mvp_request_safety_contract.mjs');
 
 // #1224-A browser anonymous-session contract.
 await import('./test_citizen_mvp_bridge_session_contract.mjs');
+
+// #1226-A concrete administrative-value evidence policy.
+await import('./test_cloudflare_mvp_evidence_policy_contract.mjs');
+await import('./test_cloudflare_mvp_evidence_policy_integration_contract.mjs');
