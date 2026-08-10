@@ -12,7 +12,7 @@ permissions:
 jobs:
   python-contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
 
@@ -44,7 +44,7 @@ jobs:
 
   snapshot-provenance:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
 
@@ -73,7 +73,7 @@ jobs:
 
   site-adapter:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
 
@@ -90,7 +90,7 @@ jobs:
 
   build-packaging:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
 
@@ -113,7 +113,7 @@ jobs:
 
   cloudflare-function:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
 
@@ -286,7 +286,7 @@ jobs:
           if-no-files-found: warn
   page-agent:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
 
@@ -450,7 +450,7 @@ jobs:
           if-no-files-found: warn
   comparison-evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -653,7 +653,7 @@ jobs:
 
   security-quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -713,6 +713,7 @@ jobs:
       - comparison-evidence
       - security-quality
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Require every MVP contract domain to pass
         run: |
