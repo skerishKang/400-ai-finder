@@ -26,6 +26,13 @@ function loadBridge(fetchImpl) {
       normalizeLocale() { return "ko"; },
       t() { return "현재 AI 안내를 연결하지 못했습니다."; },
     },
+    // This contract isolates request/correlation identity. Turnstile behavior
+    // is covered separately; disabled mode intentionally yields no token.
+    CitizenTurnstile: {
+      acquireToken() { return Promise.resolve(""); },
+      reset() {},
+      cancel() {},
+    },
   };
   const context = vm.createContext({
     window,
