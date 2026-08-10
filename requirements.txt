@@ -1,5 +1,20 @@
-requests>=2.33
-beautifulsoup4>=4.14
-pytest>=9.0
-pyyaml>=6.0
-Pillow>=12.2
+# CI/runtime dependency lock captured from the green Python 3.11 MVP Contract Checks run
+# 31376184336 on 2026-08-10. Keep direct and transitive versions exact so the same
+# commit does not silently resolve a different dependency graph.
+requests==2.34.2
+beautifulsoup4==4.15.0
+pytest==9.1.1
+pyyaml==6.0.3
+Pillow==12.3.0
+
+# Transitive dependencies resolved by the direct requirements above.
+certifi==2026.7.22
+charset-normalizer==3.4.9
+idna==3.18
+urllib3==2.7.0
+soupsieve==2.9.2
+typing-extensions==4.16.0
+iniconfig==2.3.0
+packaging==26.3
+pluggy==1.6.0
+Pygments==2.20.0
