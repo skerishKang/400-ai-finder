@@ -1,3 +1,9 @@
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import {
   TURNSTILE_MAX_TOKEN_CHARS,
   TURNSTILE_SITEVERIFY_URL,
@@ -201,6 +207,50 @@ await check('config endpoint fails closed when required site key is missing', as
   const data = await response.json();
   equal(data.failure_code, 'bot_verification_config_error', 'failure');
   if (JSON.stringify(data).includes('test-secret-do-not-log')) throw new Error('endpoint leaked secret');
+});
+
+await check('live Pages build publishes Turnstile assets without inventing CSP headers', async () => {
+  const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
+  const outDir = mkdtempSync(join(tmpdir(), 'mvp-turnstile-build-'));
+  try {
+    const build = spawnSync(
+      'python',
+      ['scripts/build_cloudflare_pages.py', '--mode', 'live', '--out-dir', outDir],
+      { cwd: repoRoot, encoding: 'utf-8' },
+    );
+    if (build.status !== 0) {
+      throw new Error(`live build failed: ${build.stdout}\n${build.stderr}`);
+    }
+
+    for (const filename of ['citizen-mvp-bridge.js', 'citizen-turnstile.js']) {
+      const source = join(repoRoot, 'src', 'web', 'static', filename);
+      const built = join(outDir, 'static', filename);
+      if (!existsSync(source) || !existsSync(built)) {
+        throw new Error(`missing live build asset: ${filename}`);
+      }
+      if (!readFileSync(source).equals(readFileSync(built))) {
+        throw new Error(`live build changed static asset bytes: ${filename}`);
+      }
+    }
+
+    const bridge = readFileSync(join(outDir, 'static', 'citizen-mvp-bridge.js'), 'utf-8');
+    if (!bridge.includes('var TURNSTILE_CLIENT_SRC = "/static/citizen-turnstile.js";')) {
+      throw new Error('built bridge does not point to citizen-turnstile.js');
+    }
+    const shell = readFileSync(join(outDir, 'static', 'citizen-first-use-shell.js'), 'utf-8');
+    if (!shell.includes('citizen-mvp-bridge.js')) {
+      throw new Error('built shell does not load citizen-mvp-bridge.js');
+    }
+    const mvpHtml = readFileSync(join(outDir, 'mvp', 'index.html'), 'utf-8');
+    if (!mvpHtml.includes('searchParams.set("mvp", "1")')) {
+      throw new Error('live /mvp/ entry does not activate the MVP bridge');
+    }
+    if (existsSync(join(outDir, '_headers'))) {
+      throw new Error('live build invented an unreviewed Cloudflare _headers policy');
+    }
+  } finally {
+    rmSync(outDir, { recursive: true, force: true });
+  }
 });
 
 if (failed) {
