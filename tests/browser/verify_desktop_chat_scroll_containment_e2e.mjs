@@ -934,6 +934,16 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
 
   // Reading-history → explicit turn: #1200 ensures composer submit always
   // follows the latest message. Scroll up, submit, verify yank to bottom.
+  // The explicit-submit bottom-pin choreography can run on a layout frame
+  // after the response marker. Let it fully settle with the same
+  // deterministic 2-rAF barrier pinThreadToBottom uses before yanking
+  // scrollTop to 0; otherwise a late bottom-pin frame can re-pin the
+  // thread right after the yank and race the reading-history assertion
+  // (distBottom=0 at 1024x768).
+  await page.evaluate(
+    () =>
+      new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+  );
   await page.evaluate(() => {
     const t = document.getElementById("chat-thread");
     if (!t) throw new Error("chat-thread missing");
