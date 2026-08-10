@@ -146,6 +146,13 @@ async function main() {
   page.on("console", (msg) => {
     if (msg.type() === "error") errors.push(msg.text());
   });
+  await page.addInitScript(() => {
+    window.CitizenTurnstile = Object.freeze({
+      acquireToken() { return Promise.resolve(""); },
+      reset() {},
+      cancel() {},
+    });
+  });
   await page.route("**/api/mvp/ask", async (route) => {
     const payload = JSON.parse(route.request().postData() || "{}");
     await route.fulfill({

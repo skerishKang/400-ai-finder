@@ -189,6 +189,13 @@ function trackSafety(page, origin) {
 }
 
 async function mockMayorAsk(page) {
+  await page.addInitScript(() => {
+    window.CitizenTurnstile = Object.freeze({
+      acquireToken() { return Promise.resolve(""); },
+      reset() {},
+      cancel() {},
+    });
+  });
   await page.route("**/api/mvp/ask", async (route) => {
     await route.fulfill({
       status: 200,

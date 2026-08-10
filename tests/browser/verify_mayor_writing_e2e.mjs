@@ -271,6 +271,13 @@ async function runViewport(browser, viewport) {
       externalRequests.push(url);
     }
   });
+  await page.addInitScript(() => {
+    window.CitizenTurnstile = Object.freeze({
+      acquireToken() { return Promise.resolve(""); },
+      reset() {},
+      cancel() {},
+    });
+  });
   await page.route("**/api/mvp/ask", async (route) => {
     await route.fulfill({
       status: 200,
@@ -643,6 +650,13 @@ async function runNormalMotionMayorChipFlow(browser) {
       externalRequests.push(url);
     }
   });
+  await page.addInitScript(() => {
+    window.CitizenTurnstile = Object.freeze({
+      acquireToken() { return Promise.resolve(""); },
+      reset() {},
+      cancel() {},
+    });
+  });
   await page.route("**/api/mvp/ask", async (route) => {
     await route.fulfill({
       status: 200,
@@ -816,6 +830,13 @@ async function runStreetlightWriteHeaderFlow(browser) {
       externalRequests.push(url);
     }
   });
+  await page.addInitScript(() => {
+    window.CitizenTurnstile = Object.freeze({
+      acquireToken() { return Promise.resolve(""); },
+      reset() {},
+      cancel() {},
+    });
+  });
   await page.route("**/api/mvp/ask", async (route) => {
     await route.fulfill({
       status: 200,
@@ -964,6 +985,13 @@ async function runVietnameseMayorChipFlow(browser) {
     if (!url.startsWith("data:") && new URL(url).origin !== BASE_ORIGIN) {
       externalRequests.push(url);
     }
+  });
+  await page.addInitScript(() => {
+    window.CitizenTurnstile = Object.freeze({
+      acquireToken() { return Promise.resolve(""); },
+      reset() {},
+      cancel() {},
+    });
   });
   await page.route("**/api/mvp/ask", async (route) => {
     await route.fulfill({
