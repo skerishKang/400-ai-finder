@@ -43,12 +43,14 @@ const INTERNATIONAL_PHONE_RE = /(?:^|[^\d+])(\+(?:82|84|66|62)(?:[\s().-]*\d){8,
 const URL_RE = /https?:\/\/[^\s<>"'`]+/gi;
 const CLOCK_TIME_MERIDIEM_RE = /(?:^|[^0-9])((0?[1-9]|1[0-2]):([0-5]\d)\s*([ap])\.?m\.?)(?=$|[^A-Za-z0-9])/gi;
 const CLOCK_TIME_24H_RE = /(?:^|[^0-9])([01]?\d|2[0-3]):([0-5]\d)(?=$|[^0-9])/g;
+const CLOCK_TIME_UNSUPPORTED_MERIDIEM_RE = /(?:^|[^0-9])((0?[1-9]|1[0-2])\s*([ap])\.?m\.?)(?=$|[^A-Za-z0-9])/gi;
 const MONEY_AMOUNT = '([0-9][0-9,]*(?:\\.[0-9]{1,2})?)';
 const MONEY_PATTERNS = Object.freeze([
   Object.freeze({ currency: 'KRW', re: new RegExp(`(?:₩\\s*${MONEY_AMOUNT}|\\bKRW\\s*${MONEY_AMOUNT}|${MONEY_AMOUNT}\\s*(?:KRW\\b|원|won\\b))`, 'gi') }),
   Object.freeze({ currency: 'USD', re: new RegExp(`(?:US\\$\\s*${MONEY_AMOUNT}|\\bUSD\\s*${MONEY_AMOUNT}|${MONEY_AMOUNT}\\s*USD\\b)`, 'gi') }),
   Object.freeze({ currency: 'EUR', re: new RegExp(`(?:€\\s*${MONEY_AMOUNT}|\\bEUR\\s*${MONEY_AMOUNT}|${MONEY_AMOUNT}\\s*(?:EUR\\b|€))`, 'gi') }),
 ]);
+const MONEY_AMBIGUOUS_DOLLAR_RE = /(?:^|[^A-Za-z])\$\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)(?![0-9,]|\.[0-9])(?!(?:\s*USD\b))/gi;
 const DATE_YMD_RE = /(?:^|[^0-9])(20\d{2})[-/.](0?[1-9]|1[0-2])[-/.](0?[1-9]|[12]\d|3[01])(?=$|[^0-9])/g;
 const DATE_KO_RE = /(?:^|[^0-9])(20\d{2})년\s*(0?[1-9]|1[0-2])월\s*(0?[1-9]|[12]\d|3[01])일(?=$|[^0-9])/g;
 const DATE_MD_RE = /(?:^|[^0-9])(0?[1-9]|1[0-2])월\s*(0?[1-9]|[12]\d|3[01])일(?=$|[^0-9])/g;
@@ -212,12 +214,30 @@ export function extractConcreteClaims(text) {
     pushUniqueClaim(claims, 'clock_time', `${hour}:${match[2]}`);
   }
 
+  CLOCK_TIME_UNSUPPORTED_MERIDIEM_RE.lastIndex = 0;
+  while ((match = CLOCK_TIME_UNSUPPORTED_MERIDIEM_RE.exec(source)) !== null) {
+    pushUniqueClaim(
+      claims,
+      'clock_time',
+      `unsupported_meridiem:${match[1].toLowerCase().replace(/\s+/g, '')}`,
+      { ambiguous: true },
+    );
+  }
+
   for (const pattern of MONEY_PATTERNS) {
     pattern.re.lastIndex = 0;
     while ((match = pattern.re.exec(source)) !== null) {
       const amount = match.slice(1).find((value) => typeof value === 'string' && value.length) || '';
       const normalizedAmount = normalizedMoneyAmount(amount);
       if (normalizedAmount) pushUniqueClaim(claims, 'money', `${pattern.currency}:${normalizedAmount}`);
+    }
+  }
+
+  MONEY_AMBIGUOUS_DOLLAR_RE.lastIndex = 0;
+  while ((match = MONEY_AMBIGUOUS_DOLLAR_RE.exec(source)) !== null) {
+    const normalizedAmount = normalizedMoneyAmount(match[1]);
+    if (normalizedAmount) {
+      pushUniqueClaim(claims, 'money', `ambiguous_dollar:${normalizedAmount}`, { ambiguous: true });
     }
   }
 
