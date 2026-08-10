@@ -4,23 +4,25 @@ STUB = '''  await page.addInitScript(() => {\n    window.CitizenTurnstile = Obje
 ROUTE_ANCHOR = '  await page.route("**/api/mvp/ask", async (route) => {'
 
 
-def patch_before_mock_route(path: str) -> None:
+def patch_before_mock_routes(path: str, expected_count: int) -> None:
     file = Path(path)
     text = file.read_text(encoding="utf-8")
     replacement = STUB + ROUTE_ANCHOR
-    if replacement in text:
-        print(f"already patched: {path}")
+    existing = text.count(replacement)
+    if existing == expected_count:
+        print(f"already patched: {path} ({existing})")
         return
+    if existing:
+        raise SystemExit(f"{path}: partial patch detected ({existing}/{expected_count})")
     count = text.count(ROUTE_ANCHOR)
-    if count != 1:
-        raise SystemExit(f"{path}: expected one API mock route anchor, got {count}")
-    file.write_text(text.replace(ROUTE_ANCHOR, replacement, 1), encoding="utf-8")
-    print(f"patched: {path}")
+    if count != expected_count:
+        raise SystemExit(
+            f"{path}: expected {expected_count} API mock route anchors, got {count}"
+        )
+    file.write_text(text.replace(ROUTE_ANCHOR, replacement), encoding="utf-8")
+    print(f"patched: {path} ({count})")
 
 
-for target in (
-    "tests/browser/verify_housing_quest_e2e.mjs",
-    "tests/browser/verify_mayor_writing_e2e.mjs",
-    "tests/browser/verify_two_stage_bilingual_draft_e2e.mjs",
-):
-    patch_before_mock_route(target)
+patch_before_mock_routes("tests/browser/verify_housing_quest_e2e.mjs", 1)
+patch_before_mock_routes("tests/browser/verify_mayor_writing_e2e.mjs", 4)
+patch_before_mock_routes("tests/browser/verify_two_stage_bilingual_draft_e2e.mjs", 1)
