@@ -939,7 +939,19 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
     if (!t) throw new Error("chat-thread missing");
     t.scrollTop = 0;
   });
-  await page.waitForTimeout(80);
+  // Synchronize on the same invariant asserted below instead of assuming an
+  // arbitrary 80 ms is enough for scroll/layout state to settle in CI. The
+  // wait is not an assertion replacement: if it times out, the existing
+  // metric-rich assertion below still fails closed with diagnostics.
+  await page.waitForFunction(
+    ({ minDistBottom }) => {
+      const t = document.getElementById("chat-thread");
+      if (!t) return false;
+      return t.scrollHeight - t.scrollTop - t.clientHeight > minDistBottom;
+    },
+    { minDistBottom: PIN_THRESHOLD + 20 },
+    { timeout: 1200, polling: "raf" },
+  ).catch(() => {});
   const beforeRead = await page.evaluate(() => {
     const t = document.getElementById("chat-thread");
     return {
@@ -954,6 +966,20 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
     `[${label}] not far enough from bottom for reading-history: ${JSON.stringify(beforeRead)}`,
   );
   await sendTurn(page, READ_HISTORY_TURN, `${label} reading-history`);
+  // sendTurn waits for the response marker and input re-enable, but the UI's
+  // explicit-submit bottom-yank may finish on a later layout/animation frame.
+  // Wait for that observable contract with the *same* threshold used by the
+  // final assertion; never relax the acceptance bound.
+  await page.waitForFunction(
+    ({ marker, maxDistBottom }) => {
+      const t = document.getElementById("chat-thread");
+      const lastAi = Array.from(document.querySelectorAll(".chat-msg--ai")).at(-1);
+      if (!t || !lastAi || !(lastAi.textContent || "").includes(marker)) return false;
+      return t.scrollHeight - t.scrollTop - t.clientHeight <= maxDistBottom;
+    },
+    { marker: READ_HISTORY_TURN.marker, maxDistBottom: PIN_THRESHOLD + 8 },
+    { timeout: 1200, polling: "raf" },
+  ).catch(() => {});
   const afterRead = await page.evaluate(() => {
     const t = document.getElementById("chat-thread");
     const lastAi = Array.from(document.querySelectorAll(".chat-msg--ai")).at(-1);
