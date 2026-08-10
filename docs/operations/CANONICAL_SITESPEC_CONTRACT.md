@@ -79,6 +79,26 @@ This SiteSpec is an identity data contract only. It does not relax, weaken, or
 restate that invariant, and it does not change the exact-clone obligations of
 the left civic-site surface.
 
+## Dual-read resolver (#1225-B)
+
+`src/site_profiles/sitespec.py` resolves both canonical and legacy site IDs
+to the same canonical SiteSpec, reading only `configs/sites/*.sitespec.json`
+(sorted, deterministic enumeration). `configs/site-registry.json` remains the
+frozen compatibility registry and is **not** a resolver source.
+
+| Identifier | Result |
+|---|---|
+| `bukgu_gwangju` | Buk-gu canonical SiteSpec (direct) |
+| `bukgu` | same Buk-gu canonical SiteSpec (legacy dual-read) |
+| `북구청` / `Gwangju Buk-gu` / `광주광역시 북구` | fail-closed (`SiteSpecNotFoundError`) |
+| `""`, whitespace, unknown IDs | fail-closed (`SiteSpecNotFoundError`) |
+
+Collision policy: duplicate canonical IDs, a legacy alias claimed by two
+SiteSpecs, or a canonical ID colliding with another SiteSpec's legacy alias
+raise `SiteSpecLoadError` at load time — first-match-wins is prohibited.
+Empty `legacy_ids` is valid (new sites with no historical alias). The resolver
+is additive foundation only; no runtime is migrated to it in this phase.
+
 ## Non-goals (this phase)
 
 - No `configs/site-registry.json` migration.
