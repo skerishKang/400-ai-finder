@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import yaml
@@ -7,6 +8,9 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "mvp-contracts.yml"
+REQUIREMENTS = REPO_ROOT / "requirements.txt"
+PACKAGE_JSON = REPO_ROOT / "package.json"
+PACKAGE_LOCK = REPO_ROOT / "package-lock.json"
 
 DOMAIN_JOBS = {
     "python-contracts",
@@ -53,9 +57,40 @@ EXPECTED_TEST_STEPS = {
     "Check whitespace errors",
 }
 
+EXPECTED_PYTHON_LOCK = {
+    "requests": "2.34.2",
+    "beautifulsoup4": "4.15.0",
+    "pytest": "9.1.1",
+    "pyyaml": "6.0.3",
+    "pillow": "12.3.0",
+    "certifi": "2026.7.22",
+    "charset-normalizer": "3.4.9",
+    "idna": "3.18",
+    "urllib3": "2.7.0",
+    "soupsieve": "2.9.2",
+    "typing-extensions": "4.16.0",
+    "iniconfig": "2.3.0",
+    "packaging": "26.3",
+    "pluggy": "1.6.0",
+    "pygments": "2.20.0",
+}
+
 
 def _workflow() -> dict:
     return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+
+
+def _locked_python_requirements() -> dict[str, str]:
+    locked: dict[str, str] = {}
+    for raw_line in REQUIREMENTS.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        assert "==" in line, f"CI requirement is not exactly pinned: {line}"
+        name, version = line.split("==", 1)
+        assert name and version and not any(op in version for op in (">", "<", "~", "*"))
+        locked[name.lower()] = version
+    return locked
 
 
 def test_domain_jobs_and_compatibility_aggregator_are_present() -> None:
@@ -91,3 +126,24 @@ def test_aggregator_fails_closed_on_any_domain_failure() -> None:
         needle = f'${{{{ needs.{job_id}.result }}}}'
         assert needle in run
     assert "exit 1" in run
+
+
+def test_python_ci_dependency_graph_is_exactly_locked() -> None:
+    assert _locked_python_requirements() == EXPECTED_PYTHON_LOCK
+
+
+def test_node_playwright_dependency_is_exactly_locked_and_ci_uses_npm_ci() -> None:
+    package = json.loads(PACKAGE_JSON.read_text(encoding="utf-8"))
+    lock = json.loads(PACKAGE_LOCK.read_text(encoding="utf-8"))
+
+    assert package["dependencies"]["playwright"] == "1.61.1"
+    assert lock["packages"][""]["dependencies"]["playwright"] == "1.61.1"
+    assert lock["packages"]["node_modules/playwright"]["version"] == "1.61.1"
+    assert lock["packages"]["node_modules/playwright-core"]["version"] == "1.61.1"
+
+    node_jobs = {"cloudflare-function", "citizen-browser", "page-agent", "comparison-evidence"}
+    jobs = _workflow()["jobs"]
+    for job_id in node_jobs:
+        commands = "\n".join(str(step.get("run", "")) for step in jobs[job_id].get("steps", []))
+        assert "npm ci --ignore-scripts" in commands, f"{job_id} must install from package-lock"
+        assert "npm install " not in commands
