@@ -1,6 +1,7 @@
 import { BUKGU_OFFICIAL_SNAPSHOTS } from './bukgu-official-snapshots.js';
 import {
   MAX_QUESTION_CHARS,
+  SENSITIVE_CATEGORIES,
   assessQuestionPrivacy,
   readBoundedJsonBody,
   validateRequestShape,
@@ -1389,7 +1390,7 @@ export function buildSanitizedRuntimeLog(payload) {
     privacy: {
       sensitive_input_detected: Boolean(meta.privacy && meta.privacy.sensitive_input_detected),
       categories: meta.privacy && Array.isArray(meta.privacy.categories)
-        ? meta.privacy.categories.filter((value) => typeof value === 'string').slice(0, 8)
+        ? meta.privacy.categories.filter((value) => typeof value === 'string' && SENSITIVE_CATEGORIES.includes(value)).slice(0, 8)
         : [],
       redacted: Boolean(meta.privacy && meta.privacy.redacted),
       session_id_present: Boolean(meta.privacy && meta.privacy.session_id_present),

@@ -43,7 +43,10 @@ The current contract intentionally preserves legacy HTTP behavior while making f
 | `OPTIONS` | 200 | empty response with restricted CORS headers |
 | unsupported HTTP method | 405 | `ok:false` |
 | missing/blank question | 400 | `ok:false` |
+| non-JSON media type | 415 | `ok:false`, `failure_code:"unsupported_media_type"` |
+| request body exceeds configured byte cap | 413 | `ok:false`, `failure_code:"payload_too_large"` |
 | malformed JSON / invalid typed input | 200 | `ok:false`, `failure_code:"invalid_input"` |
+| resident-ID-like or fully-redacted high-risk input | 200 | `ok:false`, `failure_code:"sensitive_input_rejected"` |
 | provider/config/runtime failure | 200 | `ok:false`, stable `failure_code` |
 | successful answer | 200 | `ok:true`, `failure_code:""` |
 
@@ -56,12 +59,25 @@ Current runtime failure-code vocabulary includes:
 - `empty_response`
 - `answer_locale_mismatch`
 - `invalid_input`
+- `unsupported_media_type`
+- `payload_too_large`
+- `sensitive_input_rejected`
 - `service_disabled`
 - `snapshot_only`
 
 `error.retryable` is currently true only for `upstream_error` and `upstream_timeout`.
 
-Future public-API controls such as media-type/body-byte rejection, rate limiting, challenge verification, or infrastructure-unavailable responses are owned by #1224. If they introduce 4xx/5xx statuses, the corresponding status + `failure_code` mapping must be documented and contract-tested before deployment.
+#1224-A establishes the public request-ingress boundary:
+
+- `Content-Type` must be `application/json`;
+- the default application body limit is 8,192 bytes; `MVP_MAX_BODY_BYTES` may override it only within 1,024..32,768 bytes and invalid values fall back to 8,192;
+- `Content-Length` is rejected before body read when it already exceeds the cap; streamed request bodies are cancelled as soon as accumulated bytes exceed the cap;
+- the separate semantic question limit remains 300 characters;
+- the accepted top-level request fields are only `question`, optional `locale`, and optional `session_id`;
+- `session_id` is a pseudonymous correlation/rate-limit input, not authentication, and its raw value is not emitted in runtime metadata/logs;
+- resident-ID-like input fails closed before provider execution; phone/email/precise-address-like spans are redacted before provider execution.
+
+The new ingress/privacy failures are non-retryable. Later #1224 rate-limit, challenge-verification, durable budget, and infrastructure controls must add their own documented status + `failure_code` mappings before deployment.
 
 ## 3. Request and correlation identity
 

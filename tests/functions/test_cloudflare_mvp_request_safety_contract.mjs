@@ -233,6 +233,51 @@ await check('redacted sensitive spans are never sent to provider', async () => {
   }
 });
 
+await check('too-long input never echoes raw sensitive text', async () => {
+  const rawPhone = '010-1234-5678';
+  const question = rawPhone + ' ' + 'x'.repeat(301);
+  const { data } = await invoke(JSON.stringify({ question, locale: 'ko' }));
+  equal(data.ok, false, 'ok');
+  equal(data.failure_code, 'invalid_input', 'failure_code');
+  if (String(data.question || '').includes(rawPhone)) throw new Error('raw phone echoed in too-long failure');
+});
+
+await check('new ingress/privacy failures are explicitly non-retryable', async () => {
+  const wrongTypeRequest = makeRequest(JSON.stringify({ question: '안내' }), { 'Content-Type': 'text/plain' });
+  const wrongTypeResponse = await askModule.onRequest({ request: wrongTypeRequest, env: { MVP_RUNTIME_LOGS: '0' } });
+  const wrongType = JSON.parse(await wrongTypeResponse.text());
+  equal(wrongType.error.retryable, false, 'unsupported media retryable');
+
+  const largeBody = JSON.stringify({ question: '가'.repeat(400) });
+  const large = await invoke(largeBody, { MVP_MAX_BODY_BYTES: '1024' });
+  equal(large.data.error.retryable, false, 'payload too large retryable');
+
+  const sensitive = await invoke(JSON.stringify({ question: '주민번호 900101-1234567', locale: 'ko' }));
+  equal(sensitive.data.error.retryable, false, 'sensitive input retryable');
+});
+
+await check('sanitized runtime log allowlists privacy categories and excludes raw sensitive data', async () => {
+  const rawEmail = 'secret.person@example.com';
+  const log = askModule.buildSanitizedRuntimeLog({
+    ok: false,
+    question: rawEmail,
+    answer: rawEmail,
+    failure_code: 'sensitive_input_rejected',
+    meta: {
+      privacy: {
+        sensitive_input_detected: true,
+        categories: ['email_like', rawEmail],
+        redacted: true,
+        session_id_present: true,
+      },
+    },
+  });
+  const serialized = JSON.stringify(log);
+  if (serialized.includes(rawEmail)) throw new Error('raw sensitive value leaked into runtime log');
+  equal(log.privacy.categories.length, 1, 'privacy category count');
+  equal(log.privacy.categories[0], 'email_like', 'privacy category');
+});
+
 globalThis.fetch = ORIGINAL_FETCH;
 
 if (failed) {

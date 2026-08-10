@@ -105,6 +105,17 @@ protected anonymous session
 - 배열·중첩 object·예상하지 못한 field는 reject 또는 ignore 정책을 명시한다.
 - Content-Type과 method를 제한한다.
 
+Current #1224-A request-boundary values:
+
+- default body cap: `8192` bytes
+- operator override: `MVP_MAX_BODY_BYTES`, accepted only from `1024` through `32768` bytes
+- invalid/out-of-range override: fail-safe fallback to `8192` bytes
+- question semantic limit: `300` characters, independent of body bytes
+- accepted top-level fields: `question`, optional `locale`, optional `session_id`
+- anonymous browser session: random/pseudonymous, `sessionStorage` only, page-memory fallback, never `localStorage`
+
+These numbers cover request ingress only. Rate, concurrency, challenge, and provider budget values remain separate #1224 slices and must not be inferred from this body-size policy.
+
 ### 4.2 개인정보 경고
 
 composer 근처에 다음 취지의 안내를 표시한다.
