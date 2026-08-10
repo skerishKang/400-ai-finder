@@ -1,0 +1,44 @@
+name: Apply 1231-C failure artifacts
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-1231-c:
+    if: github.head_ref == 'ci/1231-c-failure-artifacts'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ci/1231-c-failure-artifacts
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Apply workflow patch
+        run: python scripts/apply_1231_c_failure_artifact_workflow.py
+      - name: Remove temporary applicator files
+        run: |
+          rm .github/workflows/apply-1231-c-failure-artifacts.yml
+          rm scripts/apply_1231_c_failure_artifact_workflow.py
+      - name: Run artifact contracts
+        run: |
+          python -m pytest -q \
+            tests/test_mvp_failure_artifacts.py \
+            tests/test_mvp_failure_artifact_workflow.py \
+            tests/test_mvp_ci_job_decomposition.py
+      - name: Check workflow diff
+        run: git diff --check
+      - name: Commit validated artifact policy
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'ci(mvp): preserve bounded browser failure artifacts (#1231)'
+          git push origin HEAD:ci/1231-c-failure-artifacts
