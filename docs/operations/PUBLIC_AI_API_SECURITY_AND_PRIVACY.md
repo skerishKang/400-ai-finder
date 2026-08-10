@@ -195,6 +195,7 @@ composer 근처에 다음 취지의 안내를 표시한다.
 - 한 request의 최대 provider attempts 제한
 - corrective retry는 전역 budget으로 제한
 - timeout·rate limit·auth·malformed response를 닫힌 failure code로 분류
+- concrete evidence rejection은 non-retryable이며 다른 provider로 우회하지 않는다
 
 ### 6.3 비용상한
 
@@ -209,12 +210,14 @@ composer 근처에 다음 취지의 안내를 표시한다.
 
 ### 7.1 신뢰등급
 
+Canonical evidence vocabulary:
+
 - `canonical_snapshot`
 - `verified_live_source`
 - `supplementary_official_citation`
-- `snapshot_unavailable`
 - `model_only`
-- `unavailable`
+
+Only `canonical_snapshot` and `verified_live_source` authorize covered concrete values. Runtime `official_snapshot` maps to canonical snapshot evidence. Historical `live_official` and any unknown/undeclared level fail closed to `model_only`; they are not verified aliases.
 
 ### 7.2 고위험 claim
 
@@ -231,9 +234,11 @@ composer 근처에 다음 취지의 안내를 표시한다.
 
 #1226-A에서 서버 강제가 완료된 concrete-value 범위는 [`MVP_CONCRETE_EVIDENCE_POLICY.md`](MVP_CONCRETE_EVIDENCE_POLICY.md)를 따른다.
 
-현재 강제되는 신호는 `phone`, `url`, `clock_time`, `money`, `calendar_date`이다. provider 답변에서 이 값이 발견되면 `canonical_snapshot` 또는 `verified_live_source`의 sanitized evidence 안에 동일하게 정규화되는 값이 모두 존재해야 한다. 하나라도 없거나 evidence level이 `model_only`이면 provider draft를 선택하지 않고 `evidence_required`로 fail closed한다. official-looking domain이나 supplementary citation만으로 evidence level을 승격하지 않는다.
+현재 강제 신호는 `phone`, `url`, `clock_time`, `money`, `calendar_date`이다. provider 답변에서 concrete signal이 발견되면 sanitized verified evidence 안에 동일한 **semantic identity**의 값이 모두 있어야 한다. 금액은 KRW/USD/EUR currency identity를 포함하며 같은 숫자의 다른 통화는 일치하지 않는다. AM/PM은 24시간 의미로 보존하고, URL fragment는 identity 일부로 보존한다. bounded 국제전화 `+82/+84/+66/+62`는 formatting-equivalent form을 정규화한다. 명확한 날짜 표현만 같은 실제 calendar date로 정규화하며 `08/09/2026` 같은 D/M/Y·M/D/Y ambiguity는 감지한 뒤 임의 해석 없이 fail closed한다. bare `$`처럼 currency identity가 확정되지 않는 bounded signal도 USD로 추정하지 않고 fail closed한다.
 
-아직 #1226 후속 구현이 필요한 semantic claim은 담당부서의 실제 소관, 제출서류 목록, 자격·제외조건, 명시적 날짜가 없는 기한 의미, 법적효과, 절차 전제조건 등이다. #1226-A 완료를 이 전체 semantic 범위의 완료로 해석하지 않는다.
+하나라도 evidence에 없거나 semantic identity가 다르거나 evidence level이 unverified이면 provider draft를 선택하지 않고 `evidence_required`로 fail closed한다. official-looking domain이나 supplementary citation만으로 evidence level을 승격하지 않는다. blocked raw concrete value는 citizen fallback, public/operator policy metadata, sanitized runtime log에 넣지 않는다.
+
+아직 #1226 후속 구현이 필요한 semantic claim은 담당부서의 실제 소관, 제출서류 목록, 자격·제외조건, 명시적 날짜가 없는 기한 의미, 법적효과, 절차 전제조건, 신청-channel 의미 등이다. #1226-A 완료를 이 전체 semantic 범위의 완료로 해석하지 않는다.
 
 ### 7.3 prompt injection 방어
 
@@ -255,15 +260,17 @@ composer 근처에 다음 취지의 안내를 표시한다.
 operator metadata:
 
 - request ID
-- schema·prompt·policy version
+- schema·prompt·aggregate runtime policy version
+- evidence policy version/decision
 - provider·model
 - attempts·fallback reason
 - latency
 - token·cost when available
-- evidence decision
 - rate-limit·abuse decision
 
-질문 원문·key·Authorization·raw provider body는 기본 operator metadata에 포함하지 않는다.
+Aggregate runtime `policy_version`과 evidence-module version은 별도 ownership이다. evidence detector revision이 runtime policy metadata version을 직접 alias하거나 자동 변경하지 않는다.
+
+질문 원문·key·Authorization·raw provider body·blocked concrete value는 기본 operator metadata에 포함하지 않는다.
 
 ## 9. CORS와 인증
 
