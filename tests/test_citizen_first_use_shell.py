@@ -1104,3 +1104,24 @@ def test_composer_utility_css_wrap_contract():
     assert "flex-wrap: wrap" in util
     assert "justify-content: space-between" in util
     assert "max-width: 100%" in util
+
+# ── #1224 public privacy warning ───────────────────────────────────
+
+
+def test_composer_privacy_warning_is_visible_localized_and_noninteractive():
+    form_start = HTML.index('<form class="chat-composer" id="chat-composer-form"')
+    form_end = HTML.index('</form>', form_start)
+    warning = HTML.index('id="chat-privacy-warning"')
+    assert form_start < warning < form_end
+    assert 'class="chat-composer__privacy-warning"' in HTML
+    assert 'role="note"' in HTML[warning : warning + 180]
+    assert '주민등록번호·전화번호·이메일·상세주소 등 개인정보는 입력하지 마세요.' in HTML
+    assert HTML.index('id="chat-thread"') < form_start
+    assert I18N.count('"chat.privacyWarning"') == 5
+    assert 'Do not enter personal information' in I18N
+    assert 'Không nhập thông tin cá nhân' in I18N
+    assert 'อย่าป้อนข้อมูลส่วนบุคคล' in I18N
+    assert 'Jangan masukkan data pribadi' in I18N
+    assert 'i18n.t("chat.privacyWarning")' in JS
+    assert '.chat-composer__privacy-warning {' in CSS
+    assert 'onclick=' not in HTML[warning : warning + 240].lower()
