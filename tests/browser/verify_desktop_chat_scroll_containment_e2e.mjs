@@ -366,6 +366,19 @@ async function installRoutes(page, origin) {
   });
 }
 
+async function installTurnstileDisabledStub(page) {
+  // This E2E isolates chat scroll containment. Dedicated #1224-B browser
+  // contracts own the Turnstile lifecycle, so this harness supplies the
+  // explicit no-token client shape before application scripts execute.
+  await page.addInitScript(() => {
+    window.CitizenTurnstile = Object.freeze({
+      acquireToken() { return Promise.resolve(""); },
+      reset() {},
+      cancel() {},
+    });
+  });
+}
+
 async function collectCounts(page) {
   return page.evaluate(() => {
     const user = document.querySelectorAll(".chat-msg--user").length;
@@ -842,6 +855,7 @@ async function runDesktopViewport(browser, origin, safety, viewport) {
     reducedMotion: "reduce",
   });
   const page = await context.newPage();
+  await installTurnstileDisabledStub(page);
   safety.attach(page);
   await installRoutes(page, origin);
 
@@ -1046,6 +1060,7 @@ async function runMobileBaseline(browser, origin, safety) {
     hasTouch: true,
   });
   const page = await context.newPage();
+  await installTurnstileDisabledStub(page);
   safety.attach(page);
   await installRoutes(page, origin);
 
