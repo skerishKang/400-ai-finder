@@ -66,6 +66,21 @@ console.log('\n=== Cloudflare MVP evidence policy integration contract ===\n');
 // network stub installed by individual cases, never against a live provider.
 askModule = await import('../../functions/api/mvp/ask.js');
 
+await check('runtime and evidence policy versions have independent ownership', async () => {
+  equal(askModule.POLICY_VERSION, '2026-08-10.1', 'runtime policy version');
+  const { data } = await invoke(
+    '가로등 고장 신고는 어떻게 하나요?',
+    'Please use the official reporting path and confirm the current guidance there.',
+    'en',
+  );
+  equal(data.policy_version, '2026-08-10.1', 'public runtime policy version');
+  equal(data.meta.policy_version, '2026-08-10.1', 'meta runtime policy version');
+  equal(data.meta.evidence_policy.version, '2026-08-11.1', 'evidence policy version');
+  if (data.policy_version === data.meta.evidence_policy.version) {
+    throw new Error('runtime policy version is still implicitly coupled to evidence policy version');
+  }
+});
+
 await check('canonical housing phone present in snapshot survives evidence gate', async () => {
   const phone = '062-410-6841';
   const { data, providerCalls } = await invoke(
@@ -119,14 +134,45 @@ await check('model-only concrete time is blocked while safe general guidance rem
   equal(safe.data.meta.evidence_policy.reason, 'no_concrete_high_risk_value', 'safe reason');
 });
 
+await check('ambiguous numeric date is rejected without retry or raw-value leakage', async () => {
+  const blocked = '08/09/2026';
+  const { data, providerCalls } = await invoke(
+    'How should I report a broken streetlight?',
+    `Please submit the report by ${blocked} through the official reporting service.`,
+    'en',
+  );
+  equal(data.ok, false, 'ok');
+  equal(data.failure_code, 'evidence_required', 'failure');
+  equal(data.error.retryable, false, 'retryable');
+  equal(data.meta.evidence_policy.reason, 'ambiguous_concrete_value', 'reason');
+  equal(JSON.stringify(data.meta.evidence_policy.signal_kinds), JSON.stringify(['calendar_date']), 'signals');
+  equal(providerCalls, 1, 'provider calls');
+  if (JSON.stringify(data).includes(blocked)) throw new Error('ambiguous blocked date leaked');
+});
+
+await check('international model-only phone is rejected without provider fallback', async () => {
+  const blocked = '+84 28 1234 5678';
+  const { data, providerCalls } = await invoke(
+    'How should I report a broken streetlight?',
+    `Please call ${blocked} for help with the report.`,
+    'en',
+  );
+  equal(data.failure_code, 'evidence_required', 'failure');
+  equal(data.meta.evidence_policy.reason, 'verified_evidence_required', 'reason');
+  equal(JSON.stringify(data.meta.evidence_policy.signal_kinds), JSON.stringify(['phone']), 'signals');
+  equal(providerCalls, 1, 'provider calls');
+  if (JSON.stringify(data).includes(blocked)) throw new Error('blocked international phone leaked');
+});
+
 await check('policy metadata and runtime log expose kinds only, never blocked values', async () => {
   const blocked = '062-410-9999';
   const { data } = await invoke(
     '공동주택 문의',
     `대표전화는 ${blocked}입니다. 담당 부서에 문의해 주세요.`,
   );
-  equal(data.policy_version, '2026-08-10.2', 'public policy version');
-  equal(data.meta.policy_version, '2026-08-10.2', 'meta policy version');
+  equal(data.policy_version, '2026-08-10.1', 'public runtime policy version');
+  equal(data.meta.policy_version, '2026-08-10.1', 'meta runtime policy version');
+  equal(data.meta.evidence_policy.version, '2026-08-11.1', 'evidence policy version');
   const log = askModule.buildSanitizedRuntimeLog(data);
   equal(log.evidence_policy.decision, 'block', 'log decision');
   equal(JSON.stringify(log.evidence_policy.signal_kinds), JSON.stringify(['phone']), 'log signals');
@@ -152,14 +198,17 @@ await check('evidence_required fallback is localized across all five supported l
 });
 
 await check('provider attempt records evidence rejection without selecting the unsafe draft', async () => {
-  const { data } = await invoke(
+  const { data, providerCalls } = await invoke(
     '공동주택 문의',
     '공동주택과 대표전화는 062-410-9999입니다. 담당 부서에 문의해 주세요.',
+    'ko',
+    { KILOCODE_API_KEY: 'second-provider-key', MVP_LLM_ORDER: 'gemini,hy3' },
   );
   equal(data.meta.provider_attempts.length, 1, 'attempt count');
   equal(data.meta.provider_attempts[0].outcome, 'evidence_required', 'attempt outcome');
   equal(data.meta.provider_attempts[0].selected, false, 'selected');
   equal(data.meta.provider_attempts[0].selection_reason, 'evidence_policy_rejected', 'selection reason');
+  equal(providerCalls, 1, 'no provider fallback after evidence rejection');
 });
 
 globalThis.fetch = ORIGINAL_FETCH;
