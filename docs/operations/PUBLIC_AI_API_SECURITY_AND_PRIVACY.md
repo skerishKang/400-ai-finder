@@ -1,7 +1,7 @@
 # 공개 AI API 보안·개인정보 운영모델
 
 - 상태: `canonical`
-- 기준일: 2026-08-04
+- 기준일: 2026-08-10
 - 관련 이슈: #1224, #1226, #1227
 - 좌측 시민 clone canonical invariant: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md)
 
@@ -86,6 +86,7 @@ mock or stub
 
 ```text
 protected anonymous session
++ bot verification
 + rate limit
 + cost cap
 + provider timeout
@@ -105,16 +106,17 @@ protected anonymous session
 - 배열·중첩 object·예상하지 못한 field는 reject 또는 ignore 정책을 명시한다.
 - Content-Type과 method를 제한한다.
 
-Current #1224-A request-boundary values:
+Current #1224-A/B request-boundary values:
 
 - default body cap: `8192` bytes
 - operator override: `MVP_MAX_BODY_BYTES`, accepted only from `1024` through `32768` bytes
 - invalid/out-of-range override: fail-safe fallback to `8192` bytes
 - question semantic limit: `300` characters, independent of body bytes
-- accepted top-level fields: `question`, optional `locale`, optional `session_id`
+- accepted top-level fields: `question`, optional `locale`, optional `session_id`, optional `turnstile_token`
 - anonymous browser session: random/pseudonymous, `sessionStorage` only, page-memory fallback, never `localStorage`
+- `turnstile_token`: protected model path에서만 요구되는 단기 challenge response; browser storage에 보관하지 않고 provider로 전달하지 않는다.
 
-These numbers cover request ingress only. Rate, concurrency, challenge, and provider budget values remain separate #1224 slices and must not be inferred from this body-size policy.
+These numbers cover request ingress and the Turnstile token envelope only. Rate, concurrency, and provider budget values remain separate #1224 slices and must not be inferred from this body-size policy.
 
 ### 4.2 개인정보 경고
 
@@ -124,13 +126,19 @@ composer 근처에 다음 취지의 안내를 표시한다.
 
 ### 4.3 최소탐지
 
-운영정책이 승인되면 다음 pattern을 최소 탐지한다.
+Current #1224-A 최소탐지는 다음을 적용한다.
 
-- 주민번호·외국인등록번호 형태
+- 주민번호 형태: fail-closed
+- 전화번호: provider 전달 전 redaction
+- 이메일: provider 전달 전 redaction
+- 상세주소 가능성이 높은 조합: provider 전달 전 redaction
+- redaction 결과가 사실상 비어버리는 고위험 입력: fail-closed
+
+아직 별도 정책/구현이 필요한 항목:
+
+- 외국인등록번호의 별도 정밀 규칙
 - 카드·계좌 형태의 긴 숫자
-- 전화번호
-- 이메일
-- 상세주소 가능성이 높은 조합
+- 자유서술 민감정보의 의미 기반 DLP
 
 탐지는 완전한 DLP가 아니다. 목적은 경고·redaction·로그비저장의 방어층을 추가하는 것이다.
 
@@ -142,6 +150,7 @@ composer 근처에 다음 취지의 안내를 표시한다.
 - 반복질문 분석이 필요하면 비식별화·정규화한 intent 또는 hash를 사용한다.
 - 원문 sample이 필요한 연구는 별도 opt-in, 최소기간, 접근권한과 삭제일을 둔다.
 - 운영로그에 Authorization, key, cookie, raw body를 남기지 않는다.
+- 익명 `session_id` 원문과 Turnstile challenge token도 기본 운영로그에 남기지 않는다.
 
 ## 5. Abuse·rate limit
 
@@ -163,12 +172,51 @@ composer 근처에 다음 취지의 안내를 표시한다.
 
 정확한 수치는 staging traffic과 provider 가격에 따라 #1224에서 결정한다.
 
-### 5.3 봇방어
+### 5.3 봇방어 — #1224-B 구현계약
 
-- Cloudflare Turnstile 또는 동등수단
-- 정상 사용자의 접근성을 고려한 challenge
-- challenge token server verification
-- token reuse·expiry·origin 검증
+Protected model request는 Cloudflare Turnstile server verification을 통과해야 한다.
+
+Client:
+
+- same-origin `/api/mvp/turnstile-config`에서 공개 site key와 action만 읽는다.
+- Turnstile secret은 browser에 노출하지 않는다.
+- 공식 Cloudflare explicit-render script만 로드한다.
+- widget은 `execution: execute`, `appearance: interaction-only`로 동작한다.
+- 각 protected `ask()`마다 fresh token을 획득한다.
+- token을 `localStorage`, `sessionStorage`, cookie에 저장하지 않는다.
+- protected request 종료·취소 후 widget을 reset한다.
+- config/script/challenge 실패 시 `/api/mvp/ask` provider path를 호출하지 않고 fail-closed한다.
+
+Server:
+
+- Siteverify endpoint를 기존 #1227 deadline-aware outbound fetch로 호출한다.
+- Siteverify에는 현재 `secret`과 `response` challenge token만 전달한다.
+- 시민 질문, 익명 `session_id`, `remoteip`는 Siteverify에 전달하지 않는다.
+- expected action을 검증한다.
+- `MVP_TURNSTILE_ALLOWED_HOSTNAMES`가 설정되면 exact hostname allowlist를 검증한다.
+- expired/duplicate/rejected/action mismatch/hostname mismatch는 provider 호출 전에 차단한다.
+- Siteverify timeout/network/HTTP/malformed response도 provider 호출 전에 차단한다.
+- privacy assessment는 Siteverify보다 먼저 실행한다. 주민번호성 고위험 입력은 Turnstile 외부호출조차 없이 차단한다.
+
+Runtime configuration:
+
+- `MVP_TURNSTILE_MODE=required`: production/default canonical mode
+- `MVP_TURNSTILE_MODE=disabled`: exact loopback request host에서만 local/offline test용으로 허용
+- production에서 `disabled`를 지정해도 bypass하지 않고 `required`로 fail-closed한다.
+- `MVP_TURNSTILE_SITE_KEY`: 공개 site key
+- `MVP_TURNSTILE_SECRET_KEY`: encrypted Cloudflare secret으로만 관리
+- `MVP_TURNSTILE_EXPECTED_ACTION=mvp_ask`
+- `MVP_TURNSTILE_ALLOWED_HOSTNAMES`: comma-separated exact hostname allowlist
+- `MVP_TURNSTILE_TIMEOUT_MS`: 기본 `3000`, 허용 `250..10000` ms; global request deadline의 남은 budget도 동시에 적용
+
+Failure mapping:
+
+- missing/malformed/oversized challenge → HTTP 403 / `bot_verification_required`
+- rejected/expired/duplicate/action/hostname mismatch → HTTP 403 / `bot_verification_failed`
+- Siteverify unavailable/timeout/network/HTTP/malformed → HTTP 503 / `bot_verification_unavailable`
+- required key/secret configuration missing → HTTP 503 / `bot_verification_config_error`
+
+`bot_verification_unavailable`만 자동 retryable이다. Required/failed/configuration failure는 자동 retryable이 아니다.
 
 ### 5.4 제한초과 응답
 
@@ -185,6 +233,7 @@ composer 근처에 다음 취지의 안내를 표시한다.
 
 - request 전체 deadline
 - provider별 deadline
+- Turnstile Siteverify deadline
 - search tool deadline
 - fallback에 남은 budget 전달
 - client disconnect 또는 deadline 시 abort
@@ -195,6 +244,7 @@ composer 근처에 다음 취지의 안내를 표시한다.
 - 한 request의 최대 provider attempts 제한
 - corrective retry는 전역 budget으로 제한
 - timeout·rate limit·auth·malformed response를 닫힌 failure code로 분류
+- bot verification이 실패하면 provider fallback 자체를 시작하지 않는다.
 
 ### 6.3 비용상한
 
@@ -255,9 +305,11 @@ operator metadata:
 - latency
 - token·cost when available
 - evidence decision
+- privacy category/boolean state
+- bot-defense mode/verified/bypassed/reason/action/hostname 같은 sanitized state
 - rate-limit·abuse decision
 
-질문 원문·key·Authorization·raw provider body는 기본 operator metadata에 포함하지 않는다.
+질문 원문·key·Authorization·raw provider body·익명 session ID 원문·Turnstile challenge token/secret은 기본 operator metadata에 포함하지 않는다.
 
 ## 9. CORS와 인증
 
@@ -271,13 +323,18 @@ CORS는 보안층 중 하나지만 다음을 보장하지 않는다.
 
 허용 origin은 exact production origin, approved preview pattern과 loopback development로 제한한다. `Vary: Origin`, no-store와 method/header 제한을 유지한다.
 
+Turnstile은 인증 대체수단이 아니다. challenge 통과 여부는 protected anonymous model request의 bot-defense signal일 뿐 사용자 신원·권한을 증명하지 않는다.
+
 ## 10. Secret·endpoint
 
 - key는 Cloudflare secret 또는 승인된 secret store에만 둔다.
-- `.env`, fixture, screenshot, log, PR body에 key를 기록하지 않는다.
+- `.env`, fixture, screenshot, log, PR body에 real secret을 기록하지 않는다.
+- Turnstile site key는 공개값이지만 `MVP_TURNSTILE_SECRET_KEY`는 encrypted deployment secret으로만 관리한다.
+- public Turnstile config endpoint는 site key/action만 반환하며 secret을 반환하지 않는다.
 - production endpoint는 code-owned allowlist를 사용한다.
 - local override는 explicit opt-in + loopback request + loopback endpoint에서만 허용한다.
-- endpoint validation 실패는 fail-closed한다.
+- Turnstile disable도 exact loopback에서만 허용한다.
+- endpoint/config validation 실패는 fail-closed한다.
 
 ## 11. 운영 kill switch
 
@@ -292,11 +349,13 @@ CORS는 보안층 중 하나지만 다음을 보장하지 않는다.
 
 전환은 audit event와 operator, 시각, 이유, 복구조건을 남긴다.
 
+Turnstile `disabled`는 production emergency kill switch가 아니다. bot verification을 우회해야 하는 운영 상황에서는 AI를 `snapshot_only` 또는 `disabled`로 전환해야 하며, production challenge bypass를 허용하지 않는다.
+
 ## 12. Incident response
 
 ### Key 노출
 
-1. provider key revoke·rotate
+1. provider/Turnstile secret revoke·rotate
 2. affected deployment disable
 3. logs·commits·artifacts 범위확인
 4. history cleanup 필요성 판단
@@ -331,19 +390,19 @@ CORS는 보안층 중 하나지만 다음을 보장하지 않는다.
 ## 13. Production readiness checklist
 
 - [ ] 서버측 rate limit
-- [ ] 봇방어
-- [ ] request body·question limit
-- [ ] provider·전체 timeout
+- [ ] Turnstile production site key·encrypted secret·allowed hostname 설정 및 staging 검증
+- [x] request body·question limit
+- [x] provider·전체 timeout
 - [ ] concurrency limit
 - [ ] 일·월 비용상한
 - [ ] privacy warning
-- [ ] 최소 DLP·redaction 정책
-- [ ] raw transcript retention 정책
-- [ ] evidence-gated high-risk claims
-- [ ] request ID·latency·attempt telemetry
-- [ ] kill switch·snapshot-only fallback
-- [ ] incident runbook
+- [ ] 최소 DLP·redaction 정책 전체범위
+- [x] raw transcript 기본 비보관 정책
+- [ ] evidence-gated high-risk claims 전체범위
+- [x] request ID·latency·attempt telemetry
+- [x] kill switch·snapshot-only fallback
+- [x] incident runbook
 - [ ] staging abuse·timeout·fallback smoke evidence
 - [ ] deployed SHA·environment·secret owner 확인
 
-이 checklist가 완료되지 않은 공개 endpoint는 제품데모로 분류하며 상시 시민 운영판으로 승인하지 않는다.
+#1224-B 코드는 offline contract 기준으로 구현되어 있어도, 실제 Turnstile site key/secret/hostname 준비와 staging 검증 전에는 production bot-defense 완료로 간주하지 않는다. 이 checklist가 완료되지 않은 공개 endpoint는 제품데모로 분류하며 상시 시민 운영판으로 승인하지 않는다.
