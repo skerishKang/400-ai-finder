@@ -47,3 +47,10 @@ def test_live_cloudflare_build_contains_turnstile_client(tmp_path: Path) -> None
 
     mvp_html = (tmp_path / "mvp" / "index.html").read_text(encoding="utf-8")
     assert 'u.searchParams.set("mvp", "1")' in mvp_html
+
+    # Header/CSP policy is deployment configuration, not an implicit build side
+    # effect. If a Cloudflare _headers policy is introduced later, it must be
+    # reviewed explicitly for the Turnstile script/frame origins.
+    assert not (tmp_path / "_headers").exists(), (
+        "live build must not invent an unreviewed Cloudflare _headers policy"
+    )
