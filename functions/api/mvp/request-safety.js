@@ -4,6 +4,12 @@ export const MAX_MAX_BODY_BYTES = 32768;
 export const MAX_QUESTION_CHARS = 300;
 export const MAX_SESSION_ID_CHARS = 128;
 export const ALLOWED_REQUEST_FIELDS = Object.freeze(['question', 'locale', 'session_id']);
+export const SENSITIVE_CATEGORIES = Object.freeze([
+  'resident_id_like',
+  'phone_like',
+  'email_like',
+  'precise_address_like',
+]);
 
 const SESSION_ID_RE = /^[A-Za-z0-9_-]{16,128}$/;
 const RESIDENT_ID_RE = /(^|[^0-9])([0-9]{6})[-\s]?([1-4][0-9]{6})(?=$|[^0-9])/g;
@@ -45,6 +51,48 @@ function utf8ByteLength(text) {
   return new TextEncoder().encode(String(text || '')).byteLength;
 }
 
+async function readBoundedText(request, maxBodyBytes) {
+  const body = request && request.body;
+  if (body && typeof body.getReader === 'function') {
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let text = '';
+    let totalBytes = 0;
+    try {
+      while (true) {
+        const chunk = await reader.read();
+        if (!chunk || chunk.done) break;
+        const value = chunk.value;
+        if (!(value instanceof Uint8Array)) {
+          try { await reader.cancel(); } catch (_) { /* noop */ }
+          return { ok: false, failureCode: 'invalid_input' };
+        }
+        totalBytes += value.byteLength;
+        if (totalBytes > maxBodyBytes) {
+          try { await reader.cancel(); } catch (_) { /* noop */ }
+          return { ok: false, failureCode: 'payload_too_large' };
+        }
+        text += decoder.decode(value, { stream: true });
+      }
+      text += decoder.decode();
+      return { ok: true, text };
+    } catch (_) {
+      try { await reader.cancel(); } catch (_) { /* noop */ }
+      return { ok: false, failureCode: 'invalid_input' };
+    }
+  }
+
+  try {
+    const text = await request.text();
+    if (utf8ByteLength(text) > maxBodyBytes) {
+      return { ok: false, failureCode: 'payload_too_large' };
+    }
+    return { ok: true, text };
+  } catch (_) {
+    return { ok: false, failureCode: 'invalid_input' };
+  }
+}
+
 export async function readBoundedJsonBody(request, env) {
   const maxBodyBytes = resolveMaxBodyBytes(env);
   if (!isJsonContentType(request)) {
@@ -56,19 +104,19 @@ export async function readBoundedJsonBody(request, env) {
     return { ok: false, status: 413, failureCode: 'payload_too_large', maxBodyBytes };
   }
 
-  let text = '';
-  try {
-    text = await request.text();
-  } catch (_) {
-    return { ok: false, status: 200, failureCode: 'invalid_input', maxBodyBytes };
-  }
-  if (utf8ByteLength(text) > maxBodyBytes) {
-    return { ok: false, status: 413, failureCode: 'payload_too_large', maxBodyBytes };
+  const bounded = await readBoundedText(request, maxBodyBytes);
+  if (!bounded.ok) {
+    return {
+      ok: false,
+      status: bounded.failureCode === 'payload_too_large' ? 413 : 200,
+      failureCode: bounded.failureCode || 'invalid_input',
+      maxBodyBytes,
+    };
   }
 
   let body;
   try {
-    body = JSON.parse(text);
+    body = JSON.parse(bounded.text);
   } catch (_) {
     return { ok: false, status: 200, failureCode: 'invalid_input', maxBodyBytes };
   }
