@@ -33,7 +33,7 @@ function makeRequest(body, headers = {}, method = 'POST') {
   const requestHeaders = new Headers({ 'Content-Type': 'application/json', ...headers });
   return {
     method,
-    url: 'https://cgbukku.pages.dev/api/mvp/ask',
+    url: 'http://localhost:8788/api/mvp/ask',
     headers: requestHeaders,
     text: async () => String(body ?? ''),
   };
@@ -47,6 +47,7 @@ async function invoke(body, env = {}, headers = {}) {
       GEMINI_API_KEY: '',
       KILOCODE_API_KEY: '',
       MVP_RUNTIME_LOGS: '0',
+      MVP_TURNSTILE_MODE: 'disabled',
       ...env,
     },
   });
