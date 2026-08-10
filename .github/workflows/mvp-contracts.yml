@@ -10,7 +10,135 @@ permissions:
   contents: read
 
 jobs:
-  mvp-contracts:
+  python-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Run MVP contract pytest suite
+        run: |
+          python -m pytest -q \
+            tests/test_mvp_failure_codes.py \
+            tests/test_mobile_demo.py \
+            tests/test_citizen_first_use_shell.py \
+            tests/test_citizen_action_demo_chat_shell_contract.py \
+            tests/test_citizen_action_demo_canvas.py
+
+      - name: Run legacy requests transport contract tests
+        run: python -m pytest -q tests/test_legacy_requests_transport.py
+
+      - name: Run legacy crawler fallback contract suites
+        run: |
+          python -m pytest -q \
+            tests/test_url_crawler.py \
+            tests/test_homepage_mapper.py
+
+  snapshot-provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Run canonical official snapshot contracts
+        run: |
+          python -m pytest -q \
+            tests/test_bukgu_official_apartment_snapshot.py \
+            tests/test_bukgu_official_content_snapshots.py \
+            tests/test_renderer_route_manifest_fidelity.py \
+            tests/test_capture_required_entry_spec.py \
+            tests/test_exact_official_site_clone_invariant.py \
+            tests/test_bukgu_quest_schema.py \
+            tests/test_bukgu_quest_to_action_plan.py \
+            tests/test_mvp_golden_quest_fidelity_matrix.py
+
+      - name: Run Buk-gu golden docs contract (#1188)
+        run: python -m pytest -q tests/test_bukgu_golden_docs_contract.py
+
+  site-adapter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Run site adapter contract matrix (#1221)
+        run: python -m pytest -q tests/test_site_adapter_contract_matrix.py
+
+  build-packaging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Run static Pages build contract tests
+        run: python -m pytest -q tests/test_build_cloudflare_pages.py
+
+      - name: Run CI job decomposition self-contract (#1231)
+        run: python -m pytest -q tests/test_mvp_ci_job_decomposition.py
+
+      - name: Check whitespace errors
+        run: git diff --check
+
+  cloudflare-function:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Install Node test dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run Cloudflare MVP Function contract test
+        env:
+          RUN_CLOUDFLARE_FUNCTION_CONTRACTS: "1"
+        run: node tests/functions/test_cloudflare_mvp_ask_contract.mjs
+
+  citizen-browser:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -28,45 +156,6 @@ jobs:
 
       - name: Install Python test dependencies
         run: python -m pip install --disable-pip-version-check -r requirements.txt
-
-      - name: Run MVP contract pytest suite
-        run: |
-          python -m pytest -q \
-            tests/test_mvp_failure_codes.py \
-            tests/test_mobile_demo.py \
-            tests/test_citizen_first_use_shell.py \
-            tests/test_citizen_action_demo_chat_shell_contract.py \
-            tests/test_citizen_action_demo_canvas.py
-
-      - name: Run canonical official snapshot contracts
-        run: |
-          python -m pytest -q \
-            tests/test_bukgu_official_apartment_snapshot.py \
-            tests/test_bukgu_official_content_snapshots.py \
-            tests/test_renderer_route_manifest_fidelity.py \
-            tests/test_capture_required_entry_spec.py \
-            tests/test_exact_official_site_clone_invariant.py \
-            tests/test_bukgu_quest_schema.py \
-            tests/test_bukgu_quest_to_action_plan.py \
-            tests/test_mvp_golden_quest_fidelity_matrix.py
-
-      - name: Run Buk-gu golden docs contract (#1188)
-        run: python -m pytest -q tests/test_bukgu_golden_docs_contract.py
-
-      - name: Run site adapter contract matrix (#1221)
-        run: python -m pytest -q tests/test_site_adapter_contract_matrix.py
-
-      - name: Run legacy requests transport contract tests
-        run: python -m pytest -q tests/test_legacy_requests_transport.py
-
-      - name: Run legacy crawler fallback contract suites
-        run: |
-          python -m pytest -q \
-            tests/test_url_crawler.py \
-            tests/test_homepage_mapper.py
-
-      - name: Run static Pages build contract tests
-        run: python -m pytest -q tests/test_build_cloudflare_pages.py
 
       - name: Run MVP shell runtime harness
         run: node tests/browser/verify_mvp_shell_runtime.mjs
@@ -183,10 +272,39 @@ jobs:
       - name: Run two-stage bilingual draft browser contract
         run: node tests/browser/verify_two_stage_bilingual_draft_e2e.mjs
 
-      - name: Run Cloudflare MVP Function contract test
-        env:
-          RUN_CLOUDFLARE_FUNCTION_CONTRACTS: "1"
-        run: node tests/functions/test_cloudflare_mvp_ask_contract.mjs
+      - name: Prepare privacy-safe failure artifacts
+        if: failure()
+        run: python scripts/collect_mvp_failure_artifacts.py --job citizen-browser --out-dir /tmp/mvp-failure-artifacts-citizen-browser
+
+      - name: Upload bounded failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: mvp-failure-artifacts-citizen-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/mvp-failure-artifacts-citizen-browser
+          retention-days: 5
+          if-no-files-found: warn
+  page-agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Install Node test dependencies
+        run: npm ci --ignore-scripts
 
       - name: Run Page Agent lab Python contracts (full suite)
         run: python -m pytest -q tests/test_page_agent_lab.py
@@ -250,44 +368,6 @@ jobs:
 
           node tests/browser/verify_page_agent_lab_e2e.mjs \
             http://127.0.0.1:8767
-
-      - name: Run Page Agent comparison contract tests (full suite)
-        run: python -m pytest -q tests/test_page_agent_comparison_contract.py
-
-      - name: Run Page Agent comparison evidence contract tests
-        if: always()
-        run: |
-          python -m pytest -q tests/test_page_agent_comparison_evidence.py
-
-      - name: Verify expectations fixture integrity
-        run: |
-          python - <<'PY'
-          import json
-
-          with open(
-              "tests/fixtures/page_agent_comparison_expectations.json",
-              encoding="utf-8",
-          ) as f:
-              data = json.load(f)
-
-          assert data["schema_version"] == "1.0.0"
-          assert len(data["scenarios"]) == 5
-
-          for scenario in data["scenarios"]:
-              assert "deterministic" in scenario
-              assert "page_agent" in scenario
-              assert "trigger" in scenario["deterministic"]
-              assert "trigger" in scenario["page_agent"]
-
-          base_sha = data["base_sha"]
-
-          assert isinstance(base_sha, str)
-          assert len(base_sha) == 40
-          assert all(char in "0123456789abcdef" for char in base_sha)
-          assert base_sha == "5ad20ad027f993cb522a49c90f39523211e6c5cd"
-
-          print("Expectations fixture: OK")
-          PY
 
       - name: Run resident demo browser E2E
         if: github.event_name == 'push' || github.event_name == 'pull_request'
@@ -355,6 +435,78 @@ jobs:
 
       - name: Run Page Agent production-gap browser contract
         run: node tests/browser/verify_page_agent_production_gaps_e2e.mjs
+
+      - name: Prepare privacy-safe failure artifacts
+        if: failure()
+        run: python scripts/collect_mvp_failure_artifacts.py --job page-agent --out-dir /tmp/mvp-failure-artifacts-page-agent
+
+      - name: Upload bounded failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: mvp-failure-artifacts-page-agent-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/mvp-failure-artifacts-page-agent
+          retention-days: 5
+          if-no-files-found: warn
+  comparison-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Install Node test dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run Page Agent comparison contract tests (full suite)
+        run: python -m pytest -q tests/test_page_agent_comparison_contract.py
+
+      - name: Run Page Agent comparison evidence contract tests
+        if: always()
+        run: |
+          python -m pytest -q tests/test_page_agent_comparison_evidence.py
+
+      - name: Verify expectations fixture integrity
+        run: |
+          python - <<'PY'
+          import json
+
+          with open(
+              "tests/fixtures/page_agent_comparison_expectations.json",
+              encoding="utf-8",
+          ) as f:
+              data = json.load(f)
+
+          assert data["schema_version"] == "1.0.0"
+          assert len(data["scenarios"]) == 5
+
+          for scenario in data["scenarios"]:
+              assert "deterministic" in scenario
+              assert "page_agent" in scenario
+              assert "trigger" in scenario["deterministic"]
+              assert "trigger" in scenario["page_agent"]
+
+          base_sha = data["base_sha"]
+
+          assert isinstance(base_sha, str)
+          assert len(base_sha) == 40
+          assert all(char in "0123456789abcdef" for char in base_sha)
+          assert base_sha == "5ad20ad027f993cb522a49c90f39523211e6c5cd"
+
+          print("Expectations fixture: OK")
+          PY
 
       - name: Run Stage 3 browser comparison harness (static build, port 8765, 1 rep)
         if: github.event_name == 'push' || github.event_name == 'pull_request'
@@ -486,5 +638,93 @@ jobs:
           )
           PY
 
-      - name: Check whitespace errors
-        run: git diff --check
+      - name: Prepare privacy-safe failure artifacts
+        if: failure()
+        run: python scripts/collect_mvp_failure_artifacts.py --job comparison-evidence --out-dir /tmp/mvp-failure-artifacts-comparison-evidence
+
+      - name: Upload bounded failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: mvp-failure-artifacts-comparison-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/mvp-failure-artifacts-comparison-evidence
+          retention-days: 5
+          if-no-files-found: warn
+
+  security-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Install security CI tooling
+        run: python -m pip install --disable-pip-version-check "ruff==0.16.2" "pip-audit==2.10.1"
+
+      - name: Run security-quality contract tests
+        run: |
+          python -m pytest -q \
+            tests/test_mvp_security_quality_workflow.py \
+            tests/test_mvp_ci_job_decomposition.py \
+            tests/test_mvp_failure_artifact_workflow.py
+
+      - name: Run Ruff correctness gate
+        run: ruff check --select E9,F63,F7,F82 --output-format=github .
+
+      - name: Scan repository secrets with Gitleaks
+        uses: gitleaks/gitleaks-action@v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+
+      - name: Audit locked Python dependencies
+        run: python -m pip_audit --strict --no-deps --disable-pip -r requirements.txt
+
+      - name: Install Node dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: Audit locked Node dependencies
+        run: npm audit --audit-level=low
+
+  mvp-contracts:
+    if: always()
+    needs:
+      - python-contracts
+      - snapshot-provenance
+      - site-adapter
+      - build-packaging
+      - cloudflare-function
+      - citizen-browser
+      - page-agent
+      - comparison-evidence
+      - security-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every MVP contract domain to pass
+        run: |
+          test "${{ needs.python-contracts.result }}" = "success" || exit 1
+          test "${{ needs.snapshot-provenance.result }}" = "success" || exit 1
+          test "${{ needs.site-adapter.result }}" = "success" || exit 1
+          test "${{ needs.build-packaging.result }}" = "success" || exit 1
+          test "${{ needs.cloudflare-function.result }}" = "success" || exit 1
+          test "${{ needs.citizen-browser.result }}" = "success" || exit 1
+          test "${{ needs.page-agent.result }}" = "success" || exit 1
+          test "${{ needs.comparison-evidence.result }}" = "success" || exit 1
+          test "${{ needs.security-quality.result }}" = "success" || exit 1
+          echo "All MVP contract domains passed."
