@@ -996,6 +996,17 @@ async function main() {
     const mvpSafety = createSafetyTracker(mvpSrv.origin);
     attachSafety(mvpPage, mvpSafety);
 
+    // This production-gap suite owns deterministic MVP navigation, not the
+    // Turnstile lifecycle. Dedicated #1224-B contracts cover the challenge,
+    // so isolate this mocked /api/mvp/ask path before application scripts run.
+    await mvpPage.addInitScript(() => {
+      window.CitizenTurnstile = Object.freeze({
+        acquireToken() { return Promise.resolve(""); },
+        reset() {},
+        cancel() {},
+      });
+    });
+
     await mvpPage.route("**/api/mvp/ask", async (route) => {
       const post = route.request().postData() || "";
       let action = "none";
