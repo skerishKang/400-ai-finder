@@ -8,10 +8,12 @@
   "jurisdiction": {
     "canonical_name": "전남광주통합특별시 북구",
     "short_name": "북구",
-    "aliases": [
-      "북구청",
-      "광주광역시 북구",
-      "Gwangju Buk-gu"
+    "effective_from": "2026-07-01",
+    "historical_aliases": [
+      {
+        "value": "광주광역시 북구",
+        "effective_until": "2026-06-30"
+      }
     ]
   },
   "display": {
@@ -28,11 +30,10 @@
   },
   "runtime": {
     "python_profile": "bukgu_gwangju",
-    "cloudflare_adapter": "bukgu",
-    "wired": false
+    "cloudflare_adapter": "bukgu"
   },
   "clone": {
     "golden_commit": "7217c0f738a6aa4468bdde3119d8c2d1ec9dd610",
     "golden_commit_subject": "fix(a11y): hide decorative AI labels in clone controls (#1186)"
   }
-}
+}
