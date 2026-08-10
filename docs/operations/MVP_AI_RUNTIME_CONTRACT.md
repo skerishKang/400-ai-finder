@@ -2,6 +2,8 @@
 
 Status: **canonical operational contract**
 
+Related canonical site-fidelity invariant: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md).
+
 This document defines the public/runtime compatibility boundary for the Cloudflare Pages Function at `POST /api/mvp/ask`. It covers schema/version metadata, failure semantics, provider-attempt telemetry, privacy-safe structured logging, runtime kill switches, and token/cost reporting.
 
 It does **not** authorize live provider testing, live official-site retrieval, or storage of resident prompts/responses.
