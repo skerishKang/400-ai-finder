@@ -24,6 +24,19 @@ DOMAIN_JOBS = {
     "security-quality",
 }
 
+EXPECTED_TIMEOUT_MINUTES = {
+    "python-contracts": 8,
+    "snapshot-provenance": 6,
+    "site-adapter": 6,
+    "build-packaging": 6,
+    "cloudflare-function": 8,
+    "citizen-browser": 15,
+    "page-agent": 12,
+    "comparison-evidence": 10,
+    "security-quality": 10,
+    "mvp-contracts": 5,
+}
+
 EXPECTED_TEST_STEPS = {
     "Run MVP contract pytest suite",
     "Run canonical official snapshot contracts",
@@ -101,6 +114,25 @@ def test_domain_jobs_and_compatibility_aggregator_are_present() -> None:
     aggregator = jobs["mvp-contracts"]
     assert set(aggregator["needs"]) == DOMAIN_JOBS
     assert aggregator["if"] == "always()"
+
+
+def test_job_timeouts_match_empirical_closeout_contract() -> None:
+    jobs = _workflow()["jobs"]
+    assert set(EXPECTED_TIMEOUT_MINUTES) == DOMAIN_JOBS | {"mvp-contracts"}
+
+    actual: dict[str, int] = {}
+    for job_id, expected_timeout in EXPECTED_TIMEOUT_MINUTES.items():
+        timeout = jobs[job_id].get("timeout-minutes")
+        assert isinstance(timeout, int) and not isinstance(timeout, bool), (
+            f"{job_id} timeout must be an explicit integer"
+        )
+        assert timeout > 0, f"{job_id} timeout must be positive"
+        actual[job_id] = timeout
+        assert timeout == expected_timeout, (
+            f"{job_id} timeout {timeout} != expected {expected_timeout}"
+        )
+
+    assert actual == EXPECTED_TIMEOUT_MINUTES
 
 
 def test_legacy_test_steps_are_preserved_exactly_once() -> None:
