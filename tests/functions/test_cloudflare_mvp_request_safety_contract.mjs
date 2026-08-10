@@ -104,6 +104,32 @@ await check('actual UTF-8 bytes over cap are rejected', async () => {
   equal(result.status, 413, 'status');
 });
 
+await check('streamed body stops reading and cancels after byte cap', async () => {
+  const chunks = [new Uint8Array(700), new Uint8Array(700), new Uint8Array(700)];
+  let index = 0;
+  let cancelled = false;
+  const request = {
+    headers: new Headers({ 'Content-Type': 'application/json' }),
+    body: {
+      getReader() {
+        return {
+          async read() {
+            if (index >= chunks.length) return { done: true, value: undefined };
+            return { done: false, value: chunks[index++] };
+          },
+          async cancel() { cancelled = true; },
+        };
+      },
+    },
+    text: async () => { throw new Error('stream path should not call text()'); },
+  };
+  const result = await safety.readBoundedJsonBody(request, { MVP_MAX_BODY_BYTES: '1024' });
+  equal(result.status, 413, 'status');
+  equal(result.failureCode, 'payload_too_large', 'failure');
+  equal(cancelled, true, 'reader cancelled');
+  equal(index, 2, 'chunks read before rejection');
+});
+
 await check('malformed JSON is invalid_input', async () => {
   const result = await safety.readBoundedJsonBody(makeRequest('{bad'), {});
   equal(result.ok, false, 'ok');

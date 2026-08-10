@@ -1550,7 +1550,7 @@ export async function onRequest(context) {
   if (!rawQuestion) return jsonResponse(withRuntimeMeta({ ok: false, error: 'Missing question' }), 400, headers);
   if (rawQuestion.length > MAX_QUESTION_CHARS) {
     return jsonResponse(withRuntimeMeta(Object.assign(
-      failurePayload(rawQuestion, primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, requestLocale),
+      failurePayload('', primaryConfig.provider, primaryConfig.model, 'invalid_input', retrievedAt, currentTime, requestLocale),
       { answer: localizedFailureAnswer(requestLocale, 'too_long') },
     )), 200, headers);
   }

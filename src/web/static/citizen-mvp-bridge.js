@@ -29,6 +29,61 @@
 
   var MVP_FAILURE_ANSWER = "현재 AI 안내를 연결하지 못했습니다.";
   var _controller = null;
+  var SESSION_STORAGE_KEY = "citizen_mvp_anonymous_session_id";
+  var _sessionIdMemory = "";
+
+  function _safeSessionId(value) {
+    var text = typeof value === "string" ? value.trim() : "";
+    return /^[A-Za-z0-9_-]{16,128}$/.test(text) ? text : "";
+  }
+
+  function _generateSessionId() {
+    var cryptoObj = window.crypto;
+    if (cryptoObj && typeof cryptoObj.randomUUID === "function") {
+      var uuid = _safeSessionId(cryptoObj.randomUUID());
+      if (uuid) return uuid;
+    }
+    if (cryptoObj && typeof cryptoObj.getRandomValues === "function") {
+      var bytes = new Uint8Array(16);
+      cryptoObj.getRandomValues(bytes);
+      return "sid_" + Array.prototype.map.call(bytes, function (value) {
+        return value.toString(16).padStart(2, "0");
+      }).join("");
+    }
+    // Compatibility fallback only. Anonymous session IDs are not an auth or
+    // rate-limit boundary by themselves and never derive from resident input.
+    return ("sid_" + Date.now().toString(36) + "_" +
+      Math.random().toString(36).slice(2).padEnd(24, "0")).slice(0, 128);
+  }
+
+  function _anonymousSessionId() {
+    var memoryId = _safeSessionId(_sessionIdMemory);
+    if (memoryId) return memoryId;
+    try {
+      if (window.sessionStorage && typeof window.sessionStorage.getItem === "function") {
+        var stored = _safeSessionId(window.sessionStorage.getItem(SESSION_STORAGE_KEY));
+        if (stored) {
+          _sessionIdMemory = stored;
+          return stored;
+        }
+      }
+    } catch (_) {
+      // Storage can be unavailable in privacy modes; use page-lifetime memory.
+    }
+    var generated = _safeSessionId(_generateSessionId());
+    if (!generated) {
+      generated = "sid_fallback_0000000000000000";
+    }
+    _sessionIdMemory = generated;
+    try {
+      if (window.sessionStorage && typeof window.sessionStorage.setItem === "function") {
+        window.sessionStorage.setItem(SESSION_STORAGE_KEY, generated);
+      }
+    } catch (_) {
+      // Page-lifetime memory remains the fallback; never use localStorage.
+    }
+    return generated;
+  }
 
   function _safeRequestId(value) {
     var text = typeof value === "string" ? value.trim() : "";
@@ -108,11 +163,12 @@
     // Capture the active locale at request start; the bridge never mutates
     // locale, so a later locale change keeps this request scoped to its start.
     var requestLocale = _captureLocale();
+    var sessionId = _anonymousSessionId();
 
     var fetchOpts = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: question || "", locale: requestLocale }),
+      body: JSON.stringify({ question: question || "", locale: requestLocale, session_id: sessionId }),
     };
     if (controller) {
       fetchOpts.signal = controller.signal;

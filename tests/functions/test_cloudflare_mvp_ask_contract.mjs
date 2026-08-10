@@ -2148,3 +2148,6 @@ if (failed > 0) {
 
 // #1224-A request byte/schema/privacy boundary contracts.
 await import('./test_cloudflare_mvp_request_safety_contract.mjs');
+
+// #1224-A browser anonymous-session contract.
+await import('./test_citizen_mvp_bridge_session_contract.mjs');
