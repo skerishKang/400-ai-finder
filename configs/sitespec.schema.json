@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "configs/sitespec.schema.json",
+  "title": "Canonical SiteSpec",
+  "description": "Canonical, immutable site identity contract (#1225). Additive data foundation only: no runtime loader, no compatibility-registry migration, no wiring. Canonical site_id is distinct from legacy/runtime aliases.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "site_id",
+    "legacy_ids",
+    "jurisdiction",
+    "display",
+    "domains",
+    "runtime",
+    "clone"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "site_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "Canonical immutable site ID. Must never equal any legacy_ids entry (enforced by contract test)."
+    },
+    "legacy_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+      },
+      "description": "Legacy/runtime compatibility aliases. May be empty for new sites with no historical alias. Canonical site_id must not appear here."
+    },
+    "jurisdiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonical_name",
+        "short_name",
+        "effective_from",
+        "historical_aliases"
+      ],
+      "properties": {
+        "canonical_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Official Korean jurisdiction name already evidenced in repository captures/docs."
+        },
+        "short_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effective_from": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Date the canonical jurisdiction identity became effective (YYYY-MM-DD)."
+        },
+        "historical_aliases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "value",
+              "effective_until"
+            ],
+            "properties": {
+              "value": {
+                "type": "string",
+                "minLength": 1
+              },
+              "effective_until": {
+                "type": "string",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "description": "Last date the historical jurisdiction identity was effective (YYYY-MM-DD)."
+              }
+            }
+          }
+        }
+      }
+    },
+    "display": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_label",
+        "locale_labels"
+      ],
+      "properties": {
+        "default_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locale_labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "description": "UI display labels. Not forced to equal the canonical identity."
+    },
+    "domains": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "public"
+      ],
+      "properties": {
+        "public": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "hostname",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "python_profile",
+        "cloudflare_adapter"
+      ],
+      "properties": {
+        "python_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cloudflare_adapter": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "description": "Future projection targets only. This schema/PR performs no runtime wiring; wiring status is a PR-scope concern, not a schema constant."
+    },
+    "clone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "golden_commit",
+        "golden_commit_subject"
+      ],
+      "properties": {
+        "golden_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "golden_commit_subject": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "description": "Frozen Buk-gu golden identity reference. Do not point at arbitrary latest main SHAs."
+    }
+  }
+}
