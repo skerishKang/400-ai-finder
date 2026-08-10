@@ -21,6 +21,7 @@ DOMAIN_JOBS = {
     "citizen-browser",
     "page-agent",
     "comparison-evidence",
+    "security-quality",
 }
 
 EXPECTED_TEST_STEPS = {
