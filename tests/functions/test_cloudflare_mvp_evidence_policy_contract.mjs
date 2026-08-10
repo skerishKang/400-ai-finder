@@ -142,7 +142,16 @@ await check('bounded currencies preserve identity and plain numbers are not mone
     if (!map.has(key)) throw new Error(`missing ${key}`);
   }
   if (Array.from(map.keys()).some((key) => key === 'money:999')) throw new Error('plain number became money');
-  if (claimMap('$50').has('money:USD:50')) throw new Error('bare dollar silently treated as USD');
+  const bareDollar = extractConcreteClaims('$50').find((claim) => claim.kind === 'money');
+  if (!bareDollar || bareDollar.ambiguous !== true) throw new Error('bare dollar was not detected fail-closed');
+  if (bareDollar.normalized === 'USD:50') throw new Error('bare dollar silently treated as USD');
+});
+
+await check('bare dollar remains concrete but cannot silently inherit USD identity', async () => {
+  const result = assessConcreteEvidence('The fee is $50.', verified('Verified fee: USD 50.'));
+  equal(result.ok, false, 'ok');
+  equal(result.reason, 'ambiguous_concrete_value', 'reason');
+  equal(JSON.stringify(result.signalKinds), JSON.stringify(['money']), 'signals');
 });
 
 await check('model-only KRW USD and EUR values all fail closed', async () => {
@@ -219,6 +228,13 @@ await check('AM PM semantics preserve meridiem meaning and 12-hour edges', async
   equal(assessConcreteEvidence('Office closes at 9:00 PM.', verified('Hours 21:00')).ok, true, '21 match');
   equal(assessConcreteEvidence('Opens at 12:00 AM.', verified('Open 00:00')).ok, true, '12 AM');
   equal(assessConcreteEvidence('Opens at 12:00 PM.', verified('Open 12:00')).ok, true, '12 PM');
+});
+
+await check('unsupported meridiem syntax is detected and fails closed rather than mis-normalized', async () => {
+  const result = assessConcreteEvidence('Office closes at 9 PM.', verified('Hours 21:00'));
+  equal(result.ok, false, 'ok');
+  equal(result.reason, 'ambiguous_concrete_value', 'reason');
+  equal(JSON.stringify(result.signalKinds), JSON.stringify(['clock_time']), 'signals');
 });
 
 await check('URL fragment identity is preserved for matching', async () => {
