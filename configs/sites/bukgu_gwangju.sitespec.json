@@ -1,0 +1,38 @@
+{
+  "$schema": "configs/sitespec.schema.json",
+  "schema_version": "1.0.0",
+  "site_id": "bukgu_gwangju",
+  "legacy_ids": [
+    "bukgu"
+  ],
+  "jurisdiction": {
+    "canonical_name": "전남광주통합특별시 북구",
+    "short_name": "북구",
+    "aliases": [
+      "북구청",
+      "광주광역시 북구",
+      "Gwangju Buk-gu"
+    ]
+  },
+  "display": {
+    "default_label": "북구청",
+    "locale_labels": {
+      "ko": "북구청",
+      "en": "Gwangju Buk-gu"
+    }
+  },
+  "domains": {
+    "public": [
+      "bukgu.gwangju.kr"
+    ]
+  },
+  "runtime": {
+    "python_profile": "bukgu_gwangju",
+    "cloudflare_adapter": "bukgu",
+    "wired": false
+  },
+  "clone": {
+    "golden_commit": "7217c0f738a6aa4468bdde3119d8c2d1ec9dd610",
+    "golden_commit_subject": "fix(a11y): hide decorative AI labels in clone controls (#1186)"
+  }
+}
