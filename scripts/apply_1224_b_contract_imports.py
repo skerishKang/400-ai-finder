@@ -1,7 +1,23 @@
 from pathlib import Path
 
+
+def ensure_once(path, old, new, label):
+    text = path.read_text(encoding='utf-8')
+    new_count = text.count(new)
+    if new_count == 1:
+        print(f'{label}: already applied')
+        return False
+    if new_count > 1:
+        raise SystemExit(f'{label}: expected at most one applied anchor, found {new_count}')
+    old_count = text.count(old)
+    if old_count != 1:
+        raise SystemExit(f'{label}: expected one old anchor, found {old_count}')
+    path.write_text(text.replace(old, new, 1), encoding='utf-8')
+    print(f'{label}: applied')
+    return True
+
+
 path = Path('tests/functions/test_cloudflare_mvp_ask_contract.mjs')
-text = path.read_text(encoding='utf-8')
 old = "// #1224-A browser anonymous-session contract.\nawait import('./test_citizen_mvp_bridge_session_contract.mjs');"
 new = """// #1224-A browser anonymous-session contract.
 await import('./test_citizen_mvp_bridge_session_contract.mjs');
@@ -14,33 +30,28 @@ await import('./test_cloudflare_mvp_turnstile_integration_contract.mjs');
 
 // #1224-B browser challenge lifecycle and fresh-token contract.
 await import('./test_citizen_mvp_turnstile_contract.mjs');"""
-count = text.count(old)
-if count != 1:
-    raise SystemExit(f'expected one import anchor, found {count}')
-path.write_text(text.replace(old, new, 1), encoding='utf-8')
+ensure_once(path, old, new, 'Function contract imports')
 
 integration = Path('tests/functions/test_cloudflare_mvp_turnstile_integration_contract.mjs')
-integration_text = integration.read_text(encoding='utf-8')
-old_fixture = "function providerResponse(answer = '북구청 여권 안내입니다.') {"
-new_fixture = "function providerResponse(answer = '여권 발급 안내입니다.') {"
-count = integration_text.count(old_fixture)
-if count != 1:
-    raise SystemExit(f'expected one provider fixture anchor, found {count}')
-integration.write_text(integration_text.replace(old_fixture, new_fixture, 1), encoding='utf-8')
+ensure_once(
+    integration,
+    "function providerResponse(answer = '북구청 여권 안내입니다.') {",
+    "function providerResponse(answer = '여권 발급 안내입니다.') {",
+    'provider success fixture',
+)
 
 privacy = Path('tests/functions/test_cloudflare_mvp_request_safety_contract.mjs')
-privacy_text = privacy.read_text(encoding='utf-8')
-old_url = "    url: 'https://cgbukku.pages.dev/api/mvp/ask',"
-new_url = "    url: 'http://localhost:8788/api/mvp/ask',"
-count = privacy_text.count(old_url)
-if count != 1:
-    raise SystemExit(f'expected one privacy URL anchor, found {count}')
-privacy_text = privacy_text.replace(old_url, new_url, 1)
-old_env = "      MVP_RUNTIME_LOGS: '0',\n      ...env,"
-new_env = "      MVP_RUNTIME_LOGS: '0',\n      MVP_TURNSTILE_MODE: 'disabled',\n      ...env,"
-count = privacy_text.count(old_env)
-if count != 1:
-    raise SystemExit(f'expected one privacy env anchor, found {count}')
-privacy.write_text(privacy_text.replace(old_env, new_env, 1), encoding='utf-8')
+ensure_once(
+    privacy,
+    "    url: 'https://cgbukku.pages.dev/api/mvp/ask',",
+    "    url: 'http://localhost:8788/api/mvp/ask',",
+    'privacy loopback URL',
+)
+ensure_once(
+    privacy,
+    "      MVP_RUNTIME_LOGS: '0',\n      ...env,",
+    "      MVP_RUNTIME_LOGS: '0',\n      MVP_TURNSTILE_MODE: 'disabled',\n      ...env,",
+    'privacy Turnstile isolation',
+)
 
-print('1224-B contract imports, fixtures, and privacy isolation applied successfully')
+print('1224-B contract applicator complete')
