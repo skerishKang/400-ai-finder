@@ -150,6 +150,8 @@ index 07d6340..65eec54 100644
 +  expectEqual(openai.output_tokens, 7, 'openai output');
 +  expectEqual(openai.total_tokens, 19, 'openai total');
 +  expectEqual(openai.cached_tokens, 4, 'openai cached');
++  // Normalize the provider's nested reasoning count without copying the raw
++  // provider usage object.
 +  expectEqual(openai.reasoning_tokens, 2, 'openai reasoning');
 +
 +  const gemini = functionModule.extractProviderTokenUsage({
