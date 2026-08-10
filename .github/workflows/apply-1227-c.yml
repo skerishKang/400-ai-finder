@@ -1,21 +1,21 @@
 name: Apply 1227-C validated patch
 
 on:
-  push:
-    branches: [feat/1227-token-usage-telemetry]
-    paths:
-      - '.automation/1227-c-token-usage.patch'
+  pull_request:
+    branches: [main]
+    types: [opened, reopened]
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: github.head_ref == 'feat/1227-token-usage-telemetry' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: feat/1227-token-usage-telemetry
           fetch-depth: 0
       - name: Apply exact validated patch
         shell: bash
