@@ -99,6 +99,63 @@ raise `SiteSpecLoadError` at load time — first-match-wins is prohibited.
 Empty `legacy_ids` is valid (new sites with no historical alias). The resolver
 is additive foundation only; no runtime is migrated to it in this phase.
 
+## Projection parity (#1225-C)
+
+The canonical SiteSpec instance and the existing system projections must
+intentionally agree (or intentionally disagree only as declared legacy
+projections). `tests/test_sitespec_projection_parity.py` is a drift-detection
+contract layer: it verifies parity between the SiteSpec and the frozen
+compatibility registry, the Python site profile, and the dual-read resolver —
+without any runtime migration.
+
+Canonical vs compatibility projection (Buk-gu):
+
+| Concept | Canonical projection | Compatibility (legacy) projection |
+|---|---|---|
+| site ID | `bukgu_gwangju` | `bukgu` (registry adapter / `default_site_id`) |
+| Python profile | `runtime.python_profile` = `bukgu_gwangju` | — |
+| Cloudflare adapter | — | `runtime.cloudflare_adapter` = `bukgu` |
+| public domain | `domains.public` = `bukgu.gwangju.kr` | profile `base_url` / `allowed_domains` |
+| golden commit | `clone.golden_commit` | registry adapter `golden_commit` |
+
+Parity contracts enforced:
+
+- **Python profile identity** — SiteSpec `runtime.python_profile` equals the
+  Python profile identifier, and the profile `site_id` equals the canonical
+  SiteSpec `site_id` (`bukgu_gwangju`).
+- **Public domain parity (exact allowlist)** — the SiteSpec `domains.public`
+  set and the Python profile `allowed_domains` set must be **exactly equal**
+  after host normalization (scheme/path/port ignored, host identity
+  preserved). Membership-only checks would let an unexpected domain sneak into
+  either allowlist undetected, so set equality is the parity mechanism. The
+  profile `base_url` host must be a member of the canonical SiteSpec
+  public-domain set. The frozen product fact that `bukgu.gwangju.kr` is the
+  current canonical public domain is asserted separately and is not the
+  parity mechanism.
+- **Compatibility registry projection** — `runtime.cloudflare_adapter` equals
+  the frozen registry adapter `site_id`, and that adapter ID is a declared
+  `legacy_ids` alias (not the canonical ID).
+- **Default compatibility ID** — registry `default_site_id` is one of the
+  SiteSpec's declared legacy aliases.
+- **Golden parity** — SiteSpec `clone.golden_commit` equals the registry
+  adapter `golden_commit` (`7217c0f738a6aa4468bdde3119d8c2d1ec9dd610`).
+- **Resolver parity** — the #1225-B resolver maps both `bukgu_gwangju` and
+  `bukgu` to the same canonical `site_id == bukgu_gwangju`.
+
+Drift regressions are tested on deep-copied configs only (product files are
+never mutated): python_profile mismatch, profile `site_id` mismatch,
+undeclared registry adapter, undeclared `default_site_id`, Cloudflare adapter
+mismatch, domain set mismatch (extra SiteSpec public domain, extra Python
+allowed domain, missing canonical domain, mismatched Python allowed domain),
+`base_url` host outside the canonical domain set, golden mismatch. Display
+labels (`북구청`, `Gwangju Buk-gu`) and jurisdiction historical aliases
+(`광주광역시 북구`) are **not** site identifiers and never satisfy parity.
+
+Phase C is projection parity / drift detection only — **no runtime wiring**:
+no Python request-path migration, no Cloudflare request-path migration, no
+registry lookup migration, no UI metadata migration. `configs/site-registry.json`
+remains untouched.
+
 ## Non-goals (this phase)
 
 - No `configs/site-registry.json` migration.
@@ -110,7 +167,11 @@ is additive foundation only; no runtime is migrated to it in this phase.
 ## Verification
 
 ```bash
-python -m pytest -q tests/test_sitespec_resolver.py tests/test_canonical_sitespec_contract.py tests/test_site_compatibility_registry.py
+python -m pytest -q \
+  tests/test_sitespec_projection_parity.py \
+  tests/test_sitespec_resolver.py \
+  tests/test_canonical_sitespec_contract.py \
+  tests/test_site_compatibility_registry.py
 python -m json.tool configs/sitespec.schema.json > /dev/null
 python -m json.tool configs/sites/bukgu_gwangju.sitespec.json > /dev/null
 git diff --check
