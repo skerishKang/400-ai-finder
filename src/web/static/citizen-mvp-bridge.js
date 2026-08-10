@@ -30,7 +30,38 @@
   var MVP_FAILURE_ANSWER = "현재 AI 안내를 연결하지 못했습니다.";
   var _controller = null;
 
-  function _stableFailure() {
+  function _safeRequestId(value) {
+    var text = typeof value === "string" ? value.trim() : "";
+    return /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(text) ? text : "";
+  }
+
+  function _safeSchemaVersion(value) {
+    var text = typeof value === "string" ? value.trim() : "";
+    return /^[0-9]+\.[0-9]+(?:\.[0-9]+)?$/.test(text) ? text : "";
+  }
+
+  function _responseHeaderRequestId(resp) {
+    if (!resp || !resp.headers || typeof resp.headers.get !== "function") return "";
+    return _safeRequestId(resp.headers.get("X-Request-ID"));
+  }
+
+  function _resolveResponseIdentity(headerRequestId, data) {
+    var headerId = _safeRequestId(headerRequestId);
+    var bodyId = _safeRequestId(data && data.request_id);
+    var requestId = "";
+    if (headerId && bodyId) {
+      requestId = headerId === bodyId ? headerId : "";
+    } else {
+      requestId = headerId || bodyId;
+    }
+    return {
+      request_id: requestId,
+      schema_version: _safeSchemaVersion(data && data.schema_version),
+    };
+  }
+
+  function _stableFailure(identity) {
+    var safeIdentity = identity && typeof identity === "object" ? identity : {};
     return {
       ok: false,
       answer: _localizedFailAnswer(),
@@ -51,6 +82,8 @@
       official_page_id: "",
       snapshot_id: "",
       canonical_sha256: "",
+      request_id: _safeRequestId(safeIdentity.request_id),
+      schema_version: _safeSchemaVersion(safeIdentity.schema_version),
     };
   }
 
@@ -87,9 +120,11 @@
 
     return fetch("/api/mvp/ask", fetchOpts)
       .then(function (resp) {
+        var headerRequestId = _responseHeaderRequestId(resp);
         return resp.json().then(function (data) {
+          var identity = _resolveResponseIdentity(headerRequestId, data);
           if (!resp.ok) {
-            return _stableFailure();
+            return _stableFailure(identity);
           }
           return {
             ok: data && data.ok !== false,
@@ -111,10 +146,12 @@
             official_page_id: data && typeof data.official_page_id === "string" ? data.official_page_id : "",
             snapshot_id: data && typeof data.snapshot_id === "string" ? data.snapshot_id : "",
             canonical_sha256: data && typeof data.canonical_sha256 === "string" ? data.canonical_sha256 : "",
+            request_id: identity.request_id,
+            schema_version: identity.schema_version,
           };
         }, function () {
-          // JSON parse failure → treat as malformed model response.
-          return _stableFailure();
+          // JSON parse failure → preserve only the sanitized response-header ID.
+          return _stableFailure({ request_id: headerRequestId, schema_version: "" });
         });
       })
       .catch(function () {
