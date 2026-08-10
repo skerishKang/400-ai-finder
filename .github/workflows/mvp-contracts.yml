@@ -650,6 +650,56 @@ jobs:
           path: /tmp/mvp-failure-artifacts-comparison-evidence
           retention-days: 5
           if-no-files-found: warn
+
+  security-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Install security CI tooling
+        run: python -m pip install --disable-pip-version-check "ruff==0.16.2" "pip-audit==2.10.1"
+
+      - name: Run security-quality contract tests
+        run: |
+          python -m pytest -q \
+            tests/test_mvp_security_quality_workflow.py \
+            tests/test_mvp_ci_job_decomposition.py
+
+      - name: Run Ruff correctness gate
+        run: ruff check --select E9,F63,F7,F82 --output-format=github .
+
+      - name: Scan repository secrets with Gitleaks
+        uses: gitleaks/gitleaks-action@v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+
+      - name: Audit locked Python dependencies
+        run: python -m pip_audit --strict --no-deps --disable-pip -r requirements.txt
+
+      - name: Install Node dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: Audit locked Node dependencies
+        run: npm audit --audit-level=low
+
   mvp-contracts:
     if: always()
     needs:
@@ -661,6 +711,7 @@ jobs:
       - citizen-browser
       - page-agent
       - comparison-evidence
+      - security-quality
     runs-on: ubuntu-latest
     steps:
       - name: Require every MVP contract domain to pass
@@ -673,4 +724,5 @@ jobs:
           test "${{ needs.citizen-browser.result }}" = "success" || exit 1
           test "${{ needs.page-agent.result }}" = "success" || exit 1
           test "${{ needs.comparison-evidence.result }}" = "success" || exit 1
+          test "${{ needs.security-quality.result }}" = "success" || exit 1
           echo "All MVP contract domains passed."
