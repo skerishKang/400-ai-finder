@@ -110,7 +110,7 @@ is additive foundation only; no runtime is migrated to it in this phase.
 ## Verification
 
 ```bash
-python -m pytest -q tests/test_canonical_sitespec_contract.py
+python -m pytest -q tests/test_sitespec_resolver.py tests/test_canonical_sitespec_contract.py tests/test_site_compatibility_registry.py
 python -m json.tool configs/sitespec.schema.json > /dev/null
 python -m json.tool configs/sites/bukgu_gwangju.sitespec.json > /dev/null
 git diff --check

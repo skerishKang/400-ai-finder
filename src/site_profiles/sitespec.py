@@ -15,6 +15,7 @@ Design constraints (per #1225-B):
 
 from __future__ import annotations
 
+import copy
 import json
 import re
 from pathlib import Path
@@ -59,7 +60,9 @@ def _validate_identity(path: Path, doc: dict[str, Any]) -> str:
     """Minimal identity validation; full schema meaning lives in #1225-A.
 
     Only the fields the resolver relies on are checked here so the resolver
-    does not re-hard-code the complete SiteSpec schema.
+    does not re-hard-code the complete SiteSpec schema. Same-SiteSpec legacy
+    alias duplicates are rejected here too — the resolver boundary is
+    independently fail-closed and does not depend on schema ``uniqueItems``.
     """
     site_id = doc.get("site_id")
     if not isinstance(site_id, str) or not ID_PATTERN.match(site_id):
@@ -67,9 +70,15 @@ def _validate_identity(path: Path, doc: dict[str, Any]) -> str:
     legacy_ids = doc.get("legacy_ids")
     if not isinstance(legacy_ids, list):
         raise SiteSpecLoadError(f"{path.name}: legacy_ids must be an array")
+    seen_legacy: set[str] = set()
     for lid in legacy_ids:
         if not isinstance(lid, str) or not ID_PATTERN.match(lid):
             raise SiteSpecLoadError(f"{path.name}: invalid legacy id {lid!r}")
+        if lid in seen_legacy:
+            raise SiteSpecLoadError(
+                f"{path.name}: duplicate legacy id {lid!r} within one SiteSpec"
+            )
+        seen_legacy.add(lid)
     if site_id in legacy_ids:
         raise SiteSpecLoadError(
             f"{path.name}: canonical site_id {site_id!r} must not appear in legacy_ids"
@@ -95,9 +104,14 @@ class SiteSpecResolver:
 
     def reload(self) -> None:
         """(Re)load all canonical SiteSpecs, fail-closed on collisions."""
+        paths = iter_sitespec_paths(self.sites_dir)
+        if not paths:
+            raise SiteSpecLoadError(
+                f"no canonical SiteSpec files found in {self.sites_dir}"
+            )
         by_canonical: dict[str, dict[str, Any]] = {}
         by_legacy: dict[str, str] = {}
-        for path in iter_sitespec_paths(self.sites_dir):
+        for path in paths:
             doc = _read_sitespec(path)
             site_id = _validate_identity(path, doc)
             if site_id in by_canonical:
@@ -123,8 +137,15 @@ class SiteSpecResolver:
 
     @property
     def specs(self) -> Mapping[str, dict[str, Any]]:
-        """Canonical site_id → SiteSpec mapping (read-only view)."""
-        return self._by_canonical
+        """Canonical site_id → SiteSpec snapshot (deep-copied).
+
+        The returned mapping is a defensive copy: mutating it never mutates
+        the resolver's internal canonical state.
+        """
+        return {
+            site_id: copy.deepcopy(doc)
+            for site_id, doc in self._by_canonical.items()
+        }
 
     @property
     def canonical_ids(self) -> tuple[str, ...]:
@@ -146,11 +167,13 @@ class SiteSpecResolver:
             raise SiteSpecNotFoundError(f"invalid site identifier {identifier!r}")
         doc = self._by_canonical.get(identifier)
         if doc is not None:
-            return doc
+            # Defensive boundary: callers may mutate the returned SiteSpec
+            # without corrupting the resolver's internal canonical state.
+            return copy.deepcopy(doc)
         canonical_id = self._by_legacy.get(identifier)
         if canonical_id is None:
             raise SiteSpecNotFoundError(f"unknown site identifier {identifier!r}")
-        return self._by_canonical[canonical_id]
+        return copy.deepcopy(self._by_canonical[canonical_id])
 
 
 def load_sitespecs(sites_dir: Path | str | None = None) -> dict[str, dict[str, Any]]:

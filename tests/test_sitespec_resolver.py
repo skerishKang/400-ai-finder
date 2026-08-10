@@ -93,7 +93,8 @@ def test_canonical_and_legacy_resolve_to_same_site_id():
     canonical = resolver.resolve(CANONICAL_ID)
     legacy = resolver.resolve(LEGACY_ID)
     assert canonical["site_id"] == legacy["site_id"] == CANONICAL_ID
-    assert canonical is legacy
+    # Semantic equality is required; object identity is not.
+    assert canonical == legacy
 
 
 # ---- C. unknown / invalid identifiers fail closed ----
@@ -143,6 +144,14 @@ def test_duplicate_legacy_alias_across_sitespecs_rejected(tmp_path):
         SiteSpecResolver(tmp_path)
 
 
+def test_duplicate_legacy_alias_within_sitespec_rejected(tmp_path):
+    # Same-SiteSpec duplicate alias must fail at the resolver boundary,
+    # independent of schema uniqueItems.
+    _write_sitespec(tmp_path, "sample_city", "sample_city", ["sample", "sample"])
+    with pytest.raises(SiteSpecLoadError, match="duplicate legacy id"):
+        SiteSpecResolver(tmp_path)
+
+
 def test_canonical_vs_other_legacy_collision_rejected(tmp_path):
     _write_sitespec(tmp_path, "bukgu_gwangju", CANONICAL_ID, [LEGACY_ID])
     # Second SiteSpec claims the first SiteSpec's canonical ID as its own.
@@ -189,3 +198,43 @@ def test_deterministic_independent_of_file_ordering(tmp_path):
     assert resolver_a.canonical_ids == resolver_b.canonical_ids
     assert load_sitespecs(order_a) == load_sitespecs(order_b)
     assert resolver_a.resolve("sample")["site_id"] == resolver_b.resolve("sample")["site_id"]
+
+
+# ---- G. empty canonical directory fails closed at load time ----
+
+def test_empty_sitespec_dir_fail_closed(tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    with pytest.raises(SiteSpecLoadError, match="no canonical SiteSpec"):
+        SiteSpecResolver(empty)
+    with pytest.raises(SiteSpecLoadError, match="no canonical SiteSpec"):
+        load_sitespecs(empty)
+
+
+# ---- H. external mutation never corrupts resolver state ----
+
+def test_external_mutation_does_not_corrupt_resolver_state():
+    resolver = SiteSpecResolver()
+    baseline = resolver.resolve(CANONICAL_ID)
+
+    # Mutating a resolved result must not touch internal canonical state.
+    mutated = resolver.resolve(CANONICAL_ID)
+    mutated["site_id"] = "corrupted"
+    mutated["legacy_ids"].append("hacked")
+    mutated["jurisdiction"]["canonical_name"] = "hacked"
+
+    after_canonical = resolver.resolve(CANONICAL_ID)
+    after_legacy = resolver.resolve(LEGACY_ID)
+    assert after_canonical["site_id"] == CANONICAL_ID
+    assert after_legacy["site_id"] == CANONICAL_ID
+    assert after_canonical == baseline
+    assert after_legacy == baseline
+
+    # Mutating the specs snapshot must not touch internal state either.
+    specs = resolver.specs
+    specs[CANONICAL_ID]["site_id"] = "corrupted"
+    specs[CANONICAL_ID]["legacy_ids"].append("hacked")
+    assert resolver.resolve(CANONICAL_ID) == baseline
+    assert resolver.resolve(LEGACY_ID) == baseline
+    # Canonical and legacy still resolve to the same semantic SiteSpec.
+    assert resolver.resolve(CANONICAL_ID) == resolver.resolve(LEGACY_ID)
