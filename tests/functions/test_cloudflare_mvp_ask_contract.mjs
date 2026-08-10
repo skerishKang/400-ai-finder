@@ -1762,6 +1762,129 @@ await assert('#1227 malformed provider-disable flag fails closed for that provid
 });
 
 // ---------------------------------------------------------------------------
+// #1227-C provider token-usage telemetry.
+// ---------------------------------------------------------------------------
+
+await assert('#1227 token usage normalizes OpenAI-compatible and Gemini Interactions shapes', async () => {
+  const openai = functionModule.extractProviderTokenUsage({
+    usage: {
+      prompt_tokens: 12,
+      completion_tokens: 7,
+      total_tokens: 19,
+      prompt_tokens_details: { cached_tokens: 4 },
+      completion_tokens_details: { reasoning_tokens: 2 },
+    },
+  });
+  expectEqual(openai.input_tokens, 12, 'openai input');
+  expectEqual(openai.output_tokens, 7, 'openai output');
+  expectEqual(openai.total_tokens, 19, 'openai total');
+  expectEqual(openai.cached_tokens, 4, 'openai cached');
+  // Normalize the provider's nested reasoning count without copying the raw
+  // provider usage object.
+  expectEqual(openai.reasoning_tokens, 2, 'openai reasoning');
+
+  const gemini = functionModule.extractProviderTokenUsage({
+    usage: {
+      total_input_tokens: 21,
+      total_output_tokens: 9,
+      total_tokens: 35,
+      total_thought_tokens: 5,
+      total_cached_tokens: 3,
+      total_tool_use_tokens: 2,
+      input_tokens_by_modality: [{ modality: 'text', tokens: 21 }],
+    },
+  });
+  expectEqual(gemini.input_tokens, 21, 'gemini input');
+  expectEqual(gemini.output_tokens, 9, 'gemini output');
+  expectEqual(gemini.total_tokens, 35, 'gemini total');
+  expectEqual(gemini.reasoning_tokens, 5, 'gemini thought');
+  expectEqual(gemini.cached_tokens, 3, 'gemini cached');
+  expectEqual(gemini.tool_use_tokens, 2, 'gemini tool use');
+  if ('input_tokens_by_modality' in gemini) throw new Error('raw usage field leaked into normalized telemetry');
+});
+
+await assert('#1227 token usage rejects malformed counts and derives total only from safe counts', async () => {
+  expectEqual(functionModule.extractProviderTokenUsage({ usage: { prompt_tokens: '12' } }), null, 'string rejected');
+  expectEqual(functionModule.extractProviderTokenUsage({ usage: { prompt_tokens: -1 } }), null, 'negative rejected');
+  const derived = functionModule.extractProviderTokenUsage({ usage: { input_tokens: 4, output_tokens: 6 } });
+  expectEqual(derived.input_tokens, 4, 'derived input');
+  expectEqual(derived.output_tokens, 6, 'derived output');
+  expectEqual(derived.total_tokens, 10, 'derived total');
+});
+
+await assert('#1227 successful provider usage appears in safe response/meta/attempt telemetry', async () => {
+  try {
+    const providerBody = chatResponse('정상적인 한국어 민원 안내입니다.');
+    providerBody.usage = {
+      prompt_tokens: 31,
+      completion_tokens: 11,
+      total_tokens: 42,
+      prompt_tokens_details: { cached_tokens: 8 },
+    };
+    mockFetchSequence([{ body: providerBody }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.token_usage.input_tokens, 31, 'payload input');
+    expectEqual(data.token_usage.output_tokens, 11, 'payload output');
+    expectEqual(data.token_usage.total_tokens, 42, 'payload total');
+    expectEqual(data.meta.token_usage.total_tokens, 42, 'meta total');
+    expectEqual(data.meta.provider_attempts[0].token_usage.total_tokens, 42, 'attempt total');
+    if (JSON.stringify(data.meta.token_usage).includes('prompt_tokens_details')) {
+      throw new Error('raw provider usage structure leaked');
+    }
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1227 Gemini Interactions usage is normalized on the actual provider path', async () => {
+  try {
+    const providerBody = groundedInteraction('최신 공식 안내를 확인해 주세요.');
+    providerBody.usage = {
+      total_input_tokens: 24,
+      total_output_tokens: 8,
+      total_thought_tokens: 3,
+      total_tool_use_tokens: 2,
+      total_tokens: 37,
+      input_tokens_by_modality: [{ modality: 'text', tokens: 24 }],
+    };
+    mockFetchSequence([{ body: providerBody }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '최신 공지 알려줘' }), {
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_API_STYLE: 'interactions',
+      GEMINI_MODEL: 'gemini-3.5-flash',
+      GEMINI_API_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/interactions',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.token_usage.input_tokens, 24, 'input');
+    expectEqual(data.token_usage.output_tokens, 8, 'output');
+    expectEqual(data.token_usage.reasoning_tokens, 3, 'thought');
+    expectEqual(data.token_usage.tool_use_tokens, 2, 'tool use');
+    expectEqual(data.token_usage.total_tokens, 37, 'total');
+    if ('input_tokens_by_modality' in data.token_usage) throw new Error('raw modality usage leaked');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1227 absent provider usage stays explicit null without inventing token counts', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('정상적인 한국어 민원 안내입니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.token_usage, null, 'payload usage');
+    if ('token_usage' in data.meta) throw new Error('meta token_usage should be absent when provider did not report it');
+    expectEqual(data.meta.provider_attempts[0].token_usage, null, 'attempt usage');
+  } finally {
+    restoreFetch();
+  }
+});
+
+// ---------------------------------------------------------------------------
 // #1227-A runtime control foundation: request identity + bounded provider time.
 // ---------------------------------------------------------------------------
 
