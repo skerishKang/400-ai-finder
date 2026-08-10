@@ -3107,6 +3107,10 @@
     }
     var hintEl = chatShell ? chatShell.querySelector(".chat-composer__hint") : null;
     _setText(hintEl, i18n.t("chat.hint"));
+    var privacyWarningEl = chatShell
+      ? chatShell.querySelector(".chat-composer__privacy-warning")
+      : null;
+    _setText(privacyWarningEl, i18n.t("chat.privacyWarning"));
 
     // Chips: keep data-chip-question (Korean canonical) for routing; localize label.
     if (chipsContainer) {

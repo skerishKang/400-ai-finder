@@ -776,6 +776,14 @@ body[data-reduced-motion="true"] .chat-msg--bilingual-draft {
   line-height: 1.45;
 }
 
+.chat-composer__privacy-warning {
+  margin: 6px 2px 0;
+  color: #7c4a17;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 /* #1190: composer footer utility — hint left, recommendations toggle right. */
 .chat-composer__utility {
   display: flex;

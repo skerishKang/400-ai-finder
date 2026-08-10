@@ -48,6 +48,8 @@
       "recommendations.show": "추천 질문 보기",
       "recommendations.hide": "추천 질문 숨기기",
       "chat.hint": "첫 질문 후 북구청 안내 화면과 함께 경로를 보여드립니다.",
+      "chat.privacyWarning":
+        "주민등록번호·전화번호·이메일·상세주소 등 개인정보는 입력하지 마세요.",
       "chat.disclosure":
         "이 안내는 시연용이며 실제 민원 접수나 개인정보 전송은 하지 않습니다.",
       "chat.languageLabel": "언어",
@@ -166,6 +168,8 @@
       "recommendations.hide": "Hide recommendations",
       "chat.hint":
         "After your first question, I will show the route together with the Bukgu-gu guide screen.",
+      "chat.privacyWarning":
+        "Do not enter personal information such as resident ID numbers, phone numbers, email addresses, or precise addresses.",
       "chat.disclosure":
         "This guide is for demonstration only. It does not submit real complaints or send personal information.",
       "chat.languageLabel": "Language",
@@ -285,6 +289,8 @@
       "recommendations.hide": "Ẩn gợi ý",
       "chat.hint":
         "Sau câu hỏi đầu tiên, tôi sẽ hiện đường dẫn cùng màn hình hướng dẫn của Bukgu-gu.",
+      "chat.privacyWarning":
+        "Không nhập thông tin cá nhân như số định danh, số điện thoại, email hoặc địa chỉ chi tiết.",
       "chat.disclosure":
         "Hướng dẫn này chỉ dùng để trình diễn, không tiếp nhận khiếu nại thật hay gửi thông tin cá nhân.",
       "chat.languageLabel": "Ngôn ngữ",
@@ -404,6 +410,8 @@
       "recommendations.hide": "ซ่อนคำแนะนำ",
       "chat.hint":
         "หลังคำถามแรก ฉันจะแสดงเส้นทางพร้อมหน้าจอแนะนำของเขต Bukgu-gu",
+      "chat.privacyWarning":
+        "อย่าป้อนข้อมูลส่วนบุคคล เช่น เลขประจำตัว หมายเลขโทรศัพท์ อีเมล หรือที่อยู่โดยละเอียด",
       "chat.disclosure":
         "คำแนะนำนี้เป็นเพียงการสาธิต ไม่มีการรับเรื่องราชการจริงหรือส่งข้อมูลส่วนบุคคล",
       "chat.languageLabel": "ภาษา",
@@ -523,6 +531,8 @@
       "recommendations.hide": "Sembunyikan saran",
       "chat.hint":
         "Setelah pertanyaan pertama, saya akan menampilkan rute beserta layar panduan Bukgu-gu.",
+      "chat.privacyWarning":
+        "Jangan masukkan data pribadi seperti nomor identitas, nomor telepon, email, atau alamat lengkap.",
       "chat.disclosure":
         "Panduan ini hanya untuk demonstrasi. Tidak mengirimkan pengaduan sungguhan atau data pribadi.",
       "chat.languageLabel": "Bahasa",
