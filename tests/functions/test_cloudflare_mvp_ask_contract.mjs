@@ -2180,3 +2180,12 @@ await import('./test_cloudflare_mvp_request_safety_contract.mjs');
 
 // #1224-A browser anonymous-session contract.
 await import('./test_citizen_mvp_bridge_session_contract.mjs');
+
+// #1224-B Turnstile server validation primitives.
+await import('./test_cloudflare_mvp_turnstile_contract.mjs');
+
+// #1224-B protected request -> Siteverify -> provider integration.
+await import('./test_cloudflare_mvp_turnstile_integration_contract.mjs');
+
+// #1224-B browser challenge lifecycle and fresh-token contract.
+await import('./test_citizen_mvp_turnstile_contract.mjs');

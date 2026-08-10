@@ -68,7 +68,7 @@ function siteverifyResponse(payload, status = 200) {
   };
 }
 
-function providerResponse(answer = '북구청 여권 안내입니다.') {
+function providerResponse(answer = '여권 발급 안내입니다.') {
   return {
     ok: true,
     status: 200,
