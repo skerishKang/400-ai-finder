@@ -35,9 +35,10 @@ export const DEFAULT_PROVIDER_ORDER = Object.freeze(['gemini', 'hy3']);
 
 // Runtime control contract (#1227-A). These values are intentionally code-owned
 // defaults; bounded env overrides exist for staging/tests without allowing an
-// unbounded provider request.
+// unbounded provider request. Runtime policy ownership is independent from the
+// concrete-evidence detector revision exported by evidence-policy.js.
 export const API_SCHEMA_VERSION = '1.0';
-export const POLICY_VERSION = EVIDENCE_POLICY_VERSION;
+export const POLICY_VERSION = '2026-08-10.1';
 export const PROMPT_VERSION = '2026-08-10.1';
 export const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
 export const DEFAULT_PROVIDER_TIMEOUT_MS = 8000;
