@@ -9,6 +9,8 @@
 //     inside a minimal fake DOM/window with injected test doubles
 //     (window.CitizenMvpBridge, window.CitizenFirstChoreography).
 
+import "./verify_mvp_bridge_request_identity.mjs";
+
 import { readFileSync, mkdtempSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
