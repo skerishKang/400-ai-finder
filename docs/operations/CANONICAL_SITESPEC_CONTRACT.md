@@ -99,6 +99,43 @@ raise `SiteSpecLoadError` at load time — first-match-wins is prohibited.
 Empty `legacy_ids` is valid (new sites with no historical alias). The resolver
 is additive foundation only; no runtime is migrated to it in this phase.
 
+### Alias-resolution observability (#1225-B.1)
+
+The plain `resolve()` / `resolve_site_id()` contract is unchanged and remains
+fully backward-compatible: `resolve("bukgu")["site_id"] == "bukgu_gwangju"`.
+`SiteSpecResolver.resolve_with_metadata(identifier)` and the one-shot
+`resolve_site_id_with_metadata(...)` are **additive** — they return the same
+fail-closed resolution plus alias metadata, and no existing caller is wrapped
+or changed.
+
+Return contract:
+
+| Field | Meaning |
+|---|---|
+| `requested_id` | normalized identifier actually used for lookup (`.strip()` applied, matching `resolve()`) |
+| `canonical_site_id` | canonical SiteSpec `site_id` the request projected to |
+| `resolution_kind` | closed vocabulary: `canonical` \| `legacy_alias` |
+| `spec` | defensive deep copy of the canonical SiteSpec |
+
+Examples (Buk-gu):
+
+```python
+resolver.resolve_with_metadata("bukgu_gwangju")
+# {"requested_id": "bukgu_gwangju", "canonical_site_id": "bukgu_gwangju",
+#  "resolution_kind": "canonical", "spec": {...}}
+
+resolver.resolve_with_metadata("bukgu")
+# {"requested_id": "bukgu", "canonical_site_id": "bukgu_gwangju",
+#  "resolution_kind": "legacy_alias", "spec": {...}}
+```
+
+`bukgu` is observable as `legacy_alias`; display labels (`북구청`,
+`Gwangju Buk-gu`) and jurisdiction historical aliases (`광주광역시 북구`) are
+not resolution kinds and keep failing closed. The metadata `spec` is a
+defensive copy — mutating it never mutates resolver state. B.1 introduces
+**no telemetry/log persistence**; runtime migration of legacy callers is
+deferred to #1225-D.
+
 ## Projection parity (#1225-C)
 
 The canonical SiteSpec instance and the existing system projections must

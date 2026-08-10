@@ -21,6 +21,7 @@ from src.site_profiles.sitespec import (
     SiteSpecResolver,
     load_sitespecs,
     resolve_site_id,
+    resolve_site_id_with_metadata,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -238,3 +239,138 @@ def test_external_mutation_does_not_corrupt_resolver_state():
     assert resolver.resolve(LEGACY_ID) == baseline
     # Canonical and legacy still resolve to the same semantic SiteSpec.
     assert resolver.resolve(CANONICAL_ID) == resolver.resolve(LEGACY_ID)
+
+
+# ---- I. alias-resolution metadata API (#1225-B.1, additive) ----
+
+def test_metadata_canonical():
+    resolver = SiteSpecResolver()
+    result = resolver.resolve_with_metadata(CANONICAL_ID)
+    assert result["requested_id"] == CANONICAL_ID
+    assert result["canonical_site_id"] == CANONICAL_ID
+    assert result["resolution_kind"] == "canonical"
+    assert result["spec"]["site_id"] == CANONICAL_ID
+
+
+def test_metadata_legacy_alias():
+    resolver = SiteSpecResolver()
+    result = resolver.resolve_with_metadata(LEGACY_ID)
+    assert result["requested_id"] == LEGACY_ID
+    assert result["canonical_site_id"] == CANONICAL_ID
+    assert result["resolution_kind"] == "legacy_alias"
+    assert result["spec"]["site_id"] == CANONICAL_ID
+
+
+def test_metadata_requested_id_normalized():
+    # The metadata requested_id records the normalized identifier actually
+    # used for lookup (strip applied, matching resolve()); raw whitespace is
+    # not preserved.
+    resolver = SiteSpecResolver()
+    result = resolver.resolve_with_metadata(f"  {LEGACY_ID}  ")
+    assert result["requested_id"] == LEGACY_ID
+    assert result["resolution_kind"] == "legacy_alias"
+    assert result["canonical_site_id"] == CANONICAL_ID
+
+
+def test_metadata_canonical_legacy_same_spec():
+    resolver = SiteSpecResolver()
+    canonical = resolver.resolve_with_metadata(CANONICAL_ID)
+    legacy = resolver.resolve_with_metadata(LEGACY_ID)
+    assert canonical["canonical_site_id"] == "bukgu_gwangju"
+    assert legacy["canonical_site_id"] == "bukgu_gwangju"
+    assert canonical["resolution_kind"] == "canonical"
+    assert legacy["resolution_kind"] == "legacy_alias"
+    # Semantic equality of the resolved SiteSpec is required; object
+    # identity is not.
+    assert canonical["spec"] == legacy["spec"]
+    assert canonical["spec"] == resolver.resolve(CANONICAL_ID)
+
+
+def test_metadata_unknown_fail_closed():
+    with pytest.raises(SiteSpecNotFoundError):
+        SiteSpecResolver().resolve_with_metadata("unknown_site")
+
+
+@pytest.mark.parametrize("identifier", ["", "   ", "\t\n"])
+def test_metadata_empty_or_whitespace_fail_closed(identifier):
+    # The metadata entrypoint itself must fail closed on empty/whitespace,
+    # not only the plain resolve() path.
+    resolver = SiteSpecResolver()
+    with pytest.raises(SiteSpecNotFoundError):
+        resolver.resolve_with_metadata(identifier)
+
+
+def test_metadata_malformed_fail_closed():
+    with pytest.raises(SiteSpecNotFoundError):
+        SiteSpecResolver().resolve_with_metadata("bukgu_gwangju/extra")
+
+
+def test_metadata_display_label_fail_closed():
+    with pytest.raises(SiteSpecNotFoundError):
+        SiteSpecResolver().resolve_with_metadata("북구청")
+
+
+def test_metadata_english_display_label_fail_closed():
+    # English display label must not be promoted to canonical/legacy runtime
+    # identity by the metadata API either.
+    with pytest.raises(SiteSpecNotFoundError):
+        SiteSpecResolver().resolve_with_metadata("Gwangju Buk-gu")
+
+
+def test_metadata_historical_alias_fail_closed():
+    with pytest.raises(SiteSpecNotFoundError):
+        SiteSpecResolver().resolve_with_metadata("광주광역시 북구")
+
+
+def test_metadata_mutation_isolation():
+    # Mutating the returned spec must never corrupt resolver internal state.
+    resolver = SiteSpecResolver()
+    result = resolver.resolve_with_metadata(LEGACY_ID)
+    result["spec"]["site_id"] = "corrupted"
+    result["spec"]["legacy_ids"].append("hacked")
+    result["requested_id"] = "corrupted"
+    result["canonical_site_id"] = "corrupted"
+    result["resolution_kind"] = "corrupted"
+    after = resolver.resolve_with_metadata(LEGACY_ID)
+    assert after["spec"]["site_id"] == CANONICAL_ID
+    assert after["requested_id"] == LEGACY_ID
+    assert after["canonical_site_id"] == CANONICAL_ID
+    assert after["resolution_kind"] == "legacy_alias"
+    assert resolver.resolve(LEGACY_ID)["site_id"] == CANONICAL_ID
+    assert resolver.resolve(CANONICAL_ID) == resolver.resolve(LEGACY_ID)
+
+
+def test_metadata_one_shot_reuses_provided_resolver():
+    # A provided resolver must be reused, not rebuilt from sites_dir.
+    resolver = SiteSpecResolver()
+    result = resolve_site_id_with_metadata(LEGACY_ID, resolver=resolver)
+    assert result["requested_id"] == LEGACY_ID
+    assert result["resolution_kind"] == "legacy_alias"
+    assert result["spec"]["site_id"] == CANONICAL_ID
+
+
+def test_metadata_generic_second_site(tmp_path):
+    # Generic second-site fixture: canonical sample_city, legacy sample.
+    _write_sitespec(tmp_path, "bukgu_gwangju", CANONICAL_ID, [LEGACY_ID])
+    _write_sitespec(tmp_path, "sample_city", "sample_city", ["sample"])
+    resolver = SiteSpecResolver(tmp_path)
+    canonical = resolver.resolve_with_metadata("sample_city")
+    legacy = resolver.resolve_with_metadata("sample")
+    assert canonical["canonical_site_id"] == "sample_city"
+    assert canonical["resolution_kind"] == "canonical"
+    assert legacy["canonical_site_id"] == "sample_city"
+    assert legacy["resolution_kind"] == "legacy_alias"
+    assert canonical["spec"] == legacy["spec"]
+
+
+def test_metadata_empty_legacy_ids_site(tmp_path):
+    # A site with legacy_ids == [] accepts only its canonical ID; arbitrary
+    # aliases keep failing closed.
+    _write_sitespec(tmp_path, "bukgu_gwangju", CANONICAL_ID, [LEGACY_ID])
+    _write_sitespec(tmp_path, "sample_city", "sample_city", [])
+    resolver = SiteSpecResolver(tmp_path)
+    result = resolver.resolve_with_metadata("sample_city")
+    assert result["resolution_kind"] == "canonical"
+    assert result["canonical_site_id"] == "sample_city"
+    with pytest.raises(SiteSpecNotFoundError):
+        resolver.resolve_with_metadata("sample")

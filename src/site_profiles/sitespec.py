@@ -152,6 +152,29 @@ class SiteSpecResolver:
         """Sorted canonical site IDs."""
         return tuple(sorted(self._by_canonical))
 
+    def _resolve_identity(self, identifier: str) -> tuple[str, str, str]:
+        """Resolve to ``(requested_id, canonical_site_id, resolution_kind)``.
+
+        Shared by :meth:`resolve` and :meth:`resolve_with_metadata` so the
+        canonical/legacy discrimination logic cannot drift between the two
+        entry points. ``requested_id`` is the normalized identifier actually
+        used for lookup (``.strip()`` applied, matching :meth:`resolve`).
+        Fail-closed: empty, malformed, and unknown identifiers raise
+        :class:`SiteSpecNotFoundError`; display labels and jurisdiction
+        historical aliases never resolve here.
+        """
+        if not isinstance(identifier, str) or not identifier.strip():
+            raise SiteSpecNotFoundError(f"empty site identifier {identifier!r}")
+        identifier = identifier.strip()
+        if not ID_PATTERN.match(identifier):
+            raise SiteSpecNotFoundError(f"invalid site identifier {identifier!r}")
+        if identifier in self._by_canonical:
+            return identifier, identifier, "canonical"
+        canonical_id = self._by_legacy.get(identifier)
+        if canonical_id is None:
+            raise SiteSpecNotFoundError(f"unknown site identifier {identifier!r}")
+        return identifier, canonical_id, "legacy_alias"
+
     def resolve(self, identifier: str) -> dict[str, Any]:
         """Resolve a canonical or legacy site ID to its canonical SiteSpec.
 
@@ -160,20 +183,41 @@ class SiteSpecResolver:
         SiteSpecNotFoundError
             Empty, malformed, or unknown identifiers. Never falls back.
         """
-        if not isinstance(identifier, str) or not identifier.strip():
-            raise SiteSpecNotFoundError(f"empty site identifier {identifier!r}")
-        identifier = identifier.strip()
-        if not ID_PATTERN.match(identifier):
-            raise SiteSpecNotFoundError(f"invalid site identifier {identifier!r}")
-        doc = self._by_canonical.get(identifier)
-        if doc is not None:
-            # Defensive boundary: callers may mutate the returned SiteSpec
-            # without corrupting the resolver's internal canonical state.
-            return copy.deepcopy(doc)
-        canonical_id = self._by_legacy.get(identifier)
-        if canonical_id is None:
-            raise SiteSpecNotFoundError(f"unknown site identifier {identifier!r}")
+        _, canonical_id, _ = self._resolve_identity(identifier)
+        # Defensive boundary: callers may mutate the returned SiteSpec
+        # without corrupting the resolver's internal canonical state.
         return copy.deepcopy(self._by_canonical[canonical_id])
+
+    def resolve_with_metadata(self, identifier: str) -> dict[str, Any]:
+        """Resolve like :meth:`resolve` but return alias-resolution metadata.
+
+        Additive observability API (#1225-B.1): the caller learns whether the
+        request used the canonical ID or a legacy alias, without any change to
+        the plain :meth:`resolve` contract. No telemetry persistence/logging
+        is performed here.
+
+        Returns
+        -------
+        dict
+            ``requested_id`` — normalized identifier used for lookup
+            ``canonical_site_id`` — canonical SiteSpec ``site_id``
+            ``resolution_kind`` — ``"canonical"`` | ``"legacy_alias"``
+            ``spec`` — defensive deep copy of the canonical SiteSpec
+
+        Raises
+        ------
+        SiteSpecNotFoundError
+            Same fail-closed behavior as :meth:`resolve`.
+        """
+        requested_id, canonical_id, resolution_kind = self._resolve_identity(
+            identifier
+        )
+        return {
+            "requested_id": requested_id,
+            "canonical_site_id": canonical_id,
+            "resolution_kind": resolution_kind,
+            "spec": copy.deepcopy(self._by_canonical[canonical_id]),
+        }
 
 
 def load_sitespecs(sites_dir: Path | str | None = None) -> dict[str, dict[str, Any]]:
@@ -201,3 +245,20 @@ def resolve_site_id(
     if resolver is not None:
         return resolver.resolve(identifier)
     return SiteSpecResolver(sites_dir).resolve(identifier)
+
+
+def resolve_site_id_with_metadata(
+    identifier: str,
+    sites_dir: Path | str | None = None,
+    *,
+    resolver: SiteSpecResolver | None = None,
+) -> dict[str, Any]:
+    """One-shot alias-resolution metadata variant of :func:`resolve_site_id`.
+
+    Equivalent to ``SiteSpecResolver(sites_dir).resolve_with_metadata(identifier)``
+    but reuses ``resolver`` when provided, so a caller with an existing
+    resolver never builds a second one.
+    """
+    if resolver is not None:
+        return resolver.resolve_with_metadata(identifier)
+    return SiteSpecResolver(sites_dir).resolve_with_metadata(identifier)
