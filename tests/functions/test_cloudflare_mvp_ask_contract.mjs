@@ -2145,3 +2145,6 @@ if (failed > 0) {
   }
   process.exit(1);
 }
+
+// #1224-A request byte/schema/privacy boundary contracts.
+await import('./test_cloudflare_mvp_request_safety_contract.mjs');
