@@ -6,6 +6,7 @@ import {
   readBoundedJsonBody,
   validateRequestShape,
 } from './request-safety.js';
+import { verifyTurnstileRequest } from './turnstile.js';
 
 // Cloudflare Pages Function for the live Buk-gu civic assistant.
 // Provider keys stay in Pages secrets; requests are handled statelessly.
@@ -282,6 +283,10 @@ const FAILURE_ANSWERS = Object.freeze({
     snapshot_only: '현재 AI 연결은 일시 중지되어 확인된 공식 저장본만 사용합니다. 표시된 공식 출처에서 최신 정보를 확인해 주세요.',
     invalid_input: '잘못된 요청 형식입니다.',
     too_long: '질문이 너무 깁니다. 300자 이내로 입력해 주세요.',
+    bot_verification_required: 'AI 안내를 사용하려면 보안 확인을 완료해 주세요.',
+    bot_verification_failed: '보안 확인이 만료되었거나 유효하지 않습니다. 다시 확인해 주세요.',
+    bot_verification_unavailable: '현재 보안 확인 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    bot_verification_config_error: '현재 AI 보안 확인 설정을 점검하고 있습니다.',
   },
   en: {
     config_error: 'The AI guide settings are being checked.',
@@ -291,6 +296,10 @@ const FAILURE_ANSWERS = Object.freeze({
     snapshot_only: 'Live AI is temporarily disabled and only verified official snapshots are available. Please check the displayed official source for current information.',
     invalid_input: 'Invalid request format.',
     too_long: 'Your question is too long. Please keep it within 300 characters.',
+    bot_verification_required: 'Please complete the security check before using the AI guide.',
+    bot_verification_failed: 'The security check is invalid or expired. Please verify again.',
+    bot_verification_unavailable: 'The security check service is temporarily unavailable. Please try again.',
+    bot_verification_config_error: 'The AI security check configuration is being reviewed.',
   },
   vi: {
     config_error: 'Đang kiểm tra cài đặt hướng dẫn AI.',
@@ -300,6 +309,10 @@ const FAILURE_ANSWERS = Object.freeze({
     snapshot_only: 'AI trực tiếp đang tạm dừng và chỉ sử dụng bản lưu chính thức đã xác minh. Vui lòng kiểm tra nguồn chính thức được hiển thị để biết thông tin mới nhất.',
     invalid_input: 'Định dạng yêu cầu không hợp lệ.',
     too_long: 'Câu hỏi quá dài. Vui lòng nhập dưới 300 ký tự.',
+    bot_verification_required: 'Vui lòng hoàn tất bước kiểm tra bảo mật trước khi dùng hướng dẫn AI.',
+    bot_verification_failed: 'Kiểm tra bảo mật không hợp lệ hoặc đã hết hạn. Vui lòng xác minh lại.',
+    bot_verification_unavailable: 'Dịch vụ kiểm tra bảo mật tạm thời không khả dụng. Vui lòng thử lại.',
+    bot_verification_config_error: 'Đang kiểm tra cấu hình bảo mật của hướng dẫn AI.',
   },
   th: {
     config_error: 'กำลังตรวจสอบการตั้งค่าคำแนะนำ AI',
@@ -309,6 +322,10 @@ const FAILURE_ANSWERS = Object.freeze({
     snapshot_only: 'ขณะนี้ปิดการเชื่อมต่อ AI สดและใช้เฉพาะสำเนาข้อมูลทางการที่ยืนยันแล้ว โปรดตรวจสอบแหล่งข้อมูลทางการที่แสดงสำหรับข้อมูลล่าสุด',
     invalid_input: 'รูปแบบคำขอไม่ถูกต้อง',
     too_long: 'คำถามยาวเกินไป โปรดระบุไม่เกิน 300 ตัวอักษร',
+    bot_verification_required: 'โปรดยืนยันความปลอดภัยก่อนใช้คำแนะนำ AI',
+    bot_verification_failed: 'การยืนยันความปลอดภัยไม่ถูกต้องหรือหมดอายุ โปรดยืนยันอีกครั้ง',
+    bot_verification_unavailable: 'บริการยืนยันความปลอดภัยไม่พร้อมใช้งานชั่วคราว โปรดลองอีกครั้ง',
+    bot_verification_config_error: 'กำลังตรวจสอบการตั้งค่าความปลอดภัยของคำแนะนำ AI',
   },
   id: {
     config_error: 'Pengaturan panduan AI sedang diperiksa.',
@@ -318,6 +335,10 @@ const FAILURE_ANSWERS = Object.freeze({
     snapshot_only: 'AI langsung untuk sementara dinonaktifkan dan hanya snapshot resmi terverifikasi yang digunakan. Periksa sumber resmi yang ditampilkan untuk informasi terbaru.',
     invalid_input: 'Format permintaan tidak valid.',
     too_long: 'Pertanyaan terlalu panjang. Mohon batasi di bawah 300 karakter.',
+    bot_verification_required: 'Selesaikan pemeriksaan keamanan sebelum menggunakan panduan AI.',
+    bot_verification_failed: 'Pemeriksaan keamanan tidak valid atau telah kedaluwarsa. Silakan verifikasi lagi.',
+    bot_verification_unavailable: 'Layanan pemeriksaan keamanan sementara tidak tersedia. Silakan coba lagi.',
+    bot_verification_config_error: 'Konfigurasi pemeriksaan keamanan panduan AI sedang ditinjau.',
   },
 });
 
@@ -1425,6 +1446,14 @@ export async function onRequest(context) {
     redacted: false,
     session_id_present: false,
   };
+  let botDefenseMeta = {
+    mode: 'not_applicable',
+    verified: false,
+    bypassed: false,
+    reason: '',
+    action: '',
+    hostname: '',
+  };
   const headers = buildHeaders(request, requestId);
   const providerOrder = normalizeProviderOrder(env.MVP_LLM_ORDER);
   const runtimeMode = resolveAiRuntimeMode(env);
@@ -1455,6 +1484,14 @@ export async function onRequest(context) {
         redacted: privacyMeta.redacted === true,
         session_id_present: privacyMeta.session_id_present === true,
       },
+      bot_defense: {
+        mode: botDefenseMeta.mode,
+        verified: botDefenseMeta.verified === true,
+        bypassed: botDefenseMeta.bypassed === true,
+        reason: botDefenseMeta.reason,
+        action: botDefenseMeta.action,
+        hostname: botDefenseMeta.hostname,
+      },
       cost: {
         status: 'unavailable',
         estimated_usd: null,
@@ -1472,7 +1509,9 @@ export async function onRequest(context) {
     if (decorated.ok === false && typeof decorated.failure_code === 'string' && decorated.failure_code) {
       decorated.error = {
         code: decorated.failure_code,
-        retryable: decorated.failure_code === 'upstream_timeout' || decorated.failure_code === 'upstream_error',
+        retryable: decorated.failure_code === 'upstream_timeout' ||
+          decorated.failure_code === 'upstream_error' ||
+          decorated.failure_code === 'bot_verification_unavailable',
         request_id: requestId,
       };
     }
@@ -1570,6 +1609,39 @@ export async function onRequest(context) {
     )), 200, headers);
   }
   const question = privacy.question;
+
+  if (runtimeMode.mode === 'enabled' && disabledProviders.length !== providerOrder.length) {
+    const botVerification = await verifyTurnstileRequest({
+      env,
+      requestHostname: reqHostname,
+      token: body.turnstile_token,
+      fetchWithDeadline,
+      remainingRequestBudgetMs: remainingRequestBudgetMs(),
+    });
+    botDefenseMeta = {
+      mode: botVerification.bypassed ? 'disabled' : 'required',
+      verified: botVerification.verified === true,
+      bypassed: botVerification.bypassed === true,
+      reason: botVerification.reason || '',
+      action: botVerification.action || '',
+      hostname: botVerification.hostname || '',
+    };
+    if (!botVerification.ok) {
+      return jsonResponse(withRuntimeMeta(Object.assign(
+        failurePayload('', primaryConfig.provider, primaryConfig.model, botVerification.failureCode, retrievedAt, currentTime, requestLocale),
+        { answer: localizedFailureAnswer(requestLocale, botVerification.failureCode) },
+      )), botVerification.status || 403, headers);
+    }
+  } else {
+    botDefenseMeta = {
+      mode: 'not_applicable',
+      verified: false,
+      bypassed: false,
+      reason: runtimeMode.mode !== 'enabled' ? `ai_mode_${runtimeMode.mode}` : 'all_providers_disabled',
+      action: '',
+      hostname: '',
+    };
+  }
 
   if (runtimeMode.mode === 'disabled') {
     return jsonResponse(withRuntimeMeta(

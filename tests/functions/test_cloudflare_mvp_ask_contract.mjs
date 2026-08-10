@@ -19,17 +19,38 @@ function noNetworkStub() {
 globalThis.fetch = noNetworkStub;
 
 function createMockContext(method, body, envOverrides = {}, requestUrl = '') {
+  const effectiveUrl = requestUrl || 'http://localhost:8788/api/mvp/ask';
+  let effectiveBody = body;
+  let requestHost = '';
+  try { requestHost = new URL(effectiveUrl).hostname.toLowerCase(); } catch (_) { /* noop */ }
+  const isLoopback = requestHost === 'localhost' || requestHost === '127.0.0.1';
+  if (!isLoopback && method === 'POST' && typeof body === 'string') {
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) &&
+          !Object.prototype.hasOwnProperty.call(parsed, 'turnstile_token')) {
+        parsed.turnstile_token = 'test-turnstile-token-123456';
+        effectiveBody = JSON.stringify(parsed);
+      }
+    } catch (_) {
+      // Preserve malformed JSON exactly for invalid-input contracts.
+    }
+  }
   const request = {
     method,
-    url: requestUrl,
+    url: effectiveUrl,
     headers: new Map([['Content-Type', 'application/json']]),
-    json: async () => (body ? JSON.parse(body) : {}),
-    text: async () => (body ? String(body) : ''),
+    json: async () => (effectiveBody ? JSON.parse(effectiveBody) : {}),
+    text: async () => (effectiveBody ? String(effectiveBody) : ''),
   };
   const env = {
     GEMINI_API_KEY: '',
     KILOCODE_API_KEY: '',
     MVP_RUNTIME_LOGS: '0',
+    MVP_TURNSTILE_MODE: isLoopback ? 'disabled' : 'required',
+    MVP_TURNSTILE_SECRET_KEY: isLoopback ? '' : 'test-turnstile-secret',
+    MVP_TURNSTILE_EXPECTED_ACTION: 'mvp_ask',
+    MVP_TURNSTILE_ALLOWED_HOSTNAMES: isLoopback ? '' : requestHost,
     ...envOverrides,
   };
   return { request, env };
@@ -105,8 +126,12 @@ function isOfficialFetchUrl(url) {
     url.startsWith('https://search.bukgu.gwangju.kr/RSA/front/Search.jsp?');
 }
 
+function isTurnstileFetchUrl(url) {
+  return url === 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+}
+
 function providerFetchCalls() {
-  return fetchCalls.filter((call) => !isOfficialFetchUrl(call.url));
+  return fetchCalls.filter((call) => !isOfficialFetchUrl(call.url) && !isTurnstileFetchUrl(call.url));
 }
 
 function officialFetchCalls() {
@@ -163,6 +188,10 @@ function mockFetchSequence(responses, fixtures = {}) {
       response = fixtures.homepageResponse || { body: DEFAULT_HOME_HTML };
     } else if (resolvedUrl.startsWith('https://search.bukgu.gwangju.kr/RSA/front/Search.jsp?')) {
       response = fixtures.searchResponse || { body: DEFAULT_SEARCH_HTML };
+    } else if (isTurnstileFetchUrl(resolvedUrl)) {
+      response = fixtures.turnstileResponse || {
+        body: { success: true, action: 'mvp_ask', hostname: 'cgbukku.pages.dev' },
+      };
     } else {
       response = responses[Math.min(providerIndex, responses.length - 1)];
       providerIndex += 1;

@@ -1,9 +1,11 @@
+import { TURNSTILE_MAX_TOKEN_CHARS } from './turnstile.js';
+
 export const DEFAULT_MAX_BODY_BYTES = 8192;
 export const MIN_MAX_BODY_BYTES = 1024;
 export const MAX_MAX_BODY_BYTES = 32768;
 export const MAX_QUESTION_CHARS = 300;
 export const MAX_SESSION_ID_CHARS = 128;
-export const ALLOWED_REQUEST_FIELDS = Object.freeze(['question', 'locale', 'session_id']);
+export const ALLOWED_REQUEST_FIELDS = Object.freeze(['question', 'locale', 'session_id', 'turnstile_token']);
 export const SENSITIVE_CATEGORIES = Object.freeze([
   'resident_id_like',
   'phone_like',
@@ -146,6 +148,12 @@ export function validateRequestShape(body) {
   }
   if (typeof body.session_id === 'string' && !SESSION_ID_RE.test(body.session_id)) {
     return { ok: false, failureCode: 'invalid_input', reason: 'session_id_format' };
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'turnstile_token') && typeof body.turnstile_token !== 'string') {
+    return { ok: false, failureCode: 'invalid_input', reason: 'turnstile_token_type' };
+  }
+  if (typeof body.turnstile_token === 'string' && body.turnstile_token.length > TURNSTILE_MAX_TOKEN_CHARS) {
+    return { ok: false, failureCode: 'invalid_input', reason: 'turnstile_token_too_long' };
   }
   return { ok: true };
 }
