@@ -47,6 +47,10 @@ The current contract intentionally preserves legacy HTTP behavior while making f
 | request body exceeds configured byte cap | 413 | `ok:false`, `failure_code:"payload_too_large"` |
 | malformed JSON / invalid typed input | 200 | `ok:false`, `failure_code:"invalid_input"` |
 | resident-ID-like or fully-redacted high-risk input | 200 | `ok:false`, `failure_code:"sensitive_input_rejected"` |
+| missing/malformed/oversized Turnstile token on protected model path | 403 | `ok:false`, `failure_code:"bot_verification_required"` |
+| rejected/expired/duplicate/action-mismatch/hostname-mismatch Turnstile result | 403 | `ok:false`, `failure_code:"bot_verification_failed"` |
+| Turnstile Siteverify timeout/network/HTTP/malformed response | 503 | `ok:false`, `failure_code:"bot_verification_unavailable"` |
+| required Turnstile server/client configuration missing | 503 | `ok:false`, `failure_code:"bot_verification_config_error"` |
 | provider/config/runtime failure | 200 | `ok:false`, stable `failure_code` |
 | successful answer | 200 | `ok:true`, `failure_code:""` |
 
@@ -62,10 +66,14 @@ Current runtime failure-code vocabulary includes:
 - `unsupported_media_type`
 - `payload_too_large`
 - `sensitive_input_rejected`
+- `bot_verification_required`
+- `bot_verification_failed`
+- `bot_verification_unavailable`
+- `bot_verification_config_error`
 - `service_disabled`
 - `snapshot_only`
 
-`error.retryable` is currently true only for `upstream_error` and `upstream_timeout`.
+`error.retryable` is true only for `upstream_error`, `upstream_timeout`, and `bot_verification_unavailable`. Challenge-required, rejected, configuration, ingress, and privacy failures are not automatically retryable by the API contract.
 
 #1224-A establishes the public request-ingress boundary:
 
@@ -73,11 +81,25 @@ Current runtime failure-code vocabulary includes:
 - the default application body limit is 8,192 bytes; `MVP_MAX_BODY_BYTES` may override it only within 1,024..32,768 bytes and invalid values fall back to 8,192;
 - `Content-Length` is rejected before body read when it already exceeds the cap; streamed request bodies are cancelled as soon as accumulated bytes exceed the cap;
 - the separate semantic question limit remains 300 characters;
-- the accepted top-level request fields are only `question`, optional `locale`, and optional `session_id`;
+- the accepted top-level request fields are `question`, optional `locale`, optional `session_id`, and optional `turnstile_token`;
 - `session_id` is a pseudonymous correlation/rate-limit input, not authentication, and its raw value is not emitted in runtime metadata/logs;
 - resident-ID-like input fails closed before provider execution; phone/email/precise-address-like spans are redacted before provider execution.
 
-The new ingress/privacy failures are non-retryable. Later #1224 rate-limit, challenge-verification, durable budget, and infrastructure controls must add their own documented status + `failure_code` mappings before deployment.
+#1224-B establishes the protected-model bot-verification boundary:
+
+- normal production/default mode is `required`; an invalid or missing mode also fails closed to `required`;
+- `MVP_TURNSTILE_MODE=disabled` is honored only for exact loopback development/test hosts and cannot disable production verification;
+- the browser obtains the public site key/action from same-origin `/api/mvp/turnstile-config`; the secret is never returned to the browser;
+- each protected model request obtains a fresh challenge token and sends it only as `turnstile_token` in the request body;
+- the server verifies that token with Cloudflare Siteverify before any provider call, checks the expected action, and checks an exact hostname allowlist when configured;
+- resident-ID-like/high-risk privacy rejection runs **before** Siteverify, so rejected sensitive input causes zero Siteverify/provider calls;
+- `snapshot_only`, AI-disabled, and all-provider-disabled paths do not perform protected model work and remain free of Turnstile/provider calls;
+- Siteverify receives only the server secret and challenge response in the current implementation; resident question text, anonymous session ID, and `remoteip` are not forwarded;
+- challenge token/secret values are not copied into response metadata or runtime logs;
+- Siteverify uses the existing deadline-aware outbound fetch helper and is capped by both `MVP_TURNSTILE_TIMEOUT_MS` (default 3,000 ms, accepted 250..10,000 ms) and the remaining global request deadline;
+- production activation requires an actual Turnstile site key, encrypted secret, expected action, and exact allowed hostname configuration. Code merge/deploy must not precede that configuration because the production default is fail-closed.
+
+The ingress/privacy and bot-verification mappings above are contract-tested offline. Later #1224 durable rate-limit, concurrency, provider budget, and infrastructure controls must add their own documented status + `failure_code` mappings before deployment.
 
 ## 3. Request and correlation identity
 
@@ -98,11 +120,13 @@ Defaults:
 
 - total request deadline: 20,000 ms;
 - per-provider deadline: 8,000 ms;
-- overrides are bounded between 10 ms and 60,000 ms.
+- Turnstile Siteverify deadline: 3,000 ms;
+- provider/request timeout overrides are bounded between 10 ms and 60,000 ms;
+- Turnstile timeout override is bounded between 250 ms and 10,000 ms.
 
-Provider fetches use `AbortController`. A provider deadline or exhausted overall deadline produces `upstream_timeout`; fallback is attempted only while the total request budget remains.
+Provider and Siteverify fetches use the deadline-aware `AbortController` path. A provider deadline or exhausted overall provider budget produces `upstream_timeout`; fallback is attempted only while the total request budget remains. A Siteverify deadline/network failure produces `bot_verification_unavailable` and provider execution is not attempted.
 
-Timeouts are explicitly represented in provider-attempt telemetry with `timed_out:true`.
+Timeouts are explicitly represented in provider-attempt telemetry with `timed_out:true`. Turnstile verification status is represented separately in sanitized `meta.bot_defense` metadata and does not expose the challenge token or secret.
 
 ## 5. Provider-attempt telemetry
 
@@ -170,6 +194,7 @@ The emitted `mvp_ai_request` event is allowlist-built. It may contain:
 - latency;
 - AI runtime mode;
 - sanitized provider-attempt metadata;
+- sanitized privacy/bot-defense state;
 - normalized token usage;
 - explicit cost-unavailable state.
 
@@ -178,6 +203,8 @@ It MUST NOT include by default:
 - resident question text;
 - model answer text;
 - provider raw response bodies;
+- Turnstile challenge tokens or secret keys;
+- anonymous session ID raw values;
 - API keys/secrets;
 - arbitrary request body fields;
 - arbitrary provider usage fields.
@@ -201,6 +228,13 @@ Provider-specific emergency switches:
 
 Any non-empty value other than explicit `0` disables that provider. If all configured providers are disabled, the request fails closed without a provider fetch.
 
+Turnstile has a separate deployment/testing switch:
+
+- `MVP_TURNSTILE_MODE=required` — canonical production/default behavior;
+- `MVP_TURNSTILE_MODE=disabled` — accepted only on exact loopback request hosts for local/offline testing.
+
+The Turnstile switch is not a production emergency bypass. Production `disabled` is rejected and resolves to required verification.
+
 ## 9. Change review checklist
 
 Any PR changing `/api/mvp/ask` public/runtime semantics must answer:
@@ -209,9 +243,10 @@ Any PR changing `/api/mvp/ask` public/runtime semantics must answer:
 2. Does `failure_code` or HTTP status meaning change?
 3. Does system/corrective prompt behavior materially change?
 4. Does provider selection/fallback behavior change?
-5. Does a new log field contain resident/model/provider raw content?
+5. Does a new log field contain resident/model/provider raw content, anonymous session IDs, or challenge tokens?
 6. Does token/cost reporting remain provider-reported or explicitly versioned?
 7. Are browser bridge compatibility and failure envelopes preserved?
-8. Are timeout, fallback, kill-switch, locale, and privacy contracts covered by offline tests?
+8. Are timeout, fallback, kill-switch, locale, privacy, and bot-verification contracts covered by offline tests?
+9. If bot verification is enabled, are the site key, encrypted secret, expected action, and allowed deployment hostnames prepared before deployment?
 
 Do not perform live provider/network validation merely to satisfy this checklist. Live validation requires its own controlled stage and explicit authorization.
