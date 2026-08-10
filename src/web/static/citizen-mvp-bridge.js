@@ -10,14 +10,17 @@
  * Guarantees:
  * - one in-flight request at a time (superseding previous requests)
  * - abortable via cancel()
- * - never throws to the caller; network/HTTP failures degrade to a stable
- *   { ok: false, action: "none", answer: "<honest ko message>" } envelope
+ * - each protected request obtains a fresh Turnstile token before /api/mvp/ask
+ * - never throws to the caller; network/HTTP/challenge failures degrade to a
+ *   stable { ok: false, action: "none", answer: "<honest message>" } envelope
  */
 
 (function () {
   "use strict";
 
   var SUPPORTED_LOCALES = ["ko", "en", "vi", "th", "id"];
+  var TURNSTILE_CLIENT_SRC = "/static/citizen-turnstile.js";
+  var TURNSTILE_CLIENT_MARKER = "data-mvp-turnstile-client";
 
   function _localizedFailAnswer() {
     if (window.CitizenI18n && typeof window.CitizenI18n.t === "function") {
@@ -29,6 +32,7 @@
 
   var MVP_FAILURE_ANSWER = "현재 AI 안내를 연결하지 못했습니다.";
   var _controller = null;
+  var _turnstileClientPromise = null;
   var SESSION_STORAGE_KEY = "citizen_mvp_anonymous_session_id";
   var _sessionIdMemory = "";
 
@@ -153,9 +157,67 @@
     return "ko";
   }
 
+  function _loadTurnstileClient() {
+    if (window.CitizenTurnstile && typeof window.CitizenTurnstile.acquireToken === "function") {
+      return Promise.resolve(window.CitizenTurnstile);
+    }
+    if (_turnstileClientPromise) return _turnstileClientPromise;
+    _turnstileClientPromise = new Promise(function (resolve, reject) {
+      if (typeof document === "undefined" || !document.head || typeof document.createElement !== "function") {
+        reject(new Error("TURNSTILE_CLIENT_DOCUMENT_UNAVAILABLE"));
+        return;
+      }
+      var existing = document.querySelector
+        ? document.querySelector('script[' + TURNSTILE_CLIENT_MARKER + '="1"]')
+        : null;
+      var script = existing || document.createElement("script");
+      var settled = false;
+      function finish(fn, value) {
+        if (settled) return;
+        settled = true;
+        fn(value);
+      }
+      function loaded() {
+        if (window.CitizenTurnstile && typeof window.CitizenTurnstile.acquireToken === "function") {
+          finish(resolve, window.CitizenTurnstile);
+        } else {
+          finish(reject, new Error("TURNSTILE_CLIENT_UNAVAILABLE"));
+        }
+      }
+      function failed() {
+        finish(reject, new Error("TURNSTILE_CLIENT_LOAD_FAILED"));
+      }
+      if (existing) {
+        existing.addEventListener("load", loaded, { once: true });
+        existing.addEventListener("error", failed, { once: true });
+        window.setTimeout(loaded, 0);
+        return;
+      }
+      script.src = TURNSTILE_CLIENT_SRC;
+      script.async = true;
+      script.setAttribute(TURNSTILE_CLIENT_MARKER, "1");
+      script.onload = loaded;
+      script.onerror = failed;
+      document.head.appendChild(script);
+    }).catch(function (error) {
+      _turnstileClientPromise = null;
+      throw error;
+    });
+    return _turnstileClientPromise;
+  }
+
+  function _resetTurnstile() {
+    if (window.CitizenTurnstile && typeof window.CitizenTurnstile.reset === "function") {
+      try { window.CitizenTurnstile.reset(); } catch (_) { /* noop */ }
+    }
+  }
+
   function ask(question) {
     if (_controller) {
       _controller.abort();
+    }
+    if (window.CitizenTurnstile && typeof window.CitizenTurnstile.cancel === "function") {
+      try { window.CitizenTurnstile.cancel(); } catch (_) { /* noop */ }
     }
     var controller = ("AbortController" in window) ? new AbortController() : null;
     _controller = controller;
@@ -164,17 +226,30 @@
     // locale, so a later locale change keeps this request scoped to its start.
     var requestLocale = _captureLocale();
     var sessionId = _anonymousSessionId();
+    var signal = controller ? controller.signal : null;
 
-    var fetchOpts = {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: question || "", locale: requestLocale, session_id: sessionId }),
-    };
-    if (controller) {
-      fetchOpts.signal = controller.signal;
-    }
-
-    return fetch("/api/mvp/ask", fetchOpts)
+    return _loadTurnstileClient()
+      .then(function (client) {
+        return client.acquireToken({ signal: signal });
+      })
+      .then(function (turnstileToken) {
+        if (signal && signal.aborted) throw new Error("REQUEST_ABORTED");
+        var requestBody = {
+          question: question || "",
+          locale: requestLocale,
+          session_id: sessionId,
+        };
+        if (typeof turnstileToken === "string" && turnstileToken) {
+          requestBody.turnstile_token = turnstileToken;
+        }
+        var fetchOpts = {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        };
+        if (controller) fetchOpts.signal = controller.signal;
+        return fetch("/api/mvp/ask", fetchOpts);
+      })
       .then(function (resp) {
         var headerRequestId = _responseHeaderRequestId(resp);
         return resp.json().then(function (data) {
@@ -211,15 +286,17 @@
         });
       })
       .catch(function () {
-        // Network failure / abort → honest failure envelope.
+        // Network / challenge / abort failure → honest failure envelope.
         return _stableFailure();
       })
       .then(function (result) {
+        _resetTurnstile();
         if (_controller === controller) {
           _controller = null;
         }
         return result;
       }, function () {
+        _resetTurnstile();
         if (_controller === controller) {
           _controller = null;
         }
@@ -231,6 +308,9 @@
     if (_controller) {
       try { _controller.abort(); } catch (_) { /* noop */ }
       _controller = null;
+    }
+    if (window.CitizenTurnstile && typeof window.CitizenTurnstile.cancel === "function") {
+      try { window.CitizenTurnstile.cancel(); } catch (_) { /* noop */ }
     }
   }
 
