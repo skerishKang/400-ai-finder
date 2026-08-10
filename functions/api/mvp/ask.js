@@ -1057,6 +1057,56 @@ function clampConfidence(value, fallback) {
     : fallback;
 }
 
+function safeTokenCount(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+export function extractProviderTokenUsage(data) {
+  const usage = data && typeof data === 'object' && data.usage && typeof data.usage === 'object'
+    ? data.usage
+    : null;
+  if (!usage) return null;
+
+  // OpenAI-compatible Chat Completions commonly reports prompt/completion,
+  // while Gemini Interactions reports total_input/total_output. Normalize both
+  // into one operator-owned vocabulary without copying arbitrary usage fields.
+  const inputTokens = safeTokenCount(
+    usage.total_input_tokens ?? usage.input_tokens ?? usage.prompt_tokens,
+  );
+  const outputTokens = safeTokenCount(
+    usage.total_output_tokens ?? usage.output_tokens ?? usage.completion_tokens,
+  );
+  let totalTokens = safeTokenCount(usage.total_tokens);
+  if (totalTokens === null && inputTokens !== null && outputTokens !== null) {
+    totalTokens = inputTokens + outputTokens;
+  }
+
+  const reasoningTokens = safeTokenCount(
+    usage.total_thought_tokens ??
+      (usage.output_tokens_details && usage.output_tokens_details.reasoning_tokens) ??
+      (usage.completion_tokens_details && usage.completion_tokens_details.reasoning_tokens),
+  );
+  const cachedTokens = safeTokenCount(
+    usage.total_cached_tokens ??
+      (usage.prompt_tokens_details && usage.prompt_tokens_details.cached_tokens) ??
+      (usage.input_tokens_details && usage.input_tokens_details.cached_tokens),
+  );
+  const toolUseTokens = safeTokenCount(usage.total_tool_use_tokens);
+
+  if (inputTokens === null && outputTokens === null && totalTokens === null &&
+      reasoningTokens === null && cachedTokens === null && toolUseTokens === null) {
+    return null;
+  }
+  return {
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: totalTokens,
+    reasoning_tokens: reasoningTokens,
+    cached_tokens: cachedTokens,
+    tool_use_tokens: toolUseTokens,
+  };
+}
+
 function parseAnswerText(rawText) {
   const raw = String(rawText || '').trim();
   if (!raw) return { answer: '', action: 'none', confidence: 0.0 };
@@ -1184,6 +1234,7 @@ async function requestOpenAICompatible(config, question, currentTime, officialCo
     sourceUrl: officialContext.sourceUrl,
     searchQueries: officialContext.searchQueries,
     usedReasoning: parsed.usedReasoning,
+    tokenUsage: extractProviderTokenUsage(data),
   };
 }
 
@@ -1242,6 +1293,7 @@ async function requestGeminiInteractions(config, question, currentTime, official
     sourceUrl: primarySource,
     searchQueries: mergeQueries(officialContext.searchQueries, parsed.searchQueries),
     usedReasoning: false,
+    tokenUsage: extractProviderTokenUsage(data),
   };
 }
 
@@ -1312,6 +1364,7 @@ export async function onRequest(context) {
       ai_mode_reason: runtimeMode.reason,
       disabled_providers: disabledProviders.slice(),
     };
+    if (payload && payload.token_usage) meta.token_usage = payload.token_usage;
     const decorated = Object.assign({}, payload, {
       request_id: requestId,
       schema_version: API_SCHEMA_VERSION,
@@ -1336,7 +1389,7 @@ export async function onRequest(context) {
     return Math.min(providerTimeoutMs, remainingRequestBudgetMs());
   }
 
-  function recordProviderAttempt(config, attemptKind, outcome, started, timeoutMs) {
+  function recordProviderAttempt(config, attemptKind, outcome, started, timeoutMs, tokenUsage = null) {
     providerAttempts.push({
       provider: config.provider,
       model: config.model,
@@ -1344,6 +1397,7 @@ export async function onRequest(context) {
       outcome,
       latency_ms: Math.max(0, Date.now() - started),
       timeout_ms: timeoutMs,
+      token_usage: tokenUsage,
     });
   }
 
@@ -1480,6 +1534,7 @@ export async function onRequest(context) {
       canonical_sha256: officialContext.canonicalSha256 || '',
       // Provider-index fallback only; corrective retry does not set this true.
       fallback_used: providerIndex > 0,
+      token_usage: result.tokenUsage || null,
     };
   }
 
@@ -1530,6 +1585,7 @@ export async function onRequest(context) {
       result.ok ? 'success' : (result.failureCode || 'upstream_error'),
       primaryAttemptStarted,
       primaryAttemptTimeout,
+      result.tokenUsage || null,
     );
     if (!result.ok) {
       lastFailureCode = result.failureCode || 'upstream_error';
@@ -1577,6 +1633,7 @@ export async function onRequest(context) {
         corrected.ok ? 'success' : (corrected.failureCode || 'upstream_error'),
         correctionAttemptStarted,
         correctionAttemptTimeout,
+        corrected.tokenUsage || null,
       );
       if (corrected.ok) {
         const correctedAssessment = assessAnswerLocale(corrected.answer, requestLocale);
