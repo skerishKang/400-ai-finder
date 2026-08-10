@@ -291,6 +291,15 @@ def test_metadata_unknown_fail_closed():
         SiteSpecResolver().resolve_with_metadata("unknown_site")
 
 
+@pytest.mark.parametrize("identifier", ["", "   ", "\t\n"])
+def test_metadata_empty_or_whitespace_fail_closed(identifier):
+    # The metadata entrypoint itself must fail closed on empty/whitespace,
+    # not only the plain resolve() path.
+    resolver = SiteSpecResolver()
+    with pytest.raises(SiteSpecNotFoundError):
+        resolver.resolve_with_metadata(identifier)
+
+
 def test_metadata_malformed_fail_closed():
     with pytest.raises(SiteSpecNotFoundError):
         SiteSpecResolver().resolve_with_metadata("bukgu_gwangju/extra")
@@ -299,6 +308,13 @@ def test_metadata_malformed_fail_closed():
 def test_metadata_display_label_fail_closed():
     with pytest.raises(SiteSpecNotFoundError):
         SiteSpecResolver().resolve_with_metadata("북구청")
+
+
+def test_metadata_english_display_label_fail_closed():
+    # English display label must not be promoted to canonical/legacy runtime
+    # identity by the metadata API either.
+    with pytest.raises(SiteSpecNotFoundError):
+        SiteSpecResolver().resolve_with_metadata("Gwangju Buk-gu")
 
 
 def test_metadata_historical_alias_fail_closed():
