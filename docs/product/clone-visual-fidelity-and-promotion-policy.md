@@ -2,7 +2,7 @@
 
 ## 1. Purpose and scope
 
-This policy governs **visual fidelity review** and **resident-default promotion** for all cloned official-site surfaces in the 400-ai-finder product. It applies to every candidate renderer that presents an official-site fixture to the resident/user-facing product path.
+This policy governs **visual fidelity review** and **resident-default promotion** for cloned official-site surfaces in the 400-ai-finder product. It defines the boundary between a non-default generated/preview candidate and a surface that is being promoted as an approved resident-facing clone.
 
 The policy establishes:
 
@@ -11,8 +11,11 @@ The policy establishes:
 - Required evidence, viewport coverage, and human approval authority
 - Bounded maintenance rules that preserve approved baselines under narrow conditions
 - Rollback and erratum procedures
+- A non-promoted `generated_preview` state that cannot be confused with visual approval or resident-default status
 
 This policy supplements the [exact-official-site-clone-invariant](./exact-official-site-clone-invariant.md). The invariant defines what an exact clone **is**; this policy defines how a renderer **becomes** an approved resident-facing clone.
+
+A `generated_preview` is not an exact clone claim and is not a resident-default approval. If a generated preview is later proposed for exact or resident-default promotion, the applicable exact-clone and visual-promotion requirements apply in full.
 
 ## 2. Governing principle
 
@@ -20,9 +23,27 @@ A structurally complete fixture or renderer is **not** automatically an approved
 
 CI evidence, automated screenshots, model review, and developer self-review are necessary evidence but **cannot grant first-promotion approval**. Only a human project owner performing a documented side-by-side visual review can authorize first promotion.
 
+Generated onboarding may produce a non-default preview/debug surface before that approval. Such a surface must remain clearly identified as `generated_preview`, must report unresolved/low-confidence items, and must not control the resident-default route.
+
 ## 3. Readiness dimensions
 
-The following dimensions are **independent**. Progress in one does not imply progress in another. All dimensions must be independently evaluated and their states recorded. Only `resident_default_approved` confers control of the ordinary resident-facing default route. Incomplete dimensions must be disclosed in the approval record and PR body; they do not block evaluation but do block promotion until the promotion criteria are satisfied.
+The following dimensions are **independent**. Progress in one does not imply progress in another. All dimensions applicable to a requested promotion must be independently evaluated and their states recorded. Only `resident_default_approved` confers control of the ordinary resident-facing default route. Incomplete dimensions must be disclosed in the approval record and PR body; they do not block evaluation but do block promotion until the promotion criteria are satisfied.
+
+### 3.0 Generated preview state
+
+A generated onboarding candidate may exist before visual promotion review.
+
+**State:** `generated_preview`
+
+Rules:
+
+- preview/debug route only;
+- no `exact` claim;
+- no `resident_default_approved` claim;
+- no automatic replacement of an approved resident-default route;
+- confidence, unsupported capability, unresolved asset/content and exception state must remain visible in the onboarding evidence;
+- automated screenshot/browser checks are evidence only, not first-promotion approval;
+- moving from `generated_preview` to an exact or resident-default claim requires the applicable readiness and promotion requirements below.
 
 ### 3.1 Capture completeness
 
@@ -66,6 +87,7 @@ Terms **must not** be treated as interchangeable:
 
 | Term | Meaning |
 |------|---------|
+| `generated_preview` | Non-default onboarding/debug candidate; not exact and not visually approved |
 | `capture_required` | Incomplete capture; route not yet fixture-ready |
 | `capture_ready` | Capture complete for the scoped route set |
 | `structure_ready` | Structural/content parity achieved; visual fidelity not established |
@@ -77,11 +99,14 @@ Terms **must not** be treated as interchangeable:
 | `resident_default_approved` | Full approval granted; renderer serves as resident-facing default |
 | `exact` | Reserved for routes that satisfy all applicable exact-clone dimensions plus resident-default approval |
 
+`generated_preview` is **not** a synonym for `capture_ready`, `structure_ready`, `visual_review_approved`, `resident_default_approved`, or `exact`.
+
 `exact` is **not** a synonym for "structurally complete" or "textually complete." `resident_default_approved` is a visual promotion state; `exact` additionally requires all applicable exact-clone dimensions to be satisfied. A route that is `capture_required` can never be `exact`.
 
 ## 5. Fail-closed state model
 
 - Without visual approval, a candidate renderer exists **only** on the preview/debug route.
+- `generated_preview` may be created and evaluated on that preview/debug route, but it is not a promotion decision.
 - Without a complete or valid approval record, the renderer **must not** be promoted to resident default.
 - A candidate that substitutes unresolved official imagery with generic cards, emoji, or arbitrary placeholders is **not** an exact approved clone.
 - Generating a screenshot is **not** approval.
@@ -99,9 +124,11 @@ Each approved baseline requires:
 
 The accepted reference is **owned** by the project owner. The reference must be an unmodified capture of the official site at a known point in time.
 
+A generated preview that has not entered promotion review does not create or supersede an approved baseline.
+
 ## 7. Required viewport evidence
 
-Visual comparison evidence must cover at minimum the following viewports and states for home-like routes:
+Visual comparison evidence for first promotion or other cases that require visual approval must cover at minimum the following viewports and states for home-like routes:
 
 1. **1440×900 full-width / default state**
 2. **1440×900 desktop split state**
@@ -111,6 +138,8 @@ Visual comparison evidence must cover at minimum the following viewports and sta
 If a route has both entry and guidance mobile states with visibly different compositions, both must be captured. Where a given state does not exist for a particular route, N/A with an explicit reason is permitted.
 
 Additional viewports may be required by the project owner for routes with specific responsive behavior. The `1440×1000` viewport may be retained as a supplemental viewport but does not replace the required viewports above.
+
+Gate G1/generated-preview automated screenshots may use a different bounded QA matrix, but those screenshots do not satisfy or waive the first-promotion viewport requirements. If that preview later enters promotion review, the required promotion evidence must be produced.
 
 ## 8. Side-by-side visual review
 
@@ -140,6 +169,8 @@ Differences must be classified as:
 | Automated screenshot diff tool | **No** — evidence contributor only |
 | Third-party reviewer | **No** — may assist evidence collection and analysis but cannot grant approval |
 
+Creating or reviewing a `generated_preview` is not an approval action and grants no resident-default authority.
+
 ## 10. Approved renderer identity and SHA
 
 The approval record must capture:
@@ -160,13 +191,17 @@ After approval, drift is detected by:
 
 Drift requiring re-approval: any material difference not covered by bounded maintenance (§15).
 
+Generated previews that have never been approved do not become rollback baselines and do not supersede an approved baseline.
+
 ## 12. Preview/debug route versus resident-default route
 
 Every candidate renderer must be accessible via a **preview/debug route** before and during visual review. The preview route:
 
 - Is **not** the resident-facing product entry point
-- May display diagnostic overlays, fixture boundaries, or version labels
-- Must be accessible without authentication (on localhost or CI preview deploy)
+- May display diagnostic overlays, fixture boundaries, confidence, exception or version labels
+- Must be accessible without authentication (on localhost or CI preview deploy) when the repository's applicable preview environment supports that mode
+
+A routine onboarding `generated_preview` remains on this side of the boundary. Its existence is evidence that generation ran, not evidence that promotion occurred.
 
 Promotion to the resident-default route removes preview-only affordances and sets the renderer as the primary citizen surface.
 
@@ -178,6 +213,7 @@ Promotion to the resident-default route removes preview-only affordances and set
 - Fixture metadata may record unresolved assets (e.g., `data-source-asset-url`).
 - The renderer must fail closed when unresolved assets would cause visual degradation in the resident-facing path.
 - A renderer with unresolved official assets is **not** an exact approved clone and **cannot** be approved as resident-default until those assets are resolved or a documented exemption is granted by the project owner.
+- A `generated_preview` may report unresolved assets as exceptions, but unresolved preview state cannot be used to claim exact or resident-default approval.
 
 ## 14. First promotion
 
@@ -191,6 +227,8 @@ First promotion of any renderer to the resident-default route requires:
 6. Evidence-bearing PR (§16)
 
 Without these, the candidate **must not** be promoted.
+
+A `generated_preview` does not bypass any item above. Promotion review starts when a candidate is explicitly proposed for resident-default or exact-approved status.
 
 ## 15. Bounded maintenance changes
 
@@ -253,6 +291,8 @@ Every PR that proposes a visual change to an approved renderer or first-time pro
 - **Docs-only, policy-only, non-visual changes**: `N/A` is permitted with an explicit reason.
 - Asserting "deterministic output" or "no visual difference expected" alone is **insufficient** to waive evidence — automated comparison or baseline proof must be provided.
 
+A routine Gate G1 `generated_preview` that is not changing an approved renderer and is not requesting first promotion follows the onboarding report/automated-QA contract instead of pretending to satisfy this promotion evidence table. If it later requests promotion, this section becomes applicable and its required evidence must be supplied.
+
 ## 17. Artifact storage and naming
 
 Visual approval artifacts are stored under:
@@ -284,6 +324,8 @@ approval.md
 
 This PR (#1199) does **not** create or commit any screenshot binaries; it codifies the storage rule only.
 
+Generated previews that are not in promotion review do not create an `approval.md`; their evidence belongs to the onboarding/QA artifact path defined by the onboarding pipeline when implemented. This policy does not invent that future path.
+
 ## 18. Approval record
 
 `approval.md` must contain:
@@ -304,6 +346,8 @@ This PR (#1199) does **not** create or commit any screenshot binaries; it codifi
 | superseded approval | Link to prior approval.md if replacing an existing baseline |
 | rollback identity | Renderer identity to revert to if rollback is needed |
 
+A generated preview has no approval authority and must not fabricate an approval record.
+
 ## 19. Superseding an approved baseline
 
 To replace an existing approved baseline:
@@ -312,6 +356,8 @@ To replace an existing approved baseline:
 2. The new approval record must reference the superseded approval record
 3. The old approval record is retained (not deleted) with a note that it is superseded
 4. The rollback identity in the new record points to the superseded renderer
+
+A generated preview cannot supersede an approved baseline by generation alone.
 
 ## 20. Rollback procedure
 
@@ -343,7 +389,7 @@ When an approved state is found to have been reached without proper process, or 
 | Issue | Relationship |
 |-------|-------------|
 | #1080 | Exact fixture long-term program. This policy defines the visual approval gate that #1080-expanded fixtures must pass before promotion. |
-| #1181 | Multi-site platform strategy. This policy applies to every site onboarded under #1181. Visual fidelity gate is independent of site count; multi-site reuse does not weaken it. The clone-first strategy document (`./clone-first-general-site-platform-strategy.md`) expands on this relationship. |
+| #1181 | Multi-site platform strategy. Generated onboarding may create non-default preview/debug candidates, but multi-site reuse does not grant visual approval. Any candidate promoted to resident-default or exact-approved status must pass this policy. The clone-first strategy document (`./clone-first-general-site-platform-strategy.md`) expands on this relationship. |
 | #1197 | Restoration of the approved home composition (PR #1200, SHA `87db3e1ce7d01646a8fc0e8eed6ce2fc63b7ebaa`). Completed recovery work. This policy codifies the gate that was missing when the #1197 restoration became necessary. |
 | #1198 | Permanent visual approval gate (automated/repository promotion gate). This policy defines the human-process rules; #1198 tracks the automated/repository tooling to enforce and record them. |
 | #1199 | Policy and document governance (this issue). Establishes this document, the exact-clone invariant additions, the document inventory, the #1170 erratum, and the PR template. |
