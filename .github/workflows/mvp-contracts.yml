@@ -32,7 +32,8 @@ jobs:
             tests/test_citizen_first_use_shell.py \
             tests/test_citizen_sitespec_parity.py \
             tests/test_citizen_action_demo_chat_shell_contract.py \
-            tests/test_citizen_action_demo_canvas.py
+            tests/test_citizen_action_demo_canvas.py \
+            tests/test_shared_runtime_vocabulary_contract.py
 
       - name: Run legacy requests transport contract tests
         run: python -m pytest -q tests/test_legacy_requests_transport.py
