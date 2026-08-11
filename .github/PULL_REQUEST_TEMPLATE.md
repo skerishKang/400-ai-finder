@@ -75,7 +75,7 @@ External targets, methods and limits:
 ## Data, privacy and secrets
 
 - [ ] No API key·token·credential committed
-- [ ] No raw citizen transcript or unnecessary PII
+- [ ] No raw citizen transcript or PII
 - [ ] No customer·institution private data
 - [ ] Test data is synthetic or approved public fixture
 - [ ] New fixture/asset includes source, date, checksum and provenance
