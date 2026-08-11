@@ -282,23 +282,33 @@ def resolve_site_id_with_metadata(
 
 _JURISDICTION_RESOLUTION_KINDS = frozenset({"canonical", "historical_alias"})
 
+_JURISDICTION_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
 
 def _parse_jurisdiction_date(value: Any, field: str) -> date:
-    """Parse a ``YYYY-MM-DD`` string with stdlib calendar validation.
+    """Parse a ``YYYY-MM-DD`` string with two-stage fail-closed validation.
 
-    Uses :func:`datetime.date.fromisoformat`, so impossible calendar dates
-    such as ``2026-02-30`` raise ``ValueError`` and are rejected here as
-    fail-closed.
+    Stage 1 (lexical shape): the value must match exactly ``YYYY-MM-DD``.
+    This rejects compact ISO (``20260701``) and ISO week-date (``2026-W27-3``)
+    forms that ``date.fromisoformat`` would otherwise accept on Python 3.11+.
+
+    Stage 2 (calendar validity): ``date.fromisoformat`` validates that the
+    date is a real calendar date, so impossible dates such as ``2026-02-30``
+    raise ``ValueError`` and are rejected here as fail-closed.
     """
     if not isinstance(value, str):
         raise JurisdictionResolutionError(
             f"{field} must be a string, got {type(value).__name__}"
         )
+    if not _JURISDICTION_DATE_RE.match(value):
+        raise JurisdictionResolutionError(
+            f"{field} must be exactly YYYY-MM-DD, got {value!r}"
+        )
     try:
         return date.fromisoformat(value)
     except ValueError:
         raise JurisdictionResolutionError(
-            f"{field} is not a valid ISO calendar date: {value!r}"
+            f"{field} is not a valid calendar date: {value!r}"
         )
 
 

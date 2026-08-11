@@ -218,6 +218,8 @@ class TestInvalidInput:
         "26-07-01",
         "20261301",
         "abcd-ef-gh",
+        "20260701",
+        "2026-W27-3",
     ])
     def test_malformed_as_of_fail_closed(self, bad_as_of):
         spec = _load_sitespec()
@@ -228,6 +230,20 @@ class TestInvalidInput:
         spec = _load_sitespec()
         with pytest.raises(JurisdictionResolutionError):
             resolve_jurisdiction_at(spec, 20260701)  # type: ignore[arg-type]
+
+    @pytest.mark.parametrize("strict_reject", [
+        "20260701",
+        "2026-W27-3",
+    ])
+    def test_strict_lexical_reject_as_of(self, strict_reject):
+        """Python 3.11 date.fromisoformat accepts compact ISO and ISO week-date
+        forms; the resolver must reject them to honor the strict
+        YYYY-MM-DD contract."""
+        from datetime import date as _date
+        assert _date.fromisoformat(strict_reject)  # proof it parses
+        spec = _load_sitespec()
+        with pytest.raises(JurisdictionResolutionError):
+            resolve_jurisdiction_at(spec, strict_reject)
 
     @pytest.mark.parametrize("bad_date", [
         "2026-02-30",
@@ -267,6 +283,41 @@ class TestInvalidInput:
         )
         with pytest.raises(JurisdictionResolutionError):
             resolve_jurisdiction_at(doc, "2026-06-30")
+
+    @pytest.mark.parametrize("strict_reject", [
+        "20260701",
+        "2026-W27-3",
+    ])
+    def test_strict_lexical_reject_canonical_effective_from(self, tmp_path, strict_reject):
+        """Canonical effective_from must be strictly YYYY-MM-DD; compact ISO
+        and ISO week-date forms are rejected."""
+        doc = _write_sitespec(
+            tmp_path,
+            site_id="strict_from",
+            legacy_ids=[],
+            effective_from=strict_reject,
+            historical_aliases=[
+                {"value": "Old", "effective_until": "2026-06-30"},
+            ],
+        )
+        with pytest.raises(JurisdictionResolutionError):
+            resolve_jurisdiction_at(doc, "2026-07-01")
+
+    def test_strict_lexical_reject_historical_effective_until(self, tmp_path):
+        """Historical effective_until must be strictly YYYY-MM-DD; compact ISO
+        and ISO week-date forms are rejected."""
+        for bad_form in ("20260630", "2026-W26-2"):
+            doc = _write_sitespec(
+                tmp_path,
+                site_id=f"strict_alias_{bad_form}",
+                legacy_ids=[],
+                effective_from="2026-07-01",
+                historical_aliases=[
+                    {"value": "Old", "effective_until": bad_form},
+                ],
+            )
+            with pytest.raises(JurisdictionResolutionError):
+                resolve_jurisdiction_at(doc, "2026-06-30")
 
     def test_malformed_historical_effective_until_fail_closed(self, tmp_path):
         doc = _write_sitespec(

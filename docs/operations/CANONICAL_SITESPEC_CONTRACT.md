@@ -402,7 +402,7 @@ converts to `JurisdictionResolutionError`.
    array-order dependence are prohibited. The current schema has no
    historical `effective_from`, so overlapping `effective_until` ranges
    cannot be disambiguated.
-7. Overload: if any historical alias `effective_until >= canonical
+7. Overlap: if any historical alias `effective_until >= canonical
    effective_from`, the timeline is canonically/historically overlapping →
    fail-closed.
 8. Malformed effective dates (canonical or historical) → fail-closed.
