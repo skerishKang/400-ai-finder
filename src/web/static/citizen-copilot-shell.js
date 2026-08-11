@@ -200,6 +200,51 @@
   }
 
   // -----------------------------------------------------------------------
+  // #1276 final-confirmation edit re-entry
+  // -----------------------------------------------------------------------
+  // The final decision card is rendered later by citizen-first-choreography.js.
+  // Its legacy secondary button has an inline cancel() handler. Capture that
+  // click only while choreography is waiting for final confirmation so
+  // "수정할게요" means edit/review, not terminal journey cancellation.
+  // Keeping waiting_confirmation preserves the active journey/index; after the
+  // resident edits the local form, the existing primary confirmation can safely
+  // re-read the edited DOM values and continue the same pre-submit simulation.
+  document.addEventListener("click", function (e) {
+    var button = e.target && e.target.closest
+      ? e.target.closest(
+        ".chat-msg--decision .chat-decision__button--secondary"
+      )
+      : null;
+    if (!button) { return; }
+
+    var choreography = window.CitizenFirstChoreography;
+    if (
+      !choreography ||
+      !choreography.states ||
+      typeof choreography.getState !== "function" ||
+      choreography.getState() !== choreography.states.waiting_confirmation
+    ) {
+      return;
+    }
+
+    // Stop the legacy inline cancel() before the event reaches the button.
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    button.setAttribute("data-edit-reentry", "true");
+
+    // Move focus back to the local writing form without changing state,
+    // navigation, persistence, or network behavior.
+    var demo = document.getElementById("demo-canvas");
+    var editor = demo && (
+      demo.querySelector("#mayor-write-title") ||
+      demo.querySelector("#board-write-title")
+    );
+    if (editor && typeof editor.focus === "function") {
+      editor.focus();
+    }
+  }, true);
+
+  // -----------------------------------------------------------------------
   // Demo canvas buttons — visual simulation only
   // -----------------------------------------------------------------------
   var _canvasBtnPrefill = document.getElementById("canvas-btn-prefill");
