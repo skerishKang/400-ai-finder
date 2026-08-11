@@ -2,11 +2,13 @@
 
 Status: **canonical operational contract**
 
+Current-truth sync date: **2026-08-12**
+
 Related canonical site-fidelity invariant: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md).
 
-This document defines the public/runtime compatibility boundary for the Cloudflare Pages Function at `POST /api/mvp/ask`. It covers schema/version metadata, failure semantics, provider-attempt telemetry, privacy-safe structured logging, runtime kill switches, and token/cost reporting.
+This document defines the public/runtime compatibility boundary for the Cloudflare Pages Function at `POST /api/mvp/ask`. It covers schema/version metadata, failure semantics, provider/model-attempt telemetry, privacy-safe structured logging, runtime kill switches, and token/cost reporting.
 
-It does **not** authorize live provider testing, live official-site retrieval, or storage of resident prompts/responses.
+It does **not** authorize live provider testing, live official-site retrieval, storage of resident prompts/responses, or any Production environment mutation.
 
 ## 1. Version fields
 
@@ -83,7 +85,7 @@ Current runtime failure-code vocabulary includes:
 - `session_id` is a pseudonymous correlation/rate-limit input, not authentication, and its raw value is not emitted in runtime metadata/logs;
 - resident-ID-like input fails closed before provider execution; phone/email/precise-address-like spans are redacted before provider execution.
 
-The new ingress/privacy failures are non-retryable. Later #1224 rate-limit, challenge-verification, durable budget, and infrastructure controls must add their own documented status + `failure_code` mappings before deployment.
+The ingress/privacy failures are non-retryable. Historical #1224 durable rate-limit, challenge-verification, budget and infrastructure controls remain separate live-public concerns; this document sync does not claim those deployment gates are active.
 
 #1226-A adds a concrete-value evidence gate after locale validation and before provider-result selection. Covered phone numbers, HTTP(S) URLs, clock times, bounded KRW/USD/EUR amounts, and explicit calendar dates are allowed only when every unambiguous detected value has the same normalized semantic identity in declared verified `canonical_snapshot` or `verified_live_source` evidence. Currency identity, meridiem meaning, URL fragment identity, and bounded phone/date normalization are preserved. Ambiguous concrete syntax is detected and fails closed instead of being guessed. `model_only`, unknown evidence levels (including historical `live_official`), unavailable snapshot state, and supplementary official-domain citations are insufficient on their own. A blocked draft returns non-retryable `evidence_required`, preserves canonical source/provenance when available, and never exposes the blocked provider value in fallback, policy metadata, or sanitized logs. The detailed contract is [`MVP_CONCRETE_EVIDENCE_POLICY.md`](MVP_CONCRETE_EVIDENCE_POLICY.md).
 
@@ -105,21 +107,60 @@ Neither identifier is derived from resident content.
 Defaults:
 
 - total request deadline: 20,000 ms;
-- per-provider deadline: 8,000 ms;
+- per-provider/model-attempt deadline: 8,000 ms;
 - overrides are bounded between 10 ms and 60,000 ms.
 
-Provider fetches use `AbortController`. A provider deadline or exhausted overall deadline produces `upstream_timeout`; fallback is attempted only while the total request budget remains.
+Provider fetches use `AbortController`. A provider/model attempt timeout or exhausted overall deadline produces `upstream_timeout` as applicable.
 
-Timeouts are explicitly represented in provider-attempt telemetry with `timed_out:true`.
+**The total request deadline is shared across the whole attempt plan.** Gemini 3.5, Gemini 3.1, an optional explicit later provider and any bounded locale correction do not each receive a fresh total-request budget. A later attempt runs only while sufficient request budget remains.
 
-## 5. Provider-attempt telemetry
+Timeouts are explicitly represented in attempt telemetry with `timed_out:true`.
 
-Each attempted provider call records a sanitized event with:
+## 5. Current provider/model attempt plan
+
+### 5.1 Default resident provider order
+
+Current code-owned defaults:
+
+- supported providers: `gemini`, `hy3`;
+- default provider order: `gemini` only;
+- Gemini primary model: `gemini-3.5-flash-lite`;
+- Gemini same-provider fallback model: `gemini-3.1-flash-lite`;
+- Hy3 remains supported/legacy optional code but is **not** a default fallback provider.
+
+The normal attempt plan is therefore:
+
+```text
+Gemini / gemini-3.5-flash-lite
+  -> on retryable/eligible model-attempt failure, while total budget remains
+Gemini / gemini-3.1-flash-lite
+  -> only if MVP_LLM_ORDER explicitly includes another provider and policy permits
+optional explicit later provider (currently Hy3 support remains available)
+```
+
+Gemini primary and fallback use the same provider identity, Google API key and API-style/endpoint policy. Environment names:
+
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL` — optional primary model override
+- `GEMINI_FALLBACK_MODEL` — optional fallback model override
+
+Repository defaults do **not** prove the actual deployed environment values. A Production environment with an existing model override can select a different configured model until that environment is separately inspected/changed under deployment authorization.
+
+### 5.2 Evidence and correction boundaries
+
+- `evidence_required` fails closed immediately. A concrete-evidence rejection is not retried on Gemini 3.1 or another provider to evade the evidence gate.
+- Locale correction has one **global correction budget** across the whole request, not one correction per model/provider attempt.
+- A same-model locale corrective retry does not by itself set `fallback_used:true` because it remains on the same model-plan index.
+- Any successful plan attempt beyond the first — including Gemini 3.1 same-provider fallback or a later explicit provider — sets `fallback_used:true`.
+
+## 6. Provider/model-attempt telemetry
+
+Each attempted model/provider call records a sanitized event with:
 
 - `ordinal`
 - `provider`
 - `model`
-- `attempt` (`primary` or `locale_correction`)
+- `attempt`
 - `outcome`
 - `timed_out`
 - `selected`
@@ -130,18 +171,36 @@ Each attempted provider call records a sanitized event with:
 - `cost_status`
 - `estimated_cost_usd`
 
-Selection reasons currently include:
+Current first-call `attempt` kinds include:
+
+- `primary`
+- `model_fallback`
+- `provider_fallback`
+
+A bounded corrective call records `attempt: locale_correction`.
+
+Current selection reasons include:
 
 - `primary_provider`
+- `model_fallback`
+- `model_fallback_corrective_retry`
 - `provider_fallback`
-- `corrective_retry`
 - `provider_fallback_corrective_retry`
+- `corrective_retry`
 - `locale_mismatch_rejected` for a non-selected locale-mismatched attempt
 - `evidence_policy_rejected` for a non-selected concrete-evidence rejection
+- deterministic paths may use their own explicit reason such as `deterministic_official_snapshot`
 
-A locale-mismatched provider response is not recorded as a successful selected attempt merely because the HTTP/provider call succeeded. An evidence-rejected attempt records `outcome:evidence_required`, remains `selected:false`, and terminates provider fallback for that request instead of retrying another provider to evade the gate.
+The terms are intentional:
 
-## 6. Token and cost semantics
+- `model_fallback` means another model under the same provider identity;
+- `provider_fallback` means a later provider;
+- `corrective_retry` means the bounded locale correction on the primary attempt;
+- model/provider fallback corrective reasons retain both dimensions.
+
+A locale-mismatched provider response is not recorded as a successful selected attempt merely because the HTTP/provider call succeeded. An evidence-rejected attempt records `outcome:evidence_required`, remains `selected:false`, records `evidence_policy_rejected`, and terminates the attempt plan for that request instead of trying another model/provider to evade the gate.
+
+## 7. Token and cost semantics
 
 Provider token usage is normalized only from provider-reported non-negative safe integers. Supported normalized fields are:
 
@@ -166,7 +225,7 @@ The runtime does **not** hard-code provider prices and does not infer cost from 
 
 is the canonical cost state. `null` means unavailable, not zero cost.
 
-## 7. Structured logging and privacy
+## 8. Structured logging and privacy
 
 Runtime structured logs are enabled by default and can be suppressed for controlled tests with `MVP_RUNTIME_LOGS=0`.
 
@@ -195,11 +254,11 @@ It MUST NOT include by default:
 
 Logging failure is fail-soft: inability to write an operator log must not break the resident-facing response.
 
-## 8. Runtime kill switches
+## 9. Runtime kill switches
 
 `MVP_AI_MODE` supports:
 
-- `enabled` — normal configured provider flow;
+- `enabled` — normal configured attempt flow;
 - `snapshot_only` — no model provider call; only canonical official snapshot metadata may be returned;
 - `disabled` — all AI provider work stopped.
 
@@ -210,20 +269,34 @@ Provider-specific emergency switches:
 - `MVP_DISABLE_GEMINI`
 - `MVP_DISABLE_HY3`
 
-Any non-empty value other than explicit `0` disables that provider. If all configured providers are disabled, the request fails closed without a provider fetch.
+Any non-empty value other than explicit `0` disables that provider. Disabling Gemini skips both Gemini primary and same-provider fallback attempts. If all configured providers are disabled, the request fails closed without a provider fetch.
 
-## 9. Change review checklist
+## 10. Deterministic and evidence-first paths
+
+Provider/model fallback is not the first choice for every question.
+
+The current runtime may serve deterministic canonical snapshot paths without a provider call. For example, the current Buk-gu office-holder query path is snapshot-backed and reports an explicit deterministic selection reason. Deterministic action/snapshot behavior remains separate from model selection.
+
+The same principle applies to safety/evidence boundaries:
+
+- privacy rejection occurs before provider execution;
+- `snapshot_only` performs no model provider call;
+- `disabled` performs no model provider call;
+- concrete evidence rejection cannot be bypassed by moving to another model/provider.
+
+## 11. Change review checklist
 
 Any PR changing `/api/mvp/ask` public/runtime semantics must answer:
 
 1. Does the response schema add/remove/rename/retype a field?
 2. Does `failure_code` or HTTP status meaning change?
 3. Does system/corrective prompt behavior materially change?
-4. Does provider selection/fallback behavior change?
-5. Does a new log field contain resident/model/provider raw content?
-6. Does token/cost reporting remain provider-reported or explicitly versioned?
-7. Are browser bridge compatibility and failure envelopes preserved?
-8. Are timeout, fallback, kill-switch, locale, privacy, and concrete-evidence contracts covered by offline tests?
-9. Does each version field change only with its owning contract rather than by direct alias to an unrelated module version?
+4. Does provider order, primary/fallback model or attempt-plan behavior change?
+5. Does selection-reason or `fallback_used` meaning change?
+6. Does a new log field contain resident/model/provider raw content?
+7. Does token/cost reporting remain provider-reported or explicitly versioned?
+8. Are browser bridge compatibility and failure envelopes preserved?
+9. Are timeout, model/provider fallback, global corrective retry, kill-switch, locale, privacy, and concrete-evidence contracts covered by offline tests?
+10. Does each version field change only with its owning contract rather than by direct alias to an unrelated module version?
 
-Do not perform live provider/network validation merely to satisfy this checklist. Live validation requires its own controlled stage and explicit authorization.
+Do not perform live provider/network validation merely to satisfy this checklist. Live validation requires its own controlled stage and explicit authorization. Routine CI remains network/provider independent.

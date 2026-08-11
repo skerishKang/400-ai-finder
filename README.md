@@ -1,70 +1,82 @@
 # 400-ai-finder
 
-> **현재 상태 — 2026-08-04**
+> **현재 상태 — 2026-08-12**
 >
-> 이 저장소는 북구 golden clone, 공식 snapshot provenance, 결정형 시민 여정, 다국어 검증, Cloudflare AI API와 Page Agent 비교를 갖춘 **통제형 고급 MVP**입니다. 실제 시민 대상 상시 운영과 범용 다기관 플랫폼 전환은 아직 운영안전·근거정책·단일 원본·다기관 검증이 필요한 단계입니다.
+> Buk-gu Frozen Demo는 완료되었고 북구는 첫 번째 protected golden reference입니다. 현재 제품 방향은 **general-site / multi-site AI Browser platform**으로 다시 열렸습니다. 다만 URL 하나만으로 arbitrary site의 Site Model·generated preview·knowledge·action graph를 모두 만드는 generic onboarding runtime이 이미 완성됐다고 주장하지 않습니다.
+
+## 제품 방향
+
+400-ai-finder의 장기 제품 형태는 단순 FAQ 챗봇이 아니라 다음과 같습니다.
+
+```text
+왼쪽: target website / clone / generated preview
+오른쪽: AI conversation / answer / navigation / bounded Browser Use
+```
+
+사이트마다 처음부터 bespoke 제품을 새로 만드는 대신 다음 흐름을 목표로 합니다.
+
+```text
+URL / SiteSpec
+  -> site discovery
+  -> archetype detection
+  -> capability detection
+  -> capture / route inventory
+  -> generic Site Model
+  -> generated preview
+  -> knowledge index
+  -> action graph / browser model
+  -> automated QA
+  -> exception queue
+  -> focused human review
+```
+
+초기 현실적 목표는 **70–80% supervised automation + explicit exceptions**입니다. `generated_preview`는 `exact`, `archetype_golden`, `resident_default_approved`, production approval과 같은 상태가 아닙니다.
 
 ## 먼저 읽을 문서
 
 - [현재 기준 문서 인덱스](docs/CURRENT_STATUS.md)
-- [2026-08-04 프로젝트 감사](docs/audit/PROJECT_AUDIT_20260804.md)
 - [제품 트랙과 운영경계](docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md)
 - [Unified Runtime과 canonical SiteSpec](docs/architecture/UNIFIED_RUNTIME_AND_SITESPEC.md)
+- [출시·온보딩 게이트](docs/implementation/RELEASE_GATES.md)
 - [공개 AI API 보안·개인정보 모델](docs/operations/PUBLIC_AI_API_SECURITY_AND_PRIVACY.md)
-- [구현 로드맵](docs/implementation/ROADMAP_20260804.md)
-- [출시 게이트](docs/implementation/RELEASE_GATES.md)
+- [MVP AI runtime contract](docs/operations/MVP_AI_RUNTIME_CONTRACT.md)
 - [저장소 거버넌스](docs/operations/REPOSITORY_GOVERNANCE.md)
 - [기여규칙](CONTRIBUTING.md)
 - [보안정책](SECURITY.md)
+- [2026-08-04 프로젝트 감사](docs/audit/PROJECT_AUDIT_20260804.md) — historical audit
+- [2026-08-04 구현 로드맵](docs/implementation/ROADMAP_20260804.md) — historical plan; 현재 실행순서로 사용하지 않음
 
 ## 현재 제품 판정
 
 | 영역 | 현재 상태 |
 |---|---|
-| 북구 clone·결정형 시민 여정 | Golden baseline과 회귀계약 보유 |
+| Buk-gu clone·결정형 시민 여정 | Frozen Demo complete; first protected golden reference |
 | 공식 fixture·snapshot | Provenance·checksum·시각정보 관리 |
 | 다국어·접근성·모바일 | 강한 contract·browser E2E 보유 |
-| Cloudflare live AI | 구현됨. 공개운영 보호장치는 추가 필요 |
-| 공식정보 answer-time freshness | Offline/mock foundation 이후 실제 live 후속 필요 |
-| Multi-site platform | Site registry foundation. 실제 3유형 onboarding 미완료 |
+| Cloudflare AI runtime code | 구현됨. Gemini default path는 3.5 primary → 3.1 same-provider fallback |
+| Live-public 운영승인 | 별도 durable abuse/cost/staging gate 없이 자동 승인되지 않음 |
+| 공식정보 answer-time freshness | canonical snapshot/evidence foundation 존재; 일반 live retrieval은 별도 승인경계 |
+| Multi-site platform | Site profile/SiteSpec/shared-contract foundation 존재; generic arbitrary-site onboarding runtime은 미완료 |
 | Actual public-site integration | 기관 권한·credentials·운영책임 전에는 미승인 |
-| 라이선스·공개자산 | Inventory와 소유자 결정 필요 |
+| 라이선스·공개자산 | Inventory 존재; owner/rights #1234 별도 결정 필요 |
 
-## 운영 전 P0
+## 현재 작업 프로그램
 
-- [#1224 공개 AI API rate limit·비용·개인정보·비상차단](https://github.com/skerishKang/400-ai-finder/issues/1224)
-- [#1225 canonical SiteSpec와 기관 identity 단일화](https://github.com/skerishKang/400-ai-finder/issues/1225)
-- [#1226 근거등급별 행정정보 응답정책](https://github.com/skerishKang/400-ai-finder/issues/1226)
-- [#1227 timeout·관측성·API schema·kill switch](https://github.com/skerishKang/400-ai-finder/issues/1227)
+- [#1283 post-Buk-gu multi-site AI Browser governance alignment](https://github.com/skerishKang/400-ai-finder/issues/1283) — platform implementation 전 current contract/governance 정렬
+- [#1234 code/official capture/third-party asset license & provenance](https://github.com/skerishKang/400-ai-finder/issues/1234) — 별도 owner/rights 결정
 
-총괄 프로그램: [#1235 통제형 북구 MVP에서 안전한 다기관 운영플랫폼으로 전환](https://github.com/skerishKang/400-ai-finder/issues/1235)
+완료·역사 계획인 #1235/#1181/#1232 등은 현재 `docs/CURRENT_STATUS.md`의 분류를 따릅니다. 과거 이슈 순서를 현재 개발순서로 그대로 재실행하지 않습니다.
 
 ## 현재 안전경계
 
-- 실제 민원 제출, 로그인, 결제와 production write action을 수행하지 않습니다.
+- 실제 민원 제출, 로그인, 결제와 production write action을 승인 없이 수행하지 않습니다.
 - 주민등록번호·계좌·상세주소 등 고위험 개인정보를 입력·저장하는 서비스로 승인되지 않았습니다.
 - 공식도메인 citation과 검증된 canonical snapshot을 같은 상태로 취급하지 않습니다.
 - 근거가 없는 연락처·기한·수수료·제출서류는 확정정보로 제공하면 안 됩니다.
 - routine CI는 외부 provider·공식사이트 network 없이 재현 가능해야 합니다.
-- 북구 golden route·DOM·state와 resident-default는 migration·visual approval 없이 변경하지 않습니다.
-
-## 권장 개발순서
-
-```text
-#1224 endpoint protection
-→ #1227 timeout·observability·kill switch
-→ #1226 evidence policy
-→ #1225 canonical SiteSpec
-→ #1228 shared runtime contracts
-→ #1231 CI quality gates
-→ #1229 Cloudflare Function modularization
-→ #1230 citizen shell modularization
-→ #1080 fixture·visual coverage
-→ #1150 freshness staging
-→ #1232 multi-site onboarding
-→ #1233 / #1234 repository·license governance
-→ #862 / #873 authorized first-party integration
-```
+- **URL supplied != live network authorized.** URL 제공은 대상 식별이며 live crawl/fetch/provider 실행은 별도 경계를 따릅니다.
+- Buk-gu golden route·DOM·state와 resident-default는 migration·applicable visual approval 없이 변경하지 않습니다.
+- generated onboarding preview는 approved resident-default를 자동으로 대체하지 않습니다.
 
 ---
 
@@ -80,21 +92,23 @@
 - 공지사항, 사업공고, 자료실, 첨부파일에 흩어진 정보를 통합 검색합니다.
 - 사용자가 해야 할 다음 행동을 단계별로 안내합니다.
 - 답변마다 출처 링크, 문서명, 게시일, 첨부파일명을 함께 제공합니다.
-- 초기 버전은 브라우저 확장프로그램 없이 작동합니다.
-- 장기적으로는 브라우저 확장프로그램 또는 기관 홈페이지 삽입형 위젯으로 확장합니다.
+- 왼쪽 사이트 surface와 오른쪽 AI 대화·탐색·Browser Use를 공통 제품 구조로 발전시킵니다.
+- 장기적으로 사이트별 차이는 archetype, capability, data/config, explicit reviewed override로 흡수하는 것을 목표로 합니다.
 
-## 초기 MVP 범위
+## 기존 Python/데모 기반 범위
 
 1. 사이트 프로필(YAML)로 기관을 정의하고, `--site-id` 인자로 대상 기관을 선택합니다.
 2. 메뉴 구조와 주요 게시판을 분석합니다.
 3. PDF, HWP/HWPX, DOCX, XLSX 등 첨부문서를 파싱합니다.
 4. 사용자 질문에 대해 관련 페이지와 문서를 찾아줍니다.
 5. 신청 절차, 제출서류, 기한, 담당자 정보를 안내합니다.
-
-> **좌측 시민 사이트 화면 철칙**: 왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않는다. (canonical: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md))
->
-> **Visual approval gate**: structurally complete fixture는 자동으로 resident-facing default가 될 수 없다. Resident-default promotion은 accepted reference와의 side-by-side 비교 및 project-owner의 명시적 승인이 필요하다. (policy: [docs/product/clone-visual-fidelity-and-promotion-policy.md](docs/product/clone-visual-fidelity-and-promotion-policy.md))
 6. 답변에 바로가기 링크와 근거를 포함합니다.
+
+> **Buk-gu golden / exact promotion 철칙**: 왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. `exact`를 주장하는 좌측 surface는 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않습니다. Canonical: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+>
+> **Generated preview 경계**: routine onboarding의 `generated_preview`는 non-exact/non-default 상태로 존재할 수 있지만 low-confidence·unsupported·unresolved 항목을 exception으로 드러내야 하며 resident-default를 자동으로 통제할 수 없습니다.
+>
+> **Visual approval gate**: first resident-default promotion은 applicable accepted reference와의 side-by-side 비교 및 project-owner의 명시적 승인을 따릅니다. Policy: [docs/product/clone-visual-fidelity-and-promotion-policy.md](docs/product/clone-visual-fidelity-and-promotion-policy.md)
 
 ## 프로젝트 구조
 
@@ -109,7 +123,7 @@
 ├── examples/                  # 예시 질문·답변·지도
 ├── presentation/              # 발표자료 (대상별 HTML/PPT)
 ├── prompts/                   # LLM 프롬프트 템플릿
-├── proposal/                  # 사업계획서·제안서
+├── proposal/                  # 사업계획서·제안서 초안
 ├── scripts/                   # 실행 스크립트 (데모, 파이프라인, 유틸리티)
 ├── src/
 │   ├── answer/                # AnswerComposer — 근거 기반 답변 생성
@@ -134,16 +148,19 @@
 ## 주요 기능 및 특징
 
 ### 🏛️ 다중 기관 지원 — 사이트 프로필 시스템
-- `configs/sites/` 아래 YAML 파일 하나로 새 기관을 추가할 수 있습니다.
-- 현재 지원 프로필:
+- `configs/sites/` 아래 YAML profile로 crawler/operator 대상 기관을 정의합니다.
+- 현재 configured YAML profile inventory:
 
 | site_id | 기관명 | 홈페이지 | 분류 |
 |---------|--------|----------|------|
 | `bukgu_gwangju` | 광주광역시 북구청 | https://bukgu.gwangju.kr/ | LEGACY_BOARD_SITE |
 | `gwangju_go_kr` | 광주광역시청 | https://www.gwangju.go.kr/ | LEGACY_BOARD_SITE |
+| `seogu_gwangju` | 광주광역시 서구청 | https://www.seogu.gwangju.kr/ | LEGACY_BOARD_SITE |
+
+YAML profile이 존재한다는 사실과 Cloudflare generic resident adapter가 완성됐다는 것은 다른 상태입니다. 현재 arbitrary site를 SiteSpec 하나로 end-to-end resident runtime에 자동 wiring하는 기능은 아직 완성되지 않았습니다.
 
 - CLI 또는 서버 실행 시 `--site-id`로 기본 대상 기관을 지정합니다.
-- 운영자 대시보드에서는 등록된 site profile 목록에서 북구청(`bukgu_gwangju`)과 광주광역시청(`gwangju_go_kr`)을 선택해 같은 대시보드에서 기관별 테스트를 전환할 수 있습니다.
+- 운영자 대시보드에서는 runtime에 등록된 site profile을 선택해 기관별 테스트를 전환할 수 있습니다.
 - 모바일 사용자 화면은 서버 실행 시 지정된 기본 기관을 유지하며, 운영자용 site 선택 UI를 노출하지 않습니다.
 
 ### 📱 모바일 ChatGPT형 사용자 UI (통합 실행: http://localhost:8400, 개별 실행: http://localhost:8080)
@@ -156,8 +173,8 @@
 
 ### 🖥️ 운영자 대시보드 (http://localhost:8090)
 - **서비스 및 사이트 정보 조회**: 현재 가동 중인 서비스명, 사이트 ID, 프로필 세부 사항 및 수집된 홈페이지 구조 요약(진단용 메타 요약)을 모니터링합니다.
-- **기관 선택 패널**: 등록된 site profile 목록에서 북구청(`bukgu_gwangju`)과 광주광역시청(`gwangju_go_kr`)을 선택해 같은 대시보드에서 기관별 테스트를 전환할 수 있습니다.
-- **LLM 모델 선택 패널**: 대시보드 화면에서 테스트용 LLM 프리셋 조합을 실시간으로 변경해가며 응답 품질을 비교·테스트할 수 있습니다.
+- **기관 선택 패널**: 등록된 site profile 목록에서 테스트 대상을 전환할 수 있습니다.
+- **LLM 모델 선택 패널**: Python/operator 데모에서는 테스트용 LLM 프리셋 조합을 실시간으로 변경해가며 응답 품질을 비교·테스트할 수 있습니다.
   - **DeepSeek 기본** (preset: `deepseek-primary` / model: `deepseek-v4-flash` / provider: `opencode-go`)
   - **MiMo 기본** (preset: `mimo-primary` / model: `mimo-v2.5-pro` / provider: `opengateway`)
   - **Step 기본** (preset: `step-primary` / model: `stepfun-ai/step-3.5-flash` / provider: `nvidia`)
@@ -165,10 +182,9 @@
 - API 응답에 `site_id`, `site_name`, `provider`, `model`, `preset` 정보가 포함되어 어떤 기관과 LLM 조합으로 응답했는지 즉시 확인할 수 있습니다.
 
 ### ⚙️ Model-First CLI 및 Preset 시스템
-- CLI 옵션을 명시하지 않을 경우 **DeepSeek 기본** 조합(`deepseek-primary`)이 자동 적용됩니다.
-- `--provider`, `--model`, `--preset` 인자를 통해 실행 시점에 유연하게 동적 재정의(override)할 수 있습니다.
-- 모델 이름만 지정하면 프리셋에 정의된 provider를 자동으로 찾아 연결합니다 (Model-First 해석).
-- 프리셋 순서: DeepSeek(1순위) → MiMo(2순위) → Step(3순위).
+- Python/operator CLI 옵션을 명시하지 않을 경우 해당 Python preset resolver의 기본 조합이 적용됩니다.
+- `--provider`, `--model`, `--preset` 인자를 통해 실행 시점에 동적 재정의(override)할 수 있습니다.
+- 이 Python/operator preset 체계와 Cloudflare `/api/mvp/ask`의 Gemini default attempt plan은 별도 runtime contract입니다.
 
 ### 🧪 StubProvider — API 키 없는 종단간 테스트
 - `stub` 프로바이더는 실제 LLM API 호출 없이 source context를 파싱하여 현실적인 grounded answer를 생성합니다.
@@ -176,8 +192,8 @@
 - `fail_on` 옵션으로 에러 처리 경로를 강제 테스트할 수 있습니다.
 
 ### 📦 Snapshot 안정 데모 지원
-- `--snapshot` 인자를 통해 사전 수집 및 가공된 스냅샷 JSON 파일을 주입하면, 외부 네트워크 및 API 호출 없이도 시연 대화가 완벽하게 동작합니다.
-- 오프라인 환경, 보안 구역, 네트워크 차단 환경에서도 안정적으로 시연할 수 있습니다.
+- `--snapshot` 인자를 통해 사전 수집 및 가공된 스냅샷 JSON 파일을 주입하면, 외부 네트워크 및 API 호출 없이도 시연 대화가 동작합니다.
+- 오프라인 환경, 보안 구역, 네트워크 차단 환경에서도 재현 가능한 시연이 가능합니다.
 - Smoke eval CLI 흐름은 `docs/smoke-eval-flow.md`를 참고하십시오.
 - 운영자 빠른 시작 안내는 `docs/operator-quickstart.md`를 참고하십시오.
 
@@ -191,10 +207,10 @@
 ### 🔒 보안 주의사항
 - **API Key 노출 금지**: 실제 외부 LLM 공급자 API Key는 소스코드, 테스트 코드, 설정 파일(.env 등)에 하드코딩되어서는 안 됩니다. `.env.example` 파일에 환경변수 이름만 기재하고, `.gitignore`에 `.env`가 포함되어 있는지 확인하십시오.
 - **로컬 Mock/Stub 테스트**: 로컬 개발 및 테스트 시에는 `mock` 또는 `stub` 프로바이더를 활용하십시오. 두 프로바이더 모두 API 키를 요구하지 않습니다.
-- **Pending Configuration 검증**: `opencode-go`, `opencode-zen`, `nous` 등 환경변수 기반 프로바이더는 Base URL과 API Key가 모두 설정되어야 동작합니다. 미설정 시 명확한 에러를 반환합니다.
-- **프로덕션 배포 시**: `.env` 파일에 실제 키를 넣고, Git에 커밋하지 마십시오.
+- **Pending Configuration 검증**: 환경변수 기반 live 프로바이더는 필요한 endpoint/key 설정이 충족되어야 동작합니다. 미설정 시 명확한 에러를 반환해야 합니다.
+- **배포 secrets**: 실제 키는 Git에 커밋하지 않고 deployment secret/binding으로 관리합니다.
 
-## LLM 프로바이더 목록
+## Python/operator LLM 프로바이더 목록
 
 | 프로바이더 | 설명 | 기본 모델 | API Key 필요 |
 |-----------|------|----------|-------------|
@@ -208,6 +224,8 @@
 | `groq` | Groq | gpt-oss-120b | ✅ |
 | `opencode-zen` | OpenCode-Zen Gateway | deepseek-v4-flash-free | ✅ |
 | `nous` | Nous Gateway | deepseek/deepseek-v4-flash:free | ✅ |
+
+Cloudflare resident `/api/mvp/ask`의 현재 default provider/model contract는 위 Python 표가 아니라 `docs/operations/MVP_AI_RUNTIME_CONTRACT.md`를 따릅니다.
 
 ## 발표자료와 제안서
 
@@ -229,9 +247,8 @@ PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
     --site-id bukgu_gwangju \
     --snapshot tests/fixtures/bukgu_gwangju_demo_snapshot.json
 ```
-*(옵션에 `--provider`를 생략하거나 미지정 시 기본 DeepSeek 프리셋 설정이 적용되며, 스냅샷 모드로 안정 구동됩니다.)*
 
-### 빠른 시작 — 광주광역시청 (Live Fetch)
+### 빠른 시작 — 광주광역시청 (Live Fetch example)
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
@@ -239,14 +256,15 @@ PYTHONPATH=. .venv/bin/python scripts/run_all_demos.py \
     --provider stub \
     --fetch-provider requests
 ```
-*(네트워크가 필요합니다. `--provider stub`은 API 키 없이 동작합니다.)*
+
+이 예시는 network path입니다. URL/site-id가 주어졌다는 사실만으로 automation/CI에서 live execution이 승인되는 것은 아닙니다. 실제 live 사용은 `docs/provider-fetch-network-boundary.md`와 operator policy를 따릅니다.
 
 통합 실행 후 브라우저에서 접속:
 
 - **모바일 사용자 화면**: http://localhost:8400
 - **운영자 대시보드**: http://localhost:8090
 
-운영자 대시보드에서는 `--site-id`로 시작한 기본 기관과 별개로, 기관 선택 패널에서 등록된 profile을 골라 `/api/test` 테스트 대상을 전환할 수 있습니다.
+운영자 대시보드에서는 `--site-id`로 시작한 기본 기관과 별개로, 지원되는 기관 선택 UI를 통해 `/api/test` 테스트 대상을 전환할 수 있습니다.
 
 ### 개별 실행
 
@@ -285,21 +303,13 @@ PYTHONPATH=. .venv/bin/python scripts/run_admin_demo.py \
 | 옵션 | 설명 | 기본값 |
 |------|------|--------|
 | `--site-id` | 사이트 프로필 ID (필수) | - |
-| `--provider` | LLM 프로바이더 이름 | 자동 해석 (deepseek-primary) |
+| `--provider` | LLM 프로바이더 이름 | preset/runtime resolver |
 | `--model` | LLM 모델 이름 | 프리셋에 따라 자동 결정 |
-| `--preset` | 프리셋 이름 (`deepseek-primary`, `mimo-primary`, `step-primary`) | - |
+| `--preset` | Python/operator 프리셋 이름 | - |
 | `--snapshot` | 스냅샷 JSON 파일 경로 | - |
 | `--mobile-port` | 모바일 서버 포트 | 8400 |
 | `--admin-port` | 운영자 서버 포트 | 8090 |
 | `--host` | 바인드 호스트 | 0.0.0.0 |
-
-### 프리셋 미지정 시 동작
-
-`--provider`, `--model`, `--preset` 모두 지정하지 않으면 `resolve_provider_model()`이 자동으로 `deepseek-primary` 프리셋을 선택합니다:
-
-```
-DeepSeek (1순위) → MiMo (2순위) → Step (3순위)
-```
 
 ## 질문-답변 데모 예시
 
@@ -323,7 +333,7 @@ PYTHONPATH=. .venv/bin/python scripts/demo_answer.py \
     --fetch-provider requests --allow-live
 ```
 
-*(Live fetch providers such as `requests` require `--allow-live`. For safe offline runs, use the mock provider and omit `--allow-live`.)*
+*(Live fetch providers such as `requests` require the script's applicable live opt-in. For safe offline runs, use the mock/snapshot path.)*
 
 ### 광주광역시청 — 정보공개 (Live Fetch)
 
@@ -335,8 +345,6 @@ PYTHONPATH=. .venv/bin/python scripts/demo_answer.py \
     --fetch-provider requests --allow-live
 ```
 
-*(Live fetch providers such as `requests` require `--allow-live`. For safe offline runs, use the mock provider and omit `--allow-live`.)*
-
 ### 광주광역시청 — 복지 지원사업 (Live Fetch)
 
 ```bash
@@ -347,9 +355,9 @@ PYTHONPATH=. .venv/bin/python scripts/demo_answer.py \
     --fetch-provider requests --allow-live
 ```
 
-### Stage 36 — 광주광역시청 검증 결과 (2026-05)
+### Historical validation example — 광주광역시청 Stage 36 (2026-05)
 
-Stage 36에서 광주광역시청(`gwangju_go_kr`) 프로필에 대해 5개 질문의 출처 기반 응답을 검증했습니다.
+Stage 36에서 광주광역시청(`gwangju_go_kr`) 프로필에 대해 5개 질문의 출처 기반 응답을 검증했습니다. 아래는 historical evidence이며 current live state를 보장하지 않습니다.
 
 | # | 질문 | 검색결과 | 출처 | 대표 출처 |
 |---|------|---------|------|----------|
@@ -359,7 +367,7 @@ Stage 36에서 광주광역시청(`gwangju_go_kr`) 프로필에 대해 5개 질�
 | 4 | 민원 신청은 어디서 해? | 5건 | 5건 | 광주통합민원 바로응답, 민원신청 |
 | 5 | 복지 지원사업은 어디서 확인해? | 5건 | 5건 | 광주복지플랫폼, 금융복지지원센터 |
 
-- 모든 질문이 `gwangju.go.kr` 도메인의 출처를 반환합니다.
+- 이 historical 결과에서 질문은 `gwangju.go.kr` 도메인의 출처를 반환했습니다.
 - 조사 스트립, 가운뎃점 정규화, N-gram fallback 등 한글 검색 강화가 적용되었습니다.
 
 ## 테스트 실행
@@ -371,44 +379,53 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 - 전체 테스트는 API 키 없이 실행 가능합니다 (`mock`, `stub` 프로바이더 사용).
 - `tests/fixtures/bukgu_gwangju_demo_snapshot.json` 파일을 스냅샷 테스트에 활용합니다.
 - Provider live-only tests are opt-in and skipped by default. They require explicit `RUN_LIVE_*_TESTS=1` flags in addition to API keys. See `docs/provider-fetch-network-boundary.md` for details.
+- Repository `MVP Contract Checks` routine CI는 provider/official-site network 없이 재현 가능해야 합니다.
 
 ## Cloudflare Pages AI MVP 배포
 
-400-ai-finder는 **두 가지 배포 방식**을 지원합니다. 이 둘은 완전히 독립적이며, 각각 다른 목적에 사용됩니다.
+400-ai-finder는 **두 가지 build mode**를 지원합니다. Git merge와 실제 Production runtime activation/config는 서로 다른 상태입니다.
 
 ### 배포 방식 구분
 
 | 구분 | 설명 |
 |------|------|
-| **Python 로컬/서버 데모** | `src/web` 기반 Python 서버. 실제 AI·API·크롤링 사용 가능 (→ [`docs/operator-quickstart.md`](docs/operator-quickstart.md)) |
-| **Cloudflare Pages Live AI** | 기본 배포. Gemini 1차, HY3 2차 폴백이며 운영자가 공급자 순서를 변경할 수 있음 |
-| **Cloudflare Pages 정적 시연** | `--mode static` 전용 비상·회귀검증 모드. 백엔드 없이 결정형 스냅샷을 사용 |
+| **Python 로컬/서버 데모** | `src/web` 기반 Python 서버. live path는 operator/network policy를 따라 별도 실행 |
+| **Cloudflare Pages AI build** | Pages Function 포함 build. 코드 기본 resident attempt plan은 Gemini 3.5 primary → Gemini 3.1 same-provider fallback |
+| **Cloudflare Pages 정적 시연** | `--mode static` 전용 비상·회귀검증 모드. 백엔드 없이 결정형 스냅샷 사용 |
 
-### Live LLM 모드
+### Cloudflare AI runtime 코드 계약
 
-Cloudflare Pages의 무인자 빌드(`python3 scripts/build_cloudflare_pages.py`)는 기본적으로 **live AI 모드**를 배포합니다.
+현재 `functions/api/mvp/ask.js` 코드 기본값:
 
-이 모드에서는 `functions/api/mvp/ask.js` Cloudflare Pages Function이 활성화되어:
+```text
+MVP_LLM_ORDER default: gemini
+Gemini primary:  gemini-3.5-flash-lite
+Gemini fallback: gemini-3.1-flash-lite
+Hy3: supported legacy/optional provider, default order에는 없음
+```
 
-- `GEMINI_API_KEY` 또는 `KILOCODE_API_KEY` 중 하나 이상이 Cloudflare Pages secret으로 설정되어 있어야 합니다.
-- 기본 `MVP_LLM_ORDER=gemini,hy3`이며 운영자만 순서를 변경합니다. 일반 사용자는 모델을 선택하지 않습니다.
-- 채팅 인터페이스가 `/api/mvp/ask` 엔드포인트를 통해 실시간 LLM 응답을 제공합니다.
-- `?mvp=1` 쿼리 파라미터가 MVP entry에서 유지되어 shell이 live bridge를 로드합니다.
-- 답변마다 공급자, 모델, 조회시각, 신선도 상태를 전달합니다. Gemini Interactions 모드를 선택하면 검색 출처도 함께 전달합니다.
+- Default resident path에는 `GEMINI_API_KEY`가 필요합니다.
+- `GEMINI_MODEL`은 primary model override, `GEMINI_FALLBACK_MODEL`은 fallback model override입니다.
+- `KILOCODE_API_KEY`는 operator가 `MVP_LLM_ORDER`에 Hy3를 명시적으로 포함하는 optional path에서만 관련됩니다.
+- 같은 Gemini provider의 model fallback과 cross-provider fallback은 telemetry에서 구분합니다.
+- 실제 Cloudflare Production env에 `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`, `MVP_LLM_ORDER`, `MVP_AI_MODE`가 어떤 값으로 설정되어 있는지는 repository code만으로 확정하지 않습니다.
+- `MVP_AI_MODE=snapshot_only` 또는 `disabled`는 model provider call을 차단하는 운영 경계입니다.
+
+자세한 current contract는 [`docs/operations/MVP_AI_RUNTIME_CONTRACT.md`](docs/operations/MVP_AI_RUNTIME_CONTRACT.md)를 참고하십시오.
 
 ```bash
-# Live AI 배포 빌드 (기본값)
+# Pages Function 포함 기본 build
 python3 scripts/build_cloudflare_pages.py
 
 # 오프라인 정적 fallback
 python3 scripts/build_cloudflare_pages.py --mode static
 ```
 
-### 정적 Pages 시연 개요
+### Pages deployment topology
 
-Cloudflare Pages는 GitHub `main` push 시 **자동으로** `python3 scripts/build_cloudflare_pages.py`를 실행하여 Live AI 산출물(`dist/cloudflare-pages/`)과 Pages Function을 프로덕션에 배포합니다. 자세한 설정값은 [`docs/cloudflare-pages-bukgu-mvp.md`](docs/cloudflare-pages-bukgu-mvp.md)를 참고하세요.
+`dist/cloudflare-pages/`는 build 산출물이며 **Git에 커밋하지 않습니다** (`.gitignore` 추적 제외). Cloudflare Pages Git integration의 deployment와 repository merge는 별도 상태이므로, public URL만 보고 deployed SHA나 runtime env를 추정하지 않습니다.
 
-| 항목 | 값 |
+| 항목 | 저장소/기존 Pages 기준 |
 |---|---|
 | Project name | `cgbukku` |
 | Connected repository | `skerishKang/400-ai-finder` |
@@ -416,86 +433,73 @@ Cloudflare Pages는 GitHub `main` push 시 **자동으로** `python3 scripts/bui
 | Build command | `python3 scripts/build_cloudflare_pages.py` |
 | Build output directory | `dist/cloudflare-pages` |
 | Framework preset | None |
-| Root directory | _(empty)_ |
 
-**Production URL:** `https://cgbukku.pages.dev/`
+**Known project URL:** `https://cgbukku.pages.dev/`
 
 ### public 경로
 
 | 경로 | 설명 |
 |---|---|
 | `/` | 정적 랜딩 페이지 (MVP 카드 포함) |
-| `/mvp/` | 시민 첫 화면 및 북구청 AI 민원 네비게이터 시연 entry |
+| `/mvp/` | 시민 첫 화면 및 Buk-gu golden AI Browser entry |
 | `/mobile` | 모바일 챗 데모 (`/mobile.html` → 308 redirect) |
 | `/admin` | 운영자 화면 (`/admin.html` → 308 redirect) |
 
-### 생성된 `dist/` 디렉토리
-
-`dist/cloudflare-pages/`는 빌드 산출물이며 **Git에 커밋하지 않습니다** (`.gitignore`에 의해 추적 제외). 배포 시 Cloudflare Pages 빌드 단계에서 직접 생성합니다.
-
 ### GitHub Actions: Deploy가 아닌 Contract/Test입니다
 
-`.github/workflows/mvp-contracts.yml`의 **"MVP Contract Checks"**는 배포 워크플로가 **아닙니다**. 이 workflow는 다음만 수행합니다:
+`.github/workflows/mvp-contracts.yml`의 **"MVP Contract Checks"**는 배포 워크플로가 **아닙니다**. 이 workflow는 contract/browser/build/security 검증을 수행하며 routine CI에서 외부 provider·공식사이트 live network를 요구하지 않습니다.
 
-- pytest contract 테스트 실행
-- `tests/test_build_cloudflare_pages.py` — 임시 출력 디렉터리에 정적 Pages build를 실행하고 산출물 contract를 검증
-- `node tests/browser/verify_mvp_shell_runtime.mjs` — 브라우저 런타임 시나리오 검증
-
-배포는 **Cloudflare Pages Git integration이 자동**으로 담당하며, GitHub Actions workflow 내에서 `wrangler`, `cloudflare/pages-action`, publish 명령 등을 사용하지 않습니다.
+배포는 GitHub Actions contract workflow와 별도입니다. 실제 deployed SHA는 Cloudflare Pages deployment metadata로 확인합니다.
 
 ### 정적 시연 확인 (read-only)
 
-Cloudflare Pages dashboard에서 read-only로 확인:
+public URL read-only smoke 예시:
 
-1. Latest production deployment status / SHA / time
-2. SHA가 `origin/main` 또는 해당 PR merge commit과 일치하는지 비교
-
-public URL read-only 확인:
-
-```
-curl -sI https://cgbukku.pages.dev/         # 200
-curl -sI https://cgbukku.pages.dev/mvp/     # 200
-curl -sI https://cgbukku.pages.dev/mobile    # 200
-curl -sI https://cgbukku.pages.dev/admin     # 200
+```text
+curl -sI https://cgbukku.pages.dev/
+curl -sI https://cgbukku.pages.dev/mvp/
+curl -sI https://cgbukku.pages.dev/mobile
+curl -sI https://cgbukku.pages.dev/admin
 ```
 
-**참고**: public URL만으로 latest deployed commit SHA는 확정할 수 없습니다. 정확한 SHA는 Cloudflare Pages deployment metadata에서 확인하세요.
+**참고**: public URL 응답만으로 latest deployed commit SHA나 environment binding 값을 확정할 수 없습니다.
 
-### Boundaries
+### Network / acquisition boundaries
 
-- 정적 모드는 `--mode static`으로 계속 제공되며, CI와 오프라인 fallback 검증에 사용합니다.
-- 북구청 공식 사이트 참고·클릭·검색·스크린샷 비교, route/content inventory, crawling/scraping, 그리고 Firecrawl·외부 API·live provider reference 수집은 현재 제품 방향에서 **허용되는 참고·수집 작업**입니다.
-- live-dependent 실험 경로(Firecrawl/외부 API/live provider 호출)는 별도 operational stage로 분리되어 있으며, 명시적 opt-in과 자격 증명(env) 설정 하에 실행됩니다. 자세한 경계는 [`docs/provider-fetch-network-boundary.md`](docs/provider-fetch-network-boundary.md)를 참고하세요.
-- Cloudflare 배포 제어는 운영자 전용입니다. 배포 재실행(Retry/Redeploy/Create deployment)은 배포 권한 보유 운영자만 수행하며, secrets/env는 해당 운영자 책임 하에 다룹니다.
+- 정적 모드는 `--mode static`으로 계속 제공되며 CI와 오프라인 fallback 검증에 사용합니다.
+- public target URL 또는 site profile이 존재한다는 사실은 live crawl/fetch authorization이 아닙니다.
+- 공식사이트 reference collection, crawling, screenshot comparison, Firecrawl, provider-assisted retrieval 등 external network 작업은 applicable controlled read-only / provider-staging 경계와 명시적 opt-in을 따릅니다.
+- 실제 site control, login, submission, payment, PII processing은 별도의 authorized first-party integration gate입니다.
+- Cloudflare 배포 제어와 secrets/env 변경은 운영권한이 있는 별도 deployment 작업입니다.
 
-더 자세한 내용은 [`docs/cloudflare-pages-bukgu-mvp.md`](docs/cloudflare-pages-bukgu-mvp.md)를 참고하세요.
+더 자세한 내용은 [`docs/provider-fetch-network-boundary.md`](docs/provider-fetch-network-boundary.md), [`docs/implementation/RELEASE_GATES.md`](docs/implementation/RELEASE_GATES.md)를 참고하세요.
 
 ### MVP demo docs
 
 - [MVP demo operator runbook](docs/mvp-demo-operator-runbook.md) — how to run, verify, and present the five locked local/static resident-task flows.
 - [MVP golden quest fidelity matrix](docs/mvp-golden-quest-fidelity-matrix.md) — locked quest IDs, official paths, local/static boundaries, stop behavior, E2E verifier references, and prohibited regressions.
-- [MVP demo milestone snapshot](docs/mvp-demo-milestone-snapshot.md) — one-page closeout summary of the completed local/static MVP scope, locked quest set, verification references, and deferred live/production epics (local/static is the demo surface, not the whole product).
-- [Hybrid scripted + LLM fallback architecture intent](docs/hybrid-scripted-llm-architecture-intent.md) — intended product architecture: five scripted golden quests plus LLM fallback for unknown questions; current static artifact vs intended hybrid product.
-- [Live transition decision record](docs/live-transition-decision-record.md) — decision gate for any future live/provider/API/network, operational integration, or production rebuild work; this document is not live-work authorization.
-- [Official-site route inventory plan](docs/official-site-route-inventory-plan.md) — planning-only schema and classification guide for future #862 route/content inventory; no live collection or inventory dataset is included.
-- [Official-site route inventory workflow index](docs/official-site-route-inventory-workflow-index.md) — planning-only index tying together the route inventory planning docs and workflow order; does not authorize live work.
-- [Official-site route inventory planning package closeout](docs/official-site-route-inventory-planning-closeout.md) — planning-only closeout of the route inventory planning package; preparation for future scoped issues, not live-work authorization.
+- [MVP demo milestone snapshot](docs/mvp-demo-milestone-snapshot.md) — one-page closeout summary of the completed local/static MVP scope, locked quest set, verification references, and deferred live/production epics.
+- [Hybrid scripted + LLM fallback architecture intent](docs/hybrid-scripted-llm-architecture-intent.md) — historical/intended hybrid architecture reference; current provider contract is documented separately.
+- [Live transition decision record](docs/live-transition-decision-record.md) — decision gate for live/provider/API/network and operational integration; document existence is not live-work authorization.
+- [Official-site route inventory plan](docs/official-site-route-inventory-plan.md) — planning-only schema and classification guide.
+- [Official-site route inventory workflow index](docs/official-site-route-inventory-workflow-index.md) — planning-only route-inventory workflow index.
+- [Official-site route inventory planning package closeout](docs/official-site-route-inventory-planning-closeout.md) — historical planning closeout.
 
 ### Operator quickstart
 
 실행 흐름, 데모, smoke eval, live provider 사용법은 다음 문서를 참고하십시오:
 
-- [`docs/operator-quickstart.md`](docs/operator-quickstart.md) — 운영자 빠른 안내서 (offline → live 순서)
-- [`docs/operator-question-log-guide.md`](docs/operator-question-log-guide.md) — Operator Question Log Guide (sanitized log collection + dry-run analytics)
-- [`docs/scenario-cache-promotion-review-workflow.md`](docs/scenario-cache-promotion-review-workflow.md) — Scenario/Cache Promotion Review Workflow (cache/scenario/retrieval-gap/monitor-only 분류 + human review 체크리스트)
-- [`docs/promotion-candidate-review-template.md`](docs/promotion-candidate-review-template.md) — Promotion Candidate Review Template (copy-pasteable 후킹 review template)
-- [`docs/operator-synthetic-promotion-dry-run.md`](docs/operator-synthetic-promotion-dry-run.md) — 합성 로그 기반 promotion dry-run 안내 (cache/scenario/retrieval-gap/monitor-only 리허설)
-- [`docs/smoke-eval-flow.md`](docs/smoke-eval-flow.md) — Smoke eval CLI 흐름
-- [`docs/bukgu-live-demo-package.md`](docs/bukgu-live-demo-package.md) — Buk-gu live LLM demo package (외부 시연용)
-- [`docs/operator-controlled-retrieval-gap-validation.md`](docs/operator-controlled-retrieval-gap-validation.md) — Controlled retrieval-gap validation operator guide (no answer generation, no live boundary crossing)
-- [`docs/bukgu-demo-one-page-handout.md`](docs/bukgu-demo-one-page-handout.md) — Buk-gu demo one-page handout (외부 시연용 1페이지 요약)
-- [`docs/bukgu-demo-presentation-outline.md`](docs/bukgu-demo-presentation-outline.md) — Buk-gu demo presentation outline (5~7분 발표 구성안)
-- [`docs/artifacts/400-ai-finder-bukgu-demo.pptx`](docs/artifacts/400-ai-finder-bukgu-demo.pptx) — Buk-gu demo PPT slide deck (6~7 slides, 5~7분 발표용)
+- [`docs/operator-quickstart.md`](docs/operator-quickstart.md) — 운영자 빠른 안내서
+- [`docs/operator-question-log-guide.md`](docs/operator-question-log-guide.md) — sanitized log collection + dry-run analytics
+- [`docs/scenario-cache-promotion-review-workflow.md`](docs/scenario-cache-promotion-review-workflow.md) — scenario/cache/retrieval-gap human review workflow
+- [`docs/promotion-candidate-review-template.md`](docs/promotion-candidate-review-template.md) — promotion candidate review template
+- [`docs/operator-synthetic-promotion-dry-run.md`](docs/operator-synthetic-promotion-dry-run.md) — synthetic promotion dry-run
+- [`docs/smoke-eval-flow.md`](docs/smoke-eval-flow.md) — Smoke eval CLI flow
+- [`docs/bukgu-live-demo-package.md`](docs/bukgu-live-demo-package.md) — historical/demo live LLM package; current live authorization is separate
+- [`docs/operator-controlled-retrieval-gap-validation.md`](docs/operator-controlled-retrieval-gap-validation.md) — controlled retrieval-gap validation
+- [`docs/bukgu-demo-one-page-handout.md`](docs/bukgu-demo-one-page-handout.md) — Buk-gu demo handout
+- [`docs/bukgu-demo-presentation-outline.md`](docs/bukgu-demo-presentation-outline.md) — Buk-gu demo presentation outline
+- [`docs/artifacts/400-ai-finder-bukgu-demo.pptx`](docs/artifacts/400-ai-finder-bukgu-demo.pptx) — Buk-gu demo PPT artifact
 
 ### Product design
 
@@ -510,16 +514,22 @@ PYTHONPATH=. .venv/bin/python scripts/analyze_question_logs.py \
     --output repeated-question-report.md
 ```
 
-Reads sanitized JSONL question logs and produces a Markdown report separating
-promotion candidates from retrieval gaps. Dry-run only — no scenarios, snapshots,
-caches, PRs, or commits are created.
+Reads sanitized JSONL question logs and produces a Markdown report separating promotion candidates from retrieval gaps. Dry-run only — no scenarios, snapshots, caches, PRs, or commits are created.
 
-## 좌측 시민 사이트 화면 철칙 (Exact Official-Site Clone)
+## Buk-gu golden / Exact Official-Site Clone
 
-왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않는다.
+왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. 이 literal은 Buk-gu golden 및 `exact` 상태의 canonical contract를 보존한다.
 
-이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+Buk-gu golden 및 향후 `exact`를 명시적으로 주장하는 promotion surface에는 [canonical exact-clone invariant](docs/product/exact-official-site-clone-invariant.md)가 적용됩니다.
+
+- 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 그대로 보존합니다.
+- 현재 manifest에 `capture_required`가 남아 있는 route를 exact 완료라고 주장하지 않습니다.
+- generated onboarding preview는 별도 non-exact/non-default 상태이며 exact completion 증거가 아닙니다.
+- exact/resident-default promotion을 요청하면 applicable fixture/visual approval requirements를 모두 충족해야 합니다.
+
+관련 자료:
 
 - Canonical invariant: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+- Visual promotion policy: [docs/product/clone-visual-fidelity-and-promotion-policy.md](docs/product/clone-visual-fidelity-and-promotion-policy.md)
 - 공식 페이지 fixture manifest: [tests/fixtures/official_site_clone_manifest.json](tests/fixtures/official_site_clone_manifest.json)
 - 계약 테스트: [tests/test_exact_official_site_clone_invariant.py](tests/test_exact_official_site_clone_invariant.py)
