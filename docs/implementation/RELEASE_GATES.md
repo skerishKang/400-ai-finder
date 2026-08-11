@@ -1,13 +1,16 @@
 # 400 AI Finder 출시 게이트
 
 - 상태: `canonical`
-- 기준일: 2026-08-04
-- 총괄: #1235
+- 기준일: 2026-08-12
+- 현재 platform-governance 정렬: #1283
+- Buk-gu Frozen Demo closeout: #1235 (`completed`)
+- Exact clone canonical: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md)
 
 기능이 동작하거나 CI가 통과했다는 이유만으로 다음 운영단계에 자동 승격하지 않는다.
 
 ```text
 implemented
+!= generated preview
 != tested
 != visually approved
 != deployed
@@ -15,6 +18,8 @@ implemented
 != production approved
 != actual-site authorized
 ```
+
+`generated_preview`, `archetype_golden`, `resident_default_approved`는 서로 다른 상태다. 자동 onboarding 결과가 존재한다는 이유만으로 exact clone·resident default·production approval을 주장하지 않는다.
 
 ## Gate A — Frozen controlled demo
 
@@ -54,7 +59,7 @@ implemented
 
 공개 URL에서 제한된 AI 기능을 비용·abuse·장애 통제하에 제공한다.
 
-### 선행 이슈
+### historical prerequisite tracks
 
 - #1224
 - #1227
@@ -90,7 +95,7 @@ implemented
 
 AI 답변이 공식근거 수준을 벗어나 고위험 행정정보를 확정하지 않도록 한다.
 
-### 선행 이슈
+### historical prerequisite tracks
 
 - #1226
 - #1080 relevant route coverage
@@ -103,7 +108,7 @@ AI 답변이 공식근거 수준을 벗어나 고위험 행정정보를 확정�
 - model-only fail-closed validator
 - stale·unavailable 표시
 - canonical vs supplementary citation separation
-- 5 locale contract
+- locale contract
 - source·policy version metadata
 
 ### 승인증거
@@ -118,7 +123,7 @@ AI 답변이 공식근거 수준을 벗어나 고위험 행정정보를 확정�
 
 Python·Cloudflare·compatibility registry가 공통 site·provider·action·evidence 계약을 사용한다.
 
-### 선행 이슈
+### historical foundation tracks
 
 - #1225
 - #1228
@@ -126,9 +131,9 @@ Python·Cloudflare·compatibility registry가 공통 site·provider·action·evi
 
 ### 필수조건
 
-- versioned SiteSpec
-- canonical ID·legacy alias migration
-- ProviderSpec·ActionSpec·ApiSchema
+- versioned SiteSpec foundation
+- canonical ID·legacy alias compatibility
+- shared provider/action/evidence/API vocabulary
 - runtime drift contract
 - reproducible dependency install
 - split CI jobs와 required checks
@@ -140,13 +145,15 @@ Python·Cloudflare·compatibility registry가 공통 site·provider·action·evi
 - generated/adapter diff review
 - no golden route·DOM·state regression
 
+현재 foundation 존재가 임의 사이트용 generic Site Model/compiler/runtime wiring 완료를 뜻하지 않는다.
+
 ## Gate E — Modular maintainable runtime
 
 ### 목적
 
 거대 단일파일의 기능확장 위험을 낮춘다.
 
-### 선행 이슈
+### historical/deferred tracks
 
 - #1229
 - #1230
@@ -166,13 +173,15 @@ Python·Cloudflare·compatibility registry가 공통 site·provider·action·evi
 - no circular dependency
 - no event listener duplication
 
+이 Gate는 필요가 실제 platform work에서 발생할 때 재개한다. 단순 구조정리만을 위해 multi-site 진행을 선행 차단하지 않는다.
+
 ## Gate F — Official freshness staging
 
 ### 목적
 
 시간에 따라 변하는 공식정보를 승인된 staging에서 안전하게 조회한다.
 
-### 선행 이슈
+### historical/deferred tracks
 
 - #1150
 - #1224
@@ -180,10 +189,10 @@ Python·Cloudflare·compatibility registry가 공통 site·provider·action·evi
 
 ### 필수조건
 
-- exact URL allowlist
+- exact URL/domain allowlist
 - redirect·malformed URL fail-closed
 - timeout·rate limit·cache
-- real DOM extraction test
+- real DOM/search retrieval validation where separately approved
 - source·retrieval·update time
 - outage·stale behavior
 - snapshot/live precedence
@@ -198,36 +207,112 @@ Python·Cloudflare·compatibility registry가 공통 site·provider·action·evi
 
 ### 비주장
 
-이 Gate는 actual public site 통제나 실제 제출권한을 의미하지 않는다.
+이 Gate는 actual public site 통제나 실제 제출권한을 의미하지 않는다. URL이 onboarding 입력으로 제공됐다는 사실만으로 이 Gate의 live network 권한이 생기지 않는다.
 
-## Gate G — Multi-site supervised pilot
+## Gate G — Multi-site supervised onboarding
 
-### 목적
+Gate G는 **generated preview**와 **golden/production promotion**을 분리한다. 둘을 같은 승인상태로 취급하지 않는다.
 
-generic onboarding을 북구 외 사례로 검증한다.
+### Gate G1 — Generated onboarding preview
 
-### 선행 이슈
+#### 목적
 
-- #1181
-- #1232
+새 사이트를 bespoke renderer 개발 없이 공통 pipeline으로 분석하여 reviewable non-default preview를 생성한다. 초기 현실적 목표는 100% 자동완성이 아니라 **70–80% supervised automation + explicit exception queue**다.
 
-### 필수조건
+#### 예상 입력
 
-- 북구 generic preview parity
-- 다른 지자체 onboarding
-- 교차도메인 onboarding
-- Site Model·asset manifest·knowledge·action graph
-- confidence·exception queue
-- automated QA
-- human visual approval
-- rollback
+- target URL and/or SiteSpec draft
+- separately declared acquisition/network mode
 
-### 승인증거
+`URL supplied != live network authorized`다. URL은 대상 식별자일 수 있으며 live capture는 별도 승인경계를 따른다.
 
-- site-specific renderer 없이 onboarding
+#### 필수 산출물
+
+- canonical/draft site identity
+- detected/proposed archetype + confidence
+- detected capabilities + confidence
+- capture/route inventory or approved fixture equivalent
+- generic Site Model candidate
+- asset/provenance manifest or unresolved-asset report
+- knowledge artifact/index candidate
+- action graph / browser target model candidate
+- automated QA report
+- automation ratio
+- explicit exception queue with low-confidence / unsupported / safety-sensitive items
+- rollback/isolation boundary for failed onboarding
+
+#### 허용
+
+- localhost/CI/debug generated preview
+- incomplete surface with truthful confidence/exception reporting
+- unresolved visual/content items if clearly non-exact and non-default
+- automated screenshot/browser/semantic QA
+- site-specific data/config/explicit reviewed overrides
+
+#### 금지
+
+- `exact` claim without exact-clone criteria
+- `resident_default_approved` claim
+- production/public promotion merely because generated QA passed
+- uncontrolled live provider/crawl/network execution
+- actual submit/login/payment/write action
+- hiding unsupported/low-confidence items to inflate automation ratio
+
+#### 승인증거
+
+- input identity and acquisition mode
+- generated artifact identities
+- automation/review/unsupported ratios
+- exception summary
+- core-changed `YES/NO`
+- offline/reproducible validation where applicable
+
+**Human first-promotion visual approval is not required for Gate G1 itself**, because G1 does not grant resident-default or exact status.
+
+### Gate G2 — Archetype golden validation
+
+#### 목적
+
+municipality / university / bank / public agency / support portal / company 등 사이트 유형별 golden surface를 깊게 검증하여 반복 onboarding의 기준으로 사용한다.
+
+#### 필수조건
+
+- archetype/capability contract defined for the golden scope
+- generated preview upgraded through focused human review
+- browser task coverage for archetype capabilities
+- grounding/action/safety coverage
+- responsive/accessibility evidence appropriate to the surface
+- material exception resolution or explicit accepted limitations
+- applicable visual fidelity review
+- rollback identity
+
+북구는 첫 municipality golden reference로 보호한다. 미래 archetype golden이 북구 route/DOM/state 계약을 깨뜨리는 이유가 되어서는 안 된다.
+
+### Gate G3 — Resident/default or production promotion
+
+#### 목적
+
+특정 site surface를 실제 기본 사용자 경로나 production candidate로 승격한다.
+
+#### 필수조건
+
+- applicable SiteSpec/provenance/rights state
+- applicable [`exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md) requirements satisfied whenever an `exact` claim is made
+- visual side-by-side evidence where required
+- project-owner approval where required by visual promotion policy
+- browser/safety/evidence regression
+- deployment/rollback evidence when deployed
+
+Generated preview 또는 archetype golden 통과만으로 이 상태가 자동 부여되지 않는다.
+
+### Gate G 공통 성공증거
+
+- site-specific renderer 없이 또는 최소 reviewed override로 onboarding
 - automation/human review ratio
+- shared-core change와 site-specific change 분리
 - failed onboarding isolation
-- golden resident-default unchanged before approval
+- golden resident-default unchanged before explicit approval
+- cross-site reuse evidence
 
 ## Gate H — Authorized operational integration
 
@@ -235,7 +320,7 @@ generic onboarding을 북구 외 사례로 검증한다.
 
 기관이 권한과 운영책임을 제공한 실제 환경에서 first-party integration을 수행한다.
 
-### 선행 이슈
+### historical prerequisite tracks
 
 - #862
 - #873
@@ -282,6 +367,9 @@ Network/provider mode:
 Tests:
 Browser/visual evidence:
 Security/privacy evidence:
+Generated-preview status (if applicable):
+Automation / review / unsupported ratio (if applicable):
+Exceptions (if applicable):
 Known limitations:
 Rollback:
 Decision: PASS / HOLD / FAIL
@@ -290,14 +378,15 @@ Decision: PASS / HOLD / FAIL
 ## HOLD 조건
 
 - exact SHA 불명확
-- CI 일부 미실행·skip·xfail
+- required CI 일부 미실행·skip·xfail
 - external request 범위 미기록
 - secret·PII 가능성
 - official source provenance 누락
-- visual approval 누락
-- deployed SHA 불일치
-- rollback 미검증
+- 해당 promotion level에서 요구되는 visual approval 누락
+- deployed SHA 불일치 when deployment is in scope
+- required rollback 미검증
 - issue/PR head 변경 후 재검증 없음
+- generated preview가 low-confidence/unsupported 항목을 exception으로 기록하지 않음
 
 ## FAIL 조건
 
@@ -308,3 +397,4 @@ Decision: PASS / HOLD / FAIL
 - public endpoint 무제한 과금·abuse
 - actual-site control을 근거 없이 주장
 - customer/private data의 public repo 반입
+- generated preview를 근거 없이 exact/resident-default/production-approved로 주장
