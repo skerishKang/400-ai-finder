@@ -104,7 +104,7 @@ URL / SiteSpec
 5. 신청 절차, 제출서류, 기한, 담당자 정보를 안내합니다.
 6. 답변에 바로가기 링크와 근거를 포함합니다.
 
-> **Buk-gu golden / exact promotion 철칙**: `exact`를 주장하는 좌측 surface는 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않습니다. Canonical: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> **Buk-gu golden / exact promotion 철칙**: 왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. `exact`를 주장하는 좌측 surface는 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않습니다. Canonical: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
 >
 > **Generated preview 경계**: routine onboarding의 `generated_preview`는 non-exact/non-default 상태로 존재할 수 있지만 low-confidence·unsupported·unresolved 항목을 exception으로 드러내야 하며 resident-default를 자동으로 통제할 수 없습니다.
 >
@@ -517,6 +517,8 @@ PYTHONPATH=. .venv/bin/python scripts/analyze_question_logs.py \
 Reads sanitized JSONL question logs and produces a Markdown report separating promotion candidates from retrieval gaps. Dry-run only — no scenarios, snapshots, caches, PRs, or commits are created.
 
 ## Buk-gu golden / Exact Official-Site Clone
+
+왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. 이 literal은 Buk-gu golden 및 `exact` 상태의 canonical contract를 보존한다.
 
 Buk-gu golden 및 향후 `exact`를 명시적으로 주장하는 promotion surface에는 [canonical exact-clone invariant](docs/product/exact-official-site-clone-invariant.md)가 적용됩니다.
 
