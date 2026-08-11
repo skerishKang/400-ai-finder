@@ -22,6 +22,7 @@ DOMAIN_JOBS = {
     "page-agent",
     "comparison-evidence",
     "security-quality",
+    "python-coverage-baseline",
 }
 
 EXPECTED_TIMEOUT_MINUTES = {
@@ -34,6 +35,7 @@ EXPECTED_TIMEOUT_MINUTES = {
     "page-agent": 12,
     "comparison-evidence": 10,
     "security-quality": 10,
+    "python-coverage-baseline": 10,
     "mvp-contracts": 5,
 }
 
@@ -68,6 +70,8 @@ EXPECTED_TEST_STEPS = {
     "Run Page Agent production-gap browser contract",
     "Run Stage 3 browser comparison harness (static build, port 8765, 1 rep)",
     "Verify Stage 3 evidence schema on CI-generated evidence (10 runs)",
+    "Run CI job decomposition self-contract (#1231)",
+    "Run Python coverage baseline self-contract (#1231-G)",
     "Check whitespace errors",
 }
 
