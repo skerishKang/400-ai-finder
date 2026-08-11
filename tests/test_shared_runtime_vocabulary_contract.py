@@ -368,6 +368,28 @@ def test_sitespec_yml_site_id_matches_canonical():
     assert yml["site_id"] == sitespec["site_id"] == "bukgu_gwangju"
 
 
+def test_manifest_display_names_exact_parity_with_sitespec():
+    manifest = _load_manifest()
+    sitespec = _load_sitespec()
+    assert manifest["site_identity"]["display_names"] == sitespec["display"]["locale_labels"]
+
+
+def test_manifest_historical_jurisdiction_names_exact_parity_with_sitespec():
+    manifest = _load_manifest()
+    sitespec = _load_sitespec()
+    historical = [h["value"] for h in sitespec["jurisdiction"]["historical_aliases"]]
+    assert manifest["site_identity"]["historical_jurisdiction_names"] == historical
+
+
+def test_schema_self_contract():
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+    assert schema["$id"] == "configs/contracts/runtime-vocabulary.schema.json"
+    manifest = _load_manifest()
+    assert manifest["$schema"] == "configs/contracts/runtime-vocabulary.schema.json"
+    assert manifest["schema_version"] == "1.0.0"
+
+
 # ---------------------------------------------------------------------------
 # B. Actions
 # ---------------------------------------------------------------------------
@@ -603,6 +625,13 @@ def test_cloudflare_provider_details_parity():
         assert m["default_model"] == defaults[provider]
         assert m["secret_env"] == env_map[provider]["secret_env"]
         assert m["model_env"] == env_map[provider]["model_env"]
+
+
+def test_cloudflare_provider_details_exact_key_parity():
+    manifest = _load_manifest()
+    ask_src = ASK_JS.read_text(encoding="utf-8")
+    defaults = _extract_js_provider_defaults(ask_src)
+    assert set(manifest["providers"]["cloudflare"]["provider_details"].keys()) == set(defaults.keys())
 
 
 def test_kilocode_api_key_contract_maintained():
