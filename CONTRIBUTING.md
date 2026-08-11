@@ -128,7 +128,7 @@ PR이 목표로 하는 Gate를 명시한다.
 - API key·token·credential
 - `.env`
 - raw citizen transcript
-- 주민번호·전화·이메일·상세주소 등 불필요한 PII
+- 주민번호·전화·이메일·상세주소 등 PII
 - 고객·기관 비공개자료
 - production logs
 - 내부 URL·account ID
