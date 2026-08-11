@@ -12,7 +12,7 @@
  * - locale state stays in sync with the URL `lang` param and
  *   document.documentElement.lang.
  *
- * The left Bukgu-gu canvas stays Korean; only the AI shell, selector,
+ * The left Gwangju Buk-gu canvas stays Korean; only the AI shell, selector,
  * journey narration, and resident/foreign-language copy are localized.
  */
 
@@ -20,6 +20,15 @@
   "use strict";
 
   var SUPPORTED = ["ko", "en", "vi", "th", "id"];
+
+  // #1225-D3 — current institution display identity, projected synchronously
+  // from the canonical SiteSpec via citizen-sitespec-metadata.js (loaded
+  // before this script). AUTHORITATIVE SOURCE:
+  // configs/sites/bukgu_gwangju.sitespec.json → src/web/static/
+  // citizen-sitespec-metadata.js. vi/th/id have no SiteSpec locale label and
+  // deterministically use the approved English display label. The drift
+  // contract in tests/test_citizen_sitespec_parity.py fails CI on divergence.
+  var SITE_METADATA = window.CitizenSiteSpecMetadata || null;
 
   // Display names shown in the language selector (never flags-only).
   var LOCALE_NAMES = Object.freeze({
@@ -167,7 +176,7 @@
       "recommendations.show": "Show recommendations",
       "recommendations.hide": "Hide recommendations",
       "chat.hint":
-        "After your first question, I will show the route together with the Bukgu-gu guide screen.",
+        "After your first question, I will show the route together with the Gwangju Buk-gu guide screen.",
       "chat.privacyWarning":
         "Do not enter personal information such as resident ID numbers, phone numbers, email addresses, or precise addresses.",
       "chat.disclosure":
@@ -211,7 +220,7 @@
         "Only guidance is provided; no real complaint is submitted.",
       "safety.preSubmit": "Please review the content before submitting.",
       "safety.officialChannel":
-        "Please complete the official submission directly through Bukgu-gu's official channels.",
+        "Please complete the official submission directly through Gwangju Buk-gu's official channels.",
       "safety.koreanDraft":
         "The Korean administrative draft is a reviewed, consistent version.",
 
@@ -243,9 +252,9 @@
 
       "split.confirm": " — shall I guide you through this?",
       "split.ready":
-        "I have your question. The Bukgu-gu guide screen is now open on the left.",
+        "I have your question. The Gwangju Buk-gu guide screen is now open on the left.",
       "split.followUp":
-        "The Bukgu-gu guide screen stays open on the left. I will continue with the menu and detailed guidance. To start a new question, choose 'Start over'.",
+        "The Gwangju Buk-gu guide screen stays open on the left. I will continue with the menu and detailed guidance. To start a new question, choose 'Start over'.",
       "unsupported":
         "On this first screen I can help with illegal parking reports, apartment housing inquiries, bulky waste disposal, passport guidance, and unmanned kiosks. Please try one of the example questions.",
 
@@ -260,11 +269,11 @@
       "error.aiUnavailable": "The AI guide is currently unavailable. Please try again later.",
 
       "journey.entryReady": "You can enter a new question.",
-      "journey.navigating": "Guiding you along the route on the Bukgu-gu screen.",
+      "journey.navigating": "Guiding you along the route on the Gwangju Buk-gu screen.",
       "journey.completed": "The guidance route is complete. Return to the chat to enter a new question.",
 
       "freshness.liveOfficial": "Live official source verified",
-      "freshness.officialSnapshot": "Bukgu-gu official snapshot",
+      "freshness.officialSnapshot": "Gwangju Buk-gu official snapshot",
       "freshness.liveWeb": "Live web source · confirm official source again",
       "freshness.modelOnly": "No official source available now",
 
@@ -288,7 +297,7 @@
       "recommendations.show": "Hiện gợi ý",
       "recommendations.hide": "Ẩn gợi ý",
       "chat.hint":
-        "Sau câu hỏi đầu tiên, tôi sẽ hiện đường dẫn cùng màn hình hướng dẫn của Bukgu-gu.",
+        "Sau câu hỏi đầu tiên, tôi sẽ hiện đường dẫn cùng màn hình hướng dẫn của Gwangju Buk-gu.",
       "chat.privacyWarning":
         "Không nhập thông tin cá nhân như số định danh, số điện thoại, email hoặc địa chỉ chi tiết.",
       "chat.disclosure":
@@ -332,7 +341,7 @@
         "Chỉ hướng dẫn, không gửi khiếu nại thật.",
       "safety.preSubmit": "Vui lòng xem lại nội dung trước khi gửi.",
       "safety.officialChannel":
-        "Vui lòng hoàn tất việc nộp chính thức qua kênh chính thức của Bukgu-gu.",
+        "Vui lòng hoàn tất việc nộp chính thức qua kênh chính thức của Gwangju Buk-gu.",
       "safety.koreanDraft":
         "Bản nháp hành chính tiếng Hàn là văn bản nhất quán đã được kiểm duyệt.",
 
@@ -364,9 +373,9 @@
 
       "split.confirm": " — tôi có nên hướng dẫn bạn việc này không?",
       "split.ready":
-        "Tôi đã nhận câu hỏi. Màn hình hướng dẫn Bukgu-gu đã mở bên trái.",
+        "Tôi đã nhận câu hỏi. Màn hình hướng dẫn Gwangju Buk-gu đã mở bên trái.",
       "split.followUp":
-        "Màn hình hướng dẫn Bukgu-gu vẫn mở bên trái. Tôi sẽ tiếp tục với menu và hướng dẫn chi tiết. Để bắt đầu câu hỏi mới, hãy chọn 'Bắt đầu lại'.",
+        "Màn hình hướng dẫn Gwangju Buk-gu vẫn mở bên trái. Tôi sẽ tiếp tục với menu và hướng dẫn chi tiết. Để bắt đầu câu hỏi mới, hãy chọn 'Bắt đầu lại'.",
       "unsupported":
         "Ở màn hình đầu này, tôi hỗ trợ báo cáo đỗ xe trái phép, hỏi đáp nhà chung cư, vứt bỏ rác cồng kềnh, hướng dẫn hộ chiếu và máy tự động. Hãy thử một câu hỏi ví dụ.",
 
@@ -381,11 +390,11 @@
       "error.aiUnavailable": "Hiện không kết nối được hướng dẫn AI. Vui lòng thử lại sau.",
 
       "journey.entryReady": "Bạn có thể nhập câu hỏi mới.",
-      "journey.navigating": "Đang dẫn đường trên màn hình hướng dẫn Bukgu-gu.",
+      "journey.navigating": "Đang dẫn đường trên màn hình hướng dẫn Gwangju Buk-gu.",
       "journey.completed": "Lộ trình hướng dẫn đã hoàn tất. Quay lại trò chuyện để nhập câu hỏi mới.",
 
       "freshness.liveOfficial": "Đã xác minh nguồn chính thức trực tiếp",
-      "freshness.officialSnapshot": "Ảnh chụp chính thức Bukgu-gu",
+      "freshness.officialSnapshot": "Ảnh chụp chính thức Gwangju Buk-gu",
       "freshness.liveWeb": "Nguồn web trực tiếp · vui lòng xác nhận nguồn chính thức lại",
       "freshness.modelOnly": "Hiện không có nguồn chính thức",
 
@@ -409,7 +418,7 @@
       "recommendations.show": "แสดงคำแนะนำ",
       "recommendations.hide": "ซ่อนคำแนะนำ",
       "chat.hint":
-        "หลังคำถามแรก ฉันจะแสดงเส้นทางพร้อมหน้าจอแนะนำของเขต Bukgu-gu",
+        "หลังคำถามแรก ฉันจะแสดงเส้นทางพร้อมหน้าจอแนะนำของเขต Gwangju Buk-gu",
       "chat.privacyWarning":
         "อย่าป้อนข้อมูลส่วนบุคคล เช่น เลขประจำตัว หมายเลขโทรศัพท์ อีเมล หรือที่อยู่โดยละเอียด",
       "chat.disclosure":
@@ -453,7 +462,7 @@
         "ให้คำแนะนำเท่านั้น ไม่มีการส่งเรื่องราชการจริง",
       "safety.preSubmit": "โปรดตรวจสอบเนื้อหาอีกครั้งก่อนส่ง",
       "safety.officialChannel":
-        "โปรดดำเนินการส่งเรื่องทางการด้วยตนเองผ่านช่องทางทางการของเขต Bukgu-gu",
+        "โปรดดำเนินการส่งเรื่องทางการด้วยตนเองผ่านช่องทางทางการของเขต Gwangju Buk-gu",
       "safety.koreanDraft":
         "ร่างเอกสารราชการภาษาเกาหลีเป็นฉบับที่ตรวจสอบแล้วและสม่ำเสมอ",
 
@@ -485,9 +494,9 @@
 
       "split.confirm": " — ให้ฉันนำทางเรื่องนี้ไหม?",
       "split.ready":
-        "ฉันได้รับคำถามแล้ว หน้าจอแนะนำของเขต Bukgu-gu เปิดอยู่ด้านซ้าย",
+        "ฉันได้รับคำถามแล้ว หน้าจอแนะนำของเขต Gwangju Buk-gu เปิดอยู่ด้านซ้าย",
       "split.followUp":
-        "หน้าจอแนะนำของเขต Bukgu-gu ยังคงเปิดด้านซ้าย ฉันจะดำเนินการต่อด้วยเมนูและคำแนะนำรายละเอียด หากต้องการเริ่มคำถามใหม่ ให้เลือก 'เริ่มใหม่'",
+        "หน้าจอแนะนำของเขต Gwangju Buk-gu ยังคงเปิดด้านซ้าย ฉันจะดำเนินการต่อด้วยเมนูและคำแนะนำรายละเอียด หากต้องการเริ่มคำถามใหม่ ให้เลือก 'เริ่มใหม่'",
       "unsupported":
         "ในหน้าแรกนี้ ฉันช่วยเรื่องแจ้งจอดรถผิดกฎหมาย สอบถามอาคารชุด ทิ้งขยะชิ้นใหญ่ คู่มือหนังสือเดินทาง และเครื่องอัตโนมัติได้ โปรดลองคำถามตัวอย่าง",
 
@@ -502,11 +511,11 @@
       "error.aiUnavailable": "ขณะนี้ไม่สามารถเชื่อมต่อคำแนะนำ AI ได้ โปรดลองอีกครั้งในภายหลัง",
 
       "journey.entryReady": "คุณสามารถพิมพ์คำถามใหม่ได้",
-      "journey.navigating": "กำลังนำทางบนหน้าจอแนะนำของเขต Bukgu-gu",
+      "journey.navigating": "กำลังนำทางบนหน้าจอแนะนำของเขต Gwangju Buk-gu",
       "journey.completed": "เส้นทางแนะนำเสร็จสิ้น กลับไปที่การสนทนาเพื่อพิมพ์คำถามใหม่",
 
       "freshness.liveOfficial": "ตรวจสอบแหล่งทางการสดแล้ว",
-      "freshness.officialSnapshot": "สแนปช็อตทางการของเขต Bukgu-gu",
+      "freshness.officialSnapshot": "สแนปช็อตทางการของเขต Gwangju Buk-gu",
       "freshness.liveWeb": "แหล่งเว็บสด · โปรดตรวจสอบแหล่งทางการอีกครั้ง",
       "freshness.modelOnly": "ขณะนี้ไม่มีแหล่งทางการ",
 
@@ -530,7 +539,7 @@
       "recommendations.show": "Tampilkan saran",
       "recommendations.hide": "Sembunyikan saran",
       "chat.hint":
-        "Setelah pertanyaan pertama, saya akan menampilkan rute beserta layar panduan Bukgu-gu.",
+        "Setelah pertanyaan pertama, saya akan menampilkan rute beserta layar panduan Gwangju Buk-gu.",
       "chat.privacyWarning":
         "Jangan masukkan data pribadi seperti nomor identitas, nomor telepon, email, atau alamat lengkap.",
       "chat.disclosure":
@@ -574,7 +583,7 @@
         "Hanya panduan; tidak ada pengaduan sungguhan yang dikirim.",
       "safety.preSubmit": "Harap periksa kembali isi sebelum mengirim.",
       "safety.officialChannel":
-        "Harap selesaikan pengiriman resmi melalui saluran resmi Bukgu-gu.",
+        "Harap selesaikan pengiriman resmi melalui saluran resmi Gwangju Buk-gu.",
       "safety.koreanDraft":
         "Draf administratif bahasa Korea adalah teks yang telah ditinjau dan konsisten.",
 
@@ -606,9 +615,9 @@
 
       "split.confirm": " — ingin saya pandu hal ini?",
       "split.ready":
-        "Pertanyaan sudah saya terima. Layar panduan Bukgu-gu kini terbuka di kiri.",
+        "Pertanyaan sudah saya terima. Layar panduan Gwangju Buk-gu kini terbuka di kiri.",
       "split.followUp":
-        "Layar panduan Bukgu-gu tetap terbuka di kiri. Saya lanjutkan dengan menu dan panduan rincinya. Untuk pertanyaan baru, pilih 'Mulai ulang'.",
+        "Layar panduan Gwangju Buk-gu tetap terbuka di kiri. Saya lanjutkan dengan menu dan panduan rincinya. Untuk pertanyaan baru, pilih 'Mulai ulang'.",
       "unsupported":
         "Di layar pertama ini saya membantu laporan parkir liar, tanya perumahan, pembuangan sampah besar, panduan paspor, dan mesin mandiri. Silakan coba salah satu pertanyaan contoh.",
 
@@ -623,11 +632,11 @@
       "error.aiUnavailable": "Panduan AI saat ini tidak tersambung. Silakan coba lagi nanti.",
 
       "journey.entryReady": "Anda dapat memasukkan pertanyaan baru.",
-      "journey.navigating": "Memandu Anda menyusuri rute di layar panduan Bukgu-gu.",
+      "journey.navigating": "Memandu Anda menyusuri rute di layar panduan Gwangju Buk-gu.",
       "journey.completed": "Rute panduan telah selesai. Kembali ke percakapan untuk memasukkan pertanyaan baru.",
 
       "freshness.liveOfficial": "Sumber resmi langsung telah diverifikasi",
-      "freshness.officialSnapshot": "Snapshot resmi Bukgu-gu",
+      "freshness.officialSnapshot": "Snapshot resmi Gwangju Buk-gu",
       "freshness.liveWeb": "Sumber web langsung · harap verifikasi sumber resmi kembali",
       "freshness.modelOnly": "Tidak ada sumber resmi saat ini",
 
@@ -655,7 +664,7 @@
       "제안 초안을 완성했습니다. 위치 정보를 보완한 뒤 [검토했고, 제출하기]를 선택해 주세요.":
         "The proposal draft is ready. Add the location, then choose [Reviewed, submit].",
       "한국어 초안 작성을 마쳤습니다. 공식 제출은 북구청 공식 채널에서 직접 확인하고 진행해 주세요.":
-        "The Korean draft is complete. Please verify and submit through Bukgu-gu's official channels directly.",
+        "The Korean draft is complete. Please verify and submit through Gwangju Buk-gu's official channels directly.",
 
       "가로등 고장 신고를 도와드립니다.":
         "I'll help you report a broken streetlight.",
@@ -668,7 +677,7 @@
       "제목과 본문 초안을 입력했습니다. 대괄호 부분을 확인한 뒤 제출 여부를 선택해 주세요.":
         "I've entered the title and body draft. Check the bracketed parts, then decide whether to submit.",
       "민원 초안 작성을 마쳤습니다. 실제 제출은 북구청 공식 채널에서 직접 진행해 주세요.":
-        "The complaint draft is complete. Please submit through Bukgu-gu's official channels directly.",
+        "The complaint draft is complete. Please submit through Gwangju Buk-gu's official channels directly.",
 
       "공동주택 부서 정보를 안내해 드립니다.":
         "Here is the apartment housing department information.",
@@ -708,15 +717,15 @@
       "전화 신고와 여기로 신청 경로를 안내합니다.":
         "I'll show the phone-report and online application paths.",
       "안내를 마쳤습니다. 실제 신청은 여기로 앱 또는 북구청 홈페이지에서 가능합니다.":
-        "That's the end of the guide. Real applications are via the app or the Bukgu-gu website.",
+        "That's the end of the guide. Real applications are via the app or the Gwangju Buk-gu website.",
       "여권 발급 경로를 안내해 드립니다.": "Here is the passport issuance path.",
       "종합민원 메뉴를 확인합니다.": "Opening the Integrated Civil Service menu.",
       "종합민원 페이지로 이동합니다.": "Going to the Integrated Civil Service page.",
       "여권민원 안내 화면으로 이동합니다.": "Going to the passport guide screen.",
       "여권민원 안내를 확인합니다. 여권 수수료표, 구비서류, 신청안내를 보실 수 있습니다. 실제 여권 신청은 북구청 민원실 방문 후 직접 진행해야 합니다.":
-        "This is the passport guide: fee table, required documents, and application info. Real passport applications require an in-person visit to the Bukgu-gu civil office.",
+        "This is the passport guide: fee table, required documents, and application info. Real passport applications require an in-person visit to the Gwangju Buk-gu civil office.",
       "안내를 마쳤습니다. 실제 여권 신청은 북구청 민원실 또는 정부24에서 가능합니다.":
-        "That's the end of the guide. Real passport applications are at the Bukgu-gu civil office or Government24.",
+        "That's the end of the guide. Real passport applications are at the Gwangju Buk-gu civil office or Government24.",
       "무인민원발급기 이용 경로를 안내해 드립니다.":
         "Here is the unmanned kiosk path.",
       "무인민원발급기 안내 화면으로 이동합니다.":
@@ -724,7 +733,7 @@
       "무인민원발급기 안내를 확인합니다. 설치장소, 발급종류, 이용방법을 보실 수 있습니다. 실제 서류 발급은 현장에서 본인인증 후 직접 진행해야 합니다.":
         "This is the unmanned kiosk guide: locations, document types, and usage. Real document issuance requires on-site identity verification.",
       "안내를 마쳤습니다. 실제 이용은 북구청 및 각 행정복지센터에 설치된 무인민원발급기에서 가능합니다.":
-        "That's the end of the guide. Real use is at the kiosks in Bukgu-gu offices and welfare centers.",
+        "That's the end of the guide. Real use is at the kiosks in Gwangju Buk-gu offices and welfare centers.",
       "쓰레기 무단투기 신고 작성을 도와드립니다.":
         "I'll help you draft an illegal dumping report.",
       "민원게시판의 글쓰기 양식으로 이동합니다.":
@@ -748,10 +757,10 @@
       "양식을 준비 중입니다...": "Preparing the form...",
       "제목을 다듬는 중입니다...": "Polishing the title...",
       "민원 문장을 작성하는 중입니다...": "Writing the complaint...",
-      "북구청 사이트에 접속 중입니다...": "Connecting to the Bukgu-gu site...",
+      "북구청 사이트에 접속 중입니다...": "Connecting to the Gwangju Buk-gu site...",
       "신고 채널 정보를 확인 중입니다...": "Checking the reporting channel...",
       "안전신문고 사이트를 검색 중입니다...": "Searching Safety Report...",
-      "북구청 메뉴를 살펴보는 중입니다...": "Browsing the Bukgu-gu menu...",
+      "북구청 메뉴를 살펴보는 중입니다...": "Browsing the Gwangju Buk-gu menu...",
       "담당 부서 경로를 찾는 중입니다...": "Finding the responsible division...",
       "부서 검색을 준비하는 중입니다...": "Preparing the department search...",
       "공동주택 관련 부서를 검색 중입니다...":
@@ -789,7 +798,7 @@
       "제안 초안을 완성했습니다. 위치 정보를 보완한 뒤 [검토했고, 제출하기]를 선택해 주세요.":
         "Bản nháp đề xuất đã xong. Bổ sung vị trí, rồi chọn [Đã xem xét, gửi đi].",
       "한국어 초안 작성을 마쳤습니다. 공식 제출은 북구청 공식 채널에서 직접 확인하고 진행해 주세요.":
-        "Bản nháp tiếng Hàn đã hoàn tất. Vui lòng xác nhận và nộp qua kênh chính thức của Bukgu-gu.",
+        "Bản nháp tiếng Hàn đã hoàn tất. Vui lòng xác nhận và nộp qua kênh chính thức của Gwangju Buk-gu.",
 
       "가로등 고장 신고를 도와드립니다.":
         "Tôi sẽ giúp bạn báo cáo đèn đường hỏng.",
@@ -802,7 +811,7 @@
       "제목과 본문 초안을 입력했습니다. 대괄호 부분을 확인한 뒤 제출 여부를 선택해 주세요.":
         "Tôi đã nhập tiêu đề và bản nháp nội dung. Kiểm tra phần trong ngoặc, rồi chọn có gửi hay không.",
       "민원 초안 작성을 마쳤습니다. 실제 제출은 북구청 공식 채널에서 직접 진행해 주세요.":
-        "Bản nháp khiếu nại đã hoàn tất. Vui lòng nộp qua kênh chính thức của Bukgu-gu.",
+        "Bản nháp khiếu nại đã hoàn tất. Vui lòng nộp qua kênh chính thức của Gwangju Buk-gu.",
 
       "공동주택 부서 정보를 안내해 드립니다.":
         "Đây là thông tin phòng quản lý nhà chung cư.",
@@ -842,15 +851,15 @@
       "전화 신고와 여기로 신청 경로를 안내합니다.":
         "Tôi sẽ hướng dẫn đường dây báo cáo qua điện thoại và nộp trực tuyến.",
       "안내를 마쳤습니다. 실제 신청은 여기로 앱 또는 북구청 홈페이지에서 가능합니다.":
-        "Kết thúc hướng dẫn. Nộp thật qua ứng dụng hoặc trang chủ Bukgu-gu.",
+        "Kết thúc hướng dẫn. Nộp thật qua ứng dụng hoặc trang chủ Gwangju Buk-gu.",
       "여권 발급 경로를 안내해 드립니다.": "Đây là đường dẫn cấp hộ chiếu.",
       "종합민원 메뉴를 확인합니다.": "Mở menu Dịch vụ công tổng hợp.",
       "종합민원 페이지로 이동합니다.": "Chuyển đến trang Dịch vụ công tổng hợp.",
       "여권민원 안내 화면으로 이동합니다.": "Chuyển đến màn hình hướng dẫn hộ chiếu.",
       "여권민원 안내를 확인합니다. 여권 수수료표, 구비서류, 신청안내를 보실 수 있습니다. 실제 여권 신청은 북구청 민원실 방문 후 직접 진행해야 합니다.":
-        "Đây là hướng dẫn hộ chiếu: biểu phí, giấy tờ cần thiết và thông tin nộp. Nộp hộ chiếu thật cần đến trực tiếp bộ phận một cửa Bukgu-gu.",
+        "Đây là hướng dẫn hộ chiếu: biểu phí, giấy tờ cần thiết và thông tin nộp. Nộp hộ chiếu thật cần đến trực tiếp bộ phận một cửa Gwangju Buk-gu.",
       "안내를 마쳤습니다. 실제 여권 신청은 북구청 민원실 또는 정부24에서 가능합니다.":
-        "Kết thúc hướng dẫn. Nộp hộ chiếu thật tại bộ phận một cửa Bukgu-gu hoặc Chính phủ24.",
+        "Kết thúc hướng dẫn. Nộp hộ chiếu thật tại bộ phận một cửa Gwangju Buk-gu hoặc Chính phủ24.",
       "무인민원발급기 이용 경로를 안내해 드립니다.":
         "Đây là đường dẫn máy cấp giấy tờ tự động.",
       "무인민원발급기 안내 화면으로 이동합니다.":
@@ -858,7 +867,7 @@
       "무인민원발급기 안내를 확인합니다. 설치장소, 발급종류, 이용방법을 보실 수 있습니다. 실제 서류 발급은 현장에서 본인인증 후 직접 진행해야 합니다.":
         "Đây là hướng dẫn máy tự động: vị trí, loại giấy tờ, cách dùng. Cấp giấy tờ thật cần xác thực tại chỗ.",
       "안내를 마쳤습니다. 실제 이용은 북구청 및 각 행정복지센터에 설치된 무인민원발급기에서 가능합니다.":
-        "Kết thúc hướng dẫn. Dùng thật tại máy tự động ở cơ quan Bukgu-gu và trung tâm phúc lợi.",
+        "Kết thúc hướng dẫn. Dùng thật tại máy tự động ở cơ quan Gwangju Buk-gu và trung tâm phúc lợi.",
       "쓰레기 무단투기 신고 작성을 도와드립니다.":
         "Tôi sẽ giúp bạn soạn báo cáo vứt rác bừa bãi.",
       "민원게시판의 글쓰기 양식으로 이동합니다.":
@@ -882,10 +891,10 @@
       "양식을 준비 중입니다...": "Đang chuẩn bị form...",
       "제목을 다듬는 중입니다...": "Đang trau chuốt tiêu đề...",
       "민원 문장을 작성하는 중입니다...": "Đang soạn văn bản khiếu nại...",
-      "북구청 사이트에 접속 중입니다...": "Đang kết nối trang Bukgu-gu...",
+      "북구청 사이트에 접속 중입니다...": "Đang kết nối trang Gwangju Buk-gu...",
       "신고 채널 정보를 확인 중입니다...": "Đang kiểm tra kênh báo cáo...",
       "안전신문고 사이트를 검색 중입니다...": "Đang tìm kiếm Safety Report...",
-      "북구청 메뉴를 살펴보는 중입니다...": "Đang xem menu Bukgu-gu...",
+      "북구청 메뉴를 살펴보는 중입니다...": "Đang xem menu Gwangju Buk-gu...",
       "담당 부서 경로를 찾는 중입니다...": "Đang tìm phòng phụ trách...",
       "부서 검색을 준비하는 중입니다...": "Đang chuẩn bị tìm kiếm phòng ban...",
       "공동주택 관련 부서를 검색 중입니다...":
@@ -923,7 +932,7 @@
       "제안 초안을 완성했습니다. 위치 정보를 보완한 뒤 [검토했고, 제출하기]를 선택해 주세요.":
         "ร่างข้อเสนอเสร็จแล้ว เพิ่มตำแหน่งแล้วเลือก [ตรวจสอบแล้ว ส่งเรื่อง]",
       "한국어 초안 작성을 마쳤습니다. 공식 제출은 북구청 공식 채널에서 직접 확인하고 진행해 주세요.":
-        "ร่างภาษาเกาหลีเสร็จเรียบร้อย โปรดตรวจสอบและส่งเรื่องผ่านช่องทางทางการของเขต Bukgu-gu โดยตรง",
+        "ร่างภาษาเกาหลีเสร็จเรียบร้อย โปรดตรวจสอบและส่งเรื่องผ่านช่องทางทางการของเขต Gwangju Buk-gu โดยตรง",
 
       "가로등 고장 신고를 도와드립니다.":
         "ฉันจะช่วยคุณแจ้งโคมไฟถนนเสีย",
@@ -936,7 +945,7 @@
       "제목과 본문 초안을 입력했습니다. 대괄호 부분을 확인한 뒤 제출 여부를 선택해 주세요.":
         "ฉันกรอกหัวข้อและร่างเนื้อหาแล้ว ตรวจสอบส่วนในวงเล็บ แล้วเลือกว่าจะส่งเรื่องหรือไม่",
       "민원 초안 작성을 마쳤습니다. 실제 제출은 북구청 공식 채널에서 직접 진행해 주세요.":
-        "ร่างเรื่องราชการเสร็จแล้ว โปรดส่งเรื่องผ่านช่องทางทางการของเขต Bukgu-gu โดยตรง",
+        "ร่างเรื่องราชการเสร็จแล้ว โปรดส่งเรื่องผ่านช่องทางทางการของเขต Gwangju Buk-gu โดยตรง",
 
       "공동주택 부서 정보를 안내해 드립니다.":
         "นี่คือข้อมูลแผนกอาคารชุด",
@@ -976,15 +985,15 @@
       "전화 신고와 여기로 신청 경로를 안내합니다.":
         "ฉันจะแสดงเส้นทางแจ้งทางโทรศัพท์และสมัครออนไลน์",
       "안내를 마쳤습니다. 실제 신청은 여기로 앱 또는 북구청 홈페이지에서 가능합니다.":
-        "จบคำแนะนำแล้ว การสมัครจริงทำได้ผ่านแอปหรือเว็บไซต์เขต Bukgu-gu",
+        "จบคำแนะนำแล้ว การสมัครจริงทำได้ผ่านแอปหรือเว็บไซต์เขต Gwangju Buk-gu",
       "여권 발급 경로를 안내해 드립니다.": "นี่คือเส้นทางทำหนังสือเดินทาง",
       "종합민원 메뉴를 확인합니다.": "กำลังเปิดเมนูงานบริการประชาชนรวม",
       "종합민원 페이지로 이동합니다.": "กำลังไปที่หน้าบริการประชาชนรวม",
       "여권민원 안내 화면으로 이동합니다.": "กำลังไปที่หน้าคู่มือหนังสือเดินทาง",
       "여권민원 안내를 확인합니다. 여권 수수료표, 구비서류, 신청안내를 보실 수 있습니다. 실제 여권 신청은 북구청 민원실 방문 후 직접 진행해야 합니다.":
-        "นี่คือคู่มือหนังสือเดินทาง: ตารางค่าธรรมเนียม เอกสารที่ต้องใช้ และข้อมูลการสมัคร การทำหนังสือเดินทางจริงต้องไปที่ศูนย์บริการเขต Bukgu-gu",
+        "นี่คือคู่มือหนังสือเดินทาง: ตารางค่าธรรมเนียม เอกสารที่ต้องใช้ และข้อมูลการสมัคร การทำหนังสือเดินทางจริงต้องไปที่ศูนย์บริการเขต Gwangju Buk-gu",
       "안내를 마쳤습니다. 실제 여권 신청은 북구청 민원실 또는 정부24에서 가능합니다.":
-        "จบคำแนะนำแล้ว การทำหนังสือเดินทางจริงทำได้ที่ศูนย์บริการเขต Bukgu-gu หรือ Government24",
+        "จบคำแนะนำแล้ว การทำหนังสือเดินทางจริงทำได้ที่ศูนย์บริการเขต Gwangju Buk-gu หรือ Government24",
       "무인민원발급기 이용 경로를 안내해 드립니다.":
         "นี่คือเส้นทางเครื่องออกเอกสารอัตโนมัติ",
       "무인민원발급기 안내 화면으로 이동합니다.":
@@ -992,7 +1001,7 @@
       "무인민원발급기 안내를 확인합니다. 설치장소, 발급종류, 이용방법을 보실 수 있습니다. 실제 서류 발급은 현장에서 본인인증 후 직접 진행해야 합니다.":
         "นี่คือคู่มือเครื่องอัตโนมัติ: สถานที่ ประเภทเอกสาร และวิธีใช้ การออกเอกสารจริงต้องยืนยันตัวตนที่เครื่อง",
       "안내를 마쳤습니다. 실제 이용은 북구청 및 각 행정복지센터에 설치된 무인민원발급기에서 가능합니다.":
-        "จบคำแนะนำแล้ว การใช้งานจริงอยู่ที่เครื่องอัตโนมัติในสำนักเขต Bukgu-gu และศูนย์บริการ",
+        "จบคำแนะนำแล้ว การใช้งานจริงอยู่ที่เครื่องอัตโนมัติในสำนักเขต Gwangju Buk-gu และศูนย์บริการ",
       "쓰레기 무단투기 신고 작성을 도와드립니다.":
         "ฉันจะช่วยคุณเขียนแจ้งทิ้งขยะมิชอบ",
       "민원게시판의 글쓰기 양식으로 이동합니다.":
@@ -1016,10 +1025,10 @@
       "양식을 준비 중입니다...": "กำลังเตรียมแบบฟอร์ม...",
       "제목을 다듬는 중입니다...": "กำลังปรับหัวข้อ...",
       "민원 문장을 작성하는 중입니다...": "กำลังเขียนประโยคเรื่องราชการ...",
-      "북구청 사이트에 접속 중입니다...": "กำลังเชื่อมต่อเว็บไซต์เขต Bukgu-gu...",
+      "북구청 사이트에 접속 중입니다...": "กำลังเชื่อมต่อเว็บไซต์เขต Gwangju Buk-gu...",
       "신고 채널 정보를 확인 중입니다...": "กำลังตรวจสอบช่องทางแจ้ง...",
       "안전신문고 사이트를 검색 중입니다...": "กำลังค้นหา Safety Report...",
-      "북구청 메뉴를 살펴보는 중입니다...": "กำลังดูเมนูเขต Bukgu-gu...",
+      "북구청 메뉴를 살펴보는 중입니다...": "กำลังดูเมนูเขต Gwangju Buk-gu...",
       "담당 부서 경로를 찾는 중입니다...": "กำลังหาแผนกที่รับผิดชอบ...",
       "부서 검색을 준비하는 중입니다...": "กำลังเตรียมค้นหาแผนก...",
       "공동주택 관련 부서를 검색 중입니다...": "กำลังค้นหาแผนกอาคารชุด...",
@@ -1056,7 +1065,7 @@
       "제안 초안을 완성했습니다. 위치 정보를 보완한 뒤 [검토했고, 제출하기]를 선택해 주세요.":
         "Draf usulan sudah siap. Lengkapi lokasi, lalu pilih [Sudah diperiksa, kirim].",
       "한국어 초안 작성을 마쳤습니다. 공식 제출은 북구청 공식 채널에서 직접 확인하고 진행해 주세요.":
-        "Draf bahasa Korea sudah selesai. Harap verifikasi dan kirim melalui saluran resmi Bukgu-gu secara langsung.",
+        "Draf bahasa Korea sudah selesai. Harap verifikasi dan kirim melalui saluran resmi Gwangju Buk-gu secara langsung.",
 
       "가로등 고장 신고를 도와드립니다.":
         "Saya akan bantu Anda melaporkan lampu jalan rusak.",
@@ -1069,7 +1078,7 @@
       "제목과 본문 초안을 입력했습니다. 대괄호 부분을 확인한 뒤 제출 여부를 선택해 주세요.":
         "Saya telah isi judul dan draf isi. Periksa bagian dalam kurung siku, lalu pilih kirim atau tidak.",
       "민원 초안 작성을 마쳤습니다. 실제 제출은 북구청 공식 채널에서 직접 진행해 주세요.":
-        "Draf pengaduan sudah selesai. Harap kirim melalui saluran resmi Bukgu-gu secara langsung.",
+        "Draf pengaduan sudah selesai. Harap kirim melalui saluran resmi Gwangju Buk-gu secara langsung.",
 
       "공동주택 부서 정보를 안내해 드립니다.":
         "Berikut informasi departemen perumahan.",
@@ -1109,15 +1118,15 @@
       "전화 신고와 여기로 신청 경로를 안내합니다.":
         "Saya akan tunjukkan jalur lapor via telepon dan pendaftaran daring.",
       "안내를 마쳤습니다. 실제 신청은 여기로 앱 또는 북구청 홈페이지에서 가능합니다.":
-        "Panduan selesai. Pendaftaran nyata melalui aplikasi atau situs web Bukgu-gu.",
+        "Panduan selesai. Pendaftaran nyata melalui aplikasi atau situs web Gwangju Buk-gu.",
       "여권 발급 경로를 안내해 드립니다.": "Berikut jalur pembuatan paspor.",
       "종합민원 메뉴를 확인합니다.": "Membuka menu Layanan Publik Terpadu.",
       "종합민원 페이지로 이동합니다.": "Pindah ke halaman Layanan Publik Terpadu.",
       "여권민원 안내 화면으로 이동합니다.": "Pindah ke layar panduan paspor.",
       "여권민원 안내를 확인합니다. 여권 수수료표, 구비서류, 신청안내를 보실 수 있습니다. 실제 여권 신청은 북구청 민원실 방문 후 직접 진행해야 합니다.":
-        "Berikut panduan paspor: tabel biaya, dokumen, dan info pendaftaran. Pembuatan paspor nyata harus datang langsung ke loket Bukgu-gu.",
+        "Berikut panduan paspor: tabel biaya, dokumen, dan info pendaftaran. Pembuatan paspor nyata harus datang langsung ke loket Gwangju Buk-gu.",
       "안내를 마쳤습니다. 실제 여권 신권은 북구청 민원실 또는 정부24에서 가능합니다.":
-        "Panduan selesai. Pembuatan paspor nyata di loket Bukgu-gu atau Government24.",
+        "Panduan selesai. Pembuatan paspor nyata di loket Gwangju Buk-gu atau Government24.",
       "무인민원발급기 이용 경로를 안내해 드립니다.":
         "Berikut jalur mesin layanan mandiri.",
       "무인민원발급기 안내 화면으로 이동합니다.":
@@ -1125,7 +1134,7 @@
       "무인민원발급기 안내를 확인합니다. 설치장소, 발급종류, 이용방법을 보실 수 있습니다. 실제 서류 발급은 현장에서 본인인증 후 직접 진행해야 합니다.":
         "Berikut panduan mesin mandiri: lokasi, jenis dokumen, cara pakai. Penerbitan dokumen nyata butuh verifikasi di tempat.",
       "안내를 마쳤습니다. 실제 이용은 북구청 및 각 행정복지센터에 설치된 무인민원발급기에서 가능합니다.":
-        "Panduan selesai. Pemakaian nyata di mesin mandiri di kantor Bukgu-gu dan pusat layanan.",
+        "Panduan selesai. Pemakaian nyata di mesin mandiri di kantor Gwangju Buk-gu dan pusat layanan.",
       "쓰레기 무단투기 신고 작성을 도와드립니다.":
         "Saya akan bantu menyusun laporan membuang sampah sembarangan.",
       "민원게시판의 글쓰기 양식으로 이동합니다.":
@@ -1149,10 +1158,10 @@
       "양식을 준비 중입니다...": "Menyiapkan formulir...",
       "제목을 다듬는 중입니다...": "Merapikan judul...",
       "민원 문장을 작성하는 중입니다...": "Menulis kalimat pengaduan...",
-      "북구청 사이트에 접속 중입니다...": "Menghubungkan ke situs Bukgu-gu...",
+      "북구청 사이트에 접속 중입니다...": "Menghubungkan ke situs Gwangju Buk-gu...",
       "신고 채널 정보를 확인 중입니다...": "Memeriksa saluran pelaporan...",
       "안전신문고 사이트를 검색 중입니다...": "Mencari Safety Report...",
-      "북구청 메뉴를 살펴보는 중입니다...": "Menelusuri menu Bukgu-gu...",
+      "북구청 메뉴를 살펴보는 중입니다...": "Menelusuri menu Gwangju Buk-gu...",
       "담당 부서 경로를 찾는 중입니다...": "Mencari departemen terkait...",
       "부서 검색을 준비하는 중입니다...": "Menyiapkan pencarian departemen...",
       "공동주택 관련 부서를 검색 중입니다...": "Mencari departemen perumahan...",
@@ -1210,6 +1219,26 @@
   function localeName(value) {
     var loc = normalizeLocale(value);
     return LOCALE_NAMES[loc] || LOCALE_NAMES.ko;
+  }
+
+  // Current institution display identity for the active (or given) locale,
+  // read synchronously from the SiteSpec projection. Fail-closed fallback
+  // mirrors the authoritative SiteSpec display block; no new translations
+  // are invented for vi/th/id (they use the approved English label).
+  function getInstitutionName(value) {
+    var loc = normalizeLocale(value);
+    if (SITE_METADATA && SITE_METADATA.display && SITE_METADATA.display.names) {
+      var name = SITE_METADATA.display.names[loc];
+      if (typeof name === "string" && name) return name;
+    }
+    var fallback = {
+      ko: "북구청",
+      en: "Gwangju Buk-gu",
+      vi: "Gwangju Buk-gu",
+      th: "Gwangju Buk-gu",
+      id: "Gwangju Buk-gu",
+    };
+    return fallback[loc] || fallback.en;
   }
 
   function getLocale() {
@@ -1340,6 +1369,7 @@
     getJourneyCopy: getJourneyCopy,
     // ── extended API (URL + resident copy) ──
     localeName: localeName,
+    getInstitutionName: getInstitutionName,
     translateMessage: translateMessage,
     getResidentMessage: getResidentMessage,
     setDocumentLang: setDocumentLang,
