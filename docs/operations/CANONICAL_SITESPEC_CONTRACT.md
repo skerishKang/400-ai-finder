@@ -213,3 +213,67 @@ python -m json.tool configs/sitespec.schema.json > /dev/null
 python -m json.tool configs/sites/bukgu_gwangju.sitespec.json > /dev/null
 git diff --check
 ```
+
+## Python SiteProfile identifier dual-read (#1225-D1)
+
+The Python profile loader now resolves identifiers through the canonical
+SiteSpec, while keeping unmigrated YAML-only profiles fully functional.
+
+`src/site_profiles/site_profile.py` `SiteProfileLoader.load_by_id()` /
+`load_profile()` resolve:
+
+```text
+requested identifier
+→ SiteSpec resolver (src/site_profiles/sitespec.py)
+→ canonical SiteSpec
+→ runtime.python_profile
+→ corresponding YAML profile
+```
+
+| Call | Result |
+|---|---|
+| `load_by_id("bukgu_gwangju")` | `bukgu_gwangju.yml` via canonical SiteSpec |
+| `load_by_id("bukgu")` | same `bukgu_gwangju.yml` via legacy alias projection |
+| `load_profile("bukgu_gwangju")` / `load_profile("bukgu")` | same canonical profile |
+| `load_by_id("seogu_gwangju")` | exact YAML fallback (no SiteSpec yet) |
+| `load_by_id("북구청")` / `"Gwangju Buk-gu"` / `"광주광역시 북구"` | `FileNotFoundError` (fail-closed) |
+| `load_file("/tmp/example.yml")` | explicit file-path semantics, unchanged |
+
+Contract rules:
+
+1. **SiteSpec is the single source of truth.** No separate alias table is
+   introduced; canonical/legacy mapping comes only from the resolver.
+2. **`runtime.python_profile` is the actual projection.** The YAML filename
+   is `<python_profile>.yml`, never `<canonical_site_id>.yml`. The generic
+   fixture (`sample_city` / legacy `sample` → `sample_runtime.yml`) proves
+   this by making the canonical ID differ from the profile filename.
+3. **Unmigrated exact-YAML profiles keep loading.** An identifier with no
+   SiteSpec falls back to the historical `<identifier>.yml` lookup
+   (transitional; e.g. `seogu_gwangju`). A SiteSpec lookup miss never
+   rejects existing YAML profiles.
+4. **No fallback after SiteSpec resolution.** Once an identifier resolves to
+   a SiteSpec, a missing/malformed `runtime.python_profile` is a
+   configuration error (`ValueError`) and never falls back to the
+   requested-ID YAML.
+5. **Identifier fail-closed.** Display labels and jurisdiction historical
+   aliases are not runtime identities; unknown identifiers keep the
+   existing `FileNotFoundError` public behavior.
+6. **Constructor compatibility.** `SiteProfileLoader()` and
+   `SiteProfileLoader(temp_dir)` keep working with YAML-only directories:
+   the SiteSpec resolver is constructed lazily on first identifier lookup,
+   or injected via `sitespec_resolver` — never eagerly in the constructor.
+7. **List APIs expose canonical profiles only.** `list_ids()` /
+   `list_profiles()` do not surface legacy aliases (`bukgu` is absent), and
+   unmigrated exact-YAML profiles remain listed.
+
+Expected changed files for the D1 slice:
+
+* `src/site_profiles/site_profile.py`
+* `tests/test_site_profile_dual_read.py`
+* `docs/operations/CANONICAL_SITESPEC_CONTRACT.md`
+
+Protected files (`configs/site-registry.json`,
+`configs/sites/bukgu_gwangju.sitespec.json`,
+`configs/sites/bukgu_gwangju.yml`, `configs/sitespec.schema.json`,
+`functions/api/**`, browser/UI files, prompt files, snapshots, golden
+fixtures) are unchanged in D1.

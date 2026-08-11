@@ -17,6 +17,12 @@ from src.config.constants import (
     PROFILE_DEFAULT_BOARD_PATTERNS,
     PROFILE_DEFAULT_CRAWL_RULES,
 )
+from src.site_profiles.sitespec import (
+    ID_PATTERN,
+    SiteSpecNotFoundError,
+    SiteSpecResolver,
+    iter_sitespec_paths,
+)
 
 try:
     import yaml
@@ -251,22 +257,139 @@ class SiteProfileLoader:
     Args:
         configs_dir: Directory containing ``<site_id>.yml`` files.
             Defaults to ``configs/sites/`` relative to this file.
+        sitespec_dir: Directory containing ``*.sitespec.json`` files for
+            dual-read identifier resolution (#1225-D1). Defaults to
+            ``configs_dir`` when not given.
+        sitespec_resolver: Optional pre-built :class:`SiteSpecResolver`.
+            When provided, it is used directly; otherwise the resolver is
+            constructed lazily on the first identifier lookup (never in the
+            constructor), so YAML-only directories keep working unchanged.
+
+    Dual-read behavior (#1225-D1):
+
+    * identifier → SiteSpec resolver → canonical SiteSpec →
+      ``runtime.python_profile`` → ``<python_profile>.yml``
+    * identifiers with no SiteSpec fall back to the historical exact-YAML
+      lookup ``<identifier>.yml`` (transitional, safe for unmigrated
+      profiles)
+    * once a SiteSpec resolves an identifier, the resolver is the authority:
+      a missing/malformed ``runtime.python_profile`` fails closed and never
+      falls back to ``<identifier>.yml``
     """
 
-    def __init__(self, configs_dir: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        configs_dir: str | Path | None = None,
+        *,
+        sitespec_dir: str | Path | None = None,
+        sitespec_resolver: SiteSpecResolver | None = None,
+    ) -> None:
         self._dir = Path(configs_dir) if configs_dir else CONFIGS_DIR
+        self._sitespec_dir = (
+            Path(sitespec_dir) if sitespec_dir is not None else self._dir
+        )
+        self._resolver = sitespec_resolver
+        self._resolver_checked = sitespec_resolver is not None
+
+    def _get_sitespec_resolver(self) -> SiteSpecResolver | None:
+        """Return the SiteSpec resolver, or None for YAML-only directories.
+
+        The resolver is constructed lazily on first use (never in the
+        constructor) so existing ``SiteProfileLoader()`` /
+        ``SiteProfileLoader(temp_dir)`` calls with YAML-only directories are
+        unaffected. A directory that contains no ``*.sitespec.json`` files
+        caches ``None``; a directory that contains SiteSpecs loads them
+        fail-closed (malformed sets raise ``SiteSpecLoadError``).
+        """
+        if self._resolver_checked:
+            return self._resolver
+        self._resolver_checked = True
+        if not iter_sitespec_paths(self._sitespec_dir):
+            self._resolver = None
+            return None
+        self._resolver = SiteSpecResolver(self._sitespec_dir)
+        return self._resolver
 
     def load_by_id(self, site_id: str) -> SiteProfile:
-        """Load a profile by its site_id.
+        """Load a profile by its site_id (canonical or legacy alias).
 
-        Looks for ``<site_id>.yml`` inside the configs directory.
+        Identifier resolution (#1225-D1):
+
+        * ``requested identifier → SiteSpec resolver → canonical SiteSpec
+          → runtime.python_profile → <python_profile>.yml``
+        * if the identifier has no SiteSpec, the historical exact-YAML
+          lookup ``<site_id>.yml`` is preserved (transitional)
+        * once SiteSpec resolution succeeds, ``runtime.python_profile`` is
+          authoritative; a missing/malformed projection fails closed and
+          never falls back to ``<site_id>.yml``
 
         Raises:
-            FileNotFoundError: If the profile file does not exist.
-            ValueError: If the YAML is malformed or required fields are missing.
+            FileNotFoundError: If no profile can be resolved (unknown
+                identifier and no exact YAML profile).
+            ValueError: If a resolved SiteSpec's ``runtime.python_profile``
+                is missing or malformed (configuration error).
         """
-        path = self._dir / f"{site_id}.yml"
+        path = self._resolve_profile_path(site_id)
         return self.load_file(path)
+
+    def _resolve_profile_path(self, site_id: str) -> Path:
+        """Map an identifier to the YAML profile path to load.
+
+        ``load_by_id`` is an **identifier-only boundary**: the value is
+        normalized/validated with the shared ``ID_PATTERN`` semantics before
+        any SiteSpec lookup or path construction. Malformed, empty, or
+        path-like values fail closed (``FileNotFoundError``) and can never
+        contribute to a filesystem path — only a valid identifier that
+        misses the SiteSpec may use the transitional exact-YAML lookup.
+        """
+        if not isinstance(site_id, str):
+            raise FileNotFoundError(f"Site profile not found: {site_id!r}")
+        identifier = site_id.strip()
+        if not ID_PATTERN.match(identifier):
+            raise FileNotFoundError(f"Site profile not found: {site_id!r}")
+        resolver = self._get_sitespec_resolver()
+        if resolver is not None:
+            try:
+                metadata = resolver.resolve_with_metadata(identifier)
+            except SiteSpecNotFoundError:
+                # Transitional: a *valid* identifier with no SiteSpec. Keep
+                # the historical exact-YAML lookup (Section B of #1225-D1).
+                pass
+            else:
+                python_profile = self._python_profile_from_spec(
+                    metadata["spec"], identifier
+                )
+                return self._dir / f"{python_profile}.yml"
+        return self._dir / f"{identifier}.yml"
+
+    @staticmethod
+    def _python_profile_from_spec(spec: dict[str, Any], identifier: str) -> str:
+        """Extract ``runtime.python_profile`` from a resolved SiteSpec.
+
+        Raises:
+            ValueError: If ``runtime`` is missing/not a mapping or
+                ``python_profile`` is missing, empty, non-string, or not a
+                safe identifier. SiteSpec projection is the canonical
+                authority once resolution succeeds — callers must not fall
+                back to the requested-ID YAML after this raises.
+        """
+        runtime = spec.get("runtime")
+        if not isinstance(runtime, dict):
+            raise ValueError(
+                f"SiteSpec for {identifier!r} has no valid 'runtime' mapping: "
+                f"cannot resolve runtime.python_profile"
+            )
+        python_profile = runtime.get("python_profile")
+        if (
+            not isinstance(python_profile, str)
+            or not python_profile.strip()
+            or not ID_PATTERN.match(python_profile)
+        ):
+            raise ValueError(
+                f"SiteSpec for {identifier!r} has invalid runtime.python_profile "
+                f"{python_profile!r}: cannot project to a YAML profile"
+            )
+        return python_profile
 
     def load_file(self, path: str | Path) -> SiteProfile:
         """Load a profile from an explicit file path.
@@ -368,12 +491,23 @@ def list_profiles() -> list[dict[str, str]]:
 def load_profile(site_id_or_path: str) -> SiteProfile:
     """One-shot convenience function.
 
-    Tries ``site_id_or_path`` as a site_id first (looks in ``configs/sites/``).
-    If not found or if it looks like a file path, tries as a file path.
+    Resolution priority:
+
+    1. structurally explicit path (path separators, ``*.yml``/``*.yaml``)
+       → loaded directly as a file path, never reinterpreted as an ID
+    2. bare identifier (canonical ID, legacy alias, or unmigrated exact
+       config YAML) → SiteSpec dual-read / exact config YAML resolution
+    3. genuinely unknown bare identifier that matches an existing
+       same-named extensionless filesystem file → historical
+       explicit-file fallback (e.g. ``custom_local``)
+
+    Canonical/legacy identifiers always win over same-named CWD files, so
+    a stray ``bukgu`` file in the working directory can never hijack the
+    legacy alias.
 
     Args:
-        site_id_or_path: Either a site_id (e.g. ``bukgu_gwangju``) or
-            a file path to a YAML profile.
+        site_id_or_path: Either a site_id / legacy alias (e.g.
+            ``bukgu_gwangju``, ``bukgu``) or a file path to a YAML profile.
 
     Returns:
         A ``SiteProfile`` instance.
@@ -383,22 +517,32 @@ def load_profile(site_id_or_path: str) -> SiteProfile:
     """
     loader = SiteProfileLoader()
 
-    # Try as site_id
-    profile_path = CONFIGS_DIR / f"{site_id_or_path}.yml"
-    if profile_path.exists():
-        return loader.load_file(profile_path)
+    if _looks_like_file_path(site_id_or_path):
+        return loader.load_file(site_id_or_path)
 
-    # Try as a file path
-    path = Path(site_id_or_path)
-    if path.exists():
-        return loader.load_file(path)
+    try:
+        return loader.load_by_id(site_id_or_path)
+    except FileNotFoundError:
+        # Historical extensionless-file compatibility: identifier resolution
+        # already failed, so a same-named filesystem file may only be loaded
+        # when the value itself is a safe bare identifier.
+        if ID_PATTERN.match(site_id_or_path) and Path(site_id_or_path).exists():
+            return loader.load_file(site_id_or_path)
+        raise
 
-    # Try nested
-    for p in [Path(site_id_or_path), CONFIGS_DIR / f"{site_id_or_path}.yml"]:
-        if p.exists():
-            return loader.load_file(p)
 
-    raise FileNotFoundError(
-        f"Cannot find site profile: {site_id_or_path} "
-        f"(checked as site_id and as file path)"
-    )
+def _looks_like_file_path(value: str) -> bool:
+    """Return True when *value* is structurally an explicit file path.
+
+    Site identifiers follow ``[a-z0-9][a-z0-9_-]*`` and never contain path
+    separators or a YAML suffix. Any value with a separator or a YAML suffix
+    is therefore unambiguous as a file path and is loaded directly. Bare
+    identifiers (no separator, no suffix) are **never** treated as paths
+    here — they go through identifier resolution first, so an extensionless
+    CWD file cannot shadow a canonical SiteSpec identifier or legacy alias.
+    """
+    if "/" in value or "\\" in value:
+        return True
+    if value.endswith(".yml") or value.endswith(".yaml"):
+        return True
+    return False
