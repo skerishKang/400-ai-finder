@@ -150,3 +150,46 @@ def test_split_transition_reuses_canonical_home_renderer():
     delegate = shell.index('window.CitizenActionDemoCanvas.navigateToRoute("home")', start)
     fallback = shell.index('var assets = "/static/images/bukgu-current"', start)
     assert delegate < fallback
+
+
+def test_current_mayor_snapshot_officeholder_fields_and_official_source():
+    snapshot = load_official_snapshot("current-mayor")
+    office = snapshot["current_officeholder"]
+
+    assert snapshot["schema_version"] == 2
+    assert snapshot["snapshot_kind"] == "official_content_page"
+    assert snapshot["route_id"] == "current-mayor"
+    assert snapshot["site_id"] == "bukgu_gwangju"
+    assert snapshot["site_name"] == "전남광주통합특별시 북구"
+
+    assert office["role_id"] == "bukgu_mayor"
+    assert office["role_label"] == "북구청장"
+    assert office["name"] == "신수정"
+    assert office["effective_from"] == "2026-07-01"
+
+    assert snapshot["source"]["url"] == "https://bukgu.gwangju.kr/mayor/"
+    assert snapshot["source"]["source_updated_at"] == "not-shown"
+    captured = snapshot["source"]["captured_at"]
+    verified = snapshot["source"]["verified_at"]
+    assert captured.startswith("2026-08-12"), f"captured_at must be 2026-08-12: {captured}"
+    assert verified.startswith("2026-08-12"), f"verified_at must be 2026-08-12: {verified}"
+    assert captured == verified
+
+    page = snapshot["page"]
+    assert "content_html" in page
+    assert "<script" not in page["content_html"].lower()
+    assert "신수정" in page["content_html"]
+
+    assert re.fullmatch(r"[0-9a-f]{64}", canonical_snapshot_sha256(snapshot))
+
+
+def test_current_mayor_is_evidence_not_a_new_exact_clone_route():
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    exact_routes = {entry["route_id"] for entry in manifest["pages"]}
+    pending_routes = {entry["route_id"] for entry in manifest["capture_required"]}
+    proposal_routes = {entry["route_id"] for entry in manifest["product_transitions"]}
+
+    assert "current-mayor" not in exact_routes
+    assert "current-mayor" not in pending_routes
+    assert "current-mayor" not in proposal_routes
+    assert set(OFFICIAL_CONTENT_ROUTES).issubset(exact_routes)

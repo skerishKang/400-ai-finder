@@ -2294,6 +2294,171 @@ await assert('#1225-D2 PROMPT_VERSION bumped; POLICY/API versions unchanged', as
   expectEqual(functionModule.API_SCHEMA_VERSION, '1.0', 'api schema version');
 });
 
+// ---------------------------------------------------------------------------
+// #1278 current-mayor identity grounding from canonical official snapshot
+// ---------------------------------------------------------------------------
+
+const { isCurrentMayorQuery, isCurrentMayorSnapshotValid, currentMayorAnswer } = functionModule;
+
+await assert('#1278 current-mayor detector positive matrix', async () => {
+  const POSITIVE = [
+    '현재 북구청장은 누구야?',
+    '북구청장 이름이 뭐야?',
+    '현직 구청장 누구야?',
+  ];
+  for (const question of POSITIVE) {
+    if (!isCurrentMayorQuery(question)) throw new Error(`expected match: ${question}`);
+  }
+});
+
+await assert('#1278 current-mayor detector negative matrix', async () => {
+  const NEGATIVE = [
+    '구청장에게 제안하고 싶어요',
+    '구청장에게 바란다',
+    '역대 북구청장은 누구야?',
+    '전임 구청장은 누구야?',
+  ];
+  for (const question of NEGATIVE) {
+    if (isCurrentMayorQuery(question)) throw new Error(`expected no match: ${question}`);
+  }
+});
+
+await assert('#1278 VALID_ACTIONS remains eight journeys plus none (no ninth action)', async () => {
+  expectEqual(functionModule.VALID_ACTIONS.length, 9, 'action count');
+  expectEqual(functionModule.VALID_ACTIONS.includes('current_mayor'), false, 'no current_mayor action');
+  expectEqual(functionModule.VALID_ACTIONS.includes('mayor_message_assist'), true, 'mayor_message_assist preserved');
+});
+
+await assert('#1278 existing mayor_message_assist classification unchanged', async () => {
+  const MAYOR_PROPOSAL_TERMS = [
+    '구청장에게 제안하고 싶어요',
+    '구청장에게 제안',
+    '구청장 제안',
+    '제안하고 싶어요',
+    '구청장 바란다',
+  ];
+  for (const term of MAYOR_PROPOSAL_TERMS) {
+    expectEqual(functionModule.classifyAction(term), 'mayor_message_assist', term);
+  }
+});
+
+await assert('#1278 isCurrentMayorSnapshotValid rejects malformed officeholder records', async () => {
+  const office = { name: '신수정', role_id: 'bukgu_mayor', role_label: '북구청장', effective_from: '2026-07-01' };
+  const base = {
+    current_officeholder: office,
+    source: { url: 'https://bukgu.gwangju.kr/mayor/', captured_at: '2026-08-12T00:00:00+09:00', verified_at: '2026-08-12T00:00:00+09:00' },
+    snapshot_id: 'bukgu_gwangju.current-mayor.2026-08-12',
+    route_id: 'current-mayor',
+    page_id: 'mayor',
+    canonical_sha256: 'a'.repeat(64),
+  };
+  expectEqual(isCurrentMayorSnapshotValid(base), true, 'valid');
+  expectEqual(isCurrentMayorSnapshotValid(null), false, 'null');
+  expectEqual(isCurrentMayorSnapshotValid({}), false, 'empty');
+  expectEqual(isCurrentMayorSnapshotValid({ current_officeholder: {} }), false, 'empty office');
+  expectEqual(isCurrentMayorSnapshotValid({ ...base, current_officeholder: { name: '', role_id: 'x', role_label: 'x', effective_from: '2026-01-01' } }), false, 'empty name');
+  expectEqual(isCurrentMayorSnapshotValid({ ...base, current_officeholder: { ...office, name: '', role_id: '', role_label: '', effective_from: '' } }), false, 'blank fields');
+  expectEqual(isCurrentMayorSnapshotValid({ ...base, canonical_sha256: 'short' }), false, 'bad sha');
+});
+
+await assert('#1278 isCurrentMayorSnapshotValid: rejects null/empty/missing fields', async () => {
+  expectEqual(isCurrentMayorSnapshotValid(null), false, 'null');
+  expectEqual(isCurrentMayorSnapshotValid(undefined), false, 'undefined');
+  expectEqual(isCurrentMayorSnapshotValid({}), false, 'empty object');
+  expectEqual(isCurrentMayorSnapshotValid({ current_officeholder: {} }), false, 'empty office');
+  expectEqual(isCurrentMayorSnapshotValid({ current_officeholder: { name: 'test' } }), false, 'missing role_id');
+  expectEqual(isCurrentMayorSnapshotValid({ current_officeholder: { name: '신수정', role_id: 'bukgu_mayor', role_label: '북구청장', effective_from: '2026-07-01' } }), false, 'missing source/snapshot fields');
+});
+
+await assert('#1278 stale provider answer is not exposed; snapshot wins with zero fetches', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('문인', 'none', 0.5) }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: '현재 북구청장은 누구야?',
+    }), { GEMINI_API_KEY: 'test-gemini', KILOCODE_API_KEY: 'test-hy3' });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.action, 'none', 'action');
+    expectEqual(data.freshness_state, 'official_snapshot', 'freshness_state');
+    expectEqual(data.fallback_used, false, 'fallback_used');
+    expectEqual(data.selection_reason, 'deterministic_official_snapshot', 'selection_reason');
+    if (!data.answer.includes('신수정')) throw new Error(`expected 신수정 in answer: ${data.answer}`);
+    if (data.answer.includes('문인')) throw new Error('stale provider answer leaked');
+    expectEqual(data.source_url, 'https://bukgu.gwangju.kr/mayor/', 'source_url');
+    if (!data.snapshot_id) throw new Error('snapshot_id missing');
+    if (!data.canonical_sha256 || data.canonical_sha256.length !== 64) throw new Error(`canonical_sha256 missing/invalid: ${data.canonical_sha256}`);
+    if (!data.verified_at) throw new Error('verified_at missing');
+    if (!data.captured_at) throw new Error('captured_at missing');
+    expectEqual(data.official_route_id, 'current-mayor', 'official_route_id');
+    if (!data.official_page_id) throw new Error('official_page_id missing');
+    if (!data.sources.some((s) => s.official === true)) throw new Error('official source missing');
+    expectEqual(officialFetchCalls().length, 0, 'official fetch count');
+    expectEqual(providerFetchCalls().length, 0, 'provider fetch count');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1278 current-mayor works with no provider keys configured (zero fetch)', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('문인', 'none', 0.5) }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: '북구청장 이름이 뭐야?',
+    }), {});
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.action, 'none', 'action');
+    expectEqual(data.freshness_state, 'official_snapshot', 'freshness_state');
+    if (!data.answer.includes('신수정')) throw new Error(`expected 신수정: ${data.answer}`);
+    expectEqual(officialFetchCalls().length, 0, 'official fetch count');
+    expectEqual(providerFetchCalls().length, 0, 'provider fetch count');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('#1278 current-mayor respects MVP_AI_MODE=disabled (service_disabled)', async () => {
+  const { data } = await requestJson('POST', JSON.stringify({
+    question: '현재 북구청장은 누구야?',
+  }), { MVP_AI_MODE: 'disabled' });
+  expectEqual(data.ok, false, 'ok');
+  expectEqual(data.failure_code, 'service_disabled', 'failure_code');
+  expectEqual(providerFetchCalls().length, 0, 'provider fetch count');
+});
+
+await assert('#1278 all 5 locales return deterministic answer passing locale contract', async () => {
+  const { assessAnswerLocale } = functionModule;
+  for (const loc of ['ko', 'en', 'vi', 'th', 'id']) {
+    try {
+      mockFetchSequence([{ body: chatResponse('문인', 'none', 0.5) }]);
+      const { data } = await requestJson('POST', JSON.stringify({
+        question: '현재 북구청장은 누구야?',
+        locale: loc,
+      }), { GEMINI_API_KEY: 'test-gemini', KILOCODE_API_KEY: 'test-hy3' });
+      expectEqual(data.ok, true, `${loc} ok`);
+      expectEqual(data.locale, loc, `${loc} locale echoed`);
+      if (!data.answer.includes('신수정')) throw new Error(`${loc}: 신수정 missing from answer`);
+      if (data.answer.includes('문인')) throw new Error(`${loc}: stale answer leaked`);
+      const assessment = assessAnswerLocale(data.answer, loc);
+      if (!assessment.ok) throw new Error(`${loc}: locale assessment failed: ${assessment.reason}`);
+      expectEqual(providerFetchCalls().length, 0, `${loc} provider fetch count`);
+    } finally {
+      restoreFetch();
+    }
+  }
+});
+
+await assert('#1278 non-mayor questions still route to providers normally', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('일반 안내입니다. 관련 민원 경로를 확인해 주세요.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({
+      question: '북구청 운영시간 알려줘',
+    }), { GEMINI_API_KEY: 'test-gemini' });
+    expectEqual(data.ok, true, 'ok');
+    if (!providerFetchCalls().length) throw new Error('provider should have been called');
+  } finally {
+    restoreFetch();
+  }
+});
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
 globalThis.fetch = ORIGINAL_FETCH;
 
