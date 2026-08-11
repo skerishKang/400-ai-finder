@@ -71,7 +71,7 @@ const FIXTURE = Object.freeze({
 });
 
 const SPLIT_READY_EN =
-  "I have your question. The Bukgu-gu guide screen is now open on the left.";
+  "I have your question. The Gwangju Buk-gu guide screen is now open on the left.";
 const YES_GUIDE_EN = "Yes, please guide me";
 const NO_EN = "No";
 const CHOREO_DONE_SNIPPET = "안내를 마쳤습니다";
