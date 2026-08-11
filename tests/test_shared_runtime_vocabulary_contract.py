@@ -139,6 +139,27 @@ def _extract_js_provider_defaults(source: str) -> dict[str, str]:
     return result
 
 
+def _extract_js_provider_fallback_defaults(source: str) -> dict[str, str]:
+    """Extract provider_id -> fallback_model from PROVIDER_DEFAULTS in JS (#1281)."""
+    pattern = r'PROVIDER_DEFAULTS\s*=\s*Object\.freeze\(\s*\{'
+    match = re.search(pattern, source)
+    assert match is not None, "Could not find PROVIDER_DEFAULTS"
+    brace_pos = match.end() - 1
+    close_pos = _find_js_matching_close(source, brace_pos, '{', '}')
+    content = source[brace_pos + 1:close_pos]
+
+    result: dict[str, str] = {}
+    for m in re.finditer(r'(\w+):\s*Object\.freeze\(\s*\{', content):
+        provider = m.group(1)
+        sub_brace = m.end() - 1
+        sub_close = _find_js_matching_close(content, sub_brace, '{', '}')
+        sub_content = content[sub_brace + 1:sub_close]
+        model_match = re.search(r"fallbackModel:\s*'([^']*)'", sub_content)
+        if model_match:
+            result[provider] = model_match.group(1)
+    return result
+
+
 def _extract_js_function_body(source: str, func_name: str) -> str:
     """Extract the body of a JS function declaration."""
     pattern = rf'function\s+{re.escape(func_name)}\s*\([^)]*\)\s*\{{'
@@ -604,7 +625,9 @@ def test_cloudflare_default_provider_order_parity():
     ask_src = ASK_JS.read_text(encoding="utf-8")
     order = _extract_js_string_array(ask_src, "DEFAULT_PROVIDER_ORDER")
     assert manifest["providers"]["cloudflare"]["default_order"] == order
-    assert order == ["gemini", "hy3"]
+    # #1281 — default resident path is Gemini only; Hy3 is reachable only via an
+    # explicit MVP_LLM_ORDER and is never a default fallback.
+    assert order == ["gemini"]
 
 
 def test_cloudflare_provider_ids_exact_gemini_hy3():
@@ -625,6 +648,28 @@ def test_cloudflare_provider_details_parity():
         assert m["default_model"] == defaults[provider]
         assert m["secret_env"] == env_map[provider]["secret_env"]
         assert m["model_env"] == env_map[provider]["model_env"]
+
+
+def test_cloudflare_gemini_same_provider_fallback_parity():
+    """#1281 — Gemini same-provider fallback model/env must be source-derived and
+    cannot silently drift from the runtime truth in ask.js."""
+    manifest = _load_manifest()
+    ask_src = ASK_JS.read_text(encoding="utf-8")
+    defaults = _extract_js_provider_defaults(ask_src)
+    fallbacks = _extract_js_provider_fallback_defaults(ask_src)
+    gemini = manifest["providers"]["cloudflare"]["provider_details"]["gemini"]
+    assert gemini["default_model"] == defaults["gemini"], "primary model drift"
+    assert gemini["default_model"] == "gemini-3.5-flash-lite", "primary model identity"
+    assert "gemini" in fallbacks, "gemini fallback model missing in source"
+    assert gemini["fallback_model"] == fallbacks["gemini"], "fallback model drift"
+    assert gemini["fallback_model"] == "gemini-3.1-flash-lite", "fallback model identity"
+    assert gemini["fallback_model_env"] == "GEMINI_FALLBACK_MODEL", "fallback env identity"
+    # The fallback env must actually be wired into providerConfig (source-derived).
+    assert "GEMINI_FALLBACK_MODEL" in ask_src, "GEMINI_FALLBACK_MODEL not wired in ask.js"
+    # Hy3 remains legacy/optional: it has no same-provider fallback fields.
+    hy3 = manifest["providers"]["cloudflare"]["provider_details"]["hy3"]
+    assert "fallback_model" not in hy3
+    assert "fallback_model_env" not in hy3
 
 
 def test_cloudflare_provider_details_exact_key_parity():

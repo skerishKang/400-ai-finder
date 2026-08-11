@@ -106,14 +106,15 @@
         "hy3"
       ],
       "default_order": [
-        "gemini",
-        "hy3"
+        "gemini"
       ],
       "provider_details": {
         "gemini": {
-          "default_model": "gemini-3.1-flash-lite",
+          "default_model": "gemini-3.5-flash-lite",
+          "fallback_model": "gemini-3.1-flash-lite",
           "secret_env": "GEMINI_API_KEY",
-          "model_env": "GEMINI_MODEL"
+          "model_env": "GEMINI_MODEL",
+          "fallback_model_env": "GEMINI_FALLBACK_MODEL"
         },
         "hy3": {
           "default_model": "tencent/hy3:free",

@@ -268,11 +268,19 @@ await assert('visible action allowlist contains eight journeys plus none', async
   }
 });
 
-await assert('provider order defaults to Gemini then HY3', async () => {
-  expectEqual(functionModule.normalizeProviderOrder().join(','), 'gemini,hy3', 'default order');
+await assert('provider order defaults to Gemini only; Hy3 reachable only by explicit order', async () => {
+  expectEqual(functionModule.normalizeProviderOrder().join(','), 'gemini', 'default order');
   expectEqual(functionModule.normalizeProviderOrder('hy3,gemini').join(','), 'hy3,gemini', 'custom order');
-  expectEqual(functionModule.normalizeProviderOrder('bad,bad').join(','), 'gemini,hy3', 'invalid order fallback');
+  expectEqual(functionModule.normalizeProviderOrder('bad,bad').join(','), 'gemini', 'invalid order fallback');
   expectEqual(functionModule.normalizeProviderOrder('gemini,gemini,hy3').join(','), 'gemini,hy3', 'deduped order');
+  // Gemini itself yields a same-provider 3.5 -> 3.1 model plan, not a separate
+  // Hy3 default fallback.
+  const plan = functionModule.buildAttemptPlan(functionModule.normalizeProviderOrder(), { GEMINI_API_KEY: 'k' }, '');
+  expectEqual(plan.length, 2, 'gemini yields two model attempts');
+  expectEqual(plan[0].provider, 'gemini', 'first attempt provider');
+  expectEqual(plan[0].config.model, 'gemini-3.5-flash-lite', 'first attempt primary model');
+  expectEqual(plan[1].provider, 'gemini', 'fallback attempt provider');
+  expectEqual(plan[1].config.model, 'gemini-3.1-flash-lite', 'fallback attempt model');
 });
 
 await assert('request-time official fetch helpers are removed (snapshot-only)', async () => {
@@ -364,7 +372,7 @@ await assert('no configured keys returns config_error for primary provider', asy
   expectEqual(data.ok, false, 'ok');
   expectEqual(data.failure_code, 'config_error', 'failure_code');
   expectEqual(data.provider, 'gemini', 'provider');
-  expectEqual(data.model, 'gemini-3.1-flash-lite', 'model');
+  expectEqual(data.model, 'gemini-3.5-flash-lite', 'model');
   expectEqual(fetchCalls.length, 0, 'fetch call count');
 });
 
@@ -373,11 +381,10 @@ await assert('Gemini OpenAI-compatible endpoint is primary (no request-time offi
     mockFetchSequence([{ body: chatResponse('여권 발급 안내입니다.', 'passport_guidance', 0.95) }]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '여권 발급 알려줘' }), {
       GEMINI_API_KEY: 'test-gemini',
-      KILOCODE_API_KEY: 'test-hy3',
     });
     expectEqual(data.ok, true, 'ok');
     expectEqual(data.provider, 'gemini', 'provider');
-    expectEqual(data.model, 'gemini-3.1-flash-lite', 'model');
+    expectEqual(data.model, 'gemini-3.5-flash-lite', 'model');
     expectEqual(data.action, 'passport_guidance', 'action');
     expectEqual(data.fallback_used, false, 'fallback_used');
     expectEqual(data.freshness_state, 'official_snapshot', 'freshness_state');
@@ -393,7 +400,7 @@ await assert('Gemini OpenAI-compatible endpoint is primary (no request-time offi
     expectEqual(modelCalls[0].url, 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'Gemini URL');
     expectEqual(modelCalls[0].headers.Authorization, 'Bearer test-gemini', 'Gemini auth');
     const payload = JSON.parse(modelCalls[0].body);
-    expectEqual(payload.model, 'gemini-3.1-flash-lite', 'Gemini model');
+    expectEqual(payload.model, 'gemini-3.5-flash-lite', 'Gemini primary model');
     if (!payload.messages[0].content.includes('현재 대한민국 표준시각')) throw new Error('current time missing');
     if (!payload.messages[0].content.includes('<official_reference>')) throw new Error('official evidence missing');
     if (!payload.messages[0].content.includes('캡처된 공식 본문')) throw new Error('official page body missing');
@@ -521,13 +528,40 @@ await assert('Gemini model endpoint override is ignored in production mode (#121
   }
 });
 
-await assert('Gemini HTTP failure falls back to HY3', async () => {
+await assert('Gemini 3.5 HTTP failure falls back to same-provider 3.1 (#1281)', async () => {
   try {
     mockFetchSequence([
+      { status: 503, body: { error: 'unavailable' } },
+      { body: chatResponse('3.1 모델이 안내한 정상적인 한국어 민원 답변입니다.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'gemini', 'provider');
+    expectEqual(data.model, 'gemini-3.1-flash-lite', 'fallback model');
+    expectEqual(data.fallback_used, true, 'fallback_used');
+    expectEqual(data.selection_reason, 'model_fallback', 'model fallback reason');
+    const modelCalls = providerFetchCalls();
+    expectEqual(modelCalls.length, 2, 'provider fetch call count');
+    expectEqual(modelCalls[0].url, 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'Gemini URL');
+    expectEqual(modelCalls[1].url, 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'same Gemini URL');
+    expectEqual(JSON.parse(modelCalls[0].body).model, 'gemini-3.5-flash-lite', 'primary model');
+    expectEqual(JSON.parse(modelCalls[1].body).model, 'gemini-3.1-flash-lite', 'fallback model');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('explicit MVP_LLM_ORDER gemini,hy3: both Gemini models fail then HY3 selected', async () => {
+  try {
+    mockFetchSequence([
+      { status: 503, body: { error: 'unavailable' } },
       { status: 503, body: { error: 'unavailable' } },
       { body: chatResponse('HY3 폴백 답변입니다.') },
     ]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      MVP_LLM_ORDER: 'gemini,hy3',
       GEMINI_API_KEY: 'test-gemini',
       KILOCODE_API_KEY: 'test-hy3',
     });
@@ -535,24 +569,144 @@ await assert('Gemini HTTP failure falls back to HY3', async () => {
     expectEqual(data.provider, 'hy3', 'provider');
     expectEqual(data.model, 'tencent/hy3:free', 'model');
     expectEqual(data.fallback_used, true, 'fallback_used');
+    expectEqual(data.selection_reason, 'provider_fallback', 'provider fallback reason');
     const modelCalls = providerFetchCalls();
-    expectEqual(modelCalls.length, 2, 'provider fetch call count');
-    expectEqual(modelCalls[1].url, 'https://api.kilo.ai/api/gateway/v1/chat/completions', 'HY3 URL');
-    expectEqual(modelCalls[1].headers.Authorization, 'Bearer test-hy3', 'HY3 auth');
+    expectEqual(modelCalls.length, 3, 'provider fetch call count');
+    expectEqual(modelCalls[2].url, 'https://api.kilo.ai/api/gateway/v1/chat/completions', 'HY3 URL');
+    expectEqual(modelCalls[2].headers.Authorization, 'Bearer test-hy3', 'HY3 auth');
   } finally {
     restoreFetch();
   }
 });
 
-await assert('missing Gemini key skips directly to HY3', async () => {
+// ---------------------------------------------------------------------------
+// #1281 same-provider model fallback regression matrix (focused).
+// ---------------------------------------------------------------------------
+
+await assert('regression: default resident path never attempts Hy3 (#1281)', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('기본 경로는 HY3를 호출하지 않습니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+      KILOCODE_API_KEY: 'test-hy3',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'gemini', 'provider');
+    expectEqual(data.fallback_used, false, 'fallback_used');
+    const calls = providerFetchCalls();
+    expectEqual(calls.length, 1, 'single gemini call');
+    for (const call of calls) {
+      if (call.url.includes('kilo.ai')) throw new Error(`Hy3 unexpectedly called: ${call.url}`);
+    }
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('regression: 3.5 success uses one Gemini call and zero 3.1 calls (#1281)', async () => {
+  try {
+    mockFetchSequence([{ body: chatResponse('3.5 모델이 바로 정상 안내한 한국어 답변입니다.') }]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.model, 'gemini-3.5-flash-lite', 'primary model selected');
+    expectEqual(data.fallback_used, false, 'no fallback');
+    expectEqual(providerFetchCalls().length, 1, 'only one call');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('regression: 3.5 timeout then 3.1 selected once (#1281)', async () => {
+  try {
+    mockFetchSequence([
+      { delayMs: 120, body: chatResponse('3.5 timeout') },
+      { body: chatResponse('3.1 모델이 제한 시간 안에 정상 안내한 한국어 답변입니다.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+      MVP_PROVIDER_TIMEOUT_MS: '30',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'gemini', 'provider');
+    expectEqual(data.model, 'gemini-3.1-flash-lite', '3.1 selected');
+    expectEqual(data.fallback_used, true, 'fallback_used');
+    expectEqual(data.selection_reason, 'model_fallback', 'model fallback reason');
+    expectEqual(providerFetchCalls().length, 2, '3.5 then 3.1');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('regression: 3.5 malformed response falls back to 3.1 (#1281)', async () => {
+  try {
+    mockFetchSequence([
+      { body: 'not json at all' },
+      { body: chatResponse('3.1 모델이 파싱 실패 이후 정상 안내한 한국어 답변입니다.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.model, 'gemini-3.1-flash-lite', '3.1 selected');
+    expectEqual(data.fallback_used, true, 'fallback_used');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('regression: evidence_required fails closed with no 3.1 call (#1281)', async () => {
+  // A 3.5 answer that passes locale but fails the concrete-evidence policy must
+  // NOT trigger the same-provider 3.1 fallback; it returns fail-closed instead.
+  try {
+    mockFetchSequence([
+      { body: chatResponse('대표전화는 062-410-9999입니다. 담당 부서에 문의해 주세요.') },
+      { body: chatResponse('3.1 모델이 호출되면 안 되는 답변입니다.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+    });
+    expectEqual(data.ok, false, 'ok');
+    expectEqual(data.failure_code, 'evidence_required', 'fail closed on evidence');
+    expectEqual(data.fallback_used, false, 'no fallback');
+    expectEqual(providerFetchCalls().length, 1, '3.1 must not be called');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('regression: GEMINI_MODEL override still selects 3.5 primary, 3.1 fallback unchanged (#1281)', async () => {
+  try {
+    mockFetchSequence([
+      { status: 503, body: { error: 'unavailable' } },
+      { body: chatResponse('오버라이드 모델 실패 후 3.1이 안내한 한국어 답변입니다.') },
+    ]);
+    const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      GEMINI_API_KEY: 'test-gemini',
+      GEMINI_MODEL: 'gemini-3.5-flash',
+    });
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.model, 'gemini-3.1-flash-lite', '3.1 fallback model');
+    expectEqual(data.fallback_used, true, 'fallback_used');
+    expectEqual(JSON.parse(providerFetchCalls()[0].body).model, 'gemini-3.5-flash', 'primary override honored');
+    expectEqual(JSON.parse(providerFetchCalls()[1].body).model, 'gemini-3.1-flash-lite', 'fallback model fixed');
+  } finally {
+    restoreFetch();
+  }
+});
+
+await assert('explicit MVP_LLM_ORDER=hy3 uses Hy3 as primary (no Gemini attempt)', async () => {
   try {
     mockFetchSequence([{ body: chatResponse('HY3 모델이 직접 응답한 안내입니다. 관련 민원 경로를 확인해 주세요.') }]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '질문' }), {
+      MVP_LLM_ORDER: 'hy3',
       KILOCODE_API_KEY: 'test-hy3',
     });
     expectEqual(data.ok, true, 'ok');
     expectEqual(data.provider, 'hy3', 'provider');
-    expectEqual(data.fallback_used, true, 'fallback_used');
+    expectEqual(data.fallback_used, false, 'fallback_used (primary in explicit order)');
+    expectEqual(data.selection_reason, 'primary_provider', 'selection reason');
     expectEqual(providerFetchCalls().length, 1, 'provider fetch call count');
   } finally {
     restoreFetch();
@@ -603,17 +757,19 @@ await assert('operator can make HY3 the primary provider', async () => {
   }
 });
 
-await assert('empty Gemini response falls back to HY3', async () => {
+await assert('empty Gemini 3.5 response falls back to same-provider 3.1 (#1281)', async () => {
   try {
     mockFetchSequence([
       { body: { choices: [{ message: { content: '   ' } }] } },
-      { body: chatResponse('빈 응답 이후 HY3가 이어서 안내합니다. 관련 민원 경로를 확인해 주세요.') },
+      { body: chatResponse('빈 응답 이후 3.1이 이어서 안내합니다. 관련 민원 경로를 확인해 주세요.') },
     ]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '질문' }), {
       GEMINI_API_KEY: 'test-gemini',
-      KILOCODE_API_KEY: 'test-hy3',
     });
-    expectEqual(data.provider, 'hy3', 'provider');
+    expectEqual(data.ok, true, 'ok');
+    expectEqual(data.provider, 'gemini', 'provider');
+    expectEqual(data.model, 'gemini-3.1-flash-lite', 'fallback model');
+    expectEqual(data.fallback_used, true, 'fallback_used');
     expectEqual(providerFetchCalls().length, 2, 'provider fetch call count');
   } finally {
     restoreFetch();
@@ -895,7 +1051,7 @@ await assert('too_long failure is localized', async () => {
   expectEqual(en.answer, 'Your question is too long. Please keep it within 300 characters.', 'en too_long answer');
 });
 
-await assert('configured provider upstream failure returns localized upstream_error', async () => {
+await assert('configured provider upstream failure returns localized upstream_error (3.5 then 3.1 both fail)', async () => {
   try {
     mockFetchSequence([
       { status: 500, body: 'Internal Server Error' },
@@ -907,7 +1063,7 @@ await assert('configured provider upstream failure returns localized upstream_er
     expectEqual(en.failure_code, 'upstream_error', 'en failure_code');
     expectEqual(en.locale, 'en', 'en locale');
     expectEqual(en.answer, 'The AI guide could not be reached. Please try again later.', 'en localized upstream_error');
-    expectEqual(providerFetchCalls().length, 1, 'en provider call count');
+    expectEqual(providerFetchCalls().length, 2, 'en provider call count (3.5 + 3.1)');
 
     mockFetchSequence([
       { status: 503, body: 'Service Unavailable' },
@@ -919,7 +1075,7 @@ await assert('configured provider upstream failure returns localized upstream_er
     expectEqual(vi.failure_code, 'upstream_error', 'vi failure_code');
     expectEqual(vi.locale, 'vi', 'vi locale');
     expectEqual(vi.answer, 'Không thể kết nối hướng dẫn AI. Vui lòng thử lại sau.', 'vi localized upstream_error');
-    expectEqual(providerFetchCalls().length, 1, 'vi provider call count');
+    expectEqual(providerFetchCalls().length, 2, 'vi provider call count (3.5 + 3.1)');
   } finally {
     restoreFetch();
   }
@@ -1028,7 +1184,7 @@ await assert('en Korean initial and Korean correction fail closed without leakin
     expectEqual(data.failure_code, 'answer_locale_mismatch', 'failure_code');
     expectEqual(data.locale, 'en', 'locale');
     expectEqual(data.answer, 'The AI guide could not be reached. Please try again later.', 'safe answer');
-    expectEqual(providerFetchCalls().length, 2, 'calls');
+    expectEqual(providerFetchCalls().length, 3, 'calls (3.5 + 3.5 correction + 3.1 fallback)');
     const payload = JSON.stringify(data);
     if (payload.includes('여전히 한국어')) throw new Error('rejected draft leaked');
     if (payload.includes('광주광역시 북구청장에게 제안하려면')) throw new Error('initial draft leaked');
@@ -1053,7 +1209,7 @@ await assert('official Korean noun in English does not trigger retry', async () 
   }
 });
 
-await assert('first provider wrong twice then second provider valid (3 calls, one correction)', async () => {
+await assert('3.5 locale mismatch + bounded correction exhausted falls back to 3.1 (#1281)', async () => {
   try {
     mockFetchSequence([
       { body: chatResponse('광주광역시 북구청장에게 제안하려면 열린구청장실을 이용하세요.') },
@@ -1065,19 +1221,27 @@ await assert('first provider wrong twice then second provider valid (3 calls, on
       locale: 'en',
     }), {
       GEMINI_API_KEY: 'test-gemini',
-      KILOCODE_API_KEY: 'test-hy3',
     });
     expectEqual(data.ok, true, 'ok');
-    expectEqual(data.provider, 'hy3', 'provider');
+    expectEqual(data.provider, 'gemini', 'provider');
+    expectEqual(data.model, 'gemini-3.1-flash-lite', 'fallback model');
     expectEqual(data.fallback_used, true, 'fallback_used');
+    expectEqual(data.selection_reason, 'model_fallback', 'model fallback reason');
     expectEqual(data.locale, 'en', 'locale');
-    expectEqual(providerFetchCalls().length, 3, 'calls');
+    expectEqual(providerFetchCalls().length, 3, 'calls (3.5 + 3.5 correction + 3.1)');
+    const attempts = data.meta.provider_attempts;
+    expectEqual(attempts[0].model, 'gemini-3.5-flash-lite', 'attempt 1 model');
+    expectEqual(attempts[0].outcome, 'answer_locale_mismatch', 'attempt 1 mismatch');
+    expectEqual(attempts[1].attempt, 'locale_correction', 'attempt 2 correction');
+    expectEqual(attempts[1].outcome, 'answer_locale_mismatch', 'attempt 2 mismatch');
+    expectEqual(attempts[2].model, 'gemini-3.1-flash-lite', 'attempt 3 model');
+    expectEqual(attempts[2].selected, true, 'attempt 3 selected');
   } finally {
     restoreFetch();
   }
 });
 
-await assert('first provider upstream then second wrong then corrected valid (one global correction)', async () => {
+await assert('3.5 upstream timeout then 3.1 mismatch corrected on same model (one global correction)', async () => {
   try {
     mockFetchSequence([
       { status: 503, body: { error: 'unavailable' } },
@@ -1089,12 +1253,13 @@ await assert('first provider upstream then second wrong then corrected valid (on
       locale: 'en',
     }), {
       GEMINI_API_KEY: 'test-gemini',
-      KILOCODE_API_KEY: 'test-hy3',
     });
     expectEqual(data.ok, true, 'ok');
-    expectEqual(data.provider, 'hy3', 'provider');
+    expectEqual(data.provider, 'gemini', 'provider');
+    expectEqual(data.model, 'gemini-3.1-flash-lite', 'fallback model');
     expectEqual(data.fallback_used, true, 'fallback_used');
-    expectEqual(providerFetchCalls().length, 3, 'calls');
+    expectEqual(data.selection_reason, 'model_fallback_corrective_retry', 'model fallback corrective reason');
+    expectEqual(providerFetchCalls().length, 3, 'calls (3.5 + 3.1 + 3.1 correction)');
   } finally {
     restoreFetch();
   }
@@ -1236,7 +1401,7 @@ await assert('empty answer remains fail-closed without locale success', async ()
     expectEqual(data.ok, false, 'ok');
     // empty_response from provider before locale gate; no correction on non-ok
     expectEqual(data.failure_code, 'empty_response', 'failure_code');
-    expectEqual(providerFetchCalls().length, 1, 'calls');
+    expectEqual(providerFetchCalls().length, 2, 'calls (3.5 + 3.1)');
   } finally {
     restoreFetch();
   }
@@ -1463,7 +1628,7 @@ await assert('#1216 redirect guard: fetch uses manual redirect and does not foll
     expectEqual(capturedRedirect, 'manual', 'redirect must be manual');
     expectEqual(data.ok, false, 'ok');
     expectEqual(data.failure_code, 'upstream_error', 'fail-closed on 3xx');
-    expectEqual(fetchCalls.length, 1, 'exactly one upstream call');
+    expectEqual(fetchCalls.length, 2, 'two upstream calls (3.5 then 3.1)');
     expectEqual(fetchCalls[0].url, 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'official endpoint');
     if (fetchCalls.some((c) => c.url.includes('external.example.test'))) {
       throw new Error('followed external Location');
@@ -1718,6 +1883,7 @@ await assert('#1227 disabling Gemini skips it and allows HY3 fallback path', asy
   try {
     mockFetchSequence([{ body: chatResponse('HY3 공급자만 사용한 정상적인 한국어 민원 안내입니다.') }]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      MVP_LLM_ORDER: 'gemini,hy3',
       GEMINI_API_KEY: 'test-gemini',
       KILOCODE_API_KEY: 'test-hy3',
       MVP_DISABLE_GEMINI: '1',
@@ -1737,6 +1903,7 @@ await assert('#1227 disabling Gemini skips it and allows HY3 fallback path', asy
 
 await assert('#1227 both provider disables fail closed before fetch', async () => {
   const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+    MVP_LLM_ORDER: 'gemini,hy3',
     GEMINI_API_KEY: 'test-gemini',
     KILOCODE_API_KEY: 'test-hy3',
     MVP_DISABLE_GEMINI: '1',
@@ -1751,6 +1918,7 @@ await assert('#1227 malformed provider-disable flag fails closed for that provid
   try {
     mockFetchSequence([{ body: chatResponse('HY3 폴백 공급자의 안전한 한국어 안내입니다.') }]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      MVP_LLM_ORDER: 'gemini,hy3',
       GEMINI_API_KEY: 'test-gemini',
       KILOCODE_API_KEY: 'test-hy3',
       MVP_DISABLE_GEMINI: 'maybe',
@@ -1924,26 +2092,35 @@ await assert('#1227 selected primary provider records ordinal and selection reas
   }
 });
 
-await assert('#1227 provider fallback records ordered attempts and explicit selection reason', async () => {
+await assert('#1227 explicit provider fallback records ordered attempts and explicit selection reason', async () => {
   try {
     mockFetchSequence([
+      { status: 500, body: { error: 'temporary' } },
       { status: 500, body: { error: 'temporary' } },
       { body: chatResponse('HY3 폴백 공급자의 정상적인 한국어 안내입니다.') },
     ]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      MVP_LLM_ORDER: 'gemini,hy3',
       GEMINI_API_KEY: 'test-gemini',
       KILOCODE_API_KEY: 'test-hy3',
     });
     expectEqual(data.ok, true, 'ok');
     expectEqual(data.provider, 'hy3', 'selected provider');
+    expectEqual(data.model, 'tencent/hy3:free', 'selected model');
     expectEqual(data.fallback_used, true, 'fallback_used');
     expectEqual(data.selection_reason, 'provider_fallback', 'payload selection reason');
-    expectEqual(data.meta.provider_attempts.length, 2, 'attempt count');
+    expectEqual(data.meta.provider_attempts.length, 3, 'attempt count');
     expectEqual(data.meta.provider_attempts[0].ordinal, 1, 'first ordinal');
+    expectEqual(data.meta.provider_attempts[0].provider, 'gemini', 'first provider');
+    expectEqual(data.meta.provider_attempts[0].model, 'gemini-3.5-flash-lite', 'first model');
     expectEqual(data.meta.provider_attempts[0].selected, false, 'first selected');
-    expectEqual(data.meta.provider_attempts[1].ordinal, 2, 'second ordinal');
-    expectEqual(data.meta.provider_attempts[1].selected, true, 'second selected');
-    expectEqual(data.meta.provider_attempts[1].selection_reason, 'provider_fallback', 'fallback reason');
+    expectEqual(data.meta.provider_attempts[1].provider, 'gemini', 'second provider');
+    expectEqual(data.meta.provider_attempts[1].model, 'gemini-3.1-flash-lite', 'second model');
+    expectEqual(data.meta.provider_attempts[1].selected, false, 'second selected');
+    expectEqual(data.meta.provider_attempts[2].ordinal, 3, 'third ordinal');
+    expectEqual(data.meta.provider_attempts[2].provider, 'hy3', 'third provider');
+    expectEqual(data.meta.provider_attempts[2].selected, true, 'third selected');
+    expectEqual(data.meta.provider_attempts[2].selection_reason, 'provider_fallback', 'fallback reason');
   } finally {
     restoreFetch();
   }
@@ -2055,13 +2232,15 @@ await assert('#1227 request metadata is present without exposing citizen input',
   if (serializedMeta.includes('안녕하세요')) throw new Error('raw question leaked into runtime meta');
 });
 
-await assert('#1227 provider timeout aborts Gemini then safely falls back to HY3', async () => {
+await assert('#1227 provider timeout aborts Gemini then safely falls back to HY3 (explicit order)', async () => {
   try {
     mockFetchSequence([
-      { delayMs: 120, body: chatResponse('이 응답은 timeout 전에 도착하면 안 됩니다.') },
+      { delayMs: 120, body: chatResponse('3.5 응답은 timeout 전에 도착하면 안 됩니다.') },
+      { delayMs: 120, body: chatResponse('3.1 응답은 timeout 전에 도착하면 안 됩니다.') },
       { body: chatResponse('HY3 폴백이 제한 시간 안에 정상적으로 응답한 안내입니다.') },
     ]);
     const { data } = await requestJson('POST', JSON.stringify({ question: '일반 민원 질문' }), {
+      MVP_LLM_ORDER: 'gemini,hy3',
       GEMINI_API_KEY: 'test-gemini',
       KILOCODE_API_KEY: 'test-hy3',
       MVP_PROVIDER_TIMEOUT_MS: '30',
@@ -2071,15 +2250,19 @@ await assert('#1227 provider timeout aborts Gemini then safely falls back to HY3
     expectEqual(data.provider, 'hy3', 'provider');
     expectEqual(data.fallback_used, true, 'fallback_used');
     const calls = providerFetchCalls();
-    expectEqual(calls.length, 2, 'provider call count');
-    if (!calls[0].signal) throw new Error('Gemini fetch missing AbortController signal');
-    expectEqual(calls[0].signal.aborted, true, 'Gemini signal aborted');
-    if (!calls[1].signal) throw new Error('HY3 fetch missing AbortController signal');
-    expectEqual(data.meta.provider_attempts.length, 2, 'attempt count');
+    expectEqual(calls.length, 3, 'provider call count');
+    if (!calls[0].signal) throw new Error('Gemini 3.5 fetch missing AbortController signal');
+    expectEqual(calls[0].signal.aborted, true, 'Gemini 3.5 signal aborted');
+    if (!calls[1].signal) throw new Error('Gemini 3.1 fetch missing AbortController signal');
+    expectEqual(calls[1].signal.aborted, true, 'Gemini 3.1 signal aborted');
+    if (!calls[2].signal) throw new Error('HY3 fetch missing AbortController signal');
+    expectEqual(data.meta.provider_attempts.length, 3, 'attempt count');
     expectEqual(data.meta.provider_attempts[0].provider, 'gemini', 'attempt 1 provider');
     expectEqual(data.meta.provider_attempts[0].outcome, 'upstream_timeout', 'attempt 1 outcome');
-    expectEqual(data.meta.provider_attempts[1].provider, 'hy3', 'attempt 2 provider');
-    expectEqual(data.meta.provider_attempts[1].outcome, 'success', 'attempt 2 outcome');
+    expectEqual(data.meta.provider_attempts[1].provider, 'gemini', 'attempt 2 provider');
+    expectEqual(data.meta.provider_attempts[1].outcome, 'upstream_timeout', 'attempt 2 outcome');
+    expectEqual(data.meta.provider_attempts[2].provider, 'hy3', 'attempt 3 provider');
+    expectEqual(data.meta.provider_attempts[2].outcome, 'success', 'attempt 3 outcome');
     expectEqual(data.meta.provider_timeout_ms, 30, 'provider timeout metadata');
   } finally {
     restoreFetch();

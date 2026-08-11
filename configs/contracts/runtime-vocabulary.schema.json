@@ -226,7 +226,9 @@
                 "properties": {
                   "default_model": { "type": "string", "minLength": 1 },
                   "secret_env": { "type": "string", "minLength": 1 },
-                  "model_env": { "type": "string", "minLength": 1 }
+                  "model_env": { "type": "string", "minLength": 1 },
+                  "fallback_model": { "type": "string", "minLength": 1 },
+                  "fallback_model_env": { "type": "string", "minLength": 1 }
                 }
               }
             }

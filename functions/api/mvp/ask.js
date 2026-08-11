@@ -35,7 +35,14 @@ export const VALID_ACTIONS = Object.freeze([
   'none',
 ]);
 
-export const DEFAULT_PROVIDER_ORDER = Object.freeze(['gemini', 'hy3']);
+// Bounded supported-provider set. Hy3 remains legacy/optional code; it is NOT in
+// the default resident path (see DEFAULT_PROVIDER_ORDER below).
+export const SUPPORTED_PROVIDERS = Object.freeze(['gemini', 'hy3']);
+
+// #1281 — default resident path is Google Gemini only. The Gemini provider
+// performs a same-provider model fallback (3.5 -> 3.1) internally; Hy3 is
+// reachable only via an explicit MVP_LLM_ORDER and is never a default fallback.
+export const DEFAULT_PROVIDER_ORDER = Object.freeze(['gemini']);
 
 // Runtime control contract (#1227-A). These values are intentionally code-owned
 // defaults; bounded env overrides exist for staging/tests without allowing an
@@ -384,7 +391,12 @@ export function currentMayorAnswer(locale, office) {
 
 export const PROVIDER_DEFAULTS = Object.freeze({
   gemini: Object.freeze({
-    model: 'gemini-3.1-flash-lite',
+    // Code-owned primary default model. Overridable per-request by GEMINI_MODEL.
+    model: 'gemini-3.5-flash-lite',
+    // #1281 — same-provider fallback model. Overridable by GEMINI_FALLBACK_MODEL.
+    // Same Google endpoint/API key/API style as the primary (one provider
+    // identity: gemini). Never a different provider.
+    fallbackModel: 'gemini-3.1-flash-lite',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
     apiStyle: 'openai',
   }),
@@ -880,7 +892,7 @@ export function normalizeProviderOrder(value) {
   const order = [];
   for (const token of raw.split(',')) {
     const provider = token.trim().toLowerCase();
-    if (!DEFAULT_PROVIDER_ORDER.includes(provider) || order.includes(provider)) continue;
+    if (!SUPPORTED_PROVIDERS.includes(provider) || order.includes(provider)) continue;
     order.push(provider);
   }
   return order.length ? order : Array.from(DEFAULT_PROVIDER_ORDER);
@@ -890,7 +902,7 @@ function envText(env, name, fallback) {
   return typeof env[name] === 'string' && env[name].trim() ? env[name].trim() : fallback;
 }
 
-function providerConfig(provider, env, requestHostnameValue) {
+function providerConfig(provider, env, requestHostnameValue, modelOverride) {
   const endpointResolution = resolveProviderEndpoint(provider, env, requestHostnameValue);
   if (endpointResolution.error) {
     // Fail-closed: do not fetch an untrusted/invalid endpoint. The real key is
@@ -904,7 +916,7 @@ function providerConfig(provider, env, requestHostnameValue) {
       error: endpointResolution.error,
       endpointErrorReason: endpointResolution.reason,
       key,
-      model: '',
+      model: modelOverride || '',
       endpoint: '',
       apiStyle: 'openai',
     };
@@ -913,7 +925,7 @@ function providerConfig(provider, env, requestHostnameValue) {
     return {
       provider,
       key: envText(env, 'KILOCODE_API_KEY', ''),
-      model: envText(env, 'HY3_MODEL', PROVIDER_DEFAULTS.hy3.model),
+      model: modelOverride || envText(env, 'HY3_MODEL', PROVIDER_DEFAULTS.hy3.model),
       endpoint: endpointResolution.endpoint,
       apiStyle: 'openai',
     };
@@ -922,10 +934,49 @@ function providerConfig(provider, env, requestHostnameValue) {
   return {
     provider: 'gemini',
     key: envText(env, 'GEMINI_API_KEY', ''),
-    model: envText(env, 'GEMINI_MODEL', PROVIDER_DEFAULTS.gemini.model),
+    // GEMINI_MODEL overrides the primary; GEMINI_FALLBACK_MODEL is applied via
+    // modelOverride for the same-provider 3.1 fallback attempt (#1281).
+    model: modelOverride || envText(env, 'GEMINI_MODEL', PROVIDER_DEFAULTS.gemini.model),
     endpoint: endpointResolution.endpoint,
     apiStyle: style === 'interactions' ? 'interactions' : 'openai',
   };
+}
+
+// #1281 — same-provider model fallback plan.
+// The Gemini provider yields two Google model attempts in order: the code-owned
+// primary (gemini-3.5-flash-lite, overridable by GEMINI_MODEL) and the code-owned
+// same-provider fallback (gemini-3.1-flash-lite, overridable by
+// GEMINI_FALLBACK_MODEL). Both share the same Google endpoint/key/API style, so
+// they remain a single logical provider identity. Hy3 (only if explicitly
+// ordered) is a separate provider attempt and is never a default fallback.
+export function buildAttemptPlan(providerOrder, env, requestHostnameValue) {
+  const plan = [];
+  let prevProvider = null;
+  for (const provider of providerOrder) {
+    if (provider === 'gemini') {
+      const primaryModel = envText(env, 'GEMINI_MODEL', PROVIDER_DEFAULTS.gemini.model);
+      const fallbackModel = envText(env, 'GEMINI_FALLBACK_MODEL', PROVIDER_DEFAULTS.gemini.fallbackModel);
+      plan.push({
+        provider: 'gemini',
+        kind: 'primary',
+        config: providerConfig('gemini', env, requestHostnameValue, primaryModel),
+      });
+      plan.push({
+        provider: 'gemini',
+        kind: 'model_fallback',
+        config: providerConfig('gemini', env, requestHostnameValue, fallbackModel),
+      });
+    } else {
+      const kind = prevProvider ? 'provider_fallback' : 'primary';
+      plan.push({
+        provider,
+        kind,
+        config: providerConfig(provider, env, requestHostnameValue),
+      });
+    }
+    prevProvider = provider;
+  }
+  return plan;
 }
 
 function formatSeoulTime(date) {
@@ -1569,6 +1620,9 @@ export async function onRequest(context) {
   const disabledProviders = providerOrder.filter((provider) => isProviderDisabled(env, provider));
   const reqHostname = requestHostname(request);
   const primaryConfig = providerConfig(providerOrder[0], env, reqHostname);
+  // #1281 — resolve the full model-attempt plan (Gemini 3.5 -> 3.1; optional
+  // explicit Hy3) before any request-time branching.
+  const attemptPlan = buildAttemptPlan(providerOrder, env, reqHostname);
   const retrievedAt = new Date();
   const currentTime = formatSeoulTime(retrievedAt);
 
@@ -1898,15 +1952,32 @@ export async function onRequest(context) {
     return decision;
   }
 
-  let configuredProviderCount = 0;
+  // #1281 — the model-attempt plan (Gemini 3.5 -> 3.1; optional explicit Hy3) is
+  // built once above; iterate over it instead of raw provider order so the
+  // same-provider 3.1 fallback is a first-class attempt.
+  const configuredProviders = new Set();
   let lastFailureCode = 'config_error';
   // Sticky flag so a later upstream/empty failure cannot hide a prior mismatch.
   let sawAnswerLocaleMismatch = false;
   // Global bound: at most one corrective retry across the entire /api/mvp/ask request
-  // (not once per provider).
+  // (not once per provider/model attempt). Prevents unbounded retries from
+  // multiplying corrections across the 3.5 and 3.1 model attempts.
   let correctionBudget = 1;
 
-  function successPayload(config, result, providerIndex, selectionReason) {
+  // Selection reason must distinguish model fallback (same-provider 3.1) from
+  // cross-provider fallback (explicit Hy3), and must never be mislabeled as a
+  // provider_fallback when the answer came from a Gemini model attempt.
+  function selectionReasonForAttempt(attemptIndex, kind, isCorrection) {
+    if (attemptIndex === 0) {
+      return isCorrection ? 'corrective_retry' : 'primary_provider';
+    }
+    if (kind === 'model_fallback') {
+      return isCorrection ? 'model_fallback_corrective_retry' : 'model_fallback';
+    }
+    return isCorrection ? 'provider_fallback_corrective_retry' : 'provider_fallback';
+  }
+
+  function successPayload(config, result, attemptIndex, selectionReason) {
     const action = deterministicAction !== 'none' ? deterministicAction : result.action;
     const confidence = deterministicAction !== 'none'
       ? 1.0
@@ -1933,30 +2004,33 @@ export async function onRequest(context) {
       official_page_id: officialContext.pageId || '',
       snapshot_id: officialContext.snapshotId || '',
       canonical_sha256: officialContext.canonicalSha256 || '',
-      // Provider-index fallback only; corrective retry does not set this true.
-      fallback_used: providerIndex > 0,
-      selection_reason: selectionReason || (providerIndex > 0 ? 'provider_fallback' : 'primary_provider'),
+      // Any attempt beyond the first (3.1 same-provider fallback, or explicit
+      // Hy3) is a fallback. The bounded same-model corrective retry does NOT set
+      // this true (attemptIndex is unchanged for the corrective retry).
+      fallback_used: attemptIndex > 0,
+      selection_reason: selectionReason
+        || (attemptIndex > 0 ? 'model_fallback' : 'primary_provider'),
       token_usage: result.tokenUsage || null,
     };
   }
 
-  for (let index = 0; index < providerOrder.length; index += 1) {
-    if (isProviderDisabled(env, providerOrder[index])) continue;
-    const config = providerConfig(providerOrder[index], env, reqHostname);
+  for (let planIndex = 0; planIndex < attemptPlan.length; planIndex += 1) {
+    const plan = attemptPlan[planIndex];
+    // Skip disabled provider attempts (covers both Gemini attempts when
+    // MVP_DISABLE_GEMINI is set, and any explicit Hy3 attempt when disabled).
+    if (isProviderDisabled(env, plan.provider)) continue;
+    const config = plan.config;
     if (config.error === 'config_error') {
       // A keyed provider with a missing/invalid local override must fail-closed
       // and is recorded as a configured-provider failure (so the request is not
       // treated as "no providers configured"). An unkeyed provider would never
       // be called anyway, so its missing endpoint is simply skipped and MUST
       // NOT mask a later keyed provider's real outcome.
-      if (config.key) {
-        configuredProviderCount += 1;
-        lastFailureCode = 'config_error';
-      }
+      if (config.key) configuredProviders.add(plan.provider);
       continue;
     }
     if (!config.key) continue;
-    configuredProviderCount += 1;
+    configuredProviders.add(plan.provider);
 
     const primaryAttemptStarted = Date.now();
     const primaryAttemptTimeout = attemptTimeoutMs();
@@ -1981,9 +2055,11 @@ export async function onRequest(context) {
         failureCode: isUpstreamTimeoutError(error) ? 'upstream_timeout' : 'upstream_error',
       };
     }
+    // 'primary' for the first model attempt of a provider; 'model_fallback' for
+    // a same-provider secondary model; 'provider_fallback' for a later provider.
     const primaryAttempt = recordProviderAttempt(
       config,
-      'primary',
+      plan.kind,
       result.ok ? 'success' : (result.failureCode || 'upstream_error'),
       primaryAttemptStarted,
       primaryAttemptTimeout,
@@ -1995,10 +2071,12 @@ export async function onRequest(context) {
       continue;
     }
 
-    let assessment = assessAnswerLocale(result.answer, requestLocale);
+    const assessment = assessAnswerLocale(result.answer, requestLocale);
     if (assessment.ok) {
       const evidenceDecision = assessProviderEvidence(result);
       if (!evidenceDecision.ok) {
+        // #1281 — evidence_required fails closed immediately; no model/provider
+        // fallback is ever attempted for a rejected answer (no 3.1 call).
         primaryAttempt.outcome = 'evidence_required';
         primaryAttempt.selection_reason = 'evidence_policy_rejected';
         return jsonResponse(
@@ -2007,17 +2085,23 @@ export async function onRequest(context) {
           headers,
         );
       }
-      const selectionReason = index > 0 ? 'provider_fallback' : 'primary_provider';
+      const selectionReason = selectionReasonForAttempt(planIndex, plan.kind, false);
       selectProviderAttempt(primaryAttempt, selectionReason);
-      return jsonResponse(withRuntimeMeta(successPayload(config, result, index, selectionReason)), 200, headers);
+      return jsonResponse(
+        withRuntimeMeta(successPayload(config, result, planIndex, selectionReason)),
+        200,
+        headers,
+      );
     }
 
     primaryAttempt.outcome = 'answer_locale_mismatch';
     primaryAttempt.selection_reason = 'locale_mismatch_rejected';
     sawAnswerLocaleMismatch = true;
 
-    // Wrong-language / non-prose success: optional single global corrective retry
-    // on the same provider, then continue to next provider without another correction.
+    // Wrong-language / non-prose answer: optional single GLOBAL corrective retry
+    // on the same model attempt. After the bounded correction is exhausted the
+    // same-provider 3.1 fallback (or explicit Hy3) is tried without another
+    // correction budget, preserving the globally bounded correction behavior.
     if (correctionBudget > 0) {
       correctionBudget -= 1;
       const rejectedDraft = result.answer;
@@ -2064,9 +2148,13 @@ export async function onRequest(context) {
               headers,
             );
           }
-          const selectionReason = index > 0 ? 'provider_fallback_corrective_retry' : 'corrective_retry';
+          const selectionReason = selectionReasonForAttempt(planIndex, plan.kind, true);
           selectProviderAttempt(correctionAttempt, selectionReason);
-          return jsonResponse(withRuntimeMeta(successPayload(config, corrected, index, selectionReason)), 200, headers);
+          return jsonResponse(
+            withRuntimeMeta(successPayload(config, corrected, planIndex, selectionReason)),
+            200,
+            headers,
+          );
         }
         correctionAttempt.outcome = 'answer_locale_mismatch';
         correctionAttempt.selection_reason = 'locale_mismatch_rejected';
@@ -2085,9 +2173,9 @@ export async function onRequest(context) {
   }
 
   let failureCode = 'config_error';
-  if (configuredProviderCount) {
+  if (configuredProviders.size) {
     // Prefer answer_locale_mismatch whenever wrong-language prose was observed,
-    // even if a later provider ends with upstream_error / empty_response.
+    // even if a later model/provider ends with upstream_error / empty_response.
     // Otherwise the most recent meaningful provider outcome (which may be a
     // keyed provider's config_error or a later provider's upstream_error) wins.
     failureCode = sawAnswerLocaleMismatch
