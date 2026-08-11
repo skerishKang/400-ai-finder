@@ -2446,6 +2446,64 @@ await assert('#1278 all 5 locales return deterministic answer passing locale con
   }
 });
 
+await assert('#1278 currentMayorAnswer non-ko strings stay role-neutral (no president/UBND-chair/mayor regression)', async () => {
+  const office = { name: '신수정', role_id: 'bukgu_mayor', role_label: '북구청장', effective_from: '2026-07-01' };
+  const answers = {
+    en: functionModule.currentMayorAnswer('en', office),
+    vi: functionModule.currentMayorAnswer('vi', office),
+    th: functionModule.currentMayorAnswer('th', office),
+    id: functionModule.currentMayorAnswer('id', office),
+    ko: functionModule.currentMayorAnswer('ko', office),
+  };
+  // Deterministic non-ko wording must express "head of the District Office",
+  // never a different constitutional/municipal office title.
+  const FORBIDDEN_ROLE_TERMS = [
+    'president',
+    'chairman',
+    'chủ tịch',
+    'UBND',
+    'ประธานาธิบดี',
+    'walikota',
+    'bupati',
+    'gubernur',
+    'perdana menteri',
+    'นายก',
+    'mayor',
+  ];
+  const REQUIRED_NEUTRAL_TERMS = {
+    en: ['head', 'District Office'],
+    vi: ['Người đứng đầu', 'Văn phòng'],
+    th: ['หัวหน้า', 'สำนักงานเขต'],
+    id: ['Kepala', 'Kantor'],
+  };
+  for (const loc of ['en', 'vi', 'th', 'id']) {
+    const answer = answers[loc];
+    if (!answer.includes('신수정')) throw new Error(`${loc}: 신수정 missing: ${answer}`);
+    for (const term of FORBIDDEN_ROLE_TERMS) {
+      if (answer.toLowerCase().includes(term.toLowerCase())) {
+        throw new Error(`${loc}: forbidden role term "${term}" present in "${answer}"`);
+      }
+    }
+    for (const term of REQUIRED_NEUTRAL_TERMS[loc]) {
+      if (!answer.includes(term)) {
+        throw new Error(`${loc}: expected neutral term "${term}" missing in "${answer}"`);
+      }
+    }
+    const assessment = functionModule.assessAnswerLocale(answer, loc);
+    if (!assessment.ok) throw new Error(`${loc}: locale assessment failed: ${assessment.reason}`);
+  }
+});
+
+await assert('#1278 currentMayorAnswer ko answer is unchanged', async () => {
+  const office = { name: '신수정', role_id: 'bukgu_mayor', role_label: '북구청장', effective_from: '2026-07-01' };
+  const ko = functionModule.currentMayorAnswer('ko', office);
+  expectEqual(
+    ko,
+    '현재 전남광주통합특별시 북구청장은 신수정 구청장입니다. 공식 열린구청장실에서 확인된 정보입니다.',
+    'ko answer unchanged',
+  );
+});
+
 await assert('#1278 non-mayor questions still route to providers normally', async () => {
   try {
     mockFetchSequence([{ body: chatResponse('일반 안내입니다. 관련 민원 경로를 확인해 주세요.') }]);

@@ -360,20 +360,22 @@ function localizedFailureAnswer(locale, failureCode) {
 
 // #1278 — deterministic current-mayor answer per locale. The official Korean
 // name 신수정 is always preserved from the canonical snapshot; optional
-// romanization accompanies it in non-ko locales.
+// romanization accompanies it in non-ko locales. Non-ko wording is kept
+// semantically neutral: it states that the current head of the Buk-gu
+// District Office is Shin Su-jeong (신수정) without translating the office
+// into a different constitutional or municipal title.
 export function currentMayorAnswer(locale, office) {
   const name = office.name;
   const canonicalName = SITE_METADATA.jurisdiction.canonical_name;
-  const localeLabelEn = SITE_METADATA.display.locale_labels.en;
   switch (locale) {
     case 'en':
-      return `The current mayor of ${localeLabelEn} is Mayor ${name} (Shin Su-jeong). This information was verified at the official Open Mayor's Office.`;
+      return `The current head of Buk-gu District Office is ${name} (Shin Su-jeong). This information was verified at the official website.`;
     case 'vi':
-      return `Hiện nay, chủ tịch UBND quận ${localeLabelEn} là ông ${name} (Shin Su-jeong). Thông tin này đã được xác minh tại Văn phòng Thị trường mở chính thức của chính quyền địa phương.`;
+      return `Người đứng đầu Văn phòng Quận Buk-gu hiện nay là ${name} (Shin Su-jeong). Thông tin này đã được xác minh tại trang web chính thức.`;
     case 'th':
-      return `ประธานาธิบดีของเขตบุ๊กกู กวางจื่นในขณะนี้คือ คุณ ${name} (Shin Su-jeong) ข้อมูลนี้ได้รับการตรวจสอบที่สำนักงานเปิดเผดอย่างเป็นทางการ`;
+      return `ปัจจุบัน หัวหน้าสำนักงานเขตบุ๊กกู กวางจู คือ ${name} (Shin Su-jeong) ข้อมูลนี้ได้รับการตรวจสอบจากเว็บไซต์อย่างเป็นทางการ`;
     case 'id':
-      return `Walikota kota ${localeLabelEn} saat ini adalah Mayor ${name} (Shin Su-jeong). Informasi ini telah diverifikasi di Kantor Mayor Terbuka resmi.`;
+      return `Kepala Kantor Distrik Buk-gu saat ini adalah ${name} (Shin Su-jeong). Informasi ini telah diverifikasi di situs web resmi.`;
     case 'ko':
     default:
       return `현재 ${canonicalName}청장은 ${name} 구청장입니다. 공식 열린구청장실에서 확인된 정보입니다.`;
