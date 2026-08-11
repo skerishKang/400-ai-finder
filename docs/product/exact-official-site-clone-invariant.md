@@ -24,7 +24,7 @@
 - 현재 Buk-gu golden에서 `exact`를 목표 또는 상태로 선언한 route/surface
 - 향후 archetype golden 중 `exact` 상태를 선언하는 route/surface
 - resident-default 또는 production promotion에서 `exact` 상태를 선언하는 route/surface
-- 그 밖에 PR, 문서, fixture, manifest, UI가 `exact`, `verbatim`, `complete official clone`과 동등한 상태를 주장하는 경우
+- 그 밖에 PR, 문서, fixture, manifest, UI가 `exact` 또는 `verbatim` official-clone 상태를 주장하는 경우
 
 반대로 onboarding 과정의 `generated_preview`, discovery candidate, exception-review candidate는 **exact 상태가 아니다**. 이들은 다음 조건에서만 별도 preview/debug 상태로 존재할 수 있다.
 
