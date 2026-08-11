@@ -18,8 +18,10 @@ from __future__ import annotations
 import copy
 import json
 import re
+from collections.abc import Mapping
+from datetime import date
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 CONFIGS_SITES_DIR = Path(__file__).resolve().parent.parent.parent / "configs" / "sites"
 
@@ -38,6 +40,16 @@ class SiteSpecLoadError(SiteSpecError):
 
 class SiteSpecNotFoundError(SiteSpecError, KeyError):
     """An identifier does not resolve to any canonical SiteSpec."""
+
+
+class JurisdictionResolutionError(SiteSpecError):
+    """Date-aware jurisdiction selection failed (fail-closed).
+
+    Raised by :func:`resolve_jurisdiction_at` when the jurisdiction timeline is
+    malformed, ambiguous, gapped, or overlapping — or when ``as_of`` or any
+    effective date is not a real calendar date. No silent fallback or
+    first-match-wins behavior occurs.
+    """
 
 
 def iter_sitespec_paths(sites_dir: Path) -> list[Path]:
@@ -262,3 +274,176 @@ def resolve_site_id_with_metadata(
     if resolver is not None:
         return resolver.resolve_with_metadata(identifier)
     return SiteSpecResolver(sites_dir).resolve_with_metadata(identifier)
+
+
+# ---------------------------------------------------------------------------
+# #1225-E — effective-date jurisdiction resolver
+# ---------------------------------------------------------------------------
+
+_JURISDICTION_RESOLUTION_KINDS = frozenset({"canonical", "historical_alias"})
+
+
+def _parse_jurisdiction_date(value: Any, field: str) -> date:
+    """Parse a ``YYYY-MM-DD`` string with stdlib calendar validation.
+
+    Uses :func:`datetime.date.fromisoformat`, so impossible calendar dates
+    such as ``2026-02-30`` raise ``ValueError`` and are rejected here as
+    fail-closed.
+    """
+    if not isinstance(value, str):
+        raise JurisdictionResolutionError(
+            f"{field} must be a string, got {type(value).__name__}"
+        )
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise JurisdictionResolutionError(
+            f"{field} is not a valid ISO calendar date: {value!r}"
+        )
+
+
+def resolve_jurisdiction_at(spec: dict[str, Any], as_of: str) -> dict[str, Any]:
+    """Resolve the jurisdiction name of *spec* that was effective at *as_of*.
+
+    Pure, date-aware helper built on the canonical ``jurisdiction`` block of a
+    canonical SiteSpec (see ``configs/sitespec.schema.json``). This is **not**
+    a site-ID resolver — historical jurisdiction aliases are legal identity
+    snapshots, not runtime site identifiers.
+
+    Parameters
+    ----------
+    spec:
+        A canonical SiteSpec dict (as produced by :func:`resolve_site_id` or
+        :attr:`SiteSpecResolver.resolve`). The input object is never mutated.
+    as_of:
+        Explicit ``YYYY-MM-DD`` date string. **Required** — the current system
+        clock is never consulted.
+
+    Returns
+    -------
+    dict
+        ``canonical_site_id`` — the SiteSpec ``site_id``
+        ``as_of`` — the date string provided
+        ``name`` — the effective jurisdiction name (canonical or historical)
+        ``resolution_kind`` — ``"canonical"`` | ``"historical_alias"``
+        ``effective_from`` — present when ``resolution_kind == "canonical"``
+        ``effective_until`` — present when ``resolution_kind == "historical_alias"``
+
+    Raises
+    ------
+    JurisdictionResolutionError
+        Fail-closed for: non-string/absent ``as_of``, malformed or impossible
+        calendar dates (e.g. ``2026-02-30``), missing/empty
+        ``canonical_name``, malformed canonical ``effective_from``, malformed
+        historical alias ``effective_until``, canonical/historical overlap,
+        unrepresented historical gap (zero candidates), and ambiguous timeline
+        (two or more historical candidates).
+    """
+    if not isinstance(as_of, str):
+        raise JurisdictionResolutionError(
+            "as_of must be an explicit YYYY-MM-DD date string; current clock is "
+            "never used"
+        )
+    as_of_date = _parse_jurisdiction_date(as_of, "as_of")
+
+    if not isinstance(spec, dict):
+        raise JurisdictionResolutionError("spec must be a SiteSpec dict")
+    site_id = spec.get("site_id")
+    if not isinstance(site_id, str) or not site_id:
+        raise JurisdictionResolutionError("spec.site_id is missing or empty")
+
+    jurisdiction = spec.get("jurisdiction")
+    if not isinstance(jurisdiction, dict):
+        raise JurisdictionResolutionError(
+            "jurisdiction block is missing or not an object"
+        )
+
+    canonical_name = jurisdiction.get("canonical_name")
+    if not isinstance(canonical_name, str) or not canonical_name:
+        raise JurisdictionResolutionError(
+            "jurisdiction.canonical_name is missing or empty"
+        )
+
+    effective_from_raw = jurisdiction.get("effective_from")
+    canonical_from = _parse_jurisdiction_date(
+        effective_from_raw, "jurisdiction.effective_from"
+    )
+
+    historical_aliases = jurisdiction.get("historical_aliases", [])
+    if not isinstance(historical_aliases, list):
+        raise JurisdictionResolutionError(
+            "jurisdiction.historical_aliases must be an array"
+        )
+
+    parsed_aliases: list[dict[str, Any]] = []
+    for entry in historical_aliases:
+        if not isinstance(entry, dict):
+            raise JurisdictionResolutionError(
+                "historical alias entry must be an object"
+            )
+        value = entry.get("value")
+        if not isinstance(value, str) or not value:
+            raise JurisdictionResolutionError(
+                "historical alias .value is missing or empty"
+            )
+        effective_until_raw = entry.get("effective_until")
+        alias_until = _parse_jurisdiction_date(
+            effective_until_raw, "historical alias effective_until"
+        )
+        parsed_aliases.append(
+            {"value": value, "effective_until": alias_until}
+        )
+
+    # Overlap guard: a historical alias whose effective_until is on or after
+    # the canonical effective_from means the canonical/historical timeline is
+    # inconsistent. Fail-closed (never guess).
+    for alias in parsed_aliases:
+        if alias["effective_until"] >= canonical_from:
+            raise JurisdictionResolutionError(
+                f"historical alias {alias['value']!r} effective_until "
+                f"({alias['effective_until'].isoformat()}) >= canonical "
+                f"effective_from ({canonical_from.isoformat()}); "
+                "canonical/historical overlap"
+            )
+
+    # Canonical branch: as_of on or after the canonical effective_from.
+    if as_of_date >= canonical_from:
+        return {
+            "canonical_site_id": site_id,
+            "as_of": as_of,
+            "name": canonical_name,
+            "resolution_kind": "canonical",
+            "effective_from": effective_from_raw,
+        }
+
+    # Historical branch: as_of before canonical effective_from.
+    # Candidate = historical alias whose effective_until >= as_of.
+    candidates = [
+        alias for alias in parsed_aliases if alias["effective_until"] >= as_of_date
+    ]
+
+    # 2+ candidates: ambiguous timeline (no historical effective_from in
+    # current schema → cannot disambiguate). first-match-wins prohibited.
+    if len(candidates) > 1:
+        raise JurisdictionResolutionError(
+            f"ambiguous timeline: {len(candidates)} historical aliases match "
+            f"as_of={as_of}; first-match-wins and array-order dependence are "
+            "prohibited"
+        )
+
+    # 0 candidates: unrepresented historical gap.
+    if not candidates:
+        raise JurisdictionResolutionError(
+            f"no historical alias effective at {as_of}; unrepresented "
+            "historical gap"
+        )
+
+    # Exactly 1 candidate: resolved.
+    chosen = candidates[0]
+    return {
+        "canonical_site_id": site_id,
+        "as_of": as_of,
+        "name": chosen["value"],
+        "resolution_kind": "historical_alias",
+        "effective_until": chosen["effective_until"].isoformat(),
+    }
