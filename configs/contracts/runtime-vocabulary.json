@@ -1,0 +1,135 @@
+{
+  "$schema": "configs/contracts/runtime-vocabulary.schema.json",
+  "schema_version": "1.0.0",
+  "inventory_only": true,
+  "runtime_wired": false,
+  "site_identity": {
+    "canonical_site_id": "bukgu_gwangju",
+    "legacy_ids": [
+      "bukgu"
+    ],
+    "display_names": {
+      "ko": "북구청",
+      "en": "Gwangju Buk-gu"
+    },
+    "historical_jurisdiction_names": [
+      "광주광역시 북구"
+    ],
+    "python_runtime_profile": "bukgu_gwangju",
+    "cloudflare_adapter": "bukgu",
+    "registry_default_site_id": "bukgu"
+  },
+  "actions": {
+    "journey_actions": [
+      "illegal_parking",
+      "housing_department",
+      "bulky_waste",
+      "passport_guidance",
+      "unmanned_kiosk",
+      "streetlight_report",
+      "litter_ai_assist",
+      "mayor_message_assist"
+    ],
+    "no_action_sentinel": {
+      "value": "none",
+      "is_journey_action": false
+    },
+    "action_snapshot_routes": {
+      "housing_department": "apartment-dept",
+      "bulky_waste": "bulky-waste-disposal",
+      "passport_guidance": "passport-guidance",
+      "unmanned_kiosk": "unmanned-kiosk-guidance"
+    }
+  },
+  "locales": {
+    "supported": [
+      "ko",
+      "en",
+      "vi",
+      "th",
+      "id"
+    ]
+  },
+  "evidence": {
+    "levels": [
+      "canonical_snapshot",
+      "verified_live_source",
+      "supplementary_official_citation",
+      "model_only"
+    ],
+    "verified_levels": [
+      "canonical_snapshot",
+      "verified_live_source"
+    ]
+  },
+  "freshness": {
+    "python": {
+      "states": [
+        "fresh",
+        "stale",
+        "unknown",
+        "invalid",
+        "verified_current",
+        "verified_as_of"
+      ]
+    },
+    "cloudflare": {
+      "states": [
+        "official_snapshot",
+        "snapshot_unavailable",
+        "model_only",
+        "unavailable"
+      ]
+    }
+  },
+  "providers": {
+    "python": {
+      "live_provider_ids": [
+        "openai_compatible",
+        "mistral",
+        "opengateway",
+        "kilocode",
+        "nvidia",
+        "groq",
+        "opencode-go",
+        "opencode-zen",
+        "nous"
+      ],
+      "test_provider_ids": [
+        "mock",
+        "stub"
+      ]
+    },
+    "cloudflare": {
+      "provider_ids": [
+        "gemini",
+        "hy3"
+      ],
+      "default_order": [
+        "gemini",
+        "hy3"
+      ],
+      "provider_details": {
+        "gemini": {
+          "default_model": "gemini-3.1-flash-lite",
+          "secret_env": "GEMINI_API_KEY",
+          "model_env": "GEMINI_MODEL"
+        },
+        "hy3": {
+          "default_model": "tencent/hy3:free",
+          "secret_env": "KILOCODE_API_KEY",
+          "model_env": "HY3_MODEL"
+        }
+      }
+    }
+  },
+  "api_control": {
+    "api_schema_version": "1.0",
+    "ai_runtime_modes": [
+      "enabled",
+      "snapshot_only",
+      "disabled"
+    ],
+    "ai_mode_env": "MVP_AI_MODE"
+  }
+}
