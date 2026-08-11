@@ -349,3 +349,109 @@ golden fixtures, citizen UI, route/action IDs, provider failover,
 evidence policy, Turnstile #1250, #1225-E date-aware resolver, #1228,
 #1229, #1232) are unchanged in D2. No global replace of
 `광주광역시 북구`; historical material keeps its original naming.
+
+## Effective-date jurisdiction resolver (#1225-E)
+
+`src/site_profiles/sitespec.py` now provides a pure, date-aware resolver that
+selects the jurisdiction name effective at a given calendar date from a
+canonical SiteSpec's `jurisdiction` block:
+
+```python
+from src.site_profiles.sitespec import resolve_jurisdiction_at
+
+spec = resolve_site_id("bukgu")          # canonical or legacy ID → same spec
+result = resolve_jurisdiction_at(spec, "2026-06-30")
+# {"canonical_site_id": "bukgu_gwangju",
+#  "as_of": "2026-06-30",
+#  "name": "광주광역시 북구",
+#  "resolution_kind": "historical_alias",
+#  "effective_until": "2026-06-30"}
+```
+
+This is a **date-aware name resolver**, not a site-ID resolver. Historical
+jurisdiction aliases are legal-identity snapshots and are never promoted to
+runtime site identifiers. The existing `resolve_site_id("광주광역시 북구")`
+fail-closed contract is unchanged — it cannot resolve to a SiteSpec.
+
+### Explicit `as_of` — no clock
+
+`as_of` is always an explicit `YYYY-MM-DD` string parameter. The resolver
+**never** consults `date.today()`, system time, or any timezone-dependent
+implicit current date. A non-string or missing `as_of` raises
+`JurisdictionResolutionError`.
+
+### Date validation
+
+Date strings are parsed with `datetime.date.fromisoformat` (stdlib
+calendar validation). Malformed formats (`2026-7-1`, `2026/07/01`) and
+impossible calendar dates (`2026-02-30`, `2026-02-29`, `2026-13-01`) are
+fail-closed — `date.fromisoformat` raises `ValueError` which the resolver
+converts to `JurisdictionResolutionError`.
+
+### Selection algorithm
+
+1. Validate canonical `effective_from` as a real calendar date.
+2. If `as_of >= canonical effective_from`: select `canonical_name`
+   (`resolution_kind = "canonical"`; returns `effective_from`).
+3. If `as_of < canonical effective_from`: compute candidate historical
+   aliases whose `effective_until >= as_of`.
+4. Exactly 1 candidate: select that historical alias
+   (`resolution_kind = "historical_alias"`; returns `effective_until`).
+5. 0 candidates: unrepresented historical gap → fail-closed.
+6. 2+ candidates: ambiguous timeline → fail-closed. First-match-wins and
+   array-order dependence are prohibited. The current schema has no
+   historical `effective_from`, so overlapping `effective_until` ranges
+   cannot be disambiguated.
+7. Overlap: if any historical alias `effective_until >= canonical
+   effective_from`, the timeline is canonically/historically overlapping →
+   fail-closed.
+8. Malformed effective dates (canonical or historical) → fail-closed.
+
+### Canonical boundary semantics (Buk-gu)
+
+| `as_of` | Result | Kind |
+|---|---|---|
+| `2026-06-30` | `광주광역시 북구` | `historical_alias` |
+| `2026-07-01` | `전남광주통합특별시 북구` | `canonical` |
+| `2026-07-02`+ | `전남광주통합특별시 북구` | `canonical` |
+| representative prior date (e.g. `2026-06-15`) | `광주광역시 북구` | `historical_alias` |
+
+### Return metadata
+
+| Field | Present when | Meaning |
+|---|---|---|
+| `canonical_site_id` | always | the SiteSpec `site_id` |
+| `as_of` | always | the date string provided |
+| `name` | always | effective jurisdiction name |
+| `resolution_kind` | always | `"canonical"` or `"historical_alias"` |
+| `effective_from` | canonical only | known canonical effective-from date |
+| `effective_until` | historical_alias only | known historical effective-until date |
+
+### Non-goals / constraints
+
+- The resolver does **not** invent a historical lower bound. The schema
+  carries only `effective_until` on historical aliases; dates before the
+  earliest known alias (or when no candidate matches) fail-closed as an
+  unrepresented gap.
+- The resolver does **not** introduce a historical `effective_from`. It
+  works strictly within the current schema.
+- Historical fixture/provenance is never rewritten. `광주광역시 북구`
+  keeps its original naming in all historical material.
+- `configs/sites/bukgu_gwangju.sitespec.json`,
+  `configs/sitespec.schema.json`, `configs/site-registry.json`, and all
+  other protected files (listed in the D2 scope block above) are unchanged
+  in #1225-E.
+
+### Verification
+
+```bash
+python -m pytest -q tests/test_sitespec_effective_date.py
+python -m pytest -q \
+  tests/test_sitespec_resolver.py \
+  tests/test_canonical_sitespec_contract.py \
+  tests/test_sitespec_projection_parity.py \
+  tests/test_site_profile_dual_read.py
+# Cloudflare naming contract (D2 current identity stays GREEN):
+RUN_CLOUDFLARE_FUNCTION_CONTRACTS=1 node tests/functions/test_cloudflare_mvp_ask_contract.mjs
+git diff --check
+```
