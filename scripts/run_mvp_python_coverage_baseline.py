@@ -7,8 +7,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-import coverage
-import pytest
+# NOTE: `coverage` is imported lazily inside run_baseline(). The drift
+# contract test (tests/test_mvp_python_coverage_workflow.py) imports this
+# module from build-packaging, which does NOT install the CI-only coverage
+# dependency; a module-level import would break that collection.
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -58,6 +60,11 @@ def _percent(statements: int, covered: int) -> float:
 
 
 def run_baseline(output: str) -> dict[str, object]:
+    # CI-only dependency (requirements-ci-coverage.txt); imported here so the
+    # drift contract test module can be collected without it.
+    import coverage
+    import pytest
+
     tmp_dir = Path(tempfile.gettempdir())
     data_file = str(tmp_dir / "mvp-coverage-baseline.coverage")
     raw_json = tmp_dir / "mvp-coverage-baseline-raw.json"
