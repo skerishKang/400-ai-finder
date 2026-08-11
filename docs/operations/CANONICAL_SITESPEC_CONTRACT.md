@@ -277,3 +277,75 @@ Protected files (`configs/site-registry.json`,
 `configs/sites/bukgu_gwangju.yml`, `configs/sitespec.schema.json`,
 `functions/api/**`, browser/UI files, prompt files, snapshots, golden
 fixtures) are unchanged in D1.
+
+## Cloudflare runtime SiteSpec projection (#1225-D2)
+
+The Cloudflare Pages runtime (`functions/api/mvp/ask.js`) now consumes
+current institution metadata from a checked-in JavaScript projection:
+
+```text
+configs/sites/bukgu_gwangju.sitespec.json
+→ functions/api/mvp/site-metadata.js  (SITE_METADATA)
+→ ask.js runtime (prompt identity, search guidance, isOfficialUrl)
+```
+
+`site-metadata.js` is a **projection only** — it is not an authoritative
+source. The SiteSpec JSON remains the single source of truth. The runtime
+never reads repository JSON at request time (Cloudflare packaging).
+
+Projected fields (parity-tested against the SiteSpec):
+
+| Field | Value |
+|---|---|
+| `schema_version` | `1.0.0` |
+| `site_id` | `bukgu_gwangju` |
+| `legacy_ids` | `["bukgu"]` |
+| `jurisdiction.canonical_name` | `전남광주통합특별시 북구` (current identity) |
+| `jurisdiction.short_name` | `북구` |
+| `jurisdiction.effective_from` | `2026-07-01` |
+| `jurisdiction.historical_aliases` | `[{value: 광주광역시 북구, effective_until: 2026-06-30}]` |
+| `display.default_label` | `북구청` |
+| `display.locale_labels` | `{ko: 북구청, en: Gwangju Buk-gu}` |
+| `domains.public` | `["bukgu.gwangju.kr"]` |
+| `runtime.cloudflare_adapter` | `bukgu` |
+
+Intentionally NOT projected: `clone.golden_commit` / `clone.golden_commit_subject`
+(Python-side official-clone provenance, not consumed by the Cloudflare
+runtime). `search.bukgu.gwangju.kr` is a separate search-service endpoint —
+not a SiteSpec institution domain — and remains a code-owned runtime
+constant (`SEARCH_SERVICE_DOMAIN` in ask.js).
+
+Prompt identity rules:
+
+* The current resident-facing system prompt uses `북구청` and
+  `전남광주통합특별시 북구` (current canonical identity).
+* `광주광역시 북구` is preserved only as the SiteSpec historical alias
+  (locale-assessment masking token); it is never used as the current
+  identity in the system prompt.
+* `광주 북구` is neither the current identity nor a SiteSpec historical
+  alias; it is retained only as an explicit locale-assessment compatibility
+  masking token for legacy address-style strings.
+* `isOfficialUrl()` keeps: exact canonical public domain + its subdomains
+  (from the projection) plus the institution-independent generic
+  public-sector policy `.gwangju.kr` / `.go.kr` / `.gov.kr` (code-owned).
+
+Drift contract: `tests/functions/test_cloudflare_mvp_ask_contract.mjs`
+(test-only) reads the SiteSpec JSON and asserts exact parity with
+`site-metadata.js` for the fields above, and asserts the runtime prompt /
+`isOfficialUrl` / proper-noun behavior. If the SiteSpec changes without
+updating the projection, CI fails.
+
+Expected changed files for the D2 slice:
+
+* `functions/api/mvp/site-metadata.js` (new)
+* `functions/api/mvp/ask.js`
+* `tests/functions/test_cloudflare_mvp_ask_contract.mjs`
+* `docs/operations/CANONICAL_SITESPEC_CONTRACT.md`
+
+Protected files (`configs/sites/bukgu_gwangju.sitespec.json`,
+`configs/sitespec.schema.json`, `configs/site-registry.json`,
+`configs/sites/bukgu_gwangju.yml`, `src/site_profiles/**`, snapshots,
+golden fixtures, citizen UI, route/action IDs, provider failover,
+evidence policy, Turnstile #1250, #1225-E date-aware resolver, #1228,
+#1229, #1232) are unchanged in D2. No global replace of
+`광주광역시 북구`; historical material keeps its original naming.

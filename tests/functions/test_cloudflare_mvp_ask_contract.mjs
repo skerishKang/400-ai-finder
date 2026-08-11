@@ -3,6 +3,8 @@
  * All upstream calls are mocked; no provider network is used.
  */
 
+import { readFileSync } from 'node:fs';
+
 const RUN_CONTRACTS = process.env.RUN_CLOUDFLARE_FUNCTION_CONTRACTS === '1';
 
 if (!RUN_CONTRACTS) {
@@ -2134,6 +2136,162 @@ await assert('#1227 timeout env overrides are bounded and invalid values fall ba
   });
   expectEqual(clamped.meta.request_timeout_ms, functionModule.MIN_TIMEOUT_MS, 'request timeout lower clamp');
   expectEqual(clamped.meta.provider_timeout_ms, functionModule.MAX_TIMEOUT_MS, 'provider timeout upper clamp');
+});
+
+// ---------------------------------------------------------------------------
+// #1225-D2 — SiteSpec ↔ checked-in Cloudflare projection drift contract
+// The runtime (ask.js) must never read repository JSON at request time; the
+// checked-in JS projection (site-metadata.js) is the Cloudflare packaging
+// surface. If the canonical SiteSpec changes and the projection is not
+// updated, these parity checks fail CI.
+// ---------------------------------------------------------------------------
+
+const SITESPEC_JSON = JSON.parse(
+  readFileSync(
+    new URL('../../configs/sites/bukgu_gwangju.sitespec.json', import.meta.url),
+    'utf8',
+  ),
+);
+const SITE_METADATA = functionModule.SITE_METADATA;
+
+await assert('#1225-D2 SiteSpec ↔ JS projection exact parity', async () => {
+  expectEqual(SITE_METADATA.schema_version, SITESPEC_JSON.schema_version, 'schema_version');
+  expectEqual(SITE_METADATA.site_id, SITESPEC_JSON.site_id, 'site_id');
+  expectEqual(
+    JSON.stringify(SITE_METADATA.legacy_ids),
+    JSON.stringify(SITESPEC_JSON.legacy_ids),
+    'legacy_ids',
+  );
+  expectEqual(
+    SITE_METADATA.jurisdiction.canonical_name,
+    SITESPEC_JSON.jurisdiction.canonical_name,
+    'jurisdiction.canonical_name',
+  );
+  expectEqual(
+    SITE_METADATA.jurisdiction.short_name,
+    SITESPEC_JSON.jurisdiction.short_name,
+    'jurisdiction.short_name',
+  );
+  expectEqual(
+    SITE_METADATA.jurisdiction.effective_from,
+    SITESPEC_JSON.jurisdiction.effective_from,
+    'jurisdiction.effective_from',
+  );
+  expectEqual(
+    SITE_METADATA.jurisdiction.historical_aliases.length,
+    SITESPEC_JSON.jurisdiction.historical_aliases.length,
+    'historical_aliases length',
+  );
+  for (let i = 0; i < SITESPEC_JSON.jurisdiction.historical_aliases.length; i += 1) {
+    expectEqual(
+      SITE_METADATA.jurisdiction.historical_aliases[i].value,
+      SITESPEC_JSON.jurisdiction.historical_aliases[i].value,
+      `historical_alias[${i}].value`,
+    );
+    expectEqual(
+      SITE_METADATA.jurisdiction.historical_aliases[i].effective_until,
+      SITESPEC_JSON.jurisdiction.historical_aliases[i].effective_until,
+      `historical_alias[${i}].effective_until`,
+    );
+  }
+  expectEqual(
+    SITE_METADATA.display.default_label,
+    SITESPEC_JSON.display.default_label,
+    'display.default_label',
+  );
+  expectEqual(
+    JSON.stringify(SITE_METADATA.display.locale_labels),
+    JSON.stringify(SITESPEC_JSON.display.locale_labels),
+    'display.locale_labels',
+  );
+  expectEqual(
+    JSON.stringify(SITE_METADATA.domains.public),
+    JSON.stringify(SITESPEC_JSON.domains.public),
+    'domains.public',
+  );
+  expectEqual(
+    SITE_METADATA.runtime.cloudflare_adapter,
+    SITESPEC_JSON.runtime.cloudflare_adapter,
+    'runtime.cloudflare_adapter',
+  );
+});
+
+await assert('#1225-D2 system prompt uses current canonical identity', async () => {
+  const prompt = functionModule.buildSystemPrompt('2026-08-11T00:00:00+09:00', null, 'ko');
+  if (!prompt.includes('전남광주통합특별시 북구')) {
+    throw new Error('current jurisdiction name missing from system prompt');
+  }
+  if (!prompt.includes('북구청')) {
+    throw new Error('resident display label missing from system prompt');
+  }
+  // Historical alias must never appear as the current system identity.
+  if (prompt.includes('광주광역시 북구')) {
+    throw new Error('historical alias used as current identity');
+  }
+});
+
+await assert('#1225-D2 grounded guidance keeps canonical search guidance', async () => {
+  const prompt = functionModule.buildGroundedPrompt(
+    '테스트 질문',
+    '2026-08-11T00:00:00+09:00',
+    null,
+    'ko',
+    null,
+  );
+  if (!prompt.includes('bukgu.gwangju.kr')) {
+    throw new Error('canonical public domain missing from grounded guidance');
+  }
+  if (!prompt.includes('search.bukgu.gwangju.kr')) {
+    throw new Error('search-service endpoint missing from grounded guidance');
+  }
+  if (!prompt.includes('전남광주통합특별시 북구')) {
+    throw new Error('current identity missing from grounded prompt');
+  }
+});
+
+await assert('#1225-D2 isOfficialUrl keeps canonical root + subdomain + generic policy', async () => {
+  const cases = [
+    ['https://bukgu.gwangju.kr/', true],
+    ['https://bukgu.gwangju.kr/menu.es?mid=a10101060200', true],
+    ['https://search.bukgu.gwangju.kr/RSA/front/Search.jsp?q=x', true],
+    ['https://sub.bukgu.gwangju.kr/path', true],
+    ['https://www.gwangju.kr/', true],
+    ['https://www.gg.go.kr/', true],
+    ['https://www.gov.kr/', true],
+    ['https://example.com/', false],
+    ['not a url', false],
+  ];
+  for (const [url, expected] of cases) {
+    const actual = functionModule.isOfficialUrl(url);
+    if (actual !== expected) {
+      throw new Error(`${url}: expected ${expected}, got ${actual}`);
+    }
+  }
+});
+
+await assert('#1225-D2 OFFICIAL_KO_PROPER_NOUNS classification preserved', async () => {
+  const nouns = functionModule.OFFICIAL_KO_PROPER_NOUNS;
+  const required = [
+    '전남광주통합특별시 북구', // canonical current identity (projection)
+    '광주광역시 북구', // historical alias (projection, effective_until 2026-06-30)
+    '북구청', // resident display label (projection)
+    '열린구청장실', // route/service-specific constant
+    '공동주택과', // route/service-specific constant
+    '광주 북구', // explicit locale-assessment compatibility masking token
+  ];
+  for (const noun of required) {
+    if (!nouns.includes(noun)) {
+      throw new Error(`missing OFFICIAL_KO_PROPER_NOUNS entry: ${noun}`);
+    }
+  }
+  // Canonical current identity must lead the longest-first list.
+  expectEqual(nouns[0], '전남광주통합특별시 북구', 'first proper noun is current identity');
+});
+
+await assert('#1225-D2 PROMPT_VERSION bumped; POLICY/API versions unchanged', async () => {
+  expectEqual(functionModule.PROMPT_VERSION, '2026-08-11.1', 'prompt version');
+  expectEqual(functionModule.POLICY_VERSION, '2026-08-10.1', 'policy version');
+  expectEqual(functionModule.API_SCHEMA_VERSION, '1.0', 'api schema version');
 });
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
