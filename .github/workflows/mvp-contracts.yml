@@ -108,6 +108,9 @@ jobs:
       - name: Run CI job decomposition self-contract (#1231)
         run: python -m pytest -q tests/test_mvp_ci_job_decomposition.py
 
+      - name: Run Python coverage baseline self-contract (#1231-G)
+        run: python -m pytest -q tests/test_mvp_python_coverage_workflow.py
+
       - name: Check whitespace errors
         run: git diff --check
 
@@ -701,6 +704,26 @@ jobs:
       - name: Audit locked Node dependencies
         run: npm audit --audit-level=low
 
+  python-coverage-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Install coverage baseline tooling
+        run: python -m pip install --disable-pip-version-check -r requirements-ci-coverage.txt
+
+      - name: Run deterministic Python src line-coverage baseline
+        run: python scripts/run_mvp_python_coverage_baseline.py --output /tmp/mvp-python-coverage-baseline.json
+
   mvp-contracts:
     if: always()
     needs:
@@ -713,6 +736,7 @@ jobs:
       - page-agent
       - comparison-evidence
       - security-quality
+      - python-coverage-baseline
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -727,4 +751,5 @@ jobs:
           test "${{ needs.page-agent.result }}" = "success" || exit 1
           test "${{ needs.comparison-evidence.result }}" = "success" || exit 1
           test "${{ needs.security-quality.result }}" = "success" || exit 1
+          test "${{ needs.python-coverage-baseline.result }}" = "success" || exit 1
           echo "All MVP contract domains passed."
