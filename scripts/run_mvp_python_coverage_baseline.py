@@ -26,6 +26,7 @@ COVERAGE_TEST_FILES = (
     "tests/test_mvp_failure_codes.py",
     "tests/test_mobile_demo.py",
     "tests/test_citizen_first_use_shell.py",
+    "tests/test_citizen_sitespec_parity.py",
     "tests/test_citizen_action_demo_chat_shell_contract.py",
     "tests/test_citizen_action_demo_canvas.py",
     "tests/test_legacy_requests_transport.py",
