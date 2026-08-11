@@ -4,6 +4,7 @@
 - 기준일: 2026-08-12
 - 현재 platform-governance 정렬: #1283
 - Buk-gu Frozen Demo closeout: #1235 (`completed`)
+- Exact clone canonical: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md)
 
 기능이 동작하거나 CI가 통과했다는 이유만으로 다음 운영단계에 자동 승격하지 않는다.
 
@@ -272,13 +273,13 @@ Gate G는 **generated preview**와 **golden/production promotion**을 분리한�
 
 #### 목적
 
-municipality / university / bank / public agency / support portal / company 등 사이트 유형별 대표 surface를 깊게 검증하여 반복 onboarding의 기준으로 사용한다.
+municipality / university / bank / public agency / support portal / company 등 사이트 유형별 golden surface를 깊게 검증하여 반복 onboarding의 기준으로 사용한다.
 
 #### 필수조건
 
-- archetype/capability contract defined for the representative scope
+- archetype/capability contract defined for the golden scope
 - generated preview upgraded through focused human review
-- browser task coverage for representative capabilities
+- browser task coverage for archetype capabilities
 - grounding/action/safety coverage
 - responsive/accessibility evidence appropriate to the surface
 - material exception resolution or explicit accepted limitations
@@ -296,7 +297,7 @@ municipality / university / bank / public agency / support portal / company 등 
 #### 필수조건
 
 - applicable SiteSpec/provenance/rights state
-- applicable exact/high-fidelity policy satisfied for the claim being made
+- applicable [`exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md) requirements satisfied whenever an `exact` claim is made
 - visual side-by-side evidence where required
 - project-owner approval where required by visual promotion policy
 - browser/safety/evidence regression
