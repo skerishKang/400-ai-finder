@@ -1,24 +1,46 @@
 # Exact Official-Site Clone Invariant
 
-> 최상위 product invariant. 이 문서는 저장소 전체에서 좌측 시민 사이트 화면의
-> **공식 사이트 그대로 복제(exact clone)** 원칙을 규정한다. 모든 MVP architecture /
-> product direction / design direction / route·quest / civic canvas / build·deploy /
-> reference ledger / visual review / official-site integration / fixture·snapshot /
-> testing 문서는 이 문서를 단일 원천(canonical)으로 인용한다.
+> 최상위 **exact-clone** product invariant. 이 문서는 `exact`, exact golden,
+> 또는 exact resident/production surface라고 주장하는 좌측 시민 사이트 화면의
+> **공식 사이트 그대로 복제(exact clone)** 원칙을 규정한다. Buk-gu golden과
+> 향후 이 기준을 적용받는 surface의 architecture / product direction / design /
+> route·quest / civic canvas / build·deploy / reference ledger / visual review /
+> official-site integration / fixture·snapshot / testing 문서는 이 문서를
+> 단일 원천(canonical)으로 인용한다.
 >
 > Supplemental policy: [`docs/product/clone-visual-fidelity-and-promotion-policy.md`](./clone-visual-fidelity-and-promotion-policy.md)
 > governs visual approval, resident-default promotion, and incident procedures.
 > This invariant defines the content and structure requirements for exact clone;
 > the supplemental policy defines how a renderer becomes an approved resident-facing default.
 
-이전 방향은 폐기되었다. 현재 계약은 exact official-site clone이다.
+이전 exact-clone 방향을 완화하지 않는다. 현재 exact 계약은 official-site clone을 그대로 보존하는 것이다.
+
+## 적용 범위와 generated preview 경계
+
+이 invariant는 **exact 상태의 품질기준**이다. 플랫폼의 모든 중간 산출물을 자동으로 exact라고 선언하는 규칙이 아니다.
+
+다음 surface에는 본 invariant가 전부 적용된다.
+
+- 현재 Buk-gu golden에서 `exact`를 목표 또는 상태로 선언한 route/surface
+- 향후 archetype golden 중 `exact` 상태를 선언하는 route/surface
+- resident-default 또는 production promotion에서 `exact` 상태를 선언하는 route/surface
+- 그 밖에 PR, 문서, fixture, manifest, UI가 `exact`, `verbatim`, `complete official clone`과 동등한 상태를 주장하는 경우
+
+반대로 onboarding 과정의 `generated_preview`, discovery candidate, exception-review candidate는 **exact 상태가 아니다**. 이들은 다음 조건에서만 별도 preview/debug 상태로 존재할 수 있다.
+
+- `exact` 또는 `resident_default_approved`라고 주장하지 않는다.
+- 현재 승인된 resident-default route를 자동으로 대체하거나 통제하지 않는다.
+- capture 부족, unresolved asset, low-confidence, unsupported capability를 숨기지 않고 명시한다.
+- exact promotion을 요청하는 순간 이 invariant의 applicable 요구를 전부 충족해야 하며, generated-preview 상태를 이유로 예외를 만들지 않는다.
+
+즉 `generated_preview`를 별도 상태로 인정하는 것은 exact 기준의 완화가 아니다. **Exact claim에는 아래 규칙이 그대로 전부 적용된다.**
 
 ## 목적
 
-- 좌측 화면은 광주광역시 북구청 공식 사이트(`https://bukgu.gwangju.kr`)의 복제본이다.
+- Buk-gu exact surface의 좌측 화면은 광주광역시 북구청 공식 사이트(`https://bukgu.gwangju.kr`)의 복제본이다.
 - 우측 AI는 좌측 복제 사이트를 검색·클릭·이동하여 안내한다.
-- AI가 좌측 화면을 새로 디자인하거나 요약하거나 재구성하지 않는다.
-- 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않는다.
+- AI가 exact 좌측 화면을 새로 디자인하거나 요약하거나 재구성하지 않는다.
+- exact surface에서는 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않는다.
 
 ## exact clone 정의
 
@@ -169,6 +191,7 @@
 - manifest에 `capture_required`가 남아 있는 동안 current-status 문서가 exact/verbatim/complete clone 완료를 주장할 수 없다.
 - milestone, snapshot, closeout 문서는 남은 capture_required 항목을 정직하게 반영해야 한다.
 - 목표 또는 정책으로서의 exact clone 요구는 허용된다 (예: "Exact clone is the required target").
+- generated preview의 존재는 exact completion 증거가 아니며, exact 상태와 별도로 보고한다.
 
 ## Fixture completeness와 visual approval 분리
 
