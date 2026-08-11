@@ -122,3 +122,28 @@ def test_harness_trace_path_inside_evidence_root() -> None:
     text = HARNESS.read_text(encoding="utf-8")
     assert 'const TRACE_PATH = path.join(SCREENSHOT_DIR, TRACE_FILENAME);' in text
     assert 'const TRACE_FILENAME = "responsive-trace.zip";' in text
+
+
+def test_harness_excludes_360_from_evidence_screenshots() -> None:
+    """360 keeps full functional coverage but produces no evidence PNGs."""
+    text = HARNESS.read_text(encoding="utf-8")
+    assert "const captureEvidence = vp.width === 320 || vp.width === 390;" in text
+    assert text.count("if (captureEvidence)") == 7
+    for name in (
+        "360-entry.png",
+        "360-confirm.png",
+        "360-first-action.png",
+        "360-search-typing.png",
+        "360-result.png",
+        "360-view-switch.png",
+        "360-reset.png",
+    ):
+        assert name not in text
+
+
+def test_harness_enforces_exact_evidence_root_membership() -> None:
+    """The evidence root must contain exactly the 19 allowlisted entries."""
+    text = HARNESS.read_text(encoding="utf-8")
+    assert "stageB evidence membership" in text
+    assert "readdirSync(SCREENSHOT_DIR)" in text
+    assert "[...EVIDENCE_FILENAMES, TRACE_FILENAME]" in text

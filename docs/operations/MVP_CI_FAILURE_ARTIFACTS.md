@@ -81,6 +81,12 @@ Policy:
   directory directly inside the OS temp directory; only the allowlisted stale
   entries are deleted before a run (no other `/tmp` files are touched);
   allowlisted stale entries that are symlinks/non-files fail closed.
+- Exact evidence-root membership: after a run the evidence root must contain
+  exactly the 19 allowlisted entries (18 PNG + `responsive-trace.zip`) and
+  nothing else. The 360px viewport keeps full functional/browser coverage
+  (navigation, assertions, focus checks, state transitions) but produces no
+  evidence screenshots, so `360-*.png` files (e.g. from older harness runs)
+  fail the contract and are never collected.
 - Screenshots are capped at 4 MiB, the trace at 32 MiB; both must be regular
   non-symlink files.
 - The collector validates PNG magic (`89 50 4E 47 0D 0A 1A 0A`) and the ZIP

@@ -3624,7 +3624,12 @@ async function main() {
         }
 
         // ── Search journey on 320 and 390 ──
+        // #1231-F CTO correction: 360 keeps full functional/browser coverage
+        // (navigation, assertions, focus checks, state transitions) but does
+        // NOT produce evidence screenshots — the canonical artifact contract
+        // is exact 18 PNG + responsive-trace.zip.
         for (const vp of mobileViewports) {
+          const captureEvidence = vp.width === 320 || vp.width === 390;
           try {
             await sp.setViewportSize({ width: vp.width, height: vp.height });
             await sp.goto(base, { waitUntil: "domcontentloaded" });
@@ -3696,7 +3701,9 @@ async function main() {
               false,
               `stageB ${vp.width}x${vp.height}: no aria-selected`,
             );
-            await shot(`${vp.width}-entry.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-entry.png`);
+            }
 
             // 2) submit a supported question (deterministic, non-MVP).
             await sp.fill(".chat-composer__input", SEARCH_Q);
@@ -3835,14 +3842,18 @@ async function main() {
               false,
               `stageB ${vp.width}x${vp.height}: composer keyboard closed before navigation`,
             );
-            await shot(`${vp.width}-confirm.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-confirm.png`);
+            }
 
             // First cursor action: real AI cursor from CitizenActionDemoCanvas.
             await sp.waitForSelector(CANONICAL_CURSOR_SELECTOR, {
               state: "visible",
               timeout: 10000,
             });
-            await shot(`${vp.width}-first-action.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-first-action.png`);
+            }
 
             // Search field typing — exact selector only, no generic fallback.
             await sp.waitForFunction(
@@ -3858,7 +3869,9 @@ async function main() {
               searchValue.trim().length > 0,
               `stageB ${vp.width}x${vp.height}: search field non-empty (got ${JSON.stringify(searchValue)})`,
             );
-            await shot(`${vp.width}-search-typing.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-search-typing.png`);
+            }
 
             // Automated phase editable focus violation must be 0 so far.
             let violations = await drainTfViolations();
@@ -3873,7 +3886,9 @@ async function main() {
               state: "visible",
               timeout: 20000,
             });
-            await shot(`${vp.width}-result.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-result.png`);
+            }
 
             violations = await drainTfViolations();
             assert.equal(
@@ -4078,7 +4093,9 @@ async function main() {
               beforeSurfaceSwitch.choreographyState,
               `stageB ${vp.width}x${vp.height}: surface switch must preserve choreography state`,
             );
-            await shot(`${vp.width}-view-switch.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-view-switch.png`);
+            }
 
             // 5) direct user focus: click composer → activeElement is composer.
             const tabC3 = await sp.waitForSelector("#tab-conversation", {
@@ -4180,7 +4197,9 @@ async function main() {
               false,
               `stageB ${vp.width}x${vp.height}: no automated editable focus after reset (active=${resetState.activeId || resetState.activeClass || "none"})`,
             );
-            await shot(`${vp.width}-reset.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-reset.png`);
+            }
 
             // Final automated-phase violations for this viewport (should still be 0).
             violations = await drainTfViolations();
@@ -4882,6 +4901,26 @@ async function main() {
         );
       } catch (err) {
         failures.push(`stageB trace validation: ${err.message}`);
+      }
+
+      // #1231-F CTO correction — exact evidence-root membership: the
+      // dedicated evidence root must contain exactly the 19 allowlisted
+      // entries (18 PNG + responsive-trace.zip) and nothing else. Stale or
+      // unlisted files (e.g. 360-*.png from an older harness) fail this
+      // contract. Arbitrary /tmp files outside the root are not inspected.
+      try {
+        const actualEntries = fs.readdirSync(SCREENSHOT_DIR).sort();
+        const expectedEntries = [...EVIDENCE_FILENAMES, TRACE_FILENAME].sort();
+        assert.deepEqual(
+          actualEntries,
+          expectedEntries,
+          `evidence root must contain exactly ${expectedEntries.length} allowlisted entries, got ${actualEntries.length}: ${actualEntries.join(",")}`,
+        );
+        console.log(
+          `  evidence root: exact ${expectedEntries.length} entries (${expectedEntries.length - 1} PNG + trace)`,
+        );
+      } catch (err) {
+        failures.push(`stageB evidence membership: ${err.message}`);
       }
     }
 

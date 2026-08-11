@@ -64,6 +64,15 @@ _BEARER_RE = re.compile(r"(?i)\bbearer\s+[a-z0-9._~+/-]{8,}")
 _SECRET_ASSIGN_RE = re.compile(
     r"(?i)\b(api[_ -]?key|token|secret|authorization)\b\s*[:=]\s*([^\s,;]+)"
 )
+
+
+def _redact_secret_assign(match: re.Match[str]) -> str:
+    # "Authorization: Bearer <token>" is owned by _BEARER_RE, which already
+    # redacts the token to "Bearer [redacted]"; the literal word "Bearer" is
+    # not itself a secret. Skipping it here preserves that canonical form.
+    if match.group(2).lower() == "bearer":
+        return match.group(0)
+    return f"{match.group(1)}=[redacted]"
 _QUERY_RE = re.compile(r"(https?://[^\s?#]+|\s/[^\s?#]*)\?[^\s\"]+")
 _JSON_SENSITIVE_RE = re.compile(
     r'(?i)("(?:question|prompt|resident_question|raw_error|provider_error)"\s*:\s*)"(?:[^"\\]|\\.)*"'
@@ -77,7 +86,7 @@ def sanitize_log_text(text: str) -> str:
     text = _EMAIL_RE.sub("[redacted-email]", text)
     text = _PHONE_RE.sub("[redacted-phone]", text)
     text = _BEARER_RE.sub("Bearer [redacted]", text)
-    text = _SECRET_ASSIGN_RE.sub(lambda m: f"{m.group(1)}=[redacted]", text)
+    text = _SECRET_ASSIGN_RE.sub(_redact_secret_assign, text)
     text = _JSON_SENSITIVE_RE.sub(lambda m: f'{m.group(1)}"[redacted]"', text)
     text = _TEXT_SENSITIVE_RE.sub(lambda m: f"{m.group(1)}=[redacted]", text)
     text = _QUERY_RE.sub(lambda m: f"{m.group(1)}?[redacted]", text)

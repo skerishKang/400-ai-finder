@@ -50,17 +50,23 @@ def _make_visual_tree(source: Path) -> Path:
 
 
 def test_log_sanitizer_redacts_sensitive_values_and_bounds_output() -> None:
+    bearer_token = "abcdef...op"
+    # Secret-bearing lines are placed AFTER the padding so they survive the
+    # 128 KiB tail cap; otherwise the redaction assertions would be vacuous
+    # (the lines would simply be cut away). Redact-first must still remove
+    # every sensitive value before the byte cap is applied.
     raw = (
-        "GET /mvp/?question=full-resident-question HTTP/1.1\n"
-        "email=user@example.com phone=010-1234-5678\n"
-        "Authorization: Bearer abcdef...op\n"
-        '"prompt":"do not upload this"\n'
         "x" * (MAX_LOG_BYTES + 1000)
+        + "GET /mvp/?question=full-resident-question HTTP/1.1\n"
+        + "email=user@example.com phone=010-1234-5678\n"
+        + f"Authorization: Bearer {bearer_token}\n"
+        + '"prompt":"do not upload this"\n'
     )
     safe = sanitize_log_text(raw)
     assert "user@example.com" not in safe
     assert "010-1234-5678" not in safe
-    assert "abcdefghijklmnop" not in safe
+    assert bearer_token not in safe
+    assert "Bearer [redacted]" in safe
     assert "do not upload this" not in safe
     assert "full-resident-question" not in safe
     assert len(safe.encode("utf-8")) <= MAX_LOG_BYTES
@@ -185,6 +191,36 @@ def test_unlisted_file_not_collected(tmp_path: Path) -> None:
 
     manifest = collect("citizen-browser", source, output)
     assert not (output / "sneaky.png").exists()
+    assert manifest["collected"] == sorted(VISUAL_FILENAMES)
+
+
+def test_360_screenshots_are_not_allowlisted(tmp_path: Path) -> None:
+    """Old-harness 360-*.png evidence must never be collected or allowed.
+
+    The canonical #1231-F artifact contract is exact 18 PNG + trace; 360
+    keeps functional coverage but produces no evidence screenshots.
+    """
+    for name in VISUAL_FILENAMES:
+        assert not name.startswith("360-")
+    source = tmp_path / "source"
+    source.mkdir()
+    visual = _make_visual_tree(source)
+    old_360 = [
+        "360-entry.png",
+        "360-confirm.png",
+        "360-first-action.png",
+        "360-search-typing.png",
+        "360-result.png",
+        "360-view-switch.png",
+        "360-reset.png",
+    ]
+    for name in old_360:
+        (visual / name).write_bytes(PNG_MAGIC + b"\x00" * 8)
+
+    output = tmp_path / "output"
+    manifest = collect("citizen-browser", source, output)
+    for name in old_360:
+        assert not (output / name).exists()
     assert manifest["collected"] == sorted(VISUAL_FILENAMES)
 
 
