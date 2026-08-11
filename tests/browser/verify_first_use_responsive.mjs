@@ -93,6 +93,97 @@ const SCREENSHOT_DIR = path.join(
   "400-ai-finder-1116",
 );
 
+// #1231-F — literal exact evidence allowlist (no globs, no /tmp walks).
+// The responsive harness produces exactly these 18 deterministic PNGs plus
+// one bounded Stage-B Playwright trace.
+const EVIDENCE_FILENAMES = Object.freeze([
+  "320-entry.png",
+  "320-confirm.png",
+  "320-first-action.png",
+  "320-search-typing.png",
+  "320-result.png",
+  "320-view-switch.png",
+  "320-reset.png",
+  "390-entry.png",
+  "390-confirm.png",
+  "390-first-action.png",
+  "390-search-typing.png",
+  "390-result.png",
+  "390-view-switch.png",
+  "390-reset.png",
+  "390-writing-route.png",
+  "390-writing-typing.png",
+  "390-writing-cancelled.png",
+  "1440-desktop.png",
+]);
+const TRACE_FILENAME = "responsive-trace.zip";
+const TRACE_PATH = path.join(SCREENSHOT_DIR, TRACE_FILENAME);
+const ALLOWED_EVIDENCE = Object.freeze([
+  ...EVIDENCE_FILENAMES,
+  TRACE_FILENAME,
+]);
+const MAX_PNG_BYTES = 4 * 1024 * 1024;
+const MAX_TRACE_BYTES = 32 * 1024 * 1024;
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const ZIP_MAGIC = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
+
+// #1231-F — stale/symlink guard for the evidence root. Only the literal
+// allowlisted stale entries may be deleted; nothing else under /tmp is ever
+// touched. The root must resolve to a real directory directly inside the OS
+// temp directory.
+function prepareEvidenceDir() {
+  const tmpResolved = path.resolve(os.tmpdir());
+  const root = path.resolve(SCREENSHOT_DIR);
+  if (path.dirname(root) !== tmpResolved) {
+    throw new Error(
+      `evidence root parent must be the OS temp directory: ${root}`,
+    );
+  }
+  let st = null;
+  try {
+    st = fs.lstatSync(root);
+  } catch {
+    st = null;
+  }
+  if (st) {
+    if (st.isSymbolicLink()) {
+      throw new Error(`evidence root must not be a symlink: ${root}`);
+    }
+    if (!st.isDirectory()) {
+      throw new Error(`evidence root must be a directory: ${root}`);
+    }
+    for (const name of ALLOWED_EVIDENCE) {
+      const p = path.join(root, name);
+      let est = null;
+      try {
+        est = fs.lstatSync(p);
+      } catch {
+        continue;
+      }
+      if (est.isSymbolicLink() || !est.isFile()) {
+        throw new Error(
+          `stale evidence entry must be a regular file: ${name}`,
+        );
+      }
+      fs.unlinkSync(p);
+    }
+  }
+  fs.mkdirSync(root, { recursive: true });
+}
+
+// #1231-F — producer-side validation shared by screenshots and the trace:
+// lstat (regular file, never a symlink), non-empty, bounded size.
+function assertRegularBoundedFile(p, label, maxBytes) {
+  const st = fs.lstatSync(p);
+  assert.ok(!st.isSymbolicLink(), `${label} must not be a symlink: ${p}`);
+  assert.ok(st.isFile(), `${label} must be a regular file: ${p}`);
+  assert.ok(st.size > 0, `${label} must not be empty: ${p}`);
+  assert.ok(
+    st.size <= maxBytes,
+    `${label} exceeds ${maxBytes} bytes: ${p} (${st.size})`,
+  );
+}
+
 const VIEWPORTS = [
   { width: 320, height: 568 },
   { width: 360, height: 800 },
@@ -3287,8 +3378,12 @@ async function main() {
     const mobileViewports = VIEWPORTS.filter((v) => v.width <= 767);
     if (mobileViewports.length) {
       console.log("\nRunning #1116 Stage B mobile surface scenario:");
+      let surfCtx = null;
+      let sp = null;
       try {
-        fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
+        // #1231-F — remove stale allowlisted evidence before this run so an
+        // earlier run's screenshots/trace can never become this run's artifact.
+        prepareEvidenceDir();
 
         // Canonical selectors taken from real renderer/choreography sources
         // (citizen-action-demo-canvas.js / citizen-first-choreography.js).
@@ -3331,8 +3426,19 @@ async function main() {
           "1440-desktop.png",
         ];
 
-        const surfCtx = await browser.newContext({
+        surfCtx = await browser.newContext({
           viewport: mobileViewports[0],
+        });
+        // #1231-F — one bounded Stage-B trace on the same controlled context
+        // only. sources:false keeps page sources out of the artifact; no
+        // global browser context, Page Agent, comparison, or live paths.
+        // screenshots:false keeps the trace inside the 32 MiB cap — the
+        // deterministic 18 PNGs already provide the visual evidence, and
+        // snapshots preserve the DOM state for replay.
+        await surfCtx.tracing.start({
+          screenshots: false,
+          snapshots: true,
+          sources: false,
         });
         const allowedOrigin2 = new URL(base).origin;
         // All non-loopback requests are ABORTED and recorded so an attempt
@@ -3356,7 +3462,7 @@ async function main() {
           return route.abort();
         });
 
-        const sp = await surfCtx.newPage();
+        sp = await surfCtx.newPage();
         sp.on("pageerror", (err) => {
           pageErrors.push(String(err && err.message ? err.message : err));
         });
@@ -3518,7 +3624,12 @@ async function main() {
         }
 
         // ── Search journey on 320 and 390 ──
+        // #1231-F CTO correction: 360 keeps full functional/browser coverage
+        // (navigation, assertions, focus checks, state transitions) but does
+        // NOT produce evidence screenshots — the canonical artifact contract
+        // is exact 18 PNG + responsive-trace.zip.
         for (const vp of mobileViewports) {
+          const captureEvidence = vp.width === 320 || vp.width === 390;
           try {
             await sp.setViewportSize({ width: vp.width, height: vp.height });
             await sp.goto(base, { waitUntil: "domcontentloaded" });
@@ -3590,7 +3701,9 @@ async function main() {
               false,
               `stageB ${vp.width}x${vp.height}: no aria-selected`,
             );
-            await shot(`${vp.width}-entry.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-entry.png`);
+            }
 
             // 2) submit a supported question (deterministic, non-MVP).
             await sp.fill(".chat-composer__input", SEARCH_Q);
@@ -3729,14 +3842,18 @@ async function main() {
               false,
               `stageB ${vp.width}x${vp.height}: composer keyboard closed before navigation`,
             );
-            await shot(`${vp.width}-confirm.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-confirm.png`);
+            }
 
             // First cursor action: real AI cursor from CitizenActionDemoCanvas.
             await sp.waitForSelector(CANONICAL_CURSOR_SELECTOR, {
               state: "visible",
               timeout: 10000,
             });
-            await shot(`${vp.width}-first-action.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-first-action.png`);
+            }
 
             // Search field typing — exact selector only, no generic fallback.
             await sp.waitForFunction(
@@ -3752,7 +3869,9 @@ async function main() {
               searchValue.trim().length > 0,
               `stageB ${vp.width}x${vp.height}: search field non-empty (got ${JSON.stringify(searchValue)})`,
             );
-            await shot(`${vp.width}-search-typing.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-search-typing.png`);
+            }
 
             // Automated phase editable focus violation must be 0 so far.
             let violations = await drainTfViolations();
@@ -3767,7 +3886,9 @@ async function main() {
               state: "visible",
               timeout: 20000,
             });
-            await shot(`${vp.width}-result.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-result.png`);
+            }
 
             violations = await drainTfViolations();
             assert.equal(
@@ -3972,7 +4093,9 @@ async function main() {
               beforeSurfaceSwitch.choreographyState,
               `stageB ${vp.width}x${vp.height}: surface switch must preserve choreography state`,
             );
-            await shot(`${vp.width}-view-switch.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-view-switch.png`);
+            }
 
             // 5) direct user focus: click composer → activeElement is composer.
             const tabC3 = await sp.waitForSelector("#tab-conversation", {
@@ -4074,7 +4197,9 @@ async function main() {
               false,
               `stageB ${vp.width}x${vp.height}: no automated editable focus after reset (active=${resetState.activeId || resetState.activeClass || "none"})`,
             );
-            await shot(`${vp.width}-reset.png`);
+            if (captureEvidence) {
+              await shot(`${vp.width}-reset.png`);
+            }
 
             // Final automated-phase violations for this viewport (should still be 0).
             violations = await drainTfViolations();
@@ -4677,22 +4802,20 @@ async function main() {
           failures.push(`stageB desktop 1440x900: ${err.message}`);
         }
 
-        // Exact screenshot evidence set (required, non-empty files).
+        // Exact screenshot evidence set (#1231-F: lstat regular-file guard,
+        // non-empty, bounded 4 MiB, never a symlink).
         for (const name of expectedScreenshots) {
           const outputPath = path.join(SCREENSHOT_DIR, name);
-          assert.ok(
-            fs.existsSync(outputPath),
-            `missing screenshot: ${outputPath}`,
-          );
-          assert.ok(
-            fs.statSync(outputPath).size > 0,
-            `empty screenshot: ${outputPath}`,
+          assertRegularBoundedFile(
+            outputPath,
+            `screenshot ${name}`,
+            MAX_PNG_BYTES,
           );
         }
         const shotListing = expectedScreenshots
           .map((name) => {
             const outputPath = path.join(SCREENSHOT_DIR, name);
-            const size = fs.statSync(outputPath).size;
+            const size = fs.lstatSync(outputPath).size;
             return `    ${name} (${size} bytes)`;
           })
           .join("\n");
@@ -4735,10 +4858,69 @@ async function main() {
           `external request attempts: ${JSON.stringify(instrumentationSummary)}`,
         );
 
-        await sp.close();
-        await surfCtx.close();
       } catch (err) {
         failures.push(`stageB setup: ${err.message}`);
+      } finally {
+        // #1231-F — trace stop must always be attempted, even on assertion
+        // failure, and always before the context closes.
+        if (surfCtx) {
+          try {
+            await surfCtx.tracing.stop({ path: TRACE_PATH });
+          } catch (err) {
+            failures.push(`stageB trace stop: ${err.message}`);
+          }
+        }
+        if (sp) {
+          try {
+            await sp.close();
+          } catch {
+            /* best-effort close */
+          }
+        }
+        if (surfCtx) {
+          try {
+            await surfCtx.close();
+          } catch {
+            /* best-effort close */
+          }
+        }
+      }
+
+      // #1231-F — trace producer validation (after the stop attempt so it
+      // also runs on assertion failure): regular file, non-empty, <= 32 MiB,
+      // ZIP signature.
+      try {
+        assertRegularBoundedFile(TRACE_PATH, "trace", MAX_TRACE_BYTES);
+        const head = fs.readFileSync(TRACE_PATH).subarray(0, 4);
+        assert.ok(
+          head.equals(ZIP_MAGIC),
+          `trace missing ZIP signature: ${TRACE_PATH}`,
+        );
+        console.log(
+          `  trace: ${TRACE_FILENAME} (${fs.lstatSync(TRACE_PATH).size} bytes)`,
+        );
+      } catch (err) {
+        failures.push(`stageB trace validation: ${err.message}`);
+      }
+
+      // #1231-F CTO correction — exact evidence-root membership: the
+      // dedicated evidence root must contain exactly the 19 allowlisted
+      // entries (18 PNG + responsive-trace.zip) and nothing else. Stale or
+      // unlisted files (e.g. 360-*.png from an older harness) fail this
+      // contract. Arbitrary /tmp files outside the root are not inspected.
+      try {
+        const actualEntries = fs.readdirSync(SCREENSHOT_DIR).sort();
+        const expectedEntries = [...EVIDENCE_FILENAMES, TRACE_FILENAME].sort();
+        assert.deepEqual(
+          actualEntries,
+          expectedEntries,
+          `evidence root must contain exactly ${expectedEntries.length} allowlisted entries, got ${actualEntries.length}: ${actualEntries.join(",")}`,
+        );
+        console.log(
+          `  evidence root: exact ${expectedEntries.length} entries (${expectedEntries.length - 1} PNG + trace)`,
+        );
+      } catch (err) {
+        failures.push(`stageB evidence membership: ${err.message}`);
       }
     }
 
