@@ -349,6 +349,159 @@ class TestRuntimeProjectionFailClosed:
 
 
 # ------------------------------------------------------------------
+# #1268 identifier-boundary security regressions
+# ------------------------------------------------------------------
+
+
+class TestMalformedIdentifierBoundary:
+    """load_by_id is an identifier-only boundary: malformed/empty/path-like
+    values fail closed and can never contribute to a filesystem path."""
+
+    @pytest.mark.parametrize(
+        "bad_identifier",
+        [
+            "",
+            "   ",
+            "../outside",
+            "..\\outside",
+            "bukgu/extra",
+        ],
+    )
+    def test_malformed_identifier_fail_closed(self, loader, bad_identifier):
+        """Empty, whitespace, and path-like values raise FileNotFoundError."""
+        with pytest.raises(FileNotFoundError):
+            loader.load_by_id(bad_identifier)
+
+    def test_non_string_identifier_fail_closed(self, loader):
+        """Non-string identifiers fail closed too."""
+        with pytest.raises(FileNotFoundError):
+            loader.load_by_id(None)  # type: ignore[arg-type]
+
+    def test_outside_yaml_escape_blocked(self, tmp_path):
+        """'../outside' must never load a YAML placed outside the loader dir.
+
+        The file ``<loader_dir>/../outside.yml`` exists on disk; the loader
+        must still refuse to construct the escaped path.
+        """
+        loader_dir = tmp_path / "loader_dir"
+        loader_dir.mkdir()
+        outside = _write_yaml(tmp_path / "outside.yml", {
+            "site_id": "outside",
+            "name": "Outside",
+            "base_url": "https://outside.example/",
+        })
+        assert outside.exists()
+
+        loader = SiteProfileLoader(loader_dir)
+        with pytest.raises(FileNotFoundError):
+            loader.load_by_id("../outside")
+
+    def test_backslash_escape_blocked(self, tmp_path):
+        """'..\\outside' must never load a YAML placed outside the loader dir."""
+        loader_dir = tmp_path / "loader_dir"
+        loader_dir.mkdir()
+        _write_yaml(tmp_path / "outside.yml", {
+            "site_id": "outside",
+            "name": "Outside",
+            "base_url": "https://outside.example/",
+        })
+
+        loader = SiteProfileLoader(loader_dir)
+        with pytest.raises(FileNotFoundError):
+            loader.load_by_id("..\\outside")
+
+    def test_nested_identifier_separator_blocked(self, loader):
+        """'bukgu/extra' is a path, not an identifier, and fails closed."""
+        with pytest.raises(FileNotFoundError):
+            loader.load_by_id("bukgu/extra")
+
+
+class TestCwdBareFileHijack:
+    """Extensionless CWD files must never shadow canonical IDs/aliases."""
+
+    def test_cwd_fake_bukgu_cannot_hijack_legacy_alias(self, tmp_path, monkeypatch):
+        """A fake extensionless 'bukgu' file in cwd must not win over the
+        canonical SiteSpec legacy alias."""
+        _write_yaml(tmp_path / "bukgu", {
+            "site_id": "fake",
+            "name": "Fake",
+            "base_url": "https://fake.example/",
+        })
+        monkeypatch.chdir(tmp_path)
+
+        profile = load_profile("bukgu")
+        assert profile.site_id == REAL_CANONICAL
+        assert profile.name != "Fake"
+
+    def test_cwd_fake_bukgu_gwangju_cannot_hijack_canonical_id(
+        self, tmp_path, monkeypatch
+    ):
+        """A fake extensionless 'bukgu_gwangju' file in cwd must not win over
+        the canonical SiteSpec identifier."""
+        _write_yaml(tmp_path / REAL_CANONICAL, {
+            "site_id": "fake",
+            "name": "Fake",
+            "base_url": "https://fake.example/",
+        })
+        monkeypatch.chdir(tmp_path)
+
+        profile = load_profile(REAL_CANONICAL)
+        assert profile.site_id == REAL_CANONICAL
+        assert profile.name != "Fake"
+
+    def test_cwd_fake_bukgu_cannot_hijack_load_by_id(self, tmp_path, monkeypatch):
+        """load_by_id never consults the filesystem for a bare identifier."""
+        _write_yaml(tmp_path / "bukgu", {
+            "site_id": "fake",
+            "name": "Fake",
+            "base_url": "https://fake.example/",
+        })
+        monkeypatch.chdir(tmp_path)
+
+        profile = SiteProfileLoader().load_by_id(REAL_LEGACY)
+        assert profile.site_id == REAL_CANONICAL
+
+
+class TestExtensionlessFileCompatibility:
+    """Historical extensionless file fallback for genuinely unknown IDs."""
+
+    def test_extensionless_unknown_file_still_loads(self, tmp_path, monkeypatch):
+        """A bare identifier unknown to SiteSpec/config may still load a
+        same-named extensionless file in the filesystem."""
+        _write_yaml(tmp_path / "custom_local", {
+            "site_id": "custom_local",
+            "name": "Custom Local",
+            "base_url": "https://custom.example/",
+        })
+        monkeypatch.chdir(tmp_path)
+
+        profile = load_profile("custom_local")
+        assert profile.site_id == "custom_local"
+        assert profile.name == "Custom Local"
+
+    def test_extensionless_fallback_only_for_unknown_identifiers(
+        self, tmp_path, monkeypatch
+    ):
+        """Fallback never fires for an identifier that resolves (bukgu)."""
+        _write_yaml(tmp_path / "bukgu", {
+            "site_id": "fake",
+            "name": "Fake",
+            "base_url": "https://fake.example/",
+        })
+        monkeypatch.chdir(tmp_path)
+
+        profile = load_profile(REAL_LEGACY)
+        assert profile.site_id == REAL_CANONICAL
+        assert profile.name != "Fake"
+
+    def test_extensionless_fallback_absent_file_raises(self, tmp_path, monkeypatch):
+        """Unknown identifier without a matching file raises FileNotFoundError."""
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(FileNotFoundError):
+            load_profile("no_such_extensionless_profile")
+
+
+# ------------------------------------------------------------------
 # list_ids / list_profiles must not expose the alias (regressions 18-19)
 # ------------------------------------------------------------------
 

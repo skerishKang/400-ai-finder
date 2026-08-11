@@ -333,21 +333,34 @@ class SiteProfileLoader:
         return self.load_file(path)
 
     def _resolve_profile_path(self, site_id: str) -> Path:
-        """Map an identifier to the YAML profile path to load."""
+        """Map an identifier to the YAML profile path to load.
+
+        ``load_by_id`` is an **identifier-only boundary**: the value is
+        normalized/validated with the shared ``ID_PATTERN`` semantics before
+        any SiteSpec lookup or path construction. Malformed, empty, or
+        path-like values fail closed (``FileNotFoundError``) and can never
+        contribute to a filesystem path — only a valid identifier that
+        misses the SiteSpec may use the transitional exact-YAML lookup.
+        """
+        if not isinstance(site_id, str):
+            raise FileNotFoundError(f"Site profile not found: {site_id!r}")
+        identifier = site_id.strip()
+        if not ID_PATTERN.match(identifier):
+            raise FileNotFoundError(f"Site profile not found: {site_id!r}")
         resolver = self._get_sitespec_resolver()
         if resolver is not None:
             try:
-                metadata = resolver.resolve_with_metadata(site_id)
+                metadata = resolver.resolve_with_metadata(identifier)
             except SiteSpecNotFoundError:
-                # Transitional: no SiteSpec claims this identifier. Keep the
-                # historical exact-YAML lookup (Section B of #1225-D1).
+                # Transitional: a *valid* identifier with no SiteSpec. Keep
+                # the historical exact-YAML lookup (Section B of #1225-D1).
                 pass
             else:
                 python_profile = self._python_profile_from_spec(
-                    metadata["spec"], site_id
+                    metadata["spec"], identifier
                 )
                 return self._dir / f"{python_profile}.yml"
-        return self._dir / f"{site_id}.yml"
+        return self._dir / f"{identifier}.yml"
 
     @staticmethod
     def _python_profile_from_spec(spec: dict[str, Any], identifier: str) -> str:
@@ -478,11 +491,19 @@ def list_profiles() -> list[dict[str, str]]:
 def load_profile(site_id_or_path: str) -> SiteProfile:
     """One-shot convenience function.
 
-    Identifiers (e.g. ``bukgu_gwangju`` or the legacy alias ``bukgu``) are
-    resolved through the SiteSpec dual-read path (#1225-D1). Explicit file
-    paths (absolute, relative, or ``*.yml``/``*.yaml`` names) are loaded
-    directly with historical file-path semantics — a path string is never
-    reinterpreted as a site identifier.
+    Resolution priority:
+
+    1. structurally explicit path (path separators, ``*.yml``/``*.yaml``)
+       → loaded directly as a file path, never reinterpreted as an ID
+    2. bare identifier (canonical ID, legacy alias, or unmigrated exact
+       config YAML) → SiteSpec dual-read / exact config YAML resolution
+    3. genuinely unknown bare identifier that matches an existing
+       same-named extensionless filesystem file → historical
+       explicit-file fallback (e.g. ``custom_local``)
+
+    Canonical/legacy identifiers always win over same-named CWD files, so
+    a stray ``bukgu`` file in the working directory can never hijack the
+    legacy alias.
 
     Args:
         site_id_or_path: Either a site_id / legacy alias (e.g.
@@ -499,19 +520,29 @@ def load_profile(site_id_or_path: str) -> SiteProfile:
     if _looks_like_file_path(site_id_or_path):
         return loader.load_file(site_id_or_path)
 
-    return loader.load_by_id(site_id_or_path)
+    try:
+        return loader.load_by_id(site_id_or_path)
+    except FileNotFoundError:
+        # Historical extensionless-file compatibility: identifier resolution
+        # already failed, so a same-named filesystem file may only be loaded
+        # when the value itself is a safe bare identifier.
+        if ID_PATTERN.match(site_id_or_path) and Path(site_id_or_path).exists():
+            return loader.load_file(site_id_or_path)
+        raise
 
 
 def _looks_like_file_path(value: str) -> bool:
-    """Return True when *value* should be treated as an explicit file path.
+    """Return True when *value* is structurally an explicit file path.
 
     Site identifiers follow ``[a-z0-9][a-z0-9_-]*`` and never contain path
-    separators or a YAML suffix, so any value with a separator, a YAML
-    suffix, or an existing filesystem path is unambiguous as a file path and
-    is never reinterpreted as a site identifier.
+    separators or a YAML suffix. Any value with a separator or a YAML suffix
+    is therefore unambiguous as a file path and is loaded directly. Bare
+    identifiers (no separator, no suffix) are **never** treated as paths
+    here — they go through identifier resolution first, so an extensionless
+    CWD file cannot shadow a canonical SiteSpec identifier or legacy alias.
     """
     if "/" in value or "\\" in value:
         return True
     if value.endswith(".yml") or value.endswith(".yaml"):
         return True
-    return Path(value).exists()
+    return False
