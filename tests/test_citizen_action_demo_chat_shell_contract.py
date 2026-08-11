@@ -13,6 +13,7 @@ STATIC = ROOT / "src" / "web" / "static"
 HTML = (STATIC / "citizen-action-demo.html").read_text(encoding="utf-8")
 TOKENS = (STATIC / "citizen-shared-tokens.css").read_text(encoding="utf-8")
 COPILOT = (STATIC / "citizen-copilot-shell.css").read_text(encoding="utf-8")
+COPILOT_JS = (STATIC / "citizen-copilot-shell.js").read_text(encoding="utf-8")
 CANVAS = (STATIC / "citizen-action-demo-canvas.css").read_text(encoding="utf-8")
 DOCS = (ROOT / "docs" / "design" / "shared-visual-tokens.md").read_text(encoding="utf-8")
 
@@ -282,6 +283,22 @@ def test_status_and_disabled_states_present():
 def test_reduced_motion_block_present():
     assert "prefers-reduced-motion: reduce" in TOKENS
     assert "transition-duration: 0.001ms" in TOKENS
+
+
+def test_final_confirmation_edit_reentry_preserves_waiting_state_contract():
+    assert "#1276 final-confirmation edit re-entry" in COPILOT_JS
+    assert (
+        '".chat-msg--decision .chat-decision__button--secondary"'
+        in COPILOT_JS
+    )
+    assert (
+        "choreography.getState() !== choreography.states.waiting_confirmation"
+        in COPILOT_JS
+    )
+    assert "e.stopImmediatePropagation();" in COPILOT_JS
+    assert 'button.setAttribute("data-edit-reentry", "true");' in COPILOT_JS
+    assert 'demo.querySelector("#mayor-write-title")' in COPILOT_JS
+    assert 'demo.querySelector("#board-write-title")' in COPILOT_JS
 
 
 # ── Docs / source inventory parity ──
