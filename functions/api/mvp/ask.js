@@ -358,6 +358,30 @@ function localizedFailureAnswer(locale, failureCode) {
   return table[failureCode] || table.upstream_error;
 }
 
+// #1278 — deterministic current-mayor answer per locale. The official Korean
+// name 신수정 is always preserved from the canonical snapshot; optional
+// romanization accompanies it in non-ko locales. Non-ko wording is kept
+// semantically neutral: it states that the current head of the Buk-gu
+// District Office is Shin Su-jeong (신수정) without translating the office
+// into a different constitutional or municipal title.
+export function currentMayorAnswer(locale, office) {
+  const name = office.name;
+  const canonicalName = SITE_METADATA.jurisdiction.canonical_name;
+  switch (locale) {
+    case 'en':
+      return `The current head of Buk-gu District Office is ${name} (Shin Su-jeong). This information was verified at the official website.`;
+    case 'vi':
+      return `Người đứng đầu Văn phòng Quận Buk-gu hiện nay là ${name} (Shin Su-jeong). Thông tin này đã được xác minh tại trang web chính thức.`;
+    case 'th':
+      return `ปัจจุบัน หัวหน้าสำนักงานเขตบุ๊กกู กวางจู คือ ${name} (Shin Su-jeong) ข้อมูลนี้ได้รับการตรวจสอบจากเว็บไซต์อย่างเป็นทางการ`;
+    case 'id':
+      return `Kepala Kantor Distrik Buk-gu saat ini adalah ${name} (Shin Su-jeong). Informasi ini telah diverifikasi di situs web resmi.`;
+    case 'ko':
+    default:
+      return `현재 ${canonicalName}청장은 ${name} 구청장입니다. 공식 열린구청장실에서 확인된 정보입니다.`;
+  }
+}
+
 export const PROVIDER_DEFAULTS = Object.freeze({
   gemini: Object.freeze({
     model: 'gemini-3.1-flash-lite',
@@ -551,6 +575,17 @@ const ACTION_SNAPSHOT_ROUTES = Object.freeze({
   unmanned_kiosk: 'unmanned-kiosk-guidance',
 });
 
+// #1278 — current-mayor identity grounding. These terms exclude historical or
+// proposal intents so the detector only matches current-officeholder identity
+// questions. Historical (역대/전임) and proposal (제안/바란다) queries fall
+// through to ACTION_RULES and the provider path as today.
+const CURRENT_MAYOR_EXCLUDED_TERMS = Object.freeze([
+  '역대',
+  '전임',
+  '제안',
+  '바란다',
+]);
+
 function jsonResponse(payload, status, headers) {
   return new Response(JSON.stringify(payload), { status, headers });
 }
@@ -640,6 +675,40 @@ export function classifyAction(question) {
     return 'litter_ai_assist';
   }
   return 'none';
+}
+
+// #1278 — bounded detector for current 북구청장 identity questions. Matches
+// resident questions asking who the current mayor is, while explicitly
+// rejecting historical (역대/전임) and proposal (제안/바란다) intents that
+// already classify via ACTION_RULES. Does not call network or providers.
+export function isCurrentMayorQuery(question) {
+  const normalized = String(question || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (!normalized.includes('구청장')) return false;
+  if (!normalized.includes('누구') && !normalized.includes('이름')) return false;
+  for (const term of CURRENT_MAYOR_EXCLUDED_TERMS) {
+    if (normalized.includes(term.toLowerCase())) return false;
+  }
+  return true;
+}
+
+export function isCurrentMayorSnapshotValid(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return false;
+  const office = snapshot.current_officeholder;
+  if (!office || typeof office !== 'object') return false;
+  if (typeof office.name !== 'string' || !office.name.trim()) return false;
+  if (typeof office.role_id !== 'string' || !office.role_id.trim()) return false;
+  if (typeof office.role_label !== 'string' || !office.role_label.trim()) return false;
+  if (typeof office.effective_from !== 'string' || !office.effective_from.trim()) return false;
+  if (!snapshot.source || typeof snapshot.source !== 'object' || typeof snapshot.source.url !== 'string') {
+    return false;
+  }
+  if (typeof snapshot.snapshot_id !== 'string' || !snapshot.snapshot_id) return false;
+  if (typeof snapshot.route_id !== 'string' || !snapshot.route_id) return false;
+  if (typeof snapshot.page_id !== 'string' || !snapshot.page_id) return false;
+  if (typeof snapshot.canonical_sha256 !== 'string' || snapshot.canonical_sha256.length !== 64) return false;
+  if (typeof snapshot.source.captured_at !== 'string' || !snapshot.source.captured_at.trim()) return false;
+  if (typeof snapshot.source.verified_at !== 'string' || !snapshot.source.verified_at.trim()) return false;
+  return true;
 }
 
 function hasIndirectLitterSignal(normalized) {
@@ -1657,6 +1726,85 @@ export async function onRequest(context) {
     return jsonResponse(withRuntimeMeta(
       failurePayload(question, primaryConfig.provider, primaryConfig.model, 'service_disabled', retrievedAt, currentTime, requestLocale),
     ), 200, headers);
+  }
+
+  // #1278 — current-mayor identity grounding: serve deterministically from the
+  // canonical official snapshot, never from provider parametric knowledge.
+  // Honors MVP_AI_MODE=disabled above; otherwise no provider/network call is made.
+  if (isCurrentMayorQuery(question)) {
+    const currentMayorSnapshot = BUKGU_OFFICIAL_SNAPSHOTS['current-mayor'];
+    if (!isCurrentMayorSnapshotValid(currentMayorSnapshot)) {
+      // Fail closed: never fall through to provider parametric knowledge.
+      evidencePolicyMeta = {
+        version: EVIDENCE_POLICY_VERSION,
+        decision: 'block',
+        evidence_level: 'model_only',
+        signal_kinds: [],
+        reason: 'verified_evidence_required',
+      };
+      return jsonResponse(withRuntimeMeta(Object.assign(
+        failurePayload(
+          question,
+          primaryConfig.provider,
+          primaryConfig.model,
+          'evidence_required',
+          retrievedAt,
+          currentTime,
+          requestLocale,
+        ),
+        {
+          answer: localizedEvidenceRequiredAnswer(requestLocale),
+          freshness_state: 'snapshot_unavailable',
+          action: 'none',
+        },
+      )), 200, headers);
+    }
+
+    const office = currentMayorSnapshot.current_officeholder;
+    const snapshotSource = currentMayorSnapshot.source;
+    const sourceEntry = {
+      title: snapshotSource.title,
+      url: snapshotSource.url,
+      official: true,
+      snapshot_id: currentMayorSnapshot.snapshot_id,
+      canonical_sha256: currentMayorSnapshot.canonical_sha256,
+      captured_at: snapshotSource.captured_at,
+      verified_at: snapshotSource.verified_at,
+      source_updated_at: snapshotSource.source_updated_at,
+    };
+    evidencePolicyMeta = {
+      version: EVIDENCE_POLICY_VERSION,
+      decision: 'allow',
+      evidence_level: 'canonical_snapshot',
+      signal_kinds: [],
+      reason: 'no_concrete_high_risk_value',
+    };
+    return jsonResponse(withRuntimeMeta({
+      ok: true,
+      question,
+      locale: requestLocale,
+      answer: currentMayorAnswer(requestLocale, office),
+      action: 'none',
+      confidence: 1.0,
+      provider: '',
+      model: '',
+      failure_code: '',
+      current_time: currentTime,
+      retrieved_at: retrievedAt.toISOString(),
+      freshness_state: 'official_snapshot',
+      source_url: snapshotSource.url,
+      sources: [sourceEntry],
+      search_queries: [],
+      captured_at: snapshotSource.captured_at,
+      verified_at: snapshotSource.verified_at,
+      official_route_id: currentMayorSnapshot.route_id,
+      official_page_id: currentMayorSnapshot.page_id,
+      snapshot_id: currentMayorSnapshot.snapshot_id,
+      canonical_sha256: currentMayorSnapshot.canonical_sha256,
+      fallback_used: false,
+      selection_reason: 'deterministic_official_snapshot',
+      token_usage: null,
+    }), 200, headers);
   }
 
   const deterministicAction = classifyAction(question);

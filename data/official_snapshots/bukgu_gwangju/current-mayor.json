@@ -1,0 +1,48 @@
+{
+  "schema_version": 2,
+  "snapshot_id": "bukgu_gwangju.current-mayor.2026-08-12",
+  "site_id": "bukgu_gwangju",
+  "site_name": "전남광주통합특별시 북구",
+  "route_id": "current-mayor",
+  "page_id": "mayor",
+  "snapshot_kind": "official_content_page",
+  "source": {
+    "url": "https://bukgu.gwangju.kr/mayor/",
+    "title": "구민과 함께하는 북구청장 | 열린구청장실 : 전남광주통합특별시 북구",
+    "captured_at": "2026-08-12T01:23:15+09:00",
+    "verified_at": "2026-08-12T01:23:15+09:00",
+    "source_updated_at": "not-shown",
+    "capture_method": "owner-approved read-only official-site DOM capture"
+  },
+  "current_officeholder": {
+    "role_id": "bukgu_mayor",
+    "role_label": "북구청장",
+    "name": "신수정",
+    "effective_from": "2026-07-01"
+  },
+  "page": {
+    "section_title": "열린구청장실",
+    "breadcrumbs": [
+      "홈",
+      "북구소개",
+      "구청안내",
+      "열린구청장실"
+    ],
+    "page_tools": [
+      "글자 크게",
+      "글자 작게",
+      "인쇄",
+      "공유"
+    ],
+    "tabs": [],
+    "content_html": "<div class=\"mayor-identity\">\n  <p>북구청장 신수정 입니다.</p>\n  <p>구민과 함께하는 북구청장 신수정 입니다.</p>\n  <p>민선 9기 신수정 북구청장 취임일: 2026-07-01</p>\n</div>",
+    "content_info_text": [
+      "열린구청장실 홈 북구소개 구청안내 전남광주통합특별시 북구",
+      "콘텐츠 정보책임자 데이터정보과 062-410-8298"
+    ],
+    "image_sources": [],
+    "text_length": 71,
+    "table_count": 0,
+    "table_row_count": 0
+  }
+}
