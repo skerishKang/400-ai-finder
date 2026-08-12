@@ -200,6 +200,7 @@ def test_claim_gates_are_fail_closed_at_g2a():
     for claim in FORBIDDEN_STRONGER_CLAIM:
         assert gates[claim] is False, f"{claim} must stay False in G2-A"
     assert gates["reference_baseline_ready"] is True
+    assert gates["reference_semantic_model_ready"] is True
 
 
 def test_boundaries_block_runtime_screenshot_and_renderer():
@@ -208,6 +209,33 @@ def test_boundaries_block_runtime_screenshot_and_renderer():
     assert boundaries["network_at_generation"] == 0
     assert boundaries["renderer_wired"] is False
     assert boundaries["exact_clone_claimed"] is False
+
+
+def test_provenance_manifest_and_exception_queue_present():
+    model = _load_json(FIXTURE_PATH)
+    assert "provenance_manifest" in model
+    assert isinstance(model["provenance_manifest"], list)
+    assert model["provenance_manifest"]
+    assert "exception_queue" in model
+    assert isinstance(model["exception_queue"], list)
+    assert model["exception_queue"]
+
+
+def test_provenance_manifest_entries_have_required_fields():
+    model = _load_json(FIXTURE_PATH)
+    for entry in model["provenance_manifest"]:
+        assert "state_id" in entry
+        assert "source_url" in entry
+        assert "sha256" in entry
+        assert "provenance_note" in entry
+
+
+def test_exception_queue_entries_have_required_fields():
+    model = _load_json(FIXTURE_PATH)
+    for entry in model["exception_queue"]:
+        assert "state_id" in entry
+        assert "code" in entry
+        assert "detail" in entry
 
 
 # ── G1 evidence derivation ─────────────────────────────────────────
@@ -248,11 +276,67 @@ def test_model_is_semantic_layer_with_observed_content():
         assert isinstance(state["controls"], list)
         assert isinstance(state["public_assets"], list)
         assert isinstance(state["exceptions"], list)
+        assert isinstance(state["captured_at"], str) and state["captured_at"]
+        assert state["final_http_status"] is None or isinstance(state["final_http_status"], int)
     # Observed header/nav/main content and controls are present.
     home = by_id["home.desktop.default"]
     assert home["landmarks"], "home landmarks must be captured"
     assert home["controls"], "home controls must be captured"
     assert any(l["tag"] == "header" for l in home["landmarks"]), "header landmark expected"
+
+
+def test_home_page_title_reflects_actual_content():
+    model = _load_json(FIXTURE_PATH)
+    by_id = {s["state_id"]: s for s in model["states"]}
+    home = by_id["home.desktop.default"]
+    assert "서구청" in home["page_title"]
+    assert "착한도시 서구" in home["page_title"]
+
+
+def test_home_landmark_has_header_nav_main():
+    model = _load_json(FIXTURE_PATH)
+    by_id = {s["state_id"]: s for s in model["states"]}
+    home = by_id["home.desktop.default"]
+    tags = [l["tag"] for l in home["landmarks"]]
+    assert "header" in tags
+    assert "nav" in tags
+    assert "main" in tags
+
+
+def test_notice_list_and_detail_remain_distinct():
+    model = _load_json(FIXTURE_PATH)
+    by_id = {s["state_id"]: s for s in model["states"]}
+    notice_list = by_id["notice.list.desktop"]
+    notice_detail = by_id["notice.detail.desktop"]
+    assert notice_list["state_id"] != notice_detail["state_id"]
+    assert notice_list["requested_url"] != notice_detail["requested_url"]
+    assert notice_list["page_title"] != notice_detail["page_title"]
+    assert notice_list["landmarks"] != notice_detail["landmarks"]
+    assert notice_detail["list_no"] == "143106"
+    # Detail has download references; list typically does not (no single detail).
+    assert notice_detail["download_references"]
+
+
+def test_gosi_list_and_detail_remain_distinct():
+    model = _load_json(FIXTURE_PATH)
+    by_id = {s["state_id"]: s for s in model["states"]}
+    gosi_list = by_id["gosi.list.desktop"]
+    gosi_detail = by_id["gosi.detail.desktop"]
+    assert gosi_list["state_id"] != gosi_detail["state_id"]
+    assert gosi_list["requested_url"] != gosi_detail["requested_url"]
+    assert gosi_list["page_title"] != gosi_detail["page_title"]
+    assert gosi_list["landmarks"] != gosi_detail["landmarks"]
+
+
+def test_organization_and_staff_remain_distinct():
+    model = _load_json(FIXTURE_PATH)
+    by_id = {s["state_id"]: s for s in model["states"]}
+    org = by_id["organization.chart.desktop"]
+    staff = by_id["staff.directory.desktop"]
+    assert org["state_id"] != staff["state_id"]
+    assert org["requested_url"] != staff["requested_url"]
+    assert org["page_title"] != staff["page_title"]
+    assert org["landmarks"] != staff["landmarks"]
 
 
 def test_notice_detail_derives_list_no_143106_with_attachment():
@@ -305,10 +389,59 @@ def test_source_identity_references_g1_ledger_and_plan():
     assert identity["g1_completion_claim"] is True
 
 
+def test_per_state_timestamps_and_status_preserved():
+    model = _load_json(FIXTURE_PATH)
+    for state in model["states"]:
+        assert "captured_at" in state
+        assert "source_updated_at" in state
+        assert "final_http_status" in state
+    home = next(s for s in model["states"] if s["state_id"] == "home.desktop.default")
+    assert home["captured_at"] == "2026-08-12T14:10:25.189Z"
+    assert home["final_http_status"] == 200
+
+
+def test_expected_identity_flags_work(tmp_path):
+    """When expected site/capture identity matches, build succeeds."""
+    repo_root, capture_root = _synthetic_capture(tmp_path)
+    model = mod.build_reference_clone_model(repo_root, capture_root, "second_site", "20260813T010203-0900")
+    assert model["site_id"] == "second_site"
+    assert model["capture_id"] == "20260813T010203-0900"
+
+
+def test_main_cli_accepts_expected_identity():
+    """CLI --expected-site-id/--capture-id flags work with real capture."""
+    assert mod.main(["--check", "--capture-root", str(CAPTURE_ROOT),
+                    "--expected-site-id", "seogu_gwangju",
+                    "--expected-capture-id", "20260812T231018-0900"]) == 0
+
+
+# ── Input non-mutation ─────────────────────────────────────────────
+
+
+def test_builder_does_not_mutate_ledger_bytes():
+    original = LEDGER_PATH.read_bytes()
+    original_sha = hashlib.sha256(original).hexdigest()
+    mod.build_reference_clone_model(REPO_ROOT, CAPTURE_ROOT)
+    assert LEDGER_PATH.read_bytes() == original
+    assert hashlib.sha256(LEDGER_PATH.read_bytes()).hexdigest() == original_sha
+
+
+def test_builder_does_not_mutate_artifact_bytes():
+    """Check one representative artifact is not mutated by the builder."""
+    html_path = CAPTURE_ROOT / "states" / "home.desktop.default" / "source.html"
+    original = html_path.read_bytes()
+    original_sha = hashlib.sha256(original).hexdigest()
+    mod.build_reference_clone_model(REPO_ROOT, CAPTURE_ROOT)
+    assert html_path.read_bytes() == original
+    assert hashlib.sha256(html_path.read_bytes()).hexdigest() == original_sha
+
+
 # ── Fail-closed negative tests (synthetic captures) ────────────────
 
 SITE_ID = "second_site"
 CAP_ID = "20260813T010203-0900"
+
+EXPECTED_STATES = ["home.desktop.default"]
 
 
 def _synthetic_capture(tmp_path: Path, tamper: Callable[[Path, Path, Path], None] | None = None):
@@ -428,10 +561,16 @@ def test_synthetic_second_site_builds_valid_generic_model(tmp_path):
     assert model["state_count"] == 1
     assert model["artifact_count"] == 2
     assert model["claim_gates"]["reference_baseline_ready"] is True
+    assert model["claim_gates"]["reference_semantic_model_ready"] is True
     assert model["claim_gates"]["faithful_clone_candidate"] is False
+    # Top-level aggregates available on synthetic model too.
+    assert "provenance_manifest" in model
+    assert "exception_queue" in model
     state = model["states"][0]
     assert state["page_title"] == "Second"
     assert state["landmarks"][0]["tag"] == "header"
+    assert state["captured_at"] == "2026-08-13T01:02:03+09:00"
+    assert state["final_http_status"] == 200
 
 
 def _tamper_sha_mismatch(_repo, capture_root, _ledger_path):
@@ -467,6 +606,52 @@ def _tamper_invalid_inventory(_repo, capture_root, _ledger_path):
     inventory.write_text("{}\n", encoding="utf-8", newline="\n")
 
 
+def _tamper_g1_completion_false(_repo, _capture_root, ledger_path):
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    ledger["g1_completion_claim"] = False
+    ledger_path.write_text(json.dumps(ledger, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+
+
+def _tamper_duplicate_state(_repo, _capture_root, ledger_path):
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    dup = dict(ledger["captured_states"][0])
+    ledger["captured_states"].append(dup)
+    ledger_path.write_text(json.dumps(ledger, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+
+
+def _tamper_unknown_state(_repo, _capture_root, ledger_path):
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    ledger["captured_states"].append({
+        "state_id": "unknown.extra.desktop",
+        "requested_url": "https://example.com/",
+        "final_url": "https://example.com/",
+        "captured_at": "2026-08-13T01:02:03+09:00",
+        "source_updated_at": None,
+        "final_http_status": 200,
+        "viewport": {"width": 1440, "height": 900},
+        "state": {"name": "default"},
+        "artifacts": [],
+        "public_assets": [],
+        "exceptions": [],
+        "result_status": "success",
+    })
+    ledger_path.write_text(json.dumps(ledger, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+
+
+def _tamper_wrong_site_id(_repo, _capture_root, ledger_path):
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    ledger["site_id"] = "wrong_site"
+    ledger_path.write_text(json.dumps(ledger, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+
+
+def _tamper_wrong_capture_id(tmp_path, _capture_root, _ledger_path):
+    """Rename the capture root to produce an unexpected capture_id."""
+    repo_root = tmp_path
+    old = repo_root / "data" / "official_captures" / SITE_ID / "g1" / CAP_ID
+    new = repo_root / "data" / "official_captures" / SITE_ID / "g1" / "wrong_capture"
+    old.rename(new)
+
+
 @pytest.mark.parametrize(
     "tamper,flag",
     [
@@ -476,6 +661,7 @@ def _tamper_invalid_inventory(_repo, capture_root, _ledger_path):
         (_tamper_wrong_plan_identity, "ledger_identity_valid"),
         (_tamper_incomplete_g1, "states_complete"),
         (_tamper_invalid_inventory, "inventories_valid"),
+        (_tamper_g1_completion_false, "ledger_identity_valid"),
     ],
     ids=[
         "sha_mismatch",
@@ -484,6 +670,7 @@ def _tamper_invalid_inventory(_repo, capture_root, _ledger_path):
         "wrong_plan_identity",
         "incomplete_g1",
         "invalid_inventory",
+        "g1_completion_false",
     ],
 )
 def test_tampered_g1_fails_closed(tmp_path, tamper, flag):
@@ -493,3 +680,41 @@ def test_tampered_g1_fails_closed(tmp_path, tamper, flag):
     assert validation["reference_baseline_ready"] is False
     with pytest.raises(mod.ReferenceCloneModelError):
         mod.build_reference_clone_model(repo_root, capture_root)
+
+
+def test_duplicate_required_state_fails(tmp_path):
+    repo_root, capture_root = _synthetic_capture(tmp_path, tamper=_tamper_duplicate_state)
+    validation = mod.validate_reference_evidence(repo_root, capture_root)
+    assert validation["states_complete"] is False
+    assert validation["reference_baseline_ready"] is False
+    with pytest.raises(mod.ReferenceCloneModelError):
+        mod.build_reference_clone_model(repo_root, capture_root)
+
+
+def test_unknown_additional_state_fails(tmp_path):
+    repo_root, capture_root = _synthetic_capture(tmp_path, tamper=_tamper_unknown_state)
+    validation = mod.validate_reference_evidence(repo_root, capture_root)
+    assert validation["states_complete"] is False
+    assert validation["reference_baseline_ready"] is False
+    with pytest.raises(mod.ReferenceCloneModelError):
+        mod.build_reference_clone_model(repo_root, capture_root)
+
+
+def test_wrong_expected_site_id_fails(tmp_path):
+    repo_root, capture_root = _synthetic_capture(tmp_path)
+    validation = mod.validate_reference_evidence(repo_root, capture_root, expected_site_id="expected_other")
+    assert validation["identity_mismatch"] is not None
+    assert validation["ledger_identity_valid"] is False
+    assert validation["reference_baseline_ready"] is False
+    with pytest.raises(mod.ReferenceCloneModelError):
+        mod.build_reference_clone_model(repo_root, capture_root, expected_site_id="expected_other")
+
+
+def test_wrong_expected_capture_id_fails(tmp_path):
+    repo_root, capture_root = _synthetic_capture(tmp_path)
+    validation = mod.validate_reference_evidence(repo_root, capture_root, expected_capture_id="wrong_capture")
+    assert validation["identity_mismatch"] is not None
+    assert validation["ledger_identity_valid"] is False
+    assert validation["reference_baseline_ready"] is False
+    with pytest.raises(mod.ReferenceCloneModelError):
+        mod.build_reference_clone_model(repo_root, capture_root, expected_capture_id="wrong_capture")

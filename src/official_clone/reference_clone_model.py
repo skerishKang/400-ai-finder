@@ -185,7 +185,32 @@ def _inventory_is_valid(value: Any) -> bool:
     return True
 
 
-def validate_reference_evidence(repo_root: Path, capture_root: Path) -> dict[str, Any]:
+def _states_duplicate_ids(captured: list[dict[str, Any]]) -> bool:
+    ids = [str(s.get("state_id")) for s in captured]
+    return len(ids) != len(set(ids))
+
+
+def _expected_site_capture_mismatch(
+    ledger: dict[str, Any],
+    capture_root_name: str,
+    expected_site_id: str | None,
+    expected_capture_id: str | None,
+) -> str | None:
+    ledger_site = str(ledger.get("site_id", ""))
+    ledger_capture = capture_root_name
+    if expected_site_id is not None and ledger_site != expected_site_id:
+        return f"expected site_id {expected_site_id!r} but ledger has {ledger_site!r}"
+    if expected_capture_id is not None and ledger_capture != expected_capture_id:
+        return f"expected capture_id {expected_capture_id!r} but capture root has {ledger_capture!r}"
+    return None
+
+
+def validate_reference_evidence(
+    repo_root: Path,
+    capture_root: Path,
+    expected_site_id: str | None = None,
+    expected_capture_id: str | None = None,
+) -> dict[str, Any]:
     """Validate the G1 evidence without building the model.
 
     Never raises for invalid evidence; returns a report of derived booleans.
@@ -205,29 +230,36 @@ def validate_reference_evidence(repo_root: Path, capture_root: Path) -> dict[str
     capture_id = _require_safe_id(capture_root.name, "capture_id")
     capture_mode = ledger.get("capture_mode")
 
+    identity_mismatch = _expected_site_capture_mismatch(ledger, capture_root.name, expected_site_id, expected_capture_id)
+
     # 1. Ledger identity (plan checksum + basic ledger fields).
     plan, identity_problem = _load_plan(repo_root, ledger.get("plan_identity"))
     ledger_identity_valid = (
         identity_problem is None
+        and identity_mismatch is None
         and bool(site_id)
         and bool(capture_mode)
         and bool(ledger.get("capture_mode"))
+        and ledger.get("g1_completion_claim") is True
     )
 
-    # 2. States complete: every captured state succeeded and every
-    #    capture-required plan state is present and successful.
+    # 2. States complete: every captured state succeeded and the captured
+    #    state set exactly matches the plan-required set (no duplicates,
+    #    no missing, no unknown/additional state IDs).
     captured = ledger.get("captured_states")
     states_complete = False
     if isinstance(captured, list) and captured and ledger_identity_valid:
         by_id = {str(s.get("state_id")): s for s in captured}
         all_success = all(s.get("result_status") == "success" for s in captured)
-        required = {
+        no_duplicates = not _states_duplicate_ids(captured)
+        required = sorted({
             str(st.get("state_id"))
             for st in (plan or {}).get("states", [])
             if st.get("capture_required")
-        }
-        required_present = bool(required) and required <= set(by_id)
-        states_complete = all_success and required_present
+        })
+        captured_sorted = sorted(set(by_id))
+        exact_state_set = no_duplicates and bool(required) and captured_sorted == required
+        states_complete = all_success and exact_state_set
 
     # 3-5. Artifact containment, presence, and SHA-256 linkage.
     artifacts_within_capture_root = True
@@ -289,6 +321,7 @@ def validate_reference_evidence(repo_root: Path, capture_root: Path) -> dict[str
         "inventories_valid": inventories_valid,
         "reference_baseline_ready": reference_baseline_ready,
         "identity_problem": identity_problem,
+        "identity_mismatch": identity_mismatch,
     }
 
 
@@ -299,18 +332,25 @@ def _load_inventory(path: Path) -> dict[str, Any]:
     return value
 
 
-def build_reference_clone_model(repo_root: Path, capture_root: Path) -> dict[str, Any]:
+def build_reference_clone_model(
+    repo_root: Path,
+    capture_root: Path,
+    expected_site_id: str | None = None,
+    expected_capture_id: str | None = None,
+) -> dict[str, Any]:
     """Build the semantic clone model from validated G1 evidence.
 
     ``capture_root`` must be provided explicitly (never discovered by glob).
+    ``expected_site_id`` and ``expected_capture_id``, when provided, are
+    compared against the ledger for identity mismatch rejection.
     """
     if capture_root is None:
         raise ReferenceCloneModelError("capture_root is required (glob discovery is forbidden)")
     repo_root = Path(repo_root).resolve()
     capture_root = Path(capture_root).resolve()
-    validation = validate_reference_evidence(repo_root, capture_root)
+    validation = validate_reference_evidence(repo_root, capture_root, expected_site_id, expected_capture_id)
     if not validation["reference_baseline_ready"]:
-        problem = validation.get("identity_problem") or "G1 evidence is incomplete or tampered"
+        problem = validation.get("identity_problem") or validation.get("identity_mismatch") or "G1 evidence is incomplete or tampered"
         raise ReferenceCloneModelError(f"refusing to build: {problem}")
 
     ledger_path = capture_root / "ledger.json"
@@ -323,6 +363,11 @@ def build_reference_clone_model(repo_root: Path, capture_root: Path) -> dict[str
 
     claim_gates = dict(FIXED_GATES)
     claim_gates["reference_baseline_ready"] = bool(validation["reference_baseline_ready"])
+    claim_gates["reference_semantic_model_ready"] = bool(validation["reference_baseline_ready"])
+
+    # Collect per-state exceptions into a global exception queue.
+    exception_queue: list[dict[str, Any]] = []
+    provenance_manifest: list[dict[str, Any]] = []
 
     model: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -395,18 +440,39 @@ def build_reference_clone_model(repo_root: Path, capture_root: Path) -> dict[str
         page_title: str | None = None
         landmarks: list[Any] = []
         controls: list[Any] = []
+        viewport_geometry: dict[str, Any] | None = None
         if inventory_path is not None and inventory_path.is_file():
             inventory = _load_inventory(inventory_path)
             page_title = inventory.get("title")
             landmarks = inventory.get("landmarks", [])
             controls = inventory.get("controls", [])
+            viewport_geometry = inventory.get("viewport")
+
+        # Collect per-state exceptions and public assets into global queues.
+        for exc in captured.get("exceptions", []):
+            exception_queue.append({
+                "state_id": state_id,
+                "code": exc.get("code"),
+                "detail": exc.get("detail"),
+            })
+        for asset in captured.get("public_assets", []):
+            provenance_manifest.append({
+                "state_id": state_id,
+                "source_url": asset.get("source_url"),
+                "sha256": asset.get("sha256"),
+                "provenance_note": asset.get("provenance_note"),
+            })
 
         states.append(
             {
                 "state_id": state_id,
                 "device_class": device_class,
                 "state_name": state_name,
+                "captured_at": captured.get("captured_at"),
+                "source_updated_at": captured.get("source_updated_at"),
+                "final_http_status": captured.get("final_http_status"),
                 "viewport": captured.get("viewport"),
+                "viewport_geometry": viewport_geometry,
                 "requested_url": captured.get("requested_url"),
                 "final_url": captured.get("final_url"),
                 "result_status": captured.get("result_status"),
@@ -424,6 +490,8 @@ def build_reference_clone_model(repo_root: Path, capture_root: Path) -> dict[str
 
     model["state_count"] = len(states)
     model["artifact_count"] = artifact_count
+    model["provenance_manifest"] = provenance_manifest
+    model["exception_queue"] = exception_queue
     model["states"] = states
     model["model_sha256"] = model_body_checksum(model)
     return model
@@ -445,22 +513,32 @@ def fixture_path_for(repo_root: Path, capture_root: Path) -> Path:
     return repo_root / "data" / "official_clone_fixtures" / site_id / "g1" / capture_id / "clone-model.json"
 
 
-def write_model(repo_root: Path, capture_root: Path) -> Path:
+def write_model(
+    repo_root: Path,
+    capture_root: Path,
+    expected_site_id: str | None = None,
+    expected_capture_id: str | None = None,
+) -> Path:
     fixture_path = fixture_path_for(repo_root, capture_root)
     fixture_path.parent.mkdir(parents=True, exist_ok=True)
     fixture_path.write_text(
-        stable_dump(build_reference_clone_model(repo_root, capture_root)),
+        stable_dump(build_reference_clone_model(repo_root, capture_root, expected_site_id, expected_capture_id)),
         encoding="utf-8",
         newline="\n",
     )
     return fixture_path
 
 
-def check_model(repo_root: Path, capture_root: Path) -> list[str]:
+def check_model(
+    repo_root: Path,
+    capture_root: Path,
+    expected_site_id: str | None = None,
+    expected_capture_id: str | None = None,
+) -> list[str]:
     fixture_path = fixture_path_for(repo_root, capture_root)
     if not fixture_path.is_file():
         return [f"fixture missing: {fixture_path}"]
-    expected = stable_dump(build_reference_clone_model(repo_root, capture_root))
+    expected = stable_dump(build_reference_clone_model(repo_root, capture_root, expected_site_id, expected_capture_id))
     committed = fixture_path.read_text(encoding="utf-8")
     if committed != expected:
         return ["committed clone-model fixture does not match regenerated model"]
@@ -470,20 +548,30 @@ def check_model(repo_root: Path, capture_root: Path) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if "--capture-root" not in args:
-        print("usage: build_reference_clone_model.py --capture-root PATH [--check]")
+        print("usage: build_reference_clone_model.py --capture-root PATH [--check] [--expected-site-id SITE_ID] [--expected-capture-id CAPTURE_ID]")
         return 2
     capture_root = Path(args[args.index("--capture-root") + 1])
     repo_root = Path.cwd()
+
+    expected_site_id: str | None = None
+    expected_capture_id: str | None = None
+    if "--expected-site-id" in args:
+        idx = args.index("--expected-site-id")
+        expected_site_id = args[idx + 1]
+    if "--expected-capture-id" in args:
+        idx = args.index("--expected-capture-id")
+        expected_capture_id = args[idx + 1]
+
     try:
         if "--check" in args:
-            problems = check_model(repo_root, capture_root)
+            problems = check_model(repo_root, capture_root, expected_site_id, expected_capture_id)
             for problem in problems:
                 print(f"REFERENCE_CLONE_MODEL_CHECK_FAIL: {problem}")
             if problems:
                 return 2
             print("REFERENCE_CLONE_MODEL_OK")
             return 0
-        fixture_path = write_model(repo_root, capture_root)
+        fixture_path = write_model(repo_root, capture_root, expected_site_id, expected_capture_id)
         print(f"WROTE {fixture_path}")
         return 0
     except ReferenceCloneModelError as exc:
