@@ -163,7 +163,7 @@ Merged Seo-gu structural/offline work under #1232 remains valid generic platform
 
 Not every MVP must clone every route of an institution before AI work can begin. The MVP scope may be deliberately bounded.
 
-For example, a first municipal scope may include homepage, global navigation, representative civil-service pages, notice/board pages, organization/contact pages, and representative document routes.
+For example, a first municipal scope may include the homepage, global navigation, selected in-scope civil-service pages, notice/board pages, organization/contact pages, and selected in-scope document routes.
 
 The rule is:
 
@@ -256,7 +256,7 @@ Buk-gu remains the first protected municipality golden reference. Generic work m
 
 ### Automation is supervised, fidelity is not optional
 
-The initial automation target remains approximately 70–80% supervised automation plus an explicit exception queue. Automation percentage measures how much of the onboarding pipeline was produced automatically; it is **not** evidence of clone fidelity by itself.
+The initial supervised-automation target remains a 70–80% operating target, with an explicit exception queue. Automation percentage measures how much of the onboarding pipeline was produced automatically; it is **not** evidence of clone fidelity by itself.
 
 Low-confidence, unsupported, missing-asset, capture-required, and parser/runtime gaps remain visible rather than being hidden to inflate the automation rate.
 
