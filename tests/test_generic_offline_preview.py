@@ -456,6 +456,144 @@ def test_reject_route_ids_none_for_detected():
         )
 
 
+def test_accept_unsupported_unbound_empty():
+    r = build_offline_preview(
+        _mutate(
+            _set_binding(
+                "synthetic_unsupported",
+                candidate_state="unsupported",
+                binding_state="unbound",
+                route_ids=[],
+            )
+        )
+    )
+    bindings = {cb["capability_id"]: cb for cb in r["manifest"]["capability_bindings"]}
+    assert bindings["synthetic_unsupported"] == {
+        "capability_id": "synthetic_unsupported",
+        "candidate_state": "unsupported",
+        "binding_state": "unbound",
+        "route_ids": [],
+    }
+
+
+def test_accept_not_detected_unbound_empty():
+    r = build_offline_preview(
+        _mutate(
+            _set_binding(
+                "synthetic_not_detected",
+                candidate_state="not_detected",
+                binding_state="unbound",
+                route_ids=[],
+            )
+        )
+    )
+    bindings = {cb["capability_id"]: cb for cb in r["manifest"]["capability_bindings"]}
+    assert bindings["synthetic_not_detected"] == {
+        "capability_id": "synthetic_not_detected",
+        "candidate_state": "not_detected",
+        "binding_state": "unbound",
+        "route_ids": [],
+    }
+
+
+def test_reject_unsupported_with_bound_state():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding(
+                    "synthetic_unsupported",
+                    candidate_state="unsupported",
+                    binding_state="bound",
+                    route_ids=[],
+                )
+            )
+        )
+
+
+def test_reject_unsupported_with_review_required_state():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding(
+                    "synthetic_unsupported",
+                    candidate_state="unsupported",
+                    binding_state="review_required",
+                    route_ids=[],
+                )
+            )
+        )
+
+
+def test_reject_unsupported_unbound_with_route():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding(
+                    "synthetic_unsupported",
+                    candidate_state="unsupported",
+                    binding_state="unbound",
+                    route_ids=["route-000001"],
+                )
+            )
+        )
+
+
+def test_reject_not_detected_with_bound_state():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding(
+                    "synthetic_not_detected",
+                    candidate_state="not_detected",
+                    binding_state="bound",
+                    route_ids=[],
+                )
+            )
+        )
+
+
+def test_reject_not_detected_with_review_required_state():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding(
+                    "synthetic_not_detected",
+                    candidate_state="not_detected",
+                    binding_state="review_required",
+                    route_ids=[],
+                )
+            )
+        )
+
+
+def test_reject_not_detected_unbound_with_route():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding(
+                    "synthetic_not_detected",
+                    candidate_state="not_detected",
+                    binding_state="unbound",
+                    route_ids=["route-000001"],
+                )
+            )
+        )
+
+
+def test_reject_unknown_candidate_state():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding(
+                    "synthetic_made_up",
+                    candidate_state="made_up_state",
+                    binding_state="unbound",
+                    route_ids=[],
+                )
+            )
+        )
+
+
 def test_frozen_seogu_capability_bindings_remain_green():
     r = build_offline_preview(_load_bundle())
     bindings = {
@@ -478,6 +616,77 @@ def test_frozen_seogu_capability_bindings_remain_green():
         "candidate_state": "review_required",
         "binding_state": "review_required",
         "route_ids": [],
+    }
+
+
+def test_five_state_synthetic_bundle_compatibility():
+    """All five legitimate candidate states coexist with their exact pairs."""
+    bundle = _load_bundle()
+    bundle["capability_bindings"] = [
+        {
+            "capability_id": "syn_configured",
+            "candidate_state": "configured",
+            "binding_state": "bound",
+            "route_ids": ["route-000001"],
+        },
+        {
+            "capability_id": "syn_detected",
+            "candidate_state": "detected",
+            "binding_state": "bound",
+            "route_ids": ["route-000002"],
+        },
+        {
+            "capability_id": "syn_review_required",
+            "candidate_state": "review_required",
+            "binding_state": "review_required",
+            "route_ids": [],
+        },
+        {
+            "capability_id": "syn_unsupported",
+            "candidate_state": "unsupported",
+            "binding_state": "unbound",
+            "route_ids": [],
+        },
+        {
+            "capability_id": "syn_not_detected",
+            "candidate_state": "not_detected",
+            "binding_state": "unbound",
+            "route_ids": [],
+        },
+    ]
+    result = build_offline_preview(bundle)
+    bindings = {cb["capability_id"]: cb for cb in result["manifest"]["capability_bindings"]}
+    assert bindings == {
+        "syn_configured": {
+            "capability_id": "syn_configured",
+            "candidate_state": "configured",
+            "binding_state": "bound",
+            "route_ids": ["route-000001"],
+        },
+        "syn_detected": {
+            "capability_id": "syn_detected",
+            "candidate_state": "detected",
+            "binding_state": "bound",
+            "route_ids": ["route-000002"],
+        },
+        "syn_review_required": {
+            "capability_id": "syn_review_required",
+            "candidate_state": "review_required",
+            "binding_state": "review_required",
+            "route_ids": [],
+        },
+        "syn_unsupported": {
+            "capability_id": "syn_unsupported",
+            "candidate_state": "unsupported",
+            "binding_state": "unbound",
+            "route_ids": [],
+        },
+        "syn_not_detected": {
+            "capability_id": "syn_not_detected",
+            "candidate_state": "not_detected",
+            "binding_state": "unbound",
+            "route_ids": [],
+        },
     }
 
 

@@ -222,6 +222,18 @@ def _validate(bundle: Mapping[str, Any]) -> tuple[dict, list, list, list, list]:
                 route_ids == [],
                 f"review_required capability {cid!r} must carry no routes",
             )
+        elif cstate in ("unsupported", "not_detected"):
+            # Unsupported / not-detected capabilities legitimately carry no
+            # bindings: upstream emits binding_state="unbound" and route_ids=[].
+            _require(
+                bstate == "unbound",
+                f"{cstate} capability {cid!r} must keep unbound binding_state, "
+                f"got {bstate!r}",
+            )
+            _require(
+                route_ids == [],
+                f"{cstate} capability {cid!r} must carry no routes",
+            )
         else:
             # Unknown candidate_state vocabulary is not tolerated.
             _require(
