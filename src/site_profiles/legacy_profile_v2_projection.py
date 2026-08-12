@@ -78,15 +78,60 @@ def _infer_archetype(name: str | None, classification: str | None) -> str:
 
 
 def _observed_urls_match(observed: Sequence[str], patterns: Sequence[str]) -> list[str]:
-    """Return observed evidence URLs (site-id-agnostic) matching any of ``patterns``."""
+    """Return observed evidence URLs (site-id-agnostic) matching any of ``patterns``.
+
+    Both the URL and the patterns are case-normalized before comparison so that a
+    mixed-case observed URL (e.g. ``/bbs/BBSMSTR_...``) or pattern (e.g. ``boardDownload.es``)
+    is never missed by case-sensitive substring matching. Matched URLs are returned in
+    their original (declared) case for provenance/evidence fidelity.
+    """
     if not observed:
         return []
+    norm_patterns = [p.lower() for p in patterns]
     matched = []
     for url in observed:
         u = (url or "").lower()
-        if any(pat in u for pat in patterns):
+        if any(pat in u for pat in norm_patterns):
             matched.append(url)
     return matched
+
+
+def _validate_observed_evidence(
+    observed: Sequence[str], allowed_domains: Sequence[str]
+) -> None:
+    """Fail-closed validation of every observed-evidence URL BEFORE capability detection.
+
+    Each item must:
+    - be a non-empty string;
+    - parse via ``urlsplit``;
+    - use an ``http``/``https`` scheme;
+    - carry a hostname;
+    - have that hostname exactly declared in ``allowed_domains``.
+
+    External-domain / non-http / relative / malformed evidence raises
+    ``LegacyProfileProjectionError`` instead of being silently ignored: observed evidence
+    outside the declared scope must never leak into a capability claim.
+    """
+    declared = set(allowed_domains)
+    for item in observed:
+        if not isinstance(item, str) or not item.strip():
+            raise LegacyProfileProjectionError(
+                f"observed_evidence item must be a non-empty string: {item!r}"
+            )
+        parts = urlsplit(item)
+        if parts.scheme not in ("http", "https"):
+            raise LegacyProfileProjectionError(
+                f"observed_evidence must use an http(s) scheme, got {item!r}"
+            )
+        if not parts.hostname:
+            raise LegacyProfileProjectionError(
+                f"observed_evidence must declare a hostname, got {item!r}"
+            )
+        if parts.hostname not in declared:
+            raise LegacyProfileProjectionError(
+                f"observed_evidence host {parts.hostname!r} is not declared in "
+                f"allowed_domains {sorted(declared)!r}: {item!r}"
+            )
 
 
 def _derive_capabilities(
@@ -94,13 +139,20 @@ def _derive_capabilities(
     homepage_id: str,
     source_ref: str,
     observed_evidence: Sequence[str],
+    observed_source_refs: Sequence[str] | None = None,
 ) -> list[dict]:
     """Evidence-backed capability candidates from OFFLINE OBSERVED evidence only.
 
     Keyword-only signals (e.g. 조직도) yield ``review_required`` rather than a confident
     claim. No URLs are fabricated; every capability references the homepage.
+
+    ``observed_source_refs`` are static/checked-in provenance pointers for the observed
+    evidence (e.g. the test that records the observed URLs). They are attached to each
+    observed-backed capability's ``evidence_refs`` and to the candidate ``provenance``.
+    Keyword-only (directory) capability evidence stays YAML-only.
     """
     caps: list[dict] = []
+    obs_refs = list(observed_source_refs or [])
 
     notice_matches = _observed_urls_match(observed_evidence, NOTICE_OBSERVED_PATTERNS)
     if notice_matches:
@@ -112,7 +164,7 @@ def _derive_capabilities(
                 "safety_level": "navigate",
                 "entry_points": [homepage_id],
                 # Real checked-in observed evidence URL(s) identify the source.
-                "evidence_refs": [source_ref, *notice_matches],
+                "evidence_refs": [source_ref, *obs_refs, *notice_matches],
             }
         )
 
@@ -125,7 +177,7 @@ def _derive_capabilities(
                 "confidence": 0.8,
                 "safety_level": "navigate",
                 "entry_points": [homepage_id],
-                "evidence_refs": [source_ref, *doc_matches],
+                "evidence_refs": [source_ref, *obs_refs, *doc_matches],
             }
         )
 
@@ -141,6 +193,7 @@ def _derive_capabilities(
                 "confidence": 0.3,
                 "safety_level": "read_only",
                 "entry_points": [homepage_id],
+                # Keyword-only evidence -> YAML source ref only.
                 "evidence_refs": [source_ref],
             }
         )
@@ -153,13 +206,19 @@ def legacy_profile_to_v2_candidate(
     *,
     source_ref: str,
     observed_evidence: Sequence[str] | None = None,
+    observed_source_refs: Sequence[str] | None = None,
 ) -> dict:
     """Project a legacy YAML SiteProfile into a generic pre-SiteSpec v2 candidate.
 
     ``observed_evidence`` is a site-id-agnostic list of checked-in offline observed URLs
     (e.g. board/list/download patterns). Capability detection requires it; passing ``None``
-    yields no observed-backed capabilities. Fail-closed: any identity/homepage inconsistency
-    raises ``LegacyProfileProjectionError``. Input dict is never mutated.
+    yields no observed-backed capabilities. ``observed_source_refs`` are static/checked-in
+    provenance pointers (e.g. the test that records the observed URLs) attached to the
+    observed-backed capabilities and to the candidate ``provenance``.
+
+    Fail-closed: any identity/homepage inconsistency OR any out-of-scope observed-evidence
+    URL (non-http scheme, no host, or host not in ``allowed_domains``) raises
+    ``LegacyProfileProjectionError``. Input dict is never mutated.
     """
     _require(isinstance(yaml_profile, dict), "yaml_profile must be a mapping")
 
@@ -171,14 +230,18 @@ def legacy_profile_to_v2_candidate(
     _require(isinstance(public, list) and len(public) >= 1,
              "profile allowed_domains must be a non-empty array")
 
+    # Fail-closed: validate observed evidence scope BEFORE capability detection.
+    if observed_evidence is not None:
+        _validate_observed_evidence(list(observed_evidence), public)
+
     base_url = yaml_profile.get("base_url")
     _require(isinstance(base_url, str) and base_url, "profile base_url required")
     parsed = urlsplit(base_url)
     _require(parsed.scheme in ("http", "https"),
-             f"base_url must be absolute http(s): {base_url!r}")
+              f"base_url must be absolute http(s): {base_url!r}")
     _require(bool(parsed.hostname), f"base_url must have a host: {base_url!r}")
     _require(parsed.hostname in set(public),
-             f"homepage host {parsed.hostname!r} not declared in allowed_domains")
+              f"homepage host {parsed.hostname!r} not declared in allowed_domains")
 
     archetype_id = _infer_archetype(display_label, yaml_profile.get("classification"))
 
@@ -222,7 +285,8 @@ def legacy_profile_to_v2_candidate(
             "evidence_refs": [source_ref],
         },
         "capabilities": _derive_capabilities(
-            yaml_profile, "homepage", source_ref, observed_evidence or []
+            yaml_profile, "homepage", source_ref, observed_evidence or [],
+            observed_source_refs,
         ),
         "capture_policy": {
             "acquisition_mode": "offline_fixture",
@@ -241,7 +305,7 @@ def legacy_profile_to_v2_candidate(
             "high_risk_actions_authorized": False,
         },
         "provenance": {
-            "source_refs": [source_ref],
+            "source_refs": [source_ref, *(observed_source_refs or [])],
             # Static offline evidence, not a reviewed v1->v2 projection.
             "review_state": "synthetic",
         },
@@ -257,6 +321,7 @@ def legacy_profile_to_onboarding_report(
     *,
     source_ref: str,
     run_id: str,
+    observed_source_refs: Sequence[str] | None = None,
 ) -> dict:
     """Build a deterministic offline onboarding report for a pre-SiteSpec v2 candidate.
 
@@ -274,6 +339,9 @@ def legacy_profile_to_onboarding_report(
     display_label = candidate["identity"]["display"]["default_label"]
     archetype = candidate["archetype"]
     capabilities = candidate["capabilities"]
+
+    # Combined YAML + checked-in static observed-evidence source refs.
+    source_refs = [source_ref, *(observed_source_refs or [])]
 
     exceptions: list[dict] = []
 
@@ -337,7 +405,7 @@ def legacy_profile_to_onboarding_report(
         "run_id": run_id,
         "input": {
             "source_kind": "offline_fixture",
-            "source_refs": [source_ref],
+            "source_refs": source_refs,
         },
         "acquisition": {
             "acquisition_mode": "offline_fixture",
@@ -357,7 +425,7 @@ def legacy_profile_to_onboarding_report(
         },
         "exceptions": exceptions,
         "provenance": {
-            "source_refs": [source_ref],
+            "source_refs": source_refs,
             "review_state": "synthetic",
         },
         "change_scope": {

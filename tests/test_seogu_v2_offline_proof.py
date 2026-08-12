@@ -45,6 +45,8 @@ CANDIDATE_FIXTURE = (
 )
 REPORT_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "platform" / "onboarding-report" / "seogu.json"
 SOURCE_REF = "configs/sites/seogu_gwangju.yml"
+STATIC_EVIDENCE_REF = "tests/test_seogu_profile_onboarding_no_live.py"
+STATIC_EVIDENCE_PATH = REPO_ROOT / "tests" / "test_seogu_profile_onboarding_no_live.py"
 
 # Checked-in no-live observed board evidence (from tests/test_seogu_profile_onboarding_no_live.py).
 SEOgu_OBSERVED_EVIDENCE = [
@@ -71,10 +73,17 @@ def _load_report_fixture():
 def _project():
     profile = _load_yaml()
     cand = legacy_profile_to_v2_candidate(
-        profile, source_ref=SOURCE_REF, observed_evidence=SEOgu_OBSERVED_EVIDENCE
+        profile,
+        source_ref=SOURCE_REF,
+        observed_evidence=SEOgu_OBSERVED_EVIDENCE,
+        observed_source_refs=[STATIC_EVIDENCE_REF],
     )
     report = legacy_profile_to_onboarding_report(
-        cand, profile, source_ref=SOURCE_REF, run_id="seogu-v2-offline-2026-08-12"
+        cand,
+        profile,
+        source_ref=SOURCE_REF,
+        run_id="seogu-v2-offline-2026-08-12",
+        observed_source_refs=[STATIC_EVIDENCE_REF],
     )
     return profile, cand, report
 
@@ -156,6 +165,8 @@ def test_evidence_backed_notice_and_document_capabilities():
         assert cap["state"] == "detected"
         assert "homepage" in cap["entry_points"]
         assert any("bbs/BBSMSTR" in ref or "boardDownload.es" in ref for ref in cap["evidence_refs"])
+        # Observed-backed capability provenance also pins the static observed-evidence source.
+        assert STATIC_EVIDENCE_REF in cap["evidence_refs"]
     # The keyword-only directory capability is review_required and not observed-backed.
     directory = next(c for c in cand["capabilities"] if c["id"] == "directory")
     assert directory["state"] == "review_required"
@@ -192,7 +203,81 @@ def test_policy_defaults_are_fail_closed():
 
 def test_provenance_uses_only_checked_in_source():
     _, cand, _ = _project()
-    assert cand["provenance"]["source_refs"] == [SOURCE_REF]
+    assert cand["provenance"]["source_refs"] == [SOURCE_REF, STATIC_EVIDENCE_REF]
+
+
+def test_candidate_provenance_includes_yaml_and_static_source():
+    _, cand, _ = _project()
+    refs = cand["provenance"]["source_refs"]
+    assert refs == [SOURCE_REF, STATIC_EVIDENCE_REF]
+    # Both the YAML profile and the checked-in static observed-evidence source.
+    assert SOURCE_REF in refs
+    assert STATIC_EVIDENCE_REF in refs
+
+
+def test_report_input_and_provenance_include_yaml_and_static_source():
+    _, _, report = _project()
+    expected = [SOURCE_REF, STATIC_EVIDENCE_REF]
+    assert report["input"]["source_refs"] == expected
+    assert report["provenance"]["source_refs"] == expected
+
+
+def test_seogu_observed_evidence_present_in_static_source():
+    # The copied observed URLs must REALLY exist in the checked-in static evidence
+    # source, so the proof cannot pass against a vanished/forged source.
+    text = STATIC_EVIDENCE_PATH.read_text(encoding="utf-8")
+    for url in SEOgu_OBSERVED_EVIDENCE:
+        assert url in text, f"observed evidence {url!r} missing from {STATIC_EVIDENCE_PATH}"
+
+
+def test_mixed_case_bbsmstr_evidence_is_detected():
+    # Mixed-case observed URL must still bind notice_board (case-normalized compare).
+    p = _make_profile(
+        "m", "예시", "https://www.seogu.gwangju.kr/", ["www.seogu.gwangju.kr", "seogu.gwangju.kr"]
+    )
+    cand = legacy_profile_to_v2_candidate(
+        p,
+        source_ref="p",
+        observed_evidence=["https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do"],
+        observed_source_refs=["static.src"],
+    )
+    assert any(c["id"] == "notice_board" and c["state"] == "detected" for c in cand["capabilities"])
+
+
+def test_cross_domain_observed_list_do_rejected():
+    p = _make_profile("x", "예시", "https://x.example.com/", ["x.example.com"])
+    with pytest.raises(LegacyProfileProjectionError):
+        legacy_profile_to_v2_candidate(
+            p, source_ref="p", observed_evidence=["https://evil.example/list.do"]
+        )
+
+
+def test_cross_domain_observed_board_download_rejected():
+    p = _make_profile("x", "예시", "https://x.example.com/", ["x.example.com"])
+    with pytest.raises(LegacyProfileProjectionError):
+        legacy_profile_to_v2_candidate(
+            p,
+            source_ref="p",
+            observed_evidence=["https://evil.example/boardDownload.es?x=1"],
+        )
+
+
+def test_non_http_observed_evidence_rejected():
+    p = _make_profile("x", "예시", "https://x.example.com/", ["x.example.com"])
+    for bad in ("javascript:list.do", "ftp://x.example.com/bbs/list.do"):
+        with pytest.raises(LegacyProfileProjectionError):
+            legacy_profile_to_v2_candidate(
+                p, source_ref="p", observed_evidence=[bad]
+            )
+
+
+def test_malformed_or_relative_observed_evidence_rejected():
+    p = _make_profile("x", "예시", "https://x.example.com/", ["x.example.com"])
+    for bad in ("/relative/list.do", "not a url", "http:///no-host/list.do"):
+        with pytest.raises(LegacyProfileProjectionError):
+            legacy_profile_to_v2_candidate(
+                p, source_ref="p", observed_evidence=[bad]
+            )
 
 
 # ---- positive: onboarding report contract ----

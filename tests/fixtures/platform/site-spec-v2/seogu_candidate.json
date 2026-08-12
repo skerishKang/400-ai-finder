@@ -43,6 +43,7 @@
       ],
       "evidence_refs": [
         "configs/sites/seogu_gwangju.yml",
+        "tests/test_seogu_profile_onboarding_no_live.py",
         "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do"
       ]
     },
@@ -56,6 +57,7 @@
       ],
       "evidence_refs": [
         "configs/sites/seogu_gwangju.yml",
+        "tests/test_seogu_profile_onboarding_no_live.py",
         "https://www.seogu.gwangju.kr/boardDownload.es?bid=0013&list_no=136021&seq=1"
       ]
     },
@@ -90,7 +92,8 @@
   },
   "provenance": {
     "source_refs": [
-      "configs/sites/seogu_gwangju.yml"
+      "configs/sites/seogu_gwangju.yml",
+      "tests/test_seogu_profile_onboarding_no_live.py"
     ],
     "review_state": "synthetic"
   },
