@@ -42,7 +42,8 @@
         "homepage"
       ],
       "evidence_refs": [
-        "configs/sites/seogu_gwangju.yml"
+        "configs/sites/seogu_gwangju.yml",
+        "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do"
       ]
     },
     {
@@ -54,7 +55,8 @@
         "homepage"
       ],
       "evidence_refs": [
-        "configs/sites/seogu_gwangju.yml"
+        "configs/sites/seogu_gwangju.yml",
+        "https://www.seogu.gwangju.kr/boardDownload.es?bid=0013&list_no=136021&seq=1"
       ]
     },
     {

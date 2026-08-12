@@ -33,7 +33,8 @@
         "homepage"
       ],
       "evidence_refs": [
-        "configs/sites/seogu_gwangju.yml"
+        "configs/sites/seogu_gwangju.yml",
+        "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do"
       ]
     },
     {
@@ -45,7 +46,8 @@
         "homepage"
       ],
       "evidence_refs": [
-        "configs/sites/seogu_gwangju.yml"
+        "configs/sites/seogu_gwangju.yml",
+        "https://www.seogu.gwangju.kr/boardDownload.es?bid=0013&list_no=136021&seq=1"
       ]
     },
     {
@@ -73,7 +75,7 @@
       "category": "source_or_provenance_gap",
       "severity": "warning",
       "review_state": "review_required",
-      "summary": "Canonical municipality jurisdiction (effective-date) is not present in any checked-in v1 SiteSpec; extensions.municipality.jurisdiction omitted (no fabrication).",
+      "summary": "Pre-SiteSpec candidate: canonical municipality jurisdiction (effective-date) is not present in any checked-in v1 SiteSpec; extensions.municipality.jurisdiction omitted (no fabrication).",
       "affected_refs": [
         "seogu_gwangju"
       ]

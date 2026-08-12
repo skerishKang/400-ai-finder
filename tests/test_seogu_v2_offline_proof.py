@@ -1,13 +1,16 @@
-"""Offline Seo-gu v2 candidate + onboarding-report proof (#1232).
+"""Offline Seo-gu PRE-SITESPEC v2 candidate + onboarding-report proof (#1232).
 
 Pure stdlib + pytest + yaml only. No live network / crawl / Firecrawl / API calls.
 Reuses the generic legacy-profile -> v2 helper (src.site_profiles.legacy_profile_v2_projection)
 which has NO site_id-specific branching. Reuses the Slice B onboarding-report semantic
 validator to prove the generated report is a valid v2 report contract.
 
-This is a CANDIDATE proof: a real municipality (Seo-gu) that has no checked-in canonical
-jurisdiction keeps archetype=muncipality with state=review_required, an explicit
-source_or_provenance_gap exception, and NO fabricated extensions.municipality.jurisdiction.
+CONTRACT BOUNDARY: this artifact is a PRE-SITESPEC ONBOARDING CANDIDATE, not a final valid
+SiteSpec v2. A real municipality (Seo-gu) with no checked-in canonical jurisdiction keeps
+archetype=muncipality + state=review_required, an explicit source_or_provenance_gap exception,
+and NO fabricated extensions.municipality.jurisdiction. It is intentionally NOT asserted as a
+final valid SiteSpec via the authoritative Slice-B validator, and it is not promoted until the
+required canonical typed extension is acquired.
 """
 
 import copy
@@ -24,11 +27,15 @@ from src.site_profiles.legacy_profile_v2_projection import (
     legacy_profile_to_v2_candidate,
 )
 
-# Reuse the authoritative Slice B onboarding-report semantic validator.
+# Reuse the authoritative Slice B semantic validators.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_platform_onboarding_report_contract import (  # noqa: E402
     ContractViolation,
     validate_onboarding_report,
+)
+from test_platform_site_spec_v2_contract import (  # noqa: E402
+    ContractViolation as SitespecContractViolation,
+    validate_site_spec_v2,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +45,12 @@ CANDIDATE_FIXTURE = (
 )
 REPORT_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "platform" / "onboarding-report" / "seogu.json"
 SOURCE_REF = "configs/sites/seogu_gwangju.yml"
+
+# Checked-in no-live observed board evidence (from tests/test_seogu_profile_onboarding_no_live.py).
+SEOgu_OBSERVED_EVIDENCE = [
+    "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do",
+    "https://www.seogu.gwangju.kr/boardDownload.es?bid=0013&list_no=136021&seq=1",
+]
 
 
 def _load_yaml():
@@ -57,19 +70,30 @@ def _load_report_fixture():
 
 def _project():
     profile = _load_yaml()
-    cand = legacy_profile_to_v2_candidate(profile, source_ref=SOURCE_REF)
+    cand = legacy_profile_to_v2_candidate(
+        profile, source_ref=SOURCE_REF, observed_evidence=SEOgu_OBSERVED_EVIDENCE
+    )
     report = legacy_profile_to_onboarding_report(
         cand, profile, source_ref=SOURCE_REF, run_id="seogu-v2-offline-2026-08-12"
     )
     return profile, cand, report
 
 
+def _make_profile(site_id, name, base_url, allowed, **extra):
+    p = {
+        "site_id": site_id,
+        "name": name,
+        "base_url": base_url,
+        "allowed_domains": allowed,
+    }
+    p.update(extra)
+    return p
+
+
 # ---- positive: determinism + frozen parity ----
 
 def test_projection_is_deterministic():
-    p1 = _project()
-    p2 = _project()
-    assert p1 == p2
+    assert _project() == _project()
 
 
 def test_candidate_matches_frozen_fixture():
@@ -126,11 +150,16 @@ def test_evidence_backed_notice_and_document_capabilities():
     cap_ids = {c["id"] for c in cand["capabilities"]}
     assert "notice_board" in cap_ids
     assert "document_library" in cap_ids
-    for cap in cand["capabilities"]:
-        # every capability references the declared homepage and a real source ref
+    # Observed-backed (detected) capabilities must reference the real checked-in evidence URL.
+    for cap_id in ("notice_board", "document_library"):
+        cap = next(c for c in cand["capabilities"] if c["id"] == cap_id)
+        assert cap["state"] == "detected"
         assert "homepage" in cap["entry_points"]
-        assert SOURCE_REF in cap["evidence_refs"]
-        assert cap["state"] in ("configured", "detected", "unsupported", "review_required", "not_detected")
+        assert any("bbs/BBSMSTR" in ref or "boardDownload.es" in ref for ref in cap["evidence_refs"])
+    # The keyword-only directory capability is review_required and not observed-backed.
+    directory = next(c for c in cand["capabilities"] if c["id"] == "directory")
+    assert directory["state"] == "review_required"
+    assert directory["evidence_refs"] == [SOURCE_REF]
 
 
 def test_org_chart_keyword_only_is_review_required():
@@ -168,7 +197,7 @@ def test_provenance_uses_only_checked_in_source():
 
 # ---- positive: onboarding report contract ----
 
-def test_report_passes_slice_b_v2_contract():
+def test_report_passes_slice_b_v2_report_contract():
     _, _, report = _project()
     assert validate_onboarding_report(report) is True
     assert validate_onboarding_report(_load_report_fixture()) is True
@@ -177,16 +206,22 @@ def test_report_passes_slice_b_v2_contract():
 def test_report_ratios_sum_to_one():
     _, _, report = _project()
     m = report["metrics"]
-    total = m["automation_ratio"] + m["human_review_ratio"] + m["unsupported_ratio"]
-    assert abs(total - 1.0) <= 1e-9
+    assert abs(m["automation_ratio"] + m["human_review_ratio"] + m["unsupported_ratio"] - 1.0) <= 1e-9
 
 
 def test_report_promotion_and_authorization_false():
     _, cand, report = _project()
     assert report["promotion"]["production_promotion_requested"] is False
     assert report["acquisition"]["live_network_authorized"] is False
-    # actual_site_control_authorized lives on the candidate browser_policy
     assert cand["browser_policy"]["actual_site_control_authorized"] is False
+
+
+def test_report_metric_values_for_seogu():
+    _, _, report = _project()
+    m = report["metrics"]
+    assert m["automation_ratio"] == 0.5
+    assert m["human_review_ratio"] == 0.25
+    assert m["unsupported_ratio"] == 0.25
 
 
 def test_missing_canonical_jurisdiction_is_source_or_provenance_gap():
@@ -206,34 +241,124 @@ def test_org_chart_keyword_only_has_explicit_exception():
     )
 
 
+# ---- contract boundary: pre-SiteSpec candidate, not final valid SiteSpec ----
+
+def test_seogu_candidate_is_pre_sitespec_not_final_valid():
+    _, cand, _ = _project()
+    # Authoritative Slice-B validator must REJECT (municipality w/o canonical jurisdiction
+    # extension). This proves the artifact is NOT claimed to be a final valid SiteSpec v2.
+    with pytest.raises(SitespecContractViolation):
+        validate_site_spec_v2(cand)
+
+
+def test_pre_sitespec_not_promoted_before_canonical_extension():
+    _, cand, report = _project()
+    assert report["promotion"]["production_promotion_requested"] is False
+    # Still a candidate: no fabricated municipality extension.
+    assert cand["extensions"] == {}
+
+
 # ---- genericity: helper has no seogu-specific branching ----
 
 def test_helper_is_generic_no_site_id_branch():
-    university = {
-        "site_id": "x_univ",
-        "name": "예시대학교",
-        "base_url": "https://x.ac.kr/",
-        "allowed_domains": ["x.ac.kr"],
-        "classification": "UNIVERSITY",
-        "important_keywords": ["공지사항"],
-        "board_patterns": ["list.do"],
-        "document_extensions": ["pdf"],
-    }
-    cand = legacy_profile_to_v2_candidate(university, source_ref="p")
+    university = _make_profile(
+        "x_univ", "예시대학교", "https://x.ac.kr/", ["x.ac.kr"],
+        classification="UNIVERSITY", observed_evidence=["https://x.ac.kr/bbs/BBSMSTR_1/list.do"],
+    )
+    cand = legacy_profile_to_v2_candidate(
+        university, source_ref="p", observed_evidence=["https://x.ac.kr/bbs/BBSMSTR_1/list.do"]
+    )
     assert cand["archetype"]["id"] == "university"
     assert cand["archetype"]["state"] == "detected"
 
-    unknown = {
-        "site_id": "y_corp",
-        "name": "예시회사",
-        "base_url": "https://y.example.com/",
-        "allowed_domains": ["y.example.com"],
-    }
+    unknown = _make_profile("y_corp", "예시회사", "https://y.example.com/", ["y.example.com"])
     cand2 = legacy_profile_to_v2_candidate(unknown, source_ref="p")
+    # unknown archetype -> id=unknown AND state=unknown
     assert cand2["archetype"]["id"] == "unknown"
+    assert cand2["archetype"]["state"] == "unknown"
 
 
 # ---- negative matrix (fail closed) ----
+
+def test_A_document_extensions_alone_not_detected():
+    p = _make_profile("a", "예시", "https://a.example.com/", ["a.example.com"],
+                      document_extensions=["pdf", "hwp"])
+    cand = legacy_profile_to_v2_candidate(p, source_ref="p")
+    assert not any(c["id"] == "document_library" for c in cand["capabilities"])
+
+
+def test_B_notice_keyword_alone_not_detected():
+    p = _make_profile("b", "예시", "https://b.example.com/", ["b.example.com"],
+                      important_keywords=["공지사항", "고시공고"])
+    cand = legacy_profile_to_v2_candidate(p, source_ref="p")
+    assert not any(c["id"] == "notice_board" for c in cand["capabilities"])
+
+
+def test_C_observed_bbs_list_url_enables_notice_board():
+    p = _make_profile("c", "예시", "https://c.example.com/", ["c.example.com"])
+    cand = legacy_profile_to_v2_candidate(
+        p, source_ref="p", observed_evidence=["https://c.example.com/bbs/BBSMSTR_1/list.do"]
+    )
+    assert any(c["id"] == "notice_board" and c["state"] == "detected" for c in cand["capabilities"])
+
+
+def test_D_observed_download_url_enables_document_library():
+    p = _make_profile("d", "예시", "https://d.example.com/", ["d.example.com"])
+    cand = legacy_profile_to_v2_candidate(
+        p, source_ref="p", observed_evidence=["https://d.example.com/boardDownload.es?x=1"]
+    )
+    assert any(c["id"] == "document_library" and c["state"] == "detected" for c in cand["capabilities"])
+
+
+def test_E_unknown_archetype_unknown_state():
+    p = _make_profile("e", "예시회사", "https://e.example.com/", ["e.example.com"])
+    cand = legacy_profile_to_v2_candidate(p, source_ref="p")
+    assert cand["archetype"]["id"] == "unknown"
+    assert cand["archetype"]["state"] == "unknown"
+
+
+def test_F_unknown_no_capabilities_report_no_crash_ratios_sum_one():
+    p = _make_profile("f", "예시회사", "https://f.example.com/", ["f.example.com"])
+    cand = legacy_profile_to_v2_candidate(p, source_ref="p")
+    report = legacy_profile_to_onboarding_report(cand, p, source_ref="p", run_id="r")
+    m = report["metrics"]
+    assert abs(m["automation_ratio"] + m["human_review_ratio"] + m["unsupported_ratio"] - 1.0) <= 1e-9
+    # zero-denominator handling: everything unsupported
+    assert m["unsupported_ratio"] == 1.0
+
+
+def test_G_non_municipality_no_fake_jurisdiction_accounting_slot():
+    p = _make_profile("g_univ", "예시대학교", "https://g.ac.kr/", ["g.ac.kr"],
+                      classification="UNIVERSITY")
+    cand = legacy_profile_to_v2_candidate(
+        p, source_ref="p", observed_evidence=["https://g.ac.kr/bbs/BBSMSTR_1/list.do"]
+    )
+    report = legacy_profile_to_onboarding_report(cand, p, source_ref="p", run_id="r")
+    assert cand["archetype"]["id"] == "university"
+    # No fabricated jurisdiction gap for a non-municipality site.
+    assert not any(e["category"] == "source_or_provenance_gap" for e in report["exceptions"])
+    m = report["metrics"]
+    # 1 detected capability, no review, no gap -> automation 1.0
+    assert m["automation_ratio"] == 1.0
+    assert m["human_review_ratio"] == 0.0
+    assert m["unsupported_ratio"] == 0.0
+    assert abs(m["automation_ratio"] + m["human_review_ratio"] + m["unsupported_ratio"] - 1.0) <= 1e-9
+
+
+def test_H_slice_b_validator_unchanged_rejects_candidate():
+    # The authoritative Slice-B validator must still reject the pre-SiteSpec candidate,
+    # i.e. it was not weakened.
+    _, cand, _ = _project()
+    with pytest.raises(SitespecContractViolation):
+        validate_site_spec_v2(cand)
+
+
+def test_I_seogu_jurisdiction_unfabricated():
+    _, cand, _ = _project()
+    assert cand["extensions"] == {}
+
+
+# ---- input safety ----
 
 def test_undeclared_homepage_host_rejected():
     profile = copy.deepcopy(_load_yaml())
@@ -252,13 +377,10 @@ def test_missing_base_url_rejected():
 def test_original_profile_not_mutated():
     profile = _load_yaml()
     snapshot = copy.deepcopy(profile)
-    legacy_profile_to_v2_candidate(profile, source_ref=SOURCE_REF)
+    legacy_profile_to_v2_candidate(profile, source_ref=SOURCE_REF, observed_evidence=SEOgu_OBSERVED_EVIDENCE)
     assert profile == snapshot
 
 
-# ---- no-live guard ----
-
 def test_only_local_static_source_used():
-    # The only source is a checked-in YAML file under configs/sites; no network call.
     assert YAML_PATH.exists()
     assert str(YAML_PATH).endswith("configs/sites/seogu_gwangju.yml")
