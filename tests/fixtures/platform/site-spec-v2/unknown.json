@@ -1,0 +1,61 @@
+{
+  "$schema": "configs/platform/site-spec-v2.schema.json",
+  "schema_version": "2.0.0",
+  "identity": {
+    "site_id": "unknown_synthetic",
+    "legacy_ids": [],
+    "display": {
+      "default_label": "Unrecognized Site",
+      "locale_labels": {
+        "en": "Unrecognized Site"
+      }
+    }
+  },
+  "domains": {
+    "public": ["unknown.example.com"]
+  },
+  "entry_points": [
+    {
+      "id": "ep_home",
+      "kind": "homepage",
+      "url": "https://unknown.example.com/"
+    }
+  ],
+  "archetype": {
+    "id": "unknown",
+    "state": "review_required",
+    "confidence": 0.2,
+    "evidence_refs": ["configs/platform/site-spec-v2.schema.json"]
+  },
+  "capabilities": [
+    {
+      "id": "site_search",
+      "state": "review_required",
+      "confidence": 0.25,
+      "safety_level": "read_only",
+      "entry_points": ["ep_home"],
+      "evidence_refs": ["ep_home"]
+    }
+  ],
+  "capture_policy": {
+    "acquisition_mode": "synthetic",
+    "live_network_authorized": false
+  },
+  "browser_policy": {
+    "surface_mode": "generated_preview",
+    "actual_site_control_authorized": false
+  },
+  "knowledge_policy": {
+    "grounding_required": true,
+    "provenance_required": true
+  },
+  "action_policy": {
+    "external_write_authorized": false,
+    "high_risk_actions_authorized": false
+  },
+  "provenance": {
+    "source_refs": ["tests/fixtures/platform/site-spec-v2/unknown.json"],
+    "review_state": "synthetic"
+  },
+  "extensions": {}
+}

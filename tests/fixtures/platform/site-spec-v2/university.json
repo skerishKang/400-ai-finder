@@ -1,0 +1,119 @@
+{
+  "$schema": "configs/platform/site-spec-v2.schema.json",
+  "schema_version": "2.0.0",
+  "identity": {
+    "site_id": "university_synthetic",
+    "legacy_ids": [],
+    "display": {
+      "default_label": "Example University",
+      "locale_labels": {
+        "ko": "예시 대학교",
+        "en": "Example University"
+      }
+    }
+  },
+  "domains": {
+    "public": ["university.example.ac.kr"]
+  },
+  "entry_points": [
+    {
+      "id": "ep_home",
+      "kind": "homepage",
+      "url": "https://university.example.ac.kr/"
+    },
+    {
+      "id": "ep_notice",
+      "kind": "notice",
+      "url": "https://university.example.ac.kr/notice"
+    },
+    {
+      "id": "ep_doc",
+      "kind": "document",
+      "url": "https://university.example.ac.kr/docs"
+    },
+    {
+      "id": "ep_dir",
+      "kind": "directory",
+      "url": "https://university.example.ac.kr/directory"
+    },
+    {
+      "id": "ep_cal",
+      "kind": "other",
+      "url": "https://university.example.ac.kr/calendar"
+    }
+  ],
+  "archetype": {
+    "id": "university",
+    "state": "configured",
+    "confidence": 1.0,
+    "evidence_refs": ["configs/platform/site-spec-v2.schema.json"]
+  },
+  "capabilities": [
+    {
+      "id": "site_search",
+      "state": "configured",
+      "confidence": 0.9,
+      "safety_level": "read_only",
+      "entry_points": ["ep_home"],
+      "evidence_refs": ["ep_home"]
+    },
+    {
+      "id": "notice_board",
+      "state": "configured",
+      "confidence": 0.9,
+      "safety_level": "navigate",
+      "entry_points": ["ep_notice"],
+      "evidence_refs": ["ep_notice"]
+    },
+    {
+      "id": "document_library",
+      "state": "configured",
+      "confidence": 0.85,
+      "safety_level": "navigate",
+      "entry_points": ["ep_doc"],
+      "evidence_refs": ["ep_doc"]
+    },
+    {
+      "id": "directory",
+      "state": "detected",
+      "confidence": 0.75,
+      "safety_level": "navigate",
+      "entry_points": ["ep_dir"],
+      "evidence_refs": ["ep_dir"]
+    },
+    {
+      "id": "calendar",
+      "state": "detected",
+      "confidence": 0.7,
+      "safety_level": "navigate",
+      "entry_points": ["ep_cal"],
+      "evidence_refs": ["ep_cal"]
+    }
+  ],
+  "capture_policy": {
+    "acquisition_mode": "synthetic",
+    "live_network_authorized": false
+  },
+  "browser_policy": {
+    "surface_mode": "generated_preview",
+    "actual_site_control_authorized": false
+  },
+  "knowledge_policy": {
+    "grounding_required": true,
+    "provenance_required": true
+  },
+  "action_policy": {
+    "external_write_authorized": false,
+    "high_risk_actions_authorized": false
+  },
+  "provenance": {
+    "source_refs": ["tests/fixtures/platform/site-spec-v2/university.json"],
+    "review_state": "synthetic"
+  },
+  "extensions": {
+    "university": {
+      "institution_label": "Example University",
+      "institution_type": "national"
+    }
+  }
+}

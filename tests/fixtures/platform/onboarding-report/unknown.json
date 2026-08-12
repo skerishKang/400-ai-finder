@@ -1,0 +1,75 @@
+{
+  "$schema": "configs/platform/onboarding-report.schema.json",
+  "schema_version": "2.0.0",
+  "run_id": "onboarding-unknown-synthetic-2026-08-12",
+  "input": {
+    "source_kind": "synthetic",
+    "source_refs": ["tests/fixtures/platform/site-spec-v2/unknown.json"]
+  },
+  "acquisition": {
+    "acquisition_mode": "synthetic",
+    "live_network_authorized": false
+  },
+  "site_identity": {
+    "site_id": "unknown_synthetic",
+    "display_label": "Unrecognized Site"
+  },
+  "archetype": {
+    "id": "unknown",
+    "state": "review_required",
+    "confidence": 0.2,
+    "evidence_refs": ["configs/platform/site-spec-v2.schema.json"]
+  },
+  "capabilities": [
+    {
+      "id": "site_search",
+      "state": "review_required",
+      "confidence": 0.25,
+      "safety_level": "read_only",
+      "entry_points": ["ep_home"],
+      "evidence_refs": ["ep_home"]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "art_preview",
+      "name": "generated-preview",
+      "kind": "surface_preview",
+      "path": "tests/fixtures/platform/onboarding-report/unknown.preview.json",
+      "generated": true
+    }
+  ],
+  "metrics": {
+    "automation_ratio": 0.5,
+    "human_review_ratio": 0.3,
+    "unsupported_ratio": 0.2
+  },
+  "exceptions": [
+    {
+      "id": "exc_unknown_archetype",
+      "category": "low_confidence_classification",
+      "severity": "warning",
+      "review_state": "review_required",
+      "summary": "Archetype classification confidence 0.2; no known archetype fabricated.",
+      "affected_refs": ["unknown_synthetic"]
+    },
+    {
+      "id": "exc_auth_boundary",
+      "category": "auth_or_high_risk_boundary",
+      "severity": "info",
+      "review_state": "open",
+      "summary": "Authentication boundary present but not inspected; requires separate authorization review.",
+      "affected_refs": ["ep_login"]
+    }
+  ],
+  "provenance": {
+    "source_refs": ["tests/fixtures/platform/site-spec-v2/unknown.json"],
+    "review_state": "synthetic"
+  },
+  "change_scope": {
+    "shared_core_changed": false
+  },
+  "promotion": {
+    "production_promotion_requested": false
+  }
+}
