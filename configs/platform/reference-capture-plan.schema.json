@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://400-ai-finder.invalid/schemas/reference-capture-plan.schema.json",
+  "title": "Named-site reference capture plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "plan_id",
+    "site_id",
+    "capture_mode",
+    "allowed_hosts",
+    "allowed_methods",
+    "routine_ci",
+    "security_boundary",
+    "completion_policy",
+    "states"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "kind": {"const": "named_site_reference_capture_plan"},
+    "plan_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "site_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+    "capture_mode": {"const": "controlled_read_only_reference"},
+    "allowed_hosts": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9.-]+$"}
+    },
+    "allowed_methods": {
+      "type": "array",
+      "const": ["GET"]
+    },
+    "routine_ci": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["network_policy"],
+      "properties": {"network_policy": {"const": "offline"}}
+    },
+    "security_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "post_allowed",
+        "form_submission_allowed",
+        "login_allowed",
+        "payment_allowed",
+        "identity_verification_allowed",
+        "pii_entry_allowed",
+        "personal_file_upload_allowed",
+        "actual_site_mutation_allowed"
+      ],
+      "properties": {
+        "post_allowed": {"const": false},
+        "form_submission_allowed": {"const": false},
+        "login_allowed": {"const": false},
+        "payment_allowed": {"const": false},
+        "identity_verification_allowed": {"const": false},
+        "pii_entry_allowed": {"const": false},
+        "personal_file_upload_allowed": {"const": false},
+        "actual_site_mutation_allowed": {"const": false}
+      }
+    },
+    "completion_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["g1_completion_claim", "executed_ledger_required", "uncaptured_state_policy"],
+      "properties": {
+        "g1_completion_claim": {"const": false},
+        "executed_ledger_required": {"const": true},
+        "uncaptured_state_policy": {"const": "capture_required_exception"}
+      }
+    },
+    "states": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state_id",
+          "source_seed_url",
+          "viewport",
+          "state",
+          "required_artifacts",
+          "freeze_at_capture",
+          "capture_required"
+        ],
+        "properties": {
+          "state_id": {"type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+          "source_seed_url": {"type": "string", "minLength": 1},
+          "viewport": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["width", "height"],
+            "properties": {
+              "width": {"type": "integer", "minimum": 1},
+              "height": {"type": "integer", "minimum": 1}
+            }
+          },
+          "state": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {"name": {"type": "string", "minLength": 1}}
+          },
+          "required_artifacts": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "html_dom_content",
+                "screenshot",
+                "visible_region_inventory",
+                "public_asset_provenance"
+              ]
+            }
+          },
+          "freeze_at_capture": {"type": "boolean"},
+          "capture_required": {"type": "boolean"},
+          "notes": {"type": "string"}
+        }
+      }
+    }
+  }
+}
