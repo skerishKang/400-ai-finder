@@ -3,6 +3,7 @@
 - Status: `canonical technical boundary`
 - Current product-lifecycle alignment: #1301
 - Canonical product lifecycle: [`docs/product/clone-first-general-site-platform-strategy.md`](product/clone-first-general-site-platform-strategy.md)
+- Canonical exact-clone invariant: [`docs/product/exact-official-site-clone-invariant.md`](product/exact-official-site-clone-invariant.md)
 
 This document records the current boundary between offline/mock development paths
 and live provider, fetch, network, Firecrawl, app pipeline, backend, UI, and API
