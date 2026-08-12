@@ -143,8 +143,8 @@ def validate_onboarding_report(doc):
     ac = arch.get("confidence")
     _require(isinstance(ac, (int, float)) and 0.0 <= ac <= 1.0,
              "archetype confidence must be 0.0..1.0")
-    _require(isinstance(arch.get("evidence_refs"), list) or "evidence_refs" in arch,
-             "archetype.evidence_refs required")
+    _require(isinstance(arch.get("evidence_refs"), list),
+             "archetype.evidence_refs must be an array")
 
     # capabilities
     caps = doc["capabilities"]
@@ -320,3 +320,55 @@ def test_unknown_archetype_in_report_rejected():
     doc["archetype"]["id"] = "school"
     with pytest.raises(ContractViolation):
         validate_onboarding_report(doc)
+
+
+# ---- schema-backed regression tests (Slice B narrow correction) ----
+
+def _load_schema():
+    with open(REPO_ROOT / "configs" / "platform" / "onboarding-report.schema.json",
+              "r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def test_archetype_evidence_refs_must_be_list():
+    doc = copy.deepcopy(_load("unknown"))
+    doc["archetype"]["evidence_refs"] = "not-a-list"
+    with pytest.raises(ContractViolation):
+        validate_onboarding_report(doc)
+
+
+def test_fixture_top_level_keys_within_schema_properties():
+    schema = _load_schema()
+    doc = _load("unknown")
+    # No undeclared top-level key (e.g. $schema) may re-enter the fixture.
+    assert set(doc.keys()) <= set(schema["properties"].keys())
+
+
+def test_artifact_keys_within_schema_properties():
+    schema = _load_schema()
+    allowed = set(schema["properties"]["artifacts"]["items"]["properties"].keys())
+    doc = _load("unknown")
+    for art in doc["artifacts"]:
+        # No undeclared artifact key (e.g. name) may re-enter the fixture.
+        assert set(art.keys()) <= allowed
+
+
+def test_affected_refs_ep_prefix_resolve_to_source_entry_points():
+    doc = _load("unknown")
+    source_path = (
+        REPO_ROOT
+        / "tests"
+        / "fixtures"
+        / "platform"
+        / "site-spec-v2"
+        / "unknown.json"
+    )
+    with open(source_path, "r", encoding="utf-8") as fh:
+        source = json.load(fh)
+    source_ep_ids = {ep["id"] for ep in source["entry_points"]}
+    for exc in doc["exceptions"]:
+        for ref in exc["affected_refs"]:
+            if ref.startswith("ep_"):
+                assert ref in source_ep_ids, (
+                    f"affected ref {ref!r} not present in source entry points"
+                )

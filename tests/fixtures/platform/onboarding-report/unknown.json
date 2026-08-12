@@ -1,5 +1,4 @@
 {
-  "$schema": "configs/platform/onboarding-report.schema.json",
   "schema_version": "2.0.0",
   "run_id": "onboarding-unknown-synthetic-2026-08-12",
   "input": {
@@ -33,7 +32,6 @@
   "artifacts": [
     {
       "id": "art_preview",
-      "name": "generated-preview",
       "kind": "surface_preview",
       "path": "tests/fixtures/platform/onboarding-report/unknown.preview.json",
       "generated": true
@@ -52,14 +50,6 @@
       "review_state": "review_required",
       "summary": "Archetype classification confidence 0.2; no known archetype fabricated.",
       "affected_refs": ["unknown_synthetic"]
-    },
-    {
-      "id": "exc_auth_boundary",
-      "category": "auth_or_high_risk_boundary",
-      "severity": "info",
-      "review_state": "open",
-      "summary": "Authentication boundary present but not inspected; requires separate authorization review.",
-      "affected_refs": ["ep_login"]
     }
   ],
   "provenance": {
