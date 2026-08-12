@@ -415,6 +415,64 @@ def test_main_cli_accepts_expected_identity():
                     "--expected-capture-id", "20260812T231018-0900"]) == 0
 
 
+def test_identity_gate_derived_from_path_and_non_bypassable(tmp_path):
+    """A normal build with NO explicit --expected flags still enforces identity
+    derived from the canonical capture path, so the gate cannot be bypassed.
+
+    A captured ledger whose site_id disagrees with the path must fail closed
+    even when the caller omits the expected-site-id / expected-capture-id flags.
+    """
+    repo_root, capture_root = _synthetic_capture(tmp_path, tamper=_tamper_wrong_site_id)
+    validation = mod.validate_reference_evidence(repo_root, capture_root)
+    assert validation["identity_mismatch"] is not None
+    assert validation["ledger_identity_valid"] is False
+    assert validation["reference_baseline_ready"] is False
+    with pytest.raises(mod.ReferenceCloneModelError):
+        mod.build_reference_clone_model(repo_root, capture_root)
+
+
+def test_semantic_state_has_ordered_general_links():
+    """Each state exposes ordered general link observations (text/href/order)
+    so a G2-B renderer can rebuild menus without reopening raw source.html."""
+    model = _load_json(FIXTURE_PATH)
+    by_id = {s["state_id"]: s for s in model["states"]}
+    home = by_id["home.desktop.default"]
+    links = home["general_links"]
+    assert isinstance(links, list) and links, "home must expose general link observations"
+    for link in links:
+        assert set(link.keys()) == {"text", "href", "order"}
+        assert isinstance(link["text"], str)
+        assert isinstance(link["href"], str) and link["href"]
+        assert isinstance(link["order"], int) and link["order"] >= 1
+    orders = [l["order"] for l in links]
+    assert orders == list(range(1, len(orders) + 1)), "order must be a contiguous 1-based sequence"
+    hrefs = {l["href"] for l in links}
+    assert "/health" in hrefs, "navigation menu anchors (e.g. 보건소) must be captured"
+    assert not any(l["href"].startswith("#") for l in links), "fragment jump links excluded"
+    assert not any(
+        l["href"].lower().startswith(("javascript:", "mailto:", "tel:")) for l in links
+    ), "script/contact links excluded"
+
+
+def test_semantic_state_has_document_geometry_with_screenshot_dimensions():
+    """Each state preserves document/full-page geometry evidence (capture
+    viewport plus the committed full-page screenshot dimensions)."""
+    model = _load_json(FIXTURE_PATH)
+    by_id = {s["state_id"]: s for s in model["states"]}
+    home = by_id["home.desktop.default"]
+    geo = home["document_geometry"]
+    assert isinstance(geo, dict)
+    assert isinstance(geo["viewport"], dict)
+    assert "width" in geo["viewport"] and "height" in geo["viewport"]
+    fps = geo["full_page_screenshot"]
+    assert isinstance(fps, dict)
+    # Scrollable page: full-page screenshot is taller than the viewport.
+    assert fps["height"] > geo["viewport"]["height"]
+    assert fps["width"] == geo["viewport"]["width"]
+    assert SHA256_RE.fullmatch(fps["sha256"])
+    assert fps["artifact_id"].endswith("source.png")
+
+
 # ── Input non-mutation ─────────────────────────────────────────────
 
 

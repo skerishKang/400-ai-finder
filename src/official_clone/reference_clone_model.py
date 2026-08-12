@@ -27,6 +27,7 @@ import hashlib
 import json
 import re
 import sys
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
@@ -116,6 +117,61 @@ def _extract_document_extensions(html: str) -> list[str]:
     return sorted({m.group(1).lower() for m in _DOC_TOKEN_RE.finditer(html)})
 
 
+class _AnchorCollector(HTMLParser):
+    """Collect (href, text) anchor pairs in document order, fully offline."""
+
+    _SKIP_SCHEMES = ("javascript:", "mailto:", "tel:", "data:")
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._in_anchor = False
+        self._text_parts: list[str] = []
+        self._attrs: dict[str, str] = {}
+        self.anchors: list[tuple[str, str]] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() != "a":
+            return
+        self._in_anchor = True
+        self._text_parts = []
+        self._attrs = {k.lower(): (v or "") for k, v in attrs}
+
+    def handle_data(self, data):
+        if self._in_anchor:
+            self._text_parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag.lower() != "a" or not self._in_anchor:
+            return
+        self._in_anchor = False
+        href = (self._attrs.get("href") or "").strip()
+        text = "".join(self._text_parts).strip()
+        self.anchors.append((href, text))
+
+
+def _extract_general_links(html: str) -> list[dict[str, Any]]:
+    """Ordered general anchor observations (text/href/order) for G2-B.
+
+    The semantic model must let a later faithful renderer reconstruct menus and
+    navigation links without reopening raw ``source.html``. Fragment-only,
+    script, contact, and empty hrefs are skipped; the remaining anchors are
+    emitted in document order with an explicit 1-based ``order`` index.
+    """
+    collector = _AnchorCollector()
+    collector.feed(html or "")
+    links: list[dict[str, Any]] = []
+    for href, text in collector.anchors:
+        if not href:
+            continue
+        low = href.lower()
+        if low.startswith(_AnchorCollector._SKIP_SCHEMES):
+            continue
+        if low == "#" or low.startswith("#"):
+            continue
+        links.append({"text": text, "href": href, "order": len(links) + 1})
+    return links
+
+
 def _resolve_plan_path(repo_root: Path, plan_path: str | None) -> Path | None:
     if not plan_path:
         return None
@@ -190,17 +246,45 @@ def _states_duplicate_ids(captured: list[dict[str, Any]]) -> bool:
     return len(ids) != len(set(ids))
 
 
+def _derive_expected_identity(
+    capture_root: Path, repo_root: Path
+) -> tuple[str | None, str | None]:
+    """Derive the expected named-site identity from the canonical capture path.
+
+    A named-site reference capture MUST live at
+    ``<repo>/data/official_captures/<site_id>/g1/<capture_id>/``. Deriving the
+    expected identity from that path makes the identity gate non-bypassable: a
+    normal build can no longer point at an unrelated/arbitrary capture root
+    without the ledger ``site_id``/``capture_id`` disagreeing with the path.
+    """
+    try:
+        rel = capture_root.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return None, None
+    if not rel.endswith("/"):
+        rel += "/"
+    match = CAPTURE_PREFIX_RE.fullmatch(rel)
+    if not match:
+        return None, None
+    return match.group(1), match.group(2)
+
+
 def _expected_site_capture_mismatch(
     ledger: dict[str, Any],
     capture_root_name: str,
     expected_site_id: str | None,
     expected_capture_id: str | None,
 ) -> str | None:
+    if expected_site_id is None or expected_capture_id is None:
+        return (
+            "capture root is not a canonical named-site capture directory; "
+            "site/capture identity cannot be derived from the path"
+        )
     ledger_site = str(ledger.get("site_id", ""))
     ledger_capture = capture_root_name
-    if expected_site_id is not None and ledger_site != expected_site_id:
+    if ledger_site != expected_site_id:
         return f"expected site_id {expected_site_id!r} but ledger has {ledger_site!r}"
-    if expected_capture_id is not None and ledger_capture != expected_capture_id:
+    if ledger_capture != expected_capture_id:
         return f"expected capture_id {expected_capture_id!r} but capture root has {ledger_capture!r}"
     return None
 
@@ -230,7 +314,10 @@ def validate_reference_evidence(
     capture_id = _require_safe_id(capture_root.name, "capture_id")
     capture_mode = ledger.get("capture_mode")
 
-    identity_mismatch = _expected_site_capture_mismatch(ledger, capture_root.name, expected_site_id, expected_capture_id)
+    derived_site, derived_capture = _derive_expected_identity(capture_root, repo_root)
+    effective_site = expected_site_id if expected_site_id is not None else derived_site
+    effective_capture = expected_capture_id if expected_capture_id is not None else derived_capture
+    identity_mismatch = _expected_site_capture_mismatch(ledger, capture_root.name, effective_site, effective_capture)
 
     # 1. Ledger identity (plan checksum + basic ledger fields).
     plan, identity_problem = _load_plan(repo_root, ledger.get("plan_identity"))
@@ -431,10 +518,12 @@ def build_reference_clone_model(
         html_path = _artifact_file("html_dom_content")
         download_references: list[dict[str, str]] = []
         document_extensions: list[str] = []
+        general_links: list[dict[str, Any]] = []
         if html_path is not None and html_path.is_file():
             html = html_path.read_text(encoding="utf-8", errors="replace")
             download_references = _extract_download_references(html)
             document_extensions = _extract_document_extensions(html)
+            general_links = _extract_general_links(html)
 
         inventory_path = _artifact_file("visible_region_inventory")
         page_title: str | None = None
@@ -447,6 +536,27 @@ def build_reference_clone_model(
             landmarks = inventory.get("landmarks", [])
             controls = inventory.get("controls", [])
             viewport_geometry = inventory.get("viewport")
+
+        # Document/full-page geometry evidence: the capture viewport plus the
+        # committed full-page screenshot dimensions (so G2-B need not reopen
+        # raw pixels). Absent when the state has no committed screenshot.
+        screenshot_artifact = next(
+            (a for a in captured.get("artifacts", []) if a.get("class") == "screenshot"),
+            None,
+        )
+        full_page_screenshot = None
+        if isinstance(screenshot_artifact, dict) and isinstance(screenshot_artifact.get("dimensions"), dict):
+            dims = screenshot_artifact["dimensions"]
+            full_page_screenshot = {
+                "width": dims.get("width"),
+                "height": dims.get("height"),
+                "artifact_id": screenshot_artifact.get("artifact_id"),
+                "sha256": screenshot_artifact.get("sha256"),
+            }
+        document_geometry = {
+            "viewport": captured.get("viewport"),
+            "full_page_screenshot": full_page_screenshot,
+        }
 
         # Collect per-state exceptions and public assets into global queues.
         for exc in captured.get("exceptions", []):
@@ -472,13 +582,15 @@ def build_reference_clone_model(
                 "source_updated_at": captured.get("source_updated_at"),
                 "final_http_status": captured.get("final_http_status"),
                 "viewport": captured.get("viewport"),
-                "viewport_geometry": viewport_geometry,
                 "requested_url": captured.get("requested_url"),
                 "final_url": captured.get("final_url"),
                 "result_status": captured.get("result_status"),
                 "page_title": page_title,
                 "landmarks": landmarks,
                 "controls": controls,
+                "general_links": general_links,
+                "viewport_geometry": viewport_geometry,
+                "document_geometry": document_geometry,
                 "list_no": _parse_list_no(captured.get("final_url") or ""),
                 "download_references": download_references,
                 "attachment_document_extensions": document_extensions,
@@ -549,6 +661,7 @@ def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if "--capture-root" not in args:
         print("usage: build_reference_clone_model.py --capture-root PATH [--check] [--expected-site-id SITE_ID] [--expected-capture-id CAPTURE_ID]")
+        print("  identity (site_id/capture_id) is derived from the canonical capture path when the flags are omitted")
         return 2
     capture_root = Path(args[args.index("--capture-root") + 1])
     repo_root = Path.cwd()
