@@ -183,22 +183,50 @@ def _validate(bundle: Mapping[str, Any]) -> tuple[dict, list, list, list, list]:
     for b in bindings:
         cid = b.get("capability_id") if isinstance(b, dict) else None
         _require(isinstance(cid, str) and cid, "capability_id required")
-        for rid in b.get("route_ids") or []:
+
+        route_ids = b.get("route_ids")
+        _require(
+            isinstance(route_ids, list),
+            f"capability {cid!r} route_ids must be a list, got {type(route_ids).__name__}",
+        )
+        for rid in route_ids:
+            _require(
+                isinstance(rid, str) and rid,
+                f"capability {cid!r} route_id must be a non-empty string",
+            )
             _require(
                 rid in seen_route,
                 f"capability {cid!r} refs unresolved route {rid!r}",
             )
+
         cstate = b.get("candidate_state")
         bstate = b.get("binding_state")
         if cstate in ("configured", "detected"):
+            # A bound capability must actually bind at least one resolved route.
             _require(
                 bstate == "bound",
                 f"capability {cid!r} ({cstate}) must stay bound",
             )
-        if cstate == "review_required":
             _require(
-                bstate != "bound",
-                f"review_required capability {cid!r} cannot be bound",
+                len(route_ids) >= 1,
+                f"capability {cid!r} ({cstate}) bound with no routes",
+            )
+        elif cstate == "review_required":
+            # review_required must never bind and never accept a non-review state.
+            _require(
+                bstate == "review_required",
+                f"review_required capability {cid!r} must keep review_required "
+                f"binding_state, got {bstate!r}",
+            )
+            _require(
+                route_ids == [],
+                f"review_required capability {cid!r} must carry no routes",
+            )
+        else:
+            # Unknown candidate_state vocabulary is not tolerated.
+            _require(
+                False,
+                f"capability {cid!r} has unsupported candidate_state {cstate!r}",
             )
 
     return site_model, routes, documents, actions, bindings

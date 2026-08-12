@@ -349,6 +349,138 @@ def test_reject_falsely_bound_review_required():
         )
 
 
+# --------------------------------------------------------------------------- #
+# Capability binding state contract (ISSUE #1232 fail-closed correction)
+#
+# For candidate_state in {configured, detected}: binding_state must be exactly
+# "bound" and route_ids must hold >= 1 resolved route. For candidate_state
+# "review_required": binding_state must be exactly "review_required" and
+# route_ids must be empty. Any other combination is rejected.
+# --------------------------------------------------------------------------- #
+
+
+def _set_binding(capability_id, **fields):
+    """Mutate one capability binding (matched by capability_id) in a frozen copy."""
+
+    def _fn(b):
+        for cb in b["capability_bindings"]:
+            if cb.get("capability_id") == capability_id:
+                cb.update(fields)
+                break
+        else:
+            b["capability_bindings"].append(
+                {
+                    "capability_id": capability_id,
+                    **fields,
+                }
+            )
+
+    return _fn
+
+
+def test_reject_review_required_with_supported_state():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(_set_binding("directory", binding_state="supported", route_ids=[]))
+        )
+
+
+def test_reject_review_required_with_unbound_state():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(_set_binding("directory", binding_state="unbound", route_ids=[]))
+        )
+
+
+def test_reject_review_required_with_arbitrary_state():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(_set_binding("directory", binding_state="anything", route_ids=[]))
+        )
+
+
+def test_reject_review_required_carrying_route():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding(
+                    "directory", binding_state="review_required", route_ids=["route-000001"]
+                )
+            )
+        )
+
+
+def test_reject_detected_bound_with_empty_routes():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(_set_binding("notice_board", binding_state="bound", route_ids=[]))
+        )
+
+
+def test_reject_detected_bound_document_library_empty_routes():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding("document_library", binding_state="bound", route_ids=[])
+            )
+        )
+
+
+def test_reject_configured_bound_with_empty_routes():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding(
+                    "synthetic_configured",
+                    candidate_state="configured",
+                    binding_state="bound",
+                    route_ids=[],
+                )
+            )
+        )
+
+
+def test_reject_route_ids_string_instead_of_list():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(
+                _set_binding("notice_board", binding_state="bound", route_ids="route-000003")
+            )
+        )
+
+
+def test_reject_route_ids_none_for_detected():
+    with pytest.raises(OfflinePreviewError):
+        build_offline_preview(
+            _mutate(_set_binding("notice_board", binding_state="bound", route_ids=None))
+        )
+
+
+def test_frozen_seogu_capability_bindings_remain_green():
+    r = build_offline_preview(_load_bundle())
+    bindings = {
+        cb["capability_id"]: cb for cb in r["manifest"]["capability_bindings"]
+    }
+    assert bindings["notice_board"] == {
+        "capability_id": "notice_board",
+        "candidate_state": "detected",
+        "binding_state": "bound",
+        "route_ids": ["route-000003"],
+    }
+    assert bindings["document_library"] == {
+        "capability_id": "document_library",
+        "candidate_state": "detected",
+        "binding_state": "bound",
+        "route_ids": ["route-000006"],
+    }
+    assert bindings["directory"] == {
+        "capability_id": "directory",
+        "candidate_state": "review_required",
+        "binding_state": "review_required",
+        "route_ids": [],
+    }
+
+
 def test_reject_live_network_true():
     with pytest.raises(OfflinePreviewError):
         build_offline_preview(
