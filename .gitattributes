@@ -8,6 +8,7 @@ src/web/examples/page-agent/vendor/page-agent.iife.js -text
 # #1160/#1166 official home capture + generated clone fixture are byte-stable
 # checksum identity sources. Keep LF bytes on every OS checkout.
 data/official_captures/bukgu_gwangju/home/** -text
+data/official_captures/seogu_gwangju/** -text
 data/official_clone_fixtures/** -text
 
 # #1177 home asset identity audit report + frozen scan manifest must keep
