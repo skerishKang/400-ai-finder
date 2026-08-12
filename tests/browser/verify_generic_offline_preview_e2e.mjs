@@ -204,25 +204,34 @@ async function main() {
     // ── Browser ─────────────────────────────────────────────────────────────
     const browser = await launchBrowser();
     const externalRequests = [];
+    const interceptedRequests = [];
     const pageErrors = [];
 
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
       reducedMotion: "reduce",
     });
-    const page = await context.newPage();
-    await page.route("**/*", (route) => {
+
+    // Context-wide interception: every page created from this context - the
+    // root page AND every per-route page opened below - is covered. A
+    // page-scoped interceptor would leave later pages unguarded.
+    await context.route("**/*", (route) => {
       const url = route.request().url();
+      interceptedRequests.push(url);
       if (isLocal(url)) route.continue();
       else {
         externalRequests.push(url);
         route.abort();
       }
     });
-    page.on("pageerror", (e) => pageErrors.push("pageerror: " + e.message));
-    page.on("console", (msg) => {
+    context.on("weberror", (e) =>
+      pageErrors.push("weberror: " + e.error().message),
+    );
+    context.on("console", (msg) => {
       if (msg.type() === "error") pageErrors.push("console: " + msg.text());
     });
+
+    const page = await context.newPage();
 
     // ── ROUTE ────────────────────────────────────────────────────────────────
     await page.goto(BASE + "/", { waitUntil: "networkidle", timeout: 15000 });
@@ -257,28 +266,153 @@ async function main() {
       );
     }
 
-    // Links exactly action-graph derived.
-    const linkData = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("a")).map((a) => ({
-        href: a.getAttribute("href"),
-        text: a.textContent.trim(),
-      })),
-    );
-    assert.strictEqual(
-      linkData.length,
-      manifest.action_count,
-      `expected ${manifest.action_count} links, got ${linkData.length}`,
-    );
-    for (const l of linkData) {
-      assert.ok(l.href, "link must have href");
-      assert.ok(l.href.startsWith("routes/"), `unexpected link href: ${l.href}`);
-      assert.ok(l.text.length > 0, "link must have non-empty text");
-      const res = await fetch(BASE + "/" + l.href);
-      assert.strictEqual(res.status, 200, `link target missing: ${l.href}`);
+    // ── NAV GRAPH (generic, per source route) ───────────────────────────────
+    // Each modeled action must render on the page of its own from_route_id,
+    // with an href relative to that page. No root-only assumption: a route
+    // with zero outgoing actions has no nav, a route with modeled outgoing
+    // actions has a nav holding exactly those actions.
+    const bundle = JSON.parse(readFileSync(BUNDLE, "utf-8"));
+    const rootRouteId = bundle.site_model.root_route_id;
+    const outputPathFor = (rid) =>
+      rid === rootRouteId ? "index.html" : `routes/${rid}.html`;
+    const resolveHref = (sourcePath, href) => {
+      const slash = sourcePath.lastIndexOf("/");
+      const base = slash === -1 ? "" : sourcePath.slice(0, slash);
+      const joined = base ? `${base}/${href}` : href;
+      const out = [];
+      for (const seg of joined.split("/")) {
+        if (seg === "" || seg === ".") continue;
+        if (seg === "..") out.pop();
+        else out.push(seg);
+      }
+      return out.join("/");
+    };
+
+    const actionsBySource = new Map();
+    for (const a of bundle.action_graph.actions) {
+      if (!actionsBySource.has(a.from_route_id)) {
+        actionsBySource.set(a.from_route_id, []);
+      }
+      actionsBySource.get(a.from_route_id).push(a);
     }
 
+    const readNav = (p) =>
+      p.evaluate(() => {
+        const navEl = document.querySelector("nav");
+        return {
+          navLinks: navEl
+            ? Array.from(navEl.querySelectorAll("a")).map((a) => ({
+                href: a.getAttribute("href"),
+                text: a.textContent.trim(),
+              }))
+            : null,
+          anchorTotal: document.querySelectorAll("a").length,
+          header: !!document.querySelector("header"),
+          main: !!document.querySelector("main"),
+          footer: !!document.querySelector("footer"),
+        };
+      });
+
+    const navDistribution = {};
+    let renderedLinkTotal = 0;
+    for (const route of bundle.site_model.routes) {
+      const rid = route.route_id;
+      const outPath = outputPathFor(rid);
+      const expected = actionsBySource.get(rid) || [];
+      // pages created from the same context => covered by context.route above
+      const rp = await context.newPage();
+      try {
+        await rp.goto(`${BASE}/${outPath}`, {
+          waitUntil: "networkidle",
+          timeout: 15000,
+        });
+        const observed = await readNav(rp);
+        assert.ok(observed.header, `${rid}: header landmark required`);
+        assert.ok(observed.main, `${rid}: main landmark required`);
+        assert.ok(observed.footer, `${rid}: footer landmark required`);
+
+        if (expected.length === 0) {
+          assert.strictEqual(
+            observed.navLinks,
+            null,
+            `${rid}: route with zero outgoing actions must have no nav`,
+          );
+          assert.strictEqual(
+            observed.anchorTotal,
+            0,
+            `${rid}: route with zero outgoing actions must have no link`,
+          );
+        } else {
+          assert.ok(
+            observed.navLinks,
+            `${rid}: route with ${expected.length} outgoing action(s) needs nav`,
+          );
+          assert.strictEqual(
+            observed.navLinks.length,
+            expected.length,
+            `${rid}: nav links must equal modeled outgoing actions`,
+          );
+          assert.strictEqual(
+            observed.anchorTotal,
+            observed.navLinks.length,
+            `${rid}: anchors outside nav are not modeled`,
+          );
+          for (let i = 0; i < expected.length; i++) {
+            const { href, text } = observed.navLinks[i];
+            const target = outputPathFor(expected[i].to_route_id);
+            assert.ok(href, `${rid}: link must have href`);
+            assert.ok(text.length > 0, `${rid}: link needs accessible name`);
+            assert.ok(!href.includes("\\"), `${rid}: backslash href ${href}`);
+            assert.ok(
+              !href.includes("routes/routes"),
+              `${rid}: doubled dir in href ${href}`,
+            );
+            assert.ok(!href.startsWith("/"), `${rid}: absolute href ${href}`);
+            assert.strictEqual(
+              resolveHref(outPath, href),
+              target,
+              `${rid}: href ${href} on ${outPath} must resolve to ${target}`,
+            );
+            const res = await fetch(`${BASE}/${target}`);
+            assert.strictEqual(res.status, 200, `link target missing: ${target}`);
+          }
+          renderedLinkTotal += observed.navLinks.length;
+        }
+        navDistribution[rid] = expected.length === 0 ? 0 : observed.navLinks.length;
+      } finally {
+        await rp.close();
+      }
+    }
+
+    // 1:1 - every modeled action rendered exactly once, nothing extra.
+    assert.strictEqual(
+      renderedLinkTotal,
+      bundle.action_graph.actions.length,
+      `rendered links ${renderedLinkTotal} != modeled actions ${bundle.action_graph.actions.length}`,
+    );
+    assert.strictEqual(
+      renderedLinkTotal,
+      manifest.action_count,
+      `rendered links ${renderedLinkTotal} != manifest.action_count`,
+    );
+
+    // Frozen Seo-gu fixture parity: its action graph is a root star, so the
+    // generic renderer must place 9 links on root and 0 on every route page.
+    assert.strictEqual(navDistribution[rootRouteId], 9, "root nav must be 9");
+    const nonRootNav = Object.entries(navDistribution).filter(
+      ([rid]) => rid !== rootRouteId,
+    );
+    assert.strictEqual(nonRootNav.length, 9, "expected 9 non-root routes");
+    for (const [rid, count] of nonRootNav) {
+      assert.strictEqual(count, 0, `${rid}: frozen fixture models no outgoing action`);
+    }
+    console.log(
+      `  nav graph: root=${navDistribution[rootRouteId]} links, ` +
+        `non-root=${nonRootNav.map(([, c]) => c).join(",")} ` +
+        `(total ${renderedLinkTotal} = ${manifest.action_count} modeled actions)`,
+    );
+
     // ── CONTENT ──────────────────────────────────────────────────────────────
-    const bundle = JSON.parse(readFileSync(BUNDLE, "utf-8"));
     const byRoute = new Map(
       bundle.site_model.routes.map((r) => [r.route_id, r]),
     );
@@ -338,7 +472,13 @@ async function main() {
       ),
     }));
     assert.ok(landmarks.header, "header landmark required");
-    assert.ok(landmarks.nav, "nav landmark required (root has outgoing actions)");
+    // nav presence is derived from the modeled graph, never assumed.
+    const rootExpectedOutgoing = (actionsBySource.get(rootRouteId) || []).length;
+    assert.strictEqual(
+      landmarks.nav,
+      rootExpectedOutgoing > 0,
+      `root nav presence must match its ${rootExpectedOutgoing} modeled outgoing action(s)`,
+    );
     assert.ok(landmarks.main, "main landmark required");
     assert.ok(landmarks.footer, "footer landmark required");
     assert.strictEqual(landmarks.buttons, 0, "no button allowed");
@@ -356,34 +496,32 @@ async function main() {
     );
 
     // Keyboard Tab reaches a modeled link (summary is focusable first; keep
-    // tabbing until an anchor is focused).
-    await page.evaluate(() => document.body.focus());
-    let focusedTag = "";
-    for (let i = 0; i < 20; i++) {
-      await page.keyboard.press("Tab");
-      focusedTag = await page.evaluate(
-        () => document.activeElement && document.activeElement.tagName,
-      );
-      if (focusedTag === "A") break;
+    // tabbing until an anchor is focused). Only meaningful when the route
+    // actually models outgoing actions.
+    if (rootExpectedOutgoing > 0) {
+      await page.evaluate(() => document.body.focus());
+      let focusedTag = "";
+      for (let i = 0; i < 20; i++) {
+        await page.keyboard.press("Tab");
+        focusedTag = await page.evaluate(
+          () => document.activeElement && document.activeElement.tagName,
+        );
+        if (focusedTag === "A") break;
+      }
+      assert.strictEqual(focusedTag, "A", "Tab must reach a modeled link");
     }
-    assert.strictEqual(focusedTag, "A", "Tab must reach a modeled link");
 
-    // Route page has header/main/footer and NO nav.
-    const routePage = await context.newPage();
-    await routePage.goto(BASE + "/routes/route-000001.html", {
-      waitUntil: "networkidle",
-    });
-    const routeLandmarks = await routePage.evaluate(() => ({
-      header: !!document.querySelector("header"),
-      nav: !!document.querySelector("nav"),
-      main: !!document.querySelector("main"),
-      footer: !!document.querySelector("footer"),
-    }));
-    assert.ok(routeLandmarks.header, "route header required");
-    assert.ok(!routeLandmarks.nav, "route page must NOT have nav");
-    assert.ok(routeLandmarks.main, "route main required");
-    assert.ok(routeLandmarks.footer, "route footer required");
-    await routePage.close();
+    // ── CONTEXT-WIDE INTERCEPTION COVERAGE ──────────────────────────────────
+    // Proof the interceptor is context-scoped, not root-page-scoped: the
+    // context handler observed the document request of every per-route page
+    // created after context.route() was installed.
+    for (const route of bundle.site_model.routes) {
+      const outPath = outputPathFor(route.route_id);
+      assert.ok(
+        interceptedRequests.includes(`${BASE}/${outPath}`),
+        `context interceptor never saw ${outPath}; interception is not context-wide`,
+      );
+    }
 
     // ── RESPONSIVE ───────────────────────────────────────────────────────────
     for (const vp of [
@@ -403,12 +541,21 @@ async function main() {
     }
 
     // ── NETWORK ────────────────────────────────────────────────────────────
+    // Context-wide: covers the root page and every per-route page.
     assert.deepStrictEqual(
       externalRequests,
       [],
       `external requests: ${externalRequests.join(", ")}`,
     );
+    assert.strictEqual(externalRequests.length, 0, "external request count must be 0");
+    for (const url of interceptedRequests) {
+      assert.ok(isLocal(url), `non-loopback request slipped through: ${url}`);
+    }
     assert.deepStrictEqual(pageErrors, [], `page errors: ${pageErrors.join("\n")}`);
+    console.log(
+      `  network: ${interceptedRequests.length} intercepted (all loopback), ` +
+        `${externalRequests.length} external`,
+    );
 
     await browser.close();
     console.log("Generic offline preview E2E passed.");

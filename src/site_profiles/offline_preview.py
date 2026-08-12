@@ -15,14 +15,21 @@ It does NOT render a visual-fidelity or golden-parity preview; it renders only
 the structure (route tree, navigation graph, document inventory, capability
 state). All bundle-controlled strings are HTML-escaped. No JavaScript, no
 inline handlers, no external assets, no fabricated content.
+
+Navigation is rendered generically: every modeled ``navigate`` action is
+rendered on the page of its ``from_route_id`` (never assumed to originate from
+the root route), and its href is computed relative to that source page's own
+output path. Routes with no outgoing action render no ``<nav>`` at all.
 """
 
 from __future__ import annotations
 
 import html
+import posixpath
 import re
+from collections.abc import Mapping
 from copy import deepcopy
-from typing import Any, Mapping
+from typing import Any
 
 PREVIEW_VERSION = "1.0.0"
 SUPPORTED_BUNDLE_VERSION = "1.0.0"
@@ -40,6 +47,17 @@ _PRODUCTION_PROMOTION_REQUESTED = "production_promotion_requested"
 _ACTUAL_SITE_CONTROL_AUTHORIZED = "actual_site_control_authorized"
 _LIVE_NETWORK_AUTHORIZED = "live_network_authorized"
 
+# Exact nested qa_manifest values required to build an offline preview.
+# Strict: the value must be the *identical* boolean singleton, so truthy
+# stand-ins (1, "true", []) are rejected as wrong type.
+REQUIRED_QA_MANIFEST_FLAGS: tuple[tuple[str, bool], ...] = (
+    (_OFFLINE_PREVIEW_INPUT_READY, True),
+    (_PRODUCTION_READY, False),
+    (_PRODUCTION_PROMOTION_REQUESTED, False),
+    (_ACTUAL_SITE_CONTROL_AUTHORIZED, False),
+    (_LIVE_NETWORK_AUTHORIZED, False),
+)
+
 
 class OfflinePreviewError(Exception):
     """Raised when an offline preview cannot be built fail-closed."""
@@ -56,20 +74,42 @@ def _esc(value: Any) -> str:
     return html.escape(str(value), quote=True)
 
 
-def _qa_flag(bundle: Mapping[str, Any], name: str, *, default: Any = None) -> Any:
-    """Resolve a qa_manifest flag, falling back to a top-level key."""
-    qa = bundle.get("qa_manifest") if isinstance(bundle, dict) else None
-    if isinstance(qa, dict) and qa.get(name) is not None:
-        return qa.get(name)
-    if isinstance(bundle, dict) and bundle.get(name) is not None:
-        return bundle.get(name)
-    return default
+def _validate_qa_manifest(bundle: Mapping[str, Any]) -> None:
+    """Require the nested qa_manifest gate flags, with no top-level fallback.
+
+    ``bundle["qa_manifest"]`` must be a mapping carrying every required flag
+    with the exact expected boolean. A missing or wrongly typed nested value is
+    rejected even when an identically named top-level key would satisfy it: a
+    top-level duplicate must never rescue a missing qa_manifest value.
+    """
+    qa = bundle.get("qa_manifest")
+    _require(
+        isinstance(qa, Mapping),
+        f"qa_manifest must be a mapping, got {type(qa).__name__}",
+    )
+    for name, expected in REQUIRED_QA_MANIFEST_FLAGS:
+        _require(name in qa, f"qa_manifest.{name} required")
+        value = qa[name]
+        _require(
+            value is expected,
+            f"qa_manifest.{name} must be exactly {expected}, got {value!r}",
+        )
 
 
 def _output_path(root_route_id: str, route_id: str) -> str:
     if route_id == root_route_id:
         return OUTPUT_INDEX
     return f"{ROUTES_DIR}/{route_id}.html"
+
+
+def _relative_href(from_output_path: str, to_output_path: str) -> str:
+    """Href for ``to_output_path`` relative to the page at ``from_output_path``.
+
+    Deterministic, POSIX-only string math (``posixpath``), so generated hrefs
+    always use ``/`` and never depend on the host filesystem separator.
+    """
+    start = posixpath.dirname(from_output_path) or "."
+    return posixpath.relpath(to_output_path, start)
 
 
 # --------------------------------------------------------------------------- #
@@ -89,26 +129,7 @@ def _validate(bundle: Mapping[str, Any]) -> tuple[dict, list, list, list, list]:
     site_id = bundle.get("site_id")
     _require(isinstance(site_id, str) and site_id, "site_id required and non-empty")
 
-    _require(
-        _qa_flag(bundle, _OFFLINE_PREVIEW_INPUT_READY) is True,
-        "offline_preview_input_ready must be true",
-    )
-    _require(
-        _qa_flag(bundle, _PRODUCTION_READY) is False,
-        "production_ready must be false",
-    )
-    _require(
-        _qa_flag(bundle, _PRODUCTION_PROMOTION_REQUESTED) is False,
-        "production_promotion_requested must be false",
-    )
-    _require(
-        _qa_flag(bundle, _ACTUAL_SITE_CONTROL_AUTHORIZED) is False,
-        "actual_site_control_authorized must be false",
-    )
-    _require(
-        _qa_flag(bundle, _LIVE_NETWORK_AUTHORIZED) is False,
-        "live_network_authorized must be false",
-    )
+    _validate_qa_manifest(bundle)
 
     site_model = bundle.get("site_model") or {}
     _require(isinstance(site_model, dict), "site_model required")
@@ -211,13 +232,25 @@ def _render_footer() -> str:
     )
 
 
-def _render_nav(actions: list, route_by_id: dict) -> str:
+def _render_nav(
+    outgoing: list,
+    route_by_id: dict,
+    root_route_id: str,
+    source_output_path: str,
+) -> str:
+    """Render the nav for exactly the outgoing actions of one source route.
+
+    ``outgoing`` must already be filtered to actions whose ``from_route_id`` is
+    the route that owns ``source_output_path``. Each href is relative to that
+    source page, so a non-root source page links siblings as
+    ``<route-id>.html`` and the root as ``../index.html``.
+    """
     links = []
-    for a in actions:
+    for a in outgoing:
         target = a.get("to_route_id")
         rt = route_by_id.get(target) or {}
         text = rt.get("title") or target
-        href = _output_path(route_by_id.get("_root_"), target)
+        href = _relative_href(source_output_path, _output_path(root_route_id, target))
         links.append(f'<li><a href="{_esc(href)}">{_esc(text)}</a></li>')
     return f"<nav><ul>{''.join(links)}</ul></nav>"
 
@@ -305,11 +338,16 @@ def build_offline_preview(bundle: Mapping[str, Any]) -> dict:
     site_id = bundle["site_id"]
     root_route_id = site_model["root_route_id"]
     route_by_id = {r["route_id"]: r for r in routes}
-    route_by_id["_root_"] = root_route_id
 
     source_refs = list(
         ((bundle.get("provenance") or {}).get("source_refs") or [])
     )
+
+    # Generic navigation graph: every action is rendered on the page of its own
+    # from_route_id, in modeled order. No root-only assumption.
+    actions_by_source: dict[str, list] = {}
+    for a in actions:
+        actions_by_source.setdefault(a["from_route_id"], []).append(a)
 
     pages: dict[str, str] = {}
     route_entries = []
@@ -317,17 +355,22 @@ def build_offline_preview(bundle: Mapping[str, Any]) -> dict:
         rid = r["route_id"]
         out = _output_path(root_route_id, rid)
         route_entries.append({"route_id": rid, "output_path": out})
+
+        outgoing = actions_by_source.get(rid, [])
+        nav = (
+            _render_nav(outgoing, route_by_id, root_route_id, out)
+            if outgoing
+            else None
+        )
+
         if rid == root_route_id:
             body = _render_root_main(bindings)
-            nav = _render_nav(actions, route_by_id) if actions else None
-            pages[out] = _render_page(
-                site_id=site_id, source_refs=source_refs, body=body, nav=nav
-            )
         else:
             body = _render_document_main(r)
-            pages[out] = _render_page(
-                site_id=site_id, source_refs=source_refs, body=body
-            )
+
+        pages[out] = _render_page(
+            site_id=site_id, source_refs=source_refs, body=body, nav=nav
+        )
 
     manifest = {
         "preview_version": PREVIEW_VERSION,
