@@ -6,6 +6,7 @@
 - active onboarding validation: #1232
 - completed generic-contract foundation: #1287
 - historical foundation: #1225, #1228, #1229, #1230
+- Buk-gu exact invariant: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md)
 
 ## 1. 현재 문제와 구현 사실
 
