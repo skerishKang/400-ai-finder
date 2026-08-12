@@ -5,17 +5,21 @@
 ## Change mode
 
 - [ ] Shared core / product change
-- [ ] Routine site onboarding
+- [ ] Platform structural proof
+- [ ] Named-site clone onboarding
 - [ ] Onboarding exception escalation
-- [ ] Golden / production promotion
+- [ ] Exact / golden / resident-default promotion
+- [ ] Authorized first-party actual-site integration
 - [ ] Docs / governance only
 
 ## Related issue
 
 - Closes / Tracks #
-- Routine onboarding with no shared-core change may use `N/A` with a reason when the governing onboarding contract permits it.
+- Routine onboarding with no shared-core change may use `N/A` only when the governing onboarding contract permits it and the reason is stated.
 
 ## Product track
+
+Canonical Buk-gu exact-clone invariant: `docs/product/exact-official-site-clone-invariant.md`.
 
 - [ ] Buk-gu golden clone
 - [ ] 근거 기반 AI 시민안내
@@ -23,26 +27,38 @@
 - [ ] Python crawler·operator runtime
 - [ ] Cloudflare citizen runtime
 - [ ] Page Agent comparison
-- [ ] Multi-site / general-site platform
-- [ ] Routine site onboarding
-- [ ] Authorized first-party integration
+- [ ] Multi-site / general-site clone platform
+- [ ] Named-site clone onboarding
+- [ ] Platform structural proof
+- [ ] Authorized first-party actual-site integration
 - [ ] Repository·documentation governance
 
 ## Release / readiness gate
 
 - [ ] Gate A — Frozen controlled demo
-- [ ] Gate B — Protected public pilot
+- [ ] Gate B — Protected public AI pilot
 - [ ] Gate C — Evidence-safe AI pilot
 - [ ] Gate D — Unified platform foundation
 - [ ] Gate E — Modular runtime
 - [ ] Gate F — Official freshness staging
-- [ ] Gate G1 — Generated onboarding preview
-- [ ] Gate G2 — Archetype golden validation
-- [ ] Gate G3 — Resident/default or production promotion
-- [ ] Gate H — Authorized operational integration
+- [ ] Gate G0 — Generic structural/platform proof
+- [ ] Gate G1 — Named-site reference baseline
+- [ ] Gate G2 — Faithful clone candidate
+- [ ] Gate G3 — Clone MVP review/readiness
+- [ ] Gate G4 — AI-on-clone onboarding proof
+- [ ] Gate G5 — Optional exact/archetype-golden/resident-default promotion
+- [ ] Gate H — Authorized first-party actual-site integration
 - [ ] No promotion
 
-`generated_preview` is not the same state as `exact`, `archetype_golden`, `resident_default_approved`, or production approval.
+```text
+structural preview
+!= reference baseline
+!= faithful clone
+!= clone MVP ready
+!= exact
+!= resident/default approved
+!= actual-site integrated
+```
 
 ## Scope
 
@@ -60,56 +76,83 @@
 - Head branch / SHA:
 - Changed files:
 
-## Network and provider mode
+## Current product-stage statement
+
+- [ ] This PR remains in pre-integration clone-MVP scope.
+- [ ] This PR explicitly opens future Gate H actual-site integration scope.
+- [ ] Not applicable.
+
+If Gate H is not selected, do not introduce actual production-site operation requirements as an unrelated blocker to faithful-clone fidelity work.
+
+## Network / reference mode
 
 - [ ] Offline / mock
 - [ ] Fixture only
-- [ ] Controlled read-only live
+- [ ] Controlled read-only reference capture
 - [ ] Provider staging
 - [ ] Production integration
 
-External targets, methods and limits:
+External targets, methods, route/state limits and capture scope:
 
-**URL supplied != live network authorized.** If a target URL is present, state separately whether any live capture/fetch/provider call was authorized and executed.
+Tool/CLI network capability and project-task capture scope are separate facts. State what was actually executed.
 
-## Data, privacy and secrets
+## Data, privacy, secrets and confidentiality
 
 - [ ] No API key·token·credential committed
-- [ ] No raw citizen transcript or PII
-- [ ] No customer·institution private data
-- [ ] Test data is synthetic or approved public fixture
-- [ ] New fixture/asset includes source, date, checksum and provenance
-- [ ] Logs and errors are sanitized
+- [ ] No raw citizen transcript or unredacted PII
+- [ ] No customer·institution private material
+- [ ] No confidential stakeholder/business relationship detail in public repo
+- [ ] Test data is synthetic or approved reference fixture
+- [ ] Logs/errors are sanitized
 
-## Safety impact
+## Named-site clone report
 
-- [ ] No actual submit
-- [ ] No login·payment
-- [ ] No production write action
-- [ ] Model actions·URLs are validated by closed schema/allowlist when applicable
-- [ ] High-risk administrative claims meet evidence policy when applicable
-- [ ] Rate limit·timeout·cost effect reviewed when applicable
+<!-- Required for Named-site clone onboarding. Otherwise `N/A — reason`. -->
 
-## Routine onboarding report
-
-<!-- Required for Routine site onboarding. Otherwise `N/A — reason`. -->
-
-- Input site / URL / site_id:
+- Target site / site_id:
+- Declared MVP clone scope:
+- Representative routes/states/viewports:
+- Reference capture mode:
+- Source URLs:
+- `captured_at`:
+- `source_updated_at` where available:
+- Reference snapshot identity / checksum:
+- Reference DOM/content/screenshot artifact identity:
 - Proposed/detected archetype:
 - Archetype confidence:
 - Detected capabilities:
 - Unsupported / uncertain capabilities:
+- Clone candidate identity:
+- Clone generator/source commit identity:
+- Structural parity state:
+- Content parity state:
+- Asset mapping / unresolved asset state:
+- Interaction parity state:
+- Responsive/accessibility state:
+- Visual comparison state:
+- Material differences / unresolved items:
+- AI-on-clone state:
 - Automation ratio:
 - Human-review ratio:
 - Unsupported ratio:
-- Generated artifacts:
 - Exception queue summary:
-- Provenance/acquisition mode:
 - Shared core changed: `YES / NO`
 - Site-specific override(s):
-- Production promotion requested: `YES / NO`
+- Exact/default promotion requested: `YES / NO`
+- Actual-site integration requested: `YES / NO`
 
-If `shared core changed: YES`, the relevant shared-core Issue, contracts, tests and migration impact are mandatory. Do not hide a reusable engine fix inside a routine onboarding PR.
+If `shared core changed: YES`, the relevant shared-core Issue, contracts, tests and migration impact are mandatory.
+
+## Platform structural proof report
+
+<!-- Required for Gate G0 / platform structural proof. -->
+
+- Fixture type: `synthetic / offline real-site-derived fixture / other`
+- SiteSpec/archetype/capability artifacts:
+- Site Model artifacts:
+- Structural preview artifacts:
+- QA/report artifacts:
+- Explicit statement that no named-site faithful-clone claim is made:
 
 ## Golden compatibility
 
@@ -118,16 +161,16 @@ If `shared core changed: YES`, the relevant shared-core Issue, contracts, tests 
 - [ ] DOM IDs·data state·public window APIs preserved
 - [ ] Canonical fixture identity preserved
 - [ ] No-submit boundary preserved
-- [ ] Resident-default visual approval supplied when applicable
-- [ ] Generated preview only; no golden/default promotion claimed
+- [ ] Exact/golden promotion evidence supplied when applicable
+- [ ] No exact/default promotion claimed
 - [ ] Not applicable
 
 ## Validation
 
-### Commands
+### Commands / checks
 
 ```text
-# exact commands
+# exact commands/checks
 ```
 
 ### Results
@@ -137,20 +180,30 @@ If `shared core changed: YES`, the relevant shared-core Issue, contracts, tests 
 - Build:
 - Browser:
 - Accessibility / responsive:
+- Reference-vs-clone QA:
 - Generated onboarding QA:
 - Page Agent / comparison:
 
 ## Browser and visual evidence
 
-- Surface state: `generated_preview / archetype_golden / resident_default / N/A`
+- Surface state: `structural_preview / reference_baseline / clone_candidate / clone_mvp_ready / exact / resident_default / N/A`
 - Viewports:
 - Routes / states:
 - Automated visual/browser evidence:
-- Side-by-side accepted reference:
+- Side-by-side source reference:
 - Material differences / unresolved items:
-- Project-owner visual approval:
+- Project-owner visual review where applicable:
 
-For Gate G1 generated preview, project-owner first-promotion visual approval is not required because no resident-default/exact promotion is granted. For Gate G2/G3 or explicit exact/golden promotion, follow the applicable visual policy.
+Automated browser/screenshot QA does not by itself convert a structural preview into a faithful clone or an exact/default promotion.
+
+## AI-on-clone evidence
+
+- Resident tasks / simulations:
+- Search / click / navigate / read behavior:
+- Answer grounding / source behavior:
+- Model-assisted fallback behavior when applicable:
+- Wrong-action / failure evidence:
+- Known limitations:
 
 ## API and schema
 
@@ -160,6 +213,22 @@ For Gate G1 generated preview, project-owner first-promotion visual approval is 
 - Failure codes:
 - Timeout/retry/model-fallback/provider-fallback:
 - Request ID/telemetry:
+
+## Actual-site integration — Gate H only
+
+<!-- Leave N/A unless the institution has actually opened the first-party integration phase. -->
+
+- Institutional authorization / operating scope:
+- Deployment/hosting owner:
+- Credentials/secret owner:
+- Information-security scope:
+- Privacy/PII scope:
+- Authentication/submission/payment/write scope:
+- Internal-system integration:
+- Monitoring/incident/support owner:
+- Staging/rollback:
+
+These Gate H items are future production requirements and are not mandatory fields for ordinary pre-integration clone-MVP work.
 
 ## Migration and compatibility
 
@@ -172,17 +241,17 @@ For Gate G1 generated preview, project-owner first-promotion visual approval is 
 
 - [ ] No deployment impact
 - [ ] Preview/debug only
+- [ ] Controlled stakeholder clone surface
+- [ ] Production integration
 - Environment:
 - Deployment method:
 - Expected deployed SHA:
 - Secrets owner:
 - Smoke plan:
 
-Generated preview creation is not production deployment approval.
+Clone-MVP generation/demonstration is not actual-site integration approval.
 
 ## Rollback / isolation
-
-<!-- Shared core/product change: rollback target. Routine onboarding: failed-site isolation/removal path. -->
 
 -
 
@@ -190,15 +259,24 @@ Generated preview creation is not production deployment approval.
 
 -
 
-Only reusable capability gaps, shared runtime/parser/compiler bugs, safety issues, repeating failure patterns and production blockers should normally be escalated into separate Issues. Do not create one Issue per routine site-specific difference by default.
-
 ## Pre-merge exact-head check
 
-- [ ] PR head SHA rechecked
+- [ ] Remote `main` FULL SHA rechecked
+- [ ] Open PR / relevant issue state rechecked
+- [ ] PR exact head SHA rechecked
 - [ ] Base / behind state rechecked
+- [ ] Exact changed filenames and diff rechecked
 - [ ] Exact-head CI complete for required checks
 - [ ] Mergeability rechecked
-- [ ] Reviews and unresolved threads rechecked
-- [ ] Changed filenames rechecked
-- [ ] No unexpected artifacts, secrets or PII
-- [ ] Generated preview does not overclaim exact/golden/production status
+- [ ] Comments, reviews and unresolved threads rechecked
+- [ ] No unexpected artifacts, secrets, PII or private customer data
+- [ ] No structural-preview / clone / exact / actual-site status overclaim
+- [ ] Head unchanged since readiness review
+
+## Merge rule
+
+- [ ] Squash merge only
+- [ ] Exact current head supplied as `expected_head_sha` / equivalent lease
+- [ ] No direct push to `main`
+- [ ] No rebase/amend/force-push without explicit project-owner approval
+- [ ] No assertion/skip/xfail/coverage weakening to obtain green CI

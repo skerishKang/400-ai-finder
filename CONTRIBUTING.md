@@ -1,17 +1,24 @@
 # Contributing to 400 AI Finder
 
-이 저장소는 Buk-gu golden reference, 공식 fixture, 시민 UI, Cloudflare AI API, crawler/index, 다국어, Page Agent 비교와 앞으로의 general-site AI Browser platform을 함께 관리한다.
+이 저장소는 Buk-gu golden reference, 공식 fixture, 시민 UI, Cloudflare AI API, crawler/index, 다국어, Page Agent 비교와 general-site AI Browser platform을 함께 관리한다.
 
-핵심 원칙은 두 가지다.
+현재 ordinary pre-integration 제품 lifecycle은 [`docs/product/clone-first-general-site-platform-strategy.md`](docs/product/clone-first-general-site-platform-strategy.md)를 따른다.
 
-1. **shared core·golden·safety 변경은 엄격하게 검증한다.**
-2. **routine site onboarding은 모든 사이트 차이를 bespoke feature issue로 만들지 않는다.** 자동 생성 결과와 exception을 우선하고, 공통 재사용 가치가 있는 gap만 core issue로 승격한다.
+Buk-gu golden 및 명시적 `exact` claim의 canonical invariant는 [`docs/product/exact-official-site-clone-invariant.md`](docs/product/exact-official-site-clone-invariant.md)를 따른다.
+
+핵심 원칙:
+
+1. **현재 제품은 faithful clone MVP + AI Finder/Browser on the clone이다.**
+2. **실제 기관 production-site integration은 기관 승인 후 미래 단계다.**
+3. **shared core·golden·safety 변경은 엄격하게 검증한다.**
+4. **generic structural proof와 named-site faithful clone proof를 혼동하지 않는다.**
+5. **routine site onboarding은 모든 사이트 차이를 bespoke feature issue로 만들지 않는다.** 공통 재사용 가치가 있는 gap만 core issue로 승격한다.
 
 ## 1. 작업 유형을 먼저 분류한다
 
 ### Type A — Shared Core / Product Change
 
-다음은 기존처럼 Issue first가 필수다.
+다음은 Issue first가 필수다.
 
 - shared runtime / provider / evidence / safety
 - SiteSpec/schema/runtime vocabulary
@@ -29,47 +36,79 @@ Issue에는 최소 다음을 포함한다.
 - 문제와 사용자 영향
 - product track
 - include/exclude scope
-- 안전·개인정보·network 영향
 - acceptance criteria
 - test/evidence 계획
 - migration/rollback
 
-### Type B — Routine Site Onboarding
+### Type B — Named Site Onboarding
 
-공통 onboarding pipeline이 존재한 이후, 새 사이트를 분석·생성하는 작업 자체는 매번 bespoke feature issue를 요구하지 않는 것을 목표로 한다.
+실제 이름을 가진 기관을 onboard하는 작업은 **reference-first**다.
 
-Routine onboarding은 다음을 하나의 reviewable onboarding report/PR bundle로 남길 수 있다.
+필수 순서:
 
-- input URL/SiteSpec identity
-- network/acquisition mode
-- detected archetype + confidence
+```text
+declared MVP scope
+  -> point-in-time reference baseline
+  -> faithful clone candidate
+  -> source-vs-clone comparison
+  -> clone MVP ready
+  -> AI-on-clone validation
+```
+
+Routine onboarding PR/report는 최소 다음을 남긴다.
+
+- input URL / site identity
+- declared clone scope
+- reference capture mode
+- source URLs
+- `captured_at` / source update time where available
+- reference snapshot identity
+- representative DOM/content/screenshot evidence identity
+- proposed/detected archetype + confidence
 - detected capabilities + confidence
-- generated Site Model/knowledge/action/browser artifacts
+- clone candidate identity
+- structural/content parity state
+- asset mapping / unresolved asset state
+- interaction state
+- visual comparison state
+- AI-on-clone state
 - automation / review / unsupported ratio
 - exception queue
 - provenance
 - `shared_core_changed: yes|no`
-- production promotion 여부
+- actual-site integration requested: `yes|no` (normally `no` during clone MVP)
 
-`shared_core_changed: no`이고 generated preview만 만드는 경우, 단순 site-specific override나 low-confidence content 하나하나를 별도 Issue로 만들 필요는 없다.
+`shared_core_changed: no`이고 site-specific reviewed override만 있는 경우 모든 차이를 별도 feature issue로 만들 필요는 없다.
 
-### Type C — Exception Escalation
+### Type C — Platform Structural Proof
 
-Routine onboarding exception 중 다음은 별도 Issue로 승격한다.
+Synthetic/offline fixture로 SiteSpec, archetype/capability, generic Site Model, structural renderer, knowledge/action contract, QA/report machinery를 검증할 수 있다.
+
+이 모드는 실제 사이트 reference capture 없이 가능하지만:
+
+```text
+structural preview != named-site faithful clone
+```
+
+이다.
+
+### Type D — Exception Escalation
+
+다음은 별도 Issue로 승격한다.
 
 - 다른 사이트에도 재사용되는 capability가 없음
 - shared parser/runtime/compiler bug
 - archetype contract gap
-- security/privacy/evidence/safety 문제
+- security/evidence/safety 문제
 - 반복되는 onboarding failure pattern
 - production promotion blocker
 - breaking migration 필요
 
-사이트 하나에서만 발생하는 명시적 reviewed override는 공통 issue보다 onboarding artifact/config로 남기는 것을 우선한다.
-
 ## 2. 브랜치와 worktree
 
-Shared core와 문서/정책 변경은 `main`에서 전용 branch를 만든다.
+**`main` 직접 push는 금지한다. 문서 수정도 동일하다.**
+
+모든 repository 변경은 current `main`에서 전용 branch를 만든다.
 
 권장:
 
@@ -84,7 +123,7 @@ docs/<issue>-<scope>
 
 동시 작업은 별도 worktree를 사용한다. 다른 active branch의 파일을 섞지 않는다.
 
-Routine onboarding의 branch/PR 자동화 방식은 해당 pipeline이 구현될 때 별도 contract로 고정한다. 현재 존재하지 않는 자동화를 구현된 것처럼 주장하지 않는다.
+Rebase, amend, force-push는 project owner가 명시적으로 승인하지 않는 한 사용하지 않는다.
 
 ## 3. Product track 표시
 
@@ -96,65 +135,84 @@ PR에서 하나 이상 선택한다.
 - Python crawler·operator runtime
 - Cloudflare citizen runtime
 - Page Agent comparison
-- multi-site / general-site platform
-- routine site onboarding
-- authorized first-party integration
+- multi-site / general-site clone platform
+- named-site clone onboarding
+- platform structural proof
+- authorized first-party actual-site integration
 - repository·documentation governance
 
 트랙별 경계는 `docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md`를 따른다.
 
 ## 4. Release / readiness gate 표시
 
-PR이 목표로 하는 Gate를 명시한다.
-
 - Gate A: frozen controlled demo
-- Gate B: protected public pilot
+- Gate B: protected public AI pilot
 - Gate C: evidence-safe AI pilot
 - Gate D: unified platform foundation
 - Gate E: modular runtime
 - Gate F: official freshness staging
-- Gate G1: generated onboarding preview
-- Gate G2: archetype golden validation
-- Gate G3: resident/default or production promotion
-- Gate H: authorized operational integration
+- Gate G0: generic structural/platform proof
+- Gate G1: named-site reference baseline
+- Gate G2: faithful clone candidate
+- Gate G3: clone MVP review/readiness
+- Gate G4: AI-on-clone onboarding proof
+- Gate G5: optional exact/archetype-golden/resident-default promotion
+- Gate H: authorized first-party actual-site integration
 - No promotion
 
-`generated_preview`는 `exact`, `archetype_golden`, `resident_default_approved`, `production approved`와 같은 상태가 아니다.
+상태를 서로 대체어로 사용하지 않는다.
 
-## 5. Data·secret·개인정보
+## 5. Current clone MVP vs future actual-site
+
+Current pre-integration development의 기본 surface는 repository-controlled clone이다.
+
+- left-side clone fidelity는 제품 요구사항이다.
+- generic renderer를 사용한다는 이유로 화면을 generic-looking redesign으로 바꾸지 않는다.
+- MVP scope는 작게 선언할 수 있지만, scope 안의 reference를 임의 재설계하지 않는다.
+- scope 밖은 fabricate하지 않고 exception/`capture_required`로 남긴다.
+
+Actual institution production site는 기관이 실제 운영·통합 권한을 부여한 뒤 Gate H에서 다룬다.
+
+그때 actual environment를 기준으로 information security, privacy/PII, authentication, submissions/payment/write actions, internal systems, deployment/incident/rollback을 정의한다.
+
+**Future Gate H production requirements를 현재 Gate G faithful-clone fidelity의 임의 선행 blocker로 추가하지 않는다.**
+
+## 6. Data·secret·비공개정보
 
 커밋 금지:
 
 - API key·token·credential
 - `.env`
 - raw citizen transcript
-- 주민번호·전화·이메일·상세주소 등 PII
+- unredacted PII
 - 고객·기관 비공개자료
 - production logs
 - 내부 URL·account ID
-- unreviewed screenshots with private data
+- private stakeholder/business facts
 
 테스트는 합성·익명화 fixture를 사용한다.
 
-공식 공개 fixture도 source URL, capture/verified time, checksum과 usage 목적을 기록한다. 공개되어 있다는 사실과 재배포 권리는 별개다.
+공식 reference fixture는 source URL, capture time, checksum/provenance identity를 기록한다.
 
-## 6. Network mode
+Public/open-source redistribution 판단은 controlled faithful-clone fidelity와 별도다. #1234 같은 owner/rights decision을 current clone MVP의 일반 기능·fidelity blocker로 자동 해석하지 않는다.
+
+## 7. Network / reference capture mode
 
 PR/onboarding report에 하나를 명시한다.
 
 - `offline/mock`
 - `fixture-only`
-- `controlled read-only live`
+- `controlled read-only reference capture`
 - `provider staging`
 - `production integration`
 
 routine CI는 외부 network·provider를 호출하지 않는다.
 
-**URL supplied != live network authorized.** URL이 입력되었다는 사실만으로 crawl/provider/live fetch가 승인되는 것은 아니다.
+Named-site reference capture를 수행했다면 target, scope, method, route/state limits, output identity를 기록한다.
 
-live test가 필요하면 target·method·limit·credentials owner·output sanitization·cleanup·approval을 기록한다.
+Tool/CLI가 live HTTP를 수행할 능력이 있다는 사실과 해당 project task의 capture scope는 별도 기록사항이다.
 
-## 7. Buk-gu golden 보호
+## 8. Buk-gu golden 보호
 
 다음은 frozen contract다.
 
@@ -168,52 +226,35 @@ live test가 필요하면 target·method·limit·credentials owner·output sanit
 
 변경 전 dedicated migration issue와 compatibility 계획이 필요하다.
 
-Buk-gu golden과 향후 explicit exact/archetype-golden/production promotion surface는 applicable exact/visual 정책을 따른다.
+Buk-gu golden과 향후 explicit `exact` promotion surface는 applicable exact/visual 정책을 따른다.
 
-반대로 `generated_preview`는 명시적으로 non-default/non-exact 상태로 존재할 수 있으며, unresolved/low-confidence 항목을 exception으로 표시해야 한다. Generated preview가 resident-default를 자동으로 통제해서는 안 된다.
-
-## 8. API·AI 변경
-
-확인사항:
-
-- request validation
-- input byte·length limit
-- provider timeout
-- rate limit·cost effect
-- failure code
-- API schema version
-- source·freshness metadata
-- high-risk claim evidence
-- locale assessment
-- model/provider fallback·retry budget
-- tool/browser action bounds when applicable
-- secret·raw error sanitization
-- kill switch·rollback
-
-model output의 action·URL·JSON을 신뢰하지 않고 closed schema·allowlist로 검증한다.
-
-## 9. Site·crawler·onboarding 변경
+## 9. Site / clone onboarding 변경
 
 확인사항:
 
 - canonical site ID·legacy alias
-- target domain allowlist
-- robots·crawl budget
-- include·deny·protected patterns
-- redirect·final URL policy
-- attachment type
-- source provenance
-- duplicate·stale handling
-- live opt-in
-- detected/proposed archetype
-- detected capabilities
+- declared MVP clone scope
+- reference source URLs
+- reference snapshot identity
+- captured_at / source_updated_at where available
+- target domain declarations
+- route/state/viewport inventory
+- archetype / capabilities
+- generic Site Model identity
+- clone candidate identity
+- structural/content parity
+- asset mapping / unresolved assets
+- interaction parity
+- responsive/accessibility state
+- visual comparison
+- AI-on-clone state
 - confidence / unsupported / exception reporting
 
-새 기관은 bespoke renderer보다 SiteSpec·data·theme·parser profile·shared capability를 우선한다. Shared core에 `if site_id == ...`가 누적되는 변경은 별도 설계 근거를 요구한다.
+새 기관은 bespoke renderer보다 SiteSpec·data·theme·parser profile·shared capability를 우선한다. 하지만 공통 renderer가 target site's visible identity를 지우는 이유가 되어서는 안 된다.
 
 ## 10. UI / Browser 변경
 
-Core/golden/production UI 변경에서 applicable evidence:
+Applicable evidence:
 
 - desktop
 - mobile
@@ -225,13 +266,33 @@ Core/golden/production UI 변경에서 applicable evidence:
 - cancellation
 - browser back/forward
 - error·loading·empty states
-- action visibility / interruption / takeover when Browser Use is in scope
+- Browser Use action visibility / interruption / takeover
 
-Buk-gu golden clone UI와 explicit promotion surface는 applicable accepted reference/visual policy를 따른다.
+Named-site clone에서는 accepted source reference와 비교한다.
 
-Generated onboarding preview는 자동 screenshot/browser QA를 사용할 수 있으나 그것만으로 project-owner visual approval이나 production promotion을 주장하지 않는다.
+Automated screenshot/browser QA는 evidence이지만 그 자체가 faithful-clone 또는 exact approval을 자동 부여하지 않는다.
 
-## 11. Refactor
+## 11. API·AI 변경
+
+확인사항:
+
+- request validation
+- input byte·length limit
+- provider timeout
+- rate limit·cost effect when public operation is in scope
+- failure code
+- API schema version
+- source·freshness metadata
+- high-risk claim evidence
+- locale assessment
+- model/provider fallback·retry budget
+- tool/browser action bounds
+- secret·raw error sanitization
+- kill switch·rollback when applicable
+
+model output의 action·URL·JSON을 신뢰하지 않고 closed schema·allowlist로 검증한다.
+
+## 12. Refactor
 
 구조분리와 behavior change를 한 PR에 섞지 않는다.
 
@@ -242,9 +303,9 @@ Generated onboarding preview는 자동 screenshot/browser QA를 사용할 수 �
 - generated artifact 여부 명시
 - behavior-equivalence evidence
 
-단, deferred refactor를 단순히 깔끔함을 위해 multi-site progress의 선행 blocker로 만들지 않는다. 실제 유지보수/플랫폼 필요와 연결한다.
+단순 코드정리를 faithful-clone 진행의 선행 blocker로 만들지 않는다.
 
-## 12. Test
+## 13. Test
 
 Shared core/product 변경의 기본 검증:
 
@@ -255,20 +316,22 @@ npm ci --ignore-scripts
 
 PR scope에 따라 repository workflow의 관련 browser·Function·build contract를 실행한다.
 
-Routine onboarding은 향후 onboarding pipeline이 정의한 generated QA + exception report를 우선하며, shared core가 변경되면 해당 core contract도 함께 실행한다.
+Named-site onboarding은 generated QA 외에도 reference/clone comparison evidence를 요구한다.
 
 금지:
 
 - assertion 약화
 - skip·xfail로 회귀 숨김
-- 일부 scenario 선택 누락으로 성공률 부풀리기
+- coverage threshold 하향
+- 일부 scenario 누락으로 성공률 부풀리기
 - unsupported/low-confidence item 숨김
+- structural preview를 faithful clone으로 표현
 - model-only visual approval
 - live test 결과를 routine offline CI 결과로 표현
 
-## 13. PR 작성
+## 14. PR 작성
 
-Shared core/product PR 필수:
+공통 필수:
 
 - related issue
 - summary
@@ -281,78 +344,92 @@ Shared core/product PR 필수:
 - validation
 - browser/visual evidence when applicable
 - deployment impact
-- rollback
+- rollback/isolation
 - known limitations
 
-Routine onboarding PR/report에서는 추가로 다음을 우선한다.
+Named-site onboarding 추가 필수:
 
-- input site identity
-- archetype/capability result
+- declared clone scope
+- reference snapshot identity
+- clone candidate identity
+- structural/content/asset/interaction/visual state
+- AI-on-clone state
 - automation/review/unsupported ratio
 - exception queue summary
-- generated artifact identities
-- provenance
 - shared core changed `YES/NO`
-- production promotion `YES/NO`
 
-## 14. Review 우선순위
+## 15. Review 우선순위
 
-1. actual submit·login·payment·PII 위험
-2. secret·endpoint·SSRF·abuse·cost
-3. official source·evidence correctness
+1. wrong product-stage claim: structural preview / clone / exact / actual-site 혼동
+2. secrets·private customer data·PII leakage
+3. official source/evidence correctness
 4. golden route·DOM·state compatibility
-5. generated preview의 잘못된 exact/production claim
+5. named-site reference/clone fidelity
 6. data loss·migration·rollback
 7. cross-site reuse / archetype / capability correctness
 8. accessibility·mobile·locale
 9. maintainability
+10. actual production security/privacy/operations when Gate H is actually in scope
 
-## 15. 병합 전 exact-head 확인
+## 16. 병합 전 exact-head 확인
 
-Shared core/product/docs PR은 병합 직전 다음을 다시 확인한다.
+모든 product/docs PR은 병합 직전 다음을 다시 확인한다.
 
-- current PR head SHA
+- remote `main` current FULL SHA
+- open PR / relevant issue state
+- current PR exact head SHA
 - base and behind state
-- exact-head CI
+- exact changed filenames / diff
 - mergeability
-- review submissions
-- unresolved threads
-- changed filenames
-- secrets·PII·unexpected artifacts
+- comments / review submissions
+- unresolved review threads
+- exact-head CI
+- unexpected artifacts·secrets·PII
 
 head가 변경되면 이전 검증을 재사용하지 않는다.
 
-## 16. 배포
+## 17. Merge rule
+
+- merge method: **squash merge only**
+- merge request는 exact current PR head를 `expected_head_sha` 또는 equivalent lease로 지정한다.
+- head가 바뀌면 merge하지 말고 재검증한다.
+- direct push to `main` 금지
+- rebase / amend / force-push는 owner explicit approval 없이는 금지
+
+## 18. 배포 / actual-site integration
 
 merge는 deploy가 아니다.
 
-배포 관련 PR은 다음을 기록한다.
+Production deployment 또는 actual-site integration이 실제 scope라면 다음을 별도로 기록한다.
 
 - environment
 - deployment ID
 - deployed SHA
-- time·operator
+- operator/owner
+- secrets ownership
 - smoke results
-- secrets owner
+- operational boundaries
 - rollback
 
-public URL 응답만으로 deployed SHA를 확정하지 않는다. Generated preview 생성도 production deployment 승인과 동일하지 않다.
+Clone MVP 생성·시연은 actual-site integration 완료와 동일하지 않다.
 
-## 17. Issue closeout
+## 19. Issue closeout
 
-완료 comment 또는 body update에 다음을 남긴다.
+완료 comment/body update에 다음을 남긴다.
 
 - PR·merge SHA
 - tests/evidence
-- deployment state
+- clone/reference state
+- deployment state if applicable
 - acceptance criteria
 - known limitations
 - follow-up issues
 
-Routine onboarding은 모든 exception을 issue화하지 않고, Type C 승격기준에 해당하는 공통 gap만 follow-up issue로 만든다.
+Routine onboarding은 모든 exception을 issue화하지 않고, 재사용 가능한 공통 gap만 별도 issue로 승격한다.
 
 자세한 기준:
 
 - `docs/CURRENT_STATUS.md`
+- `docs/product/clone-first-general-site-platform-strategy.md`
 - `docs/implementation/RELEASE_GATES.md`
 - `docs/operations/REPOSITORY_GOVERNANCE.md`

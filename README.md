@@ -2,39 +2,63 @@
 
 > **현재 상태 — 2026-08-12**
 >
-> Buk-gu Frozen Demo는 완료되었고 북구는 첫 번째 protected golden reference입니다. 현재 제품 방향은 **general-site / multi-site AI Browser platform**으로 다시 열렸습니다. 다만 URL 하나만으로 arbitrary site의 Site Model·generated preview·knowledge·action graph를 모두 만드는 generic onboarding runtime이 이미 완성됐다고 주장하지 않습니다.
+> Buk-gu Frozen Demo는 완료되었고 북구는 첫 번째 protected municipality golden reference입니다. Generic SiteSpec vNext / archetype / capability / onboarding-report contract foundation(#1287)과 Seo-gu offline structural platform evidence(#1298~#1300)는 구현·병합되었습니다. 현재 active 방향은 #1232 multi-site onboarding이며, named real site에 대해서는 **reference capture -> faithful clone -> AI-on-clone** 순서를 따릅니다. Seo-gu structural preview는 아직 Seo-gu faithful clone 또는 visual-parity 완료 증거가 아닙니다.
 
-## 제품 방향
+## 제품 방향 — 현재 clone MVP, 실제사이트는 나중
 
-400-ai-finder의 장기 제품 형태는 단순 FAQ 챗봇이 아니라 다음과 같습니다.
+400-ai-finder의 ordinary pre-integration 제품은 단순 FAQ 챗봇이나 일반적인 관공서풍 재설계가 아닙니다.
+
+현재 기관의 production 사이트를 우리가 운영하지 않는 단계에서는 다음 형태를 사용합니다.
 
 ```text
-왼쪽: target website / clone / generated preview
-오른쪽: AI conversation / answer / navigation / bounded Browser Use
+왼쪽: target site's repository-controlled faithful clone
+오른쪽: AI conversation / answer / search / navigation / bounded Browser Use
 ```
 
-사이트마다 처음부터 bespoke 제품을 새로 만드는 대신 다음 흐름을 목표로 합니다.
+실제 기관사이트는 현재 runtime이 아니라 **reference source**입니다. 필요한 시점에 scoped read-only reference를 확보하고, 그 시점의 화면·내용·구조를 기준으로 독립적인 clone candidate를 만듭니다.
 
 ```text
-URL / SiteSpec
-  -> site discovery
-  -> archetype detection
-  -> capability detection
-  -> capture / route inventory
+TARGET ACTUAL SITE
+  -> scoped point-in-time reference baseline
+  -> SiteSpec / archetype / capabilities
   -> generic Site Model
-  -> generated preview
-  -> knowledge index
-  -> action graph / browser model
-  -> automated QA
-  -> exception queue
-  -> focused human review
+  -> faithful clone candidate
+  -> structural / content / asset / interaction / visual comparison
+  -> clone MVP ready
+  -> knowledge index + action graph
+  -> AI Finder / Browser on the clone
 ```
 
-초기 현실적 목표는 **70–80% supervised automation + explicit exceptions**입니다. `generated_preview`는 `exact`, `archetype_golden`, `resident_default_approved`, production approval과 같은 상태가 아닙니다.
+clone은 continuous live mirror가 아닙니다. 원본 사이트가 바뀌면 기존 clone이 자동으로 바뀌는 것이 아니라, 필요할 때 **재캡처 -> 새 clone candidate -> 재검토**를 수행합니다.
+
+기관이 나중에 우리 회사에 실제 홈페이지의 구축·운영·유지보수 또는 AI 통합 권한을 명시적으로 부여하면 그때 **authorized first-party actual-site integration** 단계가 시작됩니다. 그 실제 production 단계에서 정보보호, 개인정보/PII, 인증, 실제 제출·결제, 내부시스템 연동, 운영책임, staging/rollback 등을 해당 기관 환경 기준으로 검토합니다.
+
+이 미래 production 조건은 현재 controlled faithful-clone MVP를 만들고, 원본과 비교하고, AI를 clone 위에서 검증하기 위한 선행 blocker가 아닙니다.
+
+Canonical lifecycle: [Clone-First General Site Platform Strategy](docs/product/clone-first-general-site-platform-strategy.md)
+
+## Platform structural proof와 named-site clone은 다릅니다
+
+Generic platform/core 개발에서는 synthetic/offline fixture로 SiteSpec, Site Model, structural preview, QA, action/knowledge contract 등을 검증할 수 있습니다.
+
+하지만 실제 이름을 가진 기관을 onboard했다고 주장하려면 reference baseline이 먼저 있어야 합니다.
+
+```text
+generated structural preview
+!= reference baseline ready
+!= clone candidate
+!= clone MVP ready
+!= exact
+!= resident/default approved
+!= actual-site integrated
+```
+
+초기 현실적 자동화 목표는 **70–80% supervised automation + explicit exceptions**입니다. 자동화 비율은 engineering efficiency 지표이지 clone fidelity 증거가 아닙니다.
 
 ## 먼저 읽을 문서
 
 - [현재 기준 문서 인덱스](docs/CURRENT_STATUS.md)
+- [Clone-first canonical lifecycle](docs/product/clone-first-general-site-platform-strategy.md)
 - [제품 트랙과 운영경계](docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md)
 - [Unified Runtime과 canonical SiteSpec](docs/architecture/UNIFIED_RUNTIME_AND_SITESPEC.md)
 - [출시·온보딩 게이트](docs/implementation/RELEASE_GATES.md)
@@ -50,33 +74,39 @@ URL / SiteSpec
 
 | 영역 | 현재 상태 |
 |---|---|
-| Buk-gu clone·결정형 시민 여정 | Frozen Demo complete; first protected golden reference |
+| Buk-gu clone·결정형 시민 여정 | Frozen Demo complete; first protected municipality golden reference |
 | 공식 fixture·snapshot | Provenance·checksum·시각정보 관리 |
 | 다국어·접근성·모바일 | 강한 contract·browser E2E 보유 |
-| Cloudflare AI runtime code | 구현됨. Gemini default path는 3.5 primary → 3.1 same-provider fallback |
-| Live-public 운영승인 | 별도 durable abuse/cost/staging gate 없이 자동 승인되지 않음 |
-| 공식정보 answer-time freshness | canonical snapshot/evidence foundation 존재; 일반 live retrieval은 별도 승인경계 |
-| Multi-site platform | Site profile/SiteSpec/shared-contract foundation 존재; generic arbitrary-site onboarding runtime은 미완료 |
-| Actual public-site integration | 기관 권한·credentials·운영책임 전에는 미승인 |
-| 라이선스·공개자산 | Inventory 존재; owner/rights #1234 별도 결정 필요 |
+| Cloudflare AI runtime code | 구현됨. Gemini default path는 3.5 primary -> 3.1 same-provider fallback |
+| Generic SiteSpec/archetype/capability | #1287 contract foundation completed; arbitrary-site runtime 전체 wiring 완료를 의미하지 않음 |
+| Seo-gu generic platform evidence | #1298~#1300 offline structural Site Model/preview/QA evidence merged |
+| Seo-gu faithful clone | 아직 미완료. 실제 Seo-gu reference baseline/visual clone proof 필요 |
+| Multi-site platform | #1232 active; 다음 named-site sequence는 Seo-gu reference -> clone -> AI-on-clone |
+| Live-public 운영승인 | 별도 public operating gate 없이 자동 승인되지 않음 |
+| Actual public-site integration | 기관의 실제 운영·통합 승인 후 미래 단계 |
+| 라이선스·공개자산 | #1234 owner/public-release decision은 별도. controlled faithful-clone MVP의 일반 기능·fidelity blocker로 사용하지 않음 |
 
 ## 현재 작업 프로그램
 
-- [#1283 post-Buk-gu multi-site AI Browser governance alignment](https://github.com/skerishKang/400-ai-finder/issues/1283) — platform implementation 전 current contract/governance 정렬
-- [#1234 code/official capture/third-party asset license & provenance](https://github.com/skerishKang/400-ai-finder/issues/1234) — 별도 owner/rights 결정
+- [#1301 canonical clone-MVP lifecycle / docs alignment](https://github.com/skerishKang/400-ai-finder/issues/1301) — 현재 문서·운영규칙 정렬
+- [#1232 multi-site onboarding validation](https://github.com/skerishKang/400-ai-finder/issues/1232) — active. Seo-gu faithful second-site proof가 다음 named-site 작업
+- [#1234 code/official capture/third-party asset license & provenance](https://github.com/skerishKang/400-ai-finder/issues/1234) — public/open-source redistribution과 owner/rights에 관한 별도 결정
 
-완료·역사 계획인 #1235/#1181/#1232 등은 현재 `docs/CURRENT_STATUS.md`의 분류를 따릅니다. 과거 이슈 순서를 현재 개발순서로 그대로 재실행하지 않습니다.
+완료된 #1283/#1287과 historical #1235/#1181 등은 `docs/CURRENT_STATUS.md`의 분류를 따릅니다. 과거 이슈 순서를 현재 개발순서로 그대로 재실행하지 않습니다.
 
-## 현재 안전경계
+## 현재 안전·운영경계
 
-- 실제 민원 제출, 로그인, 결제와 production write action을 승인 없이 수행하지 않습니다.
-- 주민등록번호·계좌·상세주소 등 고위험 개인정보를 입력·저장하는 서비스로 승인되지 않았습니다.
-- 공식도메인 citation과 검증된 canonical snapshot을 같은 상태로 취급하지 않습니다.
+- **현재 기본 제품단계는 clone MVP다. actual-site production integration은 기관 승인 후 미래 단계다.**
+- clone MVP의 declared scope에서는 left-side reference를 임의로 redesign하거나 structural preview로 대체하지 않는다.
+- 실제 기관사이트의 login, real submit/payment, production write, PII/internal-system handling은 future first-party integration 단계에서 해당 환경 기준으로 설계한다.
+- 미래 actual-site security/privacy/operation 요구를 현재 faithful-clone fidelity 작업의 임의 선행 blocker로 추가하지 않는다.
+- 공식도메인 citation과 검증된 canonical snapshot을 같은 evidence 상태로 취급하지 않는다.
 - 근거가 없는 연락처·기한·수수료·제출서류는 확정정보로 제공하면 안 됩니다.
 - routine CI는 외부 provider·공식사이트 network 없이 재현 가능해야 합니다.
-- **URL supplied != live network authorized.** URL 제공은 대상 식별이며 live crawl/fetch/provider 실행은 별도 경계를 따릅니다.
+- named-site reference capture는 별도 실행행위이며 target/scope/method를 기록한다.
 - Buk-gu golden route·DOM·state와 resident-default는 migration·applicable visual approval 없이 변경하지 않습니다.
-- generated onboarding preview는 approved resident-default를 자동으로 대체하지 않습니다.
+- generated structural preview는 named-site faithful clone 또는 approved resident-default를 자동으로 의미하지 않습니다.
+- public issue·PR·docs에는 고객·기관의 비공개 사업관계 정보를 기록하지 않습니다.
 
 ---
 
@@ -92,8 +122,9 @@ URL / SiteSpec
 - 공지사항, 사업공고, 자료실, 첨부파일에 흩어진 정보를 통합 검색합니다.
 - 사용자가 해야 할 다음 행동을 단계별로 안내합니다.
 - 답변마다 출처 링크, 문서명, 게시일, 첨부파일명을 함께 제공합니다.
-- 왼쪽 사이트 surface와 오른쪽 AI 대화·탐색·Browser Use를 공통 제품 구조로 발전시킵니다.
-- 장기적으로 사이트별 차이는 archetype, capability, data/config, explicit reviewed override로 흡수하는 것을 목표로 합니다.
+- pre-integration 단계에서는 왼쪽 target-site faithful clone과 오른쪽 AI 대화·탐색·Browser Use를 공통 제품 구조로 발전시킵니다.
+- 장기적으로 사이트별 차이는 archetype, capability, data/config, explicit reviewed override로 흡수하되 rendered clone은 각 target site처럼 보여야 합니다.
+- 기관이 실제 운영·통합 권한을 부여한 뒤에는 같은 AI Finder 개념을 actual production site에 first-party로 통합할 수 있도록 설계합니다.
 
 ## 기존 Python/데모 기반 범위
 
@@ -104,11 +135,13 @@ URL / SiteSpec
 5. 신청 절차, 제출서류, 기한, 담당자 정보를 안내합니다.
 6. 답변에 바로가기 링크와 근거를 포함합니다.
 
-> **Buk-gu golden / exact promotion 철칙**: 왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. `exact`를 주장하는 좌측 surface는 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 요약하거나 재설계하지 않습니다. Canonical: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+> **Named-site faithful-clone 원칙**: 실제 기관을 onboard한다고 주장할 때는 declared MVP scope의 point-in-time reference baseline이 먼저 있어야 하며, clone candidate는 그 reference의 header/footer/navigation/layout/theme/content/assets/key interactions를 임의 재설계하지 않습니다. Scope 밖은 fabricated하지 않고 exception/capture-required로 남깁니다.
 >
-> **Generated preview 경계**: routine onboarding의 `generated_preview`는 non-exact/non-default 상태로 존재할 수 있지만 low-confidence·unsupported·unresolved 항목을 exception으로 드러내야 하며 resident-default를 자동으로 통제할 수 없습니다.
+> **Buk-gu golden / exact promotion 철칙**: 북구 golden과 향후 명시적으로 `exact`를 주장하는 surface는 더 강한 [exact-official-site-clone invariant](docs/product/exact-official-site-clone-invariant.md)를 따릅니다.
 >
-> **Visual approval gate**: first resident-default promotion은 applicable accepted reference와의 side-by-side 비교 및 project-owner의 명시적 승인을 따릅니다. Policy: [docs/product/clone-visual-fidelity-and-promotion-policy.md](docs/product/clone-visual-fidelity-and-promotion-policy.md)
+> **Generated preview 경계**: generic `generated_preview`는 platform structural evidence로 존재할 수 있지만 named real site의 faithful clone 완료 증거가 아닙니다. low-confidence·unsupported·unresolved 항목을 exception으로 드러내야 합니다.
+>
+> **Actual-site 단계**: 실제 institution production site 운영·통합은 기관 승인 후 미래 단계이며, 그때 information security/privacy/auth/submission/operations 요건을 해당 환경 기준으로 검토합니다.
 
 ## 프로젝트 구조
 
@@ -157,7 +190,7 @@ URL / SiteSpec
 | `gwangju_go_kr` | 광주광역시청 | https://www.gwangju.go.kr/ | LEGACY_BOARD_SITE |
 | `seogu_gwangju` | 광주광역시 서구청 | https://www.seogu.gwangju.kr/ | LEGACY_BOARD_SITE |
 
-YAML profile이 존재한다는 사실과 Cloudflare generic resident adapter가 완성됐다는 것은 다른 상태입니다. 현재 arbitrary site를 SiteSpec 하나로 end-to-end resident runtime에 자동 wiring하는 기능은 아직 완성되지 않았습니다.
+YAML profile이 존재한다는 사실과 named site의 faithful clone 또는 Cloudflare generic resident adapter가 완성됐다는 것은 다른 상태입니다. Generic contract/structural platform evidence는 존재하지만 arbitrary site를 SiteSpec 하나로 faithful clone + AI resident runtime까지 자동 wiring하는 기능은 아직 완성되지 않았습니다.
 
 - CLI 또는 서버 실행 시 `--site-id`로 기본 대상 기관을 지정합니다.
 - 운영자 대시보드에서는 runtime에 등록된 site profile을 선택해 기관별 테스트를 전환할 수 있습니다.
@@ -390,7 +423,7 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/ -v
 | 구분 | 설명 |
 |------|------|
 | **Python 로컬/서버 데모** | `src/web` 기반 Python 서버. live path는 operator/network policy를 따라 별도 실행 |
-| **Cloudflare Pages AI build** | Pages Function 포함 build. 코드 기본 resident attempt plan은 Gemini 3.5 primary → Gemini 3.1 same-provider fallback |
+| **Cloudflare Pages AI build** | Pages Function 포함 build. 코드 기본 resident attempt plan은 Gemini 3.5 primary -> Gemini 3.1 same-provider fallback |
 | **Cloudflare Pages 정적 시연** | `--mode static` 전용 비상·회귀검증 모드. 백엔드 없이 결정형 스냅샷 사용 |
 
 ### Cloudflare AI runtime 코드 계약
@@ -442,8 +475,8 @@ python3 scripts/build_cloudflare_pages.py --mode static
 |---|---|
 | `/` | 정적 랜딩 페이지 (MVP 카드 포함) |
 | `/mvp/` | 시민 첫 화면 및 Buk-gu golden AI Browser entry |
-| `/mobile` | 모바일 챗 데모 (`/mobile.html` → 308 redirect) |
-| `/admin` | 운영자 화면 (`/admin.html` → 308 redirect) |
+| `/mobile` | 모바일 챗 데모 (`/mobile.html` -> 308 redirect) |
+| `/admin` | 운영자 화면 (`/admin.html` -> 308 redirect) |
 
 ### GitHub Actions: Deploy가 아닌 Contract/Test입니다
 
@@ -467,10 +500,10 @@ curl -sI https://cgbukku.pages.dev/admin
 ### Network / acquisition boundaries
 
 - 정적 모드는 `--mode static`으로 계속 제공되며 CI와 오프라인 fallback 검증에 사용합니다.
-- public target URL 또는 site profile이 존재한다는 사실은 live crawl/fetch authorization이 아닙니다.
-- 공식사이트 reference collection, crawling, screenshot comparison, Firecrawl, provider-assisted retrieval 등 external network 작업은 applicable controlled read-only / provider-staging 경계와 명시적 opt-in을 따릅니다.
-- 실제 site control, login, submission, payment, PII processing은 별도의 authorized first-party integration gate입니다.
-- Cloudflare 배포 제어와 secrets/env 변경은 운영권한이 있는 별도 deployment 작업입니다.
+- public target URL 또는 site profile이 존재한다는 사실은 project-level live crawl/fetch execution 기록과 동일하지 않습니다.
+- named-site reference collection은 clone onboarding을 위한 별도 작업이며 target/scope/method를 명시합니다.
+- actual site control, login, submission, payment, PII processing은 기관 승인 후 future first-party integration 단계입니다.
+- Cloudflare 배포 제어와 secrets/env 변경은 실제 deployment 작업이 열릴 때 다룹니다.
 
 더 자세한 내용은 [`docs/provider-fetch-network-boundary.md`](docs/provider-fetch-network-boundary.md), [`docs/implementation/RELEASE_GATES.md`](docs/implementation/RELEASE_GATES.md)를 참고하세요.
 
@@ -520,16 +553,20 @@ Reads sanitized JSONL question logs and produces a Markdown report separating pr
 
 왼쪽 시민 사이트 화면은 캡처된 광주광역시 북구청 공식 페이지를 그대로 복제한다. 이 literal은 Buk-gu golden 및 `exact` 상태의 canonical contract를 보존한다.
 
-Buk-gu golden 및 향후 `exact`를 명시적으로 주장하는 promotion surface에는 [canonical exact-clone invariant](docs/product/exact-official-site-clone-invariant.md)가 적용됩니다.
+이 원칙은 이제 더 넓은 clone-first lifecycle 안에서 해석합니다.
 
-- 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 그대로 보존합니다.
-- 현재 manifest에 `capture_required`가 남아 있는 route를 exact 완료라고 주장하지 않습니다.
-- generated onboarding preview는 별도 non-exact/non-default 상태이며 exact completion 증거가 아닙니다.
-- exact/resident-default promotion을 요청하면 applicable fixture/visual approval requirements를 모두 충족해야 합니다.
+- 모든 named-site MVP는 먼저 declared scope의 faithful clone을 목표로 합니다.
+- `clone_mvp_ready`는 scoped faithful reproduction이며 모든 route가 `exact`라는 뜻은 아닙니다.
+- 북구 golden 및 향후 명시적으로 `exact`를 주장하는 promotion surface에는 [canonical exact-clone invariant](docs/product/exact-official-site-clone-invariant.md)가 추가로 적용됩니다.
+- 공식 페이지의 내용·구조·표·행·순서·컨트롤·시각 표현을 그대로 보존해야 하는 `exact` scope에서는 요약·재설계하지 않습니다.
+- manifest에 `capture_required`가 남아 있는 route를 exact 완료라고 주장하지 않습니다.
+- generated structural preview는 faithful clone 또는 exact completion 증거가 아닙니다.
+- actual-site production integration은 이 clone/exact 상태와 별개의 미래 단계입니다.
 
 관련 자료:
 
-- Canonical invariant: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
+- Canonical clone lifecycle: [docs/product/clone-first-general-site-platform-strategy.md](docs/product/clone-first-general-site-platform-strategy.md)
+- Canonical exact invariant: [docs/product/exact-official-site-clone-invariant.md](docs/product/exact-official-site-clone-invariant.md)
 - Visual promotion policy: [docs/product/clone-visual-fidelity-and-promotion-policy.md](docs/product/clone-visual-fidelity-and-promotion-policy.md)
 - 공식 페이지 fixture manifest: [tests/fixtures/official_site_clone_manifest.json](tests/fixtures/official_site_clone_manifest.json)
 - 계약 테스트: [tests/test_exact_official_site_clone_invariant.py](tests/test_exact_official_site_clone_invariant.py)
