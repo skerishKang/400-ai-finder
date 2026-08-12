@@ -1,0 +1,87 @@
+{
+  "preview_version": "1.0.0",
+  "site_id": "seogu_gwangju",
+  "root_output_path": "index.html",
+  "routes": [
+    {
+      "route_id": "route-homepage",
+      "output_path": "index.html"
+    },
+    {
+      "route_id": "route-000001",
+      "output_path": "routes/route-000001.html"
+    },
+    {
+      "route_id": "route-000002",
+      "output_path": "routes/route-000002.html"
+    },
+    {
+      "route_id": "route-000003",
+      "output_path": "routes/route-000003.html"
+    },
+    {
+      "route_id": "route-000004",
+      "output_path": "routes/route-000004.html"
+    },
+    {
+      "route_id": "route-000005",
+      "output_path": "routes/route-000005.html"
+    },
+    {
+      "route_id": "route-000006",
+      "output_path": "routes/route-000006.html"
+    },
+    {
+      "route_id": "route-000007",
+      "output_path": "routes/route-000007.html"
+    },
+    {
+      "route_id": "route-000008",
+      "output_path": "routes/route-000008.html"
+    },
+    {
+      "route_id": "route-000009",
+      "output_path": "routes/route-000009.html"
+    }
+  ],
+  "route_count": 10,
+  "action_count": 9,
+  "capability_bindings": [
+    {
+      "capability_id": "notice_board",
+      "candidate_state": "detected",
+      "binding_state": "bound",
+      "route_ids": [
+        "route-000003"
+      ]
+    },
+    {
+      "capability_id": "document_library",
+      "candidate_state": "detected",
+      "binding_state": "bound",
+      "route_ids": [
+        "route-000006"
+      ]
+    },
+    {
+      "capability_id": "directory",
+      "candidate_state": "review_required",
+      "binding_state": "review_required",
+      "route_ids": []
+    }
+  ],
+  "provenance": {
+    "source_refs": [
+      "configs/sites/seogu_gwangju.yml",
+      "tests/test_seogu_profile_onboarding_no_live.py"
+    ]
+  },
+  "assets": [],
+  "external_assets": [],
+  "offline_only": true,
+  "live_network_authorized": false,
+  "actual_site_control_authorized": false,
+  "production_ready": false,
+  "production_promotion_requested": false,
+  "visual_parity_claimed": false
+}
