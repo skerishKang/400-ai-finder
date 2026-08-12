@@ -83,7 +83,6 @@ def _project():
         profile,
         source_ref=SOURCE_REF,
         run_id="seogu-v2-offline-2026-08-12",
-        observed_source_refs=[STATIC_EVIDENCE_REF],
     )
     return profile, cand, report
 
@@ -351,7 +350,8 @@ def test_helper_is_generic_no_site_id_branch():
         classification="UNIVERSITY", observed_evidence=["https://x.ac.kr/bbs/BBSMSTR_1/list.do"],
     )
     cand = legacy_profile_to_v2_candidate(
-        university, source_ref="p", observed_evidence=["https://x.ac.kr/bbs/BBSMSTR_1/list.do"]
+        university, source_ref="p", observed_evidence=["https://x.ac.kr/bbs/BBSMSTR_1/list.do"],
+        observed_source_refs=["static.src"],
     )
     assert cand["archetype"]["id"] == "university"
     assert cand["archetype"]["state"] == "detected"
@@ -382,7 +382,8 @@ def test_B_notice_keyword_alone_not_detected():
 def test_C_observed_bbs_list_url_enables_notice_board():
     p = _make_profile("c", "예시", "https://c.example.com/", ["c.example.com"])
     cand = legacy_profile_to_v2_candidate(
-        p, source_ref="p", observed_evidence=["https://c.example.com/bbs/BBSMSTR_1/list.do"]
+        p, source_ref="p", observed_evidence=["https://c.example.com/bbs/BBSMSTR_1/list.do"],
+        observed_source_refs=["static.src"],
     )
     assert any(c["id"] == "notice_board" and c["state"] == "detected" for c in cand["capabilities"])
 
@@ -390,7 +391,8 @@ def test_C_observed_bbs_list_url_enables_notice_board():
 def test_D_observed_download_url_enables_document_library():
     p = _make_profile("d", "예시", "https://d.example.com/", ["d.example.com"])
     cand = legacy_profile_to_v2_candidate(
-        p, source_ref="p", observed_evidence=["https://d.example.com/boardDownload.es?x=1"]
+        p, source_ref="p", observed_evidence=["https://d.example.com/boardDownload.es?x=1"],
+        observed_source_refs=["static.src"],
     )
     assert any(c["id"] == "document_library" and c["state"] == "detected" for c in cand["capabilities"])
 
@@ -416,7 +418,8 @@ def test_G_non_municipality_no_fake_jurisdiction_accounting_slot():
     p = _make_profile("g_univ", "예시대학교", "https://g.ac.kr/", ["g.ac.kr"],
                       classification="UNIVERSITY")
     cand = legacy_profile_to_v2_candidate(
-        p, source_ref="p", observed_evidence=["https://g.ac.kr/bbs/BBSMSTR_1/list.do"]
+        p, source_ref="p", observed_evidence=["https://g.ac.kr/bbs/BBSMSTR_1/list.do"],
+        observed_source_refs=["static.src"],
     )
     report = legacy_profile_to_onboarding_report(cand, p, source_ref="p", run_id="r")
     assert cand["archetype"]["id"] == "university"
@@ -462,10 +465,132 @@ def test_missing_base_url_rejected():
 def test_original_profile_not_mutated():
     profile = _load_yaml()
     snapshot = copy.deepcopy(profile)
-    legacy_profile_to_v2_candidate(profile, source_ref=SOURCE_REF, observed_evidence=SEOgu_OBSERVED_EVIDENCE)
+    legacy_profile_to_v2_candidate(
+        profile,
+        source_ref=SOURCE_REF,
+        observed_evidence=SEOgu_OBSERVED_EVIDENCE,
+        observed_source_refs=[STATIC_EVIDENCE_REF],
+    )
     assert profile == snapshot
 
 
 def test_only_local_static_source_used():
     assert YAML_PATH.exists()
     assert str(YAML_PATH).endswith("configs/sites/seogu_gwangju.yml")
+
+
+# ---- provenance coupling (fail closed) for observed evidence (REQUIRED A-H) ----
+
+def test_A_observed_list_url_without_source_refs_rejected():
+    # A valid observed list.do URL but observed_source_refs omitted -> reject.
+    p = _make_profile("a", "예시", "https://a.example.com/", ["a.example.com"])
+    with pytest.raises(LegacyProfileProjectionError):
+        legacy_profile_to_v2_candidate(
+            p,
+            source_ref="p",
+            observed_evidence=["https://a.example.com/bbs/BBSMSTR_1/list.do"],
+        )
+
+
+def test_B_observed_download_url_with_empty_source_refs_rejected():
+    # A valid observed download URL but observed_source_refs=[] -> reject.
+    p = _make_profile("b", "예시", "https://b.example.com/", ["b.example.com"])
+    with pytest.raises(LegacyProfileProjectionError):
+        legacy_profile_to_v2_candidate(
+            p,
+            source_ref="p",
+            observed_evidence=["https://b.example.com/boardDownload.es?x=1"],
+            observed_source_refs=[],
+        )
+
+
+def test_C_blank_observed_source_ref_rejected():
+    p = _make_profile("c", "예시", "https://c.example.com/", ["c.example.com"])
+    for bad in ([""], ["   "]):
+        with pytest.raises(LegacyProfileProjectionError):
+            legacy_profile_to_v2_candidate(
+                p,
+                source_ref="p",
+                observed_evidence=["https://c.example.com/bbs/BBSMSTR_1/list.do"],
+                observed_source_refs=bad,
+            )
+
+
+def test_D_non_string_observed_source_ref_rejected():
+    p = _make_profile("d", "예시", "https://d.example.com/", ["d.example.com"])
+    for bad in ([123], [None]):
+        with pytest.raises(LegacyProfileProjectionError):
+            legacy_profile_to_v2_candidate(
+                p,
+                source_ref="p",
+                observed_evidence=["https://d.example.com/bbs/BBSMSTR_1/list.do"],
+                observed_source_refs=bad,
+            )
+
+
+def test_E_report_input_source_refs_parity_with_candidate():
+    _, cand, report = _project()
+    cand_refs = cand["provenance"]["source_refs"]
+    assert report["input"]["source_refs"] == cand_refs
+    assert cand_refs == [SOURCE_REF, STATIC_EVIDENCE_REF]
+
+
+def test_F_report_provenance_source_refs_parity_with_candidate():
+    _, cand, report = _project()
+    cand_refs = cand["provenance"]["source_refs"]
+    assert report["provenance"]["source_refs"] == cand_refs
+    assert cand_refs == [SOURCE_REF, STATIC_EVIDENCE_REF]
+
+
+def test_G_report_cannot_inject_different_provenance():
+    # The report function must NOT accept a separate observed_source_refs argument,
+    # so a caller cannot produce provenance that drifts from the candidate.
+    import inspect
+
+    params = inspect.signature(legacy_profile_to_onboarding_report).parameters
+    assert "observed_source_refs" not in params
+
+    _, cand, report = _project()
+    cand_refs = cand["provenance"]["source_refs"]
+    # Whatever the candidate provenance is, the report must echo it exactly in both
+    # locations, with no separately-authored value injected.
+    assert report["input"]["source_refs"] == cand_refs
+    assert report["provenance"]["source_refs"] == cand_refs
+    # And the report cannot add anything beyond the candidate's own provenance.
+    assert set(report["input"]["source_refs"]) == set(cand_refs)
+
+
+def test_H_malformed_candidate_provenance_rejects_report():
+    _, cand, _ = _project()
+    # Provenance object missing -> reject.
+    broken = copy.deepcopy(cand)
+    del broken["provenance"]
+    with pytest.raises(LegacyProfileProjectionError):
+        legacy_profile_to_onboarding_report(
+            broken, _load_yaml(), source_ref=SOURCE_REF, run_id="r"
+        )
+
+    # Provenance with empty/missing source_refs -> reject.
+    for bad_refs in ([], None):
+        broken = copy.deepcopy(cand)
+        broken["provenance"] = {"source_refs": bad_refs, "review_state": "synthetic"}
+        with pytest.raises(LegacyProfileProjectionError):
+            legacy_profile_to_onboarding_report(
+                broken, _load_yaml(), source_ref=SOURCE_REF, run_id="r"
+            )
+
+    # Provenance with a blank/whitespace source ref -> reject.
+    broken = copy.deepcopy(cand)
+    broken["provenance"] = {"source_refs": [SOURCE_REF, "  "], "review_state": "synthetic"}
+    with pytest.raises(LegacyProfileProjectionError):
+        legacy_profile_to_onboarding_report(
+            broken, _load_yaml(), source_ref=SOURCE_REF, run_id="r"
+        )
+
+    # source_ref not present in candidate provenance -> reject.
+    broken = copy.deepcopy(cand)
+    broken["provenance"] = {"source_refs": [STATIC_EVIDENCE_REF], "review_state": "synthetic"}
+    with pytest.raises(LegacyProfileProjectionError):
+        legacy_profile_to_onboarding_report(
+            broken, _load_yaml(), source_ref=SOURCE_REF, run_id="r"
+        )

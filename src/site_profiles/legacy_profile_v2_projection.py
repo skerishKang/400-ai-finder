@@ -134,6 +134,52 @@ def _validate_observed_evidence(
             )
 
 
+def _validate_observed_source_refs(
+    refs: Sequence[str] | None,
+    observed_present: bool,
+) -> list[str]:
+    """Fail-closed validation of checked-in provenance for observed evidence.
+
+    If ``observed_present`` is False (no observed evidence supplied), source refs
+    are optional and default to an empty list.
+
+    If observed evidence IS supplied, each observed capability claim MUST be bound
+    to at least one checked-in/static source ref. The refs must then be a non-empty
+    list in which every item is a string that is non-empty after stripping. Any
+    blank, whitespace-only, non-string, or missing ref raises
+    ``LegacyProfileProjectionError``.
+    """
+    if not observed_present:
+        return list(refs or [])
+
+    if refs is None:
+        raise LegacyProfileProjectionError(
+            "observed_source_refs required when observed_evidence is supplied"
+        )
+    if not isinstance(refs, (list, tuple)):
+        raise LegacyProfileProjectionError(
+            f"observed_source_refs must be a list, got {type(refs).__name__}"
+        )
+    if len(refs) == 0:
+        raise LegacyProfileProjectionError(
+            "observed_source_refs must be non-empty when observed_evidence is supplied"
+        )
+
+    out: list[str] = []
+    for item in refs:
+        if not isinstance(item, str):
+            raise LegacyProfileProjectionError(
+                f"observed_source_refs item must be a string, got {item!r}"
+            )
+        stripped = item.strip()
+        if not stripped:
+            raise LegacyProfileProjectionError(
+                f"observed_source_refs item must be non-empty after strip, got {item!r}"
+            )
+        out.append(stripped)
+    return out
+
+
 def _derive_capabilities(
     profile: Mapping[str, Any],
     homepage_id: str,
@@ -231,8 +277,14 @@ def legacy_profile_to_v2_candidate(
              "profile allowed_domains must be a non-empty array")
 
     # Fail-closed: validate observed evidence scope BEFORE capability detection.
+    observed_present = bool(observed_evidence)
     if observed_evidence is not None:
         _validate_observed_evidence(list(observed_evidence), public)
+
+    # Provenance coupling: a detected capability claim requires BOTH an observed
+    # evidence URL AND a checked-in/static source ref. Without the ref there is no
+    # provenance for the claim, so it must fail closed.
+    obs_refs = _validate_observed_source_refs(observed_source_refs, observed_present)
 
     base_url = yaml_profile.get("base_url")
     _require(isinstance(base_url, str) and base_url, "profile base_url required")
@@ -286,7 +338,7 @@ def legacy_profile_to_v2_candidate(
         },
         "capabilities": _derive_capabilities(
             yaml_profile, "homepage", source_ref, observed_evidence or [],
-            observed_source_refs,
+            obs_refs,
         ),
         "capture_policy": {
             "acquisition_mode": "offline_fixture",
@@ -305,7 +357,7 @@ def legacy_profile_to_v2_candidate(
             "high_risk_actions_authorized": False,
         },
         "provenance": {
-            "source_refs": [source_ref, *(observed_source_refs or [])],
+            "source_refs": [source_ref, *obs_refs],
             # Static offline evidence, not a reviewed v1->v2 projection.
             "review_state": "synthetic",
         },
@@ -315,15 +367,53 @@ def legacy_profile_to_v2_candidate(
     return candidate
 
 
+def _validate_candidate_provenance(
+    candidate: Mapping[str, Any], source_ref: str
+) -> list[str]:
+    """Fail-closed validation of the candidate provenance used for the report.
+
+    The report MUST derive its ``input.source_refs`` and ``provenance.source_refs``
+    exclusively from the candidate's provenance, never from a separately injected
+    argument. This guarantees the report cannot drift from the candidate.
+
+    Requires:
+    - a ``provenance`` object with a non-empty ``source_refs`` list;
+    - every ref a non-empty string;
+    - ``source_ref`` actually present in the candidate provenance.
+    """
+    prov = candidate.get("provenance")
+    _require(isinstance(prov, dict), "candidate provenance object required")
+    refs = prov.get("source_refs")
+    _require(
+        isinstance(refs, list) and len(refs) >= 1,
+        "candidate provenance.source_refs must be a non-empty list",
+    )
+    for r in refs:
+        if not isinstance(r, str) or not r.strip():
+            raise LegacyProfileProjectionError(
+                f"candidate provenance source_ref must be a non-empty string, got {r!r}"
+            )
+    _require(
+        source_ref in refs,
+        f"report source_ref {source_ref!r} must be present in candidate provenance "
+        f"source_refs {refs!r}",
+    )
+    return list(refs)
+
+
 def legacy_profile_to_onboarding_report(
     candidate: Mapping[str, Any],
     yaml_profile: Mapping[str, Any],
     *,
     source_ref: str,
     run_id: str,
-    observed_source_refs: Sequence[str] | None = None,
 ) -> dict:
     """Build a deterministic offline onboarding report for a pre-SiteSpec v2 candidate.
+
+    The report's ``input.source_refs`` and ``provenance.source_refs`` are taken
+    VERBATIM from ``candidate["provenance"]["source_refs"]`` (validated fail-closed).
+    There is no separate ``observed_source_refs`` argument, so a caller cannot inject
+    provenance that differs from the candidate.
 
     Ratio accounting counts only real accounting items:
     - configured/detected capability -> automation
@@ -340,8 +430,8 @@ def legacy_profile_to_onboarding_report(
     archetype = candidate["archetype"]
     capabilities = candidate["capabilities"]
 
-    # Combined YAML + checked-in static observed-evidence source refs.
-    source_refs = [source_ref, *(observed_source_refs or [])]
+    # Authoritative report provenance: derived ONLY from the candidate, never injected.
+    source_refs = _validate_candidate_provenance(candidate, source_ref)
 
     exceptions: list[dict] = []
 
