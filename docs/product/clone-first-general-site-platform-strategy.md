@@ -1,94 +1,290 @@
 # Clone-First General Site Platform Strategy
 
-## Purpose
+- 상태: `canonical`
+- 기준일: 2026-08-12
+- 현재 정렬 이슈: #1301
+- active onboarding validation: #1232
+- historical foundation: #1181, #1283, #1287
 
-This document records the **strategic direction** for extending the clone-first approach to multiple municipal sites, as initiated by #1181. It describes the architectural gates that each site onboarding and capture-to-promotion pipeline must follow.
+## 1. Purpose and precedence
 
-This document is a **strategy and planning reference** only. It does **not** authorize implementation of a multi-site platform or live integration. The current product remains Buk-gu-specific. All implementation work requires separate issues, PRs, and approvals.
+This document is the **canonical product-lifecycle owner** for the ordinary pre-integration 400-ai-finder product path.
 
-## Governing policy
+The repository has many historical stage documents, audit notes, experiments, and issue bodies. When current documents disagree about the order of a named site's onboarding, use this lifecycle first, then apply the narrower exact-clone, visual-promotion, release-gate, repository-governance, network, and runtime contracts.
 
-Visual fidelity and promotion are governed by:
-- [`docs/product/clone-visual-fidelity-and-promotion-policy.md`](./clone-visual-fidelity-and-promotion-policy.md) — visual approval, promotion gate, and incident policy
-- [`docs/product/exact-official-site-clone-invariant.md`](./exact-official-site-clone-invariant.md) — exact clone definition and invariant
+Related governing documents:
 
-## Gates for every site onboarding / capture / migration
+- [`docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md`](./PRODUCT_TRACKS_AND_BOUNDARIES.md) — product-track separation
+- [`docs/product/exact-official-site-clone-invariant.md`](./exact-official-site-clone-invariant.md) — rules when an `exact` claim is made
+- [`docs/product/clone-visual-fidelity-and-promotion-policy.md`](./clone-visual-fidelity-and-promotion-policy.md) — visual/promotion authority
+- [`docs/implementation/RELEASE_GATES.md`](../implementation/RELEASE_GATES.md) — readiness gates
+- [`docs/operations/REPOSITORY_GOVERNANCE.md`](../operations/REPOSITORY_GOVERNANCE.md) — branch/PR/merge workflow
 
-Each new site follows six stages. No stage is implied by completion of an earlier stage.
+## 2. Product decision: clone MVP now, actual-site integration later
 
-### 1. Capture completeness
+400-ai-finder has two deliberately separate product phases.
 
-Target routes, regions, and assets within the scoped site/route set are captured via authorized reference capture and committed to the repository. Routes within scope must be fully captured to reach `capture_ready`; remaining uncaptured routes stay `capture_required`.
+### Phase A — pre-integration faithful-clone MVP
 
-**Output:** capture inventory, authorization record, captured reference artifacts, manifest with `capture_required`/`capture_ready` entries.
+Before an institution authorizes our company to operate or integrate its actual production website, the working product is a **repository-controlled faithful clone MVP**.
 
-### 2. Structural / content parity
+The stakeholder experience is:
 
-The captured content is committed as structured fixtures. The fixture reproduces the official page DOM structure, text, links, tables, and controls.
+```text
+left  = the target institution's website reproduced as faithfully as the declared MVP scope requires
+right = AI conversation / answer / search / navigation / bounded Browser Use
+```
 
-**Output:** canonical fixture JSON, browser projection, structural parity tests.
+The clone is the normal development, test, demonstration, and stakeholder-evaluation surface. AI Finder/Browser actions operate on the clone, not on the institution's production website.
 
-### 3. Asset mapping
+The business objective is to let an institution decision-maker experience:
 
-Official-site imagery referenced in fixtures is inventoried, hashed, and evaluated for repository identity matching. Assets are either resolved (downloaded, committed, wired) or tracked as unresolved with metadata.
+```text
+"our existing website + AI"
+```
 
-**Output:** asset identity audit, asset resolution PRs, wired asset projections.
+not a redesigned substitute website and not a generic government-site mockup.
 
-### 4. Interaction parity
+For the declared MVP scope, fidelity is therefore a product requirement. A model, agent, reviewer, or implementation worker must not arbitrarily lower the left-side fidelity merely because the actual production-site integration phase has not started yet.
 
-Within the fixture scope, user interactions produce the same visible outcomes as the official site. Navigation, form controls, pagination, and dynamic behaviors are wired.
+### Phase B — authorized first-party actual-site integration
 
-**Output:** E2E interaction parity tests.
+The actual institution website is a **later stage**.
 
-### 5. Visual review
+Only after the institution explicitly authorizes deployment/operation/integration does the project open the first-party actual-site workstream. At that point the project evaluates the concrete production environment and its operational requirements, including credentials, deployment ownership, information security, privacy/PII, authentication, submissions, internal-system integration, incident response, support ownership, and rollback.
 
-The candidate renderer is compared side-by-side against the accepted visual reference at required viewports (1440×900 full/split, 1440×760 split, 390×844 entry/guidance). Material differences are documented. CI screenshots, automated diffs, and model reviews are evidence — not approval.
+Those future production concerns are not prerequisites for building, testing, and demonstrating the pre-integration faithful-clone MVP.
 
-**Output:** visual comparison evidence, `comparison-notes.md`.
+Clone MVP completion must never be described as actual-site control. Conversely, actual-site integration must never be treated as a prerequisite to making the clone visually convincing and functionally useful.
 
-### 6. Resident-default promotion
+## 3. Canonical lifecycle for a named real site
 
-After visual review approval by the project owner, the renderer is promoted to the resident-facing default route. The approval record is stored in `docs/artifacts/visual-approvals/<site_id>/<route_id>/<pr-number>-<head-sha>/`.
+For a named real institution/site such as Buk-gu or Seo-gu, the ordinary sequence is:
 
-**Output:** `approval.md`, updated resident-default route configuration.
+```text
+TARGET ACTUAL SITE
+(reference source; not our production runtime)
+        |
+        | scoped read-only reference capture when needed
+        v
+POINT-IN-TIME REFERENCE BASELINE
+(routes / DOM / text / assets / screenshots / provenance)
+        |
+        v
+REPOSITORY-CONTROLLED CLONE CANDIDATE
+(faithful reproduction inside the declared MVP scope)
+        |
+        | structural / content / asset / interaction / visual comparison
+        v
+CLONE MVP READY
+        |
+        v
+AI FINDER / BROWSER ON THE CLONE
+(answer / search / click / navigation / bounded Browser Use)
+        |
+        | optional explicit recapture when the source needs refreshing
+        v
+NEW REFERENCE + NEW CLONE CANDIDATE VERSION
 
-## Key principles
+--- later, separately authorized ---
 
-### Generic renderers are preview/debug until approved
+INSTITUTION AUTHORIZATION / OPERATING AGREEMENT
+        |
+        v
+FIRST-PARTY ACTUAL-SITE INTEGRATION
+```
 
-A generic renderer (one that supports multiple sites through parameterization) must be tested on a **preview/debug route** before receiving project-owner visual approval. The generic renderer must not auto-promote to resident-default for any site without passing the full approval process.
+A new public-site change does not silently mutate an already approved clone. Refresh is an explicit new capture/version/review event.
 
-### Dual-run parity includes visual comparison
+## 4. Clone != continuous live mirror
 
-"Parity" between two renderer modes (e.g., deterministic vs. Page Agent) is not limited to DOM/action parity. It must also include comparison against the accepted visual reference. Two modes may produce the same DOM structure but differ in visual presentation; that difference must be evaluated during visual review.
+The normal clone runtime must not depend on continuously proxying or retrieving the public source site merely to render its citizen-facing surface.
 
-### Buk-gu is the golden reference, not visual golden approval
+A clone is a **point-in-time, versioned, reproducible product artifact**.
 
-Buk-gu is the first golden reference adapter. Structural fixture completion for Buk-gu does **not** imply visual golden approval. The same approval process applies to Buk-gu as to any future site.
+Reference refresh may happen through a deliberate workflow such as:
 
-### Multi-site reuse does not weaken the visual gate
+- owner/operator-triggered recapture;
+- a separately approved scheduled refresh;
+- controlled read-only comparison;
+- separately governed answer-time freshness where that capability is intentionally in scope.
 
-The visual fidelity gate, promotion rules, and fail-closed state model established in the governing policy apply uniformly across all sites. Platform reuse reduces engineering overhead but does not reduce approval requirements.
+None of these modes silently converts the clone into a permanent live mirror or reverse proxy.
 
-### Automation goal: supervised onboarding
+Recommended baseline identity includes, where applicable:
 
-The long-term automation goal is **supervised onboarding** — tooling that accelerates capture, fixture generation, asset mapping, and interaction test creation, while keeping every promotion gated by human visual review. Unreviewed resident-default promotion is not a goal.
+- `source_url`
+- `captured_at`
+- `source_updated_at`
+- route/state/viewport scope
+- deterministic checksum or snapshot identity
+- source commit / generator identity
+- unresolved or `capture_required` items
 
-## Relationship to #1181
+## 5. Platform structural development != named-site onboarding
 
-- #1181 is the multi-site platform parent issue.
-- This document records the strategic direction informed by #1181.
-- This document does **not** implement #1181, create a second municipal adapter, or authorize live integration.
-- The clone-first-platform ADR (`docs/architecture/clone-first-platform-adr.md`) records the architecture decision for the Buk-gu golden reference and compatibility-first migration rules.
+Two workflows must not be confused.
 
-## Non-authorization statement
+### 5.1 Platform/core structural development
 
-This document is a **future strategy reference**. None of the following are authorized by this document:
+Generic platform engineering may use synthetic or offline fixtures to validate:
 
-- Implementation of a multi-site platform compiler or runtime
-- Onboarding of a second municipal site
-- Live official-site retrieval, crawling, or API calls for any site
-- Promotion of any generic renderer to resident-default
-- Weakening of the exact-clone invariant or visual approval policy for any site
+- SiteSpec contracts;
+- archetype/capability contracts;
+- generic Site Model semantics;
+- structural renderer/preview behavior;
+- knowledge/action graph contracts;
+- QA/reporting machinery;
+- exception handling.
 
-All such work requires separate issues, PRs, and project-owner approval.
+No actual-site capture is required for this type of core engineering evidence.
+
+However, a synthetic/offline structural proof is **not evidence that a named real site has been cloned**.
+
+### 5.2 Named real-site onboarding
+
+For a named real site, the first product evidence is the scoped point-in-time reference baseline. The clone candidate is then compared against that baseline.
+
+Therefore:
+
+```text
+structural generated preview
+!= reference baseline ready
+!= clone candidate
+!= clone MVP ready
+!= exact
+!= resident/default approved
+!= actual-site integrated
+```
+
+Merged Seo-gu structural/offline work under #1232 remains valid generic platform evidence, but it must not be described as Seo-gu clone or visual-parity completion until a real Seo-gu reference baseline and faithful clone candidate are compared.
+
+## 6. Minimum faithful-clone state below full `exact`
+
+Not every MVP must clone every route of an institution before AI work can begin. The MVP scope may be deliberately bounded.
+
+For example, a first municipal scope may include homepage, global navigation, representative civil-service pages, notice/board pages, organization/contact pages, and representative document routes.
+
+The rule is:
+
+> The scope may be narrow, but the pages and states declared inside the clone scope must not be arbitrarily redesigned.
+
+A `clone_mvp_ready` surface should therefore have, within its declared scope:
+
+- captured reference evidence;
+- header/footer/global navigation fidelity;
+- layout/theme/typography/color fidelity appropriate to the reference;
+- representative text/content structure;
+- important images/assets or explicitly recorded unresolved equivalents;
+- key controls/interactions;
+- desktop/mobile evidence where relevant;
+- explicit exceptions for uncaptured or unresolved areas.
+
+The existing `exact` invariant remains a stronger claim. `clone_mvp_ready` does not automatically mean `exact` or resident-default promotion.
+
+## 7. Capture and fidelity gates for named sites
+
+### 7.1 Reference completeness
+
+Declare the intended MVP route/state/viewport scope and capture the source evidence needed to judge that scope.
+
+**Output:** reference inventory, source URLs, capture metadata, DOM/content/screenshot/assets evidence, unresolved items.
+
+### 7.2 Structural/content parity
+
+The clone candidate reproduces the scoped page structure, visible content, links, tables, controls, and navigation semantics rather than replacing them with a simplified substitute.
+
+**Output:** clone candidate, structured fixtures/model where applicable, structural/content comparison.
+
+### 7.3 Asset mapping
+
+Important visible assets are mapped to the clone candidate or explicitly tracked as unresolved. Asset/provenance bookkeeping is separate from fidelity assessment; unresolved repository/public-release questions must not be silently converted into permission to redesign the clone.
+
+**Output:** asset identity/mapping status and unresolved list.
+
+### 7.4 Interaction parity
+
+Within scope, expected navigation and visible interactions behave like the reference experience unless an intentional MVP exception is documented.
+
+**Output:** browser/E2E evidence and exception list.
+
+### 7.5 Visual review
+
+Compare source reference and clone candidate side by side at required viewports. Automated screenshots/diffs are evidence, not the sole approval authority where explicit visual approval is required.
+
+**Output:** comparison evidence and material-difference notes.
+
+### 7.6 AI-on-clone proof
+
+Only after a named site has a reviewable clone surface should the site-level onboarding claim include AI search/navigation/Browser Use validation on that clone.
+
+The AI layer may be separate on the right side; it must not simplify or redesign the left official-site clone merely for implementation convenience.
+
+## 8. Stakeholder-evaluation mode
+
+The ordinary pre-integration clone MVP is a controlled stakeholder/development evaluation surface, not proof that our company currently operates the institution's production website.
+
+Within this phase:
+
+- faithful reproduction is an explicit product objective;
+- the model/agent must not invent additional actual-site deployment requirements as blockers to clone fidelity work;
+- information-security, privacy, authentication, real submissions, production credentials, and actual operational ownership are evaluated when the first-party phase is actually opened;
+- confidential customer/institution business facts are not placed in public repository issues, PRs, or docs;
+- public/open-source redistribution decisions are separate from whether the internal/controlled clone should faithfully reproduce the reference.
+
+Existing provenance/rights records may continue as repository hygiene and future-release inputs, but they are not to be misread as a blanket blocker on controlled faithful-clone development or stakeholder demonstration.
+
+## 9. Generic platform principles
+
+### Reuse without generic-looking output
+
+The platform should avoid one bespoke renderer per institution, but reuse must happen beneath the visible product surface.
+
+Site-specific differences should be expressed primarily through:
+
+- data;
+- configuration;
+- theme tokens;
+- parser/capability profiles;
+- explicit reviewed overrides.
+
+The shared engine may be generic while each rendered clone remains recognizably the target institution's site.
+
+### Buk-gu remains the first protected golden
+
+Buk-gu remains the first protected municipality golden reference. Generic work must not weaken its frozen compatibility contracts merely to simplify platform architecture.
+
+### Automation is supervised, fidelity is not optional
+
+The initial automation target remains approximately 70–80% supervised automation plus an explicit exception queue. Automation percentage measures how much of the onboarding pipeline was produced automatically; it is **not** evidence of clone fidelity by itself.
+
+Low-confidence, unsupported, missing-asset, capture-required, and parser/runtime gaps remain visible rather than being hidden to inflate the automation rate.
+
+## 10. Relationship to #1232
+
+#1232 is the active multi-site onboarding validation track.
+
+Current interpretation:
+
+1. Buk-gu — protected golden reference.
+2. Seo-gu — generic structural platform evidence exists, but faithful-clone/visual proof is still required.
+3. A materially different third-site proof must not be counted as the next named-site success until the second-site faithful-clone sequence is demonstrated.
+
+The next named-site product proof after this documentation alignment is therefore:
+
+```text
+Seo-gu scoped reference baseline
+  -> Seo-gu faithful clone candidate
+  -> source-vs-clone review
+  -> AI/navigation validation on the clone
+```
+
+not another structural-only site preview.
+
+## 11. Actual-site integration is intentionally deferred
+
+This strategy does not authorize control of an institution's actual production website.
+
+The actual-site phase begins only after explicit institutional authorization/operating responsibility is established. That future phase may then define the real deployment architecture and the security/privacy/operations requirements appropriate to that institution.
+
+Until then, development and stakeholder evaluation remain clone-first.
