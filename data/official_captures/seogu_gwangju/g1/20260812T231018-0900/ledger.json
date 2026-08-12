@@ -6,7 +6,7 @@
   "plan_identity": {
     "plan_id": "seogu_gwangju.g1.v1",
     "path": "configs/reference-plans/seogu_gwangju.json",
-    "sha256": "07720adf13649fe371b171d7c4d4125319f7fab7992b37a3b2cf0eb2ae17cc2c"
+    "sha256": "7389525d75713829b55f20178e1f6bdf13613eb5ecb55751d0067a5cf8c6117b"
   },
   "g1_completion_claim": true,
   "captured_states": [

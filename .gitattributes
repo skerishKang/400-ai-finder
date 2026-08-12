@@ -11,6 +11,11 @@ data/official_captures/bukgu_gwangju/home/** -text
 data/official_captures/seogu_gwangju/** -text
 data/official_clone_fixtures/** -text
 
+# #1303 Seo-gu G1 capture plan is the approved plan identity source. Its
+# committed SHA-256 is recorded in the executed ledger, so keep LF bytes
+# byte-stable on every OS checkout (including core.autocrlf=true).
+configs/reference-plans/seogu_gwangju.json -text
+
 # #1177 home asset identity audit report + frozen scan manifest must keep
 # committed LF JSON bytes on every OS (including core.autocrlf=true).
 data/official_clone_asset_audits/bukgu_gwangju/home-repository-match-audit.json -text
