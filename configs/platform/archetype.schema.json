@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "configs/platform/archetype.schema.json",
+  "title": "Archetype record (SiteSpec v2)",
+  "description": "Closed archetype classification contract for generic SiteSpec v2 (Slice B, #1287). An archetype is a parser/QA prior, NOT a runtime permission and NOT a capability. 'unknown' is a valid result and must not be coerced into a known class. This is a standalone record schema; the SiteSpec v2 document embeds the same shape under the top-level 'archetype' key.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "state", "confidence", "evidence_refs"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "enum": [
+        "municipality",
+        "university",
+        "bank",
+        "public_agency",
+        "support_portal",
+        "company",
+        "unknown"
+      ],
+      "description": "Closed archetype vocabulary. Unknown enum values are rejected by the semantic contract."
+    },
+    "state": {
+      "type": "string",
+      "enum": ["configured", "detected", "unknown", "review_required"]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Bounded 0.0..1.0. Below-0 and above-1 values are rejected."
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Detection evidence references. May be empty, but must not be treated as factual freshness/evidence authority."
+    }
+  }
+}

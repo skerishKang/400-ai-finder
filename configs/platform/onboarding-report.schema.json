@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "configs/platform/onboarding-report.schema.json",
+  "title": "Onboarding Report (SiteSpec v2)",
+  "description": "Offline onboarding-run report contract for generic SiteSpec v2 (Slice B, #1287). Stores generated-run state separately from SiteSpec; does not imply promotion. Ratios are bounded 0..1 and must sum to 1.0 (enforced by semantic test, not JSON Schema). Exceptions must remain reportable and cannot be omitted to inflate automation_ratio. No runtime wiring, no live network, no Production mutation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "input",
+    "acquisition",
+    "site_identity",
+    "archetype",
+    "capabilities",
+    "artifacts",
+    "metrics",
+    "exceptions",
+    "provenance",
+    "change_scope",
+    "promotion"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2.0.0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_kind"],
+      "properties": {
+        "source_kind": {
+          "type": "string",
+          "enum": ["synthetic", "offline_fixture"]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acquisition_mode", "live_network_authorized"],
+      "properties": {
+        "acquisition_mode": {
+          "type": "string",
+          "enum": ["offline_fixture", "synthetic"]
+        },
+        "live_network_authorized": {
+          "type": "boolean"
+        }
+      }
+    },
+    "site_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["site_id"],
+      "properties": {
+        "site_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        },
+        "display_label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "archetype": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "state", "confidence", "evidence_refs"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "municipality",
+            "university",
+            "bank",
+            "public_agency",
+            "support_portal",
+            "company",
+            "unknown"
+          ]
+        },
+        "state": {
+          "type": "string",
+          "enum": ["configured", "detected", "unknown", "review_required"]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "state",
+          "confidence",
+          "safety_level",
+          "entry_points",
+          "evidence_refs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "site_search",
+              "notice_board",
+              "document_library",
+              "directory",
+              "service_catalog",
+              "faq",
+              "calendar",
+              "form",
+              "contact",
+              "map_or_location",
+              "auth_boundary"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "configured",
+              "detected",
+              "unsupported",
+              "review_required",
+              "not_detected"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "safety_level": {
+            "type": "string",
+            "enum": [
+              "read_only",
+              "navigate",
+              "prepare_input",
+              "high_risk_boundary",
+              "unsupported"
+            ]
+          },
+          "entry_points": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "path", "generated"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "generated": {
+            "type": "boolean",
+            "description": "Artifact generation does NOT imply clone approval, visual approval, resident-default approval, or Production approval."
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["automation_ratio", "human_review_ratio", "unsupported_ratio"],
+      "properties": {
+        "automation_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "human_review_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "unsupported_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "category",
+          "severity",
+          "review_state",
+          "summary",
+          "affected_refs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "low_confidence_classification",
+              "unsupported_component",
+              "unsupported_capability",
+              "unresolved_asset",
+              "source_or_provenance_gap",
+              "auth_or_high_risk_boundary",
+              "generic_parser_or_runtime_gap",
+              "site_specific_override_required"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["info", "warning", "blocking"]
+          },
+          "review_state": {
+            "type": "string",
+            "enum": ["open", "review_required", "resolved"]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "affected_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_refs", "review_state"],
+      "properties": {
+        "source_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "review_state": {
+          "type": "string",
+          "enum": ["synthetic", "review_required", "reviewed"]
+        }
+      }
+    },
+    "change_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shared_core_changed"],
+      "properties": {
+        "shared_core_changed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "promotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["production_promotion_requested"],
+      "properties": {
+        "production_promotion_requested": {
+          "type": "boolean",
+          "description": "Generated-preview success is NOT Production approval. Synthetic/generated-preview reports keep this false."
+        }
+      }
+    }
+  }
+}

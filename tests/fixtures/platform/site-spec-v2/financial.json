@@ -1,0 +1,106 @@
+{
+  "$schema": "configs/platform/site-spec-v2.schema.json",
+  "schema_version": "2.0.0",
+  "identity": {
+    "site_id": "financial_synthetic",
+    "legacy_ids": [],
+    "display": {
+      "default_label": "Example Bank",
+      "locale_labels": {
+        "ko": "예시 은행",
+        "en": "Example Bank"
+      }
+    }
+  },
+  "domains": {
+    "public": ["bank.example.co.kr"]
+  },
+  "entry_points": [
+    {
+      "id": "ep_home",
+      "kind": "homepage",
+      "url": "https://bank.example.co.kr/"
+    },
+    {
+      "id": "ep_public_info",
+      "kind": "document",
+      "url": "https://bank.example.co.kr/about"
+    },
+    {
+      "id": "ep_contact",
+      "kind": "other",
+      "url": "https://bank.example.co.kr/contact"
+    },
+    {
+      "id": "ep_login",
+      "kind": "other",
+      "url": "https://bank.example.co.kr/login"
+    }
+  ],
+  "archetype": {
+    "id": "bank",
+    "state": "configured",
+    "confidence": 1.0,
+    "evidence_refs": ["configs/platform/site-spec-v2.schema.json"]
+  },
+  "capabilities": [
+    {
+      "id": "site_search",
+      "state": "configured",
+      "confidence": 0.8,
+      "safety_level": "read_only",
+      "entry_points": ["ep_home"],
+      "evidence_refs": ["ep_home"]
+    },
+    {
+      "id": "document_library",
+      "state": "configured",
+      "confidence": 0.85,
+      "safety_level": "navigate",
+      "entry_points": ["ep_public_info"],
+      "evidence_refs": ["ep_public_info"]
+    },
+    {
+      "id": "contact",
+      "state": "configured",
+      "confidence": 0.8,
+      "safety_level": "read_only",
+      "entry_points": ["ep_contact"],
+      "evidence_refs": ["ep_contact"]
+    },
+    {
+      "id": "auth_boundary",
+      "state": "configured",
+      "confidence": 1.0,
+      "safety_level": "high_risk_boundary",
+      "entry_points": ["ep_login"],
+      "evidence_refs": ["ep_login"]
+    }
+  ],
+  "capture_policy": {
+    "acquisition_mode": "synthetic",
+    "live_network_authorized": false
+  },
+  "browser_policy": {
+    "surface_mode": "generated_preview",
+    "actual_site_control_authorized": false
+  },
+  "knowledge_policy": {
+    "grounding_required": true,
+    "provenance_required": true
+  },
+  "action_policy": {
+    "external_write_authorized": false,
+    "high_risk_actions_authorized": false
+  },
+  "provenance": {
+    "source_refs": ["tests/fixtures/platform/site-spec-v2/financial.json"],
+    "review_state": "synthetic"
+  },
+  "extensions": {
+    "financial": {
+      "institution_label": "Example Bank",
+      "institution_type": "bank"
+    }
+  }
+}

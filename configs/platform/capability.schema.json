@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "configs/platform/capability.schema.json",
+  "title": "Capability record (SiteSpec v2)",
+  "description": "Closed capability contract for generic SiteSpec v2 (Slice B, #1287). A capability is a detected/configured site ability, NOT authorization to execute browser actions, and NOT a promotion state. Safety levels are declarative and never authorize external write, login, payment, submit, upload, or PII handling. This is a standalone record schema; the SiteSpec v2 document embeds the same shape inside the top-level 'capabilities' array.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "state",
+    "confidence",
+    "safety_level",
+    "entry_points",
+    "evidence_refs"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "enum": [
+        "site_search",
+        "notice_board",
+        "document_library",
+        "directory",
+        "service_catalog",
+        "faq",
+        "calendar",
+        "form",
+        "contact",
+        "map_or_location",
+        "auth_boundary"
+      ],
+      "description": "Closed capability vocabulary. Unknown capability IDs are rejected."
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "configured",
+        "detected",
+        "unsupported",
+        "review_required",
+        "not_detected"
+      ],
+      "description": "Capability state is not support/promotion state. 'unsupported'/'not_detected'/'review_required' must remain visible in the onboarding report."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "safety_level": {
+      "type": "string",
+      "enum": [
+        "read_only",
+        "navigate",
+        "prepare_input",
+        "high_risk_boundary",
+        "unsupported"
+      ],
+      "description": "Declarative browser/action safety level. 'unsupported'/'not_detected' capabilities cannot advertise 'navigate' or 'prepare_input'. No safety level authorizes actual external writes."
+    },
+    "entry_points": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+      },
+      "description": "References to declared entry-point IDs within the same SiteSpec. Dangling references fail closed."
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
