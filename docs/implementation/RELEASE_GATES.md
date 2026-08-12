@@ -1,25 +1,30 @@
-# 400 AI Finder 출시 게이트
+# 400 AI Finder 출시·온보딩 게이트
 
 - 상태: `canonical`
 - 기준일: 2026-08-12
-- 현재 platform-governance 정렬: #1283
+- 현재 lifecycle/governance 정렬: #1301
+- active onboarding validation: #1232
 - Buk-gu Frozen Demo closeout: #1235 (`completed`)
+- Clone lifecycle canonical: [`docs/product/clone-first-general-site-platform-strategy.md`](../product/clone-first-general-site-platform-strategy.md)
 - Exact clone canonical: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md)
 
 기능이 동작하거나 CI가 통과했다는 이유만으로 다음 운영단계에 자동 승격하지 않는다.
 
 ```text
 implemented
-!= generated preview
-!= tested
+!= structural generated preview
+!= reference baseline ready
+!= faithful clone candidate
+!= clone MVP ready
+!= exact
 != visually approved
 != deployed
 != live validated
 != production approved
-!= actual-site authorized
+!= actual-site authorized/integrated
 ```
 
-`generated_preview`, `archetype_golden`, `resident_default_approved`는 서로 다른 상태다. 자동 onboarding 결과가 존재한다는 이유만으로 exact clone·resident default·production approval을 주장하지 않는다.
+현재 ordinary pre-integration 제품은 **faithful clone MVP + AI Finder/Browser on the clone**이다. 실제 기관 production 사이트 integration은 기관 승인 후 별도 Gate H에서 시작한다.
 
 ## Gate A — Frozen controlled demo
 
@@ -32,7 +37,7 @@ implemented
 - exact golden SHA·manifest
 - canonical fixture·checksum
 - no-submit·no-login·no-payment
-- no actual-site control
+- no actual-site control claim
 - offline CI
 - desktop·mobile browser contract
 - accessibility·link safety
@@ -46,18 +51,17 @@ implemented
 - local/static Page Agent comparison
 - pre-submit writing assistance
 
-### 금지
+### 비주장
 
-- 실제 민원접수 주장
-- 실제 로그인·결제
-- PII 처리
-- 보호 없는 public provider 비용노출
+- 실제 민원접수 완료
+- actual production-site 운영
+- 실제 login/payment/PII integration
 
-## Gate B — Protected public pilot
+## Gate B — Protected public AI pilot
 
 ### 목적
 
-공개 URL에서 제한된 AI 기능을 비용·abuse·장애 통제하에 제공한다.
+공개 URL에서 AI 기능을 실제 운영하려는 경우 비용·abuse·장애 통제를 검증한다.
 
 ### historical prerequisite tracks
 
@@ -89,6 +93,8 @@ implemented
 - kill switch test
 - no raw PII/key logs
 
+이 Gate는 controlled/internal stakeholder clone MVP를 만들기 위한 선행조건이 아니다.
+
 ## Gate C — Evidence-safe AI pilot
 
 ### 목적
@@ -117,17 +123,28 @@ AI 답변이 공식근거 수준을 벗어나 고위험 행정정보를 확정�
 - 기만 URL·오래된 snapshot 테스트
 - 주민용 fallback copy review
 
+이 Gate는 AI factual output의 신뢰도 경계이며, faithful clone의 화면 fidelity를 낮추는 근거로 사용하지 않는다.
+
 ## Gate D — Unified platform foundation
 
 ### 목적
 
 Python·Cloudflare·compatibility registry가 공통 site·provider·action·evidence 계약을 사용한다.
 
-### historical foundation tracks
+### foundation tracks
 
 - #1225
 - #1228
-- #1231
+- #1287 (`completed`)
+
+### 현재 구현 사실
+
+- versioned Generic SiteSpec vNext contract foundation 존재
+- archetype/capability/onboarding-report contract foundation 존재
+- Buk-gu compatibility/projection foundation 존재
+- Seo-gu offline generic Site Model/structural preview evidence 존재
+
+이 foundation이 arbitrary site의 faithful clone/runtime wiring이 완료됐다는 뜻은 아니다.
 
 ### 필수조건
 
@@ -138,14 +155,6 @@ Python·Cloudflare·compatibility registry가 공통 site·provider·action·evi
 - reproducible dependency install
 - split CI jobs와 required checks
 - golden compatibility tests
-
-### 승인증거
-
-- `bukgu`/`bukgu_gwangju` dual-read evidence
-- generated/adapter diff review
-- no golden route·DOM·state regression
-
-현재 foundation 존재가 임의 사이트용 generic Site Model/compiler/runtime wiring 완료를 뜻하지 않는다.
 
 ## Gate E — Modular maintainable runtime
 
@@ -166,20 +175,13 @@ Python·Cloudflare·compatibility registry가 공통 site·provider·action·evi
 - public API·DOM·state façade compatibility
 - browser·Function·build contract
 
-### 승인증거
-
-- behavior-equivalence test
-- module ownership map
-- no circular dependency
-- no event listener duplication
-
-이 Gate는 필요가 실제 platform work에서 발생할 때 재개한다. 단순 구조정리만을 위해 multi-site 진행을 선행 차단하지 않는다.
+이 Gate는 필요가 실제 platform work에서 발생할 때 재개한다. 단순 구조정리를 위해 named-site faithful clone work를 선행 차단하지 않는다.
 
 ## Gate F — Official freshness staging
 
 ### 목적
 
-시간에 따라 변하는 공식정보를 승인된 staging에서 안전하게 조회한다.
+시간에 따라 변하는 공식정보를 별도 freshness workflow에서 조회한다.
 
 ### historical/deferred tracks
 
@@ -187,170 +189,218 @@ Python·Cloudflare·compatibility registry가 공통 site·provider·action·evi
 - #1224
 - #1227
 
-### 필수조건
+### 필수조건 when this mode is actually used
 
-- exact URL/domain allowlist
-- redirect·malformed URL fail-closed
+- exact URL/domain policy
+- redirect·malformed URL handling
 - timeout·rate limit·cache
-- real DOM/search retrieval validation where separately approved
 - source·retrieval·update time
 - outage·stale behavior
 - snapshot/live precedence
 - routine CI remains offline
 
-### 승인증거
+### 중요한 구분
 
-- separately approved controlled-live record
-- zero write action
-- captured response sanitized
-- rollback to snapshot-only
+Answer freshness와 clone visible-surface freshness는 동일한 상태가 아니다.
 
-### 비주장
+새 live evidence가 존재해도 approved clone이 자동으로 live mirror가 되지 않는다. Clone refresh는 별도 recapture/version/review다.
 
-이 Gate는 actual public site 통제나 실제 제출권한을 의미하지 않는다. URL이 onboarding 입력으로 제공됐다는 사실만으로 이 Gate의 live network 권한이 생기지 않는다.
+## Gate G — Multi-site clone MVP onboarding
 
-## Gate G — Multi-site supervised onboarding
+Gate G는 **platform structural proof**, **named-site reference/clone proof**, **AI-on-clone proof**, **optional exact/default promotion**을 분리한다.
 
-Gate G는 **generated preview**와 **golden/production promotion**을 분리한다. 둘을 같은 승인상태로 취급하지 않는다.
-
-### Gate G1 — Generated onboarding preview
+### Gate G0 — Generic structural/platform proof
 
 #### 목적
 
-새 사이트를 bespoke renderer 개발 없이 공통 pipeline으로 분석하여 reviewable non-default preview를 생성한다. 초기 현실적 목표는 100% 자동완성이 아니라 **70–80% supervised automation + explicit exception queue**다.
-
-#### 예상 입력
-
-- target URL and/or SiteSpec draft
-- separately declared acquisition/network mode
-
-`URL supplied != live network authorized`다. URL은 대상 식별자일 수 있으며 live capture는 별도 승인경계를 따른다.
-
-#### 필수 산출물
-
-- canonical/draft site identity
-- detected/proposed archetype + confidence
-- detected capabilities + confidence
-- capture/route inventory or approved fixture equivalent
-- generic Site Model candidate
-- asset/provenance manifest or unresolved-asset report
-- knowledge artifact/index candidate
-- action graph / browser target model candidate
-- automated QA report
-- automation ratio
-- explicit exception queue with low-confidence / unsupported / safety-sensitive items
-- rollback/isolation boundary for failed onboarding
+실제 named site clone 완료를 주장하지 않고 shared contract/engine을 synthetic/offline evidence로 검증한다.
 
 #### 허용
 
-- localhost/CI/debug generated preview
-- incomplete surface with truthful confidence/exception reporting
-- unresolved visual/content items if clearly non-exact and non-default
-- automated screenshot/browser/semantic QA
-- site-specific data/config/explicit reviewed overrides
+- synthetic/offline SiteSpec fixtures
+- archetype/capability contract tests
+- generic Site Model bundle
+- structural renderer/preview
+- knowledge/action schema proof
+- QA/report/exception contract proof
 
-#### 금지
+#### 비주장
 
-- `exact` claim without exact-clone criteria
-- `resident_default_approved` claim
-- production/public promotion merely because generated QA passed
-- uncontrolled live provider/crawl/network execution
-- actual submit/login/payment/write action
-- hiding unsupported/low-confidence items to inflate automation ratio
+- named real site cloned
+- visual parity
+- clone MVP ready
+- exact
+- resident/default approved
 
-#### 승인증거
+Seo-gu #1298~#1300의 현재 의미는 이 Gate의 generic platform evidence다.
 
-- input identity and acquisition mode
-- generated artifact identities
-- automation/review/unsupported ratios
-- exception summary
-- core-changed `YES/NO`
-- offline/reproducible validation where applicable
-
-**Human first-promotion visual approval is not required for Gate G1 itself**, because G1 does not grant resident-default or exact status.
-
-### Gate G2 — Archetype golden validation
+### Gate G1 — Named-site scoped reference baseline
 
 #### 목적
 
-municipality / university / bank / public agency / support portal / company 등 사이트 유형별 golden surface를 깊게 검증하여 반복 onboarding의 기준으로 사용한다.
+실제 이름을 가진 target site의 declared MVP scope를 point-in-time reference로 고정한다.
 
-#### 필수조건
+#### 필수입력
 
-- archetype/capability contract defined for the golden scope
-- generated preview upgraded through focused human review
-- browser task coverage for archetype capabilities
-- grounding/action/safety coverage
-- responsive/accessibility evidence appropriate to the surface
-- material exception resolution or explicit accepted limitations
-- applicable visual fidelity review
-- rollback identity
+- site identity
+- declared MVP scope
+- representative routes/states
+- desktop/mobile viewport scope where relevant
+- capture mode/method
 
-북구는 첫 municipality golden reference로 보호한다. 미래 archetype golden이 북구 route/DOM/state 계약을 깨뜨리는 이유가 되어서는 안 된다.
+#### 필수산출물
 
-### Gate G3 — Resident/default or production promotion
+- source URLs
+- `captured_at`
+- source update time where available
+- route/state inventory
+- DOM/content reference evidence where applicable
+- visual reference/screenshots where applicable
+- important asset inventory
+- unresolved/`capture_required` items
+- deterministic snapshot/reference identity
+
+#### 성공의 의미
+
+`reference_baseline_ready`
+
+아직 clone 완료가 아니다.
+
+### Gate G2 — Faithful clone candidate
 
 #### 목적
 
-특정 site surface를 실제 기본 사용자 경로나 production candidate로 승격한다.
+G1 reference를 기준으로 repository-controlled clone candidate를 만든다.
 
 #### 필수조건
 
-- applicable SiteSpec/provenance/rights state
-- applicable [`exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md) requirements satisfied whenever an `exact` claim is made
-- visual side-by-side evidence where required
-- project-owner approval where required by visual promotion policy
-- browser/safety/evidence regression
-- deployment/rollback evidence when deployed
+Declared scope 안에서:
 
-Generated preview 또는 archetype golden 통과만으로 이 상태가 자동 부여되지 않는다.
+- header/footer/global navigation fidelity
+- layout/theme/typography/color fidelity appropriate to the reference
+- representative text/content structure fidelity
+- important image/asset mapping or explicit unresolved state
+- key control/interaction mapping
+- outside-scope route fabrication 금지
+
+Shared engine은 generic할 수 있지만 rendered clone은 target site처럼 보여야 한다.
+
+#### 필수산출물
+
+- clone candidate identity
+- source commit/generator identity
+- structural/content comparison
+- asset mapping/unresolved report
+- browser interaction evidence
+- responsive/accessibility QA where applicable
+- explicit exception queue
+
+### Gate G3 — Clone MVP review / readiness
+
+#### 목적
+
+Target-site stakeholder가 자기 사이트에 AI가 들어간 모습을 실제처럼 체험할 수 있을 정도로 declared scope의 clone을 검증한다.
+
+#### 필수조건
+
+- G1 reference baseline 존재
+- G2 clone candidate 존재
+- reference-vs-clone side-by-side review
+- material differences recorded
+- unresolved items explicit
+- no generic redesign substitution
+- applicable project-owner visual review for the declared stakeholder surface
+
+#### 성공의 의미
+
+`clone_mvp_ready`
+
+이는 모든 route의 `exact` claim 또는 public resident-default approval과 동일하지 않다.
+
+### Gate G4 — AI-on-clone onboarding proof
+
+#### 목적
+
+Faithful clone surface에서 AI Finder/Browser의 실제 사용자 가치를 검증한다.
+
+#### 필수산출물
+
+- knowledge index / answer grounding state
+- action graph / browser target model
+- search / click / navigation / read behavior evidence
+- representative resident task simulations
+- answer-from-site and applicable model-assisted fallback behavior
+- automation ratio
+- human-review ratio
+- unsupported ratio
+- explicit exception queue
+- shared-core-changed `YES/NO`
+
+#### 원칙
+
+AI layer는 오른쪽에 추가될 수 있지만 구현 편의를 위해 왼쪽 official-site clone을 redesign하지 않는다.
+
+### Gate G5 — Optional exact / archetype golden / resident-default promotion
+
+#### 목적
+
+더 강한 `exact`, archetype golden, resident/default 또는 production claim이 실제로 필요한 경우 추가 promotion을 검토한다.
+
+#### 필수조건
+
+- applicable exact-clone invariant
+- applicable visual-promotion policy
+- promotion-specific browser/safety/evidence regression
+- explicit approval/evidence required by that promotion state
+- deployment/rollback evidence when deployment is actually in scope
+
+`clone_mvp_ready`만으로 이 상태가 자동 부여되지 않는다.
 
 ### Gate G 공통 성공증거
 
 - site-specific renderer 없이 또는 최소 reviewed override로 onboarding
-- automation/human review ratio
+- declared clone scope
+- reference snapshot identity
+- clone candidate identity
+- structural/content/asset/interaction/visual status
+- AI-on-clone status
+- automation/human review/unsupported ratio
 - shared-core change와 site-specific change 분리
 - failed onboarding isolation
-- golden resident-default unchanged before explicit approval
+- golden resident-default unchanged before explicit promotion
 - cross-site reuse evidence
 
-## Gate H — Authorized operational integration
+## Gate H — Authorized first-party actual-site integration — 미래 단계
 
 ### 목적
 
-기관이 권한과 운영책임을 제공한 실제 환경에서 first-party integration을 수행한다.
+기관이 우리 회사에 실제 production 사이트의 구축·운영·유지보수 또는 AI integration 권한을 명시적으로 부여한 뒤, clone에서 검증한 AI Finder/Browser를 실제 환경에 통합한다.
 
-### historical prerequisite tracks
+### 시작조건
 
-- #862
-- #873
+이 Gate는 current clone MVP의 기본 개발단계가 아니다.
 
-### 필수조건
+기관 승인 후 해당 실제 환경을 기준으로 다음을 정의한다.
 
-- 기관의 명시적 권한
-- credentials·secret owner
-- deployment owner
-- security review
-- 개인정보 처리책임
-- data retention·deletion
-- incident·support owner
-- staging·rollback
-- audit log
+- credentials / secret owner
+- deployment / hosting owner
+- information-security requirements
+- privacy / PII responsibility
+- authentication boundary
+- data retention / deletion
+- real form / submission / payment / write boundaries
+- internal-system integration
+- monitoring / incident / support owner
+- staging / rollback
+- audit logging where required
 
-### 이 Gate에서만 검토 가능한 기능
+### 중요한 원칙
 
-- actual site widget·script
-- authenticated flow
-- real form integration
-- operational system handoff
-- PII processing
+Gate H 요구사항은 **Gate H가 실제로 열릴 때** 검토한다.
 
-### 별도 승인이 필요한 고위험 기능
+Gate G의 faithful clone development, visual fidelity, stakeholder evaluation, AI-on-clone validation을 위한 선행 blocker로 Gate H의 production requirements를 임의로 끌어오지 않는다.
 
-- 자동 제출
-- 결제
-- 법적효과가 있는 신청
-- 주민등록번호·계좌 등 고위험 개인정보
+Clone MVP 완료는 actual-site control을 의미하지 않는다.
 
 ## 공통 gate evidence template
 
@@ -359,42 +409,41 @@ Gate:
 Environment:
 Base SHA:
 Head/Release SHA:
-Deployed SHA:
 Date/time:
-Operator/reviewer:
-Data classification:
+Target site / clone scope:
+Reference snapshot identity:
+Clone candidate identity:
 Network/provider mode:
 Tests:
 Browser/visual evidence:
-Security/privacy evidence:
-Generated-preview status (if applicable):
-Automation / review / unsupported ratio (if applicable):
-Exceptions (if applicable):
+AI-on-clone evidence:
+Automation / review / unsupported ratio:
+Exceptions:
 Known limitations:
-Rollback:
+Rollback/isolation:
 Decision: PASS / HOLD / FAIL
 ```
 
+Production/deployment fields는 실제 deployment가 scope일 때만 추가한다.
+
 ## HOLD 조건
 
-- exact SHA 불명확
+- exact current SHA 불명확
 - required CI 일부 미실행·skip·xfail
-- external request 범위 미기록
-- secret·PII 가능성
-- official source provenance 누락
-- 해당 promotion level에서 요구되는 visual approval 누락
-- deployed SHA 불일치 when deployment is in scope
-- required rollback 미검증
+- named-site clone claim인데 G1 reference baseline 없음
+- named-site clone claim인데 structural preview만 존재
+- declared clone scope가 불명확
+- clone candidate의 unresolved items가 숨겨짐
+- 해당 promotion level에서 요구되는 visual evidence 누락
 - issue/PR head 변경 후 재검증 없음
-- generated preview가 low-confidence/unsupported 항목을 exception으로 기록하지 않음
+- automation ratio를 fidelity evidence처럼 사용
 
 ## FAIL 조건
 
-- 실제 submit·login·payment가 승인 없이 발생
-- 공식근거 없는 고위험 행정정보 확정
-- secret·PII 노출
+- named-site structural preview를 faithful clone 완료라고 허위 주장
+- actual production site control을 근거 없이 주장
+- secret·PII를 repository/public artifact에 노출
 - golden route·DOM·state breaking regression
-- public endpoint 무제한 과금·abuse
-- actual-site control을 근거 없이 주장
-- customer/private data의 public repo 반입
-- generated preview를 근거 없이 exact/resident-default/production-approved로 주장
+- public production operation을 승인 없이 활성화
+- unsupported/low-confidence 항목을 숨겨 success ratio 부풀림
+- future Gate H의 요구를 이유 없이 현재 faithful-clone fidelity 축소의 근거로 사용
