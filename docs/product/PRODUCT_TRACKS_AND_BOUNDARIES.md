@@ -83,7 +83,7 @@
 - #1224 public API protection
 - #1227 timeout·observability·kill switch
 
-이 조건들은 공개 AI 운영과 사실확정 경계에 관한 것이며, faithful clone의 화면을 원본과 유사하게 재현하는 작업 자체의 blocker가 아니다.
+이 조건들은 공개 AI 운영과 사실확정 경계에 관한 것이며, faithful clone의 화면을 원본 일치 기준으로 재현하는 작업 자체의 blocker가 아니다.
 
 ## 3. 트랙 C — 공식정보 freshness
 
