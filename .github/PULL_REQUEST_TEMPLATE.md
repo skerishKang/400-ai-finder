@@ -19,6 +19,8 @@
 
 ## Product track
 
+Canonical Buk-gu exact-clone invariant: `docs/product/exact-official-site-clone-invariant.md`.
+
 - [ ] Buk-gu golden clone
 - [ ] 근거 기반 AI 시민안내
 - [ ] 공식정보 freshness
