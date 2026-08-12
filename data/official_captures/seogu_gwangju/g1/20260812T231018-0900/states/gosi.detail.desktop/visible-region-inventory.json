@@ -1,0 +1,323 @@
+{
+  "title": "현재 고시/공고 | 고시/공고 | 구정소식 : 전남광주통합특별시 서구청 #착한도시 서구",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "landmarks": [
+    {
+      "tag": "header",
+      "text": "이 누리집은 대한민국 공식 전자정부 누리집입니다. 보건소 문화관광 서구의회 행정복지센터 소상공인경영지원센터 서구시설관리공단 주요 누리집 Language 페이스북 카카오톡채널 카카오스토리 밴드 네이버 인스타그램 유튜브 함께 서구 우뚝서구 검색 검색 전남광주통합특별시 서구 GWANGJU CITY SEOGU 열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보 전체메뉴",
+      "id": "header",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보",
+      "id": "gnb1",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "전체메뉴",
+      "id": "gnb2",
+      "class_name": "scrollbar"
+    },
+    {
+      "tag": "main",
+      "text": "구정소식 공지사항 고시/공고 현재 고시/공고 이전 고시/공고 보도자료 채용공고 입찰공고 카드뉴스 서구소식지 타기관소식 입법예고 시설관리공단소식 인사정보 현재 고시/공고 홈 구정소식 고시/공고 현재 고시/공고 글자 크게 글자 작게 공유하기 인쇄 「지속가능관광지방정부협의회 운영규약」고시 공고번호서구 고시 제2026-86호 작성일2026-08-10 분류고시 담당자연락처고영관/0623507669 담당부서체육관광과 「지방자치법」제169조에 의거 전남광주통합특별시 서구의회에 보고된 「지속가능관광지방정부협의회 운영규약」을 아래와 같이 고시합니다",
+      "id": "main",
+      "class_name": ""
+    },
+    {
+      "tag": "section",
+      "text": "구정소식 공지사항 고시/공고 현재 고시/공고 이전 고시/공고 보도자료 채용공고 입찰공고 카드뉴스 서구소식지 타기관소식 입법예고 시설관리공단소식 인사정보",
+      "id": "snb",
+      "class_name": "sub08"
+    },
+    {
+      "tag": "nav",
+      "text": "공지사항 고시/공고 현재 고시/공고 이전 고시/공고 보도자료 채용공고 입찰공고 카드뉴스 서구소식지 타기관소식 입법예고 시설관리공단소식 인사정보",
+      "id": null,
+      "class_name": "list"
+    },
+    {
+      "tag": "section",
+      "text": "현재 고시/공고 홈 구정소식 고시/공고 현재 고시/공고 글자 크게 글자 작게 공유하기 인쇄 「지속가능관광지방정부협의회 운영규약」고시 공고번호서구 고시 제2026-86호 작성일2026-08-10 분류고시 담당자연락처고영관/0623507669 담당부서체육관광과 「지방자치법」제169조에 의거 전남광주통합특별시 서구의회에 보고된 「지속가능관광지방정부협의회 운영규약」을 아래와 같이 고시합니다. 1. 고 시 명 : 지속가능관광지방정부협의회 운영규약 2. 고시내용 : 붙임참조 3. 고시방법 : 전남광주통합특별시 서구청 홈페이지(www.seogu",
+      "id": "contents",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "홈 구정소식 고시/공고 현재 고시/공고",
+      "id": null,
+      "class_name": "location"
+    }
+  ],
+  "controls": [
+    {
+      "tag": "a",
+      "text": "보건소",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "문화관광",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구의회",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "행정복지센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소상공인경영지원센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구시설관리공단",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주요 누리집",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "Language",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "페이스북",
+      "id": null,
+      "class_name": "facebook"
+    },
+    {
+      "tag": "a",
+      "text": "카카오톡채널",
+      "id": null,
+      "class_name": "kakaoch"
+    },
+    {
+      "tag": "a",
+      "text": "카카오스토리",
+      "id": null,
+      "class_name": "kakaostory"
+    },
+    {
+      "tag": "a",
+      "text": "밴드",
+      "id": null,
+      "class_name": "band"
+    },
+    {
+      "tag": "a",
+      "text": "네이버",
+      "id": null,
+      "class_name": "naver"
+    },
+    {
+      "tag": "a",
+      "text": "인스타그램",
+      "id": null,
+      "class_name": "instagram"
+    },
+    {
+      "tag": "a",
+      "text": "유튜브",
+      "id": null,
+      "class_name": "youtube"
+    },
+    {
+      "tag": "a",
+      "text": "함께 서구 우뚝서구",
+      "id": null,
+      "class_name": "slogan"
+    },
+    {
+      "tag": "input",
+      "text": "검색",
+      "id": "allKeyWord2",
+      "class_name": "search_keyword"
+    },
+    {
+      "tag": "button",
+      "text": "검색",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전남광주통합특별시 서구 GWANGJU CITY SEOGU",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "열린민원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소통참여",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "정보공개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "구정소식",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "서구소개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "분야별정보",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전체메뉴",
+      "id": null,
+      "class_name": "control open"
+    },
+    {
+      "tag": "a",
+      "text": "공지사항",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "고시/공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "현재 고시/공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "이전 고시/공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "보도자료",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "채용공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "입찰공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "카드뉴스",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구소식지",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "홈",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "구정소식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "고시/공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "현재 고시/공고",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "글자 크게",
+      "id": null,
+      "class_name": "btn up"
+    },
+    {
+      "tag": "a",
+      "text": "글자 작게",
+      "id": null,
+      "class_name": "btn down"
+    },
+    {
+      "tag": "a",
+      "text": "공유하기",
+      "id": null,
+      "class_name": "btn open"
+    },
+    {
+      "tag": "a",
+      "text": "인쇄",
+      "id": null,
+      "class_name": "btn print"
+    },
+    {
+      "tag": "a",
+      "text": "TOP",
+      "id": null,
+      "class_name": "anchorLink up"
+    }
+  ]
+}

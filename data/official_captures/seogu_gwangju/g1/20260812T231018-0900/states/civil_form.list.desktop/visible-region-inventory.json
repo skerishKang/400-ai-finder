@@ -1,0 +1,407 @@
+{
+  "title": "목록 | 민원서식 | 민원안내 | 열린민원 : 전남광주통합특별시 서구청 #착한도시 서구",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "landmarks": [
+    {
+      "tag": "header",
+      "text": "이 누리집은 대한민국 공식 전자정부 누리집입니다. 보건소 문화관광 서구의회 행정복지센터 소상공인경영지원센터 서구시설관리공단 주요 누리집 Language 페이스북 카카오톡채널 카카오스토리 밴드 네이버 인스타그램 유튜브 함께 서구 우뚝서구 검색 검색 전남광주통합특별시 서구 GWANGJU CITY SEOGU 열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보 전체메뉴",
+      "id": "header",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보",
+      "id": "gnb1",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "전체메뉴",
+      "id": "gnb2",
+      "class_name": "scrollbar"
+    },
+    {
+      "tag": "main",
+      "text": "열린민원 민원안내 민원실안내 순번대기현황 무인민원발급안내 가족관계등록 민원사무편람 민원서식 민원편의시책 행정정보공동이용 제증명 수수료 부동산종합증명서발급 민원상담 여권민원 세무민원 교통민원 민원서식 홈 열린민원 민원안내 민원서식 글자 크게 글자 작게 공유하기 인쇄 열린민원 > 민원서식(편람) 검색 분류 전체 건설 건축 경제 광고물 교통 농정 문화체육 보건 사회복지 세무 위생 정보통신 주민등록 지적(부동산) 환경 가족관계등록 청소 기타 위생-식품접객업 위생-제조가공업 위생-집단급식소 위생-공중위생업 행정처분 제목 내용 작성부서 전체 ",
+      "id": "main",
+      "class_name": ""
+    },
+    {
+      "tag": "section",
+      "text": "열린민원 민원안내 민원실안내 순번대기현황 무인민원발급안내 가족관계등록 민원사무편람 민원서식 민원편의시책 행정정보공동이용 제증명 수수료 부동산종합증명서발급 민원상담 여권민원 세무민원 교통민원",
+      "id": "snb",
+      "class_name": "sub02"
+    },
+    {
+      "tag": "nav",
+      "text": "민원안내 민원실안내 순번대기현황 무인민원발급안내 가족관계등록 민원사무편람 민원서식 민원편의시책 행정정보공동이용 제증명 수수료 부동산종합증명서발급 민원상담 여권민원 세무민원 교통민원",
+      "id": null,
+      "class_name": "list"
+    },
+    {
+      "tag": "section",
+      "text": "민원서식 홈 열린민원 민원안내 민원서식 글자 크게 글자 작게 공유하기 인쇄 열린민원 > 민원서식(편람) 검색 분류 전체 건설 건축 경제 광고물 교통 농정 문화체육 보건 사회복지 세무 위생 정보통신 주민등록 지적(부동산) 환경 가족관계등록 청소 기타 위생-식품접객업 위생-제조가공업 위생-집단급식소 위생-공중위생업 행정처분 제목 내용 작성부서 전체 검색 전체 1,077건 페이지 1/108 열린민원_민원안내_민원서식 목록 번호 분류 제목 담당부서 등록일 첨부파일 조회수 1077 교통 자동차 등록 위임장 교통행정과 2026/07/30 6 ",
+      "id": "contents",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "홈 열린민원 민원안내 민원서식",
+      "id": null,
+      "class_name": "location"
+    }
+  ],
+  "controls": [
+    {
+      "tag": "a",
+      "text": "보건소",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "문화관광",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구의회",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "행정복지센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소상공인경영지원센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구시설관리공단",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주요 누리집",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "Language",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "페이스북",
+      "id": null,
+      "class_name": "facebook"
+    },
+    {
+      "tag": "a",
+      "text": "카카오톡채널",
+      "id": null,
+      "class_name": "kakaoch"
+    },
+    {
+      "tag": "a",
+      "text": "카카오스토리",
+      "id": null,
+      "class_name": "kakaostory"
+    },
+    {
+      "tag": "a",
+      "text": "밴드",
+      "id": null,
+      "class_name": "band"
+    },
+    {
+      "tag": "a",
+      "text": "네이버",
+      "id": null,
+      "class_name": "naver"
+    },
+    {
+      "tag": "a",
+      "text": "인스타그램",
+      "id": null,
+      "class_name": "instagram"
+    },
+    {
+      "tag": "a",
+      "text": "유튜브",
+      "id": null,
+      "class_name": "youtube"
+    },
+    {
+      "tag": "a",
+      "text": "함께 서구 우뚝서구",
+      "id": null,
+      "class_name": "slogan"
+    },
+    {
+      "tag": "input",
+      "text": "검색",
+      "id": "allKeyWord2",
+      "class_name": "search_keyword"
+    },
+    {
+      "tag": "button",
+      "text": "검색",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전남광주통합특별시 서구 GWANGJU CITY SEOGU",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "열린민원",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "소통참여",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "정보공개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "구정소식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구소개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "분야별정보",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전체메뉴",
+      "id": null,
+      "class_name": "control open"
+    },
+    {
+      "tag": "a",
+      "text": "민원안내",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "민원실안내",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "순번대기현황",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "무인민원발급안내",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "가족관계등록",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "민원사무편람",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "민원서식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "민원편의시책",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "행정정보공동이용",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "제증명 수수료",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "부동산종합증명서발급",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "민원상담",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "여권민원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "홈",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "열린민원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "민원안내",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "민원서식",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "글자 크게",
+      "id": null,
+      "class_name": "btn up"
+    },
+    {
+      "tag": "a",
+      "text": "글자 작게",
+      "id": null,
+      "class_name": "btn down"
+    },
+    {
+      "tag": "a",
+      "text": "공유하기",
+      "id": null,
+      "class_name": "btn open"
+    },
+    {
+      "tag": "a",
+      "text": "인쇄",
+      "id": null,
+      "class_name": "btn print"
+    },
+    {
+      "tag": "select",
+      "text": "분류 전체 건설 건축 경제 광고물 교통 농정 문화체육 보건 사회복지 세무 위생 정보통신 주민등록 지적(부동산) 환경 가족관계등록 청소 기타 위생-식품접객업 위생-제조가공업 위생-집단급식소 위생-공중위생업 행정처분",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "select",
+      "text": "제목 내용 작성부서 전체",
+      "id": "select",
+      "class_name": ""
+    },
+    {
+      "tag": "input",
+      "text": "검색어를 입력하세요",
+      "id": null,
+      "class_name": "form_textbox"
+    },
+    {
+      "tag": "button",
+      "text": "검색",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "자동차 등록 위임장",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "토지거래계약 허가 신청서류",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "대부(중개)업 변경등록 신청",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "대부(중개)업 등록갱신 신청",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "대부(중개)업 폐업 신고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "TOP",
+      "id": null,
+      "class_name": "anchorLink up"
+    }
+  ]
+}

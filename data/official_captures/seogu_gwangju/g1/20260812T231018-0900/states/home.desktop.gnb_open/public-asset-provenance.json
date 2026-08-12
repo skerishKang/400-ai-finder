@@ -1,0 +1,606 @@
+{
+  "bounded": true,
+  "max_asset_bodies": 100,
+  "assets": [
+    {
+      "url": "https://www.seogu.gwangju.kr/boardImgView.es?bid=0001&list_no=142915",
+      "sha256": "c9da2a80b4152f8c78b5ff7c0532e8528df7f31cb165e8bde40fcc3300ec1a1d",
+      "byte_length": 52205,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/css/animation.css",
+      "sha256": "c085e2da2c0e5d1f3d4213f82f0fea8ee975b0809fb954419e8df016a71b0d04",
+      "byte_length": 2526,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/css/basic.css",
+      "sha256": "d50033d4b17fb7b4f695d22555e657b05ade7807622448a599be67d099cf89d5",
+      "byte_length": 15530,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/css/modalpopup.css",
+      "sha256": "99318a2353c9af0686f7de48eb370de880ba9d39e36fb959ed91f7bd025d1b05",
+      "byte_length": 4110,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/font/dingbat_xeicon.css",
+      "sha256": "67b8414cacdce9849b63726e1a8098aafdacba2aed9d7a2891ba02ecf887d233",
+      "byte_length": 39203,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/font/gmarketsans/GmarketSansBold.woff2",
+      "sha256": "4c74f4b911eef972f077b70b2823168ae87e96894ef910a84ba562bd4b8c8354",
+      "byte_length": 132116,
+      "content_type": "font/woff2"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/font/gmarketsans/GmarketSansLight.woff2",
+      "sha256": "f2434f892f64d7d928ac92a533b783083640daab9d37cb20a3965de393b9d446",
+      "byte_length": 131300,
+      "content_type": "font/woff2"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/font/gmarketsans/GmarketSansMedium.woff2",
+      "sha256": "3f33802d06439d0d7bf216681eb9460c762418212936906ebf66ef6d7154dd62",
+      "byte_length": 141248,
+      "content_type": "font/woff2"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Bold.woff2",
+      "sha256": "bc16b83ae5f87730fbed27f810d75fcad341777866b43dd05e0ee03efe040b81",
+      "byte_length": 147824,
+      "content_type": "font/woff2"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-DemiLight.woff2",
+      "sha256": "8c1d60fc42757d152926ed43c829132ab5b8c0ca421a0e9e168b23d55755800b",
+      "byte_length": 144416,
+      "content_type": "font/woff2"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Medium.woff2",
+      "sha256": "3f2d313bf322a15b90c069e417f8d176d02ed6df216ab6323fc0792b295c257d",
+      "byte_length": 146044,
+      "content_type": "font/woff2"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/font/webfonts_gmarketsans.css",
+      "sha256": "72a0046c7974742252be03a6e8a23413d889608a047e8e221a712dc2191db930",
+      "byte_length": 684,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/font/xeicon/xeicon.woff2?3ka2yj",
+      "sha256": "b388035f0a6c34b48927d76634f08f82af556e288c47d7674335371f2deeee8a",
+      "byte_length": 57300,
+      "content_type": "font/woff2"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/galleryThumbView.es?bid=0001&list_no=16874",
+      "sha256": "8a6db5f645fed95fbeaed2c737bdfce5e06e9f9e68455cc352a4fb68401aa212",
+      "byte_length": 167676,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/galleryThumbView.es?bid=0001&list_no=16875",
+      "sha256": "e0c382f9434d64d42482473d405b4a95d9d2743dde9f5bdce7648e9e1ecb6950",
+      "byte_length": 203808,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/galleryThumbView.es?bid=0001&list_no=16876",
+      "sha256": "f48fc05debb9b6ba98430567238a3960144ae0101e334bff5c068b943e3f7401",
+      "byte_length": 132532,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/galleryThumbView.es?bid=0001&list_no=16877",
+      "sha256": "8fed6d817c39f602626415cc367796259edb83ec1c76cc72572b6172bf1edf17",
+      "byte_length": 243256,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/galleryThumbView.es?bid=0001&list_no=16885",
+      "sha256": "7d4d8ebc30919a84b8f34da770c526eabff1e4eb28c18d99205fead0b3aae7f4",
+      "byte_length": 183941,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/galleryThumbView.es?bid=0001&list_no=16886",
+      "sha256": "bea39db934f2907ef2544b2ba16677cac046c64c3e09ef40d7013e486cbf9e7e",
+      "byte_length": 129591,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/galleryThumbView.es?bid=0001&list_no=16887",
+      "sha256": "6c5be16d0ccc0fe89c4280582beda4813d02bb917b3d2e749811f3a624501b8f",
+      "byte_length": 176403,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/galleryThumbView.es?bid=0001&list_no=16888",
+      "sha256": "30f5162bf618e50029549d059574b59094c734b6bd494aa23c4e4a3bed6d914e",
+      "byte_length": 190262,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/galleryThumbView.es?bid=0010&list_no=16832",
+      "sha256": "ca1571e423c98e1574d374d245a6e3475bb3f02d4b2591dd762336378ac8b865",
+      "byte_length": 89400,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/jquery/css/jquery.bxslider.css?v=20260729",
+      "sha256": "f9e337fdea0da8912119992f4751a80e50366faed530c3eaff05180c9f1f5d6a",
+      "byte_length": 1706,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/jquery/css/jquery.mCustomScrollbar.min.css?v=2025012112",
+      "sha256": "247184981eb6f698a94e431a83d68c6b0df623cce57b6e29dc5a6c11e23aa195",
+      "byte_length": 42839,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/jquery/css/slick.css?v=20260729",
+      "sha256": "35dc4be859335b0576ac8f9bbe5ac96449d1c35501697c0163d678a6c2ba283c",
+      "byte_length": 1336,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/jquery/css/swiper.min.css?v=20260729",
+      "sha256": "e6792bc2356c88d7cacf7351d64da1e7eaade694b9485daef7f4c84f5844968c",
+      "byte_length": 18431,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/jquery/js/jquery-1.11.2.min.js",
+      "sha256": "2ecd295d295bec062cedebe177e54b9d6b19fc0a841dc5c178c654c9ccff09c0",
+      "byte_length": 95931,
+      "content_type": "text/javascript"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/jquery/js/jquery.bxslider.min.js",
+      "sha256": "bb9e7dc822c6b7b95a6329932885c72ff2caf74b243fc1c40aca0e858123b83e",
+      "byte_length": 19359,
+      "content_type": "text/javascript"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/jquery/js/jquery.mCustomScrollbar.concat.min.js",
+      "sha256": "fd8027b53a97cbd5782e85c5908e563c39776703ff9279f50658e630927b4167",
+      "byte_length": 45479,
+      "content_type": "text/javascript"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/jquery/js/slick.js",
+      "sha256": "1c27f6799779247331c2f1eab5524f0a0bbc09e1d272c88106e6fc645b440376",
+      "byte_length": 91973,
+      "content_type": "text/javascript"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/jquery/js/swiper.min.js",
+      "sha256": "6f9df49fe12f77b66daba876cb33b7090b2443f570a2a4b9541cddd705440aa5",
+      "byte_length": 140562,
+      "content_type": "text/javascript"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/js/global.js",
+      "sha256": "d1bfe919b0a4a413c1ccbfdc8ba287c7b85f997046e3c87b1b707e7b909e8350",
+      "byte_length": 40018,
+      "content_type": "text/javascript"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/js/instafeed.min.js",
+      "sha256": "6d216a94f8b866d0bba2dfe4d7c701eb24f9d55207fcca08ab7a2b0a7e1b7579",
+      "byte_length": 12104,
+      "content_type": "text/javascript"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/css/button.css",
+      "sha256": "96456d8b1eaee603ab7b4f4e5f125ce7c2282deaf9ec8aa14287c04c72606e55",
+      "byte_length": 2671,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/css/default.css?v=20260729",
+      "sha256": "f92f1e2d31659074ff79af5f71f03c3fe754b9ac241001b36ac3dd67a0746ae1",
+      "byte_length": 13113,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/css/layout_respond.css",
+      "sha256": "eeda6f6208cf7226321ea4ff61ec9b93fde032d5dd25cff49a4941fbca6b2816",
+      "byte_length": 17,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/css/layout.css?v=20260729",
+      "sha256": "e1112caf3c8b6079c2affbf1473ef935208c437fbf9f0a1af257d9ec2b63d303",
+      "byte_length": 41055,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/css/main_es.css?v=20260729",
+      "sha256": "d5571c4c58a7b14b65fe2ea97f84e6db6f32147a71487d07d7fbd56022ada0ae",
+      "byte_length": 17,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/css/main_respond.css?v=20260729",
+      "sha256": "eeda6f6208cf7226321ea4ff61ec9b93fde032d5dd25cff49a4941fbca6b2816",
+      "byte_length": 17,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/css/main.css?v=2025012112",
+      "sha256": "e50a9f9e993327e09fe48738e20193e015b5e6b0c10d9e94d2d091a256de633e",
+      "byte_length": 28062,
+      "content_type": "text/css"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/ico_nara.png",
+      "sha256": "0809ce482b481c1321bb7d7a16ef88bbadd21ec770e912e5a8fd38efce337da8",
+      "byte_length": 2684,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn01.png",
+      "sha256": "a5789795e0ef1011517db20cd81d738d854fd5bdd519d504b708fa6a38658513",
+      "byte_length": 1603,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn02.png",
+      "sha256": "07c754f7b5a4a6b573bedcc290d3dc2522f7ccf8b79ac31550b690bd0aaef42e",
+      "byte_length": 2101,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn03.png",
+      "sha256": "63da191ebeab81140988a197b21fd15bcea0d40d2b1306e6fbd0585c0ce01ef4",
+      "byte_length": 2399,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn04.png",
+      "sha256": "ab2d0a50bf7a9d4bafcf93abee9ed6968909deaa34a66c354d54860f4d1d99d2",
+      "byte_length": 2228,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn05.png",
+      "sha256": "c8c2a1b334cc9e36144938f51bc4812b572ef0c73369181bce5c3c5c37a3ffea",
+      "byte_length": 1722,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn06.png",
+      "sha256": "616d65a2eb887774d5b7363c966083e6f8f9bc7b3653e86c93da6e13b575b676",
+      "byte_length": 1581,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn07.png",
+      "sha256": "4c48883c1122ff29a1fc080e0e74382a9364be563c6e5439e6d802bef8372c65",
+      "byte_length": 2224,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn08.png",
+      "sha256": "65da30f599443f207e7fe45b4e13e481aecbd3fbdc1c48ad02e61a024785b6d1",
+      "byte_length": 2103,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn09.png",
+      "sha256": "17c6a15e61a2796b49bc54cc699dd3032bd12389eec23bfe4cb76c94222e4716",
+      "byte_length": 2236,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn10.png",
+      "sha256": "7c69a3fc4606b71b1b7f6f91ab821ec7a3297da60c9e720c362032f7c5e5dd99",
+      "byte_length": 2289,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn11.png",
+      "sha256": "8cf29d4e38c765297a0f3d670205eaab27f7fe528043f2a96746413cbd80f716",
+      "byte_length": 2037,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn15.png",
+      "sha256": "065efd504dc82dcced062ea3b6975497de2cbd0b1369b534601cd1aa0096361f",
+      "byte_length": 2344,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn16.png",
+      "sha256": "c6e40c259afa601d8bd3f565cde341111d32cd2d9fdc84901c03ed0cf37cfc55",
+      "byte_length": 3381,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn17.png",
+      "sha256": "180bc68ef59d90c940a8b7553862d0dcd3763ead78a0524663939676eb5f93ed",
+      "byte_length": 3319,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/sns_blog.png",
+      "sha256": "49db662533482d887b7b8400008321f256fd78712178a97939d6a8f81e8c376d",
+      "byte_length": 2026,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/sns_kakaoch.png",
+      "sha256": "3818e4564a2e8742a6b4bd3b2f13badef46bd1af8e478c18f205a314064f0e61",
+      "byte_length": 1501,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/sns-band.png",
+      "sha256": "8295eae02861a303e96ba79081cee8dec6701d14745eb4ec02149e53fa3b5fd9",
+      "byte_length": 1267,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/top_logo.png",
+      "sha256": "aec93eb9d38a49f9309b1a955b21d0eb97ad37580cb7a6c6b6d441507f5d758b",
+      "byte_length": 5952,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/layout/top_slogan.svg",
+      "sha256": "726929bc0ec5c501b4cc5caf39d38799c5684dc1a02fb9151dc37b9e5b2fe3f7",
+      "byte_length": 33417,
+      "content_type": "image/svg+xml"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/hns_bn.png",
+      "sha256": "e2161487e0eae936862008ba8affbe68920d4dd56f104e4281058bcf1385b640",
+      "byte_length": 23011,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/quick01.png",
+      "sha256": "4c6155e3d147dbf9e564580b62c02268e35fda9268e133c52fce9cea7e5c3d96",
+      "byte_length": 2165,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/quick05.png",
+      "sha256": "a6d6d26434a67c384f56a49aed2a8ed5cdf70cba53ec43db79b307308071e3a9",
+      "byte_length": 1888,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/quick07.png",
+      "sha256": "c410729cd3bf1b9e06897fe1f537f6b7a35b69ae2d7144fed3116354fb6a1636",
+      "byte_length": 1793,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/quick08.png",
+      "sha256": "d2ab0c1e4e055037ca6beb80d845994f43471c4c2fd19a63592079e32e236cde",
+      "byte_length": 1418,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/quick15.png",
+      "sha256": "61db3adbb15ce1808791c68ce9ae2a93aa332574dc72efd973cd5c2025ee3aca",
+      "byte_length": 2169,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section01_head.png",
+      "sha256": "e0a09daca30db1e83d17d2e8414769382108c7ae830383b4c2fc83bfbefdd5d0",
+      "byte_length": 128641,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section01_symbol.svg",
+      "sha256": "c9dafe17e81dfc0f31bedfba7920fcd0725c624dc08768522bb060e28018ad24",
+      "byte_length": 10268,
+      "content_type": "image/svg+xml"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section02_quick_01.png",
+      "sha256": "dd3e3e0902d88163efa7c5190de83431166bb2754add5a9e05a8b67a90021b76",
+      "byte_length": 3146,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section02_quick_02.png",
+      "sha256": "e1d4b0581e94f83712628fb9e0d4d0fce5efd277ce30af5238f3facf86ad1e1f",
+      "byte_length": 7161,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section02_quick_03.png",
+      "sha256": "6bb4733f16cb15f7879aabacdf4c6fe3d7a1e3b13e16ab9a09ff31344f9cf0a6",
+      "byte_length": 5145,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section02_quick_04.png",
+      "sha256": "bd78a5dc924e1cc489306a9edb319ea594048fed33653905bd5794a866f0b7d8",
+      "byte_length": 12175,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section02_quick_05.png",
+      "sha256": "6133953022442852e194dbdb6227ca4dbdb4e82a66071c2b24bc0d88f1ad124a",
+      "byte_length": 6859,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section02_quick_06.png",
+      "sha256": "66f8f762f07e6685e879d8af0e6e17987bea13e884a6da88742b15834d611bc2",
+      "byte_length": 3824,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section02_quick_07.png",
+      "sha256": "9563b37764e41a578fde3a62b59d3e87b3b7263c9f0bdff61ec40859a32b893d",
+      "byte_length": 3596,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section02_quick_08.png",
+      "sha256": "3082968e926046eb767cb91cade3352e83cc244b403fff9dee5fad63993c3c2e",
+      "byte_length": 4030,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section02_quick_09.png",
+      "sha256": "8d68a48a615e46adf0d0789ade5032068c941f741464f10fb1acd076c0e57eec",
+      "byte_length": 3198,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/section02_quick_11.png",
+      "sha256": "be95e5bdb03d88f1f2589c994a3d0472139530f62cfb97aa5f602b654c51de89",
+      "byte_length": 4859,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/img/main/sg_sms_slogan.png",
+      "sha256": "9562f0f6861935f6a7f86b083f7518d3f5c2b5a8b892869f07c22d5320965d17",
+      "byte_length": 12486,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/js/layout.js",
+      "sha256": "ca597630ef537b4a7c9113b150dbef22e6f36af1d8e9bec5c63858a1d095c516",
+      "byte_length": 12898,
+      "content_type": "text/javascript"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/kor/js/main.js",
+      "sha256": "6df8d73db187b65b6e88cf231164d739a15b2b399984b5c942f6401374f6b4ec",
+      "byte_length": 6554,
+      "content_type": "text/javascript"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260430103817086.png",
+      "sha256": "e395833ceec311b8c269546cc997d5969c56f2d1eb0c2d290448debb5467bdea",
+      "byte_length": 54996,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260611100917087.png",
+      "sha256": "4eab861308a2721b84371bdd212dafb39d358d2a2959c9d0212e283d647da7d7",
+      "byte_length": 66372,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260713100804468.png",
+      "sha256": "30cc904dee6ecc7757496560c4397afb0dc508810eb940810e102e1f749f50ab",
+      "byte_length": 41411,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260728135037276.png",
+      "sha256": "27aec55edb3c297c7d287a78e5e45e8a6b480da776beef5653f2b7367684f434",
+      "byte_length": 184382,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260729134552707.png",
+      "sha256": "432ae355b5e2916e5a519ae62a67d5373817288d3bed88fb6c3d23766d88fe9d",
+      "byte_length": 65364,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260729170312845.png",
+      "sha256": "6d6d3bcc9ef036a079d07802e1177f6608f71edc780885a0475bc90eced9eadd",
+      "byte_length": 102490,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260803095259572.png",
+      "sha256": "082d141105867b99f7e0651f77b10069ad5186f5997a894d6f979b2fd57aefd6",
+      "byte_length": 158977,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260803171743014.png",
+      "sha256": "4bda4b672c1b00d5e2b8bf06610ba07e5f043ca56991945cff1ba65a160d5d32",
+      "byte_length": 35742,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260804140936949.png",
+      "sha256": "3f9652fd64c4eb8a923848188d7cf25eee7d0bfe8b90756b2d527073f079151f",
+      "byte_length": 90475,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260805142002063.png",
+      "sha256": "7866b80cdf9bc37bcc13727beea77ec108857d7a9d6f1e0b840497c194345f60",
+      "byte_length": 69201,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/popupzone/a1/20260812133305665.jpg",
+      "sha256": "ca088f860fb66361aee2e83e031f5c78185402cc8ad6ba61cbbac9ba1edce713",
+      "byte_length": 52776,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/sns/naver_blog/224375134364.png",
+      "sha256": "b1e70c6a55f4b20f9298c24f5db6e5d6b109d0233564080ad8136aff2f68f391",
+      "byte_length": 99757,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/sns/naver_blog/224375253502.png",
+      "sha256": "a5fd897d37676f7e514259577f882f28ba69653fff90388f94e7271211bf9367",
+      "byte_length": 92166,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/sns/naver_blog/224376282314.png",
+      "sha256": "e466bd232c2f8fa9ad849d340bea2d7d7f6333a7f715d412c9847d6176a2c314",
+      "byte_length": 72623,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/sns/naver_blog/224376314774.png",
+      "sha256": "f60aab7ea7343c55af1c1c0cbdb062b7493beddb64b8dfdf05b12989586e310f",
+      "byte_length": 66617,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/visual/a1/20241120130757264.png",
+      "sha256": "64b4495de86141cfe376f6236dfa26c31fa08a0dc9e911522dafa8e5ae35d477",
+      "byte_length": 329172,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/visual/a1/20260326093153906.jpg",
+      "sha256": "18559f18c0d6b9473e14e302043cb463675b0ce492d441701201526828b9e4a3",
+      "byte_length": 211527,
+      "content_type": "image/jpeg"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/visual/a1/20260803102528516.png",
+      "sha256": "7fdd9ea7bf8186b6df8f4ca3a2730b145c1adf82f3d0560ff2bb214b80ef235e",
+      "byte_length": 150559,
+      "content_type": "image/png"
+    },
+    {
+      "url": "https://www.seogu.gwangju.kr/upload/visual/a1/20260810101321985.jpg",
+      "sha256": "4617efba0c3215de72e8ecacbdc1a0f17a8bee4abfef77f5c364a13141c61668",
+      "byte_length": 257578,
+      "content_type": "image/jpeg"
+    }
+  ]
+}
