@@ -44,6 +44,7 @@ COVERAGE_TEST_FILES = (
     "tests/test_bukgu_golden_docs_contract.py",
     "tests/test_reference_capture_contract.py",
     "tests/test_reference_capture_artifact_integrity.py",
+    "tests/test_reference_clone_model.py",
     "tests/test_site_adapter_contract_matrix.py",
     "tests/test_build_cloudflare_pages.py",
     "tests/test_generic_offline_preview.py",
