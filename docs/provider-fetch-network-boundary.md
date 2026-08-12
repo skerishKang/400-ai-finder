@@ -1,8 +1,49 @@
 # Provider / Fetch / Network Boundary
 
+- Status: `canonical technical boundary`
+- Current product-lifecycle alignment: #1301
+- Canonical product lifecycle: [`docs/product/clone-first-general-site-platform-strategy.md`](product/clone-first-general-site-platform-strategy.md)
+
 This document records the current boundary between offline/mock development paths
 and live provider, fetch, network, Firecrawl, app pipeline, backend, UI, and API
 paths.
+
+## Product-lifecycle relationship
+
+This document governs **technical network execution**, not the product-stage decision about whether a surface is a clone MVP or an actual production-site integration.
+
+The current ordinary pre-integration product flow is:
+
+```text
+known target site
+  -> scoped point-in-time read-only reference capture when needed
+  -> repository-controlled faithful clone
+  -> AI Finder / Browser on the clone
+
+--- later, after institution authorization ---
+
+actual production-site first-party integration
+```
+
+A named-site reference capture for building a faithful clone is therefore part of the current clone-MVP lifecycle; it is **not** actual production-site control.
+
+Actual production-site security/privacy/authentication/submission/operations requirements belong to the later first-party integration phase when the institution has actually authorized that work. They are not introduced here as unrelated prerequisites for faithful-clone fidelity.
+
+## Tool capability != project task scope
+
+Keep these two layers separate:
+
+```text
+CLI/tool can technically perform HTTP
+!=
+the current project task has declared which target/scope/method it is executing
+```
+
+For example, historical decisions that `fetch_url.py` or `diagnose_site.py` do not need an additional CLI-level `--allow-live` flag describe those tools' **execution interface**. They do not mean that the presence of a `--url` argument silently defines the scope of every higher-level onboarding job.
+
+Conversely, this distinction does **not** add a new blanket blocker to an intentionally scoped read-only capture of a known target site. When a named-site capture is actually performed, record the target, declared route/state scope, method, limits and resulting reference identity. Routine CI remains network-zero.
+
+Arbitrary URL-first automated acquisition is a broader platform capability. The open parsed-host/acquisition-scope/SSRF hardening tracks (#1292, #1294, #1295) apply to that generic acquisition engine; they do not reclassify controlled faithful-clone development as actual-site integration.
 
 ## Default policy
 
@@ -158,14 +199,16 @@ The decision is based on the current boundary:
 - live fetch behavior requires a user-provided `--url`
 - Firecrawl requires `FIRECRAWL_API_KEY`
 
-Because `--url` is required, a live fetch cannot occur without conscious
-user-provided input. This differs from automated live runners such as
-`scripts/run_smoke_eval.py`, where broad live evaluation requires an explicit
-guard and preflight flow.
+Because `--url` is required, this tool cannot fetch without a caller explicitly
+supplying a target to the CLI. This is a **tool-interface fact**, not a blanket
+statement about the scope of a higher-level onboarding run. A named-site capture
+job still records its declared target/scope/method under the current clone
+lifecycle.
 
 Adding another environment-variable opt-in guard to `fetch_url.py` would change
 the user-facing CLI behavior and could break existing examples. For the current
-risk profile, the documented safe paths and tests are the intended boundary.
+risk profile, the documented safe paths and tests are the intended technical
+boundary.
 
 This decision does not make live provider, fetch, network, or Firecrawl
 execution part of normal tests. Future changes to `fetch_url.py` live opt-in
@@ -217,6 +260,10 @@ additional explicit live opt-in guard. The script is a single-purpose fetch
 diagnostics CLI: it requires `--url`, does not call `PipelineRunner`, and does
 not reach LLM providers. Its default `requests` provider can perform live HTTP,
 but live fetch is the expected purpose of this diagnostics tool.
+
+This describes the diagnostics CLI's technical behavior. It does not by itself
+define a broader project's named-site capture scope or imply actual-site
+production integration.
 
 The safe offline path remains `--provider mock`. Firecrawl remains reachable
 through `--provider firecrawl` or `--provider all` when `FIRECRAWL_API_KEY` is
@@ -315,7 +362,8 @@ provider selection or guarded live execution paths:
   explicit guard is required in the current scope.
 
 `--allow-live` is only an execution opt-in. It does not replace provider-specific
-configuration. Firecrawl still requires `FIRECRAWL_API_KEY`.
+configuration. Firecrawl still requires `FIRECRAWL_API_KEY`. Likewise, a tool's
+execution opt-in does not itself define a broader named-site onboarding scope.
 
 Current risk is LOW, with a borderline MEDIUM note for the
 `diagnose_site.py --provider all` path because that command can include
@@ -397,6 +445,11 @@ provider/fetch selection.
 
 ## Future work
 
-No active provider/fetch boundary Future Work remains for the current scope.
-Stage 316 completed the provider/fetch mock-vs-live separation audit, and the
-web demo boundary docs/tests track was completed in Stages 312-314.
+The historical Stage 316 provider/fetch mock-vs-live separation audit and Stages
+312-314 web-demo boundary work remain valid for their code/CLI scope.
+
+For the active multi-site platform, generic arbitrary URL acquisition hardening is
+tracked separately in #1292, #1294 and #1295. These issues concern the reusable
+acquisition engine; they do not change the current product decision that named
+sites are demonstrated on faithful clones and actual production-site integration
+is deferred until institutional authorization.
