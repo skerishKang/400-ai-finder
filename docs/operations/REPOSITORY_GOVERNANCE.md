@@ -11,6 +11,8 @@
 
 제품 lifecycle 자체는 `docs/product/clone-first-general-site-platform-strategy.md`를 따른다.
 
+Buk-gu golden 및 명시적 `exact` claim은 `docs/product/exact-official-site-clone-invariant.md`를 따른다.
+
 ## 2. 기본 개발흐름 — 예외 없는 PR-first
 
 ```text
