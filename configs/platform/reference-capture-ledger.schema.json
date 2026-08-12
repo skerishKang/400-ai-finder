@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://400-ai-finder.invalid/schemas/reference-capture-ledger.schema.json",
+  "title": "Executed named-site reference capture ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "site_id",
+    "capture_mode",
+    "plan_identity",
+    "g1_completion_claim",
+    "captured_states"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "kind": {"const": "named_site_reference_capture_ledger"},
+    "site_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+    "capture_mode": {"const": "controlled_read_only_reference"},
+    "plan_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan_id", "path", "sha256"],
+      "properties": {
+        "plan_id": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "g1_completion_claim": {"type": "boolean"},
+    "captured_states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state_id",
+          "requested_url",
+          "final_url",
+          "captured_at",
+          "source_updated_at",
+          "final_http_status",
+          "viewport",
+          "state",
+          "artifacts",
+          "public_assets",
+          "exceptions",
+          "result_status"
+        ],
+        "properties": {
+          "state_id": {"type": "string", "minLength": 1},
+          "requested_url": {"type": "string", "minLength": 1},
+          "final_url": {"type": "string", "minLength": 1},
+          "captured_at": {"type": "string", "minLength": 1},
+          "source_updated_at": {"type": ["string", "null"]},
+          "final_http_status": {"type": ["integer", "null"], "minimum": 100, "maximum": 599},
+          "viewport": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["width", "height"],
+            "properties": {
+              "width": {"type": "integer", "minimum": 1},
+              "height": {"type": "integer", "minimum": 1}
+            }
+          },
+          "state": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {"name": {"type": "string", "minLength": 1}}
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["class", "artifact_id", "sha256"],
+              "properties": {
+                "class": {
+                  "enum": [
+                    "html_dom_content",
+                    "screenshot",
+                    "visible_region_inventory",
+                    "public_asset_provenance"
+                  ]
+                },
+                "artifact_id": {"type": "string", "minLength": 1},
+                "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                "mime_type": {"type": "string"},
+                "dimensions": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["width", "height"],
+                  "properties": {
+                    "width": {"type": "integer", "minimum": 1},
+                    "height": {"type": "integer", "minimum": 1}
+                  }
+                }
+              }
+            }
+          },
+          "public_assets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["source_url", "artifact_id", "sha256", "provenance_note"],
+              "properties": {
+                "source_url": {"type": "string", "minLength": 1},
+                "artifact_id": {"type": "string", "minLength": 1},
+                "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                "provenance_note": {"type": "string"}
+              }
+            }
+          },
+          "exceptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code", "detail"],
+              "properties": {
+                "code": {"type": "string", "minLength": 1},
+                "detail": {"type": "string", "minLength": 1}
+              }
+            }
+          },
+          "result_status": {"enum": ["success", "partial", "capture_required", "failed"]}
+        }
+      }
+    }
+  }
+}
