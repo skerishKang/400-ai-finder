@@ -1,0 +1,525 @@
+{
+  "bundle_version": "1.0.0",
+  "site_id": "seogu_gwangju",
+  "provenance": {
+    "source_refs": [
+      "configs/sites/seogu_gwangju.yml",
+      "tests/test_seogu_profile_onboarding_no_live.py"
+    ]
+  },
+  "capture_plan": {
+    "mode": "offline_fixture",
+    "scope_kind": "explicit_url_set",
+    "live_network_authorized": false,
+    "root_url": "https://www.seogu.gwangju.kr/",
+    "allowed_domains": [
+      "www.seogu.gwangju.kr",
+      "seogu.gwangju.kr"
+    ],
+    "captured_urls": [
+      "https://www.seogu.gwangju.kr/menu.es?mid=a101",
+      "https://www.seogu.gwangju.kr/board.es?seq=999",
+      "https://www.seogu.gwangju.kr/content?contentId=123",
+      "https://www.seogu.gwangju.kr/article?articleId=777",
+      "https://www.seogu.gwangju.kr/board.es?pageNo=2",
+      "https://www.seogu.gwangju.kr/menu.es?mid=a202",
+      "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do",
+      "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000275/list.do?pageIndex=1",
+      "https://www.seogu.gwangju.kr/boardDownload.es?bid=0013&list_no=136021&seq=1"
+    ],
+    "url_count": 9,
+    "source_refs": [
+      "configs/sites/seogu_gwangju.yml",
+      "tests/test_seogu_profile_onboarding_no_live.py"
+    ]
+  },
+  "site_model": {
+    "site_id": "seogu_gwangju",
+    "root_route_id": "route-homepage",
+    "routes": [
+      {
+        "route_id": "route-homepage",
+        "document_id": null,
+        "url": "https://www.seogu.gwangju.kr/",
+        "canonical_url": "https://www.seogu.gwangju.kr/",
+        "title": null,
+        "category": null,
+        "content_type": null,
+        "source_types": null
+      },
+      {
+        "route_id": "route-000001",
+        "document_id": "doc-000001",
+        "url": "https://www.seogu.gwangju.kr/article?articleId=777",
+        "canonical_url": "https://www.seogu.gwangju.kr/article?articleId=777",
+        "title": "기사 상세",
+        "category": "board",
+        "content_type": "page",
+        "source_types": [
+          "navigation"
+        ]
+      },
+      {
+        "route_id": "route-000002",
+        "document_id": "doc-000002",
+        "url": "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000275/list.do?pageIndex=1",
+        "canonical_url": "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000275/list.do?pageIndex=1",
+        "title": "고시공고",
+        "category": "notice",
+        "content_type": "page",
+        "source_types": [
+          "navigation"
+        ]
+      },
+      {
+        "route_id": "route-000003",
+        "document_id": "doc-000003",
+        "url": "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do",
+        "canonical_url": "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do",
+        "title": "공지사항",
+        "category": "notice",
+        "content_type": "page",
+        "source_types": [
+          "navigation"
+        ]
+      },
+      {
+        "route_id": "route-000004",
+        "document_id": "doc-000004",
+        "url": "https://www.seogu.gwangju.kr/board.es?pageNo=2",
+        "canonical_url": "https://www.seogu.gwangju.kr/board.es?pageNo=2",
+        "title": "게시판 2페이지",
+        "category": "board",
+        "content_type": "page",
+        "source_types": [
+          "navigation"
+        ]
+      },
+      {
+        "route_id": "route-000005",
+        "document_id": "doc-000005",
+        "url": "https://www.seogu.gwangju.kr/board.es?seq=999",
+        "canonical_url": "https://www.seogu.gwangju.kr/board.es?seq=999",
+        "title": "게시판 상세",
+        "category": "board",
+        "content_type": "page",
+        "source_types": [
+          "navigation"
+        ]
+      },
+      {
+        "route_id": "route-000006",
+        "document_id": "doc-000006",
+        "url": "https://www.seogu.gwangju.kr/boardDownload.es?bid=0013&list_no=136021&seq=1",
+        "canonical_url": "https://www.seogu.gwangju.kr/boardDownload.es?bid=0013&list_no=136021&seq=1",
+        "title": "첨부파일 다운로드",
+        "category": "document",
+        "content_type": "attachment",
+        "source_types": [
+          "attachment"
+        ]
+      },
+      {
+        "route_id": "route-000007",
+        "document_id": "doc-000007",
+        "url": "https://www.seogu.gwangju.kr/content?contentId=123",
+        "canonical_url": "https://www.seogu.gwangju.kr/content?contentId=123",
+        "title": "콘텐츠 상세",
+        "category": "menu",
+        "content_type": "page",
+        "source_types": [
+          "navigation"
+        ]
+      },
+      {
+        "route_id": "route-000008",
+        "document_id": "doc-000008",
+        "url": "https://www.seogu.gwangju.kr/menu.es?mid=a101",
+        "canonical_url": "https://www.seogu.gwangju.kr/menu.es?mid=a101",
+        "title": "종합민원",
+        "category": "menu",
+        "content_type": "page",
+        "source_types": [
+          "navigation"
+        ]
+      },
+      {
+        "route_id": "route-000009",
+        "document_id": "doc-000009",
+        "url": "https://www.seogu.gwangju.kr/menu.es?mid=a202",
+        "canonical_url": "https://www.seogu.gwangju.kr/menu.es?mid=a202",
+        "title": "교육접수",
+        "category": "apply",
+        "content_type": "page",
+        "source_types": [
+          "navigation"
+        ]
+      }
+    ],
+    "documents": [
+      {
+        "id": "doc-000001",
+        "url": "https://www.seogu.gwangju.kr/article?articleId=777",
+        "canonical_url": "https://www.seogu.gwangju.kr/article?articleId=777",
+        "title": "기사 상세",
+        "category": "board",
+        "source_types": [
+          "navigation"
+        ],
+        "content_type": "page",
+        "text": "",
+        "summary": "",
+        "metadata": {
+          "base_url": "https://www.seogu.gwangju.kr/",
+          "lastmod": "",
+          "changefreq": "",
+          "priority": "",
+          "link_texts": [
+            "기사 상세"
+          ],
+          "file_type": "",
+          "discovered_from": [
+            "navigation"
+          ]
+        }
+      },
+      {
+        "id": "doc-000002",
+        "url": "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000275/list.do?pageIndex=1",
+        "canonical_url": "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000275/list.do?pageIndex=1",
+        "title": "고시공고",
+        "category": "notice",
+        "source_types": [
+          "navigation"
+        ],
+        "content_type": "page",
+        "text": "",
+        "summary": "",
+        "metadata": {
+          "base_url": "https://www.seogu.gwangju.kr/",
+          "lastmod": "",
+          "changefreq": "",
+          "priority": "",
+          "link_texts": [
+            "고시공고"
+          ],
+          "file_type": "",
+          "discovered_from": [
+            "navigation"
+          ]
+        }
+      },
+      {
+        "id": "doc-000003",
+        "url": "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do",
+        "canonical_url": "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do",
+        "title": "공지사항",
+        "category": "notice",
+        "source_types": [
+          "navigation"
+        ],
+        "content_type": "page",
+        "text": "",
+        "summary": "",
+        "metadata": {
+          "base_url": "https://www.seogu.gwangju.kr/",
+          "lastmod": "",
+          "changefreq": "",
+          "priority": "",
+          "link_texts": [
+            "공지사항"
+          ],
+          "file_type": "",
+          "discovered_from": [
+            "navigation"
+          ]
+        }
+      },
+      {
+        "id": "doc-000004",
+        "url": "https://www.seogu.gwangju.kr/board.es?pageNo=2",
+        "canonical_url": "https://www.seogu.gwangju.kr/board.es?pageNo=2",
+        "title": "게시판 2페이지",
+        "category": "board",
+        "source_types": [
+          "navigation"
+        ],
+        "content_type": "page",
+        "text": "",
+        "summary": "",
+        "metadata": {
+          "base_url": "https://www.seogu.gwangju.kr/",
+          "lastmod": "",
+          "changefreq": "",
+          "priority": "",
+          "link_texts": [
+            "게시판 2페이지"
+          ],
+          "file_type": "",
+          "discovered_from": [
+            "navigation"
+          ]
+        }
+      },
+      {
+        "id": "doc-000005",
+        "url": "https://www.seogu.gwangju.kr/board.es?seq=999",
+        "canonical_url": "https://www.seogu.gwangju.kr/board.es?seq=999",
+        "title": "게시판 상세",
+        "category": "board",
+        "source_types": [
+          "navigation"
+        ],
+        "content_type": "page",
+        "text": "",
+        "summary": "",
+        "metadata": {
+          "base_url": "https://www.seogu.gwangju.kr/",
+          "lastmod": "",
+          "changefreq": "",
+          "priority": "",
+          "link_texts": [
+            "게시판 상세"
+          ],
+          "file_type": "",
+          "discovered_from": [
+            "navigation"
+          ]
+        }
+      },
+      {
+        "id": "doc-000006",
+        "url": "https://www.seogu.gwangju.kr/boardDownload.es?bid=0013&list_no=136021&seq=1",
+        "canonical_url": "https://www.seogu.gwangju.kr/boardDownload.es?bid=0013&list_no=136021&seq=1",
+        "title": "첨부파일 다운로드",
+        "category": "document",
+        "source_types": [
+          "attachment"
+        ],
+        "content_type": "attachment",
+        "text": "",
+        "summary": "",
+        "metadata": {
+          "base_url": "https://www.seogu.gwangju.kr/",
+          "lastmod": "",
+          "changefreq": "",
+          "priority": "",
+          "link_texts": [
+            "첨부파일 다운로드"
+          ],
+          "file_type": "es",
+          "discovered_from": [
+            "attachment"
+          ]
+        }
+      },
+      {
+        "id": "doc-000007",
+        "url": "https://www.seogu.gwangju.kr/content?contentId=123",
+        "canonical_url": "https://www.seogu.gwangju.kr/content?contentId=123",
+        "title": "콘텐츠 상세",
+        "category": "menu",
+        "source_types": [
+          "navigation"
+        ],
+        "content_type": "page",
+        "text": "",
+        "summary": "",
+        "metadata": {
+          "base_url": "https://www.seogu.gwangju.kr/",
+          "lastmod": "",
+          "changefreq": "",
+          "priority": "",
+          "link_texts": [
+            "콘텐츠 상세"
+          ],
+          "file_type": "",
+          "discovered_from": [
+            "navigation"
+          ]
+        }
+      },
+      {
+        "id": "doc-000008",
+        "url": "https://www.seogu.gwangju.kr/menu.es?mid=a101",
+        "canonical_url": "https://www.seogu.gwangju.kr/menu.es?mid=a101",
+        "title": "종합민원",
+        "category": "menu",
+        "source_types": [
+          "navigation"
+        ],
+        "content_type": "page",
+        "text": "",
+        "summary": "",
+        "metadata": {
+          "base_url": "https://www.seogu.gwangju.kr/",
+          "lastmod": "",
+          "changefreq": "",
+          "priority": "",
+          "link_texts": [
+            "종합민원"
+          ],
+          "file_type": "",
+          "discovered_from": [
+            "navigation"
+          ]
+        }
+      },
+      {
+        "id": "doc-000009",
+        "url": "https://www.seogu.gwangju.kr/menu.es?mid=a202",
+        "canonical_url": "https://www.seogu.gwangju.kr/menu.es?mid=a202",
+        "title": "교육접수",
+        "category": "apply",
+        "source_types": [
+          "navigation"
+        ],
+        "content_type": "page",
+        "text": "",
+        "summary": "",
+        "metadata": {
+          "base_url": "https://www.seogu.gwangju.kr/",
+          "lastmod": "",
+          "changefreq": "",
+          "priority": "",
+          "link_texts": [
+            "교육접수"
+          ],
+          "file_type": "",
+          "discovered_from": [
+            "navigation"
+          ]
+        }
+      }
+    ]
+  },
+  "capability_bindings": [
+    {
+      "capability_id": "notice_board",
+      "candidate_state": "detected",
+      "binding_state": "bound",
+      "route_ids": [
+        "route-000003"
+      ]
+    },
+    {
+      "capability_id": "document_library",
+      "candidate_state": "detected",
+      "binding_state": "bound",
+      "route_ids": [
+        "route-000006"
+      ]
+    },
+    {
+      "capability_id": "directory",
+      "candidate_state": "review_required",
+      "binding_state": "review_required",
+      "route_ids": []
+    }
+  ],
+  "action_graph": {
+    "mode": "offline_fixture",
+    "action_type_allowed": "navigate",
+    "actions": [
+      {
+        "action_id": "action-000001",
+        "action_type": "navigate",
+        "from_route_id": "route-homepage",
+        "to_route_id": "route-000001",
+        "safety_level": "navigate",
+        "requires_user_confirmation": false
+      },
+      {
+        "action_id": "action-000002",
+        "action_type": "navigate",
+        "from_route_id": "route-homepage",
+        "to_route_id": "route-000002",
+        "safety_level": "navigate",
+        "requires_user_confirmation": false
+      },
+      {
+        "action_id": "action-000003",
+        "action_type": "navigate",
+        "from_route_id": "route-homepage",
+        "to_route_id": "route-000003",
+        "safety_level": "navigate",
+        "requires_user_confirmation": false
+      },
+      {
+        "action_id": "action-000004",
+        "action_type": "navigate",
+        "from_route_id": "route-homepage",
+        "to_route_id": "route-000004",
+        "safety_level": "navigate",
+        "requires_user_confirmation": false
+      },
+      {
+        "action_id": "action-000005",
+        "action_type": "navigate",
+        "from_route_id": "route-homepage",
+        "to_route_id": "route-000005",
+        "safety_level": "navigate",
+        "requires_user_confirmation": false
+      },
+      {
+        "action_id": "action-000006",
+        "action_type": "navigate",
+        "from_route_id": "route-homepage",
+        "to_route_id": "route-000006",
+        "safety_level": "navigate",
+        "requires_user_confirmation": false
+      },
+      {
+        "action_id": "action-000007",
+        "action_type": "navigate",
+        "from_route_id": "route-homepage",
+        "to_route_id": "route-000007",
+        "safety_level": "navigate",
+        "requires_user_confirmation": false
+      },
+      {
+        "action_id": "action-000008",
+        "action_type": "navigate",
+        "from_route_id": "route-homepage",
+        "to_route_id": "route-000008",
+        "safety_level": "navigate",
+        "requires_user_confirmation": false
+      },
+      {
+        "action_id": "action-000009",
+        "action_type": "navigate",
+        "from_route_id": "route-homepage",
+        "to_route_id": "route-000009",
+        "safety_level": "navigate",
+        "requires_user_confirmation": false
+      }
+    ],
+    "action_count": 9
+  },
+  "qa_manifest": {
+    "site_id": "seogu_gwangju",
+    "source_refs": [
+      "configs/sites/seogu_gwangju.yml",
+      "tests/test_seogu_profile_onboarding_no_live.py"
+    ],
+    "route_count": 10,
+    "document_count": 9,
+    "action_count": 9,
+    "bound_capability_count": 2,
+    "review_required_capability_count": 1,
+    "checks": {
+      "all_routes_in_capture_scope": true,
+      "all_routes_declared_domain": true,
+      "all_route_refs_resolve": true,
+      "all_detected_capabilities_bound": true,
+      "action_graph_navigate_only": true,
+      "provenance_complete": true,
+      "deterministic_ids": true
+    },
+    "offline_preview_input_ready": true,
+    "production_ready": false,
+    "production_promotion_requested": false,
+    "actual_site_control_authorized": false,
+    "live_network_authorized": false
+  }
+}
