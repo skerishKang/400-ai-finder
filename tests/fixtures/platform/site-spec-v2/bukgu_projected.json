@@ -1,0 +1,76 @@
+{
+  "$schema": "configs/platform/site-spec-v2.schema.json",
+  "schema_version": "2.0.0",
+  "identity": {
+    "site_id": "bukgu_gwangju",
+    "legacy_ids": [
+      "bukgu"
+    ],
+    "display": {
+      "default_label": "북구청",
+      "locale_labels": {
+        "ko": "북구청",
+        "en": "Gwangju Buk-gu"
+      }
+    }
+  },
+  "domains": {
+    "public": [
+      "bukgu.gwangju.kr"
+    ]
+  },
+  "entry_points": [
+    {
+      "id": "homepage",
+      "kind": "homepage",
+      "url": "https://bukgu.gwangju.kr/"
+    }
+  ],
+  "archetype": {
+    "id": "municipality",
+    "state": "configured",
+    "confidence": 1.0,
+    "evidence_refs": [
+      "configs/sites/bukgu_gwangju.sitespec.json"
+    ]
+  },
+  "capabilities": [],
+  "capture_policy": {
+    "acquisition_mode": "offline_fixture",
+    "live_network_authorized": false
+  },
+  "browser_policy": {
+    "surface_mode": "generated_preview",
+    "actual_site_control_authorized": false
+  },
+  "knowledge_policy": {
+    "grounding_required": true,
+    "provenance_required": true
+  },
+  "action_policy": {
+    "external_write_authorized": false,
+    "high_risk_actions_authorized": false
+  },
+  "provenance": {
+    "source_refs": [
+      "configs/sites/bukgu_gwangju.sitespec.json",
+      "configs/sites/bukgu_gwangju.yml"
+    ],
+    "review_state": "reviewed"
+  },
+  "extensions": {
+    "municipality": {
+      "jurisdiction": {
+        "canonical_name": "전남광주통합특별시 북구",
+        "short_name": "북구",
+        "effective_from": "2026-07-01",
+        "historical_aliases": [
+          {
+            "value": "광주광역시 북구",
+            "effective_until": "2026-06-30"
+          }
+        ]
+      }
+    }
+  }
+}
