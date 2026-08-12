@@ -75,7 +75,8 @@ jobs:
             tests/test_bukgu_quest_to_action_plan.py \
             tests/test_mvp_golden_quest_fidelity_matrix.py \
             tests/test_reference_capture_contract.py \
-            tests/test_reference_capture_artifact_integrity.py
+            tests/test_reference_capture_artifact_integrity.py \
+            tests/test_reference_clone_model.py
           node --test tests/functions/test_named_site_reference_capture_contract.mjs
 
       - name: Run Buk-gu golden docs contract (#1188)

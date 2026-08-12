@@ -1,0 +1,514 @@
+{
+  "artifact_count": 44,
+  "boundaries": {
+    "exact_clone_claimed": false,
+    "network_at_generation": 0,
+    "renderer_wired": false,
+    "screenshot_used_at_runtime": false
+  },
+  "capture_id": "20260812T231018-0900",
+  "capture_mode": "controlled_read_only_reference",
+  "claim_gates": {
+    "actual_site_integrated": false,
+    "clone_mvp_ready": false,
+    "faithful_clone_candidate": false,
+    "reference_baseline_ready": true,
+    "visual_approval": false
+  },
+  "generator_id": "scripts/build_reference_clone_model.py",
+  "generator_version": "1.0.0",
+  "model_id": "seogu_gwangju.g1.reference_clone.20260812T231018-0900",
+  "model_kind": "reference_clone_model",
+  "schema_version": 1,
+  "site_id": "seogu_gwangju",
+  "source_identity": {
+    "allowed_hosts": [
+      "www.seogu.gwangju.kr"
+    ],
+    "capture_root": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900",
+    "g1_completion_claim": true,
+    "ledger_path": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/ledger.json",
+    "ledger_sha256": "72892933f45786d3cbd3b9b31570f89536fbf58a95905a30ad2b906a86bc1b71",
+    "plan_id": "seogu_gwangju.g1.v1",
+    "plan_path": "configs/reference-plans/seogu_gwangju.json",
+    "plan_sha256": "7389525d75713829b55f20178e1f6bdf13613eb5ecb55751d0067a5cf8c6117b"
+  },
+  "state_count": 11,
+  "states": [
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.desktop.default/source.html",
+          "class": "html_dom_content",
+          "sha256": "2ee4ce53521b2dfd74ad35d36bee84733aebbd47c340070fd769fa4567c567a7"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.desktop.default/source.png",
+          "class": "screenshot",
+          "sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.desktop.default/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "be210468779c5babc8d12793b93ec84010f80ed8754a52aa7231c170cd8c684c"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.desktop.default/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "7a0c5393893c29055968e7d3d98a4184a8b941c3c14ca849d61e715e7cb1a5e4"
+        }
+      ],
+      "attachment_document_extensions": [],
+      "device_class": "desktop",
+      "download_references": [],
+      "final_url": "https://www.seogu.gwangju.kr/",
+      "list_no": null,
+      "requested_url": "https://www.seogu.gwangju.kr/",
+      "result_status": "success",
+      "state_id": "home.desktop.default",
+      "state_name": "default",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.mobile.default/source.html",
+          "class": "html_dom_content",
+          "sha256": "5ead5d95046f31f20a0319adc7b29638c75a7bd330869e13aaac049eca4daa54"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.mobile.default/source.png",
+          "class": "screenshot",
+          "sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.mobile.default/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "e5ee48d428c9ec9a5387950218cd40e9f5c0d8677e8564d6cdfab111fccb2d5e"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.mobile.default/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "59180c91e6a28bef299ffc3e9b1a82deafcd703de3d44a369727aa2686113725"
+        }
+      ],
+      "attachment_document_extensions": [],
+      "device_class": "mobile",
+      "download_references": [],
+      "final_url": "https://www.seogu.gwangju.kr/",
+      "list_no": null,
+      "requested_url": "https://www.seogu.gwangju.kr/",
+      "result_status": "success",
+      "state_id": "home.mobile.default",
+      "state_name": "default",
+      "viewport": {
+        "height": 844,
+        "width": 390
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.desktop.gnb_open/source.html",
+          "class": "html_dom_content",
+          "sha256": "7b414aa3b328c23383b3381a37dc4c736e9a91a9c96ed218792cff94dfc798dd"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.desktop.gnb_open/source.png",
+          "class": "screenshot",
+          "sha256": "8af9929cdf6c0976bc20e9a237cc2ea1674a3e757cd21ea3938ddb33d34909e6"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.desktop.gnb_open/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "7652ec34f6250d3827df90cfc2b3b2d6fbb77855f7aa17cd5ad47c709ab4f88d"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.desktop.gnb_open/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "47dc01d4408edd9ef4bfa0f7e7bd2fd432e70a55ff58111750ad4070df67839e"
+        }
+      ],
+      "attachment_document_extensions": [],
+      "device_class": "desktop",
+      "download_references": [],
+      "final_url": "https://www.seogu.gwangju.kr/",
+      "list_no": null,
+      "requested_url": "https://www.seogu.gwangju.kr/",
+      "result_status": "success",
+      "state_id": "home.desktop.gnb_open",
+      "state_name": "gnb_open",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.list.desktop/source.html",
+          "class": "html_dom_content",
+          "sha256": "f637c97d7301f76d61c7d2ba41e47b1991a1aa1200544639996a7be9fc0e695b"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.list.desktop/source.png",
+          "class": "screenshot",
+          "sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.list.desktop/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "2ed42fe7bcb29317a9abf7d4c8d85e9a7fcf56ba2bab053031cb9bfbcdbecfea"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.list.desktop/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "0d642379f93af15a07ef566f7df33f255ed59f448be08946104151edb7623f7b"
+        }
+      ],
+      "attachment_document_extensions": [
+        "hwpx"
+      ],
+      "device_class": "desktop",
+      "download_references": [
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0034&amp;list_no=143106&amp;seq=2"
+        },
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0034&amp;list_no=143089&amp;seq=1"
+        },
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0034&amp;list_no=143057&amp;seq=1"
+        },
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0034&amp;list_no=143053&amp;seq=1"
+        },
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0034&amp;list_no=143058&amp;seq=1"
+        },
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0034&amp;list_no=143033&amp;seq=1"
+        }
+      ],
+      "final_url": "https://www.seogu.gwangju.kr/board.es?act=listC&bid=0034&gon=C&mid=a10801000000",
+      "list_no": null,
+      "requested_url": "https://www.seogu.gwangju.kr/board.es?act=listC&bid=0034&gon=C&mid=a10801000000",
+      "result_status": "success",
+      "state_id": "notice.list.desktop",
+      "state_name": "default",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.detail.desktop/source.html",
+          "class": "html_dom_content",
+          "sha256": "a5f642c52af8a68d24d2b3001d5109979961768d92c3ac1a8e2a7e8c2d2ed9e8"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.detail.desktop/source.png",
+          "class": "screenshot",
+          "sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.detail.desktop/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "46ced90dedb8fde0ee2f7687abe7ab61508d5278e7d0a4a300056c11f32cecbd"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.detail.desktop/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "e0f30fcc2e2bf721a3e8b9b80913b599b91bcfe539737eb22260a264d5cba9e8"
+        }
+      ],
+      "attachment_document_extensions": [
+        "hwpx"
+      ],
+      "device_class": "desktop",
+      "download_references": [
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0034&amp;list_no=143106&amp;seq=2"
+        }
+      ],
+      "final_url": "https://www.seogu.gwangju.kr/board.es?mid=a10801000000&bid=0034&act=viewC&list_no=143106&tag=&nPage=1",
+      "list_no": "143106",
+      "requested_url": "https://www.seogu.gwangju.kr/board.es?mid=a10801000000&bid=0034&act=viewC&list_no=143106&tag=&nPage=1",
+      "result_status": "success",
+      "state_id": "notice.detail.desktop",
+      "state_name": "detail_with_attachment_state",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.list.desktop/source.html",
+          "class": "html_dom_content",
+          "sha256": "d0a5e79d86eca2693202307aafab960b624477020692be49b4cc533fe29c6932"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.list.desktop/source.png",
+          "class": "screenshot",
+          "sha256": "61e9b804b0830da1d816c529e0dd6a91c654cae861c0dff7525f9d133c2ed135"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.list.desktop/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "3491e1b40c8c603df843310273f59ef33ccdded4c309fccaafa18d814336c09e"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.list.desktop/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "83f352b0b2ceefb22b1fabef27b778c5e0a047ae72e4955cede428ef3cb670b3"
+        }
+      ],
+      "attachment_document_extensions": [],
+      "device_class": "desktop",
+      "download_references": [],
+      "final_url": "https://www.seogu.gwangju.kr/api/eminwon/gosiXmlList.es?mid=a10807010000",
+      "list_no": null,
+      "requested_url": "https://www.seogu.gwangju.kr/api/eminwon/gosiXmlList.es?mid=a10807010000",
+      "result_status": "success",
+      "state_id": "gosi.list.desktop",
+      "state_name": "default",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.detail.desktop/source.html",
+          "class": "html_dom_content",
+          "sha256": "6b1702d606a591cebfdfbee3f51016b4382b0d4b0374011241bd1df9ea0af39c"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.detail.desktop/source.png",
+          "class": "screenshot",
+          "sha256": "1680ea74bb151a2ab2e0f232dce3af8ba462de48a8133d66da7c8281597c0f18"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.detail.desktop/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "cafd957485ff5fddd053148c5659e6a806bbabc06f73fb025210b356aab30ae2"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.detail.desktop/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "79130c8d8e1844d3f3c9ce53436049febfcc910481383c2bfa1725a4fa866d7e"
+        }
+      ],
+      "attachment_document_extensions": [
+        "doc",
+        "hwpx"
+      ],
+      "device_class": "desktop",
+      "download_references": [
+        {
+          "ext": "",
+          "href": "javascript:goDownLoad("
+        }
+      ],
+      "final_url": "https://www.seogu.gwangju.kr/api/eminwon/gosiXmlView.es?method=selectOfrNotAncmt&methodnm=selectOfrNotAncmtRegst&mid=a10807010000&not_ancmt_mgt_no=55667",
+      "list_no": null,
+      "requested_url": "https://www.seogu.gwangju.kr/api/eminwon/gosiXmlView.es?method=selectOfrNotAncmt&methodnm=selectOfrNotAncmtRegst&mid=a10807010000&not_ancmt_mgt_no=55667",
+      "result_status": "success",
+      "state_id": "gosi.detail.desktop",
+      "state_name": "detail",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.list.desktop/source.html",
+          "class": "html_dom_content",
+          "sha256": "e79ec7d69730a6e090d78e4d6ebb69a412a14db237b5f35b29d8e3c1ac8b6899"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.list.desktop/source.png",
+          "class": "screenshot",
+          "sha256": "ac6d1f985f2e1533d4d247290d1eefa626959f7e8dfb10221bfdd81656cd1296"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.list.desktop/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "d86047e8eb183e9b1e6275840d7bebc872a4b6555e5b36facc5b36048d9b2de3"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.list.desktop/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "fc3d7a80e23d2eac4e3183532bbf0e0d87a9360c7fda4a55050719d7a6026a78"
+        }
+      ],
+      "attachment_document_extensions": [
+        "hwp"
+      ],
+      "device_class": "desktop",
+      "download_references": [
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0014&amp;list_no=143010&amp;seq=1"
+        },
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0014&amp;list_no=142419&amp;seq=1"
+        },
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0014&amp;list_no=142418&amp;seq=1"
+        },
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0014&amp;list_no=142416&amp;seq=1"
+        }
+      ],
+      "final_url": "https://www.seogu.gwangju.kr/board.es?mid=a10201100000&bid=0014",
+      "list_no": null,
+      "requested_url": "https://www.seogu.gwangju.kr/board.es?mid=a10201100000&bid=0014",
+      "result_status": "success",
+      "state_id": "civil_form.list.desktop",
+      "state_name": "default",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.detail.desktop/source.html",
+          "class": "html_dom_content",
+          "sha256": "14f438cd93ca0bebabb964730fb0c27c7ddf2152f55203bd9a0f83641eb627f1"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.detail.desktop/source.png",
+          "class": "screenshot",
+          "sha256": "1fdaaef5150af2e1f0914e045811ae4ccbaaa1359974308a6bcb5494e3ed0d1d"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.detail.desktop/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "bf418903ec10d1aa535fee407402242e46bf10ee660c348421711b296173f45b"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.detail.desktop/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "6070adc758ca3a58eeb43b1ee1dc0e0d35e7272c4f7d774dd1bed8876c442bd2"
+        }
+      ],
+      "attachment_document_extensions": [
+        "hwp"
+      ],
+      "device_class": "desktop",
+      "download_references": [
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=0014&amp;list_no=143010&amp;seq=1"
+        }
+      ],
+      "final_url": "https://www.seogu.gwangju.kr/board.es?mid=a10201100000&bid=0014&act=view&list_no=143010&tag=&nPage=1",
+      "list_no": "143010",
+      "requested_url": "https://www.seogu.gwangju.kr/board.es?mid=a10201100000&bid=0014&act=view&list_no=143010&tag=&nPage=1",
+      "result_status": "success",
+      "state_id": "civil_form.detail.desktop",
+      "state_name": "detail_with_download_state",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/organization.chart.desktop/source.html",
+          "class": "html_dom_content",
+          "sha256": "86e70999045d7cff5ae720b13b8022cfca9e7341cf33fe086ae043aeb7033c1c"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/organization.chart.desktop/source.png",
+          "class": "screenshot",
+          "sha256": "66d3342691e0b0df5acc16d606a901b61a2ba785fd5b1b454ead1b58521aad16"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/organization.chart.desktop/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "b51d7adb93d35992b58b32259fa413514d6a4228611e0f91e2687b5c85f65840"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/organization.chart.desktop/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "861280ae0aea9fd3e78f9378bf6a8cdd20fee7effd359b92d73a27c606e1e8f0"
+        }
+      ],
+      "attachment_document_extensions": [],
+      "device_class": "desktop",
+      "download_references": [],
+      "final_url": "https://www.seogu.gwangju.kr/menu.es?mid=a10106030000",
+      "list_no": null,
+      "requested_url": "https://www.seogu.gwangju.kr/menu.es?mid=a10106030000",
+      "result_status": "success",
+      "state_id": "organization.chart.desktop",
+      "state_name": "default",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/staff.directory.desktop/source.html",
+          "class": "html_dom_content",
+          "sha256": "3ffe617971c277515e2b7c3d38bea2703d4b9108448fae3619146191be567a5b"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/staff.directory.desktop/source.png",
+          "class": "screenshot",
+          "sha256": "2b1762bdff2d7b20a008bf219debe5ed15542cf50fae322267d17e7f696a4d74"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/staff.directory.desktop/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "ac9bbd89a377ea996c8b1e4b3084424f39575b68e3042c4deca1f668049b7ff0"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/staff.directory.desktop/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "2321b639600260b13da9bf4fbfce149396e7eea01e5a047a09d9a972118b2be5"
+        }
+      ],
+      "attachment_document_extensions": [],
+      "device_class": "desktop",
+      "download_references": [],
+      "final_url": "https://www.seogu.gwangju.kr/organization.es?mid=a10106040000",
+      "list_no": null,
+      "requested_url": "https://www.seogu.gwangju.kr/organization.es?mid=a10106040000",
+      "result_status": "success",
+      "state_id": "staff.directory.desktop",
+      "state_name": "default",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    }
+  ]
+}
