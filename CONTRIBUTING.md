@@ -4,6 +4,8 @@
 
 현재 ordinary pre-integration 제품 lifecycle은 [`docs/product/clone-first-general-site-platform-strategy.md`](docs/product/clone-first-general-site-platform-strategy.md)를 따른다.
 
+Buk-gu golden 및 명시적 `exact` claim의 canonical invariant는 [`docs/product/exact-official-site-clone-invariant.md`](docs/product/exact-official-site-clone-invariant.md)를 따른다.
+
 핵심 원칙:
 
 1. **현재 제품은 faithful clone MVP + AI Finder/Browser on the clone이다.**
