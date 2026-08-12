@@ -1,0 +1,377 @@
+{
+  "title": "목록 | 현재 고시/공고 | 고시/공고 | 구정소식 : 전남광주통합특별시 서구청 #착한도시 서구",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "landmarks": [
+    {
+      "tag": "header",
+      "text": "이 누리집은 대한민국 공식 전자정부 누리집입니다. 보건소 문화관광 서구의회 행정복지센터 소상공인경영지원센터 서구시설관리공단 주요 누리집 Language 페이스북 카카오톡채널 카카오스토리 밴드 네이버 인스타그램 유튜브 함께 서구 우뚝서구 검색 검색 전남광주통합특별시 서구 GWANGJU CITY SEOGU 열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보 전체메뉴",
+      "id": "header",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보",
+      "id": "gnb1",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "전체메뉴",
+      "id": "gnb2",
+      "class_name": "scrollbar"
+    },
+    {
+      "tag": "main",
+      "text": "구정소식 공지사항 고시/공고 현재 고시/공고 이전 고시/공고 보도자료 채용공고 입찰공고 카드뉴스 서구소식지 타기관소식 입법예고 시설관리공단소식 인사정보 현재 고시/공고 홈 구정소식 고시/공고 현재 고시/공고 글자 크게 글자 작게 공유하기 인쇄 고시공고 검색 게재일자 : 제 목 담당부서 고시공고번호 검색 전체 338건 페이지 1/34 번호 제목 부서명 등록일 조회수 338 2026년 민방위 집합교육(보충1차교육) 통지서 반송에 따른 공시송달 공... 동천동 2026-08-12 16 337 맛고을어린이공원 조성계획(변경) 결정 및 지형",
+      "id": "main",
+      "class_name": ""
+    },
+    {
+      "tag": "section",
+      "text": "구정소식 공지사항 고시/공고 현재 고시/공고 이전 고시/공고 보도자료 채용공고 입찰공고 카드뉴스 서구소식지 타기관소식 입법예고 시설관리공단소식 인사정보",
+      "id": "snb",
+      "class_name": "sub08"
+    },
+    {
+      "tag": "nav",
+      "text": "공지사항 고시/공고 현재 고시/공고 이전 고시/공고 보도자료 채용공고 입찰공고 카드뉴스 서구소식지 타기관소식 입법예고 시설관리공단소식 인사정보",
+      "id": null,
+      "class_name": "list"
+    },
+    {
+      "tag": "section",
+      "text": "현재 고시/공고 홈 구정소식 고시/공고 현재 고시/공고 글자 크게 글자 작게 공유하기 인쇄 고시공고 검색 게재일자 : 제 목 담당부서 고시공고번호 검색 전체 338건 페이지 1/34 번호 제목 부서명 등록일 조회수 338 2026년 민방위 집합교육(보충1차교육) 통지서 반송에 따른 공시송달 공... 동천동 2026-08-12 16 337 맛고을어린이공원 조성계획(변경) 결정 및 지형도면 고시 공원녹지과 2026-08-11 67 336 염주어린이공원 조성계획(변경) 결정 및 지형도면 고시 공원녹지과 2026-08-11 62 335 도",
+      "id": "contents",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "홈 구정소식 고시/공고 현재 고시/공고",
+      "id": null,
+      "class_name": "location"
+    }
+  ],
+  "controls": [
+    {
+      "tag": "a",
+      "text": "보건소",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "문화관광",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구의회",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "행정복지센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소상공인경영지원센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구시설관리공단",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주요 누리집",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "Language",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "페이스북",
+      "id": null,
+      "class_name": "facebook"
+    },
+    {
+      "tag": "a",
+      "text": "카카오톡채널",
+      "id": null,
+      "class_name": "kakaoch"
+    },
+    {
+      "tag": "a",
+      "text": "카카오스토리",
+      "id": null,
+      "class_name": "kakaostory"
+    },
+    {
+      "tag": "a",
+      "text": "밴드",
+      "id": null,
+      "class_name": "band"
+    },
+    {
+      "tag": "a",
+      "text": "네이버",
+      "id": null,
+      "class_name": "naver"
+    },
+    {
+      "tag": "a",
+      "text": "인스타그램",
+      "id": null,
+      "class_name": "instagram"
+    },
+    {
+      "tag": "a",
+      "text": "유튜브",
+      "id": null,
+      "class_name": "youtube"
+    },
+    {
+      "tag": "a",
+      "text": "함께 서구 우뚝서구",
+      "id": null,
+      "class_name": "slogan"
+    },
+    {
+      "tag": "input",
+      "text": "검색",
+      "id": "allKeyWord2",
+      "class_name": "search_keyword"
+    },
+    {
+      "tag": "button",
+      "text": "검색",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전남광주통합특별시 서구 GWANGJU CITY SEOGU",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "열린민원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소통참여",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "정보공개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "구정소식",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "서구소개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "분야별정보",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전체메뉴",
+      "id": null,
+      "class_name": "control open"
+    },
+    {
+      "tag": "a",
+      "text": "공지사항",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "고시/공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "현재 고시/공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "이전 고시/공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "보도자료",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "채용공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "입찰공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "카드뉴스",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구소식지",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "홈",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "구정소식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "고시/공고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "현재 고시/공고",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "글자 크게",
+      "id": null,
+      "class_name": "btn up"
+    },
+    {
+      "tag": "a",
+      "text": "글자 작게",
+      "id": null,
+      "class_name": "btn down"
+    },
+    {
+      "tag": "a",
+      "text": "공유하기",
+      "id": null,
+      "class_name": "btn open"
+    },
+    {
+      "tag": "a",
+      "text": "인쇄",
+      "id": null,
+      "class_name": "btn print"
+    },
+    {
+      "tag": "input",
+      "text": "검색어를 입력하세요",
+      "id": "yyyymmdd",
+      "class_name": "form_textbox"
+    },
+    {
+      "tag": "select",
+      "text": "제 목 담당부서 고시공고번호",
+      "id": "keyField",
+      "class_name": ""
+    },
+    {
+      "tag": "input",
+      "text": "검색어를 입력하세요",
+      "id": "keyWord",
+      "class_name": "form_textbox"
+    },
+    {
+      "tag": "button",
+      "text": "검색",
+      "id": null,
+      "class_name": "Btn-Gray Xs"
+    },
+    {
+      "tag": "a",
+      "text": "2026년 민방위 집합교육(보충1차교육) 통지서 반송에 따른 공시송달 공...",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "맛고을어린이공원 조성계획(변경) 결정 및 지형도면 고시",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "염주어린이공원 조성계획(변경) 결정 및 지형도면 고시",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "도로점용(굴착)허가 공고[농성동 455-1번지]",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "도로점용(굴착)허가 공고[농성동 455-1번지]",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "TOP",
+      "id": null,
+      "class_name": "anchorLink up"
+    }
+  ]
+}

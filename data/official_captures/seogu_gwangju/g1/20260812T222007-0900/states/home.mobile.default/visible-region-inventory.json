@@ -1,0 +1,233 @@
+{
+  "title": "전남광주통합특별시 서구청 #착한도시 서구",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "landmarks": [
+    {
+      "tag": "header",
+      "text": "이 누리집은 대한민국 공식 전자정부 누리집입니다. 주요 누리집 Language SNS 함께 서구 우뚝서구 검색 전체메뉴",
+      "id": "header",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "전체메뉴",
+      "id": "gnb2",
+      "class_name": "scrollbar"
+    },
+    {
+      "tag": "main",
+      "text": "#착한도시 서구 김이강 서구청장 입니다. 내곁에 구청장실 매니페스토 (공약) 1 / 4 이전 정지 다음 이전 다음 조직도 민원서식 대형폐기물 통합예약서비스 착한공유 물품공유 착한공유 공유주차장 착한동행 세큰대 착한동행 맨발로 서구 착한나눔 착한가게 착한쿠폰 착한나눔 천원국시 우리동네 골목맛집 광주서구구립도서관 고향사랑 기부제 정보화교육 주정차단속 문자알림 공지사항 N 2026년 광주서구체육회 생활체육교실(파크골프) 지도자 추가 모집 2026.08.11 N [공고문]사회연대경제 청년 일경험 시범사업 모집공고_참여청년(.. 2026.0",
+      "id": "main",
+      "class_name": ""
+    }
+  ],
+  "controls": [
+    {
+      "tag": "a",
+      "text": "주요 누리집",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "Language",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "SNS",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "함께 서구 우뚝서구",
+      "id": null,
+      "class_name": "slogan"
+    },
+    {
+      "tag": "a",
+      "text": "검색",
+      "id": null,
+      "class_name": "btn_search"
+    },
+    {
+      "tag": "a",
+      "text": "전체메뉴",
+      "id": null,
+      "class_name": "control open"
+    },
+    {
+      "tag": "a",
+      "text": "내곁에 구청장실",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "매니페스토 (공약)",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "구청장에게 바로 문자 하랑께 010-3080-8249 새창 열림",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "button",
+      "text": "이전",
+      "id": null,
+      "class_name": "prev"
+    },
+    {
+      "tag": "button",
+      "text": "정지",
+      "id": null,
+      "class_name": "pause"
+    },
+    {
+      "tag": "button",
+      "text": "다음",
+      "id": null,
+      "class_name": "next"
+    },
+    {
+      "tag": "a",
+      "text": "서구 아너스 명예의전당 페이지 이동",
+      "id": null,
+      "class_name": "hns_bn"
+    },
+    {
+      "tag": "button",
+      "text": "이전",
+      "id": null,
+      "class_name": "btn prev"
+    },
+    {
+      "tag": "button",
+      "text": "다음",
+      "id": null,
+      "class_name": "btn next"
+    },
+    {
+      "tag": "a",
+      "text": "조직도",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "민원서식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "대형폐기물",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "통합예약서비스",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "착한공유 물품공유",
+      "id": null,
+      "class_name": "rd_box rd_col03"
+    },
+    {
+      "tag": "a",
+      "text": "착한공유 공유주차장",
+      "id": null,
+      "class_name": "rd_box rd_col03"
+    },
+    {
+      "tag": "a",
+      "text": "착한동행 세큰대",
+      "id": null,
+      "class_name": "rd_box rd_col01"
+    },
+    {
+      "tag": "a",
+      "text": "착한동행 맨발로 서구",
+      "id": null,
+      "class_name": "rd_box rd_col01"
+    },
+    {
+      "tag": "a",
+      "text": "착한나눔 착한가게 착한쿠폰",
+      "id": null,
+      "class_name": "rd_box rd_col02"
+    },
+    {
+      "tag": "a",
+      "text": "착한나눔 천원국시",
+      "id": null,
+      "class_name": "rd_box rd_col02"
+    },
+    {
+      "tag": "a",
+      "text": "우리동네 골목맛집",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "광주서구구립도서관",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "고향사랑 기부제",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "정보화교육",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주정차단속 문자알림",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "TOP",
+      "id": null,
+      "class_name": "anchorLink up"
+    }
+  ]
+}
