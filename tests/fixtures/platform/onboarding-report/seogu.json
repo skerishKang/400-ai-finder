@@ -1,0 +1,110 @@
+{
+  "schema_version": "2.0.0",
+  "run_id": "seogu-v2-offline-2026-08-12",
+  "input": {
+    "source_kind": "offline_fixture",
+    "source_refs": [
+      "configs/sites/seogu_gwangju.yml",
+      "tests/test_seogu_profile_onboarding_no_live.py"
+    ]
+  },
+  "acquisition": {
+    "acquisition_mode": "offline_fixture",
+    "live_network_authorized": false
+  },
+  "site_identity": {
+    "site_id": "seogu_gwangju",
+    "display_label": "광주광역시 서구청"
+  },
+  "archetype": {
+    "id": "municipality",
+    "state": "review_required",
+    "confidence": 0.6,
+    "evidence_refs": [
+      "configs/sites/seogu_gwangju.yml"
+    ]
+  },
+  "capabilities": [
+    {
+      "id": "notice_board",
+      "state": "detected",
+      "confidence": 0.85,
+      "safety_level": "navigate",
+      "entry_points": [
+        "homepage"
+      ],
+      "evidence_refs": [
+        "configs/sites/seogu_gwangju.yml",
+        "tests/test_seogu_profile_onboarding_no_live.py",
+        "https://www.seogu.gwangju.kr/bbs/BBSMSTR_000000000276/list.do"
+      ]
+    },
+    {
+      "id": "document_library",
+      "state": "detected",
+      "confidence": 0.8,
+      "safety_level": "navigate",
+      "entry_points": [
+        "homepage"
+      ],
+      "evidence_refs": [
+        "configs/sites/seogu_gwangju.yml",
+        "tests/test_seogu_profile_onboarding_no_live.py",
+        "https://www.seogu.gwangju.kr/boardDownload.es?bid=0013&list_no=136021&seq=1"
+      ]
+    },
+    {
+      "id": "directory",
+      "state": "review_required",
+      "confidence": 0.3,
+      "safety_level": "read_only",
+      "entry_points": [
+        "homepage"
+      ],
+      "evidence_refs": [
+        "configs/sites/seogu_gwangju.yml"
+      ]
+    }
+  ],
+  "artifacts": [],
+  "metrics": {
+    "automation_ratio": 0.5,
+    "human_review_ratio": 0.25,
+    "unsupported_ratio": 0.25
+  },
+  "exceptions": [
+    {
+      "id": "exc_missing_canonical_jurisdiction",
+      "category": "source_or_provenance_gap",
+      "severity": "warning",
+      "review_state": "review_required",
+      "summary": "Pre-SiteSpec candidate: canonical municipality jurisdiction (effective-date) is not present in any checked-in v1 SiteSpec; extensions.municipality.jurisdiction omitted (no fabrication).",
+      "affected_refs": [
+        "seogu_gwangju"
+      ]
+    },
+    {
+      "id": "exc_review_directory",
+      "category": "low_confidence_classification",
+      "severity": "warning",
+      "review_state": "review_required",
+      "summary": "Capability directory derived from keyword-only evidence (조직도); explicit human review required.",
+      "affected_refs": [
+        "directory"
+      ]
+    }
+  ],
+  "provenance": {
+    "source_refs": [
+      "configs/sites/seogu_gwangju.yml",
+      "tests/test_seogu_profile_onboarding_no_live.py"
+    ],
+    "review_state": "synthetic"
+  },
+  "change_scope": {
+    "shared_core_changed": false
+  },
+  "promotion": {
+    "production_promotion_requested": false
+  }
+}
