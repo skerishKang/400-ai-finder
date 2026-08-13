@@ -864,3 +864,150 @@ def test_page_agent_card_not_dependent_on_mvp_href(build_dir, live_build_dir):
     live_link = live_internal.count('href="../examples/page-agent/"')
     assert static_link == 1 and live_link == 1, "Page Agent link must appear once per mode"
     assert static_link == live_link, "Page Agent link must be identical in static and live"
+
+
+# ---------------------------------------------------------------------------
+# Issue #1303 G2-B: Seo-gu faithful-clone candidate packaging contract
+# ---------------------------------------------------------------------------
+SEOGU_REQUIRED_ROUTES = [
+    "seogu/index.html",
+    "seogu/notice/index.html",
+    "seogu/notice/detail/index.html",
+    "seogu/gosi/index.html",
+    "seogu/gosi/detail/index.html",
+    "seogu/civil-form/index.html",
+    "seogu/civil-form/detail/index.html",
+    "seogu/organization/index.html",
+    "seogu/staff/index.html",
+    "seogu/home/gnb-open/index.html",
+    "seogu/home/mobile/index.html",
+]
+
+
+def test_seogu_clone_routes_exist(build_dir):
+    """G2-B: the build emits the Seo-gu clone subtree under dist/seogu/."""
+    for rel in SEOGU_REQUIRED_ROUTES:
+        assert os.path.isfile(os.path.join(build_dir, rel)), f"missing seogu route {rel}"
+
+
+def test_seogu_output_has_no_external_auto_calls(build_dir):
+    """G2-B: /seogu/ output never auto-fetches external script/link/css/iframe."""
+    seogu_root = os.path.join(build_dir, "seogu")
+    scanned = 0
+    for root, _dirs, files in os.walk(seogu_root):
+        for fn in files:
+            if not fn.endswith((".html", ".js", ".css", ".json")):
+                continue
+            path = os.path.join(root, fn)
+            text = open(path, encoding="utf-8", errors="replace").read()
+            scanned += 1
+            assert not _SCRIPT_SRC_RE.search(text), f"external <script src> in {path}"
+            assert not _LINK_HREF_RE.search(text), f"external <link href> in {path}"
+            assert not _FETCH_HTTP_RE.search(text), f"external fetch() in {path}"
+            assert not _CSS_URL_HTTP_RE.search(text), f"external url() in {path}"
+            # No actual site integration, no iframe, no raw screenshot runtime.
+            assert "seogu.gwangju.kr" not in text, f"actual host referenced in {path}"
+            assert "iframe" not in text.lower(), f"iframe in {path}"
+            assert "screenshot" not in text.lower(), f"screenshot runtime in {path}"
+            assert "source.png" not in text, f"raw capture artifact in {path}"
+    assert scanned > 0
+    assert scanned == len(SEOGU_REQUIRED_ROUTES), (
+        f"unexpected seogu file count: {scanned}"
+    )
+
+
+def test_seogu_build_is_deterministic(build_dir, tmp_path):
+    """G2-B: the Seo-gu subtree is byte-identical across two independent builds."""
+    mod = _load_build_module()
+    out2 = os.path.join(tmp_path, "out2")
+    mod.build(out_dir=out2)
+
+    def _seogu_tree(d):
+        files = {}
+        for root, _dirs, fns in os.walk(os.path.join(d, "seogu")):
+            for fn in fns:
+                p = os.path.join(root, fn)
+                files[os.path.relpath(p, d)] = open(p, "rb").read()
+        return files
+
+    assert _seogu_tree(build_dir) == _seogu_tree(out2)
+
+
+def test_seogu_lifecycle_markers_present(build_dir):
+    """G2-B: explicit candidate lifecycle markers must be embedded (all False-ish)."""
+    html = open(
+        os.path.join(build_dir, "seogu", "index.html"), encoding="utf-8"
+    ).read()
+    assert 'id="rc-lifecycle"' in html
+    for marker in (
+        '"faithful_clone_candidate": true',
+        '"visual_review": "pending"',
+        '"clone_mvp_ready": false',
+        '"resident_default": false',
+        '"exact": false',
+        '"golden": false',
+        '"actual_site_integrated": false',
+        '"production_ready": false',
+        '"asset_byte_fidelity_complete": false',
+    ):
+        assert marker in html, f"lifecycle marker missing: {marker}"
+
+
+def test_seogu_resident_output_has_no_debug_diagnostics(build_dir):
+    """G2-B correction: resident-visible /seogu/ pages must not expose capture
+    identifiers, HTTP status, state ids, visual-input gaps, or 표면."""
+    seogu_root = os.path.join(build_dir, "seogu")
+    for root, _dirs, files in os.walk(seogu_root):
+        for fn in files:
+            if not fn.endswith(".html"):
+                continue
+            path = os.path.join(root, fn)
+            html = open(path, encoding="utf-8").read()
+            for token in (
+                "site_id=",
+                "capture_id=",
+                "captured_at=",
+                "final_http_status=",
+                "visual-input gap",
+                "표면",
+                "rc-meta",
+                "캡처 메타데이터",
+                "list_no=",
+            ):
+                assert token not in html, f"debug diagnostics leaked in {path}: {token!r}"
+            # Capture evidence exists only as hidden machine-readable JSON.
+            assert 'id="rc-evidence"' in html, f"hidden evidence missing in {path}"
+
+
+def test_seogu_css_derives_from_validated_contract(build_dir):
+    """G2-B correction: /seogu/ CSS must derive from measured contract values
+    and never contain the pre-correction guessed tokens."""
+    html = open(
+        os.path.join(build_dir, "seogu", "index.html"), encoding="utf-8"
+    ).read()
+    # Measured values from visual-contract.json (desktop home).
+    assert "max-width:1400px" in html
+    assert "border:1px solid #dcdcdc" in html
+    assert "background:#083878" in html  # GNB bg measured
+    for token in (
+        "#e6e6ea",
+        "#8a8a93",
+        "#1f6feb",
+        "980px",
+        "999px",
+        "border-radius",
+        "@media (max-width",
+        "600px",
+    ):
+        assert token not in html, f"guessed CSS token leaked into seogu build: {token!r}"
+
+
+def test_seogu_root_does_not_duplicate_bukgu_root(build_dir):
+    """G2-B: the Buk-gu root index.html is unchanged in observable contract."""
+    root = open(os.path.join(build_dir, "index.html"), encoding="utf-8").read()
+    # The Buk-gu citizen entry is still the resident root (not an artifact chooser).
+    assert 'id="chat-shell"' in root
+    assert "citizen-first-use-shell.js" in root
+    # Seo-gu content must NOT leak into the Buk-gu root.
+    assert "rc-nav" not in root
+    assert "rc-lifecycle" not in root

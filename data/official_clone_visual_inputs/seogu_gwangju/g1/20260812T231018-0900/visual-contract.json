@@ -1,0 +1,366 @@
+{
+  "schema_version": 2,
+  "contract_kind": "visual_input",
+  "site_id": "seogu_gwangju",
+  "capture_id": "20260812T231018-0900",
+  "model_checksum": "36d11991d8253a6176acdeaf8fe7e628315959d673ad153b2bde476d7a3cdceb",
+  "note": "Provenance-backed measurements from the immutable committed G1 capture evidence. Every non-null value is traced 1:1 to a captured state, the committed screenshot SHA it was measured from, the measurement method, the unit, and the evidence type. Values that cannot be safely measured remain null and are listed in gaps. typography.font_family uses asset_provenance evidence (fetched font assets), not screenshot pixels. border.width is the measured pixel thickness of the footer separator line. Renderer-only non-fidelity presentation defaults (font-size, font-weight, border-style, focus outline, underline, radius, breakpoint) are NOT counted as official-site fidelity evidence.",
+  "layout": {
+    "header": {
+      "height_px": 692,
+      "padding_top": null,
+      "padding_bottom": null,
+      "padding_x": null,
+      "sticky": null,
+      "provenance_state_id": "home.desktop.default"
+    },
+    "gnb": {
+      "height_px": 72,
+      "item_gap": null,
+      "toggle_size": null,
+      "provenance_state_id": "home.desktop.default"
+    },
+    "main": {
+      "max_width_px": 1400,
+      "padding_x": 20,
+      "padding_y": null,
+      "padding_bottom": null,
+      "provenance_state_id": "home.desktop.default"
+    },
+    "footer": {
+      "height_px": 80,
+      "padding_top": null,
+      "padding_bottom": null,
+      "provenance_state_id": "home.desktop.default"
+    }
+  },
+  "colors": {
+    "primary": "#083878",
+    "background": "#f8f8f8",
+    "surface": null,
+    "text": "#000000",
+    "text_muted": "#888888",
+    "border": "#dcdcdc",
+    "link": null,
+    "link_hover": null,
+    "header_bg": "#f0f0f8",
+    "gnb_bg": "#083878",
+    "gnb_text": "#f0f0f0",
+    "footer_bg": "#f8f8f8",
+    "footer_border": "#dcdcdc",
+    "provenance_state_id": "home.desktop.default"
+  },
+  "typography": {
+    "font_family": "Gmarket Sans, Noto Sans CJK KR",
+    "font_family_kr": "Noto Sans CJK KR",
+    "site_title_size": null,
+    "site_title_weight": null,
+    "nav_link_size": null,
+    "nav_link_weight": null,
+    "section_title_size": null,
+    "section_title_weight": null,
+    "detail_title_size": null,
+    "detail_title_weight": null,
+    "body_size": null,
+    "body_line_height": null,
+    "text_color": "#000000",
+    "provenance_state_id": "home.desktop.default"
+  },
+  "spacing": {
+    "section_gap": null,
+    "card_padding": null,
+    "list_item_padding": null,
+    "badge_padding_x": null,
+    "badge_padding_y": null,
+    "provenance_state_id": "home.desktop.default"
+  },
+  "border": {
+    "radius_card": null,
+    "radius_pill": null,
+    "radius_button": null,
+    "width": 1,
+    "style": null,
+    "color": "#dcdcdc",
+    "provenance_state_id": "home.desktop.default"
+  },
+  "responsive": {
+    "breakpoint_mobile": null,
+    "mobile": {
+      "header_height_px": 370,
+      "gnb_height_px": 32,
+      "max_width_px": 358,
+      "header_padding_x": 16,
+      "header_padding_y": null,
+      "main_padding_x": 16,
+      "main_padding_y": null,
+      "main_padding_bottom": null,
+      "grid_columns": null,
+      "provenance_state_id": "home.mobile.default"
+    },
+    "provenance_state_id": "home.mobile.default"
+  },
+  "gaps": [
+    {
+      "region": "organization_chart",
+      "note": "No measurable geometry for org chart surface in committed G1 evidence.",
+      "provenance_state_id": null
+    },
+    {
+      "region": "staff_directory",
+      "note": "No measurable geometry for staff directory surface in committed G1 evidence.",
+      "provenance_state_id": null
+    },
+    {
+      "region": "detail_attachment_buttons",
+      "note": "No measured attachment-button geometry (size, color, icon style).",
+      "provenance_state_id": null
+    },
+    {
+      "region": "border_radius",
+      "note": "Border radius is not safely measurable from committed screenshots.",
+      "provenance_state_id": null
+    },
+    {
+      "region": "responsive_breakpoint",
+      "note": "Exact mobile breakpoint value is not derivable from two committed viewports.",
+      "provenance_state_id": null
+    },
+    {
+      "region": "font_sizes",
+      "note": "Font sizes are not safely measurable from committed screenshots.",
+      "provenance_state_id": null
+    },
+    {
+      "region": "spacing_paddings",
+      "note": "Element-specific paddings are not safely measurable from committed screenshots.",
+      "provenance_state_id": null
+    },
+    {
+      "region": "non_fidelity_presentation_defaults",
+      "note": "Renderer-only non-fidelity defaults (font-size, font-weight, border-style, focus outline width/offset, link underline, border radius, responsive breakpoint) are structural/accessibility implementation defaults. They are NOT counted as official-site fidelity evidence and do not gate faithful_clone_candidate.",
+      "provenance_state_id": null
+    }
+  ],
+  "measurements": [
+    {
+      "field": "layout.header.height_px",
+      "value": 692,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "layout.gnb.height_px",
+      "value": 72,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "layout.footer.height_px",
+      "value": 80,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "layout.main.max_width_px",
+      "value": 1400,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "layout.main.padding_x",
+      "value": 20,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "colors.primary",
+      "value": "#083878",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "colors.background",
+      "value": "#f8f8f8",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "colors.header_bg",
+      "value": "#f0f0f8",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "colors.gnb_bg",
+      "value": "#083878",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "colors.gnb_text",
+      "value": "#f0f0f0",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "colors.footer_bg",
+      "value": "#f8f8f8",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "colors.text",
+      "value": "#000000",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "colors.text_muted",
+      "value": "#888888",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "colors.border",
+      "value": "#dcdcdc",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "border.width",
+      "value": 1,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "border.color",
+      "value": "#dcdcdc",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "typography.text_color",
+      "value": "#000000",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "responsive.mobile.header_height_px",
+      "value": 370,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "responsive.mobile.gnb_height_px",
+      "value": 32,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "responsive.mobile.max_width_px",
+      "value": 358,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "responsive.mobile.main_padding_x",
+      "value": 16,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis",
+      "note": null
+    },
+    {
+      "field": "typography.font_family",
+      "value": "Gmarket Sans, Noto Sans CJK KR",
+      "unit": null,
+      "evidence_type": "asset_provenance",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "bc16b83ae5f87730fbed27f810d75fcad341777866b43dd05e0ee03efe040b81",
+      "method": "fetched_font_asset_observation",
+      "note": "Font families observed from font assets fetched by the browser during G1 capture (primary asset NotoSansCJKkr-Bold.woff2). Not a screenshot pixel measurement."
+    }
+  ]
+}

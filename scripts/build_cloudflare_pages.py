@@ -632,6 +632,64 @@ def _write_file(path: str, content: str) -> None:
 # ---------------------------------------------------------------------------
 # Main build
 # ---------------------------------------------------------------------------
+def build_seogu_reference_clone(dist_root: str) -> None:
+    """Emit the #1303 G2-B faithful-clone candidate under dist/seogu.
+
+    Reads the committed G2-A ``clone-model.json`` and G2-B
+    ``visual-contract.json``, VALIDATES the visual contract against the model,
+    then renders the generic local clone structure via
+    ``src/official_clone/reference_clone_renderer.py``. Fully offline; does not
+    touch the Buk-gu root or any G0 artifact.
+
+    Fail-closed: raises RuntimeError if the model or the visual contract is
+    missing, or if the visual contract fails identity/checksum/schema/
+    provenance validation against the model.
+    """
+    import importlib
+
+    # Ensure the official_clone package is importable.
+    _src = os.path.join(_REPO_ROOT, "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+
+    renderer = importlib.import_module("official_clone.reference_clone_renderer")
+    validator = importlib.import_module("official_clone.visual_contract")
+
+    model_path = os.path.join(
+        _REPO_ROOT,
+        "data",
+        "official_clone_fixtures",
+        "seogu_gwangju",
+        "g1",
+        "20260812T231018-0900",
+        "clone-model.json",
+    )
+    vc_path = os.path.join(
+        _REPO_ROOT,
+        "data",
+        "official_clone_visual_inputs",
+        "seogu_gwangju",
+        "g1",
+        "20260812T231018-0900",
+        "visual-contract.json",
+    )
+    if not os.path.isfile(model_path):
+        raise RuntimeError(f"G2-B fail-closed: model not found: {model_path}")
+    if not os.path.isfile(vc_path):
+        raise RuntimeError(f"G2-B fail-closed: visual contract not found: {vc_path}")
+    model = renderer.load_model(model_path)
+    contract = json.loads(Path(vc_path).read_text(encoding="utf-8"))
+    validated = validator.validate_visual_contract(contract, model)
+    written = renderer.write_site(
+        model,
+        os.path.join(dist_root, "seogu"),
+        route_prefix="/seogu/",
+        visual_contract=validated,
+    )
+    print(f"[build] wrote {len(written)} G2-B clone routes -> seogu/")
+    print(f"[build] G2-B faithful_ready={validator.faithful_ready(validated)}")
+
+
 def build(out_dir: str | None = None, mode: str = "static") -> None:
     _ensure_repo_on_path()
     from scripts.generate_bukgu_official_snapshots import check_generated_artifacts
@@ -852,6 +910,10 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
     if os.path.isdir(compare_src):
         _copy_tree(compare_src, os.path.join(dist_root, "compare"))
         print("[build] copied compare")
+
+    # 9c. Emit the #1303 G2-B Seo-gu faithful-clone candidate under /seogu/.
+    #     Generic, model-driven, offline; the Buk-gu root is untouched.
+    build_seogu_reference_clone(dist_root)
 
     print(f"[build] done -> {dist_root}")
 
