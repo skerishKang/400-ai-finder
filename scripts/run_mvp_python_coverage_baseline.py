@@ -47,6 +47,7 @@ COVERAGE_TEST_FILES = (
     "tests/test_reference_clone_model.py",
     "tests/test_site_adapter_contract_matrix.py",
     "tests/test_build_cloudflare_pages.py",
+    "tests/test_reference_clone_renderer.py",
     "tests/test_generic_offline_preview.py",
     "tests/test_mvp_ci_job_decomposition.py",
     "tests/test_page_agent_lab.py",

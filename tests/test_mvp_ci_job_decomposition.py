@@ -47,6 +47,8 @@ EXPECTED_TEST_STEPS = {
     "Run legacy requests transport contract tests",
     "Run legacy crawler fallback contract suites",
     "Run static Pages build contract tests",
+    "Run Seo-gu G2-B reference clone renderer contract (#1303)",
+    "Run Seo-gu G2-B faithful clone browser QA (#1303)",
     "Run MVP shell runtime harness",
     "Run home fixture canvas browser contract (#1170)",
     "Run responsive browser contract",

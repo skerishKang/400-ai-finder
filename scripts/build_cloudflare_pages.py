@@ -632,6 +632,41 @@ def _write_file(path: str, content: str) -> None:
 # ---------------------------------------------------------------------------
 # Main build
 # ---------------------------------------------------------------------------
+def build_seogu_reference_clone(dist_root: str) -> None:
+    """Emit the #1303 G2-B Seo-gu faithful-clone candidate under dist/seogu.
+
+    Reads only the committed G2-A ``clone-model.json`` and renders the generic
+    local clone structure via ``src/official_clone/reference_clone_renderer.py``.
+    Fully offline; does not touch the Buk-gu root or any G0 artifact.
+    """
+    import importlib.util
+
+    renderer_path = os.path.join(
+        _REPO_ROOT, "src", "official_clone", "reference_clone_renderer.py"
+    )
+    spec = importlib.util.spec_from_file_location("reference_clone_renderer", renderer_path)
+    assert spec and spec.loader
+    renderer = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = renderer
+    spec.loader.exec_module(renderer)
+
+    model_path = os.path.join(
+        _REPO_ROOT,
+        "data",
+        "official_clone_fixtures",
+        "seogu_gwangju",
+        "g1",
+        "20260812T231018-0900",
+        "clone-model.json",
+    )
+    if not os.path.isfile(model_path):
+        print(f"[build] seogu clone-model not found, skipping: {model_path}")
+        return
+    model = renderer.load_model(model_path)
+    written = renderer.write_site(model, os.path.join(dist_root, "seogu"))
+    print(f"[build] wrote {len(written)} Seo-gu G2-B clone routes -> seogu/")
+
+
 def build(out_dir: str | None = None, mode: str = "static") -> None:
     _ensure_repo_on_path()
     from scripts.generate_bukgu_official_snapshots import check_generated_artifacts
@@ -852,6 +887,10 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
     if os.path.isdir(compare_src):
         _copy_tree(compare_src, os.path.join(dist_root, "compare"))
         print("[build] copied compare")
+
+    # 9c. Emit the #1303 G2-B Seo-gu faithful-clone candidate under /seogu/.
+    #     Generic, model-driven, offline; the Buk-gu root is untouched.
+    build_seogu_reference_clone(dist_root)
 
     print(f"[build] done -> {dist_root}")
 
