@@ -31,17 +31,11 @@ from official_clone.visual_contract import (  # noqa: E402
 
 def _load_renderer():
     """Import the generic renderer by file path (no site-specific coupling)."""
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location(
-        "official_clone.reference_clone_renderer",
-        _REPO_ROOT / "src" / "official_clone" / "reference_clone_renderer.py",
-    )
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+    _src = str(_REPO_ROOT / "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+    import importlib
+    return importlib.import_module("official_clone.reference_clone_renderer")
 
 
 def default_model_path(site_id: str) -> Path:

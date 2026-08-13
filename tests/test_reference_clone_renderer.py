@@ -29,7 +29,7 @@ No network, no live site, no provider, no Firecrawl, no API calls.
 
 from __future__ import annotations
 
-import importlib.util
+import importlib
 import json
 import socket
 import sys
@@ -38,6 +38,26 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _ensure_src_on_path() -> None:
+    if str(REPO_ROOT / "src") not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT / "src"))
+
+
+def _load_module():
+    _ensure_src_on_path()
+    return importlib.import_module("official_clone.reference_clone_renderer")
+
+
+def _load_validator():
+    _ensure_src_on_path()
+    return importlib.import_module("official_clone.visual_contract")
+
+
+mod = _load_module()
+validator = _load_validator()
+
 MODULE_PATH = REPO_ROOT / "src" / "official_clone" / "reference_clone_renderer.py"
 VALIDATOR_PATH = REPO_ROOT / "src" / "official_clone" / "visual_contract.py"
 FIXTURE_PATH = (
@@ -74,34 +94,6 @@ REQUIRED_11 = [
 ]
 
 _ROUTE_PREFIX = "/seogu/"
-
-
-def _load_module():
-    sys.path.insert(0, str(REPO_ROOT / "src"))
-    spec = importlib.util.spec_from_file_location(
-        "official_clone.reference_clone_renderer", MODULE_PATH
-    )
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-def _load_validator():
-    sys.path.insert(0, str(REPO_ROOT / "src"))
-    spec = importlib.util.spec_from_file_location(
-        "official_clone.visual_contract", VALIDATOR_PATH
-    )
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-mod = _load_module()
-validator = _load_validator()
 
 
 @pytest.fixture(autouse=True)

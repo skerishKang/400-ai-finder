@@ -22,7 +22,7 @@ No network, no live site, no screenshot runtime in the validator itself.
 
 from __future__ import annotations
 
-import importlib.util
+import importlib
 import json
 import socket
 import subprocess
@@ -32,7 +32,6 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-VALIDATOR_PATH = REPO_ROOT / "src" / "official_clone" / "visual_contract.py"
 MODEL_PATH = (
     REPO_ROOT
     / "data"
@@ -64,12 +63,9 @@ MEASURE_SCRIPT = REPO_ROOT / "scripts" / "measure_g1_visual_contract.py"
 
 
 def _load_validator():
-    spec = importlib.util.spec_from_file_location("visual_contract", VALIDATOR_PATH)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+    if str(REPO_ROOT / "src") not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT / "src"))
+    return importlib.import_module("official_clone.visual_contract")
 
 
 validator = _load_validator()
