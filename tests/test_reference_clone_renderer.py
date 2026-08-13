@@ -638,8 +638,12 @@ def _synthetic_visual_contract():
     the synthetic state's own committed screenshot SHA (a synthetic sha256 is
     fine for the validator identity check: the checker only verifies the
     referenced screenshot SHA matches the model geometry).
+
+    Mobile measurements (responsive.mobile.*) correctly target the mobile
+    provenance state (home.mobile.default), not the desktop default.
     """
-    shot_sha = "a" * 64
+    desktop_shot = "a" * 64
+    mobile_shot = "a" * 64
     values = {
         "layout.header.height_px": 120,
         "layout.gnb.height_px": 48,
@@ -671,13 +675,14 @@ def _synthetic_visual_contract():
             unit = "hex"
         else:
             unit = None
+        is_mobile = field.startswith("responsive.mobile.")
         measurements.append({
             "field": field,
             "value": value,
             "unit": unit,
             "evidence_type": "pixel_analysis",
-            "source_state_id": "home.desktop.default",
-            "artifact_sha256": shot_sha,
+            "source_state_id": "home.mobile.default" if is_mobile else "home.desktop.default",
+            "artifact_sha256": mobile_shot if is_mobile else desktop_shot,
             "method": "pixel_analysis",
         })
     return {
@@ -702,20 +707,27 @@ def _synthetic_visual_contract():
             "text": "#111111",
             "text_muted": "#666666",
             "border": "#cccccc",
+            "provenance_state_id": "home.desktop.default",
         },
         "typography": {
             "font_family": "Noto Sans KR",
             "text_color": "#111111",
+            "provenance_state_id": "home.desktop.default",
         },
-        "spacing": {},
-        "border": {"width": 2, "color": "#cccccc"},
-        "responsive": {"mobile": {
-            "header_height_px": 100,
-            "gnb_height_px": 44,
-            "max_width_px": 1000,
-            "main_padding_x": 12,
+        "spacing": {
+            "provenance_state_id": "home.desktop.default",
+        },
+        "border": {"width": 2, "color": "#cccccc", "provenance_state_id": "home.desktop.default"},
+        "responsive": {
+            "mobile": {
+                "header_height_px": 100,
+                "gnb_height_px": 44,
+                "max_width_px": 1000,
+                "main_padding_x": 12,
+                "provenance_state_id": "home.mobile.default",
+            },
             "provenance_state_id": "home.mobile.default",
-        }},
+        },
         "gaps": [],
         "measurements": measurements,
     }
@@ -782,3 +794,60 @@ def test_second_synthetic_site_unready_fails_closed():
     synthetic["claim_gates"]["reference_baseline_ready"] = False
     with pytest.raises(mod.ReferenceCloneRendererError):
         mod.render_site(synthetic, route_prefix="/x/")
+
+
+# ---------------------------------------------------------------------------
+# Renderer must require validator-produced contract (CTO review 4923964659)
+# ---------------------------------------------------------------------------
+def test_raw_contract_faithful_candidate_false():
+    """A committed raw complete visual-contract.json passed directly to the
+    renderer WITHOUT validation must NOT produce faithful_clone_candidate=True."""
+    model = _load_model()
+    raw_contract = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
+    # The raw contract has no 'readiness' section — only
+    # validate_visual_contract() adds it.
+    assert "readiness" not in raw_contract
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=raw_contract,
+    )
+    start = html.index('id="rc-lifecycle"')
+    end = html.index("</script>", start)
+    payload = json.loads(html[start:end].split(">", 1)[1])
+    assert payload["faithful_clone_candidate"] is False, (
+        "raw contract must NOT be accepted as faithful candidate"
+    )
+
+
+def test_tampered_contract_value_evidence_mismatch_fails_closed():
+    """A complete contract with a value/evidence mismatch passed directly to
+    the renderer must NOT produce faithful_clone_candidate=True."""
+    model = _load_model()
+    raw_contract = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
+    # Tamper a required field value without updating the evidence.
+    raw_contract["layout"]["header"]["height_px"] = 999
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=raw_contract,
+    )
+    start = html.index('id="rc-lifecycle"')
+    end = html.index("</script>", start)
+    payload = json.loads(html[start:end].split(">", 1)[1])
+    assert payload["faithful_clone_candidate"] is False, (
+        "value/evidence mismatched contract must NOT be accepted"
+    )
+
+
+def test_validated_contract_maintains_faithful_candidate_true():
+    """The validated visual contract must still produce faithful_clone_candidate
+    True after all correction tests pass."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    start = html.index('id="rc-lifecycle"')
+    end = html.index("</script>", start)
+    payload = json.loads(html[start:end].split(">", 1)[1])
+    assert payload["faithful_clone_candidate"] is True

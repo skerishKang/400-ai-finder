@@ -417,6 +417,67 @@ def test_border_width_must_be_measured_not_guessed():
         validator.validate_visual_contract(contract, _model())
 
 
+# ---------------------------------------------------------------------------
+# Evidence source-state binding (CTO review 4923964659 — correction 1)
+# ---------------------------------------------------------------------------
+def test_mobile_evidence_rejects_desktop_provenance():
+    """responsive.mobile.* measurements must originate from the mobile
+    provenance state (home.mobile.default), not from a desktop state."""
+    contract = _deepcopy_contract()
+    model = _model()
+    desktop_default = next(
+        s for s in model["states"] if s["state_id"] == "home.desktop.default"
+    )
+    desktop_sha = desktop_default["document_geometry"]["full_page_screenshot"]["sha256"]
+    for entry in contract["measurements"]:
+        if entry["field"].startswith("responsive.mobile."):
+            entry["source_state_id"] = "home.desktop.default"
+            # Keep the artifact SHA valid for the desktop state so the test
+            # isolates the state-binding check.
+            entry["artifact_sha256"] = desktop_sha
+    with pytest.raises(
+        validator.VisualContractValidationError, match="source state binding violation"
+    ):
+        validator.validate_visual_contract(contract, model)
+
+
+def test_desktop_evidence_rejects_wrong_provenance_state():
+    """A desktop required field whose evidence references a different valid
+    state (even one that exists in the model) must fail."""
+    contract = _deepcopy_contract()
+    model = _model()
+    # Find a required desktop field and move its evidence to a different
+    # existing state (home.mobile.default) with that state's valid screenshot SHA.
+    mobile_state = next(s for s in model["states"] if s["state_id"] == "home.mobile.default")
+    mobile_sha = mobile_state["document_geometry"]["full_page_screenshot"]["sha256"]
+    for entry in contract["measurements"]:
+        if entry["field"] == "layout.header.height_px":
+            entry["source_state_id"] = "home.mobile.default"
+            entry["artifact_sha256"] = mobile_sha
+    with pytest.raises(
+        validator.VisualContractValidationError, match="source state binding violation"
+    ):
+        validator.validate_visual_contract(contract, model)
+
+
+# ---------------------------------------------------------------------------
+# Ledger evidence rejected (CTO review 4923964659 — correction 2)
+# ---------------------------------------------------------------------------
+def test_ledger_evidence_rejected():
+    """ledger evidence type is not supported in G2-B; any ledger record must
+    fail validation."""
+    contract = _deepcopy_contract()
+    # Change an existing required-field measurement to use ledger type.
+    for entry in contract["measurements"]:
+        if entry["field"] == "layout.header.height_px":
+            entry["evidence_type"] = "ledger"
+            entry["artifact_sha256"] = "a" * 64
+    with pytest.raises(
+        validator.VisualContractValidationError, match="unsupported evidence_type"
+    ):
+        validator.validate_visual_contract(contract, _model())
+
+
 def test_null_required_field_cannot_promote():
     contract = _deepcopy_contract()
     contract["colors"]["background"] = None

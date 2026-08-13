@@ -170,10 +170,39 @@ def _get_path(contract: dict[str, Any] | None, dotted: str) -> Any:
 
 
 def faithful_ready(visual_contract: dict[str, Any] | None) -> bool:
-    """A validated visual contract is faithful-ready iff every required
-    measured field is present and non-null."""
+    """A validated visual contract is faithful-ready iff it was produced by
+    ``validate_visual_contract()`` (has a full ``readiness`` section whose
+    ``faithful_ready`` is ``True``) and every required measured field is present
+    and non-null.
+
+    A raw (unvalidated) contract never carries the ``readiness`` block, so this
+    function returns ``False`` for it — the renderer requires the validator gate.
+    """
     if not visual_contract:
         return False
+    readiness = visual_contract.get("readiness")
+    if not isinstance(readiness, dict):
+        return False
+    if not bool(readiness.get("faithful_ready")):
+        return False
+
+    # Verify the readiness dict was produced by the validator: all of its
+    # computed fields must be present and the field count must match the
+    # renderer's own required field set. This prevents trivial spoofing
+    # (e.g. ``{"readiness": {"faithful_ready": True}}``).
+    for key in (
+        "schema_version",
+        "required_measured_count",
+        "measured_required_count",
+        "missing_required",
+        "measured_value_count",
+        "gap_count",
+    ):
+        if key not in readiness:
+            return False
+    if readiness.get("required_measured_count") != len(REQUIRED_THEME_FIELDS):
+        return False
+
     return all(_get_path(visual_contract, field) is not None for field in REQUIRED_THEME_FIELDS)
 
 

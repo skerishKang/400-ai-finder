@@ -23,9 +23,8 @@ any of the following raises :class:`VisualContractValidationError`:
       - evidence source state not in the model            -> fail;
       - evidence artifact SHA mismatch vs committed SHA   -> fail;
       - evidence present but not connected to the contract -> fail;
-  * evidence type: ``pixel_analysis`` / ``asset_provenance`` / ``ledger`` and
-    the corresponding artifact checks are enforced (screenshot SHA for pixel
-    analysis; provenance-manifest asset SHA/URL for asset provenance);
+  * evidence type: ``pixel_analysis`` / ``asset_provenance`` (ledger is NOT
+     supported in G2-B — any ledger evidence record is rejected);
   * numeric ranges and color format sanity.
 
 ``validate_visual_contract`` returns a normalized copy (the validated
@@ -117,7 +116,9 @@ FIELD_UNITS: dict[str, str | None] = {
 }
 
 # Evidence record types supported by the validator.
-EVIDENCE_TYPES = ("pixel_analysis", "asset_provenance", "ledger")
+# ledger is NOT supported in G2-B: there is no authoritative ledger/artifact
+# identity validation path in scope. Any ledger evidence is rejected.
+EVIDENCE_TYPES = ("pixel_analysis", "asset_provenance")
 
 _HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
@@ -226,6 +227,23 @@ def _provenance_assets_by_state(model: dict[str, Any]) -> dict[str, list[dict[st
     return out
 
 
+def _expected_provenance_state(contract: dict[str, Any], field: str) -> str | None:
+    """Walk the dotted field path from leaf to root to find the nearest
+    ``provenance_state_id``. Returns ``None`` when no parent section declares
+    one (fail-safe: the caller decides how to enforce)."""
+    parts = field.split(".")
+    for i in range(len(parts), 0, -1):
+        node: Any = contract
+        for part in parts[:i]:
+            if not isinstance(node, dict) or part not in node:
+                node = None
+                break
+            node = node[part]
+        if isinstance(node, dict) and "provenance_state_id" in node:
+            return node["provenance_state_id"]
+    return None
+
+
 def _check_evidence(contract: dict[str, Any], model: dict[str, Any]) -> None:
     """Enforce 1:1 binding between measured contract fields and evidence.
 
@@ -286,6 +304,16 @@ def _check_evidence(contract: dict[str, Any], model: dict[str, Any]) -> None:
                 f"source state mismatch for {field!r}: {state_id!r} not in model states"
             )
 
+        # Source state must match the field's expected provenance state (fail-closed
+        # on field-to-state binding). Every required section declares a
+        # ``provenance_state_id`` that the evidence must respect.
+        expected_state = _expected_provenance_state(contract, field)
+        if expected_state and state_id != expected_state:
+            raise VisualContractValidationError(
+                f"source state binding violation for {field!r}: "
+                f"expected {expected_state!r} got {state_id!r}"
+            )
+
         # Evidence type + artifact checksum validation.
         if ev_type not in EVIDENCE_TYPES:
             raise VisualContractValidationError(
@@ -310,7 +338,6 @@ def _check_evidence(contract: dict[str, Any], model: dict[str, Any]) -> None:
                     f"asset artifact SHA mismatch for {field!r} ({state_id}): "
                     f"{artifact_sha!r} not in committed provenance manifest"
                 )
-        # ledger evidence: artifact SHA validated against the ledger below.
 
         bound_fields.add(field)
 
