@@ -11,6 +11,11 @@ data/official_captures/bukgu_gwangju/home/** -text
 data/official_captures/seogu_gwangju/** -text
 data/official_clone_fixtures/** -text
 
+# #1303 G3 source-vs-clone evidence (manifest.json, review.md, review PNGs) is a
+# byte-stable evidence ledger: keep LF bytes on every OS checkout
+# (including core.autocrlf=true) so committed evidence SHAs stay stable.
+data/official_clone_reviews/** -text
+
 # #1303 Seo-gu G1 capture plan is the approved plan identity source. Its
 # committed SHA-256 is recorded in the executed ledger, so keep LF bytes
 # byte-stable on every OS checkout (including core.autocrlf=true).
