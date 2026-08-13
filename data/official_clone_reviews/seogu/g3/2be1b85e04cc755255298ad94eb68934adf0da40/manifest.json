@@ -4,10 +4,10 @@
   "site_id": "seogu_gwangju",
   "route_prefix": "/seogu/",
   "evidence_root": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40",
-  "generated_at": "2026-08-13T11:51:23+00:00",
+  "generated_at": "2026-08-13T13:21:23+00:00",
   "tooling": {
     "browser": "chromium",
-    "browser_version": "145.0.7632.116",
+    "browser_version": "138.0.7204.23",
     "playwright_version": "1.53.0",
     "pillow_version": "11.3.0",
     "capture_method": "playwright_headless_full_page_screenshot",
@@ -41,19 +41,38 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/",
       "clone_route": "/seogu/",
-      "clone_capture_url": "http://127.0.0.1:48729/",
+      "clone_capture_url": "http://127.0.0.1:52311/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/home.desktop.default/clone.png",
-      "clone_screenshot_sha256": "3fca778e1084911e446ee61b34257e70f36cbba9f9c868dd47b35b2c3a9156d3",
+      "clone_screenshot_sha256": "f584497f6129f56e0048636f19ac60a867a00a6892d159055d92a59904fb1f12",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/home.desktop.default/side_by_side.png",
-      "side_by_side_sha256": "7a526a23f6fdb65d5384562fab4cdd54d79278ede8271bc039437b433c3e2d3b",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "4ee6bfdd628e0420c15e9b59d356dbecda33c9b1afdb2eb77f7f39310820f86c",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 1440,
         "height": 900
       },
       "external_network_count": 0,
       "external_requests": [],
-      "gnb_open_state": null
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "DIFFER",
+        "content": "DIFFER",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "DIFFER",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": true,
+        "reason": "Source home renders full real content (news, banners, menus, widgets); the clone models only the layout skeleton."
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
     },
     {
       "state_id": "home.mobile.default",
@@ -69,19 +88,38 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/",
       "clone_route": "/seogu/home/mobile/",
-      "clone_capture_url": "http://127.0.0.1:48729/home/mobile/",
+      "clone_capture_url": "http://127.0.0.1:52311/home/mobile/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/home.mobile.default/clone.png",
-      "clone_screenshot_sha256": "4b169918141746a34c01aed2bea9555ebf2a19693f853558621d87bd79553203",
+      "clone_screenshot_sha256": "7cd5c64bbd72f23b4daa64a766d16978a99b238f6af7f654567def2e2d75a275",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/home.mobile.default/side_by_side.png",
-      "side_by_side_sha256": "6e31f23c534b01aa267497c1a8263de60fe2987dd2130e54c0dd176cfd6eb2e3",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "7b8d26ef2ca3208327f9b684a66c0fdda09afffbbd5d8c812282aae907dc4a8e",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 390,
         "height": 844
       },
       "external_network_count": 0,
       "external_requests": [],
-      "gnb_open_state": null
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "DIFFER",
+        "content": "DIFFER",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "DIFFER",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": true,
+        "reason": "Source mobile renders full responsive real content; the clone models only the layout skeleton at the mobile viewport."
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
     },
     {
       "state_id": "home.desktop.gnb_open",
@@ -97,12 +135,12 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/",
       "clone_route": "/seogu/home/gnb-open/",
-      "clone_capture_url": "http://127.0.0.1:48729/home/gnb-open/",
+      "clone_capture_url": "http://127.0.0.1:52311/home/gnb-open/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/home.desktop.gnb_open/clone.png",
-      "clone_screenshot_sha256": "6341ab21377f5d35a3682d6c6c12b2d63ef0567c3b648c5872edfa4db5f28d7b",
+      "clone_screenshot_sha256": "b937d0fa1f725ff19ff4225740cab52f92b3d99cc338de642304db1b82444225",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/home.desktop.gnb_open/side_by_side.png",
-      "side_by_side_sha256": "d27230c40d1eb2ce8e7d4a3e1355c1ff599cdd8bef15f8c09da88a4ee97107a6",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "d6edca679981cb59e44832e069df4601c37ef0832dda53c8f789d25da1bce164",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 1440,
         "height": 900
@@ -112,6 +150,25 @@
       "gnb_open_state": {
         "aria_expanded": "true",
         "panel_visible": true
+      },
+      "source_parity": {
+        "structural": "DIFFER",
+        "content": "DIFFER",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "DIFFER",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": true,
+        "reason": "Source GNB/mega-menu open renders the full 전체메뉴 tree; the clone models only the GNB toggle/panel shell."
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
       }
     },
     {
@@ -128,19 +185,38 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/board.es?act=listC&bid=0034&gon=C&mid=a10801000000",
       "clone_route": "/seogu/notice/",
-      "clone_capture_url": "http://127.0.0.1:48729/notice/",
+      "clone_capture_url": "http://127.0.0.1:52311/notice/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/notice.list.desktop/clone.png",
-      "clone_screenshot_sha256": "f8078da69f2bebfd310a801911b05166a6dfcb6386fe12d3f6958d6c3b1831c0",
+      "clone_screenshot_sha256": "7ccc8a5b47bae8a603d64cec8f166cb765ae57ca71a5706b5571f8c9e3cc4032",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/notice.list.desktop/side_by_side.png",
-      "side_by_side_sha256": "fbb60b58e7102dce338bcf92770f14154b607b956c68cf59f5008fdd7bd979f3",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "404266a1cb8c3370db41c69c695519b7072541f5a78315617b7deaccd4fb40df",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 1440,
         "height": 900
       },
       "external_network_count": 0,
       "external_requests": [],
-      "gnb_open_state": null
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
     },
     {
       "state_id": "notice.detail.desktop",
@@ -156,19 +232,38 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/board.es?mid=a10801000000&bid=0034&act=viewC&list_no=143106&tag=&nPage=1",
       "clone_route": "/seogu/notice/detail/",
-      "clone_capture_url": "http://127.0.0.1:48729/notice/detail/",
+      "clone_capture_url": "http://127.0.0.1:52311/notice/detail/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/notice.detail.desktop/clone.png",
-      "clone_screenshot_sha256": "f587006e8d45648b8c580a962e9874c7337be3ae1f52b30f19c025aa4155be70",
+      "clone_screenshot_sha256": "8ce309cb05ab03fb2f0e4c22a7fd73d6288b40a140da2b296d107dae59b606e5",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/notice.detail.desktop/side_by_side.png",
-      "side_by_side_sha256": "2f19d24c958636947463c8c60e86b4259624fa624734a1995460894c616a093f",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "ef8cba3345445221a34a1b6a7a76d05faba4b51c5b308ffe34ac9f80c287609a",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 1440,
         "height": 900
       },
       "external_network_count": 0,
       "external_requests": [],
-      "gnb_open_state": null
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "DIFFER",
+        "content": "DIFFER",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "DIFFER",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": true,
+        "reason": "Source renders the full 공고문 article body, attachments and metadata; the clone models only the detail shell with inert attachments."
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
     },
     {
       "state_id": "gosi.list.desktop",
@@ -184,19 +279,38 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/api/eminwon/gosiXmlList.es?mid=a10807010000",
       "clone_route": "/seogu/gosi/",
-      "clone_capture_url": "http://127.0.0.1:48729/gosi/",
+      "clone_capture_url": "http://127.0.0.1:52311/gosi/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/gosi.list.desktop/clone.png",
-      "clone_screenshot_sha256": "252d6563a99aaa0f50cd5c5836669c7687e8d8afa09e3a5895a58997565d23c7",
+      "clone_screenshot_sha256": "8fd13178bb3993425432d396e7637779594ad64b08adb5ca1dfac8dd9dc4dd46",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/gosi.list.desktop/side_by_side.png",
-      "side_by_side_sha256": "12ba78462cc59a772a89c0e7c0c644364128b49ea5090e562a2a95bde6f16a8e",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "340f3e074009bcc4dc3d4e61d2f5eb13dcb031877b7ad2a892e523d522365d20",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 1440,
         "height": 900
       },
       "external_network_count": 0,
       "external_requests": [],
-      "gnb_open_state": null
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
     },
     {
       "state_id": "gosi.detail.desktop",
@@ -212,19 +326,38 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/api/eminwon/gosiXmlView.es?method=selectOfrNotAncmt&methodnm=selectOfrNotAncmtRegst&mid=a10807010000&not_ancmt_mgt_no=55667",
       "clone_route": "/seogu/gosi/detail/",
-      "clone_capture_url": "http://127.0.0.1:48729/gosi/detail/",
+      "clone_capture_url": "http://127.0.0.1:52311/gosi/detail/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/gosi.detail.desktop/clone.png",
-      "clone_screenshot_sha256": "dda81c5e26a435022ca76ad0861ee5d4427927c0c069f541d360fc24abb273b8",
+      "clone_screenshot_sha256": "c2b76cb22f317b1152139762b9dcee9b8df46a1d6c1eeb11d41e4b556c4d11fe",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/gosi.detail.desktop/side_by_side.png",
-      "side_by_side_sha256": "dcf12e022c2bd8b5e99d37966052c225565c5de44c4174f7f2546fa10816faf9",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "2ac2d10782e20e62c7715731fa0de3f9ddecfdc2864e938c05df17626690301d",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 1440,
         "height": 900
       },
       "external_network_count": 0,
       "external_requests": [],
-      "gnb_open_state": null
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "DIFFER",
+        "content": "DIFFER",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "DIFFER",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": true,
+        "reason": "Source renders the full 고시/공고 notice body and metadata; the clone models only the detail shell."
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
     },
     {
       "state_id": "civil_form.list.desktop",
@@ -240,19 +373,38 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/board.es?mid=a10201100000&bid=0014",
       "clone_route": "/seogu/civil-form/",
-      "clone_capture_url": "http://127.0.0.1:48729/civil-form/",
+      "clone_capture_url": "http://127.0.0.1:52311/civil-form/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/civil_form.list.desktop/clone.png",
-      "clone_screenshot_sha256": "0e54ba622534909c9228f4e0c62619d2743c70c8cfa29a7a59c58d1b87b36ab3",
+      "clone_screenshot_sha256": "c6c89418d4c395981733312b855ac97b8906d7ae9790ab071e7f33d6766c7e17",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/civil_form.list.desktop/side_by_side.png",
-      "side_by_side_sha256": "e0030b1c928da1f23653c90da9850998fc904527f7a1bdba8b538da0d97c4013",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "b53853e4bfabc1853b881cfa523874138266738c8490d72045ffa35113b60a7a",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 1440,
         "height": 900
       },
       "external_network_count": 0,
       "external_requests": [],
-      "gnb_open_state": null
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
     },
     {
       "state_id": "civil_form.detail.desktop",
@@ -268,19 +420,38 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/board.es?mid=a10201100000&bid=0014&act=view&list_no=143010&tag=&nPage=1",
       "clone_route": "/seogu/civil-form/detail/",
-      "clone_capture_url": "http://127.0.0.1:48729/civil-form/detail/",
+      "clone_capture_url": "http://127.0.0.1:52311/civil-form/detail/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/civil_form.detail.desktop/clone.png",
-      "clone_screenshot_sha256": "cd206edcf4c73dcbf944df3c34fb1d353f4249f94e65597e937eaeb9a419a4bc",
+      "clone_screenshot_sha256": "3ca26ddcf4539ddf4811db42d4a8da9f488bcc03baf141a2802962ca222bc645",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/civil_form.detail.desktop/side_by_side.png",
-      "side_by_side_sha256": "0b28ec12c7ecbe4482f9ed26bed260c855182dd8fe1fdea827ca218e26e99f97",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "c47da1d3326a418a8df7910a7a1c5783dca646f791c43196b9e0484c30c02306",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 1440,
         "height": 900
       },
       "external_network_count": 0,
       "external_requests": [],
-      "gnb_open_state": null
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "DIFFER",
+        "content": "DIFFER",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "DIFFER",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": true,
+        "reason": "Source renders the full 민원서식 form/document content; the clone models only the detail shell."
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
     },
     {
       "state_id": "organization.chart.desktop",
@@ -296,19 +467,38 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/menu.es?mid=a10106030000",
       "clone_route": "/seogu/organization/",
-      "clone_capture_url": "http://127.0.0.1:48729/organization/",
+      "clone_capture_url": "http://127.0.0.1:52311/organization/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/organization.chart.desktop/clone.png",
-      "clone_screenshot_sha256": "d3a72957d0890198c6d288564686a183216a9e198ec0711b68d6d5bd11ceb7d9",
+      "clone_screenshot_sha256": "60cb3e604f3a2a3d0f921c65ab664814bcefb85594b95e2f13d6ee5d277324c9",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/organization.chart.desktop/side_by_side.png",
-      "side_by_side_sha256": "b85c835a5803010e4741c471296a22b361ba3d95066356d59f8b3f896a0041d8",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "1babcf9db0ac840f05ab6efb630d6f4ca494bbc1ade0b8cd3f15845829b29a32",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 1440,
         "height": 900
       },
       "external_network_count": 0,
       "external_requests": [],
-      "gnb_open_state": null
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "DIFFER",
+        "content": "DIFFER",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "DIFFER",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": true,
+        "reason": "Source renders the full 행정조직도 hierarchy (2실·1관·7국·1소·18동 with a nested department tree); the clone models only the top-level layout shell."
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
     },
     {
       "state_id": "staff.directory.desktop",
@@ -324,19 +514,38 @@
       },
       "source_url": "https://www.seogu.gwangju.kr/organization.es?mid=a10106040000",
       "clone_route": "/seogu/staff/",
-      "clone_capture_url": "http://127.0.0.1:48729/staff/",
+      "clone_capture_url": "http://127.0.0.1:52311/staff/",
       "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/staff.directory.desktop/clone.png",
-      "clone_screenshot_sha256": "205db6eb3b45ea47ef9f40e28e163da40bdf468f09f569c9ab317531c33224a3",
+      "clone_screenshot_sha256": "2e2ca2d06d0c80342cd1530a573ed0683bd6bbcff660480f2aa9034643b29aaa",
       "side_by_side_path": "data/official_clone_reviews/seogu/g3/2be1b85e04cc755255298ad94eb68934adf0da40/states/staff.directory.desktop/side_by_side.png",
-      "side_by_side_sha256": "803cd31fcb50a7af69026bd9f20554e8dbfbc9fc8ba46b7dc2d40ae823447961",
-      "browser_tool_version": "145.0.7632.116",
+      "side_by_side_sha256": "dc7d1b91af656b90fe5babf8169fa194df64de7f2c2f26fbcbc3fbc68808e572",
+      "browser_tool_version": "138.0.7204.23",
       "capture_viewport": {
         "width": 1440,
         "height": 900
       },
       "external_network_count": 0,
       "external_requests": [],
-      "gnb_open_state": null
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "DIFFER",
+        "content": "DIFFER",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "DIFFER",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": true,
+        "reason": "Source renders the full 직원 업무안내 staff directory with per-department personnel entries; the clone models only placeholder structure."
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
     }
   ]
 }

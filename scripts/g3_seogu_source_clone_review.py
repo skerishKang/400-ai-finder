@@ -66,6 +66,51 @@ STATE_PLAN = [
 ]
 STATE_BY_ID = {s[0]: s for s in STATE_PLAN}
 
+# Known material gaps: the committed G1 source hierarchy/content is demonstrably
+# richer than the modeled clone. These MUST NOT be reported as source-parity
+# structural/content PASS (fail-closed). Each carries an explicit exception with
+# the reason the source is richer than the clone.
+KNOWN_SOURCE_PARITY_GAPS = {
+    "organization.chart.desktop": (
+        "Source renders the full 행정조직도 hierarchy (2실·1관·7국·1소·18동 with a "
+        "nested department tree); the clone models only the top-level layout shell."
+    ),
+    "staff.directory.desktop": (
+        "Source renders the full 직원 업무안내 staff directory with per-department "
+        "personnel entries; the clone models only placeholder structure."
+    ),
+    "notice.detail.desktop": (
+        "Source renders the full 공고문 article body, attachments and metadata; the "
+        "clone models only the detail shell with inert attachments."
+    ),
+    "gosi.detail.desktop": (
+        "Source renders the full 고시/공고 notice body and metadata; the clone models "
+        "only the detail shell."
+    ),
+    "civil_form.detail.desktop": (
+        "Source renders the full 민원서식 form/document content; the clone models "
+        "only the detail shell."
+    ),
+    "home.desktop.default": (
+        "Source home renders full real content (news, banners, menus, widgets); the "
+        "clone models only the layout skeleton."
+    ),
+    "home.mobile.default": (
+        "Source mobile renders full responsive real content; the clone models only "
+        "the layout skeleton at the mobile viewport."
+    ),
+    "home.desktop.gnb_open": (
+        "Source GNB/mega-menu open renders the full 전체메뉴 tree; the clone models "
+        "only the GNB toggle/panel shell."
+    ),
+}
+
+# Source-parity dimensions, assessed against committed G1 evidence only.
+SOURCE_PARITY_DIMENSIONS = (
+    "structural", "content", "asset", "interaction_navigation",
+    "responsive", "a11y", "visual",
+)
+
 
 def _sha256(path: Path) -> str:
     h = hashlib.sha256()
@@ -244,6 +289,70 @@ def _run_interactions(page, base: str, external: list[str]) -> dict[str, Any]:
     return rec
 
 
+def _modeled_contract_for(interaction: dict[str, Any]) -> dict[str, str]:
+    """Clone's own offline route/browser QA (NOT source parity).
+
+    These PASS results describe the merged G2-B clone candidate's behavior as
+    verified by the offline interaction evidence. They are intentionally kept
+    separate from source parity and must never be reused as source-vs-clone PASS.
+    """
+    g = interaction["gnb_toggle"]
+    gnb_ok = (
+        g["initial_aria_expanded"] == "false"
+        and g["after_click_aria_expanded"] == "true"
+        and g["panel_visible_when_open"] is True
+        and g["after_escape_aria_expanded"] == "false"
+    )
+    nav_ok = all(
+        bool(n.get("list_detail_link_present")) and bool(n.get("landed_on_detail"))
+        and bool(n.get("attachments_inert"))
+        for n in interaction["list_to_detail_navigation"]
+    )
+    overflow_ok = all(abs(v) <= 1 for v in interaction["overflow"].values())
+    focus_ok = interaction["focus_active_element"] == "rc-gnb-toggle"
+    return {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS" if gnb_ok else "FAIL",
+        "list_detail_nav": "PASS" if nav_ok else "FAIL",
+        "inert_attachment": "PASS" if nav_ok else "FAIL",
+        "overflow": "PASS" if overflow_ok else "FAIL",
+        "focus": "PASS" if focus_ok else "FAIL",
+    }
+
+
+def _source_parity_for(state_id: str) -> dict[str, Any]:
+    """Source-vs-clone parity, grounded in committed G1 evidence only.
+
+    Fail-closed: no PASS is claimed without positive committed evidence. Known
+    material gaps are DIFFER (source demonstrably richer than the clone); all
+    other states are NOT_ASSESSED (insufficient automated source-vs-clone
+    comparison evidence). Conservative states (asset/visual) are never relaxed.
+    """
+    is_gap = state_id in KNOWN_SOURCE_PARITY_GAPS
+    reason = KNOWN_SOURCE_PARITY_GAPS.get(state_id)
+    if is_gap:
+        structural = "DIFFER"
+        content = "DIFFER"
+        responsive = "DIFFER"
+    else:
+        # Insufficient committed automated source-vs-clone comparison evidence;
+        # fail-closed (no PASS). Owner visual review is still pending.
+        structural = "NOT_ASSESSED"
+        content = "NOT_ASSESSED"
+        responsive = "NOT_ASSESSED"
+    return {
+        "structural": structural,
+        "content": content,
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": responsive,
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": is_gap,
+        "reason": reason,
+    }
+
+
 def _build_review(results, interaction, ext_total, browser_version, pw_version) -> str:
     L = []
     L.append("# Seo-gu G3 Phase 1 — Source-vs-Clone Review Evidence")
@@ -277,29 +386,48 @@ def _build_review(results, interaction, ext_total, browser_version, pw_version) 
     ]:
         L.append(f"| `{k}` | `{v}` |")
     L.append("")
-    L.append("## State matrix (qualitative, no pixel-similarity auto-approval)")
+    L.append("## Modeled contract (clone offline QA — NOT source parity)")
+    L.append("")
+    L.append("These results describe the **clone's own** route/browser behavior as "
+             "verified by the offline interaction evidence. They are intentionally "
+             "kept separate from source parity and MUST NOT be reused as "
+             "source-vs-clone PASS. (Requirement: modeled-contract PASS is not "
+             "reused as source-parity PASS.)")
+    L.append("")
+    mc = results[0]["modeled_contract"]
+    for k in ("route_browser", "gnb_interaction", "list_detail_nav",
+              "inert_attachment", "overflow", "focus"):
+        L.append(f"- `{k}`: {mc[k]}")
+    L.append("")
+    L.append("## Source parity (G1 committed evidence grounded)")
+    L.append("")
+    L.append("structural / content / asset / interaction_navigation / responsive / "
+             "a11y / visual are assessed against the **committed G1 source** evidence "
+             "only. `NOT_ASSESSED` = insufficient committed source-vs-clone comparison "
+             "evidence (fail-closed; no PASS claimed). `DIFFER` = source demonstrably "
+             "richer than the modeled clone. `FAIL` = known defect. This matrix is "
+             "NOT an auto-approval: `visual_review` stays `pending`.")
     L.append("")
     hdr = ("| # | state_id | viewport | clone route | ext.req | "
-           "structural | content | assets | interaction | responsive | a11y | visual |")
+           "structural | content | asset | interaction_nav | responsive | a11y | visual |")
     L.append(hdr)
     L.append("|" + "|".join(["---"] * (hdr.count("|") - 1)) + "|")
     for i, r in enumerate(results, 1):
         vp = r["source_viewport"]
+        sp = r["source_parity"]
         L.append(
             f"| {i} | `{r['state_id']}` | {vp['width']}x{vp['height']} | "
             f"`{r['clone_route']}` | {r['external_network_count']} | "
-            "PASS | PASS | FAIL | PASS | PASS | PASS | DIFFER |"
+            f"{sp['structural']} | {sp['content']} | {sp['asset']} | "
+            f"{sp['interaction_navigation']} | {sp['responsive']} | "
+            f"{sp['a11y']} | {sp['visual']} |"
         )
     L.append("")
-    L.append("Legend: **PASS** = modeled contract satisfied; **FAIL** = known "
-             "deviation (see Exceptions); **DIFFER** = material visual/material "
-             "difference from the real source. This matrix is NOT an auto-approval: "
-             "no pixel-similarity threshold is applied; `visual_review` stays `pending`.")
-    L.append("")
-    L.append("## Per-state notes")
+    L.append("## Source parity per-state notes")
     L.append("")
     for r in results:
         vp = r["source_viewport"]
+        sp = r["source_parity"]
         L.append(f"### `{r['state_id']}` — `{r['clone_route']}` @ {vp['width']}x{vp['height']} (viewport)")
         L.append(f"- source PNG: canonical committed G1 (`{r['source_screenshot_path']}`), "
                  f"SHA-256 {r['source_screenshot_sha256'][:16]}…, "
@@ -310,16 +438,30 @@ def _build_review(results, interaction, ext_total, browser_version, pw_version) 
         L.append(f"- side-by-side: `{r['side_by_side_path']}`, SHA-256 "
                  f"{r['side_by_side_sha256'][:16]}….")
         L.append("- external network count: **0** (non-loopback requests aborted + counted).")
-        L.append("- **assets = FAIL**: `asset_byte_fidelity_complete=false` — the clone "
-                 "renders structural placeholders only; no real Seo-gu asset bytes "
-                 "(images/fonts/css) are fetched or committed.")
-        L.append("- **visual/material = DIFFER (expected G2-B)**: source is the real "
-                 "municipal site with full visual styling, photographs, fonts and "
-                 "iconography; clone is the modeled layout tokens only.")
-        L.append("- structural/content/interaction/responsive/a11y: PASS at the modeled "
-                 "schema level (header/nav/main/footer, GNB toggle, list->detail, "
-                 "inert attachments, no overflow, focus).")
+        L.append(f"- source parity: structural=`{sp['structural']}`, content=`{sp['content']}`, "
+                 f"asset=`{sp['asset']}`, interaction_nav=`{sp['interaction_navigation']}`, "
+                 f"responsive=`{sp['responsive']}`, a11y=`{sp['a11y']}`, visual=`{sp['visual']}`.")
+        if sp["gap"]:
+            L.append(f"- **KNOWN GAP (source richer than clone)**: {sp['reason']}")
+        else:
+            L.append("- source parity structural/content = NOT_ASSESSED: committed "
+                     "automated source-vs-clone comparison evidence is insufficient; "
+                     "no PASS is claimed (fail-closed). Owner visual review pending.")
         L.append("")
+    L.append("## Source parity legend / closures")
+    L.append("")
+    L.append("- **assets = FAIL**: `asset_byte_fidelity_complete=false` — the clone "
+             "renders structural placeholders only; no real Seo-gu asset bytes "
+             "(images/fonts/css) are fetched or committed. This holds for all 11 "
+             "states and is unchanged.")
+    L.append("- **visual/material = DIFFER (expected G2-B)**: source is the real "
+             "municipal site with full visual styling, photographs, fonts and "
+             "iconography; clone is the modeled layout tokens only. Unchanged.")
+    L.append("- **modeled-contract PASS is NOT source-parity PASS**: the clone's own "
+             "route/browser QA (GNB toggle, list->detail, inert attachments, no "
+             "overflow, focus) is reported in the 'Modeled contract' section above "
+             "and must not be interpreted as source-vs-clone parity.")
+    L.append("")
     L.append("## Interaction evidence")
     L.append("")
     g = interaction["gnb_toggle"]
@@ -353,6 +495,12 @@ def _build_review(results, interaction, ext_total, browser_version, pw_version) 
     L.append("- `visual_review=pending` / `owner_visual_approved=false` — side-by-side "
              "evidence is provided for owner visual approval only; no automated visual "
              "pass is asserted.")
+    L.append("- Known material gaps (organization.chart, staff.directory, notice.detail, "
+             "gosi.detail, civil_form.detail, home.desktop.default, home.mobile.default, "
+             "home.desktop.gnb_open) are reported as source-parity `DIFFER` (source richer "
+             "than the modeled clone) with an explicit exception/reason; they are NOT "
+             "source-parity PASS. All other states are `NOT_ASSESSED` (insufficient "
+             "committed comparison evidence, fail-closed).")
     L.append("")
     L.append("## Scope / non-mutation statement")
     L.append("")
@@ -476,6 +624,8 @@ def main(argv: list[str] | None = None) -> int:
                     "external_network_count": len(external),
                     "external_requests": external,
                     "gnb_open_state": gnb_state,
+                    "source_parity": _source_parity_for(state_id),
+                    "modeled_contract": None,
                 })
                 page.close()
 
@@ -486,6 +636,13 @@ def main(argv: list[str] | None = None) -> int:
             interaction = _run_interactions(ipage, base, external_i)
             external_total += len(external_i)
             ipage.close()
+
+            # Modeled contract (clone's own QA) is clone-wide; attach the same
+            # verified result to every state. It is intentionally separate from
+            # the per-state source_parity computed above.
+            mc = _modeled_contract_for(interaction)
+            for r in results:
+                r["modeled_contract"] = mc
 
             browser.close()
     finally:

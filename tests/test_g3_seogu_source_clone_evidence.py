@@ -19,6 +19,7 @@ No network, no live site, no provider/API.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
@@ -39,6 +40,16 @@ EVIDENCE_ROOT = (
 )
 
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+
+# Source parity is grounded in committed G1 evidence, fail-closed. These are the
+# known material gaps that MUST NOT be reported as source-parity PASS (the source
+# is demonstrably richer than the modeled clone).
+_SCRIPT_PATH = REPO_ROOT / "scripts" / "g3_seogu_source_clone_review.py"
+_g3_spec = importlib.util.spec_from_file_location(
+    "g3_seogu_source_clone_review", str(_SCRIPT_PATH))
+g3 = importlib.util.module_from_spec(_g3_spec)
+_g3_spec.loader.exec_module(g3)
+KNOWN_GAP_STATES = set(g3.KNOWN_SOURCE_PARITY_GAPS)
 
 # Canonical deterministic 11-state ordering (matches tests/REQUIRED_11 and the
 # G1 capture plan). Tuples: (state_id, viewport, canonical_clone_route).
@@ -216,3 +227,72 @@ def test_review_md_exists_and_documents_closures():
     # 11-state matrix present
     for sid, _, _ in EXPECTED_STATES:
         assert f"`{sid}`" in text
+
+
+def test_source_parity_not_all_pass(manifest):
+    # Regression guard: the generator must NOT blanket-PASS all 11 states'
+    # source structural/content. At least one state must be non-PASS.
+    states = manifest["states"]
+    assert len(states) == 11
+    all_structural_pass = all(s["source_parity"]["structural"] == "PASS" for s in states)
+    all_content_pass = all(s["source_parity"]["content"] == "PASS" for s in states)
+    assert not all_structural_pass, "source parity structural is ALL PASS (blanket PASS)"
+    assert not all_content_pass, "source parity content is ALL PASS (blanket PASS)"
+
+
+def test_modeled_contract_separate_from_source_parity(manifest):
+    # modeled_contract (clone QA) and source_parity (G1 grounded) must be
+    # distinct fields/sections, not reused.
+    states = {s["state_id"]: s for s in manifest["states"]}
+    for sid, s in states.items():
+        assert "modeled_contract" in s, f"{sid}: missing modeled_contract"
+        assert "source_parity" in s, f"{sid}: missing source_parity"
+        mc = s["modeled_contract"]
+        sp = s["source_parity"]
+        assert mc is not None and sp is not None
+        assert mc is not sp, f"{sid}: modeled_contract and source_parity share object"
+        assert set(mc.keys()) != set(sp.keys()), f"{sid}: field sets identical"
+    # The set of known gaps must match the canonical 8.
+    reported_gaps = {s["state_id"] for s in manifest["states"] if s["source_parity"]["gap"]}
+    assert reported_gaps == KNOWN_GAP_STATES, (
+        f"known-gap set drift: reported={sorted(reported_gaps)} "
+        f"expected={sorted(KNOWN_GAP_STATES)}"
+    )
+
+
+def test_known_gaps_not_source_parity_pass(manifest):
+    # Requirement: the 8 known material gaps must NOT be source structural/content PASS.
+    states = {s["state_id"]: s for s in manifest["states"]}
+    for sid in KNOWN_GAP_STATES:
+        sp = states[sid]["source_parity"]
+        assert sp["gap"] is True, f"{sid}: not flagged as gap"
+        assert sp["structural"] != "PASS", f"{sid}: source structural PASS (forbidden)"
+        assert sp["content"] != "PASS", f"{sid}: source content PASS (forbidden)"
+        assert sp["reason"], f"{sid}: missing gap reason/exception"
+        # direction must be DIFFER (source richer) — conservative, never relaxed to PASS.
+        assert sp["structural"] == "DIFFER"
+        assert sp["content"] == "DIFFER"
+
+
+def test_source_parity_asset_visual_conservative(manifest):
+    # Conservative states must remain FAIL/DIFFER; never relaxed to PASS.
+    for s in manifest["states"]:
+        sp = s["source_parity"]
+        assert sp["asset"] == "FAIL", "asset must remain FAIL"
+        assert sp["visual"] == "DIFFER", "visual must remain DIFFER"
+
+
+def test_review_md_separates_modeled_contract_and_source_parity():
+    review = EVIDENCE_ROOT / "review.md"
+    assert review.is_file(), "review.md missing"
+    text = review.read_text(encoding="utf-8")
+    # Distinct sections present.
+    assert "## Modeled contract (clone offline QA" in text
+    assert "## Source parity (G1 committed evidence grounded)" in text
+    # No blanket modeled-contract PASS reused as source parity.
+    assert "modeled-contract PASS is NOT source-parity PASS" in text
+    # Known gaps documented as DIFFER with reasons.
+    for sid in KNOWN_GAP_STATES:
+        assert f"`{sid}`" in text
+    assert "KNOWN GAP (source richer than clone)" in text
+
