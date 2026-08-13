@@ -377,6 +377,26 @@ def _check_ranges(contract: dict[str, Any]) -> None:
             raise VisualContractValidationError(f"malformed color field {key}: {value!r}")
 
 
+def _check_provenance_gate(contract: dict[str, Any]) -> None:
+    """Every required measured field's immediate parent section MUST declare a
+    non-null ``provenance_state_id``. This prevents bypassing provenance
+    binding by deleting or nulling the identifier."""
+    for field in REQUIRED_MEASURED_FIELDS:
+        parts = field.split(".")
+        parent_path = ".".join(parts[:-1])
+        parent = _get_path(contract, parent_path)
+        if not isinstance(parent, dict):
+            raise VisualContractValidationError(
+                f"required field {field!r} has no parent section"
+            )
+        state_id = parent.get("provenance_state_id")
+        if not state_id:
+            raise VisualContractValidationError(
+                f"required field {field!r} is missing or has null "
+                f"provenance_state_id in section {parent_path!r}"
+            )
+
+
 def _count_nulls(contract: dict[str, Any]) -> tuple[int, list[str]]:
     measured = [f for f in _measurement_entries(contract) if f.get("value") is not None]
     missing = [
@@ -398,6 +418,7 @@ def validate_visual_contract(
         raise VisualContractValidationError("visual contract is missing or malformed")
 
     _check_schema(contract)
+    _check_provenance_gate(contract)
     _check_identity(contract, model)
     _check_evidence(contract, model)
     _check_ranges(contract)
@@ -406,6 +427,19 @@ def validate_visual_contract(
     gap_count = len([g for g in contract.get("gaps") or [] if isinstance(g, dict)])
 
     validated = json.loads(json.dumps(contract))
+
+    # Integrity digest: SHA-256 of (model_checksum + canonical contract payload,
+    # excluding the derived readiness block). This lets the renderer verify that
+    # THIS EXACT contract payload was produced by this validator, without needing
+    # to import the validator module.
+    model_cs = contract.get("model_checksum", "")
+    contract_canonical = json.dumps(
+        contract, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    validation_digest = hashlib.sha256(
+        (model_cs + contract_canonical).encode("utf-8")
+    ).hexdigest()
+
     validated["readiness"] = {
         "schema_version": CONTRACT_SCHEMA_VERSION,
         "required_measured_count": len(REQUIRED_MEASURED_FIELDS),
@@ -415,6 +449,7 @@ def validate_visual_contract(
         "gap_count": gap_count,
         "faithful_ready": not missing_required,
     }
+    validated["validation_digest"] = validation_digest
     return validated
 
 

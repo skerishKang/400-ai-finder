@@ -34,7 +34,7 @@ def _load_renderer():
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(
-        "reference_clone_renderer",
+        "official_clone.reference_clone_renderer",
         _REPO_ROOT / "src" / "official_clone" / "reference_clone_renderer.py",
     )
     assert spec and spec.loader

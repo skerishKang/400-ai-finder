@@ -461,6 +461,67 @@ def test_desktop_evidence_rejects_wrong_provenance_state():
 
 
 # ---------------------------------------------------------------------------
+# Provenance gate: required fields MUST have non-null provenance_state_id
+# (CTO review 4924580210 — correction 1)
+# ---------------------------------------------------------------------------
+def test_required_field_provenance_state_id_deleted_fails():
+    """Deleting a required field's section provenance_state_id must fail."""
+    contract = _deepcopy_contract()
+    del contract["layout"]["header"]["provenance_state_id"]
+    with pytest.raises(
+        validator.VisualContractValidationError, match="provenance_state_id"
+    ):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_required_field_provenance_state_id_null_fails():
+    """Setting a required field's section provenance_state_id to null must fail."""
+    contract = _deepcopy_contract()
+    contract["layout"]["header"]["provenance_state_id"] = None
+    with pytest.raises(
+        validator.VisualContractValidationError, match="provenance_state_id"
+    ):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_mobile_required_provenance_state_id_deleted_fails():
+    """Deleting responsive.mobile.provenance_state_id must fail."""
+    contract = _deepcopy_contract()
+    del contract["responsive"]["mobile"]["provenance_state_id"]
+    with pytest.raises(
+        validator.VisualContractValidationError, match="provenance_state_id"
+    ):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_mobile_required_provenance_state_id_null_fails():
+    """Setting responsive.mobile.provenance_state_id to null must fail."""
+    contract = _deepcopy_contract()
+    contract["responsive"]["mobile"]["provenance_state_id"] = None
+    with pytest.raises(
+        validator.VisualContractValidationError, match="provenance_state_id"
+    ):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_wrong_valid_provenance_state_still_fails():
+    """Wrong but existing provenance state + valid SHA must still fail
+    (regression — pre-correction behavior preserved)."""
+    contract = _deepcopy_contract()
+    model = _model()
+    mobile_state = next(s for s in model["states"] if s["state_id"] == "home.mobile.default")
+    mobile_sha = mobile_state["document_geometry"]["full_page_screenshot"]["sha256"]
+    for entry in contract["measurements"]:
+        if entry["field"] == "layout.header.height_px":
+            entry["source_state_id"] = "home.mobile.default"
+            entry["artifact_sha256"] = mobile_sha
+    with pytest.raises(
+        validator.VisualContractValidationError, match="source state binding violation"
+    ):
+        validator.validate_visual_contract(contract, model)
+
+
+# ---------------------------------------------------------------------------
 # Ledger evidence rejected (CTO review 4923964659 — correction 2)
 # ---------------------------------------------------------------------------
 def test_ledger_evidence_rejected():

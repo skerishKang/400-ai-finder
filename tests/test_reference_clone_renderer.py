@@ -77,7 +77,10 @@ _ROUTE_PREFIX = "/seogu/"
 
 
 def _load_module():
-    spec = importlib.util.spec_from_file_location("reference_clone_renderer", MODULE_PATH)
+    sys.path.insert(0, str(REPO_ROOT / "src"))
+    spec = importlib.util.spec_from_file_location(
+        "official_clone.reference_clone_renderer", MODULE_PATH
+    )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
@@ -86,7 +89,10 @@ def _load_module():
 
 
 def _load_validator():
-    spec = importlib.util.spec_from_file_location("visual_contract", VALIDATOR_PATH)
+    sys.path.insert(0, str(REPO_ROOT / "src"))
+    spec = importlib.util.spec_from_file_location(
+        "official_clone.visual_contract", VALIDATOR_PATH
+    )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
@@ -799,9 +805,10 @@ def test_second_synthetic_site_unready_fails_closed():
 # ---------------------------------------------------------------------------
 # Renderer must require validator-produced contract (CTO review 4923964659)
 # ---------------------------------------------------------------------------
-def test_raw_contract_faithful_candidate_false():
-    """A committed raw complete visual-contract.json passed directly to the
-    renderer WITHOUT validation must NOT produce faithful_clone_candidate=True."""
+def test_raw_but_valid_contract_now_accepted_by_renderer():
+    """A committed raw (unvalidated) visual-contract.json passed directly to the
+    renderer IS now faithfully validated by re-validation at the render entry
+    point — the renderer no longer depends on a pre-validated readiness block."""
     model = _load_model()
     raw_contract = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
     # The raw contract has no 'readiness' section — only
@@ -814,28 +821,23 @@ def test_raw_contract_faithful_candidate_false():
     start = html.index('id="rc-lifecycle"')
     end = html.index("</script>", start)
     payload = json.loads(html[start:end].split(">", 1)[1])
-    assert payload["faithful_clone_candidate"] is False, (
-        "raw contract must NOT be accepted as faithful candidate"
+    assert payload["faithful_clone_candidate"] is True, (
+        "raw but valid contract must be accepted by renderer re-validation"
     )
 
 
-def test_tampered_contract_value_evidence_mismatch_fails_closed():
+def test_tampered_contract_raises_at_render_entry():
     """A complete contract with a value/evidence mismatch passed directly to
-    the renderer must NOT produce faithful_clone_candidate=True."""
+    the renderer must raise VisualContractValidationError (re-validation
+    catches the mismatch)."""
     model = _load_model()
     raw_contract = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
-    # Tamper a required field value without updating the evidence.
     raw_contract["layout"]["header"]["height_px"] = 999
-    html = mod.render_state(
-        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
-        visual_contract=raw_contract,
-    )
-    start = html.index('id="rc-lifecycle"')
-    end = html.index("</script>", start)
-    payload = json.loads(html[start:end].split(">", 1)[1])
-    assert payload["faithful_clone_candidate"] is False, (
-        "value/evidence mismatched contract must NOT be accepted"
-    )
+    with pytest.raises(validator.VisualContractValidationError, match="field/value mismatch"):
+        mod.render_state(
+            model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+            visual_contract=raw_contract,
+        )
 
 
 def test_validated_contract_maintains_faithful_candidate_true():
@@ -851,3 +853,76 @@ def test_validated_contract_maintains_faithful_candidate_true():
     end = html.index("</script>", start)
     payload = json.loads(html[start:end].split(">", 1)[1])
     assert payload["faithful_clone_candidate"] is True
+
+
+# ---------------------------------------------------------------------------
+# Renderer trust / readiness spoof prevention (CTO review 4924580210 — correction 2)
+# ---------------------------------------------------------------------------
+def test_readiness_block_copy_spoof_raises():
+    """Raw contract with tampered data + copied valid readiness block must
+    NOT produce faithful_clone_candidate=True — re-validation catches the
+    underlying data tampering."""
+    model = _load_model()
+    raw = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
+    validated = _load_validated_contract()
+    raw["readiness"] = validated["readiness"]
+    raw["layout"]["header"]["height_px"] = 999
+    with pytest.raises(validator.VisualContractValidationError, match="field/value mismatch"):
+        mod.render_state(
+            model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+            visual_contract=raw,
+        )
+
+
+def test_post_validation_field_mutation_raises():
+    """A validated contract whose layout.header.height_px is mutated after
+    validation must NOT produce faithful_clone_candidate=True — re-validation
+    catches the mutation."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    contract["layout"]["header"]["height_px"] = 999
+    with pytest.raises(validator.VisualContractValidationError, match="field/value mismatch"):
+        mod.render_state(
+            model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+            visual_contract=contract,
+        )
+
+
+def test_post_validation_evidence_mutation_raises():
+    """A validated contract whose measurement evidence value or SHA is mutated
+    after validation must NOT produce faithful_clone_candidate=True."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    for entry in contract["measurements"]:
+        if entry["field"] == "layout.gnb.height_px":
+            entry["value"] = 999
+    with pytest.raises(validator.VisualContractValidationError, match="field/value mismatch"):
+        mod.render_state(
+            model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+            visual_contract=contract,
+        )
+
+
+def test_forged_readiness_dict_ignored_by_revalidation():
+    """A raw contract with a directly forged readiness.faithful_ready=True
+    dict must NOT produce faithful_clone_candidate=True — re-validation
+    computes readiness from the actual data, not the forged block."""
+    model = _load_model()
+    raw = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
+    raw["readiness"] = {
+        "schema_version": 2,
+        "required_measured_count": 21,
+        "measured_required_count": 21,
+        "missing_required": [],
+        "measured_value_count": 30,
+        "gap_count": 8,
+        "faithful_ready": True,
+    }
+    # Tamper underlying data so forged readiness is the only thing that would
+    # make it look faithful.
+    raw["layout"]["header"]["height_px"] = 999
+    with pytest.raises(validator.VisualContractValidationError, match="field/value mismatch"):
+        mod.render_state(
+            model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+            visual_contract=raw,
+        )

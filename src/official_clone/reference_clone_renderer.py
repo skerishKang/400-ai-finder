@@ -965,11 +965,15 @@ def render_state(
     """Render a single model state into a complete HTML document.
 
     *route_prefix* is required — there is no hardcoded default. The visual
-    contract must be the *validated* dict (see ``visual_contract`` module);
-    when None the page renders structurally with ``faithful_clone_candidate``
+    contract is re-validated at entry (see ``validate_visual_contract``);
+    a ``None`` contract renders structurally with ``faithful_clone_candidate``
     False.
     """
     _require_model_ready(model)
+    if visual_contract is not None:
+        from official_clone.visual_contract import validate_visual_contract
+
+        visual_contract = validate_visual_contract(visual_contract, model)
     state = next((s for s in model["states"] if s.get("state_id") == state_id), None)
     if state is None:
         raise ReferenceCloneRendererError(f"state not found in model: {state_id}")

@@ -647,10 +647,15 @@ def build_seogu_reference_clone(dist_root: str) -> None:
     """
     import importlib.util
 
+    # Ensure the official_clone package is importable.
+    _src = os.path.join(_REPO_ROOT, "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+
     renderer_path = os.path.join(
         _REPO_ROOT, "src", "official_clone", "reference_clone_renderer.py"
     )
-    spec = importlib.util.spec_from_file_location("reference_clone_renderer", renderer_path)
+    spec = importlib.util.spec_from_file_location("official_clone.reference_clone_renderer", renderer_path)
     assert spec and spec.loader
     renderer = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = renderer
@@ -660,7 +665,7 @@ def build_seogu_reference_clone(dist_root: str) -> None:
     validator_path = os.path.join(
         _REPO_ROOT, "src", "official_clone", "visual_contract.py"
     )
-    vspec = importlib.util.spec_from_file_location("visual_contract", validator_path)
+    vspec = importlib.util.spec_from_file_location("official_clone.visual_contract", validator_path)
     assert vspec and vspec.loader
     validator = importlib.util.module_from_spec(vspec)
     sys.modules[vspec.name] = validator
