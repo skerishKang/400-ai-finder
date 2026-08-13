@@ -205,6 +205,26 @@ async function main() {
       rootHtml.includes('"asset_byte_fidelity_complete": false'),
       "lifecycle asset_byte_fidelity_complete must be false",
     );
+    // G2-B correction: no resident-visible debug/evidence diagnostics.
+    assert.ok(
+      rootHtml.includes('id="rc-evidence"'),
+      "capture evidence must be hidden machine-readable JSON",
+    );
+    for (const token of [
+      "site_id=",
+      "capture_id=",
+      "captured_at=",
+      "final_http_status=",
+      "visual-input gap",
+      "표면",
+    ]) {
+      assert.ok(
+        !rootHtml.includes(token),
+        `resident-visible debug token leaked on root: ${token}`,
+      );
+    }
+    assert.ok(!/e6e6ea|8a8a93|1f6feb|980px|999px|border-radius/.test(rootHtml),
+      "forbidden guessed CSS tokens must not appear on root");
 
     // ── GNB open/close interaction ────────────────────────────────────────
     const toggle = await page.$("#rc-gnb-toggle");

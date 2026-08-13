@@ -953,6 +953,54 @@ def test_seogu_lifecycle_markers_present(build_dir):
         assert marker in html, f"lifecycle marker missing: {marker}"
 
 
+def test_seogu_resident_output_has_no_debug_diagnostics(build_dir):
+    """G2-B correction: resident-visible /seogu/ pages must not expose capture
+    identifiers, HTTP status, state ids, visual-input gaps, or 표면."""
+    seogu_root = os.path.join(build_dir, "seogu")
+    for root, _dirs, files in os.walk(seogu_root):
+        for fn in files:
+            if not fn.endswith(".html"):
+                continue
+            path = os.path.join(root, fn)
+            html = open(path, encoding="utf-8").read()
+            for token in (
+                "site_id=",
+                "capture_id=",
+                "captured_at=",
+                "final_http_status=",
+                "visual-input gap",
+                "표면",
+                "rc-meta",
+                "캡처 메타데이터",
+            ):
+                assert token not in html, f"debug diagnostics leaked in {path}: {token!r}"
+            # Capture evidence exists only as hidden machine-readable JSON.
+            assert 'id="rc-evidence"' in html, f"hidden evidence missing in {path}"
+
+
+def test_seogu_css_derives_from_validated_contract(build_dir):
+    """G2-B correction: /seogu/ CSS must derive from measured contract values
+    and never contain the pre-correction guessed tokens."""
+    html = open(
+        os.path.join(build_dir, "seogu", "index.html"), encoding="utf-8"
+    ).read()
+    # Measured values from visual-contract.json (desktop home).
+    assert "max-width:1400px" in html
+    assert "border:1px solid #dcdcdc" in html
+    assert "background:#083878" in html  # GNB bg measured
+    for token in (
+        "#e6e6ea",
+        "#8a8a93",
+        "#1f6feb",
+        "980px",
+        "999px",
+        "border-radius",
+        "@media (max-width",
+        "600px",
+    ):
+        assert token not in html, f"guessed CSS token leaked into seogu build: {token!r}"
+
+
 def test_seogu_root_does_not_duplicate_bukgu_root(build_dir):
     """G2-B: the Buk-gu root index.html is unchanged in observable contract."""
     root = open(os.path.join(build_dir, "index.html"), encoding="utf-8").read()

@@ -1,11 +1,13 @@
 """Generic, model-driven faithful-clone renderer for #1303 G2-B.
 
 This module is the G2-B faithful-clone *candidate* renderer. It is the ONLY
-runtime consumer of the G2-A semantic model document. It never reads the raw
-capture evidence (the committed per-state source HTML, the captured viewport
-image, the visible-region inventory, the capture ledger, the provenance
-manifest, live reference URLs, or the capture artifact tree). All rendered
-semantics are taken from the model dict produced by the G2-A builder.
+runtime consumer of the G2-A semantic model document and of the validated
+visual contract. It never reads raw capture evidence (committed per-state
+source HTML, viewport screenshots, visible-region inventory, capture ledger,
+provenance manifest, live reference URLs, or the capture artifact tree). All
+semantics are taken from the model dict; all presentation values are taken from
+the *validated* visual contract dict produced by
+``src/official_clone/visual_contract.py``.
 
 Fail-closed contract:
   * ``load_model`` reads a single ``clone-model.json`` file only.
@@ -14,6 +16,14 @@ Fail-closed contract:
   * The renderer is generic: routing, surface labels, and list/detail linking
     are derived from ``state_id`` structure and ``page_title`` text. There is
     NO per-site conditional branch and NO site-specific literal.
+  * Presentation (CSS) is derived ONLY from the validated visual contract.
+    Every measured value is consumed as-is; no hand-authored color, radius,
+    max-width, or breakpoint is ever emitted. Values that are null/gap in the
+    contract are omitted from the CSS (fail-closed on that fidelity).
+  * ``faithful_clone_candidate`` is True ONLY when the provided visual contract
+    is validated and its required measured fields are present. A null/pending
+    contract renders a structural-only page with ``faithful_clone_candidate``
+    False. ``visual_review`` always stays ``pending``.
 
 Asset limitation (G2-B):
   * No external image/font/css are fetched. Only deterministic local CSS and
@@ -28,6 +38,12 @@ Link policy:
   * Every other captured link (general_links / controls / GNB menu items) is
     rendered as an inert, read-only, ``aria-disabled`` affordance. No live
     navigation, no remote download, no form submission.
+
+Resident-visible surface:
+  * No developer/debug metadata is shown to residents. Capture identifiers,
+    timestamps, HTTP status, state ids, and visual-input-gap messages are
+    rendered as hidden machine-readable JSON only (QA evidence), never as
+    visible text.
 """
 
 from __future__ import annotations
@@ -41,9 +57,9 @@ from typing import Any
 # Generic lifecycle markers required by the G2-B contract. These are explicit
 # candidate-status flags; they are NOT visual-approval / production claims.
 # They are emitted as hidden machine-readable JSON-LD only — no visible badge,
-# no footer text, no developer-facing UI.
-LIFECYCLE_MARKERS = {
-    "faithful_clone_candidate": True,
+# no footer text, no developer-facing UI. ``faithful_clone_candidate`` is
+# recomputed from the validated visual contract at render time.
+_BASE_LIFECYCLE_MARKERS = {
     "visual_review": "pending",
     "clone_mvp_ready": False,
     "resident_default": False,
@@ -59,6 +75,29 @@ _BOARD_ID_TOKENS = ("list_no", "not_ancmt_mgt_no")
 
 # Device classes recognised in a state_id's middle segment.
 _DEVICE_CLASSES = ("desktop", "mobile")
+
+# Required measured theme fields: the renderer derives its CSS from exactly
+# these dotted paths. A contract is faithful-ready only when every one of them
+# is present and non-null.
+REQUIRED_THEME_FIELDS = (
+    "layout.header.height_px",
+    "layout.gnb.height_px",
+    "layout.main.max_width_px",
+    "layout.footer.height_px",
+    "colors.primary",
+    "colors.background",
+    "colors.header_bg",
+    "colors.gnb_bg",
+    "colors.gnb_text",
+    "colors.footer_bg",
+    "colors.text",
+    "colors.text_muted",
+    "colors.border",
+    "typography.font_family",
+    "typography.text_color",
+    "border.width",
+    "border.color",
+)
 
 
 class ReferenceCloneRendererError(ValueError):
@@ -83,6 +122,122 @@ def _require_model_ready(model: dict[str, Any]) -> None:
         raise ReferenceCloneRendererError(
             "refusing to render: model claim_gates.reference_baseline_ready is not True"
         )
+
+
+# ---------------------------------------------------------------------------
+# Visual contract consumption (validated dict only)
+# ---------------------------------------------------------------------------
+def _get_path(contract: dict[str, Any] | None, dotted: str) -> Any:
+    if not contract:
+        return None
+    node: Any = contract
+    for part in dotted.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return None
+        node = node[part]
+    return node
+
+
+def faithful_ready(visual_contract: dict[str, Any] | None) -> bool:
+    """A validated visual contract is faithful-ready iff every required
+    measured field is present and non-null."""
+    if not visual_contract:
+        return False
+    return all(_get_path(visual_contract, field) is not None for field in REQUIRED_THEME_FIELDS)
+
+
+def _lifecycle_markers(visual_contract: dict[str, Any] | None) -> dict[str, Any]:
+    markers = dict(_BASE_LIFECYCLE_MARKERS)
+    markers["faithful_clone_candidate"] = faithful_ready(visual_contract)
+    return markers
+
+
+def _lifecycle_json(visual_contract: dict[str, Any] | None) -> str:
+    return json.dumps(
+        _lifecycle_markers(visual_contract), ensure_ascii=False, sort_keys=True
+    )
+
+
+def _theme_values(
+    contract: dict[str, Any] | None, device: str = "desktop"
+) -> dict[str, Any]:
+    """Flatten measured contract values into ``dotted.path -> value``.
+
+    Responsive (mobile) values override desktop values for mobile routes only.
+    Values that are null/gap are omitted entirely so the CSS builder never
+    emits a guessed substitute.
+    """
+    values: dict[str, Any] = {}
+    if not contract:
+        return values
+
+    layout = contract.get("layout") or {}
+    for section in ("header", "gnb", "main", "footer"):
+        seg = layout.get(section) or {}
+        for field in ("height_px", "max_width_px", "padding_x"):
+            val = seg.get(field)
+            if val is not None:
+                values[f"layout.{section}.{field}"] = val
+
+    colors = contract.get("colors") or {}
+    for field in (
+        "primary",
+        "background",
+        "header_bg",
+        "gnb_bg",
+        "gnb_text",
+        "footer_bg",
+        "text",
+        "text_muted",
+        "border",
+    ):
+        val = colors.get(field)
+        if val is not None:
+            values[f"colors.{field}"] = val
+
+    typo = contract.get("typography") or {}
+    if typo.get("font_family"):
+        values["typography.font_family"] = typo["font_family"]
+    if typo.get("text_color"):
+        values["typography.text_color"] = typo["text_color"]
+
+    border = contract.get("border") or {}
+    if border.get("width") is not None:
+        values["border.width"] = border["width"]
+    if border.get("color"):
+        values["border.color"] = border["color"]
+
+    if device == "mobile":
+        mobile = (contract.get("responsive") or {}).get("mobile") or {}
+        for field in (
+            "main_padding_x",
+            "header_padding_x",
+            "max_width_px",
+            "header_height_px",
+            "gnb_height_px",
+        ):
+            val = mobile.get(field)
+            if val is not None:
+                values[f"responsive.mobile.{field}"] = val
+    return values
+
+
+def _pick(
+    theme: dict[str, Any], desktop_key: str, mobile_key: str | None, device: str
+) -> Any:
+    if device == "mobile" and mobile_key and mobile_key in theme:
+        return theme[mobile_key]
+    return theme.get(desktop_key)
+
+
+def _font_stack(family: str) -> str:
+    """Build a CSS font-family stack from the measured family names plus a
+    generic system fallback (no @font-face, no network fetch)."""
+    names = [n.strip() for n in family.split(",") if n.strip()]
+    quoted = ", ".join(json.dumps(n) for n in names)
+    if not quoted:
+        return "ui-sans-serif, system-ui, sans-serif"
+    return f"{quoted}, ui-sans-serif, system-ui, sans-serif"
 
 
 # ---------------------------------------------------------------------------
@@ -226,11 +381,11 @@ def _gnb_extra_items(model: dict[str, Any]) -> list[str]:
     return extra
 
 
-def _family_detail_route(model: dict[str, Any], family: str) -> str | None:
+def _family_detail_route(model: dict[str, Any], family: str, route_prefix: str) -> str | None:
     for state in model["states"]:
         fam, _dev, content = parse_state_id(state.get("state_id", ""))
         if fam == family and content == "detail":
-            return route_for_state(state["state_id"], "")
+            return route_for_state(state["state_id"], route_prefix)
     return None
 
 
@@ -260,10 +415,12 @@ def _nav_entries(model: dict[str, Any], route_prefix: str) -> list[tuple[str, st
     return nav
 
 
-def _list_items(model: dict[str, Any], state: dict[str, Any]) -> list[dict[str, Any]]:
+def _list_items(
+    model: dict[str, Any], state: dict[str, Any], route_prefix: str
+) -> list[dict[str, Any]]:
     """Board items for a list surface, with local detail-link targeting."""
     family, _dev, _content = parse_state_id(state.get("state_id", ""))
-    detail_route = _family_detail_route(model, family)
+    detail_route = _family_detail_route(model, family, route_prefix)
     detail_id = _family_detail_record_id(model, family)
     raw = [l for l in state.get("general_links", []) if _is_board_link(l)]
     items: list[dict[str, Any]] = []
@@ -281,93 +438,151 @@ def _list_items(model: dict[str, Any], state: dict[str, Any]) -> list[dict[str, 
 
 
 # ---------------------------------------------------------------------------
-# Lifecycle + CSS + JS
+# CSS (derived strictly from the validated visual contract)
 # ---------------------------------------------------------------------------
-def _lifecycle_json() -> str:
-    return json.dumps(LIFECYCLE_MARKERS, ensure_ascii=False, sort_keys=True)
+def _decl(property_name: str, value: Any) -> str:
+    return f"{property_name}:{value};"
 
 
-def _render_css() -> str:
-    """Minimal structural CSS. No themed colors, borders, or card styles —
-    those require real visual measurements from a visual contract.
+def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
+    """Build CSS from measured contract values only.
+
+    Every declaration is derived from a measured value; gaps are omitted
+    (fail-closed). No guessed color, radius, max-width, or breakpoint exists.
     """
-    return """
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;}
-body{
-  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;
-  -webkit-font-smoothing:antialiased;
-  line-height:1.55;
-}
-a{color:inherit; text-decoration:underline;}
-header.rc-header{
-  padding:14px 18px;
-  border-bottom:1px solid #e6e6ea;
-}
-.rc-topbar{display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center;}
-.rc-site-title{font-weight:700; font-size:1.05rem; margin:0;}
-.rc-nav{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
-.rc-nav a{
-  font-size:.85rem; padding:6px 12px; border:1px solid #e6e6ea;
-  border-radius:999px;
-}
-.rc-nav a[aria-current="page"]{font-weight:600;}
-.rc-gnb{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; align-items:center;}
-.rc-gnb .rc-stub{
-  font-size:.85rem; color:#8a8a93; border:1px dashed #e6e6ea;
-  border-radius:8px; padding:3px 9px;
-}
-#rc-gnb-toggle{
-  font:inherit; font-size:.85rem; cursor:pointer; border:1px solid #e6e6ea;
-  background:transparent; border-radius:8px; padding:5px 12px;
-}
-#rc-gnb-toggle:focus-visible,
-.rc-nav a:focus-visible,
-a.rc-list-link:focus-visible{
-  outline:2px solid #1f6feb; outline-offset:2px;
-}
-#rc-mega-menu{
-  margin-top:10px; border:1px solid #e6e6ea; border-radius:12px;
-  padding:12px; display:flex; flex-wrap:wrap; gap:6px 10px;
-}
-#rc-mega-menu[hidden]{display:none;}
-#rc-mega-menu .rc-mega-item{
-  font:inherit; font-size:.82rem; color:#8a8a93;
-  border:1px dashed #e6e6ea; border-radius:8px; padding:4px 10px;
-}
-main.rc-main{max-width:980px; margin:0 auto; padding:22px 18px 60px;}
-.rc-section-title{font-size:1.25rem; font-weight:700; margin:26px 0 12px;}
-.rc-surface-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-top:14px;}
-.rc-surface-card{
-  display:block; border:1px solid #e6e6ea; border-radius:12px;
-  padding:16px 18px;
-}
-.rc-surface-card h3{margin:0 0 6px; font-size:1rem;}
-.rc-surface-card p{margin:0; color:#8a8a93; font-size:.85rem;}
-ul.rc-list{list-style:none; margin:0; padding:0; border:1px solid #e6e6ea; border-radius:12px; overflow:hidden;}
-ul.rc-list li{padding:12px 16px; border-bottom:1px solid #e6e6ea; display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
-ul.rc-list li:last-child{border-bottom:none;}
-.rc-list-item{color:#8a8a93;}
-a.rc-list-link{font-weight:600;}
-.rc-detail-title{font-size:1.4rem; font-weight:700; margin:0 0 10px; line-height:1.35;}
-.rc-badges{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px;}
-.rc-badge-pill{font-size:.78rem; border:1px solid #e6e6ea; border-radius:999px; padding:3px 10px; color:#8a8a93;}
-.rc-attachments{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0;}
-.rc-attach{
-  font:inherit; font-size:.85rem; border:1px solid #e6e6ea; border-radius:8px;
-  padding:8px 14px; color:#8a8a93; cursor:not-allowed;
-}
-.rc-meta{margin-top:26px; border:1px solid #e6e6ea; border-radius:12px; padding:14px 16px;}
-.rc-meta dt{font-size:.72rem; color:#8a8a93; text-transform:uppercase; letter-spacing:.04em;}
-.rc-meta dd{margin:0 0 8px; font-size:.9rem;}
-footer.rc-footer{border-top:1px solid #e6e6ea; padding:18px; color:#8a8a93; font-size:.8rem;}
-@media (max-width:600px){
-  header.rc-header{padding:12px;}
-  main.rc-main{padding:18px 14px 48px;}
-  .rc-surface-grid{grid-template-columns:1fr;}
-  .rc-nav a, .rc-gnb .rc-stub, #rc-gnb-toggle{padding:6px 9px;}
-}
-"""
+    rules: list[str] = ["*{box-sizing:border-box;}", "html,body{margin:0;padding:0;}"]
+
+    body_decls = []
+    bg = _pick(theme, "colors.background", None, device)
+    if bg:
+        body_decls.append(_decl("background", bg))
+    text = _pick(theme, "colors.text", None, device)
+    if text:
+        body_decls.append(_decl("color", text))
+    family = theme.get("typography.font_family")
+    if family:
+        body_decls.append(_decl("font-family", _font_stack(family)))
+    rules.append("body{" + "".join(body_decls) + "}")
+    rules.append("a{color:inherit;text-decoration:underline;}")
+
+    border = _pick(theme, "colors.border", None, device)
+    border_w = theme.get("border.width")
+    border_style = "solid"
+
+    header_bg = _pick(theme, "colors.header_bg", None, device)
+    header_h = _pick(theme, "layout.header.height_px", "responsive.mobile.header_height_px", device)
+    header_decls = []
+    if header_bg:
+        header_decls.append(_decl("background", header_bg))
+    if border and border_w:
+        header_decls.append(_decl("border-bottom", f"{border_w}px {border_style} {border}"))
+    if header_h:
+        header_decls.append(_decl("min-height", f"{header_h}px"))
+    rules.append("header.rc-header{" + "".join(header_decls) + "}")
+    rules.append(".rc-topbar{display:flex;flex-wrap:wrap;align-items:center;}")
+
+    gnb_bg = _pick(theme, "colors.gnb_bg", None, device)
+    gnb_text = _pick(theme, "colors.gnb_text", None, device)
+    gnb_h = _pick(theme, "layout.gnb.height_px", "responsive.mobile.gnb_height_px", device)
+    gnb_decls = ["display:flex;flex-wrap:wrap;align-items:center;"]
+    if gnb_bg:
+        gnb_decls.append(_decl("background", gnb_bg))
+    if gnb_text:
+        gnb_decls.append(_decl("color", gnb_text))
+    if gnb_h:
+        gnb_decls.append(_decl("min-height", f"{gnb_h}px"))
+    rules.append(".rc-gnb{" + "".join(gnb_decls) + "}")
+
+    primary = _pick(theme, "colors.primary", None, device)
+    if primary:
+        rules.append(
+            "#rc-gnb-toggle:focus-visible,"
+            ".rc-nav a:focus-visible,"
+            "a.rc-list-link:focus-visible{"
+            + _decl("outline", f"2px solid {primary}")
+            + _decl("outline-offset", "2px")
+            + "}"
+        )
+    if border and border_w:
+        rules.append(
+            "#rc-gnb-toggle,"
+            ".rc-nav a,"
+            ".rc-gnb .rc-stub,"
+            "#rc-mega-menu,"
+            "#rc-mega-menu .rc-mega-item,"
+            ".rc-surface-card,"
+            "ul.rc-list,"
+            "ul.rc-list li,"
+            ".rc-badge-pill,"
+            ".rc-attach,"
+            "footer.rc-footer{"
+            + _decl("border", f"{border_w}px solid {border}")
+            + "}"
+        )
+        rules.append(
+            "ul.rc-list li:last-child{"
+            + _decl("border-bottom", "none")
+            + "}"
+        )
+    if border and border_w:
+        rules.append(
+            ".rc-gnb .rc-stub,"
+            "#rc-mega-menu .rc-mega-item{"
+            + _decl("border-style", "dashed")
+            + "}"
+        )
+    rules.append(".rc-gnb .rc-stub,#rc-mega-menu .rc-mega-item{background:transparent;}")
+    rules.append("#rc-gnb-toggle{font:inherit;cursor:pointer;background:transparent;}")
+    rules.append(
+        "#rc-mega-menu{display:flex;flex-wrap:wrap;}"
+        "#rc-mega-menu[hidden]{display:none;}"
+    )
+
+    max_w = _pick(theme, "layout.main.max_width_px", "responsive.mobile.max_width_px", device)
+    pad_x = _pick(theme, "layout.main.padding_x", "responsive.mobile.main_padding_x", device)
+    main_decls = ["margin:0 auto;"]
+    if max_w:
+        main_decls.append(_decl("max-width", f"{max_w}px"))
+    if pad_x:
+        main_decls.append(_decl("padding-left", f"{pad_x}px"))
+        main_decls.append(_decl("padding-right", f"{pad_x}px"))
+    rules.append("main.rc-main{" + "".join(main_decls) + "}")
+    rules.append(
+        ".rc-surface-grid{display:flex;flex-wrap:wrap;}"
+        ".rc-surface-card{display:block;}"
+        "ul.rc-list{list-style:none;margin:0;padding:0;}"
+        "ul.rc-list li{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".rc-attachments{display:flex;flex-wrap:wrap;}"
+        ".rc-attach{font:inherit;cursor:not-allowed;}"
+        ".rc-badges{display:flex;flex-wrap:wrap;}"
+        ".rc-site-title{font-weight:700;margin:0;}"
+        ".rc-nav{display:flex;flex-wrap:wrap;}"
+        ".rc-nav a[aria-current=\"page\"]{font-weight:600;}"
+    )
+
+    muted = _pick(theme, "colors.text_muted", None, device)
+    if muted:
+        rules.append(
+            ".rc-gnb .rc-stub,"
+            "#rc-mega-menu .rc-mega-item,"
+            ".rc-list-item,"
+            ".rc-badge-pill,"
+            ".rc-attach,"
+            "footer.rc-footer{"
+            + _decl("color", muted)
+            + "}"
+        )
+
+    footer_bg = _pick(theme, "colors.footer_bg", None, device)
+    footer_h = _pick(theme, "layout.footer.height_px", None, device)
+    footer_decls = []
+    if footer_bg:
+        footer_decls.append(_decl("background", footer_bg))
+    if footer_h:
+        footer_decls.append(_decl("min-height", f"{footer_h}px"))
+    rules.append("footer.rc-footer{" + "".join(footer_decls) + "}")
+
+    return "\n".join(rules)
 
 
 def _render_js() -> str:
@@ -452,14 +667,10 @@ def _render_header(
     )
 
 
-def _render_footer(model: dict[str, Any]) -> str:
-    site_id = _esc(model.get("site_id", ""))
-    capture_id = _esc(model.get("capture_id", ""))
-    return (
-        f'<footer class="rc-footer">'
-        f"<div>site_id={site_id} · capture_id={capture_id}</div>"
-        f"</footer>"
-    )
+def _render_footer() -> str:
+    # No site/capture identifiers are shown to residents. The footer is a plain
+    # themed band; capture lifecycle stays in hidden machine-readable metadata.
+    return '<footer class="rc-footer"></footer>'
 
 
 def _render_main(
@@ -476,7 +687,7 @@ def _render_main(
     if content == "list":
         return _render_list_main(model, state, family, title, route_prefix)
     if content in ("chart", "directory"):
-        return _render_org_staff_main(model, state, family, title)
+        return _render_org_staff_main(state)
     return _render_home_main(model, state, title, nav, route_prefix)
 
 
@@ -503,7 +714,7 @@ def _render_home_main(
         href = relative_href(current_route, route)
         cards.append(
             f'<a class="rc-surface-card" href="{_esc(href)}">'
-            f"<h3>{_esc(label)}</h3><p>표면</p></a>"
+            f"<h3>{_esc(label)}</h3></a>"
         )
     card_grid = (
         f'<div class="rc-surface-grid">{"".join(cards)}</div>' if cards else ""
@@ -514,7 +725,6 @@ def _render_home_main(
         f'<div class="rc-hero">{_esc(hero_text[:4000])}</div>'
         f"{card_grid}"
         f"</section>"
-        + _render_meta(state)
     )
 
 
@@ -525,7 +735,7 @@ def _render_list_main(
     title: str,
     route_prefix: str,
 ) -> str:
-    items = _list_items(model, state)
+    items = _list_items(model, state, route_prefix)
     current_route = route_for_state(state["state_id"], route_prefix)
     rows = []
     for item in items:
@@ -545,7 +755,6 @@ def _render_list_main(
         f'<h2 class="rc-section-title">{_esc(surface_label(state, model))} · 목록</h2>'
         f'<ul class="rc-list">{"".join(rows)}</ul>'
         f"</section>"
-        + _render_meta(state)
     )
 
 
@@ -560,8 +769,6 @@ def _render_detail_main(
     badges = []
     if list_no:
         badges.append(f'<span class="rc-badge-pill">list_no={_esc(list_no)}</span>')
-    badges.append(f'<span class="rc-badge-pill">device={_esc(state.get("device_class",""))}</span>')
-    badges.append(f'<span class="rc-badge-pill">state={_esc(state.get("state_id",""))}</span>')
 
     exts = state.get("attachment_document_extensions") or []
     downloads = state.get("download_references") or []
@@ -598,50 +805,33 @@ def _render_detail_main(
         f"{attach_html}"
         f"{back}"
         f"</section>"
-        + _render_meta(state)
     )
 
 
-def _render_org_staff_main(
-    model: dict[str, Any],
-    state: dict[str, Any],
-    family: str,
-    title: str,
-) -> str:
-    """Org/staff surfaces: visual-input gap. No fake UI from metadata counts."""
-    label = surface_label(state, model)
-    return (
-        f'<section aria-label="{_esc(label)}">'
-        f'<h2 class="rc-section-title">{_esc(label)}</h2>'
-        f'<p>표시할 시각 정보가 없습니다. (visual-input gap)</p>'
-        f"</section>"
-        + _render_meta(state)
-    )
+def _render_org_staff_main(state: dict[str, Any]) -> str:
+    """Org/staff surfaces render their captured section label only.
+
+    No fake UI is built from metadata counts and no visual-input-gap wording is
+    shown to residents; the gap is recorded in the visual contract and hidden
+    machine-readable metadata.
+    """
+    label = surface_label(state, {})
+    return f'<section aria-label="{_esc(label)}"><h2 class="rc-section-title">{_esc(label)}</h2></section>'
 
 
-def _render_meta(state: dict[str, Any]) -> str:
-    rows = []
-    mapping = (
-        ("state_id", state.get("state_id")),
-        ("device_class", state.get("device_class")),
-        (
-            "viewport",
-            (state.get("viewport") or {}).get("width")
-            if isinstance(state.get("viewport"), dict)
-            else None,
-        ),
-        ("captured_at", state.get("captured_at")),
-        ("source_updated_at", state.get("source_updated_at")),
-        ("final_http_status", state.get("final_http_status")),
-        ("list_no", state.get("list_no")),
-    )
-    for key, value in mapping:
-        if value is None or value == "":
-            continue
-        rows.append(f"<dt>{_esc(key)}</dt><dd>{_esc(value)}</dd>")
-    if not rows:
-        return ""
-    return f'<dl class="rc-meta" aria-label="캡처 메타데이터">{"".join(rows)}</dl>'
+def _evidence_json(state: dict[str, Any]) -> str:
+    """Hidden machine-readable state evidence for QA (never resident-visible)."""
+    viewport = state.get("viewport") or {}
+    evidence = {
+        "state_id": state.get("state_id"),
+        "device_class": state.get("device_class"),
+        "captured_at": state.get("captured_at"),
+        "source_updated_at": state.get("source_updated_at"),
+        "final_http_status": state.get("final_http_status"),
+        "viewport_width": viewport.get("width") if isinstance(viewport, dict) else None,
+        "list_no": state.get("list_no"),
+    }
+    return json.dumps(evidence, ensure_ascii=False, sort_keys=True)
 
 
 # ---------------------------------------------------------------------------
@@ -656,29 +846,39 @@ def _render_page(
     gnb_extra: list[str],
     open_gnb: bool,
     route_prefix: str,
+    visual_contract: dict[str, Any] | None,
 ) -> str:
     state_id = state.get("state_id", "")
-    _family, _device, content = parse_state_id(state_id)
+    _family, device, content = parse_state_id(state_id)
     title = state.get("page_title") or state_id
     header = _render_header(
         model, current_route, nav, gnb_top, gnb_extra, open_gnb, route_prefix
     )
     main = _render_main(model, state, nav, route_prefix)
-    footer = _render_footer(model)
+    footer = _render_footer()
+    theme = _theme_values(visual_contract, device=device)
+    css = _render_css(theme, device=device)
     lifecycle_script = (
         f'<script type="application/ld+json" id="rc-lifecycle">'
-        f"{_lifecycle_json()}</script>"
+        f"{_lifecycle_json(visual_contract)}</script>"
     )
+    evidence_script = (
+        f'<script type="application/ld+json" id="rc-evidence">'
+        f"{_evidence_json(state)}</script>"
+    )
+    faithful = faithful_ready(visual_contract)
     return (
         "<!DOCTYPE html>"
-        f'<html lang="ko" data-clone-candidate="true" data-state-id="{_esc(state_id)}" '
+        f'<html lang="ko" data-clone-candidate="{str(faithful).lower()}" '
+        f'data-state-id="{_esc(state_id)}" '
         f'data-route="{_esc(current_route)}" data-content="{_esc(content)}">'
         "<head>"
         '<meta charset="UTF-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
         f"<title>{_esc(title)}</title>"
-        f"<style>{_render_css()}</style>"
+        f"<style>{css}</style>"
         f"{lifecycle_script}"
+        f"{evidence_script}"
         "</head>"
         "<body>"
         f"{header}"
@@ -693,11 +893,15 @@ def render_state(
     model: dict[str, Any],
     state_id: str,
     route_prefix: str,
+    visual_contract: dict[str, Any] | None = None,
     open_gnb: bool = False,
 ) -> str:
     """Render a single model state into a complete HTML document.
 
-    *route_prefix* is required — there is no hardcoded default.
+    *route_prefix* is required — there is no hardcoded default. The visual
+    contract must be the *validated* dict (see ``visual_contract`` module);
+    when None the page renders structurally with ``faithful_clone_candidate``
+    False.
     """
     _require_model_ready(model)
     state = next((s for s in model["states"] if s.get("state_id") == state_id), None)
@@ -710,12 +914,22 @@ def render_state(
     if parse_state_id(state_id)[2] == "gnb_open":
         open_gnb = True
     return _render_page(
-        model, state, current_route, nav, gnb_top, gnb_extra, open_gnb, route_prefix
+        model,
+        state,
+        current_route,
+        nav,
+        gnb_top,
+        gnb_extra,
+        open_gnb,
+        route_prefix,
+        visual_contract,
     )
 
 
 def render_site(
-    model: dict[str, Any], route_prefix: str
+    model: dict[str, Any],
+    route_prefix: str,
+    visual_contract: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     """Render every model state to its deterministic route (11 states -> 11 files).
 
@@ -726,7 +940,9 @@ def render_site(
     for state in model["states"]:
         state_id = state.get("state_id", "")
         route = route_for_state(state_id, route_prefix)
-        pages[route] = render_state(model, state_id, route_prefix=route_prefix)
+        pages[route] = render_state(
+            model, state_id, route_prefix=route_prefix, visual_contract=visual_contract
+        )
     return pages
 
 
@@ -742,13 +958,14 @@ def write_site(
     model: dict[str, Any],
     out_root: str | Path,
     route_prefix: str,
+    visual_contract: dict[str, Any] | None = None,
 ) -> list[Path]:
     """Render every state and write deterministic route files under *out_root*.
 
     *route_prefix* is required — there is no hardcoded default.
     *out_root* is the directory that becomes the route namespace root.
     """
-    pages = render_site(model, route_prefix=route_prefix)
+    pages = render_site(model, route_prefix=route_prefix, visual_contract=visual_contract)
     written: list[Path] = []
     for route, html in pages.items():
         rel = route[len(route_prefix):] if route.startswith(route_prefix) else route.lstrip("/")

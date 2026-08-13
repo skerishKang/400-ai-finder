@@ -1,7 +1,7 @@
 """Offline contracts for the #1303 G2-B generic faithful-clone renderer.
 
-The renderer consumes ONLY the G2-A semantic ``clone-model.json``. These tests
-prove:
+The renderer consumes ONLY the G2-A semantic ``clone-model.json`` and the
+VALIDATED ``visual-contract.json``. These tests prove:
 
   * the 11 accepted states render deterministically;
   * model-readiness fail-closed (reference_baseline_ready False -> raise);
@@ -13,8 +13,16 @@ prove:
   * the GNB-open state is distinguishable from / reachable via the default;
   * notice / gosi / civil-form list & detail surfaces are distinct;
   * attachment affordances are preserved;
-  * lifecycle markers are correct (hidden JSON-LD only);
-  * a second synthetic site model renders with the SAME generic renderer.
+  * lifecycle markers are correct (hidden JSON-LD only), and
+    ``faithful_clone_candidate`` is False without a validated visual contract
+    and True only with a validated, measured contract;
+  * resident-visible output carries no developer/debug metadata (no site_id=,
+    capture_id=, state_id=, captured_at, HTTP status, visual-input gap,
+    표면, or guessed theme tokens);
+  * CSS values are derived from the visual contract (no hand-authored
+    colors/radii/breakpoints);
+  * a second synthetic site model renders with the SAME generic renderer and
+    a DIFFERENT synthetic visual contract.
 
 No network, no live site, no provider, no Firecrawl, no API calls.
 """
@@ -31,6 +39,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = REPO_ROOT / "src" / "official_clone" / "reference_clone_renderer.py"
+VALIDATOR_PATH = REPO_ROOT / "src" / "official_clone" / "visual_contract.py"
 FIXTURE_PATH = (
     REPO_ROOT
     / "data"
@@ -39,6 +48,15 @@ FIXTURE_PATH = (
     / "g1"
     / "20260812T231018-0900"
     / "clone-model.json"
+)
+VISUAL_CONTRACT_PATH = (
+    REPO_ROOT
+    / "data"
+    / "official_clone_visual_inputs"
+    / "seogu_gwangju"
+    / "g1"
+    / "20260812T231018-0900"
+    / "visual-contract.json"
 )
 
 REQUIRED_11 = [
@@ -67,7 +85,17 @@ def _load_module():
     return module
 
 
+def _load_validator():
+    spec = importlib.util.spec_from_file_location("visual_contract", VALIDATOR_PATH)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 mod = _load_module()
+validator = _load_validator()
 
 
 @pytest.fixture(autouse=True)
@@ -95,6 +123,12 @@ def _block_network(monkeypatch: pytest.MonkeyPatch):
 
 def _load_model():
     return mod.load_model(FIXTURE_PATH)
+
+
+def _load_validated_contract():
+    model = _load_model()
+    contract = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
+    return validator.validate_visual_contract(contract, model)
 
 
 # ── Source-level genericity / safety scans ────────────────────────────────
@@ -283,9 +317,13 @@ def test_organization_and_staff_distinct():
 
 
 # ── Lifecycle markers ────────────────────────────────────────────────────
-def test_lifecycle_markers_present_and_correct():
+def test_lifecycle_markers_present_and_correct_with_validated_contract():
     model = _load_model()
-    html = mod.render_state(model, "home.desktop.default", route_prefix=_ROUTE_PREFIX)
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
     assert 'id="rc-lifecycle"' in html
     start = html.index('id="rc-lifecycle"')
     end = html.index("</script>", start)
@@ -301,16 +339,127 @@ def test_lifecycle_markers_present_and_correct():
     assert payload["asset_byte_fidelity_complete"] is False
 
 
-# ── Semantic fields used ─────────────────────────────────────────────────
-def test_captured_semantics_present_in_output():
+def test_null_visual_contract_faithful_clone_candidate_false():
+    """G2-B faithful gate: without a validated visual contract the candidate
+    flag MUST be False (no faithful claim from unmeasured styling)."""
     model = _load_model()
     html = mod.render_state(model, "home.desktop.default", route_prefix=_ROUTE_PREFIX)
-    for token in ("state_id", "device_class", "captured_at", "final_http_status"):
-        assert f"<dt>{token}</dt>" in html
+    assert 'id="rc-lifecycle"' in html
+    start = html.index('id="rc-lifecycle"')
+    end = html.index("</script>", start)
+    payload = json.loads(html[start:end].split(">", 1)[1])
+    assert payload["faithful_clone_candidate"] is False
+    assert payload["visual_review"] == "pending"
+
+
+def test_pending_visual_contract_faithful_clone_candidate_false():
+    """A contract whose required measured fields are null is NOT faithful-ready."""
+    model = _load_model()
+    contract = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
+    contract["colors"]["background"] = None
+    contract["layout"]["header"]["height_px"] = None
+    # Drop the corresponding measurement entries so null accounting is honest.
+    contract["measurements"] = [
+        m for m in contract.get("measurements", [])
+        if m.get("field") not in ("colors.background", "layout.header.height_px")
+    ]
+    assert validator.faithful_ready(contract) is False
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    start = html.index('id="rc-lifecycle"')
+    end = html.index("</script>", start)
+    payload = json.loads(html[start:end].split(">", 1)[1])
+    assert payload["faithful_clone_candidate"] is False
+
+
+# ── Semantic fields used (hidden machine-readable only) ─────────────────
+def test_semantics_are_hidden_not_resident_visible():
+    """Evidence (state_id, captured_at, HTTP status, ...) must be hidden
+    machine-readable JSON only — never resident-visible text."""
+    model = _load_model()
+    html = mod.render_state(model, "home.desktop.default", route_prefix=_ROUTE_PREFIX)
+    assert 'id="rc-evidence"' in html
+    # Capture evidence is inside the hidden JSON script.
+    start = html.index('id="rc-evidence"')
+    end = html.index("</script>", start)
+    payload = json.loads(html[start:end].split(">", 1)[1])
+    assert payload["state_id"] == "home.desktop.default"
+    assert payload["device_class"] == "desktop"
+    assert payload["captured_at"]
+    assert payload["final_http_status"] == 200
+    # Structural landmarks still present.
     assert "<header" in html
     assert "<nav" in html
     assert "<main" in html
     assert "<footer" in html
+
+
+def test_resident_visible_has_no_debug_diagnostics():
+    """No developer/evidence metadata may be visible to residents."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    for state_id in REQUIRED_11:
+        html = mod.render_state(
+            model, state_id, route_prefix=_ROUTE_PREFIX, visual_contract=contract
+        )
+        # Visible text must not expose audit/evidence fields.
+        for token in (
+            "site_id=",
+            "capture_id=",
+            "captured_at=",
+            "source_updated_at=",
+            "final_http_status=",
+            "visual-input gap",
+            "표면",
+            "rc-meta",
+            "<dt>state_id</dt>",
+        ):
+            assert token not in html, f"resident-visible debug leaked {token!r} in {state_id}"
+
+
+# ── CSS derived strictly from the validated contract ────────────────────
+def test_css_values_derive_from_contract():
+    """Every rendered CSS value must come from the validated visual contract
+    (max-width 1400px, 1px border, measured colors) — never guessed."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX, visual_contract=contract
+    )
+    assert "max-width:1400px" in html
+    assert "border:1px solid #dcdcdc" in html
+    assert "background:#f8f8f8" in html
+    assert "background:#083878" in html  # GNB bg measured
+    assert "background:#f0f0f8" in html  # header bg measured
+    assert "min-height:692px" in html    # header height measured
+    assert "font-family:" in html
+
+
+def test_forbidden_guessed_css_tokens_absent():
+    """The exact hand-authored tokens from the pre-correction renderer must
+    never appear in output CSS (colors, radii, max-width, breakpoint)."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    pages = mod.render_site(model, route_prefix=_ROUTE_PREFIX, visual_contract=contract)
+    for html in pages.values():
+        for token in (
+            "#e6e6ea",
+            "#8a8a93",
+            "#1f6feb",
+            "980px",
+            "999px",
+            "border-radius",
+            "max-width:600px",
+            "@media (max-width",
+            "font-size:.85rem",
+            "font-size:1.25rem",
+            "font-size:1.4rem",
+            "padding:14px 18px",
+            "padding:22px 18px 60px",
+        ):
+            assert token not in html, f"guessed CSS token present: {token!r}"
 
 
 # ── No developer-facing text in output ───────────────────────────────────
@@ -324,10 +473,13 @@ def test_no_developer_text_in_output():
         assert "모델 복제 표면" not in html, "developer text must be removed"
         assert "Faithful clone candidate" not in html, "developer text must be removed"
         assert "visual review pending" not in html, "developer text must be removed"
+        assert "visual-input gap" not in html, "developer text must be removed"
+        assert "표면" not in html, "developer text must be removed"
+        assert "캡처 메타데이터" not in html, "developer text must be removed"
 
 
-# ── Org/staff are visual-input gaps ──────────────────────────────────────
-def test_org_staff_are_visual_input_gaps():
+# ── Org/staff render without gap diagnostics or fake UI ─────────────────
+def test_org_staff_render_label_without_gap_text_or_fake_ui():
     model = _load_model()
     org = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
     staff = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
@@ -336,9 +488,12 @@ def test_org_staff_are_visual_input_gaps():
     assert "캡처된 컨트롤 수" not in staff
     assert "랜드마크 수" not in org
     assert "랜드마크 수" not in staff
-    # Visual-input gap message present.
-    assert "visual-input gap" in org
-    assert "visual-input gap" in staff
+    # Visual-input gap wording must NOT be shown to residents.
+    assert "visual-input gap" not in org
+    assert "visual-input gap" not in staff
+    # The captured surface label is rendered.
+    assert "행정조직도" in org
+    assert "직원 업무안내" in staff
 
 
 # ── Second synthetic site: same generic renderer ────────────────────────
@@ -438,14 +593,64 @@ def _synthetic_model():
     }
 
 
+def _synthetic_visual_contract():
+    """A second-site visual contract with DIFFERENT measured values.
+
+    Provenance references the synthetic state's own committed screenshot SHA
+    (a synthetic sha256 is fine for the validator identity check: the checker
+    only verifies the referenced screenshot SHA matches the model geometry).
+    """
+    return {
+        "schema_version": 2,
+        "contract_kind": "visual_input",
+        "site_id": "northville",
+        "capture_id": "20260101T000000-0900",
+        "model_checksum": None,  # filled after model load below
+        "layout": {
+            "header": {"height_px": 120, "provenance_state_id": "home.desktop.default"},
+            "gnb": {"height_px": 48, "provenance_state_id": "home.desktop.default"},
+            "main": {"max_width_px": 1200, "padding_x": 32, "provenance_state_id": "home.desktop.default"},
+            "footer": {"height_px": 90, "provenance_state_id": "home.desktop.default"},
+        },
+        "colors": {
+            "primary": "#123456",
+            "background": "#fafafa",
+            "header_bg": "#e8e8ec",
+            "gnb_bg": "#123456",
+            "gnb_text": "#ffffff",
+            "footer_bg": "#e8e8ec",
+            "text": "#111111",
+            "text_muted": "#666666",
+            "border": "#cccccc",
+        },
+        "typography": {
+            "font_family": "Noto Sans KR",
+            "text_color": "#111111",
+        },
+        "spacing": {},
+        "border": {"width": 2, "color": "#cccccc"},
+        "responsive": {"mobile": {}},
+        "gaps": [],
+        "measurements": [],
+    }
+
+
+def _validated_synthetic_contract():
+    synthetic = _synthetic_model()
+    contract = _synthetic_visual_contract()
+    contract["model_checksum"] = validator.compute_model_checksum(synthetic)
+    return validator.validate_visual_contract(contract, synthetic)
+
+
 def test_second_synthetic_site_renders_generically():
     synthetic = _synthetic_model()
+    contract = _validated_synthetic_contract()
     prefix = "/x/"
     assert mod.route_for_state("news.list.desktop", prefix) == "/x/news/"
     assert mod.route_for_state("news.detail.desktop", prefix) == "/x/news/detail/"
     assert mod.route_for_state("org.chart.desktop", prefix) == "/x/org/"
 
-    pages = mod.render_site(synthetic, route_prefix=prefix)
+    pages = mod.render_site(synthetic, route_prefix=prefix, visual_contract=contract)
     assert len(pages) == 11
     assert set(pages.keys()) == {
         "/x/",
@@ -466,6 +671,24 @@ def test_second_synthetic_site_renders_generically():
         assert "https://" not in html
         assert "screenshot" not in html.lower()
     assert 'class="rc-list-link" data-detail="1"' in pages["/x/news/"]
+
+
+def test_second_synthetic_site_css_derives_from_its_own_contract():
+    """A different visual contract must produce a different, contract-derived
+    theme (max-width 1200px, 2px border, custom colors) — never the seogu
+    measurements or any guessed tokens."""
+    synthetic = _synthetic_model()
+    contract = _validated_synthetic_contract()
+    html = mod.render_state(
+        synthetic, "home.desktop.default", route_prefix="/x/", visual_contract=contract
+    )
+    assert "max-width:1200px" in html
+    assert "border:2px solid #cccccc" in html
+    assert "background:#fafafa" in html
+    assert "background:#123456" in html
+    assert "background:#e8e8ec" in html
+    for token in ("#083878", "max-width:1400px", "980px", "999px", "600px", "e6e6ea", "8a8a93", "1f6feb"):
+        assert token not in html, f"foreign/guessed token leaked into synthetic render: {token}"
 
 
 def test_second_synthetic_site_unready_fails_closed():

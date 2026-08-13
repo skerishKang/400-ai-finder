@@ -636,11 +636,14 @@ def build_seogu_reference_clone(dist_root: str) -> None:
     """Emit the #1303 G2-B faithful-clone candidate under dist/seogu.
 
     Reads the committed G2-A ``clone-model.json`` and G2-B
-    ``visual-contract.json``, then renders the generic local clone structure
-    via ``src/official_clone/reference_clone_renderer.py``. Fully offline;
-    does not touch the Buk-gu root or any G0 artifact.
+    ``visual-contract.json``, VALIDATES the visual contract against the model,
+    then renders the generic local clone structure via
+    ``src/official_clone/reference_clone_renderer.py``. Fully offline; does not
+    touch the Buk-gu root or any G0 artifact.
 
-    Fail-closed: raises RuntimeError if model or visual contract is missing.
+    Fail-closed: raises RuntimeError if the model or the visual contract is
+    missing, or if the visual contract fails identity/checksum/schema/
+    provenance validation against the model.
     """
     import importlib.util
 
@@ -652,6 +655,16 @@ def build_seogu_reference_clone(dist_root: str) -> None:
     renderer = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = renderer
     spec.loader.exec_module(renderer)
+
+    # Validator module (sibling of the renderer).
+    validator_path = os.path.join(
+        _REPO_ROOT, "src", "official_clone", "visual_contract.py"
+    )
+    vspec = importlib.util.spec_from_file_location("visual_contract", validator_path)
+    assert vspec and vspec.loader
+    validator = importlib.util.module_from_spec(vspec)
+    sys.modules[vspec.name] = validator
+    vspec.loader.exec_module(validator)
 
     model_path = os.path.join(
         _REPO_ROOT,
@@ -676,8 +689,16 @@ def build_seogu_reference_clone(dist_root: str) -> None:
     if not os.path.isfile(vc_path):
         raise RuntimeError(f"G2-B fail-closed: visual contract not found: {vc_path}")
     model = renderer.load_model(model_path)
-    written = renderer.write_site(model, os.path.join(dist_root, "seogu"), route_prefix="/seogu/")
+    contract = json.loads(Path(vc_path).read_text(encoding="utf-8"))
+    validated = validator.validate_visual_contract(contract, model)
+    written = renderer.write_site(
+        model,
+        os.path.join(dist_root, "seogu"),
+        route_prefix="/seogu/",
+        visual_contract=validated,
+    )
     print(f"[build] wrote {len(written)} G2-B clone routes -> seogu/")
+    print(f"[build] G2-B faithful_ready={validator.faithful_ready(validated)}")
 
 
 def build(out_dir: str | None = None, mode: str = "static") -> None:

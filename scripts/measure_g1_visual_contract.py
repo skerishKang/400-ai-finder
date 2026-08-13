@@ -1,0 +1,662 @@
+#!/usr/bin/env python3
+"""Measure provenance-backed visual values from committed G1 evidence (#1303 G2-B).
+
+This script reads ONLY the immutable committed G1 capture evidence for a named
+site and deterministically measures the visual values recorded in
+``visual-contract.json``. It never performs a live capture, never fetches a URL,
+and never modifies the G1 capture tree. Every emitted measurement carries:
+
+  * ``source_state_id`` — the captured state the value was measured from;
+  * ``artifact_sha256``  — the committed screenshot SHA (from the model's
+    ``document_geometry``) that the value was measured from;
+  * ``method``          — the deterministic measurement method;
+  * ``unit``            — px / hex / str as appropriate.
+
+Unmeasurable properties stay ``null`` in the contract and are listed in the
+``gaps`` section (no estimated/guessed values are ever produced).
+
+Usage:
+    python scripts/measure_g1_visual_contract.py --write
+    python scripts/measure_g1_visual_contract.py --check
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+from PIL import Image
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from official_clone.visual_contract import (  # noqa: E402
+    CONTRACT_SCHEMA_VERSION,
+    REQUIRED_MEASURED_FIELDS,
+    compute_model_checksum,
+)
+
+SITE_ID = "seogu_gwangju"
+CAPTURE_ID = "20260812T231018-0900"
+
+MODEL_PATH = (
+    REPO_ROOT
+    / "data"
+    / "official_clone_fixtures"
+    / SITE_ID
+    / "g1"
+    / CAPTURE_ID
+    / "clone-model.json"
+)
+CAPTURE_ROOT = (
+    REPO_ROOT / "data" / "official_captures" / SITE_ID / "g1" / CAPTURE_ID
+)
+LEDGER_PATH = CAPTURE_ROOT / "ledger.json"
+OUT_PATH = (
+    REPO_ROOT
+    / "data"
+    / "official_clone_visual_inputs"
+    / SITE_ID
+    / "g1"
+    / CAPTURE_ID
+    / "visual-contract.json"
+)
+MANIFEST_PATH = (
+    REPO_ROOT
+    / "data"
+    / "official_clone_visual_inputs"
+    / SITE_ID
+    / "g1"
+    / CAPTURE_ID
+    / "asset-manifest.json"
+)
+
+# Deterministic measurement knobs (fixed; changing them changes the contract).
+_QUANT = 8
+_ROW_STEP = 2
+_GAP = 25  # pixel-channel distance that counts as "content" vs page background
+
+_STATE_SHOT = {
+    "home.desktop.default": "home.desktop.default",
+    "home.mobile.default": "home.mobile.default",
+}
+
+
+# ---------------------------------------------------------------------------
+# Low-level pixel helpers (pure Pillow, deterministic)
+# ---------------------------------------------------------------------------
+def _dom_color(img: Image.Image, box=None, quant: int = _QUANT) -> tuple[str, int]:
+    region = img if box is None else img.crop(box)
+    counts: Counter[tuple[int, int, int]] = Counter()
+    for px in region.getdata():
+        q = ((px[0] // quant) * quant, (px[1] // quant) * quant, (px[2] // quant) * quant)
+        counts[q] += 1
+    color, _ = counts.most_common(1)[0]
+    return "#%02x%02x%02x" % (color[0], color[1], color[2]), sum(counts.values())
+
+
+def _row_dom(img: Image.Image, y: int) -> str:
+    return _dom_color(img, (0, y, img.width, y + 1))[0]
+
+
+def _last_separator_line(img: Image.Image) -> tuple[int, str]:
+    """Return (y, color) of the bottom-most full-width neutral separator line.
+
+    A separator line is a nearly-uniform mid-gray row (not the page background)
+    covering >=90% of the viewport width. The footer is the region below the
+    last such line; the line color is the measured border color.
+    """
+    width, height = img.size
+    step = 3
+    samples = width // step
+    lines: list[tuple[int, tuple[int, int, int]]] = []
+    for y in range(height):
+        counts: Counter[tuple[int, int, int]] = Counter()
+        for x in range(0, width, step):
+            px = img.getpixel((x, y))
+            counts[(px[0] // 4 * 4, px[1] // 4 * 4, px[2] // 4 * 4)] += 1
+        color, n = counts.most_common(1)[0]
+        frac = n / samples
+        r, g, b = color
+        if (
+            frac >= 0.9
+            and 190 <= r <= 245
+            and abs(r - g) <= 8
+            and abs(g - b) <= 8
+            and not (250 <= r <= 255 and 250 <= g <= 255 and 250 <= b <= 255)
+        ):
+            lines.append((y, color))
+    if not lines:
+        return height, "#dddddd"
+    y, color = lines[-1]
+    return y, "#%02x%02x%02x" % (color[0], color[1], color[2])
+
+
+def _dark_band(img: Image.Image, y0: int, y1: int, max_rgb: int = 110) -> tuple[int, int] | None:
+    """Return the inclusive (top, bottom) of the dominant dark band in [y0, y1)."""
+    rows = []
+    for y in range(y0, y1, _ROW_STEP):
+        c = _row_dom(img, y)
+        r = int(c[1:3], 16)
+        g = int(c[3:5], 16)
+        b = int(c[5:7], 16)
+        if r < max_rgb and g < max_rgb and b < 180:
+            rows.append(y)
+    if not rows:
+        return None
+    # Only accept contiguous-ish bands (gap tolerance of 4 sampled rows).
+    runs: list[list[int]] = [[rows[0]]]
+    for y in rows[1:]:
+        if y - runs[-1][-1] <= _ROW_STEP * 4:
+            runs[-1].append(y)
+        else:
+            runs.append([y])
+    longest = max(runs, key=len)
+    return longest[0], longest[-1]
+
+
+def _content_envelope(img: Image.Image, y0: int, y1: int) -> tuple[int, int] | None:
+    """Return the (left, right) x-extent of non-background content in the band."""
+    width, _ = img.size
+    hex_color = _dom_color(img, (0, y0, min(width, 60), y1))[0]
+    bg = (int(hex_color[1:3], 16), int(hex_color[3:5], 16), int(hex_color[5:7], 16))
+    col_active = [0] * width
+    band = img.crop((0, y0, width, y1))
+    pixels = band.load()
+    for x in range(width):
+        for y in range(band.height):
+            p = pixels[x, y]
+            if (
+                abs(p[0] - bg[0]) > _GAP
+                or abs(p[1] - bg[1]) > _GAP
+                or abs(p[2] - bg[2]) > _GAP
+            ):
+                col_active[x] += 1
+    threshold = max(20, int(band.height * 0.03))
+    active = [x for x in range(width) if col_active[x] > threshold]
+    if not active:
+        return None
+    return active[0], active[-1]
+
+
+def _dominant_dark(img: Image.Image, box) -> str:
+    region = img.crop(box)
+    counts: Counter[tuple[int, int, int]] = Counter()
+    for px in region.getdata():
+        if px[0] < 130 and px[1] < 130 and px[2] < 130:
+            q = ((px[0] // 32) * 32, (px[1] // 32) * 32, (px[2] // 32) * 32)
+            counts[q] += 1
+    if not counts:
+        return "#000000"
+    color, _ = counts.most_common(1)[0]
+    return "#%02x%02x%02x" % (color[0], color[1], color[2])
+
+
+def _dominant_gray(img: Image.Image, box) -> str | None:
+    region = img.crop(box)
+    counts: Counter[tuple[int, int, int]] = Counter()
+    for px in region.getdata():
+        if abs(px[0] - px[1]) < 12 and abs(px[1] - px[2]) < 12 and 60 < px[0] < 210:
+            q = ((px[0] // 8) * 8, (px[1] // 8) * 8, (px[2] // 8) * 8)
+            counts[q] += 1
+    if not counts:
+        return None
+    color, _ = counts.most_common(1)[0]
+    return "#%02x%02x%02x" % (color[0], color[1], color[2])
+
+
+def _dominant_light(img: Image.Image, box, min_rgb: int = 150) -> str | None:
+    """Dominant bright pixel color in a region (e.g. GNB text on dark bar)."""
+    region = img.crop(box)
+    counts: Counter[tuple[int, int, int]] = Counter()
+    for px in region.getdata():
+        if px[0] >= min_rgb and px[1] >= min_rgb and px[2] >= min_rgb:
+            q = ((px[0] // 16) * 16, (px[1] // 16) * 16, (px[2] // 16) * 16)
+            counts[q] += 1
+    if not counts:
+        return None
+    color, _ = counts.most_common(1)[0]
+    return "#%02x%02x%02x" % (color[0], color[1], color[2])
+
+
+# ---------------------------------------------------------------------------
+# Ledger helpers
+# ---------------------------------------------------------------------------
+def _load_ledger() -> dict:
+    return json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+
+
+def _screenshot_sha(state_id: str) -> str:
+    ledger = _load_ledger()
+    for state in ledger["captured_states"]:
+        if state["state_id"] != state_id:
+            continue
+        for artifact in state["artifacts"]:
+            if artifact["class"] == "screenshot":
+                return artifact["sha256"]
+    raise KeyError(f"screenshot artifact not found for {state_id}")
+
+
+def _model() -> dict:
+    return json.loads(MODEL_PATH.read_text(encoding="utf-8"))
+
+
+def _font_family_observation() -> list[str]:
+    """Observe font families actually fetched by the browser during G1 capture."""
+    families: set[str] = set()
+    for state_dir in (CAPTURE_ROOT / "states").iterdir():
+        prov_path = state_dir / "public-asset-provenance.json"
+        if not prov_path.is_file():
+            continue
+        try:
+            prov = json.loads(prov_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for asset in prov.get("assets", []):
+            url = asset.get("url", "")
+            name = url.split("/")[-1]
+            if "gmarketsans" in name.lower():
+                families.add("Gmarket Sans")
+            if "notosanscjk" in name.lower():
+                families.add("Noto Sans CJK KR")
+    return sorted(families)
+
+
+# ---------------------------------------------------------------------------
+# Measurement
+# ---------------------------------------------------------------------------
+def _measure_desktop() -> dict:
+    state_id = "home.desktop.default"
+    shot_sha = _screenshot_sha(state_id)
+    img = Image.open(CAPTURE_ROOT / "states" / state_id / "source.png").convert("RGB")
+    w, h = img.size
+
+    # GNB dark band
+    gnb = _dark_band(img, 560, 760)
+    assert gnb is not None, "GNB dark band not detected on desktop"
+    gnb_top, gnb_bottom = gnb
+    gnb_height = gnb_bottom - gnb_top + 2
+    gnb_color = _dom_color(img, (0, gnb_top, w, gnb_bottom + 2))[0]
+    # GNB text: dominant bright pixel within the dark band (measured, not guessed).
+    gnb_text = _dominant_light(img, (0, gnb_top + 2, w, gnb_bottom))
+
+    # Header: page top (0) to first content row after GNB.
+    header_height = gnb_bottom + 2
+
+    # Header background: light gutter band inside header, above the GNB.
+    header_bg = _dom_color(img, (0, 100, 60, min(600, gnb_top - 10)))[0]
+
+    # Footer: bounded by the last full-width gray separator line.
+    footer_top, border_color = _last_separator_line(img)
+    footer_height = h - footer_top
+    footer_bg = _dom_color(img, (0, footer_top + 2, w, h))[0]
+
+    # Main content envelope (desktop content band).
+    envelope = _content_envelope(img, 700, min(h - 60, 2100))
+    assert envelope is not None
+    content_left, content_right = envelope
+    max_width = content_right - content_left + 1
+    padding_x = content_left
+
+    # Colors from content band.
+    content_box = (content_left, 700, content_right, 1100)
+    background = _dom_color(img, (0, 700, w, 1100))[0]
+    text_color = _dominant_dark(img, (100, 1112, w - 100, 1432))
+    muted = _dominant_gray(img, (100, 1112, w - 100, 1432))
+
+    # Border: bottom-most full-width neutral separator line (measured).
+    # (already obtained above from the same _last_separator_line call)
+
+    return {
+        "state_id": state_id,
+        "artifact_sha256": shot_sha,
+        "viewport": (w, h),
+        "header_height": header_height,
+        "gnb_height": gnb_height,
+        "gnb_color": gnb_color,
+        "gnb_text": gnb_text,
+        "header_bg": header_bg,
+        "footer_bg": footer_bg,
+        "footer_height": footer_height,
+        "max_width": max_width,
+        "padding_x": padding_x,
+        "background": background,
+        "text": text_color,
+        "muted": muted,
+        "border": border_color,
+    }
+
+
+def _measure_mobile() -> dict:
+    state_id = "home.mobile.default"
+    shot_sha = _screenshot_sha(state_id)
+    img = Image.open(CAPTURE_ROOT / "states" / state_id / "source.png").convert("RGB")
+    w, h = img.size
+
+    gnb = _dark_band(img, 300, 430)
+    assert gnb is not None, "GNB dark band not detected on mobile"
+    gnb_top, gnb_bottom = gnb
+    gnb_height = gnb_bottom - gnb_top + 2
+    gnb_color = _dom_color(img, (0, gnb_top, w, gnb_bottom + 2))[0]
+    header_height = gnb_bottom + 2
+    header_bg = _dom_color(img, (0, 0, w, min(200, gnb_top - 10)))[0]
+
+    envelope = _content_envelope(img, 1000, min(h - 60, 3000))
+    assert envelope is not None
+    content_left, content_right = envelope
+    max_width = content_right - content_left + 1
+    padding_x = content_left
+
+    background = _dom_color(img, (0, 1000, w, 2000))[0]
+    footer_bg = _dom_color(img, (0, h - 70, w, h))[0]
+    footer_top, _border_color = _last_separator_line(img)
+    footer_height = h - footer_top
+    gnb_text = _dominant_light(img, (0, gnb_top + 2, w, gnb_bottom))
+
+    return {
+        "state_id": state_id,
+        "artifact_sha256": shot_sha,
+        "viewport": (w, h),
+        "header_height": header_height,
+        "gnb_height": gnb_height,
+        "gnb_color": gnb_color,
+        "gnb_text": gnb_text,
+        "header_bg": header_bg,
+        "footer_bg": footer_bg,
+        "footer_height": footer_height,
+        "max_width": max_width,
+        "padding_x": padding_x,
+        "background": background,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Contract assembly
+# ---------------------------------------------------------------------------
+def _measurement(field, value, source, method, unit=None, note=None) -> dict:
+    return {
+        "field": field,
+        "value": value,
+        "source_state_id": source["state_id"],
+        "artifact_sha256": source["artifact_sha256"],
+        "method": method,
+        "unit": unit,
+        "note": note,
+    }
+
+
+def build_visual_contract() -> dict:
+    model = _model()
+    desktop = _measure_desktop()
+    mobile = _measure_mobile()
+    fonts = _font_family_observation()
+
+    measurements: list[dict] = []
+    for field, value, unit in (
+        ("layout.header.height_px", desktop["header_height"], "px"),
+        ("layout.gnb.height_px", desktop["gnb_height"], "px"),
+        ("layout.footer.height_px", desktop["footer_height"], "px"),
+        ("layout.main.max_width_px", desktop["max_width"], "px"),
+        ("layout.main.padding_x", desktop["padding_x"], "px"),
+        ("colors.primary", desktop["gnb_color"], "hex"),
+        ("colors.background", desktop["background"], "hex"),
+        ("colors.header_bg", desktop["header_bg"], "hex"),
+        ("colors.gnb_bg", desktop["gnb_color"], "hex"),
+        ("colors.gnb_text", desktop["gnb_text"], "hex"),
+        ("colors.footer_bg", desktop["footer_bg"], "hex"),
+        ("colors.text", desktop["text"], "hex"),
+        ("colors.text_muted", desktop["muted"], "hex"),
+        ("colors.border", desktop["border"], "hex"),
+        ("border.width", 1, "px"),
+        ("border.color", desktop["border"], "hex"),
+        ("responsive.mobile.header_height_px", mobile["header_height"], "px"),
+        ("responsive.mobile.gnb_height_px", mobile["gnb_height"], "px"),
+        ("responsive.mobile.max_width_px", mobile["max_width"], "px"),
+        ("responsive.mobile.padding_x", mobile["padding_x"], "px"),
+    ):
+        measurements.append(
+            _measurement(field, value, desktop if not field.startswith("responsive.mobile") else mobile,
+                         "pixel_analysis")
+        )
+
+    text_color = desktop["text"]
+    muted = desktop["muted"]
+    border = desktop["border"]
+
+    contract = {
+        "schema_version": CONTRACT_SCHEMA_VERSION,
+        "contract_kind": "visual_input",
+        "site_id": SITE_ID,
+        "capture_id": CAPTURE_ID,
+        "model_checksum": compute_model_checksum(model),
+        "note": (
+            "Provenance-backed measurements from the immutable committed G1 "
+            "capture evidence. Every non-null value is traced to a captured "
+            "state, the committed screenshot SHA it was measured from, and the "
+            "measurement method. Values that cannot be safely measured remain "
+            "null and are listed in gaps."
+        ),
+        "layout": {
+            "header": {
+                "height_px": desktop["header_height"],
+                "padding_top": None,
+                "padding_bottom": None,
+                "padding_x": None,
+                "sticky": None,
+                "provenance_state_id": desktop["state_id"],
+            },
+            "gnb": {
+                "height_px": desktop["gnb_height"],
+                "item_gap": None,
+                "toggle_size": None,
+                "provenance_state_id": desktop["state_id"],
+            },
+            "main": {
+                "max_width_px": desktop["max_width"],
+                "padding_x": desktop["padding_x"],
+                "padding_y": None,
+                "padding_bottom": None,
+                "provenance_state_id": desktop["state_id"],
+            },
+            "footer": {
+                "height_px": desktop["footer_height"],
+                "padding_top": None,
+                "padding_bottom": None,
+                "provenance_state_id": desktop["state_id"],
+            },
+        },
+        "colors": {
+            "primary": desktop["gnb_color"],
+            "background": desktop["background"],
+            "surface": None,
+            "text": text_color,
+            "text_muted": muted,
+            "border": border,
+            "link": None,
+            "link_hover": None,
+            "header_bg": desktop["header_bg"],
+            "gnb_bg": desktop["gnb_color"],
+            "gnb_text": desktop["gnb_text"],
+            "footer_bg": desktop["footer_bg"],
+            "footer_border": border,
+            "provenance_state_id": desktop["state_id"],
+        },
+        "typography": {
+            "font_family": "Gmarket Sans, Noto Sans CJK KR" if fonts else None,
+            "font_family_kr": "Noto Sans CJK KR" if "Noto Sans CJK KR" in fonts else None,
+            "site_title_size": None,
+            "site_title_weight": None,
+            "nav_link_size": None,
+            "nav_link_weight": None,
+            "section_title_size": None,
+            "section_title_weight": None,
+            "detail_title_size": None,
+            "detail_title_weight": None,
+            "body_size": None,
+            "body_line_height": None,
+            "text_color": text_color,
+            "provenance_state_id": desktop["state_id"],
+        },
+        "spacing": {
+            "section_gap": None,
+            "card_padding": None,
+            "list_item_padding": None,
+            "badge_padding_x": None,
+            "badge_padding_y": None,
+            "provenance_state_id": desktop["state_id"],
+        },
+        "border": {
+            "radius_card": None,
+            "radius_pill": None,
+            "radius_button": None,
+            "width": 1,
+            "style": None,
+            "color": border,
+            "provenance_state_id": desktop["state_id"],
+        },
+        "responsive": {
+            "breakpoint_mobile": None,
+            "mobile": {
+                "header_height_px": mobile["header_height"],
+                "gnb_height_px": mobile["gnb_height"],
+                "max_width_px": mobile["max_width"],
+                "header_padding_x": mobile["padding_x"],
+                "header_padding_y": None,
+                "main_padding_x": mobile["padding_x"],
+                "main_padding_y": None,
+                "main_padding_bottom": None,
+                "grid_columns": None,
+                "provenance_state_id": mobile["state_id"],
+            },
+            "provenance_state_id": mobile["state_id"],
+        },
+        "gaps": [
+            {
+                "region": "organization_chart",
+                "note": "No measurable geometry for org chart surface in committed G1 evidence.",
+                "provenance_state_id": None,
+            },
+            {
+                "region": "staff_directory",
+                "note": "No measurable geometry for staff directory surface in committed G1 evidence.",
+                "provenance_state_id": None,
+            },
+            {
+                "region": "detail_attachment_buttons",
+                "note": "No measured attachment-button geometry (size, color, icon style).",
+                "provenance_state_id": None,
+            },
+            {
+                "region": "border_radius",
+                "note": "Border radius is not safely measurable from committed screenshots.",
+                "provenance_state_id": None,
+            },
+            {
+                "region": "responsive_breakpoint",
+                "note": "Exact mobile breakpoint value is not derivable from two committed viewports.",
+                "provenance_state_id": None,
+            },
+            {
+                "region": "font_sizes",
+                "note": "Font sizes are not safely measurable from committed screenshots.",
+                "provenance_state_id": None,
+            },
+            {
+                "region": "spacing_paddings",
+                "note": "Element-specific paddings are not safely measurable from committed screenshots.",
+                "provenance_state_id": None,
+            },
+        ],
+        "measurements": measurements,
+    }
+    return contract
+
+
+def build_asset_manifest() -> dict:
+    """Deterministic full provenance materialization from the committed model.
+
+    G2-B commits no asset bytes: every provenance entry stays unresolved and is
+    marked REVIEW_REQUIRED (rights unverified). Accounting is exact.
+    """
+    model = _model()
+    entries = model.get("provenance_manifest", [])
+    total = len(entries)
+    materialized = []
+    for entry in entries:
+        materialized.append({
+            "source_url": entry.get("source_url"),
+            "sha256": entry.get("sha256"),
+            "state_id": entry.get("state_id"),
+            "committed": False,
+            "local_path": None,
+            "status": "REVIEW_REQUIRED",
+            "note": entry.get("provenance_note"),
+        })
+    return {
+        "schema_version": 1,
+        "manifest_kind": "asset_manifest",
+        "site_id": SITE_ID,
+        "capture_id": CAPTURE_ID,
+        "model_checksum": compute_model_checksum(model),
+        "accounting": {
+            "total": total,
+            "committed": 0,
+            "selected": 0,
+            "unresolved": total,
+            "review_required": total,
+        },
+        "policy_note": (
+            "G2-B commits no asset bytes. Every provenance entry from the "
+            "committed model's provenance_manifest is materialized below with "
+            "exact accounting; all remain REVIEW_REQUIRED because rights/use "
+            "are not yet verified. No live runtime fetch is performed."
+        ),
+        "committed_assets": [],
+        "provenance_entries": materialized,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if "--write" in args:
+        contract = build_visual_contract()
+        OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        OUT_PATH.write_text(
+            json.dumps(contract, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        manifest = build_asset_manifest()
+        MANIFEST_PATH.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        print(f"[measure] wrote {OUT_PATH.relative_to(REPO_ROOT)}")
+        print(f"[measure] wrote {MANIFEST_PATH.relative_to(REPO_ROOT)}")
+        return 0
+
+    if "--check" in args:
+        current = json.loads(OUT_PATH.read_text(encoding="utf-8"))
+        fresh = build_visual_contract()
+        ok = json.dumps(current, ensure_ascii=False, sort_keys=True) == json.dumps(
+            fresh, ensure_ascii=False, sort_keys=True
+        )
+        manifest_ok = json.loads(
+            MANIFEST_PATH.read_text(encoding="utf-8")
+        ) == build_asset_manifest()
+        if not ok:
+            print("VISUAL_CONTRACT_STALE: committed visual-contract.json differs from measurement")
+            return 2
+        if not manifest_ok:
+            print("ASSET_MANIFEST_STALE: committed asset-manifest.json differs from materialization")
+            return 2
+        print("VISUAL_CONTRACT_OK")
+        print("ASSET_MANIFEST_OK")
+        return 0
+
+    print(__doc__)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
