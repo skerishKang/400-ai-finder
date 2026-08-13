@@ -296,3 +296,27 @@ def test_review_md_separates_modeled_contract_and_source_parity():
         assert f"`{sid}`" in text
     assert "KNOWN GAP (source richer than clone)" in text
 
+
+def test_responsive_not_auto_derived_from_gap(manifest):
+    # Requirement: responsive must NOT be auto-derived from a structural/content
+    # gap. It is decided only by the separate RESPONSIVE_PARITY_EVIDENCE mapping,
+    # which currently has no positive source-vs-clone responsive evidence, so
+    # every state is fail-closed NOT_ASSESSED.
+    states = {s["state_id"]: s for s in manifest["states"]}
+    for sid, s in states.items():
+        sp = s["source_parity"]
+        # No state may report responsive=DIFFER purely because it is a gap.
+        if sp["gap"]:
+            assert sp["responsive"] != "DIFFER", (
+                f"{sid}: responsive must not auto-DIFFER from structural/content gap")
+        # Desktop-only states (no cross-viewport evidence) must be NOT_ASSESSED.
+        assert sp["responsive"] == "NOT_ASSESSED", (
+            f"{sid}: responsive requires separate evidence mapping; got {sp['responsive']}")
+    # Explicit guard for the listed desktop-only states.
+    for sid in ("notice.detail.desktop", "gosi.detail.desktop",
+                "civil_form.detail.desktop", "organization.chart.desktop",
+                "staff.directory.desktop"):
+        assert states[sid]["source_parity"]["responsive"] == "NOT_ASSESSED"
+    # Mapping source of truth is the separate evidence dict (empty => all N/A).
+    assert g3.RESPONSIVE_PARITY_EVIDENCE == {}, "responsive mapping must stay empty until evidence exists"
+

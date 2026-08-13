@@ -111,6 +111,17 @@ SOURCE_PARITY_DIMENSIONS = (
     "responsive", "a11y", "visual",
 )
 
+# Responsive source-parity is decided ONLY by this explicit, separate evidence
+# mapping. It is intentionally NOT derived from structural/content gap status.
+# There is currently no positive committed source-vs-clone responsive evidence
+# (e.g. cross-viewport source<->clone comparison), so every state is fail-closed
+# NOT_ASSESSED. A structural/content gap must never propagate to responsive.
+#
+# To claim responsive = DIFFER/PASS for any state, an entry must be added here
+# backed by explicit cross-viewport source<->clone evidence (and an independent
+# test). Until then, responsive stays NOT_ASSESSED for all states.
+RESPONSIVE_PARITY_EVIDENCE: dict[str, str] = {}
+
 
 def _sha256(path: Path) -> str:
     h = hashlib.sha256()
@@ -333,13 +344,15 @@ def _source_parity_for(state_id: str) -> dict[str, Any]:
     if is_gap:
         structural = "DIFFER"
         content = "DIFFER"
-        responsive = "DIFFER"
     else:
         # Insufficient committed automated source-vs-clone comparison evidence;
         # fail-closed (no PASS). Owner visual review is still pending.
         structural = "NOT_ASSESSED"
         content = "NOT_ASSESSED"
-        responsive = "NOT_ASSESSED"
+    # Responsive is decided ONLY by the separate RESPONSIVE_PARITY_EVIDENCE
+    # mapping; it is never auto-derived from a structural/content gap. With no
+    # positive committed source-vs-clone responsive evidence it is NOT_ASSESSED.
+    responsive = RESPONSIVE_PARITY_EVIDENCE.get(state_id, "NOT_ASSESSED")
     return {
         "structural": structural,
         "content": content,
@@ -516,6 +529,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="G3 Seo-gu source-vs-clone evidence")
     parser.add_argument("--repo-root", default=str(Path(__file__).resolve().parents[1]))
     parser.add_argument("--chromium", default=None)
+    parser.add_argument("--no-capture", action="store_true",
+                        help="Reuse existing clone/side_by_side PNGs; do not "
+                             "recapture. Source-parity/semantics-only regeneration "
+                             "that preserves committed evidence PNG bytes.")
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     ev_root = (repo_root / "data" / "official_clone_reviews" / SITE_PREFIX
@@ -582,27 +599,48 @@ def main(argv: list[str] | None = None) -> int:
 
             # 5. per-state full-page clone capture + per-state external count.
             for state_id, viewport_, subpath, _open in STATE_PLAN:
-                page = context.new_page()
-                external: list[str] = []
-                page.route("**/*", _make_external_counter(external))
-                page.set_viewport_size(viewport_)
                 url = base + subpath  # base ends with "/"; subpath may be ""
                 if not url.endswith("/"):
                     url += "/"
-                page.goto(url, wait_until="networkidle", timeout=30000)
-                page.wait_for_timeout(300)
                 clone_png = ev_root / "states" / state_id / "clone.png"
-                clone_png.parent.mkdir(parents=True, exist_ok=True)
-                page.screenshot(path=str(clone_png), full_page=True, type="png")
-                external_total += len(external)
+                sbs_png = ev_root / "states" / state_id / "side_by_side.png"
 
+                if args.no_capture:
+                    # Semantics-only regeneration: reuse committed PNG bytes.
+                    if not (clone_png.is_file() and sbs_png.is_file()):
+                        raise SystemExit(
+                            f"FAIL-CLOSED: --no-capture missing PNG for {state_id}")
+                    clone_sha = _sha256(clone_png)
+                    sbs_sha = _sha256(sbs_png)
+                    ext_count = 0
+                else:
+                    page = context.new_page()
+                    external: list[str] = []
+                    page.route("**/*", _make_external_counter(external))
+                    page.set_viewport_size(viewport_)
+                    page.goto(url, wait_until="networkidle", timeout=30000)
+                    page.wait_for_timeout(300)
+                    clone_png.parent.mkdir(parents=True, exist_ok=True)
+                    page.screenshot(path=str(clone_png), full_page=True, type="png")
+                    clone_sha = _sha256(clone_png)
+                    ext_count = len(external)
+                    page.close()
+
+                # GNB open state is read without a screenshot (no-capture safe).
                 gnb_state = None
                 if state_id == "home.desktop.gnb_open":
+                    gpage = context.new_page()
+                    gexternal: list[str] = []
+                    gpage.route("**/*", _make_external_counter(gexternal))
+                    gpage.set_viewport_size(viewport_)
+                    gpage.goto(url, wait_until="networkidle", timeout=30000)
                     gnb_state = {
-                        "aria_expanded": page.get_attribute("#rc-gnb-toggle", "aria-expanded"),
-                        "panel_visible": page.is_visible("#rc-mega-menu"),
+                        "aria_expanded": gpage.get_attribute("#rc-gnb-toggle", "aria-expanded"),
+                        "panel_visible": gpage.is_visible("#rc-mega-menu"),
                     }
+                    gpage.close()
 
+                external_total += ext_count
                 results.append({
                     "state_id": state_id,
                     "source_screenshot_path": str(
@@ -615,19 +653,18 @@ def main(argv: list[str] | None = None) -> int:
                     "clone_capture_url": url,
                     "clone_screenshot_path": str(
                         (ev_root / "states" / state_id / "clone.png").relative_to(repo_root)),
-                    "clone_screenshot_sha256": _sha256(clone_png),
+                    "clone_screenshot_sha256": clone_sha,
                     "side_by_side_path": str(
                         (ev_root / "states" / state_id / "side_by_side.png").relative_to(repo_root)),
-                    "side_by_side_sha256": None,
+                    "side_by_side_sha256": sbs_sha,
                     "browser_tool_version": browser_version,
                     "capture_viewport": viewport_,
-                    "external_network_count": len(external),
-                    "external_requests": external,
+                    "external_network_count": ext_count,
+                    "external_requests": [] if args.no_capture else external,
                     "gnb_open_state": gnb_state,
                     "source_parity": _source_parity_for(state_id),
                     "modeled_contract": None,
                 })
-                page.close()
 
             # 6. interaction evidence on a shared loopback-only page.
             ipage = context.new_page()
@@ -648,9 +685,15 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         httpd.shutdown()
 
-    # 7. side-by-side composites.
+    # 7. side-by-side composites (reused when --no-capture).
     for r in results:
         sb = ev_root / "states" / r["state_id"] / "side_by_side.png"
+        if args.no_capture:
+            if not sb.is_file():
+                raise SystemExit(
+                    f"FAIL-CLOSED: --no-capture missing side_by_side for {r['state_id']}")
+            r["side_by_side_sha256"] = _sha256(sb)
+            continue
         src = repo_root / r["source_screenshot_path"]
         cln = repo_root / r["clone_screenshot_path"]
         vp = r["capture_viewport"]
