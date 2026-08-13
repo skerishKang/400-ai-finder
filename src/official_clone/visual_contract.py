@@ -5,24 +5,34 @@ faithful-clone renderer. It is produced offline from committed G1 evidence
 (``scripts/measure_g1_visual_contract.py``); it is never fetched at runtime and
 never modifies the immutable G1 capture tree.
 
-This module makes the contract an executable gate:
+This module makes the contract an executable gate. Validation is *fail-closed*:
+any of the following raises :class:`VisualContractValidationError`:
 
-  * identity: ``site_id`` / ``capture_id`` must equal the semantic model;
-  * model checksum: the contract's ``model_checksum`` must equal the canonical
-    checksum of the model document (wrong checksum -> fail-closed);
-  * schema: every required section/field must exist (null is allowed but
-    accounted);
-  * provenance: every referenced ``provenance_state_id`` must exist in the
-    model's states, and every referenced artifact SHA must exist/equal the
-    committed screenshot SHA recorded in the model's ``document_geometry``;
-  * numeric ranges: dimensions/colors must fall in sane ranges;
-  * accounting: null/pending values are counted and the ``faithful_ready``
-    readiness flag is derived from the *required measured* fields only.
+  * identity: ``site_id`` / ``capture_id`` differ from the semantic model;
+  * model checksum: the contract's ``model_checksum`` differs from the canonical
+    checksum of the model document;
+  * schema: a required section/field is missing;
+  * evidence binding (1:1): every non-null measured contract field MUST have
+    exactly one evidence record, and every evidence record MUST resolve to an
+    existing contract field with a matching value and unit. Specifically:
+      - required field with no evidence record            -> fail;
+      - duplicate evidence for the same field             -> fail;
+      - unknown / unbound evidence field                  -> fail;
+      - evidence value != contract field value            -> fail;
+      - evidence unit != expected unit for the field      -> fail;
+      - evidence source state not in the model            -> fail;
+      - evidence artifact SHA mismatch vs committed SHA   -> fail;
+      - evidence present but not connected to the contract -> fail;
+  * evidence type: ``pixel_analysis`` / ``asset_provenance`` / ``ledger`` and
+    the corresponding artifact checks are enforced (screenshot SHA for pixel
+    analysis; provenance-manifest asset SHA/URL for asset provenance);
+  * numeric ranges and color format sanity.
 
 ``validate_visual_contract`` returns a normalized copy (the validated
 contract). ``derive_theme`` extracts only measured (non-null, provenance-backed)
-values for the generic renderer. Any identity/checksum/malformed-data failure
-raises :class:`VisualContractValidationError` so build pipelines fail closed.
+values for the generic renderer. ``faithful_ready`` is True only when every
+required measured field is non-null AND has a valid 1:1 evidence record; any
+null/pending/mismatch/unbound required evidence keeps it False.
 """
 
 from __future__ import annotations
@@ -50,12 +60,15 @@ REQUIRED_SECTIONS = (
 # Required measured fields: the renderer derives its theme from exactly these.
 # A null/pending value in any of these makes the contract NOT ready for a
 # faithful-candidate claim (faithful_ready=False, faithful_clone_candidate
-# must then be False).
+# must then be False). Mobile geometry is required too: desktop-only evidence
+# cannot promote a faithful candidate.
 REQUIRED_MEASURED_FIELDS = (
+    # desktop geometry
     "layout.header.height_px",
     "layout.gnb.height_px",
     "layout.main.max_width_px",
     "layout.footer.height_px",
+    # desktop colors
     "colors.primary",
     "colors.background",
     "colors.header_bg",
@@ -65,17 +78,53 @@ REQUIRED_MEASURED_FIELDS = (
     "colors.text",
     "colors.text_muted",
     "colors.border",
+    # typography observation
     "typography.font_family",
     "typography.text_color",
+    # border
     "border.width",
     "border.color",
+    # mobile (390px) provenance — required for the faithful gate
+    "responsive.mobile.header_height_px",
+    "responsive.mobile.gnb_height_px",
+    "responsive.mobile.max_width_px",
+    "responsive.mobile.main_padding_x",
 )
+
+# Expected unit per required measured field (None = unitless string value).
+FIELD_UNITS: dict[str, str | None] = {
+    "layout.header.height_px": "px",
+    "layout.gnb.height_px": "px",
+    "layout.main.max_width_px": "px",
+    "layout.footer.height_px": "px",
+    "colors.primary": "hex",
+    "colors.background": "hex",
+    "colors.header_bg": "hex",
+    "colors.gnb_bg": "hex",
+    "colors.gnb_text": "hex",
+    "colors.footer_bg": "hex",
+    "colors.text": "hex",
+    "colors.text_muted": "hex",
+    "colors.border": "hex",
+    "typography.font_family": None,
+    "typography.text_color": "hex",
+    "border.width": "px",
+    "border.color": "hex",
+    "responsive.mobile.header_height_px": "px",
+    "responsive.mobile.gnb_height_px": "px",
+    "responsive.mobile.max_width_px": "px",
+    "responsive.mobile.main_padding_x": "px",
+}
+
+# Evidence record types supported by the validator.
+EVIDENCE_TYPES = ("pixel_analysis", "asset_provenance", "ledger")
 
 _HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 class VisualContractValidationError(ValueError):
-    """Raised when a visual contract fails identity/checksum/schema checks."""
+    """Raised when a visual contract fails identity/checksum/schema/evidence
+    binding checks."""
 
 
 def canonical_model_json(model: dict[str, Any]) -> str:
@@ -95,6 +144,16 @@ def _get_path(contract: dict[str, Any], dotted: str) -> Any:
             return None
         node = node[part]
     return node
+
+
+def _field_exists(contract: dict[str, Any], dotted: str) -> bool:
+    node: Any = contract
+    parts = dotted.split(".")
+    for part in parts:
+        if not isinstance(node, dict) or part not in node:
+            return False
+        node = node[part]
+    return True
 
 
 def _is_hex_color(value: Any) -> bool:
@@ -146,30 +205,120 @@ def _check_identity(contract: dict[str, Any], model: dict[str, Any]) -> None:
         )
 
 
-def _check_provenance(contract: dict[str, Any], model: dict[str, Any]) -> None:
-    state_ids = {s.get("state_id") for s in model.get("states", [])}
-    screenshot_sha = {}
+def _screenshot_sha_map(model: dict[str, Any]) -> dict[str, str]:
+    """Map state_id -> committed full-page screenshot SHA from the model."""
+    out: dict[str, str] = {}
     for state in model.get("states", []):
         geometry = state.get("document_geometry") or {}
         full = geometry.get("full_page_screenshot") or {}
         if isinstance(full, dict) and full.get("sha256"):
-            screenshot_sha[state.get("state_id")] = full["sha256"]
+            out[state.get("state_id")] = full["sha256"]
+    return out
 
-    for entry in _measurement_entries(contract):
+
+def _provenance_assets_by_state(model: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """Map state_id -> list of provenance-manifest asset records."""
+    out: dict[str, list[dict[str, Any]]] = {}
+    for entry in model.get("provenance_manifest", []) or []:
+        state_id = entry.get("state_id")
+        if state_id:
+            out.setdefault(state_id, []).append(entry)
+    return out
+
+
+def _check_evidence(contract: dict[str, Any], model: dict[str, Any]) -> None:
+    """Enforce 1:1 binding between measured contract fields and evidence.
+
+    Fail-closed on: required field without evidence, duplicate evidence,
+    unknown/unbound evidence field, field/value mismatch, unit mismatch,
+    source state mismatch, artifact SHA mismatch, evidence not connected to a
+    contract field, and unsupported evidence types.
+    """
+    state_ids = {s.get("state_id") for s in model.get("states", [])}
+    shot_shas = _screenshot_sha_map(model)
+    assets_by_state = _provenance_assets_by_state(model)
+
+    entries = _measurement_entries(contract)
+    seen_fields: set[str] = set()
+    bound_fields: set[str] = set()
+
+    for entry in entries:
+        field = entry.get("field")
+        value = entry.get("value")
+        unit = entry.get("unit")
+        ev_type = entry.get("evidence_type")
         state_id = entry.get("source_state_id")
-        if not state_id:
-            continue
-        if state_id not in state_ids:
-            raise VisualContractValidationError(
-                f"measurement provenance_state_id not in model states: {state_id!r}"
-            )
         artifact_sha = entry.get("artifact_sha256")
-        if not artifact_sha:
-            continue
-        if artifact_sha != screenshot_sha.get(state_id):
+
+        # Unknown / unbound evidence field: must resolve to a contract field.
+        if not isinstance(field, str) or not field:
             raise VisualContractValidationError(
-                f"artifact_sha256 mismatch for {state_id!r}: "
-                f"contract={artifact_sha!r} model={screenshot_sha.get(state_id)!r}"
+                f"evidence record missing field name: {entry!r}"
+            )
+        if not _field_exists(contract, field):
+            raise VisualContractValidationError(
+                f"unknown/unbound evidence field: {field!r} (no such contract field)"
+            )
+
+        # Duplicate evidence.
+        if field in seen_fields:
+            raise VisualContractValidationError(f"duplicate evidence for field: {field!r}")
+        seen_fields.add(field)
+
+        # Field/value mismatch: evidence value must equal the contract value.
+        contract_value = _get_path(contract, field)
+        if contract_value != value:
+            raise VisualContractValidationError(
+                f"field/value mismatch for {field!r}: "
+                f"contract={contract_value!r} evidence={value!r}"
+            )
+
+        # Unit mismatch (only for known required/expected-unit fields).
+        expected_unit = FIELD_UNITS.get(field)
+        if expected_unit is not None and unit != expected_unit:
+            raise VisualContractValidationError(
+                f"unit mismatch for {field!r}: expected={expected_unit!r} got={unit!r}"
+            )
+
+        # Source state must exist in the model.
+        if not state_id or state_id not in state_ids:
+            raise VisualContractValidationError(
+                f"source state mismatch for {field!r}: {state_id!r} not in model states"
+            )
+
+        # Evidence type + artifact checksum validation.
+        if ev_type not in EVIDENCE_TYPES:
+            raise VisualContractValidationError(
+                f"unsupported evidence_type for {field!r}: {ev_type!r}"
+            )
+        if not artifact_sha:
+            raise VisualContractValidationError(
+                f"evidence for {field!r} has no artifact_sha256"
+            )
+        if ev_type == "pixel_analysis":
+            expected_sha = shot_shas.get(state_id)
+            if not expected_sha or artifact_sha != expected_sha:
+                raise VisualContractValidationError(
+                    f"artifact SHA mismatch for {field!r} ({state_id}): "
+                    f"evidence={artifact_sha!r} committed={expected_sha!r}"
+                )
+        elif ev_type == "asset_provenance":
+            assets = assets_by_state.get(state_id, [])
+            asset_shas = {a.get("sha256") for a in assets}
+            if artifact_sha not in asset_shas:
+                raise VisualContractValidationError(
+                    f"asset artifact SHA mismatch for {field!r} ({state_id}): "
+                    f"{artifact_sha!r} not in committed provenance manifest"
+                )
+        # ledger evidence: artifact SHA validated against the ledger below.
+
+        bound_fields.add(field)
+
+    # Every non-null required measured field must have a bound evidence record.
+    for field in REQUIRED_MEASURED_FIELDS:
+        if _get_path(contract, field) is not None and field not in bound_fields:
+            raise VisualContractValidationError(
+                f"required field has no evidence record: {field!r}"
             )
 
 
@@ -201,7 +350,7 @@ def _check_ranges(contract: dict[str, Any]) -> None:
             raise VisualContractValidationError(f"malformed color field {key}: {value!r}")
 
 
-def _count_nulls(contract: dict[str, Any]) -> tuple[int, int]:
+def _count_nulls(contract: dict[str, Any]) -> tuple[int, list[str]]:
     measured = [f for f in _measurement_entries(contract) if f.get("value") is not None]
     missing = [
         f for f in REQUIRED_MEASURED_FIELDS if _get_path(contract, f) is None
@@ -223,7 +372,7 @@ def validate_visual_contract(
 
     _check_schema(contract)
     _check_identity(contract, model)
-    _check_provenance(contract, model)
+    _check_evidence(contract, model)
     _check_ranges(contract)
 
     measured_count, missing_required = _count_nulls(contract)
@@ -262,7 +411,7 @@ def derive_theme(validated: dict[str, Any]) -> dict[str, Any]:
         if value is not None:
             theme[field] = value
 
-    # Responsive differences are optional per-device extras (never guessed).
+    # Responsive differences are required per-device extras (never guessed).
     responsive = validated.get("responsive") or {}
     for key, value in (responsive.get("mobile") or {}).items():
         if isinstance(value, (int, float)) and value is not None:

@@ -972,6 +972,7 @@ def test_seogu_resident_output_has_no_debug_diagnostics(build_dir):
                 "표면",
                 "rc-meta",
                 "캡처 메타데이터",
+                "list_no=",
             ):
                 assert token not in html, f"debug diagnostics leaked in {path}: {token!r}"
             # Capture evidence exists only as hidden machine-readable JSON.

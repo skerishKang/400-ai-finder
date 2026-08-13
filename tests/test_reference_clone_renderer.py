@@ -271,7 +271,10 @@ def test_notice_list_links_to_detail_and_distinct():
     detail = mod.render_state(model, "notice.detail.desktop", route_prefix=_ROUTE_PREFIX)
     assert "rc-list-link" in listing
     assert 'data-detail="1"' in listing
-    assert "list_no=143106" in detail
+    # list_no is an internal identifier, NOT proven resident-visible content:
+    # it must stay out of the resident view (hidden evidence only).
+    assert "list_no=143106" not in detail
+    assert "list_no=" not in detail
     assert "다운로드 (.hwpx)" in detail
     assert "미리보기" in detail
     assert "다운로드 (.hwpx)" not in listing
@@ -301,7 +304,8 @@ def test_gosi_list_detail_distinct_with_attachment():
 def test_civil_form_detail_captures_hwp_attachment():
     model = _load_model()
     detail = mod.render_state(model, "civil_form.detail.desktop", route_prefix=_ROUTE_PREFIX)
-    assert "list_no=143010" in detail
+    assert "list_no=143010" not in detail
+    assert "list_no=" not in detail
     assert "자동차 등록 위임장" in detail
     assert "다운로드 (.hwp)" in detail
     assert "disabled" in detail
@@ -415,8 +419,34 @@ def test_resident_visible_has_no_debug_diagnostics():
             "표면",
             "rc-meta",
             "<dt>state_id</dt>",
+            "list_no=",
         ):
             assert token not in html, f"resident-visible debug leaked {token!r} in {state_id}"
+
+
+def test_list_no_kept_in_hidden_evidence_only():
+    """Internal identifiers (list_no) stay in hidden QA evidence, never on the
+    resident-visible surface."""
+    model = _load_model()
+    detail = mod.render_state(model, "notice.detail.desktop", route_prefix=_ROUTE_PREFIX)
+    assert "list_no=" not in detail
+    # The hidden rc-evidence JSON carries the identifier for QA.
+    start = detail.index('id="rc-evidence"')
+    end = detail.index("</script>", start)
+    payload = json.loads(detail[start:end].split(">", 1)[1])
+    assert payload["list_no"] == "143106"
+
+
+def test_non_fidelity_defaults_classified_not_faithful():
+    """Renderer presentation defaults are explicitly classified as
+    non-fidelity accessibility defaults and do not gate the faithful claim."""
+    assert mod.NON_FIDELITY_PRESENTATION_DEFAULTS["font_size"] == "browser-default"
+    assert mod.NON_FIDELITY_PRESENTATION_DEFAULTS["border_radius"] is None
+    assert mod.NON_FIDELITY_PRESENTATION_DEFAULTS["responsive_breakpoint"] is None
+    # faithful_ready depends only on measured contract values, not on defaults.
+    model = _load_model()
+    contract = _load_validated_contract()
+    assert mod.faithful_ready(contract) is True
 
 
 # ── CSS derived strictly from the validated contract ────────────────────
@@ -520,7 +550,15 @@ def _make_state(state_id, title, **over):
         "controls": [{"tag": "a", "text": "Menu A", "id": None, "class_name": ""}],
         "general_links": [],
         "viewport_geometry": {"width": 1440, "height": 900},
-        "document_geometry": {"viewport": {"width": 1440, "height": 900}},
+        "document_geometry": {
+            "viewport": {"width": 1440, "height": 900},
+            "full_page_screenshot": {
+                "artifact_id": f"states/{state_id}/source.png",
+                "width": 1440,
+                "height": 900,
+                "sha256": "a" * 64,
+            },
+        },
         "list_no": None,
         "download_references": [],
         "attachment_document_extensions": [],
@@ -596,10 +634,52 @@ def _synthetic_model():
 def _synthetic_visual_contract():
     """A second-site visual contract with DIFFERENT measured values.
 
-    Provenance references the synthetic state's own committed screenshot SHA
-    (a synthetic sha256 is fine for the validator identity check: the checker
-    only verifies the referenced screenshot SHA matches the model geometry).
+    Every required field carries a 1:1 evidence record. Provenance references
+    the synthetic state's own committed screenshot SHA (a synthetic sha256 is
+    fine for the validator identity check: the checker only verifies the
+    referenced screenshot SHA matches the model geometry).
     """
+    shot_sha = "a" * 64
+    values = {
+        "layout.header.height_px": 120,
+        "layout.gnb.height_px": 48,
+        "layout.main.max_width_px": 1200,
+        "layout.footer.height_px": 90,
+        "colors.primary": "#123456",
+        "colors.background": "#fafafa",
+        "colors.header_bg": "#e8e8ec",
+        "colors.gnb_bg": "#123456",
+        "colors.gnb_text": "#ffffff",
+        "colors.footer_bg": "#e8e8ec",
+        "colors.text": "#111111",
+        "colors.text_muted": "#666666",
+        "colors.border": "#cccccc",
+        "typography.font_family": "Noto Sans KR",
+        "typography.text_color": "#111111",
+        "border.width": 2,
+        "border.color": "#cccccc",
+        "responsive.mobile.header_height_px": 100,
+        "responsive.mobile.gnb_height_px": 44,
+        "responsive.mobile.max_width_px": 1000,
+        "responsive.mobile.main_padding_x": 12,
+    }
+    measurements = []
+    for field, value in values.items():
+        if field.endswith("_px") or field.endswith("_padding_x") or field == "border.width":
+            unit = "px"
+        elif field.startswith("colors.") or field == "border.color" or field == "typography.text_color":
+            unit = "hex"
+        else:
+            unit = None
+        measurements.append({
+            "field": field,
+            "value": value,
+            "unit": unit,
+            "evidence_type": "pixel_analysis",
+            "source_state_id": "home.desktop.default",
+            "artifact_sha256": shot_sha,
+            "method": "pixel_analysis",
+        })
     return {
         "schema_version": 2,
         "contract_kind": "visual_input",
@@ -629,9 +709,15 @@ def _synthetic_visual_contract():
         },
         "spacing": {},
         "border": {"width": 2, "color": "#cccccc"},
-        "responsive": {"mobile": {}},
+        "responsive": {"mobile": {
+            "header_height_px": 100,
+            "gnb_height_px": 44,
+            "max_width_px": 1000,
+            "main_padding_x": 12,
+            "provenance_state_id": "home.mobile.default",
+        }},
         "gaps": [],
-        "measurements": [],
+        "measurements": measurements,
     }
 
 

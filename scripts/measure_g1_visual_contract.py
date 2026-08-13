@@ -35,6 +35,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from official_clone.visual_contract import (  # noqa: E402
     CONTRACT_SCHEMA_VERSION,
+    FIELD_UNITS,
     REQUIRED_MEASURED_FIELDS,
     compute_model_checksum,
 )
@@ -133,6 +134,39 @@ def _last_separator_line(img: Image.Image) -> tuple[int, str]:
         return height, "#dddddd"
     y, color = lines[-1]
     return y, "#%02x%02x%02x" % (color[0], color[1], color[2])
+
+
+def _separator_thickness(img: Image.Image, y: int, color: tuple[int, int, int], tol: int = 8) -> int:
+    """Measure the contiguous pixel thickness of a full-width separator line.
+
+    Starting from row *y*, count consecutive rows whose dominant color matches
+    *color* within tolerance (the measured border thickness in px). This is a
+    real pixel measurement, not a guessed constant.
+    """
+    width, height = img.size
+
+    def _row_matches(row_y: int) -> bool:
+        counts: Counter[tuple[int, int, int]] = Counter()
+        for x in range(0, width, 3):
+            px = img.getpixel((x, row_y))
+            counts[(px[0] // 4 * 4, px[1] // 4 * 4, px[2] // 4 * 4)] += 1
+        c, _ = counts.most_common(1)[0]
+        return (
+            abs(c[0] - color[0]) <= tol
+            and abs(c[1] - color[1]) <= tol
+            and abs(c[2] - color[2]) <= tol
+        )
+
+    thickness = 0
+    row = y
+    while row >= 0 and _row_matches(row):
+        thickness += 1
+        row -= 1
+    row = y + 1
+    while row < height and _row_matches(row):
+        thickness += 1
+        row += 1
+    return thickness
 
 
 def _dark_band(img: Image.Image, y0: int, y1: int, max_rgb: int = 110) -> tuple[int, int] | None:
@@ -293,6 +327,7 @@ def _measure_desktop() -> dict:
     footer_top, border_color = _last_separator_line(img)
     footer_height = h - footer_top
     footer_bg = _dom_color(img, (0, footer_top + 2, w, h))[0]
+    _sep_rgb = (int(border_color[1:3], 16), int(border_color[3:5], 16), int(border_color[5:7], 16))
 
     # Main content envelope (desktop content band).
     envelope = _content_envelope(img, 700, min(h - 60, 2100))
@@ -309,6 +344,7 @@ def _measure_desktop() -> dict:
 
     # Border: bottom-most full-width neutral separator line (measured).
     # (already obtained above from the same _last_separator_line call)
+    border_thickness = _separator_thickness(img, footer_top, _sep_rgb)
 
     return {
         "state_id": state_id,
@@ -327,6 +363,7 @@ def _measure_desktop() -> dict:
         "text": text_color,
         "muted": muted,
         "border": border_color,
+        "border_thickness": border_thickness,
     }
 
 
@@ -376,15 +413,71 @@ def _measure_mobile() -> dict:
 # ---------------------------------------------------------------------------
 # Contract assembly
 # ---------------------------------------------------------------------------
-def _measurement(field, value, source, method, unit=None, note=None) -> dict:
+def _measurement(field, value, unit, evidence_type, source, method, note=None) -> dict:
     return {
         "field": field,
         "value": value,
+        "unit": unit,
+        "evidence_type": evidence_type,
         "source_state_id": source["state_id"],
         "artifact_sha256": source["artifact_sha256"],
         "method": method,
-        "unit": unit,
         "note": note,
+    }
+
+
+def _font_asset_evidence() -> dict | None:
+    """Return an asset_provenance evidence record for typography.font_family.
+
+    The font families are observed from the font assets the browser actually
+    fetched during G1 capture (recorded in the per-state
+    ``public-asset-provenance.json``), NOT from screenshot pixels. The primary
+    evidence is the first Gmarket Sans woff2 asset SHA; the note lists all
+    observed font assets. If no font asset is committed, returns None so the
+    field stays pending.
+    """
+    observed: dict[str, list[dict]] = {}
+    for state_dir in (CAPTURE_ROOT / "states").iterdir():
+        prov_path = state_dir / "public-asset-provenance.json"
+        if not prov_path.is_file():
+            continue
+        try:
+            prov = json.loads(prov_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for asset in prov.get("assets", []):
+            url = asset.get("url", "")
+            name = url.split("/")[-1].lower()
+            if "gmarketsans" in name or "notosanscjk" in name:
+                entry = {
+                    "url": asset.get("url"),
+                    "sha256": asset.get("sha256"),
+                }
+                observed.setdefault(url, entry)
+    if not observed:
+        return None
+    primary_url = next(iter(sorted(observed)))
+    primary = observed[primary_url]
+    family_value = []
+    if any("gmarketsans" in u.lower() for u in observed):
+        family_value.append("Gmarket Sans")
+    if any("notosanscjk" in u.lower() for u in observed):
+        family_value.append("Noto Sans CJK KR")
+    if not family_value:
+        return None
+    return {
+        "field": "typography.font_family",
+        "value": ", ".join(family_value),
+        "unit": None,
+        "evidence_type": "asset_provenance",
+        "source_state_id": "home.desktop.default",
+        "artifact_sha256": primary["sha256"],
+        "method": "fetched_font_asset_observation",
+        "note": (
+            "Font families observed from font assets fetched by the browser "
+            f"during G1 capture (primary asset {primary_url.split('/')[-1]}). "
+            "Not a screenshot pixel measurement."
+        ),
     }
 
 
@@ -410,17 +503,26 @@ def build_visual_contract() -> dict:
         ("colors.text", desktop["text"], "hex"),
         ("colors.text_muted", desktop["muted"], "hex"),
         ("colors.border", desktop["border"], "hex"),
-        ("border.width", 1, "px"),
+        ("border.width", desktop["border_thickness"], "px"),
         ("border.color", desktop["border"], "hex"),
+        ("typography.text_color", desktop["text"], "hex"),
         ("responsive.mobile.header_height_px", mobile["header_height"], "px"),
         ("responsive.mobile.gnb_height_px", mobile["gnb_height"], "px"),
         ("responsive.mobile.max_width_px", mobile["max_width"], "px"),
-        ("responsive.mobile.padding_x", mobile["padding_x"], "px"),
+        ("responsive.mobile.main_padding_x", mobile["padding_x"], "px"),
     ):
+        source = mobile if field.startswith("responsive.mobile") else desktop
         measurements.append(
-            _measurement(field, value, desktop if not field.startswith("responsive.mobile") else mobile,
-                         "pixel_analysis")
+            _measurement(field, value, unit, "pixel_analysis", source, "pixel_analysis")
         )
+
+    font_evidence = _font_asset_evidence()
+    if font_evidence is not None:
+        measurements.append(font_evidence)
+    elif "Gmarket Sans" in fonts or "Noto Sans CJK KR" in fonts:
+        # No committed font asset bytes but observed filenames: keep the field
+        # pending (explicit gap) rather than pretend it is a pixel measurement.
+        pass
 
     text_color = desktop["text"]
     muted = desktop["muted"]
@@ -434,10 +536,16 @@ def build_visual_contract() -> dict:
         "model_checksum": compute_model_checksum(model),
         "note": (
             "Provenance-backed measurements from the immutable committed G1 "
-            "capture evidence. Every non-null value is traced to a captured "
-            "state, the committed screenshot SHA it was measured from, and the "
-            "measurement method. Values that cannot be safely measured remain "
-            "null and are listed in gaps."
+            "capture evidence. Every non-null value is traced 1:1 to a "
+            "captured state, the committed screenshot SHA it was measured from, "
+            "the measurement method, the unit, and the evidence type. Values "
+            "that cannot be safely measured remain null and are listed in "
+            "gaps. typography.font_family uses asset_provenance evidence "
+            "(fetched font assets), not screenshot pixels. border.width is the "
+            "measured pixel thickness of the footer separator line. "
+            "Renderer-only non-fidelity presentation defaults (font-size, "
+            "font-weight, border-style, focus outline, underline, radius, "
+            "breakpoint) are NOT counted as official-site fidelity evidence."
         ),
         "layout": {
             "header": {
@@ -485,7 +593,7 @@ def build_visual_contract() -> dict:
             "provenance_state_id": desktop["state_id"],
         },
         "typography": {
-            "font_family": "Gmarket Sans, Noto Sans CJK KR" if fonts else None,
+            "font_family": (font_evidence["value"] if font_evidence is not None else None),
             "font_family_kr": "Noto Sans CJK KR" if "Noto Sans CJK KR" in fonts else None,
             "site_title_size": None,
             "site_title_weight": None,
@@ -512,7 +620,7 @@ def build_visual_contract() -> dict:
             "radius_card": None,
             "radius_pill": None,
             "radius_button": None,
-            "width": 1,
+            "width": desktop["border_thickness"],
             "style": None,
             "color": border,
             "provenance_state_id": desktop["state_id"],
@@ -567,6 +675,18 @@ def build_visual_contract() -> dict:
             {
                 "region": "spacing_paddings",
                 "note": "Element-specific paddings are not safely measurable from committed screenshots.",
+                "provenance_state_id": None,
+            },
+            {
+                "region": "non_fidelity_presentation_defaults",
+                "note": (
+                    "Renderer-only non-fidelity defaults (font-size, font-weight, "
+                    "border-style, focus outline width/offset, link underline, "
+                    "border radius, responsive breakpoint) are structural/"
+                    "accessibility implementation defaults. They are NOT counted "
+                    "as official-site fidelity evidence and do not gate "
+                    "faithful_clone_candidate."
+                ),
                 "provenance_state_id": None,
             },
         ],

@@ -150,6 +150,10 @@ def test_missing_required_section_fails_closed():
 def test_malformed_color_fails_closed():
     contract = _contract()
     contract["colors"]["text"] = "#gggggg"
+    # Sync the evidence so the failure is the malformed color itself.
+    for entry in contract["measurements"]:
+        if entry["field"] == "colors.text":
+            entry["value"] = "#gggggg"
     with pytest.raises(validator.VisualContractValidationError, match="malformed color"):
         validator.validate_visual_contract(contract, _model())
 
@@ -157,6 +161,7 @@ def test_malformed_color_fails_closed():
 def test_out_of_range_measurement_fails_closed():
     contract = _contract()
     contract["measurements"][0]["value"] = -5
+    contract["layout"]["header"]["height_px"] = -5  # keep binding consistent
     with pytest.raises(validator.VisualContractValidationError, match="out-of-range"):
         validator.validate_visual_contract(contract, _model())
 
@@ -164,14 +169,14 @@ def test_out_of_range_measurement_fails_closed():
 def test_unknown_provenance_state_fails_closed():
     contract = _contract()
     contract["measurements"][0]["source_state_id"] = "ghost.state.desktop"
-    with pytest.raises(validator.VisualContractValidationError, match="provenance_state_id"):
+    with pytest.raises(validator.VisualContractValidationError, match="source state"):
         validator.validate_visual_contract(contract, _model())
 
 
 def test_wrong_artifact_sha_fails_closed():
     contract = _contract()
     contract["measurements"][0]["artifact_sha256"] = "0" * 64
-    with pytest.raises(validator.VisualContractValidationError, match="artifact_sha256"):
+    with pytest.raises(validator.VisualContractValidationError, match="artifact SHA mismatch"):
         validator.validate_visual_contract(contract, _model())
 
 
@@ -188,8 +193,9 @@ def test_committed_contract_validates_and_is_faithful_ready():
 
 
 def test_measurement_provenance_is_exact():
-    """Every measurement entry must reference a real state and the matching
-    committed screenshot SHA recorded in the model's document_geometry."""
+    """Every measurement entry must reference a real state and a matching
+    committed artifact (screenshot SHA for pixel_analysis; provenance-manifest
+    asset SHA for asset_provenance)."""
     model = _model()
     contract = _contract()
     state_shas = {}
@@ -198,13 +204,22 @@ def test_measurement_provenance_is_exact():
         full = geometry.get("full_page_screenshot") or {}
         if isinstance(full, dict) and full.get("sha256"):
             state_shas[state["state_id"]] = full["sha256"]
+    asset_shas = {a.get("sha256") for a in model.get("provenance_manifest", []) or []}
     for entry in contract["measurements"]:
         state_id = entry["source_state_id"]
         assert state_id in state_shas, f"unreferenced provenance state: {state_id}"
-        assert entry["artifact_sha256"] == state_shas[state_id], (
-            f"artifact SHA mismatch for {state_id}: {entry['artifact_sha256']}"
-        )
-        assert entry.get("method") == "pixel_analysis"
+        ev_type = entry.get("evidence_type")
+        if ev_type == "asset_provenance":
+            assert entry["artifact_sha256"] in asset_shas, (
+                f"asset SHA not in provenance manifest: {entry['artifact_sha256']}"
+            )
+            assert entry["field"] == "typography.font_family"
+        else:
+            assert ev_type == "pixel_analysis"
+            assert entry["artifact_sha256"] == state_shas[state_id], (
+                f"artifact SHA mismatch for {state_id}: {entry['artifact_sha256']}"
+            )
+        assert entry.get("unit") is not None or entry["field"] == "typography.font_family"
 
 
 def test_required_measured_fields_non_null():
@@ -249,6 +264,168 @@ def test_asset_manifest_deterministic():
     fresh = builder["build_asset_manifest"]()
     committed = json.loads(ASSET_MANIFEST_PATH.read_text(encoding="utf-8"))
     assert committed == fresh
+
+
+# ---------------------------------------------------------------------------
+# Evidence 1:1 binding (CTO review 4923712685) — fail-closed negative tests
+# ---------------------------------------------------------------------------
+def _deepcopy_contract():
+    return json.loads(json.dumps(_contract()))
+
+
+def test_contract_value_tamper_with_evidence_unchanged_fails():
+    """Mutating a required contract value while leaving its evidence record
+    unchanged must fail (evidence value != contract field value)."""
+    contract = _deepcopy_contract()
+    contract["layout"]["header"]["height_px"] = 999
+    with pytest.raises(validator.VisualContractValidationError, match="field/value mismatch"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_evidence_value_tamper_fails():
+    """Mutating an evidence value must fail (evidence != contract field)."""
+    contract = _deepcopy_contract()
+    for entry in contract["measurements"]:
+        if entry["field"] == "layout.gnb.height_px":
+            entry["value"] = 999
+    with pytest.raises(validator.VisualContractValidationError, match="field/value mismatch"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_unit_mismatch_fails():
+    contract = _deepcopy_contract()
+    for entry in contract["measurements"]:
+        if entry["field"] == "layout.header.height_px":
+            entry["unit"] = "rem"
+    with pytest.raises(validator.VisualContractValidationError, match="unit mismatch"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_duplicate_field_evidence_fails():
+    contract = _deepcopy_contract()
+    contract["measurements"].append(
+        json.loads(json.dumps(contract["measurements"][0]))
+    )
+    with pytest.raises(validator.VisualContractValidationError, match="duplicate evidence"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_unknown_field_evidence_fails():
+    contract = _deepcopy_contract()
+    contract["measurements"][0]["field"] = "ghost.field.px"
+    with pytest.raises(validator.VisualContractValidationError, match="unknown/unbound"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_unbound_evidence_fails():
+    """Evidence for a field that does not exist in the contract must fail."""
+    contract = _deepcopy_contract()
+    contract["measurements"].append({
+        "field": "colors.no_such_field",
+        "value": "#000000",
+        "unit": "hex",
+        "evidence_type": "pixel_analysis",
+        "source_state_id": "home.desktop.default",
+        "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+        "method": "pixel_analysis",
+    })
+    with pytest.raises(validator.VisualContractValidationError, match="unknown/unbound"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_evidence_for_null_field_fails():
+    """An evidence record for a contract field whose value is null is a
+    field/value mismatch (unbound), not a promotion."""
+    contract = _deepcopy_contract()
+    contract["measurements"].append({
+        "field": "colors.link",
+        "value": "#000000",
+        "unit": "hex",
+        "evidence_type": "pixel_analysis",
+        "source_state_id": "home.desktop.default",
+        "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+        "method": "pixel_analysis",
+    })
+    with pytest.raises(validator.VisualContractValidationError, match="field/value mismatch"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_required_field_missing_evidence_fails():
+    contract = _deepcopy_contract()
+    contract["measurements"] = [
+        m for m in contract["measurements"] if m["field"] != "layout.header.height_px"
+    ]
+    with pytest.raises(validator.VisualContractValidationError, match="no evidence"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_missing_required_mobile_evidence_fails():
+    """Desktop-only evidence must NOT promote a faithful candidate."""
+    contract = _deepcopy_contract()
+    contract["measurements"] = [
+        m for m in contract["measurements"] if not m["field"].startswith("responsive.mobile")
+    ]
+    with pytest.raises(validator.VisualContractValidationError, match="no evidence"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_null_mobile_required_field_cannot_promote():
+    contract = _deepcopy_contract()
+    contract["responsive"]["mobile"]["header_height_px"] = None
+    contract["measurements"] = [
+        m for m in contract["measurements"] if m["field"] != "responsive.mobile.header_height_px"
+    ]
+    # Validator permits the structural contract but readiness must be False.
+    validated = validator.validate_visual_contract(contract, _model())
+    assert validator.faithful_ready(validated) is False
+    assert "responsive.mobile.header_height_px" in validated["readiness"]["missing_required"]
+
+
+def test_invalid_font_provenance_fails():
+    contract = _deepcopy_contract()
+    for entry in contract["measurements"]:
+        if entry["field"] == "typography.font_family":
+            entry["artifact_sha256"] = "deadbeef" * 8
+    with pytest.raises(validator.VisualContractValidationError, match="asset artifact SHA mismatch"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_font_family_is_asset_provenance_not_pixel():
+    """font_family must be represented as asset_provenance evidence, never as
+    a screenshot pixel measurement."""
+    contract = _deepcopy_contract()
+    for entry in contract["measurements"]:
+        if entry["field"] == "typography.font_family":
+            assert entry["evidence_type"] == "asset_provenance"
+            assert entry["method"] == "fetched_font_asset_observation"
+            assert entry.get("unit") is None
+
+
+def test_border_width_must_be_measured_not_guessed():
+    """border.width in the committed contract must equal the measured pixel
+    thickness (1), and tampering it breaks the evidence binding."""
+    contract = _deepcopy_contract()
+    assert contract["border"]["width"] == 1
+    for entry in contract["measurements"]:
+        if entry["field"] == "border.width":
+            assert entry["value"] == 1
+            assert entry["unit"] == "px"
+            assert entry["evidence_type"] == "pixel_analysis"
+    # A guessed width (e.g. 3) with unchanged evidence must fail.
+    contract["border"]["width"] = 3
+    with pytest.raises(validator.VisualContractValidationError, match="field/value mismatch"):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_null_required_field_cannot_promote():
+    contract = _deepcopy_contract()
+    contract["colors"]["background"] = None
+    contract["measurements"] = [
+        m for m in contract["measurements"] if m["field"] != "colors.background"
+    ]
+    validated = validator.validate_visual_contract(contract, _model())
+    assert validator.faithful_ready(validated) is False
+    assert "colors.background" in validated["readiness"]["missing_required"]
 
 
 def test_visual_contract_regeneration_is_deterministic():

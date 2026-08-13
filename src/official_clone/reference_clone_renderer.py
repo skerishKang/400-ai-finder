@@ -78,7 +78,8 @@ _DEVICE_CLASSES = ("desktop", "mobile")
 
 # Required measured theme fields: the renderer derives its CSS from exactly
 # these dotted paths. A contract is faithful-ready only when every one of them
-# is present and non-null.
+# is present and non-null. Mobile (390px) geometry is required too: desktop-only
+# evidence cannot promote a faithful candidate.
 REQUIRED_THEME_FIELDS = (
     "layout.header.height_px",
     "layout.gnb.height_px",
@@ -97,7 +98,37 @@ REQUIRED_THEME_FIELDS = (
     "typography.text_color",
     "border.width",
     "border.color",
+    "responsive.mobile.header_height_px",
+    "responsive.mobile.gnb_height_px",
+    "responsive.mobile.max_width_px",
+    "responsive.mobile.main_padding_x",
 )
+
+# Non-fidelity presentation defaults. These are structural/accessibility
+# implementation defaults that do NOT represent measured official-site values;
+# they are NOT counted as faithful visual evidence and do NOT gate
+# faithful_clone_candidate. Values here are either driven by measured contract
+# fields (colors, dimensions) or are generic accessibility defaults that any
+# readable HTML clone needs regardless of provenance:
+#   * font-size: browser default (no measured site font size);
+#   * font-weight: 700 site title / 600 current nav (accessibility emphasis);
+#   * border-style: solid / dashed (structural separators);
+#   * focus outline width/offset: 2px (keyboard accessibility);
+#   * link underline: default navigation affordance;
+#   * border radius: none (not measured);
+#   * responsive breakpoint: none (mobile is a separate route).
+NON_FIDELITY_PRESENTATION_DEFAULTS = {
+    "font_size": "browser-default",
+    "font_weight_site_title": "700",
+    "font_weight_current_nav": "600",
+    "border_style": "solid",
+    "stub_border_style": "dashed",
+    "focus_outline_width_px": 2,
+    "focus_outline_offset_px": 2,
+    "link_decoration": "underline",
+    "border_radius": None,
+    "responsive_breakpoint": None,
+}
 
 
 class ReferenceCloneRendererError(ValueError):
@@ -447,9 +478,13 @@ def _decl(property_name: str, value: Any) -> str:
 def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     """Build CSS from measured contract values only.
 
-    Every declaration is derived from a measured value; gaps are omitted
-    (fail-closed). No guessed color, radius, max-width, or breakpoint exists.
+    Every fidelity declaration is derived from a measured value; gaps are
+    omitted (fail-closed). No guessed color, radius, max-width, or breakpoint
+    exists. Remaining presentation values come from the documented
+    ``NON_FIDELITY_PRESENTATION_DEFAULTS`` (accessibility/structural defaults
+    that are NOT faithful visual evidence).
     """
+    nd = NON_FIDELITY_PRESENTATION_DEFAULTS
     rules: list[str] = ["*{box-sizing:border-box;}", "html,body{margin:0;padding:0;}"]
 
     body_decls = []
@@ -463,11 +498,12 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     if family:
         body_decls.append(_decl("font-family", _font_stack(family)))
     rules.append("body{" + "".join(body_decls) + "}")
-    rules.append("a{color:inherit;text-decoration:underline;}")
+    # Link underline is a documented accessibility default (non-fidelity).
+    rules.append(f"a{{color:inherit;text-decoration:{nd['link_decoration']};}}")
 
     border = _pick(theme, "colors.border", None, device)
     border_w = theme.get("border.width")
-    border_style = "solid"
+    border_style = nd["border_style"]
 
     header_bg = _pick(theme, "colors.header_bg", None, device)
     header_h = _pick(theme, "layout.header.height_px", "responsive.mobile.header_height_px", device)
@@ -495,12 +531,14 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
 
     primary = _pick(theme, "colors.primary", None, device)
     if primary:
+        # Focus outline is a documented keyboard-accessibility default
+        # (non-fidelity); the outline color uses the measured primary color.
         rules.append(
             "#rc-gnb-toggle:focus-visible,"
             ".rc-nav a:focus-visible,"
             "a.rc-list-link:focus-visible{"
-            + _decl("outline", f"2px solid {primary}")
-            + _decl("outline-offset", "2px")
+            + _decl("outline", f"{nd['focus_outline_width_px']}px solid {primary}")
+            + _decl("outline-offset", f"{nd['focus_outline_offset_px']}px")
             + "}"
         )
     if border and border_w:
@@ -516,7 +554,7 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
             ".rc-badge-pill,"
             ".rc-attach,"
             "footer.rc-footer{"
-            + _decl("border", f"{border_w}px solid {border}")
+            + _decl("border", f"{border_w}px {border_style} {border}")
             + "}"
         )
         rules.append(
@@ -528,7 +566,7 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         rules.append(
             ".rc-gnb .rc-stub,"
             "#rc-mega-menu .rc-mega-item{"
-            + _decl("border-style", "dashed")
+            + _decl("border-style", nd["stub_border_style"])
             + "}"
         )
     rules.append(".rc-gnb .rc-stub,#rc-mega-menu .rc-mega-item{background:transparent;}")
@@ -555,9 +593,11 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-attachments{display:flex;flex-wrap:wrap;}"
         ".rc-attach{font:inherit;cursor:not-allowed;}"
         ".rc-badges{display:flex;flex-wrap:wrap;}"
-        ".rc-site-title{font-weight:700;margin:0;}"
+        # Site-title / current-nav weight are documented accessibility defaults
+        # (non-fidelity).
+        f".rc-site-title{{font-weight:{nd['font_weight_site_title']};margin:0;}}"
         ".rc-nav{display:flex;flex-wrap:wrap;}"
-        ".rc-nav a[aria-current=\"page\"]{font-weight:600;}"
+        f".rc-nav a[aria-current=\"page\"]{{font-weight:{nd['font_weight_current_nav']};}}"
     )
 
     muted = _pick(theme, "colors.text_muted", None, device)
@@ -765,11 +805,9 @@ def _render_detail_main(
     title: str,
     route_prefix: str,
 ) -> str:
-    list_no = state.get("list_no")
-    badges = []
-    if list_no:
-        badges.append(f'<span class="rc-badge-pill">list_no={_esc(list_no)}</span>')
-
+    # list_no is an internal URL/record identifier that is NOT proven to be
+    # resident-visible captured content; it is kept only in hidden
+    # machine-readable evidence (see _evidence_json), never shown to residents.
     exts = state.get("attachment_document_extensions") or []
     downloads = state.get("download_references") or []
     attach_html = ""
@@ -801,7 +839,6 @@ def _render_detail_main(
     return (
         f'<section aria-label="상세">'
         f'<h2 class="rc-detail-title">{_esc(title)}</h2>'
-        f'<div class="rc-badges">{"".join(badges)}</div>'
         f"{attach_html}"
         f"{back}"
         f"</section>"

@@ -4,7 +4,7 @@
   "site_id": "seogu_gwangju",
   "capture_id": "20260812T231018-0900",
   "model_checksum": "36d11991d8253a6176acdeaf8fe7e628315959d673ad153b2bde476d7a3cdceb",
-  "note": "Provenance-backed measurements from the immutable committed G1 capture evidence. Every non-null value is traced to a captured state, the committed screenshot SHA it was measured from, and the measurement method. Values that cannot be safely measured remain null and are listed in gaps.",
+  "note": "Provenance-backed measurements from the immutable committed G1 capture evidence. Every non-null value is traced 1:1 to a captured state, the committed screenshot SHA it was measured from, the measurement method, the unit, and the evidence type. Values that cannot be safely measured remain null and are listed in gaps. typography.font_family uses asset_provenance evidence (fetched font assets), not screenshot pixels. border.width is the measured pixel thickness of the footer separator line. Renderer-only non-fidelity presentation defaults (font-size, font-weight, border-style, focus outline, underline, radius, breakpoint) are NOT counted as official-site fidelity evidence.",
   "layout": {
     "header": {
       "height_px": 692,
@@ -134,188 +134,233 @@
       "region": "spacing_paddings",
       "note": "Element-specific paddings are not safely measurable from committed screenshots.",
       "provenance_state_id": null
+    },
+    {
+      "region": "non_fidelity_presentation_defaults",
+      "note": "Renderer-only non-fidelity defaults (font-size, font-weight, border-style, focus outline width/offset, link underline, border radius, responsive breakpoint) are structural/accessibility implementation defaults. They are NOT counted as official-site fidelity evidence and do not gate faithful_clone_candidate.",
+      "provenance_state_id": null
     }
   ],
   "measurements": [
     {
       "field": "layout.header.height_px",
       "value": 692,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "layout.gnb.height_px",
       "value": 72,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "layout.footer.height_px",
       "value": 80,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "layout.main.max_width_px",
       "value": 1400,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "layout.main.padding_x",
       "value": 20,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "colors.primary",
       "value": "#083878",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "colors.background",
       "value": "#f8f8f8",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "colors.header_bg",
       "value": "#f0f0f8",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "colors.gnb_bg",
       "value": "#083878",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "colors.gnb_text",
       "value": "#f0f0f0",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "colors.footer_bg",
       "value": "#f8f8f8",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "colors.text",
       "value": "#000000",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "colors.text_muted",
       "value": "#888888",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "colors.border",
       "value": "#dcdcdc",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "border.width",
       "value": 1,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "border.color",
       "value": "#dcdcdc",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
       "method": "pixel_analysis",
-      "unit": null,
+      "note": null
+    },
+    {
+      "field": "typography.text_color",
+      "value": "#000000",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis",
       "note": null
     },
     {
       "field": "responsive.mobile.header_height_px",
       "value": 370,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.mobile.default",
       "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "responsive.mobile.gnb_height_px",
       "value": 32,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.mobile.default",
       "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
       "field": "responsive.mobile.max_width_px",
       "value": 358,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.mobile.default",
       "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
     },
     {
-      "field": "responsive.mobile.padding_x",
+      "field": "responsive.mobile.main_padding_x",
       "value": 16,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
       "source_state_id": "home.mobile.default",
       "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
       "method": "pixel_analysis",
-      "unit": null,
       "note": null
+    },
+    {
+      "field": "typography.font_family",
+      "value": "Gmarket Sans, Noto Sans CJK KR",
+      "unit": null,
+      "evidence_type": "asset_provenance",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "bc16b83ae5f87730fbed27f810d75fcad341777866b43dd05e0ee03efe040b81",
+      "method": "fetched_font_asset_observation",
+      "note": "Font families observed from font assets fetched by the browser during G1 capture (primary asset NotoSansCJKkr-Bold.woff2). Not a screenshot pixel measurement."
     }
   ]
 }

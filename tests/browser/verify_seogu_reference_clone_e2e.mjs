@@ -122,9 +122,10 @@ const REQUIRED_ROUTES = [
 ];
 
 const FAMILIES = [
-  { list: "notice/", detail: "notice/detail/", marker: "143106" },
+  // Resident-visible captured content markers (NOT internal identifiers).
+  { list: "notice/", detail: "notice/detail/", marker: "사회연대경제" },
   { list: "gosi/", detail: "gosi/detail/", marker: "고시/공고" },
-  { list: "civil-form/", detail: "civil-form/detail/", marker: "143010" },
+  { list: "civil-form/", detail: "civil-form/detail/", marker: "자동차 등록 위임장" },
 ];
 
 async function waitForServer(base, timeoutMs = 15000) {
