@@ -73,6 +73,17 @@ _BASE_LIFECYCLE_MARKERS = {
 # Board-record identifier tokens shared across municipal board systems.
 _BOARD_ID_TOKENS = ("list_no", "not_ancmt_mgt_no")
 
+# Generic class-name markers used for control classification (no site literal).
+_SLIDER_CLASSES = frozenset({"prev", "pause", "next", "btn prev", "btn next"})
+_SOCIAL_CLASSES = frozenset({"facebook", "kakaoch", "kakaostory", "band", "naver", "instagram", "youtube"})
+_SLOGAN_CLASSES = frozenset({"slogan"})
+_SEARCH_CLASSES = frozenset({"search_keyword", "btn_search"})
+_GNB_TOGGLE_CLASSES = frozenset({"control open", "control close"})
+_RD_BOX_PREFIX = "rd_box rd_col"
+_UTILITY_BTN_CLASSES = frozenset({"btn"})
+_BANNER_CLASSES = frozenset({"hns_bn"})
+_TOP_LINK_CLASSES = frozenset({"anchorLink up"})
+
 # Device classes recognised in a state_id's middle segment.
 _DEVICE_CLASSES = ("desktop", "mobile")
 
@@ -441,6 +452,106 @@ def _gnb_extra_items(model: dict[str, Any]) -> list[str]:
     return extra
 
 
+def _site_title(model: dict[str, Any]) -> str:
+    """Extract the site identity title from the home state page_title."""
+    for state in model["states"]:
+        if state.get("state_id", "").startswith("home."):
+            title = state.get("page_title") or ""
+            if title:
+                return title.split(":")[0].strip()
+    return ""
+
+
+def _home_state_for_device(model: dict[str, Any], device: str) -> dict[str, Any] | None:
+    """Find the home default state matching the given device class."""
+    for state in model["states"]:
+        if state.get("state_id") == f"home.{device}.default":
+            return state
+    for state in model["states"]:
+        if state.get("state_id", "").startswith("home."):
+            return state
+    return None
+
+
+def _control_class(c: dict[str, Any]) -> str:
+    return (c.get("class_name") or "").strip()
+
+
+def _control_text(c: dict[str, Any]) -> str:
+    return (c.get("text") or "").strip()
+
+
+def _classify_home_control(c: dict[str, Any], identity_text: str, gnb_texts: set[str]) -> str:
+    """Classify a home-page control into a semantic group.
+
+    Returns one of: slider, social, slogan, search, utility_btn, gnb_toggle,
+    rd_box, banner, top_link, identity, gnb_item, link, empty.
+    """
+    cn = _control_class(c)
+    if cn in _SLIDER_CLASSES:
+        return "slider"
+    if cn in _SOCIAL_CLASSES:
+        return "social"
+    if cn in _SLOGAN_CLASSES:
+        return "slogan"
+    if cn in _SEARCH_CLASSES:
+        return "search"
+    if cn in _UTILITY_BTN_CLASSES:
+        return "utility_btn"
+    if cn in _GNB_TOGGLE_CLASSES:
+        return "gnb_toggle"
+    if cn.startswith(_RD_BOX_PREFIX):
+        return "rd_box"
+    if cn in _BANNER_CLASSES:
+        return "banner"
+    if cn in _TOP_LINK_CLASSES:
+        return "top_link"
+    text = _control_text(c)
+    if not text:
+        return "empty"
+    if text == identity_text:
+        return "identity"
+    if text in gnb_texts:
+        return "gnb_item"
+    return "link"
+
+
+def _identity_index(controls: list[dict[str, Any]], identity_text: str) -> int | None:
+    """Index of the control whose text shares the longest common prefix with
+    the site identity text. This handles cases where the identity control
+    text is a partial match (e.g. page_title adds extra branding text)."""
+    best_idx = None
+    best_len = 0
+    for i, c in enumerate(controls):
+        text = _control_text(c)
+        if not text:
+            continue
+        common = 0
+        for a, b in zip(text, identity_text):
+            if a == b:
+                common += 1
+            else:
+                break
+        if common > best_len:
+            best_len = common
+            best_idx = i
+    if best_len >= 4:
+        return best_idx
+    return None
+
+
+def _render_control_as_inert(ctrl: dict[str, Any], cls_extra: str = "") -> str:
+    """Render a control as an inert read-only span."""
+    text = _control_text(ctrl)
+    if not text:
+        return ""
+    cn = _control_class(ctrl)
+    cls = f' class="{_esc(cn)}"' if cn else ""
+    if cls_extra:
+        cls = f' class="{_esc(cls_extra)}"' if not cn else f' class="{_esc(cn)} {_esc(cls_extra)}"'
+    return f'<span{cls} role="link" aria-disabled="true" tabindex="-1">{_esc(text)}</span>'
+
+
 def _family_detail_route(model: dict[str, Any], family: str, route_prefix: str) -> str | None:
     for state in model["states"]:
         fam, _dev, content = parse_state_id(state.get("state_id", ""))
@@ -545,6 +656,10 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         header_decls.append(_decl("min-height", f"{header_h}px"))
     rules.append("header.rc-header{" + "".join(header_decls) + "}")
     rules.append(".rc-topbar{display:flex;flex-wrap:wrap;align-items:center;}")
+    rules.append(
+        ".rc-utility-bar{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".rc-utility-item{display:inline-block;}"
+    )
 
     gnb_bg = _pick(theme, "colors.gnb_bg", None, device)
     gnb_text = _pick(theme, "colors.gnb_text", None, device)
@@ -627,6 +742,14 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         f".rc-site-title{{font-weight:{nd['font_weight_site_title']};margin:0;}}"
         ".rc-nav{display:flex;flex-wrap:wrap;}"
         f".rc-nav a[aria-current=\"page\"]{{font-weight:{nd['font_weight_current_nav']};}}"
+        ".rc-slider-controls{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".rc-banner{display:block;}"
+        ".rc-quick-links{display:flex;flex-wrap:wrap;}"
+        ".rc-service-grid{display:flex;flex-wrap:wrap;}"
+        ".rc-service-col{display:flex;flex-direction:column;}"
+        ".rc-service-card{display:block;}"
+        ".rc-secondary-links{display:flex;flex-wrap:wrap;}"
+        ".rc-notice-list{width:100%;}"
     )
 
     muted = _pick(theme, "colors.text_muted", None, device)
@@ -690,14 +813,22 @@ def _render_header(
     gnb_extra: list[str],
     open_gnb: bool,
     route_prefix: str,
+    device: str = "desktop",
 ) -> str:
-    site_title = ""
-    for state in model["states"]:
-        if state.get("state_id", "").startswith("home."):
-            title = state.get("page_title") or ""
-            if title:
-                site_title = title.split(":")[0].strip()
-            break
+    site_title = _site_title(model)
+
+    # Utility bar: controls before the identity control in the home state.
+    home_state = _home_state_for_device(model, device)
+    utility_html = ""
+    if home_state:
+        controls = home_state.get("controls", [])
+        identity_idx = _identity_index(controls, site_title)
+        if identity_idx is not None and identity_idx > 0:
+            utility_ctrls = controls[:identity_idx]
+            items = []
+            for c in utility_ctrls:
+                items.append(_render_control_as_inert(c, "rc-utility-item"))
+            utility_html = f'<div class="rc-utility-bar">{"".join(items)}</div>'
 
     nav_html = []
     for route, label in nav:
@@ -727,6 +858,7 @@ def _render_header(
 
     return (
         f'<header class="rc-header">'
+        f'{utility_html}'
         f'<div class="rc-topbar">'
         f'<h1 class="rc-site-title">{_esc(site_title)}</h1>'
         f"</div>"
@@ -767,14 +899,166 @@ def _render_home_main(
     nav: list[tuple[str, str]],
     route_prefix: str,
 ) -> str:
-    hero_text = ""
+    site_title = _site_title(model)
+    gnb_top = _gnb_top_items(model)
+    gnb_text_set = set(gnb_top) if gnb_top else set()
+    controls = state.get("controls", [])
+    identity_idx = _identity_index(controls, site_title)
+
+    sections: list[str] = []
+
+    # ── Hero / key-visual section ───────────────────────────────────────
+    # Greeting from main landmark, slider controls, and banner.
+    hero_greeting = ""
     for lm in state.get("landmarks", []):
         if lm.get("id") == "main":
-            hero_text = lm.get("text") or ""
+            full_text = lm.get("text") or ""
+            if full_text:
+                # First meaningful segment (before first non-hero marker).
+                for marker in ("내곁에", "공지사항"):
+                    idx = full_text.find(marker)
+                    if idx > 0:
+                        full_text = full_text[:idx]
+                hero_greeting = full_text.strip()
             break
-    if not hero_text:
-        hero_text = title
+    if not hero_greeting:
+        hero_greeting = title
 
+    # Classify controls into groups.
+    slider_ctrls: list[dict[str, Any]] = []
+    banner_ctrls: list[dict[str, Any]] = []
+    rd_box_ctrls: list[dict[str, Any]] = []
+    top_link_ctrls: list[dict[str, Any]] = []
+    other_links: list[dict[str, Any]] = []
+
+    seen_categories: set[str] = set()
+    for c in controls:
+        cat = _classify_home_control(c, site_title, gnb_text_set)
+        if cat == "slider":
+            slider_ctrls.append(c)
+            seen_categories.add("slider")
+        elif cat == "banner":
+            banner_ctrls.append(c)
+            seen_categories.add("banner")
+        elif cat == "rd_box":
+            rd_box_ctrls.append(c)
+            seen_categories.add("rd_box")
+        elif cat == "top_link":
+            top_link_ctrls.append(c)
+            seen_categories.add("top_link")
+        elif cat in ("link",):
+            if cat not in seen_categories:
+                other_links.append(c)
+        elif cat == "identity":
+            pass
+
+    # Insert controls that appeared before first slider/banner and are not
+    # classified as GNB items: these are quick-link controls in the hero zone.
+    quick_links: list[dict[str, Any]] = []
+    secondary_links: list[dict[str, Any]] = []
+    # Find the first non-gnb, non-identity classified control index.
+    first_hero_content = len(controls)
+    for i, c in enumerate(controls):
+        cat = _classify_home_control(c, site_title, gnb_text_set)
+        if cat in ("slider", "banner", "rd_box", "gnb_toggle", "top_link") and first_hero_content > i:
+            first_hero_content = i
+            break
+
+    # Quick links = controls between identity and first hero/rd_box that are
+    # not GNB, not toggle, not slider/banner/rd_box themselves.
+    start_idx = (identity_idx + 1) if identity_idx is not None else (first_hero_content - 3 if first_hero_content > 3 else 0)
+    for i in range(start_idx, first_hero_content):
+        if i >= len(controls):
+            break
+        c = controls[i]
+        cat = _classify_home_control(c, site_title, gnb_text_set)
+        if cat == "link":
+            quick_links.append(c)
+
+    # Secondary links = links after the rd_box group.
+    if rd_box_ctrls:
+        last_rd_idx = controls.index(rd_box_ctrls[-1])
+        for i in range(last_rd_idx + 1, len(controls)):
+            c = controls[i]
+            cat = _classify_home_control(c, site_title, gnb_text_set)
+            if cat == "link":
+                secondary_links.append(c)
+    else:
+        # No rd_box group, treat remaining as secondary.
+        for c in controls:
+            cat = _classify_home_control(c, site_title, gnb_text_set)
+            if cat == "link" and c not in quick_links:
+                secondary_links.append(c)
+
+    # ── Hero section HTML ───────────────────────────────────────────────
+    hero_parts: list[str] = []
+    hero_parts.append(f'<div class="rc-hero">{_esc(hero_greeting[:4000])}</div>')
+
+    if slider_ctrls:
+        sliders = "".join(_render_control_as_inert(c) for c in slider_ctrls)
+        hero_parts.append(f'<div class="rc-slider-controls">{sliders}</div>')
+    if banner_ctrls:
+        banners = "".join(_render_control_as_inert(c) for c in banner_ctrls)
+        hero_parts.append(f'<div class="rc-banner">{banners}</div>')
+    if quick_links:
+        qlinks = "".join(_render_control_as_inert(c) for c in quick_links)
+        hero_parts.append(f'<div class="rc-quick-links">{qlinks}</div>')
+
+    sections.append(f'<section aria-label="주요">{"".join(hero_parts)}</section>')
+
+    # ── rd_box service grid ─────────────────────────────────────────────
+    if rd_box_ctrls:
+        # Group by column class: rd_col01, rd_col02, rd_col03
+        col_groups: dict[str, list[dict[str, Any]]] = {}
+        for c in rd_box_ctrls:
+            cn = _control_class(c)
+            # Extract the rd_col part (e.g. "rd_col01" from "rd_box rd_col01")
+            col_key = "rd_col"
+            for token in cn.split():
+                if token.startswith("rd_col"):
+                    col_key = token
+                    break
+            col_groups.setdefault(col_key, []).append(c)
+        cols_html = []
+        for col_key in sorted(col_groups):
+            col_items = "".join(_render_control_as_inert(c, "rc-service-card") for c in col_groups[col_key])
+            cols_html.append(f'<div class="rc-service-col rc-{_esc(col_key)}">{col_items}</div>')
+        sections.append(
+            f'<section aria-label="서비스">'
+            f'<div class="rc-service-grid">{"".join(cols_html)}</div>'
+            f"</section>"
+        )
+
+    # ── Secondary links ─────────────────────────────────────────────────
+    if secondary_links:
+        sec_items = "".join(_render_control_as_inert(c, "rc-secondary-card") for c in secondary_links)
+        sections.append(
+            f'<section aria-label="바로가기">'
+            f'<div class="rc-secondary-links">{sec_items}</div>'
+            f"</section>"
+        )
+
+    # ── Notice board ────────────────────────────────────────────────────
+    board_links = [g for g in state.get("general_links", []) if _is_board_link(g)]
+    if board_links:
+        notice_rows: list[str] = []
+        for g in board_links[:5]:
+            text = (g.get("text") or "").strip()
+            href = (g.get("href") or "")[:80]
+            if text:
+                notice_rows.append(
+                    f'<li class="rc-notice-item">'
+                    f'<span role="link" aria-disabled="true" tabindex="-1">{_esc(text)}</span>'
+                    f"</li>"
+                )
+        sections.append(
+            f'<section aria-label="공지사항">'
+            f'<h2 class="rc-section-title">공지사항</h2>'
+            f'<ul class="rc-list rc-notice-list">{"".join(notice_rows)}</ul>'
+            f"</section>"
+        )
+
+    # ── Surface navigation cards (existing behavior) ────────────────────
     cards = []
     current_route = route_for_state(state["state_id"], route_prefix)
     for route, label in nav:
@@ -788,10 +1072,11 @@ def _render_home_main(
     card_grid = (
         f'<div class="rc-surface-grid">{"".join(cards)}</div>' if cards else ""
     )
+
     return (
         f'<section aria-label="홈">'
         f'<h2 class="rc-section-title">{_esc("홈")}</h2>'
-        f'<div class="rc-hero">{_esc(hero_text[:4000])}</div>'
+        f'{"".join(sections)}'
         f"{card_grid}"
         f"</section>"
     )
@@ -918,7 +1203,8 @@ def _render_page(
     _family, device, content = parse_state_id(state_id)
     title = state.get("page_title") or state_id
     header = _render_header(
-        model, current_route, nav, gnb_top, gnb_extra, open_gnb, route_prefix
+        model, current_route, nav, gnb_top, gnb_extra, open_gnb, route_prefix,
+        device=device,
     )
     main = _render_main(model, state, nav, route_prefix)
     footer = _render_footer()

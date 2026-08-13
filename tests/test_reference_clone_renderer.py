@@ -832,6 +832,105 @@ def test_tampered_contract_raises_at_render_entry():
         )
 
 
+# ---------------------------------------------------------------------------
+# Home page semantic sections (desktop, mobile, gnb_open, synthetic)
+# ---------------------------------------------------------------------------
+def test_home_desktop_has_required_sections():
+    """The home desktop page must render utility bar, hero, quick links,
+    rd_box service grid, secondary links, and notice board sections."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX, visual_contract=contract
+    )
+    assert "rc-utility-bar" in html
+    assert "rc-hero" in html
+    assert "rc-slider-controls" in html
+    assert "rc-banner" in html
+    assert "rc-quick-links" in html
+    assert "rc-service-grid" in html
+    assert "rc-secondary-links" in html
+    assert "공지사항" in html
+    assert "rc-notice-list" in html
+    assert "rc-surface-grid" in html
+    assert "rc-gnb" in html
+    assert "rc-gnb-toggle" in html
+
+
+def test_home_mobile_has_required_sections():
+    """The home mobile page must render hero, quick links, rd_box, notice
+    board, and surface grid — mobile has no separate utility bar."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.mobile.default", route_prefix=_ROUTE_PREFIX, visual_contract=contract
+    )
+    # Mobile may not have utility-bar (no identity control)
+    assert "rc-hero" in html
+    assert "rc-slider-controls" in html
+    assert "rc-banner" in html
+    assert "rc-quick-links" in html
+    assert "rc-service-grid" in html
+    assert "rc-secondary-links" in html
+    assert "rc-surface-grid" in html
+    assert "rc-gnb-toggle" in html
+
+
+def test_home_gnb_open_sections():
+    """The GNB-open state must render the same sections as the default plus
+    the mega menu items."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.gnb_open", route_prefix=_ROUTE_PREFIX, visual_contract=contract
+    )
+    assert 'aria-expanded="true"' in html
+    assert "rc-mega-menu" in html
+    assert "rc-hero" in html
+    assert "rc-service-grid" in html
+    assert "rc-surface-grid" in html
+
+
+def test_home_notice_board_contains_board_items():
+    """The notice board section must render board-type general_links only."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX, visual_contract=contract
+    )
+    # At least one notice item present
+    assert "rc-notice-item" in html
+    assert "rc-notice-list" in html
+    # Items are inert (no live links)
+    assert 'aria-disabled="true"' in html
+
+
+def test_home_rd_box_groups_by_column():
+    """The rd_box service grid must group controls by column class."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX, visual_contract=contract
+    )
+    assert "rc-service-col" in html
+    assert "rc-rd_col01" in html or "rc-rd_col" in html
+    # Multiple column groups
+    assert html.count("rc-service-col") >= 2
+
+
+def test_synthetic_home_renders_substitute_sections():
+    """Synthetic (non-Seogu) home page renders gracefully with default
+    sections even when no identity/rd_box/slider controls exist."""
+    synthetic = _synthetic_model()
+    html = mod.render_state(synthetic, "home.desktop.default", route_prefix="/x/")
+    assert "rc-hero" in html
+    assert "rc-site-title" in html
+    assert "rc-gnb" in html
+    assert "rc-surface-grid" in html
+    # No utility bar when no identity control exists
+    assert '<div class="rc-utility-bar">' not in html
+
+
 def test_validated_contract_maintains_faithful_candidate_true():
     """The validated visual contract must still produce faithful_clone_candidate
     True after all correction tests pass."""
