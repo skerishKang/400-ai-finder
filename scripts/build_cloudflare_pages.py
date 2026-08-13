@@ -633,11 +633,14 @@ def _write_file(path: str, content: str) -> None:
 # Main build
 # ---------------------------------------------------------------------------
 def build_seogu_reference_clone(dist_root: str) -> None:
-    """Emit the #1303 G2-B Seo-gu faithful-clone candidate under dist/seogu.
+    """Emit the #1303 G2-B faithful-clone candidate under dist/seogu.
 
-    Reads only the committed G2-A ``clone-model.json`` and renders the generic
-    local clone structure via ``src/official_clone/reference_clone_renderer.py``.
-    Fully offline; does not touch the Buk-gu root or any G0 artifact.
+    Reads the committed G2-A ``clone-model.json`` and G2-B
+    ``visual-contract.json``, then renders the generic local clone structure
+    via ``src/official_clone/reference_clone_renderer.py``. Fully offline;
+    does not touch the Buk-gu root or any G0 artifact.
+
+    Fail-closed: raises RuntimeError if model or visual contract is missing.
     """
     import importlib.util
 
@@ -659,12 +662,22 @@ def build_seogu_reference_clone(dist_root: str) -> None:
         "20260812T231018-0900",
         "clone-model.json",
     )
+    vc_path = os.path.join(
+        _REPO_ROOT,
+        "data",
+        "official_clone_visual_inputs",
+        "seogu_gwangju",
+        "g1",
+        "20260812T231018-0900",
+        "visual-contract.json",
+    )
     if not os.path.isfile(model_path):
-        print(f"[build] seogu clone-model not found, skipping: {model_path}")
-        return
+        raise RuntimeError(f"G2-B fail-closed: model not found: {model_path}")
+    if not os.path.isfile(vc_path):
+        raise RuntimeError(f"G2-B fail-closed: visual contract not found: {vc_path}")
     model = renderer.load_model(model_path)
-    written = renderer.write_site(model, os.path.join(dist_root, "seogu"))
-    print(f"[build] wrote {len(written)} Seo-gu G2-B clone routes -> seogu/")
+    written = renderer.write_site(model, os.path.join(dist_root, "seogu"), route_prefix="/seogu/")
+    print(f"[build] wrote {len(written)} G2-B clone routes -> seogu/")
 
 
 def build(out_dir: str | None = None, mode: str = "static") -> None:

@@ -40,6 +40,8 @@ from typing import Any
 
 # Generic lifecycle markers required by the G2-B contract. These are explicit
 # candidate-status flags; they are NOT visual-approval / production claims.
+# They are emitted as hidden machine-readable JSON-LD only — no visible badge,
+# no footer text, no developer-facing UI.
 LIFECYCLE_MARKERS = {
     "faithful_clone_candidate": True,
     "visual_review": "pending",
@@ -51,10 +53,6 @@ LIFECYCLE_MARKERS = {
     "production_ready": False,
     "asset_byte_fidelity_complete": False,
 }
-
-# Deterministic output route namespace. Generic: a second-site model renders
-# under the same prefix; routing is derived from state_id, never hardcoded.
-DEFAULT_ROUTE_PREFIX = "/seogu/"
 
 # Board-record identifier tokens shared across municipal board systems.
 _BOARD_ID_TOKENS = ("list_no", "not_ancmt_mgt_no")
@@ -109,8 +107,11 @@ def _slug(family: str) -> str:
     return family.replace("_", "-")
 
 
-def route_for_state(state_id: str, route_prefix: str = DEFAULT_ROUTE_PREFIX) -> str:
-    """Deterministically map a ``state_id`` to its clone route (generic)."""
+def route_for_state(state_id: str, route_prefix: str) -> str:
+    """Deterministically map a ``state_id`` to its clone route (generic).
+
+    *route_prefix* is caller-provided; there is no hardcoded default.
+    """
     family, device, content = parse_state_id(state_id)
     slug = _slug(family)
     if content == "gnb_open":
@@ -229,7 +230,7 @@ def _family_detail_route(model: dict[str, Any], family: str) -> str | None:
     for state in model["states"]:
         fam, _dev, content = parse_state_id(state.get("state_id", ""))
         if fam == family and content == "detail":
-            return route_for_state(state["state_id"])
+            return route_for_state(state["state_id"], "")
     return None
 
 
@@ -287,97 +288,84 @@ def _lifecycle_json() -> str:
 
 
 def _render_css() -> str:
+    """Minimal structural CSS. No themed colors, borders, or card styles —
+    those require real visual measurements from a visual contract.
+    """
     return """
-:root{
-  --bg:#ffffff; --fg:#101012; --muted:#8a8a93; --line:#e6e6ea;
-  --brand:#1f6feb; --brand-weak:#eef3ff; --panel:#fafafb; --warn:#7a5b00;
-  --warn-bg:#fff7e6; --radius:12px;
-}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
   font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;
-  background:var(--bg); color:var(--fg); -webkit-font-smoothing:antialiased;
-  line-height:1.55; overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  line-height:1.55;
 }
-a{color:var(--brand); text-decoration:none;}
-a:hover{text-decoration:underline;}
-header.seogu-header{
-  border-bottom:1px solid var(--line); background:var(--panel);
-  padding:14px 18px; position:sticky; top:0; z-index:10;
+a{color:inherit; text-decoration:underline;}
+header.rc-header{
+  padding:14px 18px;
+  border-bottom:1px solid #e6e6ea;
 }
-.seogu-topbar{display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center;}
-.seogu-site-title{font-weight:700; font-size:1.05rem; margin:0;}
-.seogu-badge{
-  font-size:.72rem; color:var(--warn); background:var(--warn-bg);
-  border:1px solid #f0d9a0; border-radius:999px; padding:2px 10px; white-space:nowrap;
+.rc-topbar{display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center;}
+.rc-site-title{font-weight:700; font-size:1.05rem; margin:0;}
+.rc-nav{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+.rc-nav a{
+  font-size:.85rem; padding:6px 12px; border:1px solid #e6e6ea;
+  border-radius:999px;
 }
-.seogu-clone-nav{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
-.seogu-clone-nav a{
-  font-size:.85rem; padding:6px 12px; border:1px solid var(--line);
-  border-radius:999px; background:#fff; color:var(--fg);
-}
-.seogu-clone-nav a:hover{background:var(--brand-weak); text-decoration:none;}
-.seogu-clone-nav a[aria-current="page"]{background:var(--brand); color:#fff; border-color:var(--brand);}
-.seogu-gnb{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; align-items:center;}
-.seogu-gnb .seogu-stub{
-  font-size:.85rem; color:var(--muted); border:1px dashed var(--line);
+.rc-nav a[aria-current="page"]{font-weight:600;}
+.rc-gnb{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; align-items:center;}
+.rc-gnb .rc-stub{
+  font-size:.85rem; color:#8a8a93; border:1px dashed #e6e6ea;
   border-radius:8px; padding:3px 9px;
 }
-#seogu-gnb-toggle{
-  font:inherit; font-size:.85rem; cursor:pointer; border:1px solid var(--line);
-  background:#fff; border-radius:8px; padding:5px 12px; color:var(--fg);
+#rc-gnb-toggle{
+  font:inherit; font-size:.85rem; cursor:pointer; border:1px solid #e6e6ea;
+  background:transparent; border-radius:8px; padding:5px 12px;
 }
-#seogu-gnb-toggle:focus-visible,
-.seogu-clone-nav a:focus-visible,
-a.seogu-list-link:focus-visible{
-  outline:3px solid var(--brand); outline-offset:2px;
+#rc-gnb-toggle:focus-visible,
+.rc-nav a:focus-visible,
+a.rc-list-link:focus-visible{
+  outline:2px solid #1f6feb; outline-offset:2px;
 }
-#seogu-mega-menu{
-  margin-top:10px; border:1px solid var(--line); border-radius:var(--radius);
-  background:#fff; padding:12px; display:flex; flex-wrap:wrap; gap:6px 10px;
+#rc-mega-menu{
+  margin-top:10px; border:1px solid #e6e6ea; border-radius:12px;
+  padding:12px; display:flex; flex-wrap:wrap; gap:6px 10px;
 }
-#seogu-mega-menu[hidden]{display:none;}
-#seogu-mega-menu .seogu-mega-item{
-  font:inherit; font-size:.82rem; color:var(--muted);
-  border:1px dashed var(--line); border-radius:8px; padding:4px 10px;
-  background:var(--panel);
+#rc-mega-menu[hidden]{display:none;}
+#rc-mega-menu .rc-mega-item{
+  font:inherit; font-size:.82rem; color:#8a8a93;
+  border:1px dashed #e6e6ea; border-radius:8px; padding:4px 10px;
 }
-main.seogu-main{max-width:980px; margin:0 auto; padding:22px 18px 60px;}
-.seogu-hero{font-size:.98rem; color:#2a2a2e;}
-.seogu-section-title{font-size:1.25rem; font-weight:700; margin:26px 0 12px;}
-.seogu-surface-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-top:14px;}
-.seogu-surface-card{
-  display:block; border:1px solid var(--line); border-radius:var(--radius);
-  padding:16px 18px; background:#fff; color:var(--fg);
+main.rc-main{max-width:980px; margin:0 auto; padding:22px 18px 60px;}
+.rc-section-title{font-size:1.25rem; font-weight:700; margin:26px 0 12px;}
+.rc-surface-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-top:14px;}
+.rc-surface-card{
+  display:block; border:1px solid #e6e6ea; border-radius:12px;
+  padding:16px 18px;
 }
-.seogu-surface-card:hover{background:var(--brand-weak); text-decoration:none;}
-.seogu-surface-card h3{margin:0 0 6px; font-size:1rem;}
-.seogu-surface-card p{margin:0; color:var(--muted); font-size:.85rem;}
-ul.seogu-list{list-style:none; margin:0; padding:0; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;}
-ul.seogu-list li{padding:12px 16px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
-ul.seogu-list li:last-child{border-bottom:none;}
-.seogu-list-item{color:var(--muted);}
-a.seogu-list-link{font-weight:600;}
-.seogu-detail-title{font-size:1.4rem; font-weight:700; margin:0 0 10px; line-height:1.35;}
-.seogu-badges{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px;}
-.seogu-badge-pill{font-size:.78rem; border:1px solid var(--line); border-radius:999px; padding:3px 10px; background:var(--panel); color:var(--muted);}
-.seogu-attachments{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0;}
-.seogu-attach{
-  font:inherit; font-size:.85rem; border:1px solid var(--line); border-radius:8px;
-  padding:8px 14px; background:#fff; color:var(--muted); cursor:not-allowed;
+.rc-surface-card h3{margin:0 0 6px; font-size:1rem;}
+.rc-surface-card p{margin:0; color:#8a8a93; font-size:.85rem;}
+ul.rc-list{list-style:none; margin:0; padding:0; border:1px solid #e6e6ea; border-radius:12px; overflow:hidden;}
+ul.rc-list li{padding:12px 16px; border-bottom:1px solid #e6e6ea; display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+ul.rc-list li:last-child{border-bottom:none;}
+.rc-list-item{color:#8a8a93;}
+a.rc-list-link{font-weight:600;}
+.rc-detail-title{font-size:1.4rem; font-weight:700; margin:0 0 10px; line-height:1.35;}
+.rc-badges{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px;}
+.rc-badge-pill{font-size:.78rem; border:1px solid #e6e6ea; border-radius:999px; padding:3px 10px; color:#8a8a93;}
+.rc-attachments{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0;}
+.rc-attach{
+  font:inherit; font-size:.85rem; border:1px solid #e6e6ea; border-radius:8px;
+  padding:8px 14px; color:#8a8a93; cursor:not-allowed;
 }
-.seogu-meta{margin-top:26px; border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; background:var(--panel);}
-.seogu-meta dt{font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em;}
-.seogu-meta dd{margin:0 0 8px; font-size:.9rem;}
-.seogu-note{font-size:.85rem; color:var(--muted); border-left:3px solid var(--warn); background:var(--warn-bg); padding:8px 12px; border-radius:6px; margin:14px 0;}
-footer.seogu-footer{border-top:1px solid var(--line); padding:18px; color:var(--muted); font-size:.8rem;}
-footer.seogu-footer a{color:var(--muted);}
+.rc-meta{margin-top:26px; border:1px solid #e6e6ea; border-radius:12px; padding:14px 16px;}
+.rc-meta dt{font-size:.72rem; color:#8a8a93; text-transform:uppercase; letter-spacing:.04em;}
+.rc-meta dd{margin:0 0 8px; font-size:.9rem;}
+footer.rc-footer{border-top:1px solid #e6e6ea; padding:18px; color:#8a8a93; font-size:.8rem;}
 @media (max-width:600px){
-  header.seogu-header{padding:12px;}
-  main.seogu-main{padding:18px 14px 48px;}
-  .seogu-surface-grid{grid-template-columns:1fr;}
-  .seogu-clone-nav a, .seogu-gnb .seogu-stub, #seogu-gnb-toggle{padding:6px 9px;}
+  header.rc-header{padding:12px;}
+  main.rc-main{padding:18px 14px 48px;}
+  .rc-surface-grid{grid-template-columns:1fr;}
+  .rc-nav a, .rc-gnb .rc-stub, #rc-gnb-toggle{padding:6px 9px;}
 }
 """
 
@@ -386,8 +374,8 @@ def _render_js() -> str:
     return """
 (function () {
   "use strict";
-  var btn = document.getElementById("seogu-gnb-toggle");
-  var panel = document.getElementById("seogu-mega-menu");
+  var btn = document.getElementById("rc-gnb-toggle");
+  var panel = document.getElementById("rc-mega-menu");
   if (!btn || !panel) return;
   function setOpen(open) {
     btn.setAttribute("aria-expanded", open ? "true" : "false");
@@ -419,7 +407,7 @@ def _render_header(
     open_gnb: bool,
     route_prefix: str,
 ) -> str:
-    site_title = "서구 청 참조 복제 후보"
+    site_title = ""
     for state in model["states"]:
         if state.get("state_id", "").startswith("home."):
             title = state.get("page_title") or ""
@@ -432,33 +420,31 @@ def _render_header(
         href = relative_href(current_route, route)
         current = ' aria-current="page"' if route == current_route else ""
         nav_html.append(f'<a href="{_esc(href)}"{current}>{_esc(label)}</a>')
-    nav_block = f'<nav class="seogu-clone-nav" aria-label="복제 내비게이션">{"".join(nav_html)}</nav>'
+    nav_block = f'<nav class="rc-nav" aria-label="내비게이션">{"".join(nav_html)}</nav>'
 
     gnb_top_html = "".join(
-        f'<span class="seogu-stub" role="link" aria-disabled="true" tabindex="-1">{_esc(t)}</span>'
+        f'<span class="rc-stub" role="link" aria-disabled="true" tabindex="-1">{_esc(t)}</span>'
         for t in gnb_top
     )
     gnb_extra_html = "".join(
-        f'<span class="seogu-mega-item" role="link" aria-disabled="true" tabindex="-1">{_esc(t)}</span>'
+        f'<span class="rc-mega-item" role="link" aria-disabled="true" tabindex="-1">{_esc(t)}</span>'
         for t in gnb_extra
     )
     expanded = "true" if open_gnb else "false"
     hidden_attr = "" if open_gnb else ' hidden'
     gnb_block = (
-        f'<div class="seogu-gnb">'
-        f'<span class="seogu-stub" role="link" aria-disabled="true" tabindex="-1">모델 GNB</span>'
+        f'<div class="rc-gnb">'
         f"{gnb_top_html}"
-        f'<button type="button" id="seogu-gnb-toggle" aria-expanded="{expanded}" '
-        f'aria-controls="seogu-mega-menu">전체메뉴 열기/닫기</button>'
+        f'<button type="button" id="rc-gnb-toggle" aria-expanded="{expanded}" '
+        f'aria-controls="rc-mega-menu">전체메뉴</button>'
         f"</div>"
-        f'<div id="seogu-mega-menu" aria-label="전체메뉴(읽기 전용)"{hidden_attr}>{gnb_extra_html}</div>'
+        f'<div id="rc-mega-menu" aria-label="전체메뉴"{hidden_attr}>{gnb_extra_html}</div>'
     )
 
     return (
-        f'<header class="seogu-header">'
-        f'<div class="seogu-topbar">'
-        f'<h1 class="seogu-site-title">{_esc(site_title)}</h1>'
-        f'<span class="seogu-badge">Faithful clone candidate · visual review pending</span>'
+        f'<header class="rc-header">'
+        f'<div class="rc-topbar">'
+        f'<h1 class="rc-site-title">{_esc(site_title)}</h1>'
         f"</div>"
         f"{nav_block}"
         f"{gnb_block}"
@@ -470,10 +456,8 @@ def _render_footer(model: dict[str, Any]) -> str:
     site_id = _esc(model.get("site_id", ""))
     capture_id = _esc(model.get("capture_id", ""))
     return (
-        f'<footer class="seogu-footer">'
-        f"<div>참조 복제 후보 (G2-B). 실제 사이트 통합 없음 · 자산 바이트 충실도 미완료.</div>"
-        f"<div>site_id={site_id} · capture_id={capture_id} · "
-        f"faithful_clone_candidate=true · visual_review=pending · exact=false</div>"
+        f'<footer class="rc-footer">'
+        f"<div>site_id={site_id} · capture_id={capture_id}</div>"
         f"</footer>"
     )
 
@@ -518,22 +502,16 @@ def _render_home_main(
             continue
         href = relative_href(current_route, route)
         cards.append(
-            f'<a class="seogu-surface-card" href="{_esc(href)}">'
-            f"<h3>{_esc(label)}</h3><p>참조 복제 표면</p></a>"
+            f'<a class="rc-surface-card" href="{_esc(href)}">'
+            f"<h3>{_esc(label)}</h3><p>표면</p></a>"
         )
     card_grid = (
-        f'<div class="seogu-surface-grid">{"".join(cards)}</div>' if cards else ""
-    )
-    note = (
-        '<p class="seogu-note">이 화면은 G2-A 시맨틱 모델에서 복원한 참조 복제 후보입니다. '
-        "실제 서구청 자산 바이트는 저장소에 없으므로 시각 충실도는 보류(pending) 상태입니다.</p>"
+        f'<div class="rc-surface-grid">{"".join(cards)}</div>' if cards else ""
     )
     return (
         f'<section aria-label="홈">'
-        f'<h2 class="seogu-section-title">{_esc("홈 · 참조 복제 후보")}</h2>'
-        f'<div class="seogu-hero">{_esc(hero_text[:4000])}</div>'
-        f"{note}"
-        f'<h3 class="seogu-section-title">{_esc("모델 복제 표면")}</h3>'
+        f'<h2 class="rc-section-title">{_esc("홈")}</h2>'
+        f'<div class="rc-hero">{_esc(hero_text[:4000])}</div>'
         f"{card_grid}"
         f"</section>"
         + _render_meta(state)
@@ -554,23 +532,18 @@ def _render_list_main(
         if item["links_to_detail"] and item["detail_route"]:
             href = relative_href(current_route, item["detail_route"])
             rows.append(
-                f'<li><a class="seogu-list-link" data-detail="1" href="{_esc(href)}">'
+                f'<li><a class="rc-list-link" data-detail="1" href="{_esc(href)}">'
                 f'{_esc(item["text"])}</a></li>'
             )
         else:
             rows.append(
-                f'<li><span class="seogu-list-item" aria-disabled="true" role="link" tabindex="-1">'
+                f'<li><span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">'
                 f'{_esc(item["text"])}</span></li>'
             )
-    note = (
-        '<p class="seogu-note">목록 항목은 G2-A 모델의 general_links에서 복원한 시맨틱 항목입니다. '
-        "대표 항목만 복제 상세 경로로 연결되며, 나머지는 읽기 전용 자리표시자입니다.</p>"
-    )
     return (
         f'<section aria-label="목록">'
-        f'<h2 class="seogu-section-title">{_esc(surface_label(state, model))} · 목록</h2>'
-        f"{note}"
-        f'<ul class="seogu-list">{"".join(rows)}</ul>'
+        f'<h2 class="rc-section-title">{_esc(surface_label(state, model))} · 목록</h2>'
+        f'<ul class="rc-list">{"".join(rows)}</ul>'
         f"</section>"
         + _render_meta(state)
     )
@@ -586,9 +559,9 @@ def _render_detail_main(
     list_no = state.get("list_no")
     badges = []
     if list_no:
-        badges.append(f'<span class="seogu-badge-pill">list_no={_esc(list_no)}</span>')
-    badges.append(f'<span class="seogu-badge-pill">device={_esc(state.get("device_class",""))}</span>')
-    badges.append(f'<span class="seogu-badge-pill">state={_esc(state.get("state_id",""))}</span>')
+        badges.append(f'<span class="rc-badge-pill">list_no={_esc(list_no)}</span>')
+    badges.append(f'<span class="rc-badge-pill">device={_esc(state.get("device_class",""))}</span>')
+    badges.append(f'<span class="rc-badge-pill">state={_esc(state.get("state_id",""))}</span>')
 
     exts = state.get("attachment_document_extensions") or []
     downloads = state.get("download_references") or []
@@ -597,20 +570,14 @@ def _render_detail_main(
         chips = []
         for ext in exts:
             chips.append(
-                f'<button type="button" class="seogu-attach" disabled aria-disabled="true" '
+                f'<button type="button" class="rc-attach" disabled aria-disabled="true" '
                 f'data-attachment-ext="{_esc(ext)}">다운로드 (.{_esc(ext)})</button>'
-                f'<button type="button" class="seogu-attach" disabled aria-disabled="true" '
+                f'<button type="button" class="rc-attach" disabled aria-disabled="true" '
                 f'data-attachment-ext="{_esc(ext)}">미리보기</button>'
             )
         attach_html = (
-            '<div class="seogu-attachments" aria-label="첨부(읽기 전용)">'
+            '<div class="rc-attachments" aria-label="첨부">'
             f'{"".join(chips)}</div>'
-            '<p class="seogu-note">첨부 다운로드/미리보기는 실제 원격 자산이 없으므로 비활성(읽기 전용)입니다. '
-            "원격 다운로드는 금지됩니다.</p>"
-        )
-    else:
-        attach_html = (
-            '<p class="seogu-note">이 상태에는 캡처된 첨부 메타데이터가 없습니다.</p>'
         )
 
     list_route = None
@@ -626,8 +593,8 @@ def _render_detail_main(
 
     return (
         f'<section aria-label="상세">'
-        f'<h2 class="seogu-detail-title">{_esc(title)}</h2>'
-        f'<div class="seogu-badges">{"".join(badges)}</div>'
+        f'<h2 class="rc-detail-title">{_esc(title)}</h2>'
+        f'<div class="rc-badges">{"".join(badges)}</div>'
         f"{attach_html}"
         f"{back}"
         f"</section>"
@@ -641,20 +608,12 @@ def _render_org_staff_main(
     family: str,
     title: str,
 ) -> str:
-    controls = state.get("controls") or []
-    note = (
-        "조직도/직원 안내 표면은 G2-A 모델의 캡처된 시맨틱 메타데이터(제목·랜드마크·컨트롤 수)로 "
-        "표현됩니다. 실제 차트/디렉터리 바이트 충실도는 보류(pending)입니다."
-    )
-    evidence = (
-        f'<p>캡처된 컨트롤 수: <strong>{len(controls)}</strong> · '
-        f'랜드마크 수: <strong>{len(state.get("landmarks", []))}</strong></p>'
-    )
+    """Org/staff surfaces: visual-input gap. No fake UI from metadata counts."""
     label = surface_label(state, model)
     return (
         f'<section aria-label="{_esc(label)}">'
-        f'<h2 class="seogu-section-title">{_esc(label)}</h2>'
-        f'<p class="seogu-note">{note}</p>{evidence}'
+        f'<h2 class="rc-section-title">{_esc(label)}</h2>'
+        f'<p>표시할 시각 정보가 없습니다. (visual-input gap)</p>'
         f"</section>"
         + _render_meta(state)
     )
@@ -682,7 +641,7 @@ def _render_meta(state: dict[str, Any]) -> str:
         rows.append(f"<dt>{_esc(key)}</dt><dd>{_esc(value)}</dd>")
     if not rows:
         return ""
-    return f'<dl class="seogu-meta" aria-label="캡처 메타데이터">{"".join(rows)}</dl>'
+    return f'<dl class="rc-meta" aria-label="캡처 메타데이터">{"".join(rows)}</dl>'
 
 
 # ---------------------------------------------------------------------------
@@ -707,7 +666,7 @@ def _render_page(
     main = _render_main(model, state, nav, route_prefix)
     footer = _render_footer(model)
     lifecycle_script = (
-        f'<script type="application/ld+json" id="seogu-lifecycle-markers">'
+        f'<script type="application/ld+json" id="rc-lifecycle">'
         f"{_lifecycle_json()}</script>"
     )
     return (
@@ -723,7 +682,7 @@ def _render_page(
         "</head>"
         "<body>"
         f"{header}"
-        f'<main class="seogu-main">{main}</main>'
+        f'<main class="rc-main">{main}</main>'
         f"{footer}"
         f"<script>{_render_js()}</script>"
         "</body></html>"
@@ -733,10 +692,13 @@ def _render_page(
 def render_state(
     model: dict[str, Any],
     state_id: str,
-    route_prefix: str = DEFAULT_ROUTE_PREFIX,
+    route_prefix: str,
     open_gnb: bool = False,
 ) -> str:
-    """Render a single model state into a complete HTML document."""
+    """Render a single model state into a complete HTML document.
+
+    *route_prefix* is required — there is no hardcoded default.
+    """
     _require_model_ready(model)
     state = next((s for s in model["states"] if s.get("state_id") == state_id), None)
     if state is None:
@@ -753,9 +715,12 @@ def render_state(
 
 
 def render_site(
-    model: dict[str, Any], route_prefix: str = DEFAULT_ROUTE_PREFIX
+    model: dict[str, Any], route_prefix: str
 ) -> dict[str, str]:
-    """Render every model state to its deterministic route (11 states -> 11 files)."""
+    """Render every model state to its deterministic route (11 states -> 11 files).
+
+    *route_prefix* is required — there is no hardcoded default.
+    """
     _require_model_ready(model)
     pages: dict[str, str] = {}
     for state in model["states"]:
@@ -770,21 +735,18 @@ def render_site(
 # ---------------------------------------------------------------------------
 def load_model(path: str | Path) -> dict[str, Any]:
     """Load a single ``clone-model.json`` (the ONLY file read by the renderer)."""
-    text = Path(path).read_text(encoding="utf-8")
-    return json.loads(text)
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def write_site(
     model: dict[str, Any],
     out_root: str | Path,
-    route_prefix: str = DEFAULT_ROUTE_PREFIX,
+    route_prefix: str,
 ) -> list[Path]:
     """Render every state and write deterministic route files under *out_root*.
 
-    *out_root* is the directory that becomes the route namespace root (e.g.
-    ``dist/cloudflare-pages/seogu``). A route ``/seogu/notice/`` maps to
-    ``<out_root>/notice/index.html``; the root route ``/seogu/`` maps to
-    ``<out_root>/index.html``.
+    *route_prefix* is required — there is no hardcoded default.
+    *out_root* is the directory that becomes the route namespace root.
     """
     pages = render_site(model, route_prefix=route_prefix)
     written: list[Path] = []
@@ -803,6 +765,7 @@ def write_site(
 
 def model_checksum(model: dict[str, Any]) -> str:
     """Stable checksum of the rendered site (determinism proof)."""
-    pages = render_site(model)
+    # Use a default prefix for checksum computation (caller must provide same).
+    pages = render_site(model, route_prefix="/clone/")
     blob = "\n".join(f"{r}\x00{p}" for r, p in sorted(pages.items()))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "asset_manifest",
+  "site_id": "seogu_gwangju",
+  "capture_id": "20260812T231018-0900",
+  "model_checksum": "268a3b8eb61b680338720aec647d85ec10965a521498482c722f83bdb1b7f5ea",
+  "note": "No asset bytes are committed to the repository yet. This manifest documents the source URLs and SHA-256 hashes from the G1 provenance_manifest for future staged download. Routine build/CI uses only local committed bytes.",
+  "committed_assets": [],
+  "provenance_entries": [
+    {
+      "source_url": "https://www.seogu.gwangju.kr/boardImgView.es?bid=0001&list_no=142915",
+      "sha256": "c9da2a80b4152f8c78b5ff7c0532e8528df7f31cb165e8bde40fcc3300ec1a1d",
+      "committed": false,
+      "local_path": null,
+      "state_id": "home.desktop.default"
+    }
+  ],
+  "provenance_entry_count": 879,
+  "provenance_entry_count_note": "The full provenance_manifest from clone-model.json contains 879 entries. Only the first entry is shown here as a sample. The complete list is available in data/official_clone_fixtures/seogu_gwangju/g1/20260812T231018-0900/clone-model.json under the provenance_manifest key."
+}

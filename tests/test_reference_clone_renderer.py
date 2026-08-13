@@ -13,7 +13,7 @@ prove:
   * the GNB-open state is distinguishable from / reachable via the default;
   * notice / gosi / civil-form list & detail surfaces are distinct;
   * attachment affordances are preserved;
-  * lifecycle markers are correct;
+  * lifecycle markers are correct (hidden JSON-LD only);
   * a second synthetic site model renders with the SAME generic renderer.
 
 No network, no live site, no provider, no Firecrawl, no API calls.
@@ -54,6 +54,8 @@ REQUIRED_11 = [
     "organization.chart.desktop",
     "staff.directory.desktop",
 ]
+
+_ROUTE_PREFIX = "/seogu/"
 
 
 def _load_module():
@@ -109,7 +111,6 @@ def test_renderer_source_is_not_site_specific():
     )
     for token in forbidden:
         assert token not in source, f"renderer must not hardcode site literal: {token!r}"
-    # Generic content-type routing, not a chain of if/elif per state.
     assert "if site_id" not in source
 
 
@@ -140,15 +141,15 @@ def test_renderer_source_has_no_external_fetch_logic():
 def test_renders_all_11_required_states():
     model = _load_model()
     for state_id in REQUIRED_11:
-        html = mod.render_state(model, state_id)
+        html = mod.render_state(model, state_id, route_prefix=_ROUTE_PREFIX)
         assert isinstance(html, str) and html.strip().startswith("<!DOCTYPE html>")
         assert f'data-state-id="{state_id}"' in html
 
 
 def test_render_site_produces_unique_deterministic_routes():
     model = _load_model()
-    pages_a = mod.render_site(model)
-    pages_b = mod.render_site(model)
+    pages_a = mod.render_site(model, route_prefix=_ROUTE_PREFIX)
+    pages_b = mod.render_site(model, route_prefix=_ROUTE_PREFIX)
     assert set(pages_a.keys()) == set(pages_b.keys())
     for route in pages_a:
         assert pages_a[route] == pages_b[route], f"non-deterministic render for {route}"
@@ -166,22 +167,21 @@ def test_unready_model_fails_closed():
     model["claim_gates"] = dict(model.get("claim_gates") or {})
     model["claim_gates"]["reference_baseline_ready"] = False
     with pytest.raises(mod.ReferenceCloneRendererError):
-        mod.render_state(model, "home.desktop.default")
+        mod.render_state(model, "home.desktop.default", route_prefix=_ROUTE_PREFIX)
     with pytest.raises(mod.ReferenceCloneRendererError):
-        mod.render_site(model)
+        mod.render_site(model, route_prefix=_ROUTE_PREFIX)
 
 
 # ── No raw G1 / screenshot / external in OUTPUT ──────────────────────────
 def test_output_has_no_external_or_screenshot_references():
     model = _load_model()
-    pages = mod.render_site(model)
+    pages = mod.render_site(model, route_prefix=_ROUTE_PREFIX)
     for route, html in pages.items():
         assert "http://" not in html, f"external http in {route}"
         assert "https://" not in html, f"external https in {route}"
         assert "screenshot" not in html.lower(), f"screenshot runtime in {route}"
         assert "source.png" not in html, f"raw screenshot artifact in {route}"
         assert "data/official_captures" not in html, f"raw capture path in {route}"
-        # No external auto-fetch resource references.
         assert '<script src="http' not in html
         assert '<link href="http' not in html
 
@@ -202,31 +202,30 @@ def test_route_scheme_is_generic_and_required():
         "staff.directory.desktop": "/seogu/staff/",
     }
     for state_id, route in expected.items():
-        assert mod.route_for_state(state_id) == route, state_id
+        assert mod.route_for_state(state_id, _ROUTE_PREFIX) == route, state_id
 
 
 # ── GNB interaction: distinguishable + reachable ─────────────────────────
 def test_gnb_open_distinguishable_from_default():
     model = _load_model()
-    default = mod.render_state(model, "home.desktop.default")
-    opened = mod.render_state(model, "home.desktop.gnb_open")
+    default = mod.render_state(model, "home.desktop.default", route_prefix=_ROUTE_PREFIX)
+    opened = mod.render_state(model, "home.desktop.gnb_open", route_prefix=_ROUTE_PREFIX)
     # Default is closed.
     assert 'aria-expanded="false"' in default
-    assert 'id="seogu-mega-menu"' in default
-    assert 'id="seogu-mega-menu" aria-label="전체메뉴(읽기 전용)" hidden' in default
+    assert 'id="rc-mega-menu"' in default
+    assert 'id="rc-mega-menu" aria-label="전체메뉴" hidden' in default
     # Open variant is distinguishable.
     assert 'aria-expanded="true"' in opened
-    assert 'id="seogu-mega-menu" aria-label="전체메뉴(읽기 전용)"' in opened
-    assert ' hidden' not in opened.split('id="seogu-mega-menu"', 1)[1].split(">", 1)[0]
+    assert 'id="rc-mega-menu" aria-label="전체메뉴"' in opened
+    assert ' hidden' not in opened.split('id="rc-mega-menu"', 1)[1].split(">", 1)[0]
     # Both share the toggle control with aria-expanded + aria-controls.
-    assert 'id="seogu-gnb-toggle"' in default
-    assert 'aria-controls="seogu-mega-menu"' in default
+    assert 'id="rc-gnb-toggle"' in default
+    assert 'aria-controls="rc-mega-menu"' in default
 
 
 def test_gnb_mega_menu_contains_open_only_controls():
     model = _load_model()
-    opened = mod.render_state(model, "home.desktop.gnb_open")
-    # A control observed only in the gnb_open state appears in the mega panel.
+    opened = mod.render_state(model, "home.desktop.gnb_open", route_prefix=_ROUTE_PREFIX)
     assert "경제" in opened
     assert "고시/공고" in opened
 
@@ -234,23 +233,20 @@ def test_gnb_mega_menu_contains_open_only_controls():
 # ── List / detail distinction + attachment affordance ───────────────────
 def test_notice_list_links_to_detail_and_distinct():
     model = _load_model()
-    listing = mod.render_state(model, "notice.list.desktop")
-    detail = mod.render_state(model, "notice.detail.desktop")
-    assert "seogu-list-link" in listing
-    assert "data-detail=\"1\"" in listing
-    # Distinct surfaces: detail carries the captured list_no + attachment.
+    listing = mod.render_state(model, "notice.list.desktop", route_prefix=_ROUTE_PREFIX)
+    detail = mod.render_state(model, "notice.detail.desktop", route_prefix=_ROUTE_PREFIX)
+    assert "rc-list-link" in listing
+    assert 'data-detail="1"' in listing
     assert "list_no=143106" in detail
     assert "다운로드 (.hwpx)" in detail
     assert "미리보기" in detail
-    # The list page must NOT already show the detail-only attachment affordance.
     assert "다운로드 (.hwpx)" not in listing
 
 
 def test_notice_detail_captures_required_attachment():
     model = _load_model()
-    detail = mod.render_state(model, "notice.detail.desktop")
+    detail = mod.render_state(model, "notice.detail.desktop", route_prefix=_ROUTE_PREFIX)
     assert "[공고문]사회연대경제 청년 일경험 시범사업 모집공고_참여청년(3차 모집)" in detail
-    # Download/preview are inert (no remote navigation).
     assert "disabled" in detail
     assert "aria-disabled" in detail
     assert "http://" not in detail
@@ -259,11 +255,10 @@ def test_notice_detail_captures_required_attachment():
 
 def test_gosi_list_detail_distinct_with_attachment():
     model = _load_model()
-    gosi_list = mod.render_state(model, "gosi.list.desktop")
-    gosi_detail = mod.render_state(model, "gosi.detail.desktop")
+    gosi_list = mod.render_state(model, "gosi.list.desktop", route_prefix=_ROUTE_PREFIX)
+    gosi_detail = mod.render_state(model, "gosi.detail.desktop", route_prefix=_ROUTE_PREFIX)
     assert gosi_list != gosi_detail
-    assert "seogu-list-link" in gosi_list
-    # gosi detail attachment extensions captured (doc / hwpx).
+    assert "rc-list-link" in gosi_list
     assert "다운로드 (.doc)" in gosi_detail
     assert "다운로드 (.hwpx)" in gosi_detail
     assert "disabled" in gosi_detail
@@ -271,7 +266,7 @@ def test_gosi_list_detail_distinct_with_attachment():
 
 def test_civil_form_detail_captures_hwp_attachment():
     model = _load_model()
-    detail = mod.render_state(model, "civil_form.detail.desktop")
+    detail = mod.render_state(model, "civil_form.detail.desktop", route_prefix=_ROUTE_PREFIX)
     assert "list_no=143010" in detail
     assert "자동차 등록 위임장" in detail
     assert "다운로드 (.hwp)" in detail
@@ -280,8 +275,8 @@ def test_civil_form_detail_captures_hwp_attachment():
 
 def test_organization_and_staff_distinct():
     model = _load_model()
-    org = mod.render_state(model, "organization.chart.desktop")
-    staff = mod.render_state(model, "staff.directory.desktop")
+    org = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
+    staff = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
     assert org != staff
     assert "행정조직도" in org
     assert "직원 업무안내" in staff
@@ -290,9 +285,9 @@ def test_organization_and_staff_distinct():
 # ── Lifecycle markers ────────────────────────────────────────────────────
 def test_lifecycle_markers_present_and_correct():
     model = _load_model()
-    html = mod.render_state(model, "home.desktop.default")
-    assert 'id="seogu-lifecycle-markers"' in html
-    start = html.index('id="seogu-lifecycle-markers"')
+    html = mod.render_state(model, "home.desktop.default", route_prefix=_ROUTE_PREFIX)
+    assert 'id="rc-lifecycle"' in html
+    start = html.index('id="rc-lifecycle"')
     end = html.index("</script>", start)
     payload = json.loads(html[start:end].split(">", 1)[1])
     assert payload["faithful_clone_candidate"] is True
@@ -309,14 +304,41 @@ def test_lifecycle_markers_present_and_correct():
 # ── Semantic fields used ─────────────────────────────────────────────────
 def test_captured_semantics_present_in_output():
     model = _load_model()
-    html = mod.render_state(model, "home.desktop.default")
+    html = mod.render_state(model, "home.desktop.default", route_prefix=_ROUTE_PREFIX)
     for token in ("state_id", "device_class", "captured_at", "final_http_status"):
         assert f"<dt>{token}</dt>" in html
-    # Header / nav / main / footer landmarks present.
     assert "<header" in html
     assert "<nav" in html
     assert "<main" in html
     assert "<footer" in html
+
+
+# ── No developer-facing text in output ───────────────────────────────────
+def test_no_developer_text_in_output():
+    model = _load_model()
+    pages = mod.render_site(model, route_prefix=_ROUTE_PREFIX)
+    for html in pages.values():
+        assert "모델 GNB" not in html, "developer text must be removed"
+        assert "참조 복제 후보" not in html, "developer text must be removed"
+        assert "참조 복제 표면" not in html, "developer text must be removed"
+        assert "모델 복제 표면" not in html, "developer text must be removed"
+        assert "Faithful clone candidate" not in html, "developer text must be removed"
+        assert "visual review pending" not in html, "developer text must be removed"
+
+
+# ── Org/staff are visual-input gaps ──────────────────────────────────────
+def test_org_staff_are_visual_input_gaps():
+    model = _load_model()
+    org = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
+    staff = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
+    # No fake metadata counts.
+    assert "캡처된 컨트롤 수" not in org
+    assert "캡처된 컨트롤 수" not in staff
+    assert "랜드마크 수" not in org
+    assert "랜드마크 수" not in staff
+    # Visual-input gap message present.
+    assert "visual-input gap" in org
+    assert "visual-input gap" in staff
 
 
 # ── Second synthetic site: same generic renderer ────────────────────────
@@ -418,12 +440,12 @@ def _synthetic_model():
 
 def test_second_synthetic_site_renders_generically():
     synthetic = _synthetic_model()
-    # Routing is generic and derived from state_id (not the seogu fixture).
-    assert mod.route_for_state("news.list.desktop", "/x/") == "/x/news/"
-    assert mod.route_for_state("news.detail.desktop", "/x/") == "/x/news/detail/"
-    assert mod.route_for_state("org.chart.desktop", "/x/") == "/x/org/"
+    prefix = "/x/"
+    assert mod.route_for_state("news.list.desktop", prefix) == "/x/news/"
+    assert mod.route_for_state("news.detail.desktop", prefix) == "/x/news/detail/"
+    assert mod.route_for_state("org.chart.desktop", prefix) == "/x/org/"
 
-    pages = mod.render_site(synthetic, route_prefix="/x/")
+    pages = mod.render_site(synthetic, route_prefix=prefix)
     assert len(pages) == 11
     assert set(pages.keys()) == {
         "/x/",
@@ -438,15 +460,12 @@ def test_second_synthetic_site_renders_generically():
         "/x/org/",
         "/x/people/",
     }
-    # Labels are derived from page_title, not hardcoded.
     assert "소식" in pages["/x/news/"]
-    # No external / raw-G1 leakage in synthetic output either.
     for html in pages.values():
         assert "http://" not in html
         assert "https://" not in html
         assert "screenshot" not in html.lower()
-    # List -> detail local link works generically.
-    assert 'class="seogu-list-link" data-detail="1"' in pages["/x/news/"]
+    assert 'class="rc-list-link" data-detail="1"' in pages["/x/news/"]
 
 
 def test_second_synthetic_site_unready_fails_closed():

@@ -938,7 +938,7 @@ def test_seogu_lifecycle_markers_present(build_dir):
     html = open(
         os.path.join(build_dir, "seogu", "index.html"), encoding="utf-8"
     ).read()
-    assert 'id="seogu-lifecycle-markers"' in html
+    assert 'id="rc-lifecycle"' in html
     for marker in (
         '"faithful_clone_candidate": true',
         '"visual_review": "pending"',
@@ -960,5 +960,5 @@ def test_seogu_root_does_not_duplicate_bukgu_root(build_dir):
     assert 'id="chat-shell"' in root
     assert "citizen-first-use-shell.js" in root
     # Seo-gu content must NOT leak into the Buk-gu root.
-    assert "seogu-clone-nav" not in root
-    assert "seogu-lifecycle-markers" not in root
+    assert "rc-nav" not in root
+    assert "rc-lifecycle" not in root

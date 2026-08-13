@@ -194,7 +194,7 @@ async function main() {
     assert.ok(rootTitle.includes("착한도시 서구"), "root must show captured site tag");
     const rootHtml = await page.content();
     assert.ok(
-      rootHtml.includes('id="seogu-lifecycle-markers"'),
+      rootHtml.includes('id="rc-lifecycle"'),
       "lifecycle markers must be embedded",
     );
     assert.ok(
@@ -207,24 +207,24 @@ async function main() {
     );
 
     // ── GNB open/close interaction ────────────────────────────────────────
-    const toggle = await page.$("#seogu-gnb-toggle");
+    const toggle = await page.$("#rc-gnb-toggle");
     assert.ok(toggle, "GNB toggle button must exist on root");
-    let expanded = await page.getAttribute("#seogu-gnb-toggle", "aria-expanded");
+    let expanded = await page.getAttribute("#rc-gnb-toggle", "aria-expanded");
     assert.strictEqual(expanded, "false", "GNB starts collapsed on root");
-    await page.click("#seogu-gnb-toggle");
-    expanded = await page.getAttribute("#seogu-gnb-toggle", "aria-expanded");
+    await page.click("#rc-gnb-toggle");
+    expanded = await page.getAttribute("#rc-gnb-toggle", "aria-expanded");
     assert.strictEqual(expanded, "true", "GNB opens on click");
-    const panelVisible = await page.isVisible("#seogu-mega-menu");
+    const panelVisible = await page.isVisible("#rc-mega-menu");
     assert.ok(panelVisible, "mega-menu panel must be visible when open");
     await page.keyboard.press("Escape");
-    expanded = await page.getAttribute("#seogu-gnb-toggle", "aria-expanded");
+    expanded = await page.getAttribute("#rc-gnb-toggle", "aria-expanded");
     assert.strictEqual(expanded, "false", "Escape closes GNB");
     console.log("  GNB open/close interaction OK");
 
     // ── list -> detail local navigation (all three families) ─────────────
     for (const fam of FAMILIES) {
       await page.goto(BASE + fam.list, { waitUntil: "networkidle", timeout: 15000 });
-      const link = await page.$("a.seogu-list-link[data-detail='1']");
+      const link = await page.$("a.rc-list-link[data-detail='1']");
       assert.ok(link, `list->detail link missing for ${fam.list}`);
       await Promise.all([
         page.waitForNavigation({ waitUntil: "networkidle", timeout: 15000 }),
@@ -241,9 +241,9 @@ async function main() {
         `detail for ${fam.list} missing captured marker ${fam.marker}`,
       );
       // attachment affordance visible but inert.
-      const attachCount = await page.$$eval("button.seogu-attach", (els) => els.length);
+      const attachCount = await page.$$eval("button.rc-attach", (els) => els.length);
       assert.ok(attachCount >= 1, `detail for ${fam.list} missing attachment affordance`);
-      const allDisabled = await page.$$eval("button.seogu-attach", (els) =>
+      const allDisabled = await page.$$eval("button.rc-attach", (els) =>
         els.every((e) => e.hasAttribute("disabled") || e.getAttribute("aria-disabled") === "true"),
       );
       assert.ok(allDisabled, `detail for ${fam.list} attachment must be inert`);
@@ -262,7 +262,7 @@ async function main() {
 
     // ── attachment affordance on notice detail (explicit) ────────────────
     await page.goto(BASE + "notice/detail/", { waitUntil: "networkidle", timeout: 15000 });
-    const hwpx = await page.$$eval("button.seogu-attach", (els) =>
+    const hwpx = await page.$$eval("button.rc-attach", (els) =>
       els.some((e) => (e.getAttribute("data-attachment-ext") || "").includes("hwpx")),
     );
     assert.ok(hwpx, "notice detail must surface the .hwpx attachment affordance");
@@ -287,11 +287,11 @@ async function main() {
 
     // ── Basic keyboard/focus accessibility ───────────────────────────────
     await page.goto(BASE, { waitUntil: "networkidle", timeout: 15000 });
-    await page.focus("#seogu-gnb-toggle");
+    await page.focus("#rc-gnb-toggle");
     const focusedId = await page.evaluate(
       () => document.activeElement && document.activeElement.id,
     );
-    assert.strictEqual(focusedId, "seogu-gnb-toggle", "GNB toggle must be keyboard-focusable");
+    assert.strictEqual(focusedId, "rc-gnb-toggle", "GNB toggle must be keyboard-focusable");
     console.log("  keyboard/focus accessibility OK");
 
     // ── NETWORK: zero external requests ─────────────────────────────────

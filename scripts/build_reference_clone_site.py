@@ -1,15 +1,16 @@
-"""Build the #1303 G2-B Seo-gu faithful-clone candidate site (offline).
+"""Build the #1303 G2-B faithful-clone candidate site (offline).
 
-Reads the committed G2-A semantic ``clone-model.json`` for the Seo-gu reference
-capture and renders the deterministic local clone structure under the Seo-gu
-route namespace (``/seogu/``) using the generic
+Reads the committed G2-A semantic ``clone-model.json`` and the G2-B
+``visual-contract.json`` for a named site, then renders the deterministic
+local clone structure using the generic
 ``src/official_clone/reference_clone_renderer.py``.
 
 Zero network. The renderer is model-driven and site-generic; this script only
-selects the Seo-gu canonical fixture as the G2-B build input.
+selects the site-specific fixtures as the G2-B build input.
 
 Usage:
-    python scripts/build_reference_clone_site.py [--out-dir DIR] [--model PATH]
+    python scripts/build_reference_clone_site.py --site-id seogu_gwangju \\
+        [--out-dir DIR] [--model PATH] [--visual-contract PATH]
 """
 
 from __future__ import annotations
@@ -36,38 +37,58 @@ def _load_renderer():
     return module
 
 
-def default_model_path() -> Path:
+def default_model_path(site_id: str) -> Path:
     return (
         _REPO_ROOT
         / "data"
         / "official_clone_fixtures"
-        / "seogu_gwangju"
+        / site_id
         / "g1"
         / "20260812T231018-0900"
         / "clone-model.json"
     )
 
 
+def default_visual_contract_path(site_id: str) -> Path:
+    return (
+        _REPO_ROOT
+        / "data"
+        / "official_clone_visual_inputs"
+        / site_id
+        / "g1"
+        / "20260812T231018-0900"
+        / "visual-contract.json"
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
-    parser = argparse.ArgumentParser(description="Build the Seo-gu G2-B clone candidate site")
-    parser.add_argument("--out-dir", default=None, help="Output directory (default: dist/seogu-clone)")
-    parser.add_argument(
-        "--model",
-        default=str(default_model_path()),
-        help="Path to the G2-A clone-model.json (default: Seo-gu canonical fixture)",
-    )
+    parser = argparse.ArgumentParser(description="Build a G2-B faithful-clone candidate site")
+    parser.add_argument("--site-id", default="seogu_gwangju", help="Site identifier")
+    parser.add_argument("--out-dir", default=None, help="Output directory")
+    parser.add_argument("--model", default=None, help="Path to clone-model.json")
+    parser.add_argument("--visual-contract", default=None, help="Path to visual-contract.json")
     parsed = parser.parse_args(args)
 
-    out_dir = Path(parsed.out_dir) if parsed.out_dir else (_REPO_ROOT / "dist" / "seogu-clone")
-    model_path = Path(parsed.model)
+    site_id = parsed.site_id
+    out_dir = Path(parsed.out_dir) if parsed.out_dir else (_REPO_ROOT / "dist" / f"{site_id}-clone")
+    model_path = Path(parsed.model) if parsed.model else default_model_path(site_id)
+    vc_path = Path(parsed.visual_contract) if parsed.visual_contract else default_visual_contract_path(site_id)
+
+    # Fail-closed: model must exist.
     if not model_path.is_file():
         print(f"REFERENCE_CLONE_SITE_ERROR: model not found: {model_path}")
         return 2
 
+    # Fail-closed: visual contract must exist.
+    if not vc_path.is_file():
+        print(f"REFERENCE_CLONE_SITE_ERROR: visual contract not found: {vc_path}")
+        return 2
+
     renderer = _load_renderer()
     model = renderer.load_model(model_path)
-    written = renderer.write_site(model, out_dir)
+    route_prefix = f"/{site_id.split('_')[0]}/"
+    written = renderer.write_site(model, out_dir, route_prefix=route_prefix)
     checksum = renderer.model_checksum(model)
     print(f"WROTE {len(written)} clone routes -> {out_dir}")
     print(f"SITE_CHECKSUM {checksum}")

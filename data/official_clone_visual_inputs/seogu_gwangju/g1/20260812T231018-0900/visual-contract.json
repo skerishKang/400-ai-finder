@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "contract_kind": "visual_input",
+  "site_id": "seogu_gwangju",
+  "capture_id": "20260812T231018-0900",
+  "model_checksum": "268a3b8eb61b680338720aec647d85ec10965a521498482c722f83bdb1b7f5ea",
+  "note": "All visual values are null/pending. No actual site measurements have been performed. The renderer MUST NOT apply estimated/guessed colors, borders, or card styles — only structural CSS (font-family, box-sizing, layout) is emitted until real values are provided.",
+  "layout": {
+    "header": {
+      "height_px": null,
+      "padding_top": null,
+      "padding_bottom": null,
+      "padding_x": null,
+      "sticky": null,
+      "provenance_state_id": null
+    },
+    "gnb": {
+      "height_px": null,
+      "item_gap": null,
+      "toggle_size": null,
+      "provenance_state_id": null
+    },
+    "main": {
+      "max_width_px": null,
+      "padding_x": null,
+      "padding_y": null,
+      "padding_bottom": null,
+      "provenance_state_id": null
+    },
+    "footer": {
+      "height_px": null,
+      "padding_top": null,
+      "padding_bottom": null,
+      "provenance_state_id": null
+    }
+  },
+  "colors": {
+    "primary": null,
+    "background": null,
+    "surface": null,
+    "text": null,
+    "text_muted": null,
+    "border": null,
+    "link": null,
+    "link_hover": null,
+    "header_bg": null,
+    "gnb_bg": null,
+    "footer_bg": null,
+    "footer_border": null,
+    "provenance_state_id": null
+  },
+  "typography": {
+    "font_family": null,
+    "font_family_kr": null,
+    "site_title_size": null,
+    "site_title_weight": null,
+    "nav_link_size": null,
+    "nav_link_weight": null,
+    "section_title_size": null,
+    "section_title_weight": null,
+    "detail_title_size": null,
+    "detail_title_weight": null,
+    "body_size": null,
+    "body_line_height": null,
+    "provenance_state_id": null
+  },
+  "spacing": {
+    "section_gap": null,
+    "card_padding": null,
+    "list_item_padding": null,
+    "badge_padding_x": null,
+    "badge_padding_y": null,
+    "provenance_state_id": null
+  },
+  "border": {
+    "radius_card": null,
+    "radius_pill": null,
+    "radius_button": null,
+    "width": null,
+    "style": null,
+    "provenance_state_id": null
+  },
+  "responsive": {
+    "breakpoint_mobile": null,
+    "mobile": {
+      "header_padding_x": null,
+      "header_padding_y": null,
+      "main_padding_x": null,
+      "main_padding_y": null,
+      "main_padding_bottom": null,
+      "grid_columns": null
+    },
+    "provenance_state_id": null
+  },
+  "gaps": [
+    {
+      "region": "organization_chart",
+      "note": "No visual geometry for org chart surface. Only semantic model fields (state_id, page_title, landmarks, controls) available. G2-B output avoids fake UI from metadata counts.",
+      "provenance_state_id": null
+    },
+    {
+      "region": "staff_directory",
+      "note": "No visual geometry for staff directory surface. Only semantic model fields available.",
+      "provenance_state_id": null
+    },
+    {
+      "region": "detail_attachment_buttons",
+      "note": "No measured attachment-button geometry (size, color, icon style). Semantic ext list and disabled affordance are emitted structure-only.",
+      "provenance_state_id": null
+    },
+    {
+      "region": "full_responsive_layout",
+      "note": "No measured mobile breakpoint or responsive layout adjustments beyond a single-column fallback.",
+      "provenance_state_id": null
+    }
+  ]
+}
