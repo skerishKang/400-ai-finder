@@ -21,9 +21,11 @@ Fail-closed contract:
     max-width, or breakpoint is ever emitted. Values that are null/gap in the
     contract are omitted from the CSS (fail-closed on that fidelity).
   * ``faithful_clone_candidate`` is True ONLY when the provided visual contract
-    is validated and its required measured fields are present. A null/pending
-    contract renders a structural-only page with ``faithful_clone_candidate``
-    False. ``visual_review`` always stays ``pending``.
+    is validated, its required measured fields are present, and the rendered
+    surface has no explicit promotion-blocking fidelity gap. A null/pending
+    contract or an unresolved board-fidelity gap renders with
+    ``faithful_clone_candidate`` False for the affected surface.
+    ``visual_review`` always stays ``pending``.
 
 Asset limitation (G2-B):
   * No external image/font/css are fetched. Only deterministic local CSS and
@@ -72,6 +74,7 @@ _BASE_LIFECYCLE_MARKERS = {
 
 # Board-record identifier tokens shared across municipal board systems.
 _BOARD_ID_TOKENS = ("list_no", "not_ancmt_mgt_no")
+_BOARD_FIDELITY_GAP_PREFIX = "board_"
 
 # Generic class-name markers used for control classification (no site literal).
 _PRIMARY_SLIDER_CLASSES = frozenset({"prev", "pause", "next"})
@@ -281,15 +284,68 @@ def faithful_ready(visual_contract: dict[str, Any] | None) -> bool:
     )
 
 
-def _lifecycle_markers(visual_contract: dict[str, Any] | None) -> dict[str, Any]:
+def _has_unresolved_board_fidelity_gaps(
+    visual_contract: dict[str, Any] | None,
+) -> bool:
+    """Return True when the validated contract explicitly records board gaps.
+
+    Board list/detail geometry is a separate #1312 fidelity slice. Existing
+    #1310 home measurements can keep the home surface candidate-ready, but an
+    affected list/detail surface must not inherit that stronger claim while its
+    own board geometry remains a provenance-backed ``measurement_method=gap``.
+    """
+    if not visual_contract:
+        return True
+    gaps = visual_contract.get("gaps")
+    if not isinstance(gaps, list):
+        return True
+    return any(
+        isinstance(gap, dict)
+        and gap.get("measurement_method") == "gap"
+        and str(gap.get("region") or "").startswith(_BOARD_FIDELITY_GAP_PREFIX)
+        for gap in gaps
+    )
+
+
+def faithful_clone_candidate_ready(
+    visual_contract: dict[str, Any] | None,
+    state_id: str | None = None,
+) -> bool:
+    """State-scoped promotion gate for the hidden lifecycle candidate marker."""
+    if not faithful_ready(visual_contract):
+        return False
+    if not state_id:
+        return True
+    try:
+        _family, _device, content = parse_state_id(state_id)
+    except ReferenceCloneRendererError:
+        return False
+    if content in ("list", "detail") and _has_unresolved_board_fidelity_gaps(
+        visual_contract
+    ):
+        return False
+    return True
+
+
+def _lifecycle_markers(
+    visual_contract: dict[str, Any] | None,
+    state_id: str | None = None,
+) -> dict[str, Any]:
     markers = dict(_BASE_LIFECYCLE_MARKERS)
-    markers["faithful_clone_candidate"] = faithful_ready(visual_contract)
+    markers["faithful_clone_candidate"] = faithful_clone_candidate_ready(
+        visual_contract, state_id
+    )
     return markers
 
 
-def _lifecycle_json(visual_contract: dict[str, Any] | None) -> str:
+def _lifecycle_json(
+    visual_contract: dict[str, Any] | None,
+    state_id: str | None = None,
+) -> str:
     return json.dumps(
-        _lifecycle_markers(visual_contract), ensure_ascii=False, sort_keys=True
+        _lifecycle_markers(visual_contract, state_id),
+        ensure_ascii=False,
+        sort_keys=True,
     )
 
 
@@ -976,8 +1032,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
 
     primary = _pick(theme, "colors.primary", None, device)
     if primary:
-        # Focus outline is a documented keyboard-accessibility default
-        # (non-fidelity); the outline color uses the measured primary color.
         rules.append(
             "#rc-gnb-toggle:focus-visible,"
             ".rc-nav a:focus-visible,"
@@ -1119,8 +1173,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-attachments{display:flex;flex-wrap:wrap;}"
         ".rc-attach{font:inherit;cursor:not-allowed;}"
         ".rc-badges{display:flex;flex-wrap:wrap;}"
-        # Site-title / current-nav weight are documented accessibility defaults
-        # (non-fidelity).
         f".rc-site-title{{font-weight:{nd['font_weight_site_title']};margin:0;}}"
         ".rc-nav{display:flex;flex-wrap:wrap;}"
         f".rc-nav a[aria-current=\"page\"]{{font-weight:{nd['font_weight_current_nav']};}}"
@@ -1131,9 +1183,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-footer-links{display:flex;flex-wrap:wrap;}"
     )
 
-    # Source-shaped composition refinements. Geometry/color values come from
-    # the validated contract where available; remaining type/gap values are
-    # explicitly neutral presentation defaults and never count as parity.
     outer_w = (
         int(content_max_w) + (2 * int(content_pad or 0))
         if content_max_w else None
@@ -1219,8 +1268,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     if primary:
         rules.append(f'.rc-site-emblem{{background:{primary};}}')
 
-    # Mega menu overlays the hero like the captured open-state navigation,
-    # rather than increasing document height.
     rules.append(
         '#rc-mega-menu{display:block!important;position:absolute;left:0;right:0;top:100%;z-index:20;'
         'background:#ffffff;padding:28px 0 32px;}'
@@ -1235,12 +1282,7 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
             f'#rc-mega-menu{{border-top:1px solid {border};border-bottom:1px solid {border};}}'
         )
 
-    # Home Section01: measured 580/820 composition at 1440px source.
     if key_visual_w and device != "mobile":
-        # minmax(0, ...) keeps the captured 820px key-visual column at wide
-        # viewports but lets it shrink below 820px instead of forcing a fixed
-        # column that overflows narrower viewports (e.g. desktop rendered at
-        # 390px). No visual change at >=1440px.
         rules.append(
             f'.rc-section01{{grid-template-columns:minmax(0,calc(100% - {int(key_visual_w)}px)) '
             f'minmax(0,{int(key_visual_w)}px);}}'
@@ -1270,8 +1312,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
             f'.rc-primary-slider-controls{{background:{primary};}}'
         )
 
-    # Home Section02: one horizontal carousel. Never wrap the 15 source items
-    # into extra rows.
     rules.append(
         '.rc-section02{position:relative;padding:28px 48px;}'
         '.rc-quick-carousel{position:relative;width:100%;overflow:hidden;}'
@@ -1303,7 +1343,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
             f'.rc-quick-card-featured{{background:{hero_bg};}}'
         )
 
-    # Information panels mirror the source 2:1:1 desktop composition.
     rules.append(
         f'.rc-section03{{grid-template-columns:2fr 1fr 1fr!important;'
         f'gap:{int(info_gap)}px;padding:48px 0 34px;align-items:start;}}'
@@ -1371,11 +1410,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
             '.rc-section04{grid-template-columns:1fr!important;gap:28px;padding-bottom:30px;}'
         )
 
-    # GNB-open is a viewport-filling overlay in the committed desktop source:
-    # the normal header chrome and Section01 hero are visually covered, and the
-    # quick-menu region begins immediately after the measured 900px panel.
-    # Keep this generic to the gnb_open state; dimensions/column count come only
-    # from provenance-backed visual-contract values.
     gnb_open_h = theme.get("layout.gnb_open.panel_height_px")
     gnb_open_cols = theme.get("layout.gnb_open.columns")
     if device != "mobile" and gnb_open_h and gnb_open_cols:
@@ -1421,10 +1455,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     rules.append("footer.rc-footer{" + "".join(footer_decls) + "}")
     rules.append(".rc-footer-identity{display:block;}.rc-footer-link{display:inline-block;}")
 
-    # Generic board (list / detail) surface: subpage shell, SNB, breadcrumb,
-    # toolbar, semantic table, pagination, detail meta/body. Style values come
-    # from the validated visual contract where available; remaining layout uses
-    # neutral structural defaults (non-fidelity, never counted as parity).
     border_c = _pick(theme, "colors.border", None, device)
     muted_c = _pick(theme, "colors.text_muted", None, device)
     rules.append(
@@ -1545,8 +1575,6 @@ def _render_header(
         if c not in slogan_ctrls and c not in search_ctrls and _control_text(c)
     ]
 
-    # The captured utility strip has a left institutional-link cluster and a
-    # right language/social cluster. Derive the split from control classes/order.
     right_start = len(utility_ctrls)
     social_pos = next(
         (
@@ -1574,9 +1602,6 @@ def _render_header(
             + "</div></div></div>"
         )
 
-    # Desktop source: campaign slogan at left, search field at center/right.
-    # Search-button-like controls with no class follow the captured search input,
-    # so keep them in the same semantic search group.
     desktop_search = search_ctrls + (other_tool_ctrls if search_ctrls else [])
     tools_html = ""
     if device != "mobile" and (slogan_ctrls or desktop_search):
@@ -1830,12 +1855,6 @@ def _render_home_main(
     )
 
 
-# ---------------------------------------------------------------------------
-# Generic board (list / detail) surface reconstruction
-# ---------------------------------------------------------------------------
-# Generic Korean municipal-board column vocabulary used to recognise a board
-# table inside the captured ``contents`` landmark. No site literal — these are
-# board-column labels shared across Korean municipal sites.
 _BOARD_COLUMN_TOKENS = frozenset(
     {"번호", "제목", "담당부서", "부서명", "등록일", "첨부파일",
      "조회수", "분류", "고시공고번호", "게재일자"}
@@ -1851,12 +1870,6 @@ def _contents_landmark_text(state: dict[str, Any]) -> str:
 
 
 def _detect_board_columns(contents: str) -> list[str]:
-    """Return ordered board column labels found in *contents*, else [].
-
-    The column run is the maximal consecutive token sequence immediately BEFORE
-    the first standalone integer (the first row 번호) whose tokens are all
-    generic board-column labels. Deterministic; no site literal.
-    """
     if not contents:
         return []
     tokens = contents.split()
@@ -1874,17 +1887,6 @@ def _detect_board_columns(contents: str) -> list[str]:
 
 
 def _parse_board_blob_rows(contents: str, columns: list[str]) -> list[dict[str, str]]:
-    """Parse the first captured board rows from the contents blob.
-
-    The blob is a captured-landmark excerpt, so it carries only the first few
-    source rows. Each recovered row yields 번호 / 분류 / 담당부서(부서명) /
-    등록일 / 조회수 where present; columns without captured per-row data stay
-    empty (documented gap, never invented).
-
-    The row scan anchors on the 등록일 date token: the row's 번호 precedes it,
-    the 담당부서 token immediately precedes the date, the 조회수 is the first
-    digit after the date, and the next row's 번호 is the digit after that.
-    """
     if not contents or not columns:
         return []
     tokens = contents.split()
@@ -1915,8 +1917,6 @@ def _parse_board_blob_rows(contents: str, columns: list[str]) -> list[dict[str, 
         if views_idx is not None:
             rec["조회수"] = tokens[views_idx]
         if "분류" in columns and columns.index("분류") == 1 and i + 1 < di:
-            # 분류 sits immediately after 번호 when the source column order is
-            # 번호 → 분류 → 제목.
             rec["분류"] = tokens[i + 1]
         rows.append(rec)
         nxt = next(
@@ -2171,10 +2171,6 @@ def _render_list_main(
                             f'aria-disabled="true" role="link" tabindex="-1">{_esc(item["text"])}</span></td>'
                         )
                 elif col == "번호":
-                    # Source-backed 번호 comes only from the captured contents
-                    # blob. Internal record ids are NOT resident-visible (hidden
-                    # evidence only), so rows without a captured 번호 render an
-                    # empty cell (documented gap, never invented).
                     val = (blob or {}).get("번호") or ""
                     cells.append(f'<td class="rc-td rc-col-번호">{_esc(val)}</td>')
                 elif col in ("담당부서", "부서명"):
@@ -2343,18 +2339,11 @@ def _render_detail_main(
 
 
 def _render_org_staff_main(state: dict[str, Any]) -> str:
-    """Org/staff surfaces render their captured section label only.
-
-    No fake UI is built from metadata counts and no visual-input-gap wording is
-    shown to residents; the gap is recorded in the visual contract and hidden
-    machine-readable metadata.
-    """
     label = surface_label(state, {})
     return f'<section aria-label="{_esc(label)}"><h2 class="rc-section-title">{_esc(label)}</h2></section>'
 
 
 def _evidence_json(state: dict[str, Any]) -> str:
-    """Hidden machine-readable state evidence for QA (never resident-visible)."""
     viewport = state.get("viewport") or {}
     evidence = {
         "state_id": state.get("state_id"),
@@ -2368,9 +2357,6 @@ def _evidence_json(state: dict[str, Any]) -> str:
     return json.dumps(evidence, ensure_ascii=False, sort_keys=True)
 
 
-# ---------------------------------------------------------------------------
-# Page assembly
-# ---------------------------------------------------------------------------
 def _render_page(
     model: dict[str, Any],
     state: dict[str, Any],
@@ -2395,13 +2381,13 @@ def _render_page(
     css = _render_css(theme, device=device)
     lifecycle_script = (
         f'<script type="application/ld+json" id="rc-lifecycle">'
-        f"{_lifecycle_json(visual_contract)}</script>"
+        f"{_lifecycle_json(visual_contract, state_id)}</script>"
     )
     evidence_script = (
         f'<script type="application/ld+json" id="rc-evidence">'
         f"{_evidence_json(state)}</script>"
     )
-    faithful = faithful_ready(visual_contract)
+    faithful = faithful_clone_candidate_ready(visual_contract, state_id)
     return (
         "<!DOCTYPE html>"
         f'<html lang="ko" data-clone-candidate="{str(faithful).lower()}" '
@@ -2431,13 +2417,6 @@ def render_state(
     visual_contract: dict[str, Any] | None = None,
     open_gnb: bool = False,
 ) -> str:
-    """Render a single model state into a complete HTML document.
-
-    *route_prefix* is required — there is no hardcoded default. The visual
-    contract is re-validated at entry (see ``validate_visual_contract``);
-    a ``None`` contract renders structurally with ``faithful_clone_candidate``
-    False.
-    """
     _require_model_ready(model)
     if visual_contract is not None:
         from official_clone.visual_contract import validate_visual_contract
@@ -2470,10 +2449,6 @@ def render_site(
     route_prefix: str,
     visual_contract: dict[str, Any] | None = None,
 ) -> dict[str, str]:
-    """Render every model state to its deterministic route (11 states -> 11 files).
-
-    *route_prefix* is required — there is no hardcoded default.
-    """
     _require_model_ready(model)
     pages: dict[str, str] = {}
     for state in model["states"]:
@@ -2485,11 +2460,7 @@ def render_site(
     return pages
 
 
-# ---------------------------------------------------------------------------
-# Model loading + filesystem writing
-# ---------------------------------------------------------------------------
 def load_model(path: str | Path) -> dict[str, Any]:
-    """Load a single ``clone-model.json`` (the ONLY file read by the renderer)."""
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
@@ -2499,11 +2470,6 @@ def write_site(
     route_prefix: str,
     visual_contract: dict[str, Any] | None = None,
 ) -> list[Path]:
-    """Render every state and write deterministic route files under *out_root*.
-
-    *route_prefix* is required — there is no hardcoded default.
-    *out_root* is the directory that becomes the route namespace root.
-    """
     pages = render_site(model, route_prefix=route_prefix, visual_contract=visual_contract)
     written: list[Path] = []
     for route, html in pages.items():
@@ -2520,8 +2486,6 @@ def write_site(
 
 
 def model_checksum(model: dict[str, Any]) -> str:
-    """Stable checksum of the rendered site (determinism proof)."""
-    # Use a default prefix for checksum computation (caller must provide same).
     pages = render_site(model, route_prefix="/clone/")
     blob = "\n".join(f"{r}\x00{p}" for r, p in sorted(pages.items()))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
