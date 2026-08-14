@@ -1,10 +1,10 @@
 # 400 AI Finder 현재 기준 문서
 
 - 상태: `canonical`
-- 기준일: 2026-08-12
-- 정렬 시작 기준 main: `cf643bddb2e1e2f9675df5162dc1f87d95acbb70`
-- 현재 governance 정렬: #1301
-- active onboarding validation: #1232
+- 기준일: 2026-08-14
+- 기준 main: `178dc3a7759e168c626b052c12f8ed819bfe8c5b`
+- lifecycle/governance 정렬: #1301 완료
+- active onboarding validation: #1232 -> #1303 -> #1312
 
 이 문서는 저장소의 **현재 제품상태, 제품단계, 안전경계, 개발순서와 운영기준을 찾기 위한 최상위 인덱스**다.
 
@@ -90,8 +90,8 @@ Canonical lifecycle: [`product/clone-first-general-site-platform-strategy.md`](p
 - **Buk-gu Frozen Demo:** 완료. 북구는 첫 번째 protected municipality golden reference다.
 - **Generic contract foundation:** #1287 완료. Versioned Generic SiteSpec vNext / archetype / capability / onboarding-report contract foundation과 Buk-gu compatibility/projection 기반이 존재한다.
 - **Generic Site Model / structural preview evidence:** 구현됨. #1298~#1300의 Seo-gu offline structural work는 generic platform evidence로 유효하다.
-- **Seo-gu faithful clone:** 아직 완료되지 않음. 현재 merged Seo-gu evidence에는 실제 Seo-gu visual/content surface를 faithful clone으로 검증한 증거가 없다.
-- **General-site / multi-site AI Browser:** #1232가 다시 active 상태다. 다음 named-site proof는 Seo-gu reference baseline -> faithful clone -> AI-on-clone 순서를 따라야 한다.
+- **Seo-gu named-site proof:** #1303 아래에서 G1 point-in-time reference baseline과 G2-A semantic model, G2-B faithful-clone candidate까지 완료·병합되었다. #1310 / PR #1311의 homepage desktop/mobile/GNB fidelity slice는 accepted 상태다. 현재 #1312 / Draft PR #1313에서 notice/gosi/civil-form list+detail six-state fidelity를 교정 중이며, fresh evidence는 생성됐지만 현재 candidate는 visual/source-parity review에서 아직 accepted가 아니다. organization/staff는 그 다음 bounded slice다.
+- **General-site / multi-site AI Browser:** #1232가 active 상태다. Seo-gu G3 representative-surface acceptance가 완료되기 전에는 AI-on-clone 후속이나 materially different third-site proof로 넘어가지 않는다.
 - **Live-public AI:** 별도 public operating approval이 있는 것으로 자동 간주하지 않는다.
 - **Actual-site first-party integration:** 기관의 실제 운영·통합 승인이 있기 전에는 시작하지 않는다.
 - **Rights/license #1234:** public/open-source redistribution 또는 별도 release 판단을 위한 owner/rights 트랙으로 유지한다. 현재 controlled faithful-clone MVP의 기능·fidelity·stakeholder evaluation 자체를 자동 차단하는 일반 개발 blocker로 사용하지 않는다.
@@ -131,14 +131,16 @@ generated structural preview
 ## 현재 #1232 순서
 
 1. Buk-gu — protected golden reference
-2. Seo-gu — generic structural evidence merged; faithful clone/visual proof 미완료
-3. Seo-gu scoped actual-site reference baseline 확보
-4. Seo-gu faithful clone candidate 생성
-5. reference vs clone structural/content/asset/interaction/visual 비교
-6. Seo-gu clone 위에서 AI search/navigation/Browser Use 검증
-7. 그 후에 materially different third-site proof
+2. Seo-gu G1 — scoped point-in-time actual-site reference baseline 완료
+3. Seo-gu G2-A — semantic model 완료
+4. Seo-gu G2-B — faithful-clone candidate 병합 완료
+5. Seo-gu G3 homepage — #1310 / PR #1311 accepted
+6. Seo-gu G3 board/list/detail — #1312 / Draft PR #1313 active; current evidence는 아직 visual acceptance 전
+7. organization chart / staff directory — board slice acceptance 후 다음 bounded correction
+8. Seo-gu G3의 required structural/content/asset/interaction/visual gates를 모두 충족하고 owner visual review와 별도 `clone_mvp_ready` gate가 명시적으로 승인된 뒤 clone 위 AI search/navigation/Browser Use 검증
+9. 그 후 materially different third-site / cross-domain proof
 
-제3 사이트를 먼저 진행하거나 Seo-gu structural preview를 clone 완료로 표현하지 않는다.
+제3 사이트를 먼저 진행하거나 CI/Preview 성공만으로 Seo-gu G3 visual acceptance 또는 clone MVP 완료를 표현하지 않는다.
 
 ## 현재 기준 문서
 
@@ -222,8 +224,10 @@ generated structural preview
 
 Active:
 
-- [#1301 clone MVP lifecycle / canonical docs alignment](https://github.com/skerishKang/400-ai-finder/issues/1301)
+- [#1181 clone-first multi-site parent strategy/epic](https://github.com/skerishKang/400-ai-finder/issues/1181)
 - [#1232 multi-site onboarding validation](https://github.com/skerishKang/400-ai-finder/issues/1232)
+- [#1303 Seo-gu controlled reference baseline + faithful clone proof](https://github.com/skerishKang/400-ai-finder/issues/1303)
+- [#1312 Seo-gu G3 board list/detail fidelity](https://github.com/skerishKang/400-ai-finder/issues/1312)
 
 Separate follow-up/platform hardening:
 
@@ -239,10 +243,12 @@ Owner/public-release decision:
 
 Completed / historical:
 
+- #1301 clone MVP lifecycle / canonical docs alignment — completed
+- #1310 Seo-gu G3 homepage fidelity correction — completed/accepted
 - #1283 post-Buk-gu governance alignment — completed
 - #1287 Generic SiteSpec vNext contract foundation — completed
 - #1235 Buk-gu Frozen Demo closeout — completed
-- #1181 clone-first multi-site parent strategy — historical architecture/backlog source
+- #1181 historical planning text remains useful, but the issue itself is still OPEN as the current parent strategy/epic
 - #1080 Buk-gu official fixture program — historical/deferred
 - #1150 official-info freshness retrieval — historical/deferred
 - #862 actual-site navigator/integration — future authorized actual-site track
