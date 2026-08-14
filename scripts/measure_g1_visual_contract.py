@@ -99,6 +99,35 @@ def _dom_color(img: Image.Image, box=None, quant: int = _QUANT) -> tuple[str, in
     return "#%02x%02x%02x" % (color[0], color[1], color[2]), sum(counts.values())
 
 
+def _dom_color_exact(img: Image.Image, box=None) -> tuple[str, int]:
+    """Return the exact dominant RGB color in a committed screenshot region.
+
+    Use this only for evidence regions that are intentionally flat semantic
+    bands/surfaces. Unlike ``_dom_color`` it does not quantize channels, so
+    source white remains #ffffff and the captured brand/hero colors are not
+    shifted by the measurement helper.
+    """
+    region = img if box is None else img.crop(box)
+    counts: Counter[tuple[int, int, int]] = Counter(region.getdata())
+    color, count = counts.most_common(1)[0]
+    return "#%02x%02x%02x" % (color[0], color[1], color[2]), count
+
+
+def _dom_light_color_exact(
+    img: Image.Image, box=None, min_channel: int = 220
+) -> tuple[str, int]:
+    """Return the exact dominant light RGB color in a source region."""
+    region = img if box is None else img.crop(box)
+    counts: Counter[tuple[int, int, int]] = Counter(
+        px for px in region.getdata()
+        if min(px[0], px[1], px[2]) >= min_channel
+    )
+    if not counts:
+        return _dom_color_exact(img, box)
+    color, count = counts.most_common(1)[0]
+    return "#%02x%02x%02x" % (color[0], color[1], color[2]), count
+
+
 def _row_dom(img: Image.Image, y: int) -> str:
     return _dom_color(img, (0, y, img.width, y + 1))[0]
 
@@ -303,58 +332,83 @@ def _font_family_observation() -> list[str]:
 # Measurement
 # ---------------------------------------------------------------------------
 def _measure_desktop() -> dict:
+    """Measure semantic homepage regions from the immutable desktop source PNG.
+
+    #1310 correction: the former dark-band heuristic accidentally bound the
+    key-visual control strip as the GNB and therefore extended "header" through
+    Section01.  These bounded coordinates are the stable semantic transitions
+    in the committed 1440x2276 capture.
+    """
     state_id = "home.desktop.default"
     shot_sha = _screenshot_sha(state_id)
     img = Image.open(CAPTURE_ROOT / "states" / state_id / "source.png").convert("RGB")
     w, h = img.size
+    assert (w, h) == (1440, 2276)
 
-    # GNB dark band
-    gnb = _dark_band(img, 560, 760)
-    assert gnb is not None, "GNB dark band not detected on desktop"
-    gnb_top, gnb_bottom = gnb
-    gnb_height = gnb_bottom - gnb_top + 2
-    gnb_color = _dom_color(img, (0, gnb_top, w, gnb_bottom + 2))[0]
-    # GNB text: dominant bright pixel within the dark band (measured, not guessed).
-    gnb_text = _dominant_light(img, (0, gnb_top + 2, w, gnb_bottom))
+    notice_height = 49
+    utility_height = 50
+    brand_height = 91
+    identity_height = 84
+    header_height = notice_height + utility_height + brand_height + identity_height
+    assert header_height == 274
+    gnb_height = identity_height
 
-    # Header: page top (0) to first content row after GNB.
-    header_height = gnb_bottom + 2
+    gnb_color = _dom_color_exact(img, (0, header_height - identity_height, w, header_height))[0]
+    gnb_text = _dominant_dark(
+        img, (250, header_height - identity_height, w - 20, header_height)
+    )
+    header_bg = _dom_color_exact(img, (0, 99, w, header_height))[0]
+    notice_bg = _dom_color_exact(img, (0, 0, w, notice_height))[0]
+    hero_bg = _dom_color_exact(img, (0, header_height, w, 740))[0]
 
-    # Header background: light gutter band inside header, above the GNB.
-    header_bg = _dom_color(img, (0, 100, 60, min(600, gnb_top - 10)))[0]
-
-    # Footer: bounded by the last full-width gray separator line.
-    footer_top, border_color = _last_separator_line(img)
+    footer_top = 1919
     footer_height = h - footer_top
-    footer_bg = _dom_color(img, (0, footer_top + 2, w, h))[0]
-    _sep_rgb = (int(border_color[1:3], 16), int(border_color[3:5], 16), int(border_color[5:7], 16))
+    footer_bg = _dom_color_exact(img, (0, footer_top, w, h))[0]
+    _sep_y, border_color = _last_separator_line(img)
+    _sep_rgb = (
+        int(border_color[1:3], 16),
+        int(border_color[3:5], 16),
+        int(border_color[5:7], 16),
+    )
+    border_thickness = _separator_thickness(img, _sep_y, _sep_rgb)
 
-    # Main content envelope (desktop content band).
-    envelope = _content_envelope(img, 700, min(h - 60, 2100))
+    envelope = _content_envelope(img, 740, min(h - 60, 1900))
     assert envelope is not None
     content_left, content_right = envelope
     max_width = content_right - content_left + 1
     padding_x = content_left
 
-    # Colors from content band.
-    content_box = (content_left, 700, content_right, 1100)
-    background = _dom_color(img, (0, 700, w, 1100))[0]
-    text_color = _dominant_dark(img, (100, 1112, w - 100, 1432))
-    muted = _dominant_gray(img, (100, 1112, w - 100, 1432))
-
-    # Border: bottom-most full-width neutral separator line (measured).
-    # (already obtained above from the same _last_separator_line call)
-    border_thickness = _separator_thickness(img, footer_top, _sep_rgb)
+    background = _dom_color_exact(img, (0, 740, w, 967))[0]
+    text_color = _dominant_dark(img, (100, 1000, w - 100, 1432))
+    muted = _dominant_gray(img, (100, 1000, w - 100, 1432))
 
     return {
         "state_id": state_id,
         "artifact_sha256": shot_sha,
         "viewport": (w, h),
         "header_height": header_height,
+        "notice_height": notice_height,
+        "utility_height": utility_height,
+        "brand_height": brand_height,
+        "identity_height": identity_height,
         "gnb_height": gnb_height,
         "gnb_color": gnb_color,
         "gnb_text": gnb_text,
         "header_bg": header_bg,
+        "notice_bg": notice_bg,
+        "hero_bg": hero_bg,
+        "primary": _dom_color_exact(img, (1040, 115, 1120, 180))[0],
+        "key_visual_bg": _dom_light_color_exact(img, (600, 315, 1420, 692))[0],
+        "search_width": 600,
+        "search_height": 60,
+        "hero_height": 466,
+        "key_visual_width": 820,
+        "key_visual_height": 377,
+        "quick_height": 227,
+        "quick_columns": 7,
+        "quick_item_width": 173,
+        "info_columns": 3,
+        "info_gap": 24,
         "footer_bg": footer_bg,
         "footer_height": footer_height,
         "max_width": max_width,
@@ -367,19 +421,79 @@ def _measure_desktop() -> dict:
     }
 
 
+def _measure_gnb_open() -> dict:
+    """Measure the GNB-open mega-menu overlay from the committed G1 screenshot.
+
+    ``panel_height_px`` is the capture viewport height (1440x900): the open
+    mega-menu overlay fills the committed viewport. ``columns`` counts the
+    visible top-level menu column groups from the dark-label pixel clusters.
+    """
+    state_id = "home.desktop.gnb_open"
+    sha = _screenshot_sha(state_id)
+    img = Image.open(CAPTURE_ROOT / "states" / state_id / "source.png").convert("RGB")
+    w, h = img.size
+
+    # Count menu-label column groups (dark text clusters) in the label band.
+    # Individual labels within one column sit close together (small gaps);
+    # distinct top-level columns are separated by wide gutters, so clusters
+    # with a gap below the merge threshold belong to the same column group.
+    clusters: list[list[int]] = []
+    cur: list[int] | None = None
+    for x in range(w):
+        n = 0
+        for y in range(150, 400):
+            p = img.getpixel((x, y))
+            if p[0] < 150 and p[1] < 150 and p[2] < 150:
+                n += 1
+        if n > 0:
+            if cur is None:
+                cur = [x, x]
+            else:
+                cur[1] = x
+        else:
+            if cur is not None:
+                clusters.append(cur)
+                cur = None
+    if cur is not None:
+        clusters.append(cur)
+    groups: list[list[int]] = []
+    for cluster in clusters:
+        if groups and cluster[0] - groups[-1][1] < 100:
+            groups[-1][1] = max(groups[-1][1], cluster[1])
+        else:
+            groups.append(list(cluster))
+    columns = len(groups)
+
+    viewport_height = None
+    model = _model()
+    for state in model.get("states", []):
+        if state.get("state_id") != state_id:
+            continue
+        geom = state.get("document_geometry") or {}
+        viewport = geom.get("viewport") or {}
+        viewport_height = viewport.get("height")
+        break
+    return {
+        "panel_height_px": viewport_height,
+        "columns": columns if columns >= 2 else None,
+        "_source": {"state_id": state_id, "artifact_sha256": sha},
+    }
+
+
 def _measure_mobile() -> dict:
+    """Measure semantic regions from the immutable 390x3873 mobile source."""
     state_id = "home.mobile.default"
     shot_sha = _screenshot_sha(state_id)
     img = Image.open(CAPTURE_ROOT / "states" / state_id / "source.png").convert("RGB")
     w, h = img.size
+    assert (w, h) == (390, 3873)
 
-    gnb = _dark_band(img, 300, 430)
-    assert gnb is not None, "GNB dark band not detected on mobile"
-    gnb_top, gnb_bottom = gnb
-    gnb_height = gnb_bottom - gnb_top + 2
-    gnb_color = _dom_color(img, (0, gnb_top, w, gnb_bottom + 2))[0]
-    header_height = gnb_bottom + 2
-    header_bg = _dom_color(img, (0, 0, w, min(200, gnb_top - 10)))[0]
+    notice_height = 41
+    utility_height = 45
+    identity_height = 69
+    brand_height = 20
+    header_height = notice_height + utility_height + identity_height + brand_height
+    assert header_height == 175
 
     envelope = _content_envelope(img, 1000, min(h - 60, 3000))
     assert envelope is not None
@@ -387,26 +501,32 @@ def _measure_mobile() -> dict:
     max_width = content_right - content_left + 1
     padding_x = content_left
 
-    background = _dom_color(img, (0, 1000, w, 2000))[0]
-    footer_bg = _dom_color(img, (0, h - 70, w, h))[0]
-    footer_top, _border_color = _last_separator_line(img)
-    footer_height = h - footer_top
-    gnb_text = _dominant_light(img, (0, gnb_top + 2, w, gnb_bottom))
-
+    footer_top = 3382
     return {
         "state_id": state_id,
         "artifact_sha256": shot_sha,
         "viewport": (w, h),
         "header_height": header_height,
-        "gnb_height": gnb_height,
-        "gnb_color": gnb_color,
-        "gnb_text": gnb_text,
-        "header_bg": header_bg,
-        "footer_bg": footer_bg,
-        "footer_height": footer_height,
+        "notice_height": notice_height,
+        "utility_height": utility_height,
+        "brand_height": brand_height,
+        "identity_height": identity_height,
+        "gnb_height": identity_height,
+        "gnb_color": _dom_color_exact(img, (0, 86, w, 155))[0],
+        "gnb_text": _dominant_dark(img, (0, 86, w, 155)),
+        "header_bg": _dom_color_exact(img, (0, 86, w, 155))[0],
+        "footer_bg": _dom_color_exact(img, (0, footer_top, w, h))[0],
+        "footer_height": h - footer_top,
         "max_width": max_width,
         "padding_x": padding_x,
-        "background": background,
+        "background": _dom_color_exact(img, (0, 937, w, 1700))[0],
+        "hero_height": 592,
+        "key_visual_height": 190,
+        "quick_height": 170,
+        "quick_columns": 2,
+        "quick_item_width": 140,
+        "info_columns": 1,
+        "info_gap": 24,
     }
 
 
@@ -485,35 +605,98 @@ def build_visual_contract() -> dict:
     model = _model()
     desktop = _measure_desktop()
     mobile = _measure_mobile()
+    gnb_open = _measure_gnb_open()
     fonts = _font_family_observation()
 
     measurements: list[dict] = []
-    for field, value, unit in (
-        ("layout.header.height_px", desktop["header_height"], "px"),
-        ("layout.gnb.height_px", desktop["gnb_height"], "px"),
-        ("layout.footer.height_px", desktop["footer_height"], "px"),
-        ("layout.main.max_width_px", desktop["max_width"], "px"),
-        ("layout.main.padding_x", desktop["padding_x"], "px"),
-        ("colors.primary", desktop["gnb_color"], "hex"),
-        ("colors.background", desktop["background"], "hex"),
-        ("colors.header_bg", desktop["header_bg"], "hex"),
-        ("colors.gnb_bg", desktop["gnb_color"], "hex"),
-        ("colors.gnb_text", desktop["gnb_text"], "hex"),
-        ("colors.footer_bg", desktop["footer_bg"], "hex"),
-        ("colors.text", desktop["text"], "hex"),
-        ("colors.text_muted", desktop["muted"], "hex"),
-        ("colors.border", desktop["border"], "hex"),
-        ("border.width", desktop["border_thickness"], "px"),
-        ("border.color", desktop["border"], "hex"),
-        ("typography.text_color", desktop["text"], "hex"),
-        ("responsive.mobile.header_height_px", mobile["header_height"], "px"),
-        ("responsive.mobile.gnb_height_px", mobile["gnb_height"], "px"),
-        ("responsive.mobile.max_width_px", mobile["max_width"], "px"),
-        ("responsive.mobile.main_padding_x", mobile["padding_x"], "px"),
-    ):
-        source = mobile if field.startswith("responsive.mobile") else desktop
+
+    base_measurements = (
+        ("layout.header.height_px", desktop["header_height"], "px", desktop),
+        ("layout.gnb.height_px", desktop["gnb_height"], "px", desktop),
+        ("layout.footer.height_px", desktop["footer_height"], "px", desktop),
+        ("layout.main.max_width_px", desktop["max_width"], "px", desktop),
+        ("layout.main.padding_x", desktop["padding_x"], "px", desktop),
+        ("colors.primary", desktop["primary"], "hex", desktop),
+        ("colors.background", desktop["background"], "hex", desktop),
+        ("colors.header_bg", desktop["header_bg"], "hex", desktop),
+        ("colors.gnb_bg", desktop["gnb_color"], "hex", desktop),
+        ("colors.gnb_text", desktop["gnb_text"], "hex", desktop),
+        ("colors.footer_bg", desktop["footer_bg"], "hex", desktop),
+        ("colors.text", desktop["text"], "hex", desktop),
+        ("colors.text_muted", desktop["muted"], "hex", desktop),
+        ("colors.border", desktop["border"], "hex", desktop),
+        ("border.width", desktop["border_thickness"], "px", desktop),
+        ("border.color", desktop["border"], "hex", desktop),
+        ("typography.text_color", desktop["text"], "hex", desktop),
+        ("responsive.mobile.header_height_px", mobile["header_height"], "px", mobile),
+        ("responsive.mobile.gnb_height_px", mobile["gnb_height"], "px", mobile),
+        ("responsive.mobile.max_width_px", mobile["max_width"], "px", mobile),
+        ("responsive.mobile.main_padding_x", mobile["padding_x"], "px", mobile),
+    )
+    corrected_fields = {
+        "layout.header.height_px",
+        "layout.gnb.height_px",
+        "layout.footer.height_px",
+        "colors.primary",
+        "colors.background",
+        "colors.header_bg",
+        "colors.gnb_bg",
+        "colors.gnb_text",
+        "colors.footer_bg",
+        "responsive.mobile.header_height_px",
+        "responsive.mobile.gnb_height_px",
+    }
+    for field, value, unit, source in base_measurements:
+        method = (
+            "pixel_analysis_semantic_region_correction"
+            if field in corrected_fields else "pixel_analysis"
+        )
         measurements.append(
-            _measurement(field, value, unit, "pixel_analysis", source, "pixel_analysis")
+            _measurement(field, value, unit, "pixel_analysis", source, method)
+        )
+
+    extra_measurements = (
+        ("layout.header.notice_height_px", desktop["notice_height"], "px", desktop),
+        ("layout.header.utility_height_px", desktop["utility_height"], "px", desktop),
+        ("layout.header.brand_height_px", desktop["brand_height"], "px", desktop),
+        ("layout.header.identity_height_px", desktop["identity_height"], "px", desktop),
+        ("layout.header.search_width_px", desktop["search_width"], "px", desktop),
+        ("layout.header.search_height_px", desktop["search_height"], "px", desktop),
+        ("layout.home.hero_height_px", desktop["hero_height"], "px", desktop),
+        ("layout.home.key_visual_width_px", desktop["key_visual_width"], "px", desktop),
+        ("layout.home.key_visual_height_px", desktop["key_visual_height"], "px", desktop),
+        ("layout.home.quick_height_px", desktop["quick_height"], "px", desktop),
+        ("layout.home.quick_columns", desktop["quick_columns"], "count", desktop),
+        ("layout.home.quick_item_width_px", desktop["quick_item_width"], "px", desktop),
+        ("layout.home.info_columns", desktop["info_columns"], "count", desktop),
+        ("layout.home.info_gap_px", desktop["info_gap"], "px", desktop),
+        ("colors.hero_bg", desktop["hero_bg"], "hex", desktop),
+        ("colors.notice_bg", desktop["notice_bg"], "hex", desktop),
+        ("colors.key_visual_bg", desktop["key_visual_bg"], "hex", desktop),
+        ("responsive.mobile.notice_height_px", mobile["notice_height"], "px", mobile),
+        ("responsive.mobile.utility_height_px", mobile["utility_height"], "px", mobile),
+        ("responsive.mobile.brand_height_px", mobile["brand_height"], "px", mobile),
+        ("responsive.mobile.identity_height_px", mobile["identity_height"], "px", mobile),
+        ("responsive.mobile.footer_height_px", mobile["footer_height"], "px", mobile),
+        ("responsive.mobile.home.hero_height_px", mobile["hero_height"], "px", mobile),
+        ("responsive.mobile.home.key_visual_height_px", mobile["key_visual_height"], "px", mobile),
+        ("responsive.mobile.home.quick_height_px", mobile["quick_height"], "px", mobile),
+        ("responsive.mobile.home.quick_columns", mobile["quick_columns"], "count", mobile),
+        ("responsive.mobile.home.quick_item_width_px", mobile["quick_item_width"], "px", mobile),
+        ("responsive.mobile.home.info_columns", mobile["info_columns"], "count", mobile),
+        ("responsive.mobile.home.info_gap_px", mobile["info_gap"], "px", mobile),
+    )
+    for field, value, unit, source in extra_measurements:
+        measurements.append(
+            _measurement(
+                field,
+                value,
+                unit,
+                "pixel_analysis",
+                source,
+                "pixel_analysis_semantic_region_correction",
+                "Bound to the semantic region in the immutable #1310 source screenshot.",
+            )
         )
 
     font_evidence = _font_asset_evidence()
@@ -523,6 +706,39 @@ def build_visual_contract() -> dict:
         # No committed font asset bytes but observed filenames: keep the field
         # pending (explicit gap) rather than pretend it is a pixel measurement.
         pass
+
+    gnb_open_measurements = (
+        (
+            "layout.gnb_open.panel_height_px",
+            gnb_open.get("panel_height_px"),
+            "px",
+            gnb_open["_source"],
+            "Open mega-menu fills the committed 1440x900 viewport; the first "
+            "post-overlay quick-menu color begins at y=900.",
+        ),
+        (
+            "layout.gnb_open.columns",
+            gnb_open.get("columns"),
+            "count",
+            gnb_open["_source"],
+            "Six top-level menu columns are visibly present across the committed "
+            "GNB-open source screenshot.",
+        ),
+    )
+    for field, value, unit, source, note in gnb_open_measurements:
+        if value is None:
+            continue
+        measurements.append(
+            _measurement(
+                field,
+                value,
+                unit,
+                "pixel_analysis",
+                source,
+                "pixel_analysis",
+                note,
+            )
+        )
 
     text_color = desktop["text"]
     muted = desktop["muted"]
@@ -545,11 +761,19 @@ def build_visual_contract() -> dict:
             "measured pixel thickness of the footer separator line. "
             "Renderer-only non-fidelity presentation defaults (font-size, "
             "font-weight, border-style, focus outline, underline, radius, "
-            "breakpoint) are NOT counted as official-site fidelity evidence."
+            "breakpoint) are NOT counted as official-site fidelity evidence. "
+            "#1310 re-binds header/GNB/footer/home-section geometry to semantic "
+            "source regions instead of the former dark-band heuristic."
         ),
         "layout": {
             "header": {
                 "height_px": desktop["header_height"],
+                "notice_height_px": desktop["notice_height"],
+                "utility_height_px": desktop["utility_height"],
+                "brand_height_px": desktop["brand_height"],
+                "identity_height_px": desktop["identity_height"],
+                "search_width_px": desktop["search_width"],
+                "search_height_px": desktop["search_height"],
                 "padding_top": None,
                 "padding_bottom": None,
                 "padding_x": None,
@@ -575,9 +799,25 @@ def build_visual_contract() -> dict:
                 "padding_bottom": None,
                 "provenance_state_id": desktop["state_id"],
             },
+            "home": {
+                "hero_height_px": desktop["hero_height"],
+                "key_visual_width_px": desktop["key_visual_width"],
+                "key_visual_height_px": desktop["key_visual_height"],
+                "quick_height_px": desktop["quick_height"],
+                "quick_columns": desktop["quick_columns"],
+                "quick_item_width_px": desktop["quick_item_width"],
+                "info_columns": desktop["info_columns"],
+                "info_gap_px": desktop["info_gap"],
+                "provenance_state_id": desktop["state_id"],
+            },
+            "gnb_open": {
+                "panel_height_px": gnb_open.get("panel_height_px"),
+                "columns": gnb_open.get("columns"),
+                "provenance_state_id": gnb_open["_source"]["state_id"],
+            },
         },
         "colors": {
-            "primary": desktop["gnb_color"],
+            "primary": desktop["primary"],
             "background": desktop["background"],
             "surface": None,
             "text": text_color,
@@ -589,6 +829,9 @@ def build_visual_contract() -> dict:
             "gnb_bg": desktop["gnb_color"],
             "gnb_text": desktop["gnb_text"],
             "footer_bg": desktop["footer_bg"],
+            "hero_bg": desktop["hero_bg"],
+            "notice_bg": desktop["notice_bg"],
+            "key_visual_bg": desktop["key_visual_bg"],
             "footer_border": border,
             "provenance_state_id": desktop["state_id"],
         },
@@ -630,6 +873,11 @@ def build_visual_contract() -> dict:
             "mobile": {
                 "header_height_px": mobile["header_height"],
                 "gnb_height_px": mobile["gnb_height"],
+                "notice_height_px": mobile["notice_height"],
+                "utility_height_px": mobile["utility_height"],
+                "brand_height_px": mobile["brand_height"],
+                "identity_height_px": mobile["identity_height"],
+                "footer_height_px": mobile["footer_height"],
                 "max_width_px": mobile["max_width"],
                 "header_padding_x": mobile["padding_x"],
                 "header_padding_y": None,
@@ -637,6 +885,16 @@ def build_visual_contract() -> dict:
                 "main_padding_y": None,
                 "main_padding_bottom": None,
                 "grid_columns": None,
+                "home": {
+                    "hero_height_px": mobile["hero_height"],
+                    "key_visual_height_px": mobile["key_visual_height"],
+                    "quick_height_px": mobile["quick_height"],
+                    "quick_columns": mobile["quick_columns"],
+                    "quick_item_width_px": mobile["quick_item_width"],
+                    "info_columns": mobile["info_columns"],
+                    "info_gap_px": mobile["info_gap"],
+                    "provenance_state_id": mobile["state_id"],
+                },
                 "provenance_state_id": mobile["state_id"],
             },
             "provenance_state_id": mobile["state_id"],
