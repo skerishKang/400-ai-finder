@@ -907,6 +907,32 @@ def test_home_section01_preserves_captured_mayor_actions():
     assert "조직도" not in section01
 
 
+def test_home_desktop_contains_width_at_narrow_viewports():
+    """#1311: desktop home must not force a horizontal scroll at 390px.
+
+    The browser verifier (verify_seogu_reference_clone_e2e.mjs) asserts
+    documentElement.scrollWidth <= innerWidth at 390x844. These renderer
+    constraints are what keep the fixed-width key-visual column and the
+    nowrap utility / GNB items from overflowing when the desktop layout is
+    rendered narrower than its source width. This is a CSS-structure contract
+    only; it does NOT replace the browser assertion.
+    """
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    # Key-visual grid column must be shrinkable (minmax(0, ...)) rather than a
+    # fixed pixel column that overflows below its source width.
+    assert "grid-template-columns:minmax(0,calc(100% -" in html
+    assert "minmax(0," in html
+    # Utility bar and GNB must wrap instead of spilling past the viewport.
+    assert ".rc-utility-inner{display:flex" in html and "flex-wrap:wrap" in html
+    assert ".rc-utility-left,.rc-utility-right{display:flex;flex-wrap:wrap" in html
+    assert ".rc-gnb{gap:8px;flex-wrap:wrap;min-width:0;}" in html
+
+
 def test_home_quick_menu_keeps_rd_box_in_same_carousel():
     model = _load_model()
     contract = _load_validated_contract()

@@ -1176,8 +1176,8 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         f'.rc-gov-notice,.rc-utility-inner{{font-size:{nd["utility_font_size_px"]}px;}}'
         '.rc-utility-bar,.rc-brand-tools,.rc-identity-row{max-width:none;margin:0;padding:0;}'
         f'.rc-utility-inner{{display:flex;align-items:center;justify-content:space-between;'
-        f'gap:{nd["utility_gap_px"]}px;}}'
-        f'.rc-utility-left,.rc-utility-right{{display:flex;align-items:center;'
+        f'gap:{nd["utility_gap_px"]}px;flex-wrap:wrap;}}'
+        f'.rc-utility-left,.rc-utility-right{{display:flex;flex-wrap:wrap;align-items:center;'
         f'gap:{nd["utility_gap_px"]}px;min-width:0;}}'
         '.rc-utility-item{white-space:nowrap;}'
         '.rc-brand-inner{display:flex;align-items:center;justify-content:space-between;}'
@@ -1204,7 +1204,7 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         f'.rc-site-title{{display:flex;align-items:center;gap:10px;'
         f'font-size:{nd["site_title_size_px"]}px;white-space:nowrap;line-height:1.2;}}'
         '.rc-site-emblem{display:inline-block;width:38px;height:38px;clip-path:circle(50%);flex:0 0 auto;}'
-        f'.rc-gnb{{gap:8px;flex-wrap:nowrap;min-width:0;}}'
+        f'.rc-gnb{{gap:8px;flex-wrap:wrap;min-width:0;}}'
         f'.rc-gnb .rc-stub{{flex:0 0 auto!important;padding:0 18px;'
         f'font-size:{nd["gnb_font_size_px"]}px;font-weight:700;color:inherit;white-space:nowrap;}}'
         '#rc-gnb-toggle{border:0!important;display:inline-flex;align-items:center;gap:9px;'
@@ -1235,9 +1235,13 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
 
     # Home Section01: measured 580/820 composition at 1440px source.
     if key_visual_w and device != "mobile":
+        # minmax(0, ...) keeps the captured 820px key-visual column at wide
+        # viewports but lets it shrink below 820px instead of forcing a fixed
+        # column that overflows narrower viewports (e.g. desktop rendered at
+        # 390px). No visual change at >=1440px.
         rules.append(
-            f'.rc-section01{{grid-template-columns:calc(100% - {int(key_visual_w)}px) '
-            f'{int(key_visual_w)}px;}}'
+            f'.rc-section01{{grid-template-columns:minmax(0,calc(100% - {int(key_visual_w)}px)) '
+            f'minmax(0,{int(key_visual_w)}px);}}'
         )
     rules.append(
         f'.rc-mayor-panel{{position:relative;padding:42px {nd["panel_padding_px"]}px;'
