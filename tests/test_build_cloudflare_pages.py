@@ -980,15 +980,24 @@ def test_seogu_resident_output_has_no_debug_diagnostics(build_dir):
 
 
 def test_seogu_css_derives_from_validated_contract(build_dir):
-    """G2-B correction: /seogu/ CSS must derive from measured contract values
-    and never contain the pre-correction guessed tokens."""
+    """#1310 G3 correction: /seogu/ CSS must derive from measured contract values
+    and never contain the pre-correction guessed tokens.
+
+    ``600px`` is a source-backed measured desktop search width
+    (layout.header.search_width_px) so it is NOT a guessed token and is
+    asserted as a positive value instead.
+    """
     html = open(
         os.path.join(build_dir, "seogu", "index.html"), encoding="utf-8"
     ).read()
     # Measured values from visual-contract.json (desktop home).
     assert "max-width:1400px" in html
     assert "border:1px solid #dcdcdc" in html
-    assert "background:#083878" in html  # GNB bg measured
+    # Corrected source-backed values from the validated G3 visual contract.
+    assert "background:#1663b6" in html  # corrected primary
+    assert "background:#f0f0ff" in html  # corrected hero background
+    assert "min-height:274px" in html  # corrected semantic desktop header height
+    assert "width:600px" in html  # source-backed desktop search width
     for token in (
         "#e6e6ea",
         "#8a8a93",
@@ -997,7 +1006,6 @@ def test_seogu_css_derives_from_validated_contract(build_dir):
         "999px",
         "border-radius",
         "@media (max-width",
-        "600px",
     ):
         assert token not in html, f"guessed CSS token leaked into seogu build: {token!r}"
 
