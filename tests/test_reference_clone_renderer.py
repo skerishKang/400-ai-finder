@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import re
 import socket
 import sys
 from pathlib import Path
@@ -1162,3 +1163,195 @@ def test_forged_readiness_dict_ignored_by_revalidation():
             model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
             visual_contract=raw,
         )
+
+
+# ---------------------------------------------------------------------------
+# #1312 — Seo-gu G3 board fidelity (notice / gosi / civil-form list + detail)
+# ---------------------------------------------------------------------------
+_BOARD_LIST_STATES = [
+    "notice.list.desktop", "gosi.list.desktop", "civil_form.list.desktop",
+]
+_BOARD_DETAIL_STATES = [
+    "notice.detail.desktop", "gosi.detail.desktop", "civil_form.detail.desktop",
+]
+_BOARD_STATES = _BOARD_LIST_STATES + _BOARD_DETAIL_STATES
+
+_EXPECTED_HEADERS = {
+    "notice.list.desktop": ["번호", "제목", "담당부서", "등록일", "첨부파일", "조회수"],
+    "gosi.list.desktop": ["번호", "제목", "부서명", "등록일", "조회수"],
+    "civil_form.list.desktop": ["번호", "분류", "제목", "담당부서", "등록일", "첨부파일", "조회수"],
+}
+
+
+def _render_board(state_id, contract=None):
+    model = _load_model()
+    kw = {"route_prefix": _ROUTE_PREFIX}
+    if contract is not None:
+        kw["visual_contract"] = contract
+    return mod.render_state(model, state_id, **kw)
+
+
+def _board_contents(state_id):
+    model = _load_model()
+    for s in model["states"]:
+        if s.get("state_id") == state_id:
+            for lm in s.get("landmarks", []):
+                if lm.get("id") == "contents":
+                    return lm.get("text") or ""
+    return ""
+
+
+def test_1312_six_states_render_deterministically():
+    for sid in _BOARD_STATES:
+        a = _render_board(sid)
+        b = _render_board(sid)
+        assert a.startswith("<!DOCTYPE html>")
+        assert a == b
+
+
+def test_1312_list_and_detail_dom_differ():
+    for lst, det in zip(_BOARD_LIST_STATES, _BOARD_DETAIL_STATES):
+        L = _render_board(lst)
+        D = _render_board(det)
+        assert L != D
+        assert '<table class="rc-board"' in L
+        assert '<table class="rc-board"' not in D
+        assert "rc-detail-meta" in D
+
+
+def test_1312_source_table_rendered_as_semantic_table():
+    for sid in _BOARD_LIST_STATES:
+        h = _render_board(sid)
+        assert '<table class="rc-board"' in h
+        assert "<thead>" in h and "<tbody>" in h
+        assert "<th " in h and '<tr class="rc-board-row">' in h
+
+
+def test_1312_header_labels_come_from_model():
+    for sid, expected in _EXPECTED_HEADERS.items():
+        h = _render_board(sid)
+        headers = re.findall(r"<th[^>]*>([^<]+)</th>", h)
+        assert headers == expected, (sid, headers)
+
+
+def test_1312_row_metadata_source_backed_order_and_values():
+    h = _render_board("notice.list.desktop")
+    assert re.search(r'<td class="rc-td rc-col-번호">([^<]*)</td>', h).group(1) == "10852"
+    assert re.search(r'<td class="rc-td rc-col-담당부서">([^<]*)</td>', h).group(1) == "체육관광과"
+    assert re.search(r'<td class="rc-td rc-col-등록일">([^<]*)</td>', h).group(1) == "2026/08/11"
+    assert re.search(r'<td class="rc-td rc-col-조회수">([^<]*)</td>', h).group(1) == "144"
+    h = _render_board("gosi.list.desktop")
+    assert re.search(r'<td class="rc-td rc-col-번호">([^<]*)</td>', h).group(1) == "338"
+    assert re.search(r'<td class="rc-td rc-col-부서명">([^<]*)</td>', h).group(1) == "동천동"
+    assert re.search(r'<td class="rc-td rc-col-등록일">([^<]*)</td>', h).group(1) == "2026-08-12"
+    h = _render_board("civil_form.list.desktop")
+    assert re.search(r'<td class="rc-td rc-col-번호">([^<]*)</td>', h).group(1) == "1077"
+    assert re.search(r'<td class="rc-td rc-col-분류">([^<]*)</td>', h).group(1) == "교통"
+
+
+def test_1312_board_helpers_recover_metadata_from_model():
+    c = _board_contents("notice.list.desktop")
+    cols = mod._detect_board_columns(c)
+    assert cols == _EXPECTED_HEADERS["notice.list.desktop"]
+    rows = mod._parse_board_blob_rows(c, cols)
+    assert rows[0]["번호"] == "10852"
+    assert rows[0]["담당부서"] == "체육관광과"
+    assert rows[0]["등록일"] == "2026/08/11"
+    assert rows[0]["조회수"] == "144"
+
+
+def test_1312_detail_recovers_metadata_body_attachment_back():
+    h = _render_board("notice.detail.desktop")
+    assert "작성일시" in h and "2026/08/10 09:59" in h
+    assert "작성부서" in h and "일자리청년지원과" in h
+    assert "조회수" in h and "242" in h
+    assert "다운로드 (.hwpx)" in h and "미리보기" in h
+    assert "rc-back" in h and "목록으로" in h
+    h = _render_board("gosi.detail.desktop")
+    assert "작성일" in h and "2026-08-10" in h
+    assert "분류" in h and "고시" in h
+    assert "담당자연락처" in h and "고영관/0623507669" in h
+    assert "고시합니다" in h  # recovered body
+    h = _render_board("civil_form.detail.desktop")
+    assert "작성일시" in h and "2026/07/30 11:23" in h
+    assert "분류" in h and "교통" in h
+    assert "작성부서" in h and "교통행정과" in h
+    assert "조회수" in h and "7" in h
+    assert "자동차(이륜자동차) 등록 위임장입니다." in h  # recovered body
+    assert "다운로드 (.hwp)" in h
+
+
+def test_1312_attachments_inert_and_readonly():
+    for sid in _BOARD_DETAIL_STATES:
+        h = _render_board(sid)
+        assert "rc-attach" in h
+        assert "disabled" in h and "aria-disabled" in h
+        idx = h.find("rc-attachments")
+        block = h[idx:idx + 1000]
+        assert "<a " not in block  # attachments are not navigable links
+
+
+def test_1312_no_external_requests_and_same_origin_nav():
+    for sid in _BOARD_STATES:
+        h = _render_board(sid)
+        assert "http://" not in h
+        assert "https://" not in h
+        for href in re.findall(r'href="([^"]*)"', h):
+            # Relative (local) and absolute clone-route hrefs are both same-origin.
+            assert not href.startswith("http")
+            assert (
+                href.startswith("/seogu/")
+                or not href.startswith("/")
+                or href == ""
+                or href.startswith("#")
+            ), href
+
+
+def test_1312_no_submit_login_payment_pii():
+    for sid in _BOARD_STATES:
+        h = _render_board(sid)
+        assert "<form" not in h
+        assert 'type="password"' not in h
+        for tok in ("login", "로그인", "결제", "payment", "카드번호", "주민등록번호"):
+            assert tok not in h.lower(), (sid, tok)
+
+
+def test_1312_subpage_shell_snb_breadcrumb_pagination():
+    for sid in _BOARD_LIST_STATES:
+        h = _render_board(sid)
+        assert "rc-subpage" in h
+        assert "rc-snb" in h and "rc-snb-current" in h
+        assert "rc-breadcrumb" in h and "홈" in h
+        assert "rc-pagination" in h
+        assert "전체" in h and "건" in h
+        assert "페이지" in h
+
+
+def test_1312_list_toolbar_inert():
+    h = _render_board("notice.list.desktop")
+    assert "rc-board-toolbar" in h
+    assert '<input type="text" class="rc-search-input"' in h
+    idx = h.find('class="rc-search-input"')
+    tag = h[idx:h.find(">", idx)]
+    assert "disabled" in tag
+
+
+def test_1312_renderer_source_has_no_site_literals():
+    source = MODULE_PATH.read_text(encoding="utf-8")
+    for tok in ("서구", "Seogu", "Gwangju", "list_no=", "not_ancmt_mgt_no=",
+                "10852", "체육관광과", "2026/08/11"):
+        assert tok not in source, f"renderer must not hardcode literal: {tok!r}"
+
+
+def test_1312_synthetic_site_board_fallback_intact():
+    # Generic / Buk-gu golden: the synthetic northville model must still render
+    # its news/alert lists via the generic fallback (<ul>), proving board
+    # detection is model-driven and does not regress other sites.
+    synthetic = _synthetic_model()
+    contract = _validated_synthetic_contract()
+    news = mod.render_state(synthetic, "news.list.desktop", route_prefix="/x/", visual_contract=contract)
+    assert "rc-list-link" in news
+    assert '<table class="rc-board"' not in news
+    detail = mod.render_state(synthetic, "news.detail.desktop", route_prefix="/x/", visual_contract=contract)
+    assert "rc-detail-meta" in detail
+    assert "rc-back" in detail

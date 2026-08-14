@@ -179,6 +179,104 @@
       "region": "non_fidelity_presentation_defaults",
       "note": "Renderer-only non-fidelity defaults (font-size, font-weight, border-style, focus outline width/offset, link underline, border radius, responsive breakpoint) are structural/accessibility implementation defaults. They are NOT counted as official-site fidelity evidence and do not gate faithful_clone_candidate.",
       "provenance_state_id": null
+    },
+    {
+      "region": "board_content_container_width",
+      "note": "Board content container width not measured in #1312 (no eyeballed geometry; screenshot measurement out of scope).",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_snb_width",
+      "note": "Left SNB width not measured in #1312.",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_content_snb_gap",
+      "note": "Gap between SNB and content not measured in #1312.",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_title_region_height",
+      "note": "Page-title/title-region height/spacing not measured in #1312.",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_table_header_height",
+      "note": "Semantic board <thead> header row height not measured in #1312.",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_row_height_density",
+      "note": "Board row height/density not measured in #1312.",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_column_proportions",
+      "note": "Board column width proportions not measured in #1312.",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_separator_border",
+      "note": "Board cell/row separator border not measured in #1312.",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_toolbar_search_geometry",
+      "note": "Toolbar/search input+button geometry not measured in #1312.",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_page_size_control_geometry",
+      "note": "Page-size selector geometry not measured in #1312.",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_pagination_spacing",
+      "note": "Pagination spacing not measured in #1312.",
+      "provenance_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_detail_title_meta_spacing",
+      "note": "Detail title/metadata spacing not measured in #1312.",
+      "provenance_state_id": "notice.detail.desktop",
+      "artifact_sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_detail_content_spacing",
+      "note": "Detail body/content spacing not measured in #1312.",
+      "provenance_state_id": "notice.detail.desktop",
+      "artifact_sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e",
+      "measurement_method": "gap"
+    },
+    {
+      "region": "board_attachment_region_geometry",
+      "note": "Attachment region geometry not measured in #1312.",
+      "provenance_state_id": "notice.detail.desktop",
+      "artifact_sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e",
+      "measurement_method": "gap"
     }
   ],
   "measurements": [

@@ -836,10 +836,11 @@ def _list_items(
             "text": (link.get("text") or "").strip(),
             "record_id": _record_id(link.get("href")),
         })
-    matched = [i for i in items if i["record_id"] and i["record_id"] == detail_id]
-    targets = matched if matched else (items[:1] if items else [])
+    # Every captured board row targets the single family detail surface
+    # (local, same-origin clone route). The href is the relative detail route,
+    # so no internal record id (list_no / not_ancmt_mgt_no) leaks to residents.
     for item in items:
-        item["links_to_detail"] = detail_route is not None and item in targets
+        item["links_to_detail"] = detail_route is not None
         item["detail_route"] = detail_route
     return items
 
@@ -1419,6 +1420,52 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     rules.append("footer.rc-footer{" + "".join(footer_decls) + "}")
     rules.append(".rc-footer-identity{display:block;}.rc-footer-link{display:inline-block;}")
 
+    # Generic board (list / detail) surface: subpage shell, SNB, breadcrumb,
+    # toolbar, semantic table, pagination, detail meta/body. Style values come
+    # from the validated visual contract where available; remaining layout uses
+    # neutral structural defaults (non-fidelity, never counted as parity).
+    border_c = _pick(theme, "colors.border", None, device)
+    muted_c = _pick(theme, "colors.text_muted", None, device)
+    rules.append(
+        ".rc-subpage{display:block;}"
+        ".rc-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;}"
+        ".rc-breadcrumb .rc-crumb-current{font-weight:700;}"
+        ".rc-location{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:#666666;}"
+        ".rc-subpage-body{display:flex;align-items:flex-start;gap:24px;}"
+        ".rc-snb{display:flex;flex-direction:column;min-width:160px;}"
+        ".rc-snb-item{display:block;padding:8px 10px;}"
+        ".rc-snb-current{font-weight:700;background:#f0f0f0;}"
+        ".rc-content{flex:1;min-width:0;}"
+        ".rc-page-title{font-size:22px;font-weight:700;margin:0 0 14px;}"
+        ".rc-detail-title{font-size:22px;font-weight:700;margin:0 0 14px;}"
+        ".rc-surface-tools{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}"
+        ".rc-tool{padding:6px 10px;cursor:not-allowed;}"
+        ".rc-board-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:12px;}"
+        ".rc-toolbar-search{display:flex;align-items:center;gap:6px;}"
+        ".rc-search-input{padding:6px 8px;}"
+        ".rc-pagesize,.rc-search-btn,.rc-page{padding:6px 10px;cursor:not-allowed;}"
+        ".rc-filter-opt{padding:4px 8px;}"
+        ".rc-board-summary{font-size:13px;margin:0 0 8px;}"
+        "table.rc-board{border-collapse:collapse;width:100%;}"
+        "table.rc-board th,table.rc-board td{padding:8px 10px;text-align:left;}"
+        ".rc-board-head .rc-col-번호,.rc-board-row .rc-col-번호{width:64px;}"
+        ".rc-board-head .rc-col-조회수,.rc-board-row .rc-col-조회수{width:72px;}"
+        ".rc-board-head .rc-col-등록일,.rc-board-row .rc-col-등록일{width:110px;}"
+        ".rc-pagination{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px;}"
+        ".rc-page-current{font-weight:700;}"
+        ".rc-detail-meta{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 16px;}"
+        ".rc-dmeta-key{font-weight:700;}"
+        ".rc-detail-body{line-height:1.6;}"
+        ".rc-back{margin-top:16px;}"
+    )
+    if border_c:
+        rules.append(
+            "table.rc-board th,table.rc-board td{border:1px solid %s;}"
+            "table.rc-board th{border-bottom:2px solid %s;}" % (border_c, border_c)
+        )
+    if muted_c:
+        rules.append(".rc-loc{color:%s;}" % muted_c)
+
     return "\n".join(rules)
 
 
@@ -1787,6 +1834,297 @@ def _render_home_main(
     )
 
 
+# ---------------------------------------------------------------------------
+# Generic board (list / detail) surface reconstruction
+# ---------------------------------------------------------------------------
+# Generic Korean municipal-board column vocabulary used to recognise a board
+# table inside the captured ``contents`` landmark. No site literal — these are
+# board-column labels shared across Korean municipal sites.
+_BOARD_COLUMN_TOKENS = frozenset(
+    {"번호", "제목", "담당부서", "부서명", "등록일", "첨부파일",
+     "조회수", "분류", "고시공고번호", "게재일자"}
+)
+_DATE_TOKEN_RE = re.compile(r"\d{4}[/-]\d{2}[/-]\d{2}")
+
+
+def _contents_landmark_text(state: dict[str, Any]) -> str:
+    for lm in state.get("landmarks", []):
+        if lm.get("id") == "contents":
+            return (lm.get("text") or "").strip()
+    return ""
+
+
+def _detect_board_columns(contents: str) -> list[str]:
+    """Return ordered board column labels found in *contents*, else [].
+
+    The column run is the maximal consecutive token sequence immediately BEFORE
+    the first standalone integer (the first row 번호) whose tokens are all
+    generic board-column labels. Deterministic; no site literal.
+    """
+    if not contents:
+        return []
+    tokens = contents.split()
+    first_no = next((i for i, t in enumerate(tokens) if t.isdigit()), None)
+    if first_no is None:
+        return []
+    cols: list[str] = []
+    i = first_no - 1
+    while i >= 0 and tokens[i] in _BOARD_COLUMN_TOKENS:
+        cols.insert(0, tokens[i])
+        i -= 1
+    if len(cols) >= 2 and "번호" in cols and "제목" in cols:
+        return cols
+    return []
+
+
+def _parse_board_blob_rows(contents: str, columns: list[str]) -> list[dict[str, str]]:
+    """Parse the first captured board rows from the contents blob.
+
+    The blob is a captured-landmark excerpt, so it carries only the first few
+    source rows. Each recovered row yields 번호 / 분류 / 담당부서(부서명) /
+    등록일 / 조회수 where present; columns without captured per-row data stay
+    empty (documented gap, never invented).
+
+    The row scan anchors on the 등록일 date token: the row's 번호 precedes it,
+    the 담당부서 token immediately precedes the date, the 조회수 is the first
+    digit after the date, and the next row's 번호 is the digit after that.
+    """
+    if not contents or not columns:
+        return []
+    tokens = contents.split()
+    first_no = next((i for i, t in enumerate(tokens) if t.isdigit()), None)
+    if first_no is None:
+        return []
+    rows: list[dict[str, str]] = []
+    i = first_no
+    n = len(tokens)
+    while i < n and i < len(tokens):
+        if not tokens[i].isdigit():
+            i += 1
+            continue
+        no = tokens[i]
+        di = next(
+            (k for k in range(i + 1, n) if _DATE_TOKEN_RE.fullmatch(tokens[k])), None
+        )
+        if di is None:
+            break
+        rec: dict[str, str] = {
+            "번호": no, "분류": "", "담당부서": "", "등록일": tokens[di], "조회수": "",
+        }
+        if di > i + 1:
+            rec["담당부서"] = tokens[di - 1]
+        views_idx = next(
+            (k for k in range(di + 1, n) if tokens[k].isdigit()), None
+        )
+        if views_idx is not None:
+            rec["조회수"] = tokens[views_idx]
+        if "분류" in columns and columns.index("분류") == 1 and i + 1 < di:
+            # 분류 sits immediately after 번호 when the source column order is
+            # 번호 → 분류 → 제목.
+            rec["분류"] = tokens[i + 1]
+        rows.append(rec)
+        nxt = next(
+            (k for k in range((views_idx + 1) if views_idx is not None else di + 1, n)
+             if tokens[k].isdigit()),
+            None,
+        )
+        if nxt is None:
+            break
+        i = nxt
+    return rows
+
+
+def _board_summary(contents: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    m = re.search(r"전체\s*([\d,]+)\s*건", contents)
+    if m:
+        out["total"] = m.group(1)
+    m = re.search(r"페이지\s*(\d+)\s*/\s*(\d+)", contents)
+    if m:
+        out["page_current"] = m.group(1)
+        out["page_total"] = m.group(2)
+    return out
+
+
+def _board_snb_items(state: dict[str, Any]) -> list[str]:
+    for lm in state.get("landmarks", []):
+        if lm.get("id") == "snb":
+            return [t for t in (lm.get("text") or "").split() if t]
+    return []
+
+
+def _board_breadcrumb_trail(state: dict[str, Any]) -> list[str]:
+    best: list[str] = []
+    for lm in state.get("landmarks", []):
+        if lm.get("id") is not None:
+            continue
+        text = (lm.get("text") or "").strip()
+        if text.startswith("홈"):
+            trail = [t for t in text.split() if t]
+            if len(trail) > len(best):
+                best = trail
+    return best
+
+
+def _board_active_label(state: dict[str, Any]) -> str:
+    active: list[str] = []
+    for c in state.get("controls", []):
+        if (c.get("class_name") or "").strip() == "active":
+            text = (c.get("text") or "").strip()
+            if text:
+                active.append(text)
+    return active[-1] if active else ""
+
+
+def _board_location_hierarchy(contents: str) -> list[str]:
+    m = re.search(r"([^>]+(?:>[^>]+)+)", contents)
+    if not m:
+        return []
+    parts = [p.strip() for p in m.group(1).split(">")]
+    if len(parts) >= 2 and all(parts):
+        return parts
+    return []
+
+
+def _board_toolbar(state: dict[str, Any]) -> dict[str, Any]:
+    page_sizes: list[str] = []
+    filter_text: str = ""
+    search_placeholder: str = ""
+    search_button: str = ""
+    for c in state.get("controls", []):
+        text = (c.get("text") or "").strip()
+        cn = (c.get("class_name") or "").strip()
+        if not text:
+            continue
+        if re.search(r"\d+개씩", text):
+            for part in text.split():
+                if re.match(r"\d+개씩", part):
+                    page_sizes.append(part)
+        if "제목" in text and "전체" in text and not filter_text:
+            filter_text = text
+        if cn == "form_textbox" and not search_placeholder:
+            search_placeholder = text
+        if text == "검색" and not search_button and cn != "search_keyword":
+            search_button = text
+    return {
+        "page_sizes": page_sizes,
+        "filter_text": filter_text,
+        "search_placeholder": search_placeholder,
+        "search_button": search_button,
+    }
+
+
+def _render_surface_tools(state: dict[str, Any]) -> str:
+    tools = []
+    for c in state.get("controls", []):
+        cn = (c.get("class_name") or "")
+        if cn.startswith("btn "):
+            text = (c.get("text") or "").strip()
+            if text:
+                tools.append(
+                    f'<button type="button" class="rc-tool" disabled '
+                    f'aria-disabled="true">{_esc(text)}</button>'
+                )
+    if not tools:
+        return ""
+    return f'<div class="rc-surface-tools" aria-label="도구">{"".join(tools)}</div>'
+
+
+def _board_nav_html(state: dict[str, Any]) -> tuple[str, str, str]:
+    trail = _board_breadcrumb_trail(state)
+    active = _board_active_label(state)
+    crumbs = []
+    for idx, label in enumerate(trail):
+        if idx == len(trail) - 1:
+            crumbs.append(
+                f'<span class="rc-crumb rc-crumb-current" aria-current="page">{_esc(label)}</span>'
+            )
+        else:
+            crumbs.append(f'<span class="rc-crumb">{_esc(label)}</span>')
+    breadcrumb_html = (
+        f'<nav class="rc-breadcrumb" aria-label="위치">{"".join(crumbs)}</nav>' if crumbs else ""
+    )
+    location = _board_location_hierarchy(_contents_landmark_text(state))
+    location_html = ""
+    if location:
+        loc = "".join(f'<span class="rc-loc">{_esc(p)}</span>' for p in location)
+        location_html = f'<nav class="rc-location" aria-label="분류">{loc}</nav>'
+    snb = _board_snb_items(state)
+    snb_items = []
+    for label in snb:
+        if label == active:
+            snb_items.append(
+                f'<span class="rc-snb-item rc-snb-current" aria-current="page">{_esc(label)}</span>'
+            )
+        else:
+            snb_items.append(
+                f'<span class="rc-snb-item" role="link" aria-disabled="true" tabindex="-1">{_esc(label)}</span>'
+            )
+    snb_html = (
+        f'<nav class="rc-snb" aria-label="하위 메뉴">{"".join(snb_items)}</nav>' if snb_items else ""
+    )
+    return breadcrumb_html, location_html, snb_html
+
+
+def _wrap_subpage(
+    breadcrumb_html: str, location_html: str, snb_html: str, content_html: str
+) -> str:
+    return (
+        f'<div class="rc-subpage">'
+        f'{breadcrumb_html}{location_html}'
+        f'<div class="rc-subpage-body">{snb_html}'
+        f'<div class="rc-content">{content_html}</div></div></div>'
+    )
+
+
+def _render_board_toolbar(toolbar: dict[str, Any]) -> str:
+    parts = []
+    if toolbar.get("page_sizes"):
+        sizes = "".join(
+            f'<button type="button" class="rc-pagesize" disabled aria-disabled="true">{_esc(s)}</button>'
+            for s in toolbar["page_sizes"]
+        )
+        parts.append(f'<div class="rc-toolbar-pagesize" aria-label="페이지 크기">{sizes}</div>')
+    if toolbar.get("filter_text"):
+        opts = "".join(
+            f'<span class="rc-filter-opt" role="link" aria-disabled="true" tabindex="-1">{_esc(o)}</span>'
+            for o in toolbar["filter_text"].split()
+        )
+        parts.append(f'<div class="rc-toolbar-filter" aria-label="검색 범위">{opts}</div>')
+    if toolbar.get("search_placeholder") or toolbar.get("search_button"):
+        ph = toolbar.get("search_placeholder") or ""
+        btn = toolbar.get("search_button") or "검색"
+        parts.append(
+            f'<div class="rc-toolbar-search" aria-label="검색">'
+            f'<input type="text" class="rc-search-input" placeholder="{_esc(ph)}" '
+            f'aria-label="검색어" disabled>'
+            f'<button type="button" class="rc-search-btn" disabled aria-disabled="true">{_esc(btn)}</button>'
+            f"</div>"
+        )
+    if not parts:
+        return ""
+    return f'<div class="rc-board-toolbar" role="search">{"".join(parts)}</div>'
+
+
+def _render_board_pagination(summary: dict[str, str]) -> str:
+    if not summary.get("page_total"):
+        return ""
+    total = summary["page_total"]
+    current = summary.get("page_current") or "1"
+    items = [
+        '<button type="button" class="rc-page" disabled aria-disabled="true">처음</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">이전</button>',
+        f'<button type="button" class="rc-page rc-page-current" aria-current="page" '
+        f'disabled aria-disabled="true">{_esc(current)}</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">다음</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">마지막</button>',
+    ]
+    return (
+        f'<nav class="rc-pagination" aria-label="페이지 이동">'
+        f'{"".join(items)}<span class="rc-page-total"> / {_esc(total)}</span></nav>'
+    )
+
+
 def _render_list_main(
     model: dict[str, Any],
     state: dict[str, Any],
@@ -1794,27 +2132,151 @@ def _render_list_main(
     title: str,
     route_prefix: str,
 ) -> str:
+    contents = _contents_landmark_text(state)
+    columns = _detect_board_columns(contents)
+    summary = _board_summary(contents)
     items = _list_items(model, state, route_prefix)
+    blob_rows = _parse_board_blob_rows(contents, columns)
+    breadcrumb_html, location_html, snb_html = _board_nav_html(state)
+    toolbar = _board_toolbar(state)
+    surface_label_text = surface_label(state, model)
+
+    toolbar_html = _render_board_toolbar(toolbar)
+    summary_html = ""
+    if summary:
+        parts = []
+        if summary.get("total"):
+            parts.append(f'전체 {_esc(summary["total"])}건')
+        if summary.get("page_current") and summary.get("page_total"):
+            parts.append(f'페이지 {_esc(summary["page_current"])} / {_esc(summary["page_total"])}')
+        if parts:
+            summary_html = f'<p class="rc-board-summary">{" · ".join(parts)}</p>'
+
     current_route = route_for_state(state["state_id"], route_prefix)
-    rows = []
-    for item in items:
-        if item["links_to_detail"] and item["detail_route"]:
-            href = relative_href(current_route, item["detail_route"])
-            rows.append(
-                f'<li><a class="rc-list-link" data-detail="1" href="{_esc(href)}">'
-                f'{_esc(item["text"])}</a></li>'
-            )
-        else:
-            rows.append(
-                f'<li><span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">'
-                f'{_esc(item["text"])}</span></li>'
-            )
-    return (
-        f'<section aria-label="목록">'
-        f'<h2 class="rc-section-title">{_esc(surface_label(state, model))} · 목록</h2>'
-        f'<ul class="rc-list">{"".join(rows)}</ul>'
-        f"</section>"
+    if columns:
+        head_cells = "".join(
+            f'<th scope="col" class="rc-th rc-col-{_esc(c)}">{_esc(c)}</th>' for c in columns
+        )
+        body_rows = []
+        for i, item in enumerate(items):
+            blob = blob_rows[i] if i < len(blob_rows) else None
+            cells = []
+            for col in columns:
+                if col == "제목":
+                    if item.get("links_to_detail") and item.get("detail_route"):
+                        href = relative_href(current_route, item["detail_route"])
+                        cells.append(
+                            f'<td class="rc-td rc-col-제목"><a class="rc-list-link" data-detail="1" '
+                            f'href="{_esc(href)}">{_esc(item["text"])}</a></td>'
+                        )
+                    else:
+                        cells.append(
+                            f'<td class="rc-td rc-col-제목"><span class="rc-list-item" '
+                            f'aria-disabled="true" role="link" tabindex="-1">{_esc(item["text"])}</span></td>'
+                        )
+                elif col == "번호":
+                    # Source-backed 번호 comes only from the captured contents
+                    # blob. Internal record ids are NOT resident-visible (hidden
+                    # evidence only), so rows without a captured 번호 render an
+                    # empty cell (documented gap, never invented).
+                    val = (blob or {}).get("번호") or ""
+                    cells.append(f'<td class="rc-td rc-col-번호">{_esc(val)}</td>')
+                elif col in ("담당부서", "부서명"):
+                    val = (blob or {}).get("담당부서") if blob else ""
+                    cells.append(f'<td class="rc-td rc-col-{_esc(col)}">{_esc(val)}</td>')
+                elif col == "등록일":
+                    val = (blob or {}).get("등록일") if blob else ""
+                    cells.append(f'<td class="rc-td rc-col-등록일">{_esc(val)}</td>')
+                elif col == "조회수":
+                    val = (blob or {}).get("조회수") if blob else ""
+                    cells.append(f'<td class="rc-td rc-col-조회수">{_esc(val)}</td>')
+                elif col == "분류":
+                    val = (blob or {}).get("분류") if blob else ""
+                    cells.append(f'<td class="rc-td rc-col-분류">{_esc(val)}</td>')
+                else:
+                    cells.append(f'<td class="rc-td rc-col-{_esc(col)}"></td>')
+            body_rows.append(f'<tr class="rc-board-row">{ "".join(cells) }</tr>')
+        table_html = (
+            f'<table class="rc-board" aria-label="{_esc(surface_label_text)} 목록">'
+            f'<thead><tr class="rc-board-head">{head_cells}</tr></thead>'
+            f'<tbody>{"".join(body_rows)}</tbody></table>'
+        )
+    else:
+        rows = []
+        for item in items:
+            if item.get("links_to_detail") and item.get("detail_route"):
+                href = relative_href(current_route, item["detail_route"])
+                rows.append(
+                    f'<li><a class="rc-list-link" data-detail="1" href="{_esc(href)}">'
+                    f'{_esc(item["text"])}</a></li>'
+                )
+            else:
+                rows.append(
+                    f'<li><span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">'
+                    f'{_esc(item["text"])}</span></li>'
+                )
+        table_html = f'<ul class="rc-list">{"".join(rows)}</ul>'
+
+    pagination_html = _render_board_pagination(summary)
+
+    content_html = (
+        f'<h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
+        f'{_render_surface_tools(state)}'
+        f'{toolbar_html}{summary_html}{table_html}{pagination_html}'
     )
+    return _wrap_subpage(breadcrumb_html, location_html, snb_html, content_html)
+
+
+def _parse_detail_metadata(contents: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    m = re.search(r"작성일시(\S+ \S+)", contents)
+    if m:
+        out["작성일시"] = m.group(1)
+    m = re.search(r"작성일(\S+)", contents)
+    if m and "작성일시" not in out:
+        out["작성일"] = m.group(1)
+    m = re.search(r"작성부서(\S+)", contents)
+    if m:
+        out["작성부서"] = m.group(1)
+    m = re.search(r"조회수(\d+)", contents)
+    if m:
+        out["조회수"] = m.group(1)
+    m = re.search(r"분류(\S+)", contents)
+    if m:
+        out["분류"] = m.group(1)
+    m = re.search(r"공고번호(\S+)", contents)
+    if m:
+        out["공고번호"] = m.group(1)
+    m = re.search(r"담당자연락처(\S+)", contents)
+    if m:
+        out["담당자연락처"] = m.group(1)
+    return out
+
+
+def _parse_detail_body(contents: str) -> str:
+    if not contents:
+        return ""
+    end_meta = 0
+    for pat in (
+        r"조회수\d+",
+        r"담당자연락처\S+",
+        r"담당부서\S+",
+        r"작성일시\S+ \S+",
+        r"작성일\S+",
+        r"분류\S+",
+        r"공고번호\S+",
+    ):
+        mm = re.search(pat, contents)
+        if mm:
+            end_meta = max(end_meta, mm.end())
+    body = contents[end_meta:].strip()
+    markers = ["첨부파일", "목록", "이전글", "다음글", "콘텐츠 정보책임자", "다운로드", "미리보기"]
+    cut = len(body)
+    for mk in markers:
+        idx = body.find(mk)
+        if idx != -1:
+            cut = min(cut, idx)
+    return body[:cut].strip()
 
 
 def _render_detail_main(
@@ -1824,9 +2286,11 @@ def _render_detail_main(
     title: str,
     route_prefix: str,
 ) -> str:
-    # list_no is an internal URL/record identifier that is NOT proven to be
-    # resident-visible captured content; it is kept only in hidden
-    # machine-readable evidence (see _evidence_json), never shown to residents.
+    contents = _contents_landmark_text(state)
+    meta = _parse_detail_metadata(contents)
+    body = _parse_detail_body(contents)
+    breadcrumb_html, location_html, snb_html = _board_nav_html(state)
+
     exts = state.get("attachment_document_extensions") or []
     downloads = state.get("download_references") or []
     attach_html = ""
@@ -1853,15 +2317,33 @@ def _render_detail_main(
     back = ""
     if list_route:
         href = relative_href(route_for_state(state["state_id"], route_prefix), list_route)
-        back = f'<p><a href="{_esc(href)}">← 목록으로</a></p>'
+        back = f'<p class="rc-back"><a href="{_esc(href)}">← 목록으로</a></p>'
 
-    return (
-        f'<section aria-label="상세">'
+    meta_items = []
+    for label, key in (
+        ("작성일시", "작성일시"),
+        ("작성일", "작성일"),
+        ("공고번호", "공고번호"),
+        ("분류", "분류"),
+        ("작성부서", "작성부서"),
+        ("담당자연락처", "담당자연락처"),
+        ("조회수", "조회수"),
+    ):
+        val = meta.get(key)
+        if val:
+            meta_items.append(
+                f'<div class="rc-dmeta-row"><dt class="rc-dmeta-key">{_esc(label)}</dt>'
+                f'<dd class="rc-dmeta-val">{_esc(val)}</dd></div>'
+            )
+    meta_html = f'<dl class="rc-detail-meta">{"".join(meta_items)}</dl>' if meta_items else ""
+    body_html = f'<div class="rc-detail-body">{_esc(body)}</div>' if body else ""
+
+    content_html = (
         f'<h2 class="rc-detail-title">{_esc(title)}</h2>'
-        f"{attach_html}"
-        f"{back}"
-        f"</section>"
+        f'{_render_surface_tools(state)}'
+        f"{meta_html}{body_html}{attach_html}{back}"
     )
+    return _wrap_subpage(breadcrumb_html, location_html, snb_html, content_html)
 
 
 def _render_org_staff_main(state: dict[str, Any]) -> str:
