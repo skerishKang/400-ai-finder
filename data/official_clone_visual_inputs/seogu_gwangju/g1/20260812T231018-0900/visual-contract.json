@@ -3,7 +3,7 @@
   "contract_kind": "visual_input",
   "site_id": "seogu_gwangju",
   "capture_id": "20260812T231018-0900",
-  "model_checksum": "36d11991d8253a6176acdeaf8fe7e628315959d673ad153b2bde476d7a3cdceb",
+  "model_checksum": "da795bb30d76392de48f28b9b6fd7ba35d3e332018f32467cac6633c75750870",
   "note": "Provenance-backed measurements from the immutable committed G1 capture evidence. Every non-null value is traced 1:1 to a captured state, the committed screenshot SHA it was measured from, the measurement method, the unit, and the evidence type. Values that cannot be safely measured remain null and are listed in gaps. typography.font_family uses asset_provenance evidence (fetched font assets), not screenshot pixels. border.width is the measured pixel thickness of the footer separator line. Renderer-only non-fidelity presentation defaults (font-size, font-weight, border-style, focus outline, underline, radius, breakpoint) are NOT counted as official-site fidelity evidence. #1310 re-binds header/GNB/footer/home-section geometry to semantic source regions instead of the former dark-band heuristic.",
   "layout": {
     "header": {
@@ -50,6 +50,17 @@
       "info_gap_px": 24,
       "provenance_state_id": "home.desktop.default"
     },
+    "board": {
+      "snb_width_px": 250,
+      "content_container_width_px": 1150,
+      "table_header_height_px": 56,
+      "row_height_px": 60,
+      "provenance_state_id": "notice.list.desktop",
+      "detail": {
+        "meta_band_height_px": 120,
+        "provenance_state_id": "notice.detail.desktop"
+      }
+    },
     "gnb_open": {
       "panel_height_px": 900,
       "columns": 6,
@@ -73,6 +84,11 @@
     "notice_bg": "#f4f4f4",
     "key_visual_bg": "#f1fbfd",
     "footer_border": "#dcdcdc",
+    "board": {
+      "table_header_border": "#555555",
+      "row_separator": "#dddddd",
+      "provenance_state_id": "notice.list.desktop"
+    },
     "provenance_state_id": "home.desktop.default"
   },
   "typography": {
@@ -181,57 +197,8 @@
       "provenance_state_id": null
     },
     {
-      "region": "board_content_container_width",
-      "note": "Board content container width not measured in #1312 (no eyeballed geometry; screenshot measurement out of scope).",
-      "provenance_state_id": "notice.list.desktop",
-      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
-      "measurement_method": "gap"
-    },
-    {
-      "region": "board_snb_width",
-      "note": "Left SNB width not measured in #1312.",
-      "provenance_state_id": "notice.list.desktop",
-      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
-      "measurement_method": "gap"
-    },
-    {
-      "region": "board_content_snb_gap",
-      "note": "Gap between SNB and content not measured in #1312.",
-      "provenance_state_id": "notice.list.desktop",
-      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
-      "measurement_method": "gap"
-    },
-    {
-      "region": "board_title_region_height",
-      "note": "Page-title/title-region height/spacing not measured in #1312.",
-      "provenance_state_id": "notice.list.desktop",
-      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
-      "measurement_method": "gap"
-    },
-    {
-      "region": "board_table_header_height",
-      "note": "Semantic board <thead> header row height not measured in #1312.",
-      "provenance_state_id": "notice.list.desktop",
-      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
-      "measurement_method": "gap"
-    },
-    {
-      "region": "board_row_height_density",
-      "note": "Board row height/density not measured in #1312.",
-      "provenance_state_id": "notice.list.desktop",
-      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
-      "measurement_method": "gap"
-    },
-    {
       "region": "board_column_proportions",
-      "note": "Board column width proportions not measured in #1312.",
-      "provenance_state_id": "notice.list.desktop",
-      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
-      "measurement_method": "gap"
-    },
-    {
-      "region": "board_separator_border",
-      "note": "Board cell/row separator border not measured in #1312.",
+      "note": "Per-column width proportions could not be bounded reliably from the committed screenshot header text clusters; left gap (fail-closed).",
       "provenance_state_id": "notice.list.desktop",
       "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
       "measurement_method": "gap"
@@ -252,16 +219,9 @@
     },
     {
       "region": "board_pagination_spacing",
-      "note": "Pagination spacing not measured in #1312.",
+      "note": "Pagination item spacing not measured in #1312.",
       "provenance_state_id": "notice.list.desktop",
       "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
-      "measurement_method": "gap"
-    },
-    {
-      "region": "board_detail_title_meta_spacing",
-      "note": "Detail title/metadata spacing not measured in #1312.",
-      "provenance_state_id": "notice.detail.desktop",
-      "artifact_sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e",
       "measurement_method": "gap"
     },
     {
@@ -789,6 +749,76 @@
       "artifact_sha256": "bc16b83ae5f87730fbed27f810d75fcad341777866b43dd05e0ee03efe040b81",
       "method": "fetched_font_asset_observation",
       "note": "Font families observed from font assets fetched by the browser during G1 capture (primary asset NotoSansCJKkr-Bold.woff2). Not a screenshot pixel measurement."
+    },
+    {
+      "field": "layout.board.snb_width_px",
+      "value": 250,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.content_container_width_px",
+      "value": 1150,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.table_header_height_px",
+      "value": 56,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.row_height_px",
+      "value": 60,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "colors.board.table_header_border",
+      "value": "#555555",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "colors.board.row_separator",
+      "value": "#dddddd",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.detail.meta_band_height_px",
+      "value": 120,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.detail.desktop",
+      "artifact_sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
     },
     {
       "field": "layout.gnb_open.panel_height_px",

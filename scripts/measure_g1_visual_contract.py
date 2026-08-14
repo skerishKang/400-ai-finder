@@ -27,6 +27,7 @@ import json
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import Any
 
 from PIL import Image
 
@@ -421,6 +422,44 @@ def _measure_desktop() -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# #1312 board list/detail geometry (committed G1 screenshots only)
+# ---------------------------------------------------------------------------
+def _board_snb_extent(img: Image.Image, y0: int = 300, y1: int = 520) -> tuple[int, int] | None:
+    """Return the inclusive x-extent of the dark-blue left SNB sidebar."""
+    width = img.width
+    band_height = max(1, y1 - y0)
+    fracs: list[float] = []
+    for x in range(width):
+        n = 0
+        for p in img.crop((x, y0, x + 1, y1)).getdata():
+            if p[0] < 60 and p[1] < 90 and p[2] > 60:
+                n += 1
+        fracs.append(n / band_height)
+    active = [x for x, f in enumerate(fracs) if f > 0.5]
+    if not active:
+        return None
+    return active[0], active[-1]
+
+
+def _board_horizontal_lines(
+    img: Image.Image, y0: int, y1: int, x0: int = 300, x1: int = 1420, min_len: int = 400
+) -> list[tuple[int, tuple[int, int, int]]]:
+    """Return (y, color) rows that are mostly a single non-white color."""
+    lines: list[tuple[int, tuple[int, int, int]]] = []
+    for y in range(y0, y1):
+        counts: Counter[tuple[int, int, int]] = Counter()
+        for p in img.crop((x0, y, x1, y + 1)).getdata():
+            if p[0] < 245:
+                counts[p] = counts.get(p, 0) + 1
+        if not counts:
+            continue
+        color, n = max(counts.items(), key=lambda kv: kv[1])
+        if n > min_len:
+            lines.append((y, color))
+    return lines
+
+
 def _measure_gnb_open() -> dict:
     """Measure the GNB-open mega-menu overlay from the committed G1 screenshot.
 
@@ -478,6 +517,69 @@ def _measure_gnb_open() -> dict:
         "columns": columns if columns >= 2 else None,
         "_source": {"state_id": state_id, "artifact_sha256": sha},
     }
+
+
+def _measure_board() -> dict:
+    """Measure #1312 board list/detail geometry from committed G1 screenshots.
+
+    Bounds are detected with deterministic pixel heuristics against the
+    immutable source PNGs: the dark-blue SNB sidebar, the content column, the
+    list table's header band and row separators, and the detail title/meta
+    bands. Values that cannot be safely bounded stay out (gap).
+    """
+    list_state = "notice.list.desktop"
+    detail_state = "notice.detail.desktop"
+    list_sha = _screenshot_sha(list_state)
+    detail_sha = _screenshot_sha(detail_state)
+    list_img = Image.open(CAPTURE_ROOT / "states" / list_state / "source.png").convert("RGB")
+    detail_img = Image.open(CAPTURE_ROOT / "states" / detail_state / "source.png").convert("RGB")
+    assert list_img.size == (1440, 1878), list_img.size
+    assert detail_img.size == (1440, 3086), detail_img.size
+
+    snb = _board_snb_extent(list_img)
+    out: dict[str, Any] = {}
+    if snb is not None:
+        snb_left, snb_right = snb
+        out["snb_width_px"] = snb_right - snb_left + 1
+        out["snb_left_px"] = snb_left
+        out["snb_right_px"] = snb_right
+        # Content column: white gutter to the right of the SNB sidebar. The
+        # board table's right edge bounds the content container (page padding
+        # right is the 20px gutter seen on the home measure).
+        out["content_container_width_px"] = 1420 - (snb_right + 2) + 1
+
+    lines = _board_horizontal_lines(list_img, 400, 1150)
+    header_top = next((y for y, c in lines if c == (85, 85, 85)), None)
+    header_bottom = next((y for y, c in lines if c == (170, 170, 170)), None)
+    # Row separators are the light-gray lines BELOW the header bottom border;
+    # the gray line above the header (title underline) must be excluded.
+    separators = [
+        y for y, c in lines if c == (221, 221, 221)
+        and (header_bottom is None or y > header_bottom)
+    ]
+    if header_top is not None and header_bottom is not None:
+        out["table_header_height_px"] = header_bottom - header_top + 1
+        out["board_table_header_border"] = "#%02x%02x%02x" % (85, 85, 85)
+    if len(separators) >= 2:
+        pitches = [b - a for a, b in zip(separators, separators[1:])]
+        out["row_height_px"] = round(sum(pitches) / len(pitches))
+        out["board_row_separator"] = "#%02x%02x%02x" % (221, 221, 221)
+
+    # Detail title/meta bands from the notice detail page.
+    dlines = _board_horizontal_lines(detail_img, 274, 700)
+    dark = [y for y, c in dlines if c == (85, 85, 85)]
+    gray = [y for y, c in dlines if c == (221, 221, 221)]
+    if dark and gray:
+        meta_top = dark[0]
+        meta_bottom = next((y for y in gray if y > meta_top), None)
+        if meta_bottom is not None:
+            out["detail_meta_band_height_px"] = meta_bottom - meta_top + 1
+
+    list_source = {"state_id": list_state, "artifact_sha256": list_sha}
+    detail_source = {"state_id": detail_state, "artifact_sha256": detail_sha}
+    out["_list_source"] = list_source
+    out["_detail_source"] = detail_source
+    return out
 
 
 def _measure_mobile() -> dict:
@@ -605,6 +707,7 @@ def build_visual_contract() -> dict:
     model = _model()
     desktop = _measure_desktop()
     mobile = _measure_mobile()
+    board = _measure_board()
     gnb_open = _measure_gnb_open()
     fonts = _font_family_observation()
 
@@ -706,6 +809,32 @@ def build_visual_contract() -> dict:
         # No committed font asset bytes but observed filenames: keep the field
         # pending (explicit gap) rather than pretend it is a pixel measurement.
         pass
+
+    board_measurements = (
+        ("layout.board.snb_width_px", board.get("snb_width_px"), "px", board["_list_source"]),
+        ("layout.board.content_container_width_px", board.get("content_container_width_px"), "px", board["_list_source"]),
+        ("layout.board.table_header_height_px", board.get("table_header_height_px"), "px", board["_list_source"]),
+        ("layout.board.row_height_px", board.get("row_height_px"), "px", board["_list_source"]),
+        ("colors.board.table_header_border", board.get("board_table_header_border"), "hex", board["_list_source"]),
+        ("colors.board.row_separator", board.get("board_row_separator"), "hex", board["_list_source"]),
+        ("layout.board.detail.meta_band_height_px", board.get("detail_meta_band_height_px"), "px", board["_detail_source"]),
+    )
+    for field, value, unit, source in board_measurements:
+        if value is None:
+            continue
+        measurements.append(
+            _measurement(
+                field,
+                value,
+                unit,
+                "pixel_analysis",
+                source,
+                "pixel_analysis_board_semantic_region",
+                "#1312 board geometry measured from the committed G1 screenshot: "
+                "dark-blue SNB sidebar, content column, list table header/row "
+                "bands, and the detail meta band.",
+            )
+        )
 
     gnb_open_measurements = (
         (
@@ -810,6 +939,17 @@ def build_visual_contract() -> dict:
                 "info_gap_px": desktop["info_gap"],
                 "provenance_state_id": desktop["state_id"],
             },
+            "board": {
+                "snb_width_px": board.get("snb_width_px"),
+                "content_container_width_px": board.get("content_container_width_px"),
+                "table_header_height_px": board.get("table_header_height_px"),
+                "row_height_px": board.get("row_height_px"),
+                "provenance_state_id": board["_list_source"]["state_id"],
+                "detail": {
+                    "meta_band_height_px": board.get("detail_meta_band_height_px"),
+                    "provenance_state_id": board["_detail_source"]["state_id"],
+                },
+            },
             "gnb_open": {
                 "panel_height_px": gnb_open.get("panel_height_px"),
                 "columns": gnb_open.get("columns"),
@@ -833,6 +973,11 @@ def build_visual_contract() -> dict:
             "notice_bg": desktop["notice_bg"],
             "key_visual_bg": desktop["key_visual_bg"],
             "footer_border": border,
+            "board": {
+                "table_header_border": board.get("board_table_header_border"),
+                "row_separator": board.get("board_row_separator"),
+                "provenance_state_id": board["_list_source"]["state_id"],
+            },
             "provenance_state_id": desktop["state_id"],
         },
         "typography": {
@@ -946,6 +1091,48 @@ def build_visual_contract() -> dict:
                     "faithful_clone_candidate."
                 ),
                 "provenance_state_id": None,
+            },
+            {
+                "region": "board_column_proportions",
+                "note": "Per-column width proportions could not be bounded reliably from the committed screenshot header text clusters; left gap (fail-closed).",
+                "provenance_state_id": "notice.list.desktop",
+                "artifact_sha256": board["_list_source"]["artifact_sha256"],
+                "measurement_method": "gap",
+            },
+            {
+                "region": "board_toolbar_search_geometry",
+                "note": "Toolbar/search input+button geometry not measured in #1312.",
+                "provenance_state_id": "notice.list.desktop",
+                "artifact_sha256": board["_list_source"]["artifact_sha256"],
+                "measurement_method": "gap",
+            },
+            {
+                "region": "board_page_size_control_geometry",
+                "note": "Page-size selector geometry not measured in #1312.",
+                "provenance_state_id": "notice.list.desktop",
+                "artifact_sha256": board["_list_source"]["artifact_sha256"],
+                "measurement_method": "gap",
+            },
+            {
+                "region": "board_pagination_spacing",
+                "note": "Pagination item spacing not measured in #1312.",
+                "provenance_state_id": "notice.list.desktop",
+                "artifact_sha256": board["_list_source"]["artifact_sha256"],
+                "measurement_method": "gap",
+            },
+            {
+                "region": "board_detail_content_spacing",
+                "note": "Detail body/content spacing not measured in #1312.",
+                "provenance_state_id": "notice.detail.desktop",
+                "artifact_sha256": board["_detail_source"]["artifact_sha256"],
+                "measurement_method": "gap",
+            },
+            {
+                "region": "board_attachment_region_geometry",
+                "note": "Attachment region geometry not measured in #1312.",
+                "provenance_state_id": "notice.detail.desktop",
+                "artifact_sha256": board["_detail_source"]["artifact_sha256"],
+                "measurement_method": "gap",
             },
         ],
         "measurements": measurements,

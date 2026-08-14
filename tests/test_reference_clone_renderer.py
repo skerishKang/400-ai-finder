@@ -274,9 +274,13 @@ def test_notice_list_links_to_detail_and_distinct():
     # it must stay out of the resident view (hidden evidence only).
     assert "list_no=143106" not in detail
     assert "list_no=" not in detail
-    assert "다운로드 (.hwpx)" in detail
+    # #1312 source-backed attachment: the captured file name and the inert
+    # download/preview affordances are rendered (never the raw record id).
+    assert "[공고문] 사회연대경제 청년일경험사업 참여청년 모집 공고(3차).hwpx" in detail
+    assert 'data-attachment-ext="hwpx"' in detail
+    assert "다운로드" in detail
     assert "미리보기" in detail
-    assert "다운로드 (.hwpx)" not in listing
+    assert 'data-attachment-ext="hwpx"' not in listing
 
 
 def test_notice_detail_captures_required_attachment():
@@ -295,9 +299,13 @@ def test_gosi_list_detail_distinct_with_attachment():
     gosi_detail = mod.render_state(model, "gosi.detail.desktop", route_prefix=_ROUTE_PREFIX)
     assert gosi_list != gosi_detail
     assert "rc-list-link" not in gosi_list  # no list row matches the captured gosi detail record_id
-    assert "다운로드 (.doc)" in gosi_detail
-    assert "다운로드 (.hwpx)" in gosi_detail
+    # #1312 source-backed attachment (the captured file name), not a guessed
+    # extension chip: the single 고시 attachment is a .hwpx file.
+    assert "지속가능관광지방정부협의회 규약 고시.hwpx" in gosi_detail
+    assert 'data-attachment-ext="hwpx"' in gosi_detail
+    assert "다운로드" in gosi_detail
     assert "disabled" in gosi_detail
+    assert "고시합니다" in gosi_detail  # #1312 recovered full 고시 body text
 
 
 def test_civil_form_detail_captures_hwp_attachment():
@@ -306,7 +314,10 @@ def test_civil_form_detail_captures_hwp_attachment():
     assert "list_no=143010" not in detail
     assert "list_no=" not in detail
     assert "자동차 등록 위임장" in detail
-    assert "다운로드 (.hwp)" in detail
+    # #1312 source-backed attachment (captured file name), inert download.
+    assert "자동차등록 위임장.hwp" in detail
+    assert 'data-attachment-ext="hwp"' in detail
+    assert "다운로드" in detail
     assert "disabled" in detail
 
 
@@ -1370,7 +1381,8 @@ def test_1312_detail_recovers_metadata_body_attachment_back():
     assert "작성일시" in h and "2026/08/10 09:59" in h
     assert "작성부서" in h and "일자리청년지원과" in h
     assert "조회수" in h and "242" in h
-    assert "다운로드 (.hwpx)" in h and "미리보기" in h
+    assert "[공고문] 사회연대경제 청년일경험사업 참여청년 모집 공고(3차).hwpx" in h
+    assert 'data-attachment-ext="hwpx"' in h and "미리보기" in h
     assert "rc-back" in h and "목록으로" in h
     h = _render_board("gosi.detail.desktop")
     assert "작성일" in h and "2026-08-10" in h
@@ -1383,7 +1395,7 @@ def test_1312_detail_recovers_metadata_body_attachment_back():
     assert "작성부서" in h and "교통행정과" in h
     assert "조회수" in h and "7" in h
     assert "자동차(이륜자동차) 등록 위임장입니다." in h  # recovered body
-    assert "다운로드 (.hwp)" in h
+    assert "자동차등록 위임장.hwp" in h and 'data-attachment-ext="hwp"' in h
 
 
 def test_1312_attachments_inert_and_readonly():

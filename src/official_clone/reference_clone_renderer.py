@@ -390,6 +390,21 @@ def _theme_values(
         if val is not None:
             values[f"layout.gnb_open.{field}"] = val
 
+    board_layout = layout.get("board") or {}
+    for field in (
+        "snb_width_px",
+        "content_container_width_px",
+        "table_header_height_px",
+        "row_height_px",
+    ):
+        val = board_layout.get(field)
+        if val is not None:
+            values[f"layout.board.{field}"] = val
+    board_detail_layout = board_layout.get("detail") or {}
+    val = board_detail_layout.get("meta_band_height_px")
+    if val is not None:
+        values["layout.board.detail.meta_band_height_px"] = val
+
     colors = contract.get("colors") or {}
     for field in (
         "primary",
@@ -408,6 +423,12 @@ def _theme_values(
         val = colors.get(field)
         if val is not None:
             values[f"colors.{field}"] = val
+
+    board_colors = colors.get("board") or {}
+    for field in ("table_header_border", "row_separator"):
+        val = board_colors.get(field)
+        if val is not None:
+            values[f"colors.board.{field}"] = val
 
     typo = contract.get("typography") or {}
     if typo.get("font_family"):
@@ -1482,6 +1503,21 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-detail-meta{display:grid;grid-template-columns:auto 1fr;}"
         ".rc-dmeta-key{font-weight:700;}"
         ".rc-detail-body{line-height:1.6;}"
+        ".rc-attachments{display:block;}"
+        ".rc-attachments-title{display:block;}"
+        ".rc-attach-item{display:block;}"
+        ".rc-attach-name{display:inline-block;}"
+        ".rc-attach-meta{display:inline-block;}"
+        ".rc-attach{display:inline-block;cursor:not-allowed;}"
+        ".rc-attach-indicator{display:inline-block;}"
+        ".rc-prevnext{display:block;list-style:none;margin:0;padding:0;}"
+        ".rc-pn-prev,.rc-pn-next{display:block;}"
+        ".rc-pn-label{display:inline-block;font-weight:700;}"
+        ".rc-pn-item{display:inline-block;}"
+        ".rc-detail-para{margin:0 0 0.75em;}"
+        ".rc-detail-image{border:1px dashed #b7b7bc;background:#fafafa;padding:1.25rem;margin:0 0 1em;text-align:center;}"
+        ".rc-detail-image-name{display:block;font-weight:700;margin:0 0 .25em;}"
+        ".rc-detail-image-note{display:block;font-size:.85em;color:#6a6a73;}"
         ".rc-back{}"
     )
     if border_c:
@@ -1489,6 +1525,21 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
             "table.rc-board th,table.rc-board td{border:1px solid %s;}"
             "table.rc-board th{border-bottom:2px solid %s;}" % (border_c, border_c)
         )
+    snb_w = _pick(theme, "layout.board.snb_width_px", None, device)
+    if snb_w:
+        rules.append(f".rc-snb{{flex:none;width:{snb_w}px;}}")
+    hdr_h = _pick(theme, "layout.board.table_header_height_px", None, device)
+    if hdr_h:
+        rules.append(f"table.rc-board th{{height:{hdr_h}px;}}")
+    row_h = _pick(theme, "layout.board.row_height_px", None, device)
+    if row_h:
+        rules.append(f"table.rc-board td{{height:{row_h}px;}}")
+    row_sep = _pick(theme, "colors.board.row_separator", None, device)
+    if row_sep:
+        rules.append(f"table.rc-board td{{border-bottom:1px solid {row_sep};}}")
+    hdr_border = _pick(theme, "colors.board.table_header_border", None, device)
+    if hdr_border:
+        rules.append(f"table.rc-board th{{border-top:2px solid {hdr_border};}}")
     if muted_c:
         rules.append(".rc-loc{color:%s;}" % muted_c)
 
@@ -2102,22 +2153,47 @@ def _render_board_toolbar(toolbar: dict[str, Any]) -> str:
     return f'<div class="rc-board-toolbar" role="search">{"".join(parts)}</div>'
 
 
-def _render_board_pagination(summary: dict[str, str]) -> str:
-    if not summary.get("page_total"):
-        return ""
-    total = summary["page_total"]
-    current = summary.get("page_current") or "1"
+def _render_board_pagination(
+    summary: dict[str, str],
+    board_pagination: dict[str, Any] | None = None,
+) -> str:
+    """Render an inert pager from source-backed page numbers when available."""
+    pages: list[int] = []
+    if board_pagination:
+        pages = [int(p) for p in board_pagination.get("pages") or [] if str(p).isdigit()]
+    total = summary.get("page_total")
+    current = summary.get("page_current") or str(
+        board_pagination.get("current_page") if board_pagination else None
+    ) or "1"
     items = [
         '<button type="button" class="rc-page" disabled aria-disabled="true">처음</button>',
         '<button type="button" class="rc-page" disabled aria-disabled="true">이전</button>',
-        f'<button type="button" class="rc-page rc-page-current" aria-current="page" '
-        f'disabled aria-disabled="true">{_esc(current)}</button>',
+    ]
+    if pages:
+        for page in pages:
+            if page == int(current or 1):
+                items.append(
+                    f'<button type="button" class="rc-page rc-page-current" '
+                    f'aria-current="page" disabled aria-disabled="true">{page}</button>'
+                )
+            else:
+                items.append(
+                    f'<button type="button" class="rc-page" disabled '
+                    f'aria-disabled="true">{page}</button>'
+                )
+    else:
+        items.append(
+            f'<button type="button" class="rc-page rc-page-current" aria-current="page" '
+            f'disabled aria-disabled="true">{_esc(current)}</button>'
+        )
+    items.extend([
         '<button type="button" class="rc-page" disabled aria-disabled="true">다음</button>',
         '<button type="button" class="rc-page" disabled aria-disabled="true">마지막</button>',
-    ]
+    ])
+    suffix = f' / {_esc(total)}' if total else ""
     return (
         f'<nav class="rc-pagination" aria-label="페이지 이동">'
-        f'{"".join(items)}<span class="rc-page-total"> / {_esc(total)}</span></nav>'
+        f'{"".join(items)}<span class="rc-page-total">{suffix}</span></nav>'
     )
 
 
@@ -2136,6 +2212,10 @@ def _render_list_main(
     breadcrumb_html, location_html, snb_html = _board_nav_html(state)
     toolbar = _board_toolbar(state)
     surface_label_text = surface_label(state, model)
+    board = state.get("board") or {}
+    board_columns = board.get("columns") if board.get("kind") == "list" else None
+    board_rows = board.get("rows") if board.get("kind") == "list" else None
+    board_pagination = board.get("pagination") if board.get("kind") == "list" else None
 
     toolbar_html = _render_board_toolbar(toolbar)
     summary_html = ""
@@ -2149,7 +2229,66 @@ def _render_list_main(
             summary_html = f'<p class="rc-board-summary">{" · ".join(parts)}</p>'
 
     current_route = route_for_state(state["state_id"], route_prefix)
-    if columns:
+    detail_no: str | None = None
+    detail_record = _family_detail_record_id(model, family)
+    if detail_record:
+        match = re.search(r"(\d+)$", detail_record)
+        detail_no = match.group(1) if match else None
+
+    if board_columns and board_rows:
+        # Source-backed board table from the semantic model's generic board
+        # vocabulary (columns/rows captured verbatim from the committed G1 DOM).
+        head_cells = "".join(
+            f'<th scope="col" class="rc-th rc-col-{_esc(c)}">{_esc(c)}</th>'
+            for c in board_columns
+        )
+        body_rows = []
+        for row in board_rows:
+            cells = row.get("cells") or {}
+            record_id = row.get("record_id")
+            links_to_detail = (
+                detail_no is not None and record_id == detail_no
+            )
+            cell_html = []
+            for col in board_columns:
+                value = cells.get(col) or ""
+                if col == "제목":
+                    text = value
+                    if row.get("is_new"):
+                        text = re.sub(r"^새글\s*", "새글 ", text).strip()
+                    if links_to_detail:
+                        detail_route = _family_detail_route(model, family, route_prefix)
+                        href = relative_href(current_route, detail_route) if detail_route else "#"
+                        cell_html.append(
+                            f'<td class="rc-td rc-col-{_esc(col)}">'
+                            f'<a class="rc-list-link" data-detail="1" href="{_esc(href)}">'
+                            f'{_esc(text)}</a></td>'
+                        )
+                    else:
+                        cell_html.append(
+                            f'<td class="rc-td rc-col-{_esc(col)}">'
+                            f'<span class="rc-list-item" aria-disabled="true" '
+                            f'role="link" tabindex="-1">{_esc(text)}</span></td>'
+                        )
+                elif col == "첨부파일" and row.get("attachment_count"):
+                    cell_html.append(
+                        f'<td class="rc-td rc-col-{_esc(col)}">'
+                        f'<span class="rc-attach-indicator" aria-label="첨부파일 {row["attachment_count"]}개">'
+                        f'첨부 {row["attachment_count"]}</span></td>'
+                    )
+                else:
+                    cell_html.append(
+                        f'<td class="rc-td rc-col-{_esc(col)}">{_esc(value)}</td>'
+                    )
+            body_rows.append(
+                f'<tr class="rc-board-row">{"".join(cell_html)}</tr>'
+            )
+        table_html = (
+            f'<table class="rc-board" aria-label="{_esc(surface_label_text)} 목록">'
+            f'<thead><tr class="rc-board-head">{head_cells}</tr></thead>'
+            f'<tbody>{"".join(body_rows)}</tbody></table>'
+        )
+    elif columns:
         head_cells = "".join(
             f'<th scope="col" class="rc-th rc-col-{_esc(c)}">{_esc(c)}</th>' for c in columns
         )
@@ -2209,7 +2348,7 @@ def _render_list_main(
                 )
         table_html = f'<ul class="rc-list">{"".join(rows)}</ul>'
 
-    pagination_html = _render_board_pagination(summary)
+    pagination_html = _render_board_pagination(summary, board_pagination)
 
     content_html = (
         f'<h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
@@ -2282,11 +2421,39 @@ def _render_detail_main(
     meta = _parse_detail_metadata(contents)
     body = _parse_detail_body(contents)
     breadcrumb_html, location_html, snb_html = _board_nav_html(state)
+    board = state.get("board") or {}
+    board_detail = board if board.get("kind") == "detail" else {}
 
     exts = state.get("attachment_document_extensions") or []
     downloads = state.get("download_references") or []
+    board_attachments = board_detail.get("attachments") or []
     attach_html = ""
-    if exts or downloads:
+    if board_attachments:
+        chips = []
+        for att in board_attachments:
+            name = att.get("name") or ""
+            ext = att.get("ext") or ""
+            att_meta = att.get("meta") or ""
+            chip = (
+                '<div class="rc-attach-item">'
+                f'<span class="rc-attach-name">{_esc(name)}</span>'
+                + (f'<span class="rc-attach-meta">{_esc(att_meta)}</span>' if att_meta else "")
+                + '<span class="rc-attach-actions">'
+                f'<button type="button" class="rc-attach" disabled aria-disabled="true" '
+                f'data-attachment-ext="{_esc(ext)}">다운로드</button>'
+                + (
+                    '<button type="button" class="rc-attach" disabled aria-disabled="true" '
+                    f'data-attachment-ext="{_esc(ext)}">미리보기</button>'
+                    if att.get("preview_href") else ""
+                )
+                + "</span></div>"
+            )
+            chips.append(chip)
+        attach_html = (
+            '<div class="rc-attachments" aria-label="첨부">'
+            f'<strong class="rc-attachments-title">첨부파일</strong>{"".join(chips)}</div>'
+        )
+    elif exts or downloads:
         chips = []
         for ext in exts:
             chips.append(
@@ -2310,6 +2477,70 @@ def _render_detail_main(
     if list_route:
         href = relative_href(route_for_state(state["state_id"], route_prefix), list_route)
         back = f'<p class="rc-back"><a href="{_esc(href)}">← 목록으로</a></p>'
+
+    if board_detail:
+        detail_title = board_detail.get("title") or title
+        meta_items = []
+        for entry in board_detail.get("meta") or []:
+            label = (entry.get("label") or "").strip()
+            value = (entry.get("value") or "").strip()
+            if label and value:
+                meta_items.append(
+                    f'<div class="rc-dmeta-row"><dt class="rc-dmeta-key">{_esc(label)}</dt>'
+                    f'<dd class="rc-dmeta-val">{_esc(value)}</dd></div>'
+                )
+        meta_html = f'<dl class="rc-detail-meta">{"".join(meta_items)}</dl>' if meta_items else ""
+        body_parts = []
+        for block in board_detail.get("body") or []:
+            if (block.get("type") or "") == "image":
+                # Bounded asset-gate placeholder: the captured source image
+                # reference is rendered as an inert labeled box. No bytes are
+                # hotlinked or embedded (#1234 rights gate), and no fabricated
+                # text is substituted for the artwork.
+                label = (
+                    (block.get("alt") or "").strip()
+                    or (block.get("title") or "").strip()
+                    or (block.get("source_path") or "").rsplit("/", 1)[-1]
+                )
+                body_parts.append(
+                    '<div class="rc-detail-image" role="img" '
+                    f'aria-label="{_esc(label) or "본문 이미지"}">'
+                    f'<span class="rc-detail-image-name">{_esc(label) or "본문 이미지"}</span>'
+                    '<span class="rc-detail-image-note">이미지(자산 게이트) — 본문 이미지는 '
+                    '원본 파일이 확보되면 표시됩니다</span></div>'
+                )
+                continue
+            text = (block.get("text") or "").replace("\xa0", " ").strip()
+            if text:
+                body_parts.append(
+                    f'<p class="rc-detail-para">{_esc(text)}</p>'
+                )
+        body_html = (
+            f'<div class="rc-detail-body">{"".join(body_parts)}</div>'
+            if body_parts else ""
+        )
+        prev_next_html = ""
+        pn = []
+        if board_detail.get("prev") and board_detail["prev"].get("title"):
+            pn.append(
+                f'<li class="rc-pn-prev"><span class="rc-pn-label">이전글</span>'
+                f'<span class="rc-pn-item" aria-disabled="true" role="link" tabindex="-1">'
+                f'{_esc(board_detail["prev"]["title"])}</span></li>'
+            )
+        if board_detail.get("next") and board_detail["next"].get("title"):
+            pn.append(
+                f'<li class="rc-pn-next"><span class="rc-pn-label">다음글</span>'
+                f'<span class="rc-pn-item" aria-disabled="true" role="link" tabindex="-1">'
+                f'{_esc(board_detail["next"]["title"])}</span></li>'
+            )
+        if pn:
+            prev_next_html = f'<ul class="rc-prevnext">{"".join(pn)}</ul>'
+        content_html = (
+            f'<h2 class="rc-detail-title">{_esc(detail_title)}</h2>'
+            f'{_render_surface_tools(state)}'
+            f"{meta_html}{body_html}{attach_html}{prev_next_html}{back}"
+        )
+        return _wrap_subpage(breadcrumb_html, location_html, snb_html, content_html)
 
     meta_items = []
     for label, key in (

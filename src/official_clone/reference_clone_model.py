@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlsplit
 
 SCHEMA_VERSION = 1
 MODEL_KIND = "reference_clone_model"
-GENERATOR_VERSION = "2.0.0"
+GENERATOR_VERSION = "2.1.0"
 
 # Stage claim gates. reference_baseline_ready is derived at build time;
 # the stronger claims are fixed False for G2-A.
@@ -115,6 +115,489 @@ def _extract_download_references(html: str) -> list[dict[str, str]]:
 
 def _extract_document_extensions(html: str) -> list[str]:
     return sorted({m.group(1).lower() for m in _DOC_TOKEN_RE.finditer(html)})
+
+
+# ---------------------------------------------------------------------------
+# Generic board vocabulary (list tables, pagers, detail views, attachments)
+# ---------------------------------------------------------------------------
+# These extractors read the committed G1 ``source.html`` DOM at DESIGN/BUILD
+# time only. The renderer (G2-B) never re-opens raw artifacts; it consumes the
+# ``state["board"]`` block produced here. The structures parsed are generic
+# municipal-board templates (``tstyle_list`` tables, ``board_pager``,
+# ``board_view`` articles) with NO site-specific literals.
+_BOARD_RECORD_ID_PARAMS = ("list_no", "not_ancmt_mgt_no")
+_BOARD_TABLE_CLASS_TOKENS = ("tstyle_list",)
+_BOARD_PAGER_CLASS_TOKENS = ("board_pager",)
+_BOARD_VIEW_CLASS_TOKENS = ("board_view",)
+_BOARD_ATTACHMENT_ALT_RE = re.compile(r"(\d+)\s*개의\s*첨부파일")
+
+
+def _record_id_from_href(href: str) -> str | None:
+    """Extract a board record id from a captured detail link (generic params)."""
+    if not href:
+        return None
+    try:
+        query = urlsplit(href).query
+    except Exception:
+        return None
+    values = parse_qs(query)
+    for param in _BOARD_RECORD_ID_PARAMS:
+        vals = values.get(param)
+        if vals and vals[0]:
+            return vals[0]
+    return None
+
+
+class _BoardListTableParser(HTMLParser):
+    """Collect generic board-list table data (caption/columns/rows/pager)."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.table_found = False
+        self.in_table = False
+        self.in_caption = False
+        self.in_thead = False
+        self.in_th = False
+        self.in_tbody = False
+        self.in_tr = False
+        self.in_td = False
+        self.in_td_anchor = False
+        self._buf: list[str] = []
+        self.caption = ""
+        self.columns: list[str] = []
+        self.rows: list[dict[str, Any]] = []
+        self._row: dict[str, Any] | None = None
+        self._cell_key: str | None = None
+        self._cell_href: str = ""
+        self._pager_found = False
+        self._in_pager = False
+        self.pager_pages: list[int] = []
+        self.pager_current: int | None = None
+        self.pager_links: list[dict[str, str]] = []
+
+    def _cls(self, attrs) -> str:
+        for k, v in attrs:
+            if k.lower() == "class":
+                return v or ""
+        return ""
+
+    def _aria_label(self, attrs) -> str | None:
+        for k, v in attrs:
+            if k.lower() == "aria-label" and v:
+                return v.strip()
+        return None
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        cls = self._cls(attrs)
+        if tag == "table" and any(t in cls.split() for t in _BOARD_TABLE_CLASS_TOKENS):
+            self.table_found = True
+            self.in_table = True
+            return
+        if not self.in_table:
+            if tag == "div" and any(t in cls.split() for t in _BOARD_PAGER_CLASS_TOKENS):
+                self._pager_found = True
+                self._in_pager = True
+                return
+            if self._in_pager and tag == "a":
+                self._pager_anchor = {
+                    "href": next((v for k, v in attrs if k.lower() == "href"), ""),
+                    "active": "active" in cls.split(),
+                    "text": "",
+                }
+                self._buf = []
+            return
+        if tag == "caption":
+            self.in_caption = True
+            self._buf = []
+        elif tag == "thead":
+            self.in_thead = True
+        elif tag == "tbody":
+            self.in_tbody = True
+        elif tag == "th":
+            self.in_th = True
+            self._buf = []
+        elif tag == "tr":
+            self.in_tr = True
+            if self.in_tbody:
+                self._row = {"cells": {}, "is_new": False}
+        elif tag == "td":
+            self.in_td = True
+            self._buf = []
+            self._cell_key = self._aria_label(attrs)
+            self._cell_href = ""
+        elif tag == "a" and self.in_td:
+            self.in_td_anchor = True
+            href = next((v for k, v in attrs if k.lower() == "href"), "")
+            self._cell_href = href or ""
+
+    def handle_data(self, data):
+        if self.in_caption or self.in_th or self.in_td:
+            self._buf.append(data)
+        elif (
+            getattr(self, "_in_pager", False)
+            and isinstance(getattr(self, "_pager_anchor", None), dict)
+            and "text" in self._pager_anchor
+        ):
+            self._pager_anchor["text"] += data
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag == "table" and self.in_table:
+            self.in_table = False
+            return
+        if not self.in_table:
+            if tag == "a" and getattr(self, "_in_pager", False) and hasattr(self, "_pager_anchor"):
+                text = self._pager_anchor["text"].strip()
+                if text.isdigit():
+                    page = int(text)
+                    if page not in self.pager_pages:
+                        self.pager_pages.append(page)
+                    if self._pager_anchor["active"]:
+                        self.pager_current = page
+                self._pager_anchor = {}
+            elif tag == "div" and self._in_pager:
+                self._in_pager = False
+            return
+        if tag == "caption":
+            self.caption = "".join(self._buf).strip()
+            self.in_caption = False
+        elif tag == "th":
+            self.columns.append("".join(self._buf).strip())
+            self.in_th = False
+        elif tag == "a" and self.in_td_anchor:
+            self.in_td_anchor = False
+        elif tag == "td":
+            text = "".join(self._buf).strip()
+            if self._row is not None:
+                key = self._cell_key
+                if key is None:
+                    key = self.columns[len(self._row["cells"])] if len(self._row["cells"]) < len(self.columns) else ""
+                self._row["cells"][key] = text
+                if key == "제목":
+                    rid = _record_id_from_href(self._cell_href)
+                    if rid:
+                        self._row["record_id"] = rid
+                    if "새글" in text:
+                        self._row["is_new"] = True
+                if key == "첨부파일":
+                    m = _BOARD_ATTACHMENT_ALT_RE.search(text)
+                    if m:
+                        self._row["attachment_count"] = int(m.group(1))
+                    elif self._cell_href and _DOWNLOAD_HREF_RE.search(self._cell_href):
+                        self._row["attachment_count"] = 1
+            self.in_td = False
+        elif tag == "tr":
+            if self.in_tbody and self._row is not None:
+                self.rows.append(self._row)
+                self._row = None
+            self.in_tr = False
+
+
+class _BoardDetailParser(HTMLParser):
+    """Collect generic board-detail data (title/meta/contents/attachments).
+
+    The parsed structures are generic municipal-board templates; text values
+    are taken verbatim from the captured DOM. Direct text inside the contents
+    block and the attachment list items is captured as well as wrapped text.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.article_found = False
+        self.in_article = False
+        self._buf: list[str] = []
+        self.title = ""
+        self.meta: list[dict[str, str]] = []
+        self.body_blocks: list[dict[str, str]] = []
+        self.attachments: list[dict[str, Any]] = []
+        self.prev: dict[str, str] | None = None
+        self.next: dict[str, str] | None = None
+        # context flags
+        self._in_title = False
+        self._in_meta_list = False
+        self._in_meta_li = False
+        self._meta_label: str | None = None
+        self._in_meta_strong = False
+        self._in_contents = False
+        self._in_contents_para = False
+        self._in_file = False
+        self._in_file_li = False
+        self._in_attach_txt = False
+        self._in_link_span = False
+        self._attach: dict[str, Any] | None = None
+        self._attach_name_buf: list[str] = []
+        self._in_prevnext = False
+        self._prev_li_class = ""
+        self._prev_href = ""
+
+    def _cls(self, attrs) -> str:
+        for k, v in attrs:
+            if k.lower() == "class":
+                return v or ""
+        return ""
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        cls = self._cls(attrs)
+        if tag == "article" and any(t in cls.split() for t in _BOARD_VIEW_CLASS_TOKENS):
+            self.article_found = True
+            self.in_article = True
+            return
+        if not self.in_article:
+            if tag == "ul" and "prevnext" in cls.split():
+                self._in_prevnext = True
+            elif self._in_prevnext and tag == "li":
+                self._prev_li_class = cls
+                self._buf = []
+            elif self._in_prevnext and tag == "a":
+                href = next((v for k, v in attrs if k.lower() == "href"), "")
+                self._prev_href = href or ""
+            return
+        if tag == "h2" and "title" in cls.split():
+            self._in_title = True
+            self._buf = []
+        elif tag == "ul" and "info" in cls.split():
+            self._in_meta_list = True
+        elif tag == "li" and self._in_meta_list:
+            self._in_meta_li = True
+            self._meta_label = None
+            self._buf = []
+            self._meta_val: list[str] = []
+        elif tag == "strong" and self._in_meta_li:
+            self._in_meta_strong = True
+            self._buf = []
+        elif tag == "div" and "contents" in cls.split():
+            self._in_contents = True
+            self._buf = []
+        elif tag == "p" and self._in_contents:
+            self._in_contents_para = True
+            self._buf = []
+        elif tag == "img" and self._in_contents:
+            # Source-backed image reference inside the detail body. The bytes
+            # are NOT embedded (rights/asset gate); only the alt/title text and
+            # the committed source path are recorded so a renderer can draw a
+            # bounded placeholder instead of inventing content.
+            alt = next((v for k, v in attrs if k.lower() == "alt"), "") or ""
+            title = next((v for k, v in attrs if k.lower() == "title"), "") or ""
+            src = next((v for k, v in attrs if k.lower() == "src"), "") or ""
+            self.body_blocks.append({
+                "type": "image",
+                "alt": alt.strip(),
+                "title": title.strip(),
+                "source_path": src.strip(),
+            })
+        elif tag == "div" and "file" in cls.split():
+            self._in_file = True
+        elif tag == "li" and self._in_file:
+            self._in_file_li = True
+            self._attach = {
+                "name": "", "meta": "", "ext": "",
+                "download_href": None, "preview_href": None,
+            }
+            self._buf = []
+            self._attach_name_buf = []
+        elif tag == "img" and self._in_file_li:
+            alt = next((v for k, v in attrs if k.lower() == "alt"), "")
+            m = _DOC_EXT_RE.search((alt or "").lower())
+            if m and self._attach is not None:
+                self._attach["ext"] = m.group(1)
+        elif tag == "span" and self._in_file_li:
+            if "txt" in cls.split():
+                self._in_attach_txt = True
+                self._buf = []
+            elif "link" in cls.split():
+                self._in_link_span = True
+        elif tag == "a" and self._in_file_li:
+            href = next((v for k, v in attrs if k.lower() == "href"), "")
+            self._anchor_text: list[str] = []
+            self._anchor_href = href or ""
+
+    def handle_data(self, data):
+        if self._in_title or self._in_meta_strong:
+            self._buf.append(data)
+        elif self._in_meta_li:
+            self._meta_val.append(data)
+        elif self._in_contents:
+            self._buf.append(data)
+        elif self._in_attach_txt:
+            self._buf.append(data)
+        elif self._in_file_li and not self._in_link_span:
+            self._attach_name_buf.append(data)
+        elif self._in_prevnext:
+            self._buf.append(data)
+        elif hasattr(self, "_anchor_text"):
+            self._anchor_text.append(data)
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag == "article" and self.in_article:
+            self.in_article = False
+            return
+        if not self.in_article:
+            if tag == "ul" and self._in_prevnext:
+                self._in_prevnext = False
+            elif tag == "li" and self._in_prevnext:
+                text = "".join(self._buf).strip()
+                for label in ("이전글", "다음글"):
+                    if text.startswith(label):
+                        text = text[len(label):].strip()
+                        break
+                href = self._prev_href
+                rid = _record_id_from_href(href)
+                entry = {"title": text, "record_id": rid} if rid else {"title": text}
+                if "prev" in self._prev_li_class:
+                    self.prev = entry
+                elif "next" in self._prev_li_class:
+                    self.next = entry
+            return
+        if tag == "h2" and self._in_title:
+            self.title = "".join(self._buf).strip()
+            self._in_title = False
+        elif tag == "strong" and self._in_meta_strong:
+            self._meta_label = "".join(self._buf).strip()
+            self._in_meta_strong = False
+        elif tag == "li" and self._in_meta_li:
+            value = "".join(self._meta_val).strip()
+            if self._meta_label:
+                self.meta.append({"label": self._meta_label, "value": value})
+            self._in_meta_li = False
+        elif tag == "ul" and self._in_meta_list:
+            self._in_meta_list = False
+        elif tag == "p" and self._in_contents_para:
+            text = "".join(self._buf).strip()
+            if text:
+                self.body_blocks.append({"type": "paragraph", "text": text})
+            self._in_contents_para = False
+            self._buf = []
+        elif tag == "div" and self._in_contents:
+            text = "".join(self._buf).strip()
+            if text:
+                self.body_blocks.append({"type": "paragraph", "text": text})
+            self._in_contents = False
+        elif tag == "li" and self._in_file_li:
+            if self._attach is not None:
+                name = "".join(self._attach_name_buf).strip()
+                if name and not self._attach.get("name"):
+                    self._attach["name"] = name
+                if self._attach.get("name") and not self._attach.get("ext"):
+                    m = _DOC_TOKEN_RE.search(self._attach["name"])
+                    if m:
+                        self._attach["ext"] = m.group(1).lower()
+                if self._attach.get("name"):
+                    self.attachments.append(self._attach)
+            self._in_file_li = False
+            self._attach = None
+        elif tag == "span" and self._in_attach_txt:
+            if self._attach is not None:
+                self._attach["meta"] = "".join(self._buf).strip()
+            self._in_attach_txt = False
+        elif tag == "span" and self._in_link_span:
+            self._in_link_span = False
+        elif tag == "a" and self._in_file_li:
+            text = "".join(getattr(self, "_anchor_text", [])).strip()
+            href = getattr(self, "_anchor_href", "")
+            if self._attach is not None:
+                if text == "다운로드" or _DOWNLOAD_HREF_RE.search(href):
+                    self._attach["download_href"] = href
+                elif text == "미리보기" or "attachPreview" in href:
+                    self._attach["preview_href"] = href
+            self._anchor_text = []
+        elif tag == "div" and self._in_file:
+            self._in_file = False
+
+
+class _BoardDataCollector(HTMLParser):
+    """Fully offline pass that merges list/detail/pager extractions."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._list = _BoardListTableParser()
+        self._detail = _BoardDetailParser()
+        self._current = self._list
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        cls = ""
+        for k, v in attrs:
+            if k.lower() == "class":
+                cls = v or ""
+                break
+        if tag == "table" and any(t in cls.split() for t in _BOARD_TABLE_CLASS_TOKENS):
+            self._current = self._list
+        elif tag == "article" and any(t in cls.split() for t in _BOARD_VIEW_CLASS_TOKENS):
+            self._current = self._detail
+        self._current.handle_starttag(tag, attrs)
+
+    def handle_data(self, data):
+        self._current.handle_data(data)
+
+    def handle_endtag(self, tag):
+        self._current.handle_endtag(tag)
+
+    def handle_entityref(self, name):
+        self._current.handle_entityref(name)
+
+    def handle_charref(self, name):
+        self._current.handle_charref(name)
+
+
+def _extract_board(html: str) -> dict[str, Any] | None:
+    """Extract the generic board block for a captured state, or ``None``.
+
+    Returns a list-shaped ``{"kind": "list", ...}`` or a detail-shaped
+    ``{"kind": "detail", ...}`` block only when the committed G1 DOM actually
+    contains the corresponding generic board template. Rows/columns/meta/body
+    are source-backed text taken verbatim from the captured HTML.
+    """
+    if not html:
+        return None
+    collector = _BoardDataCollector()
+    collector.feed(html)
+    table = collector._list
+    detail = collector._detail
+    if table.table_found and table.columns:
+        block: dict[str, Any] = {"kind": "list"}
+        if table.caption:
+            block["caption"] = table.caption
+        block["columns"] = table.columns
+        block["rows"] = table.rows
+        if table.pager_pages or table.pager_current is not None:
+            block["pagination"] = {
+                "pages": table.pager_pages,
+                "current_page": table.pager_current,
+            }
+        return block
+    if detail.article_found:
+        block = {"kind": "detail"}
+        if detail.title:
+            block["title"] = detail.title
+        if detail.meta:
+            block["meta"] = detail.meta
+        if detail.body_blocks:
+            block["body"] = detail.body_blocks
+        if detail.attachments:
+            block["attachments"] = detail.attachments
+        if detail.prev:
+            block["prev"] = detail.prev
+        if detail.next:
+            block["next"] = detail.next
+        return block
+    return None
+
+
+def _extract_board_pagination(html: str) -> dict[str, Any] | None:
+    """Extract pager numbers from a committed G1 list page (best effort)."""
+    if not html:
+        return None
+    collector = _BoardListTableParser()
+    collector.feed(html)
+    if not collector.pager_pages and collector.pager_current is None:
+        return None
+    return {
+        "pages": collector.pager_pages,
+        "current_page": collector.pager_current,
+    }
 
 
 class _AnchorCollector(HTMLParser):
@@ -573,6 +1056,13 @@ def build_reference_clone_model(
                 "provenance_note": asset.get("provenance_note"),
             })
 
+        # Generic board vocabulary (source-backed rows/columns/meta/body/attachments)
+        # extracted at DESIGN time from the committed G1 DOM. Absent for states
+        # whose captured HTML contains no generic board template.
+        board: dict[str, Any] | None = None
+        if html_path is not None and html_path.is_file():
+            board = _extract_board(html)
+
         states.append(
             {
                 "state_id": state_id,
@@ -594,6 +1084,7 @@ def build_reference_clone_model(
                 "list_no": _parse_list_no(captured.get("final_url") or ""),
                 "download_references": download_references,
                 "attachment_document_extensions": document_extensions,
+                "board": board,
                 "public_assets": captured.get("public_assets", []),
                 "exceptions": captured.get("exceptions", []),
                 "artifacts": artifacts,
