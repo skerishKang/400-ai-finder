@@ -137,7 +137,7 @@ generated structural preview
 5. Seo-gu G3 homepage — #1310 / PR #1311 accepted
 6. Seo-gu G3 board/list/detail — #1312 / Draft PR #1313 active; current evidence는 아직 visual acceptance 전
 7. organization chart / staff directory — board slice acceptance 후 다음 bounded correction
-8. Seo-gu representative G3 acceptance 후 clone 위 AI search/navigation/Browser Use 검증
+8. Seo-gu G3의 required structural/content/asset/interaction/visual gates를 모두 충족하고 owner visual review와 별도 `clone_mvp_ready` gate가 명시적으로 승인된 뒤 clone 위 AI search/navigation/Browser Use 검증
 9. 그 후 materially different third-site / cross-domain proof
 
 제3 사이트를 먼저 진행하거나 CI/Preview 성공만으로 Seo-gu G3 visual acceptance 또는 clone MVP 완료를 표현하지 않는다.
