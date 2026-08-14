@@ -458,10 +458,10 @@ def test_css_values_derive_from_contract():
     )
     assert "max-width:1400px" in html
     assert "border:1px solid #dcdcdc" in html
-    assert "background:#f8f8f8" in html
-    assert "background:#083878" in html  # GNB bg measured
-    assert "background:#f0f0f8" in html  # header bg measured
-    assert "min-height:692px" in html    # header height measured
+    assert "background:#ffffff" in html
+    assert "background:#1663b6" in html  # primary action blue measured
+    assert "background:#f0f0ff" in html  # hero background measured
+    assert "min-height:274px" in html    # semantic header height measured
     assert "font-family:" in html
 
 
@@ -833,107 +833,182 @@ def test_tampered_contract_raises_at_render_entry():
 
 
 # ---------------------------------------------------------------------------
-# Home page semantic sections (desktop, mobile, gnb_open, synthetic)
+# Home source-hierarchy / fidelity correction (#1310)
 # ---------------------------------------------------------------------------
-def test_home_desktop_has_required_sections():
-    """The home desktop page must render utility bar, hero, quick links,
-    rd_box service grid, secondary links, and notice board sections."""
+def _between(html: str, start_token: str, end_token: str) -> str:
+    start = html.index(start_token)
+    end = html.index(end_token, start)
+    return html[start:end]
+
+
+def test_home_desktop_has_source_ordered_sections():
     model = _load_model()
     contract = _load_validated_contract()
     html = mod.render_state(
-        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX, visual_contract=contract
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
     )
-    assert "rc-utility-bar" in html
-    assert "rc-hero" in html
-    assert "rc-slider-controls" in html
-    assert "rc-banner" in html
-    assert "rc-quick-links" in html
-    assert "rc-service-grid" in html
-    assert "rc-secondary-links" in html
+    required = (
+        "rc-gov-notice",
+        "rc-utility-bar",
+        "rc-brand-tools",
+        "rc-identity-row",
+        "rc-section01",
+        "rc-mayor-panel",
+        "rc-key-visual",
+        "rc-primary-slider-controls",
+        "rc-section02",
+        "rc-quick-carousel-controls",
+        "rc-quick-items",
+        "rc-section03",
+        "rc-notice-panel",
+        "rc-story-panel",
+        "rc-section04",
+        "rc-footer-identity",
+    )
+    for token in required:
+        assert token in html
+    assert html.index("rc-section01") < html.index("rc-section02")
+    assert html.index("rc-section02") < html.index("rc-section03")
+    assert html.index("rc-section03") < html.index("rc-section04")
+    # Generic surface-navigation cards are QA-only and no longer pollute home.
+    assert '<div class="rc-surface-grid">' not in html
+
+
+def test_home_primary_and_quick_sliders_are_separate():
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    primary = _between(html, '<div class="rc-primary-slider-controls">', "</div>")
+    quick = _between(html, '<div class="rc-quick-carousel">', "</section>")
+    assert 'class="prev"' in primary
+    assert 'class="pause"' in primary
+    assert 'class="next"' in primary
+    assert "btn prev" not in primary
+    assert "btn next" not in primary
+    assert "btn prev" in quick
+    assert "btn next" in quick
+
+
+def test_home_section01_preserves_captured_mayor_actions():
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    section01 = _between(html, 'class="rc-home-section rc-section01"', "</section>")
+    assert "내곁에 구청장실" in section01
+    assert "매니페스토 (공약)" in section01
+    assert "010-3080-8249" in section01
+    assert "조직도" not in section01
+
+
+def test_home_quick_menu_keeps_rd_box_in_same_carousel():
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    section02 = _between(html, 'class="rc-home-section rc-section02"', "</section>")
+    for text in ("조직도", "민원서식", "대형폐기물", "통합예약서비스",
+                 "착한공유", "착한동행", "착한나눔"):
+        assert text in section02
+    assert "rc-quick-card-featured" in section02
+    assert "rc-service-grid" not in html
+    assert "rc-service-col" not in html
+
+
+def test_home_information_groups_match_captured_home_links():
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
     assert "공지사항" in html
-    assert "rc-notice-list" in html
-    assert "rc-surface-grid" in html
-    assert "rc-gnb" in html
-    assert "rc-gnb-toggle" in html
+    assert "서구는 지금" in html
+    assert "현장 서케치" in html
+    assert html.count("rc-notice-item") == 5
+    assert "rc-story-card" in html
 
 
-def test_home_mobile_has_required_sections():
-    """The home mobile page must render hero, quick links, rd_box, notice
-    board, and surface grid — mobile has no separate utility bar."""
+def test_home_mobile_uses_mobile_source_order_and_geometry():
     model = _load_model()
     contract = _load_validated_contract()
     html = mod.render_state(
-        model, "home.mobile.default", route_prefix=_ROUTE_PREFIX, visual_contract=contract
+        model, "home.mobile.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
     )
-    # Mobile may not have utility-bar (no identity control)
-    assert "rc-hero" in html
-    assert "rc-slider-controls" in html
-    assert "rc-banner" in html
-    assert "rc-quick-links" in html
-    assert "rc-service-grid" in html
-    assert "rc-secondary-links" in html
-    assert "rc-surface-grid" in html
-    assert "rc-gnb-toggle" in html
+    assert "min-height:175px" in html
+    assert "grid-template-columns:repeat(2,minmax(0,1fr))" in html
+    assert ".rc-section01 .rc-key-visual{order:1;}" in html
+    assert ".rc-section01 .rc-mayor-panel{order:2;}" in html
+    assert ".rc-gnb .rc-stub{display:none;}" in html
+    assert "rc-mobile-search" in html
+    assert "rc-mobile-slogan" in html
 
 
-def test_home_gnb_open_sections():
-    """The GNB-open state must render the same sections as the default plus
-    the mega menu items."""
+def test_home_gnb_open_is_six_group_hierarchy():
     model = _load_model()
     contract = _load_validated_contract()
     html = mod.render_state(
-        model, "home.desktop.gnb_open", route_prefix=_ROUTE_PREFIX, visual_contract=contract
+        model, "home.desktop.gnb_open", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
     )
     assert 'aria-expanded="true"' in html
-    assert "rc-mega-menu" in html
-    assert "rc-hero" in html
-    assert "rc-service-grid" in html
-    assert "rc-surface-grid" in html
+    assert html.count('class="rc-mega-group"') == 6
+    for heading in ("열린민원", "소통참여", "정보공개", "구정소식", "서구소개", "분야별정보"):
+        assert f'aria-label="{heading}"' in html
+    assert "민원안내" in html
+    assert "공공데이터 개방" in html
+    assert "고향사랑기부제" in html
+
+
+
+def test_home_gnb_open_uses_source_backed_viewport_overlay_geometry():
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "home.desktop.gnb_open", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    assert 'html[data-content="gnb_open"] #rc-mega-menu{' in html
+    assert 'position:static!important;min-height:900px;' in html
+    assert 'grid-template-columns:repeat(6,minmax(0,1fr))!important;' in html
+    assert 'html[data-content="gnb_open"] .rc-identity-row{display:none!important;}' in html
+    assert 'html[data-content="gnb_open"] .rc-section01{display:none!important;}' in html
 
 
 def test_home_notice_board_contains_board_items():
-    """The notice board section must render board-type general_links only."""
     model = _load_model()
     contract = _load_validated_contract()
     html = mod.render_state(
-        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX, visual_contract=contract
+        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
     )
-    # At least one notice item present
-    assert "rc-notice-item" in html
-    assert "rc-notice-list" in html
-    # Items are inert (no live links)
+    assert html.count("rc-notice-item") == 5
     assert 'aria-disabled="true"' in html
+    assert "2026.08.11" in html
 
 
-def test_home_rd_box_groups_by_column():
-    """The rd_box service grid must group controls by column class."""
-    model = _load_model()
-    contract = _load_validated_contract()
-    html = mod.render_state(
-        model, "home.desktop.default", route_prefix=_ROUTE_PREFIX, visual_contract=contract
-    )
-    assert "rc-service-col" in html
-    assert "rc-rd_col01" in html or "rc-rd_col" in html
-    # Multiple column groups
-    assert html.count("rc-service-col") >= 2
-
-
-def test_synthetic_home_renders_substitute_sections():
-    """Synthetic (non-Seogu) home page renders gracefully with default
-    sections even when no identity/rd_box/slider controls exist."""
+def test_synthetic_home_fails_gracefully_without_source_section_markers():
     synthetic = _synthetic_model()
     html = mod.render_state(synthetic, "home.desktop.default", route_prefix="/x/")
     assert "rc-hero" in html
     assert "rc-site-title" in html
     assert "rc-gnb" in html
-    assert "rc-surface-grid" in html
-    # No utility bar when no identity control exists
-    assert '<div class="rc-utility-bar">' not in html
+    assert "rc-section01" in html
+    assert '<section class="rc-home-section rc-section02"' not in html
+    assert "http://" not in html
+    assert "https://" not in html
 
 
 def test_validated_contract_maintains_faithful_candidate_true():
-    """The validated visual contract must still produce faithful_clone_candidate
-    True after all correction tests pass."""
     model = _load_model()
     contract = _load_validated_contract()
     html = mod.render_state(
@@ -944,6 +1019,50 @@ def test_validated_contract_maintains_faithful_candidate_true():
     end = html.index("</script>", start)
     payload = json.loads(html[start:end].split(">", 1)[1])
     assert payload["faithful_clone_candidate"] is True
+
+
+@pytest.mark.parametrize(
+    "field_path",
+    (
+        "layout.home.hero_height_px",
+        "layout.home.quick_columns",
+        "layout.gnb_open.panel_height_px",
+        "layout.gnb_open.columns",
+        "responsive.mobile.header_padding_x",
+        "responsive.mobile.home.quick_columns",
+    ),
+)
+def test_home_fidelity_promotion_requires_new_source_backed_fields(field_path):
+    """#1310 home promotion fails closed if a new source-backed home field is absent."""
+    model = _load_model()
+    raw = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
+    node = raw
+    parts = field_path.split(".")
+    for part in parts[:-1]:
+        node = node[part]
+    node[parts[-1]] = None
+    raw["measurements"] = [
+        item for item in raw["measurements"] if item.get("field") != field_path
+    ]
+    validated = validator.validate_visual_contract(raw, model)
+    assert validated["readiness"]["faithful_ready"] is True
+    assert mod.faithful_ready(validated) is False
+
+
+def test_home_fidelity_required_field_set_covers_desktop_and_mobile_geometry():
+    required = set(mod.REQUIRED_HOME_FIDELITY_FIELDS)
+    assert {
+        "layout.header.search_width_px",
+        "layout.home.key_visual_width_px",
+        "layout.home.quick_item_width_px",
+        "layout.gnb_open.panel_height_px",
+        "layout.gnb_open.columns",
+        "colors.key_visual_bg",
+        "responsive.mobile.footer_height_px",
+        "responsive.mobile.home.hero_height_px",
+        "responsive.mobile.home.quick_item_width_px",
+        "responsive.mobile.home.info_columns",
+    } <= required
 
 
 # ---------------------------------------------------------------------------

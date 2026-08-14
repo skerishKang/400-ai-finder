@@ -4,10 +4,16 @@
   "site_id": "seogu_gwangju",
   "capture_id": "20260812T231018-0900",
   "model_checksum": "36d11991d8253a6176acdeaf8fe7e628315959d673ad153b2bde476d7a3cdceb",
-  "note": "Provenance-backed measurements from the immutable committed G1 capture evidence. Every non-null value is traced 1:1 to a captured state, the committed screenshot SHA it was measured from, the measurement method, the unit, and the evidence type. Values that cannot be safely measured remain null and are listed in gaps. typography.font_family uses asset_provenance evidence (fetched font assets), not screenshot pixels. border.width is the measured pixel thickness of the footer separator line. Renderer-only non-fidelity presentation defaults (font-size, font-weight, border-style, focus outline, underline, radius, breakpoint) are NOT counted as official-site fidelity evidence.",
+  "note": "Provenance-backed measurements from the immutable committed G1 capture evidence. Every non-null value is traced 1:1 to a captured state, the committed screenshot SHA it was measured from, the measurement method, the unit, and the evidence type. Values that cannot be safely measured remain null and are listed in gaps. typography.font_family uses asset_provenance evidence (fetched font assets), not screenshot pixels. border.width is the measured pixel thickness of the footer separator line. Renderer-only non-fidelity presentation defaults (font-size, font-weight, border-style, focus outline, underline, radius, breakpoint) are NOT counted as official-site fidelity evidence. #1310 re-binds header/GNB/footer/home-section geometry to semantic source regions instead of the former dark-band heuristic.",
   "layout": {
     "header": {
-      "height_px": 692,
+      "height_px": 274,
+      "notice_height_px": 49,
+      "utility_height_px": 50,
+      "brand_height_px": 91,
+      "identity_height_px": 84,
+      "search_width_px": 600,
+      "search_height_px": 60,
       "padding_top": null,
       "padding_bottom": null,
       "padding_x": null,
@@ -15,7 +21,7 @@
       "provenance_state_id": "home.desktop.default"
     },
     "gnb": {
-      "height_px": 72,
+      "height_px": 84,
       "item_gap": null,
       "toggle_size": null,
       "provenance_state_id": "home.desktop.default"
@@ -28,25 +34,44 @@
       "provenance_state_id": "home.desktop.default"
     },
     "footer": {
-      "height_px": 80,
+      "height_px": 357,
       "padding_top": null,
       "padding_bottom": null,
       "provenance_state_id": "home.desktop.default"
+    },
+    "home": {
+      "hero_height_px": 466,
+      "key_visual_width_px": 820,
+      "key_visual_height_px": 377,
+      "quick_height_px": 227,
+      "quick_columns": 7,
+      "quick_item_width_px": 173,
+      "info_columns": 3,
+      "info_gap_px": 24,
+      "provenance_state_id": "home.desktop.default"
+    },
+    "gnb_open": {
+      "panel_height_px": 900,
+      "columns": 6,
+      "provenance_state_id": "home.desktop.gnb_open"
     }
   },
   "colors": {
-    "primary": "#083878",
-    "background": "#f8f8f8",
+    "primary": "#1663b6",
+    "background": "#ffffff",
     "surface": null,
     "text": "#000000",
-    "text_muted": "#888888",
+    "text_muted": "#707070",
     "border": "#dcdcdc",
     "link": null,
     "link_hover": null,
-    "header_bg": "#f0f0f8",
-    "gnb_bg": "#083878",
-    "gnb_text": "#f0f0f0",
-    "footer_bg": "#f8f8f8",
+    "header_bg": "#ffffff",
+    "gnb_bg": "#ffffff",
+    "gnb_text": "#000000",
+    "footer_bg": "#fafafa",
+    "hero_bg": "#f0f0ff",
+    "notice_bg": "#f4f4f4",
+    "key_visual_bg": "#f1fbfd",
     "footer_border": "#dcdcdc",
     "provenance_state_id": "home.desktop.default"
   },
@@ -86,8 +111,13 @@
   "responsive": {
     "breakpoint_mobile": null,
     "mobile": {
-      "header_height_px": 370,
-      "gnb_height_px": 32,
+      "header_height_px": 175,
+      "gnb_height_px": 69,
+      "notice_height_px": 41,
+      "utility_height_px": 45,
+      "brand_height_px": 20,
+      "identity_height_px": 69,
+      "footer_height_px": 491,
       "max_width_px": 358,
       "header_padding_x": 16,
       "header_padding_y": null,
@@ -95,6 +125,16 @@
       "main_padding_y": null,
       "main_padding_bottom": null,
       "grid_columns": null,
+      "home": {
+        "hero_height_px": 592,
+        "key_visual_height_px": 190,
+        "quick_height_px": 170,
+        "quick_columns": 2,
+        "quick_item_width_px": 140,
+        "info_columns": 1,
+        "info_gap_px": 24,
+        "provenance_state_id": "home.mobile.default"
+      },
       "provenance_state_id": "home.mobile.default"
     },
     "provenance_state_id": "home.mobile.default"
@@ -144,32 +184,32 @@
   "measurements": [
     {
       "field": "layout.header.height_px",
-      "value": 692,
+      "value": 274,
       "unit": "px",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
       "field": "layout.gnb.height_px",
-      "value": 72,
+      "value": 84,
       "unit": "px",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
       "field": "layout.footer.height_px",
-      "value": 80,
+      "value": 357,
       "unit": "px",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
@@ -194,62 +234,62 @@
     },
     {
       "field": "colors.primary",
-      "value": "#083878",
+      "value": "#1663b6",
       "unit": "hex",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
       "field": "colors.background",
-      "value": "#f8f8f8",
+      "value": "#ffffff",
       "unit": "hex",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
       "field": "colors.header_bg",
-      "value": "#f0f0f8",
+      "value": "#ffffff",
       "unit": "hex",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
       "field": "colors.gnb_bg",
-      "value": "#083878",
+      "value": "#ffffff",
       "unit": "hex",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
       "field": "colors.gnb_text",
-      "value": "#f0f0f0",
+      "value": "#000000",
       "unit": "hex",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
       "field": "colors.footer_bg",
-      "value": "#f8f8f8",
+      "value": "#fafafa",
       "unit": "hex",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
       "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
@@ -264,7 +304,7 @@
     },
     {
       "field": "colors.text_muted",
-      "value": "#888888",
+      "value": "#707070",
       "unit": "hex",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.desktop.default",
@@ -314,22 +354,22 @@
     },
     {
       "field": "responsive.mobile.header_height_px",
-      "value": 370,
+      "value": 175,
       "unit": "px",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.mobile.default",
       "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
       "field": "responsive.mobile.gnb_height_px",
-      "value": 32,
+      "value": 69,
       "unit": "px",
       "evidence_type": "pixel_analysis",
       "source_state_id": "home.mobile.default",
       "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
-      "method": "pixel_analysis",
+      "method": "pixel_analysis_semantic_region_correction",
       "note": null
     },
     {
@@ -353,6 +393,296 @@
       "note": null
     },
     {
+      "field": "layout.header.notice_height_px",
+      "value": 49,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.header.utility_height_px",
+      "value": 50,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.header.brand_height_px",
+      "value": 91,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.header.identity_height_px",
+      "value": 84,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.header.search_width_px",
+      "value": 600,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.header.search_height_px",
+      "value": 60,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.home.hero_height_px",
+      "value": 466,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.home.key_visual_width_px",
+      "value": 820,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.home.key_visual_height_px",
+      "value": 377,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.home.quick_height_px",
+      "value": 227,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.home.quick_columns",
+      "value": 7,
+      "unit": "count",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.home.quick_item_width_px",
+      "value": 173,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.home.info_columns",
+      "value": 3,
+      "unit": "count",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "layout.home.info_gap_px",
+      "value": 24,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "colors.hero_bg",
+      "value": "#f0f0ff",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "colors.notice_bg",
+      "value": "#f4f4f4",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "colors.key_visual_bg",
+      "value": "#f1fbfd",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.default",
+      "artifact_sha256": "e7533aed61bd4d058123abb844d6c580c45625ef3a5720de24b1aed8c0826130",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.notice_height_px",
+      "value": 41,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.utility_height_px",
+      "value": 45,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.brand_height_px",
+      "value": 20,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.identity_height_px",
+      "value": 69,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.footer_height_px",
+      "value": 491,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.home.hero_height_px",
+      "value": 592,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.home.key_visual_height_px",
+      "value": 190,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.home.quick_height_px",
+      "value": 170,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.home.quick_columns",
+      "value": 2,
+      "unit": "count",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.home.quick_item_width_px",
+      "value": 140,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.home.info_columns",
+      "value": 1,
+      "unit": "count",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
+      "field": "responsive.mobile.home.info_gap_px",
+      "value": 24,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.mobile.default",
+      "artifact_sha256": "db7052c6d946d7fde6966803eefa1aa78854633cc5cfd2eaf4ffff5a9c182695",
+      "method": "pixel_analysis_semantic_region_correction",
+      "note": "Bound to the semantic region in the immutable #1310 source screenshot."
+    },
+    {
       "field": "typography.font_family",
       "value": "Gmarket Sans, Noto Sans CJK KR",
       "unit": null,
@@ -361,6 +691,26 @@
       "artifact_sha256": "bc16b83ae5f87730fbed27f810d75fcad341777866b43dd05e0ee03efe040b81",
       "method": "fetched_font_asset_observation",
       "note": "Font families observed from font assets fetched by the browser during G1 capture (primary asset NotoSansCJKkr-Bold.woff2). Not a screenshot pixel measurement."
+    },
+    {
+      "field": "layout.gnb_open.panel_height_px",
+      "value": 900,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.gnb_open",
+      "artifact_sha256": "8af9929cdf6c0976bc20e9a237cc2ea1674a3e757cd21ea3938ddb33d34909e6",
+      "method": "pixel_analysis",
+      "note": "Open mega-menu fills the committed 1440x900 viewport; the first post-overlay quick-menu color begins at y=900."
+    },
+    {
+      "field": "layout.gnb_open.columns",
+      "value": 6,
+      "unit": "count",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "home.desktop.gnb_open",
+      "artifact_sha256": "8af9929cdf6c0976bc20e9a237cc2ea1674a3e757cd21ea3938ddb33d34909e6",
+      "method": "pixel_analysis",
+      "note": "Six top-level menu columns are visibly present across the committed GNB-open source screenshot."
     }
   ]
 }
