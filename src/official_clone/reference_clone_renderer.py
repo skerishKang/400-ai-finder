@@ -836,11 +836,12 @@ def _list_items(
             "text": (link.get("text") or "").strip(),
             "record_id": _record_id(link.get("href")),
         })
-    # Every captured board row targets the single family detail surface
-    # (local, same-origin clone route). The href is the relative detail route,
-    # so no internal record id (list_no / not_ancmt_mgt_no) leaks to residents.
     for item in items:
-        item["links_to_detail"] = detail_route is not None
+        item["links_to_detail"] = (
+            detail_route is not None
+            and detail_id is not None
+            and item.get("record_id") == detail_id
+        )
         item["detail_route"] = detail_route
     return items
 
@@ -1428,35 +1429,30 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     muted_c = _pick(theme, "colors.text_muted", None, device)
     rules.append(
         ".rc-subpage{display:block;}"
-        ".rc-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;}"
+        ".rc-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;}"
         ".rc-breadcrumb .rc-crumb-current{font-weight:700;}"
-        ".rc-location{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:#666666;}"
-        ".rc-subpage-body{display:flex;align-items:flex-start;gap:24px;}"
-        ".rc-snb{display:flex;flex-direction:column;min-width:160px;}"
-        ".rc-snb-item{display:block;padding:8px 10px;}"
-        ".rc-snb-current{font-weight:700;background:#f0f0f0;}"
+        ".rc-location{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".rc-subpage-body{display:flex;align-items:flex-start;}"
+        ".rc-snb{display:flex;flex-direction:column;}"
+        ".rc-snb-item{display:block;}"
+        ".rc-snb-current{font-weight:700;}"
         ".rc-content{flex:1;min-width:0;}"
-        ".rc-page-title{font-size:22px;font-weight:700;margin:0 0 14px;}"
-        ".rc-detail-title{font-size:22px;font-weight:700;margin:0 0 14px;}"
-        ".rc-surface-tools{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}"
-        ".rc-tool{padding:6px 10px;cursor:not-allowed;}"
-        ".rc-board-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:12px;}"
-        ".rc-toolbar-search{display:flex;align-items:center;gap:6px;}"
-        ".rc-search-input{padding:6px 8px;}"
-        ".rc-pagesize,.rc-search-btn,.rc-page{padding:6px 10px;cursor:not-allowed;}"
-        ".rc-filter-opt{padding:4px 8px;}"
-        ".rc-board-summary{font-size:13px;margin:0 0 8px;}"
+        ".rc-page-title{font-weight:700;}"
+        ".rc-detail-title{font-weight:700;}"
+        ".rc-surface-tools{display:flex;flex-wrap:wrap;}"
+        ".rc-tool{cursor:not-allowed;}"
+        ".rc-board-toolbar{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".rc-toolbar-search{display:flex;align-items:center;}"
+        ".rc-pagesize,.rc-search-btn,.rc-page{cursor:not-allowed;}"
+        ".rc-board-summary{}"
         "table.rc-board{border-collapse:collapse;width:100%;}"
-        "table.rc-board th,table.rc-board td{padding:8px 10px;text-align:left;}"
-        ".rc-board-head .rc-col-번호,.rc-board-row .rc-col-번호{width:64px;}"
-        ".rc-board-head .rc-col-조회수,.rc-board-row .rc-col-조회수{width:72px;}"
-        ".rc-board-head .rc-col-등록일,.rc-board-row .rc-col-등록일{width:110px;}"
-        ".rc-pagination{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px;}"
+        "table.rc-board th,table.rc-board td{text-align:left;}"
+        ".rc-pagination{display:flex;flex-wrap:wrap;align-items:center;}"
         ".rc-page-current{font-weight:700;}"
-        ".rc-detail-meta{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 16px;}"
+        ".rc-detail-meta{display:grid;grid-template-columns:auto 1fr;}"
         ".rc-dmeta-key{font-weight:700;}"
         ".rc-detail-body{line-height:1.6;}"
-        ".rc-back{margin-top:16px;}"
+        ".rc-back{}"
     )
     if border_c:
         rules.append(

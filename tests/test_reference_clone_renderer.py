@@ -294,7 +294,7 @@ def test_gosi_list_detail_distinct_with_attachment():
     gosi_list = mod.render_state(model, "gosi.list.desktop", route_prefix=_ROUTE_PREFIX)
     gosi_detail = mod.render_state(model, "gosi.detail.desktop", route_prefix=_ROUTE_PREFIX)
     assert gosi_list != gosi_detail
-    assert "rc-list-link" in gosi_list
+    assert "rc-list-link" not in gosi_list  # no list row matches the captured gosi detail record_id
     assert "다운로드 (.doc)" in gosi_detail
     assert "다운로드 (.hwpx)" in gosi_detail
     assert "disabled" in gosi_detail
@@ -308,6 +308,111 @@ def test_civil_form_detail_captures_hwp_attachment():
     assert "자동차 등록 위임장" in detail
     assert "다운로드 (.hwp)" in detail
     assert "disabled" in detail
+
+
+# ── Record-ID backed list→detail matching (regression) ──────────────────
+def test_notice_list_linked_row_count_and_record_id():
+    model = _load_model()
+    listing = mod.render_state(model, "notice.list.desktop", route_prefix=_ROUTE_PREFIX)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 1, f"notice list should have exactly 1 linked row (record_id matching detail), got {len(links)}"
+    # Verify the linked row's text matches the detail title.
+    assert '[공고문]사회연대경제 청년 일경험 시범사업 모집공고_참여청년(3차 모집)' in listing
+    # Verify the href targets the notice detail route.
+    hrefs = re.findall(r'href="([^"]*)"', listing)
+    detail_hrefs = [h for h in hrefs if h != '.' and not h.startswith('#')]
+    assert any('detail/' in h for h in detail_hrefs)
+
+
+def test_gosi_list_has_no_linked_rows():
+    model = _load_model()
+    listing = mod.render_state(model, "gosi.list.desktop", route_prefix=_ROUTE_PREFIX)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 0, (
+        f"gosi list must have 0 linked rows (no list-row record_id matches "
+        f"the captured detail record_id not_ancmt_mgt_no=55667), got {len(links)}"
+    )
+
+
+def test_civil_form_list_linked_row_count_and_record_id():
+    model = _load_model()
+    listing = mod.render_state(model, "civil_form.list.desktop", route_prefix=_ROUTE_PREFIX)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 1, f"civil_form list should have exactly 1 linked row, got {len(links)}"
+    # Verify the linked row's text matches the detail title.
+    assert '자동차 등록 위임장' in listing
+    hrefs = re.findall(r'href="([^"]*)"', listing)
+    assert any('detail/' in h for h in hrefs)
+
+
+def test_synthetic_news_list_linked_row_count():
+    model = _synthetic_model()
+    contract = _validated_synthetic_contract()
+    listing = mod.render_state(model, "news.list.desktop", route_prefix="/x/", visual_contract=contract)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 1, f"synthetic news list should have exactly 1 linked row (list_no=555 matches detail), got {len(links)}"
+    assert 'breaking news item' in listing
+
+
+def test_synthetic_alert_list_linked_row_count():
+    model = _synthetic_model()
+    contract = _validated_synthetic_contract()
+    listing = mod.render_state(model, "alert.list.desktop", route_prefix="/x/", visual_contract=contract)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 1, f"synthetic alert list should have exactly 1 linked row (list_no=777 matches detail), got {len(links)}"
+    assert 'alert one' in listing
+
+
+def test_synthetic_permit_list_no_detail_record_id_no_linked_rows():
+    model = _synthetic_model()
+    contract = _validated_synthetic_contract()
+    listing = mod.render_state(model, "permit.list.desktop", route_prefix="/x/", visual_contract=contract)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 0, (
+        f"synthetic permit list must have 0 linked rows "
+        f"(no general_links in list state), got {len(links)}"
+    )
+
+
+def test_board_list_rows_without_detail_record_id_are_inert():
+    model = _load_model()
+    for sid in ("notice.list.desktop", "gosi.list.desktop", "civil_form.list.desktop"):
+        h = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        # Non-linked rows must be inert spans, not navigable anchors.
+        inert_spans = re.findall(
+            r'<span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">([^<]*)</span>',
+            h,
+        )
+        total_links = h.count('data-detail="1"')
+        total_rows = h.count('<tr class="rc-board-row">')
+        assert total_links + len(inert_spans) == total_rows, (
+            f"{sid}: linked rows ({total_links}) + inert spans ({len(inert_spans)}) "
+            f"must equal total rows ({total_rows})"
+        )
+
+
+def test_board_list_no_detail_state_fails_closed_zero_links():
+    model = _load_model()
+    # Remove the detail state for civil_form.
+    model["states"] = [
+        s for s in model["states"]
+        if s.get("state_id") != "civil_form.detail.desktop"
+    ]
+    h = mod.render_state(model, "civil_form.list.desktop", route_prefix=_ROUTE_PREFIX)
+    links = re.findall(r'data-detail="1"', h)
+    assert len(links) == 0, "no detail state -> zero linked rows (fail-closed)"
+
+
+def test_board_list_mismatched_detail_record_id_fails_closed_zero_links():
+    model = _load_model()
+    # Corrupt the detail final_url so its record_id cannot match any list row.
+    for s in model["states"]:
+        if s.get("state_id") == "notice.detail.desktop":
+            s["final_url"] = "https://example.invalid/view?list_no=99999999"
+            break
+    h = mod.render_state(model, "notice.list.desktop", route_prefix=_ROUTE_PREFIX)
+    links = re.findall(r'data-detail="1"', h)
+    assert len(links) == 0, "non-matching detail record_id -> zero linked rows (fail-closed)"
 
 
 def test_organization_and_staff_distinct():
