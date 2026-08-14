@@ -3,7 +3,7 @@
   "contract_kind": "visual_input",
   "site_id": "seogu_gwangju",
   "capture_id": "20260812T231018-0900",
-  "model_checksum": "da795bb30d76392de48f28b9b6fd7ba35d3e332018f32467cac6633c75750870",
+  "model_checksum": "53d18c4134700e23658fc37b56c60dc27eb0399515a5b988e2178309988a6850",
   "note": "Provenance-backed measurements from the immutable committed G1 capture evidence. Every non-null value is traced 1:1 to a captured state, the committed screenshot SHA it was measured from, the measurement method, the unit, and the evidence type. Values that cannot be safely measured remain null and are listed in gaps. typography.font_family uses asset_provenance evidence (fetched font assets), not screenshot pixels. border.width is the measured pixel thickness of the footer separator line. Renderer-only non-fidelity presentation defaults (font-size, font-weight, border-style, focus outline, underline, radius, breakpoint) are NOT counted as official-site fidelity evidence. #1310 re-binds header/GNB/footer/home-section geometry to semantic source regions instead of the former dark-band heuristic.",
   "layout": {
     "header": {
@@ -52,12 +52,52 @@
     },
     "board": {
       "snb_width_px": 250,
+      "snb_title_height_px": 127,
+      "snb_item_height_px": 58,
+      "snb": {
+        "subitem_height_px": 29,
+        "provenance_state_id": "civil_form.list.desktop"
+      },
       "content_container_width_px": 1150,
+      "content_padding_left_px": 60,
+      "content_padding_top_px": 37,
+      "subpage_top_offset_px": 41,
       "table_header_height_px": 56,
       "row_height_px": 60,
+      "toolbar_padding_top_px": 36,
+      "toolbar_row_height_px": 39,
+      "toolbar_padding_bottom_px": 21,
+      "pager_padding_top_px": 41,
+      "pager_padding_bottom_px": 101,
+      "license_padding_top_px": 39,
+      "license_padding_bottom_px": 37,
+      "license_margin_bottom_px": 51,
+      "duty": {
+        "padding_top_px": 17,
+        "padding_bottom_px": 18,
+        "provenance_state_id": "civil_form.list.desktop"
+      },
       "provenance_state_id": "notice.list.desktop",
       "detail": {
         "meta_band_height_px": 120,
+        "shell_padding_top_px": 28,
+        "shell_padding_bottom_px": 22,
+        "body": {
+          "break_spacing_px": 29,
+          "provenance_state_id": "gosi.detail.desktop"
+        },
+        "back_box": {
+          "padding_top_px": 27,
+          "padding_bottom_px": 27,
+          "button_height_px": 36,
+          "button_width_px": 143,
+          "provenance_state_id": "gosi.detail.desktop"
+        },
+        "attachment": {
+          "padding_top_px": 30,
+          "padding_bottom_px": 32,
+          "provenance_state_id": "gosi.detail.desktop"
+        },
         "provenance_state_id": "notice.detail.desktop"
       }
     },
@@ -86,7 +126,14 @@
     "footer_border": "#dcdcdc",
     "board": {
       "table_header_border": "#555555",
+      "table_header_rule": "#aaaaaa",
       "row_separator": "#dddddd",
+      "snb_title_bg": "#02346b",
+      "snb_active_bg": "#3f65b6",
+      "snb_separator": "#e5e5e5",
+      "pager_button_border": "#e1e1e1",
+      "pager_active_bg": "#efbf67",
+      "search_button_bg": "#000000",
       "provenance_state_id": "notice.list.desktop"
     },
     "provenance_state_id": "home.desktop.default"
@@ -758,7 +805,7 @@
       "source_state_id": "notice.list.desktop",
       "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
       "method": "pixel_analysis_board_semantic_region",
-      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
     },
     {
       "field": "layout.board.content_container_width_px",
@@ -768,7 +815,67 @@
       "source_state_id": "notice.list.desktop",
       "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
       "method": "pixel_analysis_board_semantic_region",
-      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.subpage_top_offset_px",
+      "value": 41,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.content_padding_top_px",
+      "value": 37,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.snb_title_height_px",
+      "value": 127,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.snb_item_height_px",
+      "value": 58,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.snb.subitem_height_px",
+      "value": 29,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "civil_form.list.desktop",
+      "artifact_sha256": "ac6d1f985f2e1533d4d247290d1eefa626959f7e8dfb10221bfdd81656cd1296",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.content_padding_left_px",
+      "value": 60,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
     },
     {
       "field": "layout.board.table_header_height_px",
@@ -778,7 +885,7 @@
       "source_state_id": "notice.list.desktop",
       "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
       "method": "pixel_analysis_board_semantic_region",
-      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
     },
     {
       "field": "layout.board.row_height_px",
@@ -788,7 +895,7 @@
       "source_state_id": "notice.list.desktop",
       "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
       "method": "pixel_analysis_board_semantic_region",
-      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
     },
     {
       "field": "colors.board.table_header_border",
@@ -798,7 +905,17 @@
       "source_state_id": "notice.list.desktop",
       "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
       "method": "pixel_analysis_board_semantic_region",
-      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "colors.board.table_header_rule",
+      "value": "#aaaaaa",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
     },
     {
       "field": "colors.board.row_separator",
@@ -808,7 +925,167 @@
       "source_state_id": "notice.list.desktop",
       "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
       "method": "pixel_analysis_board_semantic_region",
-      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "colors.board.snb_title_bg",
+      "value": "#02346b",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "colors.board.snb_active_bg",
+      "value": "#3f65b6",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "colors.board.snb_separator",
+      "value": "#e5e5e5",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.toolbar_padding_top_px",
+      "value": 36,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.toolbar_row_height_px",
+      "value": 39,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.toolbar_padding_bottom_px",
+      "value": 21,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.pager_padding_top_px",
+      "value": 41,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.pager_padding_bottom_px",
+      "value": 101,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.license_padding_top_px",
+      "value": 39,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.license_padding_bottom_px",
+      "value": 37,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.license_margin_bottom_px",
+      "value": 51,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.duty.padding_top_px",
+      "value": 17,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "civil_form.list.desktop",
+      "artifact_sha256": "ac6d1f985f2e1533d4d247290d1eefa626959f7e8dfb10221bfdd81656cd1296",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.duty.padding_bottom_px",
+      "value": 18,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "civil_form.list.desktop",
+      "artifact_sha256": "ac6d1f985f2e1533d4d247290d1eefa626959f7e8dfb10221bfdd81656cd1296",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "colors.board.pager_button_border",
+      "value": "#e1e1e1",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "colors.board.pager_active_bg",
+      "value": "#efbf67",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "colors.board.search_button_bg",
+      "value": "#000000",
+      "unit": "hex",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.list.desktop",
+      "artifact_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
     },
     {
       "field": "layout.board.detail.meta_band_height_px",
@@ -818,7 +1095,97 @@
       "source_state_id": "notice.detail.desktop",
       "artifact_sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e",
       "method": "pixel_analysis_board_semantic_region",
-      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar, content column, list table header/row bands, and the detail meta band."
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.detail.shell_padding_top_px",
+      "value": 28,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.detail.desktop",
+      "artifact_sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.detail.shell_padding_bottom_px",
+      "value": 22,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "notice.detail.desktop",
+      "artifact_sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.detail.body.break_spacing_px",
+      "value": 29,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "gosi.detail.desktop",
+      "artifact_sha256": "1680ea74bb151a2ab2e0f232dce3af8ba462de48a8133d66da7c8281597c0f18",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.detail.back_box.padding_top_px",
+      "value": 27,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "gosi.detail.desktop",
+      "artifact_sha256": "1680ea74bb151a2ab2e0f232dce3af8ba462de48a8133d66da7c8281597c0f18",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.detail.back_box.padding_bottom_px",
+      "value": 27,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "gosi.detail.desktop",
+      "artifact_sha256": "1680ea74bb151a2ab2e0f232dce3af8ba462de48a8133d66da7c8281597c0f18",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.detail.back_box.button_height_px",
+      "value": 36,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "gosi.detail.desktop",
+      "artifact_sha256": "1680ea74bb151a2ab2e0f232dce3af8ba462de48a8133d66da7c8281597c0f18",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.detail.back_box.button_width_px",
+      "value": 143,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "gosi.detail.desktop",
+      "artifact_sha256": "1680ea74bb151a2ab2e0f232dce3af8ba462de48a8133d66da7c8281597c0f18",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.detail.attachment.padding_top_px",
+      "value": 30,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "gosi.detail.desktop",
+      "artifact_sha256": "1680ea74bb151a2ab2e0f232dce3af8ba462de48a8133d66da7c8281597c0f18",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
+    },
+    {
+      "field": "layout.board.detail.attachment.padding_bottom_px",
+      "value": 32,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "gosi.detail.desktop",
+      "artifact_sha256": "1680ea74bb151a2ab2e0f232dce3af8ba462de48a8133d66da7c8281597c0f18",
+      "method": "pixel_analysis_board_semantic_region",
+      "note": "#1312 board geometry measured from the committed G1 screenshot: dark-blue SNB sidebar (title bar/active band/item separators), content column, list table header/row bands, and the detail meta band."
     },
     {
       "field": "layout.gnb_open.panel_height_px",

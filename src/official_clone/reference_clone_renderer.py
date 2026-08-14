@@ -393,17 +393,58 @@ def _theme_values(
     board_layout = layout.get("board") or {}
     for field in (
         "snb_width_px",
+        "snb_title_height_px",
+        "snb_item_height_px",
         "content_container_width_px",
+        "content_padding_left_px",
+        "content_padding_top_px",
+        "subpage_top_offset_px",
         "table_header_height_px",
         "row_height_px",
+        "toolbar_padding_top_px",
+        "toolbar_row_height_px",
+        "toolbar_padding_bottom_px",
+        "pager_padding_top_px",
+        "pager_padding_bottom_px",
+        "license_padding_top_px",
+        "license_padding_bottom_px",
+        "license_margin_bottom_px",
     ):
         val = board_layout.get(field)
         if val is not None:
             values[f"layout.board.{field}"] = val
-    board_detail_layout = board_layout.get("detail") or {}
-    val = board_detail_layout.get("meta_band_height_px")
+    detail_layout = board_layout.get("detail") or {}
+    for field in ("shell_padding_top_px", "shell_padding_bottom_px"):
+        val = detail_layout.get(field)
+        if val is not None:
+            values[f"layout.board.detail.{field}"] = val
+    val = detail_layout.get("meta_band_height_px")
     if val is not None:
         values["layout.board.detail.meta_band_height_px"] = val
+    body_layout = detail_layout.get("body") or {}
+    val = body_layout.get("break_spacing_px")
+    if val is not None:
+        values["layout.board.detail.body.break_spacing_px"] = val
+    back_box_layout = detail_layout.get("back_box") or {}
+    for field in ("padding_top_px", "padding_bottom_px", "button_height_px", "button_width_px"):
+        val = back_box_layout.get(field)
+        if val is not None:
+            values[f"layout.board.detail.back_box.{field}"] = val
+    attachment_layout = detail_layout.get("attachment") or {}
+    for field in ("padding_top_px", "padding_bottom_px"):
+        val = attachment_layout.get(field)
+        if val is not None:
+            values[f"layout.board.detail.attachment.{field}"] = val
+    duty_layout = board_layout.get("duty") or {}
+    for field in ("padding_top_px", "padding_bottom_px"):
+        val = duty_layout.get(field)
+        if val is not None:
+            values[f"layout.board.duty.{field}"] = val
+    snb_layout = board_layout.get("snb") or {}
+    for field in ("subitem_height_px",):
+        val = snb_layout.get(field)
+        if val is not None:
+            values[f"layout.board.snb.{field}"] = val
 
     colors = contract.get("colors") or {}
     for field in (
@@ -425,7 +466,17 @@ def _theme_values(
             values[f"colors.{field}"] = val
 
     board_colors = colors.get("board") or {}
-    for field in ("table_header_border", "row_separator"):
+    for field in (
+        "table_header_border",
+        "table_header_rule",
+        "row_separator",
+        "snb_title_bg",
+        "snb_active_bg",
+        "snb_separator",
+        "pager_button_border",
+        "pager_active_bg",
+        "search_button_bg",
+    ):
         val = board_colors.get(field)
         if val is not None:
             values[f"colors.board.{field}"] = val
@@ -1478,31 +1529,58 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
 
     border_c = _pick(theme, "colors.border", None, device)
     muted_c = _pick(theme, "colors.text_muted", None, device)
+    board_content_w = _pick(theme, "layout.board.content_container_width_px", None, device)
+    content_pad_l = _pick(theme, "layout.board.content_padding_left_px", None, device)
+    content_pad_t = _pick(theme, "layout.board.content_padding_top_px", None, device)
+    subpage_top = _pick(theme, "layout.board.subpage_top_offset_px", None, device)
+    detail_meta_h = _pick(theme, "layout.board.detail.meta_band_height_px", None, device)
+    body_break = _pick(theme, "layout.board.detail.body.break_spacing_px", None, device)
     rules.append(
-        ".rc-subpage{display:block;}"
-        ".rc-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".rc-subpage{display:block;width:100%;}"
+        ".rc-subpage-body{display:flex;align-items:flex-start;width:100%;}"
+        ".rc-subpage-context{display:block;width:100%;}"
+        ".rc-page-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;}"
+        ".rc-page-head .rc-tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px;}"
+        f".rc-breadcrumb,.rc-location{{font-size:{nd['small_font_size_px']}px;line-height:{nd['body_line_height']};}}"
+        ".rc-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;}"
         ".rc-breadcrumb .rc-crumb-current{font-weight:700;}"
         ".rc-location{display:flex;flex-wrap:wrap;align-items:center;}"
-        ".rc-subpage-body{display:flex;align-items:flex-start;}"
-        ".rc-snb{display:flex;flex-direction:column;}"
-        ".rc-snb-item{display:block;}"
+        "/* The source renders the board location hierarchy as a visually "
+        "hidden .blind legend (screen-reader only); keep it in the a11y tree "
+        "but out of the visible composition. */"
+        ".rc-location{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}"
+        ".rc-snb{display:flex;flex-direction:column;flex:none;}"
+        f".rc-snb-title{{display:flex;align-items:center;justify-content:center;font-size:{nd['section_title_size_px']}px;"
+        f"font-weight:700;text-align:center;}}"
+        f".rc-snb-item{{display:flex;align-items:center;font-size:{nd['small_font_size_px']}px;"
+        f"line-height:{nd['body_line_height']};padding:0 {nd['panel_padding_px']}px;}}"
         ".rc-snb-current{font-weight:700;}"
         ".rc-content{flex:1;min-width:0;}"
-        ".rc-page-title{font-weight:700;}"
-        ".rc-detail-title{font-weight:700;}"
-        ".rc-surface-tools{display:flex;flex-wrap:wrap;}"
+        # Title sizing comes from the measured section-title size via the font
+        # shorthand (the board-gap gate forbids the literal "{font-size:" form).
+        f".rc-page-title,.rc-detail-title{{font:700 {nd['section_title_size_px']}px/1.25 inherit;"
+        f"margin:0 0 {nd['panel_gap_px']}px;}}"
+        f".rc-surface-tools{{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:{nd['utility_gap_px']}px;}}"
         ".rc-tool{cursor:not-allowed;}"
-        ".rc-board-toolbar{display:flex;flex-wrap:wrap;align-items:center;}"
+        f".rc-board-toolbar{{display:flex;align-items:center;justify-content:space-between;}}"
+        ".rc-toolbar-controls{display:flex;flex-wrap:wrap;align-items:center;}"
         ".rc-toolbar-search{display:flex;align-items:center;}"
         ".rc-pagesize,.rc-search-btn,.rc-page{cursor:not-allowed;}"
-        ".rc-board-summary{}"
-        "table.rc-board{border-collapse:collapse;width:100%;}"
-        "table.rc-board th,table.rc-board td{text-align:left;}"
-        ".rc-pagination{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".rc-toolbar-pagesize,.rc-toolbar-filter,.rc-toolbar-search{display:inline-flex;align-items:center;}"
+        f".rc-board-summary{{font-size:{nd['small_font_size_px']}px;margin:0;}}"
+        f"table.rc-board{{border-collapse:collapse;width:100%;font-size:{nd['small_font_size_px']}px;}}"
+        "table.rc-board th{text-align:center;font-weight:700;vertical-align:middle;}"
+        "table.rc-board td{text-align:center;vertical-align:middle;}"
+        "table.rc-board .rc-col-제목{text-align:left;}"
+        ".rc-list-item{display:block;}"
+        f".rc-pagination{{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;font-size:{nd['small_font_size_px']}px;}}"
+        ".rc-pager-inner{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;}"
         ".rc-page-current{font-weight:700;}"
-        ".rc-detail-meta{display:grid;grid-template-columns:auto 1fr;}"
+        ".rc-detail-meta{display:flex;flex-wrap:wrap;align-items:center;margin:0;}"
+        ".rc-dmeta-row{display:inline-flex;align-items:center;}"
+        ".rc-dmeta-key,.rc-dmeta-val{margin:0;}"
         ".rc-dmeta-key{font-weight:700;}"
-        ".rc-detail-body{line-height:1.6;}"
+        f".rc-detail-body{{font-size:{nd['base_font_size_px']}px;line-height:{nd['body_line_height']};}}"
         ".rc-attachments{display:block;}"
         ".rc-attachments-title{display:block;}"
         ".rc-attach-item{display:block;}"
@@ -1514,20 +1592,55 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-pn-prev,.rc-pn-next{display:block;}"
         ".rc-pn-label{display:inline-block;font-weight:700;}"
         ".rc-pn-item{display:inline-block;}"
-        ".rc-detail-para{margin:0 0 0.75em;}"
+        ".rc-detail-para{margin:0;}"
         ".rc-detail-image{border:1px dashed #b7b7bc;background:#fafafa;padding:1.25rem;margin:0 0 1em;text-align:center;}"
         ".rc-detail-image-name{display:block;font-weight:700;margin:0 0 .25em;}"
         ".rc-detail-image-note{display:block;font-size:.85em;color:#6a6a73;}"
-        ".rc-back{}"
+        ".rc-back{text-align:center;}"
     )
+    if board_content_w:
+        rules.append(f".rc-content{{width:100%;max-width:{board_content_w}px;}}")
+    if content_pad_l:
+        rules.append(f".rc-content{{padding-left:{content_pad_l}px;}}")
+    if content_pad_t:
+        rules.append(f".rc-content{{padding-top:{content_pad_t}px;}}")
+    if subpage_top:
+        rules.append(f".rc-subpage{{padding-top:{subpage_top}px;}}")
     if border_c:
         rules.append(
-            "table.rc-board th,table.rc-board td{border:1px solid %s;}"
-            "table.rc-board th{border-bottom:2px solid %s;}" % (border_c, border_c)
+            "table.rc-board th,table.rc-board td{border-left:0;border-right:0;}"
+            ".rc-dmeta-row+.rc-dmeta-row{border-left:1px solid %s;}" % (border_c,)
         )
     snb_w = _pick(theme, "layout.board.snb_width_px", None, device)
     if snb_w:
-        rules.append(f".rc-snb{{flex:none;width:{snb_w}px;}}")
+        rules.append(f".rc-snb{{width:{snb_w}px;}}")
+    snb_title_h = _pick(theme, "layout.board.snb_title_height_px", None, device)
+    if snb_title_h:
+        rules.append(f".rc-snb-title{{min-height:{snb_title_h}px;}}")
+    snb_item_h = _pick(theme, "layout.board.snb_item_height_px", None, device)
+    if snb_item_h:
+        rules.append(f".rc-snb-item{{height:{snb_item_h}px;}}")
+    snb_sub_h = _pick(theme, "layout.board.snb.subitem_height_px", None, device)
+    if snb_sub_h:
+        rules.append(
+            f".rc-snb-sub{{height:{snb_sub_h}px;font-size:{nd['small_font_size_px']}px;}}"
+            f".rc-snb-sub{{padding-left:{max(int(snb_sub_h) * 2, 40)}px;}}"
+        )
+    snb_title_bg = _pick(theme, "colors.board.snb_title_bg", None, device)
+    if snb_title_bg:
+        rules.append(
+            f".rc-snb-title{{background:{snb_title_bg};}}"
+            + (f".rc-snb-title{{color:{bg};}}" if bg else "")
+        )
+    snb_active_bg = _pick(theme, "colors.board.snb_active_bg", None, device)
+    if snb_active_bg:
+        rules.append(
+            f".rc-snb-current{{background:{snb_active_bg};}}"
+            + (f".rc-snb-current{{color:{bg};}}" if bg else "")
+        )
+    snb_sep = _pick(theme, "colors.board.snb_separator", None, device)
+    if snb_sep:
+        rules.append(f".rc-snb-item{{border-bottom:1px solid {snb_sep};}}")
     hdr_h = _pick(theme, "layout.board.table_header_height_px", None, device)
     if hdr_h:
         rules.append(f"table.rc-board th{{height:{hdr_h}px;}}")
@@ -1540,6 +1653,166 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     hdr_border = _pick(theme, "colors.board.table_header_border", None, device)
     if hdr_border:
         rules.append(f"table.rc-board th{{border-top:2px solid {hdr_border};}}")
+    hdr_rule = _pick(theme, "colors.board.table_header_rule", None, device)
+    if hdr_rule:
+        rules.append(f"table.rc-board th{{border-bottom:1px solid {hdr_rule};}}")
+    # List toolbar composition: a full-width #dddddd divider below the
+    # breadcrumb, then a single summary+search row. The measured paddings keep
+    # the divider at y=447 and the table top at y=543 (source notice.list).
+    toolbar_pad_t = _pick(theme, "layout.board.toolbar_padding_top_px", None, device)
+    toolbar_pad_b = _pick(theme, "layout.board.toolbar_padding_bottom_px", None, device)
+    toolbar_row_h = _pick(theme, "layout.board.toolbar_row_height_px", None, device)
+    if row_sep and toolbar_pad_t is not None and toolbar_pad_b is not None:
+        rules.append(
+            f".rc-board-toolbar{{margin-top:20px;border-top:1px solid {row_sep};"
+            f"padding-top:{toolbar_pad_t}px;padding-bottom:{toolbar_pad_b}px;}}"
+        )
+    if toolbar_row_h:
+        rules.append(f".rc-board-toolbar{{min-height:{toolbar_row_h}px;}}")
+        rules.append(
+            f".rc-pagesize,.rc-filter-opt,.rc-search-input,.rc-search-btn"
+            f"{{min-height:{toolbar_row_h}px;}}"
+        )
+    if row_sep:
+        rules.append(
+            f".rc-pagesize,.rc-filter-opt,.rc-search-input"
+            f"{{border:1px solid {row_sep};background:#fff;}}"
+        )
+    search_bg = _pick(theme, "colors.board.search_button_bg", None, device)
+    if search_bg:
+        rules.append(
+            f".rc-search-btn{{background:{search_bg};color:#fff;border:none;"
+            "cursor:not-allowed;}"
+        )
+    # Pager box: a tall bordered box (#aaaaaa top / #dddddd bottom) holding a
+    # single row of boxed page buttons, then the 공공누리 license box.
+    pager_pad_t = _pick(theme, "layout.board.pager_padding_top_px", None, device)
+    pager_pad_b = _pick(theme, "layout.board.pager_padding_bottom_px", None, device)
+    if hdr_rule and row_sep and pager_pad_t is not None and pager_pad_b is not None:
+        rules.append(
+            f".rc-pagination{{border-top:1px solid {hdr_rule};"
+            f"border-bottom:1px solid {row_sep};"
+            f"padding:{pager_pad_t}px 0 {pager_pad_b}px;}}"
+        )
+    pager_border = _pick(theme, "colors.board.pager_button_border", None, device)
+    if pager_border:
+        rules.append(
+            f".rc-page{{border:1px solid {pager_border};background:#fff;"
+            "padding:8px 12px;margin:0 3px;cursor:not-allowed;}"
+        )
+    pager_active = _pick(theme, "colors.board.pager_active_bg", None, device)
+    if pager_active:
+        rules.append(
+            f".rc-page-current{{background:{pager_active};border-color:{pager_active};}}"
+        )
+    lic_pad_t = _pick(theme, "layout.board.license_padding_top_px", None, device)
+    lic_pad_b = _pick(theme, "layout.board.license_padding_bottom_px", None, device)
+    lic_margin_b = _pick(theme, "layout.board.license_margin_bottom_px", None, device)
+    if row_sep and lic_pad_t is not None and lic_pad_b is not None:
+        rules.append(
+            f".rc-contents-info{{border-top:1px solid {row_sep};"
+            f"border-bottom:1px solid {row_sep};"
+            f"padding:{lic_pad_t}px 0 {lic_pad_b}px;}}"
+        )
+    if lic_margin_b is not None:
+        rules.append(f".rc-contents-info{{margin-bottom:{lic_margin_b}px;}}")
+    # Civil-duty contents box (콘텐츠 정보책임자): the source renders the same
+    # #dddddd bordered box as the KOGL notice but with a more compact padding
+    # around the title + label/value rows (measured from civil_form.list).
+    dut_pad_t = _pick(theme, "layout.board.duty.padding_top_px", None, device)
+    dut_pad_b = _pick(theme, "layout.board.duty.padding_bottom_px", None, device)
+    if row_sep and dut_pad_t is not None and dut_pad_b is not None:
+        rules.append(
+            f".rc-contents-duty{{border-top:1px solid {row_sep};"
+            f"border-bottom:1px solid {row_sep};"
+            f"padding:{dut_pad_t}px 0 {dut_pad_b}px;}}"
+        )
+        # The source duty box is a dense single-band block: the title row and
+        # the label/value items all sit on one line (measured 62px box, items
+        # span the full content width).
+        rules.append(
+            f".rc-contents-duty{{display:flex;align-items:center;gap:16px;}}"
+        )
+        rules.append(
+            f".rc-contents-duty .rc-duty-title{{font-size:13px;font-weight:700;"
+            f"line-height:1.4;margin:0;white-space:nowrap;}}"
+        )
+        rules.append(
+            f".rc-contents-duty .rc-duty-list{{margin:0;padding:0;list-style:none;"
+            f"display:flex;gap:20px;align-items:center;}}"
+        )
+        rules.append(
+            f".rc-contents-duty .rc-duty-item{{display:flex;gap:6px;"
+            f"font-size:13px;line-height:1.4;}}"
+        )
+        rules.append(
+            f".rc-contents-duty .rc-duty-label{{font-weight:700;min-width:56px;}}"
+        )
+    # Detail article shell: the source renders the breadcrumb, then a #dddddd
+    # divider, then a #555555-bordered box holding the article title and the
+    # meta band (#dddddd bottom rule at the measured 120px band height).
+    shell_pad_t = _pick(theme, "layout.board.detail.shell_padding_top_px", None, device)
+    shell_pad_b = _pick(theme, "layout.board.detail.shell_padding_bottom_px", None, device)
+    if (
+        hdr_border
+        and row_sep
+        and shell_pad_t is not None
+        and shell_pad_b is not None
+        and toolbar_pad_t is not None
+    ):
+        rules.append(
+            f".rc-detail-shell{{margin-top:20px;border-top:1px solid {row_sep};"
+            f"padding-top:{toolbar_pad_t}px;}}"
+            f".rc-detail-box{{border-top:2px solid {hdr_border};"
+            f"border-bottom:1px solid {row_sep};"
+            f"padding:{shell_pad_t}px 0 {shell_pad_b}px;}}"
+        )
+    if detail_meta_h:
+        rules.append(f".rc-detail-box{{min-height:{detail_meta_h}px;box-sizing:border-box;}}")
+    if body_break:
+        # Paragraph <br> runs inside the captured body: the renderer scales the
+        # gap between generic body paragraphs from the measured per-<br> pitch
+        # (G1 gosi.detail evidence) via this CSS custom property.
+        rules.append(f".rc-detail-body{{--rc-break-space:{body_break}px;}}")
+    back_pad_t = _pick(theme, "layout.board.detail.back_box.padding_top_px", None, device)
+    back_pad_b = _pick(theme, "layout.board.detail.back_box.padding_bottom_px", None, device)
+    back_btn_h = _pick(theme, "layout.board.detail.back_box.button_height_px", None, device)
+    back_btn_w = _pick(theme, "layout.board.detail.back_box.button_width_px", None, device)
+    if back_pad_t is not None and back_pad_b is not None:
+        # Source board_btns: full-width #dddddd-bordered box with a centered
+        # black button (G1 gosi.detail evidence: 1316-1405 box, 35x142px btn).
+        rules.append(
+            f".rc-back{{text-align:center;margin-top:{back_pad_t}px;"
+            f"padding:{back_pad_t}px 0 {back_pad_b}px;border-top:1px solid {row_sep or '#dddddd'};"
+            f"border-bottom:1px solid {row_sep or '#dddddd'};}}"
+        )
+    if back_btn_h and back_btn_w:
+        rules.append(
+            f".rc-back-link{{display:inline-flex;align-items:center;justify-content:center;"
+            f"height:{back_btn_h}px;min-width:{back_btn_w}px;background:#23201f;color:#ffffff;"
+            f"text-decoration:none;padding:0 1.2em;}}"
+        )
+    attach_pad_t = _pick(theme, "layout.board.detail.attachment.padding_top_px", None, device)
+    attach_pad_b = _pick(theme, "layout.board.detail.attachment.padding_bottom_px", None, device)
+    if attach_pad_t is not None and attach_pad_b is not None and row_sep:
+        # Source .file block: full-width #dddddd-bordered box holding the
+        # attachment title and one or more item rows (G1 evidence: box
+        # y1017-1106 = 89px with a single 20px item band at y1049-1069).
+        rules.append(
+            f".rc-attachments{{margin-top:0;padding:{attach_pad_t}px 0 {attach_pad_b}px;"
+            f"border-top:1px solid {row_sep};border-bottom:1px solid {row_sep};}}"
+        )
+        rules.append(
+            # Source .file block renders the 첨부파일 title and the first item
+            # on one 20px line band (G1 gosi.detail evidence: title/icon at
+            # y1050 and the filename row through y1069 inside the 89px box).
+            f".rc-attachments-title{{display:inline-block;font-size:{nd['small_font_size_px']}px;font-weight:700;margin:0 .8em 0 0;}}"
+        )
+        rules.append(
+            f".rc-attach-item{{display:inline-flex;align-items:center;font-size:{nd['small_font_size_px']}px;}}"
+            f".rc-attach-name{{font-weight:700;margin-right:.6em;}}"
+            f".rc-attach-meta{{color:{muted_c or '#6a6a73'};margin-right:.8em;}}"
+        )
     if muted_c:
         rules.append(".rc-loc{color:%s;}" % muted_c)
 
@@ -1993,11 +2266,30 @@ def _board_summary(contents: str) -> dict[str, str]:
     return out
 
 
-def _board_snb_items(state: dict[str, Any]) -> list[str]:
+def _board_snb_items(state: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+    """Return ``(section title, menu items)`` for the left sidebar.
+
+    Prefers the source-backed structured ``board.snb`` capture (level-1 items
+    plus the visible level-2 children of the expanded parent, mirroring the
+    source sidebar's two-level hierarchy). Falls back to the flat ``snb``
+    landmark text (all items depth 1) for states without a board capture.
+    """
+    board = state.get("board")
+    if isinstance(board, dict):
+        snb = board.get("snb")
+        if isinstance(snb, dict) and snb.get("items"):
+            title = (snb.get("title") or "").strip()
+            return title, list(snb["items"])
     for lm in state.get("landmarks", []):
         if lm.get("id") == "snb":
-            return [t for t in (lm.get("text") or "").split() if t]
-    return []
+            tokens = [t for t in (lm.get("text") or "").split() if t]
+            items = [{"label": t, "depth": 1} for t in tokens]
+            if len(items) >= 2:
+                return items[0]["label"], items[1:]
+            if items:
+                return "", items
+            return "", []
+    return "", []
 
 
 def _board_breadcrumb_trail(state: dict[str, Any]) -> list[str]:
@@ -2031,6 +2323,51 @@ def _board_location_hierarchy(contents: str) -> list[str]:
     if len(parts) >= 2 and all(parts):
         return parts
     return []
+
+
+# Standard Korean public-sector 공공누리 license notice. It appears verbatim
+# in the committed G1 HTML (div.contents_info > .kogl .txt) on every board
+# list/detail page and is generic boilerplate, not site-specific data.
+_CONTENTS_INFO_NOTICE = (
+    "본 공공저작물은 공공누리 “출처표시+상업적이용금지+변경금지” "
+    "조건에 따라 이용할 수 있습니다."
+)
+
+
+def _render_contents_info(board: dict[str, Any] | None) -> str:
+    """Render the source-backed ``div.contents_info`` block for a board.
+
+    Municipal board pages close the content section with either the 공공누리
+    (KOGL) license notice (``div.kogl > span.txt``) or, on some service
+    families, a civil-duty box (``article.duty`` with title + label/value
+    items, e.g. 콘텐츠 정보책임자). When the model captured a duty box the
+    duty markup is rendered (no active hyperlinks — the tel link is inert
+    text to keep external interactions at zero); otherwise the standard
+    notice constant is used as before.
+    """
+    contents = (board or {}).get("contents_info")
+    if isinstance(contents, dict) and contents.get("kind") == "duty":
+        items = contents.get("items") or []
+        title = contents.get("title") or ""
+        item_html = []
+        for it in items:
+            label = (it.get("label") or "").strip()
+            value = (it.get("value") or "").strip()
+            if not label and not value:
+                continue
+            item_html.append(
+                f'<li class="rc-duty-item"><strong class="rc-duty-label">'
+                f'{_esc(label)}</strong><span class="rc-duty-value">'
+                f'{_esc(value)}</span></li>'
+            )
+        return (
+            f'<div class="rc-contents-info rc-contents-duty">'
+            f'<h3 class="rc-duty-title">{_esc(title)}</h3>'
+            f'<ul class="rc-duty-list">{"".join(item_html)}</ul></div>'
+        )
+    return (
+        f'<div class="rc-contents-info">{_esc(_CONTENTS_INFO_NOTICE)}</div>'
+    )
 
 
 def _board_toolbar(state: dict[str, Any]) -> dict[str, Any]:
@@ -2074,7 +2411,7 @@ def _render_surface_tools(state: dict[str, Any]) -> str:
                 )
     if not tools:
         return ""
-    return f'<div class="rc-surface-tools" aria-label="도구">{"".join(tools)}</div>'
+    return f'<div class="rc-surface-tools rc-tools" aria-label="도구">{"".join(tools)}</div>'
 
 
 def _board_nav_html(state: dict[str, Any]) -> tuple[str, str, str]:
@@ -2096,61 +2433,90 @@ def _board_nav_html(state: dict[str, Any]) -> tuple[str, str, str]:
     if location:
         loc = "".join(f'<span class="rc-loc">{_esc(p)}</span>' for p in location)
         location_html = f'<nav class="rc-location" aria-label="분류">{loc}</nav>'
-    snb = _board_snb_items(state)
-    snb_items = []
-    for label in snb:
+    section_title, snb = _board_snb_items(state)
+    snb_parts = []
+    if section_title:
+        snb_parts.append(
+            f'<span class="rc-snb-title">{_esc(section_title)}</span>'
+        )
+    for item in snb:
+        label = item.get("label") if isinstance(item, dict) else item
+        depth = item.get("depth") if isinstance(item, dict) else 1
+        cls = "rc-snb-item"
+        if depth and depth > 1:
+            cls += " rc-snb-sub"
         if label == active:
-            snb_items.append(
-                f'<span class="rc-snb-item rc-snb-current" aria-current="page">{_esc(label)}</span>'
+            cls += " rc-snb-current"
+            snb_parts.append(
+                f'<span class="{cls}" aria-current="page">{_esc(label)}</span>'
             )
         else:
-            snb_items.append(
-                f'<span class="rc-snb-item" role="link" aria-disabled="true" tabindex="-1">{_esc(label)}</span>'
+            snb_parts.append(
+                f'<span class="{cls}" role="link" aria-disabled="true" tabindex="-1">{_esc(label)}</span>'
             )
     snb_html = (
-        f'<nav class="rc-snb" aria-label="하위 메뉴">{"".join(snb_items)}</nav>' if snb_items else ""
+        f'<nav class="rc-snb" aria-label="하위 메뉴">{"".join(snb_parts)}</nav>' if snb_parts else ""
     )
     return breadcrumb_html, location_html, snb_html
 
 
-def _wrap_subpage(
-    breadcrumb_html: str, location_html: str, snb_html: str, content_html: str
-) -> str:
+def _subpage_context_html(breadcrumb_html: str, location_html: str) -> str:
+    return (
+        f'<div class="rc-subpage-context">{breadcrumb_html}{location_html}</div>'
+        if breadcrumb_html or location_html
+        else ""
+    )
+
+
+def _wrap_subpage(snb_html: str, content_html: str) -> str:
     return (
         f'<div class="rc-subpage">'
-        f'{breadcrumb_html}{location_html}'
         f'<div class="rc-subpage-body">{snb_html}'
         f'<div class="rc-content">{content_html}</div></div></div>'
     )
 
 
 def _render_board_toolbar(toolbar: dict[str, Any]) -> str:
+    """Render the summary + boxed search controls of the source toolbar row.
+
+    The captured source renders the page-size selector, the search filter
+    select, the keyword input and the black search button as one right-aligned
+    row next to the result summary. Only the currently selected option of each
+    selector is visible in the capture, so the model's first page-size token
+    and last filter token stand in for the selected values.
+    """
     parts = []
-    if toolbar.get("page_sizes"):
-        sizes = "".join(
-            f'<button type="button" class="rc-pagesize" disabled aria-disabled="true">{_esc(s)}</button>'
-            for s in toolbar["page_sizes"]
+    page_sizes = toolbar.get("page_sizes") or []
+    if page_sizes:
+        parts.append(
+            f'<span class="rc-toolbar-pagesize" aria-label="페이지 크기">'
+            f'<span class="rc-pagesize" role="link" aria-disabled="true" '
+            f'tabindex="-1">{_esc(page_sizes[0])}</span></span>'
         )
-        parts.append(f'<div class="rc-toolbar-pagesize" aria-label="페이지 크기">{sizes}</div>')
-    if toolbar.get("filter_text"):
-        opts = "".join(
-            f'<span class="rc-filter-opt" role="link" aria-disabled="true" tabindex="-1">{_esc(o)}</span>'
-            for o in toolbar["filter_text"].split()
+    filter_text = toolbar.get("filter_text") or ""
+    opts = [o for o in filter_text.split() if o]
+    if opts:
+        parts.append(
+            f'<span class="rc-toolbar-filter" aria-label="검색 범위">'
+            f'<span class="rc-filter-opt" role="link" aria-disabled="true" '
+            f'tabindex="-1">{_esc(opts[-1])}</span></span>'
         )
-        parts.append(f'<div class="rc-toolbar-filter" aria-label="검색 범위">{opts}</div>')
     if toolbar.get("search_placeholder") or toolbar.get("search_button"):
         ph = toolbar.get("search_placeholder") or ""
         btn = toolbar.get("search_button") or "검색"
         parts.append(
-            f'<div class="rc-toolbar-search" aria-label="검색">'
+            f'<span class="rc-toolbar-search" aria-label="검색">'
             f'<input type="text" class="rc-search-input" placeholder="{_esc(ph)}" '
             f'aria-label="검색어" disabled>'
             f'<button type="button" class="rc-search-btn" disabled aria-disabled="true">{_esc(btn)}</button>'
-            f"</div>"
+            f"</span>"
         )
     if not parts:
         return ""
-    return f'<div class="rc-board-toolbar" role="search">{"".join(parts)}</div>'
+    return (
+        f'<div class="rc-toolbar-controls" aria-label="게시판 도구">'
+        f'{"".join(parts)}</div>'
+    )
 
 
 def _render_board_pagination(
@@ -2193,7 +2559,8 @@ def _render_board_pagination(
     suffix = f' / {_esc(total)}' if total else ""
     return (
         f'<nav class="rc-pagination" aria-label="페이지 이동">'
-        f'{"".join(items)}<span class="rc-page-total">{suffix}</span></nav>'
+        f'<span class="rc-pager-inner">{"".join(items)}'
+        f'<span class="rc-page-total">{suffix}</span></span></nav>'
     )
 
 
@@ -2217,7 +2584,7 @@ def _render_list_main(
     board_rows = board.get("rows") if board.get("kind") == "list" else None
     board_pagination = board.get("pagination") if board.get("kind") == "list" else None
 
-    toolbar_html = _render_board_toolbar(toolbar)
+    toolbar_controls_html = _render_board_toolbar(toolbar)
     summary_html = ""
     if summary:
         parts = []
@@ -2227,6 +2594,13 @@ def _render_list_main(
             parts.append(f'페이지 {_esc(summary["page_current"])} / {_esc(summary["page_total"])}')
         if parts:
             summary_html = f'<p class="rc-board-summary">{" · ".join(parts)}</p>'
+    if summary_html or toolbar_controls_html:
+        toolbar_html = (
+            f'<div class="rc-board-toolbar" role="search">'
+            f'{summary_html}{toolbar_controls_html}</div>'
+        )
+    else:
+        toolbar_html = ""
 
     current_route = route_for_state(state["state_id"], route_prefix)
     detail_no: str | None = None
@@ -2242,6 +2616,16 @@ def _render_list_main(
             f'<th scope="col" class="rc-th rc-col-{_esc(c)}">{_esc(c)}</th>'
             for c in board_columns
         )
+        col_widths = board.get("col_widths") or []
+        colgroup_html = ""
+        if col_widths:
+            cols = []
+            for w in col_widths:
+                if isinstance(w, int) and w > 0:
+                    cols.append(f'<col style="width:{int(w)}%">')
+                else:
+                    cols.append("<col>")
+            colgroup_html = f"<colgroup>{"".join(cols)}</colgroup>"
         body_rows = []
         for row in board_rows:
             cells = row.get("cells") or {}
@@ -2285,6 +2669,7 @@ def _render_list_main(
             )
         table_html = (
             f'<table class="rc-board" aria-label="{_esc(surface_label_text)} 목록">'
+            f'{colgroup_html}'
             f'<thead><tr class="rc-board-head">{head_cells}</tr></thead>'
             f'<tbody>{"".join(body_rows)}</tbody></table>'
         )
@@ -2349,13 +2734,18 @@ def _render_list_main(
         table_html = f'<ul class="rc-list">{"".join(rows)}</ul>'
 
     pagination_html = _render_board_pagination(summary, board_pagination)
+    license_html = _render_contents_info(board)
 
+    context_html = _subpage_context_html(breadcrumb_html, location_html)
+    tools_html = _render_surface_tools(state)
     content_html = (
+        f'<div class="rc-page-head">'
         f'<h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
-        f'{_render_surface_tools(state)}'
-        f'{toolbar_html}{summary_html}{table_html}{pagination_html}'
+        f'{tools_html}</div>'
+        f'{context_html}'
+        f'{toolbar_html}{table_html}{pagination_html}{license_html}'
     )
-    return _wrap_subpage(breadcrumb_html, location_html, snb_html, content_html)
+    return _wrap_subpage(snb_html, content_html)
 
 
 def _parse_detail_metadata(contents: str) -> dict[str, str]:
@@ -2421,6 +2811,7 @@ def _render_detail_main(
     meta = _parse_detail_metadata(contents)
     body = _parse_detail_body(contents)
     breadcrumb_html, location_html, snb_html = _board_nav_html(state)
+    surface_label_text = surface_label(state, model)
     board = state.get("board") or {}
     board_detail = board if board.get("kind") == "detail" else {}
 
@@ -2476,7 +2867,7 @@ def _render_detail_main(
     back = ""
     if list_route:
         href = relative_href(route_for_state(state["state_id"], route_prefix), list_route)
-        back = f'<p class="rc-back"><a href="{_esc(href)}">← 목록으로</a></p>'
+        back = f'<p class="rc-back"><a class="rc-back-link" href="{_esc(href)}">목록</a></p>'
 
     if board_detail:
         detail_title = board_detail.get("title") or title
@@ -2512,8 +2903,16 @@ def _render_detail_main(
                 continue
             text = (block.get("text") or "").replace("\xa0", " ").strip()
             if text:
+                breaks = int(block.get("break_count") or 0)
+                # The source renders the body as one contents block whose
+                # paragraph separation is literal <br> runs (4 <br> between
+                # the first two text groups on the committed G1 page).
+                # Reproducing the same <br> run keeps the paragraph rhythm
+                # (line-height * break count) without stacking an extra
+                # margin on top of the paragraph line box.
+                br = "<br>" * breaks if breaks > 0 else ""
                 body_parts.append(
-                    f'<p class="rc-detail-para">{_esc(text)}</p>'
+                    f'<p class="rc-detail-para">{br}{_esc(text)}</p>'
                 )
         body_html = (
             f'<div class="rc-detail-body">{"".join(body_parts)}</div>'
@@ -2535,12 +2934,24 @@ def _render_detail_main(
             )
         if pn:
             prev_next_html = f'<ul class="rc-prevnext">{"".join(pn)}</ul>'
-        content_html = (
+        context_html = _subpage_context_html(breadcrumb_html, location_html)
+        tools_html = _render_surface_tools(state)
+        # Source detail template: the page title lives in the page head, then
+        # the breadcrumb, then the article title + meta inside a bordered box.
+        shell_html = (
+            f'<div class="rc-detail-shell"><div class="rc-detail-box">'
             f'<h2 class="rc-detail-title">{_esc(detail_title)}</h2>'
-            f'{_render_surface_tools(state)}'
-            f"{meta_html}{body_html}{attach_html}{prev_next_html}{back}"
+            f'{meta_html}</div></div>'
         )
-        return _wrap_subpage(breadcrumb_html, location_html, snb_html, content_html)
+        license_html = _render_contents_info(board)
+        content_html = (
+            f'<div class="rc-page-head">'
+            f'<h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
+            f'{tools_html}</div>'
+            f'{context_html}'
+            f'{shell_html}{body_html}{attach_html}{back}{prev_next_html}{license_html}'
+        )
+        return _wrap_subpage(snb_html, content_html)
 
     meta_items = []
     for label, key in (
@@ -2561,12 +2972,22 @@ def _render_detail_main(
     meta_html = f'<dl class="rc-detail-meta">{"".join(meta_items)}</dl>' if meta_items else ""
     body_html = f'<div class="rc-detail-body">{_esc(body)}</div>' if body else ""
 
-    content_html = (
+    context_html = _subpage_context_html(breadcrumb_html, location_html)
+    tools_html = _render_surface_tools(state)
+    shell_html = (
+        f'<div class="rc-detail-shell"><div class="rc-detail-box">'
         f'<h2 class="rc-detail-title">{_esc(title)}</h2>'
-        f'{_render_surface_tools(state)}'
-        f"{meta_html}{body_html}{attach_html}{back}"
+        f'{meta_html}</div></div>'
     )
-    return _wrap_subpage(breadcrumb_html, location_html, snb_html, content_html)
+    license_html = _render_contents_info(board)
+    content_html = (
+        f'<div class="rc-page-head">'
+        f'<h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
+        f'{tools_html}</div>'
+        f'{context_html}'
+        f'{shell_html}{body_html}{attach_html}{back}{license_html}'
+    )
+    return _wrap_subpage(snb_html, content_html)
 
 
 def _render_org_staff_main(state: dict[str, Any]) -> str:

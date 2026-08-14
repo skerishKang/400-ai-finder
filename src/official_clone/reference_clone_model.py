@@ -131,6 +131,37 @@ _BOARD_PAGER_CLASS_TOKENS = ("board_pager",)
 _BOARD_VIEW_CLASS_TOKENS = ("board_view",)
 _BOARD_ATTACHMENT_ALT_RE = re.compile(r"(\d+)\s*개의\s*첨부파일")
 
+# Generic colgroup class-token -> column width percent. Municipal list tables
+# express per-column proportions via ``<col class="w8">`` style tokens; a
+# ``None`` (flex/auto) column takes the remaining width.
+_COLGROUP_WIDTH_BY_CLASS: dict[str, int] = {
+    "w8": 8,
+    "W8": 8,
+    "w10": 10,
+    "W10": 10,
+    "w12": 12,
+    "W12": 12,
+    "w15": 15,
+    "W15": 15,
+    "w20": 20,
+    "W20": 20,
+}
+_COLGROUP_WIDTH_RE = re.compile(r"\s*(\d+(?:\.\d+)?)\s*%")
+
+
+def _colgroup_width_from_col(attrs) -> int | None:
+    """Return the percentage width of a ``<col>`` from its class/width attrs."""
+    attrs_dict = dict(attrs)
+    cls = (attrs_dict.get("class") or "").strip()
+    for token in cls.split():
+        if token in _COLGROUP_WIDTH_BY_CLASS:
+            return _COLGROUP_WIDTH_BY_CLASS[token]
+    width = (attrs_dict.get("width") or "").strip()
+    m = _COLGROUP_WIDTH_RE.search(width)
+    if m:
+        return int(float(m.group(1)))
+    return None
+
 
 def _record_id_from_href(href: str) -> str | None:
     """Extract a board record id from a captured detail link (generic params)."""
@@ -155,6 +186,7 @@ class _BoardListTableParser(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.table_found = False
         self.in_table = False
+        self.in_colgroup = False
         self.in_caption = False
         self.in_thead = False
         self.in_th = False
@@ -165,6 +197,7 @@ class _BoardListTableParser(HTMLParser):
         self._buf: list[str] = []
         self.caption = ""
         self.columns: list[str] = []
+        self.col_widths: list[int | None] = []
         self.rows: list[dict[str, Any]] = []
         self._row: dict[str, Any] | None = None
         self._cell_key: str | None = None
@@ -207,7 +240,11 @@ class _BoardListTableParser(HTMLParser):
                 }
                 self._buf = []
             return
-        if tag == "caption":
+        if tag == "colgroup":
+            self.in_colgroup = True
+        elif tag == "col" and self.in_colgroup:
+            self.col_widths.append(_colgroup_width_from_col(attrs))
+        elif tag == "caption":
             self.in_caption = True
             self._buf = []
         elif tag == "thead":
@@ -259,7 +296,9 @@ class _BoardListTableParser(HTMLParser):
             elif tag == "div" and self._in_pager:
                 self._in_pager = False
             return
-        if tag == "caption":
+        if tag == "colgroup":
+            self.in_colgroup = False
+        elif tag == "caption":
             self.caption = "".join(self._buf).strip()
             self.in_caption = False
         elif tag == "th":
@@ -321,6 +360,7 @@ class _BoardDetailParser(HTMLParser):
         self._in_meta_strong = False
         self._in_contents = False
         self._in_contents_para = False
+        self._br_count = 0
         self._in_file = False
         self._in_file_li = False
         self._in_attach_txt = False
@@ -336,6 +376,23 @@ class _BoardDetailParser(HTMLParser):
             if k.lower() == "class":
                 return v or ""
         return ""
+
+    def _flush_contents_para(self) -> None:
+        """Emit the current contents text buffer as one generic paragraph.
+
+        ``break_count`` records how many ``<br>`` runs led into this paragraph
+        so the renderer can reproduce the source page's vertical rhythm. The
+        counter is only reset when a paragraph is actually emitted, so a run
+        of consecutive ``<br>`` (which flush an empty buffer) keeps counting.
+        """
+        text = "".join(self._buf).strip()
+        if text:
+            block: dict[str, Any] = {"type": "paragraph", "text": text}
+            if self._br_count:
+                block["break_count"] = self._br_count
+            self.body_blocks.append(block)
+            self._br_count = 0
+        self._buf = []
 
     def handle_starttag(self, tag, attrs):
         tag = tag.lower()
@@ -373,6 +430,13 @@ class _BoardDetailParser(HTMLParser):
         elif tag == "p" and self._in_contents:
             self._in_contents_para = True
             self._buf = []
+        elif tag == "br" and self._in_contents:
+            # Source editor bodies separate paragraphs with <br> runs. Flush the
+            # accumulated text as one paragraph (recording how many <br>s led
+            # into it) so the rendered vertical rhythm matches the G1 page
+            # instead of flattening the whole body into one blob.
+            self._flush_contents_para()
+            self._br_count += 1
         elif tag == "img" and self._in_contents:
             # Source-backed image reference inside the detail body. The bytes
             # are NOT embedded (rights/asset gate); only the alt/title text and
@@ -465,15 +529,10 @@ class _BoardDetailParser(HTMLParser):
         elif tag == "ul" and self._in_meta_list:
             self._in_meta_list = False
         elif tag == "p" and self._in_contents_para:
-            text = "".join(self._buf).strip()
-            if text:
-                self.body_blocks.append({"type": "paragraph", "text": text})
+            self._flush_contents_para()
             self._in_contents_para = False
-            self._buf = []
         elif tag == "div" and self._in_contents:
-            text = "".join(self._buf).strip()
-            if text:
-                self.body_blocks.append({"type": "paragraph", "text": text})
+            self._flush_contents_para()
             self._in_contents = False
         elif tag == "li" and self._in_file_li:
             if self._attach is not None:
@@ -542,6 +601,227 @@ class _BoardDataCollector(HTMLParser):
         self._current.handle_charref(name)
 
 
+class _ContentsInfoParser(HTMLParser):
+    """Capture the generic ``div.contents_info`` block from a board page.
+
+    Two source-backed shapes are observed on the committed G1 municipal board
+    pages: the 공공누리 (KOGL) license notice (``div.kogl > span.txt``) and the
+    civil-service duty box (``article.duty`` with a title plus label/value
+    list items, e.g. 콘텐츠 정보책임자). Returns ``None`` when neither shape
+    exists in the captured DOM.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._in_contents = False
+        self._in_kogl = False
+        self._in_kogl_txt = False
+        self._kogl_text: list[str] = []
+        self._in_duty = False
+        self._in_duty_title = False
+        self._in_duty_item = False
+        self._in_duty_label = False
+        self._in_duty_value = False
+        self._duty_title: list[str] = []
+        self._duty_label: list[str] = []
+        self._duty_value: list[str] = []
+        self._duty_items: list[dict[str, str]] = []
+        self.result: dict[str, Any] | None = None
+
+    def _cls(self, attrs):
+        for k, v in attrs:
+            if k.lower() == "class":
+                return v or ""
+        return ""
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        tokens = self._cls(attrs).split()
+        if tag == "div" and "contents_info" in tokens:
+            self._in_contents = True
+            return
+        if not self._in_contents:
+            return
+        if tag == "div" and any(t.startswith("kogl") for t in tokens):
+            self._in_kogl = True
+        elif tag == "span" and "txt" in tokens and self._in_kogl:
+            self._in_kogl_txt = True
+        elif tag == "article" and "duty" in tokens:
+            self._in_duty = True
+        elif self._in_duty:
+            if tag == "li":
+                self._in_duty_item = True
+                self._duty_label = []
+                self._duty_value = []
+            elif tag == "strong" and "label" in tokens:
+                self._in_duty_label = True
+            elif tag == "h2" and "title" in tokens:
+                self._in_duty_title = True
+            elif tag in ("span", "strong") and any(
+                t in tokens for t in ("part", "tel", "name", "dept")
+            ):
+                self._in_duty_value = True
+
+    def handle_data(self, data):
+        if not self._in_contents:
+            return
+        if self._in_duty:
+            if self._in_duty_label:
+                self._duty_label.append(data)
+            elif self._in_duty_value:
+                self._duty_value.append(data)
+            elif self._in_duty_title:
+                self._duty_title.append(data)
+        elif self._in_kogl_txt:
+            self._kogl_text.append(data)
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag == "li" and self._in_duty_item:
+            label = "".join(self._duty_label).strip()
+            value = "".join(self._duty_value).strip()
+            if label:
+                self._duty_items.append({"label": label, "value": value})
+            self._in_duty_item = False
+            self._in_duty_label = False
+            self._in_duty_value = False
+        elif tag == "strong" and self._in_duty_label:
+            self._in_duty_label = False
+        elif tag == "h2" and self._in_duty_title:
+            self._in_duty_title = False
+        elif tag == "span" and self._in_kogl_txt:
+            self._in_kogl_txt = False
+        elif tag == "div" and self._in_kogl:
+            self._in_kogl = False
+        elif tag == "article" and self._in_duty:
+            self._in_duty = False
+        elif tag == "div" and self._in_contents and not self._in_duty and not self._in_kogl:
+            self._finalize()
+            self._in_contents = False
+
+    def _finalize(self) -> None:
+        if self._duty_items:
+            self.result = {
+                "kind": "duty",
+                "title": "".join(self._duty_title).strip() or None,
+                "items": self._duty_items,
+            }
+            return
+        text = re.sub(r"\s+", " ", "".join(self._kogl_text)).strip()
+        if text:
+            self.result = {"kind": "kogl", "text": text}
+
+
+class _SnbStructureParser(HTMLParser):
+    """Capture the visible left sidebar menu with depth from ``section#snb``.
+
+    The committed G1 municipal sidebar is a two-level list: ``ul#left_menu_top``
+    level-1 items with an optional expanded ``ul`` of level-2 children rendered
+    under the active item (``style="display: block;"``). Only the visible
+    level-2 children of the expanded parent are part of the rendered sidebar;
+    collapsed ``display:none`` sublists are skipped so the captured item order
+    matches the visible screenshot row order.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._in_snb = False
+        self._in_title = False
+        self._title_parts: list[str] = []
+        self._items: list[dict[str, Any]] = []
+        self._li_stack: list[dict[str, Any]] = []
+        self._in_label_a = False
+        self._label_parts: list[str] = []
+        self._sub_visible = False
+        self._in_li = False
+        self.result: dict[str, Any] | None = None
+
+    def _attrs(self, attrs) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for k, v in attrs:
+            out[k.lower()] = (v or "").lower()
+        return out
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        a = self._attrs(attrs)
+        if tag == "section" and a.get("id") == "snb":
+            self._in_snb = True
+            return
+        if not self._in_snb:
+            return
+        if tag == "h2" and "title" in (a.get("class") or "").split():
+            self._in_title = True
+        elif tag == "li":
+            if self._li_stack:
+                # A nested li: level-2 child inside a sublist.
+                self._li_stack.append({"depth": 2, "parts": [], "visible": self._sub_visible})
+            else:
+                self._li_stack.append({"depth": 1, "parts": [], "visible": True})
+            self._in_li = True
+            self._label_parts = []
+        elif tag == "a" and self._li_stack:
+            self._in_label_a = True
+        elif tag == "ul" and self._li_stack:
+            style = a.get("style") or ""
+            self._sub_visible = "display: block" in style
+
+    def handle_data(self, data):
+        if not self._in_snb:
+            return
+        if self._in_title:
+            self._title_parts.append(data)
+        elif self._in_label_a and self._li_stack:
+            self._label_parts.append(data)
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag == "h2" and self._in_title:
+            self._in_title = False
+        elif tag == "a" and self._in_label_a:
+            self._in_label_a = False
+            if self._li_stack:
+                self._li_stack[-1]["parts"] = self._label_parts
+                if self._li_stack[-1].get("depth") == 1 and not self._li_stack[-1].get("emitted"):
+                    label = "".join(self._li_stack[-1].get("parts") or []).strip()
+                    if label:
+                        self._items.append({"label": label, "depth": 1})
+                        self._li_stack[-1]["emitted"] = True
+        elif tag == "ul":
+            self._sub_visible = False
+        elif tag == "li" and self._li_stack:
+            entry = self._li_stack.pop()
+            visible = entry.get("visible", True)
+            depth = entry.get("depth", 1)
+            label = "".join(entry.get("parts") or []).strip()
+            if depth == 2 and visible and label:
+                self._items.append({"label": label, "depth": 2})
+            self._in_li = False
+        elif tag == "section" and self._in_snb:
+            self._in_snb = False
+            title = "".join(self._title_parts).strip()
+            if self._items or title:
+                self.result = {"title": title or None, "items": self._items}
+
+
+def _extract_snb_structure(html: str) -> dict[str, Any] | None:
+    """Best-effort generic ``section#snb`` structure extraction."""
+    if not html:
+        return None
+    parser = _SnbStructureParser()
+    parser.feed(html)
+    return parser.result
+
+
+def _extract_contents_info(html: str) -> dict[str, Any] | None:
+    """Best-effort generic ``div.contents_info`` extraction."""
+    if not html:
+        return None
+    parser = _ContentsInfoParser()
+    parser.feed(html)
+    return parser.result
+
+
 def _extract_board(html: str) -> dict[str, Any] | None:
     """Extract the generic board block for a captured state, or ``None``.
 
@@ -561,12 +841,22 @@ def _extract_board(html: str) -> dict[str, Any] | None:
         if table.caption:
             block["caption"] = table.caption
         block["columns"] = table.columns
+        # Source-backed per-column width percent (from the colgroup).
+        # ``None`` entries mean flex/auto (the title column).
+        if table.col_widths:
+            block["col_widths"] = table.col_widths
         block["rows"] = table.rows
         if table.pager_pages or table.pager_current is not None:
             block["pagination"] = {
                 "pages": table.pager_pages,
                 "current_page": table.pager_current,
             }
+        contents_info = _extract_contents_info(html)
+        if contents_info:
+            block["contents_info"] = contents_info
+        snb = _extract_snb_structure(html)
+        if snb and snb.get("items"):
+            block["snb"] = snb
         return block
     if detail.article_found:
         block = {"kind": "detail"}
@@ -582,6 +872,12 @@ def _extract_board(html: str) -> dict[str, Any] | None:
             block["prev"] = detail.prev
         if detail.next:
             block["next"] = detail.next
+        contents_info = _extract_contents_info(html)
+        if contents_info:
+            block["contents_info"] = contents_info
+        snb = _extract_snb_structure(html)
+        if snb and snb.get("items"):
+            block["snb"] = snb
         return block
     return None
 

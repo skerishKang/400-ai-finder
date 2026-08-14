@@ -17884,6 +17884,14 @@
       ],
       "board": {
         "caption": "구정소식_공지사항 목록",
+        "col_widths": [
+          8,
+          null,
+          15,
+          8,
+          8,
+          8
+        ],
         "columns": [
           "번호",
           "제목",
@@ -17892,6 +17900,10 @@
           "첨부파일",
           "조회수"
         ],
+        "contents_info": {
+          "kind": "kogl",
+          "text": "본 공공저작물은 공공누리 “출처표시+상업적이용금지+변경금지” 조건에 따라 이용할 수 있습니다."
+        },
         "kind": "list",
         "pagination": {
           "current_page": 1,
@@ -18036,7 +18048,56 @@
             "is_new": false,
             "record_id": "143033"
           }
-        ]
+        ],
+        "snb": {
+          "items": [
+            {
+              "depth": 1,
+              "label": "공지사항"
+            },
+            {
+              "depth": 1,
+              "label": "고시/공고"
+            },
+            {
+              "depth": 1,
+              "label": "보도자료"
+            },
+            {
+              "depth": 1,
+              "label": "채용공고"
+            },
+            {
+              "depth": 1,
+              "label": "입찰공고"
+            },
+            {
+              "depth": 1,
+              "label": "카드뉴스"
+            },
+            {
+              "depth": 1,
+              "label": "서구소식지"
+            },
+            {
+              "depth": 1,
+              "label": "타기관소식"
+            },
+            {
+              "depth": 1,
+              "label": "입법예고"
+            },
+            {
+              "depth": 1,
+              "label": "시설관리공단소식"
+            },
+            {
+              "depth": 1,
+              "label": "인사정보"
+            }
+          ],
+          "title": "구정소식"
+        }
       },
       "captured_at": "2026-08-12T14:10:37.769Z",
       "controls": [
@@ -21792,6 +21853,10 @@
             "type": "image"
           }
         ],
+        "contents_info": {
+          "kind": "kogl",
+          "text": "본 공공저작물은 공공누리 “출처표시+상업적이용금지+변경금지” 조건에 따라 이용할 수 있습니다."
+        },
         "kind": "detail",
         "meta": [
           {
@@ -21814,6 +21879,55 @@
         "prev": {
           "record_id": "143130",
           "title": "🎶 빛고을국악전수관 2026년 제3분기 국악문화학교 수강생 모집 .."
+        },
+        "snb": {
+          "items": [
+            {
+              "depth": 1,
+              "label": "공지사항"
+            },
+            {
+              "depth": 1,
+              "label": "고시/공고"
+            },
+            {
+              "depth": 1,
+              "label": "보도자료"
+            },
+            {
+              "depth": 1,
+              "label": "채용공고"
+            },
+            {
+              "depth": 1,
+              "label": "입찰공고"
+            },
+            {
+              "depth": 1,
+              "label": "카드뉴스"
+            },
+            {
+              "depth": 1,
+              "label": "서구소식지"
+            },
+            {
+              "depth": 1,
+              "label": "타기관소식"
+            },
+            {
+              "depth": 1,
+              "label": "입법예고"
+            },
+            {
+              "depth": 1,
+              "label": "시설관리공단소식"
+            },
+            {
+              "depth": 1,
+              "label": "인사정보"
+            }
+          ],
+          "title": "구정소식"
         },
         "title": "[공고문]사회연대경제 청년 일경험 시범사업 모집공고_참여청년(3차 모집)"
       },
@@ -25313,6 +25427,13 @@
       ],
       "attachment_document_extensions": [],
       "board": {
+        "col_widths": [
+          10,
+          null,
+          12,
+          12,
+          8
+        ],
         "columns": [
           "번호",
           "제목",
@@ -25320,6 +25441,10 @@
           "등록일",
           "조회수"
         ],
+        "contents_info": {
+          "kind": "kogl",
+          "text": "본 공공저작물은 공공누리 “출처표시+상업적이용금지+변경금지” 조건에 따라 이용할 수 있습니다."
+        },
         "kind": "list",
         "pagination": {
           "current_page": 1,
@@ -25448,7 +25573,64 @@
             "is_new": false,
             "record_id": "55699"
           }
-        ]
+        ],
+        "snb": {
+          "items": [
+            {
+              "depth": 1,
+              "label": "공지사항"
+            },
+            {
+              "depth": 1,
+              "label": "고시/공고"
+            },
+            {
+              "depth": 2,
+              "label": "현재 고시/공고"
+            },
+            {
+              "depth": 2,
+              "label": "이전 고시/공고"
+            },
+            {
+              "depth": 1,
+              "label": "보도자료"
+            },
+            {
+              "depth": 1,
+              "label": "채용공고"
+            },
+            {
+              "depth": 1,
+              "label": "입찰공고"
+            },
+            {
+              "depth": 1,
+              "label": "카드뉴스"
+            },
+            {
+              "depth": 1,
+              "label": "서구소식지"
+            },
+            {
+              "depth": 1,
+              "label": "타기관소식"
+            },
+            {
+              "depth": 1,
+              "label": "입법예고"
+            },
+            {
+              "depth": 1,
+              "label": "시설관리공단소식"
+            },
+            {
+              "depth": 1,
+              "label": "인사정보"
+            }
+          ],
+          "title": "구정소식"
+        }
       },
       "captured_at": "2026-08-12T14:10:45.397Z",
       "controls": [
@@ -29069,10 +29251,34 @@
         ],
         "body": [
           {
-            "text": "「지방자치법」제169조에 의거 전남광주통합특별시 서구의회에 보고된 「지속가능관광지방정부협의회 운영규약」을 아래와 같이 고시합니다.  1. 고 시 명  : 지속가능관광지방정부협의회 운영규약  2. 고시내용 : 붙임참조  3. 고시방법 : 전남광주통합특별시 서구청 홈페이지(www.seogu.gwangju.kr)게시붙임 「지속가능관광지방정부협의회 운영규약」 1부.  끝.",
+            "text": "「지방자치법」제169조에 의거 전남광주통합특별시 서구의회에 보고된 「지속가능관광지방정부협의회 운영규약」을 아래와 같이 고시합니다.",
+            "type": "paragraph"
+          },
+          {
+            "break_count": 4,
+            "text": "1. 고 시 명  : 지속가능관광지방정부협의회 운영규약",
+            "type": "paragraph"
+          },
+          {
+            "break_count": 2,
+            "text": "2. 고시내용 : 붙임참조",
+            "type": "paragraph"
+          },
+          {
+            "break_count": 2,
+            "text": "3. 고시방법 : 전남광주통합특별시 서구청 홈페이지(www.seogu.gwangju.kr)게시",
+            "type": "paragraph"
+          },
+          {
+            "break_count": 4,
+            "text": "붙임 「지속가능관광지방정부협의회 운영규약」 1부.  끝.",
             "type": "paragraph"
           }
         ],
+        "contents_info": {
+          "kind": "kogl",
+          "text": "본 공공저작물은 공공누리 “출처표시+상업적이용금지+변경금지” 조건에 따라 이용할 수 있습니다."
+        },
         "kind": "detail",
         "meta": [
           {
@@ -29096,6 +29302,63 @@
             "value": "체육관광과"
           }
         ],
+        "snb": {
+          "items": [
+            {
+              "depth": 1,
+              "label": "공지사항"
+            },
+            {
+              "depth": 1,
+              "label": "고시/공고"
+            },
+            {
+              "depth": 2,
+              "label": "현재 고시/공고"
+            },
+            {
+              "depth": 2,
+              "label": "이전 고시/공고"
+            },
+            {
+              "depth": 1,
+              "label": "보도자료"
+            },
+            {
+              "depth": 1,
+              "label": "채용공고"
+            },
+            {
+              "depth": 1,
+              "label": "입찰공고"
+            },
+            {
+              "depth": 1,
+              "label": "카드뉴스"
+            },
+            {
+              "depth": 1,
+              "label": "서구소식지"
+            },
+            {
+              "depth": 1,
+              "label": "타기관소식"
+            },
+            {
+              "depth": 1,
+              "label": "입법예고"
+            },
+            {
+              "depth": 1,
+              "label": "시설관리공단소식"
+            },
+            {
+              "depth": 1,
+              "label": "인사정보"
+            }
+          ],
+          "title": "구정소식"
+        },
         "title": "「지속가능관광지방정부협의회 운영규약」고시"
       },
       "captured_at": "2026-08-12T14:10:48.809Z",
@@ -32597,6 +32860,15 @@
       ],
       "board": {
         "caption": "열린민원_민원안내_민원서식 목록",
+        "col_widths": [
+          8,
+          12,
+          null,
+          15,
+          8,
+          8,
+          8
+        ],
         "columns": [
           "번호",
           "분류",
@@ -32606,6 +32878,20 @@
           "첨부파일",
           "조회수"
         ],
+        "contents_info": {
+          "items": [
+            {
+              "label": "담당부서",
+              "value": "민원봉사과 민원여권"
+            },
+            {
+              "label": "연락처",
+              "value": "062-360-7959"
+            }
+          ],
+          "kind": "duty",
+          "title": "콘텐츠 정보책임자"
+        },
         "kind": "list",
         "pagination": {
           "current_page": 1,
@@ -32758,7 +33044,72 @@
             "is_new": false,
             "record_id": "142416"
           }
-        ]
+        ],
+        "snb": {
+          "items": [
+            {
+              "depth": 1,
+              "label": "민원안내"
+            },
+            {
+              "depth": 2,
+              "label": "민원실안내"
+            },
+            {
+              "depth": 2,
+              "label": "순번대기현황"
+            },
+            {
+              "depth": 2,
+              "label": "무인민원발급안내"
+            },
+            {
+              "depth": 2,
+              "label": "가족관계등록"
+            },
+            {
+              "depth": 2,
+              "label": "민원사무편람"
+            },
+            {
+              "depth": 2,
+              "label": "민원서식"
+            },
+            {
+              "depth": 2,
+              "label": "민원편의시책"
+            },
+            {
+              "depth": 2,
+              "label": "행정정보공동이용"
+            },
+            {
+              "depth": 2,
+              "label": "제증명 수수료"
+            },
+            {
+              "depth": 2,
+              "label": "부동산종합증명서발급"
+            },
+            {
+              "depth": 1,
+              "label": "민원상담"
+            },
+            {
+              "depth": 1,
+              "label": "여권민원"
+            },
+            {
+              "depth": 1,
+              "label": "세무민원"
+            },
+            {
+              "depth": 1,
+              "label": "교통민원"
+            }
+          ],
+          "title": "열린민원"
+        }
       },
       "captured_at": "2026-08-12T14:10:54.820Z",
       "controls": [
@@ -36561,6 +36912,20 @@
             "type": "paragraph"
           }
         ],
+        "contents_info": {
+          "items": [
+            {
+              "label": "담당부서",
+              "value": "민원봉사과 민원여권"
+            },
+            {
+              "label": "연락처",
+              "value": "062-360-7959"
+            }
+          ],
+          "kind": "duty",
+          "title": "콘텐츠 정보책임자"
+        },
         "kind": "detail",
         "meta": [
           {
@@ -36580,6 +36945,71 @@
             "value": "7"
           }
         ],
+        "snb": {
+          "items": [
+            {
+              "depth": 1,
+              "label": "민원안내"
+            },
+            {
+              "depth": 2,
+              "label": "민원실안내"
+            },
+            {
+              "depth": 2,
+              "label": "순번대기현황"
+            },
+            {
+              "depth": 2,
+              "label": "무인민원발급안내"
+            },
+            {
+              "depth": 2,
+              "label": "가족관계등록"
+            },
+            {
+              "depth": 2,
+              "label": "민원사무편람"
+            },
+            {
+              "depth": 2,
+              "label": "민원서식"
+            },
+            {
+              "depth": 2,
+              "label": "민원편의시책"
+            },
+            {
+              "depth": 2,
+              "label": "행정정보공동이용"
+            },
+            {
+              "depth": 2,
+              "label": "제증명 수수료"
+            },
+            {
+              "depth": 2,
+              "label": "부동산종합증명서발급"
+            },
+            {
+              "depth": 1,
+              "label": "민원상담"
+            },
+            {
+              "depth": 1,
+              "label": "여권민원"
+            },
+            {
+              "depth": 1,
+              "label": "세무민원"
+            },
+            {
+              "depth": 1,
+              "label": "교통민원"
+            }
+          ],
+          "title": "열린민원"
+        },
         "title": "자동차 등록 위임장"
       },
       "captured_at": "2026-08-12T14:10:58.577Z",
@@ -43945,6 +44375,12 @@
       "attachment_document_extensions": [],
       "board": {
         "caption": "직원 목록을 부서명, 성명, 직책, 전화번호, 담당업무로 안내한 표입니다.",
+        "col_widths": [
+          null,
+          15,
+          15,
+          null
+        ],
         "columns": [
           "부서명",
           "직책",
@@ -44059,7 +44495,48 @@
             },
             "is_new": false
           }
-        ]
+        ],
+        "snb": {
+          "items": [
+            {
+              "depth": 1,
+              "label": "서구소개"
+            },
+            {
+              "depth": 1,
+              "label": "청사안내"
+            },
+            {
+              "depth": 2,
+              "label": "행정조직도"
+            },
+            {
+              "depth": 2,
+              "label": "직원 업무안내"
+            },
+            {
+              "depth": 2,
+              "label": "전화번호 안내"
+            },
+            {
+              "depth": 2,
+              "label": "층별안내"
+            },
+            {
+              "depth": 2,
+              "label": "오시는길"
+            },
+            {
+              "depth": 1,
+              "label": "장학재단"
+            },
+            {
+              "depth": 1,
+              "label": "서구 아너스"
+            }
+          ],
+          "title": "서구소개"
+        }
       },
       "captured_at": "2026-08-12T14:11:05.814Z",
       "controls": [

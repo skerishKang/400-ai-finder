@@ -1383,7 +1383,7 @@ def test_1312_detail_recovers_metadata_body_attachment_back():
     assert "조회수" in h and "242" in h
     assert "[공고문] 사회연대경제 청년일경험사업 참여청년 모집 공고(3차).hwpx" in h
     assert 'data-attachment-ext="hwpx"' in h and "미리보기" in h
-    assert "rc-back" in h and "목록으로" in h
+    assert "rc-back" in h and "rc-back-link" in h and ">목록<" in h
     h = _render_board("gosi.detail.desktop")
     assert "작성일" in h and "2026-08-10" in h
     assert "분류" in h and "고시" in h
