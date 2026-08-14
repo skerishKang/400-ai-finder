@@ -33,6 +33,23 @@ _SCRIPT_SRC_RE = re.compile(r"<script[^>]+src=[\"']https?://", re.IGNORECASE)
 _LINK_HREF_RE = re.compile(r"<link[^>]+href=[\"']https?://", re.IGNORECASE)
 _FETCH_HTTP_RE = re.compile(r"fetch\(\s*[\"']https?://", re.IGNORECASE)
 _CSS_URL_HTTP_RE = re.compile(r"url\(\s*[\"']?https?://", re.IGNORECASE)
+# The actual Seo-gu host is only dangerous when it appears inside a
+# URL-bearing attribute value (href/src/action/formaction/poster/cite/data)
+# where a browser could navigate or execute it. A bare hostname in
+# source-backed prose (e.g. the gosi body text "홈페이지(www.seogu.gwangju.kr)게시")
+# is inert plain text and is explicitly allowed — it is not a URL the
+# browser can follow.
+_ACTUAL_HOST_URL_ATTR_RE = re.compile(
+    r"""\b(?:href|src|action|formaction|poster|cite|data)\s*=\s*["'][^"']*seogu\.gwangju\.kr""",
+    re.IGNORECASE,
+)
+
+
+def _has_active_actual_host_ref(text: str) -> bool:
+    """True when the actual Seo-gu host appears in a URL-bearing attribute
+    (a reference the browser could navigate/execute). Plain-text prose
+    mentions of the hostname are inert and return False."""
+    return bool(_ACTUAL_HOST_URL_ATTR_RE.search(text))
 
 
 def _load_build_module():
@@ -905,8 +922,14 @@ def test_seogu_output_has_no_external_auto_calls(build_dir):
             assert not _LINK_HREF_RE.search(text), f"external <link href> in {path}"
             assert not _FETCH_HTTP_RE.search(text), f"external fetch() in {path}"
             assert not _CSS_URL_HTTP_RE.search(text), f"external url() in {path}"
-            # No actual site integration, no iframe, no raw screenshot runtime.
-            assert "seogu.gwangju.kr" not in text, f"actual host referenced in {path}"
+            # No actual-site integration: a host reference is only dangerous
+            # when it sits in a URL-bearing attribute the browser could
+            # navigate/execute. A bare hostname in source-backed prose (e.g.
+            # the gosi body text "홈페이지(www.seogu.gwangju.kr)게시") is inert
+            # plain text and stays untouched.
+            assert not _has_active_actual_host_ref(
+                text
+            ), f"active actual-host reference in {path}"
             assert "iframe" not in text.lower(), f"iframe in {path}"
             assert "screenshot" not in text.lower(), f"screenshot runtime in {path}"
             assert "source.png" not in text, f"raw capture artifact in {path}"
@@ -914,6 +937,38 @@ def test_seogu_output_has_no_external_auto_calls(build_dir):
     assert scanned == len(SEOGU_REQUIRED_ROUTES), (
         f"unexpected seogu file count: {scanned}"
     )
+
+
+def test_seogu_plain_text_host_mention_is_allowed():
+    """#1312: source-backed prose may mention the actual hostname; it is
+    inert text, not a reference the browser can navigate."""
+    # The exact source-backed gosi.detail body sentence.
+    assert (
+        _has_active_actual_host_ref("홈페이지(www.seogu.gwangju.kr)게시") is False
+    )
+    assert (
+        _has_active_actual_host_ref(
+            '<p class="rc-detail-para">전남광주통합특별시 서구청 '
+            '홈페이지(www.seogu.gwangju.kr)게시…</p>'
+        )
+        is False
+    )
+
+
+def test_seogu_active_actual_host_reference_is_rejected():
+    """#1312: any URL-bearing attribute pointing at the actual Seo-gu host
+    must be rejected — it is navigable/executable external integration."""
+    for html in (
+        '<a href="https://www.seogu.gwangju.kr/board.es?mid=a10301000000">',
+        '<a href="http://seogu.gwangju.kr/">',
+        '<a href="//seogu.gwangju.kr/some/path">',
+        '<script src="https://www.seogu.gwangju.kr/assets/app.js"></script>',
+        '<link rel="stylesheet" href="https://www.seogu.gwangju.kr/site.css">',
+        '<form action="https://www.seogu.gwangju.kr/submit"></form>',
+        '<iframe src="https://www.seogu.gwangju.kr/"></iframe>',
+        '<img src="//seogu.gwangju.kr/upload/x.jpg">',
+    ):
+        assert _has_active_actual_host_ref(html) is True, html
 
 
 def test_seogu_build_is_deterministic(build_dir, tmp_path):
