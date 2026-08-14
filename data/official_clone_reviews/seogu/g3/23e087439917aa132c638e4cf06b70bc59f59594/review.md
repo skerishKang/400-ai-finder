@@ -1,13 +1,14 @@
 # Seo-gu G3 Phase 1 — Source-vs-Clone Review Evidence
 
-- Candidate commit (exact main): `23e087439917aa132c638e4cf06b70bc59f59594`
+- Candidate commit (renderer candidate under review by this evidence): `23e087439917aa132c638e4cf06b70bc59f59594`
+- Authoritative main: `178dc3a7759e168c626b052c12f8ed819bfe8c5b`
 - G1 capture id: `20260812T231018-0900`
 - Browser/tool: chromium `145.0.7632.116` (Playwright 1.53.0, headless, full-page screenshots)
 - External network count (total across all states + interactions): `0` (expected 0)
 
-> This PR is EVIDENCE-ONLY. Lifecycle gates remain closed: `visual_review=pending`, `owner_visual_approved=false`, `clone_mvp_ready=false`, `exact=false`, `golden=false`, `resident_default=false`, `production_ready=false`, `actual_site_integrated=false`.
+> This evidence artifact set / evidence-only child commit does not promote the clone. Lifecycle gates remain closed: `visual_review=pending`, `owner_visual_approved=false`, `clone_mvp_ready=false`, `exact=false`, `golden=false`, `resident_default=false`, `production_ready=false`, `actual_site_integrated=false`, `asset_byte_fidelity_complete=false`.
 
-## Lifecycle (rendered `rc-lifecycle` JSON-LD, all 11 states)
+## Lifecycle (rendered `rc-lifecycle` JSON-LD, #1312 board six-state slice)
 
 | marker | value |
 |---|---|
@@ -19,7 +20,7 @@
 | `actual_site_integrated` | `False` |
 | `production_ready` | `False` |
 | `asset_byte_fidelity_complete` | `False` |
-| `faithful_clone_candidate` | `True` |
+| `faithful_clone_candidate` | `False` |
 
 ## Modeled contract (clone offline QA — NOT source parity)
 
@@ -97,7 +98,7 @@ structural / content / asset / interaction_navigation / responsive / a11y / visu
 
 ## Source parity legend / closures
 
-- **assets = FAIL**: `asset_byte_fidelity_complete=false` — the clone renders structural placeholders only; no real Seo-gu asset bytes (images/fonts/css) are fetched or committed. This holds for all 11 states and is unchanged.
+- **assets = FAIL**: `asset_byte_fidelity_complete=false` — the clone renders structural placeholders only; no real Seo-gu asset bytes (images/fonts/css) are fetched or committed. This holds for all six states in this #1312 slice and is unchanged.
 - **visual/material = DIFFER (expected G2-B)**: source is the real municipal site with full visual styling, photographs, fonts and iconography; clone is the modeled layout tokens only. Unchanged.
 - **modeled-contract PASS is NOT source-parity PASS**: the clone's own route/browser QA (GNB toggle, list->detail, inert attachments, no overflow, focus) is reported in the 'Modeled contract' section above and must not be interpreted as source-vs-clone parity.
 
@@ -122,13 +123,13 @@ Horizontal overflow (require <= 1px):
 
 ## Exceptions (fail-closed on promotion readiness)
 
-- `asset_byte_fidelity_complete=false` — affects all 11 states. The G2-B candidate intentionally renders structural placeholders and does NOT bind real Seo-gu asset bytes. Asset PASS must NOT be claimed until asset bytes are resolved and the lifecycle marker flips to `true`.
+- `asset_byte_fidelity_complete=false` — affects all six states in this #1312 slice. The G2-B candidate intentionally renders structural placeholders and does NOT bind real Seo-gu asset bytes. Asset PASS must NOT be claimed until asset bytes are resolved and the lifecycle marker flips to `true`.
 - `visual_review=pending` / `owner_visual_approved=false` — side-by-side evidence is provided for owner visual approval only; no automated visual pass is asserted.
-- Known material gaps (organization.chart, staff.directory, notice.detail, gosi.detail, civil_form.detail, home.desktop.default, home.mobile.default, home.desktop.gnb_open) are reported as source-parity `DIFFER` (source richer than the modeled clone) with an explicit exception/reason; they are NOT source-parity PASS. All other states are `NOT_ASSESSED` (insufficient committed comparison evidence, fail-closed).
+- Known material gaps (notice.detail, gosi.detail, civil_form.detail) are reported as source-parity `DIFFER` (source richer than the modeled clone) with an explicit exception/reason; they are NOT source-parity PASS. The three list states (notice.list, gosi.list, civil_form.list) are `NOT_ASSESSED` (insufficient committed comparison evidence, fail-closed).
 
 ## Scope / non-mutation statement
 
 - G1 canonical capture bytes: UNCHANGED (SHA-256 verified each state).
-- G2-B renderer (`src/official_clone/reference_clone_renderer.py`), `visual_contract.py`, G2-A semantic model: UNCHANGED in this PR.
+- This evidence-only child commit does not modify the renderer (`src/official_clone/reference_clone_renderer.py`), `visual_contract.py`, the G2-A semantic model, or tests. PR #1313 as a whole does contain renderer/test changes relative to main (`178dc3a`); only this child commit is evidence-only.
 - No live recapture of the Seo-gu site; source side is the committed G1 PNG.
 - No production/Cloudflare/DB mutation; no actual site integration.

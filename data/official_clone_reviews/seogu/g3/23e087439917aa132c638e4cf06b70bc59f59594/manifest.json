@@ -1,5 +1,7 @@
 {
   "candidate_commit_sha": "23e087439917aa132c638e4cf06b70bc59f59594",
+  "evidence_scope": "issue_1312_board_six_state_slice",
+  "state_count": 6,
   "g1_capture_id": "20260812T231018-0900",
   "site_id": "seogu_gwangju",
   "route_prefix": "/seogu/",
@@ -15,7 +17,8 @@
   },
   "external_network_total": 0,
   "lifecycle": {
-    "g3_evidence_complete": true,
+    "board_slice_evidence_complete": true,
+    "g3_evidence_complete": false,
     "visual_review": "pending",
     "owner_visual_approved": false,
     "clone_mvp_ready": false,
