@@ -3,6 +3,7 @@
 - 상태: `canonical`
 - 기준일: 2026-08-16
 - 관련 이슈: #1318
+- clone fidelity invariant: [`../product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md)
 
 ## 1. 목적
 
