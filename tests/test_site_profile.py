@@ -1057,3 +1057,18 @@ class TestMatchUrlHardened:
         p = self._profile(["bukgu.gwangju.kr"])
         assert not p.match_url(None)
         assert not p.match_url("")
+
+    def test_invalid_malformed_ipv6_authority_fails_closed(self):
+        # An unterminated IPv6 authority makes stdlib urlsplit() raise
+        # ValueError; match_url must fail closed (False) and never leak it.
+        p = self._profile(["bukgu.gwangju.kr"])
+        result = p.match_url("https://[::1")
+        assert result is False
+
+    def test_invalid_nfkc_invalid_netloc_fails_closed(self):
+        # A FULLWIDTH SOLIDUS (U+FF0F) in the netloc makes stdlib urlsplit()
+        # raise ValueError under NFKC normalization; match_url must fail
+        # closed (False) and never leak it.
+        p = self._profile(["bukgu.gwangju.kr"])
+        result = p.match_url("https://exa\uff0fmple.com/")
+        assert result is False

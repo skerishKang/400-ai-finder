@@ -297,33 +297,42 @@ class SiteProfile:
         if not isinstance(url, str):
             return False
 
-        parsed = urlsplit(url)
-
-        # Absolute http/https only. This naturally rejects relative
-        # (``/path``), protocol-relative (``//host``), and scheme-less
-        # (``host/path``) URLs, whose scheme is empty.
-        if parsed.scheme not in ("http", "https"):
-            return False
-
-        # Reject credential-bearing URLs and empty userinfo by *presence*
-        # semantics: urlsplit yields ``''`` (not ``None``) for an empty
-        # userinfo such as ``https://@host/``. Truthiness would wrongly
-        # treat it as absent, so we test ``is not None`` explicitly.
-        if parsed.username is not None or parsed.password is not None:
-            return False
-
-        # Force port validation. urlsplit parses ``:abc`` / ``:99999`` but
-        # only raises on ``.port`` access for the malformed case; an
-        # out-of-range value (e.g. 99999) slips through and must be rejected
-        # explicitly. A valid explicit port never changes host identity.
+        # Fail-closed parse boundary. urlsplit() itself (and the subsequent
+        # parser-derived attribute reads below) can raise ``ValueError`` on a
+        # malformed authority — e.g. an unterminated IPv6 literal
+        # (``https://[::1``) or an NFKC-invalid netloc
+        # (``https://exa\uff0fmple.com/``). Any such malformed input must fail
+        # closed and return ``False`` rather than leaking the exception, per
+        # the #1292 contract and the match_url docstring.
         try:
+            parsed = urlsplit(url)
+
+            # Absolute http/https only. This naturally rejects relative
+            # (``/path``), protocol-relative (``//host``), and scheme-less
+            # (``host/path``) URLs, whose scheme is empty.
+            if parsed.scheme not in ("http", "https"):
+                return False
+
+            # Reject credential-bearing URLs and empty userinfo by *presence*
+            # semantics: urlsplit yields ``''`` (not ``None``) for an empty
+            # userinfo such as ``https://@host/``. Truthiness would wrongly
+            # treat it as absent, so we test ``is not None`` explicitly.
+            if parsed.username is not None or parsed.password is not None:
+                return False
+
+            # Force port validation. urlsplit parses ``:abc`` / ``:99999`` but
+            # only raises on ``.port`` access for the malformed case; an
+            # out-of-range value (e.g. 99999) slips through and must be
+            # rejected explicitly. A valid explicit port never changes host
+            # identity.
             port = parsed.port
+            if port is not None and not (1 <= port <= 65535):
+                return False
+
+            host = parsed.hostname
         except ValueError:
             return False
-        if port is not None and not (1 <= port <= 65535):
-            return False
 
-        host = parsed.hostname
         if not host:
             return False
 
