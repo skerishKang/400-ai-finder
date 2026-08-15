@@ -2054,6 +2054,8 @@ def test_scoped_fetchconfig_retry_on_status_preserved():
 def test_scoped_timeout_retry_semantics_preserved():
     """acquisition_policy present + FetchConfig retries on Timeout still
     fire."""
+    import requests as req_lib
+
     policy = _redirect_policy(["example.com"])
     session_calls = []
     get_calls = []
