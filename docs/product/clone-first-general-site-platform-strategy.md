@@ -19,6 +19,7 @@ Related governing documents:
 - [`docs/product/clone-visual-fidelity-and-promotion-policy.md`](./clone-visual-fidelity-and-promotion-policy.md) — visual/promotion authority
 - [`docs/implementation/RELEASE_GATES.md`](../implementation/RELEASE_GATES.md) — readiness gates
 - [`docs/operations/REPOSITORY_GOVERNANCE.md`](../operations/REPOSITORY_GOVERNANCE.md) — branch/PR/merge workflow
+- [`docs/operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`](../operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md) — institution-leader MVP audience, project-owner authority, and Phase-A/Production legal boundary
 
 ## 2. Product decision: clone MVP now, actual-site integration later
 
@@ -45,15 +46,17 @@ The business objective is to let an institution decision-maker experience:
 
 not a redesigned substitute website and not a generic government-site mockup.
 
+For every named-site MVP, the primary evaluation audience is the target institution's representative, institution head, executive, or equivalent final decision-maker.
+
 For the declared MVP scope, fidelity is therefore a product requirement. A model, agent, reviewer, or implementation worker must not arbitrarily lower the left-side fidelity merely because the actual production-site integration phase has not started yet.
 
 ### Phase B — authorized first-party actual-site integration
 
 The actual institution website is a **later stage**.
 
-Only after the institution explicitly authorizes deployment/operation/integration does the project open the first-party actual-site workstream. At that point the project evaluates the concrete production environment and its operational requirements, including credentials, deployment ownership, information security, privacy/PII, authentication, submissions, internal-system integration, incident response, support ownership, and rollback.
+Only after the institution explicitly authorizes deployment/operation/integration does the project open the first-party actual-site workstream. At that point the project evaluates the concrete production environment and its operational requirements, including credentials, deployment ownership, information security, privacy/PII, authentication, submissions, internal-system integration, incident response, support ownership, rollback, copyright/licensing, redistribution rights, legal/administrative obligations, and other formal rights/obligation relationships.
 
-Those future production concerns are not prerequisites for building, testing, and demonstrating the pre-integration faithful-clone MVP.
+Those future production concerns are not prerequisites for building, testing, and demonstrating the pre-integration faithful-clone MVP unless the project owner explicitly opens a specific review earlier.
 
 Clone MVP completion must never be described as actual-site control. Conversely, actual-site integration must never be treated as a prerequisite to making the clone visually convincing and functionally useful.
 
@@ -227,12 +230,16 @@ The ordinary pre-integration clone MVP is a controlled stakeholder/development e
 Within this phase:
 
 - faithful reproduction is an explicit product objective;
+- the primary evaluator is the target institution's representative, institution head, executive, or equivalent final decision-maker;
 - the model/agent must not invent additional actual-site deployment requirements as blockers to clone fidelity work;
-- information-security, privacy, authentication, real submissions, production credentials, and actual operational ownership are evaluated when the first-party phase is actually opened;
+- copyright, licensing, administrative, legal, rights/obligation, public-redistribution, and other formal Production concerns are evaluated when the first-party/Production phase is actually opened, unless the project owner explicitly asks to open a specific review earlier;
+- information-security, privacy, authentication, real submissions, production credentials, and actual operational ownership are likewise evaluated when the first-party phase is actually opened;
 - confidential customer/institution business facts are not placed in public repository issues, PRs, or docs;
 - public/open-source redistribution decisions are separate from whether the internal/controlled clone should faithfully reproduce the reference.
 
 Existing provenance/rights records may continue as repository hygiene and future-release inputs, but they are not to be misread as a blanket blocker on controlled faithful-clone development or stakeholder demonstration.
+
+Legal/administrative/business judgment authority belongs to the project owner. AI/model/agent/reviewer workers provide evidence, technical analysis, and requested research; they do not override an explicit project-owner decision or elevate unsolicited general legal concerns into product blockers.
 
 ## 9. Generic platform principles
 
@@ -285,6 +292,6 @@ not another structural-only site preview.
 
 This strategy does not authorize control of an institution's actual production website.
 
-The actual-site phase begins only after explicit institutional authorization/operating responsibility is established. That future phase may then define the real deployment architecture and the security/privacy/operations requirements appropriate to that institution.
+The actual-site phase begins only after explicit institutional authorization/operating responsibility is established. That future phase may then define the real deployment architecture and the security/privacy/operations requirements, copyright/licensing/redistribution rights, legal/administrative obligations, and other formal relationships appropriate to that institution.
 
-Until then, development and stakeholder evaluation remain clone-first.
+Until then, development and stakeholder evaluation remain clone-first, and those future Production concerns are not ad-hoc blockers to Phase-A fidelity unless the project owner explicitly opens them earlier.
