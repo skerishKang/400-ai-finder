@@ -3,14 +3,25 @@
 Endpoint: POST {base_url}/v1/scrape
 Formats requested: markdown, html, links
 
-#1294 acquisition-scope boundary:
-The observable requested URL and the observable effective/final URL
-(``metadata.sourceURL`` -> ``FetchResult.url``) are enforced by the frozen
-acquisition policy at the caller boundary (HomepageMapper / DocumentEnricher);
-out-of-scope observable final results fail closed. Firecrawl does NOT expose
-its intermediate redirect chain, so the equivalent pre-dispatch hop-by-hop
-redirect host enforcement that RequestsFetchProvider performs is NOT claimed
-for the Firecrawl path.
+#1295 Dual URL Security Boundaries:
+1. Acquisition target URL (body.url):
+   Validated against the public egress policy before any request preparation
+   or network dispatch. Prohibited targets fail closed without requiring an
+   API key and are never placed in a request payload.
+2. Provider service endpoint (base_url / FIRECRAWL_BASE_URL):
+   The socket destination where `Authorization: Bearer <API_KEY>` is sent.
+   Ordinary operation is pinned strictly to the reviewed official Firecrawl
+   endpoint (https://api.firecrawl.dev). Unapproved arbitrary/private endpoints
+   fail closed before socket dispatch (POST count = 0), preventing credential
+   transmission. An explicit test seam (allow_test_endpoint=True) is available
+   for unit test harnesses only.
+
+Downstream sourceURL validation:
+The effective/final URL (metadata.sourceURL) is validated against both the
+#1294 acquisition policy and the #1295 egress policy before being trusted.
+Firecrawl internal redirect chains are not observable by this client, so
+identical per-hop redirect SSRF prevention as RequestsFetchProvider is NOT
+claimed.
 """
 
 from __future__ import annotations
@@ -26,6 +37,7 @@ except ImportError:
     req_lib = None  # type: ignore[assignment]
 
 from .base import FetchProvider, FetchResult
+from .egress_policy import PublicEgressPolicy, is_valid_firecrawl_service_endpoint
 
 
 class FirecrawlFetchProvider(FetchProvider):
@@ -36,6 +48,8 @@ class FirecrawlFetchProvider(FetchProvider):
         api_key: str | None = None,
         base_url: str | None = None,
         timeout: int | None = None,
+        egress_policy: PublicEgressPolicy | None = None,
+        allow_test_endpoint: bool = False,
     ):
         if req_lib is None:
             raise ImportError(
@@ -52,11 +66,57 @@ class FirecrawlFetchProvider(FetchProvider):
             or "https://api.firecrawl.dev"
         )
         self._timeout = timeout or _int_env("FIRECRAWL_TIMEOUT", 60)
+        self._egress_policy = egress_policy if egress_policy is not None else PublicEgressPolicy()
+        self._allow_test_endpoint = allow_test_endpoint
 
     def fetch(self, url: str, **kwargs: Any) -> FetchResult:
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        egress_policy = kwargs.get("egress_policy", self._egress_policy)
+        acquisition_policy = kwargs.get("acquisition_policy", None)
 
-        # --- Validate config before any network call ---
+        # --- Validate URL scheme ---
+        if not url or not url.startswith(("http://", "https://")):
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider=self.name,
+                fetched_at=now,
+                error="Invalid URL: must start with http:// or https://",
+            )
+
+        # --- Boundary A: Validate acquisition target URL (#1295) ---
+        if egress_policy is not None and not egress_policy.is_authorized(url):
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider=self.name,
+                fetched_at=now,
+                error="Target URL rejected by public egress policy",
+            )
+
+        if acquisition_policy is not None and not acquisition_policy.is_authorized(url):
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider=self.name,
+                fetched_at=now,
+                error="Target URL rejected by acquisition policy",
+            )
+
+        # --- Boundary B: Validate provider service endpoint (#1295) ---
+        is_valid_endpoint, endpoint_err = is_valid_firecrawl_service_endpoint(
+            self._base_url, allow_test_endpoint=self._allow_test_endpoint
+        )
+        if not is_valid_endpoint:
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider=self.name,
+                fetched_at=now,
+                error=f"Firecrawl service endpoint validation failed: {endpoint_err}",
+            )
+
+        # --- Validate API key before network dispatch ---
         if not self._api_key:
             return FetchResult(
                 url=url,
@@ -128,10 +188,21 @@ class FirecrawlFetchProvider(FetchProvider):
             )
 
         # --- Parse response ---
-        return self._parse_response(data, url, now)
+        return self._parse_response(
+            data,
+            url,
+            now,
+            egress_policy=egress_policy,
+            acquisition_policy=acquisition_policy,
+        )
 
     def _parse_response(
-        self, data: dict[str, Any], original_url: str, now: str
+        self,
+        data: dict[str, Any],
+        original_url: str,
+        now: str,
+        egress_policy: Any = None,
+        acquisition_policy: Any = None,
     ) -> FetchResult:
         success = data.get("success", False)
         if not success:
@@ -171,7 +242,30 @@ class FirecrawlFetchProvider(FetchProvider):
             )
 
         metadata = d.get("metadata", {}) or {}
-        final_url = metadata.get("sourceURL", original_url) or original_url
+        source_url = metadata.get("sourceURL")
+        if source_url:
+            # #1294 / #1295: validate downstream sourceURL before trusting
+            if acquisition_policy is not None and not acquisition_policy.is_authorized(source_url):
+                return FetchResult(
+                    url=original_url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error="Firecrawl returned out-of-scope sourceURL rejected by acquisition policy",
+                    raw=data,
+                )
+            if egress_policy is not None and not egress_policy.is_authorized(source_url):
+                return FetchResult(
+                    url=original_url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error="Firecrawl returned prohibited sourceURL rejected by public egress policy",
+                    raw=data,
+                )
+            final_url = source_url
+        else:
+            final_url = original_url
 
         # Parse links: Firecrawl returns string list, convert to dict list
         raw_links = d.get("links", []) or []

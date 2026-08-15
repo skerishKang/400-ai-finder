@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -17,14 +16,33 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.fetch import (
     FetchConfig,
-    FetchProvider,
     FetchResult,
-    MockFetchProvider,
-    RequestsFetchProvider,
     FirecrawlFetchProvider,
+    MockFetchProvider,
+    PublicEgressPolicy,
+    RequestsFetchProvider,
     get_fetch_provider,
     list_fetch_providers,
 )
+
+
+@pytest.fixture(autouse=True)
+def _mock_test_dns(monkeypatch):
+    """Ensure zero live DNS queries in unit tests."""
+    import socket
+
+    def _fake_getaddrinfo(host, port, *args, **kwargs):
+        h = str(host).lower().rstrip(".")
+        if h in ("localhost", "127.0.0.1", "::1"):
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port or 0))]
+        if "metadata" in h or h == "169.254.169.254":
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("169.254.169.254", port or 0))]
+        if "private" in h or "internal" in h or h in ("10.0.0.1", "192.168.1.1"):
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.1", port or 0))]
+        # Safe public IP by default for synthetic mock test domains
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port or 0))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo)
 
 
 # ======================================================================
@@ -1414,6 +1432,10 @@ class _FakeResp:
         self.text = "<html><head><title>T</title></head><body>ok</body></html>"
         self.encoding = "utf-8"
         self.apparent_encoding = "utf-8"
+        self._json_data = {}
+
+    def json(self):
+        return getattr(self, "_json_data", {})
 
 
 def _redirect_policy(allowed):
@@ -2142,3 +2164,408 @@ def test_redirect_multi_hop_same_origin_authorization_preserved_then_cross_origi
     assert call_log[1]["session_headers_before"].get("Authorization") == "Bearer persisted-token"
     # Hop 3 (other.example/final): cross-origin, Authorization stripped
     assert "Authorization" not in call_log[2]["session_headers_before"]
+
+
+# ======================================================================
+# #1295: SSRF-Safe Public Egress Policy Enforcement
+# ======================================================================
+
+class TestRequestsFetchProviderEgress:
+    """SSRF egress policy enforcement in RequestsFetchProvider."""
+
+    @pytest.mark.parametrize(
+        "prohibited_url",
+        [
+            "http://127.0.0.1:8080/admin",
+            "http://localhost:8000/status",
+            "http://169.254.169.254/latest/meta-data",
+            "http://10.0.0.1/secret",
+            "http://192.168.1.1/router",
+            "http://224.0.0.1/multicast",
+        ],
+    )
+    def test_requests_prohibited_initial_target_zero_network(self, prohibited_url):
+        """Prohibited initial targets fail closed before socket dispatch (call count == 0)."""
+        calls = []
+
+        def fake_get(url, **kwargs):
+            calls.append(url)
+            return _FakeResp(200, url=url)
+
+        with patch("requests.get", side_effect=fake_get), \
+             patch("requests.Session.get", side_effect=fake_get):
+            provider = RequestsFetchProvider(egress_policy=PublicEgressPolicy())
+            result = provider.fetch(prohibited_url)
+
+        assert calls == []
+        assert result.ok is False
+        assert "egress policy" in result.error.lower()
+
+    def test_requests_egress_only_redirect_to_private_destination_blocked_before_second_hop(self):
+        """Egress-only manual redirect: acquisition_policy is None, egress_policy is set.
+
+        302 redirect from public URL to private IP fails closed before second hop.
+        """
+        session_calls = []
+
+        class _RedirectSesh:
+            def __init__(self):
+                self.headers = {}
+                self.cookies = {}
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def get(self, url, **kwargs):
+                session_calls.append(url)
+                if len(session_calls) == 1:
+                    return _FakeResp(302, location="http://127.0.0.1:8080/secret", url=url)
+                return _FakeResp(200, url=url)
+
+        def mock_resolver(host):
+            if host in ("localhost", "127.0.0.1"):
+                return ["127.0.0.1"]
+            return ["93.184.216.34"]
+
+        ep = PublicEgressPolicy(resolver=mock_resolver)
+        with patch("requests.Session", return_value=_RedirectSesh()):
+            provider = RequestsFetchProvider(egress_policy=ep)
+            result = provider.fetch("https://example.com/start", acquisition_policy=None)
+
+        # Hop 1 dispatched (allow_redirects=False); Hop 2 to 127.0.0.1 blocked before dispatch
+        assert session_calls == ["https://example.com/start"]
+        assert result.ok is False
+        assert "egress policy" in result.error.lower()
+
+    def test_requests_dual_policy_both_must_pass(self):
+        """Dual policy: both SiteAcquisitionPolicy and PublicEgressPolicy must pass."""
+        from src.site_profiles.site_profile import SiteAcquisitionPolicy, SiteProfile
+        profile = SiteProfile({
+            "site_id": "synthetic",
+            "name": "Synthetic",
+            "base_url": "https://example.com/",
+            "allowed_domains": ["example.com"],
+        })
+        acq_policy = SiteAcquisitionPolicy(profile)
+
+        def mock_resolver(host):
+            if "private" in host or "127.0.0.1" in host:
+                return ["127.0.0.1"]
+            return ["93.184.216.34"]
+
+        egress_policy = PublicEgressPolicy(resolver=mock_resolver)
+
+        # Case 1: In acquisition scope, but private IP -> egress blocks
+        provider = RequestsFetchProvider(egress_policy=egress_policy)
+        res1 = provider.fetch("http://127.0.0.1:8080/", acquisition_policy=acq_policy)
+        assert res1.ok is False
+        assert "egress policy" in res1.error.lower()
+
+        # Case 2: Public IP, but outside acquisition scope -> scope blocks in redirect
+        session_calls = []
+        class _RedirectSesh:
+            def __init__(self):
+                self.headers = {}
+                self.cookies = {}
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def get(self, url, **kwargs):
+                session_calls.append(url)
+                if len(session_calls) == 1:
+                    return _FakeResp(302, location="https://evil.com/other", url=url)
+                return _FakeResp(200, url=url)
+
+        with patch("requests.Session", return_value=_RedirectSesh()):
+            res2 = provider.fetch("https://example.com/start", acquisition_policy=acq_policy)
+        assert session_calls == ["https://example.com/start"]
+        assert res2.ok is False
+        assert "acquisition policy" in res2.error.lower()
+
+    def test_requests_legacy_400_retry_reresolution_fail_closed(self):
+        """Legacy 400 retry: attempt 2 re-resolves and fails closed if IP becomes private."""
+        resolutions = [
+            ["93.184.216.34"],  # Attempt 1: public IP
+            ["127.0.0.1"],      # Attempt 2 (pre-retry resolution): loopback IP
+        ]
+        res_idx = [0]
+
+        def dynamic_resolver(host):
+            idx = res_idx[0]
+            res_idx[0] = min(idx + 1, len(resolutions) - 1)
+            return resolutions[idx]
+
+        egress_policy = PublicEgressPolicy(resolver=dynamic_resolver)
+        session_calls = []
+
+        class _FakeSesh:
+            def __init__(self):
+                self.headers = {}
+                self.cookies = {}
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def get(self, url, **kwargs):
+                session_calls.append(url)
+                return _FakeResp(400, url=url)
+
+        with patch("requests.Session", return_value=_FakeSesh()), \
+             patch("requests.get", side_effect=lambda url, **kw: _FakeResp(400, url=url)):
+            provider = RequestsFetchProvider(egress_policy=egress_policy)
+            result = provider.fetch("https://example.com/")
+
+        # Attempt 1 made and returned 400. Attempt 2 failed closed before dispatch due to 127.0.0.1.
+        assert len(session_calls) == 1
+        assert result.status_code == 400
+
+    def test_requests_fetchconfig_retry_reresolution_fail_closed(self):
+        """FetchConfig retry: re-resolves before attempt 2 and aborts if IP becomes private."""
+        resolutions = [
+            ["93.184.216.34"],  # Initial resolution
+            ["10.0.0.1"],       # Pre-attempt 2 resolution: private RFC1918
+        ]
+        res_idx = [0]
+
+        def dynamic_resolver(host):
+            idx = res_idx[0]
+            res_idx[0] = min(idx + 1, len(resolutions) - 1)
+            return resolutions[idx]
+
+        egress_policy = PublicEgressPolicy(resolver=dynamic_resolver)
+        session_calls = []
+
+        class _FakeSesh:
+            def __init__(self):
+                self.headers = {}
+                self.cookies = {}
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def get(self, url, **kwargs):
+                session_calls.append(url)
+                return _FakeResp(503, url=url)
+
+        config = FetchConfig(max_retries=2, retry_on_status=(503,), retry_backoff=0.0)
+
+        with patch("requests.Session", return_value=_FakeSesh()), \
+             patch("requests.get", side_effect=lambda url, **kw: _FakeResp(503, url=url)):
+            provider = RequestsFetchProvider(egress_policy=egress_policy)
+            result = provider.fetch("https://example.com/", config=config)
+
+        # Initial attempt made (returns 503). Attempt 2 re-resolves to 10.0.0.1 and aborts.
+        assert len(session_calls) == 1
+        assert result.ok is False
+        assert "egress" in result.error.lower() or "prohibited" in result.error.lower()
+
+
+class TestFirecrawlFetchProviderEgress:
+    """SSRF egress policy and service endpoint boundaries in FirecrawlFetchProvider."""
+
+    @pytest.mark.parametrize(
+        "prohibited_url",
+        [
+            "http://127.0.0.1:8000/doc",
+            "http://169.254.169.254/latest/meta-data",
+            "http://localhost:3000/",
+            "http://10.0.0.1/status",
+            "http://192.168.0.1/admin",
+        ],
+    )
+    def test_firecrawl_prohibited_target_zero_network_no_api_key_leak(self, prohibited_url):
+        """Prohibited target URL fails closed with 0 POST calls and before API key check."""
+        calls = []
+
+        def fake_post(endpoint, **kwargs):
+            calls.append(endpoint)
+            return _FakeResp(200, url=endpoint)
+
+        with patch("requests.post", side_effect=fake_post):
+            # Target validation fails closed first, even with empty API key
+            provider = FirecrawlFetchProvider(api_key="")
+            result = provider.fetch(prohibited_url)
+
+        assert calls == []
+        assert result.ok is False
+        assert "egress policy" in result.error.lower()
+
+    def test_firecrawl_default_service_endpoint_is_official(self):
+        """Default service endpoint remains pinned to official https://api.firecrawl.dev."""
+        provider = FirecrawlFetchProvider(api_key="fc-key")
+        assert provider._base_url == "https://api.firecrawl.dev"
+
+    @pytest.mark.parametrize(
+        "arbitrary_endpoint",
+        [
+            "http://127.0.0.1:8080",
+            "http://localhost:5000",
+            "https://evil-attacker.com",
+            "http://10.0.0.1:8080",
+            "http://169.254.169.254",
+        ],
+    )
+    def test_firecrawl_arbitrary_service_endpoint_blocked_zero_network(self, arbitrary_endpoint):
+        """Arbitrary/unapproved service endpoint fails closed before socket dispatch (0 POST calls)."""
+        calls = []
+
+        def fake_post(endpoint, **kwargs):
+            calls.append(endpoint)
+            return _FakeResp(200, url=endpoint)
+
+        with patch("requests.post", side_effect=fake_post):
+            provider = FirecrawlFetchProvider(
+                base_url=arbitrary_endpoint,
+                api_key="fc-secret-token",
+                allow_test_endpoint=False,
+            )
+            result = provider.fetch("https://example.com/")
+
+        # POST was never called — bearer token was never transmitted
+        assert calls == []
+        assert result.ok is False
+        assert "service endpoint validation failed" in result.error.lower()
+
+    def test_firecrawl_test_seam_allows_mock_endpoint(self):
+        """allow_test_endpoint=True permits local mock endpoint in test harnesses."""
+        calls = []
+
+        def fake_post(endpoint, **kwargs):
+            calls.append((endpoint, kwargs.get("json", {}), kwargs.get("headers", {})))
+            resp = _FakeResp(200, url=endpoint)
+            resp._json_data = {
+                "success": True,
+                "data": {
+                    "markdown": "# Mocked",
+                    "html": "<h1>Mocked</h1>",
+                    "metadata": {"sourceURL": "https://example.com/page"},
+                },
+            }
+            return resp
+
+        def mock_resolver(host):
+            return ["93.184.216.34"]
+
+        with patch("requests.post", side_effect=fake_post):
+            provider = FirecrawlFetchProvider(
+                base_url="http://127.0.0.1:8080",
+                api_key="fc-test-key",
+                allow_test_endpoint=True,
+                egress_policy=PublicEgressPolicy(resolver=mock_resolver),
+            )
+            result = provider.fetch("https://example.com/page")
+
+        assert len(calls) == 1
+        assert calls[0][0] == "http://127.0.0.1:8080/v1/scrape"
+        assert result.ok is True
+        assert result.url == "https://example.com/page"
+
+    def test_firecrawl_downstream_source_url_egress_and_scope_validation(self):
+        """Downstream sourceURL pointing to prohibited or out-of-scope host fails closed."""
+        def fake_post(endpoint, **kwargs):
+            resp = _FakeResp(200, url=endpoint)
+            resp._json_data = {
+                "success": True,
+                "data": {
+                    "markdown": "# Metadata Leak",
+                    "metadata": {"sourceURL": "http://169.254.169.254/latest/meta-data"},
+                },
+            }
+            return resp
+
+        def mock_resolver(host):
+            return ["93.184.216.34"]
+
+        with patch("requests.post", side_effect=fake_post):
+            provider = FirecrawlFetchProvider(
+                api_key="fc-test-key",
+                allow_test_endpoint=True,
+                base_url="http://127.0.0.1:8080",
+                egress_policy=PublicEgressPolicy(resolver=mock_resolver),
+            )
+            result = provider.fetch("https://example.com/page")
+
+        assert result.ok is False
+        assert "sourceurl rejected by public egress policy" in result.error.lower()
+
+
+class TestPipelineEgressIntegration:
+    """Integration of egress policy into URLCrawler, HomepageMapper, and DocumentEnricher."""
+
+    def test_pipeline_runner_mock_offline_path_zero_resolver_calls(self, tmp_path):
+        """Mock/offline pipeline path performs zero resolver calls (#1295)."""
+        from src.pipeline.pipeline_runner import PipelineRunner
+        resolver_calls = []
+
+        def counting_resolver(host):
+            resolver_calls.append(host)
+            return ["93.184.216.34"]
+
+        ep = PublicEgressPolicy(resolver=counting_resolver)
+        runner = PipelineRunner(output_dir=str(tmp_path), fetch_provider="mock", egress_policy=ep)
+        resolved = runner._resolve_egress_policy()
+        assert resolved is ep
+        assert resolver_calls == []
+
+    def test_document_enricher_mock_offline_path_zero_resolver_calls(self, monkeypatch):
+        """Mock/offline DocumentEnricher path performs zero resolver calls (#1295)."""
+        from unittest.mock import MagicMock
+
+        from src.crawler.url_crawler import URLCrawler
+        from src.indexer.document_enricher import DocumentEnricher
+
+        resolver_calls = []
+
+        def counting_resolver(host):
+            resolver_calls.append(host)
+            return ["93.184.216.34"]
+
+        ep = PublicEgressPolicy(resolver=counting_resolver)
+        mock_analyze = MagicMock(return_value={
+            "status_code": 200,
+            "content_type": "text/html",
+            "title": "Mocked",
+            "text": "Content",
+            "errors": [],
+        })
+        monkeypatch.setattr(URLCrawler, "analyze", mock_analyze)
+
+        enricher = DocumentEnricher(egress_policy=ep)
+        docs = [{"id": "doc-1", "url": "https://example.com/page", "content_type": "page", "metadata": {}}]
+        enriched = enricher.enrich_records(docs)
+
+        assert len(enriched) == 1
+        assert enriched[0]["metadata"]["fetch_status"] == "fetched"
+        assert resolver_calls == []
+
+    def test_url_crawler_egress_policy_blocks_private_target(self):
+        from src.crawler.url_crawler import URLCrawler
+        calls = []
+
+        def fake_get(url, **kwargs):
+            calls.append(url)
+            return _FakeResp(200, url=url)
+
+        with patch("requests.get", side_effect=fake_get):
+            crawler = URLCrawler(egress_policy=PublicEgressPolicy())
+            result = crawler.analyze("http://127.0.0.1:8080/doc")
+
+        assert calls == []
+        assert any("egress" in e.lower() for e in result["errors"])
+
+    def test_homepage_mapper_fetch_content_blocks_private_url(self):
+        from src.crawler.homepage_mapper import HomepageMapper
+        mapper = HomepageMapper(egress_policy=PublicEgressPolicy())
+        content, err, _status, _final_url = mapper.fetch_content("http://127.0.0.1:8080/")
+        assert content is None
+        assert err is not None
+        assert "egress blocked" in err.lower() or "egress" in err.lower()
+
+    def test_pipeline_runner_wires_egress_policy(self, tmp_path):
+        from src.pipeline.pipeline_runner import PipelineRunner
+        runner = PipelineRunner(output_dir=str(tmp_path))
+        resolved_ep = runner._resolve_egress_policy()
+        assert resolved_ep is not None
+        assert resolved_ep.is_authorized("https://example.com/") is True
+        assert resolved_ep.is_authorized("http://127.0.0.1/") is False

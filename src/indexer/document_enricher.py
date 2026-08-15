@@ -1,19 +1,29 @@
 import datetime
 from src.crawler.url_crawler import URLCrawler
+from src.fetch import PublicEgressPolicy
 
 
 class DocumentEnricher:
-    def __init__(self, timeout=15, user_agent=None, acquisition_policy=None):
+    def __init__(
+        self,
+        timeout=15,
+        user_agent=None,
+        acquisition_policy=None,
+        egress_policy=None,
+    ):
         # #1294: when set, the frozen acquisition policy is propagated to the
         # URLCrawler (which forwards it to the fetch provider for redirect
         # host containment) and used to reject out-of-scope record URLs before
         # any crawler/network dispatch. None preserves the historical
         # unrestricted behavior for non-acquisition callers.
         self.acquisition_policy = acquisition_policy
+        # #1295: SSRF-safe public egress policy.
+        self.egress_policy = egress_policy
         self.crawler = URLCrawler(
             timeout=timeout,
             user_agent=user_agent,
             acquisition_policy=acquisition_policy,
+            egress_policy=self.egress_policy,
         )
 
     def _enrich_page(self, new_doc, url, max_chars):
