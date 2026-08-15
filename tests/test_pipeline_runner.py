@@ -16,6 +16,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.pipeline.pipeline_runner import PipelineRunner, make_default_output_dir
+from src.site_profiles.site_profile import SiteProfile
 from tests.helpers.pipeline_fakes import (
     FAKE_ANSWER_RESULT,
     FAKE_DOCS,
@@ -488,3 +489,153 @@ class TestPipelineCrawlFilters:
             "protected_patterns": ["mid="]
         }
         assert result["ok"] is True
+
+
+# ------------------------------------------------------------------
+# #1292: harden PipelineRunner._resolve_site_id — fail-closed ambiguity.
+# Reuses the synthetic SiteProfile + SiteProfileLoader monkeypatch pattern
+# already present in TestPipelineCrawlFilters. No real loader, no network,
+# no provider/API calls.
+# ------------------------------------------------------------------
+
+class _FakeProfileLoader:
+    """Synthetic SiteProfileLoader to exercise _resolve_site_id offline.
+
+    ``list_ids`` enumerates ``spec`` keys in ``order``; ``load_by_id``
+    returns the held :class:`SiteProfile`, or raises the held exception
+    (fail-soft simulation) when the spec value is an ``Exception``.
+    """
+
+    def __init__(self, spec: dict, order: list[str] | None = None):
+        self._spec = dict(spec)
+        self._order = list(order) if order is not None else list(spec.keys())
+
+    def list_ids(self):
+        return list(self._order)
+
+    def load_by_id(self, sid: str):
+        if sid not in self._spec:
+            raise FileNotFoundError(sid)
+        value = self._spec[sid]
+        if isinstance(value, Exception):
+            raise value
+        return value
+
+
+class TestResolveSiteId:
+    """#1292 / no network. _resolve_site_id ambiguity + order-independence."""
+
+    @staticmethod
+    def _profile(site_id: str, allowed: list[str]) -> SiteProfile:
+        return SiteProfile({
+            "site_id": site_id,
+            "name": site_id,
+            "base_url": "https://%s/" % allowed[0],
+            "allowed_domains": list(allowed),
+        })
+
+    @staticmethod
+    def _patch_loader(monkeypatch, loader: _FakeProfileLoader):
+        from src.site_profiles import site_profile as sp
+        monkeypatch.setattr(sp, "SiteProfileLoader", lambda: loader)
+
+    def _runner(self, tmp_output_dir: str) -> PipelineRunner:
+        return PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+
+    def test_exactly_one_match_returns_site_id(self, monkeypatch, tmp_output_dir):
+        a = self._profile("alpha", ["alpha.example"])
+        b = self._profile("beta", ["beta.example"])
+        loader = _FakeProfileLoader({"alpha": a, "beta": b})
+        self._patch_loader(monkeypatch, loader)
+        runner = self._runner(tmp_output_dir)
+        assert runner._resolve_site_id("https://alpha.example/") == "alpha"
+
+    def test_no_match_returns_none(self, monkeypatch, tmp_output_dir):
+        a = self._profile("alpha", ["alpha.example"])
+        b = self._profile("beta", ["beta.example"])
+        loader = _FakeProfileLoader({"alpha": a, "beta": b})
+        self._patch_loader(monkeypatch, loader)
+        runner = self._runner(tmp_output_dir)
+        assert runner._resolve_site_id("https://other.example/") is None
+
+    def test_two_matching_profiles_returns_none(self, monkeypatch, tmp_output_dir):
+        # Both profiles match the same URL -> ambiguous -> fail closed.
+        a = self._profile("alpha", ["shared.example"])
+        b = self._profile("beta", ["shared.example"])
+        loader = _FakeProfileLoader({"alpha": a, "beta": b})
+        self._patch_loader(monkeypatch, loader)
+        runner = self._runner(tmp_output_dir)
+        assert runner._resolve_site_id("https://shared.example/") is None
+
+    def test_ambiguous_independent_of_iteration_order(
+        self, monkeypatch, tmp_output_dir
+    ):
+        a = self._profile("alpha", ["shared.example"])
+        b = self._profile("beta", ["shared.example"])
+        from src.site_profiles import site_profile as sp
+
+        monkeypatch.setattr(
+            sp, "SiteProfileLoader",
+            lambda: _FakeProfileLoader({"alpha": a, "beta": b}, order=["alpha", "beta"]),
+        )
+        fwd = self._runner(tmp_output_dir)
+        assert fwd._resolve_site_id("https://shared.example/") is None
+
+        monkeypatch.setattr(
+            sp, "SiteProfileLoader",
+            lambda: _FakeProfileLoader({"alpha": a, "beta": b}, order=["beta", "alpha"]),
+        )
+        rev = self._runner(tmp_output_dir)
+        assert rev._resolve_site_id("https://shared.example/") is None
+
+    def test_load_exception_plus_one_valid_match_deterministic(
+        self, monkeypatch, tmp_output_dir
+    ):
+        # One valid match + one profile that raises on load (fail-soft skip)
+        # must still resolve deterministically to the single valid site_id.
+        good = self._profile("alpha", ["alpha.example"])
+        boom = RuntimeError("load failed")
+        loader = _FakeProfileLoader({"alpha": good, "beta": boom})
+        self._patch_loader(monkeypatch, loader)
+        runner = self._runner(tmp_output_dir)
+        assert runner._resolve_site_id("https://alpha.example/") == "alpha"
+
+    def test_exception_then_valid_same_as_valid_then_exception(
+        self, monkeypatch, tmp_output_dir
+    ):
+        # Order of (exception vs valid) must not change the deterministic result.
+        good = self._profile("alpha", ["alpha.example"])
+        boom = RuntimeError("load failed")
+        from src.site_profiles import site_profile as sp
+
+        monkeypatch.setattr(
+            sp, "SiteProfileLoader",
+            lambda: _FakeProfileLoader({"alpha": good, "beta": boom}, order=["alpha", "beta"]),
+        )
+        fwd = self._runner(tmp_output_dir)
+        monkeypatch.setattr(
+            sp, "SiteProfileLoader",
+            lambda: _FakeProfileLoader({"alpha": good, "beta": boom}, order=["beta", "alpha"]),
+        )
+        rev = self._runner(tmp_output_dir)
+        assert fwd._resolve_site_id("https://alpha.example/") == "alpha"
+        assert rev._resolve_site_id("https://alpha.example/") == "alpha"
+
+    def test_no_network_calls(self, monkeypatch, tmp_output_dir):
+        # Fully synthetic loader: resolution must not require any network
+        # egress. Patching urlopen to explode proves no provider/API/fetch
+        # call is made by _resolve_site_id.
+        import urllib.request
+
+        def _boom(*_a, **_k):
+            raise RuntimeError("UNEXPECTED NETWORK CALL")
+
+        monkeypatch.setattr(urllib.request, "urlopen", _boom)
+
+        a = self._profile("alpha", ["alpha.example"])
+        b = self._profile("beta", ["beta.example"])
+        loader = _FakeProfileLoader({"alpha": a, "beta": b})
+        self._patch_loader(monkeypatch, loader)
+        runner = self._runner(tmp_output_dir)
+        assert runner._resolve_site_id("https://alpha.example/") == "alpha"
+        assert runner._resolve_site_id("https://other.example/") is None
