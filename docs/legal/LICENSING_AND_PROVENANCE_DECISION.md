@@ -3,6 +3,7 @@
 - 상태: `active-plan`
 - 기준일: 2026-08-04
 - 관련 이슈: #1234
+- clone fidelity invariant: [`../product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md)
 
 ## 1. 현재 판정
 
