@@ -44,6 +44,14 @@ jobs:
             tests/test_url_crawler.py \
             tests/test_homepage_mapper.py
 
+      - name: Run acquisition-scope contract suites (#1294)
+        run: |
+          python -m pytest -q \
+            tests/test_fetch_providers.py \
+            tests/test_document_enricher.py \
+            tests/test_pipeline_runner.py \
+            tests/test_site_profile.py
+
   snapshot-provenance:
     runs-on: ubuntu-latest
     timeout-minutes: 6

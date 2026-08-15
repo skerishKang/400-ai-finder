@@ -166,3 +166,185 @@ def test_limit_processing(monkeypatch):
     assert res[1]["metadata"]["fetch_status"] == "skipped"
     assert res[2]["metadata"]["fetch_status"] == "not_processed"
     assert res[3]["metadata"]["fetch_status"] == "not_processed"
+
+
+# ======================================================================
+# #1294: Stage-4 acquisition-scope containment (DocumentEnricher)
+# Offline/deterministic: crawler.analyze is faked; no network/provider.
+# ======================================================================
+
+def _enricher_scope_policy(allowed):
+    from src.site_profiles.site_profile import SiteAcquisitionPolicy, SiteProfile
+    profile = SiteProfile({
+        "site_id": "synthetic",
+        "name": "Synthetic",
+        "base_url": "https://%s/" % allowed[0],
+        "allowed_domains": list(allowed),
+    })
+    return SiteAcquisitionPolicy(profile)
+
+
+def _page_doc(url, doc_id="doc-x"):
+    return {
+        "id": doc_id,
+        "url": url,
+        "content_type": "page",
+        "metadata": {},
+    }
+
+
+def test_enricher_external_record_url_zero_crawler_and_provider_calls(monkeypatch):
+    mock_analyze = MagicMock(return_value={"status_code": 200, "errors": []})
+    monkeypatch.setattr(URLCrawler, "analyze", mock_analyze)
+
+    policy = _enricher_scope_policy(["bukgu.gwangju.kr"])
+    enricher = DocumentEnricher(acquisition_policy=policy)
+    docs = [_page_doc("https://evil.example/notice", "doc-000001")]
+
+    res = enricher.enrich_records(docs)
+
+    mock_analyze.assert_not_called()
+    assert res[0]["metadata"]["fetch_status"] == "out_of_scope"
+    assert "outside the active-site acquisition scope" in res[0]["metadata"]["fetch_error"]
+    assert res[0].get("text") in (None, "")
+
+
+def test_enricher_external_record_url_never_dispatches_network(monkeypatch):
+    # Even if analyze were wired to a provider, the scope gate must prevent it.
+    import urllib.request
+
+    def _boom(*_a, **_k):
+        raise RuntimeError("UNEXPECTED NETWORK CALL")
+
+    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+
+    mock_analyze = MagicMock(return_value={"status_code": 200, "errors": []})
+    monkeypatch.setattr(URLCrawler, "analyze", mock_analyze)
+
+    policy = _enricher_scope_policy(["bukgu.gwangju.kr"])
+    enricher = DocumentEnricher(acquisition_policy=policy)
+    res = enricher.enrich_records([_page_doc("https://evil.example/page")])
+
+    mock_analyze.assert_not_called()
+    assert res[0]["metadata"]["fetch_status"] == "out_of_scope"
+
+
+def test_enricher_allowed_record_url_fetches_offline_fake(monkeypatch):
+    mock_analyze = MagicMock(return_value={
+        "url": "https://bukgu.gwangju.kr/notice",
+        "status_code": 200,
+        "content_type": "text/html",
+        "title": "Notice",
+        "text": "content",
+        "errors": [],
+    })
+    monkeypatch.setattr(URLCrawler, "analyze", mock_analyze)
+
+    policy = _enricher_scope_policy(["bukgu.gwangju.kr"])
+    enricher = DocumentEnricher(acquisition_policy=policy)
+    res = enricher.enrich_records([_page_doc("https://bukgu.gwangju.kr/notice", "doc-000001")])
+
+    mock_analyze.assert_called_once()
+    assert res[0]["metadata"]["fetch_status"] == "fetched"
+    assert res[0]["title"] == "Notice"
+
+
+def test_enricher_allowed_requested_final_external_rejected(monkeypatch):
+    # Requested URL is in-scope, but the observable final URL left the scope.
+    mock_analyze = MagicMock(return_value={
+        "url": "https://evil.example/final",
+        "status_code": 200,
+        "content_type": "text/html",
+        "title": "Evil",
+        "text": "external content",
+        "errors": [],
+    })
+    monkeypatch.setattr(URLCrawler, "analyze", mock_analyze)
+
+    policy = _enricher_scope_policy(["bukgu.gwangju.kr"])
+    enricher = DocumentEnricher(acquisition_policy=policy)
+    res = enricher.enrich_records([_page_doc("https://bukgu.gwangju.kr/notice", "doc-000001")])
+
+    mock_analyze.assert_called_once()
+    assert res[0]["metadata"]["fetch_status"] == "out_of_scope"
+    assert "Effective fetch URL is outside" in res[0]["metadata"]["fetch_error"]
+    # external content is never trusted as enrichment
+    assert res[0].get("text") in (None, "")
+
+
+def test_enricher_allowed_requested_same_final_ok(monkeypatch):
+    mock_analyze = MagicMock(return_value={
+        "url": "https://bukgu.gwangju.kr/notice",
+        "status_code": 200,
+        "errors": [],
+        "text": "fine",
+    })
+    monkeypatch.setattr(URLCrawler, "analyze", mock_analyze)
+
+    policy = _enricher_scope_policy(["bukgu.gwangju.kr"])
+    enricher = DocumentEnricher(acquisition_policy=policy)
+    res = enricher.enrich_records([_page_doc("https://bukgu.gwangju.kr/notice", "doc-000001")])
+
+    assert res[0]["metadata"]["fetch_status"] == "fetched"
+
+
+# ======================================================================
+# #1294 V3: attachment containment regression
+# ======================================================================
+
+
+def test_attachment_out_of_scope_still_skipped_not_rejected():
+    """Attachment content_type filter takes priority over acquisition scope:
+    an out-of-scope attachment URL is skipped (not scope-rejected) because
+    attachments are never dispatched to the crawler/provider."""
+    policy = _enricher_scope_policy(["bukgu.gwangju.kr"])
+    enricher = DocumentEnricher(acquisition_policy=policy)
+    docs = [{
+        "id": "doc-x",
+        "url": "https://evil.example/files/doc.pdf",
+        "content_type": "attachment",
+        "metadata": {"file_type": "pdf"},
+    }]
+    res = enricher.enrich_records(docs)
+    assert res[0]["metadata"]["fetch_status"] == "skipped"
+    assert "attachment" in res[0]["metadata"]["fetch_error"].lower()
+
+
+# ======================================================================
+# #1294 V3: rejection observability
+# ======================================================================
+
+
+def test_enricher_pre_dispatch_rejection_http_status_and_content_type_empty():
+    """Pre-dispatch out-of-scope rejection sets http_status and
+    response_content_type to empty strings (no fetch was made)."""
+    policy = _enricher_scope_policy(["bukgu.gwangju.kr"])
+    enricher = DocumentEnricher(acquisition_policy=policy)
+    res = enricher.enrich_records([_page_doc("https://evil.example/notice")])
+    assert res[0]["metadata"]["fetch_status"] == "out_of_scope"
+    assert res[0]["metadata"]["http_status"] == ""
+    assert res[0]["metadata"]["response_content_type"] == ""
+    assert res[0]["metadata"]["fetched_at"] == ""
+
+
+def test_enricher_post_fetch_rejection_preserves_observed_http_and_content_type(monkeypatch):
+    """Post-fetch out-of-scope rejection preserves the HTTP status and
+    content type observed during the fetch in the metadata."""
+    mock_analyze = MagicMock(return_value={
+        "url": "https://evil.example/final",
+        "status_code": 200,
+        "content_type": "text/html",
+        "title": "Evil",
+        "errors": [],
+    })
+    monkeypatch.setattr(URLCrawler, "analyze", mock_analyze)
+
+    policy = _enricher_scope_policy(["bukgu.gwangju.kr"])
+    enricher = DocumentEnricher(acquisition_policy=policy)
+    res = enricher.enrich_records([_page_doc("https://bukgu.gwangju.kr/start")])
+
+    assert res[0]["metadata"]["fetch_status"] == "out_of_scope"
+    assert "Effective fetch URL" in res[0]["metadata"]["fetch_error"]
+    assert res[0]["metadata"]["http_status"] == 200
+    assert res[0]["metadata"]["response_content_type"] == "text/html"
+    assert res[0]["metadata"]["fetched_at"] == ""

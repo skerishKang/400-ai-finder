@@ -19,6 +19,7 @@ class URLCrawler:
         fetch_provider=None,
         crawl_filters: dict | None = None,
         fetch_config: FetchConfig | None = None,
+        acquisition_policy=None,
     ):
         self.timeout = timeout
         self.user_agent = user_agent or (
@@ -31,6 +32,10 @@ class URLCrawler:
         self.fetch_provider = self._resolve_fetch_provider(fetch_provider)
         self.crawl_filters = crawl_filters
         self.fetch_config = fetch_config
+        # #1294 policy seam: forwarded to the fetch provider so redirect
+        # next-targets are host-authorized before dispatch. None preserves the
+        # historical unrestricted behavior.
+        self.acquisition_policy = acquisition_policy
 
     @staticmethod
     def _resolve_fetch_provider(fp):
@@ -208,13 +213,15 @@ class URLCrawler:
         the crawler shares one HTTP path.
         """
         provider = RequestsFetchProvider()
-        return provider.fetch(
-            url,
-            compatibility_mode=True,
-            legacy_transport=True,
-            headers=self.headers,
-            timeout=self.timeout,
-        )
+        legacy_kwargs = {
+            "compatibility_mode": True,
+            "legacy_transport": True,
+            "headers": self.headers,
+            "timeout": self.timeout,
+        }
+        if self.acquisition_policy is not None:
+            legacy_kwargs["acquisition_policy"] = self.acquisition_policy
+        return provider.fetch(url, **legacy_kwargs)
 
     def _analyze_original(self, url, max_chars):
         result = {
@@ -351,9 +358,15 @@ class URLCrawler:
         # Use fetch_provider
         try:
             if self.fetch_config is not None and isinstance(self.fetch_provider, RequestsFetchProvider):
-                fetch_result = self.fetch_provider.fetch(url, config=self.fetch_config)
+                fetch_kwargs = {"config": self.fetch_config}
+                if self.acquisition_policy is not None:
+                    fetch_kwargs["acquisition_policy"] = self.acquisition_policy
+                fetch_result = self.fetch_provider.fetch(url, **fetch_kwargs)
             else:
-                fetch_result = self.fetch_provider.fetch(url, timeout=self.timeout)
+                fetch_kwargs = {"timeout": self.timeout}
+                if self.acquisition_policy is not None:
+                    fetch_kwargs["acquisition_policy"] = self.acquisition_policy
+                fetch_result = self.fetch_provider.fetch(url, **fetch_kwargs)
         except Exception as e:
             result["errors"].append(f"Fetch provider error: {str(e)}")
             return result

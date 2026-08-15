@@ -1072,3 +1072,49 @@ class TestMatchUrlHardened:
         p = self._profile(["bukgu.gwangju.kr"])
         result = p.match_url("https://exa\uff0fmple.com/")
         assert result is False
+
+
+class TestSiteAcquisitionPolicy:
+    """#1294: the frozen acquisition policy reuses exact-host match_url."""
+
+    @staticmethod
+    def _policy(allowed):
+        from src.site_profiles.site_profile import SiteAcquisitionPolicy
+        p = SiteProfile({
+            "site_id": "synthetic",
+            "name": "Synthetic",
+            "base_url": "https://%s/" % allowed[0],
+            "allowed_domains": list(allowed),
+        })
+        return SiteAcquisitionPolicy(p)
+
+    def test_allows_exact_allowed_host(self):
+        policy = self._policy(["bukgu.gwangju.kr", "alias.gwangju.kr"])
+        assert policy.is_authorized("https://bukgu.gwangju.kr/notice") is True
+        assert policy.is_authorized("https://alias.gwangju.kr/x") is True
+
+    def test_rejects_attacker_suffix(self):
+        policy = self._policy(["bukgu.gwangju.kr"])
+        assert policy.is_authorized("https://bukgu.gwangju.kr.evil.example/") is False
+
+    def test_rejects_implicit_subdomain_and_www(self):
+        policy = self._policy(["bukgu.gwangju.kr"])
+        assert policy.is_authorized("https://foo.bukgu.gwangju.kr/") is False
+        assert policy.is_authorized("https://www.bukgu.gwangju.kr/") is False
+
+    def test_rejects_path_query_domain_spoof(self):
+        policy = self._policy(["bukgu.gwangju.kr"])
+        assert policy.is_authorized("https://evil.example/path/bukgu.gwangju.kr") is False
+        assert policy.is_authorized("https://evil.example/?next=bukgu.gwangju.kr") is False
+
+    def test_fails_closed_on_malformed(self):
+        policy = self._policy(["bukgu.gwangju.kr"])
+        assert policy.is_authorized("https://[::1") is False
+        assert policy.is_authorized("not-a-url") is False
+        assert policy.is_authorized(None) is False
+        assert policy.is_authorized("https://exa\uff0fmple.com/") is False
+
+    def test_allowed_domains_are_frozen(self):
+        policy = self._policy(["bukgu.gwangju.kr"])
+        assert policy.allowed_domains == ["bukgu.gwangju.kr"]
+        assert policy.profile is not None
