@@ -385,6 +385,45 @@ class SiteProfile:
         return False
 
 
+class SiteAcquisitionPolicy:
+    """Frozen acquisition-scope authorizer derived from a resolved site profile.
+
+    #1294: once the active site profile is resolved for a pipeline run, every
+    subsequent acquisition step (homepage, robots, sitemap, navigation, page
+    enrichment, redirect hops) must stay inside the *same* explicit host
+    policy. This object freezes that policy for the run and reuses the #1292
+    exact-host ``SiteProfile.match_url`` semantics — no permissive substring,
+    suffix, implicit subdomain, or implicit ``www``/apex equivalence.
+
+    ``is_authorized(url)`` is the single decision point for every URL in the
+    acquisition flow (requested, effective/final, redirect next-target).
+    """
+
+    def __init__(self, profile: "SiteProfile") -> None:
+        self._profile = profile
+        self._allowed = list(profile.allowed_domains)
+
+    @property
+    def profile(self) -> "SiteProfile":
+        return self._profile
+
+    @property
+    def allowed_domains(self) -> list[str]:
+        return list(self._allowed)
+
+    def is_authorized(self, url: str) -> bool:
+        """Return True iff *url*'s host is an exact allowed host member.
+
+        Delegates to :meth:`SiteProfile.match_url`, which is the single
+        #1292 exact-host ownership decision. Malformed/non-URL inputs fail
+        closed (False) and never raise.
+        """
+        try:
+            return self._profile.match_url(url)
+        except Exception:
+            return False
+
+
 # ------------------------------------------------------------------
 # Loader
 # ------------------------------------------------------------------

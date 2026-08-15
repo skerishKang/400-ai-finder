@@ -41,6 +41,7 @@ EXPECTED_TIMEOUT_MINUTES = {
 
 EXPECTED_TEST_STEPS = {
     "Run MVP contract pytest suite",
+    "Run acquisition-scope contract suites (#1294)",
     "Run canonical official snapshot contracts",
     "Run Buk-gu golden docs contract (#1188)",
     "Run site adapter contract matrix (#1221)",

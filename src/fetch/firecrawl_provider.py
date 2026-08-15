@@ -2,6 +2,15 @@
 
 Endpoint: POST {base_url}/v1/scrape
 Formats requested: markdown, html, links
+
+#1294 acquisition-scope boundary:
+The observable requested URL and the observable effective/final URL
+(``metadata.sourceURL`` -> ``FetchResult.url``) are enforced by the frozen
+acquisition policy at the caller boundary (HomepageMapper / DocumentEnricher);
+out-of-scope observable final results fail closed. Firecrawl does NOT expose
+its intermediate redirect chain, so the equivalent pre-dispatch hop-by-hop
+redirect host enforcement that RequestsFetchProvider performs is NOT claimed
+for the Firecrawl path.
 """
 
 from __future__ import annotations
