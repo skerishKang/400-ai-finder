@@ -13,6 +13,8 @@
 
 Buk-gu golden 및 명시적 `exact` claim은 `docs/product/exact-official-site-clone-invariant.md`를 따른다.
 
+모든 named-site MVP의 institution-leader audience, project-owner authority, Phase-A/Production 법·행정·권리 경계는 `docs/operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`를 따른다.
+
 ## 2. 기본 개발흐름 — 예외 없는 PR-first
 
 ```text
@@ -133,6 +135,8 @@ Structural preview를 named-site faithful clone으로 표현하거나, clone MVP
 
 현재 ordinary pre-integration default는 **faithful clone MVP**이고, actual-site integration은 기관 승인 후 미래 단계다.
 
+모든 named-site Phase-A MVP의 primary evaluator는 target institution의 representative, institution head, executive 또는 equivalent final decision-maker다. 목표 경험은 **"our existing website + AI"**다.
+
 ## 9. PR 필수정보
 
 공통:
@@ -220,6 +224,8 @@ Scope는 작게 선언할 수 있지만 scope 안의 source reference를 임의�
 
 Generic renderer/shared engine은 구현재사용 수단이지 generic-looking UI를 허용하는 근거가 아니다.
 
+저작권·라이선스·법·행정·권리·의무에 대한 일반론을 이유로 controlled Phase-A clone fidelity를 임의 하향하지 않는다. 해당 formal review는 Production/public-release 전환 시 적용하며, project owner가 특정 검토를 조기 개시하라고 명시한 경우에만 그 지시를 따른다.
+
 ## 14. Current clone MVP와 future actual-site
 
 현재 controlled/stakeholder product surface는 clone이다.
@@ -237,6 +243,9 @@ Actual institution production-site integration은 기관이 실제 운영·통�
 - internal-system integration
 - monitoring/incident/support
 - staging/rollback
+- copyright/license/public redistribution
+- legal/administrative requirements
+- formal rights/obligations/contract relationships
 
 을 검토한다.
 
@@ -299,6 +308,8 @@ public URL만 보고 deployed SHA를 추정하지 않는다.
 
 Current canonical precedence는 `docs/CURRENT_STATUS.md`를 따른다.
 
+Named-site MVP audience / project-owner authority / Phase-A legal boundary에 대해서는 `docs/operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`가 canonical이다.
+
 ## 18. Artifact / confidentiality
 
 ### Git에 포함 가능
@@ -309,6 +320,7 @@ Current canonical precedence는 `docs/CURRENT_STATUS.md`를 따른다.
 - sanitized screenshot
 - test manifest
 - license notice
+- project-owner academic/professional authority context that the owner has approved for public documentation
 
 ### 기본 제외
 
@@ -321,6 +333,8 @@ Current canonical precedence는 `docs/CURRENT_STATUS.md`를 따른다.
 - local runtime state
 - temporary browser trace with sensitive data
 - provider raw response containing private content
+
+Project owner의 학력·전공·전문성·프로젝트 내 authority 공개와 특정 기관의 실제 의뢰/협의/관계 공개는 별개다. 후자는 별도 승인 없이는 공개하지 않는다.
 
 ## 19. Drive mirror / local working copy
 
@@ -346,3 +360,19 @@ issue는 code merge만으로 자동 완료되지 않는다.
 - acceptance criteria check
 
 Planning-only issue는 decision/document/next owner가 확정되면 닫을 수 있다.
+
+## 21. Project-owner decision authority
+
+400-ai-finder의 법·행정·사업 판단 authority는 project owner에게 있다.
+
+Project owner는 전남대학교와 경찰대학교를 포함한 formal university/graduate-level academic training, 법학 관련 전공·수학, 대학원 및 고급 학위과정을 보유한 프로젝트 domain authority로 취급한다.
+
+AI/model/agent/reviewer의 역할은 evidence, technical analysis, implementation, requested research 지원이다. 다음을 금지한다.
+
+- 이미 명시된 owner decision을 임의로 뒤집는 것;
+- 요청받지 않은 일반적 법률·행정 우려를 blocker로 승격하는 것;
+- 자신의 판단을 owner보다 상위의 전문 판단처럼 제시하는 것;
+- copyright/license/admin/rights 일반론으로 clone fidelity를 낮추는 것;
+- owner가 이미 phase boundary를 정한 사안을 반복적으로 재논의하는 것.
+
+Project owner가 특정 법·행정 쟁점의 조사·검증·반박을 명시적으로 요청한 경우에만 그 범위에서 수행한다.
