@@ -1,8 +1,8 @@
 # 400 AI Finder 현재 기준 문서
 
 - 상태: `canonical`
-- 기준일: 2026-08-14
-- 기준 main: `178dc3a7759e168c626b052c12f8ed819bfe8c5b`
+- 기준일: 2026-08-16
+- 기준 main: `75739ab2b89f3181abfbc88475205909d16fe127`
 - lifecycle/governance 정렬: #1301 완료
 - active onboarding validation: #1232 -> #1303 -> #1312
 
@@ -224,18 +224,21 @@ generated structural preview
 
 Active:
 
-- [#1181 clone-first multi-site parent strategy/epic](https://github.com/skerishKang/400-ai-finder/issues/1181)
 - [#1232 multi-site onboarding validation](https://github.com/skerishKang/400-ai-finder/issues/1232)
 - [#1303 Seo-gu controlled reference baseline + faithful clone proof](https://github.com/skerishKang/400-ai-finder/issues/1303)
 - [#1312 Seo-gu G3 board list/detail fidelity](https://github.com/skerishKang/400-ai-finder/issues/1312)
 
 Separate follow-up/platform hardening:
 
-- #1291 generic Page Agent target semantics
-- #1292 parsed-host site ownership
-- #1293 location discovery taxonomy
-- #1294 redirect/sitemap acquisition scope
-- #1295 SSRF-safe arbitrary URL acquisition
+- #1294 redirect/sitemap acquisition scope — OPEN / active hardening
+- #1295 SSRF-safe arbitrary URL acquisition — OPEN P0 follow-up after #1294
+- #1291 generic Page Agent target semantics — OPEN P1
+- #1293 location discovery taxonomy — OPEN P2
+
+Nonblocking maintenance / operations:
+
+- #1289 comparison-evidence timeout flake — OPEN, observe only; no CI weakening or timeout change justified absent recurrence
+- #1290 Google Drive working-mirror resync — OPEN operational/local-access maintenance; GitHub remote remains authoritative
 
 Owner/public-release decision:
 
@@ -245,10 +248,11 @@ Completed / historical:
 
 - #1301 clone MVP lifecycle / canonical docs alignment — completed
 - #1310 Seo-gu G3 homepage fidelity correction — completed/accepted
+- #1292 parsed-host site ownership hardening — completed; prerequisite landed before #1294
 - #1283 post-Buk-gu governance alignment — completed
 - #1287 Generic SiteSpec vNext contract foundation — completed
 - #1235 Buk-gu Frozen Demo closeout — completed
-- #1181 historical planning text remains useful, but the issue itself is still OPEN as the current parent strategy/epic
+- #1181 clone-first multi-site strategy/epic — CLOSED / not_planned; historical strategy/planning provenance remains useful, but it is no longer the active execution parent
 - #1080 Buk-gu official fixture program — historical/deferred
 - #1150 official-info freshness retrieval — historical/deferred
 - #862 actual-site navigator/integration — future authorized actual-site track
