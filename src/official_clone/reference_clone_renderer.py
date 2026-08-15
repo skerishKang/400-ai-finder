@@ -2625,7 +2625,7 @@ def _render_list_main(
                     cols.append(f'<col style="width:{int(w)}%">')
                 else:
                     cols.append("<col>")
-            colgroup_html = f"<colgroup>{"".join(cols)}</colgroup>"
+            colgroup_html = "<colgroup>" + "".join(cols) + "</colgroup>"
         body_rows = []
         for row in board_rows:
             cells = row.get("cells") or {}
