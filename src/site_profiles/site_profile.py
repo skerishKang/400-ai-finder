@@ -7,10 +7,12 @@ files under ``configs/sites/<site_id>.yml``.
 
 from __future__ import annotations
 
+import ipaddress
 import os
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from src.config.constants import (
     PROFILE_DOCUMENT_EXTENSIONS,
@@ -47,6 +49,46 @@ DEFAULT_CRAWL_RULES: dict[str, Any] = dict(PROFILE_DEFAULT_CRAWL_RULES)
 DEFAULT_DOCUMENT_EXTENSIONS: list[str] = list(PROFILE_DOCUMENT_EXTENSIONS)
 
 DEFAULT_BOARD_PATTERNS: list[str] = list(PROFILE_DEFAULT_BOARD_PATTERNS)
+
+
+# ------------------------------------------------------------------
+# URL ownership normalization
+# ------------------------------------------------------------------
+
+
+def _normalize_dns_host(host: str) -> str | None:
+    """Normalize a DNS *host* to its canonical lowercase ASCII A-label.
+
+    Returns ``None`` for hosts that cannot be safely normalized:
+
+    * empty host
+    * multiple terminal dots (e.g. ``host..``)
+    * anything that fails IDNA encoding (invalid Unicode / empty label / a
+      label that is too long)
+
+    Exactly one trailing DNS root dot is normalized away. IP literals must
+    not be passed here; they are handled separately by :meth:`SiteProfile
+    ._host_owns`.
+    """
+    if not host:
+        return None
+
+    # Exactly one trailing root dot is allowed; multiple terminal dots are
+    # rejected outright so an attacker cannot smuggle boundary confusion.
+    if host.endswith("."):
+        if host.endswith(".."):
+            return None
+        host = host[:-1]
+
+    if not host:
+        return None
+
+    try:
+        ascii_host = host.encode("idna").decode("ascii")
+    except (UnicodeError, ValueError):
+        return None
+
+    return ascii_host.lower()
 
 
 # ------------------------------------------------------------------
@@ -239,10 +281,107 @@ class SiteProfile:
         }
 
     def match_url(self, url: str) -> bool:
-        """Check if a URL belongs to this site's allowed domains."""
+        """Fail-closed ownership decision for *url* against ``allowed_domains``.
+
+        Only absolute ``http``/``https`` URLs are accepted. Ownership is
+        decided by an exact, normalized hostname comparison — DNS/IDNA
+        A-label for names, canonical IP-literal equality for IP addresses.
+        Path/query/fragment, userinfo, scheme, and port never contribute to
+        ownership. Any malformed, credential-bearing, relative,
+        protocol-relative, scheme-less, or non-host input fails closed and
+        returns ``False``.
+
+        Matching is exact-host only: no suffix, substring, implicit
+        subdomain, or implicit ``www``/apex equivalence is ever applied.
+        """
+        if not isinstance(url, str):
+            return False
+
+        # Fail-closed parse boundary. urlsplit() itself (and the subsequent
+        # parser-derived attribute reads below) can raise ``ValueError`` on a
+        # malformed authority — e.g. an unterminated IPv6 literal
+        # (``https://[::1``) or an NFKC-invalid netloc
+        # (``https://exa\uff0fmple.com/``). Any such malformed input must fail
+        # closed and return ``False`` rather than leaking the exception, per
+        # the #1292 contract and the match_url docstring.
+        try:
+            parsed = urlsplit(url)
+
+            # Absolute http/https only. This naturally rejects relative
+            # (``/path``), protocol-relative (``//host``), and scheme-less
+            # (``host/path``) URLs, whose scheme is empty.
+            if parsed.scheme not in ("http", "https"):
+                return False
+
+            # Reject credential-bearing URLs and empty userinfo by *presence*
+            # semantics: urlsplit yields ``''`` (not ``None``) for an empty
+            # userinfo such as ``https://@host/``. Truthiness would wrongly
+            # treat it as absent, so we test ``is not None`` explicitly.
+            if parsed.username is not None or parsed.password is not None:
+                return False
+
+            # Force port validation. urlsplit parses ``:abc`` / ``:99999`` but
+            # only raises on ``.port`` access for the malformed case; an
+            # out-of-range value (e.g. 99999) slips through and must be
+            # rejected explicitly. A valid explicit port never changes host
+            # identity.
+            port = parsed.port
+            if port is not None and not (1 <= port <= 65535):
+                return False
+
+            host = parsed.hostname
+        except ValueError:
+            return False
+
+        if not host:
+            return False
+
+        return self._host_owns(host)
+
+    def _host_owns(self, host: str) -> bool:
+        """Return True iff *host* (validated, non-empty) is an exact,
+        normalized member of ``allowed_domains``.
+
+        IP literals (IPv4/IPv6) are matched only against an explicitly
+        configured identical IP literal via canonical equality — no implicit
+        DNS/IDNA normalization is applied to them (no broad allowance). DNS
+        hosts are normalized via stdlib IDNA to their ASCII A-label and
+        compared case-insensitively with exactly one trailing root dot
+        permitted.
+        """
+        # IP-literal path (IPv4/IPv6): exact canonical equality only.
+        try:
+            url_ip = ipaddress.ip_address(host)
+        except ValueError:
+            url_ip = None
+
+        if url_ip is not None:
+            for domain in self.allowed_domains:
+                try:
+                    if ipaddress.ip_address(domain) == url_ip:
+                        return True
+                except ValueError:
+                    continue
+            return False
+
+        # DNS path: normalize both sides via IDNA and compare exact equality.
+        url_norm = _normalize_dns_host(host)
+        if url_norm is None:
+            return False
+
         for domain in self.allowed_domains:
-            if domain in url:
+            # A configured IP literal can never equal a DNS candidate.
+            try:
+                ipaddress.ip_address(domain)
+                continue
+            except ValueError:
+                pass
+            dom_norm = _normalize_dns_host(domain)
+            if dom_norm is None:
+                continue
+            if url_norm == dom_norm:
                 return True
+
         return False
 
 

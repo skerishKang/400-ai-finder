@@ -266,21 +266,39 @@ class PipelineRunner:
     def _resolve_site_id(self, url: str) -> str | None:
         """Resolve a site_id for a URL using configured site profiles.
 
-        Returns None if no profile matches or loading fails. Never raises.
+        Every loadable profile is inspected and the set of distinct
+        ``site_id`` values whose ``match_url(url)`` is true is collected.
+        Ownership is then decided fail-closed:
+
+        * exactly one matching site_id  -> that site_id
+        * zero matching site_ids        -> None
+        * two or more matching site_ids -> None (ambiguous ownership)
+
+        A profile that raises while loading is skipped (fail-soft), but its
+        failure never makes an otherwise-ambiguous set appear unambiguous:
+        the result depends only on the collected matches, not on iteration
+        order. Returns None on any unexpected error. Never raises.
         """
         try:
             from ..site_profiles.site_profile import SiteProfileLoader
             loader = SiteProfileLoader()
+            matching: set[str] = set()
             for sid in loader.list_ids():
                 try:
                     p = loader.load_by_id(sid)
+                except Exception:
+                    # Fail-soft: skip a profile that cannot be loaded.
+                    continue
+                try:
                     if p.match_url(url):
-                        return p.site_id
+                        matching.add(p.site_id)
                 except Exception:
                     continue
+            if len(matching) == 1:
+                return next(iter(matching))
+            return None
         except Exception:
             return None
-        return None
 
     def _step_homepage_map(self, url: str, correlation_id: str | None = None) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "homepage-map.json")
