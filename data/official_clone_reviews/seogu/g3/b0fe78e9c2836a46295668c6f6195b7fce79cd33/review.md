@@ -74,9 +74,8 @@ correct classification is:
 > the controlled clone asset set.
 
 This is **not** caused by a rights block or any governance hold on the bytes.
-hold on the bytes. `#1234` is separate future Production/public-release
-governance and is not causal to this Phase-A fidelity gap. The clone therefore
-renders a bounded
+`#1234` is separate future Production/public-release governance and is not
+causal to this Phase-A fidelity gap. The clone therefore renders a bounded
 structural placeholder for the poster; title, metadata, attachment, and
 back-to-list hierarchy are source-backed.
 

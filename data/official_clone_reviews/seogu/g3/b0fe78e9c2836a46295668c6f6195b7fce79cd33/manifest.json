@@ -6,7 +6,7 @@
   "site_id": "seogu_gwangju",
   "route_prefix": "/seogu/",
   "evidence_root": "data/official_clone_reviews/seogu/g3/b0fe78e9c2836a46295668c6f6195b7fce79cd33",
-  "generated_at": "2026-08-16T22:40:00+00:00",
+  "generated_at": "2026-08-16T22:36:00+09:00",
   "tooling": {
     "browser": "chromium",
     "browser_version": "145.0.7632.116",
