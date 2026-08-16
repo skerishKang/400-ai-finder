@@ -2432,11 +2432,14 @@ def _board_nav_html(state: dict[str, Any]) -> tuple[str, str, str]:
     breadcrumb_html = (
         f'<nav class="rc-breadcrumb" aria-label="위치">{"".join(crumbs)}</nav>' if crumbs else ""
     )
-    location = _board_location_hierarchy(_contents_landmark_text(state))
+    # The blind search fieldset legend ("분야별정보 > 행정 > 행정소식 > 공지사항")
+    # is screen-reader-only source content and MUST NOT be promoted into a
+    # navigation landmark (visible or hidden). The real visible location
+    # hierarchy is the source-backed breadcrumb (홈 / 구정소식 / 공지사항)
+    # rendered above. No separate rc-location nav is derived for board states;
+    # deriving it from the contents landmark would re-introduce the blind
+    # legend as a duplicate navigation landmark.
     location_html = ""
-    if location:
-        loc = "".join(f'<span class="rc-loc">{_esc(p)}</span>' for p in location)
-        location_html = f'<nav class="rc-location" aria-label="분류">{loc}</nav>'
     section_title, snb = _board_snb_items(state)
     snb_parts = []
     if section_title:

@@ -1467,8 +1467,9 @@ def _visible_breadcrumb(html: str) -> str:
 
 def test_1324_visible_breadcrumb_not_from_blind_search_legend():
     # The "분야별정보 > 행정 > 행정소식 > 공지사항" string in the source is a
-    # blind (screen-reader-only) search fieldset legend, NOT a visible breadcrumb.
-    # It must never be promoted into the visible location navigation.
+    # blind (screen-reader-only) search fieldset legend, NOT a location
+    # navigation. It must never be promoted into the visible breadcrumb NOR
+    # into any navigation landmark of the rendered board page.
     blind_tokens = ("분야별정보", "행정소식", "행정 >", "분야별정보 >")
     for sid in _BOARD_STATES:
         h = _render_board(sid)
@@ -1481,6 +1482,23 @@ def test_1324_visible_breadcrumb_not_from_blind_search_legend():
         # No invented "›" separator glyph (not source-proven).
         assert "rc-crumb-sep" not in h, (sid, "invented crumb separator must be removed")
         assert "›" not in crumb, (sid, "literal › separator not source-proven")
+        # The blind search fieldset legend must not be promoted into a
+        # navigation landmark. Check the EXACT source legend string (it is
+        # joined by " > " in the source, not rendered as separate menu items):
+        # if it were promoted into an rc-location (or any) nav it would appear
+        # verbatim. The exact string must be absent from the whole document.
+        blind_legend = "분야별정보 > 행정 > 행정소식 > 공지사항"
+        assert blind_legend not in h, (
+            sid,
+            "blind search legend promoted into a navigation landmark",
+        )
+        # No rc-location navigation element is generated for board states
+        # (the CSS rule may still exist, so match the element, not the class
+        # token alone).
+        assert '<nav class="rc-location"' not in h, (
+            sid,
+            "blind-legend rc-location nav must not be generated",
+        )
 
 
 def test_1324_new_post_semantic_preserved_no_visible_chip():
