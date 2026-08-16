@@ -4,11 +4,12 @@ from urllib.parse import urlparse
 from src.config.constants import CLASSIFIER_DOCUMENT_EXTENSIONS
 
 CATEGORY_PRIORITY = {
-    "document": 7,
-    "apply": 6,
-    "notice": 5,
-    "board": 4,
-    "contact": 3,
+    "document": 8,
+    "apply": 7,
+    "notice": 6,
+    "board": 5,
+    "contact": 4,
+    "location": 3,
     "menu": 2,
     "unknown": 1,
 }

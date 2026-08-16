@@ -1169,3 +1169,100 @@ def test_mapper_rejected_urls_diagnostics_no_secret_leak():
             assert "credential" not in val_str.lower()
             assert "Authorization" not in val_str
     assert len(seen_reasons) >= 1
+
+
+# ======================================================================
+# #1293: preserve location discovery evidence through mapper + indexer.
+# Offline/static only; no provider, DNS, or external network execution.
+# ======================================================================
+
+def test_location_category_priority_is_explicit_and_ordered():
+    from src.crawler.url_classifier import CATEGORY_PRIORITY
+
+    ordered = [
+        "document",
+        "apply",
+        "notice",
+        "board",
+        "contact",
+        "location",
+        "menu",
+        "unknown",
+    ]
+    assert all(
+        CATEGORY_PRIORITY[left] > CATEGORY_PRIORITY[right]
+        for left, right in zip(ordered, ordered[1:])
+    )
+
+
+def test_location_navigation_and_sitemap_survive_mapper_stats_and_indexer():
+    from src.indexer.document_indexer import DocumentIndexer
+
+    mapper = HomepageMapper()
+    homepage_html = (
+        "<html><head><title>Home</title></head><body><nav>"
+        '<a href="/map">오시는길</a>'
+        '<a href="/about">소개</a>'
+        "</nav></body></html>"
+    )
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        if url.endswith(".xml"):
+            return "<urlset/>", None, 200, url
+        return homepage_html, None, 200, url
+
+    parsed_sitemap = {
+        "error": "",
+        "sitemaps": [],
+        "urls": [
+            {"url": "https://example.com/parking"},
+            {"url": "https://example.com/misc"},
+        ],
+    }
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse", return_value=parsed_sitemap):
+        result = mapper.build_map("https://example.com/")
+
+    assert result["categories"]["location"] == [
+        "https://example.com/map",
+        "https://example.com/parking",
+    ]
+    assert result["categories"]["menu"] == ["https://example.com/about"]
+    assert result["categories"]["unknown"] == ["https://example.com/misc"]
+    assert result["stats"]["category_counts"]["location"] == 2
+    assert result["stats"]["category_counts"]["menu"] == 1
+    assert result["stats"]["category_counts"]["unknown"] == 1
+
+    docs = {doc["url"]: doc for doc in DocumentIndexer().build_index(result)}
+    assert docs["https://example.com/map"]["category"] == "location"
+    assert docs["https://example.com/parking"]["category"] == "location"
+    assert docs["https://example.com/about"]["category"] == "menu"
+    assert docs["https://example.com/misc"]["category"] == "unknown"
+
+
+def test_mapper_unsupported_category_still_degrades_to_unknown():
+    mapper = HomepageMapper()
+    homepage_html = (
+        "<html><head><title>Home</title></head><body><nav>"
+        '<a href="/future">Future</a>'
+        "</nav></body></html>"
+    )
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        if url.endswith(".xml"):
+            return "<urlset/>", None, 200, url
+        return homepage_html, None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}), \
+         patch("src.crawler.homepage_mapper.classify_url", return_value="future_category"):
+        result = mapper.build_map("https://example.com/")
+
+    assert result["categories"]["unknown"] == ["https://example.com/future"]
+    assert result["stats"]["category_counts"]["unknown"] == 1

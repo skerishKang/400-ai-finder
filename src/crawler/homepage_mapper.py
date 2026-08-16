@@ -294,6 +294,7 @@ class HomepageMapper:
                 "document": [],
                 "apply": [],
                 "contact": [],
+                "location": [],
                 "unknown": []
             },
             "stats": {
@@ -307,6 +308,7 @@ class HomepageMapper:
                     "document": 0,
                     "apply": 0,
                     "contact": 0,
+                    "location": 0,
                     "unknown": 0
                 }
             },
