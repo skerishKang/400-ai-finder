@@ -305,12 +305,12 @@ def is_valid_firecrawl_service_endpoint(
 ) -> tuple[bool, str]:
     """Validate Firecrawl provider service endpoint URL.
 
-    Bearer API keys are transmitted to this socket endpoint.
-    Ordinary/default operation only permits the reviewed official Firecrawl
-    service endpoint (https://api.firecrawl.dev).
-    An unapproved arbitrary, private, or third-party endpoint is rejected.
-    Explicit test/local seams (allow_test_endpoint=True) are permitted for
-    isolated unit test harnesses only.
+    Bearer API keys are transmitted to this socket endpoint. Ordinary/default
+    operation only permits the reviewed official Firecrawl service endpoint
+    (https://api.firecrawl.dev). An unapproved arbitrary/private/third-party
+    endpoint is rejected. ``allow_test_endpoint=True`` is deliberately narrow:
+    it permits only explicit loopback test endpoints (localhost, 127.0.0.0/8,
+    or ::1) and never turns endpoint validation off.
     """
     if not base_url or not isinstance(base_url, str):
         return False, "Empty or non-string service endpoint URL"
@@ -331,15 +331,37 @@ def is_valid_firecrawl_service_endpoint(
     if not hostname:
         return False, "Missing hostname in service endpoint URL"
 
-    # Official reviewed Firecrawl service endpoint
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        return False, f"Invalid service endpoint port: {exc}"
+
+    if port is not None and not (1 <= port <= 65535):
+        return False, f"Service endpoint port out of range (1..65535): {port}"
+
+    # Official reviewed Firecrawl service endpoint.
     if scheme == "https" and hostname == OFFICIAL_FIRECRAWL_HOST:
-        if parsed.port is None or parsed.port == 443:
+        if port is None or port == 443:
             return True, ""
+        return False, "Firecrawl official endpoint only permits the default HTTPS port 443"
 
     if allow_test_endpoint:
-        return True, ""
+        # Explicit local/test seam only. Do not resolve arbitrary hostnames here:
+        # the seam is intentionally restricted to syntactically obvious
+        # loopback destinations rather than becoming a general endpoint bypass.
+        if hostname == "localhost":
+            return True, ""
+        try:
+            endpoint_ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            endpoint_ip = None
+        if endpoint_ip is not None and endpoint_ip.is_loopback:
+            return True, ""
+        return False, (
+            f"Firecrawl test endpoint '{base_url}' is not a loopback-only local test endpoint"
+        )
 
     return False, (
         f"Firecrawl service endpoint '{base_url}' is not the approved official endpoint "
-        f"(https://{OFFICIAL_FIRECRAWL_HOST}) and test endpoint seam is not enabled"
+        f"(https://{OFFICIAL_FIRECRAWL_HOST}) and loopback test endpoint seam is not enabled"
     )

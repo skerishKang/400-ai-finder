@@ -13,8 +13,12 @@ Formats requested: markdown, html, links
    Ordinary operation is pinned strictly to the reviewed official Firecrawl
    endpoint (https://api.firecrawl.dev). Unapproved arbitrary/private endpoints
    fail closed before socket dispatch (POST count = 0), preventing credential
-   transmission. An explicit test seam (allow_test_endpoint=True) is available
-   for unit test harnesses only.
+   transmission. The explicit `allow_test_endpoint=True` seam remains
+   loopback-only (localhost/127.0.0.0/8/::1).
+
+The credential-bearing provider POST uses a direct Requests Session with
+`trust_env=False`, so ambient proxy/netrc configuration cannot silently replace
+the validated service-endpoint transport boundary.
 
 Downstream sourceURL validation:
 The effective/final URL (metadata.sourceURL) is validated against both the
@@ -129,7 +133,7 @@ class FirecrawlFetchProvider(FetchProvider):
                 ),
             )
 
-        # --- Build request ---
+        # --- Build request only after both URL boundaries and key checks pass ---
         endpoint = f"{self._base_url.rstrip('/')}/v1/scrape"
         timeout = kwargs.get("timeout", self._timeout)
         headers = {
@@ -142,9 +146,13 @@ class FirecrawlFetchProvider(FetchProvider):
         }
 
         try:
-            resp = req_lib.post(
-                endpoint, headers=headers, json=body, timeout=timeout
-            )
+            # #1295 credential-bearing transport: do not inherit ambient
+            # HTTP(S)_PROXY / ALL_PROXY / NO_PROXY / netrc configuration.
+            with req_lib.Session() as session:
+                session.trust_env = False
+                resp = session.post(
+                    endpoint, headers=headers, json=body, timeout=timeout
+                )
             # Handle HTTP-level errors
             if resp.status_code >= 400:
                 try:

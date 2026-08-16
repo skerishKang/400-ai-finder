@@ -187,7 +187,9 @@ class RequestsFetchProvider(FetchProvider):
 
         #1295: egress policy is verified at each hop before socket dispatch.
         Redirects from public targets to private/link-local/loopback destinations
-        fail closed before the second request.
+        fail closed before the second request. When egress policy is active,
+        the scoped Session also sets ``trust_env=False`` so ambient proxy/netrc
+        configuration cannot silently replace the reviewed direct-egress path.
 
         Uses a ``requests.Session`` across all hops so that cookies set during
         a same-site redirect (``Set-Cookie``) are carried to the next hop,
@@ -222,6 +224,10 @@ class RequestsFetchProvider(FetchProvider):
             return _REDIRECT_SCOPE_BLOCKED
 
         with req_lib.Session() as session:
+            # #1295 direct-egress mode: do not inherit HTTP(S)_PROXY, ALL_PROXY,
+            # NO_PROXY, netrc, or other Requests trust_env inputs. Acquisition-
+            # only #1294 callers retain the historical trust_env=True behavior.
+            session.trust_env = ep is None
             session.headers.clear()
             session.headers.update(headers)
 
@@ -266,49 +272,77 @@ class RequestsFetchProvider(FetchProvider):
             else:
                 return _REDIRECT_LOOP_EXCEEDED
 
-        # --- Non-redirect response: apply retry logic when config is provided
-        if config is None:
-            # Legacy 400 retry (mirrors _request_with_legacy_400_retry)
-            if resp.status_code == 400:
-                # #1295: re-check egress policy before retry dispatch
-                if ep is None or ep.is_authorized(current_url):
-                    retry_headers = _build_retry_headers(self.user_agent)
+            # --- Non-redirect response: apply retry logic when config is provided
+            if config is None:
+                # Legacy 400 retry (mirrors _request_with_legacy_400_retry).
+                if resp.status_code == 400:
+                    # #1295: re-check egress policy before retry dispatch.
+                    if ep is None or ep.is_authorized(current_url):
+                        retry_headers = _build_retry_headers(self.user_agent)
+                        try:
+                            if ep is None:
+                                # Preserve the historical acquisition-only
+                                # retry transport semantics from #1294.
+                                resp = self._request_once(
+                                    current_url,
+                                    timeout,
+                                    retry_headers,
+                                    allow_redirects=False,
+                                )
+                            else:
+                                # Egress-active retry stays on the same direct
+                                # trust_env=False Session.
+                                resp = session.get(
+                                    current_url,
+                                    timeout=timeout,
+                                    headers=retry_headers,
+                                    allow_redirects=False,
+                                )
+                        except Exception:
+                            pass
+            else:
+                # FetchConfig retry on status.
+                attempts = config.max_retries + 1
+                for attempt_index in range(attempts):
+                    if resp.status_code not in config.retry_on_status:
+                        break
+                    if attempt_index >= config.max_retries:
+                        break
+                    # #1295: re-check egress policy before retry dispatch.
+                    if ep is not None and not ep.is_authorized(current_url):
+                        return _EGRESS_POLICY_BLOCKED
+                    if config.retry_backoff > 0:
+                        time.sleep(config.retry_backoff)
                     try:
-                        retry_resp = self._request_once(
-                            current_url, timeout, retry_headers, allow_redirects=False
-                        )
-                        resp = retry_resp
+                        if ep is None:
+                            # Preserve acquisition-only retry behavior.
+                            resp = self._request_once(
+                                current_url,
+                                timeout,
+                                self.headers,
+                                allow_redirects=False,
+                            )
+                        else:
+                            # Egress-active retry stays on the same direct
+                            # trust_env=False Session.
+                            resp = session.get(
+                                current_url,
+                                timeout=timeout,
+                                headers=self.headers,
+                                allow_redirects=False,
+                            )
+                    except req_lib.exceptions.Timeout:
+                        if attempt_index < config.max_retries:
+                            if config.retry_backoff > 0:
+                                time.sleep(config.retry_backoff)
+                            continue
+                        break
                     except Exception:
-                        pass
-        else:
-            # FetchConfig retry on status
-            attempts = config.max_retries + 1
-            for attempt_index in range(attempts):
-                if resp.status_code not in config.retry_on_status:
-                    break
-                if attempt_index >= config.max_retries:
-                    break
-                # #1295: re-check egress policy before retry dispatch
-                if ep is not None and not ep.is_authorized(current_url):
-                    return _EGRESS_POLICY_BLOCKED
-                if config.retry_backoff > 0:
-                    time.sleep(config.retry_backoff)
-                try:
-                    resp = self._request_once(
-                        current_url, timeout, self.headers, allow_redirects=False
-                    )
-                except req_lib.exceptions.Timeout:
-                    if attempt_index < config.max_retries:
-                        if config.retry_backoff > 0:
-                            time.sleep(config.retry_backoff)
-                        continue
-                    break
-                except Exception:
-                    break
+                        break
+
+                return resp
 
             return resp
-
-        return resp
 
     def _request_with_legacy_400_retry(
         self,

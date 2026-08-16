@@ -26,23 +26,32 @@ from src.fetch import (
 )
 
 
-@pytest.fixture(autouse=True)
-def _mock_test_dns(monkeypatch):
-    """Ensure zero live DNS queries in unit tests."""
-    import socket
+def _offline_public_egress_policy():
+    """Deterministic public-DNS seam for live-provider transport unit tests."""
+    return PublicEgressPolicy(resolver=lambda _host: ["93.184.216.34"])
 
-    def _fake_getaddrinfo(host, port, *args, **kwargs):
-        h = str(host).lower().rstrip(".")
-        if h in ("localhost", "127.0.0.1", "::1"):
-            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port or 0))]
-        if "metadata" in h or h == "169.254.169.254":
-            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("169.254.169.254", port or 0))]
-        if "private" in h or "internal" in h or h in ("10.0.0.1", "192.168.1.1"):
-            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.1", port or 0))]
-        # Safe public IP by default for synthetic mock test domains
-        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port or 0))]
 
-    monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo)
+@pytest.fixture
+def _firecrawl_offline_transport(monkeypatch):
+    """Adapt legacy POST mocks to the direct Session transport without live DNS/HTTP.
+
+    The fixture is intentionally opt-in on Firecrawl test classes. It does not
+    patch socket.getaddrinfo and therefore cannot hide accidental resolver use
+    in unrelated mock/offline paths.
+    """
+    import requests
+    import src.fetch.firecrawl_provider as firecrawl_module
+
+    monkeypatch.setattr(
+        firecrawl_module,
+        "PublicEgressPolicy",
+        _offline_public_egress_policy,
+    )
+
+    def _session_post(_session, url, **kwargs):
+        return requests.post(url, **kwargs)
+
+    monkeypatch.setattr(requests.Session, "post", _session_post)
 
 
 # ======================================================================
@@ -1108,6 +1117,7 @@ class TestRequestsCompatibilityMode:
 # FirecrawlFetchProvider
 # ======================================================================
 
+@pytest.mark.usefixtures("_firecrawl_offline_transport")
 class TestFirecrawlConfigValidation:
     """Config validation errors return FetchResult(ok=False), not exceptions."""
 
@@ -1148,6 +1158,7 @@ class TestFirecrawlConfigValidation:
         assert "fc-super-secret-12345" not in result.error
 
 
+@pytest.mark.usefixtures("_firecrawl_offline_transport")
 class TestFirecrawlRequestPayload:
     """Verify request payload structure using monkeypatch."""
 
@@ -1204,6 +1215,7 @@ class TestFirecrawlRequestPayload:
         assert len(result.links) == 1
 
 
+@pytest.mark.usefixtures("_firecrawl_offline_transport")
 class TestFirecrawlResponseParsing:
     """Test various Firecrawl response scenarios."""
 
@@ -2360,7 +2372,118 @@ class TestRequestsFetchProviderEgress:
         assert result.ok is False
         assert "egress" in result.error.lower() or "prohibited" in result.error.lower()
 
+    def test_requests_egress_session_disables_trust_env(self):
+        """Egress-active transport must not inherit ambient proxy/netrc state."""
+        trust_env_seen = []
 
+        class _Sesh:
+            def __init__(self):
+                self.headers = {}
+                self.cookies = {}
+                self.trust_env = True
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def get(self, url, **kwargs):
+                trust_env_seen.append(self.trust_env)
+                return _FakeResp(200, url=url)
+
+        ep = _offline_public_egress_policy()
+        with patch("requests.Session", return_value=_Sesh()):
+            result = RequestsFetchProvider(egress_policy=ep).fetch("https://example.com/")
+
+        assert result.ok is True
+        assert trust_env_seen == [False]
+
+    def test_requests_acquisition_only_preserves_trust_env(self):
+        """#1294 acquisition-only transport preserves historical trust_env=True."""
+        trust_env_seen = []
+
+        class _Sesh:
+            def __init__(self):
+                self.headers = {}
+                self.cookies = {}
+                self.trust_env = True
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def get(self, url, **kwargs):
+                trust_env_seen.append(self.trust_env)
+                return _FakeResp(200, url=url)
+
+        with patch("requests.Session", return_value=_Sesh()):
+            result = RequestsFetchProvider().fetch(
+                "https://example.com/",
+                acquisition_policy=_redirect_policy(["example.com"]),
+            )
+
+        assert result.ok is True
+        assert trust_env_seen == [True]
+
+    def test_requests_egress_legacy_400_retry_uses_same_direct_session(self):
+        """Legacy 400 retry stays on the trust_env=False Session."""
+        trust_env_seen = []
+        call_count = {"n": 0}
+
+        class _Sesh:
+            def __init__(self):
+                self.headers = {}
+                self.cookies = {}
+                self.trust_env = True
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def get(self, url, **kwargs):
+                call_count["n"] += 1
+                trust_env_seen.append(self.trust_env)
+                return _FakeResp(400 if call_count["n"] == 1 else 200, url=url)
+
+        ep = _offline_public_egress_policy()
+        with patch("requests.Session", return_value=_Sesh()), \
+             patch("requests.get", side_effect=AssertionError("retry escaped direct Session")):
+            result = RequestsFetchProvider(egress_policy=ep).fetch("https://example.com/")
+
+        assert result.ok is True
+        assert call_count["n"] == 2
+        assert trust_env_seen == [False, False]
+
+    def test_requests_egress_fetchconfig_retry_uses_same_direct_session(self):
+        """FetchConfig retry stays on the trust_env=False Session."""
+        trust_env_seen = []
+        call_count = {"n": 0}
+
+        class _Sesh:
+            def __init__(self):
+                self.headers = {}
+                self.cookies = {}
+                self.trust_env = True
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def get(self, url, **kwargs):
+                call_count["n"] += 1
+                trust_env_seen.append(self.trust_env)
+                return _FakeResp(503 if call_count["n"] == 1 else 200, url=url)
+
+        ep = _offline_public_egress_policy()
+        config = FetchConfig(max_retries=1, retry_on_status=(503,), retry_backoff=0.0)
+        with patch("requests.Session", return_value=_Sesh()), \
+             patch("requests.get", side_effect=AssertionError("retry escaped direct Session")):
+            result = RequestsFetchProvider(egress_policy=ep).fetch(
+                "https://example.com/",
+                config=config,
+            )
+
+        assert result.ok is True
+        assert call_count["n"] == 2
+        assert trust_env_seen == [False, False]
+
+
+@pytest.mark.usefixtures("_firecrawl_offline_transport")
 class TestFirecrawlFetchProviderEgress:
     """SSRF egress policy and service endpoint boundaries in FirecrawlFetchProvider."""
 
@@ -2490,6 +2613,41 @@ class TestFirecrawlFetchProviderEgress:
         assert "sourceurl rejected by public egress policy" in result.error.lower()
 
 
+def test_firecrawl_credential_post_disables_trust_env():
+    """Credential-bearing Firecrawl POST uses a trust_env=False Session."""
+    trust_env_seen = []
+
+    class _Session:
+        def __init__(self):
+            self.trust_env = True
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def post(self, endpoint, **kwargs):
+            trust_env_seen.append(self.trust_env)
+            resp = _FakeResp(200, url=endpoint)
+            resp._json_data = {
+                "success": True,
+                "data": {
+                    "markdown": "# Mocked",
+                    "html": "<h1>Mocked</h1>",
+                    "metadata": {"sourceURL": "https://example.com/page"},
+                },
+            }
+            return resp
+
+    with patch("requests.Session", return_value=_Session()):
+        provider = FirecrawlFetchProvider(
+            api_key="fc-test-key",
+            egress_policy=_offline_public_egress_policy(),
+        )
+        result = provider.fetch("https://example.com/page")
+
+    assert result.ok is True
+    assert trust_env_seen == [False]
+
+
 class TestPipelineEgressIntegration:
     """Integration of egress policy into URLCrawler, HomepageMapper, and DocumentEnricher."""
 
@@ -2539,6 +2697,28 @@ class TestPipelineEgressIntegration:
         assert enriched[0]["metadata"]["fetch_status"] == "fetched"
         assert resolver_calls == []
 
+    def test_homepage_mapper_inventory_offline_path_zero_resolver_calls(self):
+        """Pure menu inventory does not resolve every discovered link (#1295)."""
+        from src.crawler.homepage_mapper import HomepageMapper
+
+        resolver_calls = []
+
+        def counting_resolver(host):
+            resolver_calls.append(host)
+            return ["93.184.216.34"]
+
+        ep = PublicEgressPolicy(resolver=counting_resolver)
+        mapper = HomepageMapper(fetch_provider="mock", egress_policy=ep)
+        navigation, attachments = mapper.extract_menu_links(
+            "<nav><a href='/notice'>공지</a><a href='/file.pdf'>PDF</a></nav>",
+            "https://example.com/",
+            egress_policy=ep,
+        )
+
+        assert navigation
+        assert attachments
+        assert resolver_calls == []
+
     def test_url_crawler_egress_policy_blocks_private_target(self):
         from src.crawler.url_crawler import URLCrawler
         calls = []
@@ -2564,8 +2744,9 @@ class TestPipelineEgressIntegration:
 
     def test_pipeline_runner_wires_egress_policy(self, tmp_path):
         from src.pipeline.pipeline_runner import PipelineRunner
-        runner = PipelineRunner(output_dir=str(tmp_path))
+        ep = _offline_public_egress_policy()
+        runner = PipelineRunner(output_dir=str(tmp_path), egress_policy=ep)
         resolved_ep = runner._resolve_egress_policy()
-        assert resolved_ep is not None
+        assert resolved_ep is ep
         assert resolved_ep.is_authorized("https://example.com/") is True
         assert resolved_ep.is_authorized("http://127.0.0.1/") is False

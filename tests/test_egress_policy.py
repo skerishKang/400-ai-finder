@@ -326,6 +326,35 @@ class TestFirecrawlServiceEndpointValidation:
         )
         assert ok2 is True
 
+        ok3, _ = is_valid_firecrawl_service_endpoint(
+            "http://[::1]:9999", allow_test_endpoint=True
+        )
+        assert ok3 is True
+
+    def test_test_endpoint_seam_still_rejects_external_hosts(self):
+        for endpoint in (
+            "https://evil.example.com",
+            "https://example.com:8443",
+            "http://10.0.0.1:8080",
+            "http://169.254.169.254",
+        ):
+            ok, reason = is_valid_firecrawl_service_endpoint(
+                endpoint, allow_test_endpoint=True
+            )
+            assert ok is False
+            assert "loopback" in reason.lower()
+
+    def test_service_endpoint_invalid_port_fails_closed(self):
+        for endpoint in (
+            "http://localhost:0",
+            "http://localhost:65536",
+            "http://localhost:not-a-port",
+        ):
+            ok, _ = is_valid_firecrawl_service_endpoint(
+                endpoint, allow_test_endpoint=True
+            )
+            assert ok is False
+
 
 class TestLimitationDeclaration:
     """Verify explicit documentation of TOCTOU / DNS rebinding limitation."""
