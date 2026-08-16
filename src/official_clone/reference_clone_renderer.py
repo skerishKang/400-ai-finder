@@ -1544,6 +1544,7 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         f".rc-breadcrumb,.rc-location{{font-size:{nd['small_font_size_px']}px;line-height:{nd['body_line_height']};}}"
         ".rc-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;}"
         ".rc-breadcrumb .rc-crumb-current{font-weight:700;}"
+        ".rc-crumb-sep{display:inline-block;margin:0 4px;color:#999;user-select:none;}"
         ".rc-location{display:flex;flex-wrap:wrap;align-items:center;}"
         "/* The source renders the board location hierarchy as a visually "
         "hidden .blind legend (screen-reader only); keep it in the a11y tree "
@@ -1573,6 +1574,9 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         "table.rc-board td{text-align:center;vertical-align:middle;}"
         "table.rc-board .rc-col-제목{text-align:left;}"
         ".rc-list-item{display:block;}"
+        ".rc-new-badge{display:inline-block;padding:2px 6px;margin-right:4px;"
+        "font-size:.85em;font-weight:700;color:#e74c3c;border:1px solid #e74c3c;"
+        "line-height:1.4;vertical-align:middle;}"
         f".rc-pagination{{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;font-size:{nd['small_font_size_px']}px;}}"
         ".rc-pager-inner{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;}"
         ".rc-page-current{font-weight:700;}"
@@ -1587,11 +1591,14 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-attach-name{display:inline-block;}"
         ".rc-attach-meta{display:inline-block;}"
         ".rc-attach{display:inline-block;cursor:not-allowed;}"
-        ".rc-attach-indicator{display:inline-block;}"
+        ".rc-attach-indicator{display:inline-block;padding:2px 6px;"
+        "font-size:.85em;color:#555;border:1px solid #ccc;line-height:1.4;}"
         ".rc-prevnext{display:block;list-style:none;margin:0;padding:0;}"
         ".rc-pn-prev,.rc-pn-next{display:block;}"
-        ".rc-pn-label{display:inline-block;font-weight:700;}"
+        ".rc-pn-label{display:inline-block;font-weight:700;margin-right:8px;}"
         ".rc-pn-item{display:inline-block;}"
+        ".rc-pn-prev{border-bottom:1px solid #ddd;padding:12px 0;}"
+        ".rc-pn-next{padding:12px 0;}"
         ".rc-detail-para{margin:0;}"
         ".rc-detail-image{border:1px dashed #b7b7bc;background:#fafafa;padding:1.25rem;margin:0 0 1em;text-align:center;}"
         ".rc-detail-image-name{display:block;font-weight:700;margin:0 0 .25em;}"
@@ -2419,6 +2426,8 @@ def _board_nav_html(state: dict[str, Any]) -> tuple[str, str, str]:
     active = _board_active_label(state)
     crumbs = []
     for idx, label in enumerate(trail):
+        if idx:
+            crumbs.append('<span class="rc-crumb-sep" aria-hidden="true">›</span>')
         if idx == len(trail) - 1:
             crumbs.append(
                 f'<span class="rc-crumb rc-crumb-current" aria-current="page">{_esc(label)}</span>'
@@ -2532,8 +2541,10 @@ def _render_board_pagination(
         board_pagination.get("current_page") if board_pagination else None
     ) or "1"
     items = [
-        '<button type="button" class="rc-page" disabled aria-disabled="true">처음</button>',
-        '<button type="button" class="rc-page" disabled aria-disabled="true">이전</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">'
+        '<span aria-hidden="true">«</span> 처음</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">'
+        '<span aria-hidden="true">‹</span> 이전</button>',
     ]
     if pages:
         for page in pages:
@@ -2553,8 +2564,10 @@ def _render_board_pagination(
             f'disabled aria-disabled="true">{_esc(current)}</button>'
         )
     items.extend([
-        '<button type="button" class="rc-page" disabled aria-disabled="true">다음</button>',
-        '<button type="button" class="rc-page" disabled aria-disabled="true">마지막</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">'
+        '다음 <span aria-hidden="true">›</span></button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">'
+        '마지막 <span aria-hidden="true">»</span></button>',
     ])
     suffix = f' / {_esc(total)}' if total else ""
     return (
@@ -2637,22 +2650,25 @@ def _render_list_main(
             for col in board_columns:
                 value = cells.get(col) or ""
                 if col == "제목":
-                    text = value
+                    value = cells.get(col) or ""
                     if row.get("is_new"):
-                        text = re.sub(r"^새글\s*", "새글 ", text).strip()
+                        clean_title = re.sub(r"^새글\s*", "", value).strip()
+                        cell_text = f'<span class="rc-new-badge">새글</span> {_esc(clean_title)}'
+                    else:
+                        cell_text = _esc(value)
                     if links_to_detail:
                         detail_route = _family_detail_route(model, family, route_prefix)
                         href = relative_href(current_route, detail_route) if detail_route else "#"
                         cell_html.append(
                             f'<td class="rc-td rc-col-{_esc(col)}">'
                             f'<a class="rc-list-link" data-detail="1" href="{_esc(href)}">'
-                            f'{_esc(text)}</a></td>'
+                            f'{cell_text}</a></td>'
                         )
                     else:
                         cell_html.append(
                             f'<td class="rc-td rc-col-{_esc(col)}">'
                             f'<span class="rc-list-item" aria-disabled="true" '
-                            f'role="link" tabindex="-1">{_esc(text)}</span></td>'
+                            f'role="link" tabindex="-1">{cell_text}</span></td>'
                         )
                 elif col == "첨부파일" and row.get("attachment_count"):
                     cell_html.append(

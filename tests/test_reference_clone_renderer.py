@@ -391,7 +391,7 @@ def test_board_list_rows_without_detail_record_id_are_inert():
         h = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
         # Non-linked rows must be inert spans, not navigable anchors.
         inert_spans = re.findall(
-            r'<span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">([^<]*)</span>',
+            r'<span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">(.*?)</span></td>',
             h,
         )
         total_links = h.count('data-detail="1"')
