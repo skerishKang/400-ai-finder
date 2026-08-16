@@ -647,6 +647,11 @@ def surface_label(state: dict[str, Any], model: dict[str, Any]) -> str:
     segments = [s.strip() for s in head.split("|") if s.strip()]
     if len(segments) <= 1:
         return "홈"
+    # chart/directory surfaces: the FIRST segment is the captured surface
+    # identity itself (e.g. 행정조직도 / 직원 업무안내), not a record/status
+    # prefix. list/detail boards keep the breadcrumb-segment behaviour.
+    if content in ("chart", "directory"):
+        return segments[0]
     return segments[1]
 
 
@@ -1818,9 +1823,12 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         rules.append(".rc-loc{color:%s;}" % muted_c)
 
     # Organization-chart + staff-directory surfaces reuse the shared board
-    # content family. The new blocks are non-fidelity presentation defaults
-    # (structural/legibility only); measured colors are reused where available
-    # and no guessed radius/max-width/breakpoint is introduced.
+    # content family. The layout blocks below are generic structural
+    # presentation (tiering/grouping affordances only, NOT source-measured
+    # pixel fidelity); measured colors are reused where available and no
+    # guessed radius/max-width/breakpoint is introduced. The nested semantic
+    # org DOM is kept, but its presentation is no longer a margin-indented
+    # narrow vertical list.
     org_border = border or "#dcdcdc"
     rules.append(".rc-org-chart{margin-top:24px;}")
     rules.append(".rc-org-section{margin-bottom:32px;}")
@@ -1829,29 +1837,53 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         f"font-weight:700;margin:0 0 12px;}}"
     )
     rules.append(".rc-org-tree{list-style:none;margin:0;padding:0;}")
-    rules.append(".rc-org-node{margin:0;padding:4px 0;}")
+    rules.append(".rc-org-node{margin:0;padding:2px;}")
     rules.append(
-        f".rc-org-children{{list-style:none;margin:0 0 0 24px;padding:0;"
-        f"border-left:1px solid {org_border};}}"
+        f".rc-org-label{{display:inline-block;padding:6px 14px;"
+        f"background:#f7f7f7;border:1px solid {org_border};color:#222222;}}"
+    )
+    # Executive hierarchy: centred vertical chain ending in a horizontal row.
+    rules.append(".rc-org-exec{display:flex;justify-content:center;margin-bottom:26px;}")
+    rules.append(".rc-org-exec-chain{display:flex;flex-direction:column;align-items:center;}")
+    rules.append(".rc-org-exec-chain>.rc-org-node{display:flex;flex-direction:column;align-items:center;}")
+    rules.append(".rc-org-exec-arrow{display:block;color:#666666;font-size:14px;line-height:1;margin:2px 0;}")
+    rules.append(".rc-org-exec-branch{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}")
+    rules.append(".rc-org-exec-branch .rc-org-node{padding:0;}")
+    # Peer department groups: headers spread horizontally, children stacked below.
+    rules.append(".rc-org-groups{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;}")
+    rules.append(
+        f".rc-org-group{{flex:0 0 auto;border:1px solid {org_border};"
+        f"background:#fbfbfb;padding:10px 14px;}}"
+    )
+    rules.append(".rc-org-group-title{display:block;font-weight:700;background:#ffffff;margin-bottom:8px;}")
+    rules.append(".rc-org-group-list{display:flex;flex-direction:column;gap:4px;}")
+    # Flat sections (e.g. 18 neighbourhood centres): broad auto-fill grid.
+    rules.append(".rc-org-flat{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;}")
+    rules.append(".rc-org-box{text-align:center;}")
+    # Staff search row: summary (left) + inert controls (right) on one row.
+    rules.append(
+        f".rc-staff-search-row{{display:flex;flex-wrap:wrap;align-items:center;"
+        f"justify-content:space-between;gap:12px;margin:16px 0;}}"
     )
     rules.append(
-        f".rc-org-label{{display:inline-block;padding:4px 10px;"
-        f"background:#f5f5f5;border:1px solid {org_border};}}"
-    )
-    rules.append(
-        f".rc-staff-search{{display:flex;flex-wrap:wrap;gap:10px;align-items:center;"
-        f"margin:16px 0;}}"
+        f".rc-staff-search{{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0;}}"
     )
     rules.append(".rc-staff-field{display:inline-flex;align-items:center;}")
     rules.append(
         f".rc-staff-select,.rc-staff-input{{font-size:{nd['small_font_size_px']}px;"
-        f"padding:6px 8px;border:1px solid {org_border};background:#ffffff;}}"
+        f"padding:6px 8px;border:1px solid #888888;background:#ffffff;color:#222222;}}"
     )
+    # Readable disabled affordance: disabled must not grey to illegibility.
+    rules.append(".rc-staff-select:disabled,.rc-staff-input:disabled{background:#ffffff;color:#222222;opacity:1;}")
     rules.append(
         f".rc-staff-btn{{font-size:{nd['small_font_size_px']}px;padding:6px 14px;"
-        f"border:1px solid {org_border};background:#f5f5f5;cursor:default;}}"
+        f"border:1px solid #23201f;background:#23201f;color:#ffffff;cursor:default;}}"
     )
-    rules.append(".rc-staff-table{margin-top:8px;}")
+    rules.append(".rc-staff-btn:disabled{background:#23201f;color:#ffffff;opacity:1;}")
+    rules.append(".rc-staff-table{margin-top:8px;width:100%;}")
+    # Breadcrumb hierarchy legibility: crumbs must not mash together.
+    rules.append(".rc-breadcrumb .rc-crumb{padding-left:10px;}")
+    rules.append(".rc-breadcrumb .rc-crumb:first-child{padding-left:0;}")
 
     return "\n".join(rules)
 
@@ -3067,34 +3099,124 @@ def _render_org_staff_main(state: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 # Generic organization-chart renderer (nested semantic org DOM)
 # ---------------------------------------------------------------------------
-def _render_org_nodes(nodes: list[dict[str, Any]]) -> str:
-    """Render a nested org forest as semantic nested ``<ul>/<li>`` (inert).
+def _org_node_is_leaf(node: dict[str, Any]) -> bool:
+    return not (node.get("children") or [])
 
-    Node labels are source-backed; the captured local target identity is kept
-    as provenance only and is NOT rendered as a live link (the clone never
-    POSTs to or navigates the official endpoint).
+
+def _org_spine(first: dict[str, Any]) -> list[dict[str, Any]]:
+    """Single-child chain from *first* (the executive vertical hierarchy)."""
+    spine: list[dict[str, Any]] = []
+    cur = first
+    while cur is not None:
+        spine.append(cur)
+        ch = cur.get("children") or []
+        if len(ch) == 1:
+            cur = ch[0]
+        else:
+            break
+    return spine
+
+
+def _org_partition(
+    nodes: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split top-level nodes into (executive, peer department groups).
+
+    Topology-only: the first node is the executive block when its single-child
+    chain terminates in a node with >=2 descendant leaves (a branching
+    hierarchy); otherwise every top-level node is a peer department group.
     """
-    out: list[str] = []
-    for node in nodes:
+    if not nodes:
+        return [], []
+    first = nodes[0]
+    spine = _org_spine(first)
+    branch = spine[-1].get("children") or []
+    if len(branch) >= 2:
+        return [first], nodes[1:]
+    return [], nodes
+
+
+def _render_org_exec(spine: list[dict[str, Any]]) -> str:
+    """Vertical executive chain ending in a horizontal leaf-branch row."""
+
+    def _chain(items: list[dict[str, Any]]) -> str:
+        node = items[0]
         depth = node.get("depth", 1)
         label = _esc(node.get("label", ""))
-        children = _render_org_nodes(node.get("children", []))
-        inner = f'<span class="rc-org-label">{label}</span>'
-        if children:
-            inner += f'<ul class="rc-org-tree rc-org-children">{children}</ul>'
-        out.append(
-            f'<li class="rc-org-node rc-org-depth-{depth}">{inner}</li>'
-        )
-    return "".join(out)
+        out = [
+            f'<li class="rc-org-node rc-org-depth-{_esc(str(depth))}">'
+            f'<span class="rc-org-label">{label}</span>'
+        ]
+        if len(items) > 1:
+            out.append('<span class="rc-org-exec-arrow" aria-hidden="true">↓</span>')
+            out.append(
+                f'<ul class="rc-org-tree rc-org-exec-chain">{_chain(items[1:])}</ul>'
+            )
+        else:
+            branch = node.get("children") or []
+            if branch:
+                bd = depth + 1
+                leaves = "".join(
+                    f'<li class="rc-org-node rc-org-depth-{_esc(str(b.get("depth", bd)))}">'
+                    f'<span class="rc-org-label">{_esc(b.get("label", ""))}</span></li>'
+                    for b in branch
+                )
+                out.append(
+                    f'<ul class="rc-org-tree rc-org-children rc-org-exec-branch">'
+                    f"{leaves}</ul>"
+                )
+        out.append("</li>")
+        return "".join(out)
+
+    return (
+        f'<div class="rc-org-exec"><ul class="rc-org-tree rc-org-exec-chain">'
+        f"{_chain(spine)}</ul></div>"
+    )
+
+
+def _render_org_group(node: dict[str, Any]) -> str:
+    """A peer department card: horizontal header + vertical child list."""
+    depth = node.get("depth", 1)
+    title = _esc(node.get("label", ""))
+    children = node.get("children") or []
+    child_lis = "".join(
+        f'<li class="rc-org-node rc-org-depth-{_esc(str(c.get("depth", depth + 1)))}">'
+        f'<span class="rc-org-label">{_esc(c.get("label", ""))}</span></li>'
+        for c in children
+    )
+    return (
+        f'<div class="rc-org-group">'
+        f'<span class="rc-org-label rc-org-group-title rc-org-depth-{_esc(str(depth))}">'
+        f"{title}</span>"
+        f'<ul class="rc-org-tree rc-org-group-list">{child_lis}</ul>'
+        f"</div>"
+    )
 
 
 def _render_org_section(section: dict[str, Any]) -> str:
     title = section.get("title") or ""
-    tree = _render_org_nodes(section.get("nodes", []))
+    nodes = section.get("nodes") or []
+    head = f'<h2 class="rc-org-section-title">{_esc(title)}</h2>'
+    if not nodes:
+        body = ""
+    elif all(_org_node_is_leaf(n) for n in nodes):
+        boxes = "".join(
+            f'<span class="rc-org-label rc-org-box">{_esc(n.get("label", ""))}</span>'
+            for n in nodes
+        )
+        body = f'<div class="rc-org-flat">{boxes}</div>'
+    else:
+        exec_nodes, group_nodes = _org_partition(nodes)
+        parts: list[str] = []
+        if exec_nodes:
+            parts.append(_render_org_exec(_org_spine(exec_nodes[0])))
+        if group_nodes:
+            groups = "".join(_render_org_group(g) for g in group_nodes)
+            parts.append(f'<div class="rc-org-groups">{groups}</div>')
+        body = "".join(parts)
     return (
         f'<section class="rc-org-section" aria-label="{_esc(title)}">'
-        f'<h2 class="rc-org-section-title">{_esc(title)}</h2>'
-        f'<ul class="rc-org-tree">{tree}</ul></section>'
+        f"{head}{body}</section>"
     )
 
 
@@ -3112,7 +3234,8 @@ def _render_organization_main(
         f"{tools_html}</div>"
     )
     content_html = (
-        f"{context_html}{page_head}"
+        f"{page_head}"
+        f"{context_html}"
         f'<div class="rc-org-chart" aria-label="{_esc(surface_label_text)}">{sections_html}</div>'
     )
     return _wrap_subpage(snb_html, content_html)
@@ -3234,8 +3357,15 @@ def _render_staff_directory_main(
         f'<div class="rc-page-head"><h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
         f"{tools_html}</div>"
     )
+    # SOURCE ordering: page title, then breadcrumb/location, then content.
+    # The result summary and the inert search controls share one clear row.
     content_html = (
-        f"{context_html}{page_head}{form_html}{summary_html}{table_html}{pagination_html}"
+        f"{page_head}"
+        f"{context_html}"
+        f'<div class="rc-staff-search-row" aria-label="직원 검색">'
+        f"{summary_html}{form_html}"
+        f"</div>"
+        f"{table_html}{pagination_html}"
     )
     return _wrap_subpage(snb_html, content_html)
 

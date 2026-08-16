@@ -646,7 +646,7 @@ def test_org_renders_nested_semantic_dom():
     model = _load_model()
     html = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
     # Nested semantic org DOM (not a flat text list).
-    assert 'class="rc-org-tree"' in html
+    assert 'class="rc-org-tree' in html
     assert "rc-org-children" in html
     assert "rc-org-depth-3" in html
     assert "rc-org-depth-2" in html
@@ -721,6 +721,113 @@ def test_lifecycle_fail_closed_org_staff():
         assert payload["golden"] is False
         assert payload["actual_site_integrated"] is False
         assert payload["asset_byte_fidelity_complete"] is False
+
+
+# ── #1325 correction: generic page-title rule + page-head/breadcrumb order ──
+_BOARD_TITLE_REGRESSION = {
+    "notice.list.desktop": "공지사항",
+    "notice.detail.desktop": "공지사항",
+    "gosi.list.desktop": "현재 고시/공고",
+    "gosi.detail.desktop": "고시/공고",
+    "civil_form.list.desktop": "민원서식",
+    "civil_form.detail.desktop": "민원서식",
+}
+
+
+def _page_title_h2(html: str) -> str:
+    m = re.search(r'<h2 class="rc-page-title">([^<]+)</h2>', html)
+    assert m, "missing rc-page-title h2"
+    return m.group(1)
+
+
+def test_org_page_title_is_surface_identity():
+    model = _load_model()
+    html = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
+    assert _page_title_h2(html) == "행정조직도"
+
+
+def test_staff_page_title_is_surface_identity():
+    model = _load_model()
+    html = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
+    assert _page_title_h2(html) == "직원 업무안내"
+
+
+def test_board_surface_titles_unchanged():
+    """Regression: board list/detail page titles keep the breadcrumb rule."""
+    model = _load_model()
+    for sid, expected in _BOARD_TITLE_REGRESSION.items():
+        html = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        assert _page_title_h2(html) == expected, f"{sid} title changed"
+
+
+def test_synthetic_chart_directory_first_segment_title():
+    """Generic rule: chart/directory surfaces use the first page_title segment."""
+    model = _synthetic_model()
+    for sid, expected in (
+        ("org.chart.desktop", "조직도"),
+        ("people.directory.desktop", "직원안내"),
+    ):
+        html = mod.render_state(model, sid, route_prefix="/x/")
+        assert _page_title_h2(html) == expected
+
+
+def test_page_head_precedes_breadcrumb_org_staff():
+    """SOURCE ordering: page title, then breadcrumb/location, then content."""
+    model = _load_model()
+    for sid in ("organization.chart.desktop", "staff.directory.desktop"):
+        html = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        body = html[html.index("<body"):]
+        assert body.index('class="rc-page-head"') < body.index(
+            'class="rc-subpage-context"'
+        ), f"{sid}: page title must precede breadcrumb context"
+
+
+# ── #1325 correction: organization chart layout (not a serialized list) ────
+def test_org_desktop_not_narrow_serialized_vertical_list():
+    """Org layout vocabulary: executive chain + peer group grid + flat grid."""
+    model = _load_model()
+    html = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
+    assert 'class="rc-org-exec"' in html
+    assert 'class="rc-org-groups"' in html
+    assert 'class="rc-org-flat"' in html
+    # The old margin-indented nested serialization is removed.
+    assert "margin:0 0 0 24px" not in html
+    # Executive labels are still source-backed.
+    for text in ("구청장", "부구청장", "기획실", "홍보실", "감사담당관"):
+        assert text in html
+
+
+def test_org_flat_grid_contains_eighteen_centres():
+    model = _load_model()
+    html = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
+    flat = re.search(r'<div class="rc-org-flat">(.*?)</div>', html, re.S)
+    assert flat, "org flat grid missing"
+    boxes = re.findall(r'class="rc-org-label rc-org-box">([^<]+)</span>', flat.group(1))
+    assert len(boxes) == 18, f"expected 18 neighbourhood centres, got {len(boxes)}"
+
+
+# ── #1325 correction: staff directory bounded polish ──────────────────────
+def test_staff_table_four_columns_ten_rows():
+    model = _load_model()
+    html = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
+    ths = re.findall(
+        r'<th scope="col" class="rc-th rc-col-[^"]*">([^<]+)</th>', html
+    )
+    assert ths == ["부서명", "직책", "전화번호", "담당업무"]
+    rows = re.findall(r'<tr class="rc-board-row">', html)
+    assert len(rows) == 10, f"expected 10 captured rows, got {len(rows)}"
+
+
+def test_staff_search_row_summary_and_controls():
+    model = _load_model()
+    html = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
+    row_start = html.index('class="rc-staff-search-row"')
+    summary_idx = html.index('class="rc-board-summary"')
+    form_idx = html.index('form class="rc-staff-search"', row_start)
+    assert row_start < summary_idx < form_idx, "summary and controls must share the search row"
+    # Readable disabled affordance (white surface, dark text, dark button).
+    assert "background:#ffffff;color:#222222;opacity:1" in html
+    assert "background:#23201f;color:#ffffff" in html
 
 
 # ── Second synthetic site: same generic renderer ────────────────────────
