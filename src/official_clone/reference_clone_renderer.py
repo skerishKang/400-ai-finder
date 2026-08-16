@@ -1545,6 +1545,8 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;}"
         ".rc-breadcrumb .rc-crumb-current{font-weight:700;}"
         ".rc-location{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".sr_only{position:absolute;width:1px;height:1px;overflow:hidden;"
+        "clip:rect(0 0 0 0);white-space:nowrap;}"
         "/* The source renders the board location hierarchy as a visually "
         "hidden .blind legend (screen-reader only); keep it in the a11y tree "
         "but out of the visible composition. */"
@@ -1587,7 +1589,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-attach-name{display:inline-block;}"
         ".rc-attach-meta{display:inline-block;}"
         ".rc-attach{display:inline-block;cursor:not-allowed;}"
-        ".rc-attach-indicator{display:inline-block;}"
         ".rc-prevnext{display:block;list-style:none;margin:0;padding:0;}"
         ".rc-pn-prev,.rc-pn-next{display:block;}"
         ".rc-pn-label{display:inline-block;font-weight:700;}"
@@ -2419,6 +2420,9 @@ def _board_nav_html(state: dict[str, Any]) -> tuple[str, str, str]:
     active = _board_active_label(state)
     crumbs = []
     for idx, label in enumerate(trail):
+        # No invented visual separator: the source breadcrumb hierarchy is a
+        # sequence of labelled landmarks (홈 → 구정소식 → 공지사항). A literal
+        # "›" glyph is not source-proven, so crumbs stay as discrete spans.
         if idx == len(trail) - 1:
             crumbs.append(
                 f'<span class="rc-crumb rc-crumb-current" aria-current="page">{_esc(label)}</span>'
@@ -2428,11 +2432,14 @@ def _board_nav_html(state: dict[str, Any]) -> tuple[str, str, str]:
     breadcrumb_html = (
         f'<nav class="rc-breadcrumb" aria-label="위치">{"".join(crumbs)}</nav>' if crumbs else ""
     )
-    location = _board_location_hierarchy(_contents_landmark_text(state))
+    # The blind search fieldset legend ("분야별정보 > 행정 > 행정소식 > 공지사항")
+    # is screen-reader-only source content and MUST NOT be promoted into a
+    # navigation landmark (visible or hidden). The real visible location
+    # hierarchy is the source-backed breadcrumb (홈 / 구정소식 / 공지사항)
+    # rendered above. No separate rc-location nav is derived for board states;
+    # deriving it from the contents landmark would re-introduce the blind
+    # legend as a duplicate navigation landmark.
     location_html = ""
-    if location:
-        loc = "".join(f'<span class="rc-loc">{_esc(p)}</span>' for p in location)
-        location_html = f'<nav class="rc-location" aria-label="분류">{loc}</nav>'
     section_title, snb = _board_snb_items(state)
     snb_parts = []
     if section_title:
@@ -2531,6 +2538,11 @@ def _render_board_pagination(
     current = summary.get("page_current") or str(
         board_pagination.get("current_page") if board_pagination else None
     ) or "1"
+    # source DOM uses class="arr first" + text "처음", "arr prev" + "이전",
+    # "arr next" + "다음", "arr last" + "마지막". The visible glyph treatment is
+    # CSS-driven (an icon font / sprite) and is NOT materialized in the controlled
+    # clone asset set, so we render only the source-backed text labels and drop
+    # the invented literal « ‹ › » glyphs (no provenance, no external request).
     items = [
         '<button type="button" class="rc-page" disabled aria-disabled="true">처음</button>',
         '<button type="button" class="rc-page" disabled aria-disabled="true">이전</button>',
@@ -2637,28 +2649,47 @@ def _render_list_main(
             for col in board_columns:
                 value = cells.get(col) or ""
                 if col == "제목":
-                    text = value
+                    value = cells.get(col) or ""
                     if row.get("is_new"):
-                        text = re.sub(r"^새글\s*", "새글 ", text).strip()
+                        # Source DOM: <i class="xi-new"></i><span class="sr_only">새글</span>
+                        # followed by the title. The xi-new glyph is an XEIcon
+                        # font treatment whose body bytes are not materialized in
+                        # the controlled clone asset set (TECHNICAL_CAPTURE_GAP),
+                        # so we emit the source element + screen-reader "새글"
+                        # label and do NOT fabricate a visible bordered chip.
+                        clean_title = re.sub(r"^새글\s*", "", value).strip()
+                        cell_text = (
+                            f'<i class="xi-new" aria-hidden="true"></i>'
+                            f'<span class="sr_only">새글</span> '
+                            f'{_esc(clean_title)}'
+                        )
+                    else:
+                        cell_text = _esc(value)
                     if links_to_detail:
                         detail_route = _family_detail_route(model, family, route_prefix)
                         href = relative_href(current_route, detail_route) if detail_route else "#"
                         cell_html.append(
                             f'<td class="rc-td rc-col-{_esc(col)}">'
                             f'<a class="rc-list-link" data-detail="1" href="{_esc(href)}">'
-                            f'{_esc(text)}</a></td>'
+                            f'{cell_text}</a></td>'
                         )
                     else:
                         cell_html.append(
                             f'<td class="rc-td rc-col-{_esc(col)}">'
                             f'<span class="rc-list-item" aria-disabled="true" '
-                            f'role="link" tabindex="-1">{_esc(text)}</span></td>'
+                            f'role="link" tabindex="-1">{cell_text}</span></td>'
                         )
                 elif col == "첨부파일" and row.get("attachment_count"):
+                    # Source renders an attachment icon (e.g. /upload/skin/board/
+                    # basic/attach.png) whose body bytes are not materialized in
+                    # the controlled clone asset set (TECHNICAL_CAPTURE_GAP). We
+                    # preserve the attachment count semantics without fabricating
+                    # a visible bordered chip or any external/relative asset URL.
+                    count = row["attachment_count"]
                     cell_html.append(
                         f'<td class="rc-td rc-col-{_esc(col)}">'
-                        f'<span class="rc-attach-indicator" aria-label="첨부파일 {row["attachment_count"]}개">'
-                        f'첨부 {row["attachment_count"]}</span></td>'
+                        f'<span class="rc-attach-count sr_only" '
+                        f'aria-label="첨부파일 {count}개">첨부파일 {count}개</span></td>'
                     )
                 else:
                     cell_html.append(

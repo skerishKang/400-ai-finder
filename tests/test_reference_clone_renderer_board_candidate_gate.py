@@ -157,10 +157,10 @@ def test_linked_rows_exactly_match_family_detail_record_id():
 
         html = renderer.render_state(model, state_id, route_prefix=ROUTE_PREFIX)
         anchors = re.findall(
-            r'<a class="rc-list-link" data-detail="1" href="([^"]+)">([^<]+)</a>',
+            r'<a class="rc-list-link" data-detail="1" href="([^"]+)">(.*?)</a>',
             html,
         )
         assert len(anchors) == expected_count, family
         if linked:
-            assert [text for _href, text in anchors] == [item["text"] for item in linked]
+            assert [re.sub(r'<[^>]+>', '', text) for _href, text in anchors] == [item["text"] for item in linked]
             assert all(href == "detail/" for href, _text in anchors)

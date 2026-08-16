@@ -391,7 +391,7 @@ def test_board_list_rows_without_detail_record_id_are_inert():
         h = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
         # Non-linked rows must be inert spans, not navigable anchors.
         inert_spans = re.findall(
-            r'<span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">([^<]*)</span>',
+            r'<span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">(.*?)</span></td>',
             h,
         )
         total_links = h.count('data-detail="1"')
@@ -1458,6 +1458,84 @@ def test_1312_renderer_source_has_no_site_literals():
     for tok in ("서구", "Seogu", "Gwangju", "list_no=", "not_ancmt_mgt_no=",
                 "10852", "체육관광과", "2026/08/11"):
         assert tok not in source, f"renderer must not hardcode literal: {tok!r}"
+
+
+def _visible_breadcrumb(html: str) -> str:
+    m = re.search(r'<nav class="rc-breadcrumb"[^>]*>.*?</nav>', html, re.S)
+    return m.group(0) if m else ""
+
+
+def test_1324_visible_breadcrumb_not_from_blind_search_legend():
+    # The "분야별정보 > 행정 > 행정소식 > 공지사항" string in the source is a
+    # blind (screen-reader-only) search fieldset legend, NOT a location
+    # navigation. It must never be promoted into the visible breadcrumb NOR
+    # into any navigation landmark of the rendered board page.
+    blind_tokens = ("분야별정보", "행정소식", "행정 >", "분야별정보 >")
+    for sid in _BOARD_STATES:
+        h = _render_board(sid)
+        crumb = _visible_breadcrumb(h)
+        assert crumb, (sid, "expected a visible rc-breadcrumb nav")
+        # Real visible location nav is source-backed and rooted at 홈.
+        assert "홈" in crumb, (sid, "visible breadcrumb must preserve 홈 root")
+        for tok in blind_tokens:
+            assert tok not in crumb, (sid, "blind legend leaked into visible breadcrumb", tok)
+        # No invented "›" separator glyph (not source-proven).
+        assert "rc-crumb-sep" not in h, (sid, "invented crumb separator must be removed")
+        assert "›" not in crumb, (sid, "literal › separator not source-proven")
+        # The blind search fieldset legend must not be promoted into a
+        # navigation landmark. Check the EXACT source legend string (it is
+        # joined by " > " in the source, not rendered as separate menu items):
+        # if it were promoted into an rc-location (or any) nav it would appear
+        # verbatim. The exact string must be absent from the whole document.
+        blind_legend = "분야별정보 > 행정 > 행정소식 > 공지사항"
+        assert blind_legend not in h, (
+            sid,
+            "blind search legend promoted into a navigation landmark",
+        )
+        # No rc-location navigation element is generated for board states
+        # (the CSS rule may still exist, so match the element, not the class
+        # token alone).
+        assert '<nav class="rc-location"' not in h, (
+            sid,
+            "blind-legend rc-location nav must not be generated",
+        )
+
+
+def test_1324_new_post_semantic_preserved_no_visible_chip():
+    # Source DOM: <i class="xi-new"></i><span class="sr_only">새글</span> + title.
+    # The "새글" text must remain as a screen-reader label; the previously
+    # fabricated visible bordered "새글" text chip must be gone.
+    h = _render_board("notice.list.desktop")
+    assert "rc-new-badge" not in h, "bordered visible 새글 chip must be removed"
+    assert '<span class="sr_only">새글</span>' in h, "sr-only 새글 label must be preserved"
+    assert 'class="xi-new"' in h, "source xi-new element must be present"
+    assert "padding:2px 6px" not in h, "arbitrary chip padding must be removed"
+    assert "#e74c3c" not in h, "arbitrary chip color must be removed"
+
+
+def test_1324_attachment_count_preserved_no_bordered_chip():
+    # The bordered "첨부 N" chip is not a source treatment. The attachment count
+    # semantics must still be preserved; a fake bordered chip is forbidden.
+    lst = _render_board("notice.list.desktop")
+    assert "rc-attach-indicator" not in lst, "bordered attachment chip must be removed"
+    assert "첨부파일 1개" in lst, "attachment count semantics must be preserved"
+    assert "data-attachment-ext" not in lst, "list must not expose detail attachment ext"
+    det = _render_board("notice.detail.desktop")
+    assert "rc-attach" in det, "detail attachment affordance must remain"
+
+
+def test_1324_pager_uses_source_text_not_invented_glyphs():
+    # Source pager uses class="arr first" + "처음", etc. The visible glyph
+    # treatment is CSS-driven and not materialized; the literal « ‹ › » glyphs
+    # were invented and must not appear in the pager navigation.
+    h = _render_board("notice.list.desktop")
+    m = re.search(r'<nav class="rc-pagination".*?</nav>', h, re.S)
+    assert m, "expected a pager nav"
+    pager = m.group(0)
+    for glyph in ("«", "‹", "›", "»"):
+        assert glyph not in pager, f"invented pager glyph {glyph!r} must be removed"
+    for label in ("처음", "이전", "다음", "마지막"):
+        assert label in pager, f"source pager label {label!r} must be preserved"
 
 
 def test_1312_synthetic_site_board_fallback_intact():
