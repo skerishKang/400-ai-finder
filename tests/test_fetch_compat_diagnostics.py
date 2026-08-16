@@ -442,6 +442,7 @@ class TestLogSurfaceNoLeak:
         injected router raises. The log line must remain free of raw
         exception text.
         """
+        from src.demo import site_demo_runner as runner_module
         from src.demo.site_demo_runner import SiteDemoRunner
 
         class _RaisingRouter:
@@ -454,9 +455,17 @@ class TestLogSurfaceNoLeak:
                     "VERY_SPECIFIC_LOG_CANARY_DO_NOT_PERSIST"
                 )
 
+        class _StubPipeline:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            def run(self, url: str, query: str) -> dict[str, Any]:
+                return {"ok": False, "error": "simulated fallback"}
+
         monkeypatch.setattr(
             SiteDemoRunner, "_resolve_router", lambda self: _RaisingRouter()
         )
+        monkeypatch.setattr(runner_module, "PipelineRunner", _StubPipeline)
 
         runner = SiteDemoRunner(
             site_id="bukgu_gwangju",

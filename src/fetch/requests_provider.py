@@ -10,6 +10,7 @@ import os
 import time
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import urljoin
 
 try:
     import requests as req_lib
@@ -18,7 +19,10 @@ except ImportError:
     req_lib = None  # type: ignore[assignment]
     BeautifulSoup = None  # type: ignore[assignment]
 
+from urllib.parse import urlparse
+
 from .base import FetchConfig, FetchProvider, FetchResult
+from .egress_policy import PublicEgressPolicy
 
 # ---------------------------------------------------------------------------
 # Default browser-like headers (Stage 35)
@@ -48,6 +52,22 @@ _RETRY_HEADERS: dict[str, str] = {
     "Cache-Control": "max-age=0",
 }
 
+# ---------------------------------------------------------------------------
+# #1294 acquisition-scope redirect containment and #1295 public egress policy
+# ---------------------------------------------------------------------------
+# When an acquisition policy is supplied, redirects are followed manually so
+# the *next* target can be host-authorized BEFORE any request is dispatched to
+# it. ``requests``' built-in ``allow_redirects=True`` would otherwise follow an
+# external redirect first and only reveal the effective URL afterwards.
+_MAX_REDIRECTS = 10
+
+_REDIRECT_SCOPE_BLOCKED = object()
+_EGRESS_POLICY_BLOCKED = object()
+_REDIRECT_LOOP_EXCEEDED = object()
+_REDIRECT_MALFORMED_LOCATION = object()
+
+_REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
+
 
 def _build_headers(user_agent: str) -> dict[str, str]:
     """Build full request headers dict from a User-Agent string."""
@@ -72,7 +92,12 @@ class RequestsFetchProvider(FetchProvider):
     - Configurable via constructor or environment variables
     """
 
-    def __init__(self, timeout: int = 15, user_agent: str | None = None):
+    def __init__(
+        self,
+        timeout: int = 15,
+        user_agent: str | None = None,
+        egress_policy: PublicEgressPolicy | None = None,
+    ):
         if req_lib is None:
             raise ImportError(
                 "The 'requests' library is required for RequestsFetchProvider."
@@ -80,6 +105,7 @@ class RequestsFetchProvider(FetchProvider):
         self.timeout = timeout
         self.user_agent = user_agent or _DEFAULT_USER_AGENT
         self.headers = _build_headers(self.user_agent)
+        self.egress_policy = egress_policy
 
     @staticmethod
     def _split_timeout(timeout: Any) -> tuple[float, float]:
@@ -108,20 +134,229 @@ class RequestsFetchProvider(FetchProvider):
         url: str,
         timeout: tuple[float, float] | float | int,
         headers: dict[str, str] | None = None,
+        allow_redirects: bool = True,
     ) -> Any:
         # Pass headers verbatim. ``None`` falls back to the browser-like
         # defaults; an explicit (possibly empty) dict is sent as-is so that
         # ``headers={}`` does NOT merge with or replace defaults. ``timeout``
         # may be a scalar (legacy transport) or a (connect, read) tuple.
-        return req_lib.get(url, headers=self.headers if headers is None else headers, timeout=timeout)
+        # ``allow_redirects`` is only forwarded when disabled (the #1294 manual
+        # redirect containment loop); the default path keeps the historical
+        # call signature so existing callers/transports are unchanged.
+        request_kwargs: dict[str, Any] = {
+            "headers": self.headers if headers is None else headers,
+            "timeout": timeout,
+        }
+        if not allow_redirects:
+            request_kwargs["allow_redirects"] = False
+        return req_lib.get(url, **request_kwargs)
+
+    def _origin_key(self, url: str) -> tuple[str, str, int]:
+        """Return (scheme, host, port) triple for origin comparison.
+
+        Port is the effective port (default 80 for http, 443 for https)
+        when no explicit port is present.
+        """
+        parsed = urlparse(url)
+        scheme = parsed.scheme.lower()
+        host = parsed.hostname.lower() if parsed.hostname else ""
+        explicit_port = parsed.port
+        if explicit_port is not None:
+            port = explicit_port
+        else:
+            port = 443 if scheme == "https" else 80
+        return (scheme, host, port)
+
+    def _fetch_with_scope(
+        self,
+        url: str,
+        timeout: tuple[float, float] | float | int,
+        headers: dict[str, str],
+        policy: Any,
+        config: FetchConfig | None = None,
+        egress_policy: Any = None,
+    ) -> Any:
+        """Follow redirects with per-hop acquisition host and egress authorization.
+
+        #1294: dispatch to a 3xx ``Location`` only after the *next* target has
+        been authorized by the frozen acquisition policy. Relative Locations
+        are resolved against the current URL before authorization. Every next
+        target and the final URL must be in-scope; undeclared hosts are never
+        requested (fail closed). Redirect count is bounded by ``_MAX_REDIRECTS``
+        so loops fail closed instead of hanging.
+
+        #1295: egress policy is verified at each hop before socket dispatch.
+        Redirects from public targets to private/link-local/loopback destinations
+        fail closed before the second request. When egress policy is active,
+        the scoped Session also sets ``trust_env=False`` so ambient proxy/netrc
+        configuration cannot silently replace the reviewed direct-egress path.
+
+        Uses a ``requests.Session`` across all hops so that cookies set during
+        a same-site redirect (``Set-Cookie``) are carried to the next hop,
+        preserving the same cookie/session continuity that ``requests`` native
+        redirect following provides.
+
+        #1294 V2 — credential safety boundary is the *origin*
+        (scheme + normalized hostname + effective port), not just the host.
+        ``Authorization`` and ``Proxy-Authorization`` are stripped whenever
+        the origin changes (including scheme downgrade https->http or port
+        change), not only on cross-host redirects.
+
+        #1294 V2 — explicit ``Cookie`` header forwarded by the caller is
+        stripped before each redirect hop so that the Session cookie jar
+        reconstructs cookies for the target domain/path/secure rules instead
+        of blindly copying a raw header across origins.
+
+        #1294 V2 — session default headers are cleared before applying the
+        caller-provided headers dict so that ``headers={}`` is truly empty
+        (no unintentional merge of ``requests`` library defaults).
+
+        #1294 V2 — the Session is closed deterministically via a ``with``
+        block (context manager).
+
+        #1294 V2 — the optional ``config`` parameter preserves legacy 400
+        retry and FetchConfig retry semantics in the scoped path.
+        """
+        ep = egress_policy if egress_policy is not None else self.egress_policy
+        if ep is not None and not ep.is_authorized(url):
+            return _EGRESS_POLICY_BLOCKED
+        if policy is not None and not policy.is_authorized(url):
+            return _REDIRECT_SCOPE_BLOCKED
+
+        with req_lib.Session() as session:
+            # #1295 direct-egress mode: do not inherit HTTP(S)_PROXY, ALL_PROXY,
+            # NO_PROXY, netrc, or other Requests trust_env inputs. Acquisition-
+            # only #1294 callers retain the historical trust_env=True behavior.
+            session.trust_env = ep is None
+            session.headers.clear()
+            session.headers.update(headers)
+
+            current_url = url
+            for hop_index in range(_MAX_REDIRECTS + 1):
+                resp = session.get(
+                    current_url, timeout=timeout, allow_redirects=False
+                )
+                if resp.status_code not in _REDIRECT_STATUSES:
+                    break
+
+                # #1294 V2: strip explicit Cookie header from session headers
+                # before redirect hop so the session cookie jar (not raw
+                # header forwarding) governs next-hop cookies.
+                session.headers.pop("Cookie", None)
+
+                location = resp.headers.get("Location")
+                if not location:
+                    return resp
+                try:
+                    next_url = urljoin(current_url, location)
+                except ValueError:
+                    return _REDIRECT_MALFORMED_LOCATION
+
+                # #1294 host scope check
+                if policy is not None and not policy.is_authorized(next_url):
+                    return _REDIRECT_SCOPE_BLOCKED
+
+                # #1295 SSRF-safe public egress check
+                if ep is not None and not ep.is_authorized(next_url):
+                    return _EGRESS_POLICY_BLOCKED
+
+                # #1294 V2: origin-bound credential safety.
+                # Compare exact origin (scheme + host + port), not just host.
+                current_origin = self._origin_key(current_url)
+                next_origin = self._origin_key(next_url)
+                if current_origin != next_origin:
+                    session.headers.pop("Authorization", None)
+                    session.headers.pop("Proxy-Authorization", None)
+
+                current_url = next_url
+            else:
+                return _REDIRECT_LOOP_EXCEEDED
+
+            # --- Non-redirect response: apply retry logic when config is provided
+            if config is None:
+                # Legacy 400 retry (mirrors _request_with_legacy_400_retry).
+                if resp.status_code == 400:
+                    # #1295: re-check egress policy before retry dispatch.
+                    if ep is None or ep.is_authorized(current_url):
+                        retry_headers = _build_retry_headers(self.user_agent)
+                        try:
+                            if ep is None:
+                                # Preserve the historical acquisition-only
+                                # retry transport semantics from #1294.
+                                resp = self._request_once(
+                                    current_url,
+                                    timeout,
+                                    retry_headers,
+                                    allow_redirects=False,
+                                )
+                            else:
+                                # Egress-active retry stays on the same direct
+                                # trust_env=False Session.
+                                resp = session.get(
+                                    current_url,
+                                    timeout=timeout,
+                                    headers=retry_headers,
+                                    allow_redirects=False,
+                                )
+                        except Exception:
+                            pass
+            else:
+                # FetchConfig retry on status.
+                attempts = config.max_retries + 1
+                for attempt_index in range(attempts):
+                    if resp.status_code not in config.retry_on_status:
+                        break
+                    if attempt_index >= config.max_retries:
+                        break
+                    # #1295: re-check egress policy before retry dispatch.
+                    if ep is not None and not ep.is_authorized(current_url):
+                        return _EGRESS_POLICY_BLOCKED
+                    if config.retry_backoff > 0:
+                        time.sleep(config.retry_backoff)
+                    try:
+                        if ep is None:
+                            # Preserve acquisition-only retry behavior.
+                            resp = self._request_once(
+                                current_url,
+                                timeout,
+                                self.headers,
+                                allow_redirects=False,
+                            )
+                        else:
+                            # Egress-active retry stays on the same direct
+                            # trust_env=False Session.
+                            resp = session.get(
+                                current_url,
+                                timeout=timeout,
+                                headers=self.headers,
+                                allow_redirects=False,
+                            )
+                    except req_lib.exceptions.Timeout:
+                        if attempt_index < config.max_retries:
+                            if config.retry_backoff > 0:
+                                time.sleep(config.retry_backoff)
+                            continue
+                        break
+                    except Exception:
+                        break
+
+                return resp
+
+            return resp
 
     def _request_with_legacy_400_retry(
         self,
         url: str,
         timeout: tuple[float, float],
+        egress_policy: Any = None,
     ) -> Any:
+        ep = egress_policy if egress_policy is not None else self.egress_policy
         resp = self._request_once(url, timeout, self.headers)
         if resp.status_code != 400:
+            return resp
+
+        # #1295: re-check egress policy before retry dispatch
+        if ep is not None and not ep.is_authorized(url):
             return resp
 
         retry_headers = _build_retry_headers(self.user_agent)
@@ -138,6 +373,8 @@ class RequestsFetchProvider(FetchProvider):
     ) -> FetchResult:
         compatibility_mode = kwargs.get("compatibility_mode", False)
         legacy_transport = bool(kwargs.get("legacy_transport", False))
+        acquisition_policy = kwargs.get("acquisition_policy", None)
+        egress_policy = kwargs.get("egress_policy", self.egress_policy)
         if compatibility_mode:
             # Call-arg timeout > config.timeout > constructor timeout.
             raw_timeout = kwargs.get(
@@ -162,7 +399,7 @@ class RequestsFetchProvider(FetchProvider):
                 ok=False,
                 provider=self.name,
                 fetched_at=now,
-                error=f"Invalid URL: must start with http:// or https://",
+                error="Invalid URL: must start with http:// or https://",
             )
 
         if compatibility_mode:
@@ -170,14 +407,70 @@ class RequestsFetchProvider(FetchProvider):
             # legacy_transport (already consumed as a positional flag).
             kwargs.pop("timeout", None)
             kwargs.pop("legacy_transport", None)
+            kwargs.pop("acquisition_policy", None)
+            kwargs.pop("egress_policy", None)
             return self._fetch_compatibility(
-                url, timeout, now, legacy_transport=legacy_transport, **kwargs
+                url, timeout, now, legacy_transport=legacy_transport,
+                acquisition_policy=acquisition_policy,
+                egress_policy=egress_policy, **kwargs
             )
 
         # --- HTTP request ---
-        if config is None:
+        if acquisition_policy is not None or egress_policy is not None:
+            # #1294: bounded manual redirect following with pre-dispatch host
+            # authorization. A 3xx next target is requested only when it is
+            # inside the frozen acquisition scope; undeclared hosts are never
+            # dispatched to. Loops exceed the bound and fail closed.
+            # #1295: bounded redirect hops also enforce public egress policy
+            # per hop before socket dispatch.
+            # Uses ``requests.Session`` for cookie/session continuity across
+            # redirect hops and strips credential-bearing headers (e.g.
+            # ``Authorization``, ``Proxy-Authorization``) on cross-host hops.
+            resp = self._fetch_with_scope(
+                url,
+                timeout,
+                self.headers,
+                acquisition_policy,
+                config=config,
+                egress_policy=egress_policy,
+            )
+            if resp is _EGRESS_POLICY_BLOCKED:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error="Redirect to prohibited destination rejected by public egress policy",
+                )
+            if resp is _REDIRECT_SCOPE_BLOCKED:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error="Redirect to out-of-scope host rejected by acquisition policy",
+                )
+            if resp is _REDIRECT_LOOP_EXCEEDED:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error="Redirect limit exceeded (possible redirect loop)",
+                )
+            if resp is _REDIRECT_MALFORMED_LOCATION:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error="Malformed redirect Location URL (invalid IPv6 or other parse error)",
+                )
+        elif config is None:
             try:
-                resp = self._request_with_legacy_400_retry(url, timeout)
+                resp = self._request_with_legacy_400_retry(
+                    url, timeout, egress_policy=egress_policy
+                )
             except req_lib.exceptions.Timeout:
                 return FetchResult(
                     url=url,
@@ -206,6 +499,15 @@ class RequestsFetchProvider(FetchProvider):
             attempts = config.max_retries + 1
             resp = None
             for attempt_index in range(attempts):
+                # #1295: re-check egress policy before each retry attempt dispatch
+                if attempt_index > 0 and egress_policy is not None and not egress_policy.is_authorized(url):
+                    return FetchResult(
+                        url=url,
+                        ok=False,
+                        provider=self.name,
+                        fetched_at=now,
+                        error="Egress blocked: destination URL rejected by public egress policy",
+                    )
                 try:
                     resp = self._request_once(url, timeout, self.headers)
                 except req_lib.exceptions.Timeout:
@@ -357,6 +659,8 @@ class RequestsFetchProvider(FetchProvider):
         timeout: tuple[float, float] | float | int,
         now: str,
         legacy_transport: bool = False,
+        acquisition_policy: Any = None,
+        egress_policy: Any = None,
         **kwargs: Any,
     ) -> FetchResult:
         """Opt-in compatibility path (``compatibility_mode=True``).
@@ -374,33 +678,86 @@ class RequestsFetchProvider(FetchProvider):
         error-shape behavior. It is only effective when ``compatibility_mode``
         is also set.
         """
+        ep = egress_policy if egress_policy is not None else self.egress_policy
+        if ep is not None and not ep.is_authorized(url):
+            return FetchResult(
+                url=url,
+                ok=False,
+                provider=self.name,
+                fetched_at=now,
+                error="Egress blocked: destination URL rejected by public egress policy",
+            )
+
         headers = kwargs.get("headers", {})
-        try:
-            resp = self._request_once(url, timeout, headers)
-        except req_lib.exceptions.Timeout:
-            return FetchResult(
-                url=url,
-                ok=False,
-                provider=self.name,
-                fetched_at=now,
-                error=f"Request timed out after {timeout}s",
+        if acquisition_policy is not None or ep is not None:
+            # #1294: same pre-dispatch redirect host containment on the
+            # compatibility path (legacy crawler/mapper transport).
+            resp = self._fetch_with_scope(
+                url,
+                timeout,
+                headers,
+                acquisition_policy,
+                egress_policy=ep,
             )
-        except req_lib.exceptions.RequestException as e:
-            return FetchResult(
-                url=url,
-                ok=False,
-                provider=self.name,
-                fetched_at=now,
-                error=f"Network error: {e}",
-            )
-        except Exception as e:
-            return FetchResult(
-                url=url,
-                ok=False,
-                provider=self.name,
-                fetched_at=now,
-                error=f"Unexpected error: {e}",
-            )
+            if resp is _EGRESS_POLICY_BLOCKED:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error="Redirect to prohibited destination rejected by public egress policy",
+                )
+            if resp is _REDIRECT_SCOPE_BLOCKED:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error="Redirect to out-of-scope host rejected by acquisition policy",
+                )
+            if resp is _REDIRECT_LOOP_EXCEEDED:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error="Redirect limit exceeded (possible redirect loop)",
+                )
+            if resp is _REDIRECT_MALFORMED_LOCATION:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error="Malformed redirect Location URL (invalid IPv6 or other parse error)",
+                )
+        else:
+            try:
+                resp = self._request_once(url, timeout, headers)
+            except req_lib.exceptions.Timeout:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error=f"Request timed out after {timeout}s",
+                )
+            except req_lib.exceptions.RequestException as e:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error=f"Network error: {e}",
+                )
+            except Exception as e:
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    provider=self.name,
+                    fetched_at=now,
+                    error=f"Unexpected error: {e}",
+                )
 
         status_code = resp.status_code
         content_type = resp.headers.get("Content-Type", "")

@@ -639,3 +639,91 @@ class TestResolveSiteId:
         runner = self._runner(tmp_output_dir)
         assert runner._resolve_site_id("https://alpha.example/") == "alpha"
         assert runner._resolve_site_id("https://other.example/") is None
+
+
+# ======================================================================
+# #1294: PipelineRunner propagates the frozen acquisition policy to
+# HomepageMapper and DocumentEnricher.
+# ======================================================================
+
+class TestAcquisitionPolicyPropagation:
+    """#1294 / no network. Same synthetic loader pattern as #1292 tests."""
+
+    def test_policy_passed_to_homepage_mapper_and_enricher(
+        self, monkeypatch, tmp_output_dir
+    ):
+        from src.site_profiles.site_profile import SiteAcquisitionPolicy, SiteProfile
+        from src.pipeline import pipeline_runner as pr
+
+        profile = SiteProfile({
+            "site_id": "synthetic_gov",
+            "name": "Synthetic Gov",
+            "base_url": "https://synthetic.gov.kr/",
+            "allowed_domains": ["synthetic.gov.kr"],
+        })
+
+        class FakeLoader:
+            def list_ids(self):
+                return ["synthetic_gov"]
+
+            def load_by_id(self, sid):
+                if sid != "synthetic_gov":
+                    raise FileNotFoundError(sid)
+                return profile
+
+        monkeypatch.setattr(
+            "src.site_profiles.site_profile.SiteProfileLoader", lambda: FakeLoader()
+        )
+
+        with patch("src.pipeline.pipeline_runner.AnswerComposer") as MockComposer, \
+             patch("src.pipeline.pipeline_runner.KeywordSearcher") as MockSearcher, \
+             patch("src.pipeline.pipeline_runner.DocumentEnricher") as MockEnricher, \
+             patch("src.pipeline.pipeline_runner.DocumentIndexer"), \
+             patch("src.pipeline.pipeline_runner.HomepageMapper") as MockMapper:
+            MockMapper.return_value.build_map.return_value = FAKE_HOMEPAGE_MAP
+            MockEnricher.return_value.enrich_records.return_value = FAKE_ENRICHED_DOCS
+            MockSearcher.return_value.search.return_value = FAKE_SEARCH_RESULTS
+            MockComposer.return_value.compose.return_value = FAKE_ANSWER_RESULT
+
+            runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+            result = runner.run(url="https://synthetic.gov.kr/", query="신청서")
+
+        assert result["ok"] is True
+
+        mapper_kwargs = MockMapper.call_args.kwargs
+        mapper_policy = mapper_kwargs.get("acquisition_policy")
+        assert isinstance(mapper_policy, SiteAcquisitionPolicy)
+        assert mapper_policy.is_authorized("https://synthetic.gov.kr/notice") is True
+        assert mapper_policy.is_authorized("https://evil.example/") is False
+
+        enricher_kwargs = MockEnricher.call_args.kwargs
+        assert isinstance(enricher_kwargs.get("acquisition_policy"), SiteAcquisitionPolicy)
+
+    def test_no_policy_when_no_profile_match(self, monkeypatch, tmp_output_dir):
+        from src.site_profiles import site_profile as sp
+
+        class EmptyLoader:
+            def list_ids(self):
+                return []
+
+            def load_by_id(self, sid):
+                raise FileNotFoundError(sid)
+
+        monkeypatch.setattr(sp, "SiteProfileLoader", lambda: EmptyLoader())
+
+        with patch("src.pipeline.pipeline_runner.AnswerComposer") as MockComposer, \
+             patch("src.pipeline.pipeline_runner.KeywordSearcher") as MockSearcher, \
+             patch("src.pipeline.pipeline_runner.DocumentEnricher") as MockEnricher, \
+             patch("src.pipeline.pipeline_runner.DocumentIndexer"), \
+             patch("src.pipeline.pipeline_runner.HomepageMapper") as MockMapper:
+            MockMapper.return_value.build_map.return_value = FAKE_HOMEPAGE_MAP
+            MockEnricher.return_value.enrich_records.return_value = FAKE_ENRICHED_DOCS
+            MockSearcher.return_value.search.return_value = FAKE_SEARCH_RESULTS
+            MockComposer.return_value.compose.return_value = FAKE_ANSWER_RESULT
+
+            runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+            result = runner.run(url="https://unknown.example/", query="신청서")
+
+        assert result["ok"] is True
+        assert MockMapper.call_args.kwargs.get("acquisition_policy") is None
+        assert MockEnricher.call_args.kwargs.get("acquisition_policy") is None

@@ -2,8 +2,8 @@
 
 - 상태: `canonical`
 - 기준일: 2026-08-16
-- 기준 main: `75739ab2b89f3181abfbc88475205909d16fe127`
-- lifecycle/governance 정렬: #1301 완료
+- 기준 main: `ca38d99f44f3f20f87150fb38efcdf002d01618b`
+- lifecycle/governance 정렬: #1301 완료; #1318 / PR #1319 owner-authority boundary 완료
 - active onboarding validation: #1232 -> #1303 -> #1312
 
 이 문서는 저장소의 **현재 제품상태, 제품단계, 안전경계, 개발순서와 운영기준을 찾기 위한 최상위 인덱스**다.
@@ -13,13 +13,16 @@
 ## 문서 우선순위
 
 1. `docs/CURRENT_STATUS.md` — current state/index
-2. `docs/product/clone-first-general-site-platform-strategy.md` — ordinary pre-integration product lifecycle
-3. `docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md` — track separation
-4. `docs/product/exact-official-site-clone-invariant.md` — `exact` claim invariant
-5. `docs/product/clone-visual-fidelity-and-promotion-policy.md` — visual/promotion authority
-6. `docs/implementation/RELEASE_GATES.md` — readiness gates
-7. `docs/operations/REPOSITORY_GOVERNANCE.md` / `CONTRIBUTING.md` — change-control workflow
-8. network/security/runtime/provenance docs — their narrower technical boundaries
+2. `docs/operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md` — named-site Phase-A audience / project-owner authority boundary
+3. `docs/product/clone-first-general-site-platform-strategy.md` — ordinary pre-integration product lifecycle
+4. `docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md` — track separation
+5. `docs/product/exact-official-site-clone-invariant.md` — `exact` claim invariant
+6. `docs/product/clone-visual-fidelity-and-promotion-policy.md` — visual/promotion authority
+7. `docs/implementation/RELEASE_GATES.md` — readiness gates
+8. `docs/operations/REPOSITORY_GOVERNANCE.md` / `CONTRIBUTING.md` — change-control workflow
+9. network/security/runtime/provenance docs — their narrower technical boundaries
+
+Named-site Phase-A의 legal/admin/rights 해석은 project owner의 최신 명시적 결정과 `docs/operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`를 따른다. #1234는 future Production/public-release governance이며 controlled faithful-clone fidelity의 일반 blocker로 사용하지 않는다.
 
 Historical issues, stage docs, audit records and superseded plans do not override the current canonical lifecycle.
 
@@ -94,7 +97,8 @@ Canonical lifecycle: [`product/clone-first-general-site-platform-strategy.md`](p
 - **General-site / multi-site AI Browser:** #1232가 active 상태다. Seo-gu G3 representative-surface acceptance가 완료되기 전에는 AI-on-clone 후속이나 materially different third-site proof로 넘어가지 않는다.
 - **Live-public AI:** 별도 public operating approval이 있는 것으로 자동 간주하지 않는다.
 - **Actual-site first-party integration:** 기관의 실제 운영·통합 승인이 있기 전에는 시작하지 않는다.
-- **Rights/license #1234:** public/open-source redistribution 또는 별도 release 판단을 위한 owner/rights 트랙으로 유지한다. 현재 controlled faithful-clone MVP의 기능·fidelity·stakeholder evaluation 자체를 자동 차단하는 일반 개발 blocker로 사용하지 않는다.
+- **Project-owner authority / Phase-A boundary:** #1318 / PR #1319 완료. `operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`와 project owner의 최신 명시적 결정이 named-site Phase-A legal/admin/rights 해석의 기준이다.
+- **Rights/license #1234:** future Production/public-release 또는 별도 redistribution 판단을 위한 owner/rights 트랙으로 유지한다. 현재 controlled faithful-clone MVP의 기능·fidelity·stakeholder evaluation 자체를 자동 차단하는 일반 개발 blocker로 사용하지 않는다.
 
 ## Platform structural proof와 named-site onboarding 분리
 
@@ -160,6 +164,7 @@ generated structural preview
 
 ### 보안·개인정보·운영
 
+- [`operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`](operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md) — `canonical` for named-site Phase-A audience / project-owner legal·administrative·business authority boundary
 - [`operations/PUBLIC_AI_API_SECURITY_AND_PRIVACY.md`](operations/PUBLIC_AI_API_SECURITY_AND_PRIVACY.md) — `canonical` for applicable public API operation
 - [`operations/REPOSITORY_GOVERNANCE.md`](operations/REPOSITORY_GOVERNANCE.md) — `canonical`
 - [`../SECURITY.md`](../SECURITY.md) — vulnerability/secret handling policy
@@ -198,6 +203,7 @@ generated structural preview
 4. asset mapping
 5. interaction parity
 6. visual review
+
 7. clone MVP ready
 8. exact/resident-default promotion when explicitly requested
 
@@ -230,8 +236,6 @@ Active:
 
 Separate follow-up/platform hardening:
 
-- #1294 redirect/sitemap acquisition scope — OPEN / active hardening
-- #1295 SSRF-safe arbitrary URL acquisition — OPEN P0 follow-up after #1294
 - #1291 generic Page Agent target semantics — OPEN P1
 - #1293 location discovery taxonomy — OPEN P2
 
@@ -242,13 +246,16 @@ Nonblocking maintenance / operations:
 
 Owner/public-release decision:
 
-- [#1234 code/official capture/third-party asset license & provenance](https://github.com/skerishKang/400-ai-finder/issues/1234)
+- [#1234 code/official capture/third-party asset license & provenance](https://github.com/skerishKang/400-ai-finder/issues/1234) — future Production/public-release governance; not a Phase-A faithful-clone fidelity blocker
 
 Completed / historical:
 
+- #1318 / PR #1319 project-owner authority / Phase-A boundary — completed; canonical authority document merged
 - #1301 clone MVP lifecycle / canonical docs alignment — completed
 - #1310 Seo-gu G3 homepage fidelity correction — completed/accepted
 - #1292 parsed-host site ownership hardening — completed; prerequisite landed before #1294
+- #1294 acquisition-domain scope hardening — completed via PR #1320 / merge `100e5b51d8f58baf27473c3ee628f60b1c94558a`
+- #1295 SSRF-safe public egress hardening — completed via PR #1321 / merge `ca38d99f44f3f20f87150fb38efcdf002d01618b`
 - #1283 post-Buk-gu governance alignment — completed
 - #1287 Generic SiteSpec vNext contract foundation — completed
 - #1235 Buk-gu Frozen Demo closeout — completed
