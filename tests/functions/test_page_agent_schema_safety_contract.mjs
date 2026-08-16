@@ -70,6 +70,9 @@ test('neutral lexical identifiers do not false-positive on embedded substrings',
   }
 
   expectPlanOk('click', '#service-card');
+  expectPlanOk('click', '#card-news');
+  expectPlanOk('click', '#author-profile');
+  expectPlanOk('click', '#notice-card');
   expectPlanOk('click', '.author-card');
   expectPlanOk('click', '#cardinality-panel');
   expectPlanOk('click', '#authorship-profile');
@@ -92,6 +95,7 @@ test('credential and transaction input targets stay fail-closed across naming co
   const targets = [
     '#password-input',
     '#api-token',
+    '#auth-token',
     '#api_key',
     '#APIKey',
     '#credit-card-number',
@@ -131,6 +135,7 @@ test('sensitive input values are rejected by input-specific policy', () => {
 test('submit, destructive, login, and payment execution controls remain fail-closed', () => {
   for (const target of [
     '#payment-submit',
+    '#login-submit',
     '#paymentSubmit',
     '[type="submit"]',
     '#delete-account',
@@ -151,6 +156,9 @@ test('submit, destructive, login, and payment execution controls remain fail-clo
   expectPlanBlocked('navigate', '/payment', 'forbidden_target:0');
   expectPlanBlocked('read', '#password-input', 'forbidden_target:0');
   expectPlanBlocked('select', '#auth-method', 'forbidden_target:0');
+  expectPlanBlocked('click', '#auth-token-help', 'forbidden_target:0');
+  expectPlanBlocked('click', '#login-button-help', 'forbidden_target:0');
+  expectPlanBlocked('click', '#payment-guide-button', 'forbidden_target:0');
 });
 
 test('external and script/data/file targets remain rejected before semantic policy', () => {

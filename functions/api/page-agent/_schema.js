@@ -65,6 +65,9 @@ export const FORBIDDEN_TARGET_KEYWORDS = Object.freeze([
   'auth',
   'delete',
   'destroy',
+  'javascript:',
+  'data:',
+  'vbscript:',
 ]);
 
 export const FORBIDDEN_BODY_KEYS = Object.freeze([
@@ -120,6 +123,23 @@ const INFORMATIONAL_TOPIC_TOKENS = new Set([
   'policy',
   'policies',
   'support',
+]);
+
+const CONTROL_ROLE_TOKENS = new Set([
+  'button',
+  'checkout',
+  'confirm',
+  'cvv',
+  'field',
+  'form',
+  'input',
+  'method',
+  'number',
+  'password',
+  'passwd',
+  'secret',
+  'submit',
+  'token',
 ]);
 
 const STRONG_CREDENTIAL_TOKENS = new Set([
@@ -213,14 +233,31 @@ function isCredentialOrTransactionTarget(raw) {
 }
 
 function isInformationalTopicTarget(raw) {
-  return hasAnyToken(semanticTokens(raw), INFORMATIONAL_TOPIC_TOKENS);
+  const tokens = semanticTokens(raw);
+  return (
+    hasAnyToken(tokens, INFORMATIONAL_TOPIC_TOKENS) &&
+    !hasAnyToken(tokens, CONTROL_ROLE_TOKENS)
+  );
 }
 
 function isSensitiveInputValue(raw) {
   const tokens = semanticTokens(raw);
-  if (hasAnyToken(tokens, INFORMATIONAL_TOPIC_TOKENS)) return false;
-  if (hasAnyToken(tokens, STRONG_CREDENTIAL_TOKENS)) return true;
+  const alwaysSensitive = new Set([
+    'token',
+    'secret',
+    'apikey',
+    'authorization',
+    'cvv',
+    'ssn',
+  ]);
+  if (hasAnyToken(tokens, alwaysSensitive)) return true;
   if (hasApiKeySemantic(tokens)) return true;
+  if (
+    (hasToken(tokens, 'password') || hasToken(tokens, 'passwd')) &&
+    !hasAnyToken(tokens, INFORMATIONAL_TOPIC_TOKENS)
+  ) {
+    return true;
+  }
   if (
     hasCreditCardSemantic(tokens) &&
     ['number', 'cvv', 'expiry', 'expiration'].some((token) => hasToken(tokens, token))
