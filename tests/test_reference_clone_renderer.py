@@ -1739,3 +1739,105 @@ def test_1312_synthetic_site_board_fallback_intact():
     detail = mod.render_state(synthetic, "news.detail.desktop", route_prefix="/x/", visual_contract=contract)
     assert "rc-detail-meta" in detail
     assert "rc-back" in detail
+
+
+# ---------------------------------------------------------------------------
+# #1325 organization hero footprint — source-backed optional reserved space
+# ---------------------------------------------------------------------------
+def test_org_hero_footprint_reserved_when_present():
+    """With the validated org hero footprint in the contract, the org surface
+    reserves an inert spacer before the leading executive hierarchy."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    measured = contract["layout"]["organization"]["hero_footprint_height_px"]
+    assert isinstance(measured, int) and measured > 0
+    assert 'class="rc-org-hero-footprint"' in html
+    assert f".rc-org-hero-footprint{{display:block;height:{measured}px;}}" in html
+    assert html.count('class="rc-org-hero-footprint"') == 1
+    # spacer sits directly after the first section heading / before exec chain
+    assert html.index('class="rc-org-hero-footprint"') > html.index("서구 행정조직")
+    assert html.index('class="rc-org-hero-footprint"') < html.index('class="rc-org-exec"')
+
+
+def test_org_hero_footprint_is_inert_no_debug_content():
+    """The reserved footprint is an empty, aria-hidden semantic spacer — no
+    placeholder art, no 'image unavailable' text, no emoji, no debug message."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    m = re.search(r'<div class="rc-org-hero-footprint"([^>]*)>', html)
+    assert m is not None
+    assert "aria-hidden" in m.group(1)
+    tail = html[m.end():m.end() + 60]
+    assert tail.lstrip().startswith("<")  # no inline text content
+
+
+def test_org_hero_footprint_absent_no_space_invented():
+    """A contract without the optional org field (or no contract at all) must
+    not inject any gap or CSS rule."""
+    model = _load_model()
+    raw = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
+    raw.get("layout", {}).pop("organization", None)
+    raw["measurements"] = [
+        m for m in raw["measurements"]
+        if m["field"] != "layout.organization.hero_footprint_height_px"
+    ]
+    stripped = validator.validate_visual_contract(raw, model)
+    html = mod.render_state(
+        model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX,
+        visual_contract=stripped,
+    )
+    assert 'class="rc-org-hero-footprint"' not in html
+    assert ".rc-org-hero-footprint{" not in html
+    html0 = mod.render_state(
+        model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX
+    )
+    assert 'class="rc-org-hero-footprint"' not in html0
+    assert ".rc-org-hero-footprint{" not in html0
+
+
+def test_org_hero_footprint_preserves_org_topology():
+    """The existing organization hierarchy topology/tiering must be preserved
+    when the spacer is present."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    assert 'class="rc-org-exec"' in html
+    assert "rc-org-exec-chain" in html
+    assert "rc-org-depth-1" in html
+    assert 'class="rc-org-groups"' in html
+    assert "rc-org-flat" in html
+
+
+def test_org_hero_footprint_no_site_literal():
+    """The org hero footprint implementation is generic — no site literal and
+    no site_id branch."""
+    source = MODULE_PATH.read_text(encoding="utf-8")
+    assert "hero_footprint" in source
+    for literal in ("seogu_gwangju", "site_id ==", "== \"seogu", "== 'seogu"):
+        assert literal not in source
+
+
+def test_staff_unchanged_by_org_hero_footprint():
+    """Staff output must not carry any org hero footprint spacer or rule."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    staff = mod.render_state(
+        model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    assert 'class="rc-org-hero-footprint"' not in staff
+    assert ".rc-org-hero-footprint{" not in staff
+    # staff table + inert search controls remain intact
+    assert "rc-staff-table" in staff
+    assert "rc-staff-input" in staff

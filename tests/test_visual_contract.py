@@ -558,3 +558,103 @@ def test_visual_contract_regeneration_is_deterministic():
     assert result.returncode == 0, result.stdout + result.stderr
     assert "VISUAL_CONTRACT_OK" in result.stdout
     assert "ASSET_MANIFEST_OK" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# #1325 organization hero footprint — optional source-backed measured field
+# ---------------------------------------------------------------------------
+def test_org_hero_footprint_is_optional_not_required():
+    """The org hero footprint is a per-surface optional field; it must NOT be a
+    global required measured field (a site without this source feature must
+    remain a valid generic contract)."""
+    assert "layout.organization.hero_footprint_height_px" not in validator.REQUIRED_MEASURED_FIELDS
+
+
+def test_org_hero_footprint_present_and_validates():
+    """The committed contract carries the measured org hero footprint with a
+    matching pixel_analysis evidence record and validates."""
+    contract = _contract()
+    org_layout = contract["layout"]["organization"]
+    value = org_layout["hero_footprint_height_px"]
+    assert value is not None
+    assert isinstance(value, int) and value > 0
+    assert org_layout["provenance_state_id"] == "organization.chart.desktop"
+    entries = [
+        m for m in contract["measurements"]
+        if m["field"] == "layout.organization.hero_footprint_height_px"
+    ]
+    assert len(entries) == 1
+    entry = entries[0]
+    assert entry["value"] == value
+    assert entry["unit"] == "px"
+    assert entry["evidence_type"] == "pixel_analysis"
+    assert entry["source_state_id"] == "organization.chart.desktop"
+    validated = validator.validate_visual_contract(contract, _model())
+    assert validator.faithful_ready(validated) is True
+
+
+def test_org_hero_footprint_wrong_state_fails():
+    """Evidence bound to the wrong (but existing) source state must fail."""
+    contract = _deepcopy_contract()
+    model = _model()
+    staff_sha = next(
+        s["document_geometry"]["full_page_screenshot"]["sha256"]
+        for s in model["states"]
+        if s["state_id"] == "staff.directory.desktop"
+    )
+    for entry in contract["measurements"]:
+        if entry["field"] == "layout.organization.hero_footprint_height_px":
+            entry["source_state_id"] = "staff.directory.desktop"
+            entry["artifact_sha256"] = staff_sha
+    with pytest.raises(
+        validator.VisualContractValidationError,
+        match="source state binding violation",
+    ):
+        validator.validate_visual_contract(contract, model)
+
+
+def test_org_hero_footprint_wrong_sha_fails():
+    """Evidence with the wrong committed screenshot SHA must fail."""
+    contract = _deepcopy_contract()
+    for entry in contract["measurements"]:
+        if entry["field"] == "layout.organization.hero_footprint_height_px":
+            entry["artifact_sha256"] = "0" * 64
+    with pytest.raises(
+        validator.VisualContractValidationError, match="artifact SHA mismatch"
+    ):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_org_hero_footprint_wrong_unit_fails():
+    """A non-px unit on the measured org hero footprint must fail."""
+    contract = _deepcopy_contract()
+    for entry in contract["measurements"]:
+        if entry["field"] == "layout.organization.hero_footprint_height_px":
+            entry["unit"] = "rem"
+    with pytest.raises(
+        validator.VisualContractValidationError, match="unit mismatch"
+    ):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_org_hero_footprint_value_tamper_fails():
+    """Tampering the contract value while leaving evidence unchanged must fail."""
+    contract = _deepcopy_contract()
+    contract["layout"]["organization"]["hero_footprint_height_px"] = 1
+    with pytest.raises(
+        validator.VisualContractValidationError, match="field/value mismatch"
+    ):
+        validator.validate_visual_contract(contract, _model())
+
+
+def test_org_hero_footprint_absent_still_valid_generic():
+    """Removing the optional org hero field must not break the generic
+    contract (absent/null on another site stays valid)."""
+    contract = _deepcopy_contract()
+    del contract["layout"]["organization"]
+    contract["measurements"] = [
+        m for m in contract["measurements"]
+        if m["field"] != "layout.organization.hero_footprint_height_px"
+    ]
+    validated = validator.validate_visual_contract(contract, _model())
+    assert validator.faithful_ready(validated) is True

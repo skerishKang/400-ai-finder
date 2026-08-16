@@ -400,6 +400,11 @@ def _theme_values(
         if val is not None:
             values[f"layout.gnb_open.{field}"] = val
 
+    org_layout = layout.get("organization") or {}
+    val = org_layout.get("hero_footprint_height_px")
+    if val is not None:
+        values["layout.organization.hero_footprint_height_px"] = val
+
     board_layout = layout.get("board") or {}
     for field in (
         "snb_width_px",
@@ -996,7 +1001,8 @@ def _decl(property_name: str, value: Any) -> str:
     return f"{property_name}:{value};"
 
 
-def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
+def _render_css(theme: dict[str, Any], device: str = "desktop",
+                org_surface: bool = False) -> str:
     """Build CSS from measured contract values only.
 
     Every fidelity declaration is derived from a measured value; gaps are
@@ -1856,6 +1862,19 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     gt = nd["group_title_size_px"]
     gc = nd["group_child_size_px"]
     rules.append(".rc-org-chart{margin-top:24px;}")
+
+    # Optional, source-backed organization hero visual footprint: an inert
+    # semantic spacer reserved before the executive hierarchy ONLY on the
+    # organization surface when the validated visual contract provides the
+    # measured value. Absent/null means no space is invented (an organization
+    # surface without this source feature is unaffected), and non-org surfaces
+    # (e.g. staff) keep their output unchanged.
+    hero_footprint = theme.get("layout.organization.hero_footprint_height_px")
+    if org_surface and hero_footprint is not None:
+        rules.append(
+            f".rc-org-hero-footprint{{display:block;height:{hero_footprint}px;}}"
+        )
+
     # Source-like vertical breathing room between labelled org sections.
     rules.append(".rc-org-section{margin-bottom:64px;}")
     rules.append(
@@ -2177,6 +2196,7 @@ def _render_main(
     state: dict[str, Any],
     nav: list[tuple[str, str]],
     route_prefix: str,
+    visual_contract: dict[str, Any] | None = None,
 ) -> str:
     family, _device, content = parse_state_id(state.get("state_id", ""))
     title = state.get("page_title") or ""
@@ -2186,7 +2206,7 @@ def _render_main(
     if content == "list":
         return _render_list_main(model, state, family, title, route_prefix)
     if content == "chart":
-        return _render_organization_main(model, state, route_prefix)
+        return _render_organization_main(model, state, route_prefix, visual_contract)
     if content == "directory":
         return _render_staff_directory_main(model, state, route_prefix)
     return _render_home_main(model, state, title, nav, route_prefix)
@@ -3273,7 +3293,9 @@ def _render_org_group(node: dict[str, Any]) -> str:
     )
 
 
-def _render_org_section(section: dict[str, Any]) -> str:
+def _render_org_section(
+    section: dict[str, Any], hero_footprint: int | None = None
+) -> str:
     title = section.get("title") or ""
     nodes = section.get("nodes") or []
     head = f'<h2 class="rc-org-section-title">{_esc(title)}</h2>'
@@ -3289,6 +3311,13 @@ def _render_org_section(section: dict[str, Any]) -> str:
         exec_nodes, group_nodes = _org_partition(nodes)
         parts: list[str] = []
         if exec_nodes:
+            # Inert, source-backed visual footprint reserved before the
+            # executive hierarchy ONLY when the validated visual contract
+            # provides the measured value. No placeholder art/text/emoji.
+            parts.append(
+                '<div class="rc-org-hero-footprint" aria-hidden="true"></div>'
+                if hero_footprint else ""
+            )
             parts.append(_render_org_exec(_org_spine(exec_nodes[0])))
         if group_nodes:
             groups = "".join(_render_org_group(g) for g in group_nodes)
@@ -3301,11 +3330,21 @@ def _render_org_section(section: dict[str, Any]) -> str:
 
 
 def _render_organization_main(
-    model: dict[str, Any], state: dict[str, Any], route_prefix: str
+    model: dict[str, Any], state: dict[str, Any], route_prefix: str,
+    visual_contract: dict[str, Any] | None = None,
 ) -> str:
     breadcrumb_html, location_html, snb_html = _board_nav_html(state)
     org = state.get("organization") or {}
-    sections_html = "".join(_render_org_section(s) for s in org.get("sections", []))
+    org_layout = (visual_contract or {}).get("layout") or {}
+    hero_footprint = (org_layout.get("organization") or {}).get(
+        "hero_footprint_height_px"
+    )
+    sections_html = "".join(
+        _render_org_section(
+            s, hero_footprint=hero_footprint if idx == 0 else None
+        )
+        for idx, s in enumerate(org.get("sections", []))
+    )
     surface_label_text = surface_label(state, model)
     context_html = _subpage_context_html(breadcrumb_html, location_html)
     tools_html = _render_surface_tools(state)
@@ -3482,10 +3521,12 @@ def _render_page(
         model, current_route, nav, gnb_top, gnb_extra, open_gnb, route_prefix,
         device=device,
     )
-    main = _render_main(model, state, nav, route_prefix)
+    main = _render_main(
+        model, state, nav, route_prefix, visual_contract=visual_contract
+    )
     footer = _render_footer(model, state)
     theme = _theme_values(visual_contract, device=device)
-    css = _render_css(theme, device=device)
+    css = _render_css(theme, device=device, org_surface=(content == "chart"))
     lifecycle_script = (
         f'<script type="application/ld+json" id="rc-lifecycle">'
         f"{_lifecycle_json(visual_contract, state_id)}</script>"
