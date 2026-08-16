@@ -201,6 +201,16 @@ NON_FIDELITY_PRESENTATION_DEFAULTS = {
     "panel_gap_px": 24,
     "panel_padding_px": 22,
     "card_radius_px": 12,
+    # Organization-chart tier sizing. These are non-fidelity structural
+    # defaults: the source does not publish these exact px, but the clone must
+    # read as a tiered hierarchy (strong root -> distinct sub -> subordinate
+    # children) rather than a flat grid of uniform boxes. They do NOT gate the
+    # faithful claim and never promote visual_review/exact/golden.
+    "org_section_title_size_px": 26,
+    "exec_root_size_px": 28,
+    "exec_sub_size_px": 20,
+    "group_title_size_px": 18,
+    "group_child_size_px": 14,
     "pill_radius_px": 999,
     "responsive_breakpoint": None,
 }
@@ -1829,37 +1839,107 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     # guessed radius/max-width/breakpoint is introduced. The nested semantic
     # org DOM is kept, but its presentation is no longer a margin-indented
     # narrow vertical list.
+    # Generic, source-backed hierarchy (no site literal, no guessed color):
+    # tier strength is expressed through the semantic depth-* classes and the
+    # role containers (rc-org-exec / rc-org-groups / rc-org-flat) that the model
+    # already emits. Measured colors are reused; sizes are non-fidelity
+    # structural defaults. No border-radius, no guessed max-width/breakpoint.
     org_border = border or "#dcdcdc"
+    org_primary = primary or "#1663b6"
+    org_band = theme.get("colors.hero_bg") or "#f0f0ff"
+    org_band2 = theme.get("colors.key_visual_bg") or "#f1fbfd"
+    org_subtle = theme.get("colors.footer_bg") or "#fafafa"
+    org_ink = text or "#000000"
+    st = nd["org_section_title_size_px"]
+    ex = nd["exec_root_size_px"]
+    exs = nd["exec_sub_size_px"]
+    gt = nd["group_title_size_px"]
+    gc = nd["group_child_size_px"]
     rules.append(".rc-org-chart{margin-top:24px;}")
-    rules.append(".rc-org-section{margin-bottom:32px;}")
+    # Source-like vertical breathing room between labelled org sections.
+    rules.append(".rc-org-section{margin-bottom:64px;}")
     rules.append(
-        f".rc-org-section-title{{font-size:{nd['section_title_size_px']}px;"
-        f"font-weight:700;margin:0 0 12px;}}"
+        f".rc-org-section-title{{font-size:{st}px;font-weight:700;margin:0 0 28px;"
+        f"padding-bottom:10px;border-bottom:2px solid {org_primary};color:{org_ink};}}"
     )
     rules.append(".rc-org-tree{list-style:none;margin:0;padding:0;}")
     rules.append(".rc-org-node{margin:0;padding:2px;}")
+    # Generic subordinate-card label base.
     rules.append(
         f".rc-org-label{{display:inline-block;padding:6px 14px;"
-        f"background:#f7f7f7;border:1px solid {org_border};color:#222222;}}"
+        f"background:{org_subtle};border:1px solid {org_border};color:{org_ink};}}"
     )
-    # Executive hierarchy: centred vertical chain ending in a horizontal row.
-    rules.append(".rc-org-exec{display:flex;justify-content:center;margin-bottom:26px;}")
+
+    # ── Executive tier: centred vertical spine, strong root -> distinct sub -> 3실/관 band ──
+    rules.append(".rc-org-exec{display:flex;justify-content:center;margin-bottom:48px;}")
     rules.append(".rc-org-exec-chain{display:flex;flex-direction:column;align-items:center;}")
     rules.append(".rc-org-exec-chain>.rc-org-node{display:flex;flex-direction:column;align-items:center;}")
-    rules.append(".rc-org-exec-arrow{display:block;color:#666666;font-size:14px;line-height:1;margin:2px 0;}")
-    rules.append(".rc-org-exec-branch{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}")
-    rules.append(".rc-org-exec-branch .rc-org-node{padding:0;}")
-    # Peer department groups: headers spread horizontally, children stacked below.
-    rules.append(".rc-org-groups{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;}")
+    # Hierarchy connector between executive levels.
     rules.append(
-        f".rc-org-group{{flex:0 0 auto;border:1px solid {org_border};"
-        f"background:#fbfbfb;padding:10px 14px;}}"
+        f".rc-org-exec-arrow{{display:block;color:{org_primary};font-size:20px;"
+        f"line-height:1;margin:6px 0;text-align:center;}}"
     )
-    rules.append(".rc-org-group-title{display:block;font-weight:700;background:#ffffff;margin-bottom:8px;}")
-    rules.append(".rc-org-group-list{display:flex;flex-direction:column;gap:4px;}")
-    # Flat sections (e.g. 18 neighbourhood centres): broad auto-fill grid.
-    rules.append(".rc-org-flat{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;}")
-    rules.append(".rc-org-box{text-align:center;}")
+    # Executive root (top single-child node / section roots): strongest tier.
+    rules.append(
+        f".rc-org-exec .rc-org-depth-1 .rc-org-label{{display:inline-block;"
+        f"font-size:{ex}px;font-weight:700;padding:14px 36px;"
+        f"background:{org_primary};color:#ffffff;border:2px solid {org_primary};}}"
+    )
+    # Distinct sub-tier (white field, primary rule) directly beneath the root.
+    rules.append(
+        f".rc-org-exec .rc-org-depth-2 .rc-org-label{{display:inline-block;"
+        f"font-size:{exs}px;font-weight:700;padding:11px 28px;"
+        f"background:#ffffff;color:{org_primary};border:2px solid {org_primary};}}"
+    )
+
+    # 3실/관: independent horizontal band tier between executive and the department matrix.
+    rules.append(
+        f".rc-org-exec-branch{{position:relative;display:flex;flex-wrap:wrap;"
+        f"justify-content:center;gap:12px;margin-top:16px;padding:18px 16px;"
+        f"background:{org_band};border:1px solid {org_border};}}"
+    )
+    rules.append(
+        f".rc-org-exec-branch::before{{content:'';position:absolute;top:0;left:50%;"
+        f"width:2px;height:16px;background:{org_primary};transform:translateX(-50%);}}"
+    )
+    rules.append(".rc-org-exec-branch .rc-org-node{padding:0;}")
+    # Subordinate cards inside the 3실/관 band.
+    rules.append(
+        f".rc-org-exec-branch .rc-org-depth-3 .rc-org-label{{display:inline-block;"
+        f"font-size:{gc}px;font-weight:600;padding:8px 18px;"
+        f"background:#ffffff;color:{org_ink};border:1px solid {org_border};}}"
+    )
+
+    # ── Department matrix: broad group cards, strong root header vs subordinate children ──
+    rules.append(".rc-org-groups{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;margin-top:8px;}")
+    rules.append(
+        f".rc-org-group{{flex:1 1 220px;min-width:200px;display:flex;flex-direction:column;"
+        f"border:1px solid {org_border};background:#ffffff;}}"
+    )
+    # Group root header (국/소): clearly stronger than its child cards.
+    rules.append(
+        f".rc-org-label.rc-org-depth-1{{display:block;font-size:{gt}px;font-weight:700;"
+        f"padding:12px 16px;background:{org_primary};color:#ffffff;"
+        f"border:1px solid {org_primary};}}"
+    )
+    rules.append(".rc-org-group-list{display:flex;flex-direction:column;gap:6px;padding:12px;}")
+    # Subordinate department cards (과).
+    rules.append(
+        f".rc-org-group .rc-org-depth-2 .rc-org-label{{display:block;font-size:{gc}px;"
+        f"font-weight:400;padding:7px 12px;background:{org_subtle};"
+        f"color:{org_ink};border:1px solid {org_border};}}"
+    )
+
+    # ── Flat neighbourhood-centre grid (18동): broad, separated section ──
+    rules.append(
+        f".rc-org-flat{{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));"
+        f"gap:12px;}}"
+    )
+    rules.append(
+        f".rc-org-box{{display:block;text-align:center;padding:11px 8px;"
+        f"background:{org_band2};border:1px solid {org_border};"
+        f"color:{org_ink};font-size:{gc}px;}}"
+    )
     # Staff search row: summary (left) + inert controls (right) on one row.
     rules.append(
         f".rc-staff-search-row{{display:flex;flex-wrap:wrap;align-items:center;"
