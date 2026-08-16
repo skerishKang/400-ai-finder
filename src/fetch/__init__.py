@@ -15,6 +15,14 @@ from .base import FetchConfig, FetchProvider, FetchResult
 from .mock_provider import MockFetchProvider
 from .requests_provider import RequestsFetchProvider
 from .firecrawl_provider import FirecrawlFetchProvider
+from .egress_policy import (
+    FULL_REBINDING_PREVENTION,
+    EgressPolicy,
+    PublicEgressPolicy,
+    default_dns_resolver,
+    is_safe_public_ip,
+    is_valid_firecrawl_service_endpoint,
+)
 
 
 _BUILTIN_FETCH_PROVIDERS = {
@@ -37,7 +45,7 @@ def get_fetch_provider(
     Args:
         name: One of: mock, requests, firecrawl
         **overrides: Provider-specific keyword arguments
-                     (api_key, base_url, timeout, etc.)
+                     (api_key, base_url, timeout, egress_policy, etc.)
 
     Returns:
         A configured FetchProvider instance.
@@ -60,6 +68,7 @@ def get_fetch_provider(
         return RequestsFetchProvider(
             timeout=timeout if timeout is not None else 15,
             user_agent=overrides.get("user_agent"),
+            egress_policy=overrides.get("egress_policy"),
         )
 
     if provider_name == "firecrawl":
@@ -67,6 +76,8 @@ def get_fetch_provider(
             api_key=overrides.get("api_key"),
             base_url=overrides.get("base_url"),
             timeout=overrides.get("timeout", overrides.get("firecrawl_timeout")),
+            egress_policy=overrides.get("egress_policy"),
+            allow_test_endpoint=overrides.get("allow_test_endpoint", False),
         )
 
     raise ValueError(
@@ -97,6 +108,12 @@ __all__ = [
     "MockFetchProvider",
     "RequestsFetchProvider",
     "FirecrawlFetchProvider",
+    "PublicEgressPolicy",
+    "EgressPolicy",
+    "default_dns_resolver",
+    "is_safe_public_ip",
+    "is_valid_firecrawl_service_endpoint",
+    "FULL_REBINDING_PREVENTION",
     "get_fetch_provider",
     "list_fetch_providers",
 ]

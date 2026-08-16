@@ -39,6 +39,7 @@ COVERAGE_TEST_FILES = (
     "tests/test_renderer_route_manifest_fidelity.py",
     "tests/test_capture_required_entry_spec.py",
     "tests/test_exact_official_site_clone_invariant.py",
+    "tests/test_egress_policy.py",
     "tests/test_fetch_providers.py",
     "tests/test_bukgu_quest_schema.py",
     "tests/test_bukgu_quest_to_action_plan.py",

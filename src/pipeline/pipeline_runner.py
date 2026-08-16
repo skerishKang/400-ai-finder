@@ -41,6 +41,7 @@ class PipelineRunner:
         max_chars: int = 12000,
         model: str | None = None,
         question_logger: QuestionLogger | None = None,
+        egress_policy: Any = None,
     ):
         self.output_dir = output_dir
         self.provider = provider or "mock"
@@ -53,6 +54,7 @@ class PipelineRunner:
         self.max_sources = max_sources
         self.max_chars = max_chars
         self.question_logger = question_logger or NoOpQuestionLogger()
+        self.egress_policy = egress_policy
 
     # ------------------------------------------------------------------
     # Public API
@@ -322,6 +324,20 @@ class PipelineRunner:
         except Exception:
             return None
 
+    def _resolve_egress_policy(self):
+        """Resolve public egress policy for pipeline runs.
+
+        #1295: ensure public egress policy protects against SSRF
+        across live acquisition fetches.
+        """
+        if self.egress_policy is not None:
+            return self.egress_policy
+        try:
+            from ..fetch.egress_policy import PublicEgressPolicy
+            return PublicEgressPolicy()
+        except Exception:
+            return None
+
     def _step_homepage_map(self, url: str, correlation_id: str | None = None) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "homepage-map.json")
         try:
@@ -344,6 +360,8 @@ class PipelineRunner:
                 except Exception:
                     pass
 
+            egress_policy = self._resolve_egress_policy()
+
             # Stage 36: retry build_map if nav links are empty (intermittent timeouts)
             max_retries = 2
             result = None
@@ -354,6 +372,7 @@ class PipelineRunner:
                     fetch_provider=self.fetch_provider,
                     crawl_filters=crawl_filters,
                     acquisition_policy=acquisition_policy,
+                    egress_policy=egress_policy,
                 )
                 result = mapper.build_map(url, correlation_id=correlation_id)
                 nav_count = len(result.get("homepage", {}).get("navigation_links", []))
@@ -381,7 +400,11 @@ class PipelineRunner:
             # #1294: forward the same frozen acquisition policy to Stage-4 so
             # page-record URLs are contained and redirect hosts are enforced.
             acquisition_policy = self._resolve_acquisition_policy(url) if url else None
-            enricher = DocumentEnricher(acquisition_policy=acquisition_policy)
+            egress_policy = self._resolve_egress_policy()
+            enricher = DocumentEnricher(
+                acquisition_policy=acquisition_policy,
+                egress_policy=egress_policy,
+            )
             enriched = enricher.enrich_records(docs, max_chars=self.max_chars, limit=self.max_enrich_pages)
             self._write_jsonl(output, enriched)
             return _step_ok("enriched_index", output)

@@ -6,7 +6,13 @@ from urllib.parse import urlparse, urlunparse, urljoin
 from bs4 import BeautifulSoup
 from src.crawler.url_crawler import URLCrawler
 from src.crawler.sitemap_parser import SitemapParser
-from src.fetch import FetchConfig, FetchProvider, RequestsFetchProvider, get_fetch_provider
+from src.fetch import (
+    FetchConfig,
+    FetchProvider,
+    PublicEgressPolicy,
+    RequestsFetchProvider,
+    get_fetch_provider,
+)
 from src.observability import get_event_logger, log_pipeline_event
 
 
@@ -44,6 +50,7 @@ class HomepageMapper:
         crawl_filters: dict | None = None,
         fetch_config: FetchConfig | None = None,
         acquisition_policy=None,
+        egress_policy=None,
     ):
         self.fetch_provider = self._resolve_fetch_provider(fetch_provider)
         self.fetch_config = fetch_config
@@ -53,12 +60,16 @@ class HomepageMapper:
         # preserves the historical unrestricted behavior for non-acquisition
         # callers.
         self.acquisition_policy = acquisition_policy
+        # #1295: SSRF-safe public egress policy.
+        self.egress_policy = egress_policy
         self.crawler = URLCrawler(
             timeout=timeout,
             user_agent=user_agent,
             fetch_provider=self.fetch_provider,
             crawl_filters=crawl_filters,
             fetch_config=self.fetch_config,
+            acquisition_policy=self.acquisition_policy,
+            egress_policy=self.egress_policy,
         )
         self.max_sitemaps = max_sitemaps
         self.max_sitemap_urls = max_sitemap_urls
@@ -75,7 +86,7 @@ class HomepageMapper:
         return None
 
     def extract_menu_links(self, html_content, base_url, acquisition_policy=None,
-                           rejected_urls=None):
+                           rejected_urls=None, egress_policy=None):
         navigation_links = []
         attachment_links = []
         
@@ -167,6 +178,8 @@ class HomepageMapper:
                 fetch_kwargs = {"config": self.fetch_config}
                 if self.acquisition_policy is not None:
                     fetch_kwargs["acquisition_policy"] = self.acquisition_policy
+                if self.egress_policy is not None:
+                    fetch_kwargs["egress_policy"] = self.egress_policy
                 result = self.fetch_provider.fetch(url, **fetch_kwargs)
                 if result.ok:
                     content = result.html or result.markdown or result.text or ""
@@ -183,6 +196,8 @@ class HomepageMapper:
                     fetch_kwargs = {"timeout": self.crawler.timeout}
                     if self.acquisition_policy is not None:
                         fetch_kwargs["acquisition_policy"] = self.acquisition_policy
+                    if self.egress_policy is not None:
+                        fetch_kwargs["egress_policy"] = self.egress_policy
                     result = self.fetch_provider.fetch(url, **fetch_kwargs)
                     if result.ok:
                         content = result.html or result.markdown or result.text or ""
@@ -202,7 +217,9 @@ class HomepageMapper:
                     }
                     if self.acquisition_policy is not None:
                         legacy_kwargs["acquisition_policy"] = self.acquisition_policy
-                    fr = RequestsFetchProvider().fetch(url, **legacy_kwargs)
+                    if self.egress_policy is not None:
+                        legacy_kwargs["egress_policy"] = self.egress_policy
+                    fr = RequestsFetchProvider(egress_policy=self.egress_policy).fetch(url, **legacy_kwargs)
                     if fr.ok:
                         # The legacy transport already normalized ISO-8859-1 to
                         # apparent encoding, so the preserved body is ready.
@@ -483,6 +500,7 @@ class HomepageMapper:
                     final_homepage_url,
                     acquisition_policy=self.acquisition_policy,
                     rejected_urls=nav_rejected,
+                    egress_policy=self.egress_policy,
                 )
                 if nav_rejected:
                     result.setdefault("rejected_urls", []).extend(nav_rejected)
