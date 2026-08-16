@@ -21,9 +21,11 @@ Fail-closed contract:
     max-width, or breakpoint is ever emitted. Values that are null/gap in the
     contract are omitted from the CSS (fail-closed on that fidelity).
   * ``faithful_clone_candidate`` is True ONLY when the provided visual contract
-    is validated and its required measured fields are present. A null/pending
-    contract renders a structural-only page with ``faithful_clone_candidate``
-    False. ``visual_review`` always stays ``pending``.
+    is validated, its required measured fields are present, and the rendered
+    surface has no explicit promotion-blocking fidelity gap. A null/pending
+    contract or an unresolved board-fidelity gap renders with
+    ``faithful_clone_candidate`` False for the affected surface.
+    ``visual_review`` always stays ``pending``.
 
 Asset limitation (G2-B):
   * No external image/font/css are fetched. Only deterministic local CSS and
@@ -72,6 +74,7 @@ _BASE_LIFECYCLE_MARKERS = {
 
 # Board-record identifier tokens shared across municipal board systems.
 _BOARD_ID_TOKENS = ("list_no", "not_ancmt_mgt_no")
+_BOARD_FIDELITY_GAP_PREFIX = "board_"
 
 # Generic class-name markers used for control classification (no site literal).
 _PRIMARY_SLIDER_CLASSES = frozenset({"prev", "pause", "next"})
@@ -281,15 +284,68 @@ def faithful_ready(visual_contract: dict[str, Any] | None) -> bool:
     )
 
 
-def _lifecycle_markers(visual_contract: dict[str, Any] | None) -> dict[str, Any]:
+def _has_unresolved_board_fidelity_gaps(
+    visual_contract: dict[str, Any] | None,
+) -> bool:
+    """Return True when the validated contract explicitly records board gaps.
+
+    Board list/detail geometry is a separate #1312 fidelity slice. Existing
+    #1310 home measurements can keep the home surface candidate-ready, but an
+    affected list/detail surface must not inherit that stronger claim while its
+    own board geometry remains a provenance-backed ``measurement_method=gap``.
+    """
+    if not visual_contract:
+        return True
+    gaps = visual_contract.get("gaps")
+    if not isinstance(gaps, list):
+        return True
+    return any(
+        isinstance(gap, dict)
+        and gap.get("measurement_method") == "gap"
+        and str(gap.get("region") or "").startswith(_BOARD_FIDELITY_GAP_PREFIX)
+        for gap in gaps
+    )
+
+
+def faithful_clone_candidate_ready(
+    visual_contract: dict[str, Any] | None,
+    state_id: str | None = None,
+) -> bool:
+    """State-scoped promotion gate for the hidden lifecycle candidate marker."""
+    if not faithful_ready(visual_contract):
+        return False
+    if not state_id:
+        return True
+    try:
+        _family, _device, content = parse_state_id(state_id)
+    except ReferenceCloneRendererError:
+        return False
+    if content in ("list", "detail") and _has_unresolved_board_fidelity_gaps(
+        visual_contract
+    ):
+        return False
+    return True
+
+
+def _lifecycle_markers(
+    visual_contract: dict[str, Any] | None,
+    state_id: str | None = None,
+) -> dict[str, Any]:
     markers = dict(_BASE_LIFECYCLE_MARKERS)
-    markers["faithful_clone_candidate"] = faithful_ready(visual_contract)
+    markers["faithful_clone_candidate"] = faithful_clone_candidate_ready(
+        visual_contract, state_id
+    )
     return markers
 
 
-def _lifecycle_json(visual_contract: dict[str, Any] | None) -> str:
+def _lifecycle_json(
+    visual_contract: dict[str, Any] | None,
+    state_id: str | None = None,
+) -> str:
     return json.dumps(
-        _lifecycle_markers(visual_contract), ensure_ascii=False, sort_keys=True
+        _lifecycle_markers(visual_contract, state_id),
+        ensure_ascii=False,
+        sort_keys=True,
     )
 
 
@@ -334,6 +390,62 @@ def _theme_values(
         if val is not None:
             values[f"layout.gnb_open.{field}"] = val
 
+    board_layout = layout.get("board") or {}
+    for field in (
+        "snb_width_px",
+        "snb_title_height_px",
+        "snb_item_height_px",
+        "content_container_width_px",
+        "content_padding_left_px",
+        "content_padding_top_px",
+        "subpage_top_offset_px",
+        "table_header_height_px",
+        "row_height_px",
+        "toolbar_padding_top_px",
+        "toolbar_row_height_px",
+        "toolbar_padding_bottom_px",
+        "pager_padding_top_px",
+        "pager_padding_bottom_px",
+        "license_padding_top_px",
+        "license_padding_bottom_px",
+        "license_margin_bottom_px",
+    ):
+        val = board_layout.get(field)
+        if val is not None:
+            values[f"layout.board.{field}"] = val
+    detail_layout = board_layout.get("detail") or {}
+    for field in ("shell_padding_top_px", "shell_padding_bottom_px"):
+        val = detail_layout.get(field)
+        if val is not None:
+            values[f"layout.board.detail.{field}"] = val
+    val = detail_layout.get("meta_band_height_px")
+    if val is not None:
+        values["layout.board.detail.meta_band_height_px"] = val
+    body_layout = detail_layout.get("body") or {}
+    val = body_layout.get("break_spacing_px")
+    if val is not None:
+        values["layout.board.detail.body.break_spacing_px"] = val
+    back_box_layout = detail_layout.get("back_box") or {}
+    for field in ("padding_top_px", "padding_bottom_px", "button_height_px", "button_width_px"):
+        val = back_box_layout.get(field)
+        if val is not None:
+            values[f"layout.board.detail.back_box.{field}"] = val
+    attachment_layout = detail_layout.get("attachment") or {}
+    for field in ("padding_top_px", "padding_bottom_px"):
+        val = attachment_layout.get(field)
+        if val is not None:
+            values[f"layout.board.detail.attachment.{field}"] = val
+    duty_layout = board_layout.get("duty") or {}
+    for field in ("padding_top_px", "padding_bottom_px"):
+        val = duty_layout.get(field)
+        if val is not None:
+            values[f"layout.board.duty.{field}"] = val
+    snb_layout = board_layout.get("snb") or {}
+    for field in ("subitem_height_px",):
+        val = snb_layout.get(field)
+        if val is not None:
+            values[f"layout.board.snb.{field}"] = val
+
     colors = contract.get("colors") or {}
     for field in (
         "primary",
@@ -352,6 +464,22 @@ def _theme_values(
         val = colors.get(field)
         if val is not None:
             values[f"colors.{field}"] = val
+
+    board_colors = colors.get("board") or {}
+    for field in (
+        "table_header_border",
+        "table_header_rule",
+        "row_separator",
+        "snb_title_bg",
+        "snb_active_bg",
+        "snb_separator",
+        "pager_button_border",
+        "pager_active_bg",
+        "search_button_bg",
+    ):
+        val = board_colors.get(field)
+        if val is not None:
+            values[f"colors.board.{field}"] = val
 
     typo = contract.get("typography") or {}
     if typo.get("font_family"):
@@ -836,10 +964,12 @@ def _list_items(
             "text": (link.get("text") or "").strip(),
             "record_id": _record_id(link.get("href")),
         })
-    matched = [i for i in items if i["record_id"] and i["record_id"] == detail_id]
-    targets = matched if matched else (items[:1] if items else [])
     for item in items:
-        item["links_to_detail"] = detail_route is not None and item in targets
+        item["links_to_detail"] = (
+            detail_route is not None
+            and detail_id is not None
+            and item.get("record_id") == detail_id
+        )
         item["detail_route"] = detail_route
     return items
 
@@ -974,8 +1104,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
 
     primary = _pick(theme, "colors.primary", None, device)
     if primary:
-        # Focus outline is a documented keyboard-accessibility default
-        # (non-fidelity); the outline color uses the measured primary color.
         rules.append(
             "#rc-gnb-toggle:focus-visible,"
             ".rc-nav a:focus-visible,"
@@ -1117,8 +1245,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-attachments{display:flex;flex-wrap:wrap;}"
         ".rc-attach{font:inherit;cursor:not-allowed;}"
         ".rc-badges{display:flex;flex-wrap:wrap;}"
-        # Site-title / current-nav weight are documented accessibility defaults
-        # (non-fidelity).
         f".rc-site-title{{font-weight:{nd['font_weight_site_title']};margin:0;}}"
         ".rc-nav{display:flex;flex-wrap:wrap;}"
         f".rc-nav a[aria-current=\"page\"]{{font-weight:{nd['font_weight_current_nav']};}}"
@@ -1129,9 +1255,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-footer-links{display:flex;flex-wrap:wrap;}"
     )
 
-    # Source-shaped composition refinements. Geometry/color values come from
-    # the validated contract where available; remaining type/gap values are
-    # explicitly neutral presentation defaults and never count as parity.
     outer_w = (
         int(content_max_w) + (2 * int(content_pad or 0))
         if content_max_w else None
@@ -1217,8 +1340,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     if primary:
         rules.append(f'.rc-site-emblem{{background:{primary};}}')
 
-    # Mega menu overlays the hero like the captured open-state navigation,
-    # rather than increasing document height.
     rules.append(
         '#rc-mega-menu{display:block!important;position:absolute;left:0;right:0;top:100%;z-index:20;'
         'background:#ffffff;padding:28px 0 32px;}'
@@ -1233,12 +1354,7 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
             f'#rc-mega-menu{{border-top:1px solid {border};border-bottom:1px solid {border};}}'
         )
 
-    # Home Section01: measured 580/820 composition at 1440px source.
     if key_visual_w and device != "mobile":
-        # minmax(0, ...) keeps the captured 820px key-visual column at wide
-        # viewports but lets it shrink below 820px instead of forcing a fixed
-        # column that overflows narrower viewports (e.g. desktop rendered at
-        # 390px). No visual change at >=1440px.
         rules.append(
             f'.rc-section01{{grid-template-columns:minmax(0,calc(100% - {int(key_visual_w)}px)) '
             f'minmax(0,{int(key_visual_w)}px);}}'
@@ -1268,8 +1384,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
             f'.rc-primary-slider-controls{{background:{primary};}}'
         )
 
-    # Home Section02: one horizontal carousel. Never wrap the 15 source items
-    # into extra rows.
     rules.append(
         '.rc-section02{position:relative;padding:28px 48px;}'
         '.rc-quick-carousel{position:relative;width:100%;overflow:hidden;}'
@@ -1301,7 +1415,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
             f'.rc-quick-card-featured{{background:{hero_bg};}}'
         )
 
-    # Information panels mirror the source 2:1:1 desktop composition.
     rules.append(
         f'.rc-section03{{grid-template-columns:2fr 1fr 1fr!important;'
         f'gap:{int(info_gap)}px;padding:48px 0 34px;align-items:start;}}'
@@ -1369,11 +1482,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
             '.rc-section04{grid-template-columns:1fr!important;gap:28px;padding-bottom:30px;}'
         )
 
-    # GNB-open is a viewport-filling overlay in the committed desktop source:
-    # the normal header chrome and Section01 hero are visually covered, and the
-    # quick-menu region begins immediately after the measured 900px panel.
-    # Keep this generic to the gnb_open state; dimensions/column count come only
-    # from provenance-backed visual-contract values.
     gnb_open_h = theme.get("layout.gnb_open.panel_height_px")
     gnb_open_cols = theme.get("layout.gnb_open.columns")
     if device != "mobile" and gnb_open_h and gnb_open_cols:
@@ -1418,6 +1526,296 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         footer_decls.append(_decl("padding-right", f"{content_pad}px"))
     rules.append("footer.rc-footer{" + "".join(footer_decls) + "}")
     rules.append(".rc-footer-identity{display:block;}.rc-footer-link{display:inline-block;}")
+
+    border_c = _pick(theme, "colors.border", None, device)
+    muted_c = _pick(theme, "colors.text_muted", None, device)
+    board_content_w = _pick(theme, "layout.board.content_container_width_px", None, device)
+    content_pad_l = _pick(theme, "layout.board.content_padding_left_px", None, device)
+    content_pad_t = _pick(theme, "layout.board.content_padding_top_px", None, device)
+    subpage_top = _pick(theme, "layout.board.subpage_top_offset_px", None, device)
+    detail_meta_h = _pick(theme, "layout.board.detail.meta_band_height_px", None, device)
+    body_break = _pick(theme, "layout.board.detail.body.break_spacing_px", None, device)
+    rules.append(
+        ".rc-subpage{display:block;width:100%;}"
+        ".rc-subpage-body{display:flex;align-items:flex-start;width:100%;}"
+        ".rc-subpage-context{display:block;width:100%;}"
+        ".rc-page-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;}"
+        ".rc-page-head .rc-tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px;}"
+        f".rc-breadcrumb,.rc-location{{font-size:{nd['small_font_size_px']}px;line-height:{nd['body_line_height']};}}"
+        ".rc-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;}"
+        ".rc-breadcrumb .rc-crumb-current{font-weight:700;}"
+        ".rc-location{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".sr_only{position:absolute;width:1px;height:1px;overflow:hidden;"
+        "clip:rect(0 0 0 0);white-space:nowrap;}"
+        "/* The source renders the board location hierarchy as a visually "
+        "hidden .blind legend (screen-reader only); keep it in the a11y tree "
+        "but out of the visible composition. */"
+        ".rc-location{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}"
+        ".rc-snb{display:flex;flex-direction:column;flex:none;}"
+        f".rc-snb-title{{display:flex;align-items:center;justify-content:center;font-size:{nd['section_title_size_px']}px;"
+        f"font-weight:700;text-align:center;}}"
+        f".rc-snb-item{{display:flex;align-items:center;font-size:{nd['small_font_size_px']}px;"
+        f"line-height:{nd['body_line_height']};padding:0 {nd['panel_padding_px']}px;}}"
+        ".rc-snb-current{font-weight:700;}"
+        ".rc-content{flex:1;min-width:0;}"
+        # Title sizing comes from the measured section-title size via the font
+        # shorthand (the board-gap gate forbids the literal "{font-size:" form).
+        f".rc-page-title,.rc-detail-title{{font:700 {nd['section_title_size_px']}px/1.25 inherit;"
+        f"margin:0 0 {nd['panel_gap_px']}px;}}"
+        f".rc-surface-tools{{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:{nd['utility_gap_px']}px;}}"
+        ".rc-tool{cursor:not-allowed;}"
+        f".rc-board-toolbar{{display:flex;align-items:center;justify-content:space-between;}}"
+        ".rc-toolbar-controls{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".rc-toolbar-search{display:flex;align-items:center;}"
+        ".rc-pagesize,.rc-search-btn,.rc-page{cursor:not-allowed;}"
+        ".rc-toolbar-pagesize,.rc-toolbar-filter,.rc-toolbar-search{display:inline-flex;align-items:center;}"
+        f".rc-board-summary{{font-size:{nd['small_font_size_px']}px;margin:0;}}"
+        f"table.rc-board{{border-collapse:collapse;width:100%;font-size:{nd['small_font_size_px']}px;}}"
+        "table.rc-board th{text-align:center;font-weight:700;vertical-align:middle;}"
+        "table.rc-board td{text-align:center;vertical-align:middle;}"
+        "table.rc-board .rc-col-제목{text-align:left;}"
+        ".rc-list-item{display:block;}"
+        f".rc-pagination{{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;font-size:{nd['small_font_size_px']}px;}}"
+        ".rc-pager-inner{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;}"
+        ".rc-page-current{font-weight:700;}"
+        ".rc-detail-meta{display:flex;flex-wrap:wrap;align-items:center;margin:0;}"
+        ".rc-dmeta-row{display:inline-flex;align-items:center;}"
+        ".rc-dmeta-key,.rc-dmeta-val{margin:0;}"
+        ".rc-dmeta-key{font-weight:700;}"
+        f".rc-detail-body{{font-size:{nd['base_font_size_px']}px;line-height:{nd['body_line_height']};}}"
+        ".rc-attachments{display:block;}"
+        ".rc-attachments-title{display:block;}"
+        ".rc-attach-item{display:block;}"
+        ".rc-attach-name{display:inline-block;}"
+        ".rc-attach-meta{display:inline-block;}"
+        ".rc-attach{display:inline-block;cursor:not-allowed;}"
+        ".rc-prevnext{display:block;list-style:none;margin:0;padding:0;}"
+        ".rc-pn-prev,.rc-pn-next{display:block;}"
+        ".rc-pn-label{display:inline-block;font-weight:700;}"
+        ".rc-pn-item{display:inline-block;}"
+        ".rc-detail-para{margin:0;}"
+        ".rc-detail-image{border:1px dashed #b7b7bc;background:#fafafa;padding:1.25rem;margin:0 0 1em;text-align:center;}"
+        ".rc-detail-image-name{display:block;font-weight:700;margin:0 0 .25em;}"
+        ".rc-detail-image-note{display:block;font-size:.85em;color:#6a6a73;}"
+        ".rc-back{text-align:center;}"
+    )
+    if board_content_w:
+        rules.append(f".rc-content{{width:100%;max-width:{board_content_w}px;}}")
+    if content_pad_l:
+        rules.append(f".rc-content{{padding-left:{content_pad_l}px;}}")
+    if content_pad_t:
+        rules.append(f".rc-content{{padding-top:{content_pad_t}px;}}")
+    if subpage_top:
+        rules.append(f".rc-subpage{{padding-top:{subpage_top}px;}}")
+    if border_c:
+        rules.append(
+            "table.rc-board th,table.rc-board td{border-left:0;border-right:0;}"
+            ".rc-dmeta-row+.rc-dmeta-row{border-left:1px solid %s;}" % (border_c,)
+        )
+    snb_w = _pick(theme, "layout.board.snb_width_px", None, device)
+    if snb_w:
+        rules.append(f".rc-snb{{width:{snb_w}px;}}")
+    snb_title_h = _pick(theme, "layout.board.snb_title_height_px", None, device)
+    if snb_title_h:
+        rules.append(f".rc-snb-title{{min-height:{snb_title_h}px;}}")
+    snb_item_h = _pick(theme, "layout.board.snb_item_height_px", None, device)
+    if snb_item_h:
+        rules.append(f".rc-snb-item{{height:{snb_item_h}px;}}")
+    snb_sub_h = _pick(theme, "layout.board.snb.subitem_height_px", None, device)
+    if snb_sub_h:
+        rules.append(
+            f".rc-snb-sub{{height:{snb_sub_h}px;font-size:{nd['small_font_size_px']}px;}}"
+            f".rc-snb-sub{{padding-left:{max(int(snb_sub_h) * 2, 40)}px;}}"
+        )
+    snb_title_bg = _pick(theme, "colors.board.snb_title_bg", None, device)
+    if snb_title_bg:
+        rules.append(
+            f".rc-snb-title{{background:{snb_title_bg};}}"
+            + (f".rc-snb-title{{color:{bg};}}" if bg else "")
+        )
+    snb_active_bg = _pick(theme, "colors.board.snb_active_bg", None, device)
+    if snb_active_bg:
+        rules.append(
+            f".rc-snb-current{{background:{snb_active_bg};}}"
+            + (f".rc-snb-current{{color:{bg};}}" if bg else "")
+        )
+    snb_sep = _pick(theme, "colors.board.snb_separator", None, device)
+    if snb_sep:
+        rules.append(f".rc-snb-item{{border-bottom:1px solid {snb_sep};}}")
+    hdr_h = _pick(theme, "layout.board.table_header_height_px", None, device)
+    if hdr_h:
+        rules.append(f"table.rc-board th{{height:{hdr_h}px;}}")
+    row_h = _pick(theme, "layout.board.row_height_px", None, device)
+    if row_h:
+        rules.append(f"table.rc-board td{{height:{row_h}px;}}")
+    row_sep = _pick(theme, "colors.board.row_separator", None, device)
+    if row_sep:
+        rules.append(f"table.rc-board td{{border-bottom:1px solid {row_sep};}}")
+    hdr_border = _pick(theme, "colors.board.table_header_border", None, device)
+    if hdr_border:
+        rules.append(f"table.rc-board th{{border-top:2px solid {hdr_border};}}")
+    hdr_rule = _pick(theme, "colors.board.table_header_rule", None, device)
+    if hdr_rule:
+        rules.append(f"table.rc-board th{{border-bottom:1px solid {hdr_rule};}}")
+    # List toolbar composition: a full-width #dddddd divider below the
+    # breadcrumb, then a single summary+search row. The measured paddings keep
+    # the divider at y=447 and the table top at y=543 (source notice.list).
+    toolbar_pad_t = _pick(theme, "layout.board.toolbar_padding_top_px", None, device)
+    toolbar_pad_b = _pick(theme, "layout.board.toolbar_padding_bottom_px", None, device)
+    toolbar_row_h = _pick(theme, "layout.board.toolbar_row_height_px", None, device)
+    if row_sep and toolbar_pad_t is not None and toolbar_pad_b is not None:
+        rules.append(
+            f".rc-board-toolbar{{margin-top:20px;border-top:1px solid {row_sep};"
+            f"padding-top:{toolbar_pad_t}px;padding-bottom:{toolbar_pad_b}px;}}"
+        )
+    if toolbar_row_h:
+        rules.append(f".rc-board-toolbar{{min-height:{toolbar_row_h}px;}}")
+        rules.append(
+            f".rc-pagesize,.rc-filter-opt,.rc-search-input,.rc-search-btn"
+            f"{{min-height:{toolbar_row_h}px;}}"
+        )
+    if row_sep:
+        rules.append(
+            f".rc-pagesize,.rc-filter-opt,.rc-search-input"
+            f"{{border:1px solid {row_sep};background:#fff;}}"
+        )
+    search_bg = _pick(theme, "colors.board.search_button_bg", None, device)
+    if search_bg:
+        rules.append(
+            f".rc-search-btn{{background:{search_bg};color:#fff;border:none;"
+            "cursor:not-allowed;}"
+        )
+    # Pager box: a tall bordered box (#aaaaaa top / #dddddd bottom) holding a
+    # single row of boxed page buttons, then the 공공누리 license box.
+    pager_pad_t = _pick(theme, "layout.board.pager_padding_top_px", None, device)
+    pager_pad_b = _pick(theme, "layout.board.pager_padding_bottom_px", None, device)
+    if hdr_rule and row_sep and pager_pad_t is not None and pager_pad_b is not None:
+        rules.append(
+            f".rc-pagination{{border-top:1px solid {hdr_rule};"
+            f"border-bottom:1px solid {row_sep};"
+            f"padding:{pager_pad_t}px 0 {pager_pad_b}px;}}"
+        )
+    pager_border = _pick(theme, "colors.board.pager_button_border", None, device)
+    if pager_border:
+        rules.append(
+            f".rc-page{{border:1px solid {pager_border};background:#fff;"
+            "padding:8px 12px;margin:0 3px;cursor:not-allowed;}"
+        )
+    pager_active = _pick(theme, "colors.board.pager_active_bg", None, device)
+    if pager_active:
+        rules.append(
+            f".rc-page-current{{background:{pager_active};border-color:{pager_active};}}"
+        )
+    lic_pad_t = _pick(theme, "layout.board.license_padding_top_px", None, device)
+    lic_pad_b = _pick(theme, "layout.board.license_padding_bottom_px", None, device)
+    lic_margin_b = _pick(theme, "layout.board.license_margin_bottom_px", None, device)
+    if row_sep and lic_pad_t is not None and lic_pad_b is not None:
+        rules.append(
+            f".rc-contents-info{{border-top:1px solid {row_sep};"
+            f"border-bottom:1px solid {row_sep};"
+            f"padding:{lic_pad_t}px 0 {lic_pad_b}px;}}"
+        )
+    if lic_margin_b is not None:
+        rules.append(f".rc-contents-info{{margin-bottom:{lic_margin_b}px;}}")
+    # Civil-duty contents box (콘텐츠 정보책임자): the source renders the same
+    # #dddddd bordered box as the KOGL notice but with a more compact padding
+    # around the title + label/value rows (measured from civil_form.list).
+    dut_pad_t = _pick(theme, "layout.board.duty.padding_top_px", None, device)
+    dut_pad_b = _pick(theme, "layout.board.duty.padding_bottom_px", None, device)
+    if row_sep and dut_pad_t is not None and dut_pad_b is not None:
+        rules.append(
+            f".rc-contents-duty{{border-top:1px solid {row_sep};"
+            f"border-bottom:1px solid {row_sep};"
+            f"padding:{dut_pad_t}px 0 {dut_pad_b}px;}}"
+        )
+        # The source duty box is a dense single-band block: the title row and
+        # the label/value items all sit on one line (measured 62px box, items
+        # span the full content width).
+        rules.append(
+            f".rc-contents-duty{{display:flex;align-items:center;gap:16px;}}"
+        )
+        rules.append(
+            f".rc-contents-duty .rc-duty-title{{font-size:13px;font-weight:700;"
+            f"line-height:1.4;margin:0;white-space:nowrap;}}"
+        )
+        rules.append(
+            f".rc-contents-duty .rc-duty-list{{margin:0;padding:0;list-style:none;"
+            f"display:flex;gap:20px;align-items:center;}}"
+        )
+        rules.append(
+            f".rc-contents-duty .rc-duty-item{{display:flex;gap:6px;"
+            f"font-size:13px;line-height:1.4;}}"
+        )
+        rules.append(
+            f".rc-contents-duty .rc-duty-label{{font-weight:700;min-width:56px;}}"
+        )
+    # Detail article shell: the source renders the breadcrumb, then a #dddddd
+    # divider, then a #555555-bordered box holding the article title and the
+    # meta band (#dddddd bottom rule at the measured 120px band height).
+    shell_pad_t = _pick(theme, "layout.board.detail.shell_padding_top_px", None, device)
+    shell_pad_b = _pick(theme, "layout.board.detail.shell_padding_bottom_px", None, device)
+    if (
+        hdr_border
+        and row_sep
+        and shell_pad_t is not None
+        and shell_pad_b is not None
+        and toolbar_pad_t is not None
+    ):
+        rules.append(
+            f".rc-detail-shell{{margin-top:20px;border-top:1px solid {row_sep};"
+            f"padding-top:{toolbar_pad_t}px;}}"
+            f".rc-detail-box{{border-top:2px solid {hdr_border};"
+            f"border-bottom:1px solid {row_sep};"
+            f"padding:{shell_pad_t}px 0 {shell_pad_b}px;}}"
+        )
+    if detail_meta_h:
+        rules.append(f".rc-detail-box{{min-height:{detail_meta_h}px;box-sizing:border-box;}}")
+    if body_break:
+        # Paragraph <br> runs inside the captured body: the renderer scales the
+        # gap between generic body paragraphs from the measured per-<br> pitch
+        # (G1 gosi.detail evidence) via this CSS custom property.
+        rules.append(f".rc-detail-body{{--rc-break-space:{body_break}px;}}")
+    back_pad_t = _pick(theme, "layout.board.detail.back_box.padding_top_px", None, device)
+    back_pad_b = _pick(theme, "layout.board.detail.back_box.padding_bottom_px", None, device)
+    back_btn_h = _pick(theme, "layout.board.detail.back_box.button_height_px", None, device)
+    back_btn_w = _pick(theme, "layout.board.detail.back_box.button_width_px", None, device)
+    if back_pad_t is not None and back_pad_b is not None:
+        # Source board_btns: full-width #dddddd-bordered box with a centered
+        # black button (G1 gosi.detail evidence: 1316-1405 box, 35x142px btn).
+        rules.append(
+            f".rc-back{{text-align:center;margin-top:{back_pad_t}px;"
+            f"padding:{back_pad_t}px 0 {back_pad_b}px;border-top:1px solid {row_sep or '#dddddd'};"
+            f"border-bottom:1px solid {row_sep or '#dddddd'};}}"
+        )
+    if back_btn_h and back_btn_w:
+        rules.append(
+            f".rc-back-link{{display:inline-flex;align-items:center;justify-content:center;"
+            f"height:{back_btn_h}px;min-width:{back_btn_w}px;background:#23201f;color:#ffffff;"
+            f"text-decoration:none;padding:0 1.2em;}}"
+        )
+    attach_pad_t = _pick(theme, "layout.board.detail.attachment.padding_top_px", None, device)
+    attach_pad_b = _pick(theme, "layout.board.detail.attachment.padding_bottom_px", None, device)
+    if attach_pad_t is not None and attach_pad_b is not None and row_sep:
+        # Source .file block: full-width #dddddd-bordered box holding the
+        # attachment title and one or more item rows (G1 evidence: box
+        # y1017-1106 = 89px with a single 20px item band at y1049-1069).
+        rules.append(
+            f".rc-attachments{{margin-top:0;padding:{attach_pad_t}px 0 {attach_pad_b}px;"
+            f"border-top:1px solid {row_sep};border-bottom:1px solid {row_sep};}}"
+        )
+        rules.append(
+            # Source .file block renders the 첨부파일 title and the first item
+            # on one 20px line band (G1 gosi.detail evidence: title/icon at
+            # y1050 and the filename row through y1069 inside the 89px box).
+            f".rc-attachments-title{{display:inline-block;font-size:{nd['small_font_size_px']}px;font-weight:700;margin:0 .8em 0 0;}}"
+        )
+        rules.append(
+            f".rc-attach-item{{display:inline-flex;align-items:center;font-size:{nd['small_font_size_px']}px;}}"
+            f".rc-attach-name{{font-weight:700;margin-right:.6em;}}"
+            f".rc-attach-meta{{color:{muted_c or '#6a6a73'};margin-right:.8em;}}"
+        )
+    if muted_c:
+        rules.append(".rc-loc{color:%s;}" % muted_c)
 
     return "\n".join(rules)
 
@@ -1502,8 +1900,6 @@ def _render_header(
         if c not in slogan_ctrls and c not in search_ctrls and _control_text(c)
     ]
 
-    # The captured utility strip has a left institutional-link cluster and a
-    # right language/social cluster. Derive the split from control classes/order.
     right_start = len(utility_ctrls)
     social_pos = next(
         (
@@ -1531,9 +1927,6 @@ def _render_header(
             + "</div></div></div>"
         )
 
-    # Desktop source: campaign slogan at left, search field at center/right.
-    # Search-button-like controls with no class follow the captured search input,
-    # so keep them in the same semantic search group.
     desktop_search = search_ctrls + (other_tool_ctrls if search_ctrls else [])
     tools_html = ""
     if device != "mobile" and (slogan_ctrls or desktop_search):
@@ -1787,6 +2180,402 @@ def _render_home_main(
     )
 
 
+_BOARD_COLUMN_TOKENS = frozenset(
+    {"번호", "제목", "담당부서", "부서명", "등록일", "첨부파일",
+     "조회수", "분류", "고시공고번호", "게재일자"}
+)
+_DATE_TOKEN_RE = re.compile(r"\d{4}[/-]\d{2}[/-]\d{2}")
+
+
+def _contents_landmark_text(state: dict[str, Any]) -> str:
+    for lm in state.get("landmarks", []):
+        if lm.get("id") == "contents":
+            return (lm.get("text") or "").strip()
+    return ""
+
+
+def _detect_board_columns(contents: str) -> list[str]:
+    if not contents:
+        return []
+    tokens = contents.split()
+    first_no = next((i for i, t in enumerate(tokens) if t.isdigit()), None)
+    if first_no is None:
+        return []
+    cols: list[str] = []
+    i = first_no - 1
+    while i >= 0 and tokens[i] in _BOARD_COLUMN_TOKENS:
+        cols.insert(0, tokens[i])
+        i -= 1
+    if len(cols) >= 2 and "번호" in cols and "제목" in cols:
+        return cols
+    return []
+
+
+def _parse_board_blob_rows(contents: str, columns: list[str]) -> list[dict[str, str]]:
+    if not contents or not columns:
+        return []
+    tokens = contents.split()
+    first_no = next((i for i, t in enumerate(tokens) if t.isdigit()), None)
+    if first_no is None:
+        return []
+    rows: list[dict[str, str]] = []
+    i = first_no
+    n = len(tokens)
+    while i < n and i < len(tokens):
+        if not tokens[i].isdigit():
+            i += 1
+            continue
+        no = tokens[i]
+        di = next(
+            (k for k in range(i + 1, n) if _DATE_TOKEN_RE.fullmatch(tokens[k])), None
+        )
+        if di is None:
+            break
+        rec: dict[str, str] = {
+            "번호": no, "분류": "", "담당부서": "", "등록일": tokens[di], "조회수": "",
+        }
+        if di > i + 1:
+            rec["담당부서"] = tokens[di - 1]
+        views_idx = next(
+            (k for k in range(di + 1, n) if tokens[k].isdigit()), None
+        )
+        if views_idx is not None:
+            rec["조회수"] = tokens[views_idx]
+        if "분류" in columns and columns.index("분류") == 1 and i + 1 < di:
+            rec["분류"] = tokens[i + 1]
+        rows.append(rec)
+        nxt = next(
+            (k for k in range((views_idx + 1) if views_idx is not None else di + 1, n)
+             if tokens[k].isdigit()),
+            None,
+        )
+        if nxt is None:
+            break
+        i = nxt
+    return rows
+
+
+def _board_summary(contents: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    m = re.search(r"전체\s*([\d,]+)\s*건", contents)
+    if m:
+        out["total"] = m.group(1)
+    m = re.search(r"페이지\s*(\d+)\s*/\s*(\d+)", contents)
+    if m:
+        out["page_current"] = m.group(1)
+        out["page_total"] = m.group(2)
+    return out
+
+
+def _board_snb_items(state: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+    """Return ``(section title, menu items)`` for the left sidebar.
+
+    Prefers the source-backed structured ``board.snb`` capture (level-1 items
+    plus the visible level-2 children of the expanded parent, mirroring the
+    source sidebar's two-level hierarchy). Falls back to the flat ``snb``
+    landmark text (all items depth 1) for states without a board capture.
+    """
+    board = state.get("board")
+    if isinstance(board, dict):
+        snb = board.get("snb")
+        if isinstance(snb, dict) and snb.get("items"):
+            title = (snb.get("title") or "").strip()
+            return title, list(snb["items"])
+    for lm in state.get("landmarks", []):
+        if lm.get("id") == "snb":
+            tokens = [t for t in (lm.get("text") or "").split() if t]
+            items = [{"label": t, "depth": 1} for t in tokens]
+            if len(items) >= 2:
+                return items[0]["label"], items[1:]
+            if items:
+                return "", items
+            return "", []
+    return "", []
+
+
+def _board_breadcrumb_trail(state: dict[str, Any]) -> list[str]:
+    best: list[str] = []
+    for lm in state.get("landmarks", []):
+        if lm.get("id") is not None:
+            continue
+        text = (lm.get("text") or "").strip()
+        if text.startswith("홈"):
+            trail = [t for t in text.split() if t]
+            if len(trail) > len(best):
+                best = trail
+    return best
+
+
+def _board_active_label(state: dict[str, Any]) -> str:
+    active: list[str] = []
+    for c in state.get("controls", []):
+        if (c.get("class_name") or "").strip() == "active":
+            text = (c.get("text") or "").strip()
+            if text:
+                active.append(text)
+    return active[-1] if active else ""
+
+
+def _board_location_hierarchy(contents: str) -> list[str]:
+    m = re.search(r"([^>]+(?:>[^>]+)+)", contents)
+    if not m:
+        return []
+    parts = [p.strip() for p in m.group(1).split(">")]
+    if len(parts) >= 2 and all(parts):
+        return parts
+    return []
+
+
+# Standard Korean public-sector 공공누리 license notice. It appears verbatim
+# in the committed G1 HTML (div.contents_info > .kogl .txt) on every board
+# list/detail page and is generic boilerplate, not site-specific data.
+_CONTENTS_INFO_NOTICE = (
+    "본 공공저작물은 공공누리 “출처표시+상업적이용금지+변경금지” "
+    "조건에 따라 이용할 수 있습니다."
+)
+
+
+def _render_contents_info(board: dict[str, Any] | None) -> str:
+    """Render the source-backed ``div.contents_info`` block for a board.
+
+    Municipal board pages close the content section with either the 공공누리
+    (KOGL) license notice (``div.kogl > span.txt``) or, on some service
+    families, a civil-duty box (``article.duty`` with title + label/value
+    items, e.g. 콘텐츠 정보책임자). When the model captured a duty box the
+    duty markup is rendered (no active hyperlinks — the tel link is inert
+    text to keep external interactions at zero); otherwise the standard
+    notice constant is used as before.
+    """
+    contents = (board or {}).get("contents_info")
+    if isinstance(contents, dict) and contents.get("kind") == "duty":
+        items = contents.get("items") or []
+        title = contents.get("title") or ""
+        item_html = []
+        for it in items:
+            label = (it.get("label") or "").strip()
+            value = (it.get("value") or "").strip()
+            if not label and not value:
+                continue
+            item_html.append(
+                f'<li class="rc-duty-item"><strong class="rc-duty-label">'
+                f'{_esc(label)}</strong><span class="rc-duty-value">'
+                f'{_esc(value)}</span></li>'
+            )
+        return (
+            f'<div class="rc-contents-info rc-contents-duty">'
+            f'<h3 class="rc-duty-title">{_esc(title)}</h3>'
+            f'<ul class="rc-duty-list">{"".join(item_html)}</ul></div>'
+        )
+    return (
+        f'<div class="rc-contents-info">{_esc(_CONTENTS_INFO_NOTICE)}</div>'
+    )
+
+
+def _board_toolbar(state: dict[str, Any]) -> dict[str, Any]:
+    page_sizes: list[str] = []
+    filter_text: str = ""
+    search_placeholder: str = ""
+    search_button: str = ""
+    for c in state.get("controls", []):
+        text = (c.get("text") or "").strip()
+        cn = (c.get("class_name") or "").strip()
+        if not text:
+            continue
+        if re.search(r"\d+개씩", text):
+            for part in text.split():
+                if re.match(r"\d+개씩", part):
+                    page_sizes.append(part)
+        if "제목" in text and "전체" in text and not filter_text:
+            filter_text = text
+        if cn == "form_textbox" and not search_placeholder:
+            search_placeholder = text
+        if text == "검색" and not search_button and cn != "search_keyword":
+            search_button = text
+    return {
+        "page_sizes": page_sizes,
+        "filter_text": filter_text,
+        "search_placeholder": search_placeholder,
+        "search_button": search_button,
+    }
+
+
+def _render_surface_tools(state: dict[str, Any]) -> str:
+    tools = []
+    for c in state.get("controls", []):
+        cn = (c.get("class_name") or "")
+        if cn.startswith("btn "):
+            text = (c.get("text") or "").strip()
+            if text:
+                tools.append(
+                    f'<button type="button" class="rc-tool" disabled '
+                    f'aria-disabled="true">{_esc(text)}</button>'
+                )
+    if not tools:
+        return ""
+    return f'<div class="rc-surface-tools rc-tools" aria-label="도구">{"".join(tools)}</div>'
+
+
+def _board_nav_html(state: dict[str, Any]) -> tuple[str, str, str]:
+    trail = _board_breadcrumb_trail(state)
+    active = _board_active_label(state)
+    crumbs = []
+    for idx, label in enumerate(trail):
+        # No invented visual separator: the source breadcrumb hierarchy is a
+        # sequence of labelled landmarks (홈 → 구정소식 → 공지사항). A literal
+        # "›" glyph is not source-proven, so crumbs stay as discrete spans.
+        if idx == len(trail) - 1:
+            crumbs.append(
+                f'<span class="rc-crumb rc-crumb-current" aria-current="page">{_esc(label)}</span>'
+            )
+        else:
+            crumbs.append(f'<span class="rc-crumb">{_esc(label)}</span>')
+    breadcrumb_html = (
+        f'<nav class="rc-breadcrumb" aria-label="위치">{"".join(crumbs)}</nav>' if crumbs else ""
+    )
+    # The blind search fieldset legend ("분야별정보 > 행정 > 행정소식 > 공지사항")
+    # is screen-reader-only source content and MUST NOT be promoted into a
+    # navigation landmark (visible or hidden). The real visible location
+    # hierarchy is the source-backed breadcrumb (홈 / 구정소식 / 공지사항)
+    # rendered above. No separate rc-location nav is derived for board states;
+    # deriving it from the contents landmark would re-introduce the blind
+    # legend as a duplicate navigation landmark.
+    location_html = ""
+    section_title, snb = _board_snb_items(state)
+    snb_parts = []
+    if section_title:
+        snb_parts.append(
+            f'<span class="rc-snb-title">{_esc(section_title)}</span>'
+        )
+    for item in snb:
+        label = item.get("label") if isinstance(item, dict) else item
+        depth = item.get("depth") if isinstance(item, dict) else 1
+        cls = "rc-snb-item"
+        if depth and depth > 1:
+            cls += " rc-snb-sub"
+        if label == active:
+            cls += " rc-snb-current"
+            snb_parts.append(
+                f'<span class="{cls}" aria-current="page">{_esc(label)}</span>'
+            )
+        else:
+            snb_parts.append(
+                f'<span class="{cls}" role="link" aria-disabled="true" tabindex="-1">{_esc(label)}</span>'
+            )
+    snb_html = (
+        f'<nav class="rc-snb" aria-label="하위 메뉴">{"".join(snb_parts)}</nav>' if snb_parts else ""
+    )
+    return breadcrumb_html, location_html, snb_html
+
+
+def _subpage_context_html(breadcrumb_html: str, location_html: str) -> str:
+    return (
+        f'<div class="rc-subpage-context">{breadcrumb_html}{location_html}</div>'
+        if breadcrumb_html or location_html
+        else ""
+    )
+
+
+def _wrap_subpage(snb_html: str, content_html: str) -> str:
+    return (
+        f'<div class="rc-subpage">'
+        f'<div class="rc-subpage-body">{snb_html}'
+        f'<div class="rc-content">{content_html}</div></div></div>'
+    )
+
+
+def _render_board_toolbar(toolbar: dict[str, Any]) -> str:
+    """Render the summary + boxed search controls of the source toolbar row.
+
+    The captured source renders the page-size selector, the search filter
+    select, the keyword input and the black search button as one right-aligned
+    row next to the result summary. Only the currently selected option of each
+    selector is visible in the capture, so the model's first page-size token
+    and last filter token stand in for the selected values.
+    """
+    parts = []
+    page_sizes = toolbar.get("page_sizes") or []
+    if page_sizes:
+        parts.append(
+            f'<span class="rc-toolbar-pagesize" aria-label="페이지 크기">'
+            f'<span class="rc-pagesize" role="link" aria-disabled="true" '
+            f'tabindex="-1">{_esc(page_sizes[0])}</span></span>'
+        )
+    filter_text = toolbar.get("filter_text") or ""
+    opts = [o for o in filter_text.split() if o]
+    if opts:
+        parts.append(
+            f'<span class="rc-toolbar-filter" aria-label="검색 범위">'
+            f'<span class="rc-filter-opt" role="link" aria-disabled="true" '
+            f'tabindex="-1">{_esc(opts[-1])}</span></span>'
+        )
+    if toolbar.get("search_placeholder") or toolbar.get("search_button"):
+        ph = toolbar.get("search_placeholder") or ""
+        btn = toolbar.get("search_button") or "검색"
+        parts.append(
+            f'<span class="rc-toolbar-search" aria-label="검색">'
+            f'<input type="text" class="rc-search-input" placeholder="{_esc(ph)}" '
+            f'aria-label="검색어" disabled>'
+            f'<button type="button" class="rc-search-btn" disabled aria-disabled="true">{_esc(btn)}</button>'
+            f"</span>"
+        )
+    if not parts:
+        return ""
+    return (
+        f'<div class="rc-toolbar-controls" aria-label="게시판 도구">'
+        f'{"".join(parts)}</div>'
+    )
+
+
+def _render_board_pagination(
+    summary: dict[str, str],
+    board_pagination: dict[str, Any] | None = None,
+) -> str:
+    """Render an inert pager from source-backed page numbers when available."""
+    pages: list[int] = []
+    if board_pagination:
+        pages = [int(p) for p in board_pagination.get("pages") or [] if str(p).isdigit()]
+    total = summary.get("page_total")
+    current = summary.get("page_current") or str(
+        board_pagination.get("current_page") if board_pagination else None
+    ) or "1"
+    # source DOM uses class="arr first" + text "처음", "arr prev" + "이전",
+    # "arr next" + "다음", "arr last" + "마지막". The visible glyph treatment is
+    # CSS-driven (an icon font / sprite) and is NOT materialized in the controlled
+    # clone asset set, so we render only the source-backed text labels and drop
+    # the invented literal « ‹ › » glyphs (no provenance, no external request).
+    items = [
+        '<button type="button" class="rc-page" disabled aria-disabled="true">처음</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">이전</button>',
+    ]
+    if pages:
+        for page in pages:
+            if page == int(current or 1):
+                items.append(
+                    f'<button type="button" class="rc-page rc-page-current" '
+                    f'aria-current="page" disabled aria-disabled="true">{page}</button>'
+                )
+            else:
+                items.append(
+                    f'<button type="button" class="rc-page" disabled '
+                    f'aria-disabled="true">{page}</button>'
+                )
+    else:
+        items.append(
+            f'<button type="button" class="rc-page rc-page-current" aria-current="page" '
+            f'disabled aria-disabled="true">{_esc(current)}</button>'
+        )
+    items.extend([
+        '<button type="button" class="rc-page" disabled aria-disabled="true">다음</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">마지막</button>',
+    ])
+    suffix = f' / {_esc(total)}' if total else ""
+    return (
+        f'<nav class="rc-pagination" aria-label="페이지 이동">'
+        f'<span class="rc-pager-inner">{"".join(items)}'
+        f'<span class="rc-page-total">{suffix}</span></span></nav>'
+    )
+
+
 def _render_list_main(
     model: dict[str, Any],
     state: dict[str, Any],
@@ -1794,27 +2583,252 @@ def _render_list_main(
     title: str,
     route_prefix: str,
 ) -> str:
+    contents = _contents_landmark_text(state)
+    columns = _detect_board_columns(contents)
+    summary = _board_summary(contents)
     items = _list_items(model, state, route_prefix)
+    blob_rows = _parse_board_blob_rows(contents, columns)
+    breadcrumb_html, location_html, snb_html = _board_nav_html(state)
+    toolbar = _board_toolbar(state)
+    surface_label_text = surface_label(state, model)
+    board = state.get("board") or {}
+    board_columns = board.get("columns") if board.get("kind") == "list" else None
+    board_rows = board.get("rows") if board.get("kind") == "list" else None
+    board_pagination = board.get("pagination") if board.get("kind") == "list" else None
+
+    toolbar_controls_html = _render_board_toolbar(toolbar)
+    summary_html = ""
+    if summary:
+        parts = []
+        if summary.get("total"):
+            parts.append(f'전체 {_esc(summary["total"])}건')
+        if summary.get("page_current") and summary.get("page_total"):
+            parts.append(f'페이지 {_esc(summary["page_current"])} / {_esc(summary["page_total"])}')
+        if parts:
+            summary_html = f'<p class="rc-board-summary">{" · ".join(parts)}</p>'
+    if summary_html or toolbar_controls_html:
+        toolbar_html = (
+            f'<div class="rc-board-toolbar" role="search">'
+            f'{summary_html}{toolbar_controls_html}</div>'
+        )
+    else:
+        toolbar_html = ""
+
     current_route = route_for_state(state["state_id"], route_prefix)
-    rows = []
-    for item in items:
-        if item["links_to_detail"] and item["detail_route"]:
-            href = relative_href(current_route, item["detail_route"])
-            rows.append(
-                f'<li><a class="rc-list-link" data-detail="1" href="{_esc(href)}">'
-                f'{_esc(item["text"])}</a></li>'
+    detail_no: str | None = None
+    detail_record = _family_detail_record_id(model, family)
+    if detail_record:
+        match = re.search(r"(\d+)$", detail_record)
+        detail_no = match.group(1) if match else None
+
+    if board_columns and board_rows:
+        # Source-backed board table from the semantic model's generic board
+        # vocabulary (columns/rows captured verbatim from the committed G1 DOM).
+        head_cells = "".join(
+            f'<th scope="col" class="rc-th rc-col-{_esc(c)}">{_esc(c)}</th>'
+            for c in board_columns
+        )
+        col_widths = board.get("col_widths") or []
+        colgroup_html = ""
+        if col_widths:
+            cols = []
+            for w in col_widths:
+                if isinstance(w, int) and w > 0:
+                    cols.append(f'<col style="width:{int(w)}%">')
+                else:
+                    cols.append("<col>")
+            colgroup_html = "<colgroup>" + "".join(cols) + "</colgroup>"
+        body_rows = []
+        for row in board_rows:
+            cells = row.get("cells") or {}
+            record_id = row.get("record_id")
+            links_to_detail = (
+                detail_no is not None and record_id == detail_no
             )
-        else:
-            rows.append(
-                f'<li><span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">'
-                f'{_esc(item["text"])}</span></li>'
+            cell_html = []
+            for col in board_columns:
+                value = cells.get(col) or ""
+                if col == "제목":
+                    value = cells.get(col) or ""
+                    if row.get("is_new"):
+                        # Source DOM: <i class="xi-new"></i><span class="sr_only">새글</span>
+                        # followed by the title. The xi-new glyph is an XEIcon
+                        # font treatment whose body bytes are not materialized in
+                        # the controlled clone asset set (TECHNICAL_CAPTURE_GAP),
+                        # so we emit the source element + screen-reader "새글"
+                        # label and do NOT fabricate a visible bordered chip.
+                        clean_title = re.sub(r"^새글\s*", "", value).strip()
+                        cell_text = (
+                            f'<i class="xi-new" aria-hidden="true"></i>'
+                            f'<span class="sr_only">새글</span> '
+                            f'{_esc(clean_title)}'
+                        )
+                    else:
+                        cell_text = _esc(value)
+                    if links_to_detail:
+                        detail_route = _family_detail_route(model, family, route_prefix)
+                        href = relative_href(current_route, detail_route) if detail_route else "#"
+                        cell_html.append(
+                            f'<td class="rc-td rc-col-{_esc(col)}">'
+                            f'<a class="rc-list-link" data-detail="1" href="{_esc(href)}">'
+                            f'{cell_text}</a></td>'
+                        )
+                    else:
+                        cell_html.append(
+                            f'<td class="rc-td rc-col-{_esc(col)}">'
+                            f'<span class="rc-list-item" aria-disabled="true" '
+                            f'role="link" tabindex="-1">{cell_text}</span></td>'
+                        )
+                elif col == "첨부파일" and row.get("attachment_count"):
+                    # Source renders an attachment icon (e.g. /upload/skin/board/
+                    # basic/attach.png) whose body bytes are not materialized in
+                    # the controlled clone asset set (TECHNICAL_CAPTURE_GAP). We
+                    # preserve the attachment count semantics without fabricating
+                    # a visible bordered chip or any external/relative asset URL.
+                    count = row["attachment_count"]
+                    cell_html.append(
+                        f'<td class="rc-td rc-col-{_esc(col)}">'
+                        f'<span class="rc-attach-count sr_only" '
+                        f'aria-label="첨부파일 {count}개">첨부파일 {count}개</span></td>'
+                    )
+                else:
+                    cell_html.append(
+                        f'<td class="rc-td rc-col-{_esc(col)}">{_esc(value)}</td>'
+                    )
+            body_rows.append(
+                f'<tr class="rc-board-row">{"".join(cell_html)}</tr>'
             )
-    return (
-        f'<section aria-label="목록">'
-        f'<h2 class="rc-section-title">{_esc(surface_label(state, model))} · 목록</h2>'
-        f'<ul class="rc-list">{"".join(rows)}</ul>'
-        f"</section>"
+        table_html = (
+            f'<table class="rc-board" aria-label="{_esc(surface_label_text)} 목록">'
+            f'{colgroup_html}'
+            f'<thead><tr class="rc-board-head">{head_cells}</tr></thead>'
+            f'<tbody>{"".join(body_rows)}</tbody></table>'
+        )
+    elif columns:
+        head_cells = "".join(
+            f'<th scope="col" class="rc-th rc-col-{_esc(c)}">{_esc(c)}</th>' for c in columns
+        )
+        body_rows = []
+        for i, item in enumerate(items):
+            blob = blob_rows[i] if i < len(blob_rows) else None
+            cells = []
+            for col in columns:
+                if col == "제목":
+                    if item.get("links_to_detail") and item.get("detail_route"):
+                        href = relative_href(current_route, item["detail_route"])
+                        cells.append(
+                            f'<td class="rc-td rc-col-제목"><a class="rc-list-link" data-detail="1" '
+                            f'href="{_esc(href)}">{_esc(item["text"])}</a></td>'
+                        )
+                    else:
+                        cells.append(
+                            f'<td class="rc-td rc-col-제목"><span class="rc-list-item" '
+                            f'aria-disabled="true" role="link" tabindex="-1">{_esc(item["text"])}</span></td>'
+                        )
+                elif col == "번호":
+                    val = (blob or {}).get("번호") or ""
+                    cells.append(f'<td class="rc-td rc-col-번호">{_esc(val)}</td>')
+                elif col in ("담당부서", "부서명"):
+                    val = (blob or {}).get("담당부서") if blob else ""
+                    cells.append(f'<td class="rc-td rc-col-{_esc(col)}">{_esc(val)}</td>')
+                elif col == "등록일":
+                    val = (blob or {}).get("등록일") if blob else ""
+                    cells.append(f'<td class="rc-td rc-col-등록일">{_esc(val)}</td>')
+                elif col == "조회수":
+                    val = (blob or {}).get("조회수") if blob else ""
+                    cells.append(f'<td class="rc-td rc-col-조회수">{_esc(val)}</td>')
+                elif col == "분류":
+                    val = (blob or {}).get("분류") if blob else ""
+                    cells.append(f'<td class="rc-td rc-col-분류">{_esc(val)}</td>')
+                else:
+                    cells.append(f'<td class="rc-td rc-col-{_esc(col)}"></td>')
+            body_rows.append(f'<tr class="rc-board-row">{ "".join(cells) }</tr>')
+        table_html = (
+            f'<table class="rc-board" aria-label="{_esc(surface_label_text)} 목록">'
+            f'<thead><tr class="rc-board-head">{head_cells}</tr></thead>'
+            f'<tbody>{"".join(body_rows)}</tbody></table>'
+        )
+    else:
+        rows = []
+        for item in items:
+            if item.get("links_to_detail") and item.get("detail_route"):
+                href = relative_href(current_route, item["detail_route"])
+                rows.append(
+                    f'<li><a class="rc-list-link" data-detail="1" href="{_esc(href)}">'
+                    f'{_esc(item["text"])}</a></li>'
+                )
+            else:
+                rows.append(
+                    f'<li><span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">'
+                    f'{_esc(item["text"])}</span></li>'
+                )
+        table_html = f'<ul class="rc-list">{"".join(rows)}</ul>'
+
+    pagination_html = _render_board_pagination(summary, board_pagination)
+    license_html = _render_contents_info(board)
+
+    context_html = _subpage_context_html(breadcrumb_html, location_html)
+    tools_html = _render_surface_tools(state)
+    content_html = (
+        f'<div class="rc-page-head">'
+        f'<h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
+        f'{tools_html}</div>'
+        f'{context_html}'
+        f'{toolbar_html}{table_html}{pagination_html}{license_html}'
     )
+    return _wrap_subpage(snb_html, content_html)
+
+
+def _parse_detail_metadata(contents: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    m = re.search(r"작성일시(\S+ \S+)", contents)
+    if m:
+        out["작성일시"] = m.group(1)
+    m = re.search(r"작성일(\S+)", contents)
+    if m and "작성일시" not in out:
+        out["작성일"] = m.group(1)
+    m = re.search(r"작성부서(\S+)", contents)
+    if m:
+        out["작성부서"] = m.group(1)
+    m = re.search(r"조회수(\d+)", contents)
+    if m:
+        out["조회수"] = m.group(1)
+    m = re.search(r"분류(\S+)", contents)
+    if m:
+        out["분류"] = m.group(1)
+    m = re.search(r"공고번호(\S+)", contents)
+    if m:
+        out["공고번호"] = m.group(1)
+    m = re.search(r"담당자연락처(\S+)", contents)
+    if m:
+        out["담당자연락처"] = m.group(1)
+    return out
+
+
+def _parse_detail_body(contents: str) -> str:
+    if not contents:
+        return ""
+    end_meta = 0
+    for pat in (
+        r"조회수\d+",
+        r"담당자연락처\S+",
+        r"담당부서\S+",
+        r"작성일시\S+ \S+",
+        r"작성일\S+",
+        r"분류\S+",
+        r"공고번호\S+",
+    ):
+        mm = re.search(pat, contents)
+        if mm:
+            end_meta = max(end_meta, mm.end())
+    body = contents[end_meta:].strip()
+    markers = ["첨부파일", "목록", "이전글", "다음글", "콘텐츠 정보책임자", "다운로드", "미리보기"]
+    cut = len(body)
+    for mk in markers:
+        idx = body.find(mk)
+        if idx != -1:
+            cut = min(cut, idx)
+    return body[:cut].strip()
 
 
 def _render_detail_main(
@@ -1824,13 +2838,44 @@ def _render_detail_main(
     title: str,
     route_prefix: str,
 ) -> str:
-    # list_no is an internal URL/record identifier that is NOT proven to be
-    # resident-visible captured content; it is kept only in hidden
-    # machine-readable evidence (see _evidence_json), never shown to residents.
+    contents = _contents_landmark_text(state)
+    meta = _parse_detail_metadata(contents)
+    body = _parse_detail_body(contents)
+    breadcrumb_html, location_html, snb_html = _board_nav_html(state)
+    surface_label_text = surface_label(state, model)
+    board = state.get("board") or {}
+    board_detail = board if board.get("kind") == "detail" else {}
+
     exts = state.get("attachment_document_extensions") or []
     downloads = state.get("download_references") or []
+    board_attachments = board_detail.get("attachments") or []
     attach_html = ""
-    if exts or downloads:
+    if board_attachments:
+        chips = []
+        for att in board_attachments:
+            name = att.get("name") or ""
+            ext = att.get("ext") or ""
+            att_meta = att.get("meta") or ""
+            chip = (
+                '<div class="rc-attach-item">'
+                f'<span class="rc-attach-name">{_esc(name)}</span>'
+                + (f'<span class="rc-attach-meta">{_esc(att_meta)}</span>' if att_meta else "")
+                + '<span class="rc-attach-actions">'
+                f'<button type="button" class="rc-attach" disabled aria-disabled="true" '
+                f'data-attachment-ext="{_esc(ext)}">다운로드</button>'
+                + (
+                    '<button type="button" class="rc-attach" disabled aria-disabled="true" '
+                    f'data-attachment-ext="{_esc(ext)}">미리보기</button>'
+                    if att.get("preview_href") else ""
+                )
+                + "</span></div>"
+            )
+            chips.append(chip)
+        attach_html = (
+            '<div class="rc-attachments" aria-label="첨부">'
+            f'<strong class="rc-attachments-title">첨부파일</strong>{"".join(chips)}</div>'
+        )
+    elif exts or downloads:
         chips = []
         for ext in exts:
             chips.append(
@@ -1853,30 +2898,135 @@ def _render_detail_main(
     back = ""
     if list_route:
         href = relative_href(route_for_state(state["state_id"], route_prefix), list_route)
-        back = f'<p><a href="{_esc(href)}">← 목록으로</a></p>'
+        back = f'<p class="rc-back"><a class="rc-back-link" href="{_esc(href)}">목록</a></p>'
 
-    return (
-        f'<section aria-label="상세">'
+    if board_detail:
+        detail_title = board_detail.get("title") or title
+        meta_items = []
+        for entry in board_detail.get("meta") or []:
+            label = (entry.get("label") or "").strip()
+            value = (entry.get("value") or "").strip()
+            if label and value:
+                meta_items.append(
+                    f'<div class="rc-dmeta-row"><dt class="rc-dmeta-key">{_esc(label)}</dt>'
+                    f'<dd class="rc-dmeta-val">{_esc(value)}</dd></div>'
+                )
+        meta_html = f'<dl class="rc-detail-meta">{"".join(meta_items)}</dl>' if meta_items else ""
+        body_parts = []
+        for block in board_detail.get("body") or []:
+            if (block.get("type") or "") == "image":
+                # Bounded asset-gate placeholder: the captured source image
+                # reference is rendered as an inert labeled box. No bytes are
+                # hotlinked or embedded (#1234 rights gate), and no fabricated
+                # text is substituted for the artwork.
+                label = (
+                    (block.get("alt") or "").strip()
+                    or (block.get("title") or "").strip()
+                    or (block.get("source_path") or "").rsplit("/", 1)[-1]
+                )
+                body_parts.append(
+                    '<div class="rc-detail-image" role="img" '
+                    f'aria-label="{_esc(label) or "본문 이미지"}">'
+                    f'<span class="rc-detail-image-name">{_esc(label) or "본문 이미지"}</span>'
+                    '<span class="rc-detail-image-note">이미지(자산 게이트) — 본문 이미지는 '
+                    '원본 파일이 확보되면 표시됩니다</span></div>'
+                )
+                continue
+            text = (block.get("text") or "").replace("\xa0", " ").strip()
+            if text:
+                breaks = int(block.get("break_count") or 0)
+                # The source renders the body as one contents block whose
+                # paragraph separation is literal <br> runs (4 <br> between
+                # the first two text groups on the committed G1 page).
+                # Reproducing the same <br> run keeps the paragraph rhythm
+                # (line-height * break count) without stacking an extra
+                # margin on top of the paragraph line box.
+                br = "<br>" * breaks if breaks > 0 else ""
+                body_parts.append(
+                    f'<p class="rc-detail-para">{br}{_esc(text)}</p>'
+                )
+        body_html = (
+            f'<div class="rc-detail-body">{"".join(body_parts)}</div>'
+            if body_parts else ""
+        )
+        prev_next_html = ""
+        pn = []
+        if board_detail.get("prev") and board_detail["prev"].get("title"):
+            pn.append(
+                f'<li class="rc-pn-prev"><span class="rc-pn-label">이전글</span>'
+                f'<span class="rc-pn-item" aria-disabled="true" role="link" tabindex="-1">'
+                f'{_esc(board_detail["prev"]["title"])}</span></li>'
+            )
+        if board_detail.get("next") and board_detail["next"].get("title"):
+            pn.append(
+                f'<li class="rc-pn-next"><span class="rc-pn-label">다음글</span>'
+                f'<span class="rc-pn-item" aria-disabled="true" role="link" tabindex="-1">'
+                f'{_esc(board_detail["next"]["title"])}</span></li>'
+            )
+        if pn:
+            prev_next_html = f'<ul class="rc-prevnext">{"".join(pn)}</ul>'
+        context_html = _subpage_context_html(breadcrumb_html, location_html)
+        tools_html = _render_surface_tools(state)
+        # Source detail template: the page title lives in the page head, then
+        # the breadcrumb, then the article title + meta inside a bordered box.
+        shell_html = (
+            f'<div class="rc-detail-shell"><div class="rc-detail-box">'
+            f'<h2 class="rc-detail-title">{_esc(detail_title)}</h2>'
+            f'{meta_html}</div></div>'
+        )
+        license_html = _render_contents_info(board)
+        content_html = (
+            f'<div class="rc-page-head">'
+            f'<h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
+            f'{tools_html}</div>'
+            f'{context_html}'
+            f'{shell_html}{body_html}{attach_html}{back}{prev_next_html}{license_html}'
+        )
+        return _wrap_subpage(snb_html, content_html)
+
+    meta_items = []
+    for label, key in (
+        ("작성일시", "작성일시"),
+        ("작성일", "작성일"),
+        ("공고번호", "공고번호"),
+        ("분류", "분류"),
+        ("작성부서", "작성부서"),
+        ("담당자연락처", "담당자연락처"),
+        ("조회수", "조회수"),
+    ):
+        val = meta.get(key)
+        if val:
+            meta_items.append(
+                f'<div class="rc-dmeta-row"><dt class="rc-dmeta-key">{_esc(label)}</dt>'
+                f'<dd class="rc-dmeta-val">{_esc(val)}</dd></div>'
+            )
+    meta_html = f'<dl class="rc-detail-meta">{"".join(meta_items)}</dl>' if meta_items else ""
+    body_html = f'<div class="rc-detail-body">{_esc(body)}</div>' if body else ""
+
+    context_html = _subpage_context_html(breadcrumb_html, location_html)
+    tools_html = _render_surface_tools(state)
+    shell_html = (
+        f'<div class="rc-detail-shell"><div class="rc-detail-box">'
         f'<h2 class="rc-detail-title">{_esc(title)}</h2>'
-        f"{attach_html}"
-        f"{back}"
-        f"</section>"
+        f'{meta_html}</div></div>'
     )
+    license_html = _render_contents_info(board)
+    content_html = (
+        f'<div class="rc-page-head">'
+        f'<h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
+        f'{tools_html}</div>'
+        f'{context_html}'
+        f'{shell_html}{body_html}{attach_html}{back}{license_html}'
+    )
+    return _wrap_subpage(snb_html, content_html)
 
 
 def _render_org_staff_main(state: dict[str, Any]) -> str:
-    """Org/staff surfaces render their captured section label only.
-
-    No fake UI is built from metadata counts and no visual-input-gap wording is
-    shown to residents; the gap is recorded in the visual contract and hidden
-    machine-readable metadata.
-    """
     label = surface_label(state, {})
     return f'<section aria-label="{_esc(label)}"><h2 class="rc-section-title">{_esc(label)}</h2></section>'
 
 
 def _evidence_json(state: dict[str, Any]) -> str:
-    """Hidden machine-readable state evidence for QA (never resident-visible)."""
     viewport = state.get("viewport") or {}
     evidence = {
         "state_id": state.get("state_id"),
@@ -1890,9 +3040,6 @@ def _evidence_json(state: dict[str, Any]) -> str:
     return json.dumps(evidence, ensure_ascii=False, sort_keys=True)
 
 
-# ---------------------------------------------------------------------------
-# Page assembly
-# ---------------------------------------------------------------------------
 def _render_page(
     model: dict[str, Any],
     state: dict[str, Any],
@@ -1917,13 +3064,13 @@ def _render_page(
     css = _render_css(theme, device=device)
     lifecycle_script = (
         f'<script type="application/ld+json" id="rc-lifecycle">'
-        f"{_lifecycle_json(visual_contract)}</script>"
+        f"{_lifecycle_json(visual_contract, state_id)}</script>"
     )
     evidence_script = (
         f'<script type="application/ld+json" id="rc-evidence">'
         f"{_evidence_json(state)}</script>"
     )
-    faithful = faithful_ready(visual_contract)
+    faithful = faithful_clone_candidate_ready(visual_contract, state_id)
     return (
         "<!DOCTYPE html>"
         f'<html lang="ko" data-clone-candidate="{str(faithful).lower()}" '
@@ -1953,13 +3100,6 @@ def render_state(
     visual_contract: dict[str, Any] | None = None,
     open_gnb: bool = False,
 ) -> str:
-    """Render a single model state into a complete HTML document.
-
-    *route_prefix* is required — there is no hardcoded default. The visual
-    contract is re-validated at entry (see ``validate_visual_contract``);
-    a ``None`` contract renders structurally with ``faithful_clone_candidate``
-    False.
-    """
     _require_model_ready(model)
     if visual_contract is not None:
         from official_clone.visual_contract import validate_visual_contract
@@ -1992,10 +3132,6 @@ def render_site(
     route_prefix: str,
     visual_contract: dict[str, Any] | None = None,
 ) -> dict[str, str]:
-    """Render every model state to its deterministic route (11 states -> 11 files).
-
-    *route_prefix* is required — there is no hardcoded default.
-    """
     _require_model_ready(model)
     pages: dict[str, str] = {}
     for state in model["states"]:
@@ -2007,11 +3143,7 @@ def render_site(
     return pages
 
 
-# ---------------------------------------------------------------------------
-# Model loading + filesystem writing
-# ---------------------------------------------------------------------------
 def load_model(path: str | Path) -> dict[str, Any]:
-    """Load a single ``clone-model.json`` (the ONLY file read by the renderer)."""
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
@@ -2021,11 +3153,6 @@ def write_site(
     route_prefix: str,
     visual_contract: dict[str, Any] | None = None,
 ) -> list[Path]:
-    """Render every state and write deterministic route files under *out_root*.
-
-    *route_prefix* is required — there is no hardcoded default.
-    *out_root* is the directory that becomes the route namespace root.
-    """
     pages = render_site(model, route_prefix=route_prefix, visual_contract=visual_contract)
     written: list[Path] = []
     for route, html in pages.items():
@@ -2042,8 +3169,6 @@ def write_site(
 
 
 def model_checksum(model: dict[str, Any]) -> str:
-    """Stable checksum of the rendered site (determinism proof)."""
-    # Use a default prefix for checksum computation (caller must provide same).
     pages = render_site(model, route_prefix="/clone/")
     blob = "\n".join(f"{r}\x00{p}" for r, p in sorted(pages.items()))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()

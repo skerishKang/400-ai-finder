@@ -1,0 +1,286 @@
+{
+  "candidate_commit_sha": "fbf029b5da49d81eb1303eabf3d491db36bd864d",
+  "evidence_scope": "issue_1313_board_visual_polish_correction_six_state_slice",
+  "state_count": 6,
+  "g1_capture_id": "20260812T231018-0900",
+  "site_id": "seogu_gwangju",
+  "route_prefix": "/seogu/",
+  "evidence_root": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d",
+  "generated_at": "2026-08-16T13:18:00+00:00",
+  "tooling": {
+    "browser": "chromium",
+    "browser_version": "145.0.7632.116",
+    "playwright_version": "1.61.0",
+    "pillow_version": "11.3.0",
+    "capture_method": "playwright_headless_full_page_screenshot",
+    "python": "3.12.3"
+  },
+  "external_network_total": 0,
+  "lifecycle": {
+    "board_slice_evidence_complete": true,
+    "g3_evidence_complete": false,
+    "visual_review": "pending",
+    "owner_visual_approved": false,
+    "clone_mvp_ready": false,
+    "exact": false,
+    "golden": false,
+    "resident_default": false,
+    "production_ready": false,
+    "actual_site_integrated": false,
+    "asset_byte_fidelity_complete": false
+  },
+  "states": [
+    {
+      "state_id": "notice.list.desktop",
+      "source_screenshot_path": "/mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder-1313-polish/data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.list.desktop/source.png",
+      "source_screenshot_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 1878
+      },
+      "clone_route": "/seogu/notice/",
+      "clone_capture_url": "http://127.0.0.1:37169/notice/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/notice.list.desktop/clone.png",
+      "clone_screenshot_sha256": "01349d70db709ece698c6af8d4e782b4cbedbf2985f43c2ef84b12686bfa11e3",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/notice.list.desktop/side_by_side.png",
+      "side_by_side_sha256": "6422d5ee04ae483f207c26b2a23a9ad2b22d54cf0714a278c38927a669e3dc29",
+      "browser_tool_version": "145.0.7632.116",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    },
+    {
+      "state_id": "notice.detail.desktop",
+      "source_screenshot_path": "/mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder-1313-polish/data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.detail.desktop/source.png",
+      "source_screenshot_sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e",
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 3086
+      },
+      "clone_route": "/seogu/notice/detail/",
+      "clone_capture_url": "http://127.0.0.1:37169/notice/detail/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/notice.detail.desktop/clone.png",
+      "clone_screenshot_sha256": "1a5abd287df09524cacd2120e1cc5f319d7c0d1c47878c54a5932bf71e211fb5",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/notice.detail.desktop/side_by_side.png",
+      "side_by_side_sha256": "5e84a0b9670dd0221a570f79fec0318da66fdb915f6db8e214fb0c74fa6c078a",
+      "browser_tool_version": "145.0.7632.116",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "DIFFER",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": true,
+        "reason": "Exact source asset identity is known from committed G1 provenance (notice.detail.desktop poster: SHA-256 98a133748712ef260803e8fb8b3bc1da28acaf6ced5b1ad3174400ea1cf427bf, image/jpeg, 1811506 bytes) but matching source body bytes are not currently materialized in the controlled clone asset set (TECHNICAL_CAPTURE_GAP). Body content materially differs from source. Title, metadata, attachment and back-to-list hierarchy are source-backed. #1234 is separate future Production/public-release governance and is not causal to this Phase-A fidelity gap."
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    },
+    {
+      "state_id": "gosi.list.desktop",
+      "source_screenshot_path": "/mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder-1313-polish/data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.list.desktop/source.png",
+      "source_screenshot_sha256": "61e9b804b0830da1d816c529e0dd6a91c654cae861c0dff7525f9d133c2ed135",
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 1877
+      },
+      "clone_route": "/seogu/gosi/",
+      "clone_capture_url": "http://127.0.0.1:37169/gosi/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/gosi.list.desktop/clone.png",
+      "clone_screenshot_sha256": "4d96f0d09f0212084915f6ca81f97041cf9146a5d9aec533703798e7cc3cdc8a",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/gosi.list.desktop/side_by_side.png",
+      "side_by_side_sha256": "dccd8cd80aec3de6796d8b8f189f1a742e7f33f86003218b5b3a5fcd8810d259",
+      "browser_tool_version": "145.0.7632.116",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    },
+    {
+      "state_id": "gosi.detail.desktop",
+      "source_screenshot_path": "/mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder-1313-polish/data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.detail.desktop/source.png",
+      "source_screenshot_sha256": "1680ea74bb151a2ab2e0f232dce3af8ba462de48a8133d66da7c8281597c0f18",
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 1814
+      },
+      "clone_route": "/seogu/gosi/detail/",
+      "clone_capture_url": "http://127.0.0.1:37169/gosi/detail/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/gosi.detail.desktop/clone.png",
+      "clone_screenshot_sha256": "d25710c4df2d48b94c073c3648c21242c2b15a686a3349a3959476ada62232ca",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/gosi.detail.desktop/side_by_side.png",
+      "side_by_side_sha256": "2d6f6d4148408e197d5efa46ea6176dd6b1918674efed9dee7263876642d6b37",
+      "browser_tool_version": "145.0.7632.116",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    },
+    {
+      "state_id": "civil_form.list.desktop",
+      "source_screenshot_path": "/mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder-1313-polish/data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.list.desktop/source.png",
+      "source_screenshot_sha256": "ac6d1f985f2e1533d4d247290d1eefa626959f7e8dfb10221bfdd81656cd1296",
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 1850
+      },
+      "clone_route": "/seogu/civil-form/",
+      "clone_capture_url": "http://127.0.0.1:37169/civil-form/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/civil_form.list.desktop/clone.png",
+      "clone_screenshot_sha256": "640d7d65efb32346454a99c69df97dbc9d2b5b13bdee2e0b3756d4c6f687f0aa",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/civil_form.list.desktop/side_by_side.png",
+      "side_by_side_sha256": "bf40632e8d4a901f3fa634902bd8dfc3d7508f50aa98c16edfa60999a96a11e3",
+      "browser_tool_version": "145.0.7632.116",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    },
+    {
+      "state_id": "civil_form.detail.desktop",
+      "source_screenshot_path": "/mnt/g/Ddrive/BatangD/task/workdiary/400-ai-finder-1313-polish/data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.detail.desktop/source.png",
+      "source_screenshot_sha256": "1fdaaef5150af2e1f0914e045811ae4ccbaaa1359974308a6bcb5494e3ed0d1d",
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 1642
+      },
+      "clone_route": "/seogu/civil-form/detail/",
+      "clone_capture_url": "http://127.0.0.1:37169/civil-form/detail/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/civil_form.detail.desktop/clone.png",
+      "clone_screenshot_sha256": "1dd1fe34f857e673ab88495634aad6ed164a0338c2d866f7742c123fc3dda352",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/fbf029b5da49d81eb1303eabf3d491db36bd864d/states/civil_form.detail.desktop/side_by_side.png",
+      "side_by_side_sha256": "cdb2e8f3b7eaad2690c7447d831320723837c22c37ebc3eb4766bdc39c1e726e",
+      "browser_tool_version": "145.0.7632.116",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    }
+  ]
+}

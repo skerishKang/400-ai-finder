@@ -123,9 +123,20 @@ const REQUIRED_ROUTES = [
 
 const FAMILIES = [
   // Resident-visible captured content markers (NOT internal identifiers).
-  { list: "notice/", detail: "notice/detail/", marker: "사회연대경제" },
-  { list: "gosi/", detail: "gosi/detail/", marker: "고시/공고" },
-  { list: "civil-form/", detail: "civil-form/detail/", marker: "자동차 등록 위임장" },
+  // `linked` encodes the canonical board fidelity semantics:
+  //   linked=true  -> the list surface has exactly one representative row
+  //                   whose record id exactly matches the representative
+  //                   detail record id, so a local list->detail link exists.
+  //   linked=false -> the list surface has NO captured row corresponding to
+  //                   the representative detail record. The list must expose
+  //                   0 local detail links (fail-closed); an arbitrary row
+  //                   must NOT be wired to a detail route.
+  { list: "notice/", detail: "notice/detail/", marker: "사회연대경제", linked: true },
+  // gosi has no captured list row matching the representative detail record,
+  // so its list must expose 0 detail links. The gosi/detail/ route remains
+  // independently reachable and self-contained.
+  { list: "gosi/", detail: "gosi/detail/", marker: "고시/공고", linked: false },
+  { list: "civil-form/", detail: "civil-form/detail/", marker: "자동차 등록 위임장", linked: true },
 ];
 
 async function waitForServer(base, timeoutMs = 15000) {
@@ -242,33 +253,80 @@ async function main() {
     assert.strictEqual(expanded, "false", "Escape closes GNB");
     console.log("  GNB open/close interaction OK");
 
-    // ── list -> detail local navigation (all three families) ─────────────
+    // ── list -> detail local navigation (per canonical board semantics) ───
     for (const fam of FAMILIES) {
       await page.goto(BASE + fam.list, { waitUntil: "networkidle", timeout: 15000 });
-      const link = await page.$("a.rc-list-link[data-detail='1']");
-      assert.ok(link, `list->detail link missing for ${fam.list}`);
-      await Promise.all([
-        page.waitForNavigation({ waitUntil: "networkidle", timeout: 15000 }),
-        link.click(),
-      ]);
-      const url = page.url();
-      assert.ok(
-        url.endsWith(fam.detail),
-        `expected to land on ${fam.detail}, got ${url}`,
+
+      const detailLinks = await page.$$("a.rc-list-link[data-detail='1']");
+      assert.strictEqual(
+        detailLinks.length,
+        fam.linked ? 1 : 0,
+        `${fam.list} must expose ${fam.linked ? "exactly 1" : "0"} local ` +
+          `detail link(s) per canonical board semantics`,
       );
-      const detailHtml = await page.content();
-      assert.ok(
-        detailHtml.includes(fam.marker),
-        `detail for ${fam.list} missing captured marker ${fam.marker}`,
-      );
-      // attachment affordance visible but inert.
-      const attachCount = await page.$$eval("button.rc-attach", (els) => els.length);
-      assert.ok(attachCount >= 1, `detail for ${fam.list} missing attachment affordance`);
-      const allDisabled = await page.$$eval("button.rc-attach", (els) =>
-        els.every((e) => e.hasAttribute("disabled") || e.getAttribute("aria-disabled") === "true"),
-      );
-      assert.ok(allDisabled, `detail for ${fam.list} attachment must be inert`);
-      console.log(`  ${fam.list} -> ${fam.detail} navigation OK (marker ${fam.marker})`);
+
+      if (fam.linked) {
+        // Representative list row drives a real list -> detail navigation.
+        const link = detailLinks[0];
+        await Promise.all([
+          page.waitForNavigation({ waitUntil: "networkidle", timeout: 15000 }),
+          link.click(),
+        ]);
+        const url = page.url();
+        assert.ok(
+          url.endsWith(fam.detail),
+          `expected to land on ${fam.detail}, got ${url}`,
+        );
+        const detailHtml = await page.content();
+        assert.ok(
+          detailHtml.includes(fam.marker),
+          `detail for ${fam.list} missing captured marker ${fam.marker}`,
+        );
+        // attachment affordance visible but inert.
+        const attachCount = await page.$$eval("button.rc-attach", (els) => els.length);
+        assert.ok(attachCount >= 1, `detail for ${fam.list} missing attachment affordance`);
+        const allDisabled = await page.$$eval("button.rc-attach", (els) =>
+          els.every((e) => e.hasAttribute("disabled") || e.getAttribute("aria-disabled") === "true"),
+        );
+        assert.ok(allDisabled, `detail for ${fam.list} attachment must be inert`);
+        console.log(`  ${fam.list} -> ${fam.detail} navigation OK (marker ${fam.marker})`);
+      } else {
+        // gosi: fail-closed. No captured row was arbitrarily connected to a
+        // detail route, so the list exposes 0 detail links. Verify the
+        // representative gosi/detail/ route independently instead.
+        assert.strictEqual(
+          detailLinks.length,
+          0,
+          `gosi list must NOT expose an arbitrary detail link (fail-closed)`,
+        );
+        const res = await fetch(BASE + fam.detail);
+        assert.strictEqual(
+          res.status,
+          200,
+          `gosi detail route not reachable: ${res.status}`,
+        );
+        assert.ok(
+          (res.headers.get("content-type") || "").includes("text/html"),
+          `gosi detail route not html`,
+        );
+        await page.goto(BASE + fam.detail, { waitUntil: "networkidle", timeout: 15000 });
+        const detailHtml = await page.content();
+        assert.ok(
+          detailHtml.includes(fam.marker),
+          `gosi detail missing captured marker ${fam.marker}`,
+        );
+        // attachment affordance visible but inert.
+        const attachCount = await page.$$eval("button.rc-attach", (els) => els.length);
+        assert.ok(attachCount >= 1, `gosi detail missing attachment affordance`);
+        const allDisabled = await page.$$eval("button.rc-attach", (els) =>
+          els.every((e) => e.hasAttribute("disabled") || e.getAttribute("aria-disabled") === "true"),
+        );
+        assert.ok(allDisabled, `gosi detail attachment must be inert`);
+        console.log(
+          `  ${fam.list}: 0 list detail links (fail-closed); ${fam.detail} ` +
+            `reachable OK (marker ${fam.marker})`,
+        );
+      }
     }
 
     // ── organization / staff reachable ───────────────────────────────────

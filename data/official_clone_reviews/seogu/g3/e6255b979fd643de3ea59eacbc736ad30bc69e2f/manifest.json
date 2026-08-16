@@ -1,0 +1,316 @@
+{
+  "candidate_commit_sha": "e6255b979fd643de3ea59eacbc736ad30bc69e2f",
+  "evidence_scope": "issue_1312_board_six_state_slice",
+  "state_count": 6,
+  "g1_capture_id": "20260812T231018-0900",
+  "site_id": "seogu_gwangju",
+  "route_prefix": "/seogu/",
+  "evidence_root": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f",
+  "generated_at": "2026-08-15T08:25:30+00:00",
+  "tooling": {
+    "browser": "chromium",
+    "browser_version": "138.0.7204.23",
+    "playwright_version": "1.53.0",
+    "pillow_version": "11.3.0",
+    "capture_method": "playwright_headless_full_page_screenshot",
+    "python": "3.12.3"
+  },
+  "external_network_total": 0,
+  "lifecycle": {
+    "board_slice_evidence_complete": true,
+    "g3_evidence_complete": false,
+    "visual_review": "pending",
+    "owner_visual_approved": false,
+    "clone_mvp_ready": false,
+    "exact": false,
+    "golden": false,
+    "resident_default": false,
+    "production_ready": false,
+    "actual_site_integrated": false,
+    "asset_byte_fidelity_complete": false
+  },
+  "states": [
+    {
+      "state_id": "notice.list.desktop",
+      "source_screenshot_path": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.list.desktop/source.png",
+      "source_screenshot_sha256": "72690d6a8e1f7d42c971059bb4dbf9b42e61639e1da497563db9ae1ede2c14fb",
+      "source_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 1878
+      },
+      "source_url": "https://www.seogu.gwangju.kr/board.es?act=listC&bid=0034&gon=C&mid=a10801000000",
+      "clone_route": "/seogu/notice/",
+      "clone_capture_url": "http://127.0.0.1:37169/notice/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/notice.list.desktop/clone.png",
+      "clone_screenshot_sha256": "7cb8acf87e87107733eb848470f329031141885cb5eeff7f132fc1625926971b",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/notice.list.desktop/side_by_side.png",
+      "side_by_side_sha256": "6bea41e6b008a6d0da33ac67755761bc3911c760bc7b01d8d92ae556b8f4cce3",
+      "browser_tool_version": "138.0.7204.23",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    },
+    {
+      "state_id": "notice.detail.desktop",
+      "source_screenshot_path": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/notice.detail.desktop/source.png",
+      "source_screenshot_sha256": "e10df62680ea99266ec0777004e1200760332520009ef329e783744d063b031e",
+      "source_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 3086
+      },
+      "source_url": "https://www.seogu.gwangju.kr/board.es?mid=a10801000000&bid=0034&act=viewC&list_no=143106&tag=&nPage=1",
+      "clone_route": "/seogu/notice/detail/",
+      "clone_capture_url": "http://127.0.0.1:37169/notice/detail/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/notice.detail.desktop/clone.png",
+      "clone_screenshot_sha256": "ffc05665b8ef4d5682ad9b59e92c22ddd041cb6129345efb942dd082feb6ca43",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/notice.detail.desktop/side_by_side.png",
+      "side_by_side_sha256": "abcadca62ebc4107d81102e17af5344c78bf64ea6c5a3cd31651786455a5bd17",
+      "browser_tool_version": "138.0.7204.23",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "DIFFER",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": true,
+        "reason": "Source body is the poster image (/upload/namo/images/000064/(홍보물)3차_참여청년_모집_웹포스터.jpg); the clone renders a bounded asset-gate placeholder because no image bytes are committed under #1234 — body content materially differs. Title, metadata, attachment and back-to-list hierarchy are source-backed."
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    },
+    {
+      "state_id": "gosi.list.desktop",
+      "source_screenshot_path": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.list.desktop/source.png",
+      "source_screenshot_sha256": "61e9b804b0830da1d816c529e0dd6a91c654cae861c0dff7525f9d133c2ed135",
+      "source_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 1877
+      },
+      "source_url": "https://www.seogu.gwangju.kr/api/eminwon/gosiXmlList.es?mid=a10807010000",
+      "clone_route": "/seogu/gosi/",
+      "clone_capture_url": "http://127.0.0.1:37169/gosi/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/gosi.list.desktop/clone.png",
+      "clone_screenshot_sha256": "6303bf3792a4587506f7311d22f8d62a18af28beba999d3ddb5187f9d591c863",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/gosi.list.desktop/side_by_side.png",
+      "side_by_side_sha256": "6da46e8bcbd43fddffee7f5aa664a828e30e5121a4830eacd80e97600f45bdb1",
+      "browser_tool_version": "138.0.7204.23",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    },
+    {
+      "state_id": "gosi.detail.desktop",
+      "source_screenshot_path": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/gosi.detail.desktop/source.png",
+      "source_screenshot_sha256": "1680ea74bb151a2ab2e0f232dce3af8ba462de48a8133d66da7c8281597c0f18",
+      "source_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 1814
+      },
+      "source_url": "https://www.seogu.gwangju.kr/api/eminwon/gosiXmlView.es?method=selectOfrNotAncmt&methodnm=selectOfrNotAncmtRegst&mid=a10807010000&not_ancmt_mgt_no=55667",
+      "clone_route": "/seogu/gosi/detail/",
+      "clone_capture_url": "http://127.0.0.1:37169/gosi/detail/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/gosi.detail.desktop/clone.png",
+      "clone_screenshot_sha256": "e5958e325d757403969aa5c1781e81af4a9fd4154e69fc384ce965677cee48ac",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/gosi.detail.desktop/side_by_side.png",
+      "side_by_side_sha256": "159e43eb50c81b7ea2ca342ec86b17477230653585f2b4a7b75da5016e5a6bfa",
+      "browser_tool_version": "138.0.7204.23",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    },
+    {
+      "state_id": "civil_form.list.desktop",
+      "source_screenshot_path": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.list.desktop/source.png",
+      "source_screenshot_sha256": "ac6d1f985f2e1533d4d247290d1eefa626959f7e8dfb10221bfdd81656cd1296",
+      "source_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 1850
+      },
+      "source_url": "https://www.seogu.gwangju.kr/board.es?mid=a10201100000&bid=0014",
+      "clone_route": "/seogu/civil-form/",
+      "clone_capture_url": "http://127.0.0.1:37169/civil-form/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/civil_form.list.desktop/clone.png",
+      "clone_screenshot_sha256": "d2468ddb7c3e52f7da33b0d890787cd1ab27b848a455ff6c97aadc8b47ab1028",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/civil_form.list.desktop/side_by_side.png",
+      "side_by_side_sha256": "aa411cac09c31f4ebf7c78aa3ac998be9ca2bde5ea37c4d66891d6371c17e9c9",
+      "browser_tool_version": "138.0.7204.23",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    },
+    {
+      "state_id": "civil_form.detail.desktop",
+      "source_screenshot_path": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/civil_form.detail.desktop/source.png",
+      "source_screenshot_sha256": "1fdaaef5150af2e1f0914e045811ae4ccbaaa1359974308a6bcb5494e3ed0d1d",
+      "source_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "source_screenshot_dimensions": {
+        "width": 1440,
+        "height": 1642
+      },
+      "source_url": "https://www.seogu.gwangju.kr/board.es?mid=a10201100000&bid=0014&act=view&list_no=143010&tag=&nPage=1",
+      "clone_route": "/seogu/civil-form/detail/",
+      "clone_capture_url": "http://127.0.0.1:37169/civil-form/detail/",
+      "clone_screenshot_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/civil_form.detail.desktop/clone.png",
+      "clone_screenshot_sha256": "811d4559df29bee13e9ad2f16d9503041fe48a90625135fd46ea130cefff5269",
+      "side_by_side_path": "data/official_clone_reviews/seogu/g3/e6255b979fd643de3ea59eacbc736ad30bc69e2f/states/civil_form.detail.desktop/side_by_side.png",
+      "side_by_side_sha256": "fe6e42a65ae5f24ae45ba04c8b85f6530262d0e67d9ad53b72037fc5b09fb338",
+      "browser_tool_version": "138.0.7204.23",
+      "capture_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "external_network_count": 0,
+      "external_requests": [],
+      "gnb_open_state": null,
+      "source_parity": {
+        "structural": "NOT_ASSESSED",
+        "content": "NOT_ASSESSED",
+        "asset": "FAIL",
+        "interaction_navigation": "NOT_ASSESSED",
+        "responsive": "NOT_ASSESSED",
+        "a11y": "NOT_ASSESSED",
+        "visual": "DIFFER",
+        "gap": false,
+        "reason": null
+      },
+      "modeled_contract": {
+        "route_browser": "PASS",
+        "gnb_interaction": "PASS",
+        "list_detail_nav": "PASS",
+        "inert_attachment": "PASS",
+        "overflow": "PASS",
+        "focus": "PASS"
+      }
+    }
+  ]
+}

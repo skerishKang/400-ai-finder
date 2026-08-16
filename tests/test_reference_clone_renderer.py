@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import re
 import socket
 import sys
 from pathlib import Path
@@ -273,9 +274,13 @@ def test_notice_list_links_to_detail_and_distinct():
     # it must stay out of the resident view (hidden evidence only).
     assert "list_no=143106" not in detail
     assert "list_no=" not in detail
-    assert "다운로드 (.hwpx)" in detail
+    # #1312 source-backed attachment: the captured file name and the inert
+    # download/preview affordances are rendered (never the raw record id).
+    assert "[공고문] 사회연대경제 청년일경험사업 참여청년 모집 공고(3차).hwpx" in detail
+    assert 'data-attachment-ext="hwpx"' in detail
+    assert "다운로드" in detail
     assert "미리보기" in detail
-    assert "다운로드 (.hwpx)" not in listing
+    assert 'data-attachment-ext="hwpx"' not in listing
 
 
 def test_notice_detail_captures_required_attachment():
@@ -293,10 +298,14 @@ def test_gosi_list_detail_distinct_with_attachment():
     gosi_list = mod.render_state(model, "gosi.list.desktop", route_prefix=_ROUTE_PREFIX)
     gosi_detail = mod.render_state(model, "gosi.detail.desktop", route_prefix=_ROUTE_PREFIX)
     assert gosi_list != gosi_detail
-    assert "rc-list-link" in gosi_list
-    assert "다운로드 (.doc)" in gosi_detail
-    assert "다운로드 (.hwpx)" in gosi_detail
+    assert "rc-list-link" not in gosi_list  # no list row matches the captured gosi detail record_id
+    # #1312 source-backed attachment (the captured file name), not a guessed
+    # extension chip: the single 고시 attachment is a .hwpx file.
+    assert "지속가능관광지방정부협의회 규약 고시.hwpx" in gosi_detail
+    assert 'data-attachment-ext="hwpx"' in gosi_detail
+    assert "다운로드" in gosi_detail
     assert "disabled" in gosi_detail
+    assert "고시합니다" in gosi_detail  # #1312 recovered full 고시 body text
 
 
 def test_civil_form_detail_captures_hwp_attachment():
@@ -305,8 +314,116 @@ def test_civil_form_detail_captures_hwp_attachment():
     assert "list_no=143010" not in detail
     assert "list_no=" not in detail
     assert "자동차 등록 위임장" in detail
-    assert "다운로드 (.hwp)" in detail
+    # #1312 source-backed attachment (captured file name), inert download.
+    assert "자동차등록 위임장.hwp" in detail
+    assert 'data-attachment-ext="hwp"' in detail
+    assert "다운로드" in detail
     assert "disabled" in detail
+
+
+# ── Record-ID backed list→detail matching (regression) ──────────────────
+def test_notice_list_linked_row_count_and_record_id():
+    model = _load_model()
+    listing = mod.render_state(model, "notice.list.desktop", route_prefix=_ROUTE_PREFIX)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 1, f"notice list should have exactly 1 linked row (record_id matching detail), got {len(links)}"
+    # Verify the linked row's text matches the detail title.
+    assert '[공고문]사회연대경제 청년 일경험 시범사업 모집공고_참여청년(3차 모집)' in listing
+    # Verify the href targets the notice detail route.
+    hrefs = re.findall(r'href="([^"]*)"', listing)
+    detail_hrefs = [h for h in hrefs if h != '.' and not h.startswith('#')]
+    assert any('detail/' in h for h in detail_hrefs)
+
+
+def test_gosi_list_has_no_linked_rows():
+    model = _load_model()
+    listing = mod.render_state(model, "gosi.list.desktop", route_prefix=_ROUTE_PREFIX)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 0, (
+        f"gosi list must have 0 linked rows (no list-row record_id matches "
+        f"the captured detail record_id not_ancmt_mgt_no=55667), got {len(links)}"
+    )
+
+
+def test_civil_form_list_linked_row_count_and_record_id():
+    model = _load_model()
+    listing = mod.render_state(model, "civil_form.list.desktop", route_prefix=_ROUTE_PREFIX)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 1, f"civil_form list should have exactly 1 linked row, got {len(links)}"
+    # Verify the linked row's text matches the detail title.
+    assert '자동차 등록 위임장' in listing
+    hrefs = re.findall(r'href="([^"]*)"', listing)
+    assert any('detail/' in h for h in hrefs)
+
+
+def test_synthetic_news_list_linked_row_count():
+    model = _synthetic_model()
+    contract = _validated_synthetic_contract()
+    listing = mod.render_state(model, "news.list.desktop", route_prefix="/x/", visual_contract=contract)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 1, f"synthetic news list should have exactly 1 linked row (list_no=555 matches detail), got {len(links)}"
+    assert 'breaking news item' in listing
+
+
+def test_synthetic_alert_list_linked_row_count():
+    model = _synthetic_model()
+    contract = _validated_synthetic_contract()
+    listing = mod.render_state(model, "alert.list.desktop", route_prefix="/x/", visual_contract=contract)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 1, f"synthetic alert list should have exactly 1 linked row (list_no=777 matches detail), got {len(links)}"
+    assert 'alert one' in listing
+
+
+def test_synthetic_permit_list_no_detail_record_id_no_linked_rows():
+    model = _synthetic_model()
+    contract = _validated_synthetic_contract()
+    listing = mod.render_state(model, "permit.list.desktop", route_prefix="/x/", visual_contract=contract)
+    links = re.findall(r'data-detail="1"', listing)
+    assert len(links) == 0, (
+        f"synthetic permit list must have 0 linked rows "
+        f"(no general_links in list state), got {len(links)}"
+    )
+
+
+def test_board_list_rows_without_detail_record_id_are_inert():
+    model = _load_model()
+    for sid in ("notice.list.desktop", "gosi.list.desktop", "civil_form.list.desktop"):
+        h = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        # Non-linked rows must be inert spans, not navigable anchors.
+        inert_spans = re.findall(
+            r'<span class="rc-list-item" aria-disabled="true" role="link" tabindex="-1">(.*?)</span></td>',
+            h,
+        )
+        total_links = h.count('data-detail="1"')
+        total_rows = h.count('<tr class="rc-board-row">')
+        assert total_links + len(inert_spans) == total_rows, (
+            f"{sid}: linked rows ({total_links}) + inert spans ({len(inert_spans)}) "
+            f"must equal total rows ({total_rows})"
+        )
+
+
+def test_board_list_no_detail_state_fails_closed_zero_links():
+    model = _load_model()
+    # Remove the detail state for civil_form.
+    model["states"] = [
+        s for s in model["states"]
+        if s.get("state_id") != "civil_form.detail.desktop"
+    ]
+    h = mod.render_state(model, "civil_form.list.desktop", route_prefix=_ROUTE_PREFIX)
+    links = re.findall(r'data-detail="1"', h)
+    assert len(links) == 0, "no detail state -> zero linked rows (fail-closed)"
+
+
+def test_board_list_mismatched_detail_record_id_fails_closed_zero_links():
+    model = _load_model()
+    # Corrupt the detail final_url so its record_id cannot match any list row.
+    for s in model["states"]:
+        if s.get("state_id") == "notice.detail.desktop":
+            s["final_url"] = "https://example.invalid/view?list_no=99999999"
+            break
+    h = mod.render_state(model, "notice.list.desktop", route_prefix=_ROUTE_PREFIX)
+    links = re.findall(r'data-detail="1"', h)
+    assert len(links) == 0, "non-matching detail record_id -> zero linked rows (fail-closed)"
 
 
 def test_organization_and_staff_distinct():
@@ -1162,3 +1279,274 @@ def test_forged_readiness_dict_ignored_by_revalidation():
             model, "home.desktop.default", route_prefix=_ROUTE_PREFIX,
             visual_contract=raw,
         )
+
+
+# ---------------------------------------------------------------------------
+# #1312 — Seo-gu G3 board fidelity (notice / gosi / civil-form list + detail)
+# ---------------------------------------------------------------------------
+_BOARD_LIST_STATES = [
+    "notice.list.desktop", "gosi.list.desktop", "civil_form.list.desktop",
+]
+_BOARD_DETAIL_STATES = [
+    "notice.detail.desktop", "gosi.detail.desktop", "civil_form.detail.desktop",
+]
+_BOARD_STATES = _BOARD_LIST_STATES + _BOARD_DETAIL_STATES
+
+_EXPECTED_HEADERS = {
+    "notice.list.desktop": ["번호", "제목", "담당부서", "등록일", "첨부파일", "조회수"],
+    "gosi.list.desktop": ["번호", "제목", "부서명", "등록일", "조회수"],
+    "civil_form.list.desktop": ["번호", "분류", "제목", "담당부서", "등록일", "첨부파일", "조회수"],
+}
+
+
+def _render_board(state_id, contract=None):
+    model = _load_model()
+    kw = {"route_prefix": _ROUTE_PREFIX}
+    if contract is not None:
+        kw["visual_contract"] = contract
+    return mod.render_state(model, state_id, **kw)
+
+
+def _board_contents(state_id):
+    model = _load_model()
+    for s in model["states"]:
+        if s.get("state_id") == state_id:
+            for lm in s.get("landmarks", []):
+                if lm.get("id") == "contents":
+                    return lm.get("text") or ""
+    return ""
+
+
+def test_1312_six_states_render_deterministically():
+    for sid in _BOARD_STATES:
+        a = _render_board(sid)
+        b = _render_board(sid)
+        assert a.startswith("<!DOCTYPE html>")
+        assert a == b
+
+
+def test_1312_list_and_detail_dom_differ():
+    for lst, det in zip(_BOARD_LIST_STATES, _BOARD_DETAIL_STATES):
+        L = _render_board(lst)
+        D = _render_board(det)
+        assert L != D
+        assert '<table class="rc-board"' in L
+        assert '<table class="rc-board"' not in D
+        assert "rc-detail-meta" in D
+
+
+def test_1312_source_table_rendered_as_semantic_table():
+    for sid in _BOARD_LIST_STATES:
+        h = _render_board(sid)
+        assert '<table class="rc-board"' in h
+        assert "<thead>" in h and "<tbody>" in h
+        assert "<th " in h and '<tr class="rc-board-row">' in h
+
+
+def test_1312_header_labels_come_from_model():
+    for sid, expected in _EXPECTED_HEADERS.items():
+        h = _render_board(sid)
+        headers = re.findall(r"<th[^>]*>([^<]+)</th>", h)
+        assert headers == expected, (sid, headers)
+
+
+def test_1312_row_metadata_source_backed_order_and_values():
+    h = _render_board("notice.list.desktop")
+    assert re.search(r'<td class="rc-td rc-col-번호">([^<]*)</td>', h).group(1) == "10852"
+    assert re.search(r'<td class="rc-td rc-col-담당부서">([^<]*)</td>', h).group(1) == "체육관광과"
+    assert re.search(r'<td class="rc-td rc-col-등록일">([^<]*)</td>', h).group(1) == "2026/08/11"
+    assert re.search(r'<td class="rc-td rc-col-조회수">([^<]*)</td>', h).group(1) == "144"
+    h = _render_board("gosi.list.desktop")
+    assert re.search(r'<td class="rc-td rc-col-번호">([^<]*)</td>', h).group(1) == "338"
+    assert re.search(r'<td class="rc-td rc-col-부서명">([^<]*)</td>', h).group(1) == "동천동"
+    assert re.search(r'<td class="rc-td rc-col-등록일">([^<]*)</td>', h).group(1) == "2026-08-12"
+    h = _render_board("civil_form.list.desktop")
+    assert re.search(r'<td class="rc-td rc-col-번호">([^<]*)</td>', h).group(1) == "1077"
+    assert re.search(r'<td class="rc-td rc-col-분류">([^<]*)</td>', h).group(1) == "교통"
+
+
+def test_1312_board_helpers_recover_metadata_from_model():
+    c = _board_contents("notice.list.desktop")
+    cols = mod._detect_board_columns(c)
+    assert cols == _EXPECTED_HEADERS["notice.list.desktop"]
+    rows = mod._parse_board_blob_rows(c, cols)
+    assert rows[0]["번호"] == "10852"
+    assert rows[0]["담당부서"] == "체육관광과"
+    assert rows[0]["등록일"] == "2026/08/11"
+    assert rows[0]["조회수"] == "144"
+
+
+def test_1312_detail_recovers_metadata_body_attachment_back():
+    h = _render_board("notice.detail.desktop")
+    assert "작성일시" in h and "2026/08/10 09:59" in h
+    assert "작성부서" in h and "일자리청년지원과" in h
+    assert "조회수" in h and "242" in h
+    assert "[공고문] 사회연대경제 청년일경험사업 참여청년 모집 공고(3차).hwpx" in h
+    assert 'data-attachment-ext="hwpx"' in h and "미리보기" in h
+    assert "rc-back" in h and "rc-back-link" in h and ">목록<" in h
+    h = _render_board("gosi.detail.desktop")
+    assert "작성일" in h and "2026-08-10" in h
+    assert "분류" in h and "고시" in h
+    assert "담당자연락처" in h and "고영관/0623507669" in h
+    assert "고시합니다" in h  # recovered body
+    h = _render_board("civil_form.detail.desktop")
+    assert "작성일시" in h and "2026/07/30 11:23" in h
+    assert "분류" in h and "교통" in h
+    assert "작성부서" in h and "교통행정과" in h
+    assert "조회수" in h and "7" in h
+    assert "자동차(이륜자동차) 등록 위임장입니다." in h  # recovered body
+    assert "자동차등록 위임장.hwp" in h and 'data-attachment-ext="hwp"' in h
+
+
+def test_1312_attachments_inert_and_readonly():
+    for sid in _BOARD_DETAIL_STATES:
+        h = _render_board(sid)
+        assert "rc-attach" in h
+        assert "disabled" in h and "aria-disabled" in h
+        idx = h.find("rc-attachments")
+        block = h[idx:idx + 1000]
+        assert "<a " not in block  # attachments are not navigable links
+
+
+def test_1312_no_external_requests_and_same_origin_nav():
+    for sid in _BOARD_STATES:
+        h = _render_board(sid)
+        assert "http://" not in h
+        assert "https://" not in h
+        for href in re.findall(r'href="([^"]*)"', h):
+            # Relative (local) and absolute clone-route hrefs are both same-origin.
+            assert not href.startswith("http")
+            assert (
+                href.startswith("/seogu/")
+                or not href.startswith("/")
+                or href == ""
+                or href.startswith("#")
+            ), href
+
+
+def test_1312_no_submit_login_payment_pii():
+    for sid in _BOARD_STATES:
+        h = _render_board(sid)
+        assert "<form" not in h
+        assert 'type="password"' not in h
+        for tok in ("login", "로그인", "결제", "payment", "카드번호", "주민등록번호"):
+            assert tok not in h.lower(), (sid, tok)
+
+
+def test_1312_subpage_shell_snb_breadcrumb_pagination():
+    for sid in _BOARD_LIST_STATES:
+        h = _render_board(sid)
+        assert "rc-subpage" in h
+        assert "rc-snb" in h and "rc-snb-current" in h
+        assert "rc-breadcrumb" in h and "홈" in h
+        assert "rc-pagination" in h
+        assert "전체" in h and "건" in h
+        assert "페이지" in h
+
+
+def test_1312_list_toolbar_inert():
+    h = _render_board("notice.list.desktop")
+    assert "rc-board-toolbar" in h
+    assert '<input type="text" class="rc-search-input"' in h
+    idx = h.find('class="rc-search-input"')
+    tag = h[idx:h.find(">", idx)]
+    assert "disabled" in tag
+
+
+def test_1312_renderer_source_has_no_site_literals():
+    source = MODULE_PATH.read_text(encoding="utf-8")
+    for tok in ("서구", "Seogu", "Gwangju", "list_no=", "not_ancmt_mgt_no=",
+                "10852", "체육관광과", "2026/08/11"):
+        assert tok not in source, f"renderer must not hardcode literal: {tok!r}"
+
+
+def _visible_breadcrumb(html: str) -> str:
+    m = re.search(r'<nav class="rc-breadcrumb"[^>]*>.*?</nav>', html, re.S)
+    return m.group(0) if m else ""
+
+
+def test_1324_visible_breadcrumb_not_from_blind_search_legend():
+    # The "분야별정보 > 행정 > 행정소식 > 공지사항" string in the source is a
+    # blind (screen-reader-only) search fieldset legend, NOT a location
+    # navigation. It must never be promoted into the visible breadcrumb NOR
+    # into any navigation landmark of the rendered board page.
+    blind_tokens = ("분야별정보", "행정소식", "행정 >", "분야별정보 >")
+    for sid in _BOARD_STATES:
+        h = _render_board(sid)
+        crumb = _visible_breadcrumb(h)
+        assert crumb, (sid, "expected a visible rc-breadcrumb nav")
+        # Real visible location nav is source-backed and rooted at 홈.
+        assert "홈" in crumb, (sid, "visible breadcrumb must preserve 홈 root")
+        for tok in blind_tokens:
+            assert tok not in crumb, (sid, "blind legend leaked into visible breadcrumb", tok)
+        # No invented "›" separator glyph (not source-proven).
+        assert "rc-crumb-sep" not in h, (sid, "invented crumb separator must be removed")
+        assert "›" not in crumb, (sid, "literal › separator not source-proven")
+        # The blind search fieldset legend must not be promoted into a
+        # navigation landmark. Check the EXACT source legend string (it is
+        # joined by " > " in the source, not rendered as separate menu items):
+        # if it were promoted into an rc-location (or any) nav it would appear
+        # verbatim. The exact string must be absent from the whole document.
+        blind_legend = "분야별정보 > 행정 > 행정소식 > 공지사항"
+        assert blind_legend not in h, (
+            sid,
+            "blind search legend promoted into a navigation landmark",
+        )
+        # No rc-location navigation element is generated for board states
+        # (the CSS rule may still exist, so match the element, not the class
+        # token alone).
+        assert '<nav class="rc-location"' not in h, (
+            sid,
+            "blind-legend rc-location nav must not be generated",
+        )
+
+
+def test_1324_new_post_semantic_preserved_no_visible_chip():
+    # Source DOM: <i class="xi-new"></i><span class="sr_only">새글</span> + title.
+    # The "새글" text must remain as a screen-reader label; the previously
+    # fabricated visible bordered "새글" text chip must be gone.
+    h = _render_board("notice.list.desktop")
+    assert "rc-new-badge" not in h, "bordered visible 새글 chip must be removed"
+    assert '<span class="sr_only">새글</span>' in h, "sr-only 새글 label must be preserved"
+    assert 'class="xi-new"' in h, "source xi-new element must be present"
+    assert "padding:2px 6px" not in h, "arbitrary chip padding must be removed"
+    assert "#e74c3c" not in h, "arbitrary chip color must be removed"
+
+
+def test_1324_attachment_count_preserved_no_bordered_chip():
+    # The bordered "첨부 N" chip is not a source treatment. The attachment count
+    # semantics must still be preserved; a fake bordered chip is forbidden.
+    lst = _render_board("notice.list.desktop")
+    assert "rc-attach-indicator" not in lst, "bordered attachment chip must be removed"
+    assert "첨부파일 1개" in lst, "attachment count semantics must be preserved"
+    assert "data-attachment-ext" not in lst, "list must not expose detail attachment ext"
+    det = _render_board("notice.detail.desktop")
+    assert "rc-attach" in det, "detail attachment affordance must remain"
+
+
+def test_1324_pager_uses_source_text_not_invented_glyphs():
+    # Source pager uses class="arr first" + "처음", etc. The visible glyph
+    # treatment is CSS-driven and not materialized; the literal « ‹ › » glyphs
+    # were invented and must not appear in the pager navigation.
+    h = _render_board("notice.list.desktop")
+    m = re.search(r'<nav class="rc-pagination".*?</nav>', h, re.S)
+    assert m, "expected a pager nav"
+    pager = m.group(0)
+    for glyph in ("«", "‹", "›", "»"):
+        assert glyph not in pager, f"invented pager glyph {glyph!r} must be removed"
+    for label in ("처음", "이전", "다음", "마지막"):
+        assert label in pager, f"source pager label {label!r} must be preserved"
+
+
+def test_1312_synthetic_site_board_fallback_intact():
+    # Generic / Buk-gu golden: the synthetic northville model must still render
+    # its news/alert lists via the generic fallback (<ul>), proving board
+    # detection is model-driven and does not regress other sites.
+    synthetic = _synthetic_model()
+    contract = _validated_synthetic_contract()
+    news = mod.render_state(synthetic, "news.list.desktop", route_prefix="/x/", visual_contract=contract)
+    assert "rc-list-link" in news
+    assert '<table class="rc-board"' not in news
+    detail = mod.render_state(synthetic, "news.detail.desktop", route_prefix="/x/", visual_contract=contract)
+    assert "rc-detail-meta" in detail
+    assert "rc-back" in detail
