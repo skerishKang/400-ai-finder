@@ -41,6 +41,7 @@ class PipelineRunner:
         max_chars: int = 12000,
         model: str | None = None,
         question_logger: QuestionLogger | None = None,
+        egress_policy: Any = None,
     ):
         self.output_dir = output_dir
         self.provider = provider or "mock"
@@ -53,6 +54,7 @@ class PipelineRunner:
         self.max_sources = max_sources
         self.max_chars = max_chars
         self.question_logger = question_logger or NoOpQuestionLogger()
+        self.egress_policy = egress_policy
 
     # ------------------------------------------------------------------
     # Public API
@@ -140,7 +142,7 @@ class PipelineRunner:
 
             # Step 3 — enriched index
             stage_started_at = _log_stage_start("enriched_index")
-            step = self._step_enriched_index(step["output"])
+            step = self._step_enriched_index(step["output"], url=url)
             steps.append(step)
             _log_stage_end("enriched_index", stage_started_at, step["ok"])
             if not step["ok"]:
@@ -266,36 +268,99 @@ class PipelineRunner:
     def _resolve_site_id(self, url: str) -> str | None:
         """Resolve a site_id for a URL using configured site profiles.
 
-        Returns None if no profile matches or loading fails. Never raises.
+        Every loadable profile is inspected and the set of distinct
+        ``site_id`` values whose ``match_url(url)`` is true is collected.
+        Ownership is then decided fail-closed:
+
+        * exactly one matching site_id  -> that site_id
+        * zero matching site_ids        -> None
+        * two or more matching site_ids -> None (ambiguous ownership)
+
+        A profile that raises while loading is skipped (fail-soft), but its
+        failure never makes an otherwise-ambiguous set appear unambiguous:
+        the result depends only on the collected matches, not on iteration
+        order. Returns None on any unexpected error. Never raises.
         """
         try:
             from ..site_profiles.site_profile import SiteProfileLoader
             loader = SiteProfileLoader()
+            matching: set[str] = set()
             for sid in loader.list_ids():
                 try:
                     p = loader.load_by_id(sid)
+                except Exception:
+                    # Fail-soft: skip a profile that cannot be loaded.
+                    continue
+                try:
                     if p.match_url(url):
-                        return p.site_id
+                        matching.add(p.site_id)
                 except Exception:
                     continue
+            if len(matching) == 1:
+                return next(iter(matching))
+            return None
         except Exception:
             return None
-        return None
+
+    def _resolve_acquisition_policy(self, url: str):
+        """Build a frozen acquisition policy for *url*, or None.
+
+        #1294: the active profile resolved for a run is frozen into a
+        :class:`SiteAcquisitionPolicy` that is propagated unchanged through the
+        whole pipeline (homepage map, robots/sitemap/navigation, indexer,
+        enricher, fetch redirect seam) so every acquisition decision uses the
+        same explicit allowed-host set.
+        """
+        try:
+            from ..site_profiles.site_profile import (
+                SiteAcquisitionPolicy,
+                SiteProfileLoader,
+            )
+            site_id = self._resolve_site_id(url)
+            if not site_id:
+                return None
+            profile = SiteProfileLoader().load_by_id(site_id)
+            return SiteAcquisitionPolicy(profile)
+        except Exception:
+            return None
+
+    def _resolve_egress_policy(self):
+        """Resolve public egress policy for pipeline runs.
+
+        #1295: ensure public egress policy protects against SSRF
+        across live acquisition fetches.
+        """
+        if self.egress_policy is not None:
+            return self.egress_policy
+        try:
+            from ..fetch.egress_policy import PublicEgressPolicy
+            return PublicEgressPolicy()
+        except Exception:
+            return None
 
     def _step_homepage_map(self, url: str, correlation_id: str | None = None) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "homepage-map.json")
         try:
-            # Stage 391: Resolve site profile to pass crawl_filters to HomepageMapper
+            # Stage 391: Resolve site profile to pass crawl_filters to HomepageMapper.
+            # #1294: the resolved profile is also frozen into the acquisition
+            # policy that bounds every homepage/robots/sitemap/navigation URL.
             crawl_filters = None
+            acquisition_policy = None
             site_id = self._resolve_site_id(url)
             if site_id:
                 try:
-                    from ..site_profiles.site_profile import SiteProfileLoader
+                    from ..site_profiles.site_profile import (
+                        SiteAcquisitionPolicy,
+                        SiteProfileLoader,
+                    )
                     loader = SiteProfileLoader()
                     profile = loader.load_by_id(site_id)
                     crawl_filters = profile.crawl_filters
+                    acquisition_policy = SiteAcquisitionPolicy(profile)
                 except Exception:
                     pass
+
+            egress_policy = self._resolve_egress_policy()
 
             # Stage 36: retry build_map if nav links are empty (intermittent timeouts)
             max_retries = 2
@@ -306,6 +371,8 @@ class PipelineRunner:
                     max_sitemap_urls=self.max_sitemap_urls,
                     fetch_provider=self.fetch_provider,
                     crawl_filters=crawl_filters,
+                    acquisition_policy=acquisition_policy,
+                    egress_policy=egress_policy,
                 )
                 result = mapper.build_map(url, correlation_id=correlation_id)
                 nav_count = len(result.get("homepage", {}).get("navigation_links", []))
@@ -326,11 +393,18 @@ class PipelineRunner:
         except Exception as e:
             return _step_fail("document_index", output, e)
 
-    def _step_enriched_index(self, index_path: str) -> dict[str, Any]:
+    def _step_enriched_index(self, index_path: str, url: str | None = None) -> dict[str, Any]:
         output = os.path.join(self.output_dir, "enriched-index.jsonl")
         try:
             docs = self._load_jsonl(index_path)
-            enricher = DocumentEnricher()
+            # #1294: forward the same frozen acquisition policy to Stage-4 so
+            # page-record URLs are contained and redirect hosts are enforced.
+            acquisition_policy = self._resolve_acquisition_policy(url) if url else None
+            egress_policy = self._resolve_egress_policy()
+            enricher = DocumentEnricher(
+                acquisition_policy=acquisition_policy,
+                egress_policy=egress_policy,
+            )
             enriched = enricher.enrich_records(docs, max_chars=self.max_chars, limit=self.max_enrich_pages)
             self._write_jsonl(output, enriched)
             return _step_ok("enriched_index", output)

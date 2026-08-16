@@ -16,6 +16,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.pipeline.pipeline_runner import PipelineRunner, make_default_output_dir
+from src.site_profiles.site_profile import SiteProfile
 from tests.helpers.pipeline_fakes import (
     FAKE_ANSWER_RESULT,
     FAKE_DOCS,
@@ -488,3 +489,241 @@ class TestPipelineCrawlFilters:
             "protected_patterns": ["mid="]
         }
         assert result["ok"] is True
+
+
+# ------------------------------------------------------------------
+# #1292: harden PipelineRunner._resolve_site_id — fail-closed ambiguity.
+# Reuses the synthetic SiteProfile + SiteProfileLoader monkeypatch pattern
+# already present in TestPipelineCrawlFilters. No real loader, no network,
+# no provider/API calls.
+# ------------------------------------------------------------------
+
+class _FakeProfileLoader:
+    """Synthetic SiteProfileLoader to exercise _resolve_site_id offline.
+
+    ``list_ids`` enumerates ``spec`` keys in ``order``; ``load_by_id``
+    returns the held :class:`SiteProfile`, or raises the held exception
+    (fail-soft simulation) when the spec value is an ``Exception``.
+    """
+
+    def __init__(self, spec: dict, order: list[str] | None = None):
+        self._spec = dict(spec)
+        self._order = list(order) if order is not None else list(spec.keys())
+
+    def list_ids(self):
+        return list(self._order)
+
+    def load_by_id(self, sid: str):
+        if sid not in self._spec:
+            raise FileNotFoundError(sid)
+        value = self._spec[sid]
+        if isinstance(value, Exception):
+            raise value
+        return value
+
+
+class TestResolveSiteId:
+    """#1292 / no network. _resolve_site_id ambiguity + order-independence."""
+
+    @staticmethod
+    def _profile(site_id: str, allowed: list[str]) -> SiteProfile:
+        return SiteProfile({
+            "site_id": site_id,
+            "name": site_id,
+            "base_url": "https://%s/" % allowed[0],
+            "allowed_domains": list(allowed),
+        })
+
+    @staticmethod
+    def _patch_loader(monkeypatch, loader: _FakeProfileLoader):
+        from src.site_profiles import site_profile as sp
+        monkeypatch.setattr(sp, "SiteProfileLoader", lambda: loader)
+
+    def _runner(self, tmp_output_dir: str) -> PipelineRunner:
+        return PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+
+    def test_exactly_one_match_returns_site_id(self, monkeypatch, tmp_output_dir):
+        a = self._profile("alpha", ["alpha.example"])
+        b = self._profile("beta", ["beta.example"])
+        loader = _FakeProfileLoader({"alpha": a, "beta": b})
+        self._patch_loader(monkeypatch, loader)
+        runner = self._runner(tmp_output_dir)
+        assert runner._resolve_site_id("https://alpha.example/") == "alpha"
+
+    def test_no_match_returns_none(self, monkeypatch, tmp_output_dir):
+        a = self._profile("alpha", ["alpha.example"])
+        b = self._profile("beta", ["beta.example"])
+        loader = _FakeProfileLoader({"alpha": a, "beta": b})
+        self._patch_loader(monkeypatch, loader)
+        runner = self._runner(tmp_output_dir)
+        assert runner._resolve_site_id("https://other.example/") is None
+
+    def test_two_matching_profiles_returns_none(self, monkeypatch, tmp_output_dir):
+        # Both profiles match the same URL -> ambiguous -> fail closed.
+        a = self._profile("alpha", ["shared.example"])
+        b = self._profile("beta", ["shared.example"])
+        loader = _FakeProfileLoader({"alpha": a, "beta": b})
+        self._patch_loader(monkeypatch, loader)
+        runner = self._runner(tmp_output_dir)
+        assert runner._resolve_site_id("https://shared.example/") is None
+
+    def test_ambiguous_independent_of_iteration_order(
+        self, monkeypatch, tmp_output_dir
+    ):
+        a = self._profile("alpha", ["shared.example"])
+        b = self._profile("beta", ["shared.example"])
+        from src.site_profiles import site_profile as sp
+
+        monkeypatch.setattr(
+            sp, "SiteProfileLoader",
+            lambda: _FakeProfileLoader({"alpha": a, "beta": b}, order=["alpha", "beta"]),
+        )
+        fwd = self._runner(tmp_output_dir)
+        assert fwd._resolve_site_id("https://shared.example/") is None
+
+        monkeypatch.setattr(
+            sp, "SiteProfileLoader",
+            lambda: _FakeProfileLoader({"alpha": a, "beta": b}, order=["beta", "alpha"]),
+        )
+        rev = self._runner(tmp_output_dir)
+        assert rev._resolve_site_id("https://shared.example/") is None
+
+    def test_load_exception_plus_one_valid_match_deterministic(
+        self, monkeypatch, tmp_output_dir
+    ):
+        # One valid match + one profile that raises on load (fail-soft skip)
+        # must still resolve deterministically to the single valid site_id.
+        good = self._profile("alpha", ["alpha.example"])
+        boom = RuntimeError("load failed")
+        loader = _FakeProfileLoader({"alpha": good, "beta": boom})
+        self._patch_loader(monkeypatch, loader)
+        runner = self._runner(tmp_output_dir)
+        assert runner._resolve_site_id("https://alpha.example/") == "alpha"
+
+    def test_exception_then_valid_same_as_valid_then_exception(
+        self, monkeypatch, tmp_output_dir
+    ):
+        # Order of (exception vs valid) must not change the deterministic result.
+        good = self._profile("alpha", ["alpha.example"])
+        boom = RuntimeError("load failed")
+        from src.site_profiles import site_profile as sp
+
+        monkeypatch.setattr(
+            sp, "SiteProfileLoader",
+            lambda: _FakeProfileLoader({"alpha": good, "beta": boom}, order=["alpha", "beta"]),
+        )
+        fwd = self._runner(tmp_output_dir)
+        monkeypatch.setattr(
+            sp, "SiteProfileLoader",
+            lambda: _FakeProfileLoader({"alpha": good, "beta": boom}, order=["beta", "alpha"]),
+        )
+        rev = self._runner(tmp_output_dir)
+        assert fwd._resolve_site_id("https://alpha.example/") == "alpha"
+        assert rev._resolve_site_id("https://alpha.example/") == "alpha"
+
+    def test_no_network_calls(self, monkeypatch, tmp_output_dir):
+        # Fully synthetic loader: resolution must not require any network
+        # egress. Patching urlopen to explode proves no provider/API/fetch
+        # call is made by _resolve_site_id.
+        import urllib.request
+
+        def _boom(*_a, **_k):
+            raise RuntimeError("UNEXPECTED NETWORK CALL")
+
+        monkeypatch.setattr(urllib.request, "urlopen", _boom)
+
+        a = self._profile("alpha", ["alpha.example"])
+        b = self._profile("beta", ["beta.example"])
+        loader = _FakeProfileLoader({"alpha": a, "beta": b})
+        self._patch_loader(monkeypatch, loader)
+        runner = self._runner(tmp_output_dir)
+        assert runner._resolve_site_id("https://alpha.example/") == "alpha"
+        assert runner._resolve_site_id("https://other.example/") is None
+
+
+# ======================================================================
+# #1294: PipelineRunner propagates the frozen acquisition policy to
+# HomepageMapper and DocumentEnricher.
+# ======================================================================
+
+class TestAcquisitionPolicyPropagation:
+    """#1294 / no network. Same synthetic loader pattern as #1292 tests."""
+
+    def test_policy_passed_to_homepage_mapper_and_enricher(
+        self, monkeypatch, tmp_output_dir
+    ):
+        from src.site_profiles.site_profile import SiteAcquisitionPolicy, SiteProfile
+        from src.pipeline import pipeline_runner as pr
+
+        profile = SiteProfile({
+            "site_id": "synthetic_gov",
+            "name": "Synthetic Gov",
+            "base_url": "https://synthetic.gov.kr/",
+            "allowed_domains": ["synthetic.gov.kr"],
+        })
+
+        class FakeLoader:
+            def list_ids(self):
+                return ["synthetic_gov"]
+
+            def load_by_id(self, sid):
+                if sid != "synthetic_gov":
+                    raise FileNotFoundError(sid)
+                return profile
+
+        monkeypatch.setattr(
+            "src.site_profiles.site_profile.SiteProfileLoader", lambda: FakeLoader()
+        )
+
+        with patch("src.pipeline.pipeline_runner.AnswerComposer") as MockComposer, \
+             patch("src.pipeline.pipeline_runner.KeywordSearcher") as MockSearcher, \
+             patch("src.pipeline.pipeline_runner.DocumentEnricher") as MockEnricher, \
+             patch("src.pipeline.pipeline_runner.DocumentIndexer"), \
+             patch("src.pipeline.pipeline_runner.HomepageMapper") as MockMapper:
+            MockMapper.return_value.build_map.return_value = FAKE_HOMEPAGE_MAP
+            MockEnricher.return_value.enrich_records.return_value = FAKE_ENRICHED_DOCS
+            MockSearcher.return_value.search.return_value = FAKE_SEARCH_RESULTS
+            MockComposer.return_value.compose.return_value = FAKE_ANSWER_RESULT
+
+            runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+            result = runner.run(url="https://synthetic.gov.kr/", query="신청서")
+
+        assert result["ok"] is True
+
+        mapper_kwargs = MockMapper.call_args.kwargs
+        mapper_policy = mapper_kwargs.get("acquisition_policy")
+        assert isinstance(mapper_policy, SiteAcquisitionPolicy)
+        assert mapper_policy.is_authorized("https://synthetic.gov.kr/notice") is True
+        assert mapper_policy.is_authorized("https://evil.example/") is False
+
+        enricher_kwargs = MockEnricher.call_args.kwargs
+        assert isinstance(enricher_kwargs.get("acquisition_policy"), SiteAcquisitionPolicy)
+
+    def test_no_policy_when_no_profile_match(self, monkeypatch, tmp_output_dir):
+        from src.site_profiles import site_profile as sp
+
+        class EmptyLoader:
+            def list_ids(self):
+                return []
+
+            def load_by_id(self, sid):
+                raise FileNotFoundError(sid)
+
+        monkeypatch.setattr(sp, "SiteProfileLoader", lambda: EmptyLoader())
+
+        with patch("src.pipeline.pipeline_runner.AnswerComposer") as MockComposer, \
+             patch("src.pipeline.pipeline_runner.KeywordSearcher") as MockSearcher, \
+             patch("src.pipeline.pipeline_runner.DocumentEnricher") as MockEnricher, \
+             patch("src.pipeline.pipeline_runner.DocumentIndexer"), \
+             patch("src.pipeline.pipeline_runner.HomepageMapper") as MockMapper:
+            MockMapper.return_value.build_map.return_value = FAKE_HOMEPAGE_MAP
+            MockEnricher.return_value.enrich_records.return_value = FAKE_ENRICHED_DOCS
+            MockSearcher.return_value.search.return_value = FAKE_SEARCH_RESULTS
+            MockComposer.return_value.compose.return_value = FAKE_ANSWER_RESULT
+
+            runner = PipelineRunner(output_dir=tmp_output_dir, provider="mock")
+            result = runner.run(url="https://unknown.example/", query="신청서")
+
+        assert result["ok"] is True
+        assert MockMapper.call_args.kwargs.get("acquisition_policy") is None
+        assert MockEnricher.call_args.kwargs.get("acquisition_policy") is None

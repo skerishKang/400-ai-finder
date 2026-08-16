@@ -1,10 +1,10 @@
 # 400 AI Finder 현재 기준 문서
 
 - 상태: `canonical`
-- 기준일: 2026-08-12
-- 정렬 시작 기준 main: `cf643bddb2e1e2f9675df5162dc1f87d95acbb70`
-- 현재 governance 정렬: #1301
-- active onboarding validation: #1232
+- 기준일: 2026-08-16
+- 기준 main: `ca38d99f44f3f20f87150fb38efcdf002d01618b`
+- lifecycle/governance 정렬: #1301 완료; #1318 / PR #1319 owner-authority boundary 완료
+- active onboarding validation: #1232 -> #1303 -> #1312
 
 이 문서는 저장소의 **현재 제품상태, 제품단계, 안전경계, 개발순서와 운영기준을 찾기 위한 최상위 인덱스**다.
 
@@ -13,13 +13,16 @@
 ## 문서 우선순위
 
 1. `docs/CURRENT_STATUS.md` — current state/index
-2. `docs/product/clone-first-general-site-platform-strategy.md` — ordinary pre-integration product lifecycle
-3. `docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md` — track separation
-4. `docs/product/exact-official-site-clone-invariant.md` — `exact` claim invariant
-5. `docs/product/clone-visual-fidelity-and-promotion-policy.md` — visual/promotion authority
-6. `docs/implementation/RELEASE_GATES.md` — readiness gates
-7. `docs/operations/REPOSITORY_GOVERNANCE.md` / `CONTRIBUTING.md` — change-control workflow
-8. network/security/runtime/provenance docs — their narrower technical boundaries
+2. `docs/operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md` — named-site Phase-A audience / project-owner authority boundary
+3. `docs/product/clone-first-general-site-platform-strategy.md` — ordinary pre-integration product lifecycle
+4. `docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md` — track separation
+5. `docs/product/exact-official-site-clone-invariant.md` — `exact` claim invariant
+6. `docs/product/clone-visual-fidelity-and-promotion-policy.md` — visual/promotion authority
+7. `docs/implementation/RELEASE_GATES.md` — readiness gates
+8. `docs/operations/REPOSITORY_GOVERNANCE.md` / `CONTRIBUTING.md` — change-control workflow
+9. network/security/runtime/provenance docs — their narrower technical boundaries
+
+Named-site Phase-A의 legal/admin/rights 해석은 project owner의 최신 명시적 결정과 `docs/operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`를 따른다. #1234는 future Production/public-release governance이며 controlled faithful-clone fidelity의 일반 blocker로 사용하지 않는다.
 
 Historical issues, stage docs, audit records and superseded plans do not override the current canonical lifecycle.
 
@@ -90,11 +93,12 @@ Canonical lifecycle: [`product/clone-first-general-site-platform-strategy.md`](p
 - **Buk-gu Frozen Demo:** 완료. 북구는 첫 번째 protected municipality golden reference다.
 - **Generic contract foundation:** #1287 완료. Versioned Generic SiteSpec vNext / archetype / capability / onboarding-report contract foundation과 Buk-gu compatibility/projection 기반이 존재한다.
 - **Generic Site Model / structural preview evidence:** 구현됨. #1298~#1300의 Seo-gu offline structural work는 generic platform evidence로 유효하다.
-- **Seo-gu faithful clone:** 아직 완료되지 않음. 현재 merged Seo-gu evidence에는 실제 Seo-gu visual/content surface를 faithful clone으로 검증한 증거가 없다.
-- **General-site / multi-site AI Browser:** #1232가 다시 active 상태다. 다음 named-site proof는 Seo-gu reference baseline -> faithful clone -> AI-on-clone 순서를 따라야 한다.
+- **Seo-gu named-site proof:** #1303 아래에서 G1 point-in-time reference baseline과 G2-A semantic model, G2-B faithful-clone candidate까지 완료·병합되었다. #1310 / PR #1311의 homepage desktop/mobile/GNB fidelity slice는 accepted 상태다. 현재 #1312 / Draft PR #1313에서 notice/gosi/civil-form list+detail six-state fidelity를 교정 중이며, fresh evidence는 생성됐지만 현재 candidate는 visual/source-parity review에서 아직 accepted가 아니다. organization/staff는 그 다음 bounded slice다.
+- **General-site / multi-site AI Browser:** #1232가 active 상태다. Seo-gu G3 representative-surface acceptance가 완료되기 전에는 AI-on-clone 후속이나 materially different third-site proof로 넘어가지 않는다.
 - **Live-public AI:** 별도 public operating approval이 있는 것으로 자동 간주하지 않는다.
 - **Actual-site first-party integration:** 기관의 실제 운영·통합 승인이 있기 전에는 시작하지 않는다.
-- **Rights/license #1234:** public/open-source redistribution 또는 별도 release 판단을 위한 owner/rights 트랙으로 유지한다. 현재 controlled faithful-clone MVP의 기능·fidelity·stakeholder evaluation 자체를 자동 차단하는 일반 개발 blocker로 사용하지 않는다.
+- **Project-owner authority / Phase-A boundary:** #1318 / PR #1319 완료. `operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`와 project owner의 최신 명시적 결정이 named-site Phase-A legal/admin/rights 해석의 기준이다.
+- **Rights/license #1234:** future Production/public-release 또는 별도 redistribution 판단을 위한 owner/rights 트랙으로 유지한다. 현재 controlled faithful-clone MVP의 기능·fidelity·stakeholder evaluation 자체를 자동 차단하는 일반 개발 blocker로 사용하지 않는다.
 
 ## Platform structural proof와 named-site onboarding 분리
 
@@ -131,14 +135,16 @@ generated structural preview
 ## 현재 #1232 순서
 
 1. Buk-gu — protected golden reference
-2. Seo-gu — generic structural evidence merged; faithful clone/visual proof 미완료
-3. Seo-gu scoped actual-site reference baseline 확보
-4. Seo-gu faithful clone candidate 생성
-5. reference vs clone structural/content/asset/interaction/visual 비교
-6. Seo-gu clone 위에서 AI search/navigation/Browser Use 검증
-7. 그 후에 materially different third-site proof
+2. Seo-gu G1 — scoped point-in-time actual-site reference baseline 완료
+3. Seo-gu G2-A — semantic model 완료
+4. Seo-gu G2-B — faithful-clone candidate 병합 완료
+5. Seo-gu G3 homepage — #1310 / PR #1311 accepted
+6. Seo-gu G3 board/list/detail — #1312 / Draft PR #1313 active; current evidence는 아직 visual acceptance 전
+7. organization chart / staff directory — board slice acceptance 후 다음 bounded correction
+8. Seo-gu G3의 required structural/content/asset/interaction/visual gates를 모두 충족하고 owner visual review와 별도 `clone_mvp_ready` gate가 명시적으로 승인된 뒤 clone 위 AI search/navigation/Browser Use 검증
+9. 그 후 materially different third-site / cross-domain proof
 
-제3 사이트를 먼저 진행하거나 Seo-gu structural preview를 clone 완료로 표현하지 않는다.
+제3 사이트를 먼저 진행하거나 CI/Preview 성공만으로 Seo-gu G3 visual acceptance 또는 clone MVP 완료를 표현하지 않는다.
 
 ## 현재 기준 문서
 
@@ -158,6 +164,7 @@ generated structural preview
 
 ### 보안·개인정보·운영
 
+- [`operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`](operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md) — `canonical` for named-site Phase-A audience / project-owner legal·administrative·business authority boundary
 - [`operations/PUBLIC_AI_API_SECURITY_AND_PRIVACY.md`](operations/PUBLIC_AI_API_SECURITY_AND_PRIVACY.md) — `canonical` for applicable public API operation
 - [`operations/REPOSITORY_GOVERNANCE.md`](operations/REPOSITORY_GOVERNANCE.md) — `canonical`
 - [`../SECURITY.md`](../SECURITY.md) — vulnerability/secret handling policy
@@ -222,27 +229,36 @@ generated structural preview
 
 Active:
 
-- [#1301 clone MVP lifecycle / canonical docs alignment](https://github.com/skerishKang/400-ai-finder/issues/1301)
 - [#1232 multi-site onboarding validation](https://github.com/skerishKang/400-ai-finder/issues/1232)
+- [#1303 Seo-gu controlled reference baseline + faithful clone proof](https://github.com/skerishKang/400-ai-finder/issues/1303)
+- [#1312 Seo-gu G3 board list/detail fidelity](https://github.com/skerishKang/400-ai-finder/issues/1312)
 
 Separate follow-up/platform hardening:
 
-- #1291 generic Page Agent target semantics
-- #1292 parsed-host site ownership
-- #1293 location discovery taxonomy
-- #1294 redirect/sitemap acquisition scope
-- #1295 SSRF-safe arbitrary URL acquisition
+- #1291 generic Page Agent target semantics — OPEN P1
+- #1293 location discovery taxonomy — OPEN P2
+
+Nonblocking maintenance / operations:
+
+- #1289 comparison-evidence timeout flake — OPEN, observe only; no CI weakening or timeout change justified absent recurrence
+- #1290 Google Drive working-mirror resync — OPEN operational/local-access maintenance; GitHub remote remains authoritative
 
 Owner/public-release decision:
 
-- [#1234 code/official capture/third-party asset license & provenance](https://github.com/skerishKang/400-ai-finder/issues/1234)
+- [#1234 code/official capture/third-party asset license & provenance](https://github.com/skerishKang/400-ai-finder/issues/1234) — future Production/public-release governance; not a Phase-A faithful-clone fidelity blocker
 
 Completed / historical:
 
+- #1318 / PR #1319 project-owner authority / Phase-A boundary — completed; canonical authority document merged
+- #1301 clone MVP lifecycle / canonical docs alignment — completed
+- #1310 Seo-gu G3 homepage fidelity correction — completed/accepted
+- #1292 parsed-host site ownership hardening — completed; prerequisite landed before #1294
+- #1294 acquisition-domain scope hardening — completed via PR #1320 / merge `100e5b51d8f58baf27473c3ee628f60b1c94558a`
+- #1295 SSRF-safe public egress hardening — completed via PR #1321 / merge `ca38d99f44f3f20f87150fb38efcdf002d01618b`
 - #1283 post-Buk-gu governance alignment — completed
 - #1287 Generic SiteSpec vNext contract foundation — completed
 - #1235 Buk-gu Frozen Demo closeout — completed
-- #1181 clone-first multi-site parent strategy — historical architecture/backlog source
+- #1181 clone-first multi-site strategy/epic — CLOSED / not_planned; historical strategy/planning provenance remains useful, but it is no longer the active execution parent
 - #1080 Buk-gu official fixture program — historical/deferred
 - #1150 official-info freshness retrieval — historical/deferred
 - #862 actual-site navigator/integration — future authorized actual-site track

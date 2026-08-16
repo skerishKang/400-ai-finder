@@ -6,7 +6,13 @@ from urllib.parse import urlparse, urlunparse, urljoin
 from bs4 import BeautifulSoup
 from src.crawler.url_crawler import URLCrawler
 from src.crawler.sitemap_parser import SitemapParser
-from src.fetch import FetchConfig, FetchProvider, RequestsFetchProvider, get_fetch_provider
+from src.fetch import (
+    FetchConfig,
+    FetchProvider,
+    PublicEgressPolicy,
+    RequestsFetchProvider,
+    get_fetch_provider,
+)
 from src.observability import get_event_logger, log_pipeline_event
 
 
@@ -43,15 +49,27 @@ class HomepageMapper:
         fetch_provider=None,
         crawl_filters: dict | None = None,
         fetch_config: FetchConfig | None = None,
+        acquisition_policy=None,
+        egress_policy=None,
     ):
         self.fetch_provider = self._resolve_fetch_provider(fetch_provider)
         self.fetch_config = fetch_config
+        # #1294: frozen acquisition-scope policy. When set, every URL acquired
+        # here (homepage, robots, sitemap, nested sitemap, page loc, navigation)
+        # must stay inside the active profile's explicit allowed hosts. None
+        # preserves the historical unrestricted behavior for non-acquisition
+        # callers.
+        self.acquisition_policy = acquisition_policy
+        # #1295: SSRF-safe public egress policy.
+        self.egress_policy = egress_policy
         self.crawler = URLCrawler(
             timeout=timeout,
             user_agent=user_agent,
             fetch_provider=self.fetch_provider,
             crawl_filters=crawl_filters,
             fetch_config=self.fetch_config,
+            acquisition_policy=self.acquisition_policy,
+            egress_policy=self.egress_policy,
         )
         self.max_sitemaps = max_sitemaps
         self.max_sitemap_urls = max_sitemap_urls
@@ -67,7 +85,8 @@ class HomepageMapper:
             return get_fetch_provider(fp)
         return None
 
-    def extract_menu_links(self, html_content, base_url):
+    def extract_menu_links(self, html_content, base_url, acquisition_policy=None,
+                           rejected_urls=None, egress_policy=None):
         navigation_links = []
         attachment_links = []
         
@@ -111,6 +130,18 @@ class HomepageMapper:
                     ''
                 ))
                 
+                # #1294: when an acquisition policy is frozen, a navigation
+                # link whose host is not an exact allowed host is not trusted
+                # site data — it never becomes navigation/attachment output.
+                if acquisition_policy is not None and not acquisition_policy.is_authorized(normalized_url):
+                    if rejected_urls is not None:
+                        rejected_urls.append({
+                            "url": normalized_url,
+                            "reason": "homepage_navigation",
+                            "allowed_domains": list(acquisition_policy.allowed_domains),
+                        })
+                    continue
+
                 if normalized_url in seen_urls:
                     continue
                 seen_urls.add(normalized_url)
@@ -144,7 +175,12 @@ class HomepageMapper:
         """
         if self.fetch_config is not None and isinstance(self.fetch_provider, RequestsFetchProvider):
             try:
-                result = self.fetch_provider.fetch(url, config=self.fetch_config)
+                fetch_kwargs = {"config": self.fetch_config}
+                if self.acquisition_policy is not None:
+                    fetch_kwargs["acquisition_policy"] = self.acquisition_policy
+                if self.egress_policy is not None:
+                    fetch_kwargs["egress_policy"] = self.egress_policy
+                result = self.fetch_provider.fetch(url, **fetch_kwargs)
                 if result.ok:
                     content = result.html or result.markdown or result.text or ""
                     return content, None, result.status_code, result.url or url
@@ -157,7 +193,12 @@ class HomepageMapper:
             # === If fetch_provider is set, use it ===
             if self.fetch_provider is not None:
                 try:
-                    result = self.fetch_provider.fetch(url, timeout=self.crawler.timeout)
+                    fetch_kwargs = {"timeout": self.crawler.timeout}
+                    if self.acquisition_policy is not None:
+                        fetch_kwargs["acquisition_policy"] = self.acquisition_policy
+                    if self.egress_policy is not None:
+                        fetch_kwargs["egress_policy"] = self.egress_policy
+                    result = self.fetch_provider.fetch(url, **fetch_kwargs)
                     if result.ok:
                         content = result.html or result.markdown or result.text or ""
                         return content, None, result.status_code, result.url or url
@@ -168,13 +209,17 @@ class HomepageMapper:
             else:
                 # === Original code path (routed through legacy requests transport) ===
                 try:
-                    fr = RequestsFetchProvider().fetch(
-                        url,
-                        compatibility_mode=True,
-                        legacy_transport=True,
-                        headers=self.crawler.headers,
-                        timeout=self.crawler.timeout,
-                    )
+                    legacy_kwargs = {
+                        "compatibility_mode": True,
+                        "legacy_transport": True,
+                        "headers": self.crawler.headers,
+                        "timeout": self.crawler.timeout,
+                    }
+                    if self.acquisition_policy is not None:
+                        legacy_kwargs["acquisition_policy"] = self.acquisition_policy
+                    if self.egress_policy is not None:
+                        legacy_kwargs["egress_policy"] = self.egress_policy
+                    fr = RequestsFetchProvider(egress_policy=self.egress_policy).fetch(url, **legacy_kwargs)
                     if fr.ok:
                         # The legacy transport already normalized ISO-8859-1 to
                         # apparent encoding, so the preserved body is ready.
@@ -249,6 +294,7 @@ class HomepageMapper:
                 "document": [],
                 "apply": [],
                 "contact": [],
+                "location": [],
                 "unknown": []
             },
             "stats": {
@@ -262,6 +308,7 @@ class HomepageMapper:
                     "document": 0,
                     "apply": 0,
                     "contact": 0,
+                    "location": 0,
                     "unknown": 0
                 }
             },
@@ -277,6 +324,14 @@ class HomepageMapper:
                 return result
             result["base_url"] = base_url
 
+            # #1294: the requested homepage URL must itself be inside the
+            # active-site acquisition scope before anything is fetched.
+            if self.acquisition_policy is not None and not self.acquisition_policy.is_authorized(start_url):
+                result["errors"].append("Requested start URL is outside the acquisition scope")
+                result["homepage"]["errors"].append("Requested start URL is outside the acquisition scope")
+                _log_terminal_event(ok=True)
+                return result
+
             # 2. Sitemap candidates
             candidates = [
                 f"{base_url}/sitemap.xml",
@@ -289,10 +344,30 @@ class HomepageMapper:
             if err:
                 result["sitemap"]["errors"].append(f"Failed to fetch robots.txt: {err}")
             else:
-                robots_sitemaps = parse_robots_txt(robots_txt)
-                for sm in robots_sitemaps:
-                    if sm not in candidates:
-                        candidates.append(sm)
+                # #1294: an effective/final robots host outside the acquisition
+                # scope must not contribute Sitemap directives (fail closed).
+                if self.acquisition_policy is not None and not self.acquisition_policy.is_authorized(final_robots_url or robots_url):
+                    result["sitemap"]["errors"].append("robots.txt effective URL is outside the acquisition scope")
+                else:
+                    robots_sitemaps = parse_robots_txt(robots_txt)
+                    for sm in robots_sitemaps:
+                        # #1294: only in-scope Sitemap directives are followed.
+                        if self.acquisition_policy is not None and not self.acquisition_policy.is_authorized(sm):
+                            result.setdefault("rejected_urls", []).append({
+                                "url": sm,
+                                "reason": "robots_sitemap_directive",
+                                "allowed_domains": list(self.acquisition_policy.allowed_domains),
+                            })
+                            continue
+                        if sm not in candidates:
+                            candidates.append(sm)
+
+            # #1294: default/fallback sitemap candidates must also be in-scope.
+            if self.acquisition_policy is not None:
+                candidates = [
+                    c for c in candidates
+                    if self.acquisition_policy.is_authorized(c)
+                ]
 
             result["sitemap"]["candidates"] = candidates
 
@@ -307,6 +382,16 @@ class HomepageMapper:
                 if sm_url in visited_sitemaps:
                     continue
                 visited_sitemaps.add(sm_url)
+
+                # #1294: a sitemap URL outside the acquisition scope is never
+                # fetched or recursively parsed.
+                if self.acquisition_policy is not None and not self.acquisition_policy.is_authorized(sm_url):
+                    result.setdefault("rejected_urls", []).append({
+                        "url": sm_url,
+                        "reason": "sitemap_url_out_of_scope",
+                        "allowed_domains": list(self.acquisition_policy.allowed_domains),
+                    })
+                    continue
 
                 xml_data, err, status_code, final_sm_url = self.fetch_content(sm_url)
                 if err:
@@ -323,12 +408,29 @@ class HomepageMapper:
                 # Queue nested sitemaps
                 for sub_sm in parsed["sitemaps"]:
                     sub_sm_abs = urljoin(final_sm_url, sub_sm)
+                    # #1294: nested sitemaps outside the scope are not followed.
+                    if self.acquisition_policy is not None and not self.acquisition_policy.is_authorized(sub_sm_abs):
+                        result.setdefault("rejected_urls", []).append({
+                            "url": sub_sm_abs,
+                            "reason": "nested_sitemap_out_of_scope",
+                            "allowed_domains": list(self.acquisition_policy.allowed_domains),
+                        })
+                        continue
                     if sub_sm_abs not in visited_sitemaps and sub_sm_abs not in sitemap_queue:
                         sitemap_queue.append(sub_sm_abs)
 
                 # Store URLs and filter duplicates
                 for url_info in parsed["urls"]:
                     loc_url = url_info["url"]
+                    # #1294: a page <loc> on an undeclared host is not indexed
+                    # as active-site data.
+                    if self.acquisition_policy is not None and not self.acquisition_policy.is_authorized(loc_url):
+                        result.setdefault("rejected_urls", []).append({
+                            "url": loc_url,
+                            "reason": "sitemap_loc_out_of_scope",
+                            "allowed_domains": list(self.acquisition_policy.allowed_domains),
+                        })
+                        continue
                     parsed_loc = urlparse(loc_url)
                     normalized_loc = urlunparse((
                         parsed_loc.scheme,
@@ -368,6 +470,15 @@ class HomepageMapper:
             if err:
                 result["homepage"]["errors"].append(f"Failed to fetch homepage HTML: {err}")
                 result["errors"].append(f"Homepage fetch error: {err}")
+            elif (
+                self.acquisition_policy is not None
+                and not self.acquisition_policy.is_authorized(final_homepage_url or start_url)
+            ):
+                # #1294: a homepage whose effective/final URL left the
+                # acquisition scope must not be treated as active-site
+                # content — no body, title, or navigation is accepted.
+                result["homepage"]["errors"].append("Homepage effective URL is outside the acquisition scope")
+                result["errors"].append("Homepage effective URL is outside the acquisition scope")
             else:
                 soup = BeautifulSoup(homepage_html, 'html.parser')
 
@@ -383,8 +494,18 @@ class HomepageMapper:
                     if og_desc_tag and og_desc_tag.get('content'):
                         result["homepage"]["description"] = og_desc_tag.get('content').strip()
 
-                # Extract nav/header/menu links using the actual final URL
-                nav_links, att_links = self.extract_menu_links(homepage_html, final_homepage_url)
+                # Extract nav/header/menu links using the actual final URL.
+                # #1294: only in-scope navigation/attachment links are kept.
+                nav_rejected = []
+                nav_links, att_links = self.extract_menu_links(
+                    homepage_html,
+                    final_homepage_url,
+                    acquisition_policy=self.acquisition_policy,
+                    rejected_urls=nav_rejected,
+                    egress_policy=self.egress_policy,
+                )
+                if nav_rejected:
+                    result.setdefault("rejected_urls", []).extend(nav_rejected)
                 result["homepage"]["navigation_links"] = nav_links
                 result["homepage"]["attachment_links"] = att_links
 

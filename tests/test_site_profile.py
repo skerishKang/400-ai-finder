@@ -897,3 +897,224 @@ class TestDocumentExtensionTaxonomy:
         exts = set(p.document_extensions)
         for ext in ("doc", "xls", "ppt", "pptx", "zip"):
             assert ext in exts
+
+
+# ------------------------------------------------------------------
+# #1292: harden SiteProfile.match_url — fail-closed URL ownership.
+# Adds the deceptive-host/path/query/credential regression matrix that the
+# old raw-substring match_url never pinned. No network / provider / API.
+# ------------------------------------------------------------------
+class TestMatchUrlHardened:
+    """#1292 / no network. Fail-closed URL ownership matrix.
+
+    Replaces the old raw-substring ``match_url`` contract with an exact,
+    normalized hostname ownership decision. Every case below must hold:
+    deceptive host/path/query/credential input fails closed, and the valid
+    Buk-gu / Seo-gu / Gwangju URLs keep matching by exact host only.
+    """
+
+    @staticmethod
+    def _profile(allowed: list[str]) -> "SiteProfile":
+        return SiteProfile({
+            "site_id": "t",
+            "name": "T",
+            "base_url": "https://%s/" % allowed[0],
+            "allowed_domains": list(allowed),
+        })
+
+    # ---- VALID -------------------------------------------------------
+    def test_valid_existing_bukgu(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert p.match_url("https://bukgu.gwangju.kr/")
+
+    def test_valid_seogu_explicit_www_and_apex(self):
+        p = self._profile(["www.seogu.gwangju.kr", "seogu.gwangju.kr"])
+        assert p.match_url("https://www.seogu.gwangju.kr/")
+        assert p.match_url("https://seogu.gwangju.kr/")
+
+    def test_valid_gwangju_explicit_www_and_apex(self):
+        p = self._profile(["www.gwangju.go.kr", "gwangju.go.kr"])
+        assert p.match_url("https://www.gwangju.go.kr/")
+        assert p.match_url("https://gwangju.go.kr/")
+
+    def test_valid_seogu_with_path_query(self):
+        p = self._profile(["www.seogu.gwangju.kr", "seogu.gwangju.kr"])
+        assert p.match_url("https://seogu.gwangju.kr/board.es?mid=a10101010000")
+
+    def test_valid_uppercase_host(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert p.match_url("https://BUKGU.GWANGJU.KR/")
+
+    def test_valid_one_trailing_root_dot(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert p.match_url("https://bukgu.gwangju.kr./")
+
+    def test_valid_explicit_port(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert p.match_url("https://bukgu.gwangju.kr:8080/")
+        assert p.match_url("https://bukgu.gwangju.kr:443/")
+
+    def test_valid_host_identity_only_path_query_fragment(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        # Path/query/fragment presence must not change the host-identity verdict.
+        assert p.match_url("https://bukgu.gwangju.kr/menu.es?mid=xxx#frag")
+
+    def test_valid_unicode_allowed_domain(self):
+        p = self._profile(["münchen.de"])
+        assert p.match_url("https://münchen.de/")
+
+    def test_valid_unicode_idna_alabel_equivalence(self):
+        # A configured IDNA A-label must match a Unicode candidate (and vice
+        # versa): both normalize to the same ASCII A-label.
+        alabel = self._profile(["xn--mnchen-3ya.de"])
+        assert alabel.match_url("https://münchen.de/")
+        unicode_dom = self._profile(["münchen.de"])
+        assert unicode_dom.match_url("https://xn--mnchen-3ya.de/")
+
+    def test_valid_ipv6_literal_explicit(self):
+        p = self._profile(["2001:db8::1"])
+        assert p.match_url("https://[2001:db8::1]/")
+
+    # ---- INVALID -----------------------------------------------------
+    def test_invalid_attacker_suffix(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://bukgu.gwangju.kr.evil.example/")
+
+    def test_invalid_domain_only_in_path(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://evil.example/path/bukgu.gwangju.kr")
+
+    def test_invalid_domain_only_in_query(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://evil.example/?next=bukgu.gwangju.kr")
+
+    def test_invalid_credential_bearing(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://user@bukgu.gwangju.kr/")
+
+    def test_invalid_empty_userinfo(self):
+        # urlsplit yields '' (not None) for the empty userinfo; presence
+        # semantics must reject it.
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://@bukgu.gwangju.kr/")
+
+    def test_invalid_protocol_relative(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("//bukgu.gwangju.kr/")
+
+    def test_invalid_scheme_less(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("bukgu.gwangju.kr/path")
+
+    def test_invalid_relative(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("/menu.es")
+
+    def test_invalid_ftp_scheme(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("ftp://bukgu.gwangju.kr/")
+
+    def test_invalid_missing_hostname(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https:///path")
+
+    def test_invalid_malformed_port(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://bukgu.gwangju.kr:abc/")
+
+    def test_invalid_out_of_range_port(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://bukgu.gwangju.kr:99999/")
+
+    def test_invalid_idna(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://a..b.com/")
+
+    def test_invalid_unlisted_child_subdomain(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://foo.bukgu.gwangju.kr/")
+
+    def test_invalid_implicit_www_apex_equivalence(self):
+        # No implicit www<->apex equivalence: each must be declared explicitly.
+        apex_only = self._profile(["bukgu.gwangju.kr"])
+        assert not apex_only.match_url("https://www.bukgu.gwangju.kr/")
+        www_only = self._profile(["www.bukgu.gwangju.kr"])
+        assert not www_only.match_url("https://bukgu.gwangju.kr/")
+
+    def test_invalid_multiple_trailing_root_dots(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://bukgu.gwangju.kr../")
+
+    def test_invalid_ipv6_not_broadly_allowed(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("https://[2001:db8::1]/")
+
+    def test_invalid_ipv4_not_broadly_allowed(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url("http://10.0.0.1/")
+
+    def test_invalid_non_string_input(self):
+        p = self._profile(["bukgu.gwangju.kr"])
+        assert not p.match_url(None)
+        assert not p.match_url("")
+
+    def test_invalid_malformed_ipv6_authority_fails_closed(self):
+        # An unterminated IPv6 authority makes stdlib urlsplit() raise
+        # ValueError; match_url must fail closed (False) and never leak it.
+        p = self._profile(["bukgu.gwangju.kr"])
+        result = p.match_url("https://[::1")
+        assert result is False
+
+    def test_invalid_nfkc_invalid_netloc_fails_closed(self):
+        # A FULLWIDTH SOLIDUS (U+FF0F) in the netloc makes stdlib urlsplit()
+        # raise ValueError under NFKC normalization; match_url must fail
+        # closed (False) and never leak it.
+        p = self._profile(["bukgu.gwangju.kr"])
+        result = p.match_url("https://exa\uff0fmple.com/")
+        assert result is False
+
+
+class TestSiteAcquisitionPolicy:
+    """#1294: the frozen acquisition policy reuses exact-host match_url."""
+
+    @staticmethod
+    def _policy(allowed):
+        from src.site_profiles.site_profile import SiteAcquisitionPolicy
+        p = SiteProfile({
+            "site_id": "synthetic",
+            "name": "Synthetic",
+            "base_url": "https://%s/" % allowed[0],
+            "allowed_domains": list(allowed),
+        })
+        return SiteAcquisitionPolicy(p)
+
+    def test_allows_exact_allowed_host(self):
+        policy = self._policy(["bukgu.gwangju.kr", "alias.gwangju.kr"])
+        assert policy.is_authorized("https://bukgu.gwangju.kr/notice") is True
+        assert policy.is_authorized("https://alias.gwangju.kr/x") is True
+
+    def test_rejects_attacker_suffix(self):
+        policy = self._policy(["bukgu.gwangju.kr"])
+        assert policy.is_authorized("https://bukgu.gwangju.kr.evil.example/") is False
+
+    def test_rejects_implicit_subdomain_and_www(self):
+        policy = self._policy(["bukgu.gwangju.kr"])
+        assert policy.is_authorized("https://foo.bukgu.gwangju.kr/") is False
+        assert policy.is_authorized("https://www.bukgu.gwangju.kr/") is False
+
+    def test_rejects_path_query_domain_spoof(self):
+        policy = self._policy(["bukgu.gwangju.kr"])
+        assert policy.is_authorized("https://evil.example/path/bukgu.gwangju.kr") is False
+        assert policy.is_authorized("https://evil.example/?next=bukgu.gwangju.kr") is False
+
+    def test_fails_closed_on_malformed(self):
+        policy = self._policy(["bukgu.gwangju.kr"])
+        assert policy.is_authorized("https://[::1") is False
+        assert policy.is_authorized("not-a-url") is False
+        assert policy.is_authorized(None) is False
+        assert policy.is_authorized("https://exa\uff0fmple.com/") is False
+
+    def test_allowed_domains_are_frozen(self):
+        policy = self._policy(["bukgu.gwangju.kr"])
+        assert policy.allowed_domains == ["bukgu.gwangju.kr"]
+        assert policy.profile is not None

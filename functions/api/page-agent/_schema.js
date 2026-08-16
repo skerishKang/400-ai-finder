@@ -42,6 +42,8 @@ export const MAX_VALUE_CHARS = 500;
 export const DEFAULT_TIMEOUT_MS = 15000;
 export const ABS_MAX_TIMEOUT_MS = 30000;
 
+// Compatibility/exported vocabulary only. Validators below use normalized
+// lexical units plus action/context instead of raw substring matching.
 export const FORBIDDEN_TARGET_KEYWORDS = Object.freeze([
   'password',
   'passwd',
@@ -83,6 +85,187 @@ export const FORBIDDEN_BODY_KEYS = Object.freeze([
   'gemini_key',
   'openai_key',
 ]);
+
+const GENERAL_RISK_TOKENS = new Set([
+  'password',
+  'passwd',
+  'token',
+  'secret',
+  'apikey',
+  'authorization',
+  'credit',
+  'card',
+  'cvv',
+  'ssn',
+  'submit',
+  'payment',
+  'pay',
+  'login',
+  'signin',
+  'auth',
+  'delete',
+  'destroy',
+]);
+
+const INFORMATIONAL_TOPIC_TOKENS = new Set([
+  'about',
+  'faq',
+  'fee',
+  'fees',
+  'guide',
+  'help',
+  'info',
+  'information',
+  'instructions',
+  'news',
+  'notice',
+  'overview',
+  'policy',
+  'policies',
+  'support',
+]);
+
+const CONTROL_ROLE_TOKENS = new Set([
+  'button',
+  'checkout',
+  'confirm',
+  'cvv',
+  'field',
+  'form',
+  'input',
+  'method',
+  'number',
+  'password',
+  'passwd',
+  'secret',
+  'submit',
+  'token',
+]);
+
+const STRONG_CREDENTIAL_TOKENS = new Set([
+  'password',
+  'passwd',
+  'token',
+  'secret',
+  'apikey',
+  'authorization',
+  'cvv',
+  'ssn',
+]);
+
+function semanticTokens(raw) {
+  const source = String(raw || '').trim();
+  if (!source) return [];
+  const expanded = source
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .toLowerCase();
+  return expanded.match(/[a-z0-9]+/g) || [];
+}
+
+function hasToken(tokens, token) {
+  return tokens.includes(token);
+}
+
+function hasAnyToken(tokens, tokenSet) {
+  return tokens.some((token) => tokenSet.has(token));
+}
+
+function hasSequence(tokens, sequence) {
+  if (sequence.length === 0 || tokens.length < sequence.length) return false;
+  for (let i = 0; i <= tokens.length - sequence.length; i += 1) {
+    let matches = true;
+    for (let j = 0; j < sequence.length; j += 1) {
+      if (tokens[i + j] !== sequence[j]) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) return true;
+  }
+  return false;
+}
+
+function hasApiKeySemantic(tokens) {
+  return hasToken(tokens, 'apikey') || hasSequence(tokens, ['api', 'key']);
+}
+
+function hasSignInSemantic(tokens) {
+  return hasToken(tokens, 'signin') || hasSequence(tokens, ['sign', 'in']);
+}
+
+function hasCreditCardSemantic(tokens) {
+  return hasSequence(tokens, ['credit', 'card']);
+}
+
+function hasRemoveAllSemantic(tokens) {
+  return hasSequence(tokens, ['remove', 'all']);
+}
+
+function isDestructiveOrSubmitTarget(raw) {
+  const tokens = semanticTokens(raw);
+  return (
+    hasToken(tokens, 'submit') ||
+    hasToken(tokens, 'delete') ||
+    hasToken(tokens, 'destroy') ||
+    hasRemoveAllSemantic(tokens)
+  );
+}
+
+function isCredentialOrTransactionTarget(raw) {
+  const tokens = semanticTokens(raw);
+  if (hasAnyToken(tokens, STRONG_CREDENTIAL_TOKENS)) return true;
+  if (hasApiKeySemantic(tokens)) return true;
+  if (hasToken(tokens, 'auth') || hasToken(tokens, 'login') || hasSignInSemantic(tokens)) {
+    return true;
+  }
+  if (hasToken(tokens, 'payment') || hasToken(tokens, 'pay')) return true;
+  if (hasCreditCardSemantic(tokens)) return true;
+  if (
+    hasToken(tokens, 'card') &&
+    ['number', 'input', 'field', 'cvv', 'expiry', 'expiration'].some((token) =>
+      hasToken(tokens, token),
+    )
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function isInformationalTopicTarget(raw) {
+  const tokens = semanticTokens(raw);
+  return (
+    hasAnyToken(tokens, INFORMATIONAL_TOPIC_TOKENS) &&
+    !hasAnyToken(tokens, CONTROL_ROLE_TOKENS)
+  );
+}
+
+function isSensitiveInputValue(raw) {
+  const tokens = semanticTokens(raw);
+  const alwaysSensitive = new Set([
+    'token',
+    'secret',
+    'apikey',
+    'authorization',
+    'cvv',
+    'ssn',
+  ]);
+  if (hasAnyToken(tokens, alwaysSensitive)) return true;
+  if (hasApiKeySemantic(tokens)) return true;
+  if (
+    (hasToken(tokens, 'password') || hasToken(tokens, 'passwd')) &&
+    !hasAnyToken(tokens, INFORMATIONAL_TOPIC_TOKENS)
+  ) {
+    return true;
+  }
+  if (
+    hasCreditCardSemantic(tokens) &&
+    ['number', 'cvv', 'expiry', 'expiration'].some((token) => hasToken(tokens, token))
+  ) {
+    return true;
+  }
+  return false;
+}
 
 /**
  * Same-origin internal route / selector navigation only.
@@ -126,10 +309,23 @@ export function isSameOriginInternalTarget(raw) {
   return true;
 }
 
+// Compatibility helper for callers that need lexical risk detection without
+// action context. It intentionally matches normalized lexical units, not
+// substrings: author != auth, cardinality != card, payroll != pay.
 export function isForbiddenTargetText(raw) {
-  const text = String(raw || '').toLowerCase();
-  if (!text) return false;
-  return FORBIDDEN_TARGET_KEYWORDS.some((k) => text.includes(k));
+  const lower = String(raw || '').trim().toLowerCase();
+  if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+    return true;
+  }
+  const tokens = semanticTokens(raw);
+  if (tokens.length === 0) return false;
+  return (
+    hasAnyToken(tokens, GENERAL_RISK_TOKENS) ||
+    hasApiKeySemantic(tokens) ||
+    hasSignInSemantic(tokens) ||
+    hasCreditCardSemantic(tokens) ||
+    hasRemoveAllSemantic(tokens)
+  );
 }
 
 function isPlainObject(value) {
@@ -181,14 +377,12 @@ export function validatePlanRequest(body) {
       return { ok: false, error: 'invalid_request', detail: 'current_route_too_long' };
     }
     const route = currentRoute.trim();
-    // Bare internal route ids (passport-guidance) and relative paths are OK.
-    // Absolute / protocol-relative URLs are rejected.
+    // Public topic words do not imply an executable action. Keep this boundary
+    // limited to request shape and external/protocol danger; action semantics
+    // are enforced by validatePlan().
     if (route) {
       if (/^[a-z][a-z0-9+.-]*:/i.test(route) || route.startsWith('//')) {
         return { ok: false, error: 'invalid_request', detail: 'current_route_external' };
-      }
-      if (isForbiddenTargetText(route)) {
-        return { ok: false, error: 'invalid_request', detail: 'current_route_forbidden' };
       }
     }
   }
@@ -303,11 +497,27 @@ export function validatePlan(plan, options) {
     if (target && !isSameOriginInternalTarget(target)) {
       return { ok: false, error: 'invalid_plan', detail: 'external_or_unsafe_target:' + i };
     }
-    if (target && isForbiddenTargetText(target)) {
-      return { ok: false, error: 'invalid_plan', detail: 'forbidden_target:' + i };
-    }
     if (action === 'navigate' && (!target || !isSameOriginInternalTarget(target))) {
       return { ok: false, error: 'invalid_plan', detail: 'navigate_not_same_origin:' + i };
+    }
+
+    // Fail closed at the action boundary, not by topic substring. Informational
+    // read/scroll targets may mention auth/payment/card topics. Navigate also
+    // permits public topic routes, but never submit/destructive semantics.
+    if (target && action !== 'read' && action !== 'scroll' && isDestructiveOrSubmitTarget(target)) {
+      return { ok: false, error: 'invalid_plan', detail: 'destructive_target:' + i };
+    }
+    if (
+      target &&
+      action !== 'input' &&
+      action !== 'scroll' &&
+      isCredentialOrTransactionTarget(target) &&
+      !isInformationalTopicTarget(target)
+    ) {
+      return { ok: false, error: 'invalid_plan', detail: 'forbidden_target:' + i };
+    }
+    if (target && action === 'input' && isCredentialOrTransactionTarget(target)) {
+      return { ok: false, error: 'invalid_plan', detail: 'credential_input:' + i };
     }
 
     let value = step.value === undefined ? null : step.value;
@@ -318,19 +528,9 @@ export function validatePlan(plan, options) {
       if (value.length > MAX_VALUE_CHARS) {
         return { ok: false, error: 'invalid_plan', detail: 'value_too_long:' + i };
       }
-      if (isForbiddenTargetText(value)) {
-        return { ok: false, error: 'invalid_plan', detail: 'forbidden_value:' + i };
-      }
-      // input of credentials rejected.
-      if (action === 'input' && isForbiddenTargetText(target + ' ' + value)) {
+      if (action === 'input' && isSensitiveInputValue(value)) {
         return { ok: false, error: 'invalid_plan', detail: 'credential_input:' + i };
       }
-    }
-
-    // Destructive / submit style actions are never on the allowlist; extra guard
-    // for selectors that still look like submit/delete.
-    if (/(submit|delete|destroy|remove-all)/i.test(target)) {
-      return { ok: false, error: 'invalid_plan', detail: 'destructive_target:' + i };
     }
 
     const out = { action: action, target: target || null, value: value };

@@ -639,3 +639,630 @@ def test_extract_menu_links_follows_classifier_taxonomy():
     categories = {n["url"]: n["category"] for n in nav_links}
     assert categories["https://example.com/assets/sample.doc"] == "menu"
     assert categories["https://example.com/assets/sample.zip"] == "menu"
+
+
+# ======================================================================
+# #1294: acquisition-scope containment (HomepageMapper)
+# All tests offline/deterministic — fake fetch_content / fake sitemap
+# parser, no network, no provider/API calls.
+# ======================================================================
+
+def _scope_policy(allowed):
+    from src.site_profiles.site_profile import SiteAcquisitionPolicy, SiteProfile
+    profile = SiteProfile({
+        "site_id": "synthetic",
+        "name": "Synthetic",
+        "base_url": "https://%s/" % allowed[0],
+        "allowed_domains": list(allowed),
+    })
+    return SiteAcquisitionPolicy(profile)
+
+
+def _homepage_html():
+    return (
+        "<html><head><title>Home</title></head><body>"
+        "<nav><a href=\"/apply\">신청</a>"
+        "<a href=\"https://evil.example/page\">evil</a></nav>"
+        "</body></html>"
+    )
+
+
+def test_mapper_requested_start_url_outside_scope_fails_closed():
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    fetched = []
+
+    def fake_fetch_content(url, retries=1):
+        fetched.append(url)
+        return "", None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        result = mapper.build_map("https://evil.example/")
+
+    assert fetched == []
+    assert result["errors"]
+    assert "outside the acquisition scope" in result["errors"][0]
+
+
+def test_mapper_homepage_requested_allowed_final_allowed_passes():
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        return _homepage_html(), None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    assert result["homepage"]["title"] == "Home"
+    # evil nav link is dropped; /apply stays.
+    nav_urls = [l["url"] for l in result["homepage"]["navigation_links"]]
+    assert nav_urls == ["https://bukgu.gwangju.kr/apply"]
+
+
+def test_mapper_homepage_final_external_fails_closed():
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        # requested allowed, but effective/final URL leaves the scope
+        return _homepage_html(), None, 200, "https://evil.example/"
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    assert result["homepage"]["title"] == ""
+    assert result["homepage"]["navigation_links"] == []
+    assert any("outside the acquisition scope" in e for e in result["homepage"]["errors"])
+
+
+def test_mapper_navigation_scope_filtering():
+    policy = _scope_policy(["bukgu.gwangju.kr", "alias.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    html = (
+        "<html><body><nav>"
+        "<a href=\"https://bukgu.gwangju.kr/notice\">notice</a>"
+        "<a href=\"https://alias.gwangju.kr/alias\">alias</a>"
+        "<a href=\"https://evil.example/page\">evil</a>"
+        "<a href=\"https://foo.bukgu.gwangju.kr/sub\">subdomain</a>"
+        "<a href=\"https://www.bukgu.gwangju.kr/www\">www</a>"
+        "</nav></body></html>"
+    )
+    nav_links, _ = mapper.extract_menu_links(
+        html, "https://bukgu.gwangju.kr/", acquisition_policy=policy
+    )
+    urls = [l["url"] for l in nav_links]
+    assert "https://bukgu.gwangju.kr/notice" in urls
+    assert "https://alias.gwangju.kr/alias" in urls
+    assert "https://evil.example/page" not in urls
+    assert "https://foo.bukgu.gwangju.kr/sub" not in urls
+    assert "https://www.bukgu.gwangju.kr/www" not in urls
+
+
+def test_mapper_external_navigation_never_reaches_indexer():
+    from src.indexer.document_indexer import DocumentIndexer
+
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        return _homepage_html(), None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    docs = DocumentIndexer().build_index(result)
+    assert all("evil.example" not in (d.get("url") or "") for d in docs)
+    assert any("https://bukgu.gwangju.kr/apply" == d.get("url") for d in docs)
+
+
+def test_mapper_robots_sitemap_directive_external_not_followed():
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    fetched = []
+
+    def fake_fetch_content(url, retries=1):
+        fetched.append(url)
+        if url.endswith("/robots.txt"):
+            return "Sitemap: https://evil.example/sitemap.xml", None, 200, url
+        if url.endswith(".xml"):
+            return "<urlset/>", None, 200, url
+        return _homepage_html(), None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        mapper.build_map("https://bukgu.gwangju.kr/")
+
+    assert "https://evil.example/sitemap.xml" not in fetched
+    assert "https://bukgu.gwangju.kr/sitemap.xml" in fetched
+
+
+def test_mapper_robots_final_external_rejected():
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            # robots effective URL left the scope
+            return "Sitemap: https://bukgu.gwangju.kr/sitemap.xml", None, 200, "https://evil.example/robots.txt"
+        return "", None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    assert any("robots" in e and "outside the acquisition scope" in e
+               for e in result["sitemap"]["errors"])
+
+
+def test_mapper_sitemap_containment_nested_and_loc():
+    policy = _scope_policy(["bukgu.gwangju.kr", "alias.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    fetched = []
+
+    def fake_fetch_content(url, retries=1):
+        fetched.append(url)
+        if url.endswith("/robots.txt"):
+            return "Sitemap: https://bukgu.gwangju.kr/sitemap.xml", None, 200, url
+        if url.endswith("/sitemap_index.xml"):
+            return "<sitemapindex/>", None, 200, url
+        if url.endswith("/sitemap.xml"):
+            return "<MAIN/>", None, 200, url
+        if url.endswith("/nested.xml"):
+            return "<NESTED/>", None, 200, url
+        return "", None, 200, url
+
+    def fake_parse(xml):
+        if "sitemapindex" in xml:
+            return {"error": "", "sitemaps": [], "urls": []}
+        if "NESTED" in xml:
+            return {"error": "", "sitemaps": [], "urls": [
+                {"url": "https://bukgu.gwangju.kr/nested-page"},
+            ]}
+        return {"error": "", "sitemaps": [
+            "https://bukgu.gwangju.kr/nested.xml",
+            "https://evil.example/evil-nested.xml",
+        ], "urls": [
+            {"url": "https://bukgu.gwangju.kr/notice"},
+            {"url": "https://evil.example/external-loc"},
+            {"url": "https://alias.gwangju.kr/alias-page"},
+        ]}
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse", side_effect=fake_parse):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    # external nested sitemap never fetched
+    assert "https://evil.example/evil-nested.xml" not in fetched
+    # allowed nested sitemap fetched
+    assert "https://bukgu.gwangju.kr/nested.xml" in fetched
+
+    urls = [u["url"] for u in result["sitemap"]["urls"]]
+    assert "https://bukgu.gwangju.kr/notice" in urls
+    assert "https://alias.gwangju.kr/alias-page" in urls
+    assert "https://bukgu.gwangju.kr/nested-page" in urls
+    assert "https://evil.example/external-loc" not in urls
+
+
+def test_mapper_default_sitemap_candidate_scope_rejected():
+    """D7: default/fallback sitemap candidates must be scope-checked when
+    the acquisition policy is set.  A base_url whose default sitemap path
+    is on a non-allowed domain must be excluded from the candidate list.
+    """
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        if url.endswith(".xml"):
+            return "<urlset/>", None, 200, url
+        return _homepage_html(), None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    candidates = result["sitemap"]["candidates"]
+    assert all("bukgu.gwangju.kr" in c for c in candidates)
+    assert len(result["sitemap"]["urls"]) == 0  # sitemap body not parsed when candidates are on different host
+
+
+def test_mapper_default_sitemap_candidate_external_base_url_rejected():
+    """D7: when base_url itself is not an allowed domain, the default
+    sitemap candidates are still added but the policy check at line 335-339
+    filters them out.  This ensures the policy is always applied.
+    """
+    policy = _scope_policy(["different.allowed.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    fetched = []
+
+    def fake_fetch_content(url, retries=1):
+        fetched.append(url)
+        return "", None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        mapper.build_map("https://external-host.kr/")
+
+    # robots.txt is still fetched (it's always fetched), but sitemap candidates
+    # are filtered by policy before being fetched.
+    assert "https://external-host.kr/sitemap.xml" not in fetched
+    assert "https://external-host.kr/sitemap_index.xml" not in fetched
+
+
+def test_mapper_robots_final_external_body_not_trusted():
+    """D3: when the robots effective/final URL is outside the scope, the
+    body content is never parsed for Sitemap directives.  Even if the body
+    contains a valid in-scope sitemap URL that is NOT among the default
+    candidates, it must be discarded.
+    """
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+
+    # The body contains a sitemap directive that would be a NEW candidate
+    # (not one of the defaults).  The final URL leaves the scope, so the
+    # directive must be discarded — the default candidates are the only
+    # entries present.
+    robots_body = "Sitemap: https://bukgu.gwangju.kr/sitemap_extra.xml"
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return robots_body, None, 200, "https://evil.example/robots.txt"
+        return "", None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    # Default candidates are always present (sitemap.xml, sitemap_index.xml).
+    # The extra sitemap from the external robots body must NOT be added.
+    default_candidates = [
+        "https://bukgu.gwangju.kr/sitemap.xml",
+        "https://bukgu.gwangju.kr/sitemap_index.xml",
+    ]
+    candidates = result["sitemap"]["candidates"]
+    assert len(candidates) == len(default_candidates)
+    assert candidates == default_candidates
+    assert any("robots" in e and "outside the acquisition scope" in e
+               for e in result["sitemap"]["errors"])
+
+
+def test_mapper_external_homepage_final_body_title_nav_description_zeroed():
+    """C2: when the final/effective homepage URL leaves the scope, the
+    external response body/title/nav/description must all be zero — the
+    external host's content is never trusted as active-site data.
+    """
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    external_homepage = (
+        "<html><head>"
+        "<title>External Title</title>"
+        '<meta name="description" content="External desc">'
+        "</head><body>"
+        "<nav><a href=\"/page\">External Nav</a></nav>"
+        "</body></html>"
+    )
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        # The effective/final URL leaves the scope
+        return external_homepage, None, 200, "https://evil.example/"
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    assert result["homepage"]["title"] == ""
+    assert result["homepage"]["description"] == ""
+    assert result["homepage"]["navigation_links"] == []
+    assert result["homepage"]["attachment_links"] == []
+    assert any("outside the acquisition scope" in e for e in result["homepage"]["errors"])
+
+
+def test_mapper_explicit_allowed_alias_nav_preserved():
+    """C5: an explicitly configured allowed alias in navigation links is
+    preserved (exact host match from allowed_domains).
+    """
+    policy = _scope_policy(["bukgu.gwangju.kr", "alias.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    html = (
+        "<html><body><nav>"
+        "<a href=\"https://alias.gwangju.kr/alias-page\">Alias Link</a>"
+        "<a href=\"https://www.alias.gwangju.kr/www-alias\">www alias</a>"
+        "</nav></body></html>"
+    )
+    nav_links, _ = mapper.extract_menu_links(
+        html, "https://bukgu.gwangju.kr/", acquisition_policy=policy
+    )
+    urls = [l["url"] for l in nav_links]
+    assert "https://alias.gwangju.kr/alias-page" in urls
+    # www.alias.gwangju.kr is NOT the same as alias.gwangju.kr — the exact
+    # host match rejects it unless explicitly configured.
+    assert "https://www.alias.gwangju.kr/www-alias" not in urls
+
+
+def test_mapper_explicit_allowed_alias_sitemap_allowed():
+    """D6: an explicitly configured alias host in a sitemap <loc> entry
+    is retained (exact host match from allowed_domains).
+    """
+    policy = _scope_policy(["bukgu.gwangju.kr", "alias.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "Sitemap: https://bukgu.gwangju.kr/sitemap.xml", None, 200, url
+        if url.endswith(".xml"):
+            return "<urlset/>", None, 200, url
+        return _homepage_html(), None, 200, url
+
+    def fake_parse(xml):
+        return {"error": "", "sitemaps": [], "urls": [
+            {"url": "https://alias.gwangju.kr/alias-page"},
+            {"url": "https://bukgu.gwangju.kr/notice"},
+            {"url": "https://evil.example/external-loc"},
+        ]}
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse", side_effect=fake_parse):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    urls = [u["url"] for u in result["sitemap"]["urls"]]
+    assert "https://alias.gwangju.kr/alias-page" in urls
+    assert "https://bukgu.gwangju.kr/notice" in urls
+    assert "https://evil.example/external-loc" not in urls
+
+
+def test_mapper_external_attachment_excluded():
+    """C6: an external PDF/document URL inside a nav element is excluded from
+    attachment_links at extraction time — it never enters the active-site
+    pipeline as a document record.  Bounded diagnostic appears in rejected_urls
+    without leaking any response body, credential, or attacker data."""
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    html = (
+        "<html><body><nav>"
+        '<a href="https://bukgu.gwangju.kr/form.pdf">Internal Form</a>'
+        '<a href="https://evil.example/evil.pdf">Evil PDF</a>'
+        '<a href="https://alien.example/doc.hwp">Alien HWP</a>'
+        "</nav></body></html>"
+    )
+    nav_links, att_links = mapper.extract_menu_links(
+        html, "https://bukgu.gwangju.kr/", acquisition_policy=policy
+    )
+    att_urls = {a["url"] for a in att_links}
+    assert "https://bukgu.gwangju.kr/form.pdf" in att_urls
+    assert "https://evil.example/evil.pdf" not in att_urls
+    assert "https://alien.example/doc.hwp" not in att_urls
+
+
+def test_mapper_external_attachment_never_reaches_indexer():
+    """C6: external PDF URLs excluded from attachment_links can never reach
+    DocumentIndexer — the indexer only receives what the mapper produces."""
+    from src.indexer.document_indexer import DocumentIndexer
+
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    html = (
+        "<html><body><nav>"
+        '<a href="https://bukgu.gwangju.kr/form.pdf">Internal Form</a>'
+        '<a href="https://evil.example/evil.pdf">Evil PDF</a>'
+        "</nav></body></html>"
+    )
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        return html, None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    assert result["stats"]["attachment_count"] == 1  # only internal
+    att_urls = {a["url"] for a in result["homepage"]["attachment_links"]}
+    assert "https://bukgu.gwangju.kr/form.pdf" in att_urls
+    assert "https://evil.example/evil.pdf" not in att_urls
+
+    docs = DocumentIndexer().build_index(result)
+    doc_urls = [d.get("url") for d in docs]
+    assert "https://evil.example/evil.pdf" not in doc_urls
+    assert "https://bukgu.gwangju.kr/form.pdf" in doc_urls
+
+
+def test_mapper_external_attachment_bounded_diagnostic():
+    """C6: when a homepage nav/attachment is scope-rejected, a bounded
+    deterministic diagnostic appears in rejected_urls.  The diagnostic
+    contains only url, reason, and allowed_domains — no response body,
+    credential, or unbounded attacker data."""
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    html = (
+        "<html><body><nav>"
+        '<a href="https://evil.example/evil.pdf">Evil PDF</a>'
+        '<a href="https://alien.example/page">Alien Nav</a>'
+        "</nav></body></html>"
+    )
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        return html, None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    rejected = result.get("rejected_urls", [])
+    assert len(rejected) >= 2
+    for entry in rejected:
+        assert "url" in entry
+        assert "reason" in entry
+        assert entry["reason"] == "homepage_navigation"
+        assert "allowed_domains" in entry
+        # Bounded diagnostic: no body, no credential, no secret
+        assert "body" not in entry
+        assert "credential" not in entry
+        assert "secret" not in entry
+        assert "Authorization" not in str(entry)
+    reasons = [e["url"] for e in rejected]
+    assert "https://evil.example/evil.pdf" in reasons
+    assert "https://alien.example/page" in reasons
+
+
+def test_mapper_rejected_urls_diagnostics_no_secret_leak():
+    """Across multiple rejection types in rejected_urls, no entry contains
+    attacker-controlled body content, credentials, or secrets."""
+    policy = _scope_policy(["bukgu.gwangju.kr"])
+    mapper = HomepageMapper(acquisition_policy=policy)
+    html = "<html><body><nav><a href='https://evil.example/page'>Evil</a></nav></body></html>"
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "Sitemap: https://bukgu.gwangju.kr/sitemap.xml", None, 200, url
+        return html, None, 200, url
+
+    def fake_parse(xml):
+        return {"error": "", "sitemaps": ["https://evil.example/nested.xml"], "urls": [
+            {"url": "https://evil.example/loc"},
+        ]}
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse", side_effect=fake_parse):
+        result = mapper.build_map("https://bukgu.gwangju.kr/")
+
+    rejected = result.get("rejected_urls", [])
+    seen_reasons = set()
+    for entry in rejected:
+        seen_reasons.add(entry["reason"])
+        assert isinstance(entry["url"], str)
+        assert isinstance(entry["reason"], str)
+        assert isinstance(entry["allowed_domains"], list)
+        for key in entry:
+            assert key in ("url", "reason", "allowed_domains")
+            val = entry[key]
+            val_str = str(val)
+            assert "secret" not in val_str.lower()
+            assert "credential" not in val_str.lower()
+            assert "Authorization" not in val_str
+    assert len(seen_reasons) >= 1
+
+
+# ======================================================================
+# #1293: preserve location discovery evidence through mapper + indexer.
+# Offline/static only; no provider, DNS, or external network execution.
+# ======================================================================
+
+def test_location_category_priority_is_explicit_and_ordered():
+    from src.crawler.url_classifier import CATEGORY_PRIORITY
+
+    ordered = [
+        "document",
+        "apply",
+        "notice",
+        "board",
+        "contact",
+        "location",
+        "menu",
+        "unknown",
+    ]
+    assert all(
+        CATEGORY_PRIORITY[left] > CATEGORY_PRIORITY[right]
+        for left, right in zip(ordered, ordered[1:])
+    )
+
+
+def test_location_navigation_and_sitemap_survive_mapper_stats_and_indexer():
+    from src.indexer.document_indexer import DocumentIndexer
+
+    mapper = HomepageMapper()
+    homepage_html = (
+        "<html><head><title>Home</title></head><body><nav>"
+        '<a href="/map">오시는길</a>'
+        '<a href="/about">소개</a>'
+        "</nav></body></html>"
+    )
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        if url.endswith(".xml"):
+            return "<urlset/>", None, 200, url
+        return homepage_html, None, 200, url
+
+    parsed_sitemap = {
+        "error": "",
+        "sitemaps": [],
+        "urls": [
+            {"url": "https://example.com/parking"},
+            {"url": "https://example.com/misc"},
+        ],
+    }
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse", return_value=parsed_sitemap):
+        result = mapper.build_map("https://example.com/")
+
+    assert result["categories"]["location"] == [
+        "https://example.com/map",
+        "https://example.com/parking",
+    ]
+    assert result["categories"]["menu"] == ["https://example.com/about"]
+    assert result["categories"]["unknown"] == ["https://example.com/misc"]
+    assert result["stats"]["category_counts"]["location"] == 2
+    assert result["stats"]["category_counts"]["menu"] == 1
+    assert result["stats"]["category_counts"]["unknown"] == 1
+
+    docs = {doc["url"]: doc for doc in DocumentIndexer().build_index(result)}
+    assert docs["https://example.com/map"]["category"] == "location"
+    assert docs["https://example.com/parking"]["category"] == "location"
+    assert docs["https://example.com/about"]["category"] == "menu"
+    assert docs["https://example.com/misc"]["category"] == "unknown"
+
+
+def test_mapper_unsupported_category_still_degrades_to_unknown():
+    mapper = HomepageMapper()
+    homepage_html = (
+        "<html><head><title>Home</title></head><body><nav>"
+        '<a href="/future">Future</a>'
+        "</nav></body></html>"
+    )
+
+    def fake_fetch_content(url, retries=1):
+        if url.endswith("/robots.txt"):
+            return "", None, 200, url
+        if url.endswith(".xml"):
+            return "<urlset/>", None, 200, url
+        return homepage_html, None, 200, url
+
+    with patch.object(mapper, "fetch_content", side_effect=fake_fetch_content), \
+         patch.object(mapper.sitemap_parser, "parse",
+                      return_value={"error": "", "sitemaps": [], "urls": []}), \
+         patch("src.crawler.homepage_mapper.classify_url", return_value="future_category"):
+        result = mapper.build_map("https://example.com/")
+
+    assert result["categories"]["unknown"] == ["https://example.com/future"]
+    assert result["stats"]["category_counts"]["unknown"] == 1

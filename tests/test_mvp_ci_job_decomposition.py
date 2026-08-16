@@ -41,6 +41,7 @@ EXPECTED_TIMEOUT_MINUTES = {
 
 EXPECTED_TEST_STEPS = {
     "Run MVP contract pytest suite",
+    "Run acquisition-scope contract suites (#1294)",
     "Run canonical official snapshot contracts",
     "Run Buk-gu golden docs contract (#1188)",
     "Run site adapter contract matrix (#1221)",
@@ -61,6 +62,7 @@ EXPECTED_TEST_STEPS = {
     "Run two-stage bilingual draft browser contract",
     "Run Cloudflare MVP Function contract test",
     "Run Page Agent lab Python contracts (full suite)",
+    "Run Page Agent schema safety contract (#1291)",
     "Run Page Agent lab runtime verification",
     "Run Page Agent lab browser E2E",
     "Run Page Agent comparison contract tests (full suite)",
