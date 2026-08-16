@@ -203,7 +203,6 @@ generated structural preview
 4. asset mapping
 5. interaction parity
 6. visual review
-
 7. clone MVP ready
 8. exact/resident-default promotion when explicitly requested
 
