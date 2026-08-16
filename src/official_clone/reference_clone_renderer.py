@@ -1817,6 +1817,42 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     if muted_c:
         rules.append(".rc-loc{color:%s;}" % muted_c)
 
+    # Organization-chart + staff-directory surfaces reuse the shared board
+    # content family. The new blocks are non-fidelity presentation defaults
+    # (structural/legibility only); measured colors are reused where available
+    # and no guessed radius/max-width/breakpoint is introduced.
+    org_border = border or "#dcdcdc"
+    rules.append(".rc-org-chart{margin-top:24px;}")
+    rules.append(".rc-org-section{margin-bottom:32px;}")
+    rules.append(
+        f".rc-org-section-title{{font-size:{nd['section_title_size_px']}px;"
+        f"font-weight:700;margin:0 0 12px;}}"
+    )
+    rules.append(".rc-org-tree{list-style:none;margin:0;padding:0;}")
+    rules.append(".rc-org-node{margin:0;padding:4px 0;}")
+    rules.append(
+        f".rc-org-children{{list-style:none;margin:0 0 0 24px;padding:0;"
+        f"border-left:1px solid {org_border};}}"
+    )
+    rules.append(
+        f".rc-org-label{{display:inline-block;padding:4px 10px;"
+        f"background:#f5f5f5;border:1px solid {org_border};}}"
+    )
+    rules.append(
+        f".rc-staff-search{{display:flex;flex-wrap:wrap;gap:10px;align-items:center;"
+        f"margin:16px 0;}}"
+    )
+    rules.append(".rc-staff-field{display:inline-flex;align-items:center;}")
+    rules.append(
+        f".rc-staff-select,.rc-staff-input{{font-size:{nd['small_font_size_px']}px;"
+        f"padding:6px 8px;border:1px solid {org_border};background:#ffffff;}}"
+    )
+    rules.append(
+        f".rc-staff-btn{{font-size:{nd['small_font_size_px']}px;padding:6px 14px;"
+        f"border:1px solid {org_border};background:#f5f5f5;cursor:default;}}"
+    )
+    rules.append(".rc-staff-table{margin-top:8px;}")
+
     return "\n".join(rules)
 
 
@@ -2037,8 +2073,10 @@ def _render_main(
         return _render_detail_main(model, state, family, title, route_prefix)
     if content == "list":
         return _render_list_main(model, state, family, title, route_prefix)
-    if content in ("chart", "directory"):
-        return _render_org_staff_main(state)
+    if content == "chart":
+        return _render_organization_main(model, state, route_prefix)
+    if content == "directory":
+        return _render_staff_directory_main(model, state, route_prefix)
     return _render_home_main(model, state, title, nav, route_prefix)
 
 
@@ -3024,6 +3062,182 @@ def _render_detail_main(
 def _render_org_staff_main(state: dict[str, Any]) -> str:
     label = surface_label(state, {})
     return f'<section aria-label="{_esc(label)}"><h2 class="rc-section-title">{_esc(label)}</h2></section>'
+
+
+# ---------------------------------------------------------------------------
+# Generic organization-chart renderer (nested semantic org DOM)
+# ---------------------------------------------------------------------------
+def _render_org_nodes(nodes: list[dict[str, Any]]) -> str:
+    """Render a nested org forest as semantic nested ``<ul>/<li>`` (inert).
+
+    Node labels are source-backed; the captured local target identity is kept
+    as provenance only and is NOT rendered as a live link (the clone never
+    POSTs to or navigates the official endpoint).
+    """
+    out: list[str] = []
+    for node in nodes:
+        depth = node.get("depth", 1)
+        label = _esc(node.get("label", ""))
+        children = _render_org_nodes(node.get("children", []))
+        inner = f'<span class="rc-org-label">{label}</span>'
+        if children:
+            inner += f'<ul class="rc-org-tree rc-org-children">{children}</ul>'
+        out.append(
+            f'<li class="rc-org-node rc-org-depth-{depth}">{inner}</li>'
+        )
+    return "".join(out)
+
+
+def _render_org_section(section: dict[str, Any]) -> str:
+    title = section.get("title") or ""
+    tree = _render_org_nodes(section.get("nodes", []))
+    return (
+        f'<section class="rc-org-section" aria-label="{_esc(title)}">'
+        f'<h2 class="rc-org-section-title">{_esc(title)}</h2>'
+        f'<ul class="rc-org-tree">{tree}</ul></section>'
+    )
+
+
+def _render_organization_main(
+    model: dict[str, Any], state: dict[str, Any], route_prefix: str
+) -> str:
+    breadcrumb_html, location_html, snb_html = _board_nav_html(state)
+    org = state.get("organization") or {}
+    sections_html = "".join(_render_org_section(s) for s in org.get("sections", []))
+    surface_label_text = surface_label(state, model)
+    context_html = _subpage_context_html(breadcrumb_html, location_html)
+    tools_html = _render_surface_tools(state)
+    page_head = (
+        f'<div class="rc-page-head"><h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
+        f"{tools_html}</div>"
+    )
+    content_html = (
+        f"{context_html}{page_head}"
+        f'<div class="rc-org-chart" aria-label="{_esc(surface_label_text)}">{sections_html}</div>'
+    )
+    return _wrap_subpage(snb_html, content_html)
+
+
+# ---------------------------------------------------------------------------
+# Generic staff-directory renderer (inert search form + source-backed table)
+# ---------------------------------------------------------------------------
+def _render_staff_search_form(sd: dict[str, Any]) -> str:
+    """Render the staff search controls as a read-only, inert form.
+
+    The source form is ``method=POST`` to the official endpoint; the clone
+    renders the controls (department select, search-field select, keyword
+    input, search button) as provenance-backed inert controls with no
+    ``action`` and ``onsubmit="return false"`` so no request is ever issued.
+    """
+    dept = sd.get("department_selector") or {}
+    field = sd.get("search_field_selector") or {}
+    inp = sd.get("search_input") or {}
+    btn = sd.get("search_button") or {}
+
+    dept_opts = "".join(
+        f'<option value="{_esc(o.get("value", ""))}"'
+        f'{" selected" if o.get("value") == "" else ""}>{_esc(o.get("label", ""))}</option>'
+        for o in dept.get("options", [])
+    )
+    field_opts = "".join(
+        f'<option value="{_esc(o.get("value", ""))}">{_esc(o.get("label", ""))}</option>'
+        for o in field.get("options", [])
+    )
+    ph = _esc(inp.get("placeholder") or "")
+    btn_label = _esc(btn.get("label") or "검색")
+
+    parts = [
+        f'<span class="rc-staff-field"><select class="rc-staff-select" disabled '
+        f'aria-disabled="true">{dept_opts}</select></span>',
+        f'<span class="rc-staff-field"><select class="rc-staff-select" disabled '
+        f'aria-disabled="true">{field_opts}</select></span>',
+        f'<span class="rc-staff-field"><input type="text" class="rc-staff-input" '
+        f'placeholder="{ph}" disabled aria-disabled="true"></span>',
+        f'<span class="rc-staff-field"><button type="button" class="rc-staff-btn" '
+        f'disabled aria-disabled="true">{btn_label}</button></span>',
+    ]
+    return (
+        f'<form class="rc-staff-search" aria-label="직원 검색" onsubmit="return false">'
+        f'{"".join(parts)}</form>'
+    )
+
+
+def _render_staff_table(sd: dict[str, Any]) -> str:
+    table = sd.get("table") or {}
+    columns = table.get("columns") or []
+    rows = table.get("rows") or []
+    col_widths = table.get("col_widths") or []
+    caption = table.get("caption")
+
+    head_cells = "".join(
+        f'<th scope="col" class="rc-th rc-col-{_esc(c)}">{_esc(c)}</th>' for c in columns
+    )
+    colgroup = ""
+    if col_widths:
+        cols = [
+            f'<col style="width:{int(w)}%">' if isinstance(w, int) and w > 0 else "<col>"
+            for w in col_widths
+        ]
+        colgroup = f'<colgroup>{"".join(cols)}</colgroup>'
+    caption_html = (
+        f'<caption class="sr_only">{_esc(caption)}</caption>' if caption else ""
+    )
+    body_rows = []
+    for row in rows:
+        cells = row.get("cells") or {}
+        tds = "".join(
+            f'<td class="rc-td rc-col-{_esc(c)}">{_esc(cells.get(c) or "")}</td>'
+            for c in columns
+        )
+        body_rows.append(f'<tr class="rc-board-row">{tds}</tr>')
+    return (
+        f'<table class="rc-board rc-staff-table" aria-label="직원 목록">'
+        f"{colgroup}{caption_html}"
+        f'<thead><tr class="rc-board-head">{head_cells}</tr></thead>'
+        f'<tbody>{"".join(body_rows)}</tbody></table>'
+    )
+
+
+def _render_staff_directory_main(
+    model: dict[str, Any], state: dict[str, Any], route_prefix: str
+) -> str:
+    breadcrumb_html, location_html, snb_html = _board_nav_html(state)
+    sd = state.get("staff_directory") or {}
+    form_html = _render_staff_search_form(sd) if sd else ""
+
+    rc = sd.get("result_count") or {}
+    pi = sd.get("pagination_info") or {}
+    summary_parts = []
+    if rc.get("label"):
+        summary_parts.append(_esc(rc["label"]))
+    if pi.get("label"):
+        summary_parts.append(_esc(pi["label"]))
+    summary_html = (
+        f'<p class="rc-board-summary">{" · ".join(summary_parts)}</p>'
+        if summary_parts else ""
+    )
+
+    table_html = _render_staff_table(sd) if sd else ""
+    pager = sd.get("pager") or {}
+    pagination_html = _render_board_pagination(
+        {
+            "page_total": pi.get("total_pages"),
+            "page_current": pi.get("current_page"),
+        },
+        {"pages": pager.get("pages"), "current_page": pager.get("current_page")},
+    )
+
+    surface_label_text = surface_label(state, model)
+    context_html = _subpage_context_html(breadcrumb_html, location_html)
+    tools_html = _render_surface_tools(state)
+    page_head = (
+        f'<div class="rc-page-head"><h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
+        f"{tools_html}</div>"
+    )
+    content_html = (
+        f"{context_html}{page_head}{form_html}{summary_html}{table_html}{pagination_html}"
+    )
+    return _wrap_subpage(snb_html, content_html)
 
 
 def _evidence_json(state: dict[str, Any]) -> str:

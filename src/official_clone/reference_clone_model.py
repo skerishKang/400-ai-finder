@@ -896,6 +896,375 @@ def _extract_board_pagination(html: str) -> dict[str, Any] | None:
     }
 
 
+# ---------------------------------------------------------------------------
+# Generic organization-chart vocabulary (nested org nodes, separate sections)
+# ---------------------------------------------------------------------------
+# A committed G1 org-chart surface renders its hierarchy as one or more
+# ``<div class="org_chart...">`` containers, each preceded by a section
+# ``<h2 class="dep01 ...">`` title. Inside each container the hierarchy is a
+# nested ``<ul>/<li>/<a>`` tree; depth is derived from the <ul> nesting level
+# (a generic municipal-org-chart convention, not a site literal). Each node
+# link carries a captured local/read-only target identity (the ``org_cd``
+# query parameter) so the renderer can show provenance without POSTing.
+_ORG_CHART_CLASS_RE = re.compile(r"^(?:org_chart\d*|chart3)$")
+_ORG_SECTION_H2_RE = re.compile(r"\bdep0?1\b")
+_ORG_TARGET_ID_PARAMS = ("org_cd", "orgnztUpperId")
+
+
+def _org_target_identity(href: str) -> str | None:
+    """Return the read-only local target identity (org_cd) from a node href."""
+    if not href:
+        return None
+    try:
+        params = parse_qs(urlsplit(href).query)
+    except Exception:
+        return None
+    for param in _ORG_TARGET_ID_PARAMS:
+        vals = params.get(param)
+        if vals and vals[0]:
+            return vals[0]
+    return None
+
+
+class _OrganizationChartParser(HTMLParser):
+    """Generic nested org-chart extractor (no site literals).
+
+    Walks committed G1 DOM for ``org_chart`` containers. The most recent
+    ``<h2 class="dep01 ...">`` title becomes the section title; inside each
+    container the nested ``<ul>/<li>/<a>`` tree becomes a forest. Depth is the
+    nesting level of the ``<li>``'s containing ``<ul>``. Because a parent
+    ``<li>`` closes only after its descendants, an open-``<li>`` stack (not a
+    finalized-node stack) is used to attach each node to its nearest shallower
+    ancestor. Each node carries its own accumulating label/href so nested
+    ``<li>`` elements never clobber one another. Empty spacer items (e.g.
+    ``depth00``) produce no node.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.sections: list[dict[str, Any]] = []
+        self._div_stack: list[bool] = []
+        self._in_org = False
+        self._last_dep01_title = ""
+        self._in_dep01_h2 = False
+        self._dep01_buf: list[str] = []
+        self._current: dict[str, Any] | None = None
+        self._ul_depth = 0
+        self._open_stack: list[dict[str, Any]] = []
+
+    def _cls(self, attrs) -> str:
+        for k, v in attrs:
+            if k.lower() == "class":
+                return v or ""
+        return ""
+
+    def _start_org_section(self, title: str) -> None:
+        self._current = {"title": title, "nodes": []}
+        self._ul_depth = 0
+        self._open_stack = []
+
+    def _finish_org_section(self) -> None:
+        if self._current is not None and self._current.get("nodes"):
+            self.sections.append(self._current)
+        self._current = None
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        cls = self._cls(attrs)
+        if tag == "div":
+            is_org = any(_ORG_CHART_CLASS_RE.fullmatch(t) for t in cls.split())
+            self._div_stack.append(is_org)
+            if is_org:
+                self._in_org = True
+                self._start_org_section(self._last_dep01_title)
+            return
+        if tag == "h2" and _ORG_SECTION_H2_RE.search(cls) and not self._in_org:
+            self._in_dep01_h2 = True
+            self._dep01_buf = []
+            return
+        if not self._in_org:
+            return
+        if tag == "ul":
+            self._ul_depth += 1
+        elif tag == "li":
+            self._open_stack.append({
+                "label": "",
+                "depth": self._ul_depth,
+                "target_identity": None,
+                "target_url": None,
+                "children": [],
+            })
+        elif tag == "a" and self._open_stack:
+            href = next((v for k, v in attrs if k.lower() == "href"), "") or ""
+            top = self._open_stack[-1]
+            top["target_url"] = href
+            top["target_identity"] = _org_target_identity(href)
+
+    def handle_data(self, data):
+        if self._in_dep01_h2:
+            self._dep01_buf.append(data)
+        elif self._in_org and self._open_stack:
+            self._open_stack[-1]["label"] += data
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag == "div":
+            if self._div_stack:
+                was_org = self._div_stack.pop()
+                if was_org:
+                    self._finish_org_section()
+                    self._in_org = bool(self._div_stack and self._div_stack[-1])
+            return
+        if tag == "h2" and self._in_dep01_h2:
+            self._in_dep01_h2 = False
+            self._last_dep01_title = "".join(self._dep01_buf).strip()
+            self._dep01_buf = []
+            return
+        if not self._in_org:
+            return
+        if tag == "ul":
+            if self._ul_depth > 0:
+                self._ul_depth -= 1
+        elif tag == "li" and self._open_stack:
+            node = self._open_stack.pop()
+            node["label"] = node["label"].strip()
+            if node["label"]:
+                parent = None
+                for ancestor in reversed(self._open_stack):
+                    if ancestor["depth"] < node["depth"]:
+                        parent = ancestor
+                        break
+                if parent is not None:
+                    parent["children"].append(node)
+                elif self._current is not None:
+                    self._current["nodes"].append(node)
+
+
+def _extract_organization(html: str) -> dict[str, Any] | None:
+    """Extract the generic organization-chart block, or ``None``.
+
+    Returns ``{"kind": "organization", "sections": [...]}`` only when the
+    committed G1 DOM contains at least one generic ``org_chart`` container.
+    Node labels / depths / target identities are source-backed; no site
+    literal is hard-coded.
+    """
+    if not html:
+        return None
+    parser = _OrganizationChartParser()
+    parser.feed(html)
+    if not parser.sections:
+        return None
+    return {"kind": "organization", "sections": parser.sections}
+
+
+# ---------------------------------------------------------------------------
+# Generic staff-directory vocabulary (dept select / search / table / pager)
+# ---------------------------------------------------------------------------
+# A committed G1 staff-directory surface exposes a search ``<form>`` (method
+# POST in the source) with a department ``<select name="org_cd">``, a
+# search-field ``<select name="keyField">``, a keyword ``<input name="keyWord">``
+# and a ``tstyle_list`` result table. The clone renders this as a read-only,
+# inert surface (no POST to the official endpoint); the form metadata is kept
+# as provenance only.
+_STAFF_DEPT_SELECT_RE = re.compile(r'name\s*=\s*["\']org_cd["\']')
+_STAFF_TABLE_RE = re.compile(r"부서명")
+
+
+class _StaffFormParser(HTMLParser):
+    """Generic staff-search form extractor (no site literals).
+
+    Captures the surrounding ``<form>`` method/action (provenance only), the
+    department selector (``org_cd``) and search-field selector (``keyField``)
+    option lists, the keyword input and the search button. The form that
+    actually owns the ``org_cd`` select is recorded so the header search form
+    is not mistaken for it.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._form_stack: list[tuple[str | None, str | None]] = []
+        self._in_form = False
+        self._select_name: str | None = None
+        self._select_title: str | None = None
+        self._select_options: list[dict[str, str]] | None = None
+        self._option_value: str | None = None
+        self._option_buf: list[str] = []
+        self._in_option = False
+        self._in_keyword = False
+        self.department_selector: dict[str, Any] | None = None
+        self.search_field_selector: dict[str, Any] | None = None
+        self.search_input: dict[str, Any] | None = None
+        self.search_button: dict[str, Any] | None = None
+        self.form_method: str | None = None
+        self.form_action: str | None = None
+
+    def _attr(self, attrs, name: str) -> str | None:
+        for k, v in attrs:
+            if k.lower() == name:
+                return v or ""
+        return None
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag == "form":
+            self._in_form = True
+            self._form_stack.append(
+                (self._attr(attrs, "method"), self._attr(attrs, "action"))
+            )
+            return
+        if not self._in_form:
+            return
+        if tag == "select":
+            self._select_name = self._attr(attrs, "name")
+            self._select_title = self._attr(attrs, "title") or ""
+            self._select_options = []
+            return
+        if tag == "option" and self._select_name:
+            self._option_value = self._attr(attrs, "value") or ""
+            self._option_buf = []
+            self._in_option = True
+            return
+        if tag == "input" and self._attr(attrs, "name") == "keyWord":
+            self.search_input = {
+                "name": "keyWord",
+                "placeholder": self._attr(attrs, "placeholder"),
+                "title": self._attr(attrs, "title"),
+            }
+            return
+        if tag == "button":
+            self._in_keyword = True
+            self._option_buf = []
+            self._in_option = True
+            return
+
+    def handle_data(self, data):
+        if self._in_option:
+            self._option_buf.append(data)
+
+    def _finalize_select(self) -> None:
+        opts = [
+            {"value": o["value"], "label": o["label"]}
+            for o in (self._select_options or [])
+        ]
+        label = None
+        for o in opts:
+            if o["value"] == "":
+                label = o["label"] or None
+                break
+        if label is None:
+            label = self._select_title or None
+        sel = {"name": self._select_name, "label": label, "options": opts}
+        if self._select_name == "org_cd":
+            self.department_selector = sel
+            if self._form_stack:
+                self.form_method, self.form_action = self._form_stack[-1]
+        elif self._select_name == "keyField":
+            self.search_field_selector = sel
+        self._select_name = None
+        self._select_title = None
+        self._select_options = None
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag == "form":
+            self._in_form = False
+            if self._form_stack:
+                self._form_stack.pop()
+            return
+        if not self._in_form:
+            return
+        if tag == "select" and self._select_name:
+            self._finalize_select()
+            return
+        if tag == "option" and self._in_option:
+            label = "".join(self._option_buf).strip()
+            self._select_options.append(
+                {"value": self._option_value or "", "label": label}
+            )
+            self._in_option = False
+            self._option_buf = []
+            self._option_value = None
+            return
+        if tag == "button" and self._in_keyword:
+            self.search_button = {"label": "".join(self._option_buf).strip()}
+            self._in_keyword = False
+            self._option_buf = []
+            self._in_option = False
+            return
+
+
+def _extract_staff_directory(html: str) -> dict[str, Any] | None:
+    """Extract the generic staff-directory block, or ``None``.
+
+    Requires both a department ``org_cd`` select and a ``부서명`` result table
+    (generic municipal-directory markers). The result table/pager are taken
+    from the generic board-list extraction; the search form selectors, keyword
+    input, button and point-in-time count/page summary are source-backed.
+    """
+    if not html:
+        return None
+    if not _STAFF_DEPT_SELECT_RE.search(html) or not _STAFF_TABLE_RE.search(html):
+        return None
+    board = _extract_board(html)
+    if not board or board.get("kind") != "list":
+        return None
+    form = _StaffFormParser()
+    form.feed(html)
+
+    # The count/page summary is wrapped in markup (e.g. ``전체 <b>1,322건</b>``);
+    # strip tags so the numeric summary can be matched generically.
+    plain = re.sub(r"<[^>]+>", "", html)
+    total: int | None = None
+    m = re.search(r"전체\s*([\d,]+)\s*건", plain)
+    if m:
+        total = int(m.group(1).replace(",", ""))
+    page_current: int | None = None
+    page_total: int | None = None
+    m = re.search(r"현재\s*페이지\s*(\d+)\s*/\s*(\d+)", plain)
+    if not m:
+        m = re.search(r"페이지\s*(\d+)\s*/\s*(\d+)", plain)
+    if m:
+        page_current, page_total = int(m.group(1)), int(m.group(2))
+
+    pagination = board.get("pagination") or {}
+    return {
+        "kind": "staff_directory",
+        "form": {
+            "method": form.form_method,
+            "action": form.form_action,
+            "inert": True,
+            "note": "source form is method=POST; clone renders inert (no POST)",
+        },
+        "department_selector": form.department_selector,
+        "search_field_selector": form.search_field_selector,
+        "search_input": form.search_input,
+        "search_button": form.search_button,
+        "result_count": {
+            "total": total,
+            "label": f"전체 {total:,}건" if total is not None else None,
+        },
+        "pagination_info": {
+            "current_page": page_current,
+            "total_pages": page_total,
+            "label": (
+                f"현재 페이지 {page_current}/{page_total}"
+                if page_current is not None and page_total is not None
+                else None
+            ),
+        },
+        "table": {
+            "caption": board.get("caption"),
+            "col_widths": board.get("col_widths"),
+            "columns": board.get("columns"),
+            "rows": board.get("rows"),
+        },
+        "pager": {
+            "pages": pagination.get("pages"),
+            "current_page": pagination.get("current_page"),
+        },
+    }
+
+
 class _AnchorCollector(HTMLParser):
     """Collect (href, text) anchor pairs in document order, fully offline."""
 
@@ -1356,8 +1725,16 @@ def build_reference_clone_model(
         # extracted at DESIGN time from the committed G1 DOM. Absent for states
         # whose captured HTML contains no generic board template.
         board: dict[str, Any] | None = None
+        # Generic organization-chart vocabulary (nested org nodes, separate
+        # sections) and staff-directory vocabulary (dept select / search /
+        # table / pager). Both are source-backed and absent when the captured
+        # DOM contains no such generic surface.
+        organization: dict[str, Any] | None = None
+        staff_directory: dict[str, Any] | None = None
         if html_path is not None and html_path.is_file():
             board = _extract_board(html)
+            organization = _extract_organization(html)
+            staff_directory = _extract_staff_directory(html)
 
         states.append(
             {
@@ -1381,6 +1758,8 @@ def build_reference_clone_model(
                 "download_references": download_references,
                 "attachment_document_extensions": document_extensions,
                 "board": board,
+                "organization": organization,
+                "staff_directory": staff_directory,
                 "public_assets": captured.get("public_assets", []),
                 "exceptions": captured.get("exceptions", []),
                 "artifacts": artifacts,

@@ -641,6 +641,88 @@ def test_org_staff_render_label_without_gap_text_or_fake_ui():
     assert "직원 업무안내" in staff
 
 
+# ── #1325 generic organization / staff_directory rendering ──────────────────
+def test_org_renders_nested_semantic_dom():
+    model = _load_model()
+    html = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
+    # Nested semantic org DOM (not a flat text list).
+    assert 'class="rc-org-tree"' in html
+    assert "rc-org-children" in html
+    assert "rc-org-depth-3" in html
+    assert "rc-org-depth-2" in html
+    # Captured hierarchy labels visible.
+    assert "구청장" in html
+    assert "부구청장" in html
+    assert "기획실" in html
+    assert "의회사무국" in html
+    assert "행정복지센터" in html
+    # Separate organization sections preserved as labelled regions.
+    assert "rc-org-section" in html
+    # No live links: node target identity is provenance only, not navigated.
+    assert "tel:" not in html
+    assert "organizationView.es" not in html
+
+
+def test_staff_renders_search_and_table_dom():
+    model = _load_model()
+    html = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
+    # Search controls + table + count + pager all present.
+    assert "rc-staff-search" in html
+    assert "rc-staff-select" in html
+    assert "rc-staff-input" in html
+    assert "rc-staff-table" in html
+    assert "전체 1,322건" in html
+    assert "현재 페이지 1/133" in html
+    for col in ("부서명", "직책", "전화번호", "담당업무"):
+        assert col in html
+    # Captured rows (verbatim) rendered; phone as inert text, not a tel: link.
+    assert "062-360-7201" in html
+    assert "tel:" not in html
+    # Department options captured verbatim.
+    assert "구청장" in html and "양동" in html
+
+
+def test_no_screenshot_runtime_org_staff():
+    model = _load_model()
+    for sid in ("organization.chart.desktop", "staff.directory.desktop"):
+        html = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        # No <img> screenshot consumption; evidence stays hidden JSON.
+        assert "<img" not in html or "source.png" not in html
+        assert 'id="rc-evidence"' in html
+
+
+def test_no_active_external_post_org_staff():
+    model = _load_model()
+    for sid in ("organization.chart.desktop", "staff.directory.desktop"):
+        html = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        # No active action to the official endpoint (no POST, no external URL).
+        assert 'action="/organization.es' not in html
+        assert 'action="http' not in html
+        assert "organizationView.es" not in html
+        if sid == "staff.directory.desktop":
+            # The staff search form is rendered inert: onsubmit aborts submission.
+            assert 'onsubmit="return false"' in html
+            # Search affordances are inert (disabled) controls.
+            assert html.count('aria-disabled="true"') >= 1
+
+
+def test_lifecycle_fail_closed_org_staff():
+    """Org/staff surfaces inherit the G3 fail-closed lifecycle (not promoted)."""
+    model = _load_model()
+    for sid in ("organization.chart.desktop", "staff.directory.desktop"):
+        html = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        assert 'id="rc-lifecycle"' in html
+        start = html.index('id="rc-lifecycle"')
+        end = html.index("</script>", start)
+        payload = json.loads(html[start:end].split(">", 1)[1])
+        assert payload["faithful_clone_candidate"] is False
+        assert payload["visual_review"] == "pending"
+        assert payload["clone_mvp_ready"] is False
+        assert payload["golden"] is False
+        assert payload["actual_site_integrated"] is False
+        assert payload["asset_byte_fidelity_complete"] is False
+
+
 # ── Second synthetic site: same generic renderer ────────────────────────
 def _make_state(state_id, title, **over):
     family, _dev, content = mod.parse_state_id(state_id)

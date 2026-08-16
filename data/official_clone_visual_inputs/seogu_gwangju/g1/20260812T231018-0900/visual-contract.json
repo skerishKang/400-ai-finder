@@ -3,7 +3,7 @@
   "contract_kind": "visual_input",
   "site_id": "seogu_gwangju",
   "capture_id": "20260812T231018-0900",
-  "model_checksum": "53d18c4134700e23658fc37b56c60dc27eb0399515a5b988e2178309988a6850",
+  "model_checksum": "636f87d625f56028793d06d0574bf8902ea230d161ae2b5c158266fdf327a763",
   "note": "Provenance-backed measurements from the immutable committed G1 capture evidence. Every non-null value is traced 1:1 to a captured state, the committed screenshot SHA it was measured from, the measurement method, the unit, and the evidence type. Values that cannot be safely measured remain null and are listed in gaps. typography.font_family uses asset_provenance evidence (fetched font assets), not screenshot pixels. border.width is the measured pixel thickness of the footer separator line. Renderer-only non-fidelity presentation defaults (font-size, font-weight, border-style, focus outline, underline, radius, breakpoint) are NOT counted as official-site fidelity evidence. #1310 re-binds header/GNB/footer/home-section geometry to semantic source regions instead of the former dark-band heuristic.",
   "layout": {
     "header": {
