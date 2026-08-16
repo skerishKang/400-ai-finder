@@ -1544,8 +1544,9 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         f".rc-breadcrumb,.rc-location{{font-size:{nd['small_font_size_px']}px;line-height:{nd['body_line_height']};}}"
         ".rc-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;}"
         ".rc-breadcrumb .rc-crumb-current{font-weight:700;}"
-        ".rc-crumb-sep{display:inline-block;margin:0 4px;color:#999;user-select:none;}"
         ".rc-location{display:flex;flex-wrap:wrap;align-items:center;}"
+        ".sr_only{position:absolute;width:1px;height:1px;overflow:hidden;"
+        "clip:rect(0 0 0 0);white-space:nowrap;}"
         "/* The source renders the board location hierarchy as a visually "
         "hidden .blind legend (screen-reader only); keep it in the a11y tree "
         "but out of the visible composition. */"
@@ -1574,9 +1575,6 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         "table.rc-board td{text-align:center;vertical-align:middle;}"
         "table.rc-board .rc-col-제목{text-align:left;}"
         ".rc-list-item{display:block;}"
-        ".rc-new-badge{display:inline-block;padding:2px 6px;margin-right:4px;"
-        "font-size:.85em;font-weight:700;color:#e74c3c;border:1px solid #e74c3c;"
-        "line-height:1.4;vertical-align:middle;}"
         f".rc-pagination{{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;font-size:{nd['small_font_size_px']}px;}}"
         ".rc-pager-inner{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;}"
         ".rc-page-current{font-weight:700;}"
@@ -1591,14 +1589,10 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
         ".rc-attach-name{display:inline-block;}"
         ".rc-attach-meta{display:inline-block;}"
         ".rc-attach{display:inline-block;cursor:not-allowed;}"
-        ".rc-attach-indicator{display:inline-block;padding:2px 6px;"
-        "font-size:.85em;color:#555;border:1px solid #ccc;line-height:1.4;}"
         ".rc-prevnext{display:block;list-style:none;margin:0;padding:0;}"
         ".rc-pn-prev,.rc-pn-next{display:block;}"
-        ".rc-pn-label{display:inline-block;font-weight:700;margin-right:8px;}"
+        ".rc-pn-label{display:inline-block;font-weight:700;}"
         ".rc-pn-item{display:inline-block;}"
-        ".rc-pn-prev{border-bottom:1px solid #ddd;padding:12px 0;}"
-        ".rc-pn-next{padding:12px 0;}"
         ".rc-detail-para{margin:0;}"
         ".rc-detail-image{border:1px dashed #b7b7bc;background:#fafafa;padding:1.25rem;margin:0 0 1em;text-align:center;}"
         ".rc-detail-image-name{display:block;font-weight:700;margin:0 0 .25em;}"
@@ -2426,8 +2420,9 @@ def _board_nav_html(state: dict[str, Any]) -> tuple[str, str, str]:
     active = _board_active_label(state)
     crumbs = []
     for idx, label in enumerate(trail):
-        if idx:
-            crumbs.append('<span class="rc-crumb-sep" aria-hidden="true">›</span>')
+        # No invented visual separator: the source breadcrumb hierarchy is a
+        # sequence of labelled landmarks (홈 → 구정소식 → 공지사항). A literal
+        # "›" glyph is not source-proven, so crumbs stay as discrete spans.
         if idx == len(trail) - 1:
             crumbs.append(
                 f'<span class="rc-crumb rc-crumb-current" aria-current="page">{_esc(label)}</span>'
@@ -2540,11 +2535,14 @@ def _render_board_pagination(
     current = summary.get("page_current") or str(
         board_pagination.get("current_page") if board_pagination else None
     ) or "1"
+    # source DOM uses class="arr first" + text "처음", "arr prev" + "이전",
+    # "arr next" + "다음", "arr last" + "마지막". The visible glyph treatment is
+    # CSS-driven (an icon font / sprite) and is NOT materialized in the controlled
+    # clone asset set, so we render only the source-backed text labels and drop
+    # the invented literal « ‹ › » glyphs (no provenance, no external request).
     items = [
-        '<button type="button" class="rc-page" disabled aria-disabled="true">'
-        '<span aria-hidden="true">«</span> 처음</button>',
-        '<button type="button" class="rc-page" disabled aria-disabled="true">'
-        '<span aria-hidden="true">‹</span> 이전</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">처음</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">이전</button>',
     ]
     if pages:
         for page in pages:
@@ -2564,10 +2562,8 @@ def _render_board_pagination(
             f'disabled aria-disabled="true">{_esc(current)}</button>'
         )
     items.extend([
-        '<button type="button" class="rc-page" disabled aria-disabled="true">'
-        '다음 <span aria-hidden="true">›</span></button>',
-        '<button type="button" class="rc-page" disabled aria-disabled="true">'
-        '마지막 <span aria-hidden="true">»</span></button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">다음</button>',
+        '<button type="button" class="rc-page" disabled aria-disabled="true">마지막</button>',
     ])
     suffix = f' / {_esc(total)}' if total else ""
     return (
@@ -2652,8 +2648,18 @@ def _render_list_main(
                 if col == "제목":
                     value = cells.get(col) or ""
                     if row.get("is_new"):
+                        # Source DOM: <i class="xi-new"></i><span class="sr_only">새글</span>
+                        # followed by the title. The xi-new glyph is an XEIcon
+                        # font treatment whose body bytes are not materialized in
+                        # the controlled clone asset set (TECHNICAL_CAPTURE_GAP),
+                        # so we emit the source element + screen-reader "새글"
+                        # label and do NOT fabricate a visible bordered chip.
                         clean_title = re.sub(r"^새글\s*", "", value).strip()
-                        cell_text = f'<span class="rc-new-badge">새글</span> {_esc(clean_title)}'
+                        cell_text = (
+                            f'<i class="xi-new" aria-hidden="true"></i>'
+                            f'<span class="sr_only">새글</span> '
+                            f'{_esc(clean_title)}'
+                        )
                     else:
                         cell_text = _esc(value)
                     if links_to_detail:
@@ -2671,10 +2677,16 @@ def _render_list_main(
                             f'role="link" tabindex="-1">{cell_text}</span></td>'
                         )
                 elif col == "첨부파일" and row.get("attachment_count"):
+                    # Source renders an attachment icon (e.g. /upload/skin/board/
+                    # basic/attach.png) whose body bytes are not materialized in
+                    # the controlled clone asset set (TECHNICAL_CAPTURE_GAP). We
+                    # preserve the attachment count semantics without fabricating
+                    # a visible bordered chip or any external/relative asset URL.
+                    count = row["attachment_count"]
                     cell_html.append(
                         f'<td class="rc-td rc-col-{_esc(col)}">'
-                        f'<span class="rc-attach-indicator" aria-label="첨부파일 {row["attachment_count"]}개">'
-                        f'첨부 {row["attachment_count"]}</span></td>'
+                        f'<span class="rc-attach-count sr_only" '
+                        f'aria-label="첨부파일 {count}개">첨부파일 {count}개</span></td>'
                     )
                 else:
                     cell_html.append(
