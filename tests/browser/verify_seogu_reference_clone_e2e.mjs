@@ -329,13 +329,59 @@ async function main() {
       }
     }
 
-    // ── organization / staff reachable ───────────────────────────────────
-    for (const route of ["organization/", "staff/"]) {
-      const res = await fetch(BASE + route);
-      assert.strictEqual(res.status, 200, `${route} not reachable`);
-      await page.goto(BASE + route, { waitUntil: "networkidle", timeout: 15000 });
+    // ── organization / staff reachable + fidelity ─────────────────────────
+    // organization chart: nested semantic hierarchy present.
+    {
+      const res = await fetch(BASE + "organization/");
+      assert.strictEqual(res.status, 200, "organization/ not reachable");
+      await page.goto(BASE + "organization/", { waitUntil: "networkidle", timeout: 15000 });
       const html = await page.content();
-      assert.ok(html.includes("서구소개") || html.includes("청사안내"), `${route} content missing`);
+      assert.ok(html.includes("서구소개") || html.includes("청사안내"), "organization content missing");
+      // Nested org hierarchy (not a flat text list).
+      assert.ok(html.includes('class="rc-org-tree'), "org tree missing");
+      assert.ok(html.includes("rc-org-depth-3"), "nested org depth missing");
+      assert.ok(html.includes("구청장") && html.includes("부구청장"), "org hierarchy missing");
+      assert.ok(html.includes("의회사무국") && html.includes("행정복지센터"), "separate org sections missing");
+      assert.ok(!html.includes("organizationView.es"), "org node must not navigate official endpoint");
+      // #1325 correction: surface-identity title + source-like layout blocks.
+      const orgTitle = await page.$eval("h2.rc-page-title", (el) => el.textContent.trim());
+      assert.strictEqual(orgTitle, "행정조직도", "org page title must be 행정조직도");
+      assert.ok(html.includes('class="rc-org-exec"'), "org executive block missing");
+      assert.ok(html.includes('class="rc-org-groups"'), "org peer group grid missing");
+      assert.ok(html.includes('class="rc-org-flat"'), "org flat grid missing");
+      console.log("  organization chart hierarchy OK");
+    }
+    // staff directory: search controls + captured table + inert form.
+    {
+      const res = await fetch(BASE + "staff/");
+      assert.strictEqual(res.status, 200, "staff/ not reachable");
+      await page.goto(BASE + "staff/", { waitUntil: "networkidle", timeout: 15000 });
+      const html = await page.content();
+      assert.ok(html.includes("직원 업무안내"), "staff title missing");
+      // #1325 correction: surface-identity title, 4 columns, 10 rows, search row.
+      const staffTitle = await page.$eval("h2.rc-page-title", (el) => el.textContent.trim());
+      assert.strictEqual(staffTitle, "직원 업무안내", "staff page title must be 직원 업무안내");
+      assert.ok(html.includes('class="rc-staff-search-row"'), "staff search row missing");
+      const colCount = await page.$$eval("table.rc-staff-table th.rc-th", (els) => els.length);
+      assert.strictEqual(colCount, 4, "staff must expose 4 visible columns");
+      const rowCount = await page.$$eval("table.rc-staff-table tr.rc-board-row", (els) => els.length);
+      assert.strictEqual(rowCount, 10, "staff must expose 10 captured rows");
+      // Search controls + table + point-in-time count/page.
+      assert.ok(html.includes("rc-staff-search"), "staff search form missing");
+      assert.ok(html.includes("rc-staff-table"), "staff table missing");
+      assert.ok(html.includes("전체 1,322건"), "staff count missing");
+      assert.ok(html.includes("현재 페이지 1/133"), "staff page missing");
+      for (const col of ["부서명", "직책", "전화번호", "담당업무"]) {
+        assert.ok(html.includes(col), `staff column missing: ${col}`);
+      }
+      assert.ok(html.includes("062-360-7201"), "staff captured phone missing");
+      assert.ok(!html.includes("tel:"), "staff phone must not be a live tel: link");
+      // Inert form: no action to the official endpoint, onsubmit aborts.
+      const formAction = await page.$eval("form.rc-staff-search", (f) => f.getAttribute("action"));
+      assert.ok(formAction === null, "staff form must not carry an action attribute");
+      const onSubmit = await page.$eval("form.rc-staff-search", (f) => f.getAttribute("onsubmit"));
+      assert.strictEqual(onSubmit, "return false", "staff form must be inert (onsubmit return false)");
+      console.log("  staff directory controls/table OK (inert form)");
     }
     console.log("  organization/staff reachable OK");
 

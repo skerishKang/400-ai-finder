@@ -113,6 +113,11 @@ FIELD_UNITS: dict[str, str | None] = {
     "responsive.mobile.gnb_height_px": "px",
     "responsive.mobile.max_width_px": "px",
     "responsive.mobile.main_padding_x": "px",
+    # Optional organization hero visual footprint (source-backed, per-surface).
+    # Kept OUT of REQUIRED_MEASURED_FIELDS: a hero illustration may legitimately
+    # be absent on another site's organization surface, so an absent/null field
+    # must remain valid for the generic contract.
+    "layout.organization.hero_footprint_height_px": "px",
 }
 
 # Evidence record types supported by the validator.

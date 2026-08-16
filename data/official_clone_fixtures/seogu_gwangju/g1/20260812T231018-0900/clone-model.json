@@ -8887,6 +8887,7 @@
         }
       ],
       "list_no": null,
+      "organization": null,
       "page_title": "전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -9493,6 +9494,7 @@
       "requested_url": "https://www.seogu.gwangju.kr/",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": null,
       "state_id": "home.desktop.default",
       "state_name": "default",
       "viewport": {
@@ -12826,6 +12828,7 @@
         }
       ],
       "list_no": null,
+      "organization": null,
       "page_title": "전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -13432,6 +13435,7 @@
       "requested_url": "https://www.seogu.gwangju.kr/",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": null,
       "state_id": "home.mobile.default",
       "state_name": "default",
       "viewport": {
@@ -17239,6 +17243,7 @@
         }
       ],
       "list_no": null,
+      "organization": null,
       "page_title": "전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -17845,6 +17850,7 @@
       "requested_url": "https://www.seogu.gwangju.kr/",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": null,
       "state_id": "home.desktop.gnb_open",
       "state_name": "gnb_open",
       "viewport": {
@@ -21330,6 +21336,7 @@
         }
       ],
       "list_no": null,
+      "organization": null,
       "page_title": "목록 | 공지사항 | 구정소식 : 전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -21798,6 +21805,7 @@
       "requested_url": "https://www.seogu.gwangju.kr/board.es?act=listC&bid=0034&gon=C&mid=a10801000000",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": null,
       "state_id": "notice.list.desktop",
       "state_name": "default",
       "viewport": {
@@ -24935,6 +24943,7 @@
         }
       ],
       "list_no": "143106",
+      "organization": null,
       "page_title": "[공고문]사회연대경제 청년 일경험 시범사업 모집공고_참여청년(3차 모집) | 공지사항 | 구정소식 : 전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -25391,6 +25400,7 @@
       "requested_url": "https://www.seogu.gwangju.kr/board.es?mid=a10801000000&bid=0034&act=viewC&list_no=143106&tag=&nPage=1",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": null,
       "state_id": "notice.detail.desktop",
       "state_name": "detail_with_attachment_state",
       "viewport": {
@@ -28757,6 +28767,7 @@
         }
       ],
       "list_no": null,
+      "organization": null,
       "page_title": "목록 | 현재 고시/공고 | 고시/공고 | 구정소식 : 전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -29201,6 +29212,7 @@
       "requested_url": "https://www.seogu.gwangju.kr/api/eminwon/gosiXmlList.es?mid=a10807010000",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": null,
       "state_id": "gosi.list.desktop",
       "state_name": "default",
       "viewport": {
@@ -32377,6 +32389,7 @@
         }
       ],
       "list_no": null,
+      "organization": null,
       "page_title": "현재 고시/공고 | 고시/공고 | 구정소식 : 전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -32821,6 +32834,7 @@
       "requested_url": "https://www.seogu.gwangju.kr/api/eminwon/gosiXmlView.es?method=selectOfrNotAncmt&methodnm=selectOfrNotAncmtRegst&mid=a10807010000&not_ancmt_mgt_no=55667",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": null,
       "state_id": "gosi.detail.desktop",
       "state_name": "detail",
       "viewport": {
@@ -36403,6 +36417,7 @@
         }
       ],
       "list_no": null,
+      "organization": null,
       "page_title": "목록 | 민원서식 | 민원안내 | 열린민원 : 전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -36859,6 +36874,7 @@
       "requested_url": "https://www.seogu.gwangju.kr/board.es?mid=a10201100000&bid=0014",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": null,
       "state_id": "civil_form.list.desktop",
       "state_name": "default",
       "viewport": {
@@ -40097,6 +40113,7 @@
         }
       ],
       "list_no": "143010",
+      "organization": null,
       "page_title": "자동차 등록 위임장 | 민원서식 | 민원안내 | 열린민원 : 전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -40547,6 +40564,7 @@
       "requested_url": "https://www.seogu.gwangju.kr/board.es?mid=a10201100000&bid=0014&act=view&list_no=143010&tag=&nPage=1",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": null,
       "state_id": "civil_form.detail.desktop",
       "state_name": "detail_with_download_state",
       "viewport": {
@@ -43984,6 +44002,555 @@
         }
       ],
       "list_no": null,
+      "organization": {
+        "kind": "organization",
+        "sections": [
+          {
+            "nodes": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "depth": 3,
+                        "label": "기획실",
+                        "target_identity": "5810003",
+                        "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810003"
+                      },
+                      {
+                        "children": [],
+                        "depth": 3,
+                        "label": "홍보실",
+                        "target_identity": "5810004",
+                        "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810004"
+                      },
+                      {
+                        "children": [],
+                        "depth": 3,
+                        "label": "감사담당관",
+                        "target_identity": "5810005",
+                        "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810005"
+                      }
+                    ],
+                    "depth": 2,
+                    "label": "부구청장",
+                    "target_identity": "5810002",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810002"
+                  }
+                ],
+                "depth": 1,
+                "label": "구청장",
+                "target_identity": "5810001",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810001"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "주민자치과",
+                    "target_identity": "5810049",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810049&orgnztUpperId=5810050"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "공원녹지과",
+                    "target_identity": "5810049",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810049&orgnztUpperId=5810051"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "행복교육과",
+                    "target_identity": "5810049",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810049&orgnztUpperId=5810052"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "민원봉사과",
+                    "target_identity": "5810049",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810049&orgnztUpperId=5810053"
+                  }
+                ],
+                "depth": 1,
+                "label": "생활정부국",
+                "target_identity": "5810049",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810049"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "문화예술과",
+                    "target_identity": "5810006",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810006&orgnztUpperId=5810007"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "민생경제과",
+                    "target_identity": "5810006",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810006&orgnztUpperId=5810008"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "시장산업과",
+                    "target_identity": "5810006",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810006&orgnztUpperId=5810009"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "체육관광과",
+                    "target_identity": "5810006",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810006&orgnztUpperId=5810010"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "도서관과",
+                    "target_identity": "5810006",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810006&orgnztUpperId=5810011"
+                  }
+                ],
+                "depth": 1,
+                "label": "문화경제국",
+                "target_identity": "5810006",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810006"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "돌봄정책과",
+                    "target_identity": "5810054",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810054&orgnztUpperId=5810055"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "돌봄지원과",
+                    "target_identity": "5810054",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810054&orgnztUpperId=5810056"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "저출산고령 사회정책과",
+                    "target_identity": "5810054",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810054&orgnztUpperId=5810057"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "장애인희망 복지과",
+                    "target_identity": "5810054",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810054&orgnztUpperId=5810058"
+                  }
+                ],
+                "depth": 1,
+                "label": "통합돌봄국",
+                "target_identity": "5810054",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810054"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "복지정책과",
+                    "target_identity": "5810059",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810059&orgnztUpperId=5810060"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "복지급여과",
+                    "target_identity": "5810059",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810059&orgnztUpperId=5810061"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "양성아동복지과",
+                    "target_identity": "5810059",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810059&orgnztUpperId=5810062"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "일자리청년 지원과",
+                    "target_identity": "5810059",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810059&orgnztUpperId=5810063"
+                  }
+                ],
+                "depth": 1,
+                "label": "복지일자리국",
+                "target_identity": "5810059",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810059"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "자원순환과",
+                    "target_identity": "5810012",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810012&orgnztUpperId=5810016"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "기후환경과",
+                    "target_identity": "5810012",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810012&orgnztUpperId=5810013"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "교통행정과",
+                    "target_identity": "5810012",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810012&orgnztUpperId=5810014"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "교통지도과",
+                    "target_identity": "5810012",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810012&orgnztUpperId=5810015"
+                  }
+                ],
+                "depth": 1,
+                "label": "환경교통국",
+                "target_identity": "5810012",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810012"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "안전총괄과",
+                    "target_identity": "5810017",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810017&orgnztUpperId=5810018"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "도시공간과",
+                    "target_identity": "5810017",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810017&orgnztUpperId=5810022"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "건설과",
+                    "target_identity": "5810017",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810017&orgnztUpperId=5810019"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "건축과",
+                    "target_identity": "5810017",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810017&orgnztUpperId=5810020"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "주택과",
+                    "target_identity": "5810017",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810017&orgnztUpperId=5810021"
+                  }
+                ],
+                "depth": 1,
+                "label": "안전도시국",
+                "target_identity": "5810017",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810017"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "행정지원과",
+                    "target_identity": "5810064",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810064&orgnztUpperId=5810065"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "세무1과",
+                    "target_identity": "5810064",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810064&orgnztUpperId=5810066"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "세무2과",
+                    "target_identity": "5810064",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810064&orgnztUpperId=5810067"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "회계정보과",
+                    "target_identity": "5810064",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810064&orgnztUpperId=5810068"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "토지정보과",
+                    "target_identity": "5810064",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810064&orgnztUpperId=5810069"
+                  }
+                ],
+                "depth": 1,
+                "label": "행정재정국",
+                "target_identity": "5810064",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810064"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "보건행정과",
+                    "target_identity": "5810024",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810024&orgnztUpperId=5810025"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "감염병관리과",
+                    "target_identity": "5810024",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810024&orgnztUpperId=5810026"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "건강증진과",
+                    "target_identity": "5810024",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810024&orgnztUpperId=5810027"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "보건위생과",
+                    "target_identity": "5810024",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810024&orgnztUpperId=5810028"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "건강생활 지원센터",
+                    "target_identity": "5810024",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810024&orgnztUpperId=5810029"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "치매안심센터",
+                    "target_identity": "5810024",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810024&orgnztUpperId=5810030"
+                  }
+                ],
+                "depth": 1,
+                "label": "보건소",
+                "target_identity": "5810024",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810024"
+              }
+            ],
+            "title": "서구 행정조직 (2실·1관·7국·1소·18동)"
+          },
+          {
+            "nodes": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "총무",
+                    "target_identity": "5810023",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810023"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "의사",
+                    "target_identity": "5810023",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810023"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "정책지원",
+                    "target_identity": "5810023",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810023"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "의정소통",
+                    "target_identity": "5810023",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810023"
+                  },
+                  {
+                    "children": [],
+                    "depth": 2,
+                    "label": "홍보",
+                    "target_identity": "5810023",
+                    "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810023"
+                  }
+                ],
+                "depth": 1,
+                "label": "의회사무국",
+                "target_identity": "5810023",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810023"
+              }
+            ],
+            "title": "의회사무국"
+          },
+          {
+            "nodes": [
+              {
+                "children": [],
+                "depth": 1,
+                "label": "양동",
+                "target_identity": "5810031",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810031"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "양3동",
+                "target_identity": "5810032",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810032"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "농성1동",
+                "target_identity": "5810033",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810033"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "농성2동",
+                "target_identity": "5810034",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810034"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "광천동",
+                "target_identity": "5810035",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810035"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "유덕동",
+                "target_identity": "5810036",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810036"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "치평동",
+                "target_identity": "5810037",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810037"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "상무1동",
+                "target_identity": "5810038",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810038"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "상무2동",
+                "target_identity": "5810039",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810039"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "화정1동",
+                "target_identity": "5810040",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810040"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "화정2동",
+                "target_identity": "5810041",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810041"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "화정3동",
+                "target_identity": "5810042",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810042"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "화정4동",
+                "target_identity": "5810043",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810043"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "서창동",
+                "target_identity": "5810044",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810044"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "금호1동",
+                "target_identity": "5810045",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810045"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "금호2동",
+                "target_identity": "5810046",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810046"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "풍암동",
+                "target_identity": "5810047",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810047"
+              },
+              {
+                "children": [],
+                "depth": 1,
+                "label": "동천동",
+                "target_identity": "5810048",
+                "target_url": "/organizationView.es?mid=a10102010000&org_cd=5810048"
+              }
+            ],
+            "title": "행정복지센터"
+          }
+        ]
+      },
       "page_title": "행정조직도 | 청사안내 | 서구소개 : 전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -44338,6 +44905,7 @@
       "requested_url": "https://www.seogu.gwangju.kr/menu.es?mid=a10106030000",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": null,
       "state_id": "organization.chart.desktop",
       "state_name": "default",
       "viewport": {
@@ -47698,6 +48266,7 @@
         }
       ],
       "list_no": null,
+      "organization": null,
       "page_title": "직원 업무안내 | 청사안내 | 서구소개 : 전남광주통합특별시 서구청 #착한도시 서구",
       "public_assets": [
         {
@@ -48148,6 +48717,459 @@
       "requested_url": "https://www.seogu.gwangju.kr/organization.es?mid=a10106040000",
       "result_status": "success",
       "source_updated_at": null,
+      "staff_directory": {
+        "department_selector": {
+          "label": "부서 선택",
+          "name": "org_cd",
+          "options": [
+            {
+              "label": "부서 선택",
+              "value": ""
+            },
+            {
+              "label": "구청장",
+              "value": "5810001"
+            },
+            {
+              "label": "부구청장",
+              "value": "5810002"
+            },
+            {
+              "label": "기획실",
+              "value": "5810003"
+            },
+            {
+              "label": "홍보실",
+              "value": "5810004"
+            },
+            {
+              "label": "감사담당관",
+              "value": "5810005"
+            },
+            {
+              "label": "생활정부국",
+              "value": "5810049"
+            },
+            {
+              "label": "주민자치과",
+              "value": "5810050"
+            },
+            {
+              "label": "공원녹지과",
+              "value": "5810051"
+            },
+            {
+              "label": "행복교육과",
+              "value": "5810052"
+            },
+            {
+              "label": "민원봉사과",
+              "value": "5810053"
+            },
+            {
+              "label": "문화경제국",
+              "value": "5810006"
+            },
+            {
+              "label": "문화예술과",
+              "value": "5810007"
+            },
+            {
+              "label": "민생경제과",
+              "value": "5810008"
+            },
+            {
+              "label": "시장산업과",
+              "value": "5810009"
+            },
+            {
+              "label": "체육관광과",
+              "value": "5810010"
+            },
+            {
+              "label": "도서관과",
+              "value": "5810011"
+            },
+            {
+              "label": "통합돌봄국",
+              "value": "5810054"
+            },
+            {
+              "label": "돌봄정책과",
+              "value": "5810055"
+            },
+            {
+              "label": "돌봄지원과",
+              "value": "5810056"
+            },
+            {
+              "label": "저출산고령사회정책과",
+              "value": "5810057"
+            },
+            {
+              "label": "장애인희망복지과",
+              "value": "5810058"
+            },
+            {
+              "label": "복지일자리국",
+              "value": "5810059"
+            },
+            {
+              "label": "복지정책과",
+              "value": "5810060"
+            },
+            {
+              "label": "복지급여과",
+              "value": "5810061"
+            },
+            {
+              "label": "양성아동복지과",
+              "value": "5810062"
+            },
+            {
+              "label": "일자리청년지원과",
+              "value": "5810063"
+            },
+            {
+              "label": "환경교통국",
+              "value": "5810012"
+            },
+            {
+              "label": "자원순환과",
+              "value": "5810016"
+            },
+            {
+              "label": "기후환경과",
+              "value": "5810013"
+            },
+            {
+              "label": "교통행정과",
+              "value": "5810014"
+            },
+            {
+              "label": "교통지도과",
+              "value": "5810015"
+            },
+            {
+              "label": "안전도시국",
+              "value": "5810017"
+            },
+            {
+              "label": "안전총괄과",
+              "value": "5810018"
+            },
+            {
+              "label": "도시공간과",
+              "value": "5810022"
+            },
+            {
+              "label": "건설과",
+              "value": "5810019"
+            },
+            {
+              "label": "건축과",
+              "value": "5810020"
+            },
+            {
+              "label": "주택과",
+              "value": "5810021"
+            },
+            {
+              "label": "행정재정국",
+              "value": "5810064"
+            },
+            {
+              "label": "행정지원과",
+              "value": "5810065"
+            },
+            {
+              "label": "세무1과",
+              "value": "5810066"
+            },
+            {
+              "label": "세무2과",
+              "value": "5810067"
+            },
+            {
+              "label": "회계정보과",
+              "value": "5810068"
+            },
+            {
+              "label": "토지정보과",
+              "value": "5810069"
+            },
+            {
+              "label": "의회사무국",
+              "value": "5810023"
+            },
+            {
+              "label": "보건소",
+              "value": "5810024"
+            },
+            {
+              "label": "보건행정과",
+              "value": "5810025"
+            },
+            {
+              "label": "감염병관리과",
+              "value": "5810026"
+            },
+            {
+              "label": "건강증진과",
+              "value": "5810027"
+            },
+            {
+              "label": "보건위생과",
+              "value": "5810028"
+            },
+            {
+              "label": "건강생활지원센터",
+              "value": "5810029"
+            },
+            {
+              "label": "치매안심센터",
+              "value": "5810030"
+            },
+            {
+              "label": "양동",
+              "value": "5810031"
+            },
+            {
+              "label": "양3동",
+              "value": "5810032"
+            },
+            {
+              "label": "농성1동",
+              "value": "5810033"
+            },
+            {
+              "label": "농성2동",
+              "value": "5810034"
+            },
+            {
+              "label": "광천동",
+              "value": "5810035"
+            },
+            {
+              "label": "유덕동",
+              "value": "5810036"
+            },
+            {
+              "label": "치평동",
+              "value": "5810037"
+            },
+            {
+              "label": "상무1동",
+              "value": "5810038"
+            },
+            {
+              "label": "상무2동",
+              "value": "5810039"
+            },
+            {
+              "label": "화정1동",
+              "value": "5810040"
+            },
+            {
+              "label": "화정2동",
+              "value": "5810041"
+            },
+            {
+              "label": "화정3동",
+              "value": "5810042"
+            },
+            {
+              "label": "화정4동",
+              "value": "5810043"
+            },
+            {
+              "label": "서창동",
+              "value": "5810044"
+            },
+            {
+              "label": "금호1동",
+              "value": "5810045"
+            },
+            {
+              "label": "금호2동",
+              "value": "5810046"
+            },
+            {
+              "label": "풍암동",
+              "value": "5810047"
+            },
+            {
+              "label": "동천동",
+              "value": "5810048"
+            }
+          ]
+        },
+        "form": {
+          "action": "/organization.es?mid=a10106040000",
+          "inert": true,
+          "method": "post",
+          "note": "source form is method=POST; clone renders inert (no POST)"
+        },
+        "kind": "staff_directory",
+        "pager": {
+          "current_page": 1,
+          "pages": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            133
+          ]
+        },
+        "pagination_info": {
+          "current_page": 1,
+          "label": "현재 페이지 1/133",
+          "total_pages": 133
+        },
+        "result_count": {
+          "label": "전체 1,322건",
+          "total": 1322
+        },
+        "search_button": {
+          "label": "검색"
+        },
+        "search_field_selector": {
+          "label": "검색어 전체",
+          "name": "keyField",
+          "options": [
+            {
+              "label": "검색어 전체",
+              "value": ""
+            },
+            {
+              "label": "담당업무",
+              "value": "B"
+            },
+            {
+              "label": "전화번호",
+              "value": "T"
+            }
+          ]
+        },
+        "search_input": {
+          "name": "keyWord",
+          "placeholder": "검색어를 입력하세요",
+          "title": "검색어를 입력하세요"
+        },
+        "table": {
+          "caption": "직원 목록을 부서명, 성명, 직책, 전화번호, 담당업무로 안내한 표입니다.",
+          "col_widths": [
+            null,
+            15,
+            15,
+            null
+          ],
+          "columns": [
+            "부서명",
+            "직책",
+            "전화번호",
+            "담당업무"
+          ],
+          "rows": [
+            {
+              "cells": {
+                "담당업무": "",
+                "부서명": "구청장",
+                "전화번호": "062-360-7201",
+                "직책": "구청장"
+              },
+              "is_new": false
+            },
+            {
+              "cells": {
+                "담당업무": "기획실 업무 전반에 관한 사항",
+                "부서명": "기획실",
+                "전화번호": "062-360-7206",
+                "직책": "기획실장"
+              },
+              "is_new": false
+            },
+            {
+              "cells": {
+                "담당업무": "",
+                "부서명": "기획실",
+                "전화번호": "062-350-4559",
+                "직책": "기획실장"
+              },
+              "is_new": false
+            },
+            {
+              "cells": {
+                "담당업무": "",
+                "부서명": "기획실",
+                "전화번호": "062-350-4744",
+                "직책": "기획실장"
+              },
+              "is_new": false
+            },
+            {
+              "cells": {
+                "담당업무": "홍보실 업무 전반에 관한 사항",
+                "부서명": "홍보실",
+                "전화번호": "062-360-7208",
+                "직책": "홍보실장"
+              },
+              "is_new": false
+            },
+            {
+              "cells": {
+                "담당업무": "감사담당관 업무 총괄 관리",
+                "부서명": "감사담당관",
+                "전화번호": "062-360-7170",
+                "직책": "감사담당관"
+              },
+              "is_new": false
+            },
+            {
+              "cells": {
+                "담당업무": "",
+                "부서명": "생활정부국",
+                "전화번호": "062-350-4100",
+                "직책": "생활정부국장"
+              },
+              "is_new": false
+            },
+            {
+              "cells": {
+                "담당업무": "문화경제국 업무 전반에 관한 사항",
+                "부서명": "문화경제국",
+                "전화번호": "062-360-7305",
+                "직책": "문화경제국장"
+              },
+              "is_new": false
+            },
+            {
+              "cells": {
+                "담당업무": "",
+                "부서명": "통합돌봄국",
+                "전화번호": "062-350-4600",
+                "직책": "통합돌봄국장"
+              },
+              "is_new": false
+            },
+            {
+              "cells": {
+                "담당업무": "",
+                "부서명": "복지일자리국",
+                "전화번호": "062-360-7304",
+                "직책": "복지일자리국장"
+              },
+              "is_new": false
+            }
+          ]
+        }
+      },
       "state_id": "staff.directory.desktop",
       "state_name": "default",
       "viewport": {

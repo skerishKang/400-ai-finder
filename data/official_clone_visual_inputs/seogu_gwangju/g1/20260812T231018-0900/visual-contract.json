@@ -3,7 +3,7 @@
   "contract_kind": "visual_input",
   "site_id": "seogu_gwangju",
   "capture_id": "20260812T231018-0900",
-  "model_checksum": "53d18c4134700e23658fc37b56c60dc27eb0399515a5b988e2178309988a6850",
+  "model_checksum": "636f87d625f56028793d06d0574bf8902ea230d161ae2b5c158266fdf327a763",
   "note": "Provenance-backed measurements from the immutable committed G1 capture evidence. Every non-null value is traced 1:1 to a captured state, the committed screenshot SHA it was measured from, the measurement method, the unit, and the evidence type. Values that cannot be safely measured remain null and are listed in gaps. typography.font_family uses asset_provenance evidence (fetched font assets), not screenshot pixels. border.width is the measured pixel thickness of the footer separator line. Renderer-only non-fidelity presentation defaults (font-size, font-weight, border-style, focus outline, underline, radius, breakpoint) are NOT counted as official-site fidelity evidence. #1310 re-binds header/GNB/footer/home-section geometry to semantic source regions instead of the former dark-band heuristic.",
   "layout": {
     "header": {
@@ -105,6 +105,10 @@
       "panel_height_px": 900,
       "columns": 6,
       "provenance_state_id": "home.desktop.gnb_open"
+    },
+    "organization": {
+      "hero_footprint_height_px": 429,
+      "provenance_state_id": "organization.chart.desktop"
     }
   },
   "colors": {
@@ -204,9 +208,11 @@
   },
   "gaps": [
     {
-      "region": "organization_chart",
-      "note": "No measurable geometry for org chart surface in committed G1 evidence.",
-      "provenance_state_id": null
+      "region": "organization_chart_hero_footprint",
+      "note": "Organization hero visual footprint is measured from committed G1 evidence (layout.organization.hero_footprint_height_px). The remaining org-chart geometry (tier card sizes, tier colors, connectors) stays an unresolved gap.",
+      "provenance_state_id": "organization.chart.desktop",
+      "artifact_sha256": "66d3342691e0b0df5acc16d606a901b61a2ba785fd5b1b454ead1b58521aad16",
+      "measurement_method": "pixel_analysis_org_hero_footprint"
     },
     {
       "region": "staff_directory",
@@ -1206,6 +1212,16 @@
       "artifact_sha256": "8af9929cdf6c0976bc20e9a237cc2ea1674a3e757cd21ea3938ddb33d34909e6",
       "method": "pixel_analysis",
       "note": "Six top-level menu columns are visibly present across the committed GNB-open source screenshot."
+    },
+    {
+      "field": "layout.organization.hero_footprint_height_px",
+      "value": 429,
+      "unit": "px",
+      "evidence_type": "pixel_analysis",
+      "source_state_id": "organization.chart.desktop",
+      "artifact_sha256": "66d3342691e0b0df5acc16d606a901b61a2ba785fd5b1b454ead1b58521aad16",
+      "method": "pixel_analysis_org_hero_footprint",
+      "note": "Vertical extent of the contiguous illustration band in the committed organization source screenshot, between the section heading and the executive hierarchy (source-only pixel measurement; no clone inspection, no height-difference heuristic)."
     }
   ]
 }

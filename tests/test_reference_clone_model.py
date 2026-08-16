@@ -339,6 +339,138 @@ def test_organization_and_staff_remain_distinct():
     assert org["landmarks"] != staff["landmarks"]
 
 
+# ── #1325 generic organization / staff_directory vocabulary (model) ──────────
+def test_organization_extraction_present_and_generic():
+    model = _load_json(FIXTURE_PATH)
+    org = next(s for s in model["states"] if s["state_id"] == "organization.chart.desktop")
+    assert org.get("organization", {}).get("kind") == "organization"
+    # No staff_directory vocab bleeds into the org state.
+    assert org.get("staff_directory") is None
+
+
+def test_organization_nested_hierarchy_extraction():
+    model = _load_json(FIXTURE_PATH)
+    org = next(s for s in model["states"] if s["state_id"] == "organization.chart.desktop")
+    sections = org["organization"]["sections"]
+    main = next(s for s in sections if s["title"].startswith("서구 행정조직"))
+    roots = {n["label"]: n for n in main["nodes"]}
+    # 구청장 -> 부구청장 -> (기획실/홍보실/감사담당관) nested chain present.
+    assert "구청장" in roots
+    assert roots["구청장"]["depth"] == 1
+    children = {n["label"]: n for n in roots["구청장"]["children"]}
+    assert "부구청장" in children
+    assert children["부구청장"]["depth"] == 2
+    sub = {n["label"]: n for n in children["부구청장"]["children"]}
+    assert set(sub) == {"기획실", "홍보실", "감사담당관"}
+    for node in sub.values():
+        assert node["depth"] == 3
+    # A representative 국 -> 과 chain (생활정부국 -> 주민자치과 ...).
+    assert "생활정부국" in roots
+    gwa = {n["label"]: n for n in roots["생활정부국"]["children"]}
+    assert "주민자치과" in gwa and gwa["주민자치과"]["depth"] == 2
+
+
+def test_organization_separate_sections():
+    model = _load_json(FIXTURE_PATH)
+    org = next(s for s in model["states"] if s["state_id"] == "organization.chart.desktop")
+    titles = [s["title"] for s in org["organization"]["sections"]]
+    assert "서구 행정조직 (2실·1관·7국·1소·18동)" in titles
+    assert "의회사무국" in titles
+    assert "행정복지센터" in titles
+    # 의회사무국 section: 의회사무국 -> 5 sub-units.
+    council = next(s for s in org["organization"]["sections"] if s["title"] == "의회사무국")
+    assert council["nodes"][0]["label"] == "의회사무국"
+    assert [n["label"] for n in council["nodes"][0]["children"]] == [
+        "총무", "의사", "정책지원", "의정소통", "홍보",
+    ]
+    # 행정복지센터 section: 18 동 at depth 1 (no nesting).
+    dong = next(s for s in org["organization"]["sections"] if s["title"] == "행정복지센터")
+    assert len(dong["nodes"]) == 18
+    assert all(n["depth"] == 1 for n in dong["nodes"])
+    assert dong["nodes"][0]["label"] == "양동"
+
+
+def test_organization_captured_target_identity_read_only():
+    model = _load_json(FIXTURE_PATH)
+    org = next(s for s in model["states"] if s["state_id"] == "organization.chart.desktop")
+    main = next(s for s in org["organization"]["sections"] if s["title"].startswith("서구 행정조직"))
+    gu = next(n for n in main["nodes"] if n["label"] == "구청장")
+    assert gu["target_identity"] == "5810001"
+    assert gu["target_url"] and "org_cd=5810001" in gu["target_url"]
+
+
+def test_staff_directory_extraction_present_and_generic():
+    model = _load_json(FIXTURE_PATH)
+    staff = next(s for s in model["states"] if s["state_id"] == "staff.directory.desktop")
+    assert staff.get("staff_directory", {}).get("kind") == "staff_directory"
+    # No organization vocab bleeds into the staff state.
+    assert staff.get("organization") is None
+
+
+def test_staff_search_vocabulary():
+    model = _load_json(FIXTURE_PATH)
+    staff = next(s for s in model["states"] if s["state_id"] == "staff.directory.desktop")
+    sd = staff["staff_directory"]
+    dept = sd["department_selector"]
+    assert dept["name"] == "org_cd"
+    assert dept["label"] == "부서 선택"
+    # All 70 source-backed department options captured verbatim (value+label).
+    assert len(dept["options"]) == 70
+    assert {"value": "5810001", "label": "구청장"} in dept["options"]
+    assert {"value": "5810031", "label": "양동"} in dept["options"]
+    field = sd["search_field_selector"]
+    assert field["name"] == "keyField"
+    assert field["label"] == "검색어 전체"
+    assert field["options"] == [
+        {"value": "", "label": "검색어 전체"},
+        {"value": "B", "label": "담당업무"},
+        {"value": "T", "label": "전화번호"},
+    ]
+    assert sd["search_input"] == {
+        "name": "keyWord",
+        "placeholder": "검색어를 입력하세요",
+        "title": "검색어를 입력하세요",
+    }
+    assert sd["search_button"] == {"label": "검색"}
+    # Source form is POST; clone keeps it as provenance + inert flag.
+    assert sd["form"]["method"] == "post"
+    assert sd["form"]["inert"] is True
+
+
+def test_staff_source_count_page_table_rows():
+    model = _load_json(FIXTURE_PATH)
+    staff = next(s for s in model["states"] if s["state_id"] == "staff.directory.desktop")
+    sd = staff["staff_directory"]
+    # Captured point-in-time count + page.
+    assert sd["result_count"] == {"total": 1322, "label": "전체 1,322건"}
+    assert sd["pagination_info"] == {
+        "current_page": 1,
+        "total_pages": 133,
+        "label": "현재 페이지 1/133",
+    }
+    # Table columns + captured rows (verbatim, no fabrication).
+    table = sd["table"]
+    assert table["columns"] == ["부서명", "직책", "전화번호", "담당업무"]
+    rows = table["rows"]
+    assert len(rows) == 10
+    assert rows[0]["cells"] == {
+        "부서명": "구청장", "직책": "구청장",
+        "전화번호": "062-360-7201", "담당업무": "",
+    }
+    assert rows[1]["cells"]["담당업무"] == "기획실 업무 전반에 관한 사항"
+    # Pager vocabulary: 1..10 + 133, current page 1.
+    assert sd["pager"]["current_page"] == 1
+    assert sd["pager"]["pages"] == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 133]
+
+
+def test_org_staff_model_deterministic():
+    """Rebuilding the model must be byte-identical (org/staff vocab included)."""
+    model_a = mod.build_reference_clone_model(REPO_ROOT, CAPTURE_ROOT)
+    model_b = mod.build_reference_clone_model(REPO_ROOT, CAPTURE_ROOT)
+    assert mod.stable_dump(model_a) == mod.stable_dump(model_b)
+    assert model_a["model_sha256"] == model_b["model_sha256"]
+
+
 def test_notice_detail_derives_list_no_143106_with_attachment():
     model = _load_json(FIXTURE_PATH)
     notice = next(s for s in model["states"] if s["state_id"] == "notice.detail.desktop")

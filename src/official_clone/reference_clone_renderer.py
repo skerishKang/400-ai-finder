@@ -201,6 +201,16 @@ NON_FIDELITY_PRESENTATION_DEFAULTS = {
     "panel_gap_px": 24,
     "panel_padding_px": 22,
     "card_radius_px": 12,
+    # Organization-chart tier sizing. These are non-fidelity structural
+    # defaults: the source does not publish these exact px, but the clone must
+    # read as a tiered hierarchy (strong root -> distinct sub -> subordinate
+    # children) rather than a flat grid of uniform boxes. They do NOT gate the
+    # faithful claim and never promote visual_review/exact/golden.
+    "org_section_title_size_px": 26,
+    "exec_root_size_px": 28,
+    "exec_sub_size_px": 20,
+    "group_title_size_px": 18,
+    "group_child_size_px": 14,
     "pill_radius_px": 999,
     "responsive_breakpoint": None,
 }
@@ -389,6 +399,11 @@ def _theme_values(
         val = gnb_open_layout.get(field)
         if val is not None:
             values[f"layout.gnb_open.{field}"] = val
+
+    org_layout = layout.get("organization") or {}
+    val = org_layout.get("hero_footprint_height_px")
+    if val is not None:
+        values["layout.organization.hero_footprint_height_px"] = val
 
     board_layout = layout.get("board") or {}
     for field in (
@@ -647,6 +662,11 @@ def surface_label(state: dict[str, Any], model: dict[str, Any]) -> str:
     segments = [s.strip() for s in head.split("|") if s.strip()]
     if len(segments) <= 1:
         return "홈"
+    # chart/directory surfaces: the FIRST segment is the captured surface
+    # identity itself (e.g. 행정조직도 / 직원 업무안내), not a record/status
+    # prefix. list/detail boards keep the breadcrumb-segment behaviour.
+    if content in ("chart", "directory"):
+        return segments[0]
     return segments[1]
 
 
@@ -981,7 +1001,8 @@ def _decl(property_name: str, value: Any) -> str:
     return f"{property_name}:{value};"
 
 
-def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
+def _render_css(theme: dict[str, Any], device: str = "desktop",
+                org_surface: bool = False) -> str:
     """Build CSS from measured contract values only.
 
     Every fidelity declaration is derived from a measured value; gaps are
@@ -1817,6 +1838,152 @@ def _render_css(theme: dict[str, Any], device: str = "desktop") -> str:
     if muted_c:
         rules.append(".rc-loc{color:%s;}" % muted_c)
 
+    # Organization-chart + staff-directory surfaces reuse the shared board
+    # content family. The layout blocks below are generic structural
+    # presentation (tiering/grouping affordances only, NOT source-measured
+    # pixel fidelity); measured colors are reused where available and no
+    # guessed radius/max-width/breakpoint is introduced. The nested semantic
+    # org DOM is kept, but its presentation is no longer a margin-indented
+    # narrow vertical list.
+    # Generic, source-backed hierarchy (no site literal, no guessed color):
+    # tier strength is expressed through the semantic depth-* classes and the
+    # role containers (rc-org-exec / rc-org-groups / rc-org-flat) that the model
+    # already emits. Measured colors are reused; sizes are non-fidelity
+    # structural defaults. No border-radius, no guessed max-width/breakpoint.
+    org_border = border or "#dcdcdc"
+    org_primary = primary or "#1663b6"
+    org_band = theme.get("colors.hero_bg") or "#f0f0ff"
+    org_band2 = theme.get("colors.key_visual_bg") or "#f1fbfd"
+    org_subtle = theme.get("colors.footer_bg") or "#fafafa"
+    org_ink = text or "#000000"
+    st = nd["org_section_title_size_px"]
+    ex = nd["exec_root_size_px"]
+    exs = nd["exec_sub_size_px"]
+    gt = nd["group_title_size_px"]
+    gc = nd["group_child_size_px"]
+    rules.append(".rc-org-chart{margin-top:24px;}")
+
+    # Optional, source-backed organization hero visual footprint: an inert
+    # semantic spacer reserved before the executive hierarchy ONLY on the
+    # organization surface when the validated visual contract provides the
+    # measured value. Absent/null means no space is invented (an organization
+    # surface without this source feature is unaffected), and non-org surfaces
+    # (e.g. staff) keep their output unchanged.
+    hero_footprint = theme.get("layout.organization.hero_footprint_height_px")
+    if org_surface and hero_footprint is not None:
+        rules.append(
+            f".rc-org-hero-footprint{{display:block;height:{hero_footprint}px;}}"
+        )
+
+    # Source-like vertical breathing room between labelled org sections.
+    rules.append(".rc-org-section{margin-bottom:64px;}")
+    rules.append(
+        f".rc-org-section-title{{font-size:{st}px;font-weight:700;margin:0 0 28px;"
+        f"padding-bottom:10px;border-bottom:2px solid {org_primary};color:{org_ink};}}"
+    )
+    rules.append(".rc-org-tree{list-style:none;margin:0;padding:0;}")
+    rules.append(".rc-org-node{margin:0;padding:2px;}")
+    # Generic subordinate-card label base.
+    rules.append(
+        f".rc-org-label{{display:inline-block;padding:6px 14px;"
+        f"background:{org_subtle};border:1px solid {org_border};color:{org_ink};}}"
+    )
+
+    # ── Executive tier: centred vertical spine, strong root -> distinct sub -> 3실/관 band ──
+    rules.append(".rc-org-exec{display:flex;justify-content:center;margin-bottom:48px;}")
+    rules.append(".rc-org-exec-chain{display:flex;flex-direction:column;align-items:center;}")
+    rules.append(".rc-org-exec-chain>.rc-org-node{display:flex;flex-direction:column;align-items:center;}")
+    # Hierarchy connector between executive levels.
+    rules.append(
+        f".rc-org-exec-arrow{{display:block;color:{org_primary};font-size:20px;"
+        f"line-height:1;margin:6px 0;text-align:center;}}"
+    )
+    # Executive root (top single-child node / section roots): strongest tier.
+    rules.append(
+        f".rc-org-exec .rc-org-depth-1 .rc-org-label{{display:inline-block;"
+        f"font-size:{ex}px;font-weight:700;padding:14px 36px;"
+        f"background:{org_primary};color:#ffffff;border:2px solid {org_primary};}}"
+    )
+    # Distinct sub-tier (white field, primary rule) directly beneath the root.
+    rules.append(
+        f".rc-org-exec .rc-org-depth-2 .rc-org-label{{display:inline-block;"
+        f"font-size:{exs}px;font-weight:700;padding:11px 28px;"
+        f"background:#ffffff;color:{org_primary};border:2px solid {org_primary};}}"
+    )
+
+    # 3실/관: independent horizontal band tier between executive and the department matrix.
+    rules.append(
+        f".rc-org-exec-branch{{position:relative;display:flex;flex-wrap:wrap;"
+        f"justify-content:center;gap:12px;margin-top:16px;padding:18px 16px;"
+        f"background:{org_band};border:1px solid {org_border};}}"
+    )
+    rules.append(
+        f".rc-org-exec-branch::before{{content:'';position:absolute;top:0;left:50%;"
+        f"width:2px;height:16px;background:{org_primary};transform:translateX(-50%);}}"
+    )
+    rules.append(".rc-org-exec-branch .rc-org-node{padding:0;}")
+    # Subordinate cards inside the 3실/관 band.
+    rules.append(
+        f".rc-org-exec-branch .rc-org-depth-3 .rc-org-label{{display:inline-block;"
+        f"font-size:{gc}px;font-weight:600;padding:8px 18px;"
+        f"background:#ffffff;color:{org_ink};border:1px solid {org_border};}}"
+    )
+
+    # ── Department matrix: broad group cards, strong root header vs subordinate children ──
+    rules.append(".rc-org-groups{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;margin-top:8px;}")
+    rules.append(
+        f".rc-org-group{{flex:1 1 220px;min-width:200px;display:flex;flex-direction:column;"
+        f"border:1px solid {org_border};background:#ffffff;}}"
+    )
+    # Group root header (국/소): clearly stronger than its child cards.
+    rules.append(
+        f".rc-org-label.rc-org-depth-1{{display:block;font-size:{gt}px;font-weight:700;"
+        f"padding:12px 16px;background:{org_primary};color:#ffffff;"
+        f"border:1px solid {org_primary};}}"
+    )
+    rules.append(".rc-org-group-list{display:flex;flex-direction:column;gap:6px;padding:12px;}")
+    # Subordinate department cards (과).
+    rules.append(
+        f".rc-org-group .rc-org-depth-2 .rc-org-label{{display:block;font-size:{gc}px;"
+        f"font-weight:400;padding:7px 12px;background:{org_subtle};"
+        f"color:{org_ink};border:1px solid {org_border};}}"
+    )
+
+    # ── Flat neighbourhood-centre grid (18동): broad, separated section ──
+    rules.append(
+        f".rc-org-flat{{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));"
+        f"gap:12px;}}"
+    )
+    rules.append(
+        f".rc-org-box{{display:block;text-align:center;padding:11px 8px;"
+        f"background:{org_band2};border:1px solid {org_border};"
+        f"color:{org_ink};font-size:{gc}px;}}"
+    )
+    # Staff search row: summary (left) + inert controls (right) on one row.
+    rules.append(
+        f".rc-staff-search-row{{display:flex;flex-wrap:wrap;align-items:center;"
+        f"justify-content:space-between;gap:12px;margin:16px 0;}}"
+    )
+    rules.append(
+        f".rc-staff-search{{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0;}}"
+    )
+    rules.append(".rc-staff-field{display:inline-flex;align-items:center;}")
+    rules.append(
+        f".rc-staff-select,.rc-staff-input{{font-size:{nd['small_font_size_px']}px;"
+        f"padding:6px 8px;border:1px solid #888888;background:#ffffff;color:#222222;}}"
+    )
+    # Readable disabled affordance: disabled must not grey to illegibility.
+    rules.append(".rc-staff-select:disabled,.rc-staff-input:disabled{background:#ffffff;color:#222222;opacity:1;}")
+    rules.append(
+        f".rc-staff-btn{{font-size:{nd['small_font_size_px']}px;padding:6px 14px;"
+        f"border:1px solid #23201f;background:#23201f;color:#ffffff;cursor:default;}}"
+    )
+    rules.append(".rc-staff-btn:disabled{background:#23201f;color:#ffffff;opacity:1;}")
+    rules.append(".rc-staff-table{margin-top:8px;width:100%;}")
+    # Breadcrumb hierarchy legibility: crumbs must not mash together.
+    rules.append(".rc-breadcrumb .rc-crumb{padding-left:10px;}")
+    rules.append(".rc-breadcrumb .rc-crumb:first-child{padding-left:0;}")
+
     return "\n".join(rules)
 
 
@@ -2029,6 +2196,7 @@ def _render_main(
     state: dict[str, Any],
     nav: list[tuple[str, str]],
     route_prefix: str,
+    visual_contract: dict[str, Any] | None = None,
 ) -> str:
     family, _device, content = parse_state_id(state.get("state_id", ""))
     title = state.get("page_title") or ""
@@ -2037,8 +2205,10 @@ def _render_main(
         return _render_detail_main(model, state, family, title, route_prefix)
     if content == "list":
         return _render_list_main(model, state, family, title, route_prefix)
-    if content in ("chart", "directory"):
-        return _render_org_staff_main(state)
+    if content == "chart":
+        return _render_organization_main(model, state, route_prefix, visual_contract)
+    if content == "directory":
+        return _render_staff_directory_main(model, state, route_prefix)
     return _render_home_main(model, state, title, nav, route_prefix)
 
 
@@ -3026,6 +3196,299 @@ def _render_org_staff_main(state: dict[str, Any]) -> str:
     return f'<section aria-label="{_esc(label)}"><h2 class="rc-section-title">{_esc(label)}</h2></section>'
 
 
+# ---------------------------------------------------------------------------
+# Generic organization-chart renderer (nested semantic org DOM)
+# ---------------------------------------------------------------------------
+def _org_node_is_leaf(node: dict[str, Any]) -> bool:
+    return not (node.get("children") or [])
+
+
+def _org_spine(first: dict[str, Any]) -> list[dict[str, Any]]:
+    """Single-child chain from *first* (the executive vertical hierarchy)."""
+    spine: list[dict[str, Any]] = []
+    cur = first
+    while cur is not None:
+        spine.append(cur)
+        ch = cur.get("children") or []
+        if len(ch) == 1:
+            cur = ch[0]
+        else:
+            break
+    return spine
+
+
+def _org_partition(
+    nodes: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split top-level nodes into (executive, peer department groups).
+
+    Topology-only: the first node is the executive block when its single-child
+    chain terminates in a node with >=2 descendant leaves (a branching
+    hierarchy); otherwise every top-level node is a peer department group.
+    """
+    if not nodes:
+        return [], []
+    first = nodes[0]
+    spine = _org_spine(first)
+    branch = spine[-1].get("children") or []
+    if len(branch) >= 2:
+        return [first], nodes[1:]
+    return [], nodes
+
+
+def _render_org_exec(spine: list[dict[str, Any]]) -> str:
+    """Vertical executive chain ending in a horizontal leaf-branch row."""
+
+    def _chain(items: list[dict[str, Any]]) -> str:
+        node = items[0]
+        depth = node.get("depth", 1)
+        label = _esc(node.get("label", ""))
+        out = [
+            f'<li class="rc-org-node rc-org-depth-{_esc(str(depth))}">'
+            f'<span class="rc-org-label">{label}</span>'
+        ]
+        if len(items) > 1:
+            out.append('<span class="rc-org-exec-arrow" aria-hidden="true">↓</span>')
+            out.append(
+                f'<ul class="rc-org-tree rc-org-exec-chain">{_chain(items[1:])}</ul>'
+            )
+        else:
+            branch = node.get("children") or []
+            if branch:
+                bd = depth + 1
+                leaves = "".join(
+                    f'<li class="rc-org-node rc-org-depth-{_esc(str(b.get("depth", bd)))}">'
+                    f'<span class="rc-org-label">{_esc(b.get("label", ""))}</span></li>'
+                    for b in branch
+                )
+                out.append(
+                    f'<ul class="rc-org-tree rc-org-children rc-org-exec-branch">'
+                    f"{leaves}</ul>"
+                )
+        out.append("</li>")
+        return "".join(out)
+
+    return (
+        f'<div class="rc-org-exec"><ul class="rc-org-tree rc-org-exec-chain">'
+        f"{_chain(spine)}</ul></div>"
+    )
+
+
+def _render_org_group(node: dict[str, Any]) -> str:
+    """A peer department card: horizontal header + vertical child list."""
+    depth = node.get("depth", 1)
+    title = _esc(node.get("label", ""))
+    children = node.get("children") or []
+    child_lis = "".join(
+        f'<li class="rc-org-node rc-org-depth-{_esc(str(c.get("depth", depth + 1)))}">'
+        f'<span class="rc-org-label">{_esc(c.get("label", ""))}</span></li>'
+        for c in children
+    )
+    return (
+        f'<div class="rc-org-group">'
+        f'<span class="rc-org-label rc-org-group-title rc-org-depth-{_esc(str(depth))}">'
+        f"{title}</span>"
+        f'<ul class="rc-org-tree rc-org-group-list">{child_lis}</ul>'
+        f"</div>"
+    )
+
+
+def _render_org_section(
+    section: dict[str, Any], hero_footprint: int | None = None
+) -> str:
+    title = section.get("title") or ""
+    nodes = section.get("nodes") or []
+    head = f'<h2 class="rc-org-section-title">{_esc(title)}</h2>'
+    if not nodes:
+        body = ""
+    elif all(_org_node_is_leaf(n) for n in nodes):
+        boxes = "".join(
+            f'<span class="rc-org-label rc-org-box">{_esc(n.get("label", ""))}</span>'
+            for n in nodes
+        )
+        body = f'<div class="rc-org-flat">{boxes}</div>'
+    else:
+        exec_nodes, group_nodes = _org_partition(nodes)
+        parts: list[str] = []
+        if exec_nodes:
+            # Inert, source-backed visual footprint reserved before the
+            # executive hierarchy ONLY when the validated visual contract
+            # provides the measured value. No placeholder art/text/emoji.
+            parts.append(
+                '<div class="rc-org-hero-footprint" aria-hidden="true"></div>'
+                if hero_footprint else ""
+            )
+            parts.append(_render_org_exec(_org_spine(exec_nodes[0])))
+        if group_nodes:
+            groups = "".join(_render_org_group(g) for g in group_nodes)
+            parts.append(f'<div class="rc-org-groups">{groups}</div>')
+        body = "".join(parts)
+    return (
+        f'<section class="rc-org-section" aria-label="{_esc(title)}">'
+        f"{head}{body}</section>"
+    )
+
+
+def _render_organization_main(
+    model: dict[str, Any], state: dict[str, Any], route_prefix: str,
+    visual_contract: dict[str, Any] | None = None,
+) -> str:
+    breadcrumb_html, location_html, snb_html = _board_nav_html(state)
+    org = state.get("organization") or {}
+    org_layout = (visual_contract or {}).get("layout") or {}
+    hero_footprint = (org_layout.get("organization") or {}).get(
+        "hero_footprint_height_px"
+    )
+    sections_html = "".join(
+        _render_org_section(
+            s, hero_footprint=hero_footprint if idx == 0 else None
+        )
+        for idx, s in enumerate(org.get("sections", []))
+    )
+    surface_label_text = surface_label(state, model)
+    context_html = _subpage_context_html(breadcrumb_html, location_html)
+    tools_html = _render_surface_tools(state)
+    page_head = (
+        f'<div class="rc-page-head"><h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
+        f"{tools_html}</div>"
+    )
+    content_html = (
+        f"{page_head}"
+        f"{context_html}"
+        f'<div class="rc-org-chart" aria-label="{_esc(surface_label_text)}">{sections_html}</div>'
+    )
+    return _wrap_subpage(snb_html, content_html)
+
+
+# ---------------------------------------------------------------------------
+# Generic staff-directory renderer (inert search form + source-backed table)
+# ---------------------------------------------------------------------------
+def _render_staff_search_form(sd: dict[str, Any]) -> str:
+    """Render the staff search controls as a read-only, inert form.
+
+    The source form is ``method=POST`` to the official endpoint; the clone
+    renders the controls (department select, search-field select, keyword
+    input, search button) as provenance-backed inert controls with no
+    ``action`` and ``onsubmit="return false"`` so no request is ever issued.
+    """
+    dept = sd.get("department_selector") or {}
+    field = sd.get("search_field_selector") or {}
+    inp = sd.get("search_input") or {}
+    btn = sd.get("search_button") or {}
+
+    dept_opts = "".join(
+        f'<option value="{_esc(o.get("value", ""))}"'
+        f'{" selected" if o.get("value") == "" else ""}>{_esc(o.get("label", ""))}</option>'
+        for o in dept.get("options", [])
+    )
+    field_opts = "".join(
+        f'<option value="{_esc(o.get("value", ""))}">{_esc(o.get("label", ""))}</option>'
+        for o in field.get("options", [])
+    )
+    ph = _esc(inp.get("placeholder") or "")
+    btn_label = _esc(btn.get("label") or "검색")
+
+    parts = [
+        f'<span class="rc-staff-field"><select class="rc-staff-select" disabled '
+        f'aria-disabled="true">{dept_opts}</select></span>',
+        f'<span class="rc-staff-field"><select class="rc-staff-select" disabled '
+        f'aria-disabled="true">{field_opts}</select></span>',
+        f'<span class="rc-staff-field"><input type="text" class="rc-staff-input" '
+        f'placeholder="{ph}" disabled aria-disabled="true"></span>',
+        f'<span class="rc-staff-field"><button type="button" class="rc-staff-btn" '
+        f'disabled aria-disabled="true">{btn_label}</button></span>',
+    ]
+    return (
+        f'<form class="rc-staff-search" aria-label="직원 검색" onsubmit="return false">'
+        f'{"".join(parts)}</form>'
+    )
+
+
+def _render_staff_table(sd: dict[str, Any]) -> str:
+    table = sd.get("table") or {}
+    columns = table.get("columns") or []
+    rows = table.get("rows") or []
+    col_widths = table.get("col_widths") or []
+    caption = table.get("caption")
+
+    head_cells = "".join(
+        f'<th scope="col" class="rc-th rc-col-{_esc(c)}">{_esc(c)}</th>' for c in columns
+    )
+    colgroup = ""
+    if col_widths:
+        cols = [
+            f'<col style="width:{int(w)}%">' if isinstance(w, int) and w > 0 else "<col>"
+            for w in col_widths
+        ]
+        colgroup = f'<colgroup>{"".join(cols)}</colgroup>'
+    caption_html = (
+        f'<caption class="sr_only">{_esc(caption)}</caption>' if caption else ""
+    )
+    body_rows = []
+    for row in rows:
+        cells = row.get("cells") or {}
+        tds = "".join(
+            f'<td class="rc-td rc-col-{_esc(c)}">{_esc(cells.get(c) or "")}</td>'
+            for c in columns
+        )
+        body_rows.append(f'<tr class="rc-board-row">{tds}</tr>')
+    return (
+        f'<table class="rc-board rc-staff-table" aria-label="직원 목록">'
+        f"{colgroup}{caption_html}"
+        f'<thead><tr class="rc-board-head">{head_cells}</tr></thead>'
+        f'<tbody>{"".join(body_rows)}</tbody></table>'
+    )
+
+
+def _render_staff_directory_main(
+    model: dict[str, Any], state: dict[str, Any], route_prefix: str
+) -> str:
+    breadcrumb_html, location_html, snb_html = _board_nav_html(state)
+    sd = state.get("staff_directory") or {}
+    form_html = _render_staff_search_form(sd) if sd else ""
+
+    rc = sd.get("result_count") or {}
+    pi = sd.get("pagination_info") or {}
+    summary_parts = []
+    if rc.get("label"):
+        summary_parts.append(_esc(rc["label"]))
+    if pi.get("label"):
+        summary_parts.append(_esc(pi["label"]))
+    summary_html = (
+        f'<p class="rc-board-summary">{" · ".join(summary_parts)}</p>'
+        if summary_parts else ""
+    )
+
+    table_html = _render_staff_table(sd) if sd else ""
+    pager = sd.get("pager") or {}
+    pagination_html = _render_board_pagination(
+        {
+            "page_total": pi.get("total_pages"),
+            "page_current": pi.get("current_page"),
+        },
+        {"pages": pager.get("pages"), "current_page": pager.get("current_page")},
+    )
+
+    surface_label_text = surface_label(state, model)
+    context_html = _subpage_context_html(breadcrumb_html, location_html)
+    tools_html = _render_surface_tools(state)
+    page_head = (
+        f'<div class="rc-page-head"><h2 class="rc-page-title">{_esc(surface_label_text)}</h2>'
+        f"{tools_html}</div>"
+    )
+    # SOURCE ordering: page title, then breadcrumb/location, then content.
+    # The result summary and the inert search controls share one clear row.
+    content_html = (
+        f"{page_head}"
+        f"{context_html}"
+        f'<div class="rc-staff-search-row" aria-label="직원 검색">'
+        f"{summary_html}{form_html}"
+        f"</div>"
+        f"{table_html}{pagination_html}"
+    )
+    return _wrap_subpage(snb_html, content_html)
+
+
 def _evidence_json(state: dict[str, Any]) -> str:
     viewport = state.get("viewport") or {}
     evidence = {
@@ -3058,10 +3521,12 @@ def _render_page(
         model, current_route, nav, gnb_top, gnb_extra, open_gnb, route_prefix,
         device=device,
     )
-    main = _render_main(model, state, nav, route_prefix)
+    main = _render_main(
+        model, state, nav, route_prefix, visual_contract=visual_contract
+    )
     footer = _render_footer(model, state)
     theme = _theme_values(visual_contract, device=device)
-    css = _render_css(theme, device=device)
+    css = _render_css(theme, device=device, org_surface=(content == "chart"))
     lifecycle_script = (
         f'<script type="application/ld+json" id="rc-lifecycle">'
         f"{_lifecycle_json(visual_contract, state_id)}</script>"

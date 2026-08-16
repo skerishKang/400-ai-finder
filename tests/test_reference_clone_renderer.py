@@ -641,6 +641,195 @@ def test_org_staff_render_label_without_gap_text_or_fake_ui():
     assert "직원 업무안내" in staff
 
 
+# ── #1325 generic organization / staff_directory rendering ──────────────────
+def test_org_renders_nested_semantic_dom():
+    model = _load_model()
+    html = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
+    # Nested semantic org DOM (not a flat text list).
+    assert 'class="rc-org-tree' in html
+    assert "rc-org-children" in html
+    assert "rc-org-depth-3" in html
+    assert "rc-org-depth-2" in html
+    # Captured hierarchy labels visible.
+    assert "구청장" in html
+    assert "부구청장" in html
+    assert "기획실" in html
+    assert "의회사무국" in html
+    assert "행정복지센터" in html
+    # Separate organization sections preserved as labelled regions.
+    assert "rc-org-section" in html
+    # No live links: node target identity is provenance only, not navigated.
+    assert "tel:" not in html
+    assert "organizationView.es" not in html
+
+
+def test_staff_renders_search_and_table_dom():
+    model = _load_model()
+    html = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
+    # Search controls + table + count + pager all present.
+    assert "rc-staff-search" in html
+    assert "rc-staff-select" in html
+    assert "rc-staff-input" in html
+    assert "rc-staff-table" in html
+    assert "전체 1,322건" in html
+    assert "현재 페이지 1/133" in html
+    for col in ("부서명", "직책", "전화번호", "담당업무"):
+        assert col in html
+    # Captured rows (verbatim) rendered; phone as inert text, not a tel: link.
+    assert "062-360-7201" in html
+    assert "tel:" not in html
+    # Department options captured verbatim.
+    assert "구청장" in html and "양동" in html
+
+
+def test_no_screenshot_runtime_org_staff():
+    model = _load_model()
+    for sid in ("organization.chart.desktop", "staff.directory.desktop"):
+        html = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        # No <img> screenshot consumption; evidence stays hidden JSON.
+        assert "<img" not in html or "source.png" not in html
+        assert 'id="rc-evidence"' in html
+
+
+def test_no_active_external_post_org_staff():
+    model = _load_model()
+    for sid in ("organization.chart.desktop", "staff.directory.desktop"):
+        html = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        # No active action to the official endpoint (no POST, no external URL).
+        assert 'action="/organization.es' not in html
+        assert 'action="http' not in html
+        assert "organizationView.es" not in html
+        if sid == "staff.directory.desktop":
+            # The staff search form is rendered inert: onsubmit aborts submission.
+            assert 'onsubmit="return false"' in html
+            # Search affordances are inert (disabled) controls.
+            assert html.count('aria-disabled="true"') >= 1
+
+
+def test_lifecycle_fail_closed_org_staff():
+    """Org/staff surfaces inherit the G3 fail-closed lifecycle (not promoted)."""
+    model = _load_model()
+    for sid in ("organization.chart.desktop", "staff.directory.desktop"):
+        html = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        assert 'id="rc-lifecycle"' in html
+        start = html.index('id="rc-lifecycle"')
+        end = html.index("</script>", start)
+        payload = json.loads(html[start:end].split(">", 1)[1])
+        assert payload["faithful_clone_candidate"] is False
+        assert payload["visual_review"] == "pending"
+        assert payload["clone_mvp_ready"] is False
+        assert payload["golden"] is False
+        assert payload["actual_site_integrated"] is False
+        assert payload["asset_byte_fidelity_complete"] is False
+
+
+# ── #1325 correction: generic page-title rule + page-head/breadcrumb order ──
+_BOARD_TITLE_REGRESSION = {
+    "notice.list.desktop": "공지사항",
+    "notice.detail.desktop": "공지사항",
+    "gosi.list.desktop": "현재 고시/공고",
+    "gosi.detail.desktop": "고시/공고",
+    "civil_form.list.desktop": "민원서식",
+    "civil_form.detail.desktop": "민원서식",
+}
+
+
+def _page_title_h2(html: str) -> str:
+    m = re.search(r'<h2 class="rc-page-title">([^<]+)</h2>', html)
+    assert m, "missing rc-page-title h2"
+    return m.group(1)
+
+
+def test_org_page_title_is_surface_identity():
+    model = _load_model()
+    html = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
+    assert _page_title_h2(html) == "행정조직도"
+
+
+def test_staff_page_title_is_surface_identity():
+    model = _load_model()
+    html = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
+    assert _page_title_h2(html) == "직원 업무안내"
+
+
+def test_board_surface_titles_unchanged():
+    """Regression: board list/detail page titles keep the breadcrumb rule."""
+    model = _load_model()
+    for sid, expected in _BOARD_TITLE_REGRESSION.items():
+        html = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        assert _page_title_h2(html) == expected, f"{sid} title changed"
+
+
+def test_synthetic_chart_directory_first_segment_title():
+    """Generic rule: chart/directory surfaces use the first page_title segment."""
+    model = _synthetic_model()
+    for sid, expected in (
+        ("org.chart.desktop", "조직도"),
+        ("people.directory.desktop", "직원안내"),
+    ):
+        html = mod.render_state(model, sid, route_prefix="/x/")
+        assert _page_title_h2(html) == expected
+
+
+def test_page_head_precedes_breadcrumb_org_staff():
+    """SOURCE ordering: page title, then breadcrumb/location, then content."""
+    model = _load_model()
+    for sid in ("organization.chart.desktop", "staff.directory.desktop"):
+        html = mod.render_state(model, sid, route_prefix=_ROUTE_PREFIX)
+        body = html[html.index("<body"):]
+        assert body.index('class="rc-page-head"') < body.index(
+            'class="rc-subpage-context"'
+        ), f"{sid}: page title must precede breadcrumb context"
+
+
+# ── #1325 correction: organization chart layout (not a serialized list) ────
+def test_org_desktop_not_narrow_serialized_vertical_list():
+    """Org layout vocabulary: executive chain + peer group grid + flat grid."""
+    model = _load_model()
+    html = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
+    assert 'class="rc-org-exec"' in html
+    assert 'class="rc-org-groups"' in html
+    assert 'class="rc-org-flat"' in html
+    # The old margin-indented nested serialization is removed.
+    assert "margin:0 0 0 24px" not in html
+    # Executive labels are still source-backed.
+    for text in ("구청장", "부구청장", "기획실", "홍보실", "감사담당관"):
+        assert text in html
+
+
+def test_org_flat_grid_contains_eighteen_centres():
+    model = _load_model()
+    html = mod.render_state(model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX)
+    flat = re.search(r'<div class="rc-org-flat">(.*?)</div>', html, re.S)
+    assert flat, "org flat grid missing"
+    boxes = re.findall(r'class="rc-org-label rc-org-box">([^<]+)</span>', flat.group(1))
+    assert len(boxes) == 18, f"expected 18 neighbourhood centres, got {len(boxes)}"
+
+
+# ── #1325 correction: staff directory bounded polish ──────────────────────
+def test_staff_table_four_columns_ten_rows():
+    model = _load_model()
+    html = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
+    ths = re.findall(
+        r'<th scope="col" class="rc-th rc-col-[^"]*">([^<]+)</th>', html
+    )
+    assert ths == ["부서명", "직책", "전화번호", "담당업무"]
+    rows = re.findall(r'<tr class="rc-board-row">', html)
+    assert len(rows) == 10, f"expected 10 captured rows, got {len(rows)}"
+
+
+def test_staff_search_row_summary_and_controls():
+    model = _load_model()
+    html = mod.render_state(model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX)
+    row_start = html.index('class="rc-staff-search-row"')
+    summary_idx = html.index('class="rc-board-summary"')
+    form_idx = html.index('form class="rc-staff-search"', row_start)
+    assert row_start < summary_idx < form_idx, "summary and controls must share the search row"
+    # Readable disabled affordance (white surface, dark text, dark button).
+    assert "background:#ffffff;color:#222222;opacity:1" in html
+    assert "background:#23201f;color:#ffffff" in html
+
+
 # ── Second synthetic site: same generic renderer ────────────────────────
 def _make_state(state_id, title, **over):
     family, _dev, content = mod.parse_state_id(state_id)
@@ -1550,3 +1739,105 @@ def test_1312_synthetic_site_board_fallback_intact():
     detail = mod.render_state(synthetic, "news.detail.desktop", route_prefix="/x/", visual_contract=contract)
     assert "rc-detail-meta" in detail
     assert "rc-back" in detail
+
+
+# ---------------------------------------------------------------------------
+# #1325 organization hero footprint — source-backed optional reserved space
+# ---------------------------------------------------------------------------
+def test_org_hero_footprint_reserved_when_present():
+    """With the validated org hero footprint in the contract, the org surface
+    reserves an inert spacer before the leading executive hierarchy."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    measured = contract["layout"]["organization"]["hero_footprint_height_px"]
+    assert isinstance(measured, int) and measured > 0
+    assert 'class="rc-org-hero-footprint"' in html
+    assert f".rc-org-hero-footprint{{display:block;height:{measured}px;}}" in html
+    assert html.count('class="rc-org-hero-footprint"') == 1
+    # spacer sits directly after the first section heading / before exec chain
+    assert html.index('class="rc-org-hero-footprint"') > html.index("서구 행정조직")
+    assert html.index('class="rc-org-hero-footprint"') < html.index('class="rc-org-exec"')
+
+
+def test_org_hero_footprint_is_inert_no_debug_content():
+    """The reserved footprint is an empty, aria-hidden semantic spacer — no
+    placeholder art, no 'image unavailable' text, no emoji, no debug message."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    m = re.search(r'<div class="rc-org-hero-footprint"([^>]*)>', html)
+    assert m is not None
+    assert "aria-hidden" in m.group(1)
+    tail = html[m.end():m.end() + 60]
+    assert tail.lstrip().startswith("<")  # no inline text content
+
+
+def test_org_hero_footprint_absent_no_space_invented():
+    """A contract without the optional org field (or no contract at all) must
+    not inject any gap or CSS rule."""
+    model = _load_model()
+    raw = json.loads(VISUAL_CONTRACT_PATH.read_text(encoding="utf-8"))
+    raw.get("layout", {}).pop("organization", None)
+    raw["measurements"] = [
+        m for m in raw["measurements"]
+        if m["field"] != "layout.organization.hero_footprint_height_px"
+    ]
+    stripped = validator.validate_visual_contract(raw, model)
+    html = mod.render_state(
+        model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX,
+        visual_contract=stripped,
+    )
+    assert 'class="rc-org-hero-footprint"' not in html
+    assert ".rc-org-hero-footprint{" not in html
+    html0 = mod.render_state(
+        model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX
+    )
+    assert 'class="rc-org-hero-footprint"' not in html0
+    assert ".rc-org-hero-footprint{" not in html0
+
+
+def test_org_hero_footprint_preserves_org_topology():
+    """The existing organization hierarchy topology/tiering must be preserved
+    when the spacer is present."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    html = mod.render_state(
+        model, "organization.chart.desktop", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    assert 'class="rc-org-exec"' in html
+    assert "rc-org-exec-chain" in html
+    assert "rc-org-depth-1" in html
+    assert 'class="rc-org-groups"' in html
+    assert "rc-org-flat" in html
+
+
+def test_org_hero_footprint_no_site_literal():
+    """The org hero footprint implementation is generic — no site literal and
+    no site_id branch."""
+    source = MODULE_PATH.read_text(encoding="utf-8")
+    assert "hero_footprint" in source
+    for literal in ("seogu_gwangju", "site_id ==", "== \"seogu", "== 'seogu"):
+        assert literal not in source
+
+
+def test_staff_unchanged_by_org_hero_footprint():
+    """Staff output must not carry any org hero footprint spacer or rule."""
+    model = _load_model()
+    contract = _load_validated_contract()
+    staff = mod.render_state(
+        model, "staff.directory.desktop", route_prefix=_ROUTE_PREFIX,
+        visual_contract=contract,
+    )
+    assert 'class="rc-org-hero-footprint"' not in staff
+    assert ".rc-org-hero-footprint{" not in staff
+    # staff table + inert search controls remain intact
+    assert "rc-staff-table" in staff
+    assert "rc-staff-input" in staff

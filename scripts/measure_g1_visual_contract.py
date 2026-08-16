@@ -670,6 +670,94 @@ def _measure_gnb_open() -> dict:
     }
 
 
+def _measure_organization() -> dict:
+    """Measure the organization hero visual footprint from the committed G1
+    ``organization.chart.desktop`` source screenshot.
+
+    The value is the vertical extent (px) of the contiguous SOURCE hero
+    illustration band located between the organization section heading and the
+    executive hierarchy, in the main content column (x in [300, 1400]) of the
+    immutable full-page screenshot:
+
+        hero_footprint_height_px = hero_band_bottom - hero_band_top
+
+    The band is the longest run of rows whose saturated-content fraction is
+    >= 2% (gaps <= 30px are merged), bounded below the last section-heading
+    text row and above the first executive-tier card row. The measurement is
+    source-only and deterministic: it never inspects the clone render, never
+    computes a full-height difference (e.g. source_h - clone_h), and never
+    encodes a guessed constant.
+    """
+    state_id = "organization.chart.desktop"
+    shot_sha = _screenshot_sha(state_id)
+    img = Image.open(CAPTURE_ROOT / "states" / state_id / "source.png").convert("RGB")
+    w, h = img.size
+    assert w == 1440
+    x0, x1 = 300, min(1400, w)
+
+    def _dark_frac(y: int) -> float:
+        n = c = 0
+        for x in range(x0, x1, 2):
+            r, g, b = img.getpixel((x, y))
+            n += 1
+            if 0.299 * r + 0.587 * g + 0.114 * b < 180:
+                c += 1
+        return c / n
+
+    def _color_frac(y: int) -> float:
+        n = c = 0
+        for x in range(x0, x1, 2):
+            r, g, b = img.getpixel((x, y))
+            n += 1
+            if max(r, g, b) - min(r, g, b) > 40:
+                c += 1
+        return c / n
+
+    # Organization section heading ("서구 행정조직 …"): last text-only band
+    # before the hero region.
+    text_rows = [
+        y for y in range(440, min(721, h))
+        if 0.04 <= _dark_frac(y) <= 0.30 and _color_frac(y) < 0.10
+    ]
+    heading_bottom = text_rows[-1] if text_rows else None
+
+    # Executive hierarchy: first row whose saturated fraction >= 0.5 (the tier
+    # card bar).
+    hierarchy_top = None
+    for y in range(1000, min(2400, h)):
+        if _color_frac(y) >= 0.5:
+            hierarchy_top = y
+            break
+
+    if heading_bottom is None or hierarchy_top is None or hierarchy_top <= heading_bottom:
+        return {
+            "state_id": state_id,
+            "artifact_sha256": shot_sha,
+            "hero_footprint_height_px": None,
+        }
+
+    hero_rows = [
+        y for y in range(heading_bottom + 1, hierarchy_top)
+        if _color_frac(y) >= 0.02
+    ]
+    runs: list[tuple[int, int]] = []
+    if hero_rows:
+        start = prev = hero_rows[0]
+        for y in hero_rows[1:]:
+            if y - prev <= 30:
+                prev = y
+            else:
+                runs.append((start, prev))
+                start = prev = y
+        runs.append((start, prev))
+    band = max(runs, key=lambda r: r[1] - r[0]) if runs else None
+    return {
+        "state_id": state_id,
+        "artifact_sha256": shot_sha,
+        "hero_footprint_height_px": band[1] - band[0] if band is not None else None,
+    }
+
+
 def _measure_board() -> dict:
     """Measure #1312 board list/detail geometry from committed G1 screenshots.
 
@@ -1109,6 +1197,7 @@ def build_visual_contract() -> dict:
     mobile = _measure_mobile()
     board = _measure_board()
     gnb_open = _measure_gnb_open()
+    org = _measure_organization()
     fonts = _font_family_observation()
 
     measurements: list[dict] = []
@@ -1302,6 +1391,23 @@ def build_visual_contract() -> dict:
             )
         )
 
+    if org.get("hero_footprint_height_px") is not None:
+        measurements.append(
+            _measurement(
+                "layout.organization.hero_footprint_height_px",
+                org["hero_footprint_height_px"],
+                "px",
+                "pixel_analysis",
+                org,
+                "pixel_analysis_org_hero_footprint",
+                "Vertical extent of the contiguous illustration band in the "
+                "committed organization source screenshot, between the section "
+                "heading and the executive hierarchy (source-only pixel "
+                "measurement; no clone inspection, no height-difference "
+                "heuristic).",
+            )
+        )
+
     text_color = desktop["text"]
     muted = desktop["muted"]
     border = desktop["border"]
@@ -1433,6 +1539,10 @@ def build_visual_contract() -> dict:
                 "columns": gnb_open.get("columns"),
                 "provenance_state_id": gnb_open["_source"]["state_id"],
             },
+            "organization": {
+                "hero_footprint_height_px": org.get("hero_footprint_height_px"),
+                "provenance_state_id": org["state_id"],
+            },
         },
         "colors": {
             "primary": desktop["primary"],
@@ -1531,9 +1641,17 @@ def build_visual_contract() -> dict:
         },
         "gaps": [
             {
-                "region": "organization_chart",
-                "note": "No measurable geometry for org chart surface in committed G1 evidence.",
-                "provenance_state_id": None,
+                "region": "organization_chart_hero_footprint",
+                "note": (
+                    "Organization hero visual footprint is measured from "
+                    "committed G1 evidence "
+                    "(layout.organization.hero_footprint_height_px). The "
+                    "remaining org-chart geometry (tier card sizes, tier "
+                    "colors, connectors) stays an unresolved gap."
+                ),
+                "provenance_state_id": org["state_id"],
+                "artifact_sha256": org["artifact_sha256"],
+                "measurement_method": "pixel_analysis_org_hero_footprint",
             },
             {
                 "region": "staff_directory",
