@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>기관 AI 안내</title>
+  <link rel="stylesheet" href="/static/municipal-ai-shell.css" />
+</head>
+<body data-surface-state="booting">
+  <main class="municipal-shell" aria-label="기관 AI 안내">
+    <section class="clone-pane" aria-label="기관 안내 화면">
+      <iframe
+        id="municipal-clone-frame"
+        class="clone-frame"
+        title="기관 안내 화면"
+        sandbox="allow-scripts allow-same-origin"
+        referrerpolicy="no-referrer"
+      ></iframe>
+      <div id="surface-error" class="surface-error" role="status">
+        지원할 수 있는 기관 안내 화면을 찾지 못했습니다.
+      </div>
+    </section>
+
+    <aside class="ai-pane" aria-label="AI 안내 대화">
+      <header class="ai-header">
+        <span class="ai-eyebrow">AI CIVIC GUIDE</span>
+        <h1 id="municipal-ai-title" class="ai-title">기관 AI 안내</h1>
+        <p class="ai-subtitle">왼쪽의 저장소 기반 안내 화면과 함께 관련 경로를 확인합니다.</p>
+      </header>
+
+      <div id="clone-source-state" class="source-state" data-state="loading" role="status" aria-live="polite">
+        안내 화면을 연결하는 중입니다.
+      </div>
+
+      <div id="municipal-chat-thread" class="chat-thread" aria-live="polite">
+        <div class="message message--ai">
+          <div class="bubble">궁금한 행정 내용을 입력해 주세요. 현재 단계에서는 기관 안내 화면 연결과 안전한 읽기 경로를 검증합니다.</div>
+        </div>
+      </div>
+
+      <form id="municipal-chat-form" class="composer" autocomplete="off">
+        <div class="composer-row">
+          <input
+            id="municipal-chat-input"
+            class="composer-input"
+            type="text"
+            maxlength="300"
+            aria-label="질문 입력"
+            placeholder="행정 내용을 물어보세요"
+          />
+          <button id="municipal-chat-send" class="composer-send" type="submit">보내기</button>
+        </div>
+        <p class="privacy-note">주민등록번호·전화번호·이메일·상세주소 등 개인정보는 입력하지 마세요.</p>
+      </form>
+    </aside>
+  </main>
+
+  <script src="/static/municipal-site-surface-registry.js"></script>
+  <script src="/static/municipal-clone-surface.js"></script>
+  <script src="/static/citizen-mvp-bridge.js"></script>
+  <script src="/static/municipal-ai-shell.js"></script>
+</body>
+</html>
