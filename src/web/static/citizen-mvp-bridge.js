@@ -12,6 +12,8 @@
  * - abortable via cancel()
  * - never throws to the caller; network/HTTP failures degrade to a stable
  *   { ok: false, action: "none", answer: "<honest ko message>" } envelope
+ * - optional explicit site_id transport for the generic municipal shell; legacy
+ *   callers that omit the second argument keep the exact prior request shape
  */
 
 (function () {
@@ -35,6 +37,11 @@
   function _safeSessionId(value) {
     var text = typeof value === "string" ? value.trim() : "";
     return /^[A-Za-z0-9_-]{16,128}$/.test(text) ? text : "";
+  }
+
+  function _safeSiteId(value) {
+    var text = typeof value === "string" ? value.trim() : "";
+    return /^[a-z0-9][a-z0-9_]{2,63}$/.test(text) ? text : "";
   }
 
   function _generateSessionId() {
@@ -124,6 +131,10 @@
       confidence: 0.0,
       provider: "",
       model: "",
+      failure_code: "",
+      site_id: "",
+      site_status: "",
+      fallback_to_bukgu: false,
       quest: null,
       action_plan: null,
       current_time: "",
@@ -153,7 +164,7 @@
     return "ko";
   }
 
-  function ask(question) {
+  function ask(question, options) {
     if (_controller) {
       _controller.abort();
     }
@@ -164,11 +175,19 @@
     // locale, so a later locale change keeps this request scoped to its start.
     var requestLocale = _captureLocale();
     var sessionId = _anonymousSessionId();
+    var requestedSiteId = _safeSiteId(options && options.site_id);
+    var requestBody = {
+      question: question || "",
+      locale: requestLocale,
+      session_id: sessionId,
+    };
+    // Backward compatibility: do not add the field at all for legacy callers.
+    if (requestedSiteId) requestBody.site_id = requestedSiteId;
 
     var fetchOpts = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: question || "", locale: requestLocale, session_id: sessionId }),
+      body: JSON.stringify(requestBody),
     };
     if (controller) {
       fetchOpts.signal = controller.signal;
@@ -189,6 +208,10 @@
             confidence: data ? data.confidence : 0.0,
             provider: data ? data.provider : "",
             model: data ? data.model : "",
+            failure_code: data && typeof data.failure_code === "string" ? data.failure_code : "",
+            site_id: data && typeof data.site_id === "string" ? data.site_id : "",
+            site_status: data && typeof data.site_status === "string" ? data.site_status : "",
+            fallback_to_bukgu: Boolean(data && data.fallback_to_bukgu),
             quest: data && data.quest ? data.quest : null,
             action_plan: data && data.action_plan ? data.action_plan : null,
             current_time: data && typeof data.current_time === "string" ? data.current_time : "",
