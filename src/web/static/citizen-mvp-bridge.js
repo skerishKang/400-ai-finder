@@ -13,7 +13,7 @@
  * - never throws to the caller; network/HTTP failures degrade to a stable
  *   { ok: false, action: "none", answer: "<honest ko message>" } envelope
  * - optional explicit site_id transport for the generic municipal shell; legacy
- *   callers that omit the second argument keep the exact prior request shape
+ *   callers that omit the second argument keep the prior request/response shape
  */
 
 (function () {
@@ -131,10 +131,6 @@
       confidence: 0.0,
       provider: "",
       model: "",
-      failure_code: "",
-      site_id: "",
-      site_status: "",
-      fallback_to_bukgu: false,
       quest: null,
       action_plan: null,
       current_time: "",
@@ -181,7 +177,7 @@
       locale: requestLocale,
       session_id: sessionId,
     };
-    // Backward compatibility: do not add the field at all for legacy callers.
+    // Backward compatibility: legacy calls never send a site_id field.
     if (requestedSiteId) requestBody.site_id = requestedSiteId;
 
     var fetchOpts = {
@@ -208,10 +204,6 @@
             confidence: data ? data.confidence : 0.0,
             provider: data ? data.provider : "",
             model: data ? data.model : "",
-            failure_code: data && typeof data.failure_code === "string" ? data.failure_code : "",
-            site_id: data && typeof data.site_id === "string" ? data.site_id : "",
-            site_status: data && typeof data.site_status === "string" ? data.site_status : "",
-            fallback_to_bukgu: Boolean(data && data.fallback_to_bukgu),
             quest: data && data.quest ? data.quest : null,
             action_plan: data && data.action_plan ? data.action_plan : null,
             current_time: data && typeof data.current_time === "string" ? data.current_time : "",
