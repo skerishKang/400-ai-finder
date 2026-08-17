@@ -1,4 +1,4 @@
-/* Generic institution clone + AI resident shell (#1333 / #1328 Slice B). */
+/* Generic institution clone + AI resident shell (#1333 / #1335 / #1328). */
 (function () {
   "use strict";
 
@@ -13,16 +13,36 @@
   var siteId = "";
   var config = null;
   var latestEvidence = null;
+  var latestJourneyResult = null;
 
-  function _appendMessage(kind, text) {
+  function _appendMessage(kind, text, metadata) {
     var row = document.createElement("div");
     row.className = "message message--" + kind;
+    var stack = document.createElement("div");
+    stack.className = "message-stack";
     var bubble = document.createElement("div");
     bubble.className = "bubble";
     bubble.textContent = String(text || "");
-    row.appendChild(bubble);
+    stack.appendChild(bubble);
+
+    if (metadata && metadata.grounded === true) {
+      row.setAttribute("data-grounded", "true");
+      row.setAttribute("data-source-kind", String(metadata.source_kind || ""));
+      row.setAttribute("data-evidence-kind", String(metadata.evidence_kind || ""));
+      row.setAttribute("data-evidence-route", String(metadata.route || ""));
+      row.setAttribute("data-journey-id", String(metadata.journey_id || ""));
+
+      var source = document.createElement("div");
+      source.className = "message-source";
+      source.setAttribute("data-grounded-source", "true");
+      source.textContent = "근거 · 저장소 기반 기관 안내 · " + (metadata.route || "홈");
+      stack.appendChild(source);
+    }
+
+    row.appendChild(stack);
     thread.appendChild(row);
     thread.scrollTop = thread.scrollHeight;
+    return row;
   }
 
   function _setUnavailable(message) {
@@ -64,6 +84,7 @@
     document.title = config.label + " AI 안내";
     document.body.setAttribute("data-site-id", siteId);
     document.body.setAttribute("data-surface-state", "ready");
+    document.body.setAttribute("data-journey-state", "idle");
 
     surface = window.MunicipalCloneSurface.create({ iframe: frame, config: config });
     window.addEventListener("municipal-clone-evidence", function (event) {
@@ -76,9 +97,64 @@
     }
   }
 
+  async function _answerQuestion(question) {
+    latestJourneyResult = null;
+    var journey = null;
+    if (window.MunicipalResidentJourneyRegistry) {
+      journey = window.MunicipalResidentJourneyRegistry.match(siteId, question);
+    }
+
+    if (journey) {
+      if (!window.MunicipalResidentJourney) {
+        var runtimeFailure = {
+          ok: false,
+          grounded: false,
+          handled: true,
+          journey_id: journey.journey_id,
+          answer: "안내 화면에서 근거를 확인하지 못해 답변하지 않습니다.",
+          failure_code: "journey_runtime_missing",
+        };
+        latestJourneyResult = runtimeFailure;
+        document.body.setAttribute("data-journey-state", "failed");
+        _appendMessage("ai", runtimeFailure.answer);
+        return;
+      }
+
+      document.body.setAttribute("data-journey-state", "running");
+      var result = await window.MunicipalResidentJourney.run(journey, surface);
+      latestJourneyResult = result;
+      if (result && result.ok && result.grounded) {
+        document.body.setAttribute("data-journey-state", "grounded");
+        _appendMessage("ai", result.answer, result);
+      } else {
+        document.body.setAttribute("data-journey-state", "failed");
+        _appendMessage(
+          "ai",
+          result && result.answer ? result.answer : "안내 화면에서 근거를 확인하지 못해 답변하지 않습니다.",
+        );
+      }
+      return;
+    }
+
+    document.body.setAttribute("data-journey-state", "fallback");
+    if (!window.CitizenMvpBridge) {
+      _appendMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+      return;
+    }
+    try {
+      var bridgeResult = await window.CitizenMvpBridge.ask(question, { site_id: siteId });
+      var answer = bridgeResult && typeof bridgeResult.answer === "string" && bridgeResult.answer.trim()
+        ? bridgeResult.answer
+        : "현재 AI 안내를 연결하지 못했습니다.";
+      _appendMessage("ai", answer);
+    } catch (_) {
+      _appendMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+    }
+  }
+
   form.addEventListener("submit", function (event) {
     event.preventDefault();
-    if (!siteId || !config || !window.CitizenMvpBridge) return;
+    if (!siteId || !config) return;
     var question = String(input.value || "").trim();
     if (!question) return;
     input.value = "";
@@ -86,14 +162,10 @@
     input.disabled = true;
     send.disabled = true;
 
-    window.CitizenMvpBridge.ask(question, { site_id: siteId })
-      .then(function (result) {
-        var answer = result && typeof result.answer === "string" && result.answer.trim()
-          ? result.answer
-          : "현재 AI 안내를 연결하지 못했습니다.";
-        _appendMessage("ai", answer);
-      })
+    Promise.resolve(_answerQuestion(question))
       .catch(function () {
+        latestJourneyResult = null;
+        document.body.setAttribute("data-journey-state", "failed");
         _appendMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
       })
       .finally(function () {
@@ -110,6 +182,7 @@
       latestEvidence = surface.readEvidence();
       return latestEvidence;
     },
+    getLastJourneyResult: function () { return latestJourneyResult; },
     navigate: function (route) {
       return surface ? surface.navigate(route) : false;
     },
