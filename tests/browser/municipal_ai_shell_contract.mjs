@@ -1,7 +1,7 @@
 import assert from "assert";
 
 /**
- * #1333 Slice B browser contract.
+ * Browser E2E for #1333 Slice B + #1335 Slice C.
  * Runs inside an existing localhost-only Playwright context against a full
  * Cloudflare Pages live build. No external provider or official-site request.
  */
@@ -9,9 +9,9 @@ export async function verifyMunicipalAiShell(page, baseOrigin) {
   const shellUrl = `${baseOrigin}/static/municipal-ai-shell.html?site_id=seogu_gwangju`;
   let capturedPayload = null;
 
-  // The calling Buk-gu test no longer needs its MVP route after its golden flow.
-  // Replace it with the exact Slice-A Seo-gu-unconfigured response so this test
-  // proves explicit site_id transport without enabling Slice C runtime data.
+  // Unmatched questions retain the Slice-A provider path. Supported Slice-C
+  // journeys must NOT hit this route: they answer only from post-navigation
+  // repository-clone READ evidence.
   await page.unroute("**/api/mvp/ask");
   await page.route("**/api/mvp/ask", async (route) => {
     capturedPayload = JSON.parse(route.request().postData() || "{}");
@@ -39,10 +39,7 @@ export async function verifyMunicipalAiShell(page, baseOrigin) {
     "ready",
     "known Seo-gu surface must initialize",
   );
-  assert.strictEqual(
-    await page.getAttribute("body", "data-site-id"),
-    "seogu_gwangju",
-  );
+  assert.strictEqual(await page.getAttribute("body", "data-site-id"), "seogu_gwangju");
   assert.ok(
     (await page.textContent("#municipal-ai-title")).includes("서구청"),
     "generic shell must label the selected institution",
@@ -79,8 +76,7 @@ export async function verifyMunicipalAiShell(page, baseOrigin) {
     );
   }
 
-  // Route navigation is bounded by the registry: arbitrary/external-like paths
-  // are rejected before the iframe location can change.
+  // Route navigation remains fail-closed for traversal/external-like input.
   assert.strictEqual(
     await page.evaluate(() => window.MunicipalAiShell.navigate("../../outside/")),
     false,
@@ -89,71 +85,158 @@ export async function verifyMunicipalAiShell(page, baseOrigin) {
     await page.evaluate(() => window.MunicipalAiShell.navigate("https://example.com/")),
     false,
   );
-  assert.strictEqual(
-    await page.evaluate(() => window.MunicipalAiShell.navigate("notice/")),
-    true,
-  );
 
   const frameHandle = await page.$("#municipal-clone-frame");
   assert.ok(frameHandle, "clone iframe must exist");
   const cloneFrame = await frameHandle.contentFrame();
   assert.ok(cloneFrame, "clone iframe must remain same-origin and readable");
-  await cloneFrame.waitForURL(/\/seogu\/notice\/$/, { timeout: 15000 });
 
-  const listEvidence = await page.evaluate(() => window.MunicipalAiShell.getEvidence());
-  assert.strictEqual(listEvidence.route, "notice/");
-  assert.ok(listEvidence.text.length > 0 && listEvidence.text.length <= 6000);
-
-  // Prove a real clone-local list -> captured detail transition. The renderer
-  // emits a genuine focusable anchor with a local href. Activate that anchor by
-  // keyboard Enter instead of forcing pointer hit-testing through the iframe;
-  // this exercises the browser's normal link-navigation behavior and keeps the
-  // test independent of table-cell hitbox geometry.
-  const detailLink = cloneFrame.locator("a.rc-list-link[data-detail='1']");
-  assert.strictEqual(await detailLink.count(), 1, "notice list must expose one captured detail link");
-  const detailHref = await detailLink.getAttribute("href");
-  assert.ok(detailHref, "captured detail link must have a local href");
-  const detailTarget = new URL(detailHref, cloneFrame.url());
-  assert.strictEqual(detailTarget.origin, baseOrigin, "detail link must stay same-origin");
-  assert.strictEqual(
-    detailTarget.pathname,
-    "/seogu/notice/detail/",
-    "captured notice link must target the modeled local detail route",
+  // Config contract: two materially different Seo-gu journeys, no stored factual
+  // final answer, exact safe matching only. PII-bearing extra text must not be
+  // swallowed by the local journey path; it must fall through to request safety.
+  const registryContract = await page.evaluate(() => {
+    const list = window.MunicipalResidentJourneyRegistry.list("seogu_gwangju");
+    return {
+      count: list.length,
+      ids: list.map((item) => item.journey_id),
+      hasStoredAnswer: list.some((item) => Object.prototype.hasOwnProperty.call(item, "answer")),
+      piiBearingMatch: Boolean(
+        window.MunicipalResidentJourneyRegistry.match(
+          "seogu_gwangju",
+          "사회연대경제 공고 내용을 알려줘 010-1234-5678",
+        ),
+      ),
+    };
+  });
+  assert.strictEqual(registryContract.count, 2);
+  assert.deepStrictEqual(
+    registryContract.ids,
+    ["seogu_notice_social_economy", "seogu_organization_leadership"],
   );
-  await detailLink.focus();
-  assert.strictEqual(
-    await detailLink.evaluate((el) => el.ownerDocument.activeElement === el),
-    true,
-    "captured detail link must be keyboard-focusable",
-  );
-  await Promise.all([
-    cloneFrame.waitForURL(/\/seogu\/notice\/detail\/$/, { timeout: 15000 }),
-    detailLink.press("Enter"),
-  ]);
+  assert.strictEqual(registryContract.hasStoredAnswer, false, "journey config must not store factual final answers");
+  assert.strictEqual(registryContract.piiBearingMatch, false, "PII-bearing extra text must not exact-match a local golden journey");
 
-  await page.waitForFunction(() => {
-    const evidence = window.MunicipalAiShell && window.MunicipalAiShell.getEvidence();
-    return evidence && evidence.ok && evidence.route === "notice/detail/";
-  }, null, { timeout: 15000 });
-  const detailEvidence = await page.evaluate(() => window.MunicipalAiShell.getEvidence());
-  assert.strictEqual(detailEvidence.grounded, true);
-  assert.strictEqual(detailEvidence.route, "notice/detail/");
-  assert.ok(
-    detailEvidence.text.includes("사회연대경제"),
-    "post-navigation READ must contain captured Seo-gu detail content",
-  );
-  assert.ok(detailEvidence.text.length <= 6000, "READ text must remain bounded");
+  // Record clone evidence routes generated by the real iframe loads.
+  await page.evaluate(() => {
+    window.__municipalJourneyEvidenceRoutes = [];
+    window.addEventListener("municipal-clone-evidence", (event) => {
+      if (event && event.detail && event.detail.ok) {
+        window.__municipalJourneyEvidenceRoutes.push(event.detail.route);
+      }
+    });
+  });
 
-  // Existing bridge must send explicit site identity for the generic shell.
+  // ── Journey A: notice list -> captured detail -> READ -> grounded answer ──
+  capturedPayload = null;
+  await page.evaluate(() => { window.__municipalJourneyEvidenceRoutes = []; });
   await page.fill("#municipal-chat-input", "사회연대경제 공고 내용을 알려줘");
   await page.click("#municipal-chat-send");
   await page.waitForFunction(() => {
+    const result = window.MunicipalAiShell && window.MunicipalAiShell.getLastJourneyResult();
+    return (
+      document.body.getAttribute("data-journey-state") === "grounded" &&
+      result && result.ok && result.journey_id === "seogu_notice_social_economy"
+    );
+  }, null, { timeout: 15000 });
+
+  const noticeResult = await page.evaluate(() => window.MunicipalAiShell.getLastJourneyResult());
+  const noticeEvidence = await page.evaluate(() => window.MunicipalAiShell.getEvidence());
+  const noticeRoutes = await page.evaluate(() => window.__municipalJourneyEvidenceRoutes.slice());
+  assert.strictEqual(capturedPayload, null, "supported notice journey must not call the provider bridge");
+  assert.strictEqual(noticeResult.grounded, true);
+  assert.strictEqual(noticeResult.source_kind, "repository_clone");
+  assert.strictEqual(noticeResult.evidence_kind, "clone_dom");
+  assert.strictEqual(noticeResult.route, "notice/detail/");
+  assert.ok(noticeResult.answer.includes("사회연대경제"));
+  assert.ok(noticeResult.excerpt.includes("사회연대경제"));
+  assert.strictEqual(noticeEvidence.route, "notice/detail/");
+  assert.ok(noticeEvidence.text.includes("사회연대경제"));
+  for (const line of noticeResult.excerpt.split("\n").filter(Boolean)) {
+    assert.ok(noticeEvidence.text.includes(line), `notice answer line must come from READ evidence: ${line}`);
+  }
+  const noticeListIndex = noticeRoutes.indexOf("notice/");
+  const noticeDetailIndex = noticeRoutes.indexOf("notice/detail/");
+  assert.ok(noticeListIndex !== -1, `notice journey must load list route; got ${noticeRoutes.join(",")}`);
+  assert.ok(noticeDetailIndex > noticeListIndex, `notice detail must follow list route; got ${noticeRoutes.join(",")}`);
+  const noticeMessage = await page.locator(
+    '.message--ai[data-grounded="true"][data-source-kind="repository_clone"][data-journey-id="seogu_notice_social_economy"]',
+  );
+  assert.strictEqual(await noticeMessage.count(), 1);
+  assert.strictEqual(await noticeMessage.getAttribute("data-evidence-route"), "notice/detail/");
+  assert.ok((await noticeMessage.textContent()).includes("근거 · 저장소 기반 기관 안내 · notice/detail/"));
+
+  // ── Journey B: different capability family, organization direct READ ─────
+  capturedPayload = null;
+  await page.evaluate(() => { window.__municipalJourneyEvidenceRoutes = []; });
+  await page.fill("#municipal-chat-input", "서구청 조직도에서 구청장과 부구청장 구조를 알려줘");
+  await page.click("#municipal-chat-send");
+  await page.waitForFunction(() => {
+    const result = window.MunicipalAiShell && window.MunicipalAiShell.getLastJourneyResult();
+    return (
+      document.body.getAttribute("data-journey-state") === "grounded" &&
+      result && result.ok && result.journey_id === "seogu_organization_leadership"
+    );
+  }, null, { timeout: 15000 });
+
+  const orgResult = await page.evaluate(() => window.MunicipalAiShell.getLastJourneyResult());
+  const orgEvidence = await page.evaluate(() => window.MunicipalAiShell.getEvidence());
+  const orgRoutes = await page.evaluate(() => window.__municipalJourneyEvidenceRoutes.slice());
+  assert.strictEqual(capturedPayload, null, "supported organization journey must not call the provider bridge");
+  assert.strictEqual(orgResult.grounded, true);
+  assert.strictEqual(orgResult.source_kind, "repository_clone");
+  assert.strictEqual(orgResult.route, "organization/");
+  assert.strictEqual(orgEvidence.route, "organization/");
+  for (const marker of ["행정조직도", "구청장", "부구청장"]) {
+    assert.ok(orgEvidence.text.includes(marker), `organization READ missing marker: ${marker}`);
+    assert.ok(orgResult.answer.includes(marker), `organization grounded answer missing marker: ${marker}`);
+  }
+  for (const line of orgResult.excerpt.split("\n").filter(Boolean)) {
+    assert.ok(orgEvidence.text.includes(line), `organization answer line must come from READ evidence: ${line}`);
+  }
+  assert.ok(orgRoutes.includes("organization/"), `organization journey must load organization route; got ${orgRoutes.join(",")}`);
+  assert.ok(!orgRoutes.includes("notice/detail/"), "organization journey must not be a disguised notice-detail flow");
+  const orgMessage = await page.locator(
+    '.message--ai[data-grounded="true"][data-source-kind="repository_clone"][data-journey-id="seogu_organization_leadership"]',
+  );
+  assert.strictEqual(await orgMessage.count(), 1);
+  assert.strictEqual(await orgMessage.getAttribute("data-evidence-route"), "organization/");
+  assert.ok((await orgMessage.textContent()).includes("근거 · 저장소 기반 기관 안내 · organization/"));
+
+  // Evidence marker removal must fail closed: no marker => no fabricated answer.
+  const markerFailure = await page.evaluate(() => {
+    const journey = window.MunicipalResidentJourneyRegistry.match(
+      "seogu_gwangju",
+      "서구청 조직도에서 구청장과 부구청장 구조를 알려줘",
+    );
+    return window.MunicipalResidentJourney.answerFromEvidence(journey, {
+      ok: true,
+      grounded: true,
+      evidence_kind: "clone_dom",
+      source_kind: "repository_clone",
+      site_id: "seogu_gwangju",
+      route: "organization/",
+      title: "행정조직도",
+      text: "행정조직도\n구청장",
+    });
+  });
+  assert.strictEqual(markerFailure.ok, false);
+  assert.strictEqual(markerFailure.grounded, false);
+  assert.strictEqual(markerFailure.failure_code, "journey_evidence_marker_missing");
+
+  // Unmatched question must retain the existing bridge + explicit site identity.
+  capturedPayload = null;
+  await page.fill("#municipal-chat-input", "서구청 주차요금 알려줘");
+  await page.click("#municipal-chat-send");
+  await page.waitForFunction(() => {
     const thread = document.querySelector("#municipal-chat-thread");
-    return thread && thread.textContent.includes("아직 준비 중입니다");
+    return (
+      document.body.getAttribute("data-journey-state") === "fallback" &&
+      thread && thread.textContent.includes("아직 준비 중입니다")
+    );
   }, null, { timeout: 10000 });
-  assert.ok(capturedPayload, "generic shell must call the MVP bridge");
+  assert.ok(capturedPayload, "unmatched question must call the existing MVP bridge");
   assert.strictEqual(capturedPayload.site_id, "seogu_gwangju");
-  assert.strictEqual(capturedPayload.question, "사회연대경제 공고 내용을 알려줘");
+  assert.strictEqual(capturedPayload.question, "서구청 주차요금 알려줘");
   assert.ok(typeof capturedPayload.session_id === "string" && capturedPayload.session_id.length >= 16);
 
   // Unknown surface identity is fail-closed: no fallback iframe and no composer.
@@ -167,5 +250,5 @@ export async function verifyMunicipalAiShell(page, baseOrigin) {
   const unknownSrc = await page.getAttribute("#municipal-clone-frame", "src");
   assert.ok(!unknownSrc, "unknown site must not silently load any clone fallback");
 
-  console.log("Municipal AI shell + bounded clone READ contract passed.");
+  console.log("Municipal AI shell + two grounded Seo-gu resident journeys passed.");
 }
