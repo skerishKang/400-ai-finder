@@ -80,6 +80,7 @@
         var parsed = new URL(href, window.location.href);
         if (parsed.origin !== window.location.origin) return null;
         if (!parsed.pathname.startsWith(cloneRoot)) return null;
+        if (parsed.search || parsed.hash) return null;
         return parsed;
       } catch (_) {
         return null;
