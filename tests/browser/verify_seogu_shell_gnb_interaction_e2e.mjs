@@ -1,4 +1,5 @@
 import assert from "assert";
+import { existsSync } from "fs";
 import { chromium } from "playwright";
 
 /**
@@ -11,6 +12,16 @@ import { chromium } from "playwright";
  */
 
 const rawBase = process.argv[2] || "http://127.0.0.1:8772";
+const KNOWN_BROWSER_PATHS = [
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  "/usr/bin/google-chrome",
+  "/usr/bin/google-chrome-stable",
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
+];
 
 function localOrigin(value) {
   const parsed = new URL(value);
@@ -25,10 +36,47 @@ function localOrigin(value) {
   return parsed.origin;
 }
 
+async function launchBrowser() {
+  const attempts = [];
+  const errors = [];
+  const envPath = process.env.PREVIEW_BROWSER_EXECUTABLE;
+  if (envPath) {
+    attempts.push({
+      name: `env: ${envPath}`,
+      launch: () => chromium.launch({ headless: true, executablePath: envPath }),
+    });
+  }
+  attempts.push({
+    name: "channel: chrome",
+    launch: () => chromium.launch({ headless: true, channel: "chrome" }),
+  });
+  for (const path of KNOWN_BROWSER_PATHS) {
+    if (!existsSync(path)) continue;
+    attempts.push({
+      name: `path: ${path}`,
+      launch: () => chromium.launch({ headless: true, executablePath: path }),
+    });
+  }
+  attempts.push({
+    name: "default playwright chromium",
+    launch: () => chromium.launch({ headless: true }),
+  });
+  for (const attempt of attempts) {
+    try {
+      const browser = await attempt.launch();
+      console.log(`Browser launched (${attempt.name})`);
+      return browser;
+    } catch (error) {
+      errors.push(`[${attempt.name}] ${error.message}`);
+    }
+  }
+  throw new Error(`Cannot launch any browser. Attempts:\n${errors.join("\n")}`);
+}
+
 const BASE_ORIGIN = localOrigin(rawBase);
 const SHELL_URL = `${BASE_ORIGIN}/static/municipal-ai-shell.html?site_id=seogu_gwangju`;
 
-const browser = await chromium.launch({ headless: true });
+const browser = await launchBrowser();
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const page = await context.newPage();
 const externalRequests = [];
