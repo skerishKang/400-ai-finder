@@ -3,7 +3,11 @@ export const MIN_MAX_BODY_BYTES = 1024;
 export const MAX_MAX_BODY_BYTES = 32768;
 export const MAX_QUESTION_CHARS = 300;
 export const MAX_SESSION_ID_CHARS = 128;
-export const ALLOWED_REQUEST_FIELDS = Object.freeze(['question', 'locale', 'session_id']);
+// #1331 Slice A: `site_id` is an OPTIONAL, forward-compatible field. It is
+// accepted here for shape-validation only; the actual site runtime resolution
+// and fail-closed dispatch live in site_runtime.js (mirrored from the Python
+// resolver). Omitting it preserves the legacy Buk-gu default.
+export const ALLOWED_REQUEST_FIELDS = Object.freeze(['question', 'locale', 'session_id', 'site_id']);
 export const SENSITIVE_CATEGORIES = Object.freeze([
   'resident_id_like',
   'phone_like',
