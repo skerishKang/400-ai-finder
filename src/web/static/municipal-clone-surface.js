@@ -1,13 +1,16 @@
 /*
- * Same-origin repository-clone surface + bounded READ evidence seam
- * (#1333 / #1328 Slice B).
+ * Same-origin repository-clone surface + bounded READ/action evidence seam
+ * (#1333 / #1335 / #1328).
  *
  * This adapter never fetches data. It can only navigate to configured local
- * clone routes and read resident-visible text from one configured semantic
- * content root inside the same-origin iframe.
+ * clone routes, activate one captured local detail link under strict guards,
+ * and read resident-visible text from one configured semantic content root
+ * inside the same-origin iframe.
  */
 (function () {
   "use strict";
+
+  var CAPTURED_DETAIL_SELECTOR = "a.rc-list-link[data-detail='1']";
 
   function _stableFailure(code, siteId) {
     return Object.freeze({
@@ -109,6 +112,46 @@
       return true;
     }
 
+    function activateCapturedDetail(expectedRoute) {
+      var current = _currentUrl();
+      var currentRouteValue = currentRoute();
+      var normalizedExpected = _normalizeRoute(expectedRoute);
+      if (!current || currentRouteValue === null || normalizedExpected === null) return false;
+      if (!allowedRouteSet.has(normalizedExpected)) return false;
+
+      var doc;
+      try {
+        doc = iframe.contentDocument;
+      } catch (_) {
+        return false;
+      }
+      if (!doc) return false;
+
+      var links = doc.querySelectorAll(CAPTURED_DETAIL_SELECTOR);
+      if (links.length !== 1) return false;
+      var link = links[0];
+      if (!link || String(link.tagName || "").toUpperCase() !== "A") return false;
+      if (link.hasAttribute("download")) return false;
+      var targetAttr = String(link.getAttribute("target") || "").trim();
+      if (targetAttr && targetAttr !== "_self") return false;
+
+      var href = String(link.getAttribute("href") || "").trim();
+      if (!href) return false;
+      var target;
+      try {
+        target = new URL(href, current.href);
+      } catch (_) {
+        return false;
+      }
+      if (target.origin !== window.location.origin) return false;
+      if (target.search || target.hash) return false;
+      if (!target.pathname.startsWith(cloneRoot)) return false;
+      if (target.pathname !== cloneRoot + normalizedExpected) return false;
+
+      link.click();
+      return true;
+    }
+
     function readEvidence() {
       var route = currentRoute();
       if (route === null) return _stableFailure("clone_route_out_of_scope", siteId);
@@ -167,6 +210,7 @@
       site_id: siteId,
       clone_root: cloneRoot,
       navigate: navigate,
+      activateCapturedDetail: activateCapturedDetail,
       currentRoute: currentRoute,
       readEvidence: readEvidence,
       refreshEvidence: _emitEvidence,
