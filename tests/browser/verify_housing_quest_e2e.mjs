@@ -13,6 +13,7 @@ import { mkdirSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { chromium } from "playwright";
+import { verifyMunicipalAiShell } from "./municipal_ai_shell_contract.mjs";
 
 const requestedBase = process.argv[2] || "http://127.0.0.1:8080";
 const SCREENSHOT_DIR = join(tmpdir(), "400-ai-finder-1062");
@@ -263,6 +264,16 @@ async function main() {
 
   const screenshotPath = join(SCREENSHOT_DIR, "housing-quest-e2e.png");
   await page.screenshot({ path: screenshotPath, fullPage: true });
+
+  // #1333 Slice B: reuse this already-served full live build to prove the new
+  // generic split shell + same-origin clone READ seam without adding another
+  // CI server/process or touching the faithful /seogu/ renderer.
+  await verifyMunicipalAiShell(page, BASE_ORIGIN);
+
+  const finalNonLocal = requests.filter((url) => !isLocalRequest(url));
+  assert.deepStrictEqual(finalNonLocal, [], `non-local requests after Slice B shell: ${finalNonLocal.join(", ")}`);
+  assert.deepStrictEqual(errors, [], `browser errors after Slice B shell: ${errors.join("\n")}`);
+
   await browser.close();
 
   console.log("Housing quest E2E passed.");
