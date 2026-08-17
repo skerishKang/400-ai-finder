@@ -114,6 +114,16 @@ function isLocalRequest(url) {
   }
 }
 
+function isExpectedSliceBSandboxDiagnostic(message) {
+  const suffix = " because the document's frame is sandboxed and the 'allow-scripts' permission is not set.";
+  const allowedPages = [
+    `${BASE_ORIGIN}/seogu/`,
+    `${BASE_ORIGIN}/seogu/notice/`,
+    `${BASE_ORIGIN}/seogu/notice/detail/`,
+  ];
+  return allowedPages.some((url) => message === `Blocked script execution in '${url}'${suffix}`);
+}
+
 async function waitForText(page, selector, text, timeout = 10000) {
   await page.waitForFunction(
     ({ selector, text }) => {
@@ -268,11 +278,30 @@ async function main() {
   // #1333 Slice B: reuse this already-served full live build to prove the new
   // generic split shell + same-origin clone READ seam without adding another
   // CI server/process or touching the faithful /seogu/ renderer.
+  const errorsBeforeSliceB = errors.length;
   await verifyMunicipalAiShell(page, BASE_ORIGIN);
 
   const finalNonLocal = requests.filter((url) => !isLocalRequest(url));
   assert.deepStrictEqual(finalNonLocal, [], `non-local requests after Slice B shell: ${finalNonLocal.join(", ")}`);
-  assert.deepStrictEqual(errors, [], `browser errors after Slice B shell: ${errors.join("\n")}`);
+
+  // The Slice B iframe intentionally omits allow-scripts. The existing clone
+  // carries inert local inline JS, so Chromium reports blocked-script security
+  // diagnostics when those clone routes load. Keep this boundary strict: the
+  // pre-Slice-B flow above still requires zero errors, and after Slice B we
+  // allow only the exact sandbox diagnostics for the three exercised routes.
+  const sliceBErrors = errors.slice(errorsBeforeSliceB);
+  assert.ok(
+    sliceBErrors.length >= 1,
+    "script-disabled clone iframe should emit at least one blocked-script sandbox diagnostic",
+  );
+  const unexpectedSliceBErrors = sliceBErrors.filter(
+    (message) => !isExpectedSliceBSandboxDiagnostic(message),
+  );
+  assert.deepStrictEqual(
+    unexpectedSliceBErrors,
+    [],
+    `unexpected browser errors after Slice B shell: ${unexpectedSliceBErrors.join("\n")}`,
+  );
 
   await browser.close();
 
