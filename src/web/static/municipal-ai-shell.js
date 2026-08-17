@@ -107,7 +107,7 @@
           result && typeof result.answer === "string" && result.answer.trim()
             ? result.answer
             : "현재 일반 AI 답변을 연결하지 못했습니다.",
-          exactProvenance ? result : null,
+          null,
         );
       }).catch(function () {
         latestGeneralResult = null;
