@@ -1,4 +1,4 @@
-/* Generic municipal clone + AI split surface (#1333). */
+/* Generic municipal clone + AI split surface (#1333 / #1335). */
 :root {
   color-scheme: light;
   --shell-bg: #f5f6f8;
@@ -74,8 +74,10 @@ body {
 }
 .message { display: flex; margin: 0 0 14px; }
 .message--user { justify-content: flex-end; }
+.message-stack { max-width: 86%; }
+.message--user .message-stack { display: flex; justify-content: flex-end; }
 .bubble {
-  max-width: 86%;
+  max-width: 100%;
   padding: 11px 13px;
   border-radius: 14px;
   line-height: 1.5;
@@ -84,6 +86,12 @@ body {
 }
 .message--ai .bubble { background: #f1f3f6; }
 .message--user .bubble { background: var(--accent); color: #fff; }
+.message-source {
+  margin: 6px 4px 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #255c33;
+}
 .composer {
   padding: 14px 16px 18px;
   border-top: 1px solid var(--line);
