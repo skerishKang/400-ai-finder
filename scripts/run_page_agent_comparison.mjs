@@ -198,18 +198,19 @@ function validateBaseUrl(baseUrl) {
 // ── Browser launch ─────────────────────────────────────────────────────────
 
 async function launchBrowser() {
-  // Prefer channel:chrome with short timeout; skip fallback if it succeeds
-  async function tryLaunch(name, launchFn) {
-    const timer = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), BROWSER_TIMEOUT_MS)
-    );
-    return Promise.race([launchFn(), timer]);
-  }
-
+  // Prefer channel:chrome with a native Playwright timeout. Playwright owns the
+  // launched process and terminates it on rejection, so there is never a dangling
+  // browser process left running after the harness completes. We deliberately do
+  // NOT race the launch against a manual setTimeout: a timer win would reject the
+  // await while the real launch kept running unsupervised (the #1289 ownership
+  // defect). If this launch fails for any reason — launch error or timeout —
+  // fall through to the fallback chain below.
   try {
-    const browser = await tryLaunch("channel: chrome", () =>
-      chromium.launch({ headless: true, channel: "chrome" })
-    );
+    const browser = await chromium.launch({
+      headless: true,
+      channel: "chrome",
+      timeout: BROWSER_TIMEOUT_MS,
+    });
     let version = "unknown";
     try { version = await browser.version(); } catch (_) {}
     console.log(`  Browser: channel: chrome v${version}`);

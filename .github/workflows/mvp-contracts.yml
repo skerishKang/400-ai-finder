@@ -544,6 +544,9 @@ jobs:
       - name: Install Node test dependencies
         run: npm ci --ignore-scripts
 
+      - name: Run comparison browser launch ownership contract (#1289)
+        run: node --test tests/browser/test_comparison_browser_launch_ownership.mjs
+
       - name: Run Page Agent comparison contract tests (full suite)
         run: python -m pytest -q tests/test_page_agent_comparison_contract.py
 
