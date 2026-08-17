@@ -1,9 +1,10 @@
 /*
  * Same-origin repository-clone surface + bounded READ/action evidence seam
- * (#1333 / #1335 / #1328).
+ * (#1333 / #1335 / #1328 / #1343).
  *
  * This adapter never fetches data. It can only navigate to configured local
  * clone routes, activate one captured local detail link under strict guards,
+ * bind one repository-clone GNB interaction contract under strict DOM guards,
  * and read resident-visible text from one configured semantic content root
  * inside the same-origin iframe.
  */
@@ -11,6 +12,8 @@
   "use strict";
 
   var CAPTURED_DETAIL_SELECTOR = "a.rc-list-link[data-detail='1']";
+  var GNB_TOGGLE_SELECTOR = "#rc-gnb-toggle";
+  var GNB_PANEL_SELECTOR = "#rc-mega-menu";
 
   function _stableFailure(code, siteId) {
     return Object.freeze({
@@ -66,6 +69,10 @@
       ? config.allowed_routes.slice()
       : [];
     var allowedRouteSet = new Set(allowedRoutes);
+    var boundGnbDocument = null;
+    var boundGnbToggle = null;
+    var boundGnbClick = null;
+    var boundGnbKeydown = null;
 
     if (!siteId || !cloneRoot.startsWith("/") || !cloneRoot.endsWith("/")) {
       throw new Error("invalid clone surface config");
@@ -152,6 +159,64 @@
       return true;
     }
 
+    function _unbindCapturedGnbInteraction() {
+      if (boundGnbToggle && boundGnbClick) {
+        try { boundGnbToggle.removeEventListener("click", boundGnbClick); } catch (_) { /* noop */ }
+      }
+      if (boundGnbDocument && boundGnbKeydown) {
+        try { boundGnbDocument.removeEventListener("keydown", boundGnbKeydown); } catch (_) { /* noop */ }
+      }
+      boundGnbDocument = null;
+      boundGnbToggle = null;
+      boundGnbClick = null;
+      boundGnbKeydown = null;
+    }
+
+    function _bindCapturedGnbInteraction() {
+      _unbindCapturedGnbInteraction();
+
+      if (currentRoute() === null) return false;
+      var doc;
+      try {
+        doc = iframe.contentDocument;
+      } catch (_) {
+        return false;
+      }
+      if (!doc) return false;
+
+      var toggle = doc.querySelector(GNB_TOGGLE_SELECTOR);
+      var panel = doc.querySelector(GNB_PANEL_SELECTOR);
+      if (!toggle || !panel) return false;
+      if (String(toggle.tagName || "").toUpperCase() !== "BUTTON") return false;
+      if (String(toggle.getAttribute("type") || "").toLowerCase() !== "button") return false;
+      if (String(toggle.getAttribute("aria-controls") || "") !== String(panel.id || "")) return false;
+
+      function setOpen(open) {
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        if (open) panel.removeAttribute("hidden");
+        else panel.setAttribute("hidden", "");
+      }
+
+      function onClick() {
+        setOpen(toggle.getAttribute("aria-expanded") !== "true");
+      }
+
+      function onKeydown(event) {
+        if (!event || event.key !== "Escape") return;
+        if (toggle.getAttribute("aria-expanded") !== "true") return;
+        setOpen(false);
+        try { toggle.focus(); } catch (_) { /* noop */ }
+      }
+
+      toggle.addEventListener("click", onClick);
+      doc.addEventListener("keydown", onKeydown);
+      boundGnbDocument = doc;
+      boundGnbToggle = toggle;
+      boundGnbClick = onClick;
+      boundGnbKeydown = onKeydown;
+      return true;
+    }
+
     function readEvidence() {
       var route = currentRoute();
       if (route === null) return _stableFailure("clone_route_out_of_scope", siteId);
@@ -201,6 +266,7 @@
     }
 
     function onLoad() {
+      _bindCapturedGnbInteraction();
       _emitEvidence();
     }
 
@@ -215,6 +281,7 @@
       readEvidence: readEvidence,
       refreshEvidence: _emitEvidence,
       destroy: function () {
+        _unbindCapturedGnbInteraction();
         iframe.removeEventListener("load", onLoad);
       },
     });
