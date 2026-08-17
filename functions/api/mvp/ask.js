@@ -10,6 +10,15 @@ import {
   readBoundedJsonBody,
   validateRequestShape,
 } from './request-safety.js';
+// #1331 Slice A — single shared site-identity ownership point for the Cloudflare
+// runtime. Mirrors src/llm/site_aware_mvp_dispatch.py exactly.
+import {
+  SITE_FAILURE_UNKNOWN,
+  SITE_FAILURE_UNCONFIGURED,
+  SITE_RUNTIME_CONFIGURED,
+  SITE_RUNTIME_RECOGNIZED_UNCONFIGURED,
+  resolveSiteRuntime,
+} from './site_runtime.js';
 import {
   CONCRETE_SIGNAL_KINDS,
   EVIDENCE_DECISIONS,
@@ -1745,6 +1754,47 @@ export async function onRequest(context) {
       { answer: localizedFailureAnswer(requestLocale, 'invalid_input') },
     )), shape.status || 200, headers);
   }
+
+  // --- #1331 Slice A: site-aware dispatch seam -------------------------------
+  // Resolve the site identity BEFORE any Buk-gu logic runs. This is the single
+  // shared ownership point: do NOT scatter `if (siteId === 'seogu_gwangju')`
+  // branches. A non-CONFIGURED site must never reach the Buk-gu router/quest;
+  // an omitted/empty site_id defaults to Buk-gu (backward compatible).
+  const siteResolution = resolveSiteRuntime(
+    body && typeof body.site_id !== 'undefined' ? body.site_id : undefined,
+  );
+  if (siteResolution.status !== SITE_RUNTIME_CONFIGURED) {
+    const siteFailureCode =
+      siteResolution.status === SITE_RUNTIME_RECOGNIZED_UNCONFIGURED
+        ? SITE_FAILURE_UNCONFIGURED
+        : SITE_FAILURE_UNKNOWN;
+    const siteAnswer =
+      siteResolution.status === SITE_RUNTIME_RECOGNIZED_UNCONFIGURED
+        ? `현재 이 사이트(${siteResolution.siteId})의 AI 안내 runtime은 이 slice에서 아직 구성되지 않았습니다. 북구 광주 안내 runtime만 동작합니다.`
+        : '요청하신 site_id를 인식할 수 없어 안전을 위해 응답하지 않습니다.';
+    return jsonResponse(withRuntimeMeta(Object.assign(
+      failurePayload(
+        '',
+        primaryConfig.provider,
+        primaryConfig.model,
+        siteFailureCode,
+        retrievedAt,
+        currentTime,
+        requestLocale,
+      ),
+      {
+        answer: siteAnswer,
+        action: 'none',
+        provider: 'site_dispatch',
+        model: '',
+        failure_code: siteFailureCode,
+        site_id: siteResolution.siteId,
+        site_status: siteResolution.status,
+        fallback_to_bukgu: false,
+      },
+    )), 200, headers);
+  }
+  // --- end #1331 Slice A site-aware dispatch seam -----------------------------
 
   const rawQuestion = body.question.trim();
   if (!rawQuestion) return jsonResponse(withRuntimeMeta({ ok: false, error: 'Missing question' }), 400, headers);

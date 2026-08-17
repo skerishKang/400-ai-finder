@@ -254,6 +254,26 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             return
 
         question = (data.get("question") or "").strip()
+
+        # --- #1331 Slice A: site-aware dispatch seam ---------------------------
+        # Resolve the site identity BEFORE any Buk-gu logic runs. This is the
+        # single shared ownership point: do NOT scatter ``if site_id == ...``
+        # branches elsewhere. A non-CONFIGURED site must never reach the Buk-gu
+        # router/quest. An omitted/empty self.site_id defaults to Buk-gu, so
+        # legacy callers keep their Buk-gu behavior (backward compatible).
+        from src.llm.site_aware_mvp_dispatch import (
+            SiteRuntimeStatus,
+            resolve_site_runtime,
+        )
+
+        site_resolution = resolve_site_runtime(self.site_id)
+        if site_resolution.status is not SiteRuntimeStatus.CONFIGURED:
+            self._json_response(
+                self._site_dispatch_failure(site_resolution, question)
+            )
+            return
+        # --- end #1331 Slice A site-aware dispatch seam ------------------------
+
         if not question:
             self._json_response({"error": "질문을 입력해 주세요."}, 400)
             return
@@ -281,6 +301,8 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
                 "provider": "local_static",
                 "model": "quest-engine-v1",
                 "failure_code": "",
+                "site_id": self.site_id,
+                "site_status": site_resolution.status.value,
             }
             if quest_decision.quest is not None:
                 payload["quest"] = quest_decision.quest
@@ -331,12 +353,53 @@ class MobileDemoHandler(BaseHTTPRequestHandler):
             "provider": getattr(provider, "provider_name", self.provider),
             "model": getattr(provider, "model_name", self.model or ""),
             "failure_code": decision.failure_code,
+            "site_id": self.site_id,
+            "site_status": site_resolution.status.value,
         }
         if decision.quest is not None:
             payload["quest"] = decision.quest
         if decision.action_plan is not None:
             payload["action_plan"] = decision.action_plan
         self._json_response(payload)
+
+    def _site_dispatch_failure(self, resolution, question: str) -> dict:
+        """Build the fail-closed / not-configured envelope for a non-CONFIGURED site.
+
+        ``resolution.status`` is ``RECOGNIZED_UNCONFIGURED`` (e.g. Seo-gu) or
+        ``UNKNOWN`` (fail closed). Neither branch may execute Buk-gu behavior.
+        We echo an honest, script-free Korean answer and a closed site-dispatch
+        failure_code — kept deliberately separate from the provider vocabulary.
+        """
+        from src.llm.site_aware_mvp_dispatch import (
+            SITE_FAILURE_UNKNOWN,
+            SITE_FAILURE_UNCONFIGURED,
+            SiteRuntimeStatus,
+        )
+
+        if resolution.status is SiteRuntimeStatus.RECOGNIZED_UNCONFIGURED:
+            failure_code = SITE_FAILURE_UNCONFIGURED
+            answer = (
+                "현재 이 사이트({site})의 AI 안내 runtime은 이 slice에서 "
+                "아직 구성되지 않았습니다. 북구 광주 안내 runtime만 동작합니다."
+            ).format(site=resolution.site_id)
+        else:  # UNKNOWN -> fail closed; never fall back to Buk-gu.
+            failure_code = SITE_FAILURE_UNKNOWN
+            answer = (
+                "요청하신 site_id를 인식할 수 없어 안전을 위해 응답하지 않습니다."
+            )
+        return {
+            "ok": False,
+            "question": question,
+            "answer": answer,
+            "action": "none",
+            "confidence": 0.0,
+            "provider": "site_dispatch",
+            "model": "",
+            "failure_code": failure_code,
+            "site_id": resolution.site_id,
+            "site_status": resolution.status.value,
+            "fallback_to_bukgu": False,
+        }
 
     def _json_response(self, data: dict, status: int = 200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
