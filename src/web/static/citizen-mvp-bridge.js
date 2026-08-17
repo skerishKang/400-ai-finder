@@ -2,18 +2,17 @@
  * citizen-mvp-bridge.js
  * MVP model-action bridge for the first-use local demo (#925 / #927).
  *
- * This file is loaded ONLY in MVP mode (?mvp=1) by citizen-first-use-shell.js.
- * It performs the single model-backed call to POST /api/mvp/ask and normalizes
- * the response into a stable contract. The default static flow never loads this
- * file, so the deterministic Stage 921 flow stays fetch-free.
+ * The legacy `ask()` path posts to /api/mvp/ask and preserves its existing
+ * normalized response shape. #1337 adds a separate explicit
+ * `askGeneralModel()` path to /api/mvp/general so model-only provenance cannot
+ * be confused with the site-grounded contract.
  *
  * Guarantees:
  * - one in-flight request at a time (superseding previous requests)
  * - abortable via cancel()
- * - never throws to the caller; network/HTTP failures degrade to a stable
- *   { ok: false, action: "none", answer: "<honest ko message>" } envelope
- * - optional explicit site_id transport for the generic municipal shell; legacy
- *   callers that omit the second argument keep the prior request/response shape
+ * - never throws to the caller
+ * - optional explicit site_id transport; legacy callers that omit it keep the
+ *   prior request/response shape
  */
 
 (function () {
@@ -57,8 +56,6 @@
         return value.toString(16).padStart(2, "0");
       }).join("");
     }
-    // Compatibility fallback only. Anonymous session IDs are not an auth or
-    // rate-limit boundary by themselves and never derive from resident input.
     return ("sid_" + Date.now().toString(36) + "_" +
       Math.random().toString(36).slice(2).padEnd(24, "0")).slice(0, 128);
   }
@@ -78,9 +75,7 @@
       // Storage can be unavailable in privacy modes; use page-lifetime memory.
     }
     var generated = _safeSessionId(_generateSessionId());
-    if (!generated) {
-      generated = "sid_fallback_0000000000000000";
-    }
+    if (!generated) generated = "sid_fallback_0000000000000000";
     _sessionIdMemory = generated;
     try {
       if (window.sessionStorage && typeof window.sessionStorage.setItem === "function") {
@@ -149,6 +144,30 @@
     };
   }
 
+  function _stableGeneralFailure(identity, answer) {
+    var safeIdentity = identity && typeof identity === "object" ? identity : {};
+    return {
+      ok: false,
+      answer: typeof answer === "string" && answer.trim() ? answer : _localizedFailAnswer(),
+      action: "none",
+      confidence: 0.0,
+      provider: "",
+      model: "",
+      grounded: false,
+      source_kind: "general_model",
+      evidence_kind: "none",
+      answer_scope: "general_model",
+      freshness_state: "unavailable",
+      source_url: "",
+      sources: [],
+      search_queries: [],
+      site_id: "",
+      failure_code: "",
+      request_id: _safeRequestId(safeIdentity.request_id),
+      schema_version: _safeSchemaVersion(safeIdentity.schema_version),
+    };
+  }
+
   function _captureLocale() {
     if (window.CitizenI18n && typeof window.CitizenI18n.getLocale === "function") {
       var loc = window.CitizenI18n.getLocale();
@@ -160,15 +179,20 @@
     return "ko";
   }
 
-  function ask(question, options) {
-    if (_controller) {
-      _controller.abort();
-    }
+  function _startRequest() {
+    if (_controller) _controller.abort();
     var controller = ("AbortController" in window) ? new AbortController() : null;
     _controller = controller;
+    return controller;
+  }
 
-    // Capture the active locale at request start; the bridge never mutates
-    // locale, so a later locale change keeps this request scoped to its start.
+  function _finishController(controller, result, fallback) {
+    if (_controller === controller) _controller = null;
+    return result || fallback();
+  }
+
+  function ask(question, options) {
+    var controller = _startRequest();
     var requestLocale = _captureLocale();
     var sessionId = _anonymousSessionId();
     var requestedSiteId = _safeSiteId(options && options.site_id);
@@ -177,7 +201,6 @@
       locale: requestLocale,
       session_id: sessionId,
     };
-    // Backward compatibility: legacy calls never send a site_id field.
     if (requestedSiteId) requestBody.site_id = requestedSiteId;
 
     var fetchOpts = {
@@ -185,18 +208,14 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestBody),
     };
-    if (controller) {
-      fetchOpts.signal = controller.signal;
-    }
+    if (controller) fetchOpts.signal = controller.signal;
 
     return fetch("/api/mvp/ask", fetchOpts)
       .then(function (resp) {
         var headerRequestId = _responseHeaderRequestId(resp);
         return resp.json().then(function (data) {
           var identity = _resolveResponseIdentity(headerRequestId, data);
-          if (!resp.ok) {
-            return _stableFailure(identity);
-          }
+          if (!resp.ok) return _stableFailure(identity);
           return {
             ok: data && data.ok !== false,
             answer: data ? data.answer : _localizedFailAnswer(),
@@ -221,25 +240,82 @@
             schema_version: identity.schema_version,
           };
         }, function () {
-          // JSON parse failure → preserve only the sanitized response-header ID.
           return _stableFailure({ request_id: headerRequestId, schema_version: "" });
         });
       })
-      .catch(function () {
-        // Network failure / abort → honest failure envelope.
-        return _stableFailure();
+      .catch(function () { return _stableFailure(); })
+      .then(
+        function (result) { return _finishController(controller, result, _stableFailure); },
+        function () { return _finishController(controller, null, _stableFailure); },
+      );
+  }
+
+  function askGeneralModel(question, options) {
+    var controller = _startRequest();
+    var requestLocale = _captureLocale();
+    var sessionId = _anonymousSessionId();
+    var requestedSiteId = _safeSiteId(options && options.site_id);
+    var requestBody = {
+      question: question || "",
+      locale: requestLocale,
+      session_id: sessionId,
+    };
+    if (requestedSiteId) requestBody.site_id = requestedSiteId;
+
+    var fetchOpts = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    };
+    if (controller) fetchOpts.signal = controller.signal;
+
+    return fetch("/api/mvp/general", fetchOpts)
+      .then(function (resp) {
+        var headerRequestId = _responseHeaderRequestId(resp);
+        return resp.json().then(function (data) {
+          var identity = _resolveResponseIdentity(headerRequestId, data);
+          if (!resp.ok || !data || typeof data !== "object") {
+            return _stableGeneralFailure(identity);
+          }
+          var exactProvenance =
+            data.grounded === false &&
+            data.source_kind === "general_model" &&
+            data.evidence_kind === "none" &&
+            data.answer_scope === "general_model" &&
+            Array.isArray(data.sources) && data.sources.length === 0 &&
+            (typeof data.source_url !== "string" || data.source_url === "");
+          if (data.ok === true && !exactProvenance) {
+            return _stableGeneralFailure(identity, "일반 AI 답변의 출처 구분을 확인하지 못해 표시하지 않습니다.");
+          }
+          return {
+            ok: data.ok === true,
+            answer: typeof data.answer === "string" ? data.answer : _localizedFailAnswer(),
+            action: "none",
+            confidence: typeof data.confidence === "number" ? data.confidence : 0.0,
+            provider: typeof data.provider === "string" ? data.provider : "",
+            model: typeof data.model === "string" ? data.model : "",
+            grounded: false,
+            source_kind: "general_model",
+            evidence_kind: "none",
+            answer_scope: "general_model",
+            freshness_state: typeof data.freshness_state === "string" ? data.freshness_state : "unavailable",
+            source_url: "",
+            sources: [],
+            search_queries: [],
+            site_id: typeof data.site_id === "string" ? data.site_id : "",
+            failure_code: typeof data.failure_code === "string" ? data.failure_code : "",
+            request_id: identity.request_id,
+            schema_version: identity.schema_version,
+          };
+        }, function () {
+          return _stableGeneralFailure({ request_id: headerRequestId, schema_version: "" });
+        });
       })
-      .then(function (result) {
-        if (_controller === controller) {
-          _controller = null;
-        }
-        return result;
-      }, function () {
-        if (_controller === controller) {
-          _controller = null;
-        }
-        return _stableFailure();
-      });
+      .catch(function () { return _stableGeneralFailure(); })
+      .then(
+        function (result) { return _finishController(controller, result, _stableGeneralFailure); },
+        function () { return _finishController(controller, null, _stableGeneralFailure); },
+      );
   }
 
   function cancel() {
@@ -251,6 +327,7 @@
 
   window.CitizenMvpBridge = Object.freeze({
     ask: ask,
+    askGeneralModel: askGeneralModel,
     cancel: cancel,
     FAILURE_ANSWER: MVP_FAILURE_ANSWER,
   });
