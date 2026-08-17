@@ -1,0 +1,42 @@
+name: General Model Fallback Contract
+
+on:
+  pull_request:
+    paths:
+      - "functions/api/mvp/general.js"
+      - "functions/api/mvp/ask.js"
+      - "functions/api/mvp/request-safety.js"
+      - "functions/api/mvp/site_runtime.js"
+      - "src/web/static/citizen-mvp-bridge.js"
+      - "src/web/static/municipal-ai-shell.js"
+      - "tests/functions/test_general_model_fallback_contract.mjs"
+      - ".github/workflows/general-model-fallback.yml"
+  push:
+    branches: [main]
+    paths:
+      - "functions/api/mvp/general.js"
+      - "functions/api/mvp/ask.js"
+      - "functions/api/mvp/request-safety.js"
+      - "functions/api/mvp/site_runtime.js"
+      - "src/web/static/citizen-mvp-bridge.js"
+      - "src/web/static/municipal-ai-shell.js"
+      - "tests/functions/test_general_model_fallback_contract.mjs"
+      - ".github/workflows/general-model-fallback.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  general-model-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run offline general-model fallback contract
+        run: node tests/functions/test_general_model_fallback_contract.mjs
