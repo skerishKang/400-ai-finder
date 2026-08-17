@@ -151,6 +151,9 @@ export function validateRequestShape(body) {
   if (typeof body.session_id === 'string' && !SESSION_ID_RE.test(body.session_id)) {
     return { ok: false, failureCode: 'invalid_input', reason: 'session_id_format' };
   }
+  if (Object.prototype.hasOwnProperty.call(body, 'site_id') && typeof body.site_id !== 'string') {
+    return { ok: false, failureCode: 'invalid_input', reason: 'site_id_type' };
+  }
   return { ok: true };
 }
 
