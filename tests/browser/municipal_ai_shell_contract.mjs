@@ -104,16 +104,32 @@ export async function verifyMunicipalAiShell(page, baseOrigin) {
   assert.strictEqual(listEvidence.route, "notice/");
   assert.ok(listEvidence.text.length > 0 && listEvidence.text.length <= 6000);
 
-  // Prove real clone-local list -> captured detail navigation, not a parent-side
-  // fabricated route transition. The clone's table markup makes the visible
-  // cell the actual pointer target inside the anchor, so click that descendant
-  // and let the browser's normal anchor activation bubble/navigate in-frame.
+  // Prove a real clone-local list -> captured detail transition. The renderer
+  // emits a genuine focusable anchor with a local href. Activate that anchor by
+  // keyboard Enter instead of forcing pointer hit-testing through the iframe;
+  // this exercises the browser's normal link-navigation behavior and keeps the
+  // test independent of table-cell hitbox geometry.
   const detailLink = cloneFrame.locator("a.rc-list-link[data-detail='1']");
   assert.strictEqual(await detailLink.count(), 1, "notice list must expose one captured detail link");
-  const detailCell = detailLink.locator("td").first();
-  assert.strictEqual(await detailCell.count(), 1, "captured detail link must expose a visible table cell target");
-  await detailCell.click();
-  await cloneFrame.waitForURL(/\/seogu\/notice\/detail\/$/, { timeout: 15000 });
+  const detailHref = await detailLink.getAttribute("href");
+  assert.ok(detailHref, "captured detail link must have a local href");
+  const detailTarget = new URL(detailHref, cloneFrame.url());
+  assert.strictEqual(detailTarget.origin, baseOrigin, "detail link must stay same-origin");
+  assert.strictEqual(
+    detailTarget.pathname,
+    "/seogu/notice/detail/",
+    "captured notice link must target the modeled local detail route",
+  );
+  await detailLink.focus();
+  assert.strictEqual(
+    await detailLink.evaluate((el) => el.ownerDocument.activeElement === el),
+    true,
+    "captured detail link must be keyboard-focusable",
+  );
+  await Promise.all([
+    cloneFrame.waitForURL(/\/seogu\/notice\/detail\/$/, { timeout: 15000 }),
+    detailLink.press("Enter"),
+  ]);
 
   await page.waitForFunction(() => {
     const evidence = window.MunicipalAiShell && window.MunicipalAiShell.getEvidence();
