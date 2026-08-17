@@ -114,12 +114,13 @@ function isLocalRequest(url) {
   }
 }
 
-function isExpectedSliceBSandboxDiagnostic(message) {
+function isExpectedMunicipalSandboxDiagnostic(message) {
   const suffix = " because the document's frame is sandboxed and the 'allow-scripts' permission is not set.";
   const allowedPages = [
     `${BASE_ORIGIN}/seogu/`,
     `${BASE_ORIGIN}/seogu/notice/`,
     `${BASE_ORIGIN}/seogu/notice/detail/`,
+    `${BASE_ORIGIN}/seogu/organization/`,
   ];
   return allowedPages.some((url) => message === `Blocked script execution in '${url}'${suffix}`);
 }
@@ -275,32 +276,33 @@ async function main() {
   const screenshotPath = join(SCREENSHOT_DIR, "housing-quest-e2e.png");
   await page.screenshot({ path: screenshotPath, fullPage: true });
 
-  // #1333 Slice B: reuse this already-served full live build to prove the new
-  // generic split shell + same-origin clone READ seam without adding another
-  // CI server/process or touching the faithful /seogu/ renderer.
-  const errorsBeforeSliceB = errors.length;
+  // #1333/#1335: reuse this already-served full live build to prove the generic
+  // split shell, bounded clone READ/action seam and grounded resident journeys
+  // without adding another CI server/process or touching the faithful renderer.
+  const errorsBeforeMunicipalShell = errors.length;
   await verifyMunicipalAiShell(page, BASE_ORIGIN);
 
   const finalNonLocal = requests.filter((url) => !isLocalRequest(url));
-  assert.deepStrictEqual(finalNonLocal, [], `non-local requests after Slice B shell: ${finalNonLocal.join(", ")}`);
+  assert.deepStrictEqual(finalNonLocal, [], `non-local requests after municipal shell: ${finalNonLocal.join(", ")}`);
 
-  // The Slice B iframe intentionally omits allow-scripts. The existing clone
+  // The municipal iframe intentionally omits allow-scripts. The existing clone
   // carries inert local inline JS, so Chromium reports blocked-script security
-  // diagnostics when those clone routes load. Keep this boundary strict: the
-  // pre-Slice-B flow above still requires zero errors, and after Slice B we
-  // allow only the exact sandbox diagnostics for the three exercised routes.
-  const sliceBErrors = errors.slice(errorsBeforeSliceB);
+  // diagnostics when exercised clone routes load. Keep this boundary strict:
+  // the protected Buk-gu flow above still requires zero errors, and after the
+  // municipal shell only the exact diagnostics for explicitly exercised routes
+  // are accepted. Every other browser error remains a hard failure.
+  const municipalErrors = errors.slice(errorsBeforeMunicipalShell);
   assert.ok(
-    sliceBErrors.length >= 1,
+    municipalErrors.length >= 1,
     "script-disabled clone iframe should emit at least one blocked-script sandbox diagnostic",
   );
-  const unexpectedSliceBErrors = sliceBErrors.filter(
-    (message) => !isExpectedSliceBSandboxDiagnostic(message),
+  const unexpectedMunicipalErrors = municipalErrors.filter(
+    (message) => !isExpectedMunicipalSandboxDiagnostic(message),
   );
   assert.deepStrictEqual(
-    unexpectedSliceBErrors,
+    unexpectedMunicipalErrors,
     [],
-    `unexpected browser errors after Slice B shell: ${unexpectedSliceBErrors.join("\n")}`,
+    `unexpected browser errors after municipal shell: ${unexpectedMunicipalErrors.join("\n")}`,
   );
 
   await browser.close();
