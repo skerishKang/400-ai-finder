@@ -1,4 +1,4 @@
-/* Generic institution clone + AI resident shell (#1333 / #1335 / #1328). */
+/* Generic institution clone + AI resident shell (#1333 / #1335 / #1337 / #1328). */
 (function () {
   "use strict";
 
@@ -14,6 +14,7 @@
   var config = null;
   var latestEvidence = null;
   var latestJourneyResult = null;
+  var latestGeneralResult = null;
 
   function _appendMessage(kind, text, metadata) {
     var row = document.createElement("div");
@@ -32,16 +33,88 @@
       row.setAttribute("data-evidence-route", String(metadata.route || ""));
       row.setAttribute("data-journey-id", String(metadata.journey_id || ""));
 
-      var source = document.createElement("div");
-      source.className = "message-source";
-      source.setAttribute("data-grounded-source", "true");
-      source.textContent = "근거 · 저장소 기반 기관 안내 · " + (metadata.route || "홈");
-      stack.appendChild(source);
+      var cloneSource = document.createElement("div");
+      cloneSource.className = "message-source message-source--clone";
+      cloneSource.setAttribute("data-grounded-source", "true");
+      cloneSource.textContent = "근거 · 저장소 기반 기관 안내 · " + (metadata.route || "홈");
+      stack.appendChild(cloneSource);
+    } else if (
+      metadata &&
+      metadata.grounded === false &&
+      metadata.source_kind === "general_model" &&
+      metadata.evidence_kind === "none" &&
+      metadata.answer_scope === "general_model"
+    ) {
+      row.setAttribute("data-grounded", "false");
+      row.setAttribute("data-source-kind", "general_model");
+      row.setAttribute("data-evidence-kind", "none");
+      row.setAttribute("data-answer-scope", "general_model");
+
+      var generalSource = document.createElement("div");
+      generalSource.className = "message-source message-source--general";
+      generalSource.setAttribute("data-general-model-source", "true");
+      generalSource.textContent = "근거 · 일반 AI 모델 · 기관 안내 화면 근거 아님";
+      stack.appendChild(generalSource);
     }
 
     row.appendChild(stack);
     thread.appendChild(row);
     thread.scrollTop = thread.scrollHeight;
+    return row;
+  }
+
+  function _appendGeneralFallbackOffer(question) {
+    var row = _appendMessage(
+      "ai",
+      "현재 지원되는 저장소 기반 기관 안내 근거에서는 이 질문의 답을 확인하지 못했습니다. 원하시면 기관 홈페이지 근거가 아닌 일반 AI 모델 답변을 별도로 볼 수 있습니다.",
+    );
+    row.setAttribute("data-general-fallback-offer", "true");
+    var stack = row.querySelector(".message-stack");
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "general-model-offer";
+    button.textContent = "일반 AI 답변 보기";
+    button.setAttribute("data-general-model-action", "request");
+    stack.appendChild(button);
+
+    button.addEventListener("click", function () {
+      if (!window.CitizenMvpBridge || typeof window.CitizenMvpBridge.askGeneralModel !== "function") {
+        button.disabled = true;
+        _appendMessage("ai", "현재 일반 AI 답변을 연결하지 못했습니다.");
+        return;
+      }
+      button.disabled = true;
+      document.body.setAttribute("data-journey-state", "general_model_running");
+      latestGeneralResult = null;
+      Promise.resolve(
+        window.CitizenMvpBridge.askGeneralModel(question, { site_id: siteId }),
+      ).then(function (result) {
+        latestGeneralResult = result;
+        var exactProvenance =
+          result &&
+          result.grounded === false &&
+          result.source_kind === "general_model" &&
+          result.evidence_kind === "none" &&
+          result.answer_scope === "general_model";
+        if (result && result.ok && exactProvenance) {
+          document.body.setAttribute("data-journey-state", "general_model");
+          _appendMessage("ai", result.answer, result);
+          return;
+        }
+        document.body.setAttribute("data-journey-state", "general_model_failed");
+        _appendMessage(
+          "ai",
+          result && typeof result.answer === "string" && result.answer.trim()
+            ? result.answer
+            : "현재 일반 AI 답변을 연결하지 못했습니다.",
+          null,
+        );
+      }).catch(function () {
+        latestGeneralResult = null;
+        document.body.setAttribute("data-journey-state", "general_model_failed");
+        _appendMessage("ai", "현재 일반 AI 답변을 연결하지 못했습니다.");
+      });
+    });
     return row;
   }
 
@@ -99,6 +172,7 @@
 
   async function _answerQuestion(question) {
     latestJourneyResult = null;
+    latestGeneralResult = null;
     var journey = null;
     if (window.MunicipalResidentJourneyRegistry) {
       journey = window.MunicipalResidentJourneyRegistry.match(siteId, question);
@@ -136,20 +210,10 @@
       return;
     }
 
-    document.body.setAttribute("data-journey-state", "fallback");
-    if (!window.CitizenMvpBridge) {
-      _appendMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
-      return;
-    }
-    try {
-      var bridgeResult = await window.CitizenMvpBridge.ask(question, { site_id: siteId });
-      var answer = bridgeResult && typeof bridgeResult.answer === "string" && bridgeResult.answer.trim()
-        ? bridgeResult.answer
-        : "현재 AI 안내를 연결하지 못했습니다.";
-      _appendMessage("ai", answer);
-    } catch (_) {
-      _appendMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
-    }
+    // Explicit opt-in boundary: an unmatched clone question never calls a
+    // general model automatically. The resident must activate the button.
+    document.body.setAttribute("data-journey-state", "general_model_offer");
+    _appendGeneralFallbackOffer(question);
   }
 
   form.addEventListener("submit", function (event) {
@@ -165,6 +229,7 @@
     Promise.resolve(_answerQuestion(question))
       .catch(function () {
         latestJourneyResult = null;
+        latestGeneralResult = null;
         document.body.setAttribute("data-journey-state", "failed");
         _appendMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
       })
@@ -183,6 +248,7 @@
       return latestEvidence;
     },
     getLastJourneyResult: function () { return latestJourneyResult; },
+    getLastGeneralResult: function () { return latestGeneralResult; },
     navigate: function (route) {
       return surface ? surface.navigate(route) : false;
     },
