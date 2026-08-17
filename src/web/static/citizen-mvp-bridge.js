@@ -12,6 +12,8 @@
  * - abortable via cancel()
  * - never throws to the caller; network/HTTP failures degrade to a stable
  *   { ok: false, action: "none", answer: "<honest ko message>" } envelope
+ * - optional explicit site_id transport for the generic municipal shell; legacy
+ *   callers that omit the second argument keep the prior request/response shape
  */
 
 (function () {
@@ -35,6 +37,11 @@
   function _safeSessionId(value) {
     var text = typeof value === "string" ? value.trim() : "";
     return /^[A-Za-z0-9_-]{16,128}$/.test(text) ? text : "";
+  }
+
+  function _safeSiteId(value) {
+    var text = typeof value === "string" ? value.trim() : "";
+    return /^[a-z0-9][a-z0-9_]{2,63}$/.test(text) ? text : "";
   }
 
   function _generateSessionId() {
@@ -153,7 +160,7 @@
     return "ko";
   }
 
-  function ask(question) {
+  function ask(question, options) {
     if (_controller) {
       _controller.abort();
     }
@@ -164,11 +171,19 @@
     // locale, so a later locale change keeps this request scoped to its start.
     var requestLocale = _captureLocale();
     var sessionId = _anonymousSessionId();
+    var requestedSiteId = _safeSiteId(options && options.site_id);
+    var requestBody = {
+      question: question || "",
+      locale: requestLocale,
+      session_id: sessionId,
+    };
+    // Backward compatibility: legacy calls never send a site_id field.
+    if (requestedSiteId) requestBody.site_id = requestedSiteId;
 
     var fetchOpts = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: question || "", locale: requestLocale, session_id: sessionId }),
+      body: JSON.stringify(requestBody),
     };
     if (controller) {
       fetchOpts.signal = controller.signal;
