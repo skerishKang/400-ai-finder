@@ -7,6 +7,7 @@
  *      mirror src/llm/site_aware_mvp_dispatch.py 1:1).
  *   2. ask.js fail-closed early-return seam: a non-CONFIGURED site never reaches
  *      the Buk-gu router/quest; omitted/empty site_id preserves the Buk-gu default.
+ *   3. request-visible non-string site_id is rejected before dispatch.
  *
  * Run with: node tests/functions/test_site_runtime_contract.mjs
  */
@@ -116,7 +117,7 @@ await assert('whitespace-only site_id defaults to Buk-gu', () => {
   expectEqual(r.status, 'configured');
 });
 
-await assert('non-string site_id defaults to Buk-gu (mirrors Python)', () => {
+await assert('non-string resolver input defaults to Buk-gu (internal parity path)', () => {
   const r = siteRuntime.resolveSiteRuntime(12345);
   expectEqual(r.status, 'configured');
 });
@@ -190,13 +191,26 @@ await assert('unknown well-formed site fails closed', async () => {
   expectEqual(data.fallback_to_bukgu, false);
 });
 
-await assert('malformed site_id fails closed', async () => {
+await assert('malformed string site_id fails closed', async () => {
   const { data } = await requestJson('POST', JSON.stringify({ question: '안녕하세요', site_id: 'Bukgu' }));
   expectEqual(data.ok, false);
   expectEqual(data.provider, 'site_dispatch');
   expectEqual(data.failure_code, 'unknown_site');
   expectEqual(data.site_status, 'unknown');
   expectEqual(data.fallback_to_bukgu, false);
+});
+
+await assert('request-visible non-string site_id is rejected before dispatch', async () => {
+  for (const siteId of [12345, null, { id: 'bukgu_gwangju' }, ['bukgu_gwangju']]) {
+    const { data } = await requestJson(
+      'POST',
+      JSON.stringify({ question: '안녕하세요', site_id: siteId }),
+    );
+    expectEqual(data.ok, false);
+    expectEqual(data.failure_code, 'invalid_input');
+    expectTrue(!('site_status' in data));
+    expectTrue(!('fallback_to_bukgu' in data));
+  }
 });
 
 await assert('explicit bukgu_gwangju is NOT intercepted by the site guard', async () => {
