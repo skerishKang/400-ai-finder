@@ -105,10 +105,14 @@ export async function verifyMunicipalAiShell(page, baseOrigin) {
   assert.ok(listEvidence.text.length > 0 && listEvidence.text.length <= 6000);
 
   // Prove real clone-local list -> captured detail navigation, not a parent-side
-  // fabricated route transition.
+  // fabricated route transition. The clone's table markup makes the visible
+  // cell the actual pointer target inside the anchor, so click that descendant
+  // and let the browser's normal anchor activation bubble/navigate in-frame.
   const detailLink = cloneFrame.locator("a.rc-list-link[data-detail='1']");
   assert.strictEqual(await detailLink.count(), 1, "notice list must expose one captured detail link");
-  await detailLink.click();
+  const detailCell = detailLink.locator("td").first();
+  assert.strictEqual(await detailCell.count(), 1, "captured detail link must expose a visible table cell target");
+  await detailCell.click();
   await cloneFrame.waitForURL(/\/seogu\/notice\/detail\/$/, { timeout: 15000 });
 
   await page.waitForFunction(() => {
