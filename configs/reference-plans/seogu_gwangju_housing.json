@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "kind": "named_site_reference_capture_plan",
+  "plan_id": "seogu_gwangju.g1.housing.v1",
+  "site_id": "seogu_gwangju",
+  "capture_mode": "controlled_read_only_reference",
+  "allowed_hosts": ["www.seogu.gwangju.kr"],
+  "allowed_methods": ["GET"],
+  "routine_ci": {"network_policy": "offline"},
+  "security_boundary": {
+    "post_allowed": false,
+    "form_submission_allowed": false,
+    "login_allowed": false,
+    "payment_allowed": false,
+    "identity_verification_allowed": false,
+    "pii_entry_allowed": false,
+    "personal_file_upload_allowed": false,
+    "actual_site_mutation_allowed": false
+  },
+  "completion_policy": {
+    "g1_completion_claim": false,
+    "executed_ledger_required": true,
+    "uncaptured_state_policy": "capture_required_exception"
+  },
+  "states": [
+    {
+      "state_id": "housing.list.desktop",
+      "source_seed_url": "https://www.seogu.gwangju.kr/menu.es?mid=a10308150000",
+      "viewport": {"width": 1440, "height": 900},
+      "state": {"name": "default"},
+      "required_artifacts": ["html_dom_content", "screenshot", "visible_region_inventory", "public_asset_provenance"],
+      "freeze_at_capture": false,
+      "capture_required": true,
+      "notes": "Seo-gu official apartment-housing (공동주택) information page. Resolves via 302 to board.es?mid=a10308150000&bid=0144. Bounded read-only GET capture for #1343 S3 canonical scenario."
+    }
+  ]
+}

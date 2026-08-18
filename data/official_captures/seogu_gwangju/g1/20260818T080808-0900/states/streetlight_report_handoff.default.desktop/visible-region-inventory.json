@@ -1,0 +1,335 @@
+{
+  "title": "재난신고센터 | 재난신고 | 안전/민방위 | 분야별정보 : 전남광주통합특별시 서구청 #착한도시 서구",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "landmarks": [
+    {
+      "tag": "header",
+      "text": "이 누리집은 대한민국 공식 전자정부 누리집입니다. 보건소 문화관광 서구의회 행정복지센터 소상공인경영지원센터 서구시설관리공단 주요 누리집 Language 페이스북 카카오톡채널 카카오스토리 밴드 네이버 인스타그램 유튜브 함께 서구 우뚝서구 검색 검색 전남광주통합특별시 서구 GWANGJU CITY SEOGU 열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보 전체메뉴",
+      "id": "header",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보",
+      "id": "gnb1",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "전체메뉴",
+      "id": "gnb2",
+      "class_name": "scrollbar"
+    },
+    {
+      "tag": "main",
+      "text": "분야별정보 세무 재정 복지정책 교통 문화관광 보건의료 여성/아동/청소년/청년 생활 경제 안전/민방위 안전관리헌장 국민행동요령 민방위 재난신고 지진옥외대피장소 안전신문고 재난안전사고유형 풍수해·지진재해보험 가입안내 구민안전보험 재난배상책임보험 안내 국민안전교육 소화기 도시/환경/위생 행정 지속가능발전 고향사랑기부제 재난신고 홈 분야별정보 안전/민방위 재난신고 재난신고센터 글자 크게 글자 작게 공유하기 인쇄 재난신고센터 국민재난안전포털 자동연결되는 신속한 서비스 시스템 국민적 관심 유도와 범국민적 신고체계를 확립하기 위해 자동연결되는 ",
+      "id": "main",
+      "class_name": ""
+    },
+    {
+      "tag": "section",
+      "text": "분야별정보 세무 재정 복지정책 교통 문화관광 보건의료 여성/아동/청소년/청년 생활 경제 안전/민방위 안전관리헌장 국민행동요령 민방위 재난신고 지진옥외대피장소 안전신문고 재난안전사고유형 풍수해·지진재해보험 가입안내 구민안전보험 재난배상책임보험 안내 국민안전교육 소화기 도시/환경/위생 행정 지속가능발전 고향사랑기부제",
+      "id": "snb",
+      "class_name": "sub03"
+    },
+    {
+      "tag": "nav",
+      "text": "세무 재정 복지정책 교통 문화관광 보건의료 여성/아동/청소년/청년 생활 경제 안전/민방위 안전관리헌장 국민행동요령 민방위 재난신고 지진옥외대피장소 안전신문고 재난안전사고유형 풍수해·지진재해보험 가입안내 구민안전보험 재난배상책임보험 안내 국민안전교육 소화기 도시/환경/위생 행정 지속가능발전 고향사랑기부제",
+      "id": null,
+      "class_name": "list"
+    },
+    {
+      "tag": "section",
+      "text": "재난신고 홈 분야별정보 안전/민방위 재난신고 재난신고센터 글자 크게 글자 작게 공유하기 인쇄 재난신고센터 국민재난안전포털 자동연결되는 신속한 서비스 시스템 국민적 관심 유도와 범국민적 신고체계를 확립하기 위해 자동연결되는 시스템입니다. 재난신고전화 국번없이 1588-3650 재난신고전화는 국민적 관심유도와 범국민적 신고체계를 확립하여 24시간 누수없는 대국민 신고 및 민원접수가 가능토록 운영하기 위해 대표번호를 누르면 해당 구·군 재난 종합상황실로 자동연결되는 서비스 시스템입니다. 콘텐츠 정보책임자 담당부서 안전총괄과 사회재난 연락",
+      "id": "contents",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "홈 분야별정보 안전/민방위 재난신고 재난신고센터",
+      "id": null,
+      "class_name": "location"
+    }
+  ],
+  "controls": [
+    {
+      "tag": "a",
+      "text": "보건소",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "문화관광",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구의회",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "행정복지센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소상공인경영지원센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구시설관리공단",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주요 누리집",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "Language",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "페이스북",
+      "id": null,
+      "class_name": "facebook"
+    },
+    {
+      "tag": "a",
+      "text": "카카오톡채널",
+      "id": null,
+      "class_name": "kakaoch"
+    },
+    {
+      "tag": "a",
+      "text": "카카오스토리",
+      "id": null,
+      "class_name": "kakaostory"
+    },
+    {
+      "tag": "a",
+      "text": "밴드",
+      "id": null,
+      "class_name": "band"
+    },
+    {
+      "tag": "a",
+      "text": "네이버",
+      "id": null,
+      "class_name": "naver"
+    },
+    {
+      "tag": "a",
+      "text": "인스타그램",
+      "id": null,
+      "class_name": "instagram"
+    },
+    {
+      "tag": "a",
+      "text": "유튜브",
+      "id": null,
+      "class_name": "youtube"
+    },
+    {
+      "tag": "a",
+      "text": "함께 서구 우뚝서구",
+      "id": null,
+      "class_name": "slogan"
+    },
+    {
+      "tag": "input",
+      "text": "검색",
+      "id": "allKeyWord2",
+      "class_name": "search_keyword"
+    },
+    {
+      "tag": "button",
+      "text": "검색",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전남광주통합특별시 서구 GWANGJU CITY SEOGU",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "열린민원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소통참여",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "정보공개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "구정소식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구소개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "분야별정보",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전체메뉴",
+      "id": null,
+      "class_name": "control open"
+    },
+    {
+      "tag": "a",
+      "text": "세무",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "재정",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "복지정책",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "교통",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "문화관광",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "보건의료",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "여성/아동/청소년/청년",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "생활",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "홈",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "분야별정보",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "안전/민방위",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "재난신고",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "재난신고센터",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "글자 크게",
+      "id": null,
+      "class_name": "btn up"
+    },
+    {
+      "tag": "a",
+      "text": "글자 작게",
+      "id": null,
+      "class_name": "btn down"
+    },
+    {
+      "tag": "a",
+      "text": "공유하기",
+      "id": null,
+      "class_name": "btn open"
+    },
+    {
+      "tag": "a",
+      "text": "인쇄",
+      "id": null,
+      "class_name": "btn print"
+    },
+    {
+      "tag": "a",
+      "text": "재난신고센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "국민재난안전포털",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "TOP",
+      "id": null,
+      "class_name": "anchorLink up"
+    }
+  ]
+}
