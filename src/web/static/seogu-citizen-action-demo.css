@@ -1,14 +1,11 @@
 /*
  * seogu-citizen-action-demo.css
- * Seo-gu (서구) MVP — minimal site-specific styling ONLY.
+ * Seo-gu (서구) MVP — site-specific presentation glue only.
  *
- * This is deliberately small. The resident-shell STRUCTURE and VISUALS come
- * from the reused Buk-gu canonical shell CSS (citizen-first-use-shell.css,
- * citizen-action-demo-canvas.css, citizen-copilot-shell.css). We do NOT
- * restyle the generic municipal shell here — that approach was REJECTED. We
- * only add: (a) the bounded same-origin clone iframe sizing inside
- * .demo-canvas, and (b) the text brand mark that replaces the Buk-gu PNG
- * assets we do not have committed (no fabricated Seo-gu imagery).
+ * Shared resident-shell structure and geometry remain owned by the Buk-gu
+ * canonical shell CSS. This file adds the Seo-gu same-origin clone iframe,
+ * S0 institution-specific cold-entry identity/profile treatment, and bounded
+ * external-handoff styling. No shared runtime branch or external asset request.
  */
 
 /* Bounded same-origin READ surface iframe, hosted inside .demo-canvas. */
@@ -21,33 +18,236 @@
   background: #ffffff;
 }
 
-/* Text brand mark — honest substitute for the Buk-gu PNG identity we lack. */
-.entry-stage__brand-mark {
+/* ── #1349 S0: source-grounded Seo-gu entry identity ────────────────────── */
+.entry-stage__brand--seogu {
+  align-items: center;
+  gap: 12px;
+}
+
+.entry-stage__brand--seogu .entry-stage__brand-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #2b6cb0, #1a4971);
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.02em;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgba(77, 223, 201, 0.34), rgba(29, 104, 168, 0.66)),
+    rgba(7, 27, 58, 0.32);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 850;
+  letter-spacing: -0.05em;
 }
 
-.entry-stage__brand {
-  display: inline-flex;
+.entry-stage__brand--seogu .entry-stage__brand-copy {
+  display: grid;
+  gap: 3px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.86);
+  letter-spacing: 0;
+}
+
+.entry-stage__brand--seogu .entry-stage__brand-copy strong {
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.entry-stage__brand--seogu .entry-stage__brand-copy small {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+}
+
+.entry-stage__mayor--seogu {
+  top: clamp(154px, 20vh, 202px);
+  width: min(29vw, 410px);
+  min-width: 340px;
+  transform: rotate(0.7deg);
+}
+
+.seogu-entry-profile-card {
+  position: relative;
+  min-height: 284px;
+  overflow: hidden;
+  padding: 28px 28px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(85, 223, 200, 0.22), transparent 34%),
+    linear-gradient(142deg, rgba(6, 30, 65, 0.9), rgba(13, 86, 104, 0.76));
+  box-shadow:
+    0 30px 72px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(14px);
+}
+
+.seogu-entry-profile-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(135deg, #000, transparent 78%);
+}
+
+.seogu-entry-profile-card::after {
+  content: "";
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  right: -84px;
+  top: -92px;
+  border: 1px solid rgba(85, 223, 200, 0.35);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 28px rgba(85, 223, 200, 0.04),
+    0 0 0 62px rgba(85, 223, 200, 0.025);
+}
+
+.seogu-entry-profile-card__top,
+.seogu-entry-profile-card__identity,
+.seogu-entry-profile-card__links,
+.seogu-entry-profile-card__footer {
+  position: relative;
+  z-index: 2;
+}
+
+.seogu-entry-profile-card__top {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.seogu-entry-profile-card__kicker {
+  color: var(--first-use-mint);
+  font-size: 0.78rem;
+  font-weight: 820;
+  letter-spacing: -0.02em;
+}
+
+.seogu-entry-profile-card__badge {
+  padding: 6px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.76);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+}
+
+.seogu-entry-profile-card__identity {
+  display: grid;
   gap: 8px;
+  margin-top: 54px;
+}
+
+.seogu-entry-profile-card__identity > span {
+  color: rgba(227, 246, 245, 0.68);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.seogu-entry-profile-card__identity strong {
+  color: #ffffff;
+  font-size: clamp(1.55rem, 2.05vw, 2rem);
+  font-weight: 760;
+  line-height: 1.15;
+  letter-spacing: -0.055em;
+}
+
+.seogu-entry-profile-card__identity strong em {
+  color: var(--first-use-mint);
+  font-style: normal;
+  font-weight: 860;
+}
+
+.seogu-entry-profile-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.seogu-entry-profile-card__links span {
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.seogu-entry-profile-card__skyline {
+  position: absolute;
+  z-index: 1;
+  right: 20px;
+  bottom: 34px;
+  display: flex;
+  align-items: end;
+  gap: 7px;
+  height: 84px;
+  opacity: 0.17;
+}
+
+.seogu-entry-profile-card__skyline i {
+  display: block;
+  width: 20px;
+  border: 1px solid rgba(113, 244, 222, 0.72);
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(to top, rgba(85, 223, 200, 0.2), transparent);
+}
+
+.seogu-entry-profile-card__skyline i:nth-child(1) { height: 38px; }
+.seogu-entry-profile-card__skyline i:nth-child(2) { height: 66px; }
+.seogu-entry-profile-card__skyline i:nth-child(3) { height: 50px; }
+.seogu-entry-profile-card__skyline i:nth-child(4) { height: 78px; }
+.seogu-entry-profile-card__skyline i:nth-child(5) { height: 46px; }
+
+.seogu-entry-profile-card__footer {
+  margin-top: 27px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 1180px) {
+  .entry-stage__mayor--seogu {
+    right: 34px;
+    width: 30vw;
+    min-width: 300px;
+  }
+
+  .seogu-entry-profile-card {
+    min-height: 260px;
+    padding: 24px;
+  }
+
+  .seogu-entry-profile-card__identity {
+    margin-top: 42px;
+  }
 }
 
 /*
  * Mobile surface switch must be tappable above the full-viewport entry-stage
- * splash (which is position:absolute; inset:0; z-index:2). The shared Buk-gu
- * CSS exposes the switch only at ≤767px but gives it no stacking context, so
- * without this it sits under the splash and cannot receive pointer events.
- * This raises ONLY the switch control — it does not restyle the shell.
+ * splash. This raises ONLY the switch control — it does not restyle the shell.
  */
 @media (max-width: 767px) {
   .mobile-surface-switch {
@@ -57,10 +257,7 @@
 }
 
 /*
- * EXTERNAL_OFFICIAL_HANDOFF elements (#1343 final addendum). Minimal styling so
- * the resident-activated official destination link and its authority provenance
- * row are clearly visible inside the chat bubble. This is site-specific glue
- * only — it does not restyle the shared shell.
+ * EXTERNAL_OFFICIAL_HANDOFF elements (#1343 final addendum).
  */
 .external-handoff-link {
   display: inline-block;
