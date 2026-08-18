@@ -257,6 +257,28 @@
 }
 
 /*
+ * #1349 S0 mobile density correction.
+ * Seo-gu renders the same eight resident actions through its config-driven
+ * registry, but its cold-entry content must remain fully contained at the
+ * accepted 390×844 viewport. Compact only vertical chip chrome; all eight
+ * controls remain visible, labeled and directly clickable with no scrolling,
+ * hiding or semantic change. Shared Buk-gu geometry/runtime stays untouched.
+ */
+@media (max-width: 480px) {
+  body[data-site-id="seogu_gwangju"][data-first-use-state="entry"] .chat-chips {
+    gap: 6px;
+    padding: 8px 12px 6px;
+  }
+
+  body[data-site-id="seogu_gwangju"][data-first-use-state="entry"] .chat-chip {
+    gap: 4px;
+    padding: 6px 11px;
+    font-size: 0.8rem;
+    line-height: 1.25;
+  }
+}
+
+/*
  * EXTERNAL_OFFICIAL_HANDOFF elements (#1343 final addendum).
  */
 .external-handoff-link {
