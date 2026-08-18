@@ -28,6 +28,7 @@ COVERAGE_TEST_FILES = (
     "tests/test_citizen_first_use_shell.py",
     "tests/test_citizen_sitespec_parity.py",
     "tests/test_citizen_action_demo_chat_shell_contract.py",
+    "tests/test_citizen_action_acceptance_matrix.py",
     "tests/test_citizen_action_demo_canvas.py",
     "tests/test_document_enricher.py",
     "tests/test_shared_runtime_vocabulary_contract.py",

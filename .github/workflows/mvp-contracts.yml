@@ -21,6 +21,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Install Python test dependencies
         run: python -m pip install --disable-pip-version-check -r requirements.txt
 
@@ -32,6 +37,7 @@ jobs:
             tests/test_citizen_first_use_shell.py \
             tests/test_citizen_sitespec_parity.py \
             tests/test_citizen_action_demo_chat_shell_contract.py \
+            tests/test_citizen_action_acceptance_matrix.py \
             tests/test_citizen_action_demo_canvas.py \
             tests/test_shared_runtime_vocabulary_contract.py
 
@@ -788,6 +794,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
       - name: Install Python test dependencies
         run: python -m pip install --disable-pip-version-check -r requirements.txt

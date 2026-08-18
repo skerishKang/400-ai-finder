@@ -48,8 +48,8 @@ def test_coverage_test_files_match_workflow_pytest_union() -> None:
     runner_files = set(COVERAGE_TEST_FILES)
     assert workflow_files == runner_files
     assert len(COVERAGE_TEST_FILES) == len(set(COVERAGE_TEST_FILES))
-    assert len(COVERAGE_TEST_FILES) == 38, (
-        f"expected 38 coverage test files, got {len(COVERAGE_TEST_FILES)}"
+    assert len(COVERAGE_TEST_FILES) == 39, (
+        f"expected 39 coverage test files, got {len(COVERAGE_TEST_FILES)}"
     )
 
 
