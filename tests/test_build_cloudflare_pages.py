@@ -900,6 +900,17 @@ SEOGU_REQUIRED_ROUTES = [
     "seogu/home/mobile/index.html",
 ]
 
+# Additive Seo-gu routes emitted by the #1343 candidate on top of the canonical
+# 11 G2-B clone routes: 1 S3 housing route + 3 S2/S7/S8 handoff-evidence routes.
+# Kept separate from SEOGU_REQUIRED_ROUTES so the canonical G2-B contract stays
+# intact and the additive set is explicit.
+SEOGU_ADDITIVE_ROUTES = [
+    "seogu/housing/index.html",
+    "seogu/illegal-parking-report/index.html",
+    "seogu/streetlight-report-handoff/index.html",
+    "seogu/litter-report-handoff/index.html",
+]
+
 
 def test_seogu_clone_routes_exist(build_dir):
     """G2-B: the build emits the Seo-gu clone subtree under dist/seogu/."""
@@ -911,11 +922,16 @@ def test_seogu_output_has_no_external_auto_calls(build_dir):
     """G2-B: /seogu/ output never auto-fetches external script/link/css/iframe."""
     seogu_root = os.path.join(build_dir, "seogu")
     scanned = 0
+    scanned_rel = set()
     for root, _dirs, files in os.walk(seogu_root):
         for fn in files:
             if not fn.endswith((".html", ".js", ".css", ".json")):
                 continue
             path = os.path.join(root, fn)
+            # Relative path under build_dir (e.g. "seogu/housing/index.html") so
+            # it can be compared against the exact expected route set.
+            rel = os.path.relpath(path, build_dir).replace("\\", "/")
+            scanned_rel.add(rel)
             text = open(path, encoding="utf-8", errors="replace").read()
             scanned += 1
             assert not _SCRIPT_SRC_RE.search(text), f"external <script src> in {path}"
@@ -933,9 +949,18 @@ def test_seogu_output_has_no_external_auto_calls(build_dir):
             assert "iframe" not in text.lower(), f"iframe in {path}"
             assert "screenshot" not in text.lower(), f"screenshot runtime in {path}"
             assert "source.png" not in text, f"raw capture artifact in {path}"
+    # Exact 15-route packaging contract: the canonical 11 G2-B clone routes plus
+    # the additive 1 housing + 3 handoff-evidence routes. Both a missing file and
+    # an unexpected extra file are contract failures (not merely a count change).
+    expected = set(SEOGU_REQUIRED_ROUTES) | set(SEOGU_ADDITIVE_ROUTES)
     assert scanned > 0
-    assert scanned == len(SEOGU_REQUIRED_ROUTES), (
-        f"unexpected seogu file count: {scanned}"
+    assert scanned == len(expected), (
+        f"unexpected seogu file count: {scanned}, expected {len(expected)}"
+    )
+    assert scanned_rel == expected, (
+        f"seogu packaging set mismatch: "
+        f"missing={sorted(expected - scanned_rel)} "
+        f"unexpected={sorted(scanned_rel - expected)}"
     )
 
 

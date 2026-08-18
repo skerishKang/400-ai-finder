@@ -1,0 +1,88 @@
+/*
+ * seogu-citizen-action-demo.css
+ * Seo-gu (서구) MVP — minimal site-specific styling ONLY.
+ *
+ * This is deliberately small. The resident-shell STRUCTURE and VISUALS come
+ * from the reused Buk-gu canonical shell CSS (citizen-first-use-shell.css,
+ * citizen-action-demo-canvas.css, citizen-copilot-shell.css). We do NOT
+ * restyle the generic municipal shell here — that approach was REJECTED. We
+ * only add: (a) the bounded same-origin clone iframe sizing inside
+ * .demo-canvas, and (b) the text brand mark that replaces the Buk-gu PNG
+ * assets we do not have committed (no fabricated Seo-gu imagery).
+ */
+
+/* Bounded same-origin READ surface iframe, hosted inside .demo-canvas. */
+.seogu-clone-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #ffffff;
+}
+
+/* Text brand mark — honest substitute for the Buk-gu PNG identity we lack. */
+.entry-stage__brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2b6cb0, #1a4971);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.entry-stage__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/*
+ * Mobile surface switch must be tappable above the full-viewport entry-stage
+ * splash (which is position:absolute; inset:0; z-index:2). The shared Buk-gu
+ * CSS exposes the switch only at ≤767px but gives it no stacking context, so
+ * without this it sits under the splash and cannot receive pointer events.
+ * This raises ONLY the switch control — it does not restyle the shell.
+ */
+@media (max-width: 767px) {
+  .mobile-surface-switch {
+    position: relative;
+    z-index: 6;
+  }
+}
+
+/*
+ * EXTERNAL_OFFICIAL_HANDOFF elements (#1343 final addendum). Minimal styling so
+ * the resident-activated official destination link and its authority provenance
+ * row are clearly visible inside the chat bubble. This is site-specific glue
+ * only — it does not restyle the shared shell.
+ */
+.external-handoff-link {
+  display: inline-block;
+  margin: 8px 0 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #2b6cb0;
+  background: #eef4fb;
+  color: #1a4971;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.external-handoff-link:hover,
+.external-handoff-link:focus-visible {
+  background: #dce9f7;
+  text-decoration: underline;
+}
+
+.message-source--handoff {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #255c33;
+}

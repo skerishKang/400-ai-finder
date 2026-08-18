@@ -1,0 +1,70 @@
+{
+  "title": "전남광주통합특별시 서구청 주정차단속조회 민원시스템",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "landmarks": [],
+  "controls": [
+    {
+      "tag": "a",
+      "text": "서구청 홈페이지",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "문자알림서비스",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "사이트맵",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "로그인",
+      "id": "login",
+      "class_name": ""
+    },
+    {
+      "tag": "button",
+      "text": "",
+      "id": "showMenu",
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "과태료 조회",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "과태료 납부",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "의견진술 등록",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서식 다운로드",
+      "id": null,
+      "class_name": ""
+    }
+  ]
+}

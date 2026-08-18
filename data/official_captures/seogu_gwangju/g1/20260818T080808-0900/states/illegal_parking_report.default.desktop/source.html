@@ -1,0 +1,874 @@
+<html lang="ko"><head><script type="text/JavaScript" src="/trafficminwon/js/common/main.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/common/common.js"></script>
+<!-- J.S End-->
+
+<!-- JavaScript : Start -->
+<script type="text/JavaScript" src="/trafficminwon/js/cmmn/jquery.min.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/cmmn/jquery.form.min.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/cmmn/jquery-1.9.1.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/cmmn/jquery-ui.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/cmmn/jquery.blockUI.js"></script>
+
+<!-- 16.03.30 -->
+<!-- <script type="text/javascript" src="/trafficminwon/js/cmmn/menu.js"></script> -->
+
+<!-- JavaScript : End -->
+
+<!-- bootstrap : JS Start -->
+<script type="text/JavaScript" src="/trafficminwon/js/bootstrap/bootstrap.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/bootstrap/bootstrap.min.js"></script>
+<!-- bootstrap : JS End -->
+
+
+
+
+
+<script type="text/javascript">
+/**
+* Xit ê¸°ë³¸ì í¸
+* @author ë°ë¯¼ê·
+* @date 2020.06.18.
+*/
+var XitBaseUtil = {
+    /* =======================
+    * Servlet ContextPath ë°í
+    ======================= */
+    getContextPath: function(){
+        return '/trafficminwon';
+    }
+}
+</script>
+
+
+
+
+
+
+
+
+
+
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+<!-- 16.03.30 : include.jsp 가지고옴 -->
+<!-- Mata tag 관련 (bootstrap Midia Core 등  Start-->
+<meta name="viewport" content="user-scalable=yes, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, width=device-width">
+<meta name="author" content="Xit">
+<meta name="keywords" lang="ko" content="">
+<!-- Mata tag 관련 (bootstrap Midia Core 등  End-->
+
+<title>전남광주통합특별시 서구청 주정차단속조회 민원시스템</title>
+
+<link rel="stylesheet" type="text/css" href="/trafficminwon/css/cmmn/jquery-ui.css">
+<link rel="stylesheet" type="text/css" href="/trafficminwon/css/cmmn/reset.css">
+<link rel="stylesheet" type="text/css" href="/trafficminwon/css/cmmn/bootstapcomm.css">
+<link rel="stylesheet" type="text/css" href="/trafficminwon/css/cmmn/layout.css">
+<link rel="stylesheet" type="text/css" href="/trafficminwon/css/cmmn/common.css">
+
+<!-- <link rel="stylesheet" type="text/css" href="/trafficminwon/css/cmmn/main.css" />
+<link rel="stylesheet" type="text/css" href="/trafficminwon/css/cmmn/common.css" />  -->
+
+<!--[if lt IE 9]>
+    <script type="text/javascript" src="/trafficminwon/js/cmmn/html5shiv.js"></script>
+    <script src="/trafficminwon/js/cmmn/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+    <div class="wrapper">
+
+
+
+
+
+
+
+
+
+
+
+<!-- J.S Start-->
+<script type="text/JavaScript" src="/trafficminwon/js/common/main.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/common/common.js"></script>
+<!-- J.S End-->
+
+<!-- JavaScript : Start -->
+<script type="text/JavaScript" src="/trafficminwon/js/cmmn/jquery.min.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/cmmn/jquery.form.min.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/cmmn/jquery-1.9.1.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/cmmn/jquery-ui.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/cmmn/jquery.blockUI.js"></script>
+
+<!-- 16.03.30 -->
+<!-- <script type="text/javascript" src="/trafficminwon/js/cmmn/menu.js"></script> -->
+
+<!-- JavaScript : End -->
+
+<!-- bootstrap : JS Start -->
+<script type="text/JavaScript" src="/trafficminwon/js/bootstrap/bootstrap.js"></script>
+<script type="text/JavaScript" src="/trafficminwon/js/bootstrap/bootstrap.min.js"></script>
+<!-- bootstrap : JS End -->
+
+
+
+
+
+<script type="text/javascript">
+/**
+* Xit ê¸°ë³¸ì í¸
+* @author ë°ë¯¼ê·
+* @date 2020.06.18.
+*/
+var XitBaseUtil = {
+    /* =======================
+    * Servlet ContextPath ë°í
+    ======================= */
+    getContextPath: function(){
+        return '/trafficminwon';
+    }
+}
+</script>
+
+
+
+
+
+
+
+
+<script>
+/*var slideStatus = 0;
+var selectedNm = "";
+var defaultNm = "";
+var optionSelect = 0;
+var optionSelect2 = 0;*/
+    $(function() {
+        $.ajax({
+            url : '/trafficminwon/xit/cmmn/MenuList.do',
+            type : "post",
+            dataType : "json",
+            success : function(data){
+                getMenu(data.resultMenuList,data.pgCh);
+                menubar(data.jsonData,data.pgCh);
+            },
+            error : function(){
+                alert('error');
+            }
+        });
+    });
+
+    //기존 메뉴 호출 함수
+    function getMenu(data,pgch) {
+        var selMainMenu = '';
+
+        //서브메뉴 타이틀
+        //var selMainMenu = '2';
+        var k = 0;
+        for (i = 0; i < data.length - 1; i++) {
+            if (data[i].muUpperId == "0") {
+                var selClass="";
+                if(data[i].muId==selMainMenu)
+                {
+                    selClass="class='selected'";
+                    var leftTitle = data[i].muName;
+                }
+                html = "<a "+selClass+" href=' "+ ('/trafficminwon'+ data[i].muUrl).replace('//', '/') + "'>" + data[i].muName    + "</a>";
+
+
+                $(".mainMenu .menu").eq(k).append(html);
+                k++;
+            }
+
+            //드롭다운 메뉴 활성화를 위한 script
+            if(typeof data[i].muUpperId != "undefined" || typeof data[i].muUrl != "undefined" ){
+             var d = data[i].muUpperId -1;
+              if(d != -1)
+                 {
+                     html = "<div class='subM'><a href=' "+ ('/trafficminwon'+ data[i].muUrl).replace('//', '/') + "'>" +data[i].muName+"</a></div>";
+                     $('.submenuTxt').eq(d).append(html);
+                     $('.submenuTxtm').eq(d).append(html);
+                 }
+             }
+        }
+        /* if ($('#subMenu').val() != 0) {
+            callLeftMenu(data,pgch,leftTitle);
+        } */
+
+        if ($('#subMenu').val() != 0) {
+            var inniMenuSelNowTitle = callLeftMenu(data,pgch,leftTitle);
+            var titlePg = $('.menuTitle').eq(0).text();
+            var title = (inniMenuSelNowTitle + '<' + leftTitle + ':전남광주통합특별시 서구청 주정차단속조회 민원시스템');
+            var localLink = 'HOME  <b class="tx_color02"> > </b>   ' +leftTitle+ '<b class="tx_color02"> > </b> ' +inniMenuSelNowTitle;
+            var regExp = /[\{\}\[\]\/?.,;:|\)*~`!^·\-_+<>@#$%&\\\=\(\s$]/gi;
+
+            if(($.trim(titlePg)).replace(regExp ,'')!=($.trim(inniMenuSelNowTitle)).replace(regExp ,''))
+
+            {
+                title = ($.trim(titlePg) + '<' + title);
+                localLink = (localLink +"<b class='tx_color02'> > </b> "+ $.trim(titlePg));
+            };
+            document.title = title;
+            $('.menuTitle').eq(0).before('<div id="localLink"></div>') ;
+            $('#localLink').html(localLink);
+
+            $('iframe').attr({'title':'내용없음','tabIndex':'-1'});
+        }
+
+        $(".lineBar").show();
+    }
+
+
+
+    //기존 모바일 메뉴 호출 함수 (현재 gnb메뉴 호출 함수)
+    function menubar(mobileData,pgch){
+        var subSettingSize = mobileData.menuList[0].subMenu.length; //현재 서브 최고 많은 갯수 Controller 보내주든지 다시 해야됨
+        var mobilePMenuSize = mobileData.menuList.length;
+        var idch = 1;
+        for(var i=0;i<mobilePMenuSize;i++)
+        {
+             html ="<li class='gnb_item'><a href='"+('/trafficminwon'+mobileData.menuList[i].muUrl).replace('//', '/') +"'>"+mobileData.menuList[i].muName+"</a>";
+            // html +="<h3><a href='"+'(/trafficminwon'+ mobileData.menuList[i].muUrl).replace('//', '/') + "' onclick='return false'>"+mobileData.menuList[i].muName+"</a></h3>";
+             html +="<ul class='gnb_sub'></ul>";
+
+             $('#gnb').append(html);
+             ++idch;
+             var subHtml = "";
+
+            for(var j=0;j<mobileData.menuList[i].subMenu.length;j++)
+             {
+                if((pgch == 'LGU+'||pgch == 'easy') &&  mobileData.menuList[i].subMenu[j].muUrl == "/xit/vio/pay/payListInicis.do"){subHtml += "";}
+                else{subHtml += "<li class='gnb_sub_item'><a href=' "+('/trafficminwon'+ mobileData.menuList[i].subMenu[j].muUrl).replace('//', '/') + "'>"+mobileData.menuList[i].subMenu[j].muName+"</a></li>";}
+                if(pgch == 'INICIS' && mobileData.menuList[i].subMenu[j].muUrl =="/xit/vio/pay/payList.do"){subHtml += "";}
+             }
+             $(".gnb_sub").eq(i).append(subHtml);
+        }
+    }
+
+    /*pc,타블렛 서브메뉴 보이기*/
+    /* function showSubMenu(e){
+        if($( window ).width() > 767){
+            var h='';
+            if($(e).hasClass('gnbMenu')){
+                $(e).addClass('showSubMenu');
+                h = $(e).find('ul').height();
+            }else{
+                $(e).parents('.gnbMenu').addClass('showSubMenu');
+                h = $(e).parents('.gnbMenu').find('ul').height();
+            }
+            $('section.contents').addClass('marginTop');
+            $('.marginTop').css('margin-top',h-5)
+        }
+    } */
+    /*pc,타블렛 서브메뉴 숨기기*/
+    /* function hideSubMenu(e){
+            if($( window ).width() > 767){
+            if($(e).hasClass('gnbMenu')){
+                $(e).removeClass( 'showSubMenu');
+            }else{
+                $(e).parents('.gnbMenu').removeClass( 'showSubMenu');
+            }
+            $('section.contents').removeClass('marginTop');
+            $('section.contents').css('margin-top','0');
+        }
+    }
+ */
+
+
+    $(function () {
+         $(document).on('click focus mouseover', '.gnb_item a', function () {
+            var $menuItem = $(this).parents('.gnb_item');
+            $menuItem.addClass('gnb_item_select');
+            $menuItem.siblings('.gnb_item_select').removeClass('gnb_item_select');
+
+        });
+
+         $(document).on('click', '.mobileMenu .gnb_item > a', function () {
+             if($( window ).width() < 991){
+            var $menuItem = $(this).parents('li.gnb_item');
+            $menuItem.children('a');
+
+            $menuItem.find('.gnb_sub').slideDown("500");
+            $menuItem.siblings('.gnb_item').find('.gnb_sub').slideUp("500");
+
+                return false;
+             }else{
+                 return true;
+             }
+        });
+
+        //메뉴전체 보기 버튼
+        $(document).on('click', '#showMenu', function (){
+            $('.gnb_sub').addClass('showMenu');
+
+            $('.gnb_item').siblings('.gnb_item_select').removeClass('gnb_item_select');
+            $('.gnb_item:first-child').addClass('gnb_item_select');
+            $('.gnb_item:first-child > a').focus();
+
+            $(this).hide();
+            $('#hideMenu').show();
+
+        });
+        $(document).on('click', '#hideMenu', function (){
+            $('.gnb_sub').removeClass('showMenu');
+            $('.gnb_item').removeClass('gnb_item_select');
+
+            $(this).hide();
+            $('#showMenu').show().focus();
+        });
+
+        $(document).on('click', '#mobileShowMenu', function (){
+            $('.gnb_sub').removeClass('showMenu');
+            $('.gnb_item').removeClass('gnb_item_select');
+
+            $('#hideMenu').hide();
+            $('#showMenu').show();
+
+
+            $('#header').addClass('mobileMenu');
+            $('body').addClass('scrollHide');
+
+            $(this).hide();
+            $('#mobileHideMenu').show();
+
+        });
+        $(document).on('click', '#mobileHideMenu', function (){
+
+            $('#header').removeClass('mobileMenu');
+            $('body').removeClass('scrollHide');
+
+            $(this).hide();
+            $('#mobileShowMenu').show();
+
+        });
+    });
+
+    /*  $(function(){
+        $('.menuOpen').click(function(){
+            $('header').addClass('mobileHeader');
+
+            $( window ).resize(function() {
+                if($( window ).width() > 767){
+                    $('header').removeClass('mobileHeader');
+                }
+            });
+        });
+        $('.menuClose').click(function(){
+            $('header').removeClass('mobileHeader');
+        });
+    });  */
+
+
+
+
+    /*모바일 메뉴
+    $(document).on('click focus', '.gnbMenu h3 a', function () {
+        var gnbMenu = $(this).parents('.gnbMenu');
+        var h =gnbMenu.find('.subMenuBer ul').height();
+
+        gnbMenu.addClass('showSubMenu');
+        gnbMenu.siblings().removeClass('showSubMenu').find('.subMenuBer').height('0px');
+
+        $(this).parents('.showSubMenu').find('.subMenuBer').stop().animate({height: h+'px'},300);
+    });
+    $(document).on('focusout', '.gnbMenu a', function(){
+        var gnbMenu = $(this).parents('.gnbMenu');
+        gnbMenu.removeClass('showSubMenu').find('div').stop().height('0px');
+    });
+
+    $(document).on('click focus', '.gnbMenu .subMenuBer a', function () {
+        var gnbMenu = $(this).parents('.gnbMenu');
+        var h =gnbMenu.find('.subMenuBer ul').height();
+        gnbMenu.addClass('showSubMenu');
+        $(this).parents('.showSubMenu').find('.subMenuBer').stop().height(h+'px');
+    });    */
+</script>
+
+<input type="hidden" name="subMenu" id="subMenu" value="">
+<div id="bookmark">
+        <a href="#mainContents">본문으로 바로가기</a>
+</div>
+<!--북마크 : end-->
+<hr>
+
+<!--header : 시작-->
+<div id="header">
+<div id="tnb">
+    <ul class="tnb_wrap">
+        <li><a href="http://www.seogu.gwangju.kr/" target="_blank" title="새창으로 열림 : 광주서구청 사이트">서구청 홈페이지</a></li>
+        <li><a href="http://parkingsms.seogu.gwangju.kr/" target="_blank" title="새창으로 열림 : 전남광주통합특별시 서구 주정차단속 문자알림서비스">문자알림서비스</a></li>
+        <li><a href="/trafficminwon/xit/min/siteMap/siteSearch.do">사이트맵</a></li>
+    </ul>
+
+</div><!--tnb :end-->
+<div class="row wrap">
+
+    <!-- 로고 : 시작 -->
+    <div id="logo" class="col-lg-3">
+        <a href="/trafficminwon/">
+             <img src="/trafficminwon/images/Gwangju_img/newlogo.png" alt="서구청 주·정차 단속조회 민원시스템">
+        </a>
+    </div>
+    <hr> <!-- 로고 : 종료 -->
+
+    <a href="/trafficminwon/xit/vio/search/searchForm.do" id="login">로그인</a>
+
+
+    <!-- tnb : 시작 -->
+    <div class="col-lg-6 col-lg-offset-3" style="height:1px;">
+        <div class="mobileMenuBtn">
+            <button id="mobileShowMenu"><img src="/trafficminwon/images/cmmn/menuBtn01.png" alt="모바일 메뉴전체 보기버튼"></button>
+            <button id="mobileHideMenu"><img src="/trafficminwon/images/cmmn/menuBtn02.png" alt="모바일 메뉴전체 닫기버튼"></button>
+        </div>
+    </div>
+    <hr>    <!-- tnb : 종료-->
+
+
+<!-- 메뉴 : 시작 -->
+<div class="clear" id="menuBar">
+
+    <ul id="gnb"></ul>
+
+    <div class="menuBtn">
+        <button id="showMenu"><img src="/trafficminwon/images/Gwangju_img/menuBtn01.png" alt="메뉴전체 보기버튼"></button>
+        <button id="hideMenu"><img src="/trafficminwon/images/Gwangju_img/menuBtn02.png" alt="메뉴전체 닫기버튼"></button>
+    </div>
+
+</div>
+<hr> <!--메뉴 : 종료-->
+
+</div>
+</div> <!--header : 종료-->
+        <!-- Center Start -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="content">
+<a name="mainContents" class="bookmarkText" tabindex="0">북마크 : 본문</a>
+
+<!-- 매인 이미지, 링크 : 시작 -->
+<div class="content_top">
+    <div class="row wrap">
+        <div>
+            <div id="mainImg">
+                <img src="/trafficminwon/images/Gwangju_img/main_visual.png" alt="시민과 함께! 사람중심 서구">
+            </div>
+        </div>
+    </div>
+    <div id="qicon">
+        <ul>
+            <li class="qicon01">
+                <a href="/trafficminwon/xit/vio/search/searchForm.do">
+                    <div><p><strong id="qtext">과태료 조회 </strong></p></div>
+                </a>
+            </li>
+            <li class="qicon02" id="underWord">
+                <!-- <a href="" onclick="noti();"> -->
+                <!-- 2020.06.16. 주석처리. 박민규 - wetax 사이트 링크로 변경 -->
+<!--                 <a href="/trafficminwon/xit/vio/pay/payList.do" > -->
+                <a href="#" onclick="fnLinkExternalSite('wetax'); return false;">
+                    <div><p><strong id="qtext">과태료 납부</strong></p></div>
+                </a>
+            </li>
+            <li class="qicon03">
+                <a href="/trafficminwon/xit/vio/jin/list.do">
+                    <div><p><strong id="qtext">의견진술 등록</strong></p></div>
+                </a>
+            </li>
+
+            <li class="qicon04">
+                <a href="/trafficminwon/xit/cmmn/info/PsInfoList.do?leftMuId=16">
+                    <div><p><strong id="qtext">서식 다운로드</strong></p></div>
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+<!-- 매인 이미지, 링크 : 끝 -->
+
+
+<!-- 매인전화, 공지 : 시작 -->
+<div class="row wrap">
+
+<!--  전화번호안내:시작-->
+<div id="tel" class="col-md-6 item_box">
+        <strong>전화번호</strong>
+        <div class="line"></div>
+        <ul>
+
+
+
+                        <li>
+                            <span> <img class="list_ico" src="/trafficminwon/images/Gwangju_img/list_icon.png">교통지도 업무 총괄</span>
+                            <span class="floRight" style="overflow:auto;text-overflow:initial;">062-360-7993</span>
+                        </li>
+
+                        <li>
+                            <span> <img class="list_ico" src="/trafficminwon/images/Gwangju_img/list_icon.png">주정차위반 과태료 안내 및 상담</span>
+                            <span class="floRight" style="overflow:auto;text-overflow:initial;">062-360-7821/7825</span>
+                        </li>
+
+                        <li>
+                            <span> <img class="list_ico" src="/trafficminwon/images/Gwangju_img/list_icon.png">주정차위반 과태료 안내 및 상담</span>
+                            <span class="floRight" style="overflow:auto;text-overflow:initial;">062-360-7836</span>
+                        </li>
+
+                        <li>
+                            <span> <img class="list_ico" src="/trafficminwon/images/Gwangju_img/list_icon.png">주정차위반 과태료 안내 및 상담</span>
+                            <span class="floRight" style="overflow:auto;text-overflow:initial;">062-360-7841</span>
+                        </li>
+
+
+
+
+        </ul>
+        <a href="/trafficminwon/xit/min/tel/telSearch.do" title="전화번호 더보기" class="more"><img src="/trafficminwon/images/Gwangju_img/icon_more.png" alt="전화번호 더보기"></a>
+    </div>
+    <hr>
+<!-- 전화번호안내:끝-->
+
+
+<!-- 공지사항:시작-->
+    <div id="notice" class="col-md-6 item_box">
+        <strong>공지사항</strong>
+        <div class="line"></div>
+        <ul>
+
+
+
+
+
+
+                            <li>
+                                <a href="/trafficminwon/xit/min/news/detailNews.do" class="noticeDetail" data-1="1">
+                                <img class="list_ico" src="/trafficminwon/images/Gwangju_img/list_icon.png">전남광주통합특별시 서구청 주정차 단속조회 민원시스템 홈페이지 오픈</a>
+                                <span class="floRight">2020-07-17</span>
+                            </li>
+
+
+
+
+
+
+    </ul>
+    <a href="/trafficminwon/xit/min/news/searchForm.do" title="공지사항 더보기" class="more"><img src="/trafficminwon/images/Gwangju_img/icon_more.png" alt="전화번호 더보기"></a>
+    </div>
+    <hr>
+<!-- 공지사항:끝-->
+</div>
+
+
+</div>
+<!-- 매인전화, 공지 : 끝 -->
+
+<form name="newsForm" id="newsForm" method="post">
+    <input type="hidden" name="idxNo" id="idxNo">
+</form>
+
+
+<script>
+
+    var filter = "win16|win32|win64|mac|macintel";
+    var popWin1;
+    var popWin2;
+
+    $(document).ready(function() {
+        if(navigator.platform) {
+            if(filter.indexOf(navigator.platform.toLowerCase()) < 0) {
+
+            } else {
+                /*if(!popWin1) {
+                    if(getCookie("car.pyenongtaek.go.kr1") != "pop1") {
+                        popWin1 = window.open("http://115.21.123.36/popup/popup1.html",'pop1','width=500, height=550, top=80, left=40,statusbar=no, scrollbar=no,resizable=yes');
+                    }
+                }
+
+                if(!popWin2) {
+                    if(getCookie("car.pyenongtaek.go.kr2") != "pop2") {
+                        popWin2 = window.open("http://115.21.123.36/popup/popup2.html",'pop2','width=500, height=550, top=80, left=540,statusbar=no, scrollbar=no,resizable=yes');
+                    }
+                }*/
+            }
+        }
+    });
+
+    //공지사항 상세보기 이동
+    $('.noticeDetail').click(function(event) {
+        event.preventDefault()
+        $('#idxNo').val($(this).attr("data-1"));
+        document.newsForm.action = '/trafficminwon/xit/min/news/detailNews.do';
+        document.newsForm.submit();
+    });
+
+    /*주정차 사이트 사이트 이동*/
+    function site(){
+        var psite = $("#pSite option:selected").val();
+        if(psite == ""){
+            $("#pStieBtn").attr("href",'javascript:');
+        }else{
+            $("#pStieBtn").attr("href",psite);
+        }
+    }
+
+    function noti() {
+        alert("서비스 준비중 입니다.");
+    }
+
+    function getCookie(name){
+        var wcname = name + '=';
+        var wcstart, wcend, end;
+        var i = 0;
+
+          while(i <= document.cookie.length) {
+           wcstart = i;
+         wcend   = (i + wcname.length);
+         if(document.cookie.substring(wcstart, wcend) == wcname) {
+          if((end = document.cookie.indexOf(';', wcend)) == -1)
+           end = document.cookie.length;
+          return document.cookie.substring(wcend, end);
+           }
+
+         i = document.cookie.indexOf('', i) + 1;
+
+           if(i == 0)
+          break;
+          }
+          return '';
+    }
+
+    function moveKakao() {
+        location.href='/trafficminwon/xit/kakaoSign/kakaoSign.do';
+    }
+</script>
+
+
+
+<script type="text/javascript">
+    $(function() {
+        $('#btnOpenPrivate').click(function(){
+            $('#dongPopup01 .dongTitle').html($(this).html());
+            ajaxRecieve("2",$("#dongPopup01 .dongContent"));
+        });
+        $('#btnOpenEmail').click(function(){
+            $('#dongPopup02 .dongTitle').html($(this).html());
+            ajaxRecieve("1",$("#dongPopup02 .dongContent"));
+        });
+        $('#btnOpenMovInfo').click(function(){
+            $('#dongPopup03 .dongTitle').html($(this).html());
+            ajaxRecieve("3",$("#dongPopup03 .dongContent"));
+        });
+
+        setLayerPopup('#btnOpenPrivate', '#dongPopup01', '#dongPopup01 .dongPopupClose',0);
+        setLayerPopup('#btnOpenEmail', '#dongPopup02', '#dongPopup02 .dongPopupClose',0);
+        setLayerPopup('#btnOpenMovInfo', '#dongPopup03', '#dongPopup03 .dongPopupClose',0);
+
+         $("a[href^='#dongPopup']").on('click focus', function(e){
+                e.preventDefault();
+         });
+    });
+
+    //팝업창    : 16.05.23
+     function setLayerPopup(selector, layerId, closeSelector,selectIndex){
+        var zIndex = 10000;
+
+         $(document).on('click', selector, function (){
+            var i = $(selector).index(this);
+            selectIndex = i;
+
+            $(layerId).before('    <div id="layerPopupMask"><span class="textHide">레이팝 팝업 외부영역(마스크)</span></div>');
+            $('#layerPopupMask').css({'position':'fixed', 'width':'100%', 'height':'100%', 'top':0, 'left':0, 'background':'#000000', 'z-index':zIndex, 'opacity':'0.5', 'display':'none'});
+            $('#layerPopupMask, '+layerId + ' .dongContent').css({'display':'block'}).attr('tabIndex',0);
+            /*=================================================
+            * 2020.07.15. 박민규
+            *  IE 동작 이슈로 인한 수정
+            *   -사유: IE10에서 지도 CCTV map open 시 div의 height값이 변경 됨.
+            *         Map이 div 영역 밖으로 표출 됨.
+            *   -작업내용: css에 height, overflow 속성 추가
+            *   -관련메뉴: HOME > CCTV 설치현황 > 주정차CCTV
+            =================================================*/
+            /* 2020.07.15. 주석처리 */
+//             $(layerId).css({'display':'block'});
+            $(layerId).css({'display':'block', 'height':$(layerId).outerHeight()+'px', 'overflow':'hidden'});
+            $(layerId).css({'z-index':zIndex+10});
+            adjustLayerPosition();
+            if(!($(layerId +' div.layerPopupLastFocus').is(".layerPopupLastFocus"))){ //1개의 layerPopupLastFocus가 생성 되도록 하기위해
+                $(layerId).append('<div class="layerPopupLastFocus" style="font-size:0; text-indent:-9999"></div>');//레이어팝업안에서만 focus 이동하도록하기위함
+                $(layerId + ' div.layerPopupLastFocus').attr('tabIndex',0);
+            }
+            $(layerId + ' .dongContent').focus();
+            $(layerId + ' div.layerPopupLastFocus').on('focus', function(){
+            setTimeout(function(){$(layerId+ ' .dongContent').focus();}, 10); /*모바일을위한 트릭 시간차를 위해 스크린리더가 캐치할 수 잇도록*/
+            });
+            $('#layerPopupMask').on('focus', function(){
+            setTimeout(function(){$(closeSelector).focus();}, 10);
+            });
+            $(window).on('resize', function(){ adjustLayerPosition(); });
+        });
+
+        $(closeSelector).on('click', function(){
+            $(selector).eq(selectIndex).focus();/*focus를 보내놓고 닫기*/
+            $(layerId).removeAttr('tabIndex').css({'display':'none'});
+            $('#layerPopupMask').remove();
+            $(layerId + ' div.layerPopupLastFocus, #layerPopupMask').off('focus');
+            $(window).off('resize');
+        });
+
+        function adjustLayerPosition(){
+            var windowW = $(window).width();
+            /*=================================================
+            * 2020.07.15. 박민규
+            *  Chrome 동작 이슈로 인한 수정
+            *   -사유: Chrome에서 CCTV map의 위치가 중앙이 아닌 하단에 위치 함
+            *   -작업내용: 브라우저 창(window)의 높이 값을 구하는 코드를 jquery->javascript로 변경
+            *   -관련메뉴: HOME > CCTV 설치현황 > 주정차CCTV
+            =================================================*/
+            /* 2020.07.15. 주석처리 */
+//             var windowH = $(window).height();
+            var windowH = window.innerHeight;
+            var layerW = $(layerId).outerWidth();
+            var layerH = $(layerId).outerHeight();
+            $(layerId).css({'left':((windowW-layerW)/2)+'px', 'top':((windowH-layerH)/2)+'px'});
+        }
+    }
+
+
+    function ajaxRecieve(cbGugun,obj){
+        $.ajax({
+            type : "POST",
+            url : '/trafficminwon/xit/min/selectTermsDetail.do',
+            data : {
+                cbGubun:cbGugun
+            },
+            success : function(data) {
+                var k = decodeURIComponent(data.termTxt);
+                k = k.replaceAll("+"," ");
+                k = k.replaceAll('&lt;','<');
+                k = k.replaceAll('&gt;', '>');
+                k = k.replaceAll('&quot;', '"');
+                k = k.replaceAll('&amp;nbsp;', ' ');
+                obj.html(k);
+            },
+            error : function(data, status, error) {
+                alert("접속이 원할하지 못합니다. 브라우저를 새로고침 해주세요");
+            }
+        });
+    }
+</script>
+
+<!-- 하단 : 시작 -->
+<div class="footer">
+<!-- 하단 메뉴 : 시작 -->
+    <div id="fnb">
+        <ul class="row wrap">
+            <li><a href="http://www.seogu.gwangju.kr/menu.es?mid=a10603010100" target="_blank" class="privateTerms dongPopupBtn">개인정보처리방침</a></li>
+            <!-- <li><a href="http://www.pyeongtaek.go.kr/pyeongtaek/bbs/list.do?ptIdx=159&mId=0702020000" target="_blank" class="movInfoTemrs dongPopupBtn">영상정보처리기기방침</a></li> -->
+        </ul>
+    </div>
+
+    <hr>
+    <!-- 하단 메뉴 : 종료 -->
+
+    <div class="wrap ">
+    <!-- 하단 로고 : 시작-->
+        <!-- <div class="ft_logo">
+            <img src="/trafficminwon/images/cmmn/footer_logo.png" alt="서울 중구">
+        </div> -->
+    <!-- 하단 로고 : 종료 -->
+
+
+
+
+    <!-- 주소 : 시작 -->
+    <div class="addr">
+        <p>61931 전남광주통합특별시 서구 화정로 308 2층 교통지도과  &nbsp;&nbsp;TEL : 062)360-7821, 7825, 7841 / FAX : 062)360-7954 <br>
+        copyright(c) 전남광주통합특별시 서구 교통지도과, all rights reserved. </p>
+    </div>
+    <!-- 주소 : 종료 -->
+
+
+    </div>
+</div>
+<!-- <div class="popupBg"></div> -->
+<!-- <div id="privateTermsDiv" class="dongPopup" title="개인정보처리방침">
+</div>
+
+<div id="emailTermsDiv" class="dongPopup" title="이메일수집거부">
+</div>
+
+<div id="movInfoTermsDiv" class="dongPopup" title="영상정보처리기기방침">
+</div>
+<div id="mapTermsDiv"  class="dongPopup " title="CCTV설치지점">
+</div>
+ -->
+
+ <div id="dongPopup01" class="dongPopup">
+     <div class="dongTitle"></div>
+     <div class="dongContent"></div>
+     <div><button type="button" class="dongPopupClose"> 닫기 </button></div>
+</div>
+ <div id="dongPopup02" class="dongPopup">
+     <div class="dongTitle"></div>
+     <div class="dongContent"></div>
+     <div><button type="button" class="dongPopupClose"> 닫기 </button></div>
+</div>
+<div id="dongPopup03" class="dongPopup">
+    <div class="dongTitle"></div>
+     <div class="dongContent"></div>
+     <div><button type="button" class="dongPopupClose"> 닫기 </button></div>
+</div>
+<div id="dongPopup04" title="CCTV설치지점" class="dongPopup">
+    <div class="dongTitle"></div>
+    <div class="dongContent">
+        <div id="mapTermsDiv"></div>
+    </div>
+     <div><button type="button" class="dongPopupClose"> 닫기 </button></div>
+</div>
+<div id="dongPopup05" title="CCTV설치지점 로드뷰" class="dongPopup2">
+    <div class="dongTitle"></div>
+        <div id="container">
+                <div id="rvWrapper">
+                    <div id="roadview" style="width:100%;height:100%;"></div> <!-- 로드뷰를 표시할 div 입니다 -->
+                    <div id="close" title="로드뷰닫기" onclick="closeRoadview()"><span class="img"></span></div>
+                </div>
+                <div id="mapWrapper">
+                    <div id="map" style="width:100%;height:100%"></div> <!-- 지도를 표시할 div 입니다 -->
+                    <div id="roadviewControl" onclick="setRoadviewRoad()"><span>로드뷰</span></div>
+                </div>
+        </div>
+     <div><button type="button" class="dongPopupClose"> 닫기 </button></div>
+</div>
+
+
+    </div>
+
+
+
+
+</body></html>

@@ -690,6 +690,103 @@ def build_seogu_reference_clone(dist_root: str) -> None:
     print(f"[build] G2-B faithful_ready={validator.faithful_ready(validated)}")
 
 
+def build_seogu_housing_addon(dist_root: str) -> None:
+    """Emit the additive #1343 S3 housing route under dist/seogu/housing/.
+
+    The committed 11-state G2-B baseline (capture-id ``20260812T231018-0900``)
+    is immutable: its visual contract is checksum-pinned to that model, so a
+    full re-capture would break the fail-closed visual-contract gates and the
+    regression tests. Round 2 therefore authorizes a SEPARATE, additive
+    bounded capture for the S3 공동주택 canonical scenario (capture-id
+    ``20260818T060400-0900``), which renders exactly one route
+    (``/seogu/housing/``) and never clobbers the baseline routes.
+
+    Fully offline; reads only the committed additive clone-model.json.
+    ``write_site`` writes only the routes present in the model, so the baseline
+    subtree is untouched. Rendered with ``visual_contract=None`` because the
+    additive capture has its own provenance chain and is not covered by the
+    pinned baseline visual contract.
+    """
+    import importlib
+
+    _src = os.path.join(_REPO_ROOT, "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+
+    renderer = importlib.import_module("official_clone.reference_clone_renderer")
+
+    model_path = os.path.join(
+        _REPO_ROOT,
+        "data",
+        "official_clone_fixtures",
+        "seogu_gwangju",
+        "g1",
+        "20260818T060400-0900",
+        "clone-model.json",
+    )
+    if not os.path.isfile(model_path):
+        raise RuntimeError(f"S3 housing fail-closed: additive model not found: {model_path}")
+    model = renderer.load_model(model_path)
+    written = renderer.write_site(
+        model,
+        os.path.join(dist_root, "seogu"),
+        route_prefix="/seogu/",
+        visual_contract=None,
+    )
+    routes = sorted(
+        (str(w.relative_to(Path(dist_root))) if hasattr(w, "relative_to") else str(w))
+        for w in written
+    )
+    print(f"[build] wrote {len(written)} additive S3 housing route(s) -> seogu/housing/ : {routes}")
+
+
+def build_seogu_handoff_addon(dist_root: str) -> None:
+    """Emit the additive #1343 S2/S7/S8 handoff evidence routes under /seogu/.
+
+    Final-addendum bounded capture (capture-id ``20260818T080808-0900``) for
+    the generic ``EXTERNAL_OFFICIAL_HANDOFF`` local-evidence routes:
+
+    * ``/seogu/illegal-parking-report/``      (S2 trafficminwon negative evidence)
+    * ``/seogu/streetlight-report-handoff/``  (S7 disaster-report center)
+    * ``/seogu/litter-report-handoff/``       (S8 household-waste guidance)
+
+    Additive only: ``write_site`` writes only the routes present in this model,
+    so the pinned 11-state baseline and the S3 housing route are untouched.
+    Fully offline; reads only the committed additive clone-model.json.
+    """
+    import importlib
+
+    _src = os.path.join(_REPO_ROOT, "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+
+    renderer = importlib.import_module("official_clone.reference_clone_renderer")
+
+    model_path = os.path.join(
+        _REPO_ROOT,
+        "data",
+        "official_clone_fixtures",
+        "seogu_gwangju",
+        "g1",
+        "20260818T080808-0900",
+        "clone-model.json",
+    )
+    if not os.path.isfile(model_path):
+        raise RuntimeError(f"S2/S7/S8 handoff fail-closed: additive model not found: {model_path}")
+    model = renderer.load_model(model_path)
+    written = renderer.write_site(
+        model,
+        os.path.join(dist_root, "seogu"),
+        route_prefix="/seogu/",
+        visual_contract=None,
+    )
+    routes = sorted(
+        (str(w.relative_to(Path(dist_root))) if hasattr(w, "relative_to") else str(w))
+        for w in written
+    )
+    print(f"[build] wrote {len(written)} additive S2/S7/S8 handoff evidence route(s) -> seogu/ : {routes}")
+
+
 def build(out_dir: str | None = None, mode: str = "static") -> None:
     _ensure_repo_on_path()
     from scripts.generate_bukgu_official_snapshots import check_generated_artifacts
@@ -914,6 +1011,14 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
     # 9c. Emit the #1303 G2-B Seo-gu faithful-clone candidate under /seogu/.
     #     Generic, model-driven, offline; the Buk-gu root is untouched.
     build_seogu_reference_clone(dist_root)
+
+    # 9d. Emit the additive #1343 S3 housing route under /seogu/housing/.
+    #     Separate bounded capture; never clobbers the pinned 11-state baseline.
+    build_seogu_housing_addon(dist_root)
+
+    # 9e. Emit the additive #1343 final-addendum S2/S7/S8 handoff evidence
+    #     routes under /seogu/. Separate bounded capture; additive only.
+    build_seogu_handoff_addon(dist_root)
 
     print(f"[build] done -> {dist_root}")
 
