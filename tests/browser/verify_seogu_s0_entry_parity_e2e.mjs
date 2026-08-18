@@ -99,10 +99,21 @@ try {
     const mayor = document.querySelector(".seogu-mayor-image");
     const keyVisual = document.querySelector(".seogu-key-visual");
     const card = document.querySelector(".seogu-entry-profile-card");
+    const logoRect = logo ? (() => {
+      const r = logo.getBoundingClientRect();
+      const s = getComputedStyle(logo);
+      return {
+        x: Math.round(r.x), y: Math.round(r.y),
+        w: Math.round(r.width), h: Math.round(r.height),
+        display: s.display, visibility: s.visibility,
+        naturalW: logo.naturalWidth, naturalH: logo.naturalHeight,
+      };
+    })() : null;
     return {
       firstUseState: document.body.getAttribute("data-first-use-state"),
       logoSrc: logo ? logo.getAttribute("src") : "",
       logoLoaded: logo ? logo.complete && logo.naturalWidth > 0 : false,
+      logoRect,
       mayorSrc: mayor ? mayor.getAttribute("src") : "",
       mayorLoaded: mayor ? mayor.complete && mayor.naturalWidth > 0 : false,
       keyVisualSrc: keyVisual ? keyVisual.getAttribute("src") : "",
@@ -127,6 +138,19 @@ try {
   assert.ok(desktopState.logoLoaded, `official logo not loaded: src=${desktopState.logoSrc}`);
   assert.ok(desktopState.mayorLoaded, `official mayor image not loaded: src=${desktopState.mayorSrc}`);
   assert.ok(desktopState.keyVisualLoaded, `official key visual not loaded: src=${desktopState.keyVisualSrc}`);
+
+  // Logo visual scale verification (#1350 logo scale fix)
+  const lr = desktopState.logoRect;
+  assert.ok(lr, "logo element must exist");
+  assert.ok(lr.w > 0 && lr.h > 0, `logo must have positive rendered size: ${JSON.stringify(lr)}`);
+  assert.notStrictEqual(lr.display, "none", "logo must not be display:none");
+  assert.notStrictEqual(lr.visibility, "hidden", "logo must not be visibility:hidden");
+  assert.ok(lr.w >= 60, `logo rendered width too small for legibility: ${JSON.stringify(lr)}`);
+  assert.ok(lr.h >= 20, `logo rendered height too small for legibility: ${JSON.stringify(lr)}`);
+  assert.ok(lr.x >= 0 && lr.x < 1920, `logo must be inside viewport horizontally: ${JSON.stringify(lr)}`);
+  assert.ok(lr.y >= 0 && lr.y < 1080, `logo must be inside viewport vertically: ${JSON.stringify(lr)}`);
+  // Aspect ratio check: logo is a wide horizontal mark, not square
+  assert.ok(lr.w > lr.h, `logo should be wider than tall (horizontal mark): ${JSON.stringify(lr)}`);
 
   assert.ok(desktopState.brand && desktopState.brand.w > 100, `Seo-gu identity lockup: ${JSON.stringify(desktopState.brand)}`);
   assert.ok(desktopState.chat && desktopState.chat.w >= 560 && desktopState.chat.w <= 680, `desktop chat width: ${JSON.stringify(desktopState.chat)}`);
@@ -172,9 +196,14 @@ try {
   requirePositiveRect(mobileState.chat, "mobile chat");
   requirePositiveRect(mobileState.composer, "mobile composer");
   requirePositiveRect(mobileState.send, "mobile send");
+  requirePositiveRect(mobileState.disclosure, "mobile disclosure");
   assert.ok(
     mobileState.composer.bottom <= mobileState.viewportHeight + 2,
     `mobile composer clipped below viewport: ${JSON.stringify(mobileState)}`,
+  );
+  assert.ok(
+    mobileState.disclosure.bottom <= mobileState.viewportHeight + 5,
+    `mobile disclosure clipped below viewport: ${JSON.stringify(mobileState)}`,
   );
   assert.ok(mobileState.horizontalOverflow <= 1, `mobile horizontal overflow=${mobileState.horizontalOverflow}`);
   await mobile.close();
