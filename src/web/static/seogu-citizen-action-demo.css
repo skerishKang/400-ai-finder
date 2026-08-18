@@ -278,6 +278,32 @@
   }
 }
 
+
+/*
+ * #1350 S0 mobile containment (site-specific).
+ * The Seo-gu shell exposes the mobile surface switch (conversation/guidance)
+ * on ≤767px through the same shared contract as the resident shell, so the
+ * cold-entry chat shell must reserve clearance for it (switch ≈57px at
+ * 390×844 + the 82px/12px entry margins) instead of assuming the switch is
+ * removed from flow. Shared Buk-gu geometry stays untouched; nothing is
+ * hidden, no copy or chip is removed, and desktop/split behavior is unchanged.
+ */
+@media (max-width: 767px) {
+  body[data-site-id="seogu_gwangju"][data-first-use-state="entry"] .first-use-layout .chat-shell {
+    height: calc(100vh - 151px);
+    max-height: calc(100vh - 151px);
+  }
+}
+
+/* 320-class narrow entry mirrors the same clearance on the shared 52px/6px
+   margin rule (58px + 57px switch = 115px). */
+@media (max-width: 340px) {
+  body[data-site-id="seogu_gwangju"][data-first-use-state="entry"] .first-use-layout .chat-shell {
+    height: calc(100vh - 115px);
+    max-height: calc(100vh - 115px);
+  }
+}
+
 /*
  * EXTERNAL_OFFICIAL_HANDOFF elements (#1343 final addendum).
  */
