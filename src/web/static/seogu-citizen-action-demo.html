@@ -5,26 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--
   seogu-citizen-action-demo.html
-  Seo-gu (서구) MVP first screen — Buk-gu parity slice (#1343).
+  Seo-gu (서구) MVP first screen — Buk-gu parity slice (#1343 / #1349).
 
   REUSE CONTRACT:
-  - The shell STRUCTURE and VISUALS are the Buk-gu canonical resident shell
-    (first-use-layout, entry-stage, mobile surface switch, chat-shell with
-    header/thread/chips/composer/disclosure, desktop split, demo-canvas).
+  - The shell STRUCTURE and VISUALS are the Buk-gu canonical resident shell.
   - We load the SAME Buk-gu shell CSS so the layout is genuinely the Buk-gu
     resident shell, not a generic restyle.
-  - We deliberately DO NOT load Buk-gu snapshot fixtures
-    (bukgu-official-snapshots.js / bukgu-home-clone-fixture.js /
-    citizen-action-demo-canvas.js / citizen-first-choreography.js) — those
-    hardcode Buk-gu captured content. Instead we reuse the SHARED,
-    site-parameterized machinery: MunicipalSiteSurfaceRegistry,
-    MunicipalCloneSurface, MunicipalResidentJourney, MunicipalResidentJourney
-    Registry, citizen-mvp-bridge, and drive it from Seo-gu site-data/config
-    (seogu-sitespec-metadata.js + seogu-resident-journey-registry.js).
-  - All Seo-gu facts/questions/routes live in the Seo-gu registry config,
-    never in shared shell code.
-  - Existing Seo-gu proof (notice social-economy, organization leadership,
-    general-model fallback) is preserved and reachable.
+  - Seo-gu-specific visible identity/content remains in this site-specific file.
+  - Shared shell/runtime code must not branch on raw Seo-gu site ids.
 -->
 <title>서구청 AI 민원 네비게이터</title>
 <link rel="stylesheet" href="/static/citizen-shared-tokens.css">
@@ -38,10 +26,15 @@
 <section class="entry-stage" aria-hidden="true">
   <div class="entry-stage__aurora entry-stage__aurora--one"></div>
   <div class="entry-stage__aurora entry-stage__aurora--two"></div>
-  <div class="entry-stage__brand">
-    <span class="entry-stage__brand-mark" aria-hidden="true">S</span>
-    <span>AI 행정 브라우저</span>
+
+  <div class="entry-stage__brand entry-stage__brand--seogu">
+    <img class="entry-stage__brand-mark" src="/static/images/seogu-current/top-logo.png" alt="서구 로고">
+    <span class="entry-stage__brand-copy">
+      <strong>함께 서구 · 우뚝서구</strong>
+      <small>AI 행정 브라우저</small>
+    </span>
   </div>
+
   <div class="entry-stage__copy">
     <span class="entry-stage__eyebrow"><i></i> SEOGU AI CIVIC NAVIGATOR</span>
     <h1>서구의 모든 행정,<br /><em>한 문장으로.</em></h1>
@@ -52,13 +45,24 @@
       <span>WRITE</span><b>작성합니다</b>
     </div>
   </div>
-  <figure class="entry-stage__mayor">
+
+  <!--
+    #1350 S0: populate the canonical Buk-gu hero figure slot with verified
+    official Seo-gu civic imagery — mayor leadership photo and key visual.
+    All assets are local-only; no runtime hotlink.
+  -->
+  <figure class="entry-stage__mayor entry-stage__mayor--seogu">
     <div class="entry-stage__mayor-orbit"></div>
+    <div class="seogu-entry-profile-card">
+      <img class="seogu-mayor-image" src="/static/images/seogu-current/home-mayor-head.png" alt="김이강 서구청장">
+      <img class="seogu-key-visual" src="/static/images/seogu-current/home-key-visual.jpg" alt="서구핵심 비주얼">
+    </div>
     <figcaption>
       <span>SEOGU VISION</span>
       <strong>주민이 체감하는 AI 행정</strong>
     </figcaption>
   </figure>
+
   <div class="entry-stage__signal"><i></i> AI AGENT READY</div>
 </section>
 
@@ -81,10 +85,6 @@
       <p class="chat-shell__attribution" data-service-attribution="padiem-compact">AI Agent by PADIEM</p>
     </div>
     <div class="chat-shell__header-tools">
-      <!-- Blocker C (#1343 final addendum): the language selector was an empty,
-           nonfunctional <select> (no options, arrow-only broken control). It is
-           removed rather than wired to Buk-gu citizen-i18n.js — no multilingual
-           scope expansion in this slice. -->
       <button class="chat-shell__reset" id="chat-reset" type="button" hidden>
         새로 시작
       </button>
@@ -151,7 +151,7 @@
   })();
 </script>
 
-<!-- Shared, site-parameterized machinery (Buk-gu parity reuse) -->
+<!-- Shared, site-parameterized machinery -->
 <script src="/static/municipal-site-surface-registry.js"></script>
 <script src="/static/municipal-clone-surface.js"></script>
 <script src="/static/municipal-resident-journey.js"></script>

@@ -1,14 +1,11 @@
 /*
  * seogu-citizen-action-demo.css
- * Seo-gu (서구) MVP — minimal site-specific styling ONLY.
+ * Seo-gu (서구) MVP — site-specific presentation glue only.
  *
- * This is deliberately small. The resident-shell STRUCTURE and VISUALS come
- * from the reused Buk-gu canonical shell CSS (citizen-first-use-shell.css,
- * citizen-action-demo-canvas.css, citizen-copilot-shell.css). We do NOT
- * restyle the generic municipal shell here — that approach was REJECTED. We
- * only add: (a) the bounded same-origin clone iframe sizing inside
- * .demo-canvas, and (b) the text brand mark that replaces the Buk-gu PNG
- * assets we do not have committed (no fabricated Seo-gu imagery).
+ * Shared resident-shell structure and geometry remain owned by the Buk-gu
+ * canonical shell CSS. This file adds the Seo-gu same-origin clone iframe,
+ * S0 institution-specific cold-entry identity/profile treatment, and bounded
+ * external-handoff styling. No shared runtime branch or external asset request.
  */
 
 /* Bounded same-origin READ surface iframe, hosted inside .demo-canvas. */
@@ -21,33 +18,96 @@
   background: #ffffff;
 }
 
-/* Text brand mark — honest substitute for the Buk-gu PNG identity we lack. */
-.entry-stage__brand-mark {
-  display: inline-flex;
+/* ── #1350 S0: source-grounded Seo-gu entry identity (image-based) ───────── */
+.entry-stage__brand--seogu {
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #2b6cb0, #1a4971);
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.02em;
+  gap: 12px;
 }
 
-.entry-stage__brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.entry-stage__brand--seogu .entry-stage__brand-mark {
+  display: inline-block;
+  height: 40px;
+  width: auto;
+  max-width: 180px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.entry-stage__brand--seogu .entry-stage__brand-copy {
+  display: grid;
+  gap: 3px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.86);
+  letter-spacing: 0;
+}
+
+.entry-stage__brand--seogu .entry-stage__brand-copy strong {
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.entry-stage__brand--seogu .entry-stage__brand-copy small {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+}
+
+.entry-stage__mayor--seogu {
+  top: clamp(154px, 20vh, 202px);
+  width: min(29vw, 410px);
+  min-width: 340px;
+  transform: rotate(0.7deg);
+}
+
+.seogu-entry-profile-card {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(85, 223, 200, 0.22), transparent 34%),
+    linear-gradient(142deg, rgba(6, 30, 65, 0.9), rgba(13, 86, 104, 0.76));
+  box-shadow:
+    0 30px 72px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(14px);
+}
+
+.seogu-mayor-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.seogu-key-visual {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  margin-top: 12px;
+}
+
+@media (max-width: 1180px) {
+  .entry-stage__mayor--seogu {
+    right: 34px;
+    width: 30vw;
+    min-width: 300px;
+  }
 }
 
 /*
  * Mobile surface switch must be tappable above the full-viewport entry-stage
- * splash (which is position:absolute; inset:0; z-index:2). The shared Buk-gu
- * CSS exposes the switch only at ≤767px but gives it no stacking context, so
- * without this it sits under the splash and cannot receive pointer events.
- * This raises ONLY the switch control — it does not restyle the shell.
+ * splash. This raises ONLY the switch control — it does not restyle the shell.
  */
 @media (max-width: 767px) {
   .mobile-surface-switch {
@@ -57,10 +117,52 @@
 }
 
 /*
- * EXTERNAL_OFFICIAL_HANDOFF elements (#1343 final addendum). Minimal styling so
- * the resident-activated official destination link and its authority provenance
- * row are clearly visible inside the chat bubble. This is site-specific glue
- * only — it does not restyle the shared shell.
+ * #1349 S0 mobile density correction.
+ * Seo-gu renders the same eight resident actions through its config-driven
+ * registry, but its cold-entry content must remain fully contained at the
+ * accepted 390×844 viewport. Compact only vertical chip chrome; all eight
+ * controls remain visible, labeled and directly clickable with no scrolling,
+ * hiding or semantic change. Shared Buk-gu geometry/runtime stays untouched.
+ */
+@media (max-width: 480px) {
+  body[data-site-id="seogu_gwangju"][data-first-use-state="entry"] .chat-chips {
+    gap: 6px;
+    padding: 8px 12px 6px;
+  }
+
+  body[data-site-id="seogu_gwangju"][data-first-use-state="entry"] .chat-chip {
+    gap: 4px;
+    padding: 6px 11px;
+    font-size: 0.8rem;
+    line-height: 1.25;
+  }
+}
+
+/*
+ * #1350 S0 mobile containment (site-specific).
+ * The Seo-gu shell exposes the mobile surface switch (conversation/guidance)
+ * on ≤767px through the same shared contract as the resident shell. At cold
+ * entry the switch remains [hidden], so the chat shell does NOT need 57px
+ * clearance. Shared Buk-gu geometry stays untouched; nothing is hidden, no
+ * copy or chip is removed, and desktop/split behavior is unchanged.
+ */
+@media (max-width: 767px) {
+  body[data-site-id="seogu_gwangju"][data-first-use-state="entry"] .first-use-layout .chat-shell {
+    height: calc(100vh - 94px);
+    max-height: calc(100vh - 94px);
+  }
+}
+
+/* 320-class narrow entry mirrors the shared 52px/6px margin rule (58px). */
+@media (max-width: 340px) {
+  body[data-site-id="seogu_gwangju"][data-first-use-state="entry"] .first-use-layout .chat-shell {
+    height: calc(100vh - 58px);
+    max-height: calc(100vh - 58px);
+  }
+}
+
+/*
+ * EXTERNAL_OFFICIAL_HANDOFF elements (#1343 final addendum).
  */
 .external-handoff-link {
   display: inline-block;

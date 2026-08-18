@@ -32,7 +32,7 @@ jobs:
       - name: Install Node test dependencies
         run: npm ci --ignore-scripts
 
-      - name: Run Seo-gu shell GNB interaction contract (#1343)
+      - name: Run Seo-gu shell interaction + S0 cold-entry contracts (#1343 / #1349)
         shell: bash
         run: |
           set -euo pipefail
@@ -70,4 +70,7 @@ jobs:
           PY
 
           node tests/browser/verify_seogu_shell_gnb_interaction_e2e.mjs \
+            http://127.0.0.1:8772
+
+          node tests/browser/verify_seogu_s0_entry_parity_e2e.mjs \
             http://127.0.0.1:8772
