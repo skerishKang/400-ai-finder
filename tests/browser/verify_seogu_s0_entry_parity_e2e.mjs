@@ -89,6 +89,18 @@ async function openEntry(context) {
     null,
     { timeout: 15000 },
   );
+  // The canonical Buk-gu-family cold entry intentionally animates the chat card
+  // into place for 900ms. Geometry acceptance must measure the stable S0 state,
+  // not an in-flight translateY frame that can temporarily cross the viewport.
+  await page.waitForFunction(
+    () => {
+      const chat = document.getElementById("chat-shell");
+      if (!chat || typeof chat.getAnimations !== "function") return false;
+      return chat.getAnimations().every((animation) => animation.playState === "finished");
+    },
+    null,
+    { timeout: 4000 },
+  );
   return page;
 }
 
