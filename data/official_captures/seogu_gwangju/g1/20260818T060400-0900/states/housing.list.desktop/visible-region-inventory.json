@@ -1,0 +1,365 @@
+{
+  "title": "목록 | 공동주택 | 도시/환경/위생 | 분야별정보 : 전남광주통합특별시 서구청 #착한도시 서구",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "landmarks": [
+    {
+      "tag": "header",
+      "text": "이 누리집은 대한민국 공식 전자정부 누리집입니다. 보건소 문화관광 서구의회 행정복지센터 소상공인경영지원센터 서구시설관리공단 주요 누리집 Language 페이스북 카카오톡채널 카카오스토리 밴드 네이버 인스타그램 유튜브 함께 서구 우뚝서구 검색 검색 전남광주통합특별시 서구 GWANGJU CITY SEOGU 열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보 전체메뉴",
+      "id": "header",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보",
+      "id": "gnb1",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "전체메뉴",
+      "id": "gnb2",
+      "class_name": "scrollbar"
+    },
+    {
+      "tag": "main",
+      "text": "분야별정보 세무 재정 복지정책 교통 문화관광 보건의료 여성/아동/청소년/청년 생활 경제 안전/민방위 도시/환경/위생 폐기물 재활용 청소/환경 위생관리 미세먼지 라돈측정기 대여 안내 주택재개발 정비사업 주택재건축정비사업 공동주택 주택임대사업 건축정보 도로명주소 부동산정보 음식물쓰레기 2045 탄소중립 서구 자전거 현수막게시대 지역주택조합현황 주택건설사업계획승인현황 군소음보상 디지털저장매체파기 서비스 행정 지속가능발전 고향사랑기부제 공동주택 홈 분야별정보 도시/환경/위생 공동주택 글자 크게 글자 작게 공유하기 인쇄 분야별정보 > 도시/",
+      "id": "main",
+      "class_name": ""
+    },
+    {
+      "tag": "section",
+      "text": "분야별정보 세무 재정 복지정책 교통 문화관광 보건의료 여성/아동/청소년/청년 생활 경제 안전/민방위 도시/환경/위생 폐기물 재활용 청소/환경 위생관리 미세먼지 라돈측정기 대여 안내 주택재개발 정비사업 주택재건축정비사업 공동주택 주택임대사업 건축정보 도로명주소 부동산정보 음식물쓰레기 2045 탄소중립 서구 자전거 현수막게시대 지역주택조합현황 주택건설사업계획승인현황 군소음보상 디지털저장매체파기 서비스 행정 지속가능발전 고향사랑기부제",
+      "id": "snb",
+      "class_name": "sub03"
+    },
+    {
+      "tag": "nav",
+      "text": "세무 재정 복지정책 교통 문화관광 보건의료 여성/아동/청소년/청년 생활 경제 안전/민방위 도시/환경/위생 폐기물 재활용 청소/환경 위생관리 미세먼지 라돈측정기 대여 안내 주택재개발 정비사업 주택재건축정비사업 공동주택 주택임대사업 건축정보 도로명주소 부동산정보 음식물쓰레기 2045 탄소중립 서구 자전거 현수막게시대 지역주택조합현황 주택건설사업계획승인현황 군소음보상 디지털저장매체파기 서비스 행정 지속가능발전 고향사랑기부제",
+      "id": null,
+      "class_name": "list"
+    },
+    {
+      "tag": "section",
+      "text": "공동주택 홈 분야별정보 도시/환경/위생 공동주택 글자 크게 글자 작게 공유하기 인쇄 분야별정보 > 도시/환경/위생 > 공동주택 검색 제목 내용 작성부서 전체 검색 전체 32건 페이지 1/4 분야별정보_도시/환경/위생_공동주택 목록 번호 제목 담당부서 등록일 첨부파일 조회수 32 폭염으로 인한 온열질환 예방수칙 및 주요사례 등 관련 자료 주택과 2026/07/10 36 31 광주광역시 공동주택관리규약 준칙 개정 알림(2026.06.23.) 공동주택관리 2026/07/09 31 30 2026년 공동주택 우수관리단지 선정 신청 안내 주택",
+      "id": "contents",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "홈 분야별정보 도시/환경/위생 공동주택",
+      "id": null,
+      "class_name": "location"
+    }
+  ],
+  "controls": [
+    {
+      "tag": "a",
+      "text": "보건소",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "문화관광",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구의회",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "행정복지센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소상공인경영지원센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구시설관리공단",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주요 누리집",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "Language",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "페이스북",
+      "id": null,
+      "class_name": "facebook"
+    },
+    {
+      "tag": "a",
+      "text": "카카오톡채널",
+      "id": null,
+      "class_name": "kakaoch"
+    },
+    {
+      "tag": "a",
+      "text": "카카오스토리",
+      "id": null,
+      "class_name": "kakaostory"
+    },
+    {
+      "tag": "a",
+      "text": "밴드",
+      "id": null,
+      "class_name": "band"
+    },
+    {
+      "tag": "a",
+      "text": "네이버",
+      "id": null,
+      "class_name": "naver"
+    },
+    {
+      "tag": "a",
+      "text": "인스타그램",
+      "id": null,
+      "class_name": "instagram"
+    },
+    {
+      "tag": "a",
+      "text": "유튜브",
+      "id": null,
+      "class_name": "youtube"
+    },
+    {
+      "tag": "a",
+      "text": "함께 서구 우뚝서구",
+      "id": null,
+      "class_name": "slogan"
+    },
+    {
+      "tag": "input",
+      "text": "검색",
+      "id": "allKeyWord2",
+      "class_name": "search_keyword"
+    },
+    {
+      "tag": "button",
+      "text": "검색",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전남광주통합특별시 서구 GWANGJU CITY SEOGU",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "열린민원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소통참여",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "정보공개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "구정소식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구소개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "분야별정보",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전체메뉴",
+      "id": null,
+      "class_name": "control open"
+    },
+    {
+      "tag": "a",
+      "text": "세무",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "재정",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "복지정책",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "교통",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "문화관광",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "보건의료",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "여성/아동/청소년/청년",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "생활",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "홈",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "분야별정보",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "도시/환경/위생",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "공동주택",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "글자 크게",
+      "id": null,
+      "class_name": "btn up"
+    },
+    {
+      "tag": "a",
+      "text": "글자 작게",
+      "id": null,
+      "class_name": "btn down"
+    },
+    {
+      "tag": "a",
+      "text": "공유하기",
+      "id": null,
+      "class_name": "btn open"
+    },
+    {
+      "tag": "a",
+      "text": "인쇄",
+      "id": null,
+      "class_name": "btn print"
+    },
+    {
+      "tag": "select",
+      "text": "제목 내용 작성부서 전체",
+      "id": "select",
+      "class_name": ""
+    },
+    {
+      "tag": "input",
+      "text": "검색어를 입력하세요",
+      "id": null,
+      "class_name": "form_textbox"
+    },
+    {
+      "tag": "button",
+      "text": "검색",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "폭염으로 인한 온열질환 예방수칙 및 주요사례 등 관련 자료",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "광주광역시 공동주택관리규약 준칙 개정 알림(2026.06.23.)",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "2026년 공동주택 우수관리단지 선정 신청 안내",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "2026년 노후 공동주택 관리사업 서식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "「2026년도 공동주택 소방안전 및 방범교육」실시 및 참석 안내",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "TOP",
+      "id": null,
+      "class_name": "anchorLink up"
+    }
+  ]
+}
