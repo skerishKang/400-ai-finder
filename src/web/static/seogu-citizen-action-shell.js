@@ -497,6 +497,12 @@
     if (document.body.getAttribute("data-first-use-state") !== "split") {
       document.body.setAttribute("data-first-use-state", "split");
     }
+    // #1350: Reveal the mobile surface switch only after first supported
+    // resident action enters split state. This preserves Buk-gu cold-entry
+    // geometry (switch hidden at boot) and avoids the 57px height workaround.
+    if (surfaceSwitch) {
+      surfaceSwitch.removeAttribute("hidden");
+    }
     // Split must make the institution canvas actually visible/available.
     _setCanvasAvailability(true);
   }
@@ -525,10 +531,10 @@
   // ── Mobile surface switch (conversation / guidance) ───────────────────────
   function _wireMobileSwitch() {
     if (!surfaceSwitch) return;
-    // Reveal the switch on mobile. The shared CSS exposes it only ≤767px AND only
-    // once the [hidden] attribute is removed — this mirrors the Buk-gu resident
-    // shell (which removes it via its choreography). We reuse the same contract.
-    surfaceSwitch.removeAttribute("hidden");
+    // #1350: Keep the switch [hidden] at cold entry. The shared CSS exposes it
+    // only ≤767px AND only once the [hidden] attribute is removed. We defer
+    // removal until the first supported resident action enters split state,
+    // matching Buk-gu canonical boot geometry.
     var chat = document.getElementById("chat-shell");
     surfaceSwitch.querySelectorAll("[data-mobile-surface-tab]").forEach(function (tab) {
       tab.addEventListener("click", function () {

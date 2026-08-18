@@ -1,5 +1,5 @@
 /**
- * #1349 — Seo-gu S0 cold-entry visual/containment contract.
+ * #1349/#1350 — Seo-gu S0 cold-entry visual/containment contract.
  * Local build only; every non-loopback request is blocked.
  */
 import assert from "assert";
@@ -84,6 +84,7 @@ function requirePositiveRect(value, label) {
 }
 
 try {
+  /* ═══════════════════════════ DESKTOP 1920×1080 ═══════════════════════════ */
   const desktop = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
   await installGuard(desktop);
   const page = await openEntry(desktop);
@@ -94,10 +95,18 @@ try {
       const s = getComputedStyle(node);
       return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), bottom: Math.round(r.bottom), display: s.display, visibility: s.visibility };
     };
+    const logo = document.querySelector(".entry-stage__brand-mark");
+    const mayor = document.querySelector(".seogu-mayor-image");
+    const keyVisual = document.querySelector(".seogu-key-visual");
     const card = document.querySelector(".seogu-entry-profile-card");
     return {
       firstUseState: document.body.getAttribute("data-first-use-state"),
-      cardText: card ? card.textContent.replace(/\s+/g, " ").trim() : "",
+      logoSrc: logo ? logo.getAttribute("src") : "",
+      logoLoaded: logo ? logo.complete && logo.naturalWidth > 0 : false,
+      mayorSrc: mayor ? mayor.getAttribute("src") : "",
+      mayorLoaded: mayor ? mayor.complete && mayor.naturalWidth > 0 : false,
+      keyVisualSrc: keyVisual ? keyVisual.getAttribute("src") : "",
+      keyVisualLoaded: keyVisual ? keyVisual.complete && keyVisual.naturalWidth > 0 : false,
       card: rect(card),
       brand: rect(document.querySelector(".entry-stage__brand--seogu")),
       chat: rect(document.getElementById("chat-shell")),
@@ -110,12 +119,15 @@ try {
 
   assert.strictEqual(desktopState.firstUseState, "entry");
   assert.strictEqual(desktopState.chipCount, 8);
-  assert.ok(desktopState.card && desktopState.card.w >= 300 && desktopState.card.h >= 240, `desktop profile card geometry: ${JSON.stringify(desktopState.card)}`);
+  assert.ok(desktopState.card && desktopState.card.w >= 300 && desktopState.card.h >= 100, `desktop profile card geometry: ${JSON.stringify(desktopState.card)}`);
   assert.notStrictEqual(desktopState.card.display, "none");
   assert.notStrictEqual(desktopState.card.visibility, "hidden");
-  for (const marker of ["#착한도시 서구", "김이강", "내곁에 구청장실", "매니페스토 (공약)"]) {
-    assert.ok(desktopState.cardText.includes(marker), `missing source-grounded S0 marker: ${marker}`);
-  }
+
+  // Verify official Seo-gu images loaded
+  assert.ok(desktopState.logoLoaded, `official logo not loaded: src=${desktopState.logoSrc}`);
+  assert.ok(desktopState.mayorLoaded, `official mayor image not loaded: src=${desktopState.mayorSrc}`);
+  assert.ok(desktopState.keyVisualLoaded, `official key visual not loaded: src=${desktopState.keyVisualSrc}`);
+
   assert.ok(desktopState.brand && desktopState.brand.w > 100, `Seo-gu identity lockup: ${JSON.stringify(desktopState.brand)}`);
   assert.ok(desktopState.chat && desktopState.chat.w >= 560 && desktopState.chat.w <= 680, `desktop chat width: ${JSON.stringify(desktopState.chat)}`);
   assert.ok(desktopState.chat && desktopState.chat.h >= 410 && desktopState.chat.h <= 540, `desktop chat height: ${JSON.stringify(desktopState.chat)}`);
@@ -124,6 +136,7 @@ try {
   assert.ok(desktopState.horizontalOverflow <= 1, `desktop horizontal overflow=${desktopState.horizontalOverflow}`);
   await desktop.close();
 
+  /* ═══════════════════════════ MOBILE 390×844 ═════════════════════════════ */
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await installGuard(mobile);
   const mpage = await openEntry(mobile);
@@ -134,52 +147,19 @@ try {
       const s = getComputedStyle(node);
       return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), bottom: Math.round(r.bottom), display: s.display, visibility: s.visibility };
     };
-    const style = (node) => {
-      if (!node) return null;
-      const s = getComputedStyle(node);
-      return {
-        height: s.height,
-        minHeight: s.minHeight,
-        maxHeight: s.maxHeight,
-        marginTop: s.marginTop,
-        marginBottom: s.marginBottom,
-        paddingTop: s.paddingTop,
-        paddingBottom: s.paddingBottom,
-        gap: s.gap,
-        overflowY: s.overflowY,
-        transform: s.transform,
-        flex: s.flex,
-        flexShrink: s.flexShrink,
-      };
-    };
+    const switchEl = document.getElementById("mobile-surface-switch");
     const chat = document.getElementById("chat-shell");
-    const header = document.querySelector(".chat-shell__header");
-    const thread = document.getElementById("chat-thread");
-    const chipsRoot = document.getElementById("chat-chips");
-    const firstChip = chipsRoot && chipsRoot.querySelector(".chat-chip");
-    const composer = document.getElementById("chat-composer-form");
-    const disclosure = document.getElementById("shell-disclosure");
     return {
       firstUseState: document.body.getAttribute("data-first-use-state"),
       siteId: document.body.getAttribute("data-site-id"),
+      switchHidden: switchEl ? switchEl.hasAttribute("hidden") : true,
       chat: rect(chat),
-      header: rect(header),
-      thread: rect(thread),
-      chips: rect(chipsRoot),
-      firstChip: rect(firstChip),
-      composer: rect(composer),
-      disclosure: rect(disclosure),
+      composer: rect(document.getElementById("chat-composer-form")),
+      disclosure: rect(document.getElementById("shell-disclosure")),
       send: rect(document.getElementById("chat-composer-send")),
-      chatStyle: style(chat),
-      chipsStyle: style(chipsRoot),
-      firstChipStyle: style(firstChip),
-      composerStyle: style(composer),
-      disclosureStyle: style(disclosure),
       chipCount: document.querySelectorAll("#chat-chips .chat-chip").length,
       horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
       viewportHeight: window.innerHeight,
-      documentScrollHeight: document.documentElement.scrollHeight,
-      bodyScrollHeight: document.body.scrollHeight,
     };
   });
 
@@ -187,6 +167,8 @@ try {
   assert.strictEqual(mobileState.firstUseState, "entry");
   assert.strictEqual(mobileState.siteId, "seogu_gwangju");
   assert.strictEqual(mobileState.chipCount, 8);
+  // #1350: surface switch must remain hidden at cold entry
+  assert.strictEqual(mobileState.switchHidden, true, "mobile surface switch must be hidden at cold entry");
   requirePositiveRect(mobileState.chat, "mobile chat");
   requirePositiveRect(mobileState.composer, "mobile composer");
   requirePositiveRect(mobileState.send, "mobile send");
@@ -197,6 +179,7 @@ try {
   assert.ok(mobileState.horizontalOverflow <= 1, `mobile horizontal overflow=${mobileState.horizontalOverflow}`);
   await mobile.close();
 
+  /* ═══════════════════════════ FINAL ═══════════════════════════════════════ */
   assert.deepStrictEqual(externalRequests, [], `external runtime requests are forbidden:\n${externalRequests.join("\n")}`);
   console.log("Seo-gu S0 cold-entry visual/containment contract PASS");
 } finally {

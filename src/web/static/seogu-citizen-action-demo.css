@@ -18,7 +18,7 @@
   background: #ffffff;
 }
 
-/* ── #1349 S0: source-grounded Seo-gu entry identity ────────────────────── */
+/* ── #1350 S0: source-grounded Seo-gu entry identity (image-based) ───────── */
 .entry-stage__brand--seogu {
   align-items: center;
   gap: 12px;
@@ -31,18 +31,10 @@
   width: 46px;
   height: 46px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: none;
   border-radius: 14px;
-  background:
-    linear-gradient(145deg, rgba(77, 223, 201, 0.34), rgba(29, 104, 168, 0.66)),
-    rgba(7, 27, 58, 0.32);
-  box-shadow:
-    0 14px 36px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.24);
-  color: #ffffff;
-  font-size: 0.88rem;
-  font-weight: 850;
-  letter-spacing: -0.05em;
+  background: transparent;
+  object-fit: contain;
 }
 
 .entry-stage__brand--seogu .entry-stage__brand-copy {
@@ -77,9 +69,8 @@
 
 .seogu-entry-profile-card {
   position: relative;
-  min-height: 284px;
   overflow: hidden;
-  padding: 28px 28px 24px;
+  padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.26);
   border-radius: 24px;
   background:
@@ -91,141 +82,19 @@
   backdrop-filter: blur(14px);
 }
 
-.seogu-entry-profile-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.16;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
-  background-size: 36px 36px;
-  mask-image: linear-gradient(135deg, #000, transparent 78%);
-}
-
-.seogu-entry-profile-card::after {
-  content: "";
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  right: -84px;
-  top: -92px;
-  border: 1px solid rgba(85, 223, 200, 0.35);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 28px rgba(85, 223, 200, 0.04),
-    0 0 0 62px rgba(85, 223, 200, 0.025);
-}
-
-.seogu-entry-profile-card__top,
-.seogu-entry-profile-card__identity,
-.seogu-entry-profile-card__links,
-.seogu-entry-profile-card__footer {
-  position: relative;
-  z-index: 2;
-}
-
-.seogu-entry-profile-card__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.seogu-entry-profile-card__kicker {
-  color: var(--first-use-mint);
-  font-size: 0.78rem;
-  font-weight: 820;
-  letter-spacing: -0.02em;
-}
-
-.seogu-entry-profile-card__badge {
-  padding: 6px 9px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.76);
-  font-family: ui-monospace, "Cascadia Code", monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.12em;
-}
-
-.seogu-entry-profile-card__identity {
-  display: grid;
-  gap: 8px;
-  margin-top: 54px;
-}
-
-.seogu-entry-profile-card__identity > span {
-  color: rgba(227, 246, 245, 0.68);
-  font-size: 0.72rem;
-  font-weight: 650;
-}
-
-.seogu-entry-profile-card__identity strong {
-  color: #ffffff;
-  font-size: clamp(1.55rem, 2.05vw, 2rem);
-  font-weight: 760;
-  line-height: 1.15;
-  letter-spacing: -0.055em;
-}
-
-.seogu-entry-profile-card__identity strong em {
-  color: var(--first-use-mint);
-  font-style: normal;
-  font-weight: 860;
-}
-
-.seogu-entry-profile-card__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 18px;
-}
-
-.seogu-entry-profile-card__links span {
-  padding: 7px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-
-.seogu-entry-profile-card__skyline {
-  position: absolute;
-  z-index: 1;
-  right: 20px;
-  bottom: 34px;
-  display: flex;
-  align-items: end;
-  gap: 7px;
-  height: 84px;
-  opacity: 0.17;
-}
-
-.seogu-entry-profile-card__skyline i {
+.seogu-mayor-image {
+  width: 100%;
+  height: auto;
   display: block;
-  width: 20px;
-  border: 1px solid rgba(113, 244, 222, 0.72);
-  border-bottom: 0;
-  border-radius: 5px 5px 0 0;
-  background: linear-gradient(to top, rgba(85, 223, 200, 0.2), transparent);
+  object-fit: cover;
 }
 
-.seogu-entry-profile-card__skyline i:nth-child(1) { height: 38px; }
-.seogu-entry-profile-card__skyline i:nth-child(2) { height: 66px; }
-.seogu-entry-profile-card__skyline i:nth-child(3) { height: 50px; }
-.seogu-entry-profile-card__skyline i:nth-child(4) { height: 78px; }
-.seogu-entry-profile-card__skyline i:nth-child(5) { height: 46px; }
-
-.seogu-entry-profile-card__footer {
-  margin-top: 27px;
-  color: rgba(255, 255, 255, 0.48);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+.seogu-key-visual {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  margin-top: 12px;
 }
 
 @media (max-width: 1180px) {
@@ -233,15 +102,6 @@
     right: 34px;
     width: 30vw;
     min-width: 300px;
-  }
-
-  .seogu-entry-profile-card {
-    min-height: 260px;
-    padding: 24px;
-  }
-
-  .seogu-entry-profile-card__identity {
-    margin-top: 42px;
   }
 }
 
@@ -278,29 +138,26 @@
   }
 }
 
-
 /*
  * #1350 S0 mobile containment (site-specific).
  * The Seo-gu shell exposes the mobile surface switch (conversation/guidance)
- * on ≤767px through the same shared contract as the resident shell, so the
- * cold-entry chat shell must reserve clearance for it (switch ≈57px at
- * 390×844 + the 82px/12px entry margins) instead of assuming the switch is
- * removed from flow. Shared Buk-gu geometry stays untouched; nothing is
- * hidden, no copy or chip is removed, and desktop/split behavior is unchanged.
+ * on ≤767px through the same shared contract as the resident shell. At cold
+ * entry the switch remains [hidden], so the chat shell does NOT need 57px
+ * clearance. Shared Buk-gu geometry stays untouched; nothing is hidden, no
+ * copy or chip is removed, and desktop/split behavior is unchanged.
  */
 @media (max-width: 767px) {
   body[data-site-id="seogu_gwangju"][data-first-use-state="entry"] .first-use-layout .chat-shell {
-    height: calc(100vh - 151px);
-    max-height: calc(100vh - 151px);
+    height: calc(100vh - 94px);
+    max-height: calc(100vh - 94px);
   }
 }
 
-/* 320-class narrow entry mirrors the same clearance on the shared 52px/6px
-   margin rule (58px + 57px switch = 115px). */
+/* 320-class narrow entry mirrors the shared 52px/6px margin rule (58px). */
 @media (max-width: 340px) {
   body[data-site-id="seogu_gwangju"][data-first-use-state="entry"] .first-use-layout .chat-shell {
-    height: calc(100vh - 115px);
-    max-height: calc(100vh - 115px);
+    height: calc(100vh - 58px);
+    max-height: calc(100vh - 58px);
   }
 }
 

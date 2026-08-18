@@ -925,8 +925,18 @@ try {
   await installEgressGuard(mobile);
   const mpage = await openDemo(mobile);
 
-  // (6) mobile conversation/guidance switch actually clickable
+  // (6) mobile conversation/guidance switch
+  // At cold entry the switch is [hidden]; it reveals after first resident action.
   const switchEl = mpage.locator("#mobile-surface-switch");
+  assert.strictEqual(await switchEl.evaluate((el) => el.hasAttribute("hidden")), true, "switch hidden at cold entry");
+  // Trigger split by clicking a chip (first supported resident action)
+  await mpage.locator(".chat-chip").first().click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-first-use-state") === "split",
+    null,
+    { timeout: 10000 },
+  );
+  // Now switch should be visible
   await switchEl.waitFor({ state: "visible", timeout: 10000 });
   const convTab = mpage.locator('[data-mobile-surface-tab="conversation"]');
   const guideTab = mpage.locator('[data-mobile-surface-tab="guidance"]');
