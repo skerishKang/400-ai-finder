@@ -6,7 +6,9 @@ No browser, server, provider, network, crawler, or external site is executed.
 """
 
 import json
+import re
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -58,14 +60,17 @@ def _prefill():
                  requires_user_confirmation=True)
 
 
-_JOURNEY_MODULE = "./src/web/static/citizen-complaint-journey.js"
-_JOURNEY_PREFIX = "var J = require('" + _JOURNEY_MODULE + "');\n"
+_JOURNEY_SOURCE = STATIC / "citizen-complaint-journey.js"
 
 
 def _run_js(script: str):
-    full = _JOURNEY_PREFIX + script
-    result = subprocess.run(["node", "-e", full], capture_output=True,
-                            text=True, timeout=30, cwd=REPO_ROOT)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        staged_module = Path(tmp_dir) / "citizen-complaint-journey.cjs"
+        staged_module.write_bytes(_JOURNEY_SOURCE.read_bytes())
+        journey_path = json.dumps(str(staged_module.resolve()))
+        full = "var J = require(" + journey_path + ");\n" + script
+        result = subprocess.run(["node", "-e", full], capture_output=True,
+                                text=True, timeout=30, cwd=REPO_ROOT)
     if result.returncode != 0:
         raise RuntimeError("Node script failed:\nSTDERR: " + result.stderr)
     lines = [ln for ln in result.stdout.strip().split("\n") if ln.strip()]
@@ -260,20 +265,27 @@ class TestSensitiveActionHardStop:
 
 
 # =========================================================================
-# Scenario 5 — left/right dock + compact presentation contract
+# Scenario 5 — current chat-first presentation + native-submit safety
 # =========================================================================
 
 
 class TestPresentationLayout:
-    """Scenario 5: static source read contract for dock/compact/form."""
+    """Scenario 5: static source contract for the canonical chat-first shell."""
 
-    def test_html_dock_and_compact_toggle(self):
-        """HTML has dock='right', choices='left right', aria-controls/expanded."""
+    def test_html_chat_first_shell_and_mobile_switch(self):
+        """Visible chat shell/mobile tabs are canonical; legacy rail stays hidden."""
         html = (STATIC / "citizen-action-demo.html").read_text(encoding="utf-8")
-        assert 'data-copilot-dock="right"' in html
-        assert 'data-copilot-dock-choices="left right"' in html
-        assert 'aria-controls="copilot-rail"' in html
-        assert "aria-expanded=" in html
+        assert 'id="chat-shell"' in html
+        assert 'id="mobile-surface-switch"' in html
+        assert re.search(
+            r'id="tab-conversation"[^>]*aria-controls="chat-shell"', html
+        )
+        assert re.search(
+            r'id="tab-guidance"[^>]*aria-controls="demo-canvas"', html
+        )
+        assert re.search(
+            r'id="copilot-rail"[\s\S]*?style="display:none;"', html
+        )
 
     def test_js_has_dock_toggle_expression(self):
         """Shell JS has right→left→right toggle."""
@@ -287,8 +299,33 @@ class TestPresentationLayout:
         assert "@media (max-width: 767px)" in css
         assert "translateY" in css
 
-    def test_html_no_form_or_submit(self):
-        """HTML must not contain <form> or type='submit'."""
+    def test_html_composer_submit_is_locally_intercepted_and_safe(self):
+        """Canonical form is local-only, intercepted, and has no fake success semantics."""
         html = (STATIC / "citizen-action-demo.html").read_text(encoding="utf-8")
-        assert "<form" not in html
-        assert 'type="submit"' not in html
+        controller = (STATIC / "citizen-first-use-shell.js").read_text(encoding="utf-8")
+
+        form_match = re.search(
+            r'<form\b[^>]*\bid="chat-composer-form"[^>]*>', html, re.IGNORECASE
+        )
+        assert form_match is not None
+        form_open = form_match.group(0).lower()
+        assert " action=" not in form_open
+        assert " method=" not in form_open
+        assert " target=" not in form_open
+
+        submit_match = re.search(
+            r'<button\b[^>]*\bid="chat-composer-send"[^>]*>', html, re.IGNORECASE
+        )
+        assert submit_match is not None
+        submit_open = submit_match.group(0).lower()
+        assert 'type="submit"' in submit_open
+        assert "formaction=" not in submit_open
+        assert "formtarget=" not in submit_open
+
+        assert 'chatForm.addEventListener("submit", handleSubmission);' in controller
+        assert "function handleSubmission(event)" in controller
+        assert "event.preventDefault();" in controller
+
+        for phrase in ("제출 완료", "접수 완료", "처리 완료"):
+            assert phrase not in html
+            assert phrase not in controller
