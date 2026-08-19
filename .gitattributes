@@ -15,6 +15,17 @@ data/official_clone_fixtures/** -text
 # committed SHA-256 is recorded in the executed ledger, so keep LF bytes
 # byte-stable on every OS checkout (including core.autocrlf=true).
 configs/reference-plans/seogu_gwangju.json -text
+# #1356 S5 Seo-gu passport guidance capture plan is an approved plan
+# identity source (its committed SHA-256 is recorded in the executed
+# ledger). Keep LF bytes byte-stable on every OS checkout (including
+# core.autocrlf=true) so the ledger plan-checksum gate holds locally.
+configs/reference-plans/seogu_gwangju_passport_guidance.json -text
+# #1343 S3 housing + S2/S7/S8 handoff capture plans are approved plan
+# identity sources (their committed SHA-256 is recorded in the executed
+# ledgers). Keep LF bytes byte-stable on every OS checkout (including
+# core.autocrlf=true) so the ledger plan-checksum gates hold locally.
+configs/reference-plans/seogu_gwangju_housing.json -text
+configs/reference-plans/seogu_gwangju_handoff_evidence.json -text
 
 # #1177 home asset identity audit report + frozen scan manifest must keep
 # committed LF JSON bytes on every OS (including core.autocrlf=true).

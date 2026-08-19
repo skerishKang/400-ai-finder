@@ -81,7 +81,7 @@ const EXPECTED_MATRIX = [
   { journey_id: "seogu_illegal_parking_report", label: "불법 주정차 신고", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
   { journey_id: "seogu_apartment_housing_dept", label: "공동주택 부서 문의", status: "DIRECT_REUSE" },
   { journey_id: "seogu_mattrass_disposal", label: "대형폐기물 배출", status: "SOURCE_CAPTURE_NEEDED" },
-  { journey_id: "seogu_passport_issuance", label: "여권 발급 안내", status: "SOURCE_CAPTURE_NEEDED" },
+  { journey_id: "seogu_passport_issuance", label: "여권 발급 안내", status: "DIRECT_REUSE" },
   { journey_id: "seogu_unmanned_kiosk", label: "무인민원발급기 안내", status: "SOURCE_CAPTURE_NEEDED" },
   { journey_id: "seogu_streetlight_report", label: "가로등 고장 신고 (AI)", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
   { journey_id: "seogu_illegal_dumping_report", label: "쓰레기 무단투기 (AI)", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
@@ -90,7 +90,6 @@ const EXPECTED_MATRIX = [
 const CAPTURE_NEEDED_IDS = [
   "seogu_mayor_proposal",
   "seogu_mattrass_disposal",
-  "seogu_passport_issuance",
   "seogu_unmanned_kiosk",
 ];
 
@@ -243,7 +242,7 @@ async function measureVisibility(page) {
     const fr = frame.getBoundingClientRect();
     let rcMainVisible = false;
     let rcRect = { w: 0, h: 0 };
-    let rcMarkers = { gongdong: false, jootaekgwa: false, gongdongmanage: false };
+    let rcMarkers = { gongdong: false, jootaekgwa: false, gongdongmanage: false, passportIssuance: false };
     try {
       const doc = frame.contentDocument;
       const main = doc && doc.querySelector("main.rc-main");
@@ -258,6 +257,7 @@ async function measureVisibility(page) {
           gongdong: text.includes("공동주택"),
           jootaekgwa: text.includes("주택과"),
           gongdongmanage: text.includes("공동주택관리"),
+          passportIssuance: text.includes("여권발급"),
         };
       }
     } catch {
@@ -523,6 +523,143 @@ try {
   for (const marker of ["공동주택", "주택과", "공동주택관리"]) {
     assert.ok(s3.rc_main_text.includes(marker), `rc-main READ region missing marker: ${marker}`);
   }
+
+  // (3p) S5 passport chip (#1356): navigate -> bounded clone READ -> required
+  // markers (여권발급/민원실 4번 창구/민원봉사과 민원여권/062-360-7613) ->
+  // grounded, READ-derived answer with visible repository-clone provenance.
+  // Before the resident explicitly activates the chip, no route
+  // choreography begins; after activation the journey navigates to the
+  // committed passport-guidance/ clone route and READs its main.rc-main.
+  const prePassportRoute = await page.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+  });
+  assert.ok(
+    !prePassportRoute || !prePassportRoute.includes("passport-guidance"),
+    "no passport route choreography before explicit resident confirmation",
+  );
+  await page.locator('[data-journey-id="seogu_passport_issuance"]').click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "grounded",
+    null,
+    { timeout: 20000 },
+  );
+  const s5 = await page.evaluate(() => {
+    const shell = window.SeoguCitizenActionShell;
+    const r = shell.getLastJourneyResult();
+    const ev = shell.getEvidence();
+    const frame = document.getElementById("seogu-clone-frame");
+    let rcMainText = null;
+    try {
+      const doc = frame.contentDocument;
+      const main = doc && doc.querySelector("main.rc-main");
+      rcMainText = main ? main.innerText : null;
+    } catch {
+      rcMainText = null;
+    }
+    return {
+      result: r
+        ? {
+            ok: r.ok,
+            grounded: r.grounded,
+            route: r.route,
+            journey_id: r.journey_id,
+            source_kind: r.source_kind,
+            evidence_kind: r.evidence_kind,
+            answer: r.answer,
+            excerpt: r.excerpt,
+          }
+        : null,
+      evidence: ev
+        ? { route: ev.route, source_kind: ev.source_kind, evidence_kind: ev.evidence_kind, text: ev.text }
+        : null,
+      rc_main_text: rcMainText,
+      iframe_url: frame.contentWindow ? frame.contentWindow.location.pathname : null,
+    };
+  });
+  assert.ok(s5.result, "S5 passport journey result must exist");
+  assert.strictEqual(s5.result.ok, true, "S5 passport journey must be ok");
+  assert.strictEqual(s5.result.grounded, true, "S5 passport journey must be grounded");
+  assert.strictEqual(s5.result.journey_id, "seogu_passport_issuance");
+  assert.ok(
+    String(s5.result.route).includes("passport-guidance"),
+    `S5 must land on passport-guidance route, got ${s5.result.route}`,
+  );
+  assert.ok(
+    String(s5.iframe_url || "").includes("passport-guidance"),
+    "iframe must actually navigate to the passport-guidance clone route",
+  );
+  // Four required institution markers present in the READ evidence text.
+  for (const marker of ["여권발급", "민원실 4번 창구", "민원봉사과 민원여권", "062-360-7613"]) {
+    assert.ok(String(s5.evidence.text || "").includes(marker), `READ evidence missing passport marker: ${marker}`);
+  }
+  // Provenance: repository clone, clone DOM evidence.
+  assert.strictEqual(s5.result.source_kind, "repository_clone", "S5 provenance must be repository_clone");
+  assert.strictEqual(s5.result.evidence_kind, "clone_dom", "S5 evidence_kind must be clone_dom");
+  assert.strictEqual(s5.evidence.source_kind, "repository_clone");
+  // READ-derived answer: excerpt must be a literal substring of the iframe
+  // rc-main innerText (proves the answer is derived from the READ region,
+  // not a hard-coded institution answer).
+  assert.ok(s5.result.excerpt && s5.result.excerpt.length > 0, "S5 excerpt must be non-empty");
+  assert.ok(s5.rc_main_text, "iframe rc-main must be readable (same-origin, script-disabled)");
+  const s5RcMainNormalized = String(s5.rc_main_text).replace(/\s+/g, " ");
+  for (const line of s5.result.excerpt.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const normalizedLine = trimmed.replace(/\s+/g, " ");
+    assert.ok(
+      s5RcMainNormalized.includes(normalizedLine),
+      `answer excerpt line not found in rc-main READ region: ${trimmed.slice(0, 60)}`,
+    );
+  }
+  // Internal generic grounding proof: the result answer must embed the READ
+  // excerpt verbatim.
+  assert.ok(
+    s5.result.answer.includes(s5.result.excerpt),
+    "grounded passport answer must embed the READ excerpt",
+  );
+  // Required markers also present directly in the rc-main READ region.
+  for (const marker of ["여권발급", "민원실 4번 창구", "민원봉사과 민원여권", "062-360-7613"]) {
+    assert.ok(s5.rc_main_text.includes(marker), `rc-main READ region missing passport marker: ${marker}`);
+  }
+  // No forbidden application/reservation/payment/login/PII/submission surface.
+  for (const forbidden of ["신청하기", "예약하기", "결제하기", "로그인"]) {
+    assert.ok(
+      !String(s5.result.answer || "").includes(forbidden),
+      `passport answer must not contain forbidden action surface: ${forbidden}`,
+    );
+  }
+
+  // (3p-geo) #1356 desktop S5 geometry: the passport-guidance canvas must NOT
+  // be clipped by left overflow. The entry-stage's transform:scale(1.06)
+  // previously inflated .first-use-layout scrollWidth and auto-scrolled the
+  // canvas left edge off-screen. Prove the fix: layout scrollLeft=0, canvas
+  // left>=0, iframe left>=0, title left>=0 (여권발급 fully visible).
+  const s5DesktopGeo = await page.evaluate(() => {
+    const layout = document.querySelector('.first-use-layout');
+    const canvas = document.getElementById("demo-canvas");
+    const frame = document.getElementById("seogu-clone-frame");
+    let iframeTitleLeft = null;
+    try {
+      const doc = frame.contentDocument;
+      const main = doc && doc.querySelector("main.rc-main");
+      const headings = main ? Array.from(main.querySelectorAll("h2,h3")) : [];
+      const title = headings.find(h => h.textContent.includes("여권발급")) || headings[0];
+      iframeTitleLeft = title ? Math.round(title.getBoundingClientRect().left) : null;
+    } catch { iframeTitleLeft = null; }
+    return {
+      layoutScrollLeft: layout ? layout.scrollLeft : null,
+      layoutScrollWidth: layout ? layout.scrollWidth : null,
+      canvasLeft: canvas ? Math.round(canvas.getBoundingClientRect().left) : null,
+      canvasRight: canvas ? Math.round(canvas.getBoundingClientRect().right) : null,
+      iframeLeft: frame ? Math.round(frame.getBoundingClientRect().left) : null,
+      iframeTitleLeft,
+    };
+  });
+  assert.strictEqual(s5DesktopGeo.layoutScrollLeft, 0, "desktop S5 layout must not auto-scroll left (entry-stage overflow fixed)");
+  assert.ok(s5DesktopGeo.canvasLeft >= 0, `desktop S5 canvas left must be >= 0, got ${s5DesktopGeo.canvasLeft}`);
+  assert.ok(s5DesktopGeo.iframeLeft >= 0, `desktop S5 iframe left must be >= 0, got ${s5DesktopGeo.iframeLeft}`);
+  assert.ok(s5DesktopGeo.iframeTitleLeft !== null && s5DesktopGeo.iframeTitleLeft >= 0, "desktop S5 passport title (여권발급) must be fully visible (left >= 0)");
 
   // (3b) REAL desktop visibility proof after S3: the left clone canvas must be
   // actually visible (split state, inert removed, aria-hidden=false, non-zero
@@ -1230,6 +1367,79 @@ try {
     String(mS1Source || "").includes("housing/"),
     "mobile S1 grounded row must keep housing/ provenance",
   );
+
+  // (7p) #1356 mobile S5 passport guidance visibility: activate the passport
+  // chip on mobile, switch to guidance, and prove the passport-guidance clone
+  // renders a visible rc-main with the four required markers (no blank canvas).
+  await convTab.click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-mobile-surface") === "conversation",
+    null,
+    { timeout: 5000 },
+  );
+  await mpage.locator('[data-journey-id="seogu_passport_issuance"]').click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "grounded",
+    null,
+    { timeout: 20000 },
+  );
+  await guideTab.click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-mobile-surface") === "guidance",
+    null,
+    { timeout: 5000 },
+  );
+  await mpage.waitForTimeout(400); // let the split transition settle
+  const mPassportVis = await measureVisibility(mpage);
+  assert.strictEqual(mPassportVis.canvas.inert, false, "mobile passport canvas must have inert removed");
+  assert.strictEqual(mPassportVis.canvas.ariaHidden, "false", "mobile passport canvas must be aria-hidden=false");
+  assert.notStrictEqual(mPassportVis.canvas.display, "none", "mobile passport canvas must not be display:none");
+  assert.ok(mPassportVis.canvas.rect.w > 0 && mPassportVis.canvas.rect.h > 0, "mobile passport canvas must have non-zero rect");
+  assert.ok(mPassportVis.iframe.rect.w > 0 && mPassportVis.iframe.rect.h > 0, "mobile passport iframe must have non-zero rect");
+  assert.ok(mPassportVis.rc_main.visible, "mobile passport iframe rc-main must be visible (not blank)");
+  assert.ok(mPassportVis.rc_main.markers.passportIssuance, "mobile passport rc-main must show 여권발급");
+  const mPassportIframePath = await mpage.evaluate(
+    () => document.getElementById("seogu-clone-frame").contentWindow.location.pathname,
+  );
+  assert.ok(String(mPassportIframePath).includes("passport-guidance"), "mobile guidance must show the passport-guidance clone route");
+  // No horizontal overflow of the thread on mobile passport journey.
+  const mPassportOverflow = await mpage.evaluate(() => {
+    const t = document.getElementById("chat-thread");
+    return { scrollW: t.scrollWidth, clientW: t.clientWidth };
+  });
+  assert.ok(mPassportOverflow.scrollW <= mPassportOverflow.clientW + 1, "mobile passport thread must not horizontally overflow");
+  // (7p-geo) #1356 mobile S5 conversation grounded-row geometry: the grounded
+  // answer bubble + provenance must share one readable content column (not
+  // squeezed as narrow horizontal siblings). Prove the grid fix: display=grid,
+  // bubble width and source width both span the full content column, no page
+  // overflow, chip rail keeps its own internal scroll.
+  const mPassportConvGeo = await mpage.evaluate(() => {
+    const thread = document.getElementById("chat-thread");
+    const row = thread ? thread.querySelector('.chat-msg[data-grounded="true"][data-journey-id="seogu_passport_issuance"]') : null;
+    if (!row) return null;
+    const bubble = row.querySelector('.chat-bubble');
+    const source = row.querySelector('.message-source--clone');
+    const chips = document.querySelector('.chat-chips');
+    return {
+      rowDisplay: getComputedStyle(row).display,
+      bubbleW: bubble ? Math.round(bubble.getBoundingClientRect().width) : 0,
+      sourceW: source ? Math.round(source.getBoundingClientRect().width) : 0,
+      sourceLeft: source ? Math.round(source.getBoundingClientRect().left) : 0,
+      bubbleLeft: bubble ? Math.round(bubble.getBoundingClientRect().left) : 0,
+      rowRight: Math.round(row.getBoundingClientRect().right),
+      docScrollW: document.documentElement.scrollWidth,
+      docClientW: document.documentElement.clientWidth,
+      chipsScrollW: chips ? chips.scrollWidth : 0,
+      chipsOverflow: chips ? getComputedStyle(chips).overflow : null,
+    };
+  });
+  assert.ok(mPassportConvGeo, "mobile S5 conversation grounded row must exist for geometry check");
+  assert.strictEqual(mPassportConvGeo.rowDisplay, "grid", "mobile S5 grounded row must use grid (not flex)");
+  assert.ok(mPassportConvGeo.bubbleW >= 200, `mobile S5 bubble must span full content column (>=200px), got ${mPassportConvGeo.bubbleW}`);
+  assert.ok(mPassportConvGeo.sourceW >= 200, `mobile S5 provenance must span full content column (>=200px), got ${mPassportConvGeo.sourceW}`);
+  assert.strictEqual(mPassportConvGeo.bubbleLeft, mPassportConvGeo.sourceLeft, "mobile S5 bubble and provenance must share the same content column left edge");
+  assert.ok(mPassportConvGeo.docScrollW <= mPassportConvGeo.docClientW + 1, "mobile S5 conversation must not cause page-level horizontal overflow");
+  assert.ok(mPassportConvGeo.chipsScrollW > mPassportConvGeo.docClientW, "mobile S5 chip rail retains its own internal horizontal scroll (canonical behavior)");
   // ── #1353 mobile handoff responsive hierarchy (S2) ──────────────────────────
   // The S2 final handoff row must NOT collapse the CTA into character-by-character
   // vertical stacking and must keep the authority readable in the content column

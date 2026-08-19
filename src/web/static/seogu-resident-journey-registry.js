@@ -171,10 +171,25 @@
     _freezeJourney({
       journey_id: "seogu_passport_issuance",
       questions: ["여권 발급은 어디서 하나요?"],
-      status: "SOURCE_CAPTURE_NEEDED",
-      capture_needed: true,
+      status: "DIRECT_REUSE",
+      capture_needed: false,
+      entry_route: "passport-guidance/",
+      evidence_route: "passport-guidance/",
+      required_markers: ["여권발급", "민원실 4번 창구", "민원봉사과 민원여권", "062-360-7613"],
+      excerpt_markers: [
+        "여권발급절차",
+        "민원실 4번 창구",
+        "근무일 기준 8일",
+        "민원봉사과 민원여권",
+        "062-360-7613",
+      ],
+      max_excerpt_chars: 700,
       substitution_note:
-        "서구청 민원실 여권 발급 안내 페이지/근거가 클론에 아직 없음. 캡처 후 DIRECT_REUSE 전환 필요.",
+        "서구 공식 여권민원 안내 페이지(menu.es?mid=a10202020100)를 bounded read-only " +
+        "capture하여 local route passport-guidance/로 렌더링. generic CMS content-page " +
+        "capability(#1357)가 main.rc-main에 여권발급/민원실 4번 창구/민원봉사과 민원여권/062-360-7613 " +
+        "marker를 렌더링. READ evidence(main.rc-main innerText)에서 required/excerpt marker 검증 후 " +
+        "READ-derived answer 생성 (답변 문자열 hard-code 없음).",
       chip: { label: "여권 발급 안내", icon: "passport", variant: "" },
     }),
     _freezeJourney({

@@ -900,15 +900,17 @@ SEOGU_REQUIRED_ROUTES = [
     "seogu/home/mobile/index.html",
 ]
 
-# Additive Seo-gu routes emitted by the #1343 candidate on top of the canonical
-# 11 G2-B clone routes: 1 S3 housing route + 3 S2/S7/S8 handoff-evidence routes.
-# Kept separate from SEOGU_REQUIRED_ROUTES so the canonical G2-B contract stays
-# intact and the additive set is explicit.
+# Additive Seo-gu routes emitted on top of the canonical 11 G2-B clone
+# routes: 1 S3 housing route + 3 S2/S7/S8 handoff-evidence routes
+# (#1343) + 1 S5 passport-guidance route (#1356). Kept separate from
+# SEOGU_REQUIRED_ROUTES so the canonical G2-B contract stays intact and
+# the additive set is explicit.
 SEOGU_ADDITIVE_ROUTES = [
     "seogu/housing/index.html",
     "seogu/illegal-parking-report/index.html",
     "seogu/streetlight-report-handoff/index.html",
     "seogu/litter-report-handoff/index.html",
+    "seogu/passport-guidance/index.html",
 ]
 
 
@@ -1099,3 +1101,54 @@ def test_seogu_root_does_not_duplicate_bukgu_root(build_dir):
     # Seo-gu content must NOT leak into the Buk-gu root.
     assert "rc-nav" not in root
     assert "rc-lifecycle" not in root
+
+
+# ---------------------------------------------------------------------------
+# Issue #1356 S5: Seo-gu passport-guidance additive build contract
+# ---------------------------------------------------------------------------
+# The required resident-facing markers that the committed additive
+# clone-model carries via the generic content_page model (#1357). They
+# must become clone-DOM-verifiable inside the built main.rc-main.
+SEOGU_PASSPORT_REQUIRED_MARKERS = [
+    "여권발급",
+    "민원실 4번 창구",
+    "민원봉사과 민원여권",
+    "062-360-7613",
+]
+# Excerpts that prove the generic content_page body (heading + list)
+# rendered into main.rc-main, not just a bare institution label.
+SEOGU_PASSPORT_REQUIRED_EXCERPTS = [
+    "여권발급절차",
+    "근무일 기준 8일",
+]
+
+
+def test_seogu_passport_guidance_route_built(build_dir):
+    """#1356 S5: the additive passport-guidance route exists and is the
+    ONLY additive route emitted for the S5 capture (additive, no clobber)."""
+    route = os.path.join(build_dir, "seogu", "passport-guidance", "index.html")
+    assert os.path.isfile(route), "missing seogu/passport-guidance/index.html"
+
+
+def test_seogu_passport_guidance_markers_in_main(build_dir):
+    """#1356: the four required institution markers render inside the built
+    main.rc-main so the resident grounding contract (clone_dom) is satisfied
+    from committed evidence, not a hard-coded answer."""
+    import re
+    route = os.path.join(build_dir, "seogu", "passport-guidance", "index.html")
+    html = open(route, encoding="utf-8").read()
+    m = re.search(r"<main[^>]*rc-main[^>]*>(.*?)</main>", html, re.S)
+    assert m, "main.rc-main not found in passport-guidance route"
+    main = m.group(1)
+    for marker in SEOGU_PASSPORT_REQUIRED_MARKERS:
+        assert marker in main, f"passport marker missing in main.rc-main: {marker!r}"
+    for excerpt in SEOGU_PASSPORT_REQUIRED_EXCERPTS:
+        assert excerpt in main, f"passport excerpt missing in main.rc-main: {excerpt!r}"
+
+
+def test_seogu_passport_guidance_does_not_clobber_existing_routes(build_dir):
+    """#1356: the passport addon is additive; all canonical + prior additive
+    Seo-gu routes remain present (exact set, no loose >=)."""
+    expected = set(SEOGU_REQUIRED_ROUTES) | set(SEOGU_ADDITIVE_ROUTES)
+    for rel in expected:
+        assert os.path.isfile(os.path.join(build_dir, rel)), f"missing seogu route {rel}"

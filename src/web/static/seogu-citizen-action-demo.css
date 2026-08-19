@@ -283,3 +283,65 @@
   color: #255c33;
   word-break: break-word;
 }
+
+/*
+ * #1356 S5 desktop split-state left-clipping correction (PRESENTATION ONLY).
+ *
+ * The shared .entry-stage is position:absolute;inset:0 with
+ * transform:scale(1.06) in split state. Even though it is opacity:0 /
+ * visibility:hidden, the scaled content (scrollWidth ~2074px) inflates
+ * .first-use-layout scrollWidth beyond the viewport, causing the browser
+ * to auto-scroll left ~51px and clip the left edge of the passport-guidance
+ * clone canvas. The shared mobile media query already uses display:none for
+ * this exact case; on desktop we use contain:strict so the entry-stage no
+ * longer contributes to the parent scrollWidth while preserving the fade
+ * transition (no display:none on desktop). No shared Buk-gu CSS is touched.
+ */
+body[data-site-id="seogu_gwangju"][data-first-use-state="split"] .entry-stage,
+body[data-site-id="seogu_gwangju"][data-first-use-state="transitioning"] .entry-stage {
+  display: none;
+}
+
+/*
+ * #1356 S5 mobile conversation grounded-row correction (PRESENTATION ONLY).
+ *
+ * The shared .chat-msg is a horizontal flex row. A generic grounded clone
+ * row (data-grounded="true" without data-handoff-evidence) places the
+ * .message-source--clone provenance as a narrow horizontal sibling to the
+ * right of the bubble, squeezing it to ~76px at 390x844. Apply the same
+ * bounded two-column grid already used for handoff-evidence rows: avatar
+ * stays left while the bubble and provenance stack in one readable content
+ * column. Scoped to grounded clone rows (data-grounded="true") which are
+ * semantically the repository-clone grounded answers; handoff rows keep
+ * their own dedicated selectors. No shared Buk-gu CSS is touched.
+ */
+.chat-msg[data-grounded="true"]:not([data-handoff-evidence="true"]):not([data-safe-handoff="true"]) {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-areas:
+    "avatar bubble"
+    "avatar provenance";
+  align-items: start;
+  column-gap: 6px;
+  row-gap: 4px;
+  max-width: 100%;
+}
+
+.chat-msg[data-grounded="true"]:not([data-handoff-evidence="true"]):not([data-safe-handoff="true"]) .chat-avatar {
+  grid-area: avatar;
+  margin-top: 4px;
+}
+
+.chat-msg[data-grounded="true"]:not([data-handoff-evidence="true"]):not([data-safe-handoff="true"]) .chat-bubble {
+  grid-area: bubble;
+  max-width: 100%;
+}
+
+.chat-msg[data-grounded="true"]:not([data-handoff-evidence="true"]):not([data-safe-handoff="true"]) .message-source--clone {
+  grid-area: provenance;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #255c33;
+  word-break: break-word;
+}
