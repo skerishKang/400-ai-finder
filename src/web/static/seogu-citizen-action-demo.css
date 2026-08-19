@@ -188,3 +188,98 @@
   font-size: 11px;
   color: #255c33;
 }
+
+/*
+ * #1353 — S2 external handoff responsive hierarchy fix (PRESENTATION ONLY).
+ *
+ * The shared .chat-msg is a horizontal flex row, so the safe-handoff
+ * destination row's bubble + CTA + authority were squeezed into narrow implicit
+ * side columns (the CTA wrapped character-by-character on 390×844). Scope a CSS
+ * grid EXCLUSIVELY to the safe-handoff destination row: avatar stays on the
+ * left while the bubble, CTA and authority stack as one readable content
+ * column. No shared Buk-gu shell/CSS is touched; the generic S7/S8 handoff
+ * rows reuse the exact same bounded fix. All contract/data attributes, the
+ * explicit-resident-activated anchor, and the STOP boundary remain unchanged.
+ */
+.chat-msg[data-safe-handoff="true"] {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-areas:
+    "avatar bubble"
+    "avatar handoff"
+    "avatar authority";
+  align-items: start;
+  column-gap: 6px;
+  row-gap: 6px;
+  max-width: 100%;
+}
+
+.chat-msg[data-safe-handoff="true"] .chat-avatar {
+  grid-area: avatar;
+  margin-top: 4px;
+}
+
+.chat-msg[data-safe-handoff="true"] .chat-bubble {
+  grid-area: bubble;
+  max-width: 100%;
+}
+
+.chat-msg[data-safe-handoff="true"] .external-handoff-link {
+  grid-area: handoff;
+  justify-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0 4px;
+  text-align: center;
+  white-space: normal;
+}
+
+.chat-msg[data-safe-handoff="true"] .message-source--handoff {
+  grid-area: authority;
+  margin-top: 0;
+}
+
+/*
+ * #1353 — S2 handoff local-evidence provenance correction (PRESENTATION ONLY).
+ *
+ * The immediately preceding handoff evidence row uses the SAME shared horizontal
+ * .chat-msg flex row, so the grounded repository-clone provenance
+ * ("근거 · 저장소 기반 기관 안내 · ...") was squeezed into a narrow sibling
+ * column to the right of the evidence bubble (a tall fragmented stack at
+ * 390×844). #1353 requires existing local-evidence provenance to remain visible
+ * AND readable. Scope the same bounded grid EXCLUSIVELY to the handoff evidence
+ * row: avatar stays on the left while the evidence bubble and its provenance
+ * share one normal-width content column. No shared Buk-gu shell/CSS is touched;
+ * generic non-handoff grounded rows are unaffected. All contract/data
+ * attributes remain unchanged.
+ */
+.chat-msg[data-handoff-evidence="true"] {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-areas:
+    "avatar bubble"
+    "avatar provenance";
+  align-items: start;
+  column-gap: 6px;
+  row-gap: 4px;
+  max-width: 100%;
+}
+
+.chat-msg[data-handoff-evidence="true"] .chat-avatar {
+  grid-area: avatar;
+  margin-top: 4px;
+}
+
+.chat-msg[data-handoff-evidence="true"] .chat-bubble {
+  grid-area: bubble;
+  max-width: 100%;
+}
+
+.chat-msg[data-handoff-evidence="true"] .message-source--clone {
+  grid-area: provenance;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #255c33;
+  word-break: break-word;
+}
