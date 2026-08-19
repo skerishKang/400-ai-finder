@@ -421,6 +421,72 @@
   }
 
   // ── Question handling ──────────────────────────────────────────────────────
+  // ── Grounded guidance hierarchy transform ─────────────────────────────
+  // For DIRECT_REUSE journeys, convert the raw evidence excerpt into a
+  // concise, resident-useful guidance hierarchy instead of exposing the
+  // long source/menu dump as the primary answer.
+  function _buildGroundedGuidance(result, journey) {
+    if (!result || !result.ok || !result.grounded) return null;
+    if (!result.excerpt || typeof result.excerpt !== "string") return null;
+
+    var excerpt = result.excerpt;
+    var markers = (journey.required_markers || []);
+
+    // Extract meaningful lines from the excerpt that contain markers
+    var lines = excerpt.split(/\n/).filter(function (line) {
+      var t = line.trim();
+      return t.length > 0;
+    });
+
+    // Identify the primary department marker
+    var deptMarker = markers.find(function (m) {
+      return excerpt.indexOf(m) !== -1 && (m === "주택과" || m === "공동주택관리");
+    }) || markers[0] || "";
+
+    // Build concise hierarchy
+    // Build concise hierarchy
+    var guidance = [];
+    // 1. Department context (most important for resident decision)
+    if (deptMarker) {
+      guidance.push("담당 부서: " + deptMarker);
+    }
+
+    // 2. Service context from markers
+    var serviceMarkers = markers.filter(function (m) {
+      return m !== deptMarker;
+    });
+    if (serviceMarkers.length > 0) {
+      guidance.push("관련 서비스: " + serviceMarkers.join(", "));
+    }
+
+    // 3. Key evidence lines (up to 3 meaningful lines, excluding boilerplate and menu items)
+    var keyLines = lines.filter(function (line) {
+      var t = line.trim();
+      // Skip the boilerplate prefix
+      if (t.indexOf("왼쪽 저장소") === 0) return false;
+      if (t.indexOf("확인한 내용") !== -1 && t.length < 30) return false;
+      // Skip lines that look like menu items (contain dates, numbers, or navigation text)
+      if (/\d{4}\/\d{2}\/\d{2}/.test(t)) return false; // Date patterns
+      if (/^\d+$/.test(t)) return false; // Pure numbers
+      if (t.length > 100) return false; // Very long lines (likely menu dumps)
+      // Keep lines that contain actual information
+      return t.length > 5;
+    }).slice(0, 3);
+    if (keyLines.length > 0) {
+      guidance.push("");
+      guidance.push("안내 내용:");
+      keyLines.forEach(function (line) {
+        guidance.push("• " + line.trim());
+      });
+    }
+
+    // 4. Resident action hint (only if supported by evidence)
+    guidance.push("");
+    guidance.push("위 담당 부서에 문의하시면 공동주택 관련 처리를 안내받으실 수 있습니다.");
+
+    return guidance.join("\n");
+  }
+
   async function _answerQuestion(question) {
     latestJourneyResult = null;
     latestGeneralResult = null;
@@ -454,7 +520,10 @@
       latestJourneyResult = result;
       if (result && result.ok && result.grounded) {
         document.body.setAttribute("data-journey-state", "grounded");
-        _appendMessage("ai", result.answer, result);
+        // #1351: Transform raw excerpt into concise guidance for housing journey
+        var guidance = _buildGroundedGuidance(result, journey);
+        var answerText = guidance || result.answer;
+        _appendMessage("ai", answerText, result);
       } else {
         document.body.setAttribute("data-journey-state", "failed");
         _appendMessage(

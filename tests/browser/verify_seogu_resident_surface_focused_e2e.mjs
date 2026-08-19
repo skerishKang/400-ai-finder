@@ -406,7 +406,15 @@ try {
       `answer excerpt line not found in rc-main READ region: ${trimmed.slice(0, 60)}`,
     );
   }
-  assert.ok(s3.result.answer.includes(s3.result.excerpt), "grounded answer must embed the READ excerpt");
+  // #1351: Verify the resident-facing answer is concise guidance hierarchy,
+  // not the raw long excerpt dump. The answer must contain key grounded
+  // markers from the evidence and present them as resident-useful hierarchy.
+  const lastAiMsg = await page.locator(".chat-msg--ai").last().textContent();
+  assert.ok(lastAiMsg.includes("담당 부서"), "resident answer must contain concise department hierarchy");
+  assert.ok(lastAiMsg.includes("주택과"), "resident answer must mention 주택과 department");
+  assert.ok(lastAiMsg.includes("공동주택관리") || lastAiMsg.includes("공동주택"), "resident answer must mention housing service context");
+  // Verify the raw excerpt is NOT the primary answer (should be transformed)
+  assert.ok(!lastAiMsg.startsWith("왼쪽 저장소 기반 기관 안내 화면에서 확인한 내용입니다."), "resident answer must NOT start with raw excerpt boilerplate");
   for (const marker of ["공동주택", "주택과", "공동주택관리"]) {
     assert.ok(s3.rc_main_text.includes(marker), `rc-main READ region missing marker: ${marker}`);
   }
