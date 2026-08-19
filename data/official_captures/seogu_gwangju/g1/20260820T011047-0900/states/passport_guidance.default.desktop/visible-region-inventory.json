@@ -1,0 +1,377 @@
+{
+  "title": "여권발급 | 여권발급 | 여권민원 | 열린민원 : 전남광주통합특별시 서구청 #착한도시 서구",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "landmarks": [
+    {
+      "tag": "header",
+      "text": "이 누리집은 대한민국 공식 전자정부 누리집입니다. 보건소 문화관광 서구의회 행정복지센터 소상공인경영지원센터 서구시설관리공단 주요 누리집 Language 페이스북 카카오톡채널 카카오스토리 밴드 네이버 인스타그램 유튜브 함께 서구 우뚝서구 검색 검색 전남광주통합특별시 서구 GWANGJU CITY SEOGU 열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보 전체메뉴",
+      "id": "header",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보",
+      "id": "gnb1",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "전체메뉴",
+      "id": "gnb2",
+      "class_name": "scrollbar"
+    },
+    {
+      "tag": "main",
+      "text": "열린민원 민원안내 민원상담 여권민원 여권안내 여권발급 여권 온라인 사전예약 세무민원 교통민원 여권발급 홈 열린민원 여권민원 여권발급 여권발급 글자 크게 글자 작게 공유하기 인쇄 여권발급 재발급 관용여권 기재사항변경안내 온라인여권재발급 여권사진규격안내 여권민원서식 국제운전면허증 발급 여권발급 발급대상 : 대한민국 국적을 보유하고 있는 사람 외교부 홈페이지 바로가기 여권발급절차 신청서 작성 민원인 신청서 접수 민원실 4번 창구 여권제작 한국조폐공사 여권교부 완료 여권 접수일로부터 방문 수령까지 근무일 기준 8일 소요(토·일요일 및 공휴",
+      "id": "main",
+      "class_name": ""
+    },
+    {
+      "tag": "section",
+      "text": "열린민원 민원안내 민원상담 여권민원 여권안내 여권발급 여권 온라인 사전예약 세무민원 교통민원",
+      "id": "snb",
+      "class_name": "sub02"
+    },
+    {
+      "tag": "nav",
+      "text": "민원안내 민원상담 여권민원 여권안내 여권발급 여권 온라인 사전예약 세무민원 교통민원",
+      "id": null,
+      "class_name": "list"
+    },
+    {
+      "tag": "section",
+      "text": "여권발급 홈 열린민원 여권민원 여권발급 여권발급 글자 크게 글자 작게 공유하기 인쇄 여권발급 재발급 관용여권 기재사항변경안내 온라인여권재발급 여권사진규격안내 여권민원서식 국제운전면허증 발급 여권발급 발급대상 : 대한민국 국적을 보유하고 있는 사람 외교부 홈페이지 바로가기 여권발급절차 신청서 작성 민원인 신청서 접수 민원실 4번 창구 여권제작 한국조폐공사 여권교부 완료 여권 접수일로부터 방문 수령까지 근무일 기준 8일 소요(토·일요일 및 공휴일 제외) 유효기간 만료 또는 분실 등으로 효력 상실된 신분증은 신분증으로 인정하지 않습니다.",
+      "id": "contents",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "홈 열린민원 여권민원 여권발급 여권발급",
+      "id": null,
+      "class_name": "location"
+    }
+  ],
+  "controls": [
+    {
+      "tag": "a",
+      "text": "보건소",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "문화관광",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구의회",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "행정복지센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소상공인경영지원센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구시설관리공단",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주요 누리집",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "Language",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "페이스북",
+      "id": null,
+      "class_name": "facebook"
+    },
+    {
+      "tag": "a",
+      "text": "카카오톡채널",
+      "id": null,
+      "class_name": "kakaoch"
+    },
+    {
+      "tag": "a",
+      "text": "카카오스토리",
+      "id": null,
+      "class_name": "kakaostory"
+    },
+    {
+      "tag": "a",
+      "text": "밴드",
+      "id": null,
+      "class_name": "band"
+    },
+    {
+      "tag": "a",
+      "text": "네이버",
+      "id": null,
+      "class_name": "naver"
+    },
+    {
+      "tag": "a",
+      "text": "인스타그램",
+      "id": null,
+      "class_name": "instagram"
+    },
+    {
+      "tag": "a",
+      "text": "유튜브",
+      "id": null,
+      "class_name": "youtube"
+    },
+    {
+      "tag": "a",
+      "text": "함께 서구 우뚝서구",
+      "id": null,
+      "class_name": "slogan"
+    },
+    {
+      "tag": "input",
+      "text": "검색",
+      "id": "allKeyWord2",
+      "class_name": "search_keyword"
+    },
+    {
+      "tag": "button",
+      "text": "검색",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전남광주통합특별시 서구 GWANGJU CITY SEOGU",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "열린민원",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "소통참여",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "정보공개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "구정소식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구소개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "분야별정보",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전체메뉴",
+      "id": null,
+      "class_name": "control open"
+    },
+    {
+      "tag": "a",
+      "text": "민원안내",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "민원상담",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "여권민원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "여권안내",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "여권발급",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "여권 온라인 사전예약",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "세무민원",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "교통민원",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "홈",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "열린민원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "여권민원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "여권발급",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "여권발급",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "글자 크게",
+      "id": null,
+      "class_name": "btn up"
+    },
+    {
+      "tag": "a",
+      "text": "글자 작게",
+      "id": null,
+      "class_name": "btn down"
+    },
+    {
+      "tag": "a",
+      "text": "공유하기",
+      "id": null,
+      "class_name": "btn open"
+    },
+    {
+      "tag": "a",
+      "text": "인쇄",
+      "id": null,
+      "class_name": "btn print"
+    },
+    {
+      "tag": "a",
+      "text": "여권발급",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "재발급",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "관용여권",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "기재사항변경안내",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "온라인여권재발급",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "여권사진규격안내",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "여권민원서식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "국제운전면허증 발급",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "외교부 홈페이지 바로가기",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "TOP",
+      "id": null,
+      "class_name": "anchorLink up"
+    }
+  ]
+}

@@ -48,18 +48,21 @@ EXPECTED_PLAN_IDS = {
     "seogu_gwangju.g1.v1",                 # canonical G2-B capture -> 11 states
     "seogu_gwangju.g1.housing.v1",         # S3 housing capture -> 1 state
     "seogu_gwangju.g1.handoff_evidence.v1",  # S2/S7/S8 evidence capture -> 3 states
+    "seogu_gwangju.g1.passport_guidance.v1",  # #1356 S5 passport guidance capture -> 1 state
 }
 
 # Current exact total of committed artifacts across the G1 capture family:
-# canonical 11 states * 4 + housing 1 * 4 + handoff evidence 3 * 4 = 60.
-EXPECTED_ARTIFACT_TOTAL = 60
+# canonical 11 states * 4 + housing 1 * 4 + handoff evidence 3 * 4
+# + passport guidance 1 * 4 = 64.
+EXPECTED_ARTIFACT_TOTAL = 64
 
 # Exact successful-state cardinality per plan_id (preserves canonical 11 and the
-# additive 1 / 3 counts; never a loose ``>=``).
+# additive 1 / 3 / 1 counts; never a loose ``>=``).
 EXPECTED_SUCCESS_COUNTS = {
     "seogu_gwangju.g1.v1": 11,
     "seogu_gwangju.g1.housing.v1": 1,
     "seogu_gwangju.g1.handoff_evidence.v1": 3,
+    "seogu_gwangju.g1.passport_guidance.v1": 1,
 }
 
 # Populated by load_validated_ledgers(): ledger_path -> loaded reference plan.

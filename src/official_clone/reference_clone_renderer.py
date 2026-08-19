@@ -2201,6 +2201,16 @@ def _render_main(
     family, _device, content = parse_state_id(state.get("state_id", ""))
     title = state.get("page_title") or ""
 
+    # Generic CMS content-page capability (#1357): a state carrying a
+    # source-backed ``content_page`` block is rendered as an informational
+    # article body. This is data-driven (driven by the presence of the generic
+    # content_page block), never a site-specific branch, and only fires when the
+    # model actually captured an article body — so home / list / detail / chart
+    # / directory states without one keep their existing renderer.
+    content_page = state.get("content_page")
+    if isinstance(content_page, dict) and content_page.get("kind") == "content_page":
+        return _render_content_main(model, state, route_prefix, visual_contract)
+
     if content == "detail":
         return _render_detail_main(model, state, family, title, route_prefix)
     if content == "list":
@@ -2743,6 +2753,52 @@ def _render_board_pagination(
         f'<nav class="rc-pagination" aria-label="페이지 이동">'
         f'<span class="rc-pager-inner">{"".join(items)}'
         f'<span class="rc-page-total">{suffix}</span></span></nav>'
+    )
+
+
+def _render_content_main(
+    model: dict[str, Any],
+    state: dict[str, Any],
+    route_prefix: str,
+    visual_contract: dict[str, Any] | None = None,
+) -> str:
+    """Render a generic CMS informational content page into ``rc-main``.
+
+    The content is fully source-backed text from the model's ``content_page``
+    block: headings, paragraphs, and lists in document order, plus the civil-
+    duty ``contents_info`` box (rendered inert — the source ``tel:`` link is
+    plain text, never an active hyperlink). No raw source HTML is emitted; every
+    value is HTML-escaped. External links and interactive affordances are not
+    reproduced, keeping the surface offline and inert.
+    """
+    content = state.get("content_page") or {}
+    blocks = content.get("blocks") or []
+    parts: list[str] = []
+    for blk in blocks:
+        btype = blk.get("type")
+        if btype == "heading":
+            level = max(2, min(6, int(blk.get("level") or 2)))
+            parts.append(
+                f'<h{level} class="rc-content-heading">{_esc(blk.get("text", ""))}</h{level}>'
+            )
+        elif btype == "paragraph":
+            parts.append(
+                f'<p class="rc-content-paragraph">{_esc(blk.get("text", ""))}</p>'
+            )
+        elif btype == "list":
+            items = "".join(
+                f'<li class="rc-content-item">{_esc(it)}</li>'
+                for it in (blk.get("items") or [])
+            )
+            parts.append(f'<ul class="rc-content-list">{items}</ul>')
+    contents_info = content.get("contents_info")
+    if isinstance(contents_info, dict) and contents_info.get("kind") == "duty":
+        parts.append(_render_contents_info({"contents_info": contents_info}))
+    body = "".join(parts)
+    return (
+        '<section class="rc-content-page" aria-label="안내 내용">'
+        + body
+        + "</section>"
     )
 
 
