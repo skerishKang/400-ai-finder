@@ -406,7 +406,42 @@ try {
       `answer excerpt line not found in rc-main READ region: ${trimmed.slice(0, 60)}`,
     );
   }
-  assert.ok(s3.result.answer.includes(s3.result.excerpt), "grounded answer must embed the READ excerpt");
+  // Internal generic grounding proof: the result answer must embed the READ
+  // excerpt verbatim. This is the #1351 internal result contract and must
+  // NEVER be deleted or weakened.
+  assert.ok(
+    s3.result.answer.includes(s3.result.excerpt),
+    "grounded answer must embed the READ excerpt",
+  );
+  // #1351: Verify the resident-facing answer is a concise guidance hierarchy,
+  // not the raw long excerpt dump. The bubble must contain key grounded
+  // markers from the evidence as resident-useful hierarchy, while the
+  // repository-clone provenance stays on the grounded row (not duplicated in
+  // the bubble).
+  const s1Row = page.locator('#chat-thread [data-grounded="true"][data-journey-id="seogu_apartment_housing_dept"]').last();
+  const s1Bubble = await s1Row.locator(".chat-bubble--ai").textContent();
+  const s1Source = await s1Row.locator("[data-grounded-source]").textContent();
+  assert.ok(String(s1Bubble || "").includes("담당 부서"), "resident answer must contain concise department hierarchy");
+  assert.ok(String(s1Bubble || "").includes("주택과"), "resident answer must mention 주택과 department");
+  assert.ok(String(s1Bubble || "").includes("공동주택관리"), "resident answer must mention 공동주택관리 service context");
+  // Raw excerpt is NOT the primary answer (transformed, not dumped).
+  assert.ok(
+    !String(s1Bubble || "").startsWith("왼쪽 저장소 기반 기관 안내 화면에서 확인한 내용입니다."),
+    "resident answer must NOT start with raw excerpt boilerplate",
+  );
+  // No board-notice dump: unrelated bulletin titles (폭염 notice, 공동주택관리규약
+  // notice) must never surface in the resident answer.
+  for (const noise of ["폭염으로 인한 온열질환", "공동주택관리규약 준칙 개정"]) {
+    assert.ok(
+      !String(s1Bubble || "").includes(noise),
+      `resident answer must not dump board notice: ${noise}`,
+    );
+  }
+  // housing/ provenance is kept on the grounded row.
+  assert.ok(
+    String(s1Source || "").includes("housing/"),
+    "S1 grounded row must keep repository-clone housing/ provenance",
+  );
   for (const marker of ["공동주택", "주택과", "공동주택관리"]) {
     assert.ok(s3.rc_main_text.includes(marker), `rc-main READ region missing marker: ${marker}`);
   }
@@ -891,6 +926,28 @@ try {
     assert.ok(preserved.excerpt && preserved.excerpt.length > 0, `${proof.journey_id} excerpt must be non-empty`);
     assert.ok(preserved.answer.includes(preserved.excerpt), `${proof.journey_id} answer must embed the READ excerpt`);
     assertNoForbiddenSuccess(preserved.answer, `preserved journey answer for ${proof.journey_id}`);
+    // Rendered presentation must stay EXACTLY the preserved READ-derived
+    // answer — the S1 concise-guidance transform may not leak into any other
+    // journey (non-S1 behaviour must not regress).
+    const preservedRow = page.locator(`#chat-thread [data-grounded="true"][data-journey-id="${proof.journey_id}"]`).last();
+    const preservedBubble = await preservedRow.locator(".chat-bubble--ai").textContent();
+    assert.strictEqual(
+      String(preservedBubble || ""),
+      preserved.answer,
+      `${proof.journey_id} rendered bubble must equal the preserved READ-derived answer`,
+    );
+    assert.ok(
+      String(preservedBubble || "").startsWith("왼쪽 저장소 기반 기관 안내 화면에서 확인한 내용입니다."),
+      `${proof.journey_id} bubble must keep the raw READ-derived boilerplate start`,
+    );
+    assert.ok(
+      !String(preservedBubble || "").includes("담당 부서:"),
+      `${proof.journey_id} bubble must not leak the S1 department hierarchy`,
+    );
+    assert.ok(
+      !String(preservedBubble || "").includes("공동주택 관련"),
+      `${proof.journey_id} bubble must not leak S1 housing guidance`,
+    );
   }
 
   // ── D5: language-control regression — no visible empty selector ────────────
@@ -1000,6 +1057,28 @@ try {
     () => document.getElementById("seogu-clone-frame").contentWindow.location.pathname,
   );
   assert.ok(String(mobileIframePath).includes("housing"), "mobile guidance must show the housing clone route");
+  // Mobile S1 resident answer: actually verify the concise guidance bubble,
+  // not just the housing canvas visibility.
+  const mS1Row = mpage.locator('#chat-thread [data-grounded="true"][data-journey-id="seogu_apartment_housing_dept"]').last();
+  const mS1Bubble = await mS1Row.locator(".chat-bubble--ai").textContent();
+  assert.ok(String(mS1Bubble || "").includes("담당 부서"), "mobile S1 answer must contain department hierarchy");
+  assert.ok(String(mS1Bubble || "").includes("주택과"), "mobile S1 answer must mention 주택과");
+  assert.ok(String(mS1Bubble || "").includes("공동주택관리"), "mobile S1 answer must mention 공동주택관리");
+  assert.ok(
+    !String(mS1Bubble || "").startsWith("왼쪽 저장소 기반 기관 안내 화면에서 확인한 내용입니다."),
+    "mobile S1 answer must NOT start with raw excerpt boilerplate",
+  );
+  for (const noise of ["폭염으로 인한 온열질환", "공동주택관리규약 준칙 개정"]) {
+    assert.ok(
+      !String(mS1Bubble || "").includes(noise),
+      `mobile S1 answer must not dump board notice: ${noise}`,
+    );
+  }
+  const mS1Source = await mS1Row.locator("[data-grounded-source]").textContent();
+  assert.ok(
+    String(mS1Source || "").includes("housing/"),
+    "mobile S1 grounded row must keep housing/ provenance",
+  );
   // Composer stays usable on the guidance surface.
   const mobileComposer = await mpage.evaluate(() => {
     const el = document.getElementById("chat-composer-input");

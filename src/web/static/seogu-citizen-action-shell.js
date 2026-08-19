@@ -421,6 +421,33 @@
   }
 
   // ── Question handling ──────────────────────────────────────────────────────
+  // ── Grounded guidance hierarchy transform (S1 housing only) ────────────
+  // ONLY for the housing department journey does the shell replace the raw
+  // excerpt dump with a concise, resident-useful department/item hierarchy.
+  // Every other grounded journey keeps the READ-derived answer untouched
+  // (non-S1 behaviour must not regress). No institution fact is hard-coded
+  // here: labels come from the journey config markers that actually appear in
+  // the READ excerpt, and the route provenance is rendered by _appendMessage.
+  function _buildGroundedGuidance(result, journey) {
+    if (!result || !result.ok || !result.grounded) return null;
+    if (!journey || journey.journey_id !== "seogu_apartment_housing_dept") return null;
+    if (!result.excerpt || typeof result.excerpt !== "string") return null;
+
+    // Only markers already verified against the READ excerpt are grounded.
+    var grounded = (journey.excerpt_markers || []).filter(function (m) {
+      return result.excerpt.indexOf(m) !== -1;
+    });
+    if (grounded.length === 0) return null;
+
+    var guidance = [];
+    guidance.push("담당 부서: " + grounded[0]);
+    if (grounded.length > 1) {
+      guidance.push("관련 항목: " + grounded.slice(1).join(", "));
+    }
+
+    return guidance.join("\n");
+  }
+
   async function _answerQuestion(question) {
     latestJourneyResult = null;
     latestGeneralResult = null;
@@ -454,7 +481,10 @@
       latestJourneyResult = result;
       if (result && result.ok && result.grounded) {
         document.body.setAttribute("data-journey-state", "grounded");
-        _appendMessage("ai", result.answer, result);
+        // #1351: Transform raw excerpt into concise guidance for housing journey
+        var guidance = _buildGroundedGuidance(result, journey);
+        var answerText = guidance || result.answer;
+        _appendMessage("ai", answerText, result);
       } else {
         document.body.setAttribute("data-journey-state", "failed");
         _appendMessage(
