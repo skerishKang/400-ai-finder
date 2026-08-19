@@ -281,6 +281,46 @@ async function measureVisibility(page) {
   });
 }
 
+// #1353 handoff-row layout probe. Measures the geometry of ONE rendered
+// [data-safe-handoff] destination row so the test can assert the CTA and
+// authority stack inside a single content column (avatar left) instead of
+// being squeezed into narrow implicit side columns. Pure layout measurement —
+// no contract/data attribute is read here (those are covered by D1/D2).
+async function measureHandoffLayout(page, jid) {
+  return page.evaluate((jid) => {
+    const rows = Array.from(document.querySelectorAll('[data-safe-handoff="true"]'));
+    const el = rows.filter((n) => n.getAttribute("data-journey-id") === jid).pop();
+    if (!el) return null;
+    const link = el.querySelector('a[data-handoff-action="explicit-open"]');
+    const authority = el.querySelector('[data-handoff-authority="true"]');
+    const avatar = el.querySelector('.chat-avatar');
+    const bubble = el.querySelector('.chat-bubble--ai');
+    function rect(node) {
+      if (!node) return null;
+      const r = node.getBoundingClientRect();
+      return {
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        w: Math.round(r.width),
+        h: Math.round(r.height),
+        right: Math.round(r.right),
+        bottom: Math.round(r.bottom),
+      };
+    }
+    const cs = getComputedStyle(el);
+    return {
+      display: cs.display,
+      row: rect(el),
+      avatar: rect(avatar),
+      bubble: rect(bubble),
+      link: rect(link),
+      authority: rect(authority),
+      linkText: link ? link.textContent.trim() : null,
+      authorityText: authority ? authority.textContent.trim() : null,
+    };
+  }, jid);
+}
+
 try {
   // ── Desktop contract (1920x1080) ──────────────────────────────────────────
   const desktop = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
@@ -556,6 +596,44 @@ try {
     assert.strictEqual(row.link_target, "_blank", `${id} anchor must open in a new tab on resident click`);
     assert.ok(String(row.link_rel || "").includes("noopener"), `${id} anchor must be noopener`);
     assertNoForbiddenSuccess(row.text, `handoff destination row for ${id}`);
+
+    // ── #1353 desktop handoff responsive hierarchy ───────────────────────────
+    // The CTA and authority must stack inside ONE readable content column (avatar
+    // left), NOT be squeezed into narrow implicit side columns, with no
+    // horizontal overflow. This is the resident-facing fix for the Web CTO
+    // model-vision defect; the contract/data attributes above are unchanged.
+    const dHandoff = await measureHandoffLayout(page, id);
+    assert.ok(dHandoff, `desktop ${id} handoff destination row must be present`);
+    assert.strictEqual(dHandoff.display, "grid", `desktop ${id} handoff row must use the grid content-column layout`);
+    assert.ok(dHandoff.link && dHandoff.authority, `desktop ${id} handoff must render CTA + authority`);
+    assert.ok(
+      Math.abs(dHandoff.bubble.x - dHandoff.link.x) <= 2,
+      `desktop ${id} CTA must share the bubble content column`,
+    );
+    assert.ok(
+      Math.abs(dHandoff.link.x - dHandoff.authority.x) <= 2,
+      `desktop ${id} authority must share the CTA content column`,
+    );
+    assert.ok(
+      dHandoff.avatar.x < dHandoff.bubble.x,
+      `desktop ${id} avatar must stay left of the content column`,
+    );
+    assert.ok(
+      dHandoff.link.bottom <= dHandoff.authority.y + 2,
+      `desktop ${id} CTA must sit above the authority`,
+    );
+    // CTA must use a readable column width (no narrow sliver) and remain a short
+    // few-line block rather than collapsing.
+    assert.ok(dHandoff.link.w >= 200, `desktop ${id} CTA must use a readable column width (no narrow sliver)`);
+    assert.ok(dHandoff.authority.w >= 200, `desktop ${id} authority must use a readable column width`);
+    const dOverflow = await page.evaluate(() => {
+      const t = document.getElementById("chat-thread");
+      return { scrollW: t.scrollWidth, clientW: t.clientWidth };
+    });
+    assert.ok(
+      dOverflow.scrollW <= dOverflow.clientW + 1,
+      `desktop ${id} thread must not horizontally overflow`,
+    );
 
     // D1 — local-evidence row is grounded from the repository clone route and
     // the required markers were validated against the READ region.
@@ -1079,6 +1157,66 @@ try {
     String(mS1Source || "").includes("housing/"),
     "mobile S1 grounded row must keep housing/ provenance",
   );
+  // ── #1353 mobile handoff responsive hierarchy (S2) ──────────────────────────
+  // The S2 final handoff row must NOT collapse the CTA into character-by-character
+  // vertical stacking and must keep the authority readable in the content column
+  // (no narrow-side-column squeeze). Composer + mobile surface switch stay usable.
+  await convTab.click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-mobile-surface") === "conversation",
+    null,
+    { timeout: 5000 },
+  );
+  await mpage.locator('[data-journey-id="seogu_illegal_parking_report"]').click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "safe_handoff",
+    null,
+    { timeout: 15000 },
+  );
+  const mHandoff = await measureHandoffLayout(mpage, "seogu_illegal_parking_report");
+  assert.ok(mHandoff, "mobile S2 handoff destination row must be present");
+  assert.strictEqual(mHandoff.display, "grid", "mobile S2 handoff row must use the grid content-column layout");
+  assert.ok(mHandoff.link && mHandoff.authority, "mobile S2 handoff must render CTA + authority");
+  assert.ok(
+    Math.abs(mHandoff.bubble.x - mHandoff.link.x) <= 2,
+    "mobile S2 CTA must share the bubble content column",
+  );
+  assert.ok(
+    Math.abs(mHandoff.link.x - mHandoff.authority.x) <= 2,
+    "mobile S2 authority must share the CTA content column",
+  );
+  assert.ok(
+    mHandoff.avatar.x < mHandoff.bubble.x,
+    "mobile S2 avatar must stay left of the content column",
+  );
+  assert.ok(
+    mHandoff.link.bottom <= mHandoff.authority.y + 2,
+    "mobile S2 CTA must sit above the authority",
+  );
+  // No character-by-character vertical stacking: the CTA must occupy a normal,
+  // wide, bounded-height box (a readable wrap), not one character per line.
+  assert.ok(mHandoff.link.w >= 120, "mobile S2 CTA must use a readable column width (no narrow sliver)");
+  assert.ok(mHandoff.link.h <= 80, "mobile S2 CTA must not stack character-by-character (height bounded)");
+  assert.ok(mHandoff.authority.w >= 120, "mobile S2 authority must use a readable column width");
+  assert.ok(mHandoff.authority.h <= 60, "mobile S2 authority must not vertically collapse");
+  // No horizontal overflow of the thread.
+  const mOverflow = await mpage.evaluate(() => {
+    const t = document.getElementById("chat-thread");
+    return { scrollW: t.scrollWidth, clientW: t.clientWidth };
+  });
+  assert.ok(mOverflow.scrollW <= mOverflow.clientW + 1, "mobile S2 thread must not horizontally overflow");
+  // Composer + mobile surface switch remain usable after the S2 handoff.
+  const mComposerAfter = await mpage.evaluate(() => {
+    const el = document.getElementById("chat-composer-input");
+    return el ? { disabled: el.disabled } : null;
+  });
+  assert.ok(mComposerAfter && mComposerAfter.disabled === false, "mobile composer must stay usable after S2 handoff");
+  assert.strictEqual(
+    await switchEl.evaluate((el) => el.hasAttribute("hidden")),
+    false,
+    "mobile surface switch must stay usable after S2 handoff",
+  );
+
   // Composer stays usable on the guidance surface.
   const mobileComposer = await mpage.evaluate(() => {
     const el = document.getElementById("chat-composer-input");
