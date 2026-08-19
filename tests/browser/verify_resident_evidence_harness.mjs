@@ -32,6 +32,7 @@ import { STATES, REQUIRED_VOCABULARY, isObservable, getEquivalentState } from ".
 import { pollUntil, buildMockResponse, captureEvidence, runScenario } from "../../tools/resident-evidence/src/orchestrator.mjs";
 import { streetlightScenario } from "../../tools/resident-evidence/scenarios/bukgu-streetlight.mjs";
 import { litterScenario } from "../../tools/resident-evidence/scenarios/bukgu-litter.mjs";
+import { runHarness } from "../../tools/resident-evidence/run-harness.mjs";
 
 const BASE_URL = process.argv[2] || "http://127.0.0.1:8780";
 const TMP_ROOT = resolve("artifacts/resident-evidence/test");
@@ -449,6 +450,127 @@ async function testRequiredVocabulary() {
   console.log("  [PASS] Required vocabulary: all " + REQUIRED_VOCABULARY.length + " states/classifications resolvable");
 }
 
+// ── BLOCKER 2 FINAL: External-origin CLI negative — real harness exit nonzero ──
+async function testExternalOriginCliNonzero() {
+  // Create a scenario that injects an external request during capture
+  // by overriding a step to make a fetch to an external URL
+  const maliciousScenario = Object.freeze({
+    ...streetlightScenario,
+    id: "BUKGU_STREETLIGHT_EXTERNAL_INJECTION",
+    steps: [
+      // Step 0: Type and submit
+      async function typeQuestion(page) {
+        await page.fill("#chat-composer-input", "가로등이 고장났어요. 신고할게요");
+        await page.click("#chat-composer-send");
+        await pollUntil(page, async () => (await page.getAttribute("body", "data-first-use-state")) === "split", { label: "split", timeoutMs: 12000 });
+        await pollUntil(page, async () => !!(await page.locator('[data-msg-type="confirm-run"]').count()), { label: "confirm-run", timeoutMs: 8000 });
+      },
+      // Step 1: Click confirm-run + inject external request during capture window
+      async function confirmRun(page) {
+        await page.evaluate(() => {
+          const b = Array.from(document.querySelectorAll("button")).find(b => b.textContent.includes("예, 안내해 주세요"));
+          if (b) b.click();
+        });
+        await pollUntil(page, async () => (await page.getAttribute("body", "data-choreography-state")) === "waiting_confirmation", { label: "waiting_confirmation", timeoutMs: 30000 });
+        await pollUntil(page, async () => { const el = await page.locator("#board-write-title").first(); if (!(await el.count())) return false; const v = await el.inputValue(); return v && v.length > 0; }, { label: "title", timeoutMs: 25000 });
+        await pollUntil(page, async () => { const el = await page.locator("#board-write-content").first(); if (!(await el.count())) return false; const v = await el.inputValue(); return v && v.length > 0; }, { label: "content", timeoutMs: 25000 });
+        await pollUntil(page, async () => { const t = await page.locator("#chat-thread").first(); if (!(await t.count())) return false; const x = await t.textContent(); return x && x.includes("검토했고, 제출하기"); }, { label: "confirmation prompt", timeoutMs: 15000 });
+        // Switch to conversation
+        const surface = await page.getAttribute("body", "data-mobile-surface");
+        if (surface === "guidance") { await page.evaluate(() => { document.getElementById("tab-conversation").click(); }); await pollUntil(page, async () => (await page.getAttribute("body", "data-mobile-surface")) === "conversation", { label: "switch conv", timeoutMs: 5000 }); }
+        // Inject external request — this will be caught by the post-capture safety recheck
+        await page.route("**/external-fake-test.com/**", async (route) => { await route.fulfill({ status: 200, body: "fake" }); });
+        await page.evaluate(async () => { try { await fetch("http://external-fake-test.com/test"); } catch {} });
+      },
+      // Step 2: Switch to guidance
+      async function switchToGuidance(page) {
+        const surface = await page.getAttribute("body", "data-mobile-surface");
+        if (surface !== "guidance") { await page.evaluate(() => { document.getElementById("tab-guidance").click(); }); await pollUntil(page, async () => (await page.getAttribute("body", "data-mobile-surface")) === "guidance", { label: "switch guidance", timeoutMs: 5000 }); }
+      },
+    ],
+  });
+
+  const cliArtifactsRoot = join(TMP_ROOT, "cli-external-negative");
+  const { hasFailure } = await runHarness({
+    baseUrl: BASE_URL,
+    scenarios: [maliciousScenario],
+    artifactsRoot: cliArtifactsRoot,
+  });
+
+  assert.ok(hasFailure, "CLI must report failure when external-origin request occurs during capture");
+
+  // Verify that no PRE_SUBMIT screenshots were promoted to accepted.
+  // ENTRY and CONFIRMATION may be accepted (they occur before injection),
+  // but PRE_SUBMIT_CONVERSATION and PRE_SUBMIT_GUIDANCE must NOT be.
+  const { readdirSync: readdirSync2 } = await import("node:fs");
+  const rootDir = cliArtifactsRoot;
+  let foundPreSubmitAccepted = false;
+  function checkDir2(dir) {
+    try {
+      const entries = readdirSync2(dir, { withFileTypes: true });
+      for (const e of entries) {
+        if (e.isDirectory()) {
+          if (e.name === "screenshots") {
+            const files = readdirSync2(join(dir, e.name));
+            // Any file containing PRE_SUBMIT means a pre-submit screenshot was accepted
+            if (files.some(f => f.includes("PRE_SUBMIT"))) foundPreSubmitAccepted = true;
+          } else {
+            checkDir2(join(dir, e.name));
+          }
+        }
+      }
+    } catch {}
+  }
+  checkDir2(rootDir);
+  assert.ok(!foundPreSubmitAccepted, "No PRE_SUBMIT screenshots should be in accepted set when external-origin request occurs during capture");
+
+  console.log("  [PASS] External-origin CLI negative: harness exits nonzero, accepted set unchanged");
+}
+
+// ── BLOCKER 3 FINAL: Unexpected positive-state rejection CLI negative — real harness exit nonzero ──
+async function testUnexpectedPositiveRejectionCliNonzero() {
+  // Create a scenario where a checkpoint expects ACCEPTED but the state
+  // will actually be STATE_MISMATCH because we deliberately don't drive
+  // to the correct state
+  const brokenScenario = Object.freeze({
+    id: "BUKGU_BROKEN_POSITIVE",
+    product: "bukgu",
+    question: "가로등이 고장났어요. 신고할게요",
+    action: "streetlight_report",
+    journeyId: "streetlight_report",
+    answer: "가로등 고장 신고를 도와드립니다.",
+    viewport: { width: 390, height: 844 },
+
+    checkpoints: [
+      // ENTRY will be ACCEPTED (page loads correctly)
+      { state: "ENTRY", beforeStep: 0, expected: "ACCEPTED" },
+      // CONFIRMATION expects ACCEPTED but we DON'T click confirm-run,
+      // so the choreography never starts and CONFIRMATION is not reached.
+      // The runtime stays at ENTRY state, so CONFIRMATION predicates will fail.
+      { state: "CONFIRMATION", afterStep: 0, expected: "ACCEPTED" },
+    ],
+
+    steps: [
+      // Step 0: Type but DON'T submit (so we stay at ENTRY, never reach CONFIRMATION)
+      async function typeButDontSubmit(page) {
+        await page.fill("#chat-composer-input", "가로등이 고장났어요. 신고할게요");
+        // Intentionally don't click send — stay at entry state
+      },
+    ],
+  });
+
+  const cliArtifactsRoot = join(TMP_ROOT, "cli-state-mismatch-negative");
+  const { hasFailure } = await runHarness({
+    baseUrl: BASE_URL,
+    scenarios: [brokenScenario],
+    artifactsRoot: cliArtifactsRoot,
+  });
+
+  assert.ok(hasFailure, "CLI must report failure when a required positive checkpoint gets STATE_MISMATCH instead of ACCEPTED");
+
+  console.log("  [PASS] Unexpected positive-state rejection CLI: harness exits nonzero on STATE_MISMATCH for required checkpoint");
+}
+
 // ── Main ──
 async function main() {
   try { rmSync(TMP_ROOT, { recursive: true, force: true }); } catch {}
@@ -468,6 +590,8 @@ async function main() {
     ["External-origin injection → accepted unchanged", testExternalOriginInjectionAcceptedUnchanged],
     ["runScenario E2E checkpoints", testRunScenarioCheckpointE2E],
     ["Required vocabulary resolution", testRequiredVocabulary],
+    ["External-origin CLI nonzero exit", testExternalOriginCliNonzero],
+    ["Unexpected positive rejection CLI nonzero exit", testUnexpectedPositiveRejectionCliNonzero],
   ];
 
   let passed = 0, failed = 0;

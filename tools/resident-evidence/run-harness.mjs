@@ -89,26 +89,37 @@ function checkCheckpointResults(checkpointResults) {
   return violations;
 }
 
-async function main() {
-  const { baseUrl } = parseArgs();
+/**
+ * Exported top-level harness runner — exercises the REAL CLI logic.
+ * Returns { hasFailure, results } so tests can verify exit disposition.
+ * The CLI main() calls this and exits nonzero on hasFailure.
+ *
+ * @param {Object} options
+ * @param {string} options.baseUrl
+ * @param {Array} [options.scenarios] — override scenario list
+ * @param {string} [options.artifactsRoot] — override artifacts root
+ * @returns {Promise<{hasFailure: boolean, results: Array}>}
+ */
+export async function runHarness(options = {}) {
+  const baseUrl = options.baseUrl || "http://127.0.0.1:8780";
+  const scenarios = options.scenarios || [streetlightScenario, litterScenario];
+  const artifactsRoot = options.artifactsRoot || ARTIFACTS_ROOT;
   const runId = `run-${Date.now()}`;
-  mkdirSync(ARTIFACTS_ROOT, { recursive: true });
+  mkdirSync(artifactsRoot, { recursive: true });
 
   console.log("=== Resident Journey Evidence Harness V1 ===");
   console.log(`Base URL: ${baseUrl}`);
   console.log(`Run ID: ${runId}`);
-  console.log(`Artifacts root: ${ARTIFACTS_ROOT}`);
+  console.log(`Artifacts root: ${artifactsRoot}`);
 
-  // BLOCKER 4: Validate required vocabulary
   const missingVocab = validateVocabulary();
   if (missingVocab.length > 0) {
     console.error(`FATAL: Missing required semantic vocabulary: ${missingVocab.join(", ")}`);
-    process.exit(1);
+    return { hasFailure: true, results: [] };
   }
   console.log(`Vocabulary: ${REQUIRED_VOCABULARY.length} states defined (${Object.keys(STATES).length} in STATES + 5 classifications)`);
 
   const browser = await chromium.launch({ headless: true });
-  const scenarios = [streetlightScenario, litterScenario];
   const allResults = [];
   let hasFailure = false;
 
@@ -116,12 +127,8 @@ async function main() {
     console.log(`\n--- Scenario: ${scenario.id} ---`);
     try {
       const result = await runScenario({
-        browser,
-        scenarioSpec: scenario,
-        stateSpecs: STATES,
-        baseUrl,
-        artifactsRoot: ARTIFACTS_ROOT,
-        runId,
+        browser, scenarioSpec: scenario, stateSpecs: STATES,
+        baseUrl, artifactsRoot, runId,
       });
       allResults.push(result);
 
@@ -131,7 +138,6 @@ async function main() {
       const rejected = result.entries.filter((e) => e.capture_status !== "ACCEPTED");
       console.log(`Accepted: ${accepted.length}, Rejected: ${rejected.length}`);
 
-      // Print checkpoint results
       console.log(`Checkpoints:`);
       for (const cp of result.checkpointResults) {
         const status = cp.accepted ? "ACCEPTED" : cp.actual;
@@ -139,17 +145,13 @@ async function main() {
         console.log(`  ${ok ? "✓" : "✗"} ${cp.state}: expected=${cp.expected}, actual=${cp.actual}`);
       }
 
-      // BLOCKER 3: Check checkpoint results against expected dispositions
       const violations = checkCheckpointResults(result.checkpointResults);
       if (violations.length > 0) {
         hasFailure = true;
         console.error(`CHECKPOINT VIOLATIONS in ${scenario.id}:`);
-        for (const v of violations) {
-          console.error(`  ${v.state}: ${v.reason}`);
-        }
+        for (const v of violations) { console.error(`  ${v.state}: ${v.reason}`); }
       }
 
-      // Safety check
       if (result.safetyCounts.externalOriginRequests > 0) {
         hasFailure = true;
         console.error(`SAFETY VIOLATION: ${result.safetyCounts.externalOriginRequests} external-origin requests detected!`);
@@ -164,13 +166,10 @@ async function main() {
   await browser.close();
 
   console.log("\n=== Harness Run Complete ===");
-  console.log(`Scenarios: ${allResults.length}`);
   const totalAccepted = allResults.reduce((sum, r) => sum + (r.entries ? r.entries.filter((e) => e.capture_status === "ACCEPTED").length : 0), 0);
   const totalRejected = allResults.reduce((sum, r) => sum + (r.entries ? r.entries.filter((e) => e.capture_status !== "ACCEPTED").length : 0), 0);
-  console.log(`Total accepted: ${totalAccepted}`);
-  console.log(`Total rejected: ${totalRejected}`);
+  console.log(`Total accepted: ${totalAccepted}, Total rejected: ${totalRejected}`);
 
-  // Aggregate safety check
   const totalExternal = allResults.reduce((sum, r) => sum + (r.safetyCounts ? r.safetyCounts.externalOriginRequests : 0), 0);
   if (totalExternal > 0) {
     hasFailure = true;
@@ -179,13 +178,17 @@ async function main() {
 
   if (hasFailure) {
     console.error("\nHARNESS FAILED — see violations above");
-    process.exit(1);
   } else {
     console.log("\nHARNESS PASSED — all checkpoints met expected dispositions");
   }
+
+  return { hasFailure, results: allResults };
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+async function main() {
+  const { baseUrl } = parseArgs();
+  const { hasFailure } = await runHarness({ baseUrl });
+  if (hasFailure) process.exit(1);
+}
+
+main().catch((err) => { console.error(err); process.exit(1); });

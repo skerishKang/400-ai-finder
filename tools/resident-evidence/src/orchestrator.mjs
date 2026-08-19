@@ -15,7 +15,7 @@ import { collectSnapshot } from "./runtime-observer.mjs";
 import { attachSafetyObserver } from "./safety-observer.mjs";
 import { buildManifestEntry, buildDiagnosticEntry, writeManifest } from "./manifest.mjs";
 import { isObservable, getEquivalentState } from "./state-specs.mjs";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, renameSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 /**
@@ -105,43 +105,19 @@ export async function captureEvidence(params) {
 
   mkdirSync(acceptedDir, { recursive: true });
   mkdirSync(diagnosticDir, { recursive: true });
+  const pendingDir = join(diagnosticDir, ".pending");
+  mkdirSync(pendingDir, { recursive: true });
 
-  const eligibility = await evaluateCaptureEligibility(page, stateSpec, stabilityConfig);
-  const snapshot = await collectSnapshot(page);
-  const safetyCounts = safetyObserver.getCounts();
   const filename = `${scenarioSpec.id}_${targetState}.png`;
 
-  // BLOCKER 1: ATOMIC zero-external precondition for ACCEPTED capture.
-  // If external-origin count > 0, no PNG may enter the accepted set,
-  // EVEN IF all other predicates passed. Route to diagnostic/fail-closed.
-  if (eligibility.eligible && safetyCounts.externalOriginRequests > 0) {
-    // Write diagnostic only (never to accepted)
-    const diagPath = join(diagnosticDir, filename);
-    let diagResult = null;
-    try {
-      diagResult = await captureScreenshot(page, diagPath);
-    } catch {
-      // best-effort
-    }
-    const diagEntry = buildDiagnosticEntry({
-      scenarioId: scenarioSpec.id,
-      semanticState: targetState,
-      requestedState: targetState,
-      product: scenarioSpec.product,
-      viewport: scenarioSpec.viewport,
-      url: snapshot.url,
-      runtimeSnapshot: snapshot,
-      requiredResults: eligibility.requiredResults,
-      forbiddenResults: eligibility.forbiddenResults,
-      stabilityResult: eligibility.stabilityResult,
-      safetyCounts,
-      captureStatus: CAPTURE_STATUS.FORBIDDEN_STATE_REACHED,
-      reason: `SAFETY VIOLATION: external-origin requests=${safetyCounts.externalOriginRequests}. Accepted set unchanged.`,
-    });
-    return { accepted: false, entry: diagEntry, eligibility: { ...eligibility, eligible: false, status: CAPTURE_STATUS.FORBIDDEN_STATE_REACHED }, snapshot, safetyViolation: true };
-  }
+  // Step 1-2: Evaluate capture eligibility (includes stability check)
+  const eligibility = await evaluateCaptureEligibility(page, stateSpec, stabilityConfig);
 
-  // Handle NOT_SEPARATELY_OBSERVABLE states
+  // Step 3: Read safety baseline BEFORE capture
+  const preCaptureSafetyCounts = safetyObserver.getCounts();
+  const snapshot = await collectSnapshot(page);
+
+  // Handle NOT_SEPARATELY_OBSERVABLE states — no screenshot
   if (eligibility.notSeparablyObservable) {
     const diagEntry = buildDiagnosticEntry({
       scenarioId: scenarioSpec.id,
@@ -154,66 +130,119 @@ export async function captureEvidence(params) {
       requiredResults: [],
       forbiddenResults: [],
       stabilityResult: null,
-      safetyCounts,
+      safetyCounts: preCaptureSafetyCounts,
       captureStatus: CAPTURE_STATUS.NOT_SEPARATELY_OBSERVABLE,
       reason: eligibility.reason || `State ${targetState} is not separately observable. Equivalent: ${eligibility.equivalentState}`,
     });
     return { accepted: false, entry: diagEntry, eligibility, snapshot, notSeparablyObservable: true, equivalentState: eligibility.equivalentState };
   }
 
-  if (eligibility.eligible) {
-    // ACCEPTED: write to accepted dir
-    const filePath = join(acceptedDir, filename);
-    const screenshotResult = await captureScreenshot(page, filePath);
-    const entry = buildManifestEntry({
+  // If not eligible (pre-capture), write diagnostic only
+  if (!eligibility.eligible) {
+    const effectiveStatus = preCaptureSafetyCounts.externalOriginRequests > 0
+      ? CAPTURE_STATUS.FORBIDDEN_STATE_REACHED
+      : eligibility.status;
+
+    const reason = preCaptureSafetyCounts.externalOriginRequests > 0
+      ? `SAFETY VIOLATION (pre-capture): external-origin requests=${preCaptureSafetyCounts.externalOriginRequests}. Accepted set unchanged.`
+      : [
+          ...eligibility.requiredResults.filter((r) => !r.passed).map((r) => `FAIL:${r.name}:${r.detail}`),
+          ...eligibility.forbiddenResults.filter((r) => !r.passed).map((r) => `FORBIDDEN:${r.name}:${r.detail}`),
+        ].join("; ") || eligibility.status;
+
+    const diagPath = join(diagnosticDir, filename);
+    try { await captureScreenshot(page, diagPath); } catch { /* best-effort */ }
+
+    const diagEntry = buildDiagnosticEntry({
       scenarioId: scenarioSpec.id,
       semanticState: targetState,
-      equivalentState: stateSpec.equivalentState,
+      requestedState: targetState,
       product: scenarioSpec.product,
       viewport: scenarioSpec.viewport,
       url: snapshot.url,
-      filename,
-      filePath,
       runtimeSnapshot: snapshot,
       requiredResults: eligibility.requiredResults,
       forbiddenResults: eligibility.forbiddenResults,
-      safetyCounts,
+      stabilityResult: eligibility.stabilityResult,
+      safetyCounts: preCaptureSafetyCounts,
+      captureStatus: effectiveStatus,
+      reason,
+    });
+    return { accepted: false, entry: diagEntry, eligibility: { ...eligibility, eligible: false, status: effectiveStatus }, snapshot };
+  }
+
+  // Step 4: Capture PNG to TEMP/PENDING location (NOT accepted/)
+  const pendingPath = join(pendingDir, filename);
+  await captureScreenshot(page, pendingPath);
+
+  // Step 5: Immediately re-read safety observer AFTER screenshot completes
+  const postCaptureSafetyCounts = safetyObserver.getCounts();
+
+  // Step 6: Re-check semantic predicates (state may have changed during capture)
+  let postCaptureRecheck = null;
+  try {
+    const { evaluatePredicates } = await import("./predicates.mjs");
+    const postRequired = await evaluatePredicates(page, stateSpec.required);
+    const postForbidden = await evaluatePredicates(page, stateSpec.forbidden);
+    postCaptureRecheck = { required: postRequired, forbidden: postForbidden };
+  } catch {
+    postCaptureRecheck = { required: { allPassed: false, results: [] }, forbidden: { allPassed: false, results: [] } };
+  }
+
+  // Step 7: Final safety contract check — ATOMIC PROMOTION
+  const safetyViolation = postCaptureSafetyCounts.externalOriginRequests > 0;
+  const semanticChanged = !postCaptureRecheck.required.allPassed || !postCaptureRecheck.forbidden.allPassed;
+
+  if (!safetyViolation && !semanticChanged) {
+    // PROMOTE: validate PNG, compute SHA256, atomically rename to accepted/
+    const acceptedPath = join(acceptedDir, filename);
+    const { validatePngFile } = await import("./manifest.mjs");
+    const pngValidation = validatePngFile(pendingPath);
+    if (!pngValidation.valid) {
+      const diagPath = join(diagnosticDir, filename);
+      try { renameSync(pendingPath, diagPath); } catch { try { rmSync(pendingPath); } catch {} }
+      const diagEntry = buildDiagnosticEntry({
+        scenarioId: scenarioSpec.id, semanticState: targetState, requestedState: targetState,
+        product: scenarioSpec.product, viewport: scenarioSpec.viewport, url: snapshot.url,
+        runtimeSnapshot: snapshot, requiredResults: eligibility.requiredResults,
+        forbiddenResults: eligibility.forbiddenResults, stabilityResult: eligibility.stabilityResult,
+        safetyCounts: postCaptureSafetyCounts, captureStatus: CAPTURE_STATUS.UNSTABLE_STATE,
+        reason: `Invalid PNG after capture: ${pngValidation.reason}`,
+      });
+      return { accepted: false, entry: diagEntry, eligibility: { ...eligibility, eligible: false, status: CAPTURE_STATUS.UNSTABLE_STATE }, snapshot };
+    }
+
+    // ATOMIC PROMOTION: rename temp → accepted
+    renameSync(pendingPath, acceptedPath);
+
+    const entry = buildManifestEntry({
+      scenarioId: scenarioSpec.id, semanticState: targetState,
+      equivalentState: stateSpec.equivalentState, product: scenarioSpec.product,
+      viewport: scenarioSpec.viewport, url: snapshot.url, filename, filePath: acceptedPath,
+      runtimeSnapshot: snapshot, requiredResults: eligibility.requiredResults,
+      forbiddenResults: eligibility.forbiddenResults, safetyCounts: postCaptureSafetyCounts,
       captureStatus: CAPTURE_STATUS.ACCEPTED,
     });
-    return { accepted: true, entry, screenshotResult, eligibility, snapshot };
+    return { accepted: true, entry, eligibility, snapshot };
   }
 
-  // REJECTED: write diagnostic only (never to accepted)
+  // Step 8: FAIL CLOSED — accepted/ remains unchanged, temp → diagnostics/
   const diagPath = join(diagnosticDir, filename);
-  const failedReasons = [
-    ...eligibility.requiredResults.filter((r) => !r.passed).map((r) => `FAIL:${r.name}:${r.detail}`),
-    ...eligibility.forbiddenResults.filter((r) => !r.passed).map((r) => `FORBIDDEN:${r.name}:${r.detail}`),
-  ].join("; ");
+  try { renameSync(pendingPath, diagPath); } catch { try { rmSync(pendingPath); } catch {} }
 
-  let diagResult = null;
-  try {
-    diagResult = await captureScreenshot(page, diagPath);
-  } catch {
-    // best-effort
-  }
+  const failReason = safetyViolation
+    ? `SAFETY VIOLATION (post-capture): external-origin requests=${postCaptureSafetyCounts.externalOriginRequests}. Accepted set unchanged.`
+    : `SEMANTIC STATE CHANGED during capture. Required recheck failed or forbidden triggered. Accepted set unchanged.`;
+  const failStatus = safetyViolation ? CAPTURE_STATUS.FORBIDDEN_STATE_REACHED : CAPTURE_STATUS.STATE_MISMATCH;
 
   const diagEntry = buildDiagnosticEntry({
-    scenarioId: scenarioSpec.id,
-    semanticState: targetState,
-    requestedState: targetState,
-    product: scenarioSpec.product,
-    viewport: scenarioSpec.viewport,
-    url: snapshot.url,
-    runtimeSnapshot: snapshot,
-    requiredResults: eligibility.requiredResults,
-    forbiddenResults: eligibility.forbiddenResults,
-    stabilityResult: eligibility.stabilityResult,
-    safetyCounts,
-    captureStatus: eligibility.status,
-    reason: failedReasons || eligibility.status,
+    scenarioId: scenarioSpec.id, semanticState: targetState, requestedState: targetState,
+    product: scenarioSpec.product, viewport: scenarioSpec.viewport, url: snapshot.url,
+    runtimeSnapshot: snapshot, requiredResults: eligibility.requiredResults,
+    forbiddenResults: eligibility.forbiddenResults, stabilityResult: eligibility.stabilityResult,
+    safetyCounts: postCaptureSafetyCounts, captureStatus: failStatus, reason: failReason,
   });
-
-  return { accepted: false, entry: diagEntry, eligibility, snapshot };
+  return { accepted: false, entry: diagEntry, eligibility: { ...eligibility, eligible: false, status: failStatus }, snapshot, safetyViolation };
 }
 
 /**
