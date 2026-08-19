@@ -142,25 +142,32 @@ class FirecrawlFetchProvider(FetchProvider):
         }
 
         try:
-            resp = req_lib.post(
-                endpoint, headers=headers, json=body, timeout=timeout
-            )
-            # Handle HTTP-level errors
-            if resp.status_code >= 400:
-                try:
-                    err_data: dict[str, Any] = resp.json()
-                    err_msg = err_data.get("error", f"HTTP {resp.status_code}")
-                except (json.JSONDecodeError, ValueError, AttributeError):
-                    err_msg = f"HTTP {resp.status_code}"
-                return FetchResult(
-                    url=url,
-                    ok=False,
-                    provider=self.name,
-                    fetched_at=now,
-                    status_code=resp.status_code,
-                    error=err_msg,
+            # #1295 — credential-bearing service transport. The Bearer API key
+            # is sent to the validated service endpoint only. A dedicated,
+            # reviewed Session with ``trust_env=False`` ensures the dispatch
+            # does NOT inherit ambient proxy settings (HTTP_PROXY / HTTPS_PROXY
+            # / ALL_PROXY) or ~/.netrc credentials from the environment.
+            with req_lib.Session() as session:
+                session.trust_env = False
+                resp = session.post(
+                    endpoint, headers=headers, json=body, timeout=timeout
                 )
-            data: dict[str, Any] = resp.json()
+                # Handle HTTP-level errors
+                if resp.status_code >= 400:
+                    try:
+                        err_data: dict[str, Any] = resp.json()
+                        err_msg = err_data.get("error", f"HTTP {resp.status_code}")
+                    except (json.JSONDecodeError, ValueError, AttributeError):
+                        err_msg = f"HTTP {resp.status_code}"
+                    return FetchResult(
+                        url=url,
+                        ok=False,
+                        provider=self.name,
+                        fetched_at=now,
+                        status_code=resp.status_code,
+                        error=err_msg,
+                    )
+                data: dict[str, Any] = resp.json()
         except req_lib.exceptions.Timeout:
             return FetchResult(
                 url=url,

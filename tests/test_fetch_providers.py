@@ -8,7 +8,8 @@ from __future__ import annotations
 import json
 import os
 import sys
-from unittest.mock import patch
+from contextlib import contextmanager
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -43,6 +44,41 @@ def _mock_test_dns(monkeypatch):
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port or 0))]
 
     monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo)
+
+
+class _FakeFirecrawlSession:
+    """Stand-in for the Firecrawl credential-bearing Session transport.
+
+    FirecrawlFetchProvider dispatches its POST through a dedicated
+    ``requests.Session`` (trust_env=False). This fake records nothing special
+    but routes ``post`` to the supplied side-effect so the validated,
+    network-free response is returned. ``__enter__`` returns itself so the
+    ``with req_lib.Session() as session:`` block uses this very object.
+    """
+
+    def __init__(self, post_side_effect):
+        self.trust_env = True
+        self.headers = {}
+        self.cookies = {}
+        self._post_side_effect = post_side_effect
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def post(self, endpoint, headers=None, json=None, timeout=None):
+        return self._post_side_effect(
+            endpoint, headers=headers, json=json, timeout=timeout
+        )
+
+
+@contextmanager
+def _firecrawl_session_patch(fake_post):
+    """Patch the Firecrawl credential-bearing transport with a fake session."""
+    with patch("requests.Session", side_effect=lambda: _FakeFirecrawlSession(fake_post)):
+        yield
 
 
 # ======================================================================
@@ -1114,7 +1150,6 @@ class TestFirecrawlConfigValidation:
     def test_missing_api_key_does_not_fallback_when_empty_string(self, monkeypatch):
         """api_key="" must not fallback to FIRECRAWL_API_KEY. No network call."""
         import requests
-        from unittest.mock import Mock
 
         monkeypatch.setenv("FIRECRAWL_API_KEY", "dummy-env-key")
         post = Mock(side_effect=AssertionError("requests.post() must not be called"))
@@ -1129,20 +1164,18 @@ class TestFirecrawlConfigValidation:
 
     def test_error_does_not_leak_api_key(self, monkeypatch):
         """Error messages must not contain the actual API key value."""
-        import requests
-        from unittest.mock import Mock
-
         class FakeErrorResponse:
             status_code = 500
 
             def json(self):
                 return {"error": "Internal server error"}
 
-        mock_post = Mock(return_value=FakeErrorResponse())
-        monkeypatch.setattr(requests, "post", mock_post)
+        def fake_post(url, headers, json, timeout):
+            return FakeErrorResponse()
 
-        provider = FirecrawlFetchProvider(api_key="fc-super-secret-12345")
-        result = provider.fetch("https://bukgu.gwangju.kr/")
+        with _firecrawl_session_patch(fake_post):
+            provider = FirecrawlFetchProvider(api_key="fc-super-secret-12345")
+            result = provider.fetch("https://bukgu.gwangju.kr/")
 
         assert result.ok is False
         assert "fc-super-secret-12345" not in result.error
@@ -1179,7 +1212,7 @@ class TestFirecrawlRequestPayload:
 
             return FakeResponse()
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(api_key="fc-test-key")
             result = provider.fetch("https://bukgu.gwangju.kr/")
 
@@ -1232,7 +1265,7 @@ class TestFirecrawlResponseParsing:
 
             return FakeResponse()
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(api_key="fc-test-key")
             result = provider.fetch("https://bukgu.gwangju.kr/")
 
@@ -1253,7 +1286,7 @@ class TestFirecrawlResponseParsing:
 
             return FakeResponse()
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(api_key="fc-test-key")
             result = provider.fetch("https://bukgu.gwangju.kr/")
         assert result.ok is False
@@ -1269,7 +1302,7 @@ class TestFirecrawlResponseParsing:
 
             return FakeResponse()
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(api_key="fc-test-key")
             result = provider.fetch("https://bukgu.gwangju.kr/")
         assert result.ok is False
@@ -1295,7 +1328,7 @@ class TestFirecrawlResponseParsing:
 
             return FakeResponse()
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(api_key="fc-test-key")
             result = provider.fetch("https://bukgu.gwangju.kr/")
         assert result.ok is True
@@ -1316,7 +1349,7 @@ class TestFirecrawlResponseParsing:
 
             return FakeResponse()
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(api_key="bad-key")
             result = provider.fetch("https://bukgu.gwangju.kr/")
         assert result.ok is False
@@ -1328,7 +1361,7 @@ class TestFirecrawlResponseParsing:
             import requests
             raise requests.exceptions.Timeout("timed out")
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(api_key="fc-test-key", timeout=5)
             result = provider.fetch("https://bukgu.gwangju.kr/")
         assert result.ok is False
@@ -1345,7 +1378,7 @@ class TestFirecrawlResponseParsing:
 
             return FakeResponse()
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(api_key="fc-test-key")
             result = provider.fetch("https://bukgu.gwangju.kr/")
         assert result.ok is False
@@ -1374,7 +1407,7 @@ class TestFirecrawlResponseParsing:
 
             return FakeResponse()
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(api_key="fc-test-key")
             result = provider.fetch("https://example.com/")
         assert result.ok is True
@@ -2382,7 +2415,7 @@ class TestFirecrawlFetchProviderEgress:
             calls.append(endpoint)
             return _FakeResp(200, url=endpoint)
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             # Target validation fails closed first, even with empty API key
             provider = FirecrawlFetchProvider(api_key="")
             result = provider.fetch(prohibited_url)
@@ -2414,7 +2447,7 @@ class TestFirecrawlFetchProviderEgress:
             calls.append(endpoint)
             return _FakeResp(200, url=endpoint)
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(
                 base_url=arbitrary_endpoint,
                 api_key="fc-secret-token",
@@ -2447,7 +2480,7 @@ class TestFirecrawlFetchProviderEgress:
         def mock_resolver(host):
             return ["93.184.216.34"]
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(
                 base_url="http://127.0.0.1:8080",
                 api_key="fc-test-key",
@@ -2477,7 +2510,7 @@ class TestFirecrawlFetchProviderEgress:
         def mock_resolver(host):
             return ["93.184.216.34"]
 
-        with patch("requests.post", side_effect=fake_post):
+        with _firecrawl_session_patch(fake_post):
             provider = FirecrawlFetchProvider(
                 api_key="fc-test-key",
                 allow_test_endpoint=True,
@@ -2569,3 +2602,282 @@ class TestPipelineEgressIntegration:
         assert resolved_ep is not None
         assert resolved_ep.is_authorized("https://example.com/") is True
         assert resolved_ep.is_authorized("http://127.0.0.1/") is False
+
+
+# ======================================================================
+# #1295 BLOCKER A — Requests ambient proxy / trust_env isolation
+# Offline: fake Session records trust_env and call log; no real network.
+# ======================================================================
+
+class _ProxyProbeSesh:
+    """Fake requests.Session that records dispatch and proxy-trust state."""
+
+    def __init__(self, side_effect=None):
+        self.trust_env = True
+        self.headers = {}
+        self.cookies = {}
+        self.get_calls = []
+        self._side_effect = side_effect
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def get(self, url, timeout=None, allow_redirects=True, **kwargs):
+        self.get_calls.append({
+            "url": url,
+            "trust_env": self.trust_env,
+            "session_cookies_before": dict(self.cookies),
+        })
+        if self._side_effect is not None:
+            return self._side_effect(url, self)
+        return _FakeResp(200, url=url)
+
+
+def test_no_egress_path_does_not_force_direct_transport():
+    """egress_policy=None: legacy/no-egress path must NOT introduce a reviewed
+    direct-egress Session (which would force trust_env=False). It keeps the
+    historical top-level requests.get environment semantics unchanged."""
+    import requests as req_mod
+
+    session_instantiated = {"n": 0}
+    real_session = req_mod.Session
+
+    def spy_session(*args, **kwargs):
+        session_instantiated["n"] += 1
+        return real_session(*args, **kwargs)
+
+    get_calls = []
+
+    def fake_get(url, headers, timeout):
+        get_calls.append(url)
+        return _FakeResp(200, url=url)
+
+    with patch("requests.Session", side_effect=spy_session), \
+         patch("requests.get", side_effect=fake_get):
+        provider = RequestsFetchProvider()
+        result = provider.fetch("https://example.com/")
+
+    assert result.ok is True
+    assert get_calls == ["https://example.com/"]
+    # No direct-egress Session constructed -> ambient env (HTTP_PROXY etc.)
+    # honoring legacy behavior is preserved.
+    assert session_instantiated["n"] == 0
+
+
+def test_egress_active_initial_dispatch_trust_env_false():
+    """egress_policy active: the dispatched Session has trust_env == False."""
+    sesh = _ProxyProbeSesh()
+
+    with patch("requests.Session", side_effect=lambda: sesh):
+        provider = RequestsFetchProvider(egress_policy=PublicEgressPolicy())
+        result = provider.fetch("https://example.com/")
+
+    assert result.ok is True
+    assert sesh.trust_env is False
+    assert len(sesh.get_calls) == 1
+    assert sesh.get_calls[0]["trust_env"] is False
+
+
+def test_egress_active_public_to_public_redirect_continuity():
+    """Public -> public redirect: same direct Session with trust_env False and
+    cookie continuity preserved across hops."""
+    sesh = _ProxyProbeSesh()
+
+    def side_effect(url, s):
+        if len(s.get_calls) == 1:
+            s.cookies["session"] = "abc"
+            return _FakeResp(302, location="/next", url=url)
+        return _FakeResp(200, url=url)
+
+    sesh._side_effect = side_effect
+
+    with patch("requests.Session", side_effect=lambda: sesh):
+        provider = RequestsFetchProvider(egress_policy=PublicEgressPolicy())
+        result = provider.fetch("https://example.com/start")
+
+    assert result.ok is True
+    assert sesh.trust_env is False
+    assert [c["url"] for c in sesh.get_calls] == [
+        "https://example.com/start",
+        "https://example.com/next",
+    ]
+    # Both hops on the same direct Session -> ambient proxy disabled.
+    assert sesh.get_calls[0]["trust_env"] is False
+    assert sesh.get_calls[1]["trust_env"] is False
+    # Cookie set on first hop is visible on the second hop (continuity).
+    assert sesh.get_calls[0]["session_cookies_before"] == {}
+    assert sesh.get_calls[1]["session_cookies_before"] == {"session": "abc"}
+
+
+def test_egress_active_public_to_private_redirect_no_second_hop():
+    """Public -> private redirect: trust_env False and the private second hop
+    is never dispatched (egress policy blocks before socket)."""
+    sesh = _ProxyProbeSesh()
+
+    def side_effect(url, s):
+        return _FakeResp(302, location="http://127.0.0.1:8080/secret", url=url)
+
+    sesh._side_effect = side_effect
+
+    def mock_resolver(host):
+        if host in ("localhost", "127.0.0.1"):
+            return ["127.0.0.1"]
+        return ["93.184.216.34"]
+
+    ep = PublicEgressPolicy(resolver=mock_resolver)
+
+    with patch("requests.Session", side_effect=lambda: sesh):
+        provider = RequestsFetchProvider(egress_policy=ep)
+        result = provider.fetch("https://example.com/start", acquisition_policy=None)
+
+    assert sesh.trust_env is False
+    assert [c["url"] for c in sesh.get_calls] == ["https://example.com/start"]
+    assert result.ok is False
+    assert "egress" in result.error.lower()
+
+
+def test_egress_active_legacy_400_retry_trust_env_false():
+    """Legacy 400 retry (egress active): re-resolution before retry and the
+    retry transport is the same ambient-proxy-disabled Session."""
+    res_calls = []
+
+    def dyn_resolver(host):
+        res_calls.append(host)
+        return ["93.184.216.34"]
+
+    ep = PublicEgressPolicy(resolver=dyn_resolver)
+    sesh = _ProxyProbeSesh()
+
+    def side_effect(url, s):
+        n = len(s.get_calls)
+        if n == 1:
+            return _FakeResp(400, url=url)
+        return _FakeResp(200, url=url)
+
+    sesh._side_effect = side_effect
+
+    with patch("requests.Session", side_effect=lambda: sesh):
+        provider = RequestsFetchProvider(egress_policy=ep)
+        result = provider.fetch("https://example.com/")
+
+    assert result.ok is True
+    assert sesh.trust_env is False
+    # Initial attempt + legacy 400 retry.
+    assert len(sesh.get_calls) == 2
+    assert all(c["trust_env"] is False for c in sesh.get_calls)
+    # Re-resolution happened before the retry dispatch.
+    assert res_calls.count("example.com") >= 2
+
+
+def test_egress_active_fetchconfig_retry_trust_env_false():
+    """FetchConfig retry (egress active): re-resolution before retry and the
+    retry transport is the same ambient-proxy-disabled Session."""
+    res_calls = []
+
+    def dyn_resolver(host):
+        res_calls.append(host)
+        return ["93.184.216.34"]
+
+    ep = PublicEgressPolicy(resolver=dyn_resolver)
+    sesh = _ProxyProbeSesh()
+
+    def side_effect(url, s):
+        n = len(s.get_calls)
+        return _FakeResp(503, url=url) if n == 1 else _FakeResp(200, url=url)
+
+    sesh._side_effect = side_effect
+
+    config = FetchConfig(max_retries=2, retry_on_status=(503,), retry_backoff=0.0)
+
+    with patch("requests.Session", side_effect=lambda: sesh), \
+         patch("time.sleep"):
+        provider = RequestsFetchProvider(egress_policy=ep)
+        result = provider.fetch("https://example.com/", config=config)
+
+    assert result.ok is True
+    assert sesh.trust_env is False
+    # Initial attempt + one retry.
+    assert len(sesh.get_calls) == 2
+    assert all(c["trust_env"] is False for c in sesh.get_calls)
+    # Re-resolution happened before the retry dispatch.
+    assert res_calls.count("example.com") >= 2
+
+
+# ======================================================================
+# #1295 BLOCKER A/B — Firecrawl credential-bearing transport proxy boundary
+# ======================================================================
+
+class TestFirecrawlTransportProxyBoundary:
+    def test_direct_session_trust_env_false_and_single_post(self):
+        """Firecrawl POST uses a dedicated Session with trust_env=False and is
+        issued exactly once for a valid mocked case."""
+        post_calls = []
+        sesh_ref = {}
+
+        def fake_post(endpoint, headers=None, json=None, timeout=None):
+            post_calls.append(1)
+            sesh_ref["trust_env"] = sesh_ref["s"].trust_env
+            resp = _FakeResp(200, url=endpoint)
+            resp._json_data = {
+                "success": True,
+                "data": {
+                    "markdown": "# x",
+                    "metadata": {"sourceURL": "https://example.com/"},
+                },
+            }
+            return resp
+
+        def make_sesh():
+            s = _FakeFirecrawlSession(fake_post)
+            sesh_ref["s"] = s
+            return s
+
+        with patch("requests.Session", side_effect=make_sesh):
+            provider = FirecrawlFetchProvider(api_key="fc-test-key")
+            result = provider.fetch("https://example.com/")
+
+        assert sesh_ref["trust_env"] is False
+        assert len(post_calls) == 1
+        assert result.ok is True
+
+    def test_prohibited_service_endpoint_post_zero(self):
+        """Prohibited service endpoint fails closed before POST (POST count 0)."""
+        post_calls = []
+
+        def fake_post(endpoint, headers=None, json=None, timeout=None):
+            post_calls.append(1)
+            raise AssertionError("must not POST to prohibited endpoint")
+
+        with _firecrawl_session_patch(fake_post):
+            provider = FirecrawlFetchProvider(
+                base_url="https://evil-attacker.com",
+                api_key="k",
+                allow_test_endpoint=False,
+            )
+            result = provider.fetch("https://example.com/")
+
+        assert len(post_calls) == 0
+        assert "service endpoint validation failed" in result.error.lower()
+
+    def test_allow_test_endpoint_rejects_external_hostname(self):
+        """allow_test_endpoint=True is NOT a global security-off: an arbitrary
+        external hostname (evil.example.com) is still rejected (POST 0)."""
+        post_calls = []
+
+        def fake_post(endpoint, headers=None, json=None, timeout=None):
+            post_calls.append(1)
+            raise AssertionError("must not POST to external test endpoint")
+
+        with _firecrawl_session_patch(fake_post):
+            provider = FirecrawlFetchProvider(
+                base_url="https://evil.example.com",
+                api_key="k",
+                allow_test_endpoint=True,
+            )
+            result = provider.fetch("https://example.com/")
+
+        assert len(post_calls) == 0
+        assert "service endpoint validation failed" in result.error.lower()

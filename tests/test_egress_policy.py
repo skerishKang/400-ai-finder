@@ -327,6 +327,94 @@ class TestFirecrawlServiceEndpointValidation:
         assert ok2 is True
 
 
+class TestFirecrawlServiceEndpointTestSeamLoopbackOnly:
+    """#1295 BLOCKER B — allow_test_endpoint is loopback-only, never a global
+    security off switch."""
+
+    def test_loopback_names_allowed_when_test_seam_enabled(self):
+        for ep in (
+            "http://localhost:8080",
+            "https://localhost:8443",
+            "http://127.0.0.1:9999",
+            "https://127.0.0.1:9999",
+            "http://[::1]:8080",
+            "https://[::1]:8443",
+        ):
+            ok, reason = is_valid_firecrawl_service_endpoint(
+                ep, allow_test_endpoint=True
+            )
+            assert ok is True, f"{ep} expected allowed loopback: {reason}"
+
+    def test_external_hostname_rejected_even_with_test_seam(self):
+        ok, reason = is_valid_firecrawl_service_endpoint(
+            "https://evil.example.com", allow_test_endpoint=True
+        )
+        assert ok is False
+        assert "loopback" in reason.lower()
+
+    def test_rfc1918_rejected_even_with_test_seam(self):
+        for ep in (
+            "http://10.0.0.1:8080",
+            "http://172.16.0.1:8080",
+            "http://192.168.1.1:8080",
+        ):
+            ok, _ = is_valid_firecrawl_service_endpoint(
+                ep, allow_test_endpoint=True
+            )
+            assert ok is False, f"{ep} must be rejected (not loopback)"
+
+    def test_link_local_metadata_rejected_even_with_test_seam(self):
+        ok, _ = is_valid_firecrawl_service_endpoint(
+            "http://169.254.169.254:8080", allow_test_endpoint=True
+        )
+        assert ok is False
+
+
+class TestFirecrawlServiceEndpointPortFailClosed:
+    """#1295 — malformed / out-of-range ports fail closed (no exception escape)."""
+
+    def test_malformed_port_official_fail_closed(self):
+        ok, reason = is_valid_firecrawl_service_endpoint(
+            "https://api.firecrawl.dev:abc"
+        )
+        assert ok is False
+        assert "port" in reason.lower()
+
+    def test_out_of_range_port_official_fail_closed(self):
+        ok, _ = is_valid_firecrawl_service_endpoint(
+            "https://api.firecrawl.dev:65536"
+        )
+        assert ok is False
+
+    def test_malformed_port_loopback_fail_closed(self):
+        ok, reason = is_valid_firecrawl_service_endpoint(
+            "http://localhost:abc", allow_test_endpoint=True
+        )
+        assert ok is False
+        assert "port" in reason.lower()
+
+    def test_out_of_range_port_loopback_fail_closed(self):
+        ok, _ = is_valid_firecrawl_service_endpoint(
+            "http://127.0.0.1:65536", allow_test_endpoint=True
+        )
+        assert ok is False
+
+    def test_no_exception_escape_on_port_errors(self):
+        for ep in (
+            "https://api.firecrawl.dev:abc",
+            "https://api.firecrawl.dev:65536",
+            "http://localhost:abc",
+            "http://127.0.0.1:65536",
+        ):
+            try:
+                ok, _ = is_valid_firecrawl_service_endpoint(
+                    ep, allow_test_endpoint=True
+                )
+            except Exception as exc:  # noqa: BLE001 - negative test: must not raise
+                raise AssertionError(f"exception escaped for {ep}: {exc}")
+            assert ok is False
+
+
 class TestLimitationDeclaration:
     """Verify explicit documentation of TOCTOU / DNS rebinding limitation."""
 

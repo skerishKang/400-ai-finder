@@ -222,6 +222,14 @@ class RequestsFetchProvider(FetchProvider):
             return _REDIRECT_SCOPE_BLOCKED
 
         with req_lib.Session() as session:
+            # #1295 — security-sensitive egress path must not inherit ambient
+            # proxy / netrc settings from the environment (HTTP_PROXY,
+            # HTTPS_PROXY, ALL_PROXY, ~/.netrc). When an egress policy is
+            # active the request is dispatched through a reviewed direct
+            # transport with ``trust_env=False``. When no egress policy is
+            # present the historical requests behavior (ambient env honoring)
+            # is preserved unchanged.
+            session.trust_env = ep is None
             session.headers.clear()
             session.headers.update(headers)
 
@@ -274,9 +282,19 @@ class RequestsFetchProvider(FetchProvider):
                 if ep is None or ep.is_authorized(current_url):
                     retry_headers = _build_retry_headers(self.user_agent)
                     try:
-                        retry_resp = self._request_once(
-                            current_url, timeout, retry_headers, allow_redirects=False
-                        )
+                        if ep is not None:
+                            # #1295: security-sensitive egress path keeps the
+                            # same direct transport (ambient proxy disabled).
+                            retry_resp = session.get(
+                                current_url,
+                                timeout=timeout,
+                                headers=retry_headers,
+                                allow_redirects=False,
+                            )
+                        else:
+                            retry_resp = self._request_once(
+                                current_url, timeout, retry_headers, allow_redirects=False
+                            )
                         resp = retry_resp
                     except Exception:
                         pass
@@ -294,9 +312,16 @@ class RequestsFetchProvider(FetchProvider):
                 if config.retry_backoff > 0:
                     time.sleep(config.retry_backoff)
                 try:
-                    resp = self._request_once(
-                        current_url, timeout, self.headers, allow_redirects=False
-                    )
+                    if ep is not None:
+                        # #1295: security-sensitive egress path keeps the same
+                        # direct transport (ambient proxy disabled).
+                        resp = session.get(
+                            current_url, timeout=timeout, allow_redirects=False
+                        )
+                    else:
+                        resp = self._request_once(
+                            current_url, timeout, self.headers, allow_redirects=False
+                        )
                 except req_lib.exceptions.Timeout:
                     if attempt_index < config.max_retries:
                         if config.retry_backoff > 0:

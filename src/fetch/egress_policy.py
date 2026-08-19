@@ -327,17 +327,46 @@ def is_valid_firecrawl_service_endpoint(
     if "@" in (parsed.netloc or "") or parsed.username or parsed.password:
         return False, "Prohibited userinfo in service endpoint URL"
 
+    # ``urlsplit(...).port`` raises ValueError on a malformed port (e.g.
+    # 'https://api.firecrawl.dev:abc'). Fail closed instead of propagating.
+    try:
+        port = parsed.port
+    except ValueError:
+        return False, f"Invalid port in service endpoint URL: {base_url}"
+
     hostname = (parsed.hostname or "").rstrip(".").lower()
     if not hostname:
         return False, "Missing hostname in service endpoint URL"
 
     # Official reviewed Firecrawl service endpoint
     if scheme == "https" and hostname == OFFICIAL_FIRECRAWL_HOST:
-        if parsed.port is None or parsed.port == 443:
+        if port is None or port == 443:
             return True, ""
 
     if allow_test_endpoint:
-        return True, ""
+        # Explicit loopback / local-test only. This is NOT a global
+        # "security off" switch: arbitrary external hostnames (including
+        # public DNS names such as evil.example.com), RFC1918 ranges,
+        # link-local, metadata endpoints and similar are still rejected.
+        if port is not None and not (1 <= port <= 65535):
+            return False, f"Service endpoint port out of range (1..65535): {port}"
+        if hostname in ("localhost", "ip6-localhost", "ip6-loopback"):
+            return True, ""
+        try:
+            ip_obj = ipaddress.ip_address(hostname)
+        except ValueError:
+            return False, (
+                f"Test service endpoint '{hostname}' is not a loopback/local address; "
+                f"allow_test_endpoint restricts to loopback only "
+                f"(localhost / 127.0.0.0/8 / ::1)"
+            )
+        if ip_obj.is_loopback:
+            return True, ""
+        return False, (
+            f"Test service endpoint '{hostname}' is not a loopback/local address; "
+            f"allow_test_endpoint restricts to loopback only "
+            f"(localhost / 127.0.0.0/8 / ::1)"
+        )
 
     return False, (
         f"Firecrawl service endpoint '{base_url}' is not the approved official endpoint "
