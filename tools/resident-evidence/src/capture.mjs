@@ -5,16 +5,17 @@
 //   1. All required predicates pass
 //   2. All forbidden predicates are absent
 //   3. The state is stable (stability observer confirms STABLE)
-//   4. Safety observer confirms zero external requests
+//   4. Safety observer confirms ZERO external-origin requests (ATOMIC)
+//
+// BLOCKER 1 FIX: zero-external is an atomic precondition of ACCEPTED capture.
+// If external-origin count > 0, no PNG may enter the accepted set.
+// The result is classified as FORBIDDEN_STATE_REACHED with a safety violation reason.
 //
 // Failed captures produce diagnostic-only evidence, never accepted evidence.
 
 import { evaluatePredicates } from "./predicates.mjs";
 import { waitForStability } from "./stability-observer.mjs";
 
-/**
- * Capture status classifications.
- */
 export const CAPTURE_STATUS = Object.freeze({
   ACCEPTED: "ACCEPTED",
   STATE_MISMATCH: "STATE_MISMATCH",
@@ -33,6 +34,20 @@ export const CAPTURE_STATUS = Object.freeze({
  * @returns {Promise<{eligible: boolean, status: string, requiredResults: Array, forbiddenResults: Array, stabilityResult: Object}>}
  */
 export async function evaluateCaptureEligibility(page, stateSpec, stabilityConfig = {}) {
+  // Handle non-observable states (NOT_SEPARATELY_OBSERVABLE)
+  if (stateSpec.observable === false) {
+    return {
+      eligible: false,
+      status: CAPTURE_STATUS.NOT_SEPARATELY_OBSERVABLE,
+      requiredResults: [],
+      forbiddenResults: [],
+      stabilityResult: null,
+      notSeparablyObservable: true,
+      equivalentState: stateSpec.equivalentState || null,
+      reason: stateSpec.reason || "State is not separately observable",
+    };
+  }
+
   // 1. Evaluate required predicates
   const requiredResult = await evaluatePredicates(page, stateSpec.required);
   if (!requiredResult.allPassed) {
@@ -57,7 +72,7 @@ export async function evaluateCaptureEligibility(page, stateSpec, stabilityConfi
     };
   }
 
-  // 3. Check evidence requirements (if present — e.g. visible buttons for CHOICE)
+  // 3. Check evidence requirements (if present)
   if (stateSpec.evidenceRequirements) {
     const evidenceResult = await evaluatePredicates(page, stateSpec.evidenceRequirements);
     if (!evidenceResult.allPassed) {
@@ -93,7 +108,7 @@ export async function evaluateCaptureEligibility(page, stateSpec, stabilityConfi
     };
   }
 
-  // 5. Re-verify predicates after stability (state may have changed)
+  // 5. Re-verify predicates after stability
   const recheckRequired = await evaluatePredicates(page, stateSpec.required);
   if (!recheckRequired.allPassed) {
     return {

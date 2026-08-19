@@ -1,24 +1,25 @@
 // tools/resident-evidence/src/orchestrator.mjs
 //
-// Scenario orchestrator — drives the resident journey to a target state,
-// evaluates the semantic state spec, and coordinates capture.
+// Scenario orchestrator — drives the resident journey through checkpoints,
+// evaluating the semantic state spec and capturing evidence AT THE ACTUAL
+// STATE TIME, not after all scenario steps finish.
 //
-// The orchestrator is GENERIC: it evaluates state specs from state-specs.mjs
-// and drives scenario steps from scenario spec files. No Streetlight/Litter
-// hard-coded logic lives here.
+// BLOCKER 1 FIX: zero-external is an atomic precondition of ACCEPTED capture.
+// If external-origin count > 0, no PNG may enter the accepted set.
+// BLOCKER 2 FIX: scenario spec defines checkpoints (step + capture interleaved).
+// BLOCKER 3 FIX: runScenario returns expected vs actual disposition for each
+// checkpoint. CLI enforces required positive states must be ACCEPTED.
 
 import { evaluateCaptureEligibility, captureScreenshot, CAPTURE_STATUS } from "./capture.mjs";
 import { collectSnapshot } from "./runtime-observer.mjs";
-import { attachSafetyObserver, assertZeroExternalRequests } from "./safety-observer.mjs";
+import { attachSafetyObserver } from "./safety-observer.mjs";
 import { buildManifestEntry, buildDiagnosticEntry, writeManifest } from "./manifest.mjs";
+import { isObservable, getEquivalentState } from "./state-specs.mjs";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 /**
  * Poll until a predicate function returns true or timeout.
- * @param {import('playwright').Page} page
- * @param {() => Promise<boolean>} fn
- * @param {{timeoutMs?: number, label?: string}} opts
  */
 export async function pollUntil(page, fn, opts = {}) {
   const { timeoutMs = 20000, label = "unnamed" } = opts;
@@ -33,9 +34,6 @@ export async function pollUntil(page, fn, opts = {}) {
 
 /**
  * Build a deterministic mock API response for a question.
- * This is the test-tool-side mock, not a production change.
- * @param {string} question
- * @param {Object} config — scenario config with question-to-action mapping
  */
 export function buildMockResponse(question, config) {
   const action = config.action || "none";
@@ -66,10 +64,6 @@ export function buildMockResponse(question, config) {
   };
 }
 
-/**
- * Switch the mobile surface to conversation.
- * @param {import('playwright').Page} page
- */
 export async function switchToConversation(page) {
   const surface = await page.getAttribute("body", "data-mobile-surface");
   if (surface === "guidance") {
@@ -83,10 +77,6 @@ export async function switchToConversation(page) {
   }
 }
 
-/**
- * Switch the mobile surface to guidance.
- * @param {import('playwright').Page} page
- */
 export async function switchToGuidance(page) {
   const surface = await page.getAttribute("body", "data-mobile-surface");
   if (surface !== "guidance") {
@@ -103,15 +93,11 @@ export async function switchToGuidance(page) {
 /**
  * Drive a scenario to a target state and attempt evidence capture.
  *
+ * BLOCKER 1 FIX: zero-external is checked ATOMICALLY before any accepted
+ * screenshot write. If external-origin count > 0, the capture is classified
+ * as FORBIDDEN_STATE_REACHED and routed to diagnostics only.
+ *
  * @param {Object} params
- * @param {import('playwright').Page} params.page
- * @param {Object} params.scenarioSpec — from scenario file
- * @param {string} params.targetState — semantic state name
- * @param {Object} params.stateSpec — from state-specs.mjs
- * @param {Object} params.safetyObserver
- * @param {string} params.acceptedDir
- * @param {string} params.diagnosticDir
- * @param {Object} [params.stabilityConfig]
  * @returns {Promise<Object>} capture result
  */
 export async function captureEvidence(params) {
@@ -124,6 +110,56 @@ export async function captureEvidence(params) {
   const snapshot = await collectSnapshot(page);
   const safetyCounts = safetyObserver.getCounts();
   const filename = `${scenarioSpec.id}_${targetState}.png`;
+
+  // BLOCKER 1: ATOMIC zero-external precondition for ACCEPTED capture.
+  // If external-origin count > 0, no PNG may enter the accepted set,
+  // EVEN IF all other predicates passed. Route to diagnostic/fail-closed.
+  if (eligibility.eligible && safetyCounts.externalOriginRequests > 0) {
+    // Write diagnostic only (never to accepted)
+    const diagPath = join(diagnosticDir, filename);
+    let diagResult = null;
+    try {
+      diagResult = await captureScreenshot(page, diagPath);
+    } catch {
+      // best-effort
+    }
+    const diagEntry = buildDiagnosticEntry({
+      scenarioId: scenarioSpec.id,
+      semanticState: targetState,
+      requestedState: targetState,
+      product: scenarioSpec.product,
+      viewport: scenarioSpec.viewport,
+      url: snapshot.url,
+      runtimeSnapshot: snapshot,
+      requiredResults: eligibility.requiredResults,
+      forbiddenResults: eligibility.forbiddenResults,
+      stabilityResult: eligibility.stabilityResult,
+      safetyCounts,
+      captureStatus: CAPTURE_STATUS.FORBIDDEN_STATE_REACHED,
+      reason: `SAFETY VIOLATION: external-origin requests=${safetyCounts.externalOriginRequests}. Accepted set unchanged.`,
+    });
+    return { accepted: false, entry: diagEntry, eligibility: { ...eligibility, eligible: false, status: CAPTURE_STATUS.FORBIDDEN_STATE_REACHED }, snapshot, safetyViolation: true };
+  }
+
+  // Handle NOT_SEPARATELY_OBSERVABLE states
+  if (eligibility.notSeparablyObservable) {
+    const diagEntry = buildDiagnosticEntry({
+      scenarioId: scenarioSpec.id,
+      semanticState: targetState,
+      requestedState: targetState,
+      product: scenarioSpec.product,
+      viewport: scenarioSpec.viewport,
+      url: snapshot.url,
+      runtimeSnapshot: snapshot,
+      requiredResults: [],
+      forbiddenResults: [],
+      stabilityResult: null,
+      safetyCounts,
+      captureStatus: CAPTURE_STATUS.NOT_SEPARATELY_OBSERVABLE,
+      reason: eligibility.reason || `State ${targetState} is not separately observable. Equivalent: ${eligibility.equivalentState}`,
+    });
+    return { accepted: false, entry: diagEntry, eligibility, snapshot, notSeparablyObservable: true, equivalentState: eligibility.equivalentState };
+  }
 
   if (eligibility.eligible) {
     // ACCEPTED: write to accepted dir
@@ -154,12 +190,11 @@ export async function captureEvidence(params) {
     ...eligibility.forbiddenResults.filter((r) => !r.passed).map((r) => `FORBIDDEN:${r.name}:${r.detail}`),
   ].join("; ");
 
-  // Diagnostic screenshot (optional, clearly separated)
   let diagResult = null;
   try {
     diagResult = await captureScreenshot(page, diagPath);
   } catch {
-    // Diagnostic screenshot is best-effort
+    // best-effort
   }
 
   const diagEntry = buildDiagnosticEntry({
@@ -182,17 +217,15 @@ export async function captureEvidence(params) {
 }
 
 /**
- * Run a full scenario with multiple state captures.
+ * Run a full scenario with checkpoint-based capture.
+ *
+ * BLOCKER 2 FIX: scenario spec defines `checkpoints` — an array of
+ * { state, afterStep } where `afterStep` is the index of the step
+ * after which this state should be captured. The orchestrator executes
+ * steps and captures at each checkpoint BETWEEN steps, not after all.
  *
  * @param {Object} params
- * @param {import('playwright').Browser} params.browser
- * @param {Object} params.scenarioSpec — scenario definition with steps
- * @param {Object} params.stateSpecs — map of state name to spec
- * @param {string} params.baseUrl
- * @param {string} params.artifactsRoot
- * @param {string} params.runId
- * @param {Object} [params.stabilityConfig]
- * @returns {Promise<Object>} full run result with all manifest entries
+ * @returns {Promise<Object>} full run result
  */
 export async function runScenario(params) {
   const { browser, scenarioSpec, stateSpecs, baseUrl, artifactsRoot, runId, stabilityConfig } = params;
@@ -200,7 +233,7 @@ export async function runScenario(params) {
   const runDir = join(artifactsRoot, runId, scenarioSpec.id);
   const acceptedDir = join(runDir, "screenshots");
   const diagnosticDir = join(runDir, "diagnostics");
-  const manifestDir = join(runDir);
+  const manifestDir = runDir;
   mkdirSync(runDir, { recursive: true });
 
   const context = await browser.newContext({
@@ -210,7 +243,6 @@ export async function runScenario(params) {
   const page = await context.newPage();
   const safetyObserver = attachSafetyObserver(page);
 
-  // Set up deterministic API mock
   await page.route("**/api/mvp/ask", async (route) => {
     const payload = JSON.parse(route.request().postData() || "{}");
     await route.fulfill({
@@ -221,6 +253,7 @@ export async function runScenario(params) {
   });
 
   const entries = [];
+  const checkpointResults = [];
 
   try {
     // Navigate to MVP entry
@@ -231,36 +264,85 @@ export async function runScenario(params) {
       { label: "entry state", timeoutMs: 8000 },
     );
 
-    // Execute scenario steps
-    for (const step of scenarioSpec.steps) {
-      await step(page);
-    }
+    // Determine checkpoint plan
+    const checkpoints = scenarioSpec.checkpoints || [];
 
-    // Attempt capture for each requested state
-    for (const targetState of scenarioSpec.captureStates) {
-      const stateSpec = stateSpecs[targetState];
-      if (!stateSpec) {
-        entries.push({
-          schema_version: "1.0.0",
-          scenario_id: scenarioSpec.id,
-          requested_state: targetState,
-          capture_status: "UNKNOWN_STATE",
-          reason: `No state spec defined for ${targetState}`,
-        });
-        continue;
+    // If no checkpoints defined, fall back to old behavior (all captures after all steps)
+    if (checkpoints.length === 0 && scenarioSpec.captureStates) {
+      // Execute all steps
+      for (const step of scenarioSpec.steps) {
+        await step(page);
       }
+      // Capture all states
+      for (const targetState of scenarioSpec.captureStates) {
+        const stateSpec = stateSpecs[targetState];
+        if (!stateSpec) {
+          entries.push({
+            schema_version: "1.0.0",
+            scenario_id: scenarioSpec.id,
+            requested_state: targetState,
+            capture_status: "UNKNOWN_STATE",
+            reason: `No state spec defined for ${targetState}`,
+          });
+          checkpointResults.push({ state: targetState, expected: "ACCEPTED", actual: "UNKNOWN_STATE", accepted: false });
+          continue;
+        }
+        const result = await captureEvidence({
+          page, scenarioSpec, targetState, stateSpec, safetyObserver, acceptedDir, diagnosticDir, stabilityConfig,
+        });
+        entries.push(result.entry);
+        checkpointResults.push({
+          state: targetState,
+          expected: isObservable(targetState) ? "ACCEPTED" : "NOT_SEPARATELY_OBSERVABLE",
+          actual: result.entry.capture_status,
+          accepted: result.accepted,
+        });
+      }
+    } else {
+      // BLOCKER 2 FIX: checkpoint-based execution
+      // Execute steps in order, capturing at each checkpoint.
+      // Track the current step index so steps are NOT re-executed.
+      let currentStepIndex = 0;
 
-      const result = await captureEvidence({
-        page,
-        scenarioSpec,
-        targetState,
-        stateSpec,
-        safetyObserver,
-        acceptedDir,
-        diagnosticDir,
-        stabilityConfig,
-      });
-      entries.push(result.entry);
+      for (const checkpoint of checkpoints) {
+        // Determine which steps to execute for this checkpoint
+        const targetStepIndex = checkpoint.afterStep !== undefined
+          ? checkpoint.afterStep + 1
+          : (checkpoint.beforeStep !== undefined ? checkpoint.beforeStep : 0);
+
+        // Execute any steps that haven't been run yet up to the target
+        while (currentStepIndex < targetStepIndex && currentStepIndex < scenarioSpec.steps.length) {
+          await scenarioSpec.steps[currentStepIndex](page);
+          currentStepIndex++;
+        }
+
+        // Capture at this checkpoint
+        const targetState = checkpoint.state;
+        const stateSpec = stateSpecs[targetState];
+        if (!stateSpec) {
+          entries.push({
+            schema_version: "1.0.0",
+            scenario_id: scenarioSpec.id,
+            requested_state: targetState,
+            capture_status: "UNKNOWN_STATE",
+            reason: `No state spec defined for ${targetState}`,
+          });
+          checkpointResults.push({ state: targetState, expected: checkpoint.expected || "ACCEPTED", actual: "UNKNOWN_STATE", accepted: false });
+          continue;
+        }
+
+        const result = await captureEvidence({
+          page, scenarioSpec, targetState, stateSpec, safetyObserver, acceptedDir, diagnosticDir, stabilityConfig,
+        });
+        entries.push(result.entry);
+        checkpointResults.push({
+          state: targetState,
+          expected: checkpoint.expected || (isObservable(targetState) ? "ACCEPTED" : "NOT_SEPARATELY_OBSERVABLE"),
+          actual: result.entry.capture_status,
+          accepted: result.accepted,
+          equivalentState: result.equivalentState || getEquivalentState(targetState),
+        });
+      }
     }
   } finally {
     safetyObserver.detach();
@@ -273,6 +355,7 @@ export async function runScenario(params) {
   return {
     scenarioId: scenarioSpec.id,
     entries,
+    checkpointResults,
     manifestPath,
     safetyCounts,
   };

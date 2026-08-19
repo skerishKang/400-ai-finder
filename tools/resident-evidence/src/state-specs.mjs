@@ -9,6 +9,9 @@
 //   forbidden: Array<{name, check}> — predicate combinators (must all fail-to-find)
 //   surface: "conversation" | "guidance" | "any" — mobile surface requirement
 //   stabilityNotes: string — proven stability characteristics
+//   equivalentState: string|null — when NOT_SEPARATELY_OBSERVABLE, the canonical alias
+//   nonSeparableOn: string|null — viewport where this state is not separately observable
+//   observable: boolean — false for states that have no unique runtime predicate
 //
 // State identity is NEVER inferred from the filename alone.
 // All predicates are evaluated against actual DOM/runtime truth.
@@ -29,7 +32,6 @@ import {
 } from "./predicates.mjs";
 
 // ── Success/receipt forbidden text patterns ─────────────────────────────
-// These are proven absent at all pre-submit states by the runtime probe.
 export const FORBIDDEN_SUCCESS_PATTERNS = [
   "접수되었습니다",
   "접수번호",
@@ -39,9 +41,6 @@ export const FORBIDDEN_SUCCESS_PATTERNS = [
   "등록되었습니다",
 ];
 
-/**
- * Build forbidden success semantics predicates from the shared pattern list.
- */
 function forbiddenSuccessPredicates() {
   return FORBIDDEN_SUCCESS_PATTERNS.map((text) => ({
     name: `forbidden-text:${text}`,
@@ -49,11 +48,6 @@ function forbiddenSuccessPredicates() {
   }));
 }
 
-/**
- * Build the standard forbidden predicates for all pre-submit states:
- * - no success/receipt text
- * - #btn-board-submit must be disabled
- */
 function standardPreSubmitForbidden() {
   return [
     ...forbiddenSuccessPredicates(),
@@ -86,8 +80,6 @@ export const STATES = Object.freeze({
   }),
 
   // ── BEFORE_CLICK ───────────────────────────────────────────────────────
-  // NOTE: ENTRY and BEFORE_CLICK share body attributes. The differentiator
-  // is the composer input value. This is a user-action state.
   BEFORE_CLICK: Object.freeze({
     semanticState: "BEFORE_CLICK",
     surface: "any",
@@ -142,15 +134,108 @@ export const STATES = Object.freeze({
       { name: "no-title-populated", check: selectorAbsent("#board-write-title") },
       ...forbiddenSuccessPredicates(),
     ],
-    // For accepted mobile CHOICE evidence, both buttons must be VISIBLE
-    // on the conversation surface. The harness must switch to conversation
-    // before accepting CHOICE evidence.
     evidenceRequirements: Object.freeze([
       { name: "surface-conversation-or-desktop", check: bodyAttrIs("mobile-surface", "conversation") },
       { name: "ai-help-button-visible", check: selectorVisible(".chat-decision__button--primary") },
       { name: "write-self-button-visible", check: selectorVisible(".chat-decision__button--secondary") },
     ]),
     stabilityNotes: "choreography=waiting_choice — stable across 3 samples; typing/highlight absent",
+  }),
+
+  // ── TRANSITION ─────────────────────────────────────────────────────────
+  // Probe proven: first-use-state="transitioning" is a transient cinematic
+  // animation immediately replaced by "split". No stable observation window
+  // exists. NOT_SEPARATELY_OBSERVABLE for accepted evidence.
+  TRANSITION: Object.freeze({
+    semanticState: "TRANSITION",
+    surface: "any",
+    observable: false,
+    equivalentState: "CONFIRMATION",
+    reason: "first-use-state=transitioning is a transient cinematic animation with no stable observation window. Replaced immediately by split. NOT_SEPARATELY_OBSERVABLE.",
+    required: [],
+    forbidden: [],
+    stabilityNotes: "transient — no stable observation window",
+  }),
+
+  // ── SPLIT_READY ────────────────────────────────────────────────────────
+  // Probe proven: SPLIT_READY has no unique stable predicate distinct from
+  // CONFIRMATION. data-first-use-state="split" + confirm-run visible is the
+  // same observable state as CONFIRMATION. NOT_SEPARATELY_OBSERVABLE.
+  SPLIT_READY: Object.freeze({
+    semanticState: "SPLIT_READY",
+    surface: "any",
+    observable: false,
+    equivalentState: "CONFIRMATION",
+    reason: "data-first-use-state=split + confirm-run visible is the same observable state as CONFIRMATION. No unique stable predicate exists. NOT_SEPARATELY_OBSERVABLE.",
+    required: [],
+    forbidden: [],
+    stabilityNotes: "same as CONFIRMATION — NOT_SEPARATELY_OBSERVABLE",
+  }),
+
+  // ── TARGET_ROUTE_READY ─────────────────────────────────────────────────
+  // Probe proven: canvas[data-canvas-route] is null at all observed states.
+  // The route is rendered in canvas content, not a stable attribute. No
+  // unique runtime predicate for "route ready" distinct from the choreography
+  // step that follows. NOT_SEPARATELY_OBSERVABLE from the subsequent state.
+  TARGET_ROUTE_READY: Object.freeze({
+    semanticState: "TARGET_ROUTE_READY",
+    surface: "any",
+    observable: false,
+    equivalentState: "CHOICE",
+    reason: "canvas[data-canvas-route] is null at all observed states. Route is rendered in canvas content, not a stable attribute. No unique predicate distinct from the subsequent choreography state. NOT_SEPARATELY_OBSERVABLE.",
+    required: [],
+    forbidden: [],
+    stabilityNotes: "no unique stable predicate — NOT_SEPARATELY_OBSERVABLE",
+  }),
+
+  // ── AI_ANSWER ──────────────────────────────────────────────────────────
+  // The AI answer bubble is displayed in #chat-thread after the bridge
+  // response. This is transient between split and confirm-run. In the Buk-gu
+  // MVP resident journey, the answer is immediately followed by the
+  // confirm-run gate. No stable observation window between answer and confirm.
+  // NOT_SEPARATELY_OBSERVABLE from CONFIRMATION.
+  AI_ANSWER: Object.freeze({
+    semanticState: "AI_ANSWER",
+    surface: "any",
+    observable: false,
+    equivalentState: "CONFIRMATION",
+    reason: "AI answer bubble is transient between split and confirm-run. No stable observation window between answer and confirm in the Buk-gu MVP resident journey. NOT_SEPARATELY_OBSERVABLE.",
+    required: [],
+    forbidden: [],
+    stabilityNotes: "transient — NOT_SEPARATELY_OBSERVABLE from CONFIRMATION",
+  }),
+
+  // ── GROUNDING_EVIDENCE ─────────────────────────────────────────────────
+  // In the Buk-gu MVP resident journey, grounding evidence (the quest card
+  // with official_path/source_mode) appears simultaneously with the
+  // confirm-run gate. No separate stable state. NOT_SEPARATELY_OBSERVABLE
+  // from CONFIRMATION.
+  GROUNDING_EVIDENCE: Object.freeze({
+    semanticState: "GROUNDING_EVIDENCE",
+    surface: "any",
+    observable: false,
+    equivalentState: "CONFIRMATION",
+    reason: "Quest card with official_path/source_mode appears simultaneously with confirm-run gate. No separate stable state. NOT_SEPARATELY_OBSERVABLE from CONFIRMATION.",
+    required: [],
+    forbidden: [],
+    stabilityNotes: "simultaneous with CONFIRMATION — NOT_SEPARATELY_OBSERVABLE",
+  }),
+
+  // ── EXTERNAL_HANDOFF ───────────────────────────────────────────────────
+  // In the Buk-gu MVP resident journey, there is no external handoff step
+  // (the journey stops at pre-submit). This state is not applicable to the
+  // V1 proof scenarios. It exists in the vocabulary for completeness but is
+  // NOT_SEPARATELY_OBSERVABLE from PRE_SUBMIT_CONVERSATION in the Buk-gu
+  // resident journey (the STOP boundary is the pre-submit confirmation).
+  EXTERNAL_HANDOFF: Object.freeze({
+    semanticState: "EXTERNAL_HANDOFF",
+    surface: "any",
+    observable: false,
+    equivalentState: "PRE_SUBMIT_CONVERSATION",
+    reason: "Buk-gu MVP resident journey has no external handoff step. The STOP boundary is the pre-submit confirmation. NOT_SEPARATELY_OBSERVABLE from PRE_SUBMIT_CONVERSATION.",
+    required: [],
+    forbidden: [],
+    stabilityNotes: "not applicable to V1 Buk-gu proof scenarios — NOT_SEPARATELY_OBSERVABLE",
   }),
 
   // ── DRAFT_POPULATED ────────────────────────────────────────────────────
@@ -168,7 +253,6 @@ export const STATES = Object.freeze({
     ],
     forbidden: standardPreSubmitForbidden(),
     stabilityNotes: "choreography=waiting_confirmation, title/content values stable — stable across 3 samples",
-    // On desktop, DRAFT_POPULATED == PRE_SUBMIT_CONVERSATION (NOT_SEPARATELY_OBSERVABLE)
     equivalentState: "PRE_SUBMIT_CONVERSATION",
     nonSeparableOn: "desktop",
   }),
@@ -214,10 +298,25 @@ export const STATES = Object.freeze({
     ],
     stabilityNotes: "choreography=waiting_confirmation, surface=guidance, title/content visible — stable across 3 samples",
   }),
+
+  // ── FINAL_STABLE_STATE ─────────────────────────────────────────────────
+  // V1 must NEVER reach data-choreography-state="done" (requires clicking
+  // "검토했고, 제출하기" which is forbidden). FINAL_STABLE_STATE aliases the
+  // last safely observable pre-submit state. No unique predicate exists
+  // beyond PRE_SUBMIT_CONVERSATION. NOT_SEPARATELY_OBSERVABLE.
+  FINAL_STABLE_STATE: Object.freeze({
+    semanticState: "FINAL_STABLE_STATE",
+    surface: "any",
+    observable: false,
+    equivalentState: "PRE_SUBMIT_CONVERSATION",
+    reason: "Reaching choreography=done requires clicking the final confirmation button (검토했고, 제출하기), which is forbidden by #1355 hard boundary. No unique predicate exists beyond PRE_SUBMIT_CONVERSATION. NOT_SEPARATELY_OBSERVABLE — aliases the last safe pre-submit state.",
+    required: [],
+    forbidden: [],
+    stabilityNotes: "not independently observable — aliases PRE_SUBMIT_CONVERSATION",
+  }),
 });
 
 // ── Non-separable state pairs ─────────────────────────────────────────────
-// These pairs are proven NOT_SEPARATELY_OBSERVABLE on specific viewports.
 export const NON_SEPARABLE_PAIRS = Object.freeze([
   {
     stateA: "DRAFT_POPULATED",
@@ -225,13 +324,51 @@ export const NON_SEPARABLE_PAIRS = Object.freeze([
     viewport: "desktop",
     reason: "Same choreography state (waiting_confirmation), same form field values, same button set, same surface (null on desktop). No stable interval between them.",
   },
+  {
+    stateA: "TRANSITION",
+    stateB: "CONFIRMATION",
+    viewport: "any",
+    reason: "first-use-state=transitioning is a transient cinematic animation with no stable observation window.",
+  },
+  {
+    stateA: "SPLIT_READY",
+    stateB: "CONFIRMATION",
+    viewport: "any",
+    reason: "data-first-use-state=split + confirm-run visible is the same observable state as CONFIRMATION.",
+  },
+  {
+    stateA: "TARGET_ROUTE_READY",
+    stateB: "CHOICE",
+    viewport: "any",
+    reason: "canvas[data-canvas-route] is null at all observed states. No unique predicate distinct from the subsequent choreography state.",
+  },
+  {
+    stateA: "AI_ANSWER",
+    stateB: "CONFIRMATION",
+    viewport: "any",
+    reason: "AI answer bubble is transient between split and confirm-run. No stable observation window.",
+  },
+  {
+    stateA: "GROUNDING_EVIDENCE",
+    stateB: "CONFIRMATION",
+    viewport: "any",
+    reason: "Quest card appears simultaneously with confirm-run gate. No separate stable state.",
+  },
+  {
+    stateA: "EXTERNAL_HANDOFF",
+    stateB: "PRE_SUBMIT_CONVERSATION",
+    viewport: "any",
+    reason: "Buk-gu MVP resident journey has no external handoff step. STOP boundary is pre-submit confirmation.",
+  },
+  {
+    stateA: "FINAL_STABLE_STATE",
+    stateB: "PRE_SUBMIT_CONVERSATION",
+    viewport: "any",
+    reason: "Reaching choreography=done requires forbidden final-confirmation click. No unique predicate beyond PRE_SUBMIT_CONVERSATION.",
+  },
 ]);
 
 // ── FINAL_STABLE_STATE policy ────────────────────────────────────────────
-// V1 must NEVER reach data-choreography-state="done" if it requires clicking
-// "검토했고, 제출하기". FINAL_STABLE_STATE aliases the last safely observable
-// pre-submit state. If no unique predicate exists beyond PRE_SUBMIT, it is
-// classified as NOT_SEPARATELY_OBSERVABLE.
 export const FINAL_STABLE_STATE_POLICY = Object.freeze({
   forbiddenClick: "검토했고, 제출하기",
   forbiddenChoreographyState: "done",
@@ -240,18 +377,54 @@ export const FINAL_STABLE_STATE_POLICY = Object.freeze({
 });
 
 /**
- * Get a state spec by semantic state name.
- * @param {string} semanticState
- * @returns {Object|null}
+ * Check if a state is observable (has unique runtime predicates).
+ * Returns false for NOT_SEPARATELY_OBSERVABLE states.
  */
+export function isObservable(semanticState) {
+  const spec = STATES[semanticState];
+  if (!spec) return false;
+  return spec.observable !== false;
+}
+
+/**
+ * Get the equivalent/canonical state for a non-observable state.
+ * Returns null for observable states.
+ */
+export function getEquivalentState(semanticState) {
+  const spec = STATES[semanticState];
+  if (!spec) return null;
+  if (spec.observable === false) return spec.equivalentState || null;
+  return null;
+}
+
 export function getStateSpec(semanticState) {
   return STATES[semanticState] || null;
 }
 
-/**
- * Get all semantic state names.
- * @returns {string[]}
- */
 export function getAllStateNames() {
   return Object.keys(STATES);
 }
+
+// ── Required V1 semantic vocabulary ─────────────────────────────────────
+export const REQUIRED_VOCABULARY = Object.freeze([
+  "ENTRY",
+  "BEFORE_CLICK",
+  "CONFIRMATION",
+  "CHOICE",
+  "TRANSITION",
+  "SPLIT_READY",
+  "TARGET_ROUTE_READY",
+  "AI_ANSWER",
+  "GROUNDING_EVIDENCE",
+  "EXTERNAL_HANDOFF",
+  "DRAFT_POPULATED",
+  "PRE_SUBMIT_CONVERSATION",
+  "PRE_SUBMIT_GUIDANCE",
+  "FINAL_STABLE_STATE",
+  // classifications
+  "NOT_SEPARATELY_OBSERVABLE",
+  "STATE_MISMATCH",
+  "STATE_TIMEOUT",
+  "UNSTABLE_STATE",
+  "FORBIDDEN_STATE_REACHED",
+]);

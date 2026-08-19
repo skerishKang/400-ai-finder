@@ -1,16 +1,14 @@
 // tools/resident-evidence/scenarios/bukgu-streetlight.mjs
 //
-// Buk-gu Streetlight scenario spec for Resident Journey Evidence Harness V1.
-// Question: "가로등이 고장났어요. 신고할게요"
-// Action: streetlight_report
-// Journey: streetlight_report (no choice step — direct draft)
+// Buk-gu Streetlight scenario spec — checkpoint architecture.
+// Captures each semantic state AT THE ACTUAL STATE TIME.
 //
-// This scenario drives the REAL production choreography through:
-//   ENTRY → BEFORE_CLICK → CONFIRMATION → DRAFT_POPULATED → PRE_SUBMIT_CONVERSATION → PRE_SUBMIT_GUIDANCE
-//
-// On desktop, DRAFT_POPULATED == PRE_SUBMIT_CONVERSATION (NOT_SEPARATELY_OBSERVABLE).
-// On mobile, PRE_SUBMIT_CONVERSATION and PRE_SUBMIT_GUIDANCE are separately observable
-// via the mobile surface switch.
+// Checkpoint timeline:
+//   beforeStep 0 → ENTRY (page loaded, entry state)
+//   afterStep 0  → CONFIRMATION (question submitted, confirm-run visible)
+//   afterStep 1  → PRE_SUBMIT_CONVERSATION (choreography done, draft populated, conversation surface)
+//   afterStep 2  → PRE_SUBMIT_GUIDANCE (switched to guidance surface)
+//   afterStep 3  → FINAL_STABLE_STATE (NOT_SEPARATELY_OBSERVABLE — aliases PRE_SUBMIT_CONVERSATION)
 
 import { pollUntil } from "../src/orchestrator.mjs";
 
@@ -22,21 +20,20 @@ export const streetlightScenario = Object.freeze({
   journeyId: "streetlight_report",
   answer: "가로등 고장 신고를 도와드립니다.",
   viewport: { width: 390, height: 844 },
-  captureStates: [
-    "ENTRY",
-    "CONFIRMATION",
-    "PRE_SUBMIT_CONVERSATION",
-    "PRE_SUBMIT_GUIDANCE",
+
+  checkpoints: [
+    { state: "ENTRY", beforeStep: 0, expected: "ACCEPTED" },
+    { state: "CONFIRMATION", afterStep: 0, expected: "ACCEPTED" },
+    { state: "PRE_SUBMIT_CONVERSATION", afterStep: 1, expected: "ACCEPTED" },
+    { state: "PRE_SUBMIT_GUIDANCE", afterStep: 2, expected: "ACCEPTED" },
+    { state: "FINAL_STABLE_STATE", afterStep: 2, expected: "NOT_SEPARATELY_OBSERVABLE" },
   ],
 
-  // Steps to drive the REAL production choreography to each target state.
-  // Each step is an async function (page) => {}.
   steps: [
-    // ── Step 1: Type the question and submit ──
+    // ── Step 0: Type the question and submit ──
     async function typeQuestion(page) {
       await page.fill("#chat-composer-input", "가로등이 고장났어요. 신고할게요");
       await page.click("#chat-composer-send");
-      // Wait for split state (choreography not started yet — confirm-run visible)
       await pollUntil(
         page,
         async () => (await page.getAttribute("body", "data-first-use-state")) === "split",
@@ -49,20 +46,18 @@ export const streetlightScenario = Object.freeze({
       );
     },
 
-    // ── Step 2: Click "예, 안내해 주세요" to start choreography ──
+    // ── Step 1: Click "예, 안내해 주세요", wait for draft populated ──
     async function confirmRun(page) {
       await page.evaluate(() => {
         const btns = Array.from(document.querySelectorAll("button"));
         const yesBtn = btns.find((b) => b.textContent.includes("예, 안내해 주세요"));
         if (yesBtn) yesBtn.click();
       });
-      // Wait for choreography to reach waiting_confirmation (streetlight has no choice step)
       await pollUntil(
         page,
         async () => (await page.getAttribute("body", "data-choreography-state")) === "waiting_confirmation",
         { label: "streetlight waiting_confirmation", timeoutMs: 30000 },
       );
-      // Wait for title and content fields to be populated
       await pollUntil(
         page,
         async () => {
@@ -83,10 +78,18 @@ export const streetlightScenario = Object.freeze({
         },
         { label: "streetlight content populated", timeoutMs: 25000 },
       );
-    },
-
-    // ── Step 3: Switch to conversation for PRE_SUBMIT_CONVERSATION capture ──
-    async function switchToConversation(page) {
+      // Wait for confirmation prompt text to appear in chat thread
+      await pollUntil(
+        page,
+        async () => {
+          const thread = await page.locator("#chat-thread").first();
+          if (!(await thread.count())) return false;
+          const text = await thread.textContent();
+          return text !== null && text.includes("검토했고, 제출하기");
+        },
+        { label: "streetlight confirmation prompt", timeoutMs: 15000 },
+      );
+      // Switch to conversation for PRE_SUBMIT_CONVERSATION capture
       const surface = await page.getAttribute("body", "data-mobile-surface");
       if (surface === "guidance") {
         await page.evaluate(() => {
@@ -96,7 +99,23 @@ export const streetlightScenario = Object.freeze({
         await pollUntil(
           page,
           async () => (await page.getAttribute("body", "data-mobile-surface")) === "conversation",
-          { label: "switch to conversation", timeoutMs: 5000 },
+          { label: "streetlight switch to conversation", timeoutMs: 5000 },
+        );
+      }
+    },
+
+    // ── Step 2: Switch to guidance for PRE_SUBMIT_GUIDANCE capture ──
+    async function switchToGuidance(page) {
+      const surface = await page.getAttribute("body", "data-mobile-surface");
+      if (surface !== "guidance") {
+        await page.evaluate(() => {
+          const tab = document.getElementById("tab-guidance");
+          if (tab) tab.click();
+        });
+        await pollUntil(
+          page,
+          async () => (await page.getAttribute("body", "data-mobile-surface")) === "guidance",
+          { label: "streetlight switch to guidance", timeoutMs: 5000 },
         );
       }
     },
