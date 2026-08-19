@@ -52,3 +52,6 @@ Thumbs.db
 
 # Cloudflare Wrangler local runtime state
 .wrangler/
+
+# Resident Evidence Harness V1 — generated evidence artifacts
+artifacts/resident-evidence/
