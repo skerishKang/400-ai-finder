@@ -101,7 +101,7 @@ export async function switchToGuidance(page) {
  * @returns {Promise<Object>} capture result
  */
 export async function captureEvidence(params) {
-  const { page, scenarioSpec, targetState, stateSpec, safetyObserver, acceptedDir, diagnosticDir, stabilityConfig } = params;
+  const { page, scenarioSpec, targetState, stateSpec, safetyObserver, acceptedDir, diagnosticDir, stabilityConfig, captureFn } = params;
 
   mkdirSync(acceptedDir, { recursive: true });
   mkdirSync(diagnosticDir, { recursive: true });
@@ -172,26 +172,41 @@ export async function captureEvidence(params) {
   }
 
   // Step 4: Capture PNG to TEMP/PENDING location (NOT accepted/)
+  // If captureFn is provided (TEST ONLY), use it instead of the production
+  // captureScreenshot. This allows injecting side effects DURING the capture
+  // window to prove the post-capture safety recheck catches race conditions.
   const pendingPath = join(pendingDir, filename);
-  await captureScreenshot(page, pendingPath);
+  const doCapture = captureFn || ((p, path) => captureScreenshot(p, path));
+  await doCapture(page, pendingPath);
 
   // Step 5: Immediately re-read safety observer AFTER screenshot completes
   const postCaptureSafetyCounts = safetyObserver.getCounts();
 
   // Step 6: Re-check semantic predicates (state may have changed during capture)
+  // CORRECTION 3: post-capture recheck MUST include evidenceRequirements
   let postCaptureRecheck = null;
   try {
     const { evaluatePredicates } = await import("./predicates.mjs");
     const postRequired = await evaluatePredicates(page, stateSpec.required);
     const postForbidden = await evaluatePredicates(page, stateSpec.forbidden);
-    postCaptureRecheck = { required: postRequired, forbidden: postForbidden };
+    let postEvidence = { allPassed: true, results: [] };
+    if (stateSpec.evidenceRequirements) {
+      postEvidence = await evaluatePredicates(page, stateSpec.evidenceRequirements);
+    }
+    postCaptureRecheck = { required: postRequired, forbidden: postForbidden, evidence: postEvidence };
   } catch {
-    postCaptureRecheck = { required: { allPassed: false, results: [] }, forbidden: { allPassed: false, results: [] } };
+    postCaptureRecheck = {
+      required: { allPassed: false, results: [] },
+      forbidden: { allPassed: false, results: [] },
+      evidence: { allPassed: false, results: [] },
+    };
   }
 
   // Step 7: Final safety contract check — ATOMIC PROMOTION
   const safetyViolation = postCaptureSafetyCounts.externalOriginRequests > 0;
-  const semanticChanged = !postCaptureRecheck.required.allPassed || !postCaptureRecheck.forbidden.allPassed;
+  const semanticChanged = !postCaptureRecheck.required.allPassed
+    || !postCaptureRecheck.forbidden.allPassed
+    || !postCaptureRecheck.evidence.allPassed;
 
   if (!safetyViolation && !semanticChanged) {
     // PROMOTE: validate PNG, compute SHA256, atomically rename to accepted/
@@ -232,7 +247,7 @@ export async function captureEvidence(params) {
 
   const failReason = safetyViolation
     ? `SAFETY VIOLATION (post-capture): external-origin requests=${postCaptureSafetyCounts.externalOriginRequests}. Accepted set unchanged.`
-    : `SEMANTIC STATE CHANGED during capture. Required recheck failed or forbidden triggered. Accepted set unchanged.`;
+    : `SEMANTIC STATE CHANGED during capture. Required/forbidden/evidenceRequirements recheck failed. Accepted set unchanged.`;
   const failStatus = safetyViolation ? CAPTURE_STATUS.FORBIDDEN_STATE_REACHED : CAPTURE_STATUS.STATE_MISMATCH;
 
   const diagEntry = buildDiagnosticEntry({
@@ -257,7 +272,7 @@ export async function captureEvidence(params) {
  * @returns {Promise<Object>} full run result
  */
 export async function runScenario(params) {
-  const { browser, scenarioSpec, stateSpecs, baseUrl, artifactsRoot, runId, stabilityConfig } = params;
+  const { browser, scenarioSpec, stateSpecs, baseUrl, artifactsRoot, runId, stabilityConfig, captureFn } = params;
 
   const runDir = join(artifactsRoot, runId, scenarioSpec.id);
   const acceptedDir = join(runDir, "screenshots");
@@ -317,7 +332,7 @@ export async function runScenario(params) {
           continue;
         }
         const result = await captureEvidence({
-          page, scenarioSpec, targetState, stateSpec, safetyObserver, acceptedDir, diagnosticDir, stabilityConfig,
+          page, scenarioSpec, targetState, stateSpec, safetyObserver, acceptedDir, diagnosticDir, stabilityConfig, captureFn,
         });
         entries.push(result.entry);
         checkpointResults.push({
@@ -361,7 +376,7 @@ export async function runScenario(params) {
         }
 
         const result = await captureEvidence({
-          page, scenarioSpec, targetState, stateSpec, safetyObserver, acceptedDir, diagnosticDir, stabilityConfig,
+          page, scenarioSpec, targetState, stateSpec, safetyObserver, acceptedDir, diagnosticDir, stabilityConfig, captureFn,
         });
         entries.push(result.entry);
         checkpointResults.push({

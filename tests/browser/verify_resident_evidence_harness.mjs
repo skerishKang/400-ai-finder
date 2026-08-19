@@ -2,7 +2,7 @@
 //
 // Resident Journey Evidence Harness V1 — deterministic proof test.
 //
-// Tests:
+// Tests (16 total):
 //   1.  Streetlight positive (checkpoint-based)
 //   2.  Litter positive (checkpoint-based)
 //   3.  Wrong-state rejection (CHOICE → PRE_SUBMIT_CONVERSATION = STATE_MISMATCH)
@@ -11,10 +11,14 @@
 //   6.  SHA256 byte proof
 //   7.  NOT_SEPARATELY_OBSERVABLE (no duplicate accepted screenshots)
 //   8.  External origin guard (0 external requests in controlled run)
-//   9.  External-origin injection → accepted set unchanged + harness nonzero
+//   9.  External-origin injection → accepted set unchanged
 //   10. runScenario/CLI E2E checkpoint proof
 //   11. Required semantic vocabulary resolution
 //   12. Unexpected positive-state rejection → harness nonzero
+//   13. Import-safe runHarness (zero side effects on import)
+//   14. True DURING-capture external negative (post-screenshot recheck)
+//   15. Post-capture evidenceRequirements negative (surface change during capture)
+//   16. CLI positive run via runHarness (exit 0)
 //
 // No skip. No xfail. No assertion weakening.
 
@@ -571,6 +575,192 @@ async function testUnexpectedPositiveRejectionCliNonzero() {
   console.log("  [PASS] Unexpected positive-state rejection CLI: harness exits nonzero on STATE_MISMATCH for required checkpoint");
 }
 
+// ── CORRECTION 1: Import-safe runHarness — zero side effects on import ──
+async function testImportSafeRunHarness() {
+  // Importing runHarness must NOT start a scenario run, create artifacts,
+  // or cause process exit. We already imported it at module top level.
+  // To prove import safety, we spawn a subprocess that imports the module
+  // and checks for zero side effects.
+  const { execSync } = await import("node:child_process");
+  const { resolve: resolvePath } = await import("node:path");
+  const harnessPath = resolvePath("tools/resident-evidence/run-harness.mjs");
+  const workspaceRoot = resolvePath(".");
+
+  const importScript = `
+    import { runHarness } from ${JSON.stringify(harnessPath)};
+    // If we got here without a harness starting, import is safe.
+    console.log("IMPORT_SAFE_OK");
+    process.exit(0);
+  `;
+
+  const testScriptPath = join(TMP_ROOT, "import-safety-check.mjs");
+  const fs2 = await import("node:fs");
+  fs2.writeFileSync(testScriptPath, importScript);
+
+  try {
+    const output = execSync(`node ${testScriptPath}`, {
+      cwd: workspaceRoot,
+      encoding: "utf8",
+      timeout: 10000,
+    });
+    assert.ok(output.includes("IMPORT_SAFE_OK"), "Import must complete without starting a harness run");
+    assert.ok(!output.includes("Resident Journey Evidence Harness"), "No harness banner should appear on import");
+    assert.ok(!output.includes("Scenario:"), "No scenario should run on import");
+  } catch (err) {
+    if (err.stdout && err.stdout.includes("IMPORT_SAFE_OK")) {
+      // Import succeeded — check passes
+    } else {
+      throw err;
+    }
+  }
+
+  console.log("  [PASS] Import-safe runHarness: zero side effects, no scenario runs, no process exit on import");
+}
+
+// ── CORRECTION 2: True DURING-capture external negative ──
+async function testDuringCaptureExternalNegative() {
+  const browser = await launchBrowser();
+  try {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+    const page = await ctx.newPage();
+    const safety = attachSafetyObserver(page);
+    await setupMock(page, streetlightScenario);
+    await driveStreetlightToPreSubmit(page);
+
+    // Pre-capture safety count must be 0
+    const preCaptureCounts = safety.getCounts();
+    assert.strictEqual(preCaptureCounts.externalOriginRequests, 0, "Pre-capture external count must be 0");
+
+    // Set up route for external fake request
+    await page.route("**/during-capture-external.com/**", async (route) => {
+      await route.fulfill({ status: 200, body: "fake" });
+    });
+
+    mkdirSync(join(TMP_ROOT, "during-capture-external", "accepted"), { recursive: true });
+    mkdirSync(join(TMP_ROOT, "during-capture-external", "diagnostics"), { recursive: true });
+    const acceptedDir = join(TMP_ROOT, "during-capture-external", "accepted");
+    const diagnosticDir = join(TMP_ROOT, "during-capture-external", "diagnostics");
+
+    // Inject a captureFn that triggers a REAL external fetch AFTER the
+    // pre-capture safety snapshot, then performs the REAL PNG screenshot.
+    // This proves the post-capture recheck catches the race window.
+    const result = await captureEvidence({
+      page,
+      scenarioSpec: streetlightScenario,
+      targetState: "PRE_SUBMIT_CONVERSATION",
+      stateSpec: STATES.PRE_SUBMIT_CONVERSATION,
+      safetyObserver: safety,
+      acceptedDir,
+      diagnosticDir,
+      captureFn: async (p, path) => {
+        // Trigger a real intercepted external fetch DURING the capture window
+        await p.evaluate(async () => {
+          try { await fetch("http://during-capture-external.com/test"); } catch {}
+        });
+        // Then perform the REAL screenshot
+        await captureScreenshot(p, path);
+      },
+    });
+
+    // Post-capture external count must be > 0 (the injected fetch was caught)
+    const postCaptureCounts = safety.getCounts();
+    assert.ok(postCaptureCounts.externalOriginRequests > 0, "Post-capture external count must be > 0 (injected fetch caught)");
+
+    // Promotion must be blocked
+    assert.strictEqual(result.accepted, false, "Capture must be rejected (not promoted) due to post-capture safety violation");
+    assert.strictEqual(result.entry.capture_status, CAPTURE_STATUS.FORBIDDEN_STATE_REACHED, "Expected FORBIDDEN_STATE_REACHED");
+    assert.ok(result.safetyViolation, "Safety violation flag must be set");
+
+    // Accepted directory must be empty (no PNG promoted)
+    const acceptedFiles = readdirSync(acceptedDir);
+    assert.strictEqual(acceptedFiles.length, 0, "Accepted directory must be unchanged (no files)");
+
+    // Diagnostic directory should have the pending file moved there
+    const diagFiles = readdirSync(diagnosticDir);
+    const pngInDiag = diagFiles.find(f => f.endsWith(".png"));
+    assert.ok(pngInDiag, "Pending PNG must be moved to diagnostics/ (not left in .pending)");
+
+    console.log("  [PASS] During-capture external: post-screenshot recheck catches race, accepted unchanged, FORBIDDEN_STATE_REACHED");
+  } finally { await browser.close(); }
+}
+
+// ── CORRECTION 3: Post-capture evidenceRequirements negative ──
+async function testPostCaptureEvidenceRequirementsNegative() {
+  const browser = await launchBrowser();
+  try {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+    const page = await ctx.newPage();
+    const safety = attachSafetyObserver(page);
+    await setupMock(page, litterScenario);
+    await driveLitterToChoice(page);
+
+    // At this point, CHOICE is eligible on conversation surface.
+    // The evidenceRequirements check that surface=conversation and both
+    // decision buttons are visible.
+    const preEligibility = await evaluateCaptureEligibility(page, STATES.CHOICE);
+    assert.strictEqual(preEligibility.eligible, true, "CHOICE must be eligible before capture");
+
+    mkdirSync(join(TMP_ROOT, "evidence-req-negative", "accepted"), { recursive: true });
+    mkdirSync(join(TMP_ROOT, "evidence-req-negative", "diagnostics"), { recursive: true });
+    const acceptedDir = join(TMP_ROOT, "evidence-req-negative", "accepted");
+    const diagnosticDir = join(TMP_ROOT, "evidence-req-negative", "diagnostics");
+
+    // Inject a captureFn that switches the mobile surface to guidance
+    // AFTER the pre-capture snapshot. This makes evidenceRequirements
+    // (surface=conversation) fail in the post-capture recheck, while
+    // required/forbidden might still pass.
+    const result = await captureEvidence({
+      page,
+      scenarioSpec: litterScenario,
+      targetState: "CHOICE",
+      stateSpec: STATES.CHOICE,
+      safetyObserver: safety,
+      acceptedDir,
+      diagnosticDir,
+      captureFn: async (p, path) => {
+        // Switch surface to guidance DURING capture window — this breaks
+        // evidenceRequirements (surface must be conversation) but required
+        // predicates (choreography=waiting_choice) may still pass.
+        await p.evaluate(() => {
+          const tab = document.getElementById("tab-guidance");
+          if (tab) tab.click();
+        });
+        await p.waitForTimeout(200);
+        // Then perform the REAL screenshot
+        await captureScreenshot(p, path);
+      },
+    });
+
+    // Promotion must be blocked due to evidenceRequirements failing
+    assert.strictEqual(result.accepted, false, "Capture must be rejected due to evidenceRequirements failing in post-capture recheck");
+    assert.strictEqual(result.entry.capture_status, CAPTURE_STATUS.STATE_MISMATCH, `Expected STATE_MISMATCH, got ${result.entry.capture_status}`);
+
+    // Accepted directory must be empty
+    const acceptedFiles = readdirSync(acceptedDir);
+    assert.strictEqual(acceptedFiles.length, 0, "Accepted directory must be unchanged (no files)");
+
+    // Diagnostic should have the file
+    const diagFiles = readdirSync(diagnosticDir);
+    const pngInDiag = diagFiles.find(f => f.endsWith(".png"));
+    assert.ok(pngInDiag, "Pending PNG must be moved to diagnostics/");
+
+    console.log("  [PASS] Post-capture evidenceRequirements: surface change during capture blocks promotion, STATE_MISMATCH");
+  } finally { await browser.close(); }
+}
+
+// ── CORRECTION: CLI positive run via runHarness (exit 0) ──
+async function testCliPositiveRun() {
+  const cliArtifactsRoot = join(TMP_ROOT, "cli-positive");
+  const { hasFailure } = await runHarness({
+    baseUrl: BASE_URL,
+    artifactsRoot: cliArtifactsRoot,
+  });
+
+  assert.strictEqual(hasFailure, false, "CLI positive run must not have failures (exit 0)");
+
+  console.log("  [PASS] CLI positive run: runHarness exits 0, all checkpoints met");
+}
+
 // ── Main ──
 async function main() {
   try { rmSync(TMP_ROOT, { recursive: true, force: true }); } catch {}
@@ -592,6 +782,10 @@ async function main() {
     ["Required vocabulary resolution", testRequiredVocabulary],
     ["External-origin CLI nonzero exit", testExternalOriginCliNonzero],
     ["Unexpected positive rejection CLI nonzero exit", testUnexpectedPositiveRejectionCliNonzero],
+    ["Import-safe runHarness", testImportSafeRunHarness],
+    ["During-capture external negative", testDuringCaptureExternalNegative],
+    ["Post-capture evidenceRequirements negative", testPostCaptureEvidenceRequirementsNegative],
+    ["CLI positive run via runHarness", testCliPositiveRun],
   ];
 
   let passed = 0, failed = 0;

@@ -104,6 +104,7 @@ export async function runHarness(options = {}) {
   const baseUrl = options.baseUrl || "http://127.0.0.1:8780";
   const scenarios = options.scenarios || [streetlightScenario, litterScenario];
   const artifactsRoot = options.artifactsRoot || ARTIFACTS_ROOT;
+  const captureFn = options.captureFn || null;
   const runId = `run-${Date.now()}`;
   mkdirSync(artifactsRoot, { recursive: true });
 
@@ -128,7 +129,7 @@ export async function runHarness(options = {}) {
     try {
       const result = await runScenario({
         browser, scenarioSpec: scenario, stateSpecs: STATES,
-        baseUrl, artifactsRoot, runId,
+        baseUrl, artifactsRoot, runId, captureFn,
       });
       allResults.push(result);
 
@@ -191,4 +192,11 @@ async function main() {
   if (hasFailure) process.exit(1);
 }
 
-main().catch((err) => { console.error(err); process.exit(1); });
+// ESM entrypoint guard: only invoke main() when run as a direct CLI entrypoint,
+// NOT when imported as a module. This makes runHarness() import-safe with zero
+// side effects (no scenario runs, no artifact creation, no process exit).
+import { fileURLToPath } from "node:url";
+const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
+if (isMainModule) {
+  main().catch((err) => { console.error(err); process.exit(1); });
+}
