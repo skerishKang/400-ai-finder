@@ -1265,6 +1265,223 @@ def _extract_staff_directory(html: str) -> dict[str, Any] | None:
     }
 
 
+# ---------------------------------------------------------------------------
+# Generic CMS content-page vocabulary (informational article bodies)
+# ---------------------------------------------------------------------------
+# A committed G1 ordinary municipal CMS informational page (e.g. 민원 안내 /
+# 복지 안내 / 허가 안내 / 생활정보) renders its body as a bounded article region
+# with headings (``dep0N`` / subject ``tt``), paragraphs (``con`` / ``txt``),
+# and lists (``step`` / ``dep03``). The extractor is site-agnostic: it keys off
+# these generic CMS template class tokens (NOT site literals such as 여권/서구 or
+# phone numbers) and never embeds raw source HTML — only source-backed text is
+# carried into the semantic model. A state is only treated as a generic content
+# page when it is NOT already a board / organization / staff-directory surface
+# and the captured DOM carries at least one generic article-body signal. This
+# keeps ordinary home landing states routed to the existing home renderer.
+_CONTENT_SKIP_TAGS = frozenset({"script", "style", "nav", "header", "footer", "aside", "form"})
+# Generic CMS chrome subtrees that are NOT article body: the sidebar
+# (``snb``), the contents utility rail (breadcrumb / zoom / share), and the
+# civil-duty ``contents_info`` box (rendered separately from the model's
+# ``contents_info`` field, never as a duplicated content block). These are
+# matched by class token or element id — still generic CMS vocabulary, not
+# site literals.
+_CONTENT_SKIP_CLASS_TOKENS = (
+    "contents_util", "share", "location", "util", "nav-depth",
+    "gnb", "snb", "contents_info",
+)
+_CONTENT_SKIP_ID_TOKENS = ("snb", "skip_nav")
+_CONTENT_HEADING_CLASS_RE = re.compile(r"dep0[1-6]")
+_CONTENT_ARTICLE_SIGNALS = ("info-box", "step-box", "dep02", "dep03", "contents_info", "duty")
+
+
+class _GenericContentParser(HTMLParser):
+    """Bounded, source-backed generic CMS content-page extractor.
+
+    Walks the committed G1 DOM (outside nav/header/footer/aside/form/script/
+    style subtrees) and collects an ordered list of semantic blocks: headings,
+    paragraphs, and lists. Inline markup such as ``<strong>`` is preserved by
+    concatenating its text with the surrounding text rather than dropping it, so
+    the contiguous semantic text of the source article is retained. The parser
+    records an ``article_body_signal`` flag whenever a generic CMS template
+    class token (info-box / step-box / dep02 / dep03 / contents_info / duty) is
+    observed; callers use it to fail-closed on pages that are not informational
+    content pages (e.g. home landing routes).
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._skip_stack: list[str] = []
+        self.blocks: list[dict[str, Any]] = []
+        self.cur: dict[str, Any] | None = None
+        self.cur_open_tag: str | None = None
+        self.in_list = False
+        self.list_ordered = False
+        self.list_items: list[str] = []
+        self.list_buf: list[str] = []
+        self.saw_signal = False
+        self._capturing = False
+
+    def _cls(self, attrs) -> str:
+        for k, v in attrs:
+            if k.lower() == "class":
+                return v or ""
+        return ""
+
+    def _flush_cur(self) -> None:
+        if self.cur is None:
+            return
+        text = re.sub(r"\s+", " ", "".join(self.cur["buf"])).strip()
+        if text:
+            block: dict[str, Any] = {"type": self.cur["type"]}
+            if "level" in self.cur:
+                block["level"] = self.cur["level"]
+            block["text"] = text
+            self.blocks.append(block)
+        self.cur = None
+
+    def _flush_li(self) -> None:
+        if self.list_buf:
+            text = re.sub(r"\s+", " ", "".join(self.list_buf)).strip()
+            if text:
+                self.list_items.append(text)
+        self.list_buf = []
+
+    def _begin(self, block_type: str, level: int | None, open_tag: str) -> None:
+        self._flush_cur()
+        self.cur = {"type": block_type, "buf": []}
+        self.cur_open_tag = open_tag
+        if level is not None:
+            self.cur["level"] = level
+
+    def _is_skip(self, tag: str, attrs) -> bool:
+        if tag in _CONTENT_SKIP_TAGS:
+            return True
+        element_id = ""
+        for k, v in attrs:
+            if k.lower() == "id":
+                element_id = v or ""
+            elif k.lower() == "class":
+                tokens = (v or "").split()
+                if any(t in _CONTENT_SKIP_CLASS_TOKENS for t in tokens):
+                    return True
+        return bool(element_id) and element_id in _CONTENT_SKIP_ID_TOKENS
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        cls = self._cls(attrs)
+        tokens = cls.split()
+        # Article-body signal detection also fires inside skipped chrome so a
+        # page is still recognised as a content page when its only signal is the
+        # (otherwise skipped) contents_info box.
+        for sig in _CONTENT_ARTICLE_SIGNALS:
+            if sig in tokens:
+                self.saw_signal = True
+                break
+        if self._is_skip(tag, attrs):
+            self._skip_stack.append(tag)
+            return
+        if self._skip_stack:
+            return
+        # Begin capturing only at the first generic article-body element. This
+        # bounds extraction to the actual content region, excluding any chrome
+        # (sidebar submenus, breadcrumbs) that precedes the article body.
+        if any(t in _CONTENT_ARTICLE_SIGNALS for t in tokens):
+            self._capturing = True
+        if not self._capturing:
+            return
+        if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+            self._begin("heading", int(tag[1]), tag)
+            return
+        if tag in ("ul", "ol"):
+            self._flush_cur()
+            self.in_list = True
+            self.list_ordered = (tag == "ol")
+            self.list_items = []
+            self.list_buf = []
+            return
+        for t in tokens:
+            if _CONTENT_HEADING_CLASS_RE.search(t):
+                self._begin("heading", int(t[-1]), tag)
+                return
+        if "tt" in tokens:
+            self._begin("heading", 2, tag)
+            return
+        if tag == "p" or (tag == "div" and ("con" in tokens or "txt" in tokens)):
+            self._begin("paragraph", None, tag)
+            return
+        if tag == "li" and self.in_list:
+            self._flush_li()
+            self.list_buf = []
+            return
+        if self.in_list and tag in ("span", "p", "strong", "div", "a", "em", "b", "i"):
+            if self.list_buf and not self.list_buf[-1].endswith((" ", "\n", "\t")):
+                self.list_buf.append(" ")
+            return
+
+    def handle_data(self, data):
+        if self._skip_stack:
+            return
+        if self.in_list:
+            self.list_buf.append(data)
+            return
+        if self.cur is not None:
+            self.cur["buf"].append(data)
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if self._skip_stack and tag == self._skip_stack[-1]:
+            self._skip_stack.pop()
+            return
+        if self._skip_stack:
+            return
+        if tag in ("ul", "ol") and self.in_list:
+            self._flush_li()
+            if self.list_items:
+                self.blocks.append({
+                    "type": "list",
+                    "ordered": self.list_ordered,
+                    "items": self.list_items,
+                })
+            self.in_list = False
+            self.list_items = []
+            self.list_buf = []
+            return
+        if tag == "li" and self.in_list:
+            self._flush_li()
+            return
+        if self.cur is not None and tag == self.cur_open_tag:
+            self._flush_cur()
+            return
+
+
+def _extract_content_page(html: str) -> dict[str, Any] | None:
+    """Extract a generic CMS informational content page, or ``None``.
+
+    Returns ``{"kind": "content_page", "blocks": [...], "contents_info": ...}``
+    only when the committed G1 DOM contains a generic article-body signal (a
+    bounded set of CMS template class tokens) or a civil-duty ``contents_info``
+    box. The blocks are source-backed text only (headings / paragraphs /
+    lists); no raw HTML is carried into the model. Returns ``None`` for home
+    landing routes and for any state that does not carry an article signal, so
+    those states keep their existing renderer behavior.
+    """
+    if not html:
+        return None
+    parser = _GenericContentParser()
+    parser.feed(html)
+    parser._flush_cur()
+    contents_info = _extract_contents_info(html)
+    if not parser.saw_signal and contents_info is None:
+        return None
+    if not parser.blocks and contents_info is None:
+        return None
+    return {
+        "kind": "content_page",
+        "blocks": parser.blocks,
+        "contents_info": contents_info,
+    }
+
+
 class _AnchorCollector(HTMLParser):
     """Collect (href, text) anchor pairs in document order, fully offline."""
 
@@ -1735,6 +1952,14 @@ def build_reference_clone_model(
             board = _extract_board(html)
             organization = _extract_organization(html)
             staff_directory = _extract_staff_directory(html)
+            # Generic CMS content-page vocabulary: only for states that are not
+            # already a board / organization / staff-directory surface. Attached
+            # to the state only when a real article body was found, so states
+            # without one (home landing, etc.) keep their existing renderer and
+            # the committed fixtures for those captures stay byte-identical.
+            content_page = None
+            if board is None and organization is None and staff_directory is None:
+                content_page = _extract_content_page(html)
 
         states.append(
             {
@@ -1760,6 +1985,7 @@ def build_reference_clone_model(
                 "board": board,
                 "organization": organization,
                 "staff_directory": staff_directory,
+                **({"content_page": content_page} if content_page is not None else {}),
                 "public_assets": captured.get("public_assets", []),
                 "exceptions": captured.get("exceptions", []),
                 "artifacts": artifacts,
