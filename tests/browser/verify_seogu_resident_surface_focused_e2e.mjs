@@ -321,6 +321,44 @@ async function measureHandoffLayout(page, jid) {
   }, jid);
 }
 
+// #1353 evidence-row layout probe. Measures the geometry of ONE rendered
+// [data-handoff-evidence] row so the test can assert the local-evidence
+// provenance (repository-clone source) shares the evidence bubble content
+// column (avatar left) instead of being squeezed into a narrow sibling column
+// (a tall fragmented stack on mobile). Pure layout measurement — no
+// contract/data attribute is read here (those are covered by D1/D6).
+async function measureEvidenceLayout(page, jid) {
+  return page.evaluate((jid) => {
+    const rows = Array.from(document.querySelectorAll('[data-handoff-evidence="true"]'));
+    const el = rows.filter((n) => n.getAttribute("data-journey-id") === jid).pop();
+    if (!el) return null;
+    const avatar = el.querySelector(".chat-avatar");
+    const bubble = el.querySelector(".chat-bubble--ai");
+    const source = el.querySelector(".message-source--clone");
+    function rect(node) {
+      if (!node) return null;
+      const r = node.getBoundingClientRect();
+      return {
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        w: Math.round(r.width),
+        h: Math.round(r.height),
+        right: Math.round(r.right),
+        bottom: Math.round(r.bottom),
+      };
+    }
+    const cs = getComputedStyle(el);
+    return {
+      display: cs.display,
+      row: rect(el),
+      avatar: rect(avatar),
+      bubble: rect(bubble),
+      source: rect(source),
+      sourceText: source ? source.textContent.trim() : null,
+    };
+  }, jid);
+}
+
 try {
   // ── Desktop contract (1920x1080) ──────────────────────────────────────────
   const desktop = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
@@ -660,6 +698,41 @@ try {
     assert.strictEqual(evidenceRow.source_kind, "repository_clone", `${id} local evidence must be repository_clone`);
     assert.strictEqual(evidenceRow.evidence_kind, "clone_dom", `${id} local evidence must be clone_dom`);
     assertNoForbiddenSuccess(evidenceRow.text, `handoff local-evidence row for ${id}`);
+
+    // ── #1353 desktop evidence provenance ─────────────────────────────────────
+    // The local-evidence provenance ("근거 · 저장소 기반 기관 안내 · ...") must
+    // share the evidence bubble content column (avatar left) — NOT be squeezed
+    // into a narrow sibling column — with a readable width and no horizontal
+    // overflow. This is the second half of the Web CTO model-vision defect.
+    const dEvidence = await measureEvidenceLayout(page, id);
+    assert.ok(dEvidence, `desktop ${id} handoff evidence row must be present`);
+    assert.strictEqual(dEvidence.display, "grid", `desktop ${id} evidence row must use the grid content-column layout`);
+    assert.ok(dEvidence.source, `desktop ${id} evidence row must render the provenance`);
+    assert.ok(
+      String(dEvidence.sourceText || "").includes("근거 · 저장소 기반 기관 안내"),
+      `desktop ${id} evidence provenance must be the repository-clone label`,
+    );
+    assert.ok(
+      Math.abs(dEvidence.bubble.x - dEvidence.source.x) <= 2,
+      `desktop ${id} evidence provenance must share the bubble content column`,
+    );
+    assert.ok(
+      dEvidence.avatar.x < dEvidence.bubble.x,
+      `desktop ${id} evidence avatar must stay left of the content column`,
+    );
+    assert.ok(
+      dEvidence.bubble.bottom <= dEvidence.source.y + 2,
+      `desktop ${id} evidence provenance must sit below the bubble`,
+    );
+    assert.ok(dEvidence.source.w >= 200, `desktop ${id} evidence provenance must use a readable column width`);
+    const dEvidenceOverflow = await page.evaluate(() => {
+      const t = document.getElementById("chat-thread");
+      return { scrollW: t.scrollWidth, clientW: t.clientWidth };
+    });
+    assert.ok(
+      dEvidenceOverflow.scrollW <= dEvidenceOverflow.clientW + 1,
+      `desktop ${id} evidence provenance must not horizontally overflow the thread`,
+    );
 
     // D2 — exact authority. S8 must NOT be 안전신문고; it must be 국민신문고/epeople.
     if (id === "seogu_illegal_dumping_report") {
@@ -1205,6 +1278,40 @@ try {
     return { scrollW: t.scrollWidth, clientW: t.clientWidth };
   });
   assert.ok(mOverflow.scrollW <= mOverflow.clientW + 1, "mobile S2 thread must not horizontally overflow");
+  // ── #1353 mobile evidence provenance ───────────────────────────────────────
+  // On 390×844 the local-evidence provenance must NOT render as a tall,
+  // fragmented narrow sibling column next to the evidence bubble. It must share
+  // the evidence bubble content column, stay readable, and remain bounded.
+  const mEvidence = await measureEvidenceLayout(mpage, "seogu_illegal_parking_report");
+  assert.ok(mEvidence, "mobile S2 evidence row must be present");
+  assert.strictEqual(mEvidence.display, "grid", "mobile S2 evidence row must use the grid content-column layout");
+  assert.ok(mEvidence.source, "mobile S2 evidence row must render the provenance");
+  assert.ok(
+    String(mEvidence.sourceText || "").includes("근거 · 저장소 기반 기관 안내"),
+    "mobile S2 evidence provenance must be the repository-clone label",
+  );
+  assert.ok(
+    Math.abs(mEvidence.bubble.x - mEvidence.source.x) <= 2,
+    "mobile S2 evidence provenance must share the bubble content column",
+  );
+  assert.ok(
+    mEvidence.avatar.x < mEvidence.bubble.x,
+    "mobile S2 evidence avatar must stay left of the content column",
+  );
+  assert.ok(
+    mEvidence.bubble.bottom <= mEvidence.source.y + 2,
+    "mobile S2 evidence provenance must sit below the bubble",
+  );
+  assert.ok(mEvidence.source.w >= 120, "mobile S2 evidence provenance must use a readable column width");
+  assert.ok(mEvidence.source.h <= 80, "mobile S2 evidence provenance must not stack as a tall fragmented column");
+  const mEvidenceOverflow = await mpage.evaluate(() => {
+    const t = document.getElementById("chat-thread");
+    return { scrollW: t.scrollWidth, clientW: t.clientWidth };
+  });
+  assert.ok(
+    mEvidenceOverflow.scrollW <= mEvidenceOverflow.clientW + 1,
+    "mobile S2 evidence provenance must not horizontally overflow the thread",
+  );
   // Composer + mobile surface switch remain usable after the S2 handoff.
   const mComposerAfter = await mpage.evaluate(() => {
     const el = document.getElementById("chat-composer-input");

@@ -238,3 +238,48 @@
   grid-area: authority;
   margin-top: 0;
 }
+
+/*
+ * #1353 — S2 handoff local-evidence provenance correction (PRESENTATION ONLY).
+ *
+ * The immediately preceding handoff evidence row uses the SAME shared horizontal
+ * .chat-msg flex row, so the grounded repository-clone provenance
+ * ("근거 · 저장소 기반 기관 안내 · ...") was squeezed into a narrow sibling
+ * column to the right of the evidence bubble (a tall fragmented stack at
+ * 390×844). #1353 requires existing local-evidence provenance to remain visible
+ * AND readable. Scope the same bounded grid EXCLUSIVELY to the handoff evidence
+ * row: avatar stays on the left while the evidence bubble and its provenance
+ * share one normal-width content column. No shared Buk-gu shell/CSS is touched;
+ * generic non-handoff grounded rows are unaffected. All contract/data
+ * attributes remain unchanged.
+ */
+.chat-msg[data-handoff-evidence="true"] {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-areas:
+    "avatar bubble"
+    "avatar provenance";
+  align-items: start;
+  column-gap: 6px;
+  row-gap: 4px;
+  max-width: 100%;
+}
+
+.chat-msg[data-handoff-evidence="true"] .chat-avatar {
+  grid-area: avatar;
+  margin-top: 4px;
+}
+
+.chat-msg[data-handoff-evidence="true"] .chat-bubble {
+  grid-area: bubble;
+  max-width: 100%;
+}
+
+.chat-msg[data-handoff-evidence="true"] .message-source--clone {
+  grid-area: provenance;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #255c33;
+  word-break: break-word;
+}
