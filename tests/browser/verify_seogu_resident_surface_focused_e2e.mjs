@@ -630,6 +630,37 @@ try {
     );
   }
 
+  // (3p-geo) #1356 desktop S5 geometry: the passport-guidance canvas must NOT
+  // be clipped by left overflow. The entry-stage's transform:scale(1.06)
+  // previously inflated .first-use-layout scrollWidth and auto-scrolled the
+  // canvas left edge off-screen. Prove the fix: layout scrollLeft=0, canvas
+  // left>=0, iframe left>=0, title left>=0 (여권발급 fully visible).
+  const s5DesktopGeo = await page.evaluate(() => {
+    const layout = document.querySelector('.first-use-layout');
+    const canvas = document.getElementById("demo-canvas");
+    const frame = document.getElementById("seogu-clone-frame");
+    let iframeTitleLeft = null;
+    try {
+      const doc = frame.contentDocument;
+      const main = doc && doc.querySelector("main.rc-main");
+      const headings = main ? Array.from(main.querySelectorAll("h2,h3")) : [];
+      const title = headings.find(h => h.textContent.includes("여권발급")) || headings[0];
+      iframeTitleLeft = title ? Math.round(title.getBoundingClientRect().left) : null;
+    } catch { iframeTitleLeft = null; }
+    return {
+      layoutScrollLeft: layout ? layout.scrollLeft : null,
+      layoutScrollWidth: layout ? layout.scrollWidth : null,
+      canvasLeft: canvas ? Math.round(canvas.getBoundingClientRect().left) : null,
+      canvasRight: canvas ? Math.round(canvas.getBoundingClientRect().right) : null,
+      iframeLeft: frame ? Math.round(frame.getBoundingClientRect().left) : null,
+      iframeTitleLeft,
+    };
+  });
+  assert.strictEqual(s5DesktopGeo.layoutScrollLeft, 0, "desktop S5 layout must not auto-scroll left (entry-stage overflow fixed)");
+  assert.ok(s5DesktopGeo.canvasLeft >= 0, `desktop S5 canvas left must be >= 0, got ${s5DesktopGeo.canvasLeft}`);
+  assert.ok(s5DesktopGeo.iframeLeft >= 0, `desktop S5 iframe left must be >= 0, got ${s5DesktopGeo.iframeLeft}`);
+  assert.ok(s5DesktopGeo.iframeTitleLeft !== null && s5DesktopGeo.iframeTitleLeft >= 0, "desktop S5 passport title (여권발급) must be fully visible (left >= 0)");
+
   // (3b) REAL desktop visibility proof after S3: the left clone canvas must be
   // actually visible (split state, inert removed, aria-hidden=false, non-zero
   // rect intersecting the viewport) and the housing clone iframe must render
@@ -1377,6 +1408,38 @@ try {
     return { scrollW: t.scrollWidth, clientW: t.clientWidth };
   });
   assert.ok(mPassportOverflow.scrollW <= mPassportOverflow.clientW + 1, "mobile passport thread must not horizontally overflow");
+  // (7p-geo) #1356 mobile S5 conversation grounded-row geometry: the grounded
+  // answer bubble + provenance must share one readable content column (not
+  // squeezed as narrow horizontal siblings). Prove the grid fix: display=grid,
+  // bubble width and source width both span the full content column, no page
+  // overflow, chip rail keeps its own internal scroll.
+  const mPassportConvGeo = await mpage.evaluate(() => {
+    const thread = document.getElementById("chat-thread");
+    const row = thread ? thread.querySelector('.chat-msg[data-grounded="true"][data-journey-id="seogu_passport_issuance"]') : null;
+    if (!row) return null;
+    const bubble = row.querySelector('.chat-bubble');
+    const source = row.querySelector('.message-source--clone');
+    const chips = document.querySelector('.chat-chips');
+    return {
+      rowDisplay: getComputedStyle(row).display,
+      bubbleW: bubble ? Math.round(bubble.getBoundingClientRect().width) : 0,
+      sourceW: source ? Math.round(source.getBoundingClientRect().width) : 0,
+      sourceLeft: source ? Math.round(source.getBoundingClientRect().left) : 0,
+      bubbleLeft: bubble ? Math.round(bubble.getBoundingClientRect().left) : 0,
+      rowRight: Math.round(row.getBoundingClientRect().right),
+      docScrollW: document.documentElement.scrollWidth,
+      docClientW: document.documentElement.clientWidth,
+      chipsScrollW: chips ? chips.scrollWidth : 0,
+      chipsOverflow: chips ? getComputedStyle(chips).overflow : null,
+    };
+  });
+  assert.ok(mPassportConvGeo, "mobile S5 conversation grounded row must exist for geometry check");
+  assert.strictEqual(mPassportConvGeo.rowDisplay, "grid", "mobile S5 grounded row must use grid (not flex)");
+  assert.ok(mPassportConvGeo.bubbleW >= 200, `mobile S5 bubble must span full content column (>=200px), got ${mPassportConvGeo.bubbleW}`);
+  assert.ok(mPassportConvGeo.sourceW >= 200, `mobile S5 provenance must span full content column (>=200px), got ${mPassportConvGeo.sourceW}`);
+  assert.strictEqual(mPassportConvGeo.bubbleLeft, mPassportConvGeo.sourceLeft, "mobile S5 bubble and provenance must share the same content column left edge");
+  assert.ok(mPassportConvGeo.docScrollW <= mPassportConvGeo.docClientW + 1, "mobile S5 conversation must not cause page-level horizontal overflow");
+  assert.ok(mPassportConvGeo.chipsScrollW > mPassportConvGeo.docClientW, "mobile S5 chip rail retains its own internal horizontal scroll (canonical behavior)");
   // ── #1353 mobile handoff responsive hierarchy (S2) ──────────────────────────
   // The S2 final handoff row must NOT collapse the CTA into character-by-character
   // vertical stacking and must keep the authority readable in the content column
