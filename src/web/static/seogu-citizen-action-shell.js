@@ -1,21 +1,16 @@
 /*
  * seogu-citizen-action-shell.js
- * Seo-gu (서구) MVP resident-shell orchestration (#1343 Buk-gu parity slice).
+ * Seo-gu (서구) MVP resident thin bootstrap/adapter (#1343/#1365).
  *
- * This is the Seo-gu-SPECIFIC orchestration layer. It reuses the SHARED,
- * site-parameterized machinery (MunicipalSiteSurfaceRegistry,
- * MunicipalCloneSurface, MunicipalResidentJourney, citizen-mvp-bridge) and the
- * Seo-gu site-data/config island (SeoguSiteSpecMetadata,
- * SeoguResidentJourneyRegistry). It contains NO Buk-gu facts, questions or
- * routes — those live in the config island. The Buk-gu canonical shell
- * STRUCTURE (CSS/layout) is reused via the linked stylesheets; only the
- * Seo-gu resident surface behaviour is implemented here.
+ * The shared MunicipalResidentInformationalController owns the canonical
+ * informational resident progression. This file supplies only Seo-gu-specific
+ * data/surface/rendering hooks plus non-informational fallback UI. It does NOT
+ * own confirmation, YES→navigate progression, journey-result policy, or the
+ * external-handoff state machine.
  *
  * Behaviour contract:
- * - capture_needed with no committed route  -> honest "근거 자료 미확보" state,
- *   never navigates to a fabricated page, never fakes success.
- * - substitution / DIRECT_REUSE with a real route -> navigate + READ; if the
- *   required evidence marker is absent it fails grounded (no fabricated answer).
+ * - capture_needed with no committed route  -> honest "근거 자료 미확보" state;
+ * - repository-clone evidence/rendering remains Seo-gu-specific data/surface;
  * - unmatched question -> explicit opt-in general-model offer (never silent).
  */
 (function () {
@@ -117,45 +112,10 @@
     return row;
   }
 
-  // ── Generic EXTERNAL_OFFICIAL_HANDOFF runner (local-evidence-first) ────────
-  // One config-driven data/action contract shared by S2/S7/S8. The shell never
-  // branches per scenario — it reads journey.handoff (frozen in the registry
-  // config island) and executes the same bounded flow:
-  //   repository-controlled local evidence (navigate + bounded clone READ)
-  //   → required-marker validation
-  //   → explain verified vs unverified scope
-  //   → FAIL-CLOSED evidence gate: the external official destination anchor is
-  //     rendered ONLY when evidence.ok === true && missingMarkers.length === 0.
-  //     On gate failure the journey stops with a bounded STOP row that exposes
-  //     the configured stop boundary and renders NO external destination
-  //     control (no anchor, no href, no auto-open/prefill/submit, no model
-  //     fallback, no success semantics).
-  //   → resident-activated official destination anchor (explicit, never auto)
-  //   → STOP (no submission, no success semantics, no external request).
-  // auto_open / auto_prefill / submit_capability are all false by contract.
-
-  // Poll for bounded READ evidence on the handoff local-evidence route. Mirrors
-  // MunicipalResidentJourney._waitForEvidence (same 25ms poll contract) so the
-  // handoff flow reuses the proven evidence-wait semantics instead of racing a
-  // raw iframe load event.
-  function _waitForHandoffEvidence(route, timeoutMs) {
-    return new Promise(function (resolve) {
-      var deadline = Date.now() + (timeoutMs || 8000);
-      function check() {
-        var evidence = surface ? surface.readEvidence() : null;
-        if (evidence && evidence.ok && evidence.route === route) {
-          resolve(evidence);
-          return;
-        }
-        if (Date.now() >= deadline) {
-          resolve(evidence || null);
-          return;
-        }
-        window.setTimeout(check, 25);
-      }
-      check();
-    });
-  }
+  // ── EXTERNAL_OFFICIAL_HANDOFF rendering hooks ────────────────────────────
+  // The shared informational controller owns evidence navigation/READ, marker
+  // validation, safe-handoff/blocked branching and STOP state progression.
+  // Seo-gu keeps only municipality-specific rendering of the controller result.
 
   function _appendHandoffEvidenceRow(journey, handoff, evidence, missingMarkers) {
     var verified = Boolean(evidence && evidence.ok && missingMarkers.length === 0);
@@ -267,58 +227,6 @@
     thread.appendChild(row);
     thread.scrollTop = thread.scrollHeight;
     return row;
-  }
-
-  async function _runExternalOfficialHandoff(journey) {
-    var handoff = journey.handoff || {};
-    document.body.setAttribute("data-journey-state", "handoff_evidence_running");
-
-    // 1. Navigate to the repository-controlled local evidence route (bounded,
-    //    same-origin clone). No external request is made.
-    var navigated = false;
-    if (surface && handoff.local_evidence_route) {
-      navigated = surface.navigate(handoff.local_evidence_route);
-    }
-
-    // 2. Bounded READ of the local evidence region (main.rc-main innerText),
-    //    polled until the route's evidence is readable (same contract as the
-    //    shared journey orchestrator).
-    var evidence = null;
-    if (navigated) {
-      evidence = await _waitForHandoffEvidence(handoff.local_evidence_route);
-    }
-    latestEvidence = evidence && evidence.ok ? evidence : latestEvidence;
-
-    // 3. Required-marker validation against the READ text.
-    var evidenceText = evidence && evidence.ok ? String(evidence.text || "") : "";
-    var missingMarkers = (handoff.required_markers || []).filter(function (m) {
-      return evidenceText.indexOf(m) === -1;
-    });
-
-    // 4. Explain verified vs unverified scope (config-driven, grounded).
-    _appendHandoffEvidenceRow(journey, handoff, evidence, missingMarkers);
-
-    // 5. FAIL-CLOSED evidence gate. The external official handoff may be
-    //    rendered ONLY after successful local evidence validation — exactly
-    //    evidence.ok === true AND every required marker confirmed in the READ
-    //    region. On gate success: explicit resident-activated official
-    //    destination row, then STOP. On gate failure: the journey stops here
-    //    with the evidence explanation + a bounded STOP row that exposes the
-    //    configured stop boundary but renders NO external destination control
-    //    (no anchor, no href, no auto-open/prefill/submit, no model fallback,
-    //    no success/receipt semantics). No window.open / auto-navigation ever.
-    var evidenceGatePassed =
-      Boolean(evidence) && evidence.ok === true && missingMarkers.length === 0;
-    if (evidenceGatePassed) {
-      // 5a. Explicit resident-activated official handoff, then STOP.
-      _appendHandoffDestinationRow(journey, handoff);
-      document.body.setAttribute("data-journey-state", "safe_handoff");
-      return;
-    }
-
-    // 5b. Fail-closed STOP with no actionable external destination.
-    _appendHandoffBlockedRow(journey, handoff);
-    document.body.setAttribute("data-journey-state", "handoff_evidence_failed");
   }
 
   function _appendGeneralOffer(question) {
@@ -448,7 +356,7 @@
     return guidance.join("\n");
   }
 
-  async function _answerQuestion(question) {
+  async function _answerNonInformationalQuestion(question) {
     latestJourneyResult = null;
     latestGeneralResult = null;
 
@@ -457,50 +365,29 @@
       journey = window.SeoguResidentJourneyRegistry.match(question);
     }
 
-    if (journey) {
-      // EXTERNAL_OFFICIAL_HANDOFF journeys (신고 intake 등): local-evidence-first,
-      // then explicit resident-activated official handoff, then STOP.
-      // Never auto-open, never prefill, never present submission as completed.
-      if (journey.handoff) {
-        await _runExternalOfficialHandoff(journey);
-        return;
-      }
-      // No committed route + capture needed → honest, no fake navigation.
-      if (journey.capture_needed && !journey.entry_route) {
-        document.body.setAttribute("data-journey-state", "capture_needed");
-        _appendCaptureNeeded(journey);
-        return;
-      }
-      if (!window.MunicipalResidentJourney || !surface) {
-        document.body.setAttribute("data-journey-state", "failed");
-        _appendMessage("ai", "안내 화면에서 근거를 확인하지 못해 답변하지 않습니다.");
-        return;
-      }
-      document.body.setAttribute("data-journey-state", "running");
-      var result = await window.MunicipalResidentJourney.run(journey, surface);
-      latestJourneyResult = result;
-      if (result && result.ok && result.grounded) {
-        document.body.setAttribute("data-journey-state", "grounded");
-        // #1351: Transform raw excerpt into concise guidance for housing journey
-        var guidance = _buildGroundedGuidance(result, journey);
-        var answerText = guidance || result.answer;
-        _appendMessage("ai", answerText, result);
-      } else {
-        document.body.setAttribute("data-journey-state", "failed");
-        _appendMessage(
-          "ai",
-          result && result.answer
-            ? result.answer
-            : "안내 화면에서 근거를 확인하지 못해 답변하지 않습니다.",
-          result && result.failure_code ? { failure_code: result.failure_code } : null
-        );
-      }
+    // Informational route/handoff journeys are owned by the shared controller
+    // and must never fall through to a site-local execution state machine.
+    if (journey && (journey.entry_route || journey.handoff)) {
+      throw new Error("informational journey bypassed shared controller");
+    }
+
+    if (journey && journey.capture_needed && !journey.entry_route) {
+      document.body.setAttribute("data-journey-state", "capture_needed");
+      _appendCaptureNeeded(journey);
       return;
     }
 
     // Explicit opt-in boundary: unmatched question never calls a model silently.
-    document.body.setAttribute("data-journey-state", "general_model_offer");
-    _appendGeneralOffer(question);
+    if (!journey) {
+      document.body.setAttribute("data-journey-state", "general_model_offer");
+      _appendGeneralOffer(question);
+      return;
+    }
+
+    // Any remaining unsupported registry state fails closed. Do not invent a
+    // route or silently create a second site-specific journey path.
+    document.body.setAttribute("data-journey-state", "failed");
+    _appendMessage("ai", "안내 화면에서 근거를 확인하지 못해 답변하지 않습니다.");
   }
 
   // ── Canvas availability (canonical Buk-gu semantics, narrow glue) ────────
@@ -566,36 +453,74 @@
       }
     },
     onYesSurfacePrepare: function () {
-      // Reveal the institution canvas before navigation; on mobile switch the
-      // active surface to guidance (and close the composer keyboard).
+      // Surface-only adapter work. The shared controller owns the YES lifecycle.
       _setCanvasAvailability(true);
       if (typeof window !== "undefined" && window.matchMedia &&
           window.matchMedia("(max-width: 767px)").matches) {
         document.body.setAttribute("data-mobile-surface", "guidance");
       }
     },
-    onYes: function (question) {
-      // YES is the only allowed transition trigger: navigate → READ → result.
-      input.disabled = true;
-      send.disabled = true;
-      document.body.setAttribute("data-journey-state", "navigate");
-      Promise.resolve(_answerQuestion(question))
-        .catch(function () {
-          latestJourneyResult = null;
-          latestGeneralResult = null;
-          document.body.setAttribute("data-journey-state", "failed");
-          _appendMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
-        })
-        .finally(function () {
-          input.disabled = false;
-          send.disabled = false;
-          if (input) input.focus();
-        });
+    setInteractionDisabled: function (disabled) {
+      input.disabled = !!disabled;
+      send.disabled = !!disabled;
+    },
+    focusInput: function () {
+      if (input) input.focus();
+    },
+    prepareExecution: function () {
+      latestJourneyResult = null;
+      latestGeneralResult = null;
+    },
+    clearExecutionResult: function () {
+      latestJourneyResult = null;
+      latestGeneralResult = null;
+    },
+    navigate: function (route) {
+      return surface ? surface.navigate(route) : false;
+    },
+    readEvidence: function () {
+      return surface ? surface.readEvidence() : null;
+    },
+    setEvidence: function (evidence) {
+      if (evidence && evidence.ok) latestEvidence = evidence;
+    },
+    runJourney: function (journey) {
+      if (!window.MunicipalResidentJourney || !surface) return null;
+      return window.MunicipalResidentJourney.run(journey, surface);
+    },
+    setJourneyResult: function (result) {
+      latestJourneyResult = result;
+    },
+    renderGroundedResult: function (result, journey) {
+      var guidance = _buildGroundedGuidance(result, journey);
+      _appendMessage("ai", guidance || result.answer, result);
+    },
+    renderJourneyFailure: function (result) {
+      _appendMessage(
+        "ai",
+        result && result.answer
+          ? result.answer
+          : "안내 화면에서 근거를 확인하지 못해 답변하지 않습니다.",
+        result && result.failure_code ? { failure_code: result.failure_code } : null
+      );
+    },
+    renderHandoffEvidence: function (journey, handoff, evidence, missingMarkers) {
+      _appendHandoffEvidenceRow(journey, handoff, evidence, missingMarkers);
+    },
+    renderHandoffDestination: function (journey, handoff) {
+      _appendHandoffDestinationRow(journey, handoff);
+    },
+    renderHandoffBlocked: function (journey, handoff) {
+      _appendHandoffBlockedRow(journey, handoff);
+    },
+    renderUnexpectedFailure: function () {
+      latestJourneyResult = null;
+      latestGeneralResult = null;
+      _appendMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
     },
     onNo: function () {
-      // NO: canonical stop — remain on the answer, zero navigation, zero READ.
+      // Surface-only rollback after shared NO→ANSWER/STOP.
       _setCanvasAvailability(false);
-      if (input) input.focus();
     },
   });
 
@@ -621,21 +546,21 @@
     if (journey && (journey.entry_route || journey.handoff)) {
       seoguInfoController.startConfirmFlow({
         question: question,
+        journey: journey,
         delay: 300,
         renderAnswer: function () {
-          document.body.setAttribute("data-journey-state", "answer");
           _appendMessage("ai", "질문을 확인했습니다. 왼쪽에 서구청 안내 화면을 준비했습니다.");
         },
       });
       return;
     }
 
-    // capture_needed or unmatched: no confirmation gate. Delegated to the
-    // shared journey engine (_answerQuestion), which itself resolves the
-    // capture_needed / SUBSTITUTION_NEEDED handling per the registry status.
+    // capture_needed or unmatched: no informational confirmation/execution.
+    // This branch is intentionally non-informational and never owns the
+    // shared YES→navigate→result lifecycle.
     input.disabled = true;
     send.disabled = true;
-    Promise.resolve(_answerQuestion(question))
+    Promise.resolve(_answerNonInformationalQuestion(question))
       .catch(function () {
         latestJourneyResult = null;
         latestGeneralResult = null;
