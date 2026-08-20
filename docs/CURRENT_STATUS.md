@@ -1,283 +1,273 @@
 # 400 AI Finder 현재 기준 문서
 
 - 상태: `canonical`
-- 기준일: 2026-08-16
-- 기준 main: `ca38d99f44f3f20f87150fb38efcdf002d01618b`
-- lifecycle/governance 정렬: #1301 완료; #1318 / PR #1319 owner-authority boundary 완료
-- active onboarding validation: #1232 -> #1303 -> #1312
+- 기준일: 2026-08-21
+- 기준 main: `dbc785e0dd16e4d2a73c7c0245747cfbb9459271`
+- 현재 제품축: Buk-gu Golden Master resident product → Seo-gu state-by-state parity recovery
+- 운영 교리 authority: #1366 / `docs/operations/multi-site-onboarding-golden-master.md`
+- active product recovery: #1364 → #1365 / PR #1367
+- stacked parity CI: #1368 / PR #1372
+- paused onboarding: #1363 HOLD; third site blocked pending Seo-gu Golden parity
 
-이 문서는 저장소의 **현재 제품상태, 제품단계, 안전경계, 개발순서와 운영기준을 찾기 위한 최상위 인덱스**다.
+이 문서는 저장소의 **현재 제품상태, 안전경계, 개발순서와 운영기준을 찾기 위한 최상위 current-state 인덱스**다.
 
-저장소에는 장기간 축적된 단계별 기록과 실험문서가 많다. 문서의 존재만으로 현재 구현·승인·운영 상태를 추정하지 않는다. 현재 상태는 이 문서와 아래 canonical 문서의 우선순위를 따른다.
+GitHub remote가 실행상태의 Source of Truth다. 이 문서에 기록된 SHA/PR 상태는 작성 시점의 snapshot이며, mutation/merge/readiness 판단 직전에는 반드시 fresh remote를 다시 확인한다.
 
-## 문서 우선순위
+## 1. 현재 문서 authority
 
-1. `docs/CURRENT_STATUS.md` — current state/index
-2. `docs/operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md` — named-site Phase-A audience / project-owner authority boundary
-3. `docs/product/clone-first-general-site-platform-strategy.md` — ordinary pre-integration product lifecycle
-4. `docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md` — track separation
-5. `docs/product/exact-official-site-clone-invariant.md` — `exact` claim invariant
-6. `docs/product/clone-visual-fidelity-and-promotion-policy.md` — visual/promotion authority
-7. `docs/implementation/RELEASE_GATES.md` — readiness gates
-8. `docs/operations/REPOSITORY_GOVERNANCE.md` / `CONTRIBUTING.md` — change-control workflow
-9. network/security/runtime/provenance docs — their narrower technical boundaries
+문서 간 해석이 충돌할 때 다음 순서를 따른다.
 
-Named-site Phase-A의 legal/admin/rights 해석은 project owner의 최신 명시적 결정과 `docs/operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`를 따른다. #1234는 future Production/public-release governance이며 controlled faithful-clone fidelity의 일반 blocker로 사용하지 않는다.
+1. product owner's latest explicit decision
+2. `docs/operations/multi-site-onboarding-golden-master.md` / #1366 — multi-site resident journey doctrine
+3. `docs/CURRENT_STATUS.md` — current state / execution index
+4. `docs/operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md` — Phase-A owner authority / actual-site boundary
+5. `docs/product/clone-first-general-site-platform-strategy.md` — ordinary clone-first lifecycle
+6. `docs/product/PRODUCT_TRACKS_AND_BOUNDARIES.md`
+7. `docs/product/exact-official-site-clone-invariant.md`
+8. `docs/product/clone-visual-fidelity-and-promotion-policy.md`
+9. `docs/implementation/RELEASE_GATES.md`
+10. `docs/operations/REPOSITORY_GOVERNANCE.md` / `CONTRIBUTING.md`
+11. narrower security/network/runtime/provenance documents for their specific technical scope
 
-Historical issues, stage docs, audit records and superseded plans do not override the current canonical lifecycle.
+Historical issues, audit records, old stage documents and superseded playbooks do not override the current Golden Master doctrine.
 
-## 문서 상태 분류
+`docs/product/municipality-ai-finder-onboarding-playbook.md` remains a useful historical/platform onboarding reference, but its older resident-journey generalization is superseded wherever it conflicts with the Golden Master doctrine.
 
-| 상태 | 의미 |
-|---|---|
-| `canonical` | 현재 구현과 운영판단의 기준 |
-| `active-plan` | 승인된 후속 작업계획. 구현완료를 의미하지 않음 |
-| `golden` | 북구 frozen baseline과 회귀계약 |
-| `operator` | 실행·검증·배포 운영절차 |
-| `historical` | 당시 의사결정·증거. 현재 상태는 별도 확인 필요 |
-| `planning-only` | 구현·live 실행·배포를 승인하지 않는 설계자료 |
-| `superseded` | 새 문서·이슈가 대체. 역사기록으로만 보존 |
+## 2. Current product invariant
 
-## 현재 제품단계 — 가장 중요한 구분
+Buk-gu is the authoritative **Golden Master resident product**.
 
-400-ai-finder는 현재 **faithful-clone MVP 단계**다.
-
-### 현재 단계: pre-integration faithful-clone MVP
-
-기관이 실제 production 사이트의 운영·통합 권한을 제공하기 전에는 다음 제품형태를 사용한다.
+The required architecture is:
 
 ```text
-실제 대상 사이트
-  -> 필요 시 scoped read-only reference capture
-  -> point-in-time reference baseline
-  -> repository-controlled faithful clone candidate
-  -> reference vs clone 비교
-  -> clone MVP
-  -> AI Finder / Browser가 clone에서 search / click / navigate / answer
+                 ┌─ Buk-gu institution adapter / data / evidence
+Golden UX Engine ┤
+                 ├─ Seo-gu institution adapter / data / evidence
+                 └─ future institution adapter / data / evidence
 ```
 
-일반적인 stakeholder/development MVP에서:
+A new institution may change:
+
+- branding/media;
+- official route/menu structure;
+- department/contact/facts;
+- captured repository evidence;
+- provenance markers;
+- verified safe-stop/external-channel facts;
+- thin surface adapter details.
+
+It may not silently change or remove the canonical resident state graph.
+
+For relevant scenarios, parity means the same materially observable sequence, including answer, explicit confirmation, YES/NO decision, transition/navigation, result/provenance, and the scenario-specific choice/write/review/pre-submit STOP states that exist in the Buk-gu Golden flow.
+
+`grounded=true`, green CI, a good final screen, or a more realistic external handoff do not independently prove parity.
+
+Canonical doctrine: [`operations/multi-site-onboarding-golden-master.md`](operations/multi-site-onboarding-golden-master.md).
+
+## 3. Current product stage
+
+400-ai-finder remains in the **pre-integration faithful-clone MVP** stage.
 
 ```text
-left  = target site's faithful clone
-right = AI conversation / answer / search / navigation / bounded Browser Use
+real target site
+→ separately scoped read-only reference capture where needed
+→ point-in-time reference baseline
+→ repository-controlled faithful clone
+→ reference-vs-clone QA
+→ resident AI/search/navigation on the clone
 ```
 
-실제 production 사이트는 현재 runtime이 아니다. 실제 사이트는 clone을 만들기 위한 reference source이며, 이미 승인된 clone은 source-site 변경에 따라 실시간으로 자동 변형되지 않는다.
+The actual production institution site is not the current runtime.
 
-필요한 경우 재캡처하여 **새 reference / 새 clone candidate version**을 만든 뒤 다시 검토한다.
+Actual login, PII processing, identity verification, payment, upload, submission/write and receipt semantics remain outside the current product boundary unless a later first-party integration stage is explicitly authorized.
 
-### 나중 단계: authorized first-party actual-site integration
+## 4. Current product state
 
-기관의 명시적 도입·운영·통합 승인이 생긴 뒤에만 실제 기관사이트 단계가 열린다.
+### Buk-gu
 
-그때 실제 환경을 기준으로 다음을 검토한다.
+- protected/frozen Golden resident baseline: **authoritative**;
+- canonical click-by-click visual/interaction authority: #1348;
+- behavior must not drift merely to make a second-site implementation easier;
+- exact/golden compatibility and no-submit boundaries remain protected.
 
-- credentials / deployment ownership
-- information security
-- privacy / PII
-- authentication
-- real submissions / payments / write actions
-- internal-system integration
-- incident / support ownership
-- staging / rollback
+### Seo-gu
 
-이러한 **미래 actual-site production 조건은 현재 faithful-clone MVP를 만들고 검증하기 위한 선행 blocker가 아니다.**
+The source/capture/clone/evidence work remains materially reusable, but resident orchestration parity is under active remediation.
 
-Clone MVP 완료는 actual-site control을 의미하지 않고, actual-site integration 역시 clone MVP를 만들기 위한 선행조건이 아니다.
+Current corrected acceptance matrix:
 
-Canonical lifecycle: [`product/clone-first-general-site-platform-strategy.md`](product/clone-first-general-site-platform-strategy.md)
+| Unit | Current disposition | Reason |
+|---|---|---|
+| S0 entry | PASS | canonical composition/control hierarchy already accepted |
+| S1 housing | ACTIVE RECOVERY | shared Golden engine required |
+| S2 illegal parking | ACTIVE RECOVERY | external-channel fact must not replace canonical flow |
+| S3 streetlight | PENDING AFTER #1367 | complaint/write/review Golden flow required |
+| S4 litter | PENDING AFTER #1367 | complaint choice/write/review Golden flow required |
+| S5 passport | ACTIVE RECOVERY | Golden choreography + current mobile chip-rail blocker |
+| S6 unmanned kiosk | ACTIVE RECOVERY | accepted evidence/routes; Golden choreography recovery required |
+| S7 mayor | HOLD | #1363 remains paused until Golden parity recovery |
+| bulky waste / mattress | PENDING | derive from Buk-gu high-risk Golden STOP shape first |
 
-## 현재 제품 상태
-
-- **Buk-gu Frozen Demo:** 완료. 북구는 첫 번째 protected municipality golden reference다.
-- **Generic contract foundation:** #1287 완료. Versioned Generic SiteSpec vNext / archetype / capability / onboarding-report contract foundation과 Buk-gu compatibility/projection 기반이 존재한다.
-- **Generic Site Model / structural preview evidence:** 구현됨. #1298~#1300의 Seo-gu offline structural work는 generic platform evidence로 유효하다.
-- **Seo-gu named-site proof:** #1303 아래에서 G1 point-in-time reference baseline과 G2-A semantic model, G2-B faithful-clone candidate까지 완료·병합되었다. #1310 / PR #1311의 homepage desktop/mobile/GNB fidelity slice는 accepted 상태다. 현재 #1312 / Draft PR #1313에서 notice/gosi/civil-form list+detail six-state fidelity를 교정 중이며, fresh evidence는 생성됐지만 현재 candidate는 visual/source-parity review에서 아직 accepted가 아니다. organization/staff는 그 다음 bounded slice다.
-- **General-site / multi-site AI Browser:** #1232가 active 상태다. Seo-gu G3 representative-surface acceptance가 완료되기 전에는 AI-on-clone 후속이나 materially different third-site proof로 넘어가지 않는다.
-- **Live-public AI:** 별도 public operating approval이 있는 것으로 자동 간주하지 않는다.
-- **Actual-site first-party integration:** 기관의 실제 운영·통합 승인이 있기 전에는 시작하지 않는다.
-- **Project-owner authority / Phase-A boundary:** #1318 / PR #1319 완료. `operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`와 project owner의 최신 명시적 결정이 named-site Phase-A legal/admin/rights 해석의 기준이다.
-- **Rights/license #1234:** future Production/public-release 또는 별도 redistribution 판단을 위한 owner/rights 트랙으로 유지한다. 현재 controlled faithful-clone MVP의 기능·fidelity·stakeholder evaluation 자체를 자동 차단하는 일반 개발 blocker로 사용하지 않는다.
-
-## Platform structural proof와 named-site onboarding 분리
-
-### Platform/core structural development
-
-Synthetic/offline fixture로 다음을 검증할 수 있다.
-
-- SiteSpec
-- archetype/capability
-- generic Site Model
-- structural preview/renderer
-- knowledge/action graph contracts
-- QA/report schema
-- exception handling
-
-이 작업은 실제 사이트 capture 없이도 가능하다.
-
-그러나 synthetic/offline structural proof는 named real site의 clone 완료 증거가 아니다.
-
-### Named real-site onboarding
-
-실제 이름을 가진 기관을 onboard한다고 주장하려면 먼저 scoped point-in-time reference baseline을 확보한 뒤 clone candidate를 비교한다.
+### Third site / cross-domain
 
 ```text
-generated structural preview
-!= reference_baseline_ready
-!= clone_candidate
-!= clone_mvp_ready
-!= exact
-!= resident_default_approved
-!= actual_site_integrated
+THIRD_SITE = BLOCKED_PENDING_SEOGU_GOLDEN_PARITY
 ```
 
-## 현재 #1232 순서
+Do not resume third-site onboarding merely because source/clone platform pieces exist or a docs issue is completed.
 
-1. Buk-gu — protected golden reference
-2. Seo-gu G1 — scoped point-in-time actual-site reference baseline 완료
-3. Seo-gu G2-A — semantic model 완료
-4. Seo-gu G2-B — faithful-clone candidate 병합 완료
-5. Seo-gu G3 homepage — #1310 / PR #1311 accepted
-6. Seo-gu G3 board/list/detail — #1312 / Draft PR #1313 active; current evidence는 아직 visual acceptance 전
-7. organization chart / staff directory — board slice acceptance 후 다음 bounded correction
-8. Seo-gu G3의 required structural/content/asset/interaction/visual gates를 모두 충족하고 owner visual review와 별도 `clone_mvp_ready` gate가 명시적으로 승인된 뒤 clone 위 AI search/navigation/Browser Use 검증
-9. 그 후 materially different third-site / cross-domain proof
+## 5. Current GitHub recovery state
 
-제3 사이트를 먼저 진행하거나 CI/Preview 성공만으로 Seo-gu G3 visual acceptance 또는 clone MVP 완료를 표현하지 않는다.
+At this document update snapshot:
 
-## 현재 기준 문서
+```text
+CURRENT_MAIN = dbc785e0dd16e4d2a73c7c0245747cfbb9459271
 
-### 제품 lifecycle / track / release
+PR #1367
+  state = OPEN / DRAFT
+  branch = refactor/1365-bukgu-golden-informational-parity
+  head = 46d2e19f14fe2f2866772ceca95c52d40dd935ba
+  purpose = shared Golden informational choreography recovery
+  gate = architecture correction still required
 
-- [`product/clone-first-general-site-platform-strategy.md`](product/clone-first-general-site-platform-strategy.md) — `canonical`, ordinary pre-integration lifecycle owner
-- [`product/PRODUCT_TRACKS_AND_BOUNDARIES.md`](product/PRODUCT_TRACKS_AND_BOUNDARIES.md) — `canonical`
-- [`implementation/RELEASE_GATES.md`](implementation/RELEASE_GATES.md) — `canonical`
-- [`product/exact-official-site-clone-invariant.md`](product/exact-official-site-clone-invariant.md) — `canonical` for explicit `exact` claim
-- [`product/clone-visual-fidelity-and-promotion-policy.md`](product/clone-visual-fidelity-and-promotion-policy.md) — `canonical`
+PR #1372
+  state = OPEN / DRAFT
+  base = PR #1367 branch
+  branch = ci/1368-golden-master-state-graph-gate
+  head = 743b6be661bb5ecc4e6adf56069745f77ecaf14a
+  purpose = mandatory Golden state-graph CI gate
+  implementation = accepted pending parent reconciliation
+```
 
-### 아키텍처
+Do not treat these SHAs as permanent authority. Re-query GitHub before any new decision or mutation.
 
-- [`architecture/UNIFIED_RUNTIME_AND_SITESPEC.md`](architecture/UNIFIED_RUNTIME_AND_SITESPEC.md) — current platform architecture/status
-- [`architecture/clone-first-platform-adr.md`](architecture/clone-first-platform-adr.md) — `historical` architecture decision / compatibility reference
-- [`bukgu-golden-compatibility-manifest.md`](bukgu-golden-compatibility-manifest.md) — `golden`
+## 6. Current critical path
 
-### 보안·개인정보·운영
+The active order is:
 
-- [`operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md`](operations/PROJECT_OWNER_AUTHORITY_AND_MVP_BOUNDARY.md) — `canonical` for named-site Phase-A audience / project-owner legal·administrative·business authority boundary
-- [`operations/PUBLIC_AI_API_SECURITY_AND_PRIVACY.md`](operations/PUBLIC_AI_API_SECURITY_AND_PRIVACY.md) — `canonical` for applicable public API operation
-- [`operations/REPOSITORY_GOVERNANCE.md`](operations/REPOSITORY_GOVERNANCE.md) — `canonical`
-- [`../SECURITY.md`](../SECURITY.md) — vulnerability/secret handling policy
-- [`provider-fetch-network-boundary.md`](provider-fetch-network-boundary.md) — external provider/network technical boundary
-- [`live-transition-decision-record.md`](live-transition-decision-record.md) — historical/operational live transition record
-- [`operator-quickstart.md`](operator-quickstart.md) — operator execution guide
+```text
+#1365 / PR #1367
+→ retire Seo-gu resident behavior fork
+→ one shared Golden resident engine for S1/S2/S5/S6
+→ resolve focused Seo-gu mobile S5 chip-rail failure
 
-### 라이선스와 자산
+#1368 / PR #1372
+→ reconcile onto accepted #1367 parent
+→ obtain authoritative exact-head Actions
+→ make Golden state-graph parity mandatory
 
-- [`legal/LICENSING_AND_PROVENANCE_DECISION.md`](legal/LICENSING_AND_PROVENANCE_DECISION.md) — owner/public-release/provenance decision track
+#1369
+→ repository documentation authority aligned with #1366
 
-### 개발기여
+#1370
+→ after #1368 is established, align repository settings/protection/merge policy
 
-- [`../CONTRIBUTING.md`](../CONTRIBUTING.md)
-- [`../.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md)
+then
+→ S3/S4 complaint-writing Golden recovery
+→ S7 mayor Golden recovery
+→ bulky-waste/mattress Golden recovery
+→ full state-by-state desktop/mobile paired visual acceptance
+→ Seo-gu parity closure
+→ only then third-site / cross-domain onboarding
+```
 
-### 역사자료
+#1363 stays HOLD throughout the current shared-engine/CI recovery.
 
-- [`audit/PROJECT_AUDIT_20260804.md`](audit/PROJECT_AUDIT_20260804.md) — historical audit
-- [`implementation/ROADMAP_20260804.md`](implementation/ROADMAP_20260804.md) — historical plan; current execution order로 사용하지 않음
+## 7. Mandatory multi-site acceptance rule
 
-## 북구 golden 기준
+For relevant onboarding PRs, require at minimum:
 
-북구 golden baseline은 범용 플랫폼 refactor보다 우선 보호한다.
+```text
+GOLDEN_SCENARIO_ID =
+GOLDEN_STATE_GRAPH =
+NEW_SITE_STATE_GRAPH =
+STATE_GRAPH_EQUAL = YES
+BUKGU_BEHAVIOR_DRIFT = NONE
+NEW_SITE_BEHAVIOR_FORK = NO
+CANONICAL_STATES_SKIPPED = 0
+EXTERNAL_CHANNEL_REPLACES_CANONICAL_FLOW = NO
+STATE_BY_STATE_BROWSER_TEST = PASS
+PAIRED_DIRECT_PNG_REVIEW = PASS / N/A
+```
 
-- Golden compatibility manifest: [`bukgu-golden-compatibility-manifest.md`](bukgu-golden-compatibility-manifest.md)
-- Exact clone invariant: [`product/exact-official-site-clone-invariant.md`](product/exact-official-site-clone-invariant.md)
-- Visual promotion policy: [`product/clone-visual-fidelity-and-promotion-policy.md`](product/clone-visual-fidelity-and-promotion-policy.md)
-- Fixture manifest: [`../tests/fixtures/official_site_clone_manifest.json`](../tests/fixtures/official_site_clone_manifest.json)
+A final route/result alone is insufficient. A missing materially observable Golden state is a FAIL unless an explicit product-owner decision marks it non-applicable.
 
-다음 상태는 별개다.
+## 8. Source/evidence work that remains valid
 
-1. reference/capture provenance
-2. clone candidate
-3. structure/content parity
-4. asset mapping
-5. interaction parity
-6. visual review
-7. clone MVP ready
-8. exact/resident-default promotion when explicitly requested
+Current recovery is primarily about resident orchestration and acceptance governance, not discarding good source work.
 
-앞 단계가 완료됐다는 이유로 다음 단계가 자동 승인되지 않는다.
+Preserve unless separately disproven:
 
-## Clone MVP와 `exact` 분리
+- Seo-gu official captures/provenance;
+- source-backed clone assets/content;
+- housing/passport/kiosk local routes;
+- bounded illegal-parking evidence;
+- generic list/detail renderers;
+- responsive/mobile corrections;
+- clone DOM READ/grounding;
+- source provenance UI;
+- offline/security/network guards.
 
-모든 MVP가 기관의 모든 route를 처음부터 exact하게 복제할 필요는 없다. 대신 declared MVP scope를 명시한다.
+`DIRECT_REUSE` describes source/evidence reuse only. It is not authority to skip Golden resident states.
 
-범위 밖은 fabricated하지 않고 `capture_required` / exception으로 남긴다. 범위 안에서는 원본 reference를 임의 재설계하지 않는다.
+## 9. Security and network boundary
 
-`clone_mvp_ready`는 scoped faithful reproduction을 뜻하며 `exact` 또는 resident-default 승인과 동일하지 않다.
+Routine CI remains deterministic/offline with external provider and official-site request count = 0 unless a task is explicitly authorized as a controlled live validation.
 
-`exact`를 주장하는 surface는 기존 exact-clone invariant와 visual/promotion policy를 추가로 따른다.
+No current multi-site parity task authorizes:
 
-## Network / capture 기본 원칙
+- Firecrawl;
+- general-model/provider live calls;
+- actual official-site control;
+- login/identity verification;
+- citizen PII;
+- payment;
+- submission/write;
+- Production mutation.
 
-- routine CI는 external provider / official-site network 0을 유지한다.
-- 실제 사이트 reference capture는 named-site onboarding에서 필요한 별도 실행행위이며 target/scope/method를 명시한다.
-- URL을 입력값으로 받는 generic runtime capability와, 특정 프로젝트에서 그 URL을 실제로 contact하는 것은 같은 개념이 아니다.
-- actual-site production control, login, real submission/payment, PII processing은 미래 first-party integration 단계다.
+## 10. Repository governance state
 
-## 현재 작업 이슈
+Documented process remains:
 
-Active:
+```text
+branch
+→ Draft PR
+→ exact-head validation
+→ review/comments/threads recheck
+→ squash merge with exact expected head
+```
 
-- [#1232 multi-site onboarding validation](https://github.com/skerishKang/400-ai-finder/issues/1232)
-- [#1303 Seo-gu controlled reference baseline + faithful clone proof](https://github.com/skerishKang/400-ai-finder/issues/1303)
-- [#1312 Seo-gu G3 board list/detail fidelity](https://github.com/skerishKang/400-ai-finder/issues/1312)
+Current repository technical enforcement is weaker than this documented process. #1370 tracks alignment of branch protection, required checks and merge methods.
 
-Separate follow-up/platform hardening:
+Do not configure final required status contexts until #1368 Golden parity CI is established and the exact check context is known.
 
-- #1291 generic Page Agent target semantics — OPEN P1
-- #1293 location discovery taxonomy — OPEN P2
+## 11. Current issue index
 
-Nonblocking maintenance / operations:
+### Critical path
 
-- #1289 comparison-evidence timeout flake — OPEN, observe only; no CI weakening or timeout change justified absent recurrence
-- #1290 Google Drive working-mirror resync — OPEN operational/local-access maintenance; GitHub remote remains authoritative
+- #1232 — multi-site onboarding parent
+- #1348 — Buk-gu canonical visual/interaction baseline
+- #1364 — Seo-gu Golden parity recovery parent
+- #1365 / PR #1367 — shared informational choreography
+- #1366 — operating doctrine authority
+- #1368 / PR #1372 — mandatory Golden state-graph CI
+- #1369 — documentation authority reconciliation
+- #1370 — repository-settings enforcement after #1368
+- #1363 — S7 HOLD
 
-Owner/public-release decision:
+### Lower-priority operations
 
-- [#1234 code/official capture/third-party asset license & provenance](https://github.com/skerishKang/400-ai-finder/issues/1234) — future Production/public-release governance; not a Phase-A faithful-clone fidelity blocker
+- #1371 — remote branch hygiene; read-only inventory first, unknown = HOLD
+- #1290 — Google Drive working-mirror resync; GitHub remains authoritative
 
-Completed / historical:
+### Deferred owner/public-release governance
 
-- #1318 / PR #1319 project-owner authority / Phase-A boundary — completed; canonical authority document merged
-- #1301 clone MVP lifecycle / canonical docs alignment — completed
-- #1310 Seo-gu G3 homepage fidelity correction — completed/accepted
-- #1292 parsed-host site ownership hardening — completed; prerequisite landed before #1294
-- #1294 acquisition-domain scope hardening — completed via PR #1320 / merge `100e5b51d8f58baf27473c3ee628f60b1c94558a`
-- #1295 SSRF-safe public egress hardening — completed via PR #1321 / merge `ca38d99f44f3f20f87150fb38efcdf002d01618b`
-- #1283 post-Buk-gu governance alignment — completed
-- #1287 Generic SiteSpec vNext contract foundation — completed
-- #1235 Buk-gu Frozen Demo closeout — completed
-- #1181 clone-first multi-site strategy/epic — CLOSED / not_planned; historical strategy/planning provenance remains useful, but it is no longer the active execution parent
-- #1080 Buk-gu official fixture program — historical/deferred
-- #1150 official-info freshness retrieval — historical/deferred
-- #862 actual-site navigator/integration — future authorized actual-site track
-- #873 full Buk-gu rebuild/integration planning — historical planning
+- #1234 — Production/public-release license/provenance owner decision; not a general blocker to the current controlled faithful-clone MVP.
 
-## 저장소 변경 규칙 요약
+## 12. Historical execution order superseded
 
-- `main` 직접 push 금지. docs 포함 dedicated branch -> Draft PR을 사용한다.
-- 새 작업 직전 remote main FULL SHA, open PR, relevant issues를 다시 확인한다.
-- merge 직전 exact current head, diff/changed files, comments/reviews/threads, exact-head CI를 다시 확인한다.
-- head가 바뀌면 이전 merge-readiness 증거를 재사용하지 않는다.
-- rebase / amend / force-push는 project owner가 명시적으로 승인하지 않는 한 사용하지 않는다.
-- merge는 exact current head를 lease로 지정한 squash merge를 사용한다.
-- assertion / skip / xfail / coverage threshold를 낮춰 CI를 통과시키지 않는다.
+Older current-status text identified #1303/#1312 and related G3 slices as the active execution order. Those items remain historical evidence of the clone-building phase, but they are **not the present critical path**.
 
-## 문서 갱신 규칙
+The current authoritative execution path is the Golden resident parity recovery described above.
 
-- 문서에 가능한 경우 exact SHA, 검증일, 환경과 상태를 기록한다.
-- `planned`, `generated`, `implemented`, `tested`, `clone_mvp_ready`, `exact`, `deployed`, `approved`, `actual_site_integrated`를 같은 말로 사용하지 않는다.
-- public issue·PR·문서에는 고객·기관의 비공개 정보, 개인식별정보, API 키, 내부 URL을 기록하지 않는다.
-- actual-site production security/privacy/operations requirements는 실제 first-party 단계가 열릴 때 해당 환경 기준으로 검토한다.
-- 기존 문서가 새 기준과 충돌하면 삭제보다 `superseded`/`historical` 표시와 canonical replacement 링크를 우선한다.
+No history is rewritten: prior issues, PRs and Git history remain evidence of how the product reached the current state.
