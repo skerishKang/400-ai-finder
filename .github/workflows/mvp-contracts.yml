@@ -340,11 +340,55 @@ jobs:
           node tests/browser/verify_housing_quest_e2e.mjs \
             http://127.0.0.1:8768
 
-          node tests/browser/verify_mayor_writing_e2e.mjs \
-            http://127.0.0.1:8768
+           node tests/browser/verify_mayor_writing_e2e.mjs \
+             http://127.0.0.1:8768
 
           node tests/browser/verify_clone_header_list_containment.mjs \
             http://127.0.0.1:8768
+
+      - name: Run Golden state graph trace contract unit tests (#1368)
+        run: node --test tests/browser/test_golden_state_graph_contract.mjs
+
+      - name: Run Golden master state graph gate browser contract (#1368)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python scripts/build_cloudflare_pages.py --mode live
+
+          python -m http.server 8772 \
+            --bind 127.0.0.1 \
+            --directory dist/cloudflare-pages \
+            > /tmp/golden-state-graph-server.log 2>&1 &
+
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8772/static/seogu-citizen-action-demo.html"
+
+          for _ in range(40):
+              try:
+                  with urllib.request.urlopen(url, timeout=1) as response:
+                      if response.status == 200:
+                          break
+              except Exception:
+                  time.sleep(0.25)
+          else:
+              raise SystemExit("Golden state graph E2E server did not become ready")
+          PY
+
+          node tests/browser/verify_golden_master_state_graph_e2e.mjs \
+            http://127.0.0.1:8772
 
       - name: Run two-stage bilingual draft browser contract
         run: node tests/browser/verify_two_stage_bilingual_draft_e2e.mjs
