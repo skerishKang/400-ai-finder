@@ -59,6 +59,8 @@ EXPECTED_TEST_STEPS = {
     "Run desktop chat scroll containment browser contract (#1173)",
     "Run mobile link safety browser contract (live build, port 8769)",
     "Run housing department browser contract",
+    "Run Golden state graph trace contract unit tests (#1368)",
+    "Run Golden master state graph gate browser contract (#1368)",
     "Run two-stage bilingual draft browser contract",
     "Run Cloudflare MVP Function contract test",
     "Run Page Agent lab Python contracts (full suite)",
@@ -188,3 +190,80 @@ def test_node_playwright_dependency_is_exactly_locked_and_ci_uses_npm_ci() -> No
         commands = "\n".join(str(step.get("run", "")) for step in jobs[job_id].get("steps", []))
         assert "npm ci --ignore-scripts" in commands, f"{job_id} must install from package-lock"
         assert "npm install " not in commands
+
+
+def test_golden_state_graph_gate_is_fail_closed_and_attached_to_citizen_browser() -> None:
+    jobs = _workflow()["jobs"]
+    citizen_browser = jobs.get("citizen-browser")
+    assert citizen_browser is not None, "citizen-browser job must exist"
+
+    steps = citizen_browser.get("steps", [])
+    golden_steps = [
+        s
+        for s in steps
+        if s.get("name")
+        in (
+            "Run Golden state graph trace contract unit tests (#1368)",
+            "Run Golden master state graph gate browser contract (#1368)",
+        )
+    ]
+    assert len(golden_steps) == 2, (
+        "citizen-browser must contain both Golden gate steps "
+        f"(unit + browser E2E), found {len(golden_steps)}"
+    )
+
+    unit_step = next(
+        s
+        for s in golden_steps
+        if s.get("name") == "Run Golden state graph trace contract unit tests (#1368)"
+    )
+    browser_step = next(
+        s
+        for s in golden_steps
+        if s.get("name") == "Run Golden master state graph gate browser contract (#1368)"
+    )
+
+    # Must not be continue-on-error (fail-closed).
+    assert unit_step.get("continue-on-error") is None or unit_step.get("continue-on-error") is False, (
+        "Golden unit gate must not have continue-on-error"
+    )
+    assert browser_step.get("continue-on-error") is None or browser_step.get("continue-on-error") is False, (
+        "Golden browser gate must not have continue-on-error"
+    )
+
+    # Must not be gated behind an irrelevant condition (e.g. manual-only, secrets).
+    assert unit_step.get("if") is None or unit_step.get("if") == "always()", (
+        f"Golden unit gate must not hide behind conditional if={unit_step.get('if')!r}"
+    )
+    assert browser_step.get("if") is None or browser_step.get("if") == "always()", (
+        f"Golden browser gate must not hide behind conditional if={browser_step.get('if')!r}"
+    )
+
+    # Must actually run commands.
+    unit_run = str(unit_step.get("run", ""))
+    browser_run = str(browser_step.get("run", ""))
+    assert "node --test" in unit_run and "test_golden_state_graph_contract.mjs" in unit_run, (
+        "Golden unit gate must run the contract validator unit tests"
+    )
+    assert "verify_golden_master_state_graph_e2e.mjs" in browser_run, (
+        "Golden browser gate must run the E2E test"
+    )
+
+    # Must use localhost-bound server with cleanup trap.
+    assert "127.0.0.1" in browser_run, "Golden browser gate must bind to localhost"
+    assert "trap" in browser_run and "cleanup" in browser_run, (
+        "Golden browser gate must have cleanup trap for bounded server"
+    )
+    assert "http.server" in browser_run, "Golden browser gate must start a bounded local server"
+
+    # Must be attached to the aggregate CI through citizen-browser.
+    aggregator = jobs["mvp-contracts"]
+    assert "citizen-browser" in aggregator.get("needs", []), (
+        "citizen-browser must be in mvp-contracts needs (aggregate CI)"
+    )
+    run_script = "\n".join(
+        str(step.get("run", "")) for step in aggregator.get("steps", [])
+    )
+    assert "${{ needs.citizen-browser.result }}" in run_script, (
+        "Aggregator must fail-closed on citizen-browser failure"
+    )
