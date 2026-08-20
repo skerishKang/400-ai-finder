@@ -290,6 +290,107 @@ async function confirmNoStaysOnAnswer(page, selector) {
   assert.strictEqual(postRoute, preRoute, "NO must not navigate the clone surface");
 }
 
+// #1365 BLOCKER 3: real browser NO-path proof for ONE scenario, executed in an
+// isolated fresh context so prior journey state cannot contaminate the proof.
+// Strengthens the route-equality helper with the full canonical NO contract:
+//   - NO leaves the conversation on the answer (zero navigation)
+//   - the journey result is null (no scenario-specific execution occurred)
+//   - no repository READ (grounded) result, no safe-handoff row, no handoff
+//     evidence result is rendered for the journey
+//   - zero external requests
+async function proveNoPathIsolated(browser, selector, jid) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const external = [];
+  installEgressGuard(ctx);
+  const page = await ctx.newPage();
+  await page.goto(DEMO_URL, { waitUntil: "networkidle", timeout: 20000 });
+  await page.waitForFunction(
+    () => document.querySelectorAll("#chat-chips .chat-chip").length > 0,
+    null,
+    { timeout: 15000 },
+  );
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-surface-state") === "ready",
+    null,
+    { timeout: 15000 },
+  );
+  const initialRoute = await page.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+  });
+  // chip -> answer
+  await page.locator(selector).click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "answer",
+    null,
+    { timeout: 10000 },
+  );
+  const routeAtAnswer = await page.evaluate(() => {
+    return (() => {
+      const frame = document.getElementById("seogu-clone-frame");
+      return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+    })();
+  });
+  assert.strictEqual(routeAtAnswer, initialRoute, `${jid} NO: route unchanged at answer`);
+  // answer -> confirm
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "confirm",
+    null,
+    { timeout: 10000 },
+  );
+  const routeAtConfirm = await page.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+  });
+  assert.strictEqual(routeAtConfirm, initialRoute, `${jid} NO: route unchanged at confirm`);
+  // YES + NO controls must exist
+  const controls = await page.evaluate(() => {
+    const msgs = Array.from(document.querySelectorAll('.chat-msg--confirm-run'));
+    const last = msgs[msgs.length - 1];
+    if (!last) return { yes: false, no: false, count: 0 };
+    const btns = last.querySelectorAll('[data-confirm-action]');
+    return {
+      yes: !!last.querySelector('[data-confirm-action="yes"]'),
+      no: !!last.querySelector('[data-confirm-action="no"]'),
+      count: btns.length,
+    };
+  });
+  assert.strictEqual(controls.yes, true, `${jid} NO: YES control must exist`);
+  assert.strictEqual(controls.no, true, `${jid} NO: NO control must exist`);
+  assert.strictEqual(controls.count, 2, `${jid} NO: exactly YES and NO controls`);
+  // click NO
+  await page.locator('[data-confirm-action="no"]').last().click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "answer",
+    null,
+    { timeout: 10000 },
+  );
+  const after = await page.evaluate((jid) => {
+    const shell = window.SeoguCitizenActionShell;
+    const r = shell.getLastJourneyResult();
+    const frame = document.getElementById("seogu-clone-frame");
+    const safeHandoff = document.querySelector(`[data-safe-handoff="true"][data-journey-id="${jid}"]`);
+    const handoffEvidence = document.querySelector(`[data-handoff-evidence="true"][data-journey-id="${jid}"]`);
+    const grounded = document.querySelector(`.chat-msg[data-grounded="true"][data-journey-id="${jid}"]`);
+    return {
+      state: document.body.getAttribute("data-journey-state"),
+      route: frame && frame.contentWindow ? frame.contentWindow.location.pathname : null,
+      resultNull: r === null || r === undefined,
+      safeHandoff: !!safeHandoff,
+      handoffEvidence: !!handoffEvidence,
+      grounded: !!grounded,
+    };
+  }, jid);
+  assert.strictEqual(after.state, "answer", `${jid} NO: must return to answer state`);
+  assert.strictEqual(after.route, initialRoute, `${jid} NO: route unchanged after NO`);
+  assert.strictEqual(after.resultNull, true, `${jid} NO: getLastJourneyResult() must be null (no execution)`);
+  assert.strictEqual(after.safeHandoff, false, `${jid} NO: no safe-handoff row rendered`);
+  assert.strictEqual(after.handoffEvidence, false, `${jid} NO: no handoff-evidence row rendered`);
+  assert.strictEqual(after.grounded, false, `${jid} NO: no repository READ (grounded) result rendered`);
+  assert.deepStrictEqual(external, [], `${jid} NO: zero external requests`);
+  await ctx.close();
+}
+
 function assertNoForbiddenSuccess(text, where) {
   for (const pattern of FORBIDDEN_SUCCESS_PATTERNS) {
     assert.ok(
@@ -1882,6 +1983,17 @@ try {
   assert.strictEqual(mSandbox, "allow-same-origin", "mobile iframe must keep script-disabled sandbox");
 
   await mobile.close();
+
+  // (B3) #1365 BLOCKER 3: real browser NO-path proof for the four target
+  // scenarios, each in its own isolated fresh context (no cross-contamination).
+  // S1 / S2 / S5 / S6 NO must stop on the answer with zero navigation, a null
+  // journey result, and no scenario-specific execution (no repository READ
+  // result, no safe-handoff row, no handoff-evidence result, no external request).
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_apartment_housing_dept"]', "seogu_apartment_housing_dept");
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_illegal_parking_report"]', "seogu_illegal_parking_report");
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_passport_issuance"]', "seogu_passport_issuance");
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_unmanned_kiosk"]', "seogu_unmanned_kiosk");
+  console.log("  [B3] NO-path browser proof S1/S2/S5/S6: OK");
 
   // (9) zero external HTTP(S) runtime requests across both contexts
   assert.deepStrictEqual(externalRequests, [], "focused surface proof must make zero external requests");
