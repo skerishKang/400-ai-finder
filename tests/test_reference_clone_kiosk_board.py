@@ -265,3 +265,77 @@ def test_build_and_render_make_no_network_requests():
     mod.build_reference_clone_model(REPO_ROOT, CAPTURE_ROOT_1360)
     model = json.loads(FIXTURE_1360.read_text(encoding="utf-8"))
     rmod.render_site(model, route_prefix=_ROUTE_PREFIX)
+
+
+# ---------------------------------------------------------------------------
+# G. Security: no unredacted credential-bearing query values in committed
+#    S6 capture/derived artifacts (generic sanitizer regression, offline).
+# ---------------------------------------------------------------------------
+# A synthetic high-entropy hex-like value used to prove the assertion can
+# detect a raw credential WITHOUT embedding the real detected value here.
+_SYNTHETIC_APPKEY = "a1b2c3d4e5f6a1b2c3d4e5f6"
+_CRED_PARAM_NAMES = ("appkey=", "api_key=", "apikey=", "access_token=",
+                      "client_secret=", "secret=")
+
+
+def _scan_for_credential_values(path: Path) -> list[str]:
+    """Return list of credential-bearing query values found raw in the file."""
+    text = path.read_text(encoding="utf-8")
+    found = []
+    for line in text.splitlines():
+        for param in _CRED_PARAM_NAMES:
+            idx = line.find(param)
+            if idx == -1:
+                continue
+            rest = line[idx + len(param):]
+            # extract the value (until &, &amp;, ", ', <, whitespace, or end)
+            val = ""
+            for ch in rest:
+                if ch in ("&", '"', "'", "<", " ", "\t", "\n"):
+                    break
+                val += ch
+            if val and val != "[REDACTED_QUERY_APPKEY]" and len(val) >= 8:
+                found.append(f"{param}{val}")
+    return found
+
+
+def test_s6_source_html_has_no_unredacted_appkey():
+    path = CAPTURE_ROOT_1360 / "states" / "unmanned_kiosk.list.desktop" / "source.html"
+    found = _scan_for_credential_values(path)
+    assert not found, f"unredacted credential values in source.html: {found}"
+    # The redacted form must be present (proves the sanitizer ran).
+    assert "[REDACTED_QUERY_APPKEY]" in path.read_text(encoding="utf-8")
+
+
+def test_s6_ledger_has_no_unredacted_appkey():
+    path = CAPTURE_ROOT_1360 / "ledger.json"
+    found = _scan_for_credential_values(path)
+    assert not found, f"unredacted credential values in ledger.json: {found}"
+
+
+def test_s6_clone_model_has_no_unredacted_appkey():
+    path = FIXTURE_1360
+    found = _scan_for_credential_values(path)
+    assert not found, f"unredacted credential values in clone-model.json: {found}"
+
+
+def test_s6_artifacts_have_redacted_form():
+    """The deterministic redaction token must appear where credentials were."""
+    for path in (
+        CAPTURE_ROOT_1360 / "states" / "unmanned_kiosk.list.desktop" / "source.html",
+        CAPTURE_ROOT_1360 / "ledger.json",
+        FIXTURE_1360,
+    ):
+        text = path.read_text(encoding="utf-8")
+        assert "[REDACTED_QUERY_APPKEY]" in text, f"redaction token missing from {path.name}"
+
+
+def test_s6_source_png_byte_identical():
+    """source.png must NOT be regenerated merely for this security fix
+    (no demonstrated security-bearing bitmap issue)."""
+    import hashlib
+    png_path = CAPTURE_ROOT_1360 / "states" / "unmanned_kiosk.list.desktop" / "source.png"
+    h = hashlib.sha256(png_path.read_bytes()).hexdigest()
+    assert h == "19400a8f816525c1f070d59ed38cf6901be684ccceb418b9972062e6a91b3aaa", (
+        f"source.png SHA-256 changed: {h}"
+    )

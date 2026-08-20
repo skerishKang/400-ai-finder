@@ -714,7 +714,7 @@ try {
     "capture-needed scenarios must not navigate the clone surface",
   );
   // (3k) #1360 S6 kiosk chip: navigate -> bounded clone READ -> required
-  // markers (ë¬´ì¸ë¯¼ìë°ê¸ìë´/ì¤ì¹ì¥ì/ëë¡ëªì£¼ì/ìë¹ì¤ìê°/ë°ê¸ì¢ì) ->
+  // markers (무인민원발급안내/설치장소/도로명주소/서비스시간/발급종수) ->
   // grounded, READ-derived answer with visible repository-clone provenance.
   // Before the resident explicitly activates the chip, no route choreography
   // begins; after activation the journey navigates to the committed
@@ -779,7 +779,7 @@ try {
     "iframe must actually navigate to the unmanned-kiosk clone route",
   );
   // Required markers present in the READ evidence text.
-  for (const marker of ["ë¬´ì¸ë¯¼ìë°ê¸ìë´", "ì¤ì¹ì¥ì", "ëë¡ëªì£¼ì", "ìë¹ì¤ìê°", "ë°ê¸ì¢ì"]) {
+  for (const marker of ["무인민원발급안내", "설치장소", "도로명주소", "서비스시간", "발급종수"]) {
     assert.ok(String(s6.evidence.text || "").includes(marker), `READ evidence missing kiosk marker: ${marker}`);
   }
   // Provenance: repository clone, clone DOM evidence.
@@ -808,11 +808,11 @@ try {
     "grounded kiosk answer must embed the READ excerpt",
   );
   // Required markers also present directly in the rc-main READ region.
-  for (const marker of ["ë¬´ì¸ë¯¼ìë°ê¸ìë´", "ì¤ì¹ì¥ì", "ëë¡ëªì£¼ì", "ìë¹ì¤ìê°", "ë°ê¸ì¢ì"]) {
+  for (const marker of ["무인민원발급안내", "설치장소", "도로명주소", "서비스시간", "발급종수"]) {
     assert.ok(s6.rc_main_text.includes(marker), `rc-main READ region missing kiosk marker: ${marker}`);
   }
   // Source-backed page-1 table content present in rc-main.
-  assert.ok(s6.rc_main_text.includes("í¸ë¥¸ìë§ìê¸ê³  ê¸í¸ì§ì "), "rc-main must contain source-backed kiosk row (í¸ë¥¸ìë§ìê¸ê³  ê¸í¸ì§ì )");
+  assert.ok(s6.rc_main_text.includes("푸른새마을금고 금호지점"), "rc-main must contain source-backed kiosk row (푸른새마을금고 금호지점)");
   // No forbidden application/reservation/payment/login/PII/submission surface.
   for (const forbidden of ["ì ì²­íê¸°", "ìì½íê¸°", "ê²°ì íê¸°", "ë¡ê·¸ì¸"]) {
     assert.ok(
@@ -822,7 +822,7 @@ try {
   }
   // No nearest-kiosk inference claim (no resident location feature exists).
   assert.ok(
-    !String(s6.result.answer || "").includes("ê°ì¥ ê°ê¹ì´"),
+    !String(s6.result.answer || "").includes("가장 가까운"),
     "S6 must NOT claim nearest kiosk (no resident location feature)",
   );
   // Desktop no horizontal overflow on the kiosk journey thread.
@@ -1571,7 +1571,7 @@ try {
     } catch { return null; }
   });
   assert.ok(mKioskRcMain, "mobile kiosk rc-main must be readable");
-  for (const marker of ["ë¬´ì¸ë¯¼ìë°ê¸ìë´", "ì¤ì¹ì¥ì", "ëë¡ëªì£¼ì", "ìë¹ì¤ìê°", "ë°ê¸ì¢ì"]) {
+  for (const marker of ["무인민원발급안내", "설치장소", "도로명주소", "서비스시간", "발급종수"]) {
     assert.ok(String(mKioskRcMain || "").includes(marker), `mobile kiosk rc-main missing marker: ${marker}`);
   }
   // No horizontal overflow of the thread on mobile kiosk journey.

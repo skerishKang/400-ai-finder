@@ -29,7 +29,7 @@
     },
     {
       "code": "request_blocked_by_capture_policy",
-      "detail": "GET https://dapi.kakao.com/v2/maps/sdk.js?appkey=c596455a9b1f5a9a816ba44ec2e5f423&libraries=services,clusterer,drawing",
+      "detail": "GET https://dapi.kakao.com/v2/maps/sdk.js?appkey=[REDACTED_QUERY_APPKEY]&libraries=services,clusterer,drawing",
       "state_id": "unmanned_kiosk.list.desktop"
     }
   ],
@@ -492,7 +492,7 @@
     "capture_root": "data/official_captures/seogu_gwangju/g1/20260820T083013-0900",
     "g1_completion_claim": true,
     "ledger_path": "data/official_captures/seogu_gwangju/g1/20260820T083013-0900/ledger.json",
-    "ledger_sha256": "5c9c517da289739b0d56b808ea0c42deb483b8962a329f8e9f48b2a0ba8dfc31",
+    "ledger_sha256": "a6bd64867b7d71905e81be79db4248de6e32e324b63793e4dc722d885eb96b28",
     "plan_id": "seogu_gwangju.g1.unmanned_kiosk.v1",
     "plan_path": "configs/reference-plans/seogu_gwangju_unmanned_kiosk.json",
     "plan_sha256": "5368019aad04dff8eea30cba7dfa76ca3806da12d72274adea47e1cf4d15fe8d"
@@ -504,7 +504,7 @@
         {
           "artifact_id": "data/official_captures/seogu_gwangju/g1/20260820T083013-0900/states/unmanned_kiosk.list.desktop/source.html",
           "class": "html_dom_content",
-          "sha256": "02ce9c3594a80bbf30dc60e580ecb8c3f0324541c2bbea5141538db67ebe7ac0"
+          "sha256": "1053b2fc98351123de17dcc76226bfb38be428082628001faadda18c8a524570"
         },
         {
           "artifact_id": "data/official_captures/seogu_gwangju/g1/20260820T083013-0900/states/unmanned_kiosk.list.desktop/source.png",
@@ -1065,7 +1065,7 @@
         },
         {
           "code": "request_blocked_by_capture_policy",
-          "detail": "GET https://dapi.kakao.com/v2/maps/sdk.js?appkey=c596455a9b1f5a9a816ba44ec2e5f423&libraries=services,clusterer,drawing"
+          "detail": "GET https://dapi.kakao.com/v2/maps/sdk.js?appkey=[REDACTED_QUERY_APPKEY]&libraries=services,clusterer,drawing"
         }
       ],
       "final_http_status": 200,

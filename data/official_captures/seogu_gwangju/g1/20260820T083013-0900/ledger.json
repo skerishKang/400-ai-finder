@@ -28,7 +28,7 @@
         {
           "class": "html_dom_content",
           "artifact_id": "data/official_captures/seogu_gwangju/g1/20260820T083013-0900/states/unmanned_kiosk.list.desktop/source.html",
-          "sha256": "02ce9c3594a80bbf30dc60e580ecb8c3f0324541c2bbea5141538db67ebe7ac0",
+          "sha256": "1053b2fc98351123de17dcc76226bfb38be428082628001faadda18c8a524570",
           "mime_type": "text/html; charset=utf-8"
         },
         {
@@ -511,7 +511,7 @@
         },
         {
           "code": "request_blocked_by_capture_policy",
-          "detail": "GET https://dapi.kakao.com/v2/maps/sdk.js?appkey=c596455a9b1f5a9a816ba44ec2e5f423&libraries=services,clusterer,drawing"
+          "detail": "GET https://dapi.kakao.com/v2/maps/sdk.js?appkey=[REDACTED_QUERY_APPKEY]&libraries=services,clusterer,drawing"
         }
       ],
       "result_status": "success"
