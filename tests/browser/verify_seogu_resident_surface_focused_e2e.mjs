@@ -814,7 +814,7 @@ try {
   // Source-backed page-1 table content present in rc-main.
   assert.ok(s6.rc_main_text.includes("푸른새마을금고 금호지점"), "rc-main must contain source-backed kiosk row (푸른새마을금고 금호지점)");
   // No forbidden application/reservation/payment/login/PII/submission surface.
-  for (const forbidden of ["ì ì²­íê¸°", "ìì½íê¸°", "ê²°ì íê¸°", "ë¡ê·¸ì¸"]) {
+  for (const forbidden of ["신청하기", "예약하기", "결제하기", "로그인"]) {
     assert.ok(
       !String(s6.result.answer || "").includes(forbidden),
       `kiosk answer must not contain forbidden action surface: ${forbidden}`,

@@ -139,26 +139,26 @@ test('sha256 helper is deterministic lowercase 64 hex', () => {
 });
 
 test("HTML sanitizer redacts appkey query value in SDK script src (raw & separator)", () => {
-  const input = `<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=a1b2c3d4e5f6a1b2c3d4e5f6&libraries=services,drawing"></script>`;
+  const input = `<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=testappkey0001&libraries=services,drawing"></script>`;
   const out = sanitizePublicHtml(input);
-  assert.equal(out.includes("a1b2c3d4e5f6a1b2c3d4e5f6"), false, "raw appkey value must be absent");
+  assert.equal(out.includes("testappkey0001"), false, "raw appkey value must be absent");
   assert.match(out, /appkey=\[REDACTED_QUERY_APPKEY\]/, "appkey value must be redacted");
   assert.ok(out.includes("dapi.kakao.com/v2/maps/sdk.js"), "URL host/path preserved");
   assert.ok(out.includes("libraries=services,drawing"), "non-credential query params preserved");
 });
 
 test("HTML sanitizer redacts appkey query value in SDK script src (HTML &amp; separator)", () => {
-  const input = `<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=a1b2c3d4e5f6a1b2c3d4e5f6&amp;libraries=services"></script>`;
+  const input = `<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=testappkey0001&amp;libraries=services"></script>`;
   const out = sanitizePublicHtml(input);
-  assert.equal(out.includes("a1b2c3d4e5f6a1b2c3d4e5f6"), false);
+  assert.equal(out.includes("testappkey0001"), false);
   assert.match(out, /appkey=\[REDACTED_QUERY_APPKEY\]/);
   assert.ok(out.includes("libraries=services"), "non-credential params preserved");
 });
 
 test("HTML sanitizer redacts credential value in SDK init string literal", () => {
-  const input = `Kakao.init('a1b2c3d4e5f6a1b2c3d4e5f6');`;
+  const input = `Kakao.init('testappkey0001');`;
   const out = sanitizePublicHtml(input);
-  assert.equal(out.includes("a1b2c3d4e5f6a1b2c3d4e5f6"), false, "raw credential must be absent");
+  assert.equal(out.includes("testappkey0001"), false, "raw credential must be absent");
   assert.ok(out.includes("[REDACTED_QUERY_APPKEY]"), "credential replaced with redaction token");
 });
 
@@ -170,18 +170,18 @@ test("HTML sanitizer preserves unrelated ordinary query parameters", () => {
 });
 
 test("HTML sanitizer CSRF redaction remains intact alongside appkey redaction", () => {
-  const input = `<meta name="_csrf" content="csrfsecret123">\n<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=a1b2c3d4e5f6a1b2c3d4e5f6&libraries=services"></script>`;
+  const input = `<meta name="_csrf" content="csrfsecret123">\n<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=testappkey0001&libraries=services"></script>`;
   const out = sanitizePublicHtml(input);
   assert.equal(out.includes("csrfsecret123"), false, "csrf value must be absent");
-  assert.equal(out.includes("a1b2c3d4e5f6a1b2c3d4e5f6"), false, "appkey value must be absent");
+  assert.equal(out.includes("testappkey0001"), false, "appkey value must be absent");
   assert.match(out, /\[REDACTED_SESSION_CSRF\]/, "csrf redaction token present");
   assert.match(out, /appkey=\[REDACTED_QUERY_APPKEY\]/, "appkey redaction token present");
 });
 
 test("sanitizeExceptionDetail redacts appkey in blocked-request URL detail", () => {
-  const detail = `GET https://dapi.kakao.com/v2/maps/sdk.js?appkey=a1b2c3d4e5f6a1b2c3d4e5f6&libraries=services,clusterer,drawing`;
+  const detail = `GET https://dapi.kakao.com/v2/maps/sdk.js?appkey=testappkey0001&libraries=services,clusterer,drawing`;
   const out = sanitizeExceptionDetail(detail);
-  assert.equal(out.includes("a1b2c3d4e5f6a1b2c3d4e5f6"), false, "raw appkey must be absent from exception detail");
+  assert.equal(out.includes("testappkey0001"), false, "raw appkey must be absent from exception detail");
   assert.match(out, /appkey=\[REDACTED_QUERY_APPKEY\]/, "appkey redacted in exception detail");
   assert.ok(out.startsWith("GET https://dapi.kakao.com/v2/maps/sdk.js"), "method + URL host/path preserved");
   assert.ok(out.includes("libraries=services,clusterer,drawing"), "non-credential params preserved");

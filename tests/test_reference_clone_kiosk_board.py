@@ -273,7 +273,7 @@ def test_build_and_render_make_no_network_requests():
 # ---------------------------------------------------------------------------
 # A synthetic high-entropy hex-like value used to prove the assertion can
 # detect a raw credential WITHOUT embedding the real detected value here.
-_SYNTHETIC_APPKEY = "a1b2c3d4e5f6a1b2c3d4e5f6"
+_SYNTHETIC_APPKEY = "testappkey0001"
 _CRED_PARAM_NAMES = ("appkey=", "api_key=", "apikey=", "access_token=",
                       "client_secret=", "secret=")
 
