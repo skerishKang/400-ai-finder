@@ -156,11 +156,13 @@
 <script src="/static/municipal-clone-surface.js"></script>
 <script src="/static/municipal-resident-journey.js"></script>
 <script src="/static/municipal-resident-journey-registry.js"></script>
+<script src="/static/municipal-resident-confirm-gate.js"></script>
 <script src="/static/citizen-mvp-bridge.js"></script>
 <!-- Seo-gu site-specific data/config island -->
 <script src="/static/seogu-sitespec-metadata.js"></script>
 <script src="/static/seogu-resident-journey-registry.js"></script>
-<!-- Seo-gu orchestration: wires chips → journeys → clone READ, reusing shared modules -->
+<!-- Seo-gu orchestration: wires chips → journeys → clone READ, reusing shared modules.
+     Delegates the canonical confirm-run gate to MunicipalResidentConfirmGate. -->
 <script src="/static/seogu-citizen-action-shell.js"></script>
 </body>
 </html>
