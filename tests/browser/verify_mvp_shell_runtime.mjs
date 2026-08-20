@@ -42,6 +42,8 @@ const choreoCode = readStatic("citizen-first-choreography.js");
 // window.MunicipalResidentConfirmGate at IIFE execution time, so this REAL
 // module must run in the same vm context BEFORE the shell (no mock).
 const confirmGateCode = readStatic("municipal-resident-confirm-gate.js");
+// Shared informational resident controller (composes the confirm gate).
+const controllerCode = readStatic("municipal-resident-informational-controller.js");
 
 // ── Fake DOM ────────────────────────────────────────────────────────────
 
@@ -408,6 +410,7 @@ function runScenario({
   vm.runInContext(adapterCode, context);
   vm.runInContext(choreoCode, context);
   vm.runInContext(confirmGateCode, context);
+  vm.runInContext(controllerCode, context);
   vm.runInContext(shellCode, context);
   // Wrap the REAL choreography so the injected `choreo` recorder (startCalls)
   // captures the exact action key passed by the shell's confirm-run "예" click,

@@ -169,18 +169,46 @@ check('Seo-gu shell delegates to the golden engine (no local confirm state machi
   if (has(SEOGU_SHELL_SOURCE, 'function _showConfirmRun')) throw new Error('Seo-gu still declares local _showConfirmRun');
   if (has(SEOGU_SHELL_SOURCE, 'function _runConfirmedJourney')) throw new Error('Seo-gu still declares local _runConfirmedJourney');
   if (/_confirmGeneration/.test(SEOGU_SHELL_SOURCE)) throw new Error('Seo-gu still declares _confirmGeneration');
-  if (!has(SEOGU_SHELL_SOURCE, 'MunicipalResidentConfirmGate')) throw new Error('Seo-gu does not reference the shared golden engine');
+  if (!has(SEOGU_SHELL_SOURCE, 'MunicipalResidentInformationalController')) throw new Error('Seo-gu does not reference the shared informational controller');
 });
 
 check('Buk-gu shell delegates to the golden engine (no duplicated owner)', () => {
   if (/var _confirmGeneration/.test(BUKGU_SHELL_SOURCE)) throw new Error('Buk-gu still declares _confirmGeneration');
   if (!has(BUKGU_HTML, 'municipal-resident-confirm-gate.js')) throw new Error('Buk-gu demo HTML does not load the golden gate');
-  if (!has(BUKGU_SHELL_SOURCE, 'MunicipalResidentConfirmGate')) throw new Error('Buk-gu does not delegate to golden engine');
+  if (!has(BUKGU_SHELL_SOURCE, 'MunicipalResidentInformationalController')) throw new Error('Buk-gu does not reference the shared informational controller');
 });
 
-check('Buk-gu confirm wrappers delegate to the shared gate (behavior-preserving)', () => {
-  if (!has(BUKGU_SHELL_SOURCE, 'bukguConfirmGate.showConfirmRun')) throw new Error('Buk-gu showConfirmRun does not delegate');
-  if (!has(BUKGU_SHELL_SOURCE, 'bukguConfirmGate.invalidate')) throw new Error('Buk-gu reset does not invalidate the golden gate');
+check('Buk-gu confirm wrappers delegate to the shared controller (behavior-preserving)', () => {
+  if (!has(BUKGU_SHELL_SOURCE, 'bukguInfoController.showConfirmRun')) throw new Error('Buk-gu showConfirmRun does not delegate');
+  if (!has(BUKGU_SHELL_SOURCE, 'bukguInfoController.invalidate')) throw new Error('Buk-gu reset does not invalidate');
+});
+
+check('one shared informational controller exists and composes the confirm gate', () => {
+  const ctrlSrc = fs.readFileSync(path.join(STATIC_DIR, 'municipal-resident-informational-controller.js'), 'utf8');
+  if (!has(ctrlSrc, 'createInformationalController')) throw new Error('controller missing createInformationalController');
+  if (!has(ctrlSrc, 'MunicipalResidentConfirmGate')) throw new Error('controller does not compose the confirm gate');
+  if (!has(ctrlSrc, 'showConfirmRun')) throw new Error('controller does not delegate showConfirmRun to the gate');
+  if (!has(ctrlSrc, 'startConfirmFlow')) throw new Error('controller missing startConfirmFlow');
+});
+
+check('both shells use the shared informational controller (no duplicate scheduling)', () => {
+  if (!has(SEOGU_SHELL_SOURCE, 'seoguInfoController.startConfirmFlow')) throw new Error('Seo-gu does not use controller.startConfirmFlow');
+  if (!has(BUKGU_SHELL_SOURCE, 'bukguInfoController.showConfirmRun')) throw new Error('Buk-gu does not use controller.showConfirmRun');
+  // Seo-gu must not contain inline setTimeout + showConfirmRun (the controller owns that).
+  if (/setTimeout.*seoguConfirmGate\.showConfirmRun|setTimeout.*seoguInfoController\.showConfirmRun/.test(SEOGU_SHELL_SOURCE)) {
+    throw new Error('Seo-gu still has inline setTimeout showConfirmRun (controller should own it)');
+  }
+});
+
+check('both demo HTML files load the shared informational controller before their shell', () => {
+  if (!has(SEOGU_HTML, 'municipal-resident-informational-controller.js')) throw new Error('Seo-gu HTML missing informational controller');
+  if (!has(BUKGU_HTML, 'municipal-resident-informational-controller.js')) throw new Error('Buk-gu HTML missing informational controller');
+  if (SEOGU_HTML.indexOf('municipal-resident-informational-controller.js') > SEOGU_HTML.indexOf('seogu-citizen-action-shell.js')) {
+    throw new Error('informational controller must load before Seo-gu shell');
+  }
+  if (BUKGU_HTML.indexOf('municipal-resident-informational-controller.js') > BUKGU_HTML.indexOf('citizen-first-use-shell.js')) {
+    throw new Error('informational controller must load before Buk-gu shell');
+  }
 });
 
 check('exactly one production file renders the confirm-run controls', () => {

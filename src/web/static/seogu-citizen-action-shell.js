@@ -537,15 +537,15 @@
     _setCanvasAvailability(true);
   }
 
-  // ── ONE GOLDEN ENGINE confirmation gate (#1365) ────────────────────────────
-  // Seo-gu does NOT own the resident confirm-run lifecycle. It delegates to the
-  // shared MunicipalResidentConfirmGate, which is the single canonical owner of
-  // ENTRY → ANSWER → CONFIRM → (YES|NO) → NAVIGATE/RESULT and the stale-confirm
-  // generation guard + double-action protection. The Seo-gu shell supplies only
-  // surface-specific hooks: thread/input, display name, journey-state mapping,
-  // mobile surface switching, canvas availability, and the YES/NO continuation.
+  // ── ONE SHARED INFORMATIONAL RESIDENT CONTROLLER (#1365) ───────────────────
+  // Seo-gu is a THIN BOOTSTRAP/ADAPTER. The shared
+  // MunicipalResidentInformationalController owns the canonical top-level
+  // sequence: ANSWER → CONFIRM → (YES|NO) → NAVIGATE → execute lower-level
+  // journey → RESULT/STOP. The controller composes MunicipalResidentConfirmGate
+  // (which owns confirm UI + YES/NO decision + stale-confirm guard + double
+  // action protection). Seo-gu supplies only surface-specific adapter hooks.
   // A chip click is NOT confirmation. answer + confirm are never collapsed.
-  var seoguConfirmGate = window.MunicipalResidentConfirmGate.createConfirmGate({
+  var seoguInfoController = window.MunicipalResidentInformationalController.createInformationalController({
     getThread: function () { return thread; },
     getInput: function () { return input; },
     displayName: function (question) {
@@ -603,7 +603,7 @@
     if (!surface) return;
     // Invalidate any previously rendered confirm-run so prior YES/NO controls
     // are stale (generation guard). Owned by the shared golden engine.
-    seoguConfirmGate.invalidate();
+    seoguInfoController.invalidate();
 
     var journey = null;
     if (window.SeoguResidentJourneyRegistry) {
@@ -614,16 +614,19 @@
     _appendMessage("user", question);
     input.value = "";
 
-    // ── Canonical ONE GOLDEN ENGINE state sequence (#1365) ──────────────────
+    // ── Canonical ONE SHARED INFORMATIONAL CONTROLLER sequence (#1365) ───────
     // chip → first answer → confirm-run (YES/NO) → YES = navigate → grounded
-    // A chip click is NOT confirmation.
+    // A chip click is NOT confirmation. The shared controller owns the
+    // answer→confirm scheduling; Seo-gu supplies only renderAnswer callback.
     if (journey && (journey.entry_route || journey.handoff)) {
-      document.body.setAttribute("data-journey-state", "answer");
-      _appendMessage("ai", "질문을 확인했습니다. 왼쪽에 서구청 안내 화면을 준비했습니다.");
-      // Delay confirm-run so the answer state is observably distinct.
-      window.setTimeout(function () {
-        seoguConfirmGate.showConfirmRun({ question: question });
-      }, 300);
+      seoguInfoController.startConfirmFlow({
+        question: question,
+        delay: 300,
+        renderAnswer: function () {
+          document.body.setAttribute("data-journey-state", "answer");
+          _appendMessage("ai", "질문을 확인했습니다. 왼쪽에 서구청 안내 화면을 준비했습니다.");
+        },
+      });
       return;
     }
 

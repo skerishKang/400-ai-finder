@@ -141,11 +141,12 @@
   var currentJourneyState = JOURNEY_ENTRY;
   // #1067: while true, choreography cancelled events must not map to answer.
   var _journeyResetting = false;
-  // #1365: the canonical confirm-run lifecycle is owned by the shared golden
-  // engine (MunicipalResidentConfirmGate). This instance is the ONE golden
-  // confirm gate for the Buk-gu shell; the stale-confirm generation guard and
-  // double-action protection live here, not duplicated per surface.
-  var bukguConfirmGate = window.MunicipalResidentConfirmGate.createConfirmGate({
+  // #1365: the canonical confirm-run lifecycle is owned by the shared
+  // informational resident controller (MunicipalResidentInformationalController),
+  // which composes MunicipalResidentConfirmGate — the single golden
+  // confirm gate for the Buk-gu shell; the stale-confirm generation guard
+  // and double-action protection live here, not duplicated per surface.
+  var bukguInfoController = window.MunicipalResidentInformationalController.createInformationalController({
     getThread: function () { return chatThread; },
     getInput: function () { return chatInput; },
     displayName: function (question) { return _localizedServiceName(question); },
@@ -660,7 +661,7 @@
 
   function invalidateActiveRunsForHistoryRestore() {
     _mvpRequestToken++;
-    bukguConfirmGate.invalidate();
+    bukguInfoController.invalidate();
     if (window.CitizenMvpBridge && typeof window.CitizenMvpBridge.cancel === "function") {
       window.CitizenMvpBridge.cancel();
     }
@@ -2159,20 +2160,21 @@
     focusComposerIfAllowed();
   }
 
-  // #1365: Buk-gu golden confirm-run is delegated to the shared golden engine
-  // (MunicipalResidentConfirmGate) — the single canonical owner of the YES/NO
+  // #1365: Buk-gu golden confirm-run is delegated to the shared informational
+  // resident controller (MunicipalResidentInformationalController), which composes
+  // MunicipalResidentConfirmGate — the single canonical owner of the YES/NO
   // decision lifecycle, stale-confirm guard, and double-action protection.
   // Observable behavior is unchanged: the adapter (above) reproduces the exact
   // Buk-gu DOM, journey states, and choreography start.
   function showConfirmRun(question) {
-    bukguConfirmGate.showConfirmRun({ question: question });
+    bukguInfoController.showConfirmRun({ question: question });
   }
 
   // MVP confirm-run step: maps an action code to a display name, then delegates
   // to the same golden engine. The local choreography must NOT start until the
   // citizen explicitly chooses [예, 안내해 주세요].
   function showConfirmRunForAction(action) {
-    bukguConfirmGate.showConfirmRun({
+    bukguInfoController.showConfirmRun({
       question: action,
       displayName: _localizedServiceName(action),
       onYes: function (action) {
@@ -2864,7 +2866,7 @@
     _journeyResetting = true;
     // #1133: new flow — prior history entries become stale and non-restorable.
     beginNewHistoryFlow();
-    bukguConfirmGate.invalidate();
+    bukguInfoController.invalidate();
     // Invalidate any in-flight MVP response so a late answer cannot re-open the
     // clone or restart an action after the user reset.
     _mvpRequestToken++;
