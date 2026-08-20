@@ -1,10 +1,11 @@
 /**
  * Architecture regression proof for #1365: ONE GOLDEN ENGINE for the resident
- * confirmation gate.
+ * confirmation gate and informational top-level progression.
  *
  * Purpose: prove that a future developer cannot silently reintroduce
- *   - a Seo-gu-local canonical confirm-run state machine, or
- *   - a duplicated confirmation owner.
+ *   - a Seo-gu-local canonical confirm-run state machine,
+ *   - a duplicated confirmation owner, or
+ *   - a Seo-gu-owned YES→navigate→execute→result/handoff progression path.
  *
  * Browserless node:vm + fs proof (no browser, no network), matching the
  * tests/functions/* convention so routine CI can run it directly:
@@ -24,6 +25,7 @@ const STATIC_DIR = path.dirname(fileURLToPath(new URL('../../src/web/static/muni
 const REPO_ROOT = path.dirname(fileURLToPath(new URL('../../', import.meta.url)));
 
 const GATE_SOURCE = fs.readFileSync(path.join(STATIC_DIR, 'municipal-resident-confirm-gate.js'), 'utf8');
+const CONTROLLER_SOURCE = fs.readFileSync(path.join(STATIC_DIR, 'municipal-resident-informational-controller.js'), 'utf8');
 const SEOGU_SHELL_SOURCE = fs.readFileSync(path.join(STATIC_DIR, 'seogu-citizen-action-shell.js'), 'utf8');
 const BUKGU_SHELL_SOURCE = fs.readFileSync(path.join(STATIC_DIR, 'citizen-first-use-shell.js'), 'utf8');
 const SEOGU_HTML = fs.readFileSync(path.join(STATIC_DIR, 'seogu-citizen-action-demo.html'), 'utf8');
@@ -172,6 +174,42 @@ check('Seo-gu shell delegates to the golden engine (no local confirm state machi
   if (!has(SEOGU_SHELL_SOURCE, 'MunicipalResidentInformationalController')) throw new Error('Seo-gu does not reference the shared informational controller');
 });
 
+check('Seo-gu shell is thin adapter: no top-level YES/navigation/handoff state machine', () => {
+  if (/function\s+_runExternalOfficialHandoff/.test(SEOGU_SHELL_SOURCE)) {
+    throw new Error('Seo-gu still owns _runExternalOfficialHandoff');
+  }
+  if (/function\s+_waitForHandoffEvidence/.test(SEOGU_SHELL_SOURCE)) {
+    throw new Error('Seo-gu still owns handoff evidence polling');
+  }
+  if (/onYes\s*:\s*function/.test(SEOGU_SHELL_SOURCE)) {
+    throw new Error('Seo-gu adapter still owns top-level onYes continuation');
+  }
+  if (/data-journey-state",\s*"navigate"/.test(SEOGU_SHELL_SOURCE)) {
+    throw new Error('Seo-gu still sets canonical navigate state directly');
+  }
+  if (/data-journey-state",\s*"running"/.test(SEOGU_SHELL_SOURCE)) {
+    throw new Error('Seo-gu still sets canonical running state directly');
+  }
+  if (/data-journey-state",\s*"grounded"/.test(SEOGU_SHELL_SOURCE)) {
+    throw new Error('Seo-gu still sets canonical grounded state directly');
+  }
+  if (/data-journey-state",\s*"safe_handoff"/.test(SEOGU_SHELL_SOURCE)) {
+    throw new Error('Seo-gu still sets canonical safe_handoff state directly');
+  }
+  if (/data-journey-state",\s*"handoff_evidence_(?:running|failed)"/.test(SEOGU_SHELL_SOURCE)) {
+    throw new Error('Seo-gu still owns handoff progression states');
+  }
+  if (has(SEOGU_SHELL_SOURCE, 'Promise.resolve(_answerQuestion(question))')) {
+    throw new Error('Seo-gu still routes YES through site-local _answerQuestion');
+  }
+  if (!has(SEOGU_SHELL_SOURCE, 'runJourney: function (journey)')) {
+    throw new Error('Seo-gu does not expose a lower-level journey adapter');
+  }
+  if (!has(SEOGU_SHELL_SOURCE, 'renderHandoffEvidence: function')) {
+    throw new Error('Seo-gu does not expose handoff rendering as an adapter hook');
+  }
+});
+
 check('Buk-gu shell delegates to the golden engine (no duplicated owner)', () => {
   if (/var _confirmGeneration/.test(BUKGU_SHELL_SOURCE)) throw new Error('Buk-gu still declares _confirmGeneration');
   if (!has(BUKGU_HTML, 'municipal-resident-confirm-gate.js')) throw new Error('Buk-gu demo HTML does not load the golden gate');
@@ -184,11 +222,32 @@ check('Buk-gu confirm wrappers delegate to the shared controller (behavior-prese
 });
 
 check('one shared informational controller exists and composes the confirm gate', () => {
-  const ctrlSrc = fs.readFileSync(path.join(STATIC_DIR, 'municipal-resident-informational-controller.js'), 'utf8');
-  if (!has(ctrlSrc, 'createInformationalController')) throw new Error('controller missing createInformationalController');
-  if (!has(ctrlSrc, 'MunicipalResidentConfirmGate')) throw new Error('controller does not compose the confirm gate');
-  if (!has(ctrlSrc, 'showConfirmRun')) throw new Error('controller does not delegate showConfirmRun to the gate');
-  if (!has(ctrlSrc, 'startConfirmFlow')) throw new Error('controller missing startConfirmFlow');
+  if (!has(CONTROLLER_SOURCE, 'createInformationalController')) throw new Error('controller missing createInformationalController');
+  if (!has(CONTROLLER_SOURCE, 'MunicipalResidentConfirmGate')) throw new Error('controller does not compose the confirm gate');
+  if (!has(CONTROLLER_SOURCE, 'showConfirmRun')) throw new Error('controller does not expose showConfirmRun');
+  if (!has(CONTROLLER_SOURCE, 'startConfirmFlow')) throw new Error('controller missing startConfirmFlow');
+});
+
+check('shared controller owns YES→navigate→execution→result/safe-stop progression', () => {
+  const required = [
+    'function runConfirmedFlow',
+    'function runManagedJourney',
+    'function runHandoff',
+    'setJourneyState("navigate")',
+    'setJourneyState("running")',
+    'setJourneyState("grounded")',
+    'setJourneyState("safe_handoff")',
+    'setJourneyState("handoff_evidence_failed")',
+  ];
+  for (const needle of required) {
+    if (!has(CONTROLLER_SOURCE, needle)) throw new Error(`controller missing ownership seam: ${needle}`);
+  }
+  if (!has(CONTROLLER_SOURCE, 'gateAdapter.onYes = runConfirmedFlow')) {
+    throw new Error('confirm YES is not wired into shared controller progression');
+  }
+  if (!has(CONTROLLER_SOURCE, 'gateAdapter.onNo = stopAfterNo')) {
+    throw new Error('confirm NO is not wired into shared controller stop path');
+  }
 });
 
 check('both shells use the shared informational controller (no duplicate scheduling)', () => {
