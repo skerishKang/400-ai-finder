@@ -505,7 +505,7 @@ def test_shell_mvp_request_token_invalidates_late_responses():
 
 def test_shell_reset_invalidates_pending_mvp_and_cancels_bridge():
     idx = JS.index("function resetToEntry()")
-    reset_body = JS[idx:idx + 1200]
+    reset_body = JS[idx:idx + 1000]
     assert "_mvpRequestToken++" in reset_body
     # Guarded cancel remains (window-qualified public API).
     assert "window.CitizenMvpBridge.cancel()" in reset_body
