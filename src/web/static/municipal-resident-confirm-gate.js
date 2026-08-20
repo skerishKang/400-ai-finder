@@ -121,12 +121,18 @@
       var displayName = resolveDisplayName(question, opts.displayName);
       var gen = generation;
 
+      // Option semantics: an ABSENT/undefined option may fall back to the
+      // canonical default class, but an EXPLICIT string — including "" — is
+      // preserved verbatim. Buk-gu passes "" intentionally (its original
+      // confirm-run buttons use inline styles with no decision class), so an
+      // explicit "" must NOT be promoted to the default primary/secondary class
+      // (that would inject a decision class and break Buk-gu Golden DOM).
       var yesBtnClass =
-        typeof adapter.yesButtonClassName === "string" && adapter.yesButtonClassName.length
+        typeof adapter.yesButtonClassName === "string"
           ? adapter.yesButtonClassName
           : "chat-decision__button chat-decision__button--primary";
       var noBtnClass =
-        typeof adapter.noButtonClassName === "string" && adapter.noButtonClassName.length
+        typeof adapter.noButtonClassName === "string"
           ? adapter.noButtonClassName
           : "chat-decision__button chat-decision__button--secondary";
       var yesBtnStyle = typeof adapter.yesButtonStyle === "string" ? adapter.yesButtonStyle : "";
