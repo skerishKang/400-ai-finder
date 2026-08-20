@@ -837,6 +837,57 @@ def build_seogu_passport_addon(dist_root: str) -> None:
     print(f"[build] wrote {len(written)} additive S5 passport-guidance route(s) -> seogu/passport-guidance/ : {routes}")
 
 
+def build_seogu_unmanned_kiosk_addon(dist_root: str) -> None:
+    """Emit the additive #1360 S6 unmanned-kiosk route under /seogu/.
+
+    Bounded one-page official Seo-gu unmanned civil-document kiosk catalog
+    capture (capture-id ``20260820T083013-0900``) for the informational-only
+    S6 scenario. The page-1 ``list`` board is modelled generically by the
+    existing reference-clone model (``kind=list`` with the six source table
+    columns), so the required markers become clone-DOM-verifiable through the
+    generic renderer with no bespoke kiosk renderer.
+
+    Additive only: ``write_site`` writes only the routes present in this
+    model, so the pinned 11-state baseline, the S3 housing route, the
+    S2/S7/S8 handoff-evidence routes, and the S5 passport-guidance route are
+    untouched. Fully offline; reads only the committed additive
+    clone-model.json. Rendered with ``visual_contract=None`` because the
+    additive capture has its own provenance chain and is not covered by the
+    pinned baseline visual contract.
+    """
+    import importlib
+
+    _src = os.path.join(_REPO_ROOT, "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+
+    renderer = importlib.import_module("official_clone.reference_clone_renderer")
+
+    model_path = os.path.join(
+        _REPO_ROOT,
+        "data",
+        "official_clone_fixtures",
+        "seogu_gwangju",
+        "g1",
+        "20260820T083013-0900",
+        "clone-model.json",
+    )
+    if not os.path.isfile(model_path):
+        raise RuntimeError(f"S6 kiosk fail-closed: additive model not found: {model_path}")
+    model = renderer.load_model(model_path)
+    written = renderer.write_site(
+        model,
+        os.path.join(dist_root, "seogu"),
+        route_prefix="/seogu/",
+        visual_contract=None,
+    )
+    routes = sorted(
+        (str(w.relative_to(Path(dist_root))) if hasattr(w, "relative_to") else str(w))
+        for w in written
+    )
+    print(f"[build] wrote {len(written)} additive S6 unmanned-kiosk route(s) -> seogu/unmanned-kiosk/ : {routes}")
+
+
 def build(out_dir: str | None = None, mode: str = "static") -> None:
     _ensure_repo_on_path()
     from scripts.generate_bukgu_official_snapshots import check_generated_artifacts
@@ -1074,6 +1125,11 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
     #     /seogu/passport-guidance/. Separate bounded one-page capture;
     #     additive only; never clobbers baseline/housing/handoff routes.
     build_seogu_passport_addon(dist_root)
+
+    # 9g. Emit the additive #1360 S6 unmanned-kiosk route under
+    #     /seogu/unmanned-kiosk/. Separate bounded one-page capture;
+    #     additive only; never clobbers baseline/housing/handoff/passport routes.
+    build_seogu_unmanned_kiosk_addon(dist_root)
 
     print(f"[build] done -> {dist_root}")
 

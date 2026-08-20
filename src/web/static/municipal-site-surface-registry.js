@@ -28,6 +28,7 @@
         "staff/",
         "housing/",
         "passport-guidance/",
+        "unmanned-kiosk/",
         "illegal-parking-report/",
         "streetlight-report-handoff/",
         "litter-report-handoff/",

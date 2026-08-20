@@ -174,7 +174,46 @@ export function sanitizePublicHtml(input) {
   text = text.replace(/(<meta\b[^>]*\bcontent\s*=\s*["'])[^"']*(["'][^>]*\bname\s*=\s*["']?_csrf["']?)/gi, `$1${redacted}$2`);
   text = text.replace(/(<input\b[^>]*\bname\s*=\s*["']?_csrf["']?[^>]*\bvalue\s*=\s*["'])[^"']*(["'])/gi, `$1${redacted}$2`);
   text = text.replace(/(<input\b[^>]*\bvalue\s*=\s*["'])[^"']*(["'][^>]*\bname\s*=\s*["']?_csrf["']?)/gi, `$1${redacted}$2`);
+  // Generic redaction of credential-bearing query parameters (appkey,
+  // api_key, apikey, access_token, secret, client_secret) in any URL or
+  // src/href attribute. The key NAME is preserved for forensic meaning;
+  // only the secret VALUE is replaced with a deterministic token. Handles
+  // both raw "&" and HTML-entity "&amp;" separators, and quoted JS string
+  // literals passed to SDK init calls (e.g. SomeSdk.init("KEY")).
+  // Site/kiosk-agnostic.
+  const credQuery = '[REDACTED_QUERY_APPKEY]';
+  const credParams = 'appkey|api_key|apikey|access_token|client_secret|secret';
+  // URL query param: key=VALUE (value runs until &, ", ', <, or end).
+  text = text.replace(
+    new RegExp(`([?&](?:${credParams})=)([^&"'<]+)`, 'gi'),
+    `$1${credQuery}`,
+  );
+  // HTML-entity-encoded variant: appkey=VALUE&amp;...
+  text = text.replace(
+    new RegExp(`([?&amp;](?:${credParams})=)([^&"'<]+)`, 'gi'),
+    `$1${credQuery}`,
+  );
+  // Quoted JS string literal passed to a SDK init-style call:
+  // SomeSdk.init('KEY') or SomeSdk.init("KEY").
+  text = text.replace(
+    new RegExp(`((?:[A-Za-z_][A-Za-z0-9_.]*)\\s*\\(\\s*)(['"])[A-Za-z0-9_-]{12,}(['"])`, 'g'),
+    (m, pre, q1, q2) => `${pre}${q1}${credQuery}${q2}`,
+  );
   return `${text.replace(/\n+$/g, '')}\n`;
+}
+
+export function sanitizeExceptionDetail(detail) {
+  // Generic redaction of credential-bearing query parameters in blocked-
+  // request exception details (e.g. "GET https://...?appkey=SECRET&...").
+  // Preserves the method, URL host/path, and non-credential query params;
+  // only the secret value is replaced. Site/kiosk-agnostic.
+  if (typeof detail !== 'string') return String(detail ?? '');
+  const credQuery = '[REDACTED_QUERY_APPKEY]';
+  const credParams = 'appkey|api_key|apikey|access_token|client_secret|secret';
+  return detail.replace(
+    new RegExp(`([?&](?:${credParams})=)([^&\s"']+)`, 'gi'),
+    `$1${credQuery}`,
+  );
 }
 
 export function pngDimensions(bytes) {
@@ -259,7 +298,13 @@ function artifactId(repoRelative) {
 async function captureState({ browser, state, requestedUrl, actionSelector, allowedHosts, stateDir, repoRoot, settleMs }) {
   const exceptions = [];
   const pushException = (entry) => {
-    if (exceptions.length < MAX_EXCEPTIONS) exceptions.push(entry);
+    // Sanitize credential-bearing query params in exception details
+    // (e.g. blocked-request URLs with appkey=...) before they enter the
+    // committed ledger/exception queue. Generic, site-agnostic.
+    const sanitized = (entry && typeof entry.detail === 'string')
+      ? { ...entry, detail: sanitizeExceptionDetail(entry.detail) }
+      : entry;
+    if (exceptions.length < MAX_EXCEPTIONS) exceptions.push(sanitized);
     else if (exceptions.length === MAX_EXCEPTIONS) exceptions.push({ code: 'exception_list_truncated', detail: `additional exceptions omitted after ${MAX_EXCEPTIONS}` });
   };
   const publicAssetBodies = new Map();

@@ -11,6 +11,7 @@ import {
   parseKeyValueArgs,
   pngDimensions,
   requestAllowed,
+  sanitizeExceptionDetail,
   sanitizePublicHtml,
   sha256Bytes,
 } from '../../scripts/capture_named_site_reference.mjs';
@@ -135,4 +136,58 @@ test('default capture id is filesystem-safe and KST-stamped', () => {
 
 test('sha256 helper is deterministic lowercase 64 hex', () => {
   assert.equal(sha256Bytes(Buffer.from('abc')), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+});
+
+test("HTML sanitizer redacts appkey query value in SDK script src (raw & separator)", () => {
+  const input = `<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=testappkey0001&libraries=services,drawing"></script>`;
+  const out = sanitizePublicHtml(input);
+  assert.equal(out.includes("testappkey0001"), false, "raw appkey value must be absent");
+  assert.match(out, /appkey=\[REDACTED_QUERY_APPKEY\]/, "appkey value must be redacted");
+  assert.ok(out.includes("dapi.kakao.com/v2/maps/sdk.js"), "URL host/path preserved");
+  assert.ok(out.includes("libraries=services,drawing"), "non-credential query params preserved");
+});
+
+test("HTML sanitizer redacts appkey query value in SDK script src (HTML &amp; separator)", () => {
+  const input = `<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=testappkey0001&amp;libraries=services"></script>`;
+  const out = sanitizePublicHtml(input);
+  assert.equal(out.includes("testappkey0001"), false);
+  assert.match(out, /appkey=\[REDACTED_QUERY_APPKEY\]/);
+  assert.ok(out.includes("libraries=services"), "non-credential params preserved");
+});
+
+test("HTML sanitizer redacts credential value in SDK init string literal", () => {
+  const input = `Kakao.init('testappkey0001');`;
+  const out = sanitizePublicHtml(input);
+  assert.equal(out.includes("testappkey0001"), false, "raw credential must be absent");
+  assert.ok(out.includes("[REDACTED_QUERY_APPKEY]"), "credential replaced with redaction token");
+});
+
+test("HTML sanitizer preserves unrelated ordinary query parameters", () => {
+  const input = `<a href="https://example.com/page?id=42&lang=ko&category=civic">link</a>`;
+  const out = sanitizePublicHtml(input);
+  assert.ok(out.includes("id=42") && out.includes("lang=ko") && out.includes("category=civic"), "ordinary params preserved");
+  assert.equal(out.includes("REDACTED"), false, "no false redaction of ordinary params");
+});
+
+test("HTML sanitizer CSRF redaction remains intact alongside appkey redaction", () => {
+  const input = `<meta name="_csrf" content="csrfsecret123">\n<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=testappkey0001&libraries=services"></script>`;
+  const out = sanitizePublicHtml(input);
+  assert.equal(out.includes("csrfsecret123"), false, "csrf value must be absent");
+  assert.equal(out.includes("testappkey0001"), false, "appkey value must be absent");
+  assert.match(out, /\[REDACTED_SESSION_CSRF\]/, "csrf redaction token present");
+  assert.match(out, /appkey=\[REDACTED_QUERY_APPKEY\]/, "appkey redaction token present");
+});
+
+test("sanitizeExceptionDetail redacts appkey in blocked-request URL detail", () => {
+  const detail = `GET https://dapi.kakao.com/v2/maps/sdk.js?appkey=testappkey0001&libraries=services,clusterer,drawing`;
+  const out = sanitizeExceptionDetail(detail);
+  assert.equal(out.includes("testappkey0001"), false, "raw appkey must be absent from exception detail");
+  assert.match(out, /appkey=\[REDACTED_QUERY_APPKEY\]/, "appkey redacted in exception detail");
+  assert.ok(out.startsWith("GET https://dapi.kakao.com/v2/maps/sdk.js"), "method + URL host/path preserved");
+  assert.ok(out.includes("libraries=services,clusterer,drawing"), "non-credential params preserved");
+});
+
+test("sanitizeExceptionDetail preserves non-credential details unchanged", () => {
+  const detail = "request_blocked_by_capture_policy: cross-origin redirect";
+  assert.equal(sanitizeExceptionDetail(detail), detail, "non-credential detail unchanged");
 });

@@ -1,0 +1,520 @@
+{
+  "schema_version": "1.0.0",
+  "kind": "named_site_reference_capture_ledger",
+  "site_id": "seogu_gwangju",
+  "capture_mode": "controlled_read_only_reference",
+  "plan_identity": {
+    "plan_id": "seogu_gwangju.g1.unmanned_kiosk.v1",
+    "path": "configs/reference-plans/seogu_gwangju_unmanned_kiosk.json",
+    "sha256": "5368019aad04dff8eea30cba7dfa76ca3806da12d72274adea47e1cf4d15fe8d"
+  },
+  "g1_completion_claim": true,
+  "captured_states": [
+    {
+      "state_id": "unmanned_kiosk.list.desktop",
+      "requested_url": "https://www.seogu.gwangju.kr/menu.es?mid=a10201040000",
+      "final_url": "https://www.seogu.gwangju.kr/catalogProgram.es?mid=a10201040000&ecp_seq=9",
+      "captured_at": "2026-08-19T23:30:17.306Z",
+      "source_updated_at": null,
+      "final_http_status": 200,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "state": {
+        "name": "list"
+      },
+      "artifacts": [
+        {
+          "class": "html_dom_content",
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260820T083013-0900/states/unmanned_kiosk.list.desktop/source.html",
+          "sha256": "1053b2fc98351123de17dcc76226bfb38be428082628001faadda18c8a524570",
+          "mime_type": "text/html; charset=utf-8"
+        },
+        {
+          "class": "screenshot",
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260820T083013-0900/states/unmanned_kiosk.list.desktop/source.png",
+          "sha256": "19400a8f816525c1f070d59ed38cf6901be684ccceb418b9972062e6a91b3aaa",
+          "mime_type": "image/png",
+          "dimensions": {
+            "width": 1440,
+            "height": 6049
+          }
+        },
+        {
+          "class": "visible_region_inventory",
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260820T083013-0900/states/unmanned_kiosk.list.desktop/visible-region-inventory.json",
+          "sha256": "fdb9d33df004a81721232f6f32b4a8f6ab893e29ee47c1f037d83eed0343fd95",
+          "mime_type": "application/json"
+        },
+        {
+          "class": "public_asset_provenance",
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260820T083013-0900/states/unmanned_kiosk.list.desktop/public-asset-provenance.json",
+          "sha256": "154453b5458145d51aea5df563ea0f5c89661ea566e2c194c2b5030ed25b9866",
+          "mime_type": "application/json"
+        }
+      ],
+      "public_assets": [
+        {
+          "source_url": "https://www.seogu.gwangju.kr/css/animation.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/001",
+          "sha256": "c085e2da2c0e5d1f3d4213f82f0fea8ee975b0809fb954419e8df016a71b0d04",
+          "provenance_note": "browser-observed same-host GET; 2526 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/css/basic.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/002",
+          "sha256": "d50033d4b17fb7b4f695d22555e657b05ade7807622448a599be67d099cf89d5",
+          "provenance_note": "browser-observed same-host GET; 15530 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/css/board.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/003",
+          "sha256": "30c6bc8d9892a959185958a69a9ee089b38e06c9b9b8352b1d4e771c36888cfe",
+          "provenance_note": "browser-observed same-host GET; 33094 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/css/printArea.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/004",
+          "sha256": "157cf9d1a9adc3a5f496a9ceadfe6e9204581b245c4a4687f8069d2d09215937",
+          "provenance_note": "browser-observed same-host GET; 19 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/ease_src/sEditor/js/HuskyEZCreator.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/005",
+          "sha256": "e7ead7c7f7784adaf5b2848ed9d9e8bd212cbbbcd03ce2d00b075107a681844e",
+          "provenance_note": "browser-observed same-host GET; 3582 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/font/dingbat_xeicon.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/006",
+          "sha256": "67b8414cacdce9849b63726e1a8098aafdacba2aed9d7a2891ba02ecf887d233",
+          "provenance_note": "browser-observed same-host GET; 39203 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/font/gmarketsans/GmarketSansBold.woff2",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/007",
+          "sha256": "4c74f4b911eef972f077b70b2823168ae87e96894ef910a84ba562bd4b8c8354",
+          "provenance_note": "browser-observed same-host GET; 132116 bytes; font/woff2"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/font/gmarketsans/GmarketSansMedium.woff2",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/008",
+          "sha256": "3f33802d06439d0d7bf216681eb9460c762418212936906ebf66ef6d7154dd62",
+          "provenance_note": "browser-observed same-host GET; 141248 bytes; font/woff2"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Bold.woff2",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/009",
+          "sha256": "bc16b83ae5f87730fbed27f810d75fcad341777866b43dd05e0ee03efe040b81",
+          "provenance_note": "browser-observed same-host GET; 147824 bytes; font/woff2"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-DemiLight.woff2",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/010",
+          "sha256": "8c1d60fc42757d152926ed43c829132ab5b8c0ca421a0e9e168b23d55755800b",
+          "provenance_note": "browser-observed same-host GET; 144416 bytes; font/woff2"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Light.woff2",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/011",
+          "sha256": "0cb9f1d965c896baa64dae6e769181d223f38f73a62396c8d8434ecf174aab5f",
+          "provenance_note": "browser-observed same-host GET; 140480 bytes; font/woff2"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Medium.woff2",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/012",
+          "sha256": "3f2d313bf322a15b90c069e417f8d176d02ed6df216ab6323fc0792b295c257d",
+          "provenance_note": "browser-observed same-host GET; 146044 bytes; font/woff2"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/font/webfonts_gmarketsans.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/013",
+          "sha256": "72a0046c7974742252be03a6e8a23413d889608a047e8e221a712dc2191db930",
+          "provenance_note": "browser-observed same-host GET; 684 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/font/xeicon/xeicon.woff2?3ka2yj",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/014",
+          "sha256": "b388035f0a6c34b48927d76634f08f82af556e288c47d7674335371f2deeee8a",
+          "provenance_note": "browser-observed same-host GET; 57300 bytes; font/woff2"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/jquery.bxslider.css?v=20260729",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/015",
+          "sha256": "f9e337fdea0da8912119992f4751a80e50366faed530c3eaff05180c9f1f5d6a",
+          "provenance_note": "browser-observed same-host GET; 1706 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/jquery.mCustomScrollbar.min.css?v=2025012112",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/016",
+          "sha256": "247184981eb6f698a94e431a83d68c6b0df623cce57b6e29dc5a6c11e23aa195",
+          "provenance_note": "browser-observed same-host GET; 42839 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/slick.css?v=20260729",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/017",
+          "sha256": "35dc4be859335b0576ac8f9bbe5ac96449d1c35501697c0163d678a6c2ba283c",
+          "provenance_note": "browser-observed same-host GET; 1336 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/swiper.min.css?v=20260729",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/018",
+          "sha256": "e6792bc2356c88d7cacf7351d64da1e7eaade694b9485daef7f4c84f5844968c",
+          "provenance_note": "browser-observed same-host GET; 18431 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.accordion.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/019",
+          "sha256": "59889def66de36877256e5f14893edfcdb2ea76b6727eaeb423076beff513dcc",
+          "provenance_note": "browser-observed same-host GET; 701 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.all.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/020",
+          "sha256": "bd9343e493cd44c5213f0af31541550cfeaf0590f1f1998c0f1876c7746b4e43",
+          "provenance_note": "browser-observed same-host GET; 47 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.base.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/021",
+          "sha256": "df51852e78b5ad7b3295820557f2f5e5b93f3195ac98edfc7fc89b57bafed48f",
+          "provenance_note": "browser-observed same-host GET; 250 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.core.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/022",
+          "sha256": "ce20ef9fb704354ca1ab44db425723582cc5e1cf0ae7c4b877f69784d32cfcb0",
+          "provenance_note": "browser-observed same-host GET; 1351 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.datepicker.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/023",
+          "sha256": "00ded87665a9866b1bf2d5024b3b1194fb733fb51bb2f9a6defcfbc015cc2c96",
+          "provenance_note": "browser-observed same-host GET; 4040 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.dialog.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/024",
+          "sha256": "a2bc331a53ed320a172ebd3cfb049ad208506d9a82ef4bdabf99429f8a34b7ba",
+          "provenance_note": "browser-observed same-host GET; 1120 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.progressbar.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/025",
+          "sha256": "897771a44c9b626a5fb42d68aee1c46e3e23e4d1317fd3c91b9deb578ddec97a",
+          "provenance_note": "browser-observed same-host GET; 169 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.resizable.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/026",
+          "sha256": "2dc20fd133694b0bec619c2a0e72646132a4225de7927a959112cc801e3f390b",
+          "provenance_note": "browser-observed same-host GET; 993 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.slider.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/027",
+          "sha256": "b20d44183e01f5b1ed189fff1cb651c432eaaf2c19cc2265d64bc4f08388f52c",
+          "provenance_note": "browser-observed same-host GET; 931 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.tabs.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/028",
+          "sha256": "2c11e6b06a1b08a55cdd58567514eb7ccd1e480f4a28d5374583692eae7fe9c2",
+          "provenance_note": "browser-observed same-host GET; 1000 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/ui.theme.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/029",
+          "sha256": "e583c6380fa3d5bbc98e5d8f274b1edf8c4b77ebd0064198f10798662569cf5a",
+          "provenance_note": "browser-observed same-host GET; 17743 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/jquery-1.11.2.min.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/030",
+          "sha256": "2ecd295d295bec062cedebe177e54b9d6b19fc0a841dc5c178c654c9ccff09c0",
+          "provenance_note": "browser-observed same-host GET; 95931 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/jquery-ui.min.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/031",
+          "sha256": "c4d8dbe77feb63e5a61bee0bead4e5f66e8fa6a927599bd1b74aced52467273c",
+          "provenance_note": "browser-observed same-host GET; 240427 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/jquery.bxslider.min.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/032",
+          "sha256": "bb9e7dc822c6b7b95a6329932885c72ff2caf74b243fc1c40aca0e858123b83e",
+          "provenance_note": "browser-observed same-host GET; 19359 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/jquery.mCustomScrollbar.concat.min.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/033",
+          "sha256": "fd8027b53a97cbd5782e85c5908e563c39776703ff9279f50658e630927b4167",
+          "provenance_note": "browser-observed same-host GET; 45479 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/qrcode.min.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/034",
+          "sha256": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36",
+          "provenance_note": "browser-observed same-host GET; 19927 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/slick.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/035",
+          "sha256": "1c27f6799779247331c2f1eab5524f0a0bbc09e1d272c88106e6fc645b440376",
+          "provenance_note": "browser-observed same-host GET; 91973 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/swiper.min.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/036",
+          "sha256": "6f9df49fe12f77b66daba876cb33b7090b2443f570a2a4b9541cddd705440aa5",
+          "provenance_note": "browser-observed same-host GET; 140562 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/ui.datepicker.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/037",
+          "sha256": "a39f1bd4ab6c26457001b15ed2112605ec53f5a5ed9973d4a3757cd36174799e",
+          "provenance_note": "browser-observed same-host GET; 69621 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/js/global.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/038",
+          "sha256": "d1bfe919b0a4a413c1ccbfdc8ba287c7b85f997046e3c87b1b707e7b909e8350",
+          "provenance_note": "browser-observed same-host GET; 40018 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/js/instafeed.min.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/039",
+          "sha256": "6d216a94f8b866d0bba2dfe4d7c701eb24f9d55207fcca08ab7a2b0a7e1b7579",
+          "provenance_note": "browser-observed same-host GET; 12104 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/button.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/040",
+          "sha256": "96456d8b1eaee603ab7b4f4e5f125ce7c2282deaf9ec8aa14287c04c72606e55",
+          "provenance_note": "browser-observed same-host GET; 2671 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/contents.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/041",
+          "sha256": "3d097c94bd3a186e5af0bbe52362fbc2623ccb6488238c39d4c32f6a62e15486",
+          "provenance_note": "browser-observed same-host GET; 63024 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/default.css?v=20260729",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/042",
+          "sha256": "f92f1e2d31659074ff79af5f71f03c3fe754b9ac241001b36ac3dd67a0746ae1",
+          "provenance_note": "browser-observed same-host GET; 13113 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/layout_respond.css",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/043",
+          "sha256": "eeda6f6208cf7226321ea4ff61ec9b93fde032d5dd25cff49a4941fbca6b2816",
+          "provenance_note": "browser-observed same-host GET; 17 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/layout.css?v=20260729",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/044",
+          "sha256": "e1112caf3c8b6079c2affbf1473ef935208c437fbf9f0a1af257d9ec2b63d303",
+          "provenance_note": "browser-observed same-host GET; 41055 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/sub_es.css?v=20260729",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/045",
+          "sha256": "d5571c4c58a7b14b65fe2ea97f84e6db6f32147a71487d07d7fbd56022ada0ae",
+          "provenance_note": "browser-observed same-host GET; 17 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/sub_respond.css?v=20260729",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/046",
+          "sha256": "668722a22eee0ece18a00eab735905117e6a7fc6fd4897ab6dcdf207f591a155",
+          "provenance_note": "browser-observed same-host GET; 5074 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/sub.css?v=20260729",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/047",
+          "sha256": "6274bed90661b134e40f75dfdbc5f8990b5d43ac15a9e88830ec545a06a0c99b",
+          "provenance_note": "browser-observed same-host GET; 15034 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/sub02.css?v=20260729",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/048",
+          "sha256": "94a508c2b9c47b08ac5bdbc48254f0fbb81d3169da6713ea4992aa384b50335b",
+          "provenance_note": "browser-observed same-host GET; 3633 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/bot-mark01.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/049",
+          "sha256": "5fa669dfc1f2ee3f02d37c0c83e8fd3d3eaea19e78c352e48831273d5df02cec",
+          "provenance_note": "browser-observed same-host GET; 4449 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/ico_nara.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/050",
+          "sha256": "0809ce482b481c1321bb7d7a16ef88bbadd21ec770e912e5a8fd38efce337da8",
+          "provenance_note": "browser-observed same-host GET; 2684 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn01.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/051",
+          "sha256": "a5789795e0ef1011517db20cd81d738d854fd5bdd519d504b708fa6a38658513",
+          "provenance_note": "browser-observed same-host GET; 1603 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn02.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/052",
+          "sha256": "07c754f7b5a4a6b573bedcc290d3dc2522f7ccf8b79ac31550b690bd0aaef42e",
+          "provenance_note": "browser-observed same-host GET; 2101 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn03.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/053",
+          "sha256": "63da191ebeab81140988a197b21fd15bcea0d40d2b1306e6fbd0585c0ce01ef4",
+          "provenance_note": "browser-observed same-host GET; 2399 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn04.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/054",
+          "sha256": "ab2d0a50bf7a9d4bafcf93abee9ed6968909deaa34a66c354d54860f4d1d99d2",
+          "provenance_note": "browser-observed same-host GET; 2228 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn05.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/055",
+          "sha256": "c8c2a1b334cc9e36144938f51bc4812b572ef0c73369181bce5c3c5c37a3ffea",
+          "provenance_note": "browser-observed same-host GET; 1722 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn06.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/056",
+          "sha256": "616d65a2eb887774d5b7363c966083e6f8f9bc7b3653e86c93da6e13b575b676",
+          "provenance_note": "browser-observed same-host GET; 1581 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn07.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/057",
+          "sha256": "4c48883c1122ff29a1fc080e0e74382a9364be563c6e5439e6d802bef8372c65",
+          "provenance_note": "browser-observed same-host GET; 2224 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn08.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/058",
+          "sha256": "65da30f599443f207e7fe45b4e13e481aecbd3fbdc1c48ad02e61a024785b6d1",
+          "provenance_note": "browser-observed same-host GET; 2103 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn09.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/059",
+          "sha256": "17c6a15e61a2796b49bc54cc699dd3032bd12389eec23bfe4cb76c94222e4716",
+          "provenance_note": "browser-observed same-host GET; 2236 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn10.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/060",
+          "sha256": "7c69a3fc4606b71b1b7f6f91ab821ec7a3297da60c9e720c362032f7c5e5dd99",
+          "provenance_note": "browser-observed same-host GET; 2289 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn11.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/061",
+          "sha256": "8cf29d4e38c765297a0f3d670205eaab27f7fe528043f2a96746413cbd80f716",
+          "provenance_note": "browser-observed same-host GET; 2037 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn15.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/062",
+          "sha256": "065efd504dc82dcced062ea3b6975497de2cbd0b1369b534601cd1aa0096361f",
+          "provenance_note": "browser-observed same-host GET; 2344 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn16.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/063",
+          "sha256": "c6e40c259afa601d8bd3f565cde341111d32cd2d9fdc84901c03ed0cf37cfc55",
+          "provenance_note": "browser-observed same-host GET; 3381 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn17.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/064",
+          "sha256": "180bc68ef59d90c940a8b7553862d0dcd3763ead78a0524663939676eb5f93ed",
+          "provenance_note": "browser-observed same-host GET; 3319 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/sns_blog.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/065",
+          "sha256": "49db662533482d887b7b8400008321f256fd78712178a97939d6a8f81e8c376d",
+          "provenance_note": "browser-observed same-host GET; 2026 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/sns_kakaoch.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/066",
+          "sha256": "3818e4564a2e8742a6b4bd3b2f13badef46bd1af8e478c18f205a314064f0e61",
+          "provenance_note": "browser-observed same-host GET; 1501 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/sns-band.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/067",
+          "sha256": "8295eae02861a303e96ba79081cee8dec6701d14745eb4ec02149e53fa3b5fd9",
+          "provenance_note": "browser-observed same-host GET; 1267 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/top_logo.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/068",
+          "sha256": "aec93eb9d38a49f9309b1a955b21d0eb97ad37580cb7a6c6b6d441507f5d758b",
+          "provenance_note": "browser-observed same-host GET; 5952 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/top_slogan.svg",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/069",
+          "sha256": "726929bc0ec5c501b4cc5caf39d38799c5684dc1a02fb9151dc37b9e5b2fe3f7",
+          "provenance_note": "browser-observed same-host GET; 33417 bytes; image/svg+xml"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/sub/icon-document.png",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/070",
+          "sha256": "3d5656018a9f1b4605881cd267ebb6ea484366e9714e1f58a3e6bf4566805927",
+          "provenance_note": "browser-observed same-host GET; 844 bytes; image/png"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/js/layout.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/071",
+          "sha256": "ca597630ef537b4a7c9113b150dbef22e6f36af1d8e9bec5c63858a1d095c516",
+          "provenance_note": "browser-observed same-host GET; 12898 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/kor/js/sub.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/072",
+          "sha256": "f582b33ef29451b144907b671bbfb031e983810506e6d1f21b84a4c0914835b1",
+          "provenance_note": "browser-observed same-host GET; 2938 bytes; text/javascript"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/seoguWeb_src/catalogProgram/css/catalogProgram.css?v=20260729",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/073",
+          "sha256": "c6ce69d0761043f48870bb17fbd0cf3e621e300eeb73960d831e1be22e58a92d",
+          "provenance_note": "browser-observed same-host GET; 1886 bytes; text/css"
+        },
+        {
+          "source_url": "https://www.seogu.gwangju.kr/seoguWeb_src/catalogProgram/js/catalogProgram.js",
+          "artifact_id": "unmanned_kiosk.list.desktop/public-asset/074",
+          "sha256": "2d64dd1703eaef3abbec81cfb42bb7ada28774ec4301b4d65cd4bf2cd922f8f8",
+          "provenance_note": "browser-observed same-host GET; 1189 bytes; text/javascript"
+        }
+      ],
+      "exceptions": [
+        {
+          "code": "request_blocked_by_capture_policy",
+          "detail": "GET https://fonts.googleapis.com/css?family=Roboto:300,400,500,600,700,800,900"
+        },
+        {
+          "code": "request_blocked_by_capture_policy",
+          "detail": "GET https://developers.kakao.com/sdk/js/kakao.js"
+        },
+        {
+          "code": "request_blocked_by_capture_policy",
+          "detail": "GET https://dapi.kakao.com/v2/maps/sdk.js?appkey=[REDACTED_QUERY_APPKEY]&libraries=services,clusterer,drawing"
+        }
+      ],
+      "result_status": "success"
+    }
+  ]
+}
