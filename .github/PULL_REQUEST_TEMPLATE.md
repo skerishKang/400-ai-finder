@@ -20,6 +20,7 @@
 ## Product track
 
 Canonical Buk-gu exact-clone invariant: `docs/product/exact-official-site-clone-invariant.md`.
+Canonical multi-site resident doctrine: `docs/operations/multi-site-onboarding-golden-master.md`.
 
 - [ ] Buk-gu golden clone
 - [ ] 근거 기반 AI 시민안내
@@ -165,6 +166,44 @@ If `shared core changed: YES`, the relevant shared-core Issue, contracts, tests 
 - [ ] No exact/default promotion claimed
 - [ ] Not applicable
 
+## Multi-site Golden Master parity
+
+<!--
+Required when a PR adds/changes a named-site resident journey, shared resident behavior,
+or a new institution adapter. Otherwise `N/A — reason`.
+Authority: docs/operations/multi-site-onboarding-golden-master.md
+-->
+
+```text
+GOLDEN_SCENARIO_ID =
+GOLDEN_STATE_GRAPH =
+NEW_SITE_STATE_GRAPH =
+STATE_GRAPH_EQUAL = YES / NO / N/A
+
+BUKGU_BEHAVIOR_DRIFT = NONE / <detail> / N/A
+NEW_SITE_BEHAVIOR_FORK = NO / <detail> / N/A
+CANONICAL_STATES_SKIPPED = 0 / <count> / N/A
+
+SITE_SPECIFIC_DATA_CHANGED =
+SITE_SPECIFIC_BEHAVIOR_CHANGED = NO / <detail> / N/A
+
+CANONICAL_CONFIRMATION_PRESERVED = YES / NO / N/A
+CANONICAL_CHOICE_PRESERVED = YES / NO / N/A
+CANONICAL_WRITE_FORM_PRESERVED = YES / NO / N/A
+CANONICAL_PRE_SUBMIT_STOP_PRESERVED = YES / NO / N/A
+
+EXTERNAL_CHANNEL_REPLACES_CANONICAL_FLOW = NO / YES / N/A
+STATE_BY_STATE_BROWSER_TEST = PASS / FAIL / N/A
+PAIRED_DIRECT_PNG_REVIEW = PASS / FAIL / N/A
+CANONICAL_STATES_SKIPPED = 0 / <count> / N/A
+SECURITY = PASS / FAIL / N/A
+EXACT_HEAD_CI = PASS / FAIL / PENDING / N/A
+```
+
+Relevant multi-site PRs must not use final-screen success, `grounded=true`, green CI, or a verified external handoff as substitutes for state-by-state Golden parity.
+
+If `STATE_GRAPH_EQUAL != YES`, `NEW_SITE_BEHAVIOR_FORK != NO`, `CANONICAL_STATES_SKIPPED != 0`, or `EXTERNAL_CHANNEL_REPLACES_CANONICAL_FLOW != NO`, explain the explicit product-owner exception. Otherwise the PR is not ready.
+
 ## Validation
 
 ### Commands / checks
@@ -195,6 +234,8 @@ If `shared core changed: YES`, the relevant shared-core Issue, contracts, tests 
 - Project-owner visual review where applicable:
 
 Automated browser/screenshot QA does not by itself convert a structural preview into a faithful clone or an exact/default promotion.
+
+For multi-site Golden resident parity, final-screen-only evidence is insufficient when materially observable intermediate states exist. Record state-by-state browser and paired direct-PNG evidence where required.
 
 ## AI-on-clone evidence
 
@@ -271,6 +312,8 @@ Clone-MVP generation/demonstration is not actual-site integration approval.
 - [ ] Comments, reviews and unresolved threads rechecked
 - [ ] No unexpected artifacts, secrets, PII or private customer data
 - [ ] No structural-preview / clone / exact / actual-site status overclaim
+- [ ] Multi-site Golden state graph fields complete where applicable
+- [ ] No new-site resident behavior fork or skipped Golden state without explicit product-owner approval
 - [ ] Head unchanged since readiness review
 
 ## Merge rule
