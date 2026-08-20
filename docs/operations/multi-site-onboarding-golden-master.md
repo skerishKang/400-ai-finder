@@ -5,6 +5,7 @@
 - Operating authority: #1366
 - Parent program: #1232
 - Canonical visual/interaction baseline: #1348
+- Exact-clone invariant: [`docs/product/exact-official-site-clone-invariant.md`](../product/exact-official-site-clone-invariant.md)
 - Current recovery: #1364 / #1365 / PR #1367
 - Mandatory parity CI work: #1368 / PR #1372
 
