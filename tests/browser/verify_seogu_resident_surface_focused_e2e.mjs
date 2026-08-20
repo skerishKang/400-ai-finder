@@ -1580,6 +1580,44 @@ try {
     return { scrollW: t.scrollWidth, clientW: t.clientWidth };
   });
   assert.ok(mKioskOverflow.scrollW <= mKioskOverflow.clientW + 1, "mobile kiosk thread must not horizontally overflow");
+  // (7q-geo) #1362 mobile S6 kiosk board geometry: the generic list-board
+  // clone must not squeeze the table beside the SNB at 390px. The generic
+  // renderer uses flex-wrap:wrap + a flex-basis on .rc-content so the SNB
+  // stacks above the content, giving the table the full iframe width.
+  // This regression fails on old head f538 (content squeezed to ~224px
+  // beside a 166px SNB, table columns collapsed to ~18-48px).
+  const mKioskBoardGeo = await mpage.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    if (!frame || !frame.contentWindow) return null;
+    const doc = frame.contentWindow.document;
+    const snb = doc.querySelector(".rc-snb");
+    const ct = doc.querySelector(".rc-content");
+    if (!snb || !ct) return null;
+    const ths = doc.querySelectorAll("table.rc-board th");
+    return {
+      contentTop: ct.offsetTop,
+      snbTop: snb.offsetTop,
+      snbHeight: snb.offsetHeight,
+      contentWidth: ct.getBoundingClientRect().width,
+      stacked: ct.offsetTop >= snb.offsetTop + snb.offsetHeight - 1,
+      minColWidth: Math.min(
+        ...Array.from(ths).map((th) => th.getBoundingClientRect().width),
+      ),
+    };
+  });
+  assert.ok(mKioskBoardGeo, "mobile kiosk board geometry must be measurable");
+  assert.ok(
+    mKioskBoardGeo.stacked,
+    "mobile kiosk content must be stacked below SNB (not squeezed beside)",
+  );
+  assert.ok(
+    mKioskBoardGeo.contentWidth >= 350,
+    `mobile kiosk content must receive viable width (>=350px, got ${mKioskBoardGeo.contentWidth})`,
+  );
+  assert.ok(
+    mKioskBoardGeo.minColWidth >= 25,
+    `mobile kiosk table columns must not collapse below practical width (>=25px, got ${mKioskBoardGeo.minColWidth})`,
+  );
   // (7p-geo) #1356 mobile S5 conversation grounded-row geometry: the grounded
   // answer bubble + provenance must share one readable content column (not
   // squeezed as narrow horizontal siblings). Prove the grid fix: display=grid,

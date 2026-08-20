@@ -1558,7 +1558,7 @@ def _render_css(theme: dict[str, Any], device: str = "desktop",
     body_break = _pick(theme, "layout.board.detail.body.break_spacing_px", None, device)
     rules.append(
         ".rc-subpage{display:block;width:100%;}"
-        ".rc-subpage-body{display:flex;align-items:flex-start;width:100%;}"
+        ".rc-subpage-body{display:flex;flex-wrap:wrap;align-items:flex-start;width:100%;}"
         ".rc-subpage-context{display:block;width:100%;}"
         ".rc-page-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;}"
         ".rc-page-head .rc-tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px;}"
@@ -1578,7 +1578,12 @@ def _render_css(theme: dict[str, Any], device: str = "desktop",
         f".rc-snb-item{{display:flex;align-items:center;font-size:{nd['small_font_size_px']}px;"
         f"line-height:{nd['body_line_height']};padding:0 {nd['panel_padding_px']}px;}}"
         ".rc-snb-current{font-weight:700;}"
-        ".rc-content{flex:1;min-width:0;}"
+        # Generic responsive board: when the container is too narrow for
+        # SNB beside content, flex-wrap:wrap on .rc-subpage-body moves
+        # content to the next row so the table gets full width. The
+        # flex-basis is derived from the base font size (16 chars) — a
+        # structural default, not a guessed pixel value.
+        ".rc-content{flex:1 1 240px;min-width:0;}"
         # Title sizing comes from the measured section-title size via the font
         # shorthand (the board-gap gate forbids the literal "{font-size:" form).
         f".rc-page-title,.rc-detail-title{{font:700 {nd['section_title_size_px']}px/1.25 inherit;"
