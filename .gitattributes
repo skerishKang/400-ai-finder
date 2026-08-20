@@ -26,6 +26,11 @@ configs/reference-plans/seogu_gwangju_passport_guidance.json -text
 # core.autocrlf=true) so the ledger plan-checksum gates hold locally.
 configs/reference-plans/seogu_gwangju_housing.json -text
 configs/reference-plans/seogu_gwangju_handoff_evidence.json -text
+# #1360 S6 Seo-gu unmanned-kiosk capture plan is an approved plan identity
+# source (its committed SHA-256 is recorded in the executed ledger). Keep LF
+# bytes byte-stable on every OS checkout (including core.autocrlf=true) so the
+# ledger plan-checksum gate holds locally.
+configs/reference-plans/seogu_gwangju_unmanned_kiosk.json -text
 
 # #1177 home asset identity audit report + frozen scan manifest must keep
 # committed LF JSON bytes on every OS (including core.autocrlf=true).
