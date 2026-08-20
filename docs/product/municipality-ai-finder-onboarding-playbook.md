@@ -5,6 +5,7 @@
 - Historical origin: #1329 Stage B
 - Historical evidence family: Buk-gu protected golden + Seo-gu AI-on-clone proof
 - Parent program: #1232
+- Exact-clone invariant: [`exact-official-site-clone-invariant.md`](exact-official-site-clone-invariant.md)
 - Current authority snapshot: main `dbc785e0dd16e4d2a73c7c0245747cfbb9459271`
 
 This playbook preserves the operational lessons learned while onboarding Buk-gu and Seo-gu, especially around identity, reference capture, clone modeling, evidence, provenance, offline CI and failure boundaries.
