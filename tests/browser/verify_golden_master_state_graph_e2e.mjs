@@ -48,8 +48,37 @@ function localOrigin(raw) {
 }
 
 async function launchBrowser() {
-  const browser = await chromium.launch({ headless: true });
-  return browser;
+  const attempts = [];
+  const errors = [];
+  const envPath = process.env.PREVIEW_BROWSER_EXECUTABLE;
+
+  if (envPath) {
+    attempts.push({
+      name: `env: ${envPath}`,
+      launch: () => chromium.launch({ headless: true, executablePath: envPath }),
+    });
+  }
+
+  attempts.push({
+    name: "channel: chrome",
+    launch: () => chromium.launch({ headless: true, channel: "chrome" }),
+  });
+  attempts.push({
+    name: "default playwright chromium",
+    launch: () => chromium.launch({ headless: true }),
+  });
+
+  for (const attempt of attempts) {
+    try {
+      const browser = await attempt.launch();
+      console.log(`Browser launched (${attempt.name}) ✓`);
+      return browser;
+    } catch (error) {
+      errors.push(`[${attempt.name}] ${error.message}`);
+    }
+  }
+
+  throw new Error(`Cannot launch any browser. Attempts:\n${errors.join("\n")}`);
 }
 
 function installEgressGuard(context) {
