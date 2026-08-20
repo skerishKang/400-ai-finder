@@ -537,11 +537,134 @@
     _setCanvasAvailability(true);
   }
 
+  // ── Canonical Buk-gu confirmation gate (#1365) ────────────────────────────
+  // Buk-gu golden state graph for informational scenarios:
+  //   chip/question → first answer → confirm-run (YES/NO)
+  //   NO  → stay on answer, zero navigation, zero READ
+  //   YES → navigate + READ + grounded result
+  // A chip click is NOT confirmation. The Seo-gu shell must not collapse
+  // answer + confirm or confirm + navigate into one state.
+  var _confirmGeneration = 0;
+
+  function _showConfirmRun(question, journey) {
+    var gen = _confirmGeneration;
+    var displayName = journey && journey.chip && journey.chip.label
+      ? journey.chip.label
+      : question;
+
+    var msgDiv = document.createElement("div");
+    msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
+    msgDiv.setAttribute("data-msg-type", "confirm-run");
+
+    var avatar = document.createElement("div");
+    avatar.className = "chat-avatar";
+    avatar.setAttribute("aria-hidden", "true");
+    avatar.textContent = "A";
+
+    var bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bubble--ai";
+
+    var text = document.createElement("p");
+    text.style.margin = "0 0 10px 0";
+    text.textContent = displayName + "에 대해 안내해 드릴까요?";
+    bubble.appendChild(text);
+
+    var btnRow = document.createElement("div");
+    btnRow.style.display = "flex";
+    btnRow.style.gap = "8px";
+
+    var yesBtn = document.createElement("button");
+    yesBtn.type = "button";
+    yesBtn.className = "chat-decision__button chat-decision__button--primary";
+    yesBtn.textContent = "예, 안내해 주세요";
+    yesBtn.setAttribute("data-confirm-action", "yes");
+    yesBtn.addEventListener("click", function () {
+      if (gen !== _confirmGeneration) return;
+      msgDiv.removeAttribute("data-msg-type");
+      var btns = bubble.querySelectorAll("button");
+      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      if (window.matchMedia("(max-width: 767px)").matches && input) {
+        input.blur();
+      }
+      if (window.matchMedia("(max-width: 767px)").matches) {
+        document.body.setAttribute("data-mobile-surface", "guidance");
+      }
+      _setCanvasAvailability(true);
+      document.body.setAttribute("data-journey-state", "navigate");
+      _runConfirmedJourney(question, journey);
+    });
+
+    var noBtn = document.createElement("button");
+    noBtn.type = "button";
+    noBtn.className = "chat-decision__button chat-decision__button--secondary";
+    noBtn.textContent = "아니요";
+    noBtn.setAttribute("data-confirm-action", "no");
+    noBtn.addEventListener("click", function () {
+      if (gen !== _confirmGeneration) return;
+      msgDiv.removeAttribute("data-msg-type");
+      var btns = bubble.querySelectorAll("button");
+      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      document.body.setAttribute("data-journey-state", "answer");
+      _setCanvasAvailability(false);
+      if (input) input.focus();
+    });
+
+    btnRow.appendChild(yesBtn);
+    btnRow.appendChild(noBtn);
+    bubble.appendChild(btnRow);
+
+    msgDiv.appendChild(avatar);
+    msgDiv.appendChild(bubble);
+    thread.appendChild(msgDiv);
+    thread.scrollTop = thread.scrollHeight;
+
+    document.body.setAttribute("data-journey-state", "confirm");
+  }
+
+  async function _runConfirmedJourney(question, journey) {
+    input.disabled = true;
+    send.disabled = true;
+    try {
+      await _answerQuestion(question);
+    } catch (_) {
+      latestJourneyResult = null;
+      latestGeneralResult = null;
+      document.body.setAttribute("data-journey-state", "failed");
+      _appendMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+    } finally {
+      input.disabled = false;
+      send.disabled = false;
+      if (input) input.focus();
+    }
+  }
+
   function _handleQuestion(question) {
     if (!surface) return;
+    _confirmGeneration += 1;
+
+    var journey = null;
+    if (window.SeoguResidentJourneyRegistry) {
+      journey = window.SeoguResidentJourneyRegistry.match(question);
+    }
+
     _enterSplit();
     _appendMessage("user", question);
     input.value = "";
+
+    // ── Canonical Buk-gu state sequence (#1365) ─────────────────────────
+    // chip → first answer → confirm-run (YES/NO) → YES = navigate → grounded
+    // A chip click is NOT confirmation.
+    if (journey && (journey.entry_route || journey.handoff)) {
+      document.body.setAttribute("data-journey-state", "answer");
+      _appendMessage("ai", "질문을 확인했습니다. 왼쪽에 서구청 안내 화면을 준비했습니다.");
+      // Delay confirm-run so the answer state is observably distinct.
+      window.setTimeout(function () {
+        _showConfirmRun(question, journey);
+      }, 300);
+      return;
+    }
+
+    // capture_needed or unmatched: no confirmation gate.
     input.disabled = true;
     send.disabled = true;
     Promise.resolve(_answerQuestion(question))
