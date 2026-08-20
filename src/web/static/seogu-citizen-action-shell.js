@@ -537,11 +537,102 @@
     _setCanvasAvailability(true);
   }
 
+  // ── ONE SHARED INFORMATIONAL RESIDENT CONTROLLER (#1365) ───────────────────
+  // Seo-gu is a THIN BOOTSTRAP/ADAPTER. The shared
+  // MunicipalResidentInformationalController owns the canonical top-level
+  // sequence: ANSWER → CONFIRM → (YES|NO) → NAVIGATE → execute lower-level
+  // journey → RESULT/STOP. The controller composes MunicipalResidentConfirmGate
+  // (which owns confirm UI + YES/NO decision + stale-confirm guard + double
+  // action protection). Seo-gu supplies only surface-specific adapter hooks.
+  // A chip click is NOT confirmation. answer + confirm are never collapsed.
+  var seoguInfoController = window.MunicipalResidentInformationalController.createInformationalController({
+    getThread: function () { return thread; },
+    getInput: function () { return input; },
+    displayName: function (question) {
+      var j = window.SeoguResidentJourneyRegistry
+        ? window.SeoguResidentJourneyRegistry.match(question)
+        : null;
+      if (j && j.chip && j.chip.label) return j.chip.label;
+      return question;
+    },
+    setJourneyState: function (state) {
+      document.body.setAttribute("data-journey-state", state);
+    },
+    isMobileSurfaceMode: function () {
+      try {
+        return !!window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
+      } catch (_) {
+        return false;
+      }
+    },
+    onYesSurfacePrepare: function () {
+      // Reveal the institution canvas before navigation; on mobile switch the
+      // active surface to guidance (and close the composer keyboard).
+      _setCanvasAvailability(true);
+      if (typeof window !== "undefined" && window.matchMedia &&
+          window.matchMedia("(max-width: 767px)").matches) {
+        document.body.setAttribute("data-mobile-surface", "guidance");
+      }
+    },
+    onYes: function (question) {
+      // YES is the only allowed transition trigger: navigate → READ → result.
+      input.disabled = true;
+      send.disabled = true;
+      document.body.setAttribute("data-journey-state", "navigate");
+      Promise.resolve(_answerQuestion(question))
+        .catch(function () {
+          latestJourneyResult = null;
+          latestGeneralResult = null;
+          document.body.setAttribute("data-journey-state", "failed");
+          _appendMessage("ai", "현재 AI 안내를 연결하지 못했습니다.");
+        })
+        .finally(function () {
+          input.disabled = false;
+          send.disabled = false;
+          if (input) input.focus();
+        });
+    },
+    onNo: function () {
+      // NO: canonical stop — remain on the answer, zero navigation, zero READ.
+      _setCanvasAvailability(false);
+      if (input) input.focus();
+    },
+  });
+
   function _handleQuestion(question) {
     if (!surface) return;
+    // Invalidate any previously rendered confirm-run so prior YES/NO controls
+    // are stale (generation guard). Owned by the shared golden engine.
+    seoguInfoController.invalidate();
+
+    var journey = null;
+    if (window.SeoguResidentJourneyRegistry) {
+      journey = window.SeoguResidentJourneyRegistry.match(question);
+    }
+
     _enterSplit();
     _appendMessage("user", question);
     input.value = "";
+
+    // ── Canonical ONE SHARED INFORMATIONAL CONTROLLER sequence (#1365) ───────
+    // chip → first answer → confirm-run (YES/NO) → YES = navigate → grounded
+    // A chip click is NOT confirmation. The shared controller owns the
+    // answer→confirm scheduling; Seo-gu supplies only renderAnswer callback.
+    if (journey && (journey.entry_route || journey.handoff)) {
+      seoguInfoController.startConfirmFlow({
+        question: question,
+        delay: 300,
+        renderAnswer: function () {
+          document.body.setAttribute("data-journey-state", "answer");
+          _appendMessage("ai", "질문을 확인했습니다. 왼쪽에 서구청 안내 화면을 준비했습니다.");
+        },
+      });
+      return;
+    }
+
+    // capture_needed or unmatched: no confirmation gate. Delegated to the
+    // shared journey engine (_answerQuestion), which itself resolves the
+    // capture_needed / SUBSTITUTION_NEEDED handling per the registry status.
     input.disabled = true;
     send.disabled = true;
     Promise.resolve(_answerQuestion(question))

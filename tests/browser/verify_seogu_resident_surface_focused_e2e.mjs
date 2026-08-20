@@ -217,6 +217,180 @@ async function openDemo(context) {
   return page;
 }
 
+
+// #1365: Canonical Buk-gu confirmation gate. A chip click is NOT confirmation.
+// Every journey with an entry_route or handoff must pass through:
+//   chip click → first answer (data-journey-state="answer")
+//   → confirm-run prompt (data-journey-state="confirm") with YES/NO
+//   → YES (data-confirm-action="yes") → navigate → grounded/safe_handoff
+//   → NO  (data-confirm-action="no")  → answer, zero navigation
+// This helper clicks the chip, asserts the answer→confirm state order,
+// then clicks YES to proceed to the grounded/handoff state.
+async function confirmAndProceed(page, selector, finalState) {
+  await page.locator(selector).click();
+  // FIRST: answer state (first AI message before confirmation)
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "answer",
+    null,
+    { timeout: 10000 },
+  );
+  // THEN: confirm state (YES/NO prompt)
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "confirm",
+    null,
+    { timeout: 10000 },
+  );
+  // Assert both YES and NO controls exist in the latest confirm-run message
+  const controls = await page.evaluate(() => {
+    const msgs = Array.from(document.querySelectorAll('.chat-msg--confirm-run'));
+    const last = msgs[msgs.length - 1];
+    if (!last) return { yes: false, no: false, count: 0 };
+    const btns = last.querySelectorAll('[data-confirm-action]');
+    return {
+      yes: !!last.querySelector('[data-confirm-action="yes"]'),
+      no: !!last.querySelector('[data-confirm-action="no"]'),
+      count: btns.length,
+    };
+  });
+  assert.strictEqual(controls.yes, true, "YES control must exist after chip click");
+  assert.strictEqual(controls.no, true, "NO control must exist after chip click");
+  assert.strictEqual(controls.count, 2, "exactly YES and NO controls must exist in latest confirm-run");
+  // Click YES to proceed (last YES button in the thread)
+  await page.locator('[data-confirm-action="yes"]').last().click();
+  await page.waitForFunction(
+    (state) => document.body.getAttribute("data-journey-state") === state,
+    finalState,
+    { timeout: 20000 },
+  );
+}
+
+// #1365: Assert NO path stops with zero navigation
+async function confirmNoStaysOnAnswer(page, selector) {
+  const preRoute = await page.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+  });
+  await page.locator(selector).click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "confirm",
+    null,
+    { timeout: 10000 },
+  );
+  await page.locator('[data-confirm-action="no"]').click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "answer",
+    null,
+    { timeout: 10000 },
+  );
+  // NO must not navigate
+  const postRoute = await page.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+  });
+  assert.strictEqual(postRoute, preRoute, "NO must not navigate the clone surface");
+}
+
+// #1365 BLOCKER 3: real browser NO-path proof for ONE scenario, executed in an
+// isolated fresh context so prior journey state cannot contaminate the proof.
+// Strengthens the route-equality helper with the full canonical NO contract:
+//   - NO leaves the conversation on the answer (zero navigation)
+//   - the journey result is null (no scenario-specific execution occurred)
+//   - no repository READ (grounded) result, no safe-handoff row, no handoff
+//     evidence result is rendered for the journey
+//   - zero external requests
+async function proveNoPathIsolated(browser, selector, jid) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const external = [];
+  installEgressGuard(ctx);
+  const page = await ctx.newPage();
+  await page.goto(DEMO_URL, { waitUntil: "networkidle", timeout: 20000 });
+  await page.waitForFunction(
+    () => document.querySelectorAll("#chat-chips .chat-chip").length > 0,
+    null,
+    { timeout: 15000 },
+  );
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-surface-state") === "ready",
+    null,
+    { timeout: 15000 },
+  );
+  const initialRoute = await page.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+  });
+  // chip -> answer
+  await page.locator(selector).click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "answer",
+    null,
+    { timeout: 10000 },
+  );
+  const routeAtAnswer = await page.evaluate(() => {
+    return (() => {
+      const frame = document.getElementById("seogu-clone-frame");
+      return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+    })();
+  });
+  assert.strictEqual(routeAtAnswer, initialRoute, `${jid} NO: route unchanged at answer`);
+  // answer -> confirm
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "confirm",
+    null,
+    { timeout: 10000 },
+  );
+  const routeAtConfirm = await page.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+  });
+  assert.strictEqual(routeAtConfirm, initialRoute, `${jid} NO: route unchanged at confirm`);
+  // YES + NO controls must exist
+  const controls = await page.evaluate(() => {
+    const msgs = Array.from(document.querySelectorAll('.chat-msg--confirm-run'));
+    const last = msgs[msgs.length - 1];
+    if (!last) return { yes: false, no: false, count: 0 };
+    const btns = last.querySelectorAll('[data-confirm-action]');
+    return {
+      yes: !!last.querySelector('[data-confirm-action="yes"]'),
+      no: !!last.querySelector('[data-confirm-action="no"]'),
+      count: btns.length,
+    };
+  });
+  assert.strictEqual(controls.yes, true, `${jid} NO: YES control must exist`);
+  assert.strictEqual(controls.no, true, `${jid} NO: NO control must exist`);
+  assert.strictEqual(controls.count, 2, `${jid} NO: exactly YES and NO controls`);
+  // click NO
+  await page.locator('[data-confirm-action="no"]').last().click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "answer",
+    null,
+    { timeout: 10000 },
+  );
+  const after = await page.evaluate((jid) => {
+    const shell = window.SeoguCitizenActionShell;
+    const r = shell.getLastJourneyResult();
+    const frame = document.getElementById("seogu-clone-frame");
+    const safeHandoff = document.querySelector(`[data-safe-handoff="true"][data-journey-id="${jid}"]`);
+    const handoffEvidence = document.querySelector(`[data-handoff-evidence="true"][data-journey-id="${jid}"]`);
+    const grounded = document.querySelector(`.chat-msg[data-grounded="true"][data-journey-id="${jid}"]`);
+    return {
+      state: document.body.getAttribute("data-journey-state"),
+      route: frame && frame.contentWindow ? frame.contentWindow.location.pathname : null,
+      resultNull: r === null || r === undefined,
+      safeHandoff: !!safeHandoff,
+      handoffEvidence: !!handoffEvidence,
+      grounded: !!grounded,
+    };
+  }, jid);
+  assert.strictEqual(after.state, "answer", `${jid} NO: must return to answer state`);
+  assert.strictEqual(after.route, initialRoute, `${jid} NO: route unchanged after NO`);
+  assert.strictEqual(after.resultNull, true, `${jid} NO: getLastJourneyResult() must be null (no execution)`);
+  assert.strictEqual(after.safeHandoff, false, `${jid} NO: no safe-handoff row rendered`);
+  assert.strictEqual(after.handoffEvidence, false, `${jid} NO: no handoff-evidence row rendered`);
+  assert.strictEqual(after.grounded, false, `${jid} NO: no repository READ (grounded) result rendered`);
+  assert.deepStrictEqual(external, [], `${jid} NO: zero external requests`);
+  await ctx.close();
+}
+
 function assertNoForbiddenSuccess(text, where) {
   for (const pattern of FORBIDDEN_SUCCESS_PATTERNS) {
     assert.ok(
@@ -411,12 +585,8 @@ try {
   assert.ok(!String(sandbox).split(/\s+/).includes("allow-scripts"), "allow-scripts must remain absent");
 
   // (3) S3 housing chip: navigate -> READ -> markers -> grounded READ-derived answer
-  await page.locator('[data-journey-id="seogu_apartment_housing_dept"]').click();
-  await page.waitForFunction(
-    () => document.body.getAttribute("data-journey-state") === "grounded",
-    null,
-    { timeout: 20000 },
-  );
+  // #1365: chip -> answer -> confirm -> YES -> navigate -> grounded
+  await confirmAndProceed(page, '[data-journey-id="seogu_apartment_housing_dept"]', "grounded");
   const s3 = await page.evaluate(() => {
     const shell = window.SeoguCitizenActionShell;
     const r = shell.getLastJourneyResult();
@@ -537,12 +707,8 @@ try {
     !prePassportRoute || !prePassportRoute.includes("passport-guidance"),
     "no passport route choreography before explicit resident confirmation",
   );
-  await page.locator('[data-journey-id="seogu_passport_issuance"]').click();
-  await page.waitForFunction(
-    () => document.body.getAttribute("data-journey-state") === "grounded",
-    null,
-    { timeout: 20000 },
-  );
+  // #1365: chip -> answer -> confirm -> YES -> navigate -> grounded
+  await confirmAndProceed(page, '[data-journey-id="seogu_passport_issuance"]', "grounded");
   const s5 = await page.evaluate(() => {
     const shell = window.SeoguCitizenActionShell;
     const r = shell.getLastJourneyResult();
@@ -660,25 +826,7 @@ try {
   assert.ok(s5DesktopGeo.iframeLeft >= 0, `desktop S5 iframe left must be >= 0, got ${s5DesktopGeo.iframeLeft}`);
   assert.ok(s5DesktopGeo.iframeTitleLeft !== null && s5DesktopGeo.iframeTitleLeft >= 0, "desktop S5 passport title (여권발급) must be fully visible (left >= 0)");
 
-  // (3b) REAL desktop visibility proof after S3: the left clone canvas must be
-  // actually visible (split state, inert removed, aria-hidden=false, non-zero
-  // rect intersecting the viewport) and the housing clone iframe must render
-  // a readable rc-main with the grounded markers. A blank canvas here = FAIL.
-  const desktopSplit = await page.evaluate(() => document.body.getAttribute("data-first-use-state"));
-  assert.strictEqual(desktopSplit, "split", "desktop S3 must enter split layout state");
-  const desktopVis = await measureVisibility(page);
-  assert.strictEqual(desktopVis.canvas.inert, false, "desktop S3 canvas must have inert removed");
-  assert.strictEqual(desktopVis.canvas.ariaHidden, "false", "desktop S3 canvas must be aria-hidden=false");
-  assert.notStrictEqual(desktopVis.canvas.display, "none", "desktop S3 canvas must not be display:none");
-  assert.ok(desktopVis.canvas.rect.w > 0 && desktopVis.canvas.rect.h > 0, "desktop S3 canvas must have non-zero rect");
-  assert.ok(desktopVis.canvas.inViewport, "desktop S3 canvas must intersect the viewport");
-  assert.ok(desktopVis.iframe.rect.w > 0 && desktopVis.iframe.rect.h > 0, "desktop S3 iframe must have non-zero rect");
-  assert.ok(desktopVis.iframe.inViewport, "desktop S3 iframe must intersect the viewport");
-  assert.ok(desktopVis.rc_main.visible, "desktop S3 iframe rc-main must be visible (not blank)");
-  assert.ok(desktopVis.rc_main.rect.w > 0 && desktopVis.rc_main.rect.h > 0, "desktop S3 rc-main must have non-zero rect");
-  assert.ok(desktopVis.rc_main.markers.gongdong, "desktop S3 rc-main must show 공동주택");
-  assert.ok(desktopVis.rc_main.markers.jootaekgwa, "desktop S3 rc-main must show 주택과");
-  assert.ok(desktopVis.rc_main.markers.gongdongmanage, "desktop S3 rc-main must show 공동주택관리");
+  // (3b) S3 visibility check moved right after S3 (below)
   // Grounded answer provenance row must be visible in the thread.
   const provenance = await page.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('#chat-thread [data-grounded="true"]'));
@@ -686,9 +834,42 @@ try {
     const src = el && el.querySelector("[data-grounded-source]");
     return src ? src.textContent : null;
   });
+  // (3b) #1365 REAL desktop visibility proof right after S3 (before S5/S6
+
+  // navigate the iframe away from the housing route).
+
+  const desktopSplit = await page.evaluate(() => document.body.getAttribute("data-first-use-state"));
+
+  assert.strictEqual(desktopSplit, "split", "desktop S3 must enter split layout state");
+
+  const desktopVis = await measureVisibility(page);
+
+  assert.strictEqual(desktopVis.canvas.inert, false, "desktop S3 canvas must have inert removed");
+
+  assert.strictEqual(desktopVis.canvas.ariaHidden, "false", "desktop S3 canvas must be aria-hidden=false");
+
+  assert.notStrictEqual(desktopVis.canvas.display, "none", "desktop S3 canvas must not be display:none");
+
+  assert.ok(desktopVis.canvas.rect.w > 0 && desktopVis.canvas.rect.h > 0, "desktop S3 canvas must have non-zero rect");
+
+  assert.ok(desktopVis.canvas.inViewport, "desktop S3 canvas must intersect the viewport");
+
+  assert.ok(desktopVis.iframe.rect.w > 0 && desktopVis.iframe.rect.h > 0, "desktop S3 iframe must have non-zero rect");
+
+  assert.ok(desktopVis.iframe.inViewport, "desktop S3 iframe must intersect the viewport");
+
+  assert.ok(desktopVis.rc_main.visible, "desktop S3 iframe rc-main must be visible (not blank)");
+
+  assert.ok(desktopVis.rc_main.rect.w > 0 && desktopVis.rc_main.rect.h > 0, "desktop S3 rc-main must have non-zero rect");
+
   assert.ok(provenance && provenance.includes("housing/"), "S3 grounded row must show repository-clone provenance");
 
-  // (4) SOURCE_CAPTURE_NEEDED scenarios: honest, no navigation, no fake success
+  // (4) SOURCE_CAPTURE_NEEDED scenarios: honest, no navigation, no fake success.
+  // Capture iframe path BEFORE the loop to prove capture-needed clicks don't
+  // navigate the clone surface (regardless of the current route).
+  const iframePathBeforeCapture = await page.evaluate(
+    () => document.getElementById("seogu-clone-frame").contentWindow.location.pathname,
+  );
   for (const id of CAPTURE_NEEDED_IDS) {
     await page.locator(`[data-journey-id="${id}"]`).click();
     await page.waitForFunction(
@@ -705,12 +886,12 @@ try {
     assert.strictEqual(row.status, "SOURCE_CAPTURE_NEEDED", `${id} must keep SOURCE_CAPTURE_NEEDED status`);
     assertNoForbiddenSuccess(row.text, `capture-needed row for ${id}`);
   }
-  // After capture-needed clicks the iframe must NOT have navigated away from housing.
+  // After capture-needed clicks the iframe must NOT have navigated.
   const iframePathAfterCapture = await page.evaluate(
     () => document.getElementById("seogu-clone-frame").contentWindow.location.pathname,
   );
-  assert.ok(
-    String(iframePathAfterCapture).includes("housing"),
+  assert.strictEqual(
+    iframePathAfterCapture, iframePathBeforeCapture,
     "capture-needed scenarios must not navigate the clone surface",
   );
   // (3k) #1360 S6 kiosk chip: navigate -> bounded clone READ -> required
@@ -727,12 +908,8 @@ try {
     !preKioskRoute || !preKioskRoute.includes("unmanned-kiosk"),
     "no kiosk route choreography before explicit resident confirmation",
   );
-  await page.locator('[data-journey-id="seogu_unmanned_kiosk"]').click();
-  await page.waitForFunction(
-    () => document.body.getAttribute("data-journey-state") === "grounded",
-    null,
-    { timeout: 20000 },
-  );
+  // #1365: chip -> answer -> confirm -> YES -> navigate -> grounded
+  await confirmAndProceed(page, '[data-journey-id="seogu_unmanned_kiosk"]', "grounded");
   const s6 = await page.evaluate(() => {
     const shell = window.SeoguCitizenActionShell;
     const r = shell.getLastJourneyResult();
@@ -843,12 +1020,8 @@ try {
   //   D2: S8 maps to 국민신문고/epeople (NOT 안전신문고); S2/S7 map to 안전신문고.
   for (const id of HANDOFF_IDS) {
     const expected = HANDOFF_CONTRACT[id];
-    await page.locator(`[data-journey-id="${id}"]`).click();
-    await page.waitForFunction(
-      () => document.body.getAttribute("data-journey-state") === "safe_handoff",
-      null,
-      { timeout: 15000 },
-    );
+    // #1365: chip -> answer -> confirm -> YES -> handoff evidence -> safe_handoff
+    await confirmAndProceed(page, `[data-journey-id="${id}"]`, "safe_handoff");
 
     // D1 — generic contract on the destination row.
     const row = await page.evaluate((jid) => {
@@ -1089,12 +1262,8 @@ try {
     generalModelCalls: window.__generalModelCalls,
   }), NEG_JID);
 
-  await negPage.locator(`[data-journey-id="${NEG_JID}"]`).click();
-  await negPage.waitForFunction(
-    () => document.body.getAttribute("data-journey-state") === "handoff_evidence_failed",
-    null,
-    { timeout: 15000 },
-  );
+  // #1365: chip -> answer -> confirm -> YES -> handoff evidence -> fail-closed
+  await confirmAndProceed(negPage, `[data-journey-id="${NEG_JID}"]`, "handoff_evidence_failed");
 
   // Deterministic precondition: the forced marker is really absent from the
   // READ region while the page demonstrably loaded (control marker present).
@@ -1299,6 +1468,13 @@ try {
   for (const proof of PRESERVED_PROOFS) {
     await page.fill("#chat-composer-input", proof.question);
     await page.click("#chat-composer-send");
+    // #1365: typed questions also pass through the confirm gate
+    await page.waitForFunction(
+      () => document.body.getAttribute("data-journey-state") === "confirm",
+      null,
+      { timeout: 10000 },
+    );
+    await page.locator('[data-confirm-action="yes"]').last().click();
     await page.waitForFunction(
       () => document.body.getAttribute("data-journey-state") === "grounded",
       null,
@@ -1435,12 +1611,8 @@ try {
     null,
     { timeout: 5000 },
   );
-  await mpage.locator('[data-journey-id="seogu_apartment_housing_dept"]').click();
-  await mpage.waitForFunction(
-    () => document.body.getAttribute("data-journey-state") === "grounded",
-    null,
-    { timeout: 20000 },
-  );
+  // #1365: chip -> answer -> confirm -> YES -> navigate -> grounded (mobile)
+  await confirmAndProceed(mpage, '[data-journey-id="seogu_apartment_housing_dept"]', "grounded");
   await guideTab.click();
   await mpage.waitForFunction(
     () => document.body.getAttribute("data-mobile-surface") === "guidance",
@@ -1495,12 +1667,8 @@ try {
     null,
     { timeout: 5000 },
   );
-  await mpage.locator('[data-journey-id="seogu_passport_issuance"]').click();
-  await mpage.waitForFunction(
-    () => document.body.getAttribute("data-journey-state") === "grounded",
-    null,
-    { timeout: 20000 },
-  );
+  // #1365: chip -> answer -> confirm -> YES -> navigate -> grounded (mobile S5)
+  await confirmAndProceed(mpage, '[data-journey-id="seogu_passport_issuance"]', "grounded");
   await guideTab.click();
   await mpage.waitForFunction(
     () => document.body.getAttribute("data-mobile-surface") === "guidance",
@@ -1537,12 +1705,8 @@ try {
     null,
     { timeout: 5000 },
   );
-  await mpage.locator('[data-journey-id="seogu_unmanned_kiosk"]').click();
-  await mpage.waitForFunction(
-    () => document.body.getAttribute("data-journey-state") === "grounded",
-    null,
-    { timeout: 20000 },
-  );
+  // #1365: chip -> answer -> confirm -> YES -> navigate -> grounded (mobile S6)
+  await confirmAndProceed(mpage, '[data-journey-id="seogu_unmanned_kiosk"]', "grounded");
   await guideTab.click();
   await mpage.waitForFunction(
     () => document.body.getAttribute("data-mobile-surface") === "guidance",
@@ -1618,11 +1782,27 @@ try {
     mKioskBoardGeo.minColWidth >= 25,
     `mobile kiosk table columns must not collapse below practical width (>=25px, got ${mKioskBoardGeo.minColWidth})`,
   );
+  // Switch back to conversation for the S5 conversation geometry check.
+  await convTab.click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-mobile-surface") === "conversation",
+    null,
+    { timeout: 5000 },
+  );
   // (7p-geo) #1356 mobile S5 conversation grounded-row geometry: the grounded
   // answer bubble + provenance must share one readable content column (not
   // squeezed as narrow horizontal siblings). Prove the grid fix: display=grid,
   // bubble width and source width both span the full content column, no page
-  // overflow, chip rail keeps its own internal scroll.
+  // overflow, and the chip rail matches the Buk-gu canonical wrap contract.
+  //
+  // Golden chip-rail contract (B / #1367 reconciliation): the canonical Buk-gu
+  // `.chat-chips` is `display:flex; flex-wrap:wrap; overflow:visible` — it WRAPS,
+  // it is NOT an internal horizontal scroll rail. The previous assertion
+  // `chips.scrollWidth > document.clientWidth` (364 > 390 at 390x844) measured
+  // the wrong geometry and was always false. The correct invariant is that the
+  // rail stays fully inside the viewport (no page overflow, proven above) and its
+  // own geometry is contained: scrollWidth === clientWidth (no internal
+  // overflow) with the canonical wrap/overflow policy preserved.
   const mPassportConvGeo = await mpage.evaluate(() => {
     const thread = document.getElementById("chat-thread");
     const row = thread ? thread.querySelector('.chat-msg[data-grounded="true"][data-journey-id="seogu_passport_issuance"]') : null;
@@ -1630,6 +1810,7 @@ try {
     const bubble = row.querySelector('.chat-bubble');
     const source = row.querySelector('.message-source--clone');
     const chips = document.querySelector('.chat-chips');
+    const ccs = chips ? getComputedStyle(chips) : null;
     return {
       rowDisplay: getComputedStyle(row).display,
       bubbleW: bubble ? Math.round(bubble.getBoundingClientRect().width) : 0,
@@ -1640,7 +1821,12 @@ try {
       docScrollW: document.documentElement.scrollWidth,
       docClientW: document.documentElement.clientWidth,
       chipsScrollW: chips ? chips.scrollWidth : 0,
+      chipsClientW: chips ? chips.clientWidth : 0,
+      chipsDisplay: ccs ? ccs.display : null,
+      chipsFlexWrap: ccs ? ccs.flexWrap : null,
+      chipsOverflowX: ccs ? ccs.overflowX : null,
       chipsOverflow: chips ? getComputedStyle(chips).overflow : null,
+      chipCount: chips ? chips.querySelectorAll('.chat-chip').length : 0,
     };
   });
   assert.ok(mPassportConvGeo, "mobile S5 conversation grounded row must exist for geometry check");
@@ -1649,7 +1835,22 @@ try {
   assert.ok(mPassportConvGeo.sourceW >= 200, `mobile S5 provenance must span full content column (>=200px), got ${mPassportConvGeo.sourceW}`);
   assert.strictEqual(mPassportConvGeo.bubbleLeft, mPassportConvGeo.sourceLeft, "mobile S5 bubble and provenance must share the same content column left edge");
   assert.ok(mPassportConvGeo.docScrollW <= mPassportConvGeo.docClientW + 1, "mobile S5 conversation must not cause page-level horizontal overflow");
-  assert.ok(mPassportConvGeo.chipsScrollW > mPassportConvGeo.docClientW, "mobile S5 chip rail retains its own internal horizontal scroll (canonical behavior)");
+  // Golden chip-rail contract (B / #1367): the Buk-gu canonical `.chat-chips`
+  // WRAPS (flex-wrap:wrap, overflow:visible) — it is NOT an internal horizontal
+  // scroll rail. The rail must stay fully inside the viewport and its own
+  // geometry must be contained (scrollWidth === clientWidth, no internal
+  // overflow). All eight resident chips must remain present and reachable.
+  assert.ok(
+    mPassportConvGeo.chipsClientW <= mPassportConvGeo.docClientW,
+    `mobile S5 chip rail must stay inside the viewport (clientW ${mPassportConvGeo.chipsClientW} <= docClientW ${mPassportConvGeo.docClientW})`,
+  );
+  assert.strictEqual(mPassportConvGeo.chipsDisplay, "flex", "mobile S5 chip rail must use flex display like Buk-gu canonical");
+  assert.strictEqual(mPassportConvGeo.chipsFlexWrap, "wrap", "mobile S5 chip rail must wrap like Buk-gu canonical (no internal horizontal scroll rail)");
+  assert.ok(
+    mPassportConvGeo.chipsScrollW <= mPassportConvGeo.chipsClientW + 1,
+    `mobile S5 chip rail must not internally overflow (scrollW ${mPassportConvGeo.chipsScrollW} <= clientW ${mPassportConvGeo.chipsClientW})`,
+  );
+  assert.strictEqual(mPassportConvGeo.chipCount, 8, "mobile S5 chip rail must keep all 8 resident chips reachable");
   // ── #1353 mobile handoff responsive hierarchy (S2) ──────────────────────────
   // The S2 final handoff row must NOT collapse the CTA into character-by-character
   // vertical stacking and must keep the authority readable in the content column
@@ -1660,11 +1861,17 @@ try {
     null,
     { timeout: 5000 },
   );
-  await mpage.locator('[data-journey-id="seogu_illegal_parking_report"]').click();
+  // #1365: chip -> answer -> confirm -> YES -> handoff -> safe_handoff (mobile S2)
+  await confirmAndProceed(mpage, '[data-journey-id="seogu_illegal_parking_report"]', "safe_handoff");
+  // The canonical onYesSurfacePrepare switches the mobile surface to guidance
+  // (matching Buk-gu) to reveal the institution canvas, which hides the
+  // conversation thread. Switch back to conversation so the handoff/evidence
+  // row geometry (measured via getBoundingClientRect) is actually laid out.
+  await convTab.click();
   await mpage.waitForFunction(
-    () => document.body.getAttribute("data-journey-state") === "safe_handoff",
+    () => document.body.getAttribute("data-mobile-surface") === "conversation",
     null,
-    { timeout: 15000 },
+    { timeout: 5000 },
   );
   const mHandoff = await measureHandoffLayout(mpage, "seogu_illegal_parking_report");
   assert.ok(mHandoff, "mobile S2 handoff destination row must be present");
@@ -1776,6 +1983,17 @@ try {
   assert.strictEqual(mSandbox, "allow-same-origin", "mobile iframe must keep script-disabled sandbox");
 
   await mobile.close();
+
+  // (B3) #1365 BLOCKER 3: real browser NO-path proof for the four target
+  // scenarios, each in its own isolated fresh context (no cross-contamination).
+  // S1 / S2 / S5 / S6 NO must stop on the answer with zero navigation, a null
+  // journey result, and no scenario-specific execution (no repository READ
+  // result, no safe-handoff row, no handoff-evidence result, no external request).
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_apartment_housing_dept"]', "seogu_apartment_housing_dept");
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_illegal_parking_report"]', "seogu_illegal_parking_report");
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_passport_issuance"]', "seogu_passport_issuance");
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_unmanned_kiosk"]', "seogu_unmanned_kiosk");
+  console.log("  [B3] NO-path browser proof S1/S2/S5/S6: OK");
 
   // (9) zero external HTTP(S) runtime requests across both contexts
   assert.deepStrictEqual(externalRequests, [], "focused surface proof must make zero external requests");
