@@ -53,6 +53,7 @@ async function launchBrowser() {
 }
 
 function installEgressGuard(context) {
+  const externalRequests = [];
   context.route("**/*", async (route) => {
     const url = route.request().url();
     if (url.startsWith("data:")) {
@@ -63,20 +64,23 @@ function installEgressGuard(context) {
     try {
       parsed = new URL(url);
     } catch {
+      externalRequests.push(url);
       await route.abort();
       return;
     }
     if (parsed.origin !== BASE_ORIGIN) {
+      externalRequests.push(url);
       await route.abort();
       return;
     }
     await route.continue();
   });
+  return externalRequests;
 }
 
 async function openPage(browser) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-  await installEgressGuard(context);
+  const externalRequests = installEgressGuard(context);
   const page = await context.newPage();
   await page.goto(DEMO_URL, { waitUntil: "networkidle", timeout: 20000 });
   await page.waitForFunction(
@@ -89,35 +93,32 @@ async function openPage(browser) {
     null,
     { timeout: 15000 },
   );
-  return { page, context };
+  return { page, context, externalRequests };
 }
 
 async function instrumentCounter(page) {
   await page.evaluate(() => {
     window.__executionCounter = 0;
-    window.__goldenTrace = [];
-    const body = document.body;
-    const initialState = body.getAttribute("data-journey-state");
-    window.__goldenTrace.push({ state: "ENTRY" });
-    const observer = new MutationObserver((mutations) => {
-      for (const m of mutations) {
-        if (m.attributeName !== "data-journey-state") continue;
-        const newState = body.getAttribute("data-journey-state");
-        const prev = body.__lastJourneyState || initialState;
-        if (
-          (prev !== "running" && prev !== "handoff_evidence_running") &&
-          (newState === "running" || newState === "handoff_evidence_running")
-        ) {
-          window.__executionCounter += 1;
-        }
-        body.__lastJourneyState = newState;
+
+    const origJourney = window.MunicipalResidentJourney;
+    window.MunicipalResidentJourney = Object.freeze({
+      run: async function (...args) {
+        window.__executionCounter += 1;
+        return origJourney.run.apply(origJourney, args);
+      },
+      answerFromEvidence: origJourney.answerFromEvidence,
+    });
+
+    const _origSetAttr = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function (name, value) {
+      if (
+        name === "data-journey-state" &&
+        value === "handoff_evidence_running"
+      ) {
+        window.__executionCounter += 1;
       }
-    });
-    observer.observe(body, {
-      attributes: true,
-      attributeFilter: ["data-journey-state"],
-    });
-    window.__goldenObserver = observer;
+      return _origSetAttr.call(this, name, value);
+    };
   });
 }
 
@@ -183,16 +184,39 @@ async function getEvidence(page) {
 async function assertNoReadOrResult(page) {
   const result = await getLastResult(page);
   const evidence = await getEvidence(page);
-  assert.ok(!result, "NO path must not produce a journey result");
+  assert.ok(!result, "must not produce a journey result");
   assert.ok(
     !evidence || !evidence.route || evidence.route === "/",
-    `NO path must not read evidence on a target route, got ${evidence && evidence.route}`,
+    `must not read evidence on a target route, got ${evidence && evidence.route}`,
   );
 }
 
-async function runNoPath(page, scenario) {
+async function assertNoHandoffRow(page, journeyId) {
+  const count = await page.evaluate((jid) => {
+    const rows = Array.from(
+      document.querySelectorAll('[data-safe-handoff="true"]'),
+    );
+    return rows.filter(
+      (r) => r.getAttribute("data-journey-id") === jid,
+    ).length;
+  }, journeyId);
+  assert.strictEqual(
+    count,
+    0,
+    `must not have safe_handoff row for ${journeyId}, found ${count}`,
+  );
+}
+
+function assertExternalRequestsZero(externalRequests, label) {
+  assert.strictEqual(
+    externalRequests.length,
+    0,
+    `${label}: external request count must be 0, got ${externalRequests.length}`,
+  );
+}
+
+async function runNoPath(page, scenario, externalRequests) {
   const preRoute = await captureRoute(page);
-  const preCounter = await page.evaluate(() => window.__executionCounter);
 
   await clickChip(page, scenario.selector);
   await waitForState(page, "answer");
@@ -236,11 +260,13 @@ async function runNoPath(page, scenario) {
   const postCounter = await page.evaluate(() => window.__executionCounter);
   assert.strictEqual(
     postCounter,
-    preCounter,
+    0,
     `${scenario.id} NO: execution counter must remain 0, got ${postCounter}`,
   );
 
   await assertNoReadOrResult(page);
+  await assertNoHandoffRow(page, scenario.journey_id);
+  assertExternalRequestsZero(externalRequests, `${scenario.id} NO`);
 
   const trace = [
     { state: "ENTRY" },
@@ -253,9 +279,8 @@ async function runNoPath(page, scenario) {
   assert.strictEqual(v.valid, true, `${scenario.id} NO trace: ${v.errors.join("; ")}`);
 }
 
-async function runYesPath(page, scenario) {
+async function runYesPath(page, scenario, externalRequests) {
   const preRoute = await captureRoute(page);
-  const preCounter = await page.evaluate(() => window.__executionCounter);
 
   await clickChip(page, scenario.selector);
   await waitForState(page, "answer");
@@ -289,8 +314,8 @@ async function runYesPath(page, scenario) {
   const postCounter = await page.evaluate(() => window.__executionCounter);
   assert.strictEqual(
     postCounter,
-    preCounter + 1,
-    `${scenario.id} YES: execution count must be exactly 1 (pre=${preCounter}, post=${postCounter})`,
+    1,
+    `${scenario.id} YES: execution count must be exactly 1, got ${postCounter}`,
   );
 
   const result = await getLastResult(page);
@@ -343,6 +368,8 @@ async function runYesPath(page, scenario) {
     );
   }
 
+  assertExternalRequestsZero(externalRequests, `${scenario.id} YES`);
+
   const trace = [
     { state: "ENTRY" },
     { state: "ANSWER" },
@@ -359,44 +386,73 @@ async function runYesPath(page, scenario) {
   );
 }
 
-async function runStaleYesTest(browser) {
-  const { page: pageA, context: contextA } = await openPage(browser);
-  await instrumentCounter(pageA);
+async function runStaleYesSamePage(browser) {
+  const { page, context, externalRequests } = await openPage(browser);
+  await instrumentCounter(page);
 
-  await clickChip(pageA, SCENARIOS[0].selector);
-  await waitForState(pageA, "answer");
-  await waitForState(pageA, "confirm");
+  await clickChip(page, SCENARIOS[0].selector);
+  await waitForState(page, "answer");
+  await waitForState(page, "confirm");
 
-  const oldYesHandle = await pageA.locator(
+  const oldYesHandle = await page.locator(
     '[data-confirm-action="yes"]',
   ).last().elementHandle();
 
-  await contextA.close();
+  await clickChip(page, SCENARIOS[1].selector);
+  await waitForState(page, "answer");
+  await waitForState(page, "confirm");
 
-  const { page: pageB, context: contextB } = await openPage(browser);
-  await instrumentCounter(pageB);
-
-  await clickChip(pageB, SCENARIOS[1].selector);
-  await waitForState(pageB, "answer");
-  await waitForState(pageB, "confirm");
-
-  await pageB.evaluate((handle) => {
-    if (handle && handle.isConnected) {
-      handle.click();
-    }
+  const preStaleRoute = await captureRoute(page);
+  await page.evaluate((handle) => {
+    if (handle && handle.isConnected) handle.click();
   }, oldYesHandle);
 
-  const counterA = await pageB.evaluate(() => 0);
-  const routeB = await captureRoute(pageB);
+  const counter = await page.evaluate(() => window.__executionCounter);
+  const staleRoute = await captureRoute(page);
+  const staleResult = await getLastResult(page);
+  const staleEvidence = await getEvidence(page);
+  const staleHandoffCount = await page.evaluate((jid) => {
+    const rows = Array.from(
+      document.querySelectorAll('[data-safe-handoff="true"]'),
+    );
+    return rows.filter(
+      (r) => r.getAttribute("data-journey-id") === jid,
+    ).length;
+  }, SCENARIOS[0].journey_id);
 
-  await contextB.close();
+  assert.strictEqual(counter, 0, "Stale YES: execution must be 0");
+  assert.strictEqual(
+    staleRoute,
+    preStaleRoute,
+    "Stale YES: route must be unchanged",
+  );
+  assert.ok(!staleResult, "Stale YES: getLastJourneyResult must be null");
+  assert.ok(
+    !staleEvidence || !staleEvidence.route || staleEvidence.route === "/",
+    `Stale YES: must not read evidence, got ${staleEvidence && staleEvidence.route}`,
+  );
+  assert.strictEqual(
+    staleHandoffCount,
+    0,
+    "Stale YES: must not create handoff row",
+  );
+  assertExternalRequestsZero(externalRequests, "Stale YES");
+
+  await context.close();
   await oldYesHandle.dispose();
 
-  return { executionA: 0, staleRouteChanged: false, routeB: routeB };
+  return {
+    executions: counter,
+    routeUnchanged: staleRoute === preStaleRoute,
+    noResult: !staleResult,
+    noRead: !staleEvidence || !staleEvidence.route || staleEvidence.route === "/",
+    noHandoff: staleHandoffCount === 0,
+    externalRequests: externalRequests.length,
+  };
 }
 
 async function runDoubleYesTest(browser) {
-  const { page, context } = await openPage(browser);
+  const { page, context, externalRequests } = await openPage(browser);
   await instrumentCounter(page);
 
   await clickChip(page, SCENARIOS[0].selector);
@@ -409,12 +465,13 @@ async function runDoubleYesTest(browser) {
 
   await waitForState(page, "grounded", 20000);
   const counter = await page.evaluate(() => window.__executionCounter);
+  assertExternalRequestsZero(externalRequests, "Double YES");
   await context.close();
-  return { executions: counter };
+  return { executions: counter, externalRequests: externalRequests.length };
 }
 
 async function runNoThenStaleYesTest(browser) {
-  const { page, context } = await openPage(browser);
+  const { page, context, externalRequests } = await openPage(browser);
   await instrumentCounter(page);
 
   await clickChip(page, SCENARIOS[0].selector);
@@ -442,16 +499,17 @@ async function runNoThenStaleYesTest(browser) {
     0,
     "NO then stale YES: execution must be 0 after NO",
   );
+  await assertNoHandoffRow(page, SCENARIOS[0].journey_id);
+  assertExternalRequestsZero(externalRequests, "NO then stale YES (after NO)");
 
   await page.evaluate((handle) => {
-    if (handle && handle.isConnected) {
-      handle.click();
-    }
+    if (handle && handle.isConnected) handle.click();
   }, oldYesHandle);
 
   const staleCounter = await page.evaluate(() => window.__executionCounter);
   const staleRoute = await captureRoute(page);
   await assertNoReadOrResult(page);
+  await assertNoHandoffRow(page, SCENARIOS[0].journey_id);
   assert.strictEqual(
     staleCounter,
     0,
@@ -462,10 +520,30 @@ async function runNoThenStaleYesTest(browser) {
     preRoute,
     "NO then stale YES: route must stay unchanged after stale YES click",
   );
+  assertExternalRequestsZero(externalRequests, "NO then stale YES (after stale click)");
 
   await context.close();
   await oldYesHandle.dispose();
   return { pass: true };
+}
+
+async function proveS2SameValueDoubleCall(page) {
+  const before = await page.evaluate(() => window.__executionCounter);
+  await page.evaluate(() => {
+    document.body.setAttribute("data-journey-state", "handoff_evidence_running");
+    document.body.setAttribute("data-journey-state", "handoff_evidence_running");
+  });
+  const after = await page.evaluate(() => window.__executionCounter);
+  assert.strictEqual(
+    after - before,
+    2,
+    "S2 same-value double call must count 2 (before=" +
+      before +
+      ", after=" +
+      after +
+      ")",
+  );
+  return true;
 }
 
 try {
@@ -473,69 +551,67 @@ try {
   const results = {};
 
   for (const scenario of SCENARIOS) {
-    // NO path
     {
-      const { page, context } = await openPage(browser);
+      const { page, context, externalRequests } = await openPage(browser);
       await instrumentCounter(page);
-      await runNoPath(page, scenario);
+      await runNoPath(page, scenario, externalRequests);
       const counter = await page.evaluate(() => window.__executionCounter);
       results[`${scenario.id}_NO_EXECUTIONS`] = counter;
+      results[`${scenario.id}_NO_EXTERNAL`] = externalRequests.length;
       assert.strictEqual(
         counter,
         0,
         `${scenario.id} NO: execution must be 0`,
       );
+      assert.strictEqual(
+        externalRequests.length,
+        0,
+        `${scenario.id} NO: external must be 0`,
+      );
       await context.close();
     }
 
-    // YES path
     {
-      const { page, context } = await openPage(browser);
+      const { page, context, externalRequests } = await openPage(browser);
       await instrumentCounter(page);
-      await runYesPath(page, scenario);
+      await runYesPath(page, scenario, externalRequests);
       const counter = await page.evaluate(() => window.__executionCounter);
       results[`${scenario.id}_YES_EXECUTIONS`] = counter;
+      results[`${scenario.id}_YES_EXTERNAL`] = externalRequests.length;
       assert.strictEqual(
         counter,
         1,
         `${scenario.id} YES: execution must be 1`,
       );
+      assert.strictEqual(
+        externalRequests.length,
+        0,
+        `${scenario.id} YES: external must be 0`,
+      );
       await context.close();
     }
   }
-  // Lifecycle A: stale YES after new question
+
   {
-    const { page, context } = await openPage(browser);
+    const { page, context, externalRequests } = await openPage(browser);
     await instrumentCounter(page);
-
-    await clickChip(page, SCENARIOS[0].selector);
-    await waitForState(page, "answer");
-    await waitForState(page, "confirm");
-
-    const oldYesHandle = await page.locator(
-      '[data-confirm-action="yes"]',
-    ).last().elementHandle();
-
-    await clickChip(page, SCENARIOS[1].selector);
-    await waitForState(page, "answer");
-    await waitForState(page, "confirm");
-
-    await page.evaluate((handle) => {
-      if (handle && handle.isConnected) handle.click();
-    }, oldYesHandle);
-
-    const counter = await page.evaluate(() => window.__executionCounter);
-    assert.strictEqual(
-      counter,
-      0,
-      "Stale YES: execution must be 0 after clicking stale button",
-    );
-    results.STALE_YES = "PASS";
+    const proved = await proveS2SameValueDoubleCall(page);
+    results.S2_SAME_VALUE_DOUBLE_CALL_COUNTS_TWO = proved ? "YES" : "NO";
+    assertExternalRequestsZero(externalRequests, "S2 same-value double call");
     await context.close();
-    await oldYesHandle.dispose();
   }
 
-  // Lifecycle B: double YES
+  {
+    const r = await runStaleYesSamePage(browser);
+    results.STALE_YES_EXECUTIONS = r.executions;
+    results.STALE_YES_ROUTE_UNCHANGED = r.routeUnchanged ? "YES" : "NO";
+    results.STALE_YES_NO_RESULT = r.noResult ? "YES" : "NO";
+    results.STALE_YES_NO_READ = r.noRead ? "YES" : "NO";
+    results.STALE_YES_NO_HANDOFF = r.noHandoff ? "YES" : "NO";
+    results.STALE_YES_EXTERNAL_REQUESTS = r.externalRequests;
+    results.STALE_YES = "PASS";
+  }
+
   {
     const r = await runDoubleYesTest(browser);
     assert.strictEqual(
@@ -546,7 +622,6 @@ try {
     results.DOUBLE_YES_EXECUTIONS = r.executions;
   }
 
-  // Lifecycle C: NO then stale YES
   {
     await runNoThenStaleYesTest(browser);
     results.NO_THEN_STALE_YES = "PASS";
