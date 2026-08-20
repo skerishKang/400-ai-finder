@@ -902,15 +902,16 @@ SEOGU_REQUIRED_ROUTES = [
 
 # Additive Seo-gu routes emitted on top of the canonical 11 G2-B clone
 # routes: 1 S3 housing route + 3 S2/S7/S8 handoff-evidence routes
-# (#1343) + 1 S5 passport-guidance route (#1356). Kept separate from
-# SEOGU_REQUIRED_ROUTES so the canonical G2-B contract stays intact and
-# the additive set is explicit.
+# (#1343) + 1 S5 passport-guidance route (#1356) + 1 S6 unmanned-kiosk
+# route (#1360). Kept separate from SEOGU_REQUIRED_ROUTES so the canonical
+# G2-B contract stays intact and the additive set is explicit.
 SEOGU_ADDITIVE_ROUTES = [
     "seogu/housing/index.html",
     "seogu/illegal-parking-report/index.html",
     "seogu/streetlight-report-handoff/index.html",
     "seogu/litter-report-handoff/index.html",
     "seogu/passport-guidance/index.html",
+    "seogu/unmanned-kiosk/index.html",
 ]
 
 
@@ -951,9 +952,10 @@ def test_seogu_output_has_no_external_auto_calls(build_dir):
             assert "iframe" not in text.lower(), f"iframe in {path}"
             assert "screenshot" not in text.lower(), f"screenshot runtime in {path}"
             assert "source.png" not in text, f"raw capture artifact in {path}"
-    # Exact 15-route packaging contract: the canonical 11 G2-B clone routes plus
-    # the additive 1 housing + 3 handoff-evidence routes. Both a missing file and
-    # an unexpected extra file are contract failures (not merely a count change).
+    # Exact packaging contract: the canonical 11 G2-B clone routes plus the
+    # additive 1 housing + 3 handoff-evidence + 1 passport-guidance + 1
+    # unmanned-kiosk routes. Both a missing file and an unexpected extra file
+    # are contract failures (not merely a count change).
     expected = set(SEOGU_REQUIRED_ROUTES) | set(SEOGU_ADDITIVE_ROUTES)
     assert scanned > 0
     assert scanned == len(expected), (
@@ -1148,6 +1150,65 @@ def test_seogu_passport_guidance_markers_in_main(build_dir):
 
 def test_seogu_passport_guidance_does_not_clobber_existing_routes(build_dir):
     """#1356: the passport addon is additive; all canonical + prior additive
+    Seo-gu routes remain present (exact set, no loose >=)."""
+    expected = set(SEOGU_REQUIRED_ROUTES) | set(SEOGU_ADDITIVE_ROUTES)
+    for rel in expected:
+        assert os.path.isfile(os.path.join(build_dir, rel)), f"missing seogu route {rel}"
+
+
+# ---------------------------------------------------------------------------
+# Issue #1360 S6: Seo-gu unmanned-kiosk additive build contract
+# ---------------------------------------------------------------------------
+# The required resident-facing markers that the committed additive
+# clone-model carries via the generic list-board model. They must become
+# clone-DOM-verifiable inside the built main.rc-main. The canonical
+# surface label "무인민원발급안내" comes from the captured page_title;
+# the six column headers (번호/설치장소/도로명주소/서비스시간/발급종수/비고)
+# come from the source <table>.
+SEOGU_KIOSK_REQUIRED_MARKERS = [
+    "무인민원발급안내",
+    "설치장소",
+    "도로명주소",
+    "서비스시간",
+    "발급종수",
+]
+# Excerpts that prove the generic list-board table body (page-1 rows)
+# rendered into main.rc-main, not just a bare institution label.
+SEOGU_KIOSK_REQUIRED_EXCERPTS = [
+    "푸른새마을금고 금호지점",
+    "금화로54",
+    "08:00~24:00",
+    "122종",
+]
+
+
+def test_seogu_unmanned_kiosk_route_built(build_dir):
+    """#1360 S6: the additive unmanned-kiosk route exists and is the ONLY
+    additive route emitted for the S6 capture (additive, no clobber)."""
+    route = os.path.join(build_dir, "seogu", "unmanned-kiosk", "index.html")
+    assert os.path.isfile(route), "missing seogu/unmanned-kiosk/index.html"
+
+
+def test_seogu_unmanned_kiosk_markers_in_main(build_dir):
+    """#1360: the required markers render inside the built main.rc-main so
+    the resident grounding contract (clone_dom) is satisfied from committed
+    evidence, not a hard-coded answer. The page-1 table rows are source-backed
+    clone-DOM content; the snapshot count "34" is NOT asserted as permanent
+    business truth."""
+    import re
+    route = os.path.join(build_dir, "seogu", "unmanned-kiosk", "index.html")
+    html = open(route, encoding="utf-8").read()
+    m = re.search(r"<main[^>]*rc-main[^>]*>(.*?)</main>", html, re.S)
+    assert m, "main.rc-main not found in unmanned-kiosk route"
+    main = m.group(1)
+    for marker in SEOGU_KIOSK_REQUIRED_MARKERS:
+        assert marker in main, f"kiosk marker missing in main.rc-main: {marker!r}"
+    for excerpt in SEOGU_KIOSK_REQUIRED_EXCERPTS:
+        assert excerpt in main, f"kiosk excerpt missing in main.rc-main: {excerpt!r}"
+
+
+def test_seogu_unmanned_kiosk_does_not_clobber_existing_routes(build_dir):
+    """#1360: the kiosk addon is additive; all canonical + prior additive
     Seo-gu routes remain present (exact set, no loose >=)."""
     expected = set(SEOGU_REQUIRED_ROUTES) | set(SEOGU_ADDITIVE_ROUTES)
     for rel in expected:

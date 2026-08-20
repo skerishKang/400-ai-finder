@@ -16,7 +16,7 @@
  *   3b. REAL desktop visibility after S3: split state + canvas inert removed /
  *      aria-hidden=false / non-zero rect in viewport + iframe non-zero rect +
  *      visible rc-main with grounded markers (blank canvas = FAIL);
- *   4. SOURCE_CAPTURE_NEEDED scenarios (S1/S4/S5/S6) produce honest
+ *   4. SOURCE_CAPTURE_NEEDED scenarios (S1/S4/S6-now-DIRECT_REUSE) produce honest
  *      capture-needed rows, no navigation, no fake success;
  *   5. S2/S7/S8 EXTERNAL_OFFICIAL_HANDOFF (Blocker B + Blocker A):
  *      D1 — generic config-driven contract on every handoff row
@@ -82,7 +82,7 @@ const EXPECTED_MATRIX = [
   { journey_id: "seogu_apartment_housing_dept", label: "공동주택 부서 문의", status: "DIRECT_REUSE" },
   { journey_id: "seogu_mattrass_disposal", label: "대형폐기물 배출", status: "SOURCE_CAPTURE_NEEDED" },
   { journey_id: "seogu_passport_issuance", label: "여권 발급 안내", status: "DIRECT_REUSE" },
-  { journey_id: "seogu_unmanned_kiosk", label: "무인민원발급기 안내", status: "SOURCE_CAPTURE_NEEDED" },
+  { journey_id: "seogu_unmanned_kiosk", label: "무인민원발급기 안내", status: "DIRECT_REUSE" },
   { journey_id: "seogu_streetlight_report", label: "가로등 고장 신고 (AI)", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
   { journey_id: "seogu_illegal_dumping_report", label: "쓰레기 무단투기 (AI)", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
 ];
@@ -90,7 +90,6 @@ const EXPECTED_MATRIX = [
 const CAPTURE_NEEDED_IDS = [
   "seogu_mayor_proposal",
   "seogu_mattrass_disposal",
-  "seogu_unmanned_kiosk",
 ];
 
 const HANDOFF_IDS = [
@@ -714,6 +713,125 @@ try {
     String(iframePathAfterCapture).includes("housing"),
     "capture-needed scenarios must not navigate the clone surface",
   );
+  // (3k) #1360 S6 kiosk chip: navigate -> bounded clone READ -> required
+  // markers (무인민원발급안내/설치장소/도로명주소/서비스시간/발급종수) ->
+  // grounded, READ-derived answer with visible repository-clone provenance.
+  // Before the resident explicitly activates the chip, no route choreography
+  // begins; after activation the journey navigates to the committed
+  // unmanned-kiosk/ clone route and READs its main.rc-main.
+  const preKioskRoute = await page.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+  });
+  assert.ok(
+    !preKioskRoute || !preKioskRoute.includes("unmanned-kiosk"),
+    "no kiosk route choreography before explicit resident confirmation",
+  );
+  await page.locator('[data-journey-id="seogu_unmanned_kiosk"]').click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "grounded",
+    null,
+    { timeout: 20000 },
+  );
+  const s6 = await page.evaluate(() => {
+    const shell = window.SeoguCitizenActionShell;
+    const r = shell.getLastJourneyResult();
+    const ev = shell.getEvidence();
+    const frame = document.getElementById("seogu-clone-frame");
+    let rcMainText = null;
+    try {
+      const doc = frame.contentDocument;
+      const main = doc && doc.querySelector("main.rc-main");
+      rcMainText = main ? main.innerText : null;
+    } catch {
+      rcMainText = null;
+    }
+    return {
+      result: r
+        ? {
+            ok: r.ok,
+            grounded: r.grounded,
+            route: r.route,
+            journey_id: r.journey_id,
+            source_kind: r.source_kind,
+            evidence_kind: r.evidence_kind,
+            answer: r.answer,
+            excerpt: r.excerpt,
+          }
+        : null,
+      evidence: ev
+        ? { route: ev.route, source_kind: ev.source_kind, evidence_kind: ev.evidence_kind, text: ev.text }
+        : null,
+      rc_main_text: rcMainText,
+      iframe_url: frame.contentWindow ? frame.contentWindow.location.pathname : null,
+    };
+  });
+  assert.ok(s6.result, "S6 kiosk journey result must exist");
+  assert.strictEqual(s6.result.ok, true, "S6 kiosk journey must be ok");
+  assert.strictEqual(s6.result.grounded, true, "S6 kiosk journey must be grounded");
+  assert.strictEqual(s6.result.journey_id, "seogu_unmanned_kiosk");
+  assert.ok(
+    String(s6.result.route).includes("unmanned-kiosk"),
+    `S6 must land on unmanned-kiosk route, got ${s6.result.route}`,
+  );
+  assert.ok(
+    String(s6.iframe_url || "").includes("unmanned-kiosk"),
+    "iframe must actually navigate to the unmanned-kiosk clone route",
+  );
+  // Required markers present in the READ evidence text.
+  for (const marker of ["무인민원발급안내", "설치장소", "도로명주소", "서비스시간", "발급종수"]) {
+    assert.ok(String(s6.evidence.text || "").includes(marker), `READ evidence missing kiosk marker: ${marker}`);
+  }
+  // Provenance: repository clone, clone DOM evidence.
+  assert.strictEqual(s6.result.source_kind, "repository_clone", "S6 provenance must be repository_clone");
+  assert.strictEqual(s6.result.evidence_kind, "clone_dom", "S6 evidence_kind must be clone_dom");
+  assert.strictEqual(s6.evidence.source_kind, "repository_clone");
+  // READ-derived answer: excerpt must be a literal substring of the iframe
+  // rc-main innerText (proves the answer is derived from the READ region,
+  // not a hard-coded institution answer).
+  assert.ok(s6.result.excerpt && s6.result.excerpt.length > 0, "S6 excerpt must be non-empty");
+  assert.ok(s6.rc_main_text, "iframe rc-main must be readable (same-origin, script-disabled)");
+  const s6RcMainNormalized = String(s6.rc_main_text).replace(/\s+/g, " ");
+  for (const line of s6.result.excerpt.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const normalizedLine = trimmed.replace(/\s+/g, " ");
+    assert.ok(
+      s6RcMainNormalized.includes(normalizedLine),
+      `answer excerpt line not found in rc-main READ region: ${trimmed.slice(0, 60)}`,
+    );
+  }
+  // Internal generic grounding proof: the result answer must embed the READ
+  // excerpt verbatim.
+  assert.ok(
+    s6.result.answer.includes(s6.result.excerpt),
+    "grounded kiosk answer must embed the READ excerpt",
+  );
+  // Required markers also present directly in the rc-main READ region.
+  for (const marker of ["무인민원발급안내", "설치장소", "도로명주소", "서비스시간", "발급종수"]) {
+    assert.ok(s6.rc_main_text.includes(marker), `rc-main READ region missing kiosk marker: ${marker}`);
+  }
+  // Source-backed page-1 table content present in rc-main.
+  assert.ok(s6.rc_main_text.includes("푸른새마을금고 금호지점"), "rc-main must contain source-backed kiosk row (푸른새마을금고 금호지점)");
+  // No forbidden application/reservation/payment/login/PII/submission surface.
+  for (const forbidden of ["신청하기", "예약하기", "결제하기", "로그인"]) {
+    assert.ok(
+      !String(s6.result.answer || "").includes(forbidden),
+      `kiosk answer must not contain forbidden action surface: ${forbidden}`,
+    );
+  }
+  // No nearest-kiosk inference claim (no resident location feature exists).
+  assert.ok(
+    !String(s6.result.answer || "").includes("가장 가까운"),
+    "S6 must NOT claim nearest kiosk (no resident location feature)",
+  );
+  // Desktop no horizontal overflow on the kiosk journey thread.
+  const s6Overflow = await page.evaluate(() => {
+    const t = document.getElementById("chat-thread");
+    return { scrollW: t.scrollWidth, clientW: t.clientWidth };
+  });
+  assert.ok(s6Overflow.scrollW <= s6Overflow.clientW + 1, "desktop S6 thread must not horizontally overflow");
+
 
   // (5) S2/S7/S8 EXTERNAL_OFFICIAL_HANDOFF — local-evidence-first, generic
   // config-driven contract (Blocker B), exact verified authority (Blocker A),
@@ -1408,6 +1526,98 @@ try {
     return { scrollW: t.scrollWidth, clientW: t.clientWidth };
   });
   assert.ok(mPassportOverflow.scrollW <= mPassportOverflow.clientW + 1, "mobile passport thread must not horizontally overflow");
+  // (7k) #1360 mobile S6 kiosk: activate the kiosk chip on mobile, switch to
+  // guidance, and prove the unmanned-kiosk clone renders a visible rc-main with
+  // the required markers (no blank canvas). Conversation surface works, then
+  // guidance canvas visible/nonzero, iframe/route is unmanned-kiosk, rc-main
+  // visible, no horizontal overflow. Do NOT automate map/search/pagination.
+  await convTab.click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-mobile-surface") === "conversation",
+    null,
+    { timeout: 5000 },
+  );
+  await mpage.locator('[data-journey-id="seogu_unmanned_kiosk"]').click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "grounded",
+    null,
+    { timeout: 20000 },
+  );
+  await guideTab.click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-mobile-surface") === "guidance",
+    null,
+    { timeout: 5000 },
+  );
+  await mpage.waitForTimeout(400); // let the split transition settle
+  const mKioskVis = await measureVisibility(mpage);
+  assert.strictEqual(mKioskVis.canvas.inert, false, "mobile kiosk canvas must have inert removed");
+  assert.strictEqual(mKioskVis.canvas.ariaHidden, "false", "mobile kiosk canvas must be aria-hidden=false");
+  assert.notStrictEqual(mKioskVis.canvas.display, "none", "mobile kiosk canvas must not be display:none");
+  assert.ok(mKioskVis.canvas.rect.w > 0 && mKioskVis.canvas.rect.h > 0, "mobile kiosk canvas must have non-zero rect");
+  assert.ok(mKioskVis.iframe.rect.w > 0 && mKioskVis.iframe.rect.h > 0, "mobile kiosk iframe must have non-zero rect");
+  assert.ok(mKioskVis.rc_main.visible, "mobile kiosk iframe rc-main must be visible (not blank)");
+  const mKioskIframePath = await mpage.evaluate(
+    () => document.getElementById("seogu-clone-frame").contentWindow.location.pathname,
+  );
+  assert.ok(String(mKioskIframePath).includes("unmanned-kiosk"), "mobile guidance must show the unmanned-kiosk clone route");
+  // Required markers in the mobile kiosk rc-main READ region.
+  const mKioskRcMain = await mpage.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    try {
+      const doc = frame.contentDocument;
+      const main = doc && doc.querySelector("main.rc-main");
+      return main ? main.innerText : null;
+    } catch { return null; }
+  });
+  assert.ok(mKioskRcMain, "mobile kiosk rc-main must be readable");
+  for (const marker of ["무인민원발급안내", "설치장소", "도로명주소", "서비스시간", "발급종수"]) {
+    assert.ok(String(mKioskRcMain || "").includes(marker), `mobile kiosk rc-main missing marker: ${marker}`);
+  }
+  // No horizontal overflow of the thread on mobile kiosk journey.
+  const mKioskOverflow = await mpage.evaluate(() => {
+    const t = document.getElementById("chat-thread");
+    return { scrollW: t.scrollWidth, clientW: t.clientWidth };
+  });
+  assert.ok(mKioskOverflow.scrollW <= mKioskOverflow.clientW + 1, "mobile kiosk thread must not horizontally overflow");
+  // (7q-geo) #1362 mobile S6 kiosk board geometry: the generic list-board
+  // clone must not squeeze the table beside the SNB at 390px. The generic
+  // renderer uses flex-wrap:wrap + a flex-basis on .rc-content so the SNB
+  // stacks above the content, giving the table the full iframe width.
+  // This regression fails on old head f538 (content squeezed to ~224px
+  // beside a 166px SNB, table columns collapsed to ~18-48px).
+  const mKioskBoardGeo = await mpage.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    if (!frame || !frame.contentWindow) return null;
+    const doc = frame.contentWindow.document;
+    const snb = doc.querySelector(".rc-snb");
+    const ct = doc.querySelector(".rc-content");
+    if (!snb || !ct) return null;
+    const ths = doc.querySelectorAll("table.rc-board th");
+    return {
+      contentTop: ct.offsetTop,
+      snbTop: snb.offsetTop,
+      snbHeight: snb.offsetHeight,
+      contentWidth: ct.getBoundingClientRect().width,
+      stacked: ct.offsetTop >= snb.offsetTop + snb.offsetHeight - 1,
+      minColWidth: Math.min(
+        ...Array.from(ths).map((th) => th.getBoundingClientRect().width),
+      ),
+    };
+  });
+  assert.ok(mKioskBoardGeo, "mobile kiosk board geometry must be measurable");
+  assert.ok(
+    mKioskBoardGeo.stacked,
+    "mobile kiosk content must be stacked below SNB (not squeezed beside)",
+  );
+  assert.ok(
+    mKioskBoardGeo.contentWidth >= 350,
+    `mobile kiosk content must receive viable width (>=350px, got ${mKioskBoardGeo.contentWidth})`,
+  );
+  assert.ok(
+    mKioskBoardGeo.minColWidth >= 25,
+    `mobile kiosk table columns must not collapse below practical width (>=25px, got ${mKioskBoardGeo.minColWidth})`,
+  );
   // (7p-geo) #1356 mobile S5 conversation grounded-row geometry: the grounded
   // answer bubble + provenance must share one readable content column (not
   // squeezed as narrow horizontal siblings). Prove the grid fix: display=grid,

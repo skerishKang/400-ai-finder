@@ -195,10 +195,32 @@
     _freezeJourney({
       journey_id: "seogu_unmanned_kiosk",
       questions: ["무인민원발급기 어디 있어요?"],
-      status: "SOURCE_CAPTURE_NEEDED",
-      capture_needed: true,
+      status: "DIRECT_REUSE",
+      capture_needed: false,
+      entry_route: "unmanned-kiosk/",
+      evidence_route: "unmanned-kiosk/",
+      required_markers: [
+        "무인민원발급안내",
+        "설치장소",
+        "도로명주소",
+        "서비스시간",
+        "발급종수",
+      ],
+      excerpt_markers: [
+        "설치장소",
+        "도로명주소",
+        "서비스시간",
+        "발급종수",
+      ],
+      max_excerpt_chars: 1200,
       substitution_note:
-        "서구 무인민원발급기 위치 안내 페이지/근거가 클론에 아직 없음. 캡처 후 DIRECT_REUSE 전환 필요.",
+        "서구 공식 무인민원발급안내 페이지(menu.es?mid=a10201040000)를 bounded read-only " +
+        "capture하여 local route unmanned-kiosk/로 렌더링. generic list-board capability가 " +
+        "main.rc-main에 무인민원발급안내/설치장소/도로명주소/서비스시간/발급종수 marker와 " +
+        "page-1 설치장소/도로명주소/서비스시간/발급종수 행을 렌더링. READ evidence(main.rc-main " +
+        "innerText)에서 required/excerpt marker 검증 후 READ-derived answer 생성 (답변 문자열 " +
+        "hard-code 없음). 전체 34건/페이지 1/4는 captured snapshot metadata이며 permanent " +
+        "business truth로 단정하지 않음.",
       chip: { label: "무인민원발급기 안내", icon: "kiosk", variant: "" },
     }),
     _freezeJourney({
