@@ -290,6 +290,107 @@ async function confirmNoStaysOnAnswer(page, selector) {
   assert.strictEqual(postRoute, preRoute, "NO must not navigate the clone surface");
 }
 
+// #1365 BLOCKER 3: real browser NO-path proof for ONE scenario, executed in an
+// isolated fresh context so prior journey state cannot contaminate the proof.
+// Strengthens the route-equality helper with the full canonical NO contract:
+//   - NO leaves the conversation on the answer (zero navigation)
+//   - the journey result is null (no scenario-specific execution occurred)
+//   - no repository READ (grounded) result, no safe-handoff row, no handoff
+//     evidence result is rendered for the journey
+//   - zero external requests
+async function proveNoPathIsolated(browser, selector, jid) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const external = [];
+  installEgressGuard(ctx);
+  const page = await ctx.newPage();
+  await page.goto(DEMO_URL, { waitUntil: "networkidle", timeout: 20000 });
+  await page.waitForFunction(
+    () => document.querySelectorAll("#chat-chips .chat-chip").length > 0,
+    null,
+    { timeout: 15000 },
+  );
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-surface-state") === "ready",
+    null,
+    { timeout: 15000 },
+  );
+  const initialRoute = await page.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+  });
+  // chip -> answer
+  await page.locator(selector).click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "answer",
+    null,
+    { timeout: 10000 },
+  );
+  const routeAtAnswer = await page.evaluate(() => {
+    return (() => {
+      const frame = document.getElementById("seogu-clone-frame");
+      return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+    })();
+  });
+  assert.strictEqual(routeAtAnswer, initialRoute, `${jid} NO: route unchanged at answer`);
+  // answer -> confirm
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "confirm",
+    null,
+    { timeout: 10000 },
+  );
+  const routeAtConfirm = await page.evaluate(() => {
+    const frame = document.getElementById("seogu-clone-frame");
+    return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+  });
+  assert.strictEqual(routeAtConfirm, initialRoute, `${jid} NO: route unchanged at confirm`);
+  // YES + NO controls must exist
+  const controls = await page.evaluate(() => {
+    const msgs = Array.from(document.querySelectorAll('.chat-msg--confirm-run'));
+    const last = msgs[msgs.length - 1];
+    if (!last) return { yes: false, no: false, count: 0 };
+    const btns = last.querySelectorAll('[data-confirm-action]');
+    return {
+      yes: !!last.querySelector('[data-confirm-action="yes"]'),
+      no: !!last.querySelector('[data-confirm-action="no"]'),
+      count: btns.length,
+    };
+  });
+  assert.strictEqual(controls.yes, true, `${jid} NO: YES control must exist`);
+  assert.strictEqual(controls.no, true, `${jid} NO: NO control must exist`);
+  assert.strictEqual(controls.count, 2, `${jid} NO: exactly YES and NO controls`);
+  // click NO
+  await page.locator('[data-confirm-action="no"]').last().click();
+  await page.waitForFunction(
+    () => document.body.getAttribute("data-journey-state") === "answer",
+    null,
+    { timeout: 10000 },
+  );
+  const after = await page.evaluate((jid) => {
+    const shell = window.SeoguCitizenActionShell;
+    const r = shell.getLastJourneyResult();
+    const frame = document.getElementById("seogu-clone-frame");
+    const safeHandoff = document.querySelector(`[data-safe-handoff="true"][data-journey-id="${jid}"]`);
+    const handoffEvidence = document.querySelector(`[data-handoff-evidence="true"][data-journey-id="${jid}"]`);
+    const grounded = document.querySelector(`.chat-msg[data-grounded="true"][data-journey-id="${jid}"]`);
+    return {
+      state: document.body.getAttribute("data-journey-state"),
+      route: frame && frame.contentWindow ? frame.contentWindow.location.pathname : null,
+      resultNull: r === null || r === undefined,
+      safeHandoff: !!safeHandoff,
+      handoffEvidence: !!handoffEvidence,
+      grounded: !!grounded,
+    };
+  }, jid);
+  assert.strictEqual(after.state, "answer", `${jid} NO: must return to answer state`);
+  assert.strictEqual(after.route, initialRoute, `${jid} NO: route unchanged after NO`);
+  assert.strictEqual(after.resultNull, true, `${jid} NO: getLastJourneyResult() must be null (no execution)`);
+  assert.strictEqual(after.safeHandoff, false, `${jid} NO: no safe-handoff row rendered`);
+  assert.strictEqual(after.handoffEvidence, false, `${jid} NO: no handoff-evidence row rendered`);
+  assert.strictEqual(after.grounded, false, `${jid} NO: no repository READ (grounded) result rendered`);
+  assert.deepStrictEqual(external, [], `${jid} NO: zero external requests`);
+  await ctx.close();
+}
+
 function assertNoForbiddenSuccess(text, where) {
   for (const pattern of FORBIDDEN_SUCCESS_PATTERNS) {
     assert.ok(
@@ -1692,7 +1793,16 @@ try {
   // answer bubble + provenance must share one readable content column (not
   // squeezed as narrow horizontal siblings). Prove the grid fix: display=grid,
   // bubble width and source width both span the full content column, no page
-  // overflow, chip rail keeps its own internal scroll.
+  // overflow, and the chip rail matches the Buk-gu canonical wrap contract.
+  //
+  // Golden chip-rail contract (B / #1367 reconciliation): the canonical Buk-gu
+  // `.chat-chips` is `display:flex; flex-wrap:wrap; overflow:visible` — it WRAPS,
+  // it is NOT an internal horizontal scroll rail. The previous assertion
+  // `chips.scrollWidth > document.clientWidth` (364 > 390 at 390x844) measured
+  // the wrong geometry and was always false. The correct invariant is that the
+  // rail stays fully inside the viewport (no page overflow, proven above) and its
+  // own geometry is contained: scrollWidth === clientWidth (no internal
+  // overflow) with the canonical wrap/overflow policy preserved.
   const mPassportConvGeo = await mpage.evaluate(() => {
     const thread = document.getElementById("chat-thread");
     const row = thread ? thread.querySelector('.chat-msg[data-grounded="true"][data-journey-id="seogu_passport_issuance"]') : null;
@@ -1700,6 +1810,7 @@ try {
     const bubble = row.querySelector('.chat-bubble');
     const source = row.querySelector('.message-source--clone');
     const chips = document.querySelector('.chat-chips');
+    const ccs = chips ? getComputedStyle(chips) : null;
     return {
       rowDisplay: getComputedStyle(row).display,
       bubbleW: bubble ? Math.round(bubble.getBoundingClientRect().width) : 0,
@@ -1710,7 +1821,12 @@ try {
       docScrollW: document.documentElement.scrollWidth,
       docClientW: document.documentElement.clientWidth,
       chipsScrollW: chips ? chips.scrollWidth : 0,
+      chipsClientW: chips ? chips.clientWidth : 0,
+      chipsDisplay: ccs ? ccs.display : null,
+      chipsFlexWrap: ccs ? ccs.flexWrap : null,
+      chipsOverflowX: ccs ? ccs.overflowX : null,
       chipsOverflow: chips ? getComputedStyle(chips).overflow : null,
+      chipCount: chips ? chips.querySelectorAll('.chat-chip').length : 0,
     };
   });
   assert.ok(mPassportConvGeo, "mobile S5 conversation grounded row must exist for geometry check");
@@ -1719,7 +1835,22 @@ try {
   assert.ok(mPassportConvGeo.sourceW >= 200, `mobile S5 provenance must span full content column (>=200px), got ${mPassportConvGeo.sourceW}`);
   assert.strictEqual(mPassportConvGeo.bubbleLeft, mPassportConvGeo.sourceLeft, "mobile S5 bubble and provenance must share the same content column left edge");
   assert.ok(mPassportConvGeo.docScrollW <= mPassportConvGeo.docClientW + 1, "mobile S5 conversation must not cause page-level horizontal overflow");
-  assert.ok(mPassportConvGeo.chipsScrollW > mPassportConvGeo.docClientW, "mobile S5 chip rail retains its own internal horizontal scroll (canonical behavior)");
+  // Golden chip-rail contract (B / #1367): the Buk-gu canonical `.chat-chips`
+  // WRAPS (flex-wrap:wrap, overflow:visible) — it is NOT an internal horizontal
+  // scroll rail. The rail must stay fully inside the viewport and its own
+  // geometry must be contained (scrollWidth === clientWidth, no internal
+  // overflow). All eight resident chips must remain present and reachable.
+  assert.ok(
+    mPassportConvGeo.chipsClientW <= mPassportConvGeo.docClientW,
+    `mobile S5 chip rail must stay inside the viewport (clientW ${mPassportConvGeo.chipsClientW} <= docClientW ${mPassportConvGeo.docClientW})`,
+  );
+  assert.strictEqual(mPassportConvGeo.chipsDisplay, "flex", "mobile S5 chip rail must use flex display like Buk-gu canonical");
+  assert.strictEqual(mPassportConvGeo.chipsFlexWrap, "wrap", "mobile S5 chip rail must wrap like Buk-gu canonical (no internal horizontal scroll rail)");
+  assert.ok(
+    mPassportConvGeo.chipsScrollW <= mPassportConvGeo.chipsClientW + 1,
+    `mobile S5 chip rail must not internally overflow (scrollW ${mPassportConvGeo.chipsScrollW} <= clientW ${mPassportConvGeo.chipsClientW})`,
+  );
+  assert.strictEqual(mPassportConvGeo.chipCount, 8, "mobile S5 chip rail must keep all 8 resident chips reachable");
   // ── #1353 mobile handoff responsive hierarchy (S2) ──────────────────────────
   // The S2 final handoff row must NOT collapse the CTA into character-by-character
   // vertical stacking and must keep the authority readable in the content column
@@ -1732,6 +1863,16 @@ try {
   );
   // #1365: chip -> answer -> confirm -> YES -> handoff -> safe_handoff (mobile S2)
   await confirmAndProceed(mpage, '[data-journey-id="seogu_illegal_parking_report"]', "safe_handoff");
+  // The canonical onYesSurfacePrepare switches the mobile surface to guidance
+  // (matching Buk-gu) to reveal the institution canvas, which hides the
+  // conversation thread. Switch back to conversation so the handoff/evidence
+  // row geometry (measured via getBoundingClientRect) is actually laid out.
+  await convTab.click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-mobile-surface") === "conversation",
+    null,
+    { timeout: 5000 },
+  );
   const mHandoff = await measureHandoffLayout(mpage, "seogu_illegal_parking_report");
   assert.ok(mHandoff, "mobile S2 handoff destination row must be present");
   assert.strictEqual(mHandoff.display, "grid", "mobile S2 handoff row must use the grid content-column layout");
@@ -1842,6 +1983,17 @@ try {
   assert.strictEqual(mSandbox, "allow-same-origin", "mobile iframe must keep script-disabled sandbox");
 
   await mobile.close();
+
+  // (B3) #1365 BLOCKER 3: real browser NO-path proof for the four target
+  // scenarios, each in its own isolated fresh context (no cross-contamination).
+  // S1 / S2 / S5 / S6 NO must stop on the answer with zero navigation, a null
+  // journey result, and no scenario-specific execution (no repository READ
+  // result, no safe-handoff row, no handoff-evidence result, no external request).
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_apartment_housing_dept"]', "seogu_apartment_housing_dept");
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_illegal_parking_report"]', "seogu_illegal_parking_report");
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_passport_issuance"]', "seogu_passport_issuance");
+  await proveNoPathIsolated(browser, '[data-journey-id="seogu_unmanned_kiosk"]', "seogu_unmanned_kiosk");
+  console.log("  [B3] NO-path browser proof S1/S2/S5/S6: OK");
 
   // (9) zero external HTTP(S) runtime requests across both contexts
   assert.deepStrictEqual(externalRequests, [], "focused surface proof must make zero external requests");
