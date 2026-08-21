@@ -53,8 +53,9 @@
       entry_route: value.entry_route || "",
       action: value.action
         ? Object.freeze({
-            type: value.action.type,
-            expected_route: value.action.expected_route,
+            type: value.action.type || "",
+            choreography_key: value.action.choreography_key || "",
+            expected_route: value.action.expected_route || "",
           })
         : null,
       evidence_route: value.evidence_route || value.entry_route || "",
@@ -228,30 +229,38 @@
       questions: ["가로등이 고장났어요. 신고할게요"],
       status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED",
       capture_needed: false,
+      // #1364 Lane B: S3 complaint-writing recovery. The Buk-gu canonical
+      // interaction graph for 가로등 is complaint-board → write → draft →
+      // pre-submit STOP. Seo-gu preserves this graph by first validating its
+      // own official evidence, then rendering the app-owned complaint surface
+      // and running the shared choreography. No external handoff destination.
+      action: {
+        type: "COMPLAINT_BOARD_WRITE",
+        // Canonical shared-choreography JOURNEY_MAP key (hasJourney()/start()
+        // resolve JOURNEY_MAP keys, not journey ids).
+        choreography_key: "streetlight_report",
+      },
       handoff: {
-        action_kind: "EXTERNAL_OFFICIAL_HANDOFF",
+        // Used as the evidence gate: the shared controller navigates to this
+        // local clone route, READs the region, and validates required_markers
+        // before the complaint-writing choreography may begin. This is a gate,
+        // not a destination — no safe_handoff destination row is rendered.
+        action_kind: "COMPLAINT_EVIDENCE_GATE",
         local_evidence_route: "streetlight-report-handoff/",
         required_markers: ["재난신고", "재난신고센터", "국민재난안전포털"],
-        destination_url: "https://www.safetyreport.go.kr/#main",
-        destination_label: "안전신문고",
-        destination_authority: "행정안전부가 운영하는 안전신문고",
-        claim_scope: "HANDOFF_ONLY",
-        requires_explicit_resident_activation: true,
-        auto_open: false,
-        auto_prefill: false,
-        submit_capability: false,
-        success_semantics: "NONE",
-        stop_boundary_code: "EXTERNAL_HANDOFF_STOP_NO_SUBMISSION",
+        claim_scope: "EVIDENCE_GATE_ONLY",
+        stop_boundary_code: "COMPLAINT_EVIDENCE_FAILED_STOP",
         snapshot_captured_at: "2026-08-18T08:08:08+09:00",
         source_urls: ["https://www.seogu.gwangju.kr/menu.es?mid=a10306030100"],
         local_evidence_note:
-          "서구 안전/민방위 재난신고센터는 재난신고 안내 화면이며, 가로등 고장 전용 접수 창구/부서는 " +
-          "확인되지 않았습니다. 실제 신고 제출은 공식 안전신문고에서 주민이 직접 진행해야 합니다.",
+          "서구 안전/민방위 재난신고센터 화면은 가로등 고장 전용 접수 창구가 아닙니다. " +
+          "이 증거 검증은 서구청 공식 안내의 존재와 범위를 확인하는 용도이며, " +
+          "아래 AI 보조 초안 작성 화면으로 이어집니다.",
       },
       substitution_note:
-        "EXTERNAL_OFFICIAL_HANDOFF 성격. local evidence route(재난신고센터 bounded capture)에서 " +
-        "required marker 검증 후 verified/unverified 범위를 설명하고, resident가 직접 선택하는 " +
-        "공식 안전신문고 handoff를 제시한 뒤 STOP. 제출 대행/성공 표현 없음.",
+        "COMPLAINT_BOARD_WRITE 타입. evidence gate(재난신고센터 bounded capture)를 " +
+        "통과한 뒤 앱 소유의 민원게시판/글쓰기 표면에서 AI 보조 초안을 작성하고 " +
+        "PRE_SUBMIT STOP boundary에서 종료. 외부 제출/대행/성공 표현 없음.",
       chip: { label: "가로등 고장 신고 (AI)", icon: "streetlight", variant: "ai-compact" },
     }),
     _freezeJourney({
@@ -259,34 +268,35 @@
       questions: ["쓰레기 무단투기 신고할래"],
       status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED",
       capture_needed: false,
+      // #1364 Lane B: S4 complaint-writing recovery. The Buk-gu canonical
+      // interaction graph for 쓰레기 무단투기 is complaint-board → AI-choice →
+      // write → draft → pre-submit STOP. Seo-gu preserves this graph by first
+      // validating its own official evidence, then rendering the app-owned
+      // complaint surface and running the shared choreography.
+      action: {
+        type: "COMPLAINT_AI_ASSIST",
+        // Canonical shared-choreography JOURNEY_MAP key (hasJourney()/start()
+        // resolve JOURNEY_MAP keys, not journey ids).
+        choreography_key: "litter_ai_assist",
+      },
       handoff: {
-        action_kind: "EXTERNAL_OFFICIAL_HANDOFF",
+        // Used as the evidence gate only. No safe_handoff destination row.
+        action_kind: "COMPLAINT_EVIDENCE_GATE",
         local_evidence_route: "litter-report-handoff/",
         required_markers: ["생활폐기물", "배출/수거", "대형폐기물 신고"],
-        // Blocker A correction: the verified Seo-gu chain for litter/dumping is
-        // 민원상담 → 국민신문고(epeople), NOT 안전신문고. Exact verified
-        // destination from the source-intelligence packet.
-        destination_url: "https://www.epeople.go.kr/",
-        destination_label: "국민신문고",
-        destination_authority: "국민권익위원회가 운영하는 국민신문고",
-        claim_scope: "HANDOFF_ONLY",
-        requires_explicit_resident_activation: true,
-        auto_open: false,
-        auto_prefill: false,
-        submit_capability: false,
-        success_semantics: "NONE",
-        stop_boundary_code: "EXTERNAL_HANDOFF_STOP_NO_SUBMISSION",
+        claim_scope: "EVIDENCE_GATE_ONLY",
+        stop_boundary_code: "COMPLAINT_EVIDENCE_FAILED_STOP",
         snapshot_captured_at: "2026-08-18T08:08:08+09:00",
         source_urls: ["https://www.seogu.gwangju.kr/menu.es?mid=a10308010100"],
         local_evidence_note:
-          "서구 생활폐기물 배출/수거 안내 화면은 처리 요령 안내이며 무단투기 전용 접수 창구는 아닙니다. " +
-          "쓰레기 무단투기 신고는 서구 민원상담 경유 국민신문고(epeople)에서 주민이 직접 진행해야 합니다.",
+          "서구 생활폐기물 배출/수거 안내 화면은 무단투기 전용 접수 창구가 아닙니다. " +
+          "이 증거 검증은 서구청 공식 안내의 존재와 범위를 확인하는 용도이며, " +
+          "아래 AI 보조 초안 작성 화면으로 이어집니다.",
       },
       substitution_note:
-        "EXTERNAL_OFFICIAL_HANDOFF 성격. local evidence route(생활폐기물처리 bounded capture)에서 " +
-        "required marker 검증 후 verified/unverified 범위를 설명하고, resident가 직접 선택하는 " +
-        "공식 국민신문고(epeople) handoff를 제시한 뒤 STOP. 안전신문고로 매핑하지 않음(Blocker A). " +
-        "제출 대행/성공 표현 없음.",
+        "COMPLAINT_AI_ASSIST 타입. evidence gate(생활폐기물처리 bounded capture)를 " +
+        "통과한 뒤 앱 소유의 민원게시판/글쓰기 표면에서 AI 보조 초안을 작성하고 " +
+        "PRE_SUBMIT STOP boundary에서 종료. 외부 제출/대행/성공 표현 없음.",
       chip: { label: "쓰레기 무단투기 (AI)", icon: "trash", variant: "ai-compact" },
     }),
   ];
