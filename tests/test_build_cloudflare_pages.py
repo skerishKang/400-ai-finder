@@ -912,6 +912,8 @@ SEOGU_ADDITIVE_ROUTES = [
     "seogu/litter-report-handoff/index.html",
     "seogu/passport-guidance/index.html",
     "seogu/unmanned-kiosk/index.html",
+    # #1363 S7 mayor-proposal informational evidence route.
+    "seogu/mayor-proposal-guidance/index.html",
 ]
 
 

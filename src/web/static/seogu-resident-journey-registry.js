@@ -106,11 +106,41 @@
     _freezeJourney({
       journey_id: "seogu_mayor_proposal",
       questions: ["구청장에게 제안하고 싶어요"],
-      status: "SOURCE_CAPTURE_NEEDED",
-      capture_needed: true,
+      status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED",
+      capture_needed: false,
+      // #1363 Lane B: S7 mayor-proposal recovery. CTO Phase-A classification
+      // INFORMATIONAL_PLUS_EXTERNAL_OFFICIAL_HANDOFF_CANDIDATE (ACCEPTED):
+      // the Seo-gu 주민제안 participation-method page is bounded-captured as
+      // local informational evidence, and the actual civic submission remains
+      // OUTSIDE the clone at 국민신문고(epeople) behind a resident-controlled
+      // link with a STOP boundary. No login/form/PII/submission simulation.
+      handoff: {
+        action_kind: "EXTERNAL_OFFICIAL_HANDOFF",
+        scenario_id: "seogu_mayor_proposal",
+        local_evidence_route: "mayor-proposal-guidance/",
+        required_markers: ["주민제안", "참여방법", "참여대상", "제안하기"],
+        destination_url: "https://www.epeople.go.kr/",
+        destination_label: "국민신문고",
+        destination_authority: "국민권익위원회가 운영하는 국민신문고",
+        claim_scope: "HANDOFF_ONLY",
+        requires_explicit_resident_activation: true,
+        auto_open: false,
+        auto_prefill: false,
+        submit_capability: false,
+        success_semantics: "NONE",
+        stop_boundary_code: "EXTERNAL_HANDOFF_STOP_NO_SUBMISSION",
+        snapshot_captured_at: "2026-08-21T02:11:12.864Z",
+        source_urls: ["https://www.seogu.gwangju.kr/menu.es?mid=a10401030100"],
+        local_evidence_note:
+          "서구청 주민제안 안내 화면은 참여대상/참여방법(홈페이지 제안하기, 우편, 팩스 등)을 " +
+          "안내하는 정보 페이지입니다. 실제 주민제안 접수는 로그인/실명인증이 필요한 " +
+          "국민신문고(epeople)에서 주민이 직접 진행해야 하며, 본 MVP는 제출을 대행하지 않습니다.",
+      },
       substitution_note:
-        "서구청 공식 주민제안 페이지가 직접 존재함 (소통/참여 → 주민제안 → 제안하기 참여방법). " +
-        "equivalent substitution 대상이 아니며, 현재 clone evidence가 없어 bounded capture 전까지 SOURCE_CAPTURE_NEEDED.",
+        "INFORMATIONAL_PLUS_EXTERNAL_OFFICIAL_HANDOFF. local evidence route(주민제안 안내 " +
+        "bounded capture)에서 required marker 검증 후 참여방법 근거를 안내하고, resident가 " +
+        "직접 선택하는 국민신문고 handoff를 제시한 뒤 STOP. 제출 대행/성공 표현 없음. " +
+        "generic content_page renderer로 표현 — site-specific renderer branch 없음.",
       chip: { label: "구청장에게 제안하고 싶어요", icon: "mayor", variant: "mayor-primary" },
     }),
     _freezeJourney({
