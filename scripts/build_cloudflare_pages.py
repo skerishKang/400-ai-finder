@@ -690,6 +690,92 @@ def build_seogu_reference_clone(dist_root: str) -> None:
     print(f"[build] G2-B faithful_ready={validator.faithful_ready(validated)}")
 
 
+def enrich_seogu_home_assets(dist_root: str) -> None:
+    """#1389 — bind owner-authorized verified official-site assets into the
+    Seo-gu home clone surface.
+
+    The G2-B renderer deliberately emits flat placeholder blocks for imagery
+    (pending-asset lifecycle). This step replaces those placeholders on the
+    HOME surface only (``seogu/index.html``) with the committed, hash-verified
+    local assets under ``/static/seogu-assets/`` and enables the captured
+    official webfonts (Gmarket Sans / Noto Sans CJK KR — the families the
+    clone already declares).
+
+    Owner authorization: 2026-08-22 (#1389). Asset provenance:
+    ``data/official_captures/seogu_gwangju/g2_home_assets/20260822/manifest.json``
+    (every body sha256-verified against the g1 20260812 manifest; all 100/100
+    matched at re-capture time). Deterministic + offline: assets are
+    committed, no runtime external fetch. Other routes and the Buk-gu root
+    are untouched.
+    """
+    index_path = os.path.join(dist_root, "seogu", "index.html")
+    if not os.path.isfile(index_path):
+        raise RuntimeError(f"#1389 fail-closed: home route missing: {index_path}")
+    html = open(index_path, encoding="utf-8").read()
+
+    IMG = "/static/seogu-assets/img/"
+    inline_map = [
+        ("rc-key-visual-placeholder", ["keyvisual.jpg"]),
+        ("rc-story-image-placeholder", ["story_1.jpg", "story_2.jpg"]),
+        ("rc-lower-placeholder", ["sns_card1.png", "news_banner.jpg"]),
+    ]
+    for cls, files in inline_map:
+        pattern = re.compile(r'(class="[^"]*' + cls + r'[^"]*")')
+        matches = list(pattern.finditer(html))
+        if len(matches) != len(files):
+            raise RuntimeError(
+                f"#1389 fail-closed: expected {len(files)} '{cls}' in home route, "
+                f"found {len(matches)}"
+            )
+        out, last = [], 0
+        for m, fname in zip(matches, files):
+            out.append(html[last:m.end()])
+            out.append(f' style="background:url({IMG}{fname}) center/cover no-repeat;"')
+            last = m.end()
+        out.append(html[last:])
+        html = "".join(out)
+
+    # Quick cards carry their icon on a ::before block; assign per-card via
+    # nth-of-type so the DOM stays untouched.
+    quick_rules = [
+        f".rc-quick-card:nth-of-type({i}):before{{background:url({IMG}quick_{i:02d}.png) center/contain no-repeat;}}"
+        for i in range(1, 16)
+    ]
+    font_faces = (
+        "@font-face{font-family:'Gmarket Sans';font-weight:300;font-display:swap;"
+        "src:url('/static/seogu-assets/fonts/font_1.woff2') format('woff2');}"
+        "@font-face{font-family:'Gmarket Sans';font-weight:500;font-display:swap;"
+        "src:url('/static/seogu-assets/fonts/font_2.woff2') format('woff2');}"
+        "@font-face{font-family:'Gmarket Sans';font-weight:700;font-display:swap;"
+        "src:url('/static/seogu-assets/fonts/font_3.woff2') format('woff2');}"
+        "@font-face{font-family:'Noto Sans CJK KR';font-weight:350;font-display:swap;"
+        "src:url('/static/seogu-assets/fonts/font_4.woff2') format('woff2');}"
+        "@font-face{font-family:'Noto Sans CJK KR';font-weight:500;font-display:swap;"
+        "src:url('/static/seogu-assets/fonts/font_5.woff2') format('woff2');}"
+        "@font-face{font-family:'Noto Sans CJK KR';font-weight:700;font-display:swap;"
+        "src:url('/static/seogu-assets/fonts/font_6.woff2') format('woff2');}"
+    )
+    style_block = (
+        '<style id="seogu-home-assets">#1389-official-asset-bind{}'
+        + font_faces
+        + ".rc-site-emblem{background:#1663b6 url(" + IMG + "emblem.png) center/contain no-repeat;}"
+        + ".rc-brand-slogan{background:url(" + IMG + "slogan.png) left center/auto 100% no-repeat;color:transparent;font-size:1px;line-height:0;min-width:220px;}"
+        + ".rc-section01{grid-template-columns:minmax(0,40%) minmax(0,60%);}"
+        + ".rc-mayor-panel{background:#f0f0ff url(" + IMG + "mayor_section.png) left bottom/auto 88% no-repeat;padding-left:14px;}"
+        + ".rc-hero{font-size:23px;white-space:normal;max-width:none;text-shadow:0 1px 3px rgba(240,240,255,.9);}"
+        + "body,.rc-header-inner,.rc-main{font-family:'Gmarket Sans','Noto Sans CJK KR',"
+        + "'Apple SD Gothic Neo','Malgun Gothic',ui-sans-serif,system-ui,sans-serif;}"
+        + "".join(quick_rules)
+        + "</style>"
+    )
+    if "</head>" not in html:
+        raise RuntimeError("#1389 fail-closed: </head> not found in home route")
+    html = html.replace("</head>", style_block + "</head>", 1)
+
+    open(index_path, "w", encoding="utf-8").write(html)
+    print("[build] #1389 enriched Seo-gu home surface with verified official assets")
+
+
 def build_seogu_housing_addon(dist_root: str) -> None:
     """Emit the additive #1343 S3 housing route under dist/seogu/housing/.
 
@@ -1213,6 +1299,10 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
     # 9c. Emit the #1303 G2-B Seo-gu faithful-clone candidate under /seogu/.
     #     Generic, model-driven, offline; the Buk-gu root is untouched.
     build_seogu_reference_clone(dist_root)
+
+    # 9c-2. #1389 — bind owner-authorized verified official-site assets
+    #     (home imagery + webfonts) into the Seo-gu home clone surface.
+    enrich_seogu_home_assets(dist_root)
 
     # 9d. Emit the additive #1343 S3 housing route under /seogu/housing/.
     #     Separate bounded capture; never clobbers the pinned 11-state baseline.
