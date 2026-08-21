@@ -242,30 +242,26 @@ branch
 
 Technical enforcement (since 2026-08-21, #1370): main branch protection ON, squash-only, 12 required status contexts including the Golden parity gate.
 
-**Known hole:** `enforce_admins = false` (enforcement_level = `non_admins`). Administrators can still push directly to main. This was the initial protection configuration; whether it is intentional (emergency exception path) or an oversight is a pending owner decision. If unintentional, close it; if intentional, record the rationale here.
+**CTO decision 2026-08-22:** `enforce_admins` hole CLOSED — `enforce_admins = true` now applies all protection rules to administrators as well. Direct main push is technically impossible for everyone. Emergency exceptions go through the owner, not a technical backdoor. All other protection settings preserved unchanged (12 checks, conversation resolution, no force-push/delete).
 
-### 10a. Local-disk-dependent assets (evidence-loss risk)
+### 10a. Local-disk-dependent assets — RESOLVED 2026-08-22
 
-The following exist only on local disk and are not committed/pushed. Loss of local access destroys them:
+All previously local-only assets are now preserved on the remote as archive refs (CTO decision: archive over discard — cheap and reversible; discard destroys evidence):
 
 ```text
-worktree wt-1360-glm2 (refactor/1365-bukgu-golden-informational-parity @ 46d2e19)
-  - uncommitted modifications: citizen-action-demo.html,
-    citizen-first-use-shell.js, seogu-citizen-action-demo.html,
-    seogu-citizen-action-shell.js,
-    tests/browser/verify_seogu_resident_surface_focused_e2e.mjs
-  - untracked: src/web/static/citizen-confirmation-gate.js,
-    s6_visual_evidence/
-  - note: parent branch's purpose (#1367) was superseded by later merged work;
-    disposition (commit-as-archive vs discard) is a pending owner decision
+archive/wt-1360-glm2-superseded-draft
+  - wt-1360-glm2 uncommitted draft committed (superseded #1367-era WIP:
+    shell/demo modifications, citizen-confirmation-gate.js,
+    s6_visual_evidence/ zips). No behavior authority. Do not merge.
 
-local stashes: 7 entries across multiple branches (incl. WIP on main,
-  feat/1355 harness, fix/1295 egress policy)
+archive/stash-0-20260822 … archive/stash-6-20260822
+  - all 7 local stash commits pushed as refs (incl. WIP on main,
+    feat/1355 harness, fix/1295 egress policy)
 
 local HOLD branches: ~10 refs inventoried in #1371 (closed with reasons)
 ```
 
-GitHub remote remains authoritative. These items must be either committed to an archive ref or explicitly discarded before third-site work begins.
+GitHub remote remains authoritative. Local worktrees may now be pruned without evidence loss.
 
 ## 11. Current issue index
 
