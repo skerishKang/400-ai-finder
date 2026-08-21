@@ -199,7 +199,7 @@
       chip: { label: "공동주택 부서 문의", icon: "building", variant: "" },
     }),
     _freezeJourney({
-      journey_id: "seogu_mattrass_disposal",
+      journey_id: "seogu_mattress_disposal",
       questions: ["매트리스 폐기 신청은 어디서 하나요?"],
       status: "DIRECT_REUSE",
       capture_needed: false,

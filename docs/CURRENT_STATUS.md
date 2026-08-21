@@ -159,8 +159,8 @@ The active order is:
 
 2. CHEAP DEBT (third-site 전 정리)
    → #1378 shared engine '북구청' 리터럴 파라미터화 (기관 추가 시 노출 배수)
-   → seogu_mattrass_disposal journey_id 오타 수정 (참조 붕괴 전)
-   → 로컬 디스크 의존 자산 정리 (아래 §10a)
+   → ~~seogu_mattrass_disposal journey_id 오타 수정~~ DONE (#1384, seogu_mattress_disposal)
+   → 로컬 디스크 의존 자산 정리 — DONE 2026-08-22 (아래 §10a)
 
 3. THIRD-SITE SCOPE QUESTIONS (소유자 질문 — 엔지니어링 이전 단계)
    → 어떤 기관인가 / 소유자 의도 존재 여부 / 공식 사이트 경계 허가자
