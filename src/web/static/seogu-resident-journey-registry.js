@@ -58,6 +58,15 @@
             expected_route: value.action.expected_route || "",
           })
         : null,
+      // #1380 S-final: post-answer presentation contract (GUIDANCE_NAVIGATION).
+      // Kept OUT of `action` — the generic journey runner treats any action as
+      // a clone-detail activation and would fail-closed.
+      presentation: value.presentation
+        ? Object.freeze({
+            type: value.presentation.type || "",
+            choreography_key: value.presentation.choreography_key || "",
+          })
+        : null,
       evidence_route: value.evidence_route || value.entry_route || "",
       required_markers: Object.freeze((value.required_markers || []).slice()),
       excerpt_markers: Object.freeze((value.excerpt_markers || []).slice()),
@@ -148,30 +157,30 @@
       questions: ["불법 주정차 신고는 어디서 하나요?"],
       status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED",
       capture_needed: false,
-      handoff: {
-        action_kind: "EXTERNAL_OFFICIAL_HANDOFF",
-        local_evidence_route: "illegal-parking-report/",
-        required_markers: ["주정차단속조회", "과태료 조회", "과태료 납부", "의견진술"],
-        destination_url: "https://www.safetyreport.go.kr/#main",
-        destination_label: "안전신문고",
-        destination_authority: "행정안전부가 운영하는 안전신문고",
-        claim_scope: "HANDOFF_ONLY",
-        requires_explicit_resident_activation: true,
-        auto_open: false,
-        auto_prefill: false,
-        submit_capability: false,
-        success_semantics: "NONE",
-        stop_boundary_code: "EXTERNAL_HANDOFF_STOP_NO_SUBMISSION",
-        snapshot_captured_at: "2026-08-18T08:08:08+09:00",
-        source_urls: ["https://www.seogu.gwangju.kr/trafficminwon/"],
-        local_evidence_note:
-          "서구 주정차단속조회 민원시스템은 과태료 조회/납부/의견진술 시스템이며 신고 intake가 아닙니다. " +
-          "실제 신고 제출은 공식 안전신문고에서 주민이 직접 진행해야 합니다.",
+      // #1380 S-final (owner decision 2026-08-21): Buk-gu 동일 시나리오 복사 —
+      // 외부 채널 anchor/링크 표면 없음. trafficminwon bounded capture가
+      // grounding 근거(과태료 조회/납부/의견진술 시스템이며 신고 intake가
+      // 아님)를 제공하고, 앱 소유 guidance surface(지도단속 안내 card)와
+      // handoff-stop 단말이 Buk-gu Golden 형태를 그대로 재현한다. 실제 신고는
+      // 안전신문고에서 주민이 직접 진행한다는 안내 '텍스트'로만 언급된다.
+      entry_route: "illegal-parking-report/",
+      evidence_route: "illegal-parking-report/",
+      required_markers: ["주정차단속조회", "과태료 조회", "과태료 납부", "의견진술"],
+      excerpt_markers: ["주정차단속조회", "과태료 조회", "과태료 납부", "의견진술"],
+      max_excerpt_chars: 700,
+      presentation: {
+        type: "GUIDANCE_NAVIGATION",
+        // Canonical shared-choreography JOURNEY_MAP key (hasJourney()/start()
+        // resolve JOURNEY_MAP keys, not journey ids). Buk-gu 불법주정차 golden:
+        // 지도단속 안내 surface → card → handoff-stop 단말.
+        choreography_key: "illegal_parking",
       },
       substitution_note:
-        "EXTERNAL_OFFICIAL_HANDOFF 성격. local evidence route(trafficminwon bounded capture)에서 " +
-        "required marker 검증 후 verified/unverified 범위를 설명하고, resident가 직접 선택하는 " +
-        "공식 안전신문고 handoff를 제시한 뒤 STOP. 제출 대행/성공 표현 없음.",
+        "Buk-gu 불법주정차 신고 시나리오와 동일한 관측 상태 그래프 (안내 채팅 → " +
+        "지도단속 안내 surface → card → handoff-stop 단말). Seo-gu 데이터 치환: " +
+        "trafficminwon bounded capture(2026-08-18) 근거 — 서구 시스템은 과태료 " +
+        "조회/납부/의견진술이며 신고 intake가 아님. 실제 신고는 안전신문고에서 " +
+        "주민이 직접 진행한다는 안내 텍스트만 제공 (링크/anchor 표면 없음).",
       chip: { label: "불법 주정차 신고", icon: "parking", variant: "" },
     }),
     _freezeJourney({
