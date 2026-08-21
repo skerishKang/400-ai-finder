@@ -159,6 +159,13 @@
   <script src="/static/municipal-resident-confirm-gate.js"></script>
   <script src="/static/municipal-resident-informational-controller.js"></script>
   <script src="/static/citizen-mvp-bridge.js"></script>
+  <!-- #1364 Lane B: app-owned complaint surface + canonical choreography.
+       Loaded before the Seo-gu shell so the COMPATIBILITY_DRIVER
+       (window.CitizenActionDemoCanvas) exists when citizen-first-choreography
+       initialises. The shell drives this surface only for S3/S4 complaint-
+       writing journeys after the shared controller's evidence gate passes. -->
+  <script src="/static/seogu-complaint-surface.js"></script>
+  <script src="/static/citizen-first-choreography.js"></script>
 <!-- Seo-gu site-specific data/config island -->
 <script src="/static/seogu-sitespec-metadata.js"></script>
 <script src="/static/seogu-resident-journey-registry.js"></script>

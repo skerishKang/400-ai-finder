@@ -18,13 +18,19 @@
  *      visible rc-main with grounded markers (blank canvas = FAIL);
  *   4. SOURCE_CAPTURE_NEEDED scenarios (S1/S4/S6-now-DIRECT_REUSE) produce honest
  *      capture-needed rows, no navigation, no fake success;
- *   5. S2/S7/S8 EXTERNAL_OFFICIAL_HANDOFF (Blocker B + Blocker A):
- *      D1 — generic config-driven contract on every handoff row
+ *   5. S2 EXTERNAL_OFFICIAL_HANDOFF (Blocker B + Blocker A):
+ *      D1 — generic config-driven contract on the handoff row
  *           (action_kind=EXTERNAL_OFFICIAL_HANDOFF, claim_scope=HANDOFF_ONLY,
  *           stop boundary, explicit resident-activated anchor, no auto-open/
  *           prefill/submit) + grounded repository-clone local-evidence row with
  *           required-marker validation; external requests stay 0;
- *      D2 — S8 maps to 국민신문고/epeople (NOT 안전신문고); S2/S7 map to 안전신문고;
+ *      D2 — S2 maps to 안전신문고;
+ *   5b. #1364 Lane B: S3/S4 evidence-gated complaint writing — after the
+ *       COMPLAINT_EVIDENCE_GATE passes, the app-owned complaint surface renders
+ *       and the shared choreography runs to PRE_SUBMIT STOP (S3 direct write
+ *       flow; S4 with CHOICE → AI assist). Final journey state is
+ *       complaint_write (never safe_handoff), submit stays disabled, and no
+ *       external destination exists;
  *   D3. general-AI explicit opt-in: unmatched question never silently calls a
  *       model; mocked CitizenMvpBridge.askGeneralModel fires exactly once
  *       (0 → 1) only after the resident clicks, with exact general-model
@@ -36,9 +42,10 @@
  *       <select id="chat-lang"> / .chat-shell__lang remains;
  *   D6. FAIL-CLOSED negative proof (CTO comment 5322239653): with ONE
  *       required marker deterministically stripped from the served
- *       local-evidence page, the external handoff must NOT render — no
+ *       local-evidence page, the complaint-writing flow must NOT start — no
  *       destination row, no anchor/href, no destination URL control, no
- *       auto-open/prefill/submit, no model fallback, no success semantics;
+ *       auto-open/prefill/submit, no complaint surface, no choreography
+ *       start, no model fallback, no success semantics;
  *       the evidence explanation + bounded STOP state
  *       (handoff_evidence_failed) remain visible and external requests = 0;
  *   6. mobile conversation/guidance switch is actually clickable;
@@ -92,16 +99,16 @@ const CAPTURE_NEEDED_IDS = [
   "seogu_mattrass_disposal",
 ];
 
+// #1364 Lane B: S3/S4 are NO LONGER external handoff journeys — they are
+// evidence-gated app-owned complaint-writing flows covered by the dedicated
+// complaint section below and tests/browser/verify_seogu_complaint_s3s4_e2e.mjs.
+// The only remaining EXTERNAL_OFFICIAL_HANDOFF scenario is S2.
 const HANDOFF_IDS = [
   "seogu_illegal_parking_report",
-  "seogu_streetlight_report",
-  "seogu_illegal_dumping_report",
 ];
 
 // Generic EXTERNAL_OFFICIAL_HANDOFF contract expectations (Blocker B) + the
-// exact verified destination authority per scenario (Blocker A). The shell must
-// render ONE config-driven contract for all three — never per-scenario branches.
-// S8 (litter/dumping) MUST map to 국민신문고/epeople, NOT 안전신문고.
+// exact verified destination authority for S2 (Blocker A).
 const HANDOFF_CONTRACT = {
   seogu_illegal_parking_report: {
     local_evidence_route: "illegal-parking-report/",
@@ -109,20 +116,6 @@ const HANDOFF_CONTRACT = {
     destination_url: "https://www.safetyreport.go.kr/#main",
     destination_label: "안전신문고",
     destination_authority: "행정안전부가 운영하는 안전신문고",
-  },
-  seogu_streetlight_report: {
-    local_evidence_route: "streetlight-report-handoff/",
-    required_markers: ["재난신고", "재난신고센터", "국민재난안전포털"],
-    destination_url: "https://www.safetyreport.go.kr/#main",
-    destination_label: "안전신문고",
-    destination_authority: "행정안전부가 운영하는 안전신문고",
-  },
-  seogu_illegal_dumping_report: {
-    local_evidence_route: "litter-report-handoff/",
-    required_markers: ["생활폐기물", "배출/수거", "대형폐기물 신고"],
-    destination_url: "https://www.epeople.go.kr/",
-    destination_label: "국민신문고",
-    destination_authority: "국민권익위원회가 운영하는 국민신문고",
   },
 };
 
@@ -1010,14 +1003,14 @@ try {
   assert.ok(s6Overflow.scrollW <= s6Overflow.clientW + 1, "desktop S6 thread must not horizontally overflow");
 
 
-  // (5) S2/S7/S8 EXTERNAL_OFFICIAL_HANDOFF — local-evidence-first, generic
+  // (5) S2 EXTERNAL_OFFICIAL_HANDOFF — local-evidence-first, generic
   // config-driven contract (Blocker B), exact verified authority (Blocker A),
-  // never a submission success. For each handoff scenario:
+  // never a submission success.
   //   D1: the rendered destination row carries the full generic contract
   //       (action_kind, claim_scope=HANDOFF_ONLY, stop boundary, explicit
   //       resident-activated anchor, auto_open/prefill/submit all false) and
   //       the local-evidence row is grounded from the repository clone route;
-  //   D2: S8 maps to 국민신문고/epeople (NOT 안전신문고); S2/S7 map to 안전신문고.
+  //   D2: S2 maps to 안전신문고.
   for (const id of HANDOFF_IDS) {
     const expected = HANDOFF_CONTRACT[id];
     // #1365: chip -> answer -> confirm -> YES -> handoff evidence -> safe_handoff
@@ -1161,38 +1154,138 @@ try {
       dEvidenceOverflow.scrollW <= dEvidenceOverflow.clientW + 1,
       `desktop ${id} evidence provenance must not horizontally overflow the thread`,
     );
+  }
 
-    // D2 — exact authority. S8 must NOT be 안전신문고; it must be 국민신문고/epeople.
-    if (id === "seogu_illegal_dumping_report") {
-      assert.ok(
-        !String(row.destination_label).includes("안전신문고"),
-        "S8 litter/dumping must NOT map to 안전신문고 (Blocker A)",
-      );
-      assert.ok(
-        !String(row.destination_url).includes("safetyreport"),
-        "S8 destination_url must NOT be safetyreport.go.kr (Blocker A)",
-      );
-      assert.ok(
-        String(row.destination_url).includes("epeople.go.kr"),
-        "S8 destination_url must be the verified 국민신문고/epeople chain (Blocker A)",
-      );
-      assert.ok(
-        String(row.destination_authority).includes("국민권익위원회"),
-        "S8 destination_authority must name 국민권익위원회 (Blocker A)",
-      );
+  // ── #1364 Lane B: S3/S4 evidence-gated complaint writing ───────────────────
+  // S3/S4 are NO LONGER external handoff journeys. The registry handoff config
+  // is an EVIDENCE GATE (COMPLAINT_EVIDENCE_GATE / EVIDENCE_GATE_ONLY), not a
+  // destination. After the shared controller's gate passes, the app-owned
+  // complaint surface renders inside #demo-canvas and the shared choreography
+  // runs to the PRE_SUBMIT STOP boundary:
+  //   S3: ANSWER → CONFIRM → YES → evidence gate → complaint board → write
+  //       flow → PRE_SUBMIT STOP (form review, submit disabled)
+  //   S4: ANSWER → CONFIRM → YES → evidence gate → CHOICE → AI assist →
+  //       complaint write → PRE_SUBMIT STOP
+  // No safe_handoff row, no explicit-open anchor, no external destination.
+  const COMPLAINT_FLOWS = [
+    {
+      id: "S3",
+      jid: "seogu_streetlight_report",
+      gate_route: "streetlight-report-handoff",
+      has_choice: false,
+    },
+    {
+      id: "S4",
+      jid: "seogu_illegal_dumping_report",
+      gate_route: "litter-report-handoff",
+      has_choice: true,
+    },
+  ];
+  for (const flow of COMPLAINT_FLOWS) {
+    const cpage = await openDemo(desktop);
+    // ANSWER → CONFIRM → YES → evidence gate → complaint_write
+    await confirmAndProceed(cpage, `[data-journey-id="${flow.jid}"]`, "complaint_write");
+
+    // Evidence gate passed: verified grounded provenance from the gate route.
+    const cEvidence = await cpage.evaluate((jid) => {
+      const rows = Array.from(document.querySelectorAll('[data-handoff-evidence="true"]'));
+      const el = rows.filter((n) => n.getAttribute("data-journey-id") === jid).pop();
+      return el ? {
+        verified: el.getAttribute("data-handoff-evidence-verified"),
+        route: el.getAttribute("data-handoff-local-evidence-route"),
+        grounded: el.getAttribute("data-grounded"),
+        source_kind: el.getAttribute("data-source-kind"),
+        evidence_kind: el.getAttribute("data-evidence-kind"),
+      } : null;
+    }, flow.jid);
+    assert.ok(cEvidence, `${flow.id} evidence-gate row must be rendered`);
+    assert.strictEqual(cEvidence.verified, "true", `${flow.id} evidence gate must pass (all required markers present)`);
+    assert.ok(
+      String(cEvidence.route).includes(flow.gate_route),
+      `${flow.id} evidence route must be the ${flow.gate_route} clone route, got ${cEvidence.route}`,
+    );
+    assert.strictEqual(cEvidence.grounded, "true", `${flow.id} evidence row must be grounded`);
+    assert.strictEqual(cEvidence.source_kind, "repository_clone", `${flow.id} evidence must be repository_clone`);
+    assert.strictEqual(cEvidence.evidence_kind, "clone_dom", `${flow.id} evidence must be clone_dom`);
+
+    // Complaint surface owns the canvas: journey state stays on the complaint
+    // axis and NO external handoff destination exists anywhere.
+    const boardState = await cpage.evaluate(() => ({
+      state: document.body.getAttribute("data-journey-state"),
+      viewHosts: document.querySelectorAll("[data-seogu-complaint-view]").length,
+      boardRoute: document.querySelector('[data-complaint-route="complaint-board"]') !== null,
+      writeRoute: document.querySelector('[data-complaint-route="complaint-write"]') !== null,
+      safeHandoffRows: document.querySelectorAll('[data-safe-handoff="true"]').length,
+      explicitOpenAnchors: document.querySelectorAll('[data-handoff-action="explicit-open"]').length,
+      destinationAttrs: document.querySelectorAll("[data-handoff-destination-url]").length,
+    }));
+    assert.strictEqual(boardState.state, "complaint_write", `${flow.id} final state after evidence success must be complaint_write (not safe_handoff)`);
+    assert.strictEqual(boardState.safeHandoffRows, 0, `${flow.id} must render no safe_handoff destination row`);
+    assert.strictEqual(boardState.explicitOpenAnchors, 0, `${flow.id} must render no explicit-open anchor`);
+    assert.strictEqual(boardState.destinationAttrs, 0, `${flow.id} must render no destination URL attribute`);
+    assert.strictEqual(boardState.viewHosts, 1, `${flow.id} must render exactly one app-owned complaint view host`);
+    assert.ok(
+      boardState.boardRoute || boardState.writeRoute,
+      `${flow.id} complaint surface must render the board or write stage`,
+    );
+
+    // Drive the shared choreography to the PRE_SUBMIT STOP boundary.
+    if (flow.has_choice) {
+      // S4 CHOICE: resident explicitly selects AI assist ("AI 도움 받기").
+      // Scoped by prompt text — the confirm-gate YES shares
+      // .chat-decision__button--primary but is disabled after its own click.
+      await cpage
+        .locator(".chat-decision__button--primary")
+        .filter({ hasText: "AI 도움" })
+        .first()
+        .click();
     }
+    // PRE_SUBMIT STOP: the form-review confirmation prompt appears with the
+    // submit button still disabled. confirmSubmission is NEVER clicked here —
+    // the flow must STOP at pre-submit.
+    await cpage.waitForFunction(() => {
+      const btns = Array.from(document.querySelectorAll(".chat-decision__button--primary"));
+      return btns.some((b) => String(b.textContent || "").includes("제출하기"));
+    }, null, { timeout: 90000 });
+
+    const preSubmit = await cpage.evaluate(() => ({
+      state: document.body.getAttribute("data-journey-state"),
+      choreoState: document.body.getAttribute("data-choreography-state"),
+      title: (() => { const el = document.getElementById("board-write-title"); return el ? el.value : null; })(),
+      content: (() => { const el = document.getElementById("board-write-content"); return el ? el.value : null; })(),
+      submit: (() => {
+        const b = document.getElementById("btn-board-submit");
+        return b ? { disabled: b.disabled, aria: b.getAttribute("aria-disabled") } : null;
+      })(),
+      preSubmitPanel: document.querySelector('[data-pre-submit="true"]') !== null,
+      threadText: document.getElementById("chat-thread").innerText,
+    }));
+    assert.strictEqual(preSubmit.state, "complaint_write", `${flow.id} journey state must remain complaint_write at PRE_SUBMIT`);
+    assert.ok(
+      String(preSubmit.choreoState || "").startsWith("waiting"),
+      `${flow.id} choreography must be parked at a waiting (STOP) state, got ${preSubmit.choreoState}`,
+    );
+    assert.ok(preSubmit.title && preSubmit.title.length > 0, `${flow.id} draft title must be written at PRE_SUBMIT`);
+    assert.ok(preSubmit.content && preSubmit.content.length > 0, `${flow.id} draft body must be written at PRE_SUBMIT`);
+    assert.ok(preSubmit.submit, `${flow.id} submit button must exist`);
+    assert.strictEqual(preSubmit.submit.disabled, true, `${flow.id} submit button must remain disabled (PRE_SUBMIT STOP)`);
+    assert.strictEqual(preSubmit.submit.aria, "true", `${flow.id} submit button must keep aria-disabled=true`);
+    assert.ok(preSubmit.preSubmitPanel, `${flow.id} form panel must carry data-pre-submit=true`);
+    assertNoForbiddenSuccess(preSubmit.threadText, `${flow.id} PRE_SUBMIT thread`);
+    await cpage.close();
   }
 
   // ── D6: FAIL-CLOSED negative proof (CTO comment 5322239653) ────────────────
-  // The external official handoff may be rendered ONLY after successful local
+  // The complaint-writing choreography may start ONLY after successful local
   // evidence validation (evidence.ok === true && missingMarkers.length === 0).
-  // Deterministic proof on S8 (litter): serve the litter-report-handoff clone
+  // Deterministic proof on S4 (litter): serve the litter-report-handoff clone
   // page with ONE required marker ("대형폐기물 신고") stripped, then run the
   // journey on a FRESH page (the iframe must start off-route so the reload is
   // real and the stripped page is what gets READ). The journey must then STOP
   // fail-closed: no destination row, no anchor/href, no auto-open/prefill/
-  // submit, no model fallback, no success semantics — with the evidence
-  // explanation + bounded STOP state visible and zero external requests.
+  // submit, NO complaint surface, NO choreography start, no model fallback,
+  // no success semantics — with the evidence explanation + bounded STOP state
+  // visible and zero external requests.
   const NEG_JID = "seogu_illegal_dumping_report";
   const NEG_ROUTE = "litter-report-handoff";
   const NEG_MISSING_MARKER = "대형폐기물 신고";
@@ -1328,6 +1421,10 @@ try {
       evidenceRows: document.querySelectorAll(`[data-handoff-evidence="true"][data-journey-id="${jid}"]`).length,
       generalFallbackOffers: document.querySelectorAll('[data-general-fallback-offer="true"]').length,
       generalModelCalls: window.__generalModelCalls,
+      // #1364 Lane B: failed gate must NOT open the complaint surface or start
+      // the shared choreography.
+      complaintViewHosts: document.querySelectorAll("[data-seogu-complaint-view]").length,
+      choreoState: window.CitizenFirstChoreography ? window.CitizenFirstChoreography.getState() : null,
       blocked,
       evidence,
     };
@@ -1346,9 +1443,9 @@ try {
   assert.strictEqual(negAfter.blockedRows, negBefore.blockedRows + 1, "exactly one fail-closed STOP row must be rendered");
   assert.ok(negAfter.blocked, "fail-closed STOP row must be present");
   assert.ok(negAfter.blocked.stop_boundary && negAfter.blocked.stop_boundary.length > 0, "STOP row must expose the configured stop boundary code");
-  assert.strictEqual(negAfter.blocked.status, "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED", "blocked row must keep the handoff classification");
-  assert.strictEqual(negAfter.blocked.action_kind, "EXTERNAL_OFFICIAL_HANDOFF", "blocked row must keep the generic handoff action_kind");
-  assert.strictEqual(negAfter.blocked.claim_scope, "HANDOFF_ONLY", "blocked row must keep claim_scope=HANDOFF_ONLY");
+  assert.strictEqual(negAfter.blocked.status, "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED", "blocked row must keep the substitution classification");
+  assert.strictEqual(negAfter.blocked.action_kind, "COMPLAINT_EVIDENCE_GATE", "blocked row must keep the complaint evidence-gate action_kind");
+  assert.strictEqual(negAfter.blocked.claim_scope, "EVIDENCE_GATE_ONLY", "blocked row must keep claim_scope=EVIDENCE_GATE_ONLY");
   // D6-6: no actionable external destination control (no anchor, no href, no destination attrs).
   assert.strictEqual(negAfter.blocked.hasAnchor, false, "blocked row must contain no anchor");
   assert.strictEqual(negAfter.blocked.hasExplicitOpen, false, "blocked row must contain no explicit-open control");
@@ -1357,6 +1454,10 @@ try {
   assert.strictEqual(negAfter.blocked.hasDestinationAuthority, false, "blocked row must not carry a destination authority attribute");
   // D6-7: no prefill/submit capability (no form/button/input control).
   assert.strictEqual(negAfter.blocked.hasFormControl, false, "blocked row must contain no form/button/input control");
+  // D6-7b (#1364): the failed evidence gate must NOT open the app-owned
+  // complaint surface and must NOT start the shared choreography.
+  assert.strictEqual(negAfter.complaintViewHosts, 0, "failed gate must not render any complaint view host");
+  assert.strictEqual(negAfter.choreoState, "idle", "failed gate must not start the complaint choreography");
   // D6-8: no fake success/receipt semantics.
   assertNoForbiddenSuccess(negAfter.blocked.text, "fail-closed STOP row");
   // D6-9: evidence explanation retained with the missing marker named.

@@ -32,6 +32,13 @@
         "illegal-parking-report/",
         "streetlight-report-handoff/",
         "litter-report-handoff/",
+        // #1364 Lane B: app-owned complaint-board/write surface routes.
+        // These routes are NOT served by the clone iframe — they are rendered
+        // by SeoguComplaintSurface inside #demo-canvas for S3/S4 complaint-
+        // writing journeys after the evidence gate passes. Listed here so the
+        // surface registry recognises them as legitimate Seo-gu routes.
+        "complaint-board/",
+        "complaint-write/",
         "home/gnb-open/",
         "home/mobile/",
       ]),

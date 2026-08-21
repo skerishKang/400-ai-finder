@@ -443,6 +443,17 @@
       return question;
     },
     setJourneyState: function (state) {
+      // #1364 Lane B: while the complaint-writing choreography owns the
+      // journey axis, the shared handoff execution/terminal projections must
+      // not land on the DOM axis (STATE_OVERWRITE_AUDIT class B). This covers
+      // both the terminal safe_handoff write and the transient
+      // handoff_evidence_running write emitted by a refused re-activation.
+      if (
+        _complaintChoreographyActive &&
+        (state === "safe_handoff" || state === "handoff_evidence_running")
+      ) {
+        return;
+      }
       document.body.setAttribute("data-journey-state", state);
     },
     isMobileSurfaceMode: function () {
@@ -508,6 +519,13 @@
       _appendHandoffEvidenceRow(journey, handoff, evidence, missingMarkers);
     },
     renderHandoffDestination: function (journey, handoff) {
+      // #1364 Lane B: complaint-writing journeys (S3/S4). After the evidence
+      // gate passes, render the app-owned complaint surface and start the
+      // shared choreography — no external handoff destination is offered.
+      if (_isComplaintWritingJourney(journey)) {
+        _startComplaintWriting(journey, handoff);
+        return;
+      }
       _appendHandoffDestinationRow(journey, handoff);
     },
     renderHandoffBlocked: function (journey, handoff) {
@@ -602,6 +620,117 @@
     });
   }
 
+  // ── #1364 Lane B: complaint-writing helpers (S3/S4) ────────────────────────
+  // These functions are Seo-gu-specific adapters that bridge the shared
+  // informational controller (which owns the evidence gate) to the shared
+  // choreography engine (which owns the complaint-board → write → draft →
+  // pre-submit sequence). They do NOT own the gate, the choreography, or any
+  // Buk-gu runtime behaviour.
+
+  var _complaintChoreographyActive = false;
+
+  function _isComplaintWritingJourney(journey) {
+    if (!journey || !journey.action) return false;
+    var t = journey.action.type || "";
+    return t === "COMPLAINT_BOARD_WRITE" || t === "COMPLAINT_AI_ASSIST";
+  }
+
+  function _isComplaintEvidenceGate(handoff) {
+    if (!handoff) return false;
+    return handoff.action_kind === "COMPLAINT_EVIDENCE_GATE";
+  }
+
+  function _startComplaintWriting(journey, handoff) {
+    if (!window.SeoguComplaintSurface) {
+      _appendMessage("ai", "현재 민원 작성 화면을 연결하지 못했습니다.");
+      return;
+    }
+    if (!window.CitizenFirstChoreography) {
+      _appendMessage("ai", "현재 민원 작성 안내를 연결하지 못했습니다.");
+      return;
+    }
+    if (_complaintChoreographyActive) {
+      // Re-assert the owning complaint state: the refused re-activation's
+      // shared handoff projections are suppressed by the setJourneyState
+      // guard, so the axis must be restored here explicitly.
+      document.body.setAttribute("data-journey-state", "complaint_write");
+      _appendMessage("ai", "이미 민원 작성 안내가 진행 중입니다.");
+      return;
+    }
+
+    var choreoKey = journey.action && journey.action.choreography_key;
+    if (!choreoKey) {
+      _appendMessage("ai", "현재 이 민원 유형의 작성 안내를 연결하지 못했습니다.");
+      return;
+    }
+    if (!window.CitizenFirstChoreography.hasJourney(choreoKey)) {
+      _appendMessage("ai", "현재 이 민원 유형의 작성 안내를 연결하지 못했습니다.");
+      return;
+    }
+
+    var isS4 = journey.action.type === "COMPLAINT_AI_ASSIST";
+    var scenarioLabel = isS4 ? "쓰레기 무단투기 신고" : "가로등 고장 신고";
+
+    // Pre-complaint-write confirmation message — the resident knows they are
+    // entering the drafting area and that evidence has been validated.
+    _appendMessage(
+      "ai",
+      "서구청 공식 안내 화면에서 " + scenarioLabel + " 관련 정보를 확인했습니다. " +
+        "왼쪽 화면에서 AI 보조 초안 작성을 시작하겠습니다. " +
+        "작성 내용은 주민이 직접 확인한 뒤 서구청 공식 채널에서 진행해야 합니다.",
+      {
+        grounded: true,
+        source_kind: "repository_clone",
+        evidence_kind: "clone_dom",
+        route: handoff.local_evidence_route || "",
+        journey_id: journey.journey_id,
+      }
+    );
+
+    _complaintChoreographyActive = true;
+    document.body.setAttribute("data-journey-state", "complaint_write");
+
+    try {
+      window.SeoguComplaintSurface.navigateToRoute("complaint-board");
+    } catch (_) {
+      _complaintChoreographyActive = false;
+      _appendMessage("ai", "현재 민원 작성 화면을 연결하지 못했습니다.");
+      return;
+    }
+
+    var started = window.CitizenFirstChoreography.start(choreoKey);
+    if (!started) {
+      _complaintChoreographyActive = false;
+      window.SeoguComplaintSurface.reset();
+      _appendMessage("ai", "현재 민원 작성 안내를 연결하지 못했습니다.");
+      document.body.setAttribute("data-journey-state", "failed");
+      return;
+    }
+  }
+
+  function _restoreCloneSurfaceAfterComplaint() {
+    _complaintChoreographyActive = false;
+    if (window.SeoguComplaintSurface) {
+      window.SeoguComplaintSurface.reset();
+    }
+    if (window.CitizenFirstChoreography) {
+      window.CitizenFirstChoreography.cancel();
+    }
+    if (surface) {
+      surface.navigate("");
+    }
+    _setCanvasAvailability(true);
+    _setEvidenceState(latestEvidence);
+  }
+
+  function _onChoreographyStateChange(event) {
+    if (!event || !event.detail) return;
+    var state = event.detail && event.detail.state;
+    if (state === "done" || state === "cancelled") {
+      _restoreCloneSurfaceAfterComplaint();
+    }
+  }
+
   // ── Boot ───────────────────────────────────────────────────────────────────
   function _boot() {
     _applySiteCopy();
@@ -630,6 +759,12 @@
     // Default mobile surface contract (conversation) — shared CSS uses this to
     // decide which surface is visible on ≤767px; harmless on desktop.
     document.body.setAttribute("data-mobile-surface", "conversation");
+
+    // #1364 Lane B: listen for choreography termination so the app-owned
+    // complaint surface is cleaned up and the clone iframe is restored.
+    if (typeof window !== "undefined" && window.addEventListener) {
+      window.addEventListener("citizen:choreography-statechange", _onChoreographyStateChange);
+    }
   }
 
   form.addEventListener("submit", function (event) {
