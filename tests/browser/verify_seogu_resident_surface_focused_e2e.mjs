@@ -24,7 +24,7 @@
  *           stop boundary, explicit resident-activated anchor, no auto-open/
  *           prefill/submit) + grounded repository-clone local-evidence row with
  *           required-marker validation; external requests stay 0;
- *      D2 — S2 maps to 안전신문고; S7 (#1363) maps to 국민신문고/epeople;
+ *      D2 — S2 maps to 안전신문고;
  *   5b. #1364 Lane B: S3/S4 evidence-gated complaint writing — after the
  *       COMPLAINT_EVIDENCE_GATE passes, the app-owned complaint surface renders
  *       and the shared choreography runs to PRE_SUBMIT STOP (S3 direct write
@@ -101,15 +101,16 @@ const CAPTURE_NEEDED_IDS = [
 // #1364 Lane B: S3/S4 are NO LONGER external handoff journeys — they are
 // evidence-gated app-owned complaint-writing flows covered by the dedicated
 // complaint section below and tests/browser/verify_seogu_complaint_s3s4_e2e.mjs.
-// #1363 Lane B: S7 mayor proposal IS an EXTERNAL_OFFICIAL_HANDOFF journey
-// (informational evidence + resident-activated 국민신문고 link + STOP).
+// #1363 Lane B (CTO rework): S7 mayor proposal is ALSO an evidence-gated
+// app-owned writing journey (Buk-gu mayor-complaint-write/receipt shape) —
+// covered by tests/browser/verify_seogu_s7_mayor_proposal_e2e.mjs. The only
+// remaining EXTERNAL_OFFICIAL_HANDOFF scenario is S2.
 const HANDOFF_IDS = [
   "seogu_illegal_parking_report",
-  "seogu_mayor_proposal",
 ];
 
 // Generic EXTERNAL_OFFICIAL_HANDOFF contract expectations (Blocker B) + the
-// exact verified destination authority for S2/S7 (Blocker A).
+// exact verified destination authority for S2 (Blocker A).
 const HANDOFF_CONTRACT = {
   seogu_illegal_parking_report: {
     local_evidence_route: "illegal-parking-report/",
@@ -117,13 +118,6 @@ const HANDOFF_CONTRACT = {
     destination_url: "https://www.safetyreport.go.kr/#main",
     destination_label: "안전신문고",
     destination_authority: "행정안전부가 운영하는 안전신문고",
-  },
-  seogu_mayor_proposal: {
-    local_evidence_route: "mayor-proposal-guidance/",
-    required_markers: ["주민제안", "참여방법", "참여대상", "제안하기"],
-    destination_url: "https://www.epeople.go.kr/",
-    destination_label: "국민신문고",
-    destination_authority: "국민권익위원회가 운영하는 국민신문고",
   },
 };
 
@@ -1011,14 +1005,14 @@ try {
   assert.ok(s6Overflow.scrollW <= s6Overflow.clientW + 1, "desktop S6 thread must not horizontally overflow");
 
 
-  // (5) S2/S7 EXTERNAL_OFFICIAL_HANDOFF — local-evidence-first, generic
+  // (5) S2 EXTERNAL_OFFICIAL_HANDOFF — local-evidence-first, generic
   // config-driven contract (Blocker B), exact verified authority (Blocker A),
   // never a submission success.
   //   D1: the rendered destination row carries the full generic contract
   //       (action_kind, claim_scope=HANDOFF_ONLY, stop boundary, explicit
   //       resident-activated anchor, auto_open/prefill/submit all false) and
   //       the local-evidence row is grounded from the repository clone route;
-  //   D2: S2 maps to 안전신문고; S7 maps to 국민신문고/epeople.
+  //   D2: S2 maps to 안전신문고.
   for (const id of HANDOFF_IDS) {
     const expected = HANDOFF_CONTRACT[id];
     // #1365: chip -> answer -> confirm -> YES -> handoff evidence -> safe_handoff

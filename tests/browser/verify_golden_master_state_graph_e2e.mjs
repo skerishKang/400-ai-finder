@@ -21,13 +21,6 @@ const SCENARIOS = Object.freeze([
     routeContains: "illegal-parking",
   },
   {
-    id: "S7",
-    journey_id: "seogu_mayor_proposal",
-    selector: '[data-journey-id="seogu_mayor_proposal"]',
-    expectedResult: "safe_handoff",
-    routeContains: "mayor-proposal-guidance",
-  },
-  {
     id: "S5",
     journey_id: "seogu_passport_issuance",
     selector: '[data-journey-id="seogu_passport_issuance"]',

@@ -18,6 +18,18 @@
   background: #ffffff;
 }
 
+/* #1363/#1364 Lane B: while the app-owned complaint/proposal writing surface
+   owns the canvas (S3/S4/S7), it must paint ABOVE the absolutely-positioned
+   clone iframe — otherwise the resident sees only the clone evidence page
+   and never the write workspace. */
+[data-seogu-complaint-view] {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: auto;
+  background: #f4f6f9;
+}
+
 /* ── #1350 S0: source-grounded Seo-gu entry identity (image-based) ───────── */
 .entry-stage__brand--seogu {
   align-items: center;

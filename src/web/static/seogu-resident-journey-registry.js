@@ -108,39 +108,39 @@
       questions: ["구청장에게 제안하고 싶어요"],
       status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED",
       capture_needed: false,
-      // #1363 Lane B: S7 mayor-proposal recovery. CTO Phase-A classification
-      // INFORMATIONAL_PLUS_EXTERNAL_OFFICIAL_HANDOFF_CANDIDATE (ACCEPTED):
-      // the Seo-gu 주민제안 participation-method page is bounded-captured as
-      // local informational evidence, and the actual civic submission remains
-      // OUTSIDE the clone at 국민신문고(epeople) behind a resident-controlled
-      // link with a STOP boundary. No login/form/PII/submission simulation.
+      // #1363 Lane B (CTO rework 2026-08-21): S7 mirrors the Buk-gu
+      // 구청장에게 제안하고 싶어요 mayor-complaint-write/receipt journey via the
+      // #1375 complaint-writing pattern. The bounded 주민제안 capture grounds
+      // the guidance facts (참여대상·참여방법·처리절차) before the app-owned
+      // proposal-writing surface opens. NO external channel anchor, NO
+      // safe_handoff destination — EXTERNAL_CHANNEL_REPLACES_CANONICAL_FLOW=NO.
       handoff: {
-        action_kind: "EXTERNAL_OFFICIAL_HANDOFF",
+        action_kind: "COMPLAINT_EVIDENCE_GATE",
         scenario_id: "seogu_mayor_proposal",
         local_evidence_route: "mayor-proposal-guidance/",
         required_markers: ["주민제안", "참여방법", "참여대상", "제안하기"],
-        destination_url: "https://www.epeople.go.kr/",
-        destination_label: "국민신문고",
-        destination_authority: "국민권익위원회가 운영하는 국민신문고",
-        claim_scope: "HANDOFF_ONLY",
-        requires_explicit_resident_activation: true,
-        auto_open: false,
-        auto_prefill: false,
-        submit_capability: false,
-        success_semantics: "NONE",
-        stop_boundary_code: "EXTERNAL_HANDOFF_STOP_NO_SUBMISSION",
+        claim_scope: "EVIDENCE_GATE_ONLY",
+        stop_boundary_code: "COMPLAINT_EVIDENCE_FAILED_STOP",
         snapshot_captured_at: "2026-08-21T02:11:12.864Z",
         source_urls: ["https://www.seogu.gwangju.kr/menu.es?mid=a10401030100"],
         local_evidence_note:
-          "서구청 주민제안 안내 화면은 참여대상/참여방법(홈페이지 제안하기, 우편, 팩스 등)을 " +
-          "안내하는 정보 페이지입니다. 실제 주민제안 접수는 로그인/실명인증이 필요한 " +
-          "국민신문고(epeople)에서 주민이 직접 진행해야 하며, 본 MVP는 제출을 대행하지 않습니다.",
+          "서구청 주민제안 안내 화면은 참여대상(전 주민, 단체 가능)·참여방법" +
+          "(홈페이지 제안하기, 우편, 팩스)·처리절차 등 주민제안 작성에 필요한 " +
+          "안내 사실을 제공합니다. 이 근거는 초안 작성 흐름의 안내에만 사용되며, " +
+          "실제 접수는 서구청 공식 채널에서 주민이 직접 진행해야 합니다.",
+      },
+      action: {
+        type: "COMPLAINT_AI_ASSIST",
+        // Canonical shared-choreography JOURNEY_MAP key (hasJourney()/start()
+        // resolve JOURNEY_MAP keys, not journey ids). Buk-gu mayor-proposal
+        // golden scenario: office → AI 제안작성 → 주민 검토 → 사전제출 STOP → 수령.
+        choreography_key: "mayor_message_assist",
       },
       substitution_note:
-        "INFORMATIONAL_PLUS_EXTERNAL_OFFICIAL_HANDOFF. local evidence route(주민제안 안내 " +
-        "bounded capture)에서 required marker 검증 후 참여방법 근거를 안내하고, resident가 " +
-        "직접 선택하는 국민신문고 handoff를 제시한 뒤 STOP. 제출 대행/성공 표현 없음. " +
-        "generic content_page renderer로 표현 — site-specific renderer branch 없음.",
+        "Buk-gu mayor-complaint-write/receipt 시나리오와 동일한 관측 상태 그래프. " +
+        "Seo-gu 데이터/근거(주민제안 bounded capture)/브랜딩만 치환. external 채널 " +
+        "치환 없음 — 수령 화면의 안내 문구(공식 제출은 서구청 공식 채널에서 시민이 " +
+        "직접 확인하고 진행)가 안전 경계.",
       chip: { label: "구청장에게 제안하고 싶어요", icon: "mayor", variant: "mayor-primary" },
     }),
     _freezeJourney({

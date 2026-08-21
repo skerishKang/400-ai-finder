@@ -42,6 +42,12 @@
         // surface registry recognises them as legitimate Seo-gu routes.
         "complaint-board/",
         "complaint-write/",
+        // #1363 Lane B: app-owned mayor-proposal writing surface routes
+        // (Buk-gu mayor-complaint-write/receipt shape, #1375 pattern).
+        "mayor-office-entry/",
+        "mayor-office/",
+        "mayor-complaint-write/",
+        "mayor-complaint-receipt/",
         "home/gnb-open/",
         "home/mobile/",
       ]),
