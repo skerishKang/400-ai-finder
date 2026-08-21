@@ -24,7 +24,8 @@
  *           stop boundary, explicit resident-activated anchor, no auto-open/
  *           prefill/submit) + grounded repository-clone local-evidence row with
  *           required-marker validation; external requests stay 0;
- *      D2 — S2 maps to 안전신문고;
+ *      D2 — #1380: S2 is a GUIDANCE_NAVIGATION journey (Buk-gu guidance/
+ *           handoff-stop shape) — no external anchor exists anywhere;
  *   5b. #1364 Lane B: S3/S4 evidence-gated complaint writing — after the
  *       COMPLAINT_EVIDENCE_GATE passes, the app-owned complaint surface renders
  *       and the shared choreography runs to PRE_SUBMIT STOP (S3 direct write
@@ -99,28 +100,19 @@ const EXPECTED_MATRIX = [
 // contract anchor: it must stay empty unless a NEW scenario is added.
 const CAPTURE_NEEDED_IDS = [];
 
-// #1364 Lane B: S3/S4 are NO LONGER external handoff journeys — they are
-// evidence-gated app-owned complaint-writing flows covered by the dedicated
-// complaint section below and tests/browser/verify_seogu_complaint_s3s4_e2e.mjs.
-// #1363 Lane B (CTO rework): S7 mayor proposal is ALSO an evidence-gated
-// app-owned writing journey (Buk-gu mayor-complaint-write/receipt shape) —
-// covered by tests/browser/verify_seogu_s7_mayor_proposal_e2e.mjs. The only
-// remaining EXTERNAL_OFFICIAL_HANDOFF scenario is S2.
-const HANDOFF_IDS = [
-  "seogu_illegal_parking_report",
-];
+// #1364 Lane B: S3/S4 are evidence-gated app-owned complaint-writing flows
+// (dedicated section below + verify_seogu_complaint_s3s4_e2e.mjs).
+// #1363 Lane B: S7 mayor proposal is an evidence-gated app-owned writing
+// journey (verify_seogu_s7_mayor_proposal_e2e.mjs).
+// #1380 S-final: S2 illegal-parking is a GUIDANCE_NAVIGATION journey (Buk-gu
+// guidance/handoff-stop shape, dedicated section below). NO Seo-gu scenario
+// renders an external destination row anymore — the list stays empty as a
+// contract anchor.
+const HANDOFF_IDS = [];
 
-// Generic EXTERNAL_OFFICIAL_HANDOFF contract expectations (Blocker B) + the
-// exact verified destination authority for S2 (Blocker A).
-const HANDOFF_CONTRACT = {
-  seogu_illegal_parking_report: {
-    local_evidence_route: "illegal-parking-report/",
-    required_markers: ["주정차단속조회", "과태료 조회", "과태료 납부", "의견진술"],
-    destination_url: "https://www.safetyreport.go.kr/#main",
-    destination_label: "안전신문고",
-    destination_authority: "행정안전부가 운영하는 안전신문고",
-  },
-};
+// Former generic EXTERNAL_OFFICIAL_HANDOFF contract expectations — retired by
+// the #1380 owner decision (외부 채널 링크 표면 금지). Kept as an empty anchor.
+const HANDOFF_CONTRACT = {};
 
 // Strings that would indicate a fake submission success (strictly forbidden).
 const FORBIDDEN_SUCCESS_PATTERNS = [
@@ -1087,157 +1079,133 @@ try {
   }
 
 
-  // (5) S2 EXTERNAL_OFFICIAL_HANDOFF — local-evidence-first, generic
-  // config-driven contract (Blocker B), exact verified authority (Blocker A),
-  // never a submission success.
-  //   D1: the rendered destination row carries the full generic contract
-  //       (action_kind, claim_scope=HANDOFF_ONLY, stop boundary, explicit
-  //       resident-activated anchor, auto_open/prefill/submit all false) and
-  //       the local-evidence row is grounded from the repository clone route;
-  //   D2: S2 maps to 안전신문고.
-  for (const id of HANDOFF_IDS) {
-    const expected = HANDOFF_CONTRACT[id];
-    // #1365: chip -> answer -> confirm -> YES -> handoff evidence -> safe_handoff
-    await confirmAndProceed(page, `[data-journey-id="${id}"]`, "safe_handoff");
+  // (5) #1380 S-final: illegal-parking GUIDANCE_NAVIGATION — Buk-gu golden
+  // shape (안내 채팅 → 지도단속 안내 surface → card → handoff-stop 단말).
+  // No external anchor/link surface exists anywhere; 안전신문고 appears as
+  // guidance TEXT only. The trafficminwon bounded capture grounds the
+  // READ-derived answer (과태료 조회/납부/의견진술 시스템 — 신고 intake 아님).
+  // HANDOFF_IDS/HANDOFF_CONTRACT stay as empty contract anchors: no Seo-gu
+  // scenario may render an external destination row anymore.
+  assert.strictEqual(
+    HANDOFF_IDS.length, 0,
+    "no external handoff scenarios may remain (#1380 owner decision)",
+  );
+  {
+    // #1365: chip -> answer -> confirm -> YES -> navigate -> grounded READ.
+    await confirmAndProceed(page, '[data-journey-id="seogu_illegal_parking_report"]', "grounded");
 
-    // D1 — generic contract on the destination row.
-    const row = await page.evaluate((jid) => {
-      const rows = Array.from(document.querySelectorAll('[data-safe-handoff="true"]'));
-      const el = rows.filter((n) => n.getAttribute("data-journey-id") === jid).pop();
-      if (!el) return null;
-      const link = el.querySelector('a[data-handoff-action="explicit-open"]');
+    const s2 = await page.evaluate(() => {
+      const shell = window.SeoguCitizenActionShell;
+      const r = shell.getLastJourneyResult();
+      const ev = shell.getEvidence();
+      const frame = document.getElementById("seogu-clone-frame");
+      let rcMainText = null;
+      try {
+        const doc = frame.contentDocument;
+        const main = doc && doc.querySelector("main.rc-main");
+        rcMainText = main ? main.innerText : null;
+      } catch {
+        rcMainText = null;
+      }
       return {
-        status: el.getAttribute("data-status"),
-        action_kind: el.getAttribute("data-handoff-action-kind"),
-        destination_url: el.getAttribute("data-handoff-destination-url"),
-        destination_label: el.getAttribute("data-handoff-destination-label"),
-        destination_authority: el.getAttribute("data-handoff-destination-authority"),
-        claim_scope: el.getAttribute("data-handoff-claim-scope"),
-        stop_boundary: el.getAttribute("data-handoff-stop-boundary"),
-        link_href: link ? link.getAttribute("href") : null,
-        link_target: link ? link.getAttribute("target") : null,
-        link_rel: link ? link.getAttribute("rel") : null,
-        text: el.textContent,
+        result: r
+          ? { ok: r.ok, grounded: r.grounded, route: r.route,
+              journey_id: r.journey_id, source_kind: r.source_kind,
+              evidence_kind: r.evidence_kind, excerpt: r.excerpt }
+          : null,
+        evidenceRoute: ev ? ev.route : null,
+        evidenceText: ev ? ev.text : null,
+        rc_main_text: rcMainText,
+        iframe_url: frame.contentWindow ? frame.contentWindow.location.pathname : null,
+        safeHandoffRows: document.querySelectorAll('[data-safe-handoff="true"]').length,
+        destinationAttrs: document.querySelectorAll("[data-handoff-destination-url]").length,
+        explicitOpenAnchors: document.querySelectorAll('[data-handoff-action="explicit-open"]').length,
+        threadHtml: document.getElementById("chat-thread").innerHTML,
+        canvasHtml: document.getElementById("demo-canvas").innerHTML,
       };
-    }, id);
-    assert.ok(row, `handoff destination row missing for ${id}`);
-    assert.strictEqual(
-      row.status,
-      "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED",
-      `${id} must keep handoff classification`,
-    );
-    assert.strictEqual(row.action_kind, "EXTERNAL_OFFICIAL_HANDOFF", `${id} must use the generic handoff action_kind`);
-    assert.strictEqual(row.claim_scope, "HANDOFF_ONLY", `${id} claim_scope must be HANDOFF_ONLY`);
-    assert.ok(row.stop_boundary && row.stop_boundary.length > 0, `${id} must carry a stop boundary code`);
-    assert.strictEqual(row.destination_url, expected.destination_url, `${id} destination_url mismatch`);
-    assert.strictEqual(row.destination_label, expected.destination_label, `${id} destination_label mismatch`);
-    assert.strictEqual(row.destination_authority, expected.destination_authority, `${id} destination_authority mismatch`);
-    // Explicit resident activation: a real anchor the resident clicks. Never
-    // auto-opened (no window.open), never prefilled, never submitted.
-    assert.ok(row.link_href, `${id} must render an explicit resident-activated anchor`);
-    assert.strictEqual(row.link_href, expected.destination_url, `${id} anchor href must equal destination_url`);
-    assert.strictEqual(row.link_target, "_blank", `${id} anchor must open in a new tab on resident click`);
-    assert.ok(String(row.link_rel || "").includes("noopener"), `${id} anchor must be noopener`);
-    assertNoForbiddenSuccess(row.text, `handoff destination row for ${id}`);
-
-    // ── #1353 desktop handoff responsive hierarchy ───────────────────────────
-    // The CTA and authority must stack inside ONE readable content column (avatar
-    // left), NOT be squeezed into narrow implicit side columns, with no
-    // horizontal overflow. This is the resident-facing fix for the Web CTO
-    // model-vision defect; the contract/data attributes above are unchanged.
-    const dHandoff = await measureHandoffLayout(page, id);
-    assert.ok(dHandoff, `desktop ${id} handoff destination row must be present`);
-    assert.strictEqual(dHandoff.display, "grid", `desktop ${id} handoff row must use the grid content-column layout`);
-    assert.ok(dHandoff.link && dHandoff.authority, `desktop ${id} handoff must render CTA + authority`);
-    assert.ok(
-      Math.abs(dHandoff.bubble.x - dHandoff.link.x) <= 2,
-      `desktop ${id} CTA must share the bubble content column`,
-    );
-    assert.ok(
-      Math.abs(dHandoff.link.x - dHandoff.authority.x) <= 2,
-      `desktop ${id} authority must share the CTA content column`,
-    );
-    assert.ok(
-      dHandoff.avatar.x < dHandoff.bubble.x,
-      `desktop ${id} avatar must stay left of the content column`,
-    );
-    assert.ok(
-      dHandoff.link.bottom <= dHandoff.authority.y + 2,
-      `desktop ${id} CTA must sit above the authority`,
-    );
-    // CTA must use a readable column width (no narrow sliver) and remain a short
-    // few-line block rather than collapsing.
-    assert.ok(dHandoff.link.w >= 200, `desktop ${id} CTA must use a readable column width (no narrow sliver)`);
-    assert.ok(dHandoff.authority.w >= 200, `desktop ${id} authority must use a readable column width`);
-    const dOverflow = await page.evaluate(() => {
-      const t = document.getElementById("chat-thread");
-      return { scrollW: t.scrollWidth, clientW: t.clientWidth };
     });
+    assert.ok(s2.result, "S2 grounded result must exist");
+    assert.strictEqual(s2.result.ok, true, "S2 journey must be ok");
+    assert.strictEqual(s2.result.grounded, true, "S2 journey must be grounded");
+    assert.strictEqual(s2.result.journey_id, "seogu_illegal_parking_report");
     assert.ok(
-      dOverflow.scrollW <= dOverflow.clientW + 1,
-      `desktop ${id} thread must not horizontally overflow`,
+      String(s2.result.route || "").includes("illegal-parking-report"),
+      `S2 result.route must be the trafficminwon clone route, got ${s2.result.route}`,
+    );
+    assert.ok(
+      String(s2.iframe_url || "").includes("illegal-parking-report"),
+      "iframe must actually navigate to the illegal-parking-report clone route",
+    );
+    for (const marker of ["주정차단속조회", "과태료 조회", "과태료 납부", "의견진술"]) {
+      assert.ok(String(s2.evidenceText || "").includes(marker), `READ evidence missing S2 marker: ${marker}`);
+    }
+    assert.strictEqual(s2.result.source_kind, "repository_clone", "S2 provenance must be repository_clone");
+    assert.strictEqual(s2.result.evidence_kind, "clone_dom", "S2 evidence_kind must be clone_dom");
+    assert.ok(s2.result.excerpt && s2.result.excerpt.length > 0, "S2 excerpt must be non-empty");
+    assert.ok(s2.rc_main_text, "iframe rc-main must be readable (same-origin, script-disabled)");
+    const s2RcMainNormalized = String(s2.rc_main_text).replace(/\s+/g, " ");
+    for (const line of s2.result.excerpt.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      assert.ok(
+        s2RcMainNormalized.includes(trimmed.replace(/\s+/g, " ")),
+        `answer excerpt line not found in rc-main READ region: ${trimmed.slice(0, 60)}`,
+      );
+    }
+
+    // Owner decision 2026-08-21: NO external channel surface anywhere.
+    assert.strictEqual(s2.safeHandoffRows, 0, "S2 must render no safe_handoff destination row");
+    assert.strictEqual(s2.destinationAttrs, 0, "S2 must render no destination URL attribute");
+    assert.strictEqual(s2.explicitOpenAnchors, 0, "S2 must render no explicit-open anchor");
+    const combinedHtml = s2.threadHtml + s2.canvasHtml;
+    assert.ok(
+      !combinedHtml.includes('href="https://www.safetyreport') &&
+        !combinedHtml.includes("epeople"),
+      "S2 must not contain any external channel anchor (safetyreport/epeople)",
     );
 
-    // D1 — local-evidence row is grounded from the repository clone route and
-    // the required markers were validated against the READ region.
-    const evidenceRow = await page.evaluate((jid) => {
-      const rows = Array.from(document.querySelectorAll('[data-handoff-evidence="true"]'));
-      const el = rows.filter((n) => n.getAttribute("data-journey-id") === jid).pop();
-      if (!el) return null;
+    // Buk-gu golden shape: guidance surface with the 지도단속 card, driven by
+    // the shared choreography, ending at the truthful terminal line.
+    await page.waitForFunction(() =>
+      document.querySelector('[data-complaint-route="complaint-illegal-parking"]') !== null,
+    null, { timeout: 30000 });
+    const guidanceCard = await page.evaluate(() => {
+      const card = document.querySelector(".bg-illegal-parking-card");
+      const canvasText = document.getElementById("demo-canvas").innerText;
       return {
-        verified: el.getAttribute("data-handoff-evidence-verified"),
-        route: el.getAttribute("data-handoff-local-evidence-route"),
-        grounded: el.getAttribute("data-grounded"),
-        source_kind: el.getAttribute("data-source-kind"),
-        evidence_kind: el.getAttribute("data-evidence-kind"),
-        text: el.textContent,
+        present: card !== null,
+        text: card ? card.textContent : "",
+        mentionsOfficialChannelAsText: canvasText.includes("안전신문고"),
+        systemScope: canvasText.includes("과태료 조회") &&
+                     canvasText.includes("의견진술") &&
+                     canvasText.includes("신고 접수 창구가 아닙니다"),
       };
-    }, id);
-    assert.ok(evidenceRow, `handoff local-evidence row missing for ${id}`);
-    assert.strictEqual(evidenceRow.verified, "true", `${id} local evidence must be verified (all required markers present)`);
-    assert.ok(
-      String(evidenceRow.route).includes(expected.local_evidence_route.replace(/\/$/, "")),
-      `${id} local-evidence route must be ${expected.local_evidence_route}, got ${evidenceRow.route}`,
-    );
-    assert.strictEqual(evidenceRow.grounded, "true", `${id} local-evidence row must be grounded`);
-    assert.strictEqual(evidenceRow.source_kind, "repository_clone", `${id} local evidence must be repository_clone`);
-    assert.strictEqual(evidenceRow.evidence_kind, "clone_dom", `${id} local evidence must be clone_dom`);
-    assertNoForbiddenSuccess(evidenceRow.text, `handoff local-evidence row for ${id}`);
-
-    // ── #1353 desktop evidence provenance ─────────────────────────────────────
-    // The local-evidence provenance ("근거 · 저장소 기반 기관 안내 · ...") must
-    // share the evidence bubble content column (avatar left) — NOT be squeezed
-    // into a narrow sibling column — with a readable width and no horizontal
-    // overflow. This is the second half of the Web CTO model-vision defect.
-    const dEvidence = await measureEvidenceLayout(page, id);
-    assert.ok(dEvidence, `desktop ${id} handoff evidence row must be present`);
-    assert.strictEqual(dEvidence.display, "grid", `desktop ${id} evidence row must use the grid content-column layout`);
-    assert.ok(dEvidence.source, `desktop ${id} evidence row must render the provenance`);
-    assert.ok(
-      String(dEvidence.sourceText || "").includes("근거 · 저장소 기반 기관 안내"),
-      `desktop ${id} evidence provenance must be the repository-clone label`,
-    );
-    assert.ok(
-      Math.abs(dEvidence.bubble.x - dEvidence.source.x) <= 2,
-      `desktop ${id} evidence provenance must share the bubble content column`,
-    );
-    assert.ok(
-      dEvidence.avatar.x < dEvidence.bubble.x,
-      `desktop ${id} evidence avatar must stay left of the content column`,
-    );
-    assert.ok(
-      dEvidence.bubble.bottom <= dEvidence.source.y + 2,
-      `desktop ${id} evidence provenance must sit below the bubble`,
-    );
-    assert.ok(dEvidence.source.w >= 200, `desktop ${id} evidence provenance must use a readable column width`);
-    const dEvidenceOverflow = await page.evaluate(() => {
-      const t = document.getElementById("chat-thread");
-      return { scrollW: t.scrollWidth, clientW: t.clientWidth };
     });
+    assert.ok(guidanceCard.present, "S2 guidance surface must render the 지도단속 card");
+    assert.ok(guidanceCard.systemScope, "S2 guidance card must state the system scope (조회/납부/의견진술, not intake)");
+    assert.ok(guidanceCard.mentionsOfficialChannelAsText, "S2 guidance must mention 안전신문고 as text");
+
+    await page.waitForFunction(() =>
+      document.getElementById("chat-thread").innerText.includes(
+        "실제 신고는 안전신문고(safetyreport.go.kr)에서 가능합니다"),
+    null, { timeout: 30000 });
+
+    // Resident-initiated card selection → app-owned handoff-stop terminal.
+    await page.locator(".bg-illegal-parking-card").click();
+    await page.waitForFunction(() =>
+      document.querySelector('[data-stop-route="handoff-stop"]') !== null,
+    null, { timeout: 15000 });
+    const stop = await page.evaluate(() => ({
+      summary: document.querySelector("[data-stop-summary]")?.innerText ?? "",
+      state: document.body.getAttribute("data-journey-state"),
+      threadText: document.getElementById("chat-thread").innerText,
+    }));
+    assert.ok(stop.summary.includes("안내 완료 · 미제출"), "S2 stop terminal must declare 안내 완료 · 미제출");
     assert.ok(
-      dEvidenceOverflow.scrollW <= dEvidenceOverflow.clientW + 1,
-      `desktop ${id} evidence provenance must not horizontally overflow the thread`,
+      stop.summary.includes("공식 채널에서 직접 신청"),
+      "S2 stop terminal must point to the official channel next step",
     );
+    assertNoForbiddenSuccess(stop.threadText, "S2 stop thread");
   }
 
   // ── #1364 Lane B: S3/S4 evidence-gated complaint writing ───────────────────
@@ -2036,104 +2004,61 @@ try {
     `mobile S5 chip rail must not internally overflow (scrollW ${mPassportConvGeo.chipsScrollW} <= clientW ${mPassportConvGeo.chipsClientW})`,
   );
   assert.strictEqual(mPassportConvGeo.chipCount, 8, "mobile S5 chip rail must keep all 8 resident chips reachable");
-  // ── #1353 mobile handoff responsive hierarchy (S2) ──────────────────────────
-  // The S2 final handoff row must NOT collapse the CTA into character-by-character
-  // vertical stacking and must keep the authority readable in the content column
-  // (no narrow-side-column squeeze). Composer + mobile surface switch stay usable.
+  // ── #1353/#1380 mobile S2 guidance journey (grounded message geometry) ─────
+  // S2 is now a GUIDANCE_NAVIGATION journey: the resident sees the grounded
+  // answer + provenance in the conversation column (same layout contract as
+  // the S5 mobile check) — no handoff destination row exists anymore.
   await convTab.click();
   await mpage.waitForFunction(
     () => document.body.getAttribute("data-mobile-surface") === "conversation",
     null,
     { timeout: 5000 },
   );
-  // #1365: chip -> answer -> confirm -> YES -> handoff -> safe_handoff (mobile S2)
-  await confirmAndProceed(mpage, '[data-journey-id="seogu_illegal_parking_report"]', "safe_handoff");
+  // #1365: chip -> answer -> confirm -> YES -> navigate -> grounded (mobile S2)
+  await confirmAndProceed(mpage, '[data-journey-id="seogu_illegal_parking_report"]', "grounded");
   // The canonical onYesSurfacePrepare switches the mobile surface to guidance
-  // (matching Buk-gu) to reveal the institution canvas, which hides the
-  // conversation thread. Switch back to conversation so the handoff/evidence
-  // row geometry (measured via getBoundingClientRect) is actually laid out.
+  // (matching Buk-gu). Switch back so the grounded row is laid out for geometry.
   await convTab.click();
   await mpage.waitForFunction(
     () => document.body.getAttribute("data-mobile-surface") === "conversation",
     null,
     { timeout: 5000 },
   );
-  const mHandoff = await measureHandoffLayout(mpage, "seogu_illegal_parking_report");
-  assert.ok(mHandoff, "mobile S2 handoff destination row must be present");
-  assert.strictEqual(mHandoff.display, "grid", "mobile S2 handoff row must use the grid content-column layout");
-  assert.ok(mHandoff.link && mHandoff.authority, "mobile S2 handoff must render CTA + authority");
-  assert.ok(
-    Math.abs(mHandoff.bubble.x - mHandoff.link.x) <= 2,
-    "mobile S2 CTA must share the bubble content column",
-  );
-  assert.ok(
-    Math.abs(mHandoff.link.x - mHandoff.authority.x) <= 2,
-    "mobile S2 authority must share the CTA content column",
-  );
-  assert.ok(
-    mHandoff.avatar.x < mHandoff.bubble.x,
-    "mobile S2 avatar must stay left of the content column",
-  );
-  assert.ok(
-    mHandoff.link.bottom <= mHandoff.authority.y + 2,
-    "mobile S2 CTA must sit above the authority",
-  );
-  // No character-by-character vertical stacking: the CTA must occupy a normal,
-  // wide, bounded-height box (a readable wrap), not one character per line.
-  assert.ok(mHandoff.link.w >= 120, "mobile S2 CTA must use a readable column width (no narrow sliver)");
-  assert.ok(mHandoff.link.h <= 80, "mobile S2 CTA must not stack character-by-character (height bounded)");
-  assert.ok(mHandoff.authority.w >= 120, "mobile S2 authority must use a readable column width");
-  assert.ok(mHandoff.authority.h <= 60, "mobile S2 authority must not vertically collapse");
-  // No horizontal overflow of the thread.
-  const mOverflow = await mpage.evaluate(() => {
-    const t = document.getElementById("chat-thread");
-    return { scrollW: t.scrollWidth, clientW: t.clientWidth };
+  const mS2Geo = await mpage.evaluate(() => {
+    const thread = document.getElementById("chat-thread");
+    const row = thread ? thread.querySelector('.chat-msg[data-grounded="true"][data-journey-id="seogu_illegal_parking_report"]') : null;
+    if (!row) return null;
+    const bubble = row.querySelector('.chat-bubble');
+    const source = row.querySelector('.message-source--clone');
+    return {
+      rowPresent: true,
+      bubbleW: bubble ? Math.round(bubble.getBoundingClientRect().width) : 0,
+      sourceW: source ? Math.round(source.getBoundingClientRect().width) : 0,
+      sourceLeft: source ? Math.round(source.getBoundingClientRect().left) : 0,
+      bubbleLeft: bubble ? Math.round(bubble.getBoundingClientRect().left) : 0,
+      docScrollW: document.documentElement.scrollWidth,
+      docClientW: document.documentElement.clientWidth,
+      safeHandoffRows: document.querySelectorAll('[data-safe-handoff="true"]').length,
+      destinationAttrs: document.querySelectorAll("[data-handoff-destination-url]").length,
+    };
   });
-  assert.ok(mOverflow.scrollW <= mOverflow.clientW + 1, "mobile S2 thread must not horizontally overflow");
-  // ── #1353 mobile evidence provenance ───────────────────────────────────────
-  // On 390×844 the local-evidence provenance must NOT render as a tall,
-  // fragmented narrow sibling column next to the evidence bubble. It must share
-  // the evidence bubble content column, stay readable, and remain bounded.
-  const mEvidence = await measureEvidenceLayout(mpage, "seogu_illegal_parking_report");
-  assert.ok(mEvidence, "mobile S2 evidence row must be present");
-  assert.strictEqual(mEvidence.display, "grid", "mobile S2 evidence row must use the grid content-column layout");
-  assert.ok(mEvidence.source, "mobile S2 evidence row must render the provenance");
-  assert.ok(
-    String(mEvidence.sourceText || "").includes("근거 · 저장소 기반 기관 안내"),
-    "mobile S2 evidence provenance must be the repository-clone label",
-  );
-  assert.ok(
-    Math.abs(mEvidence.bubble.x - mEvidence.source.x) <= 2,
-    "mobile S2 evidence provenance must share the bubble content column",
-  );
-  assert.ok(
-    mEvidence.avatar.x < mEvidence.bubble.x,
-    "mobile S2 evidence avatar must stay left of the content column",
-  );
-  assert.ok(
-    mEvidence.bubble.bottom <= mEvidence.source.y + 2,
-    "mobile S2 evidence provenance must sit below the bubble",
-  );
-  assert.ok(mEvidence.source.w >= 120, "mobile S2 evidence provenance must use a readable column width");
-  assert.ok(mEvidence.source.h <= 80, "mobile S2 evidence provenance must not stack as a tall fragmented column");
-  const mEvidenceOverflow = await mpage.evaluate(() => {
-    const t = document.getElementById("chat-thread");
-    return { scrollW: t.scrollWidth, clientW: t.clientWidth };
-  });
-  assert.ok(
-    mEvidenceOverflow.scrollW <= mEvidenceOverflow.clientW + 1,
-    "mobile S2 evidence provenance must not horizontally overflow the thread",
-  );
-  // Composer + mobile surface switch remain usable after the S2 handoff.
+  assert.ok(mS2Geo && mS2Geo.rowPresent, "mobile S2 grounded row must be present");
+  assert.strictEqual(mS2Geo.safeHandoffRows, 0, "mobile S2 must render no safe_handoff destination row");
+  assert.strictEqual(mS2Geo.destinationAttrs, 0, "mobile S2 must render no destination URL attribute");
+  assert.ok(mS2Geo.bubbleW >= 200, `mobile S2 bubble must span full content column (>=200px), got ${mS2Geo.bubbleW}`);
+  assert.ok(mS2Geo.sourceW >= 200, `mobile S2 provenance must span full content column (>=200px), got ${mS2Geo.sourceW}`);
+  assert.strictEqual(mS2Geo.bubbleLeft, mS2Geo.sourceLeft, "mobile S2 bubble and provenance must share the same content column left edge");
+  assert.ok(mS2Geo.docScrollW <= mS2Geo.docClientW + 1, "mobile S2 conversation must not cause page-level horizontal overflow");
+  // Composer + mobile surface switch remain usable after the S2 guidance.
   const mComposerAfter = await mpage.evaluate(() => {
     const el = document.getElementById("chat-composer-input");
     return el ? { disabled: el.disabled } : null;
   });
-  assert.ok(mComposerAfter && mComposerAfter.disabled === false, "mobile composer must stay usable after S2 handoff");
+  assert.ok(mComposerAfter && mComposerAfter.disabled === false, "mobile composer must stay usable after S2 guidance");
   assert.strictEqual(
     await switchEl.evaluate((el) => el.hasAttribute("hidden")),
     false,
-    "mobile surface switch must stay usable after S2 handoff",
+    "mobile surface switch must stay usable after S2 guidance",
   );
 
   // Composer stays usable on the guidance surface.

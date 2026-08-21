@@ -505,6 +505,11 @@
     renderGroundedResult: function (result, journey) {
       var guidance = _buildGroundedGuidance(result, journey);
       _appendMessage("ai", guidance || result.answer, result);
+      // #1380 S-final: GUIDANCE_NAVIGATION journeys (illegal-parking) present
+      // their Buk-gu golden guidance surface after the grounded answer.
+      if (_isGuidanceNavigationJourney(journey)) {
+        _startGuidanceNavigation(journey);
+      }
     },
     renderJourneyFailure: function (result) {
       _appendMessage(
@@ -547,6 +552,11 @@
     // Invalidate any previously rendered confirm-run so prior YES/NO controls
     // are stale (generation guard). Owned by the shared golden engine.
     seoguInfoController.invalidate();
+    // #1380: a preserved terminal surface view (S7 receipt / S2 guidance)
+    // belongs to the PREVIOUS journey — clear it before the new flow starts.
+    if (!_complaintChoreographyActive && window.SeoguComplaintSurface) {
+      window.SeoguComplaintSurface.reset();
+    }
 
     var journey = null;
     if (window.SeoguResidentJourneyRegistry) {
@@ -635,6 +645,48 @@
     return t === "COMPLAINT_BOARD_WRITE" || t === "COMPLAINT_AI_ASSIST";
   }
 
+  // #1380 S-final: GUIDANCE_NAVIGATION journeys (illegal-parking) walk the
+  // Buk-gu golden guidance surface after the grounded answer — no writing
+  // form, no submission, no external channel. The contract lives under
+  // `presentation` (NOT `action`) so the generic journey runner is unaffected.
+  function _isGuidanceNavigationJourney(journey) {
+    if (!journey || !journey.presentation) return false;
+    return journey.presentation.type === "GUIDANCE_NAVIGATION";
+  }
+
+  function _startGuidanceNavigation(journey) {
+    if (!window.SeoguComplaintSurface) {
+      return;
+    }
+    if (!window.CitizenFirstChoreography) {
+      return;
+    }
+    var choreoKey = journey.presentation && journey.presentation.choreography_key;
+    if (!choreoKey || !window.CitizenFirstChoreography.hasJourney(choreoKey)) {
+      return;
+    }
+    if (_complaintChoreographyActive) {
+      _appendMessage("ai", "이미 민원 안내가 진행 중입니다.");
+      return;
+    }
+
+    _complaintChoreographyActive = true;
+
+    try {
+      window.SeoguComplaintSurface.navigateToRoute("complaint-illegal-parking");
+    } catch (_) {
+      _complaintChoreographyActive = false;
+      return;
+    }
+
+    var started = window.CitizenFirstChoreography.start(choreoKey);
+    if (!started) {
+      _complaintChoreographyActive = false;
+      window.SeoguComplaintSurface.reset();
+      return;
+    }
+  }
+
   function _isComplaintEvidenceGate(handoff) {
     if (!handoff) return false;
     return handoff.action_kind === "COMPLAINT_EVIDENCE_GATE";
@@ -715,17 +767,20 @@
   }
 
   function _restoreCloneSurfaceAfterComplaint() {
-    // #1363 Lane B: when the mayor-proposal choreography completes at the
-    // receipt stage, the app-owned receipt view IS the terminal resident
-    // state (Buk-gu mayor-complaint-receipt shape) — preserve it instead of
-    // wiping the surface.
-    var receiptVisible = false;
+    // #1363/#1380 Lane B: terminal app-owned views persist after the
+    // choreography completes — the S7 receipt and the S2 guidance surface
+    // (its card stays resident-clickable → handoff-stop) ARE the terminal
+    // resident states. Everything else is wiped back to the clone.
+    var preservedRoute = false;
     if (window.SeoguComplaintSurface) {
-      receiptVisible =
-        window.SeoguComplaintSurface.getCurrentRouteId() === "mayor-complaint-receipt";
+      var rid = window.SeoguComplaintSurface.getCurrentRouteId();
+      preservedRoute =
+        rid === "mayor-complaint-receipt" ||
+        rid === "complaint-illegal-parking" ||
+        rid === "handoff-stop";
     }
     _complaintChoreographyActive = false;
-    if (window.SeoguComplaintSurface && !receiptVisible) {
+    if (window.SeoguComplaintSurface && !preservedRoute) {
       window.SeoguComplaintSurface.reset();
     }
     if (window.CitizenFirstChoreography) {

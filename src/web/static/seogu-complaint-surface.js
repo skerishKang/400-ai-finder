@@ -59,6 +59,10 @@
     "mayor-office",
     "mayor-complaint-write",
     "mayor-complaint-receipt",
+    // #1380 S-final: illegal-parking guidance journey (Buk-gu
+    // complaint-illegal-parking → card → handoff-stop shape).
+    "complaint-illegal-parking",
+    "handoff-stop",
   ]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -549,6 +553,145 @@
     host.appendChild(page);
   }
 
+  // ── #1380 S-final: illegal-parking guidance / handoff-stop routes ──────────
+  // Mirrors the Buk-gu 불법주정차 golden shape: 지도단속 안내 surface with the
+  // guidance card, and the app-owned handoff-stop terminal. 안전신문고 is
+  // mentioned as guidance TEXT only — no external anchor/link surface exists.
+
+  function _renderIllegalParkingGuidance() {
+    var host = _viewHost();
+    if (!host) return;
+    host.innerHTML = "";
+
+    var page = document.createElement("div");
+    page.className = "bg-page bg-page--full bg-page--product";
+    page.setAttribute("data-complaint-route", "complaint-illegal-parking");
+
+    var main = document.createElement("main");
+    main.className = "bg-writing-main";
+
+    var breadcrumb = document.createElement("nav");
+    breadcrumb.className = "bg-product-breadcrumb";
+    breadcrumb.setAttribute("aria-label", "경로");
+    breadcrumb.innerHTML =
+      '<span>홈</span><span aria-hidden="true">&rsaquo;</span>' +
+      '<span>분야별정보</span><span aria-hidden="true">&rsaquo;</span>' +
+      '<span>차량교통</span><span aria-hidden="true">&rsaquo;</span>' +
+      '<span>지도단속</span>';
+    main.appendChild(breadcrumb);
+
+    var heading = document.createElement("header");
+    heading.className = "bg-writing-heading";
+    heading.innerHTML =
+      '<div><p class="bg-product-eyebrow">ILLEGAL PARKING GUIDANCE</p><h1>불법 주정차 신고 안내</h1>' +
+        '<p>서구청 분야별정보 &gt; 차량교통 &gt; 지도단속 페이지입니다.</p></div>' +
+      '<span class="bg-writing-heading__badge">주정차 단속</span>';
+    main.appendChild(heading);
+
+    var layout = document.createElement("div");
+    layout.className = "bg-writing-layout";
+
+    var card = document.createElement("section");
+    card.className = "bg-writing-card";
+    card.setAttribute("data-illegal-parking-card", "true");
+
+    var cardHead = document.createElement("div");
+    cardHead.className = "bg-writing-card__top";
+    cardHead.innerHTML =
+      '<div><span>지도단속 안내</span><strong>서구 주정차단속조회 시스템</strong></div>';
+    card.appendChild(cardHead);
+
+    var cardBody = document.createElement("div");
+    cardBody.className = "bg-writing-field";
+    cardBody.innerHTML =
+      '<p>이 시스템은 <strong>과태료 조회 · 납부 · 의견진술</strong> 기능이며, ' +
+        '불법 주정차 신고 접수 창구가 아닙니다.</p>' +
+      '<p>실제 불법 주정차 신고 제출은 안전신문고(safetyreport.go.kr) 등 ' +
+        '공식 신고 채널에서 사용자가 직접 진행해야 합니다.</p>';
+    card.appendChild(cardBody);
+
+    var cardActions = document.createElement("div");
+    cardActions.className = "bg-writing-actions";
+    cardActions.setAttribute("data-guidance-card-actions", "true");
+
+    var reportBtn = document.createElement("button");
+    reportBtn.type = "button";
+    reportBtn.className = "bg-action-btn bg-action-btn--primary bg-illegal-parking-card";
+    reportBtn.setAttribute("data-action-target", "complaint-illegal-parking-report");
+    reportBtn.textContent = "신고 경로 안내 보기 →";
+    cardActions.appendChild(reportBtn);
+
+    card.appendChild(cardActions);
+    layout.appendChild(card);
+
+    var assistant = document.createElement("aside");
+    assistant.className = "bg-writing-assistant";
+    assistant.setAttribute("aria-label", "안내 도움 상태");
+    assistant.innerHTML =
+      '<div class="bg-writing-assistant__orb"><span>AI</span></div>' +
+      '<p class="bg-product-eyebrow">SEOGU AI</p><h2>신고는 공식 채널로,<br>안내는 여기서 끝까지</h2>' +
+      '<ol><li class="is-done"><b>1</b><span><strong>지도단속 시스템 확인</strong>과태료 조회·납부·의견진술 창구입니다.</span></li>' +
+        '<li class="is-active"><b>2</b><span><strong>공식 신고 채널 안내</strong>실제 신고는 안전신문고 등 공식 채널에서 진행합니다.</span></li></ol>';
+    layout.appendChild(assistant);
+
+    main.appendChild(layout);
+    page.appendChild(main);
+    host.appendChild(page);
+
+    // Resident-initiated card selection mirrors Buk-gu's delegated action:
+    // complaint-illegal-parking-report → route handoff-stop.
+    reportBtn.addEventListener("click", function () {
+      navigateToRoute("handoff-stop");
+    });
+  }
+
+  function _renderHandoffStop() {
+    var host = _viewHost();
+    if (!host) return;
+    host.innerHTML = "";
+
+    var page = document.createElement("div");
+    page.className = "bg-page bg-page--full bg-page--product";
+    page.setAttribute("data-complaint-route", "handoff-stop");
+    page.setAttribute("data-stop-route", "handoff-stop");
+
+    var main = document.createElement("main");
+    main.className = "bg-receipt-main";
+
+    var mark = document.createElement("div");
+    mark.className = "bg-receipt-mark";
+    mark.setAttribute("aria-hidden", "true");
+    mark.innerHTML = "<span>✓</span>";
+    main.appendChild(mark);
+
+    var eyebrow = document.createElement("p");
+    eyebrow.className = "bg-product-eyebrow";
+    eyebrow.textContent = "GUIDANCE COMPLETE";
+    main.appendChild(eyebrow);
+
+    var h1 = document.createElement("h1");
+    h1.textContent = "민원 안내를 완료했습니다";
+    main.appendChild(h1);
+
+    var desc = document.createElement("p");
+    desc.innerHTML =
+      "실제 민원 신청은 서구청 공식 채널을 이용하시기 바랍니다.<br>" +
+      "인증 및 제출은 시민의 책임이며, 공식 사이트에서 직접 진행해야 합니다.";
+    main.appendChild(desc);
+
+    var card = document.createElement("section");
+    card.className = "bg-receipt-card";
+    card.setAttribute("data-stop-summary", "true");
+    card.innerHTML =
+      '<div><span>안내 유형</span><strong>불법 주정차 신고 경로</strong></div>' +
+      '<div><span>현재 상태</span><strong class="is-accent">안내 완료 · 미제출</strong></div>' +
+      '<div><span>다음 단계</span><strong>공식 채널에서 직접 신청</strong></div>';
+    main.appendChild(card);
+
+    page.appendChild(main);
+    host.appendChild(page);
+  }
+
   // ── Public API (COMPATIBILITY_DRIVER) ──────────────────────────────────────
 
   function navigateToRoute(routeId) {
@@ -574,6 +717,12 @@
     } else if (routeId === "mayor-complaint-receipt") {
       _clearHighlights();
       _renderMayorComplaintReceipt();
+    } else if (routeId === "complaint-illegal-parking") {
+      _clearHighlights();
+      _renderIllegalParkingGuidance();
+    } else if (routeId === "handoff-stop") {
+      _clearHighlights();
+      _renderHandoffStop();
     }
     try {
       if (window.CustomEvent) {
@@ -669,9 +818,12 @@
   function reset() {
     _currentRouteId = "idle";
     _clearHighlights();
-    var host = _viewHost();
+    // #1380: clear an EXISTING view host without creating one — an empty
+    // host must never linger after a reset (fail-closed proofs assert zero
+    // complaint view hosts on non-complaint flows).
+    var host = _canvas && _canvas.querySelector("[data-seogu-complaint-view]");
     if (host) {
-      host.innerHTML = "";
+      host.remove();
     }
   }
 

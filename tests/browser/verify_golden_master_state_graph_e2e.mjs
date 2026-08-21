@@ -17,8 +17,11 @@ const SCENARIOS = Object.freeze([
     id: "S2",
     journey_id: "seogu_illegal_parking_report",
     selector: '[data-journey-id="seogu_illegal_parking_report"]',
-    expectedResult: "safe_handoff",
-    routeContains: "illegal-parking",
+    // #1380 S-final: illegal-parking is now a grounded guidance journey
+    // (Buk-gu complaint-illegal-parking → card → handoff-stop shape) — no
+    // external destination row exists anymore.
+    expectedResult: "grounded",
+    routeContains: "illegal-parking-report",
   },
   {
     id: "S5",
