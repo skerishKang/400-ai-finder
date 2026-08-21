@@ -1,13 +1,13 @@
 # 400 AI Finder 현재 기준 문서
 
 - 상태: `canonical`
-- 기준일: 2026-08-21
-- 기준 main: `dbc785e0dd16e4d2a73c7c0245747cfbb9459271`
-- 현재 제품축: Buk-gu Golden Master resident product → Seo-gu state-by-state parity recovery
+- 기준일: 2026-08-22
+- 기준 main: `219737199e8f1a5c09ba1648172b23742fd8f4c6` (squash merge of PR #1381)
+- 현재 제품축: Buk-gu Golden Master authoritative · Seo-gu agent-side parity recovery 완료 (agent-verified)
 - 운영 교리 authority: #1366 / `docs/operations/multi-site-onboarding-golden-master.md`
-- active product recovery: #1364 → #1365 / PR #1367
-- stacked parity CI: #1368 / PR #1372
-- paused onboarding: #1363 HOLD; third site blocked pending Seo-gu Golden parity
+- **소유자 정식 수용: PENDING** — 에이전트 검증 수용만 존재. third-site 포함 다음 단계의 전제조건
+- Golden parity CI gate: 상시 강제 (#1368 / #1370 완료, required checks 12개)
+- third-site onboarding: BLOCKED_PENDING_OWNER_ACCEPTANCE (+ 스코프 질문 미정)
 
 이 문서는 저장소의 **현재 제품상태, 안전경계, 개발순서와 운영기준을 찾기 위한 최상위 current-state 인덱스**다.
 
@@ -86,57 +86,63 @@ Actual login, PII processing, identity verification, payment, upload, submission
 ### Buk-gu
 
 - protected/frozen Golden resident baseline: **authoritative**;
-- canonical click-by-click visual/interaction authority: #1348;
+- canonical click-by-click visual/interaction baseline: #1348 (CLOSED 2026-08-22 — 목적 완료; baseline 자체는 저장소 제품 + Golden parity CI gate에 상주, 이슈 코멘트는 audit history);
 - behavior must not drift merely to make a second-site implementation easier;
 - exact/golden compatibility and no-submit boundaries remain protected.
 
 ### Seo-gu
 
-The source/capture/clone/evidence work remains materially reusable, but resident orchestration parity is under active remediation.
+Agent-side parity recovery is **complete** (PARITY CLOSURE record: #1380 close comment @ main `2197371`). All 8 primary chip scenarios follow the Buk-gu Golden state graph:
 
-Current corrected acceptance matrix:
-
-| Unit | Current disposition | Reason |
+| Unit | Final disposition | Evidence |
 |---|---|---|
-| S0 entry | PASS | canonical composition/control hierarchy already accepted |
-| S1 housing | ACTIVE RECOVERY | shared Golden engine required |
-| S2 illegal parking | ACTIVE RECOVERY | external-channel fact must not replace canonical flow |
-| S3 streetlight | PENDING AFTER #1367 | complaint/write/review Golden flow required |
-| S4 litter | PENDING AFTER #1367 | complaint choice/write/review Golden flow required |
-| S5 passport | ACTIVE RECOVERY | Golden choreography + current mobile chip-rail blocker |
-| S6 unmanned kiosk | ACTIVE RECOVERY | accepted evidence/routes; Golden choreography recovery required |
-| S7 mayor | HOLD | #1363 remains paused until Golden parity recovery |
-| bulky waste / mattress | PENDING | derive from Buk-gu high-risk Golden STOP shape first |
+| S0 entry | PASS | canonical composition/branding parity |
+| S1 공동주택 부서 문의 | DIRECT_REUSE | Golden choreography via shared engine |
+| S2 불법 주정차 신고 | guidance/handoff-stop | PR #1381 (S-final) — external anchor surface 제거, 안전신문고는 안내 텍스트로만 |
+| S3 가로등 고장 (AI) | complaint write | PR #1375 |
+| S4 쓰레기 무단투기 (AI) | complaint write | PR #1375 |
+| S5 여권 발급 안내 | DIRECT_REUSE | PR #1358/#1359 |
+| S6 무인민원발급기 안내 | DIRECT_REUSE | PR #1362 |
+| S7 구청장에게 제안 | complaint write/receipt | PR #1377 |
+
+```text
+SOURCE_CAPTURE_NEEDED = 0
+EXTERNAL_CHANNEL_LINK_SURFACE = 0
+ENGINE = 단일 resident behavior engine + 기관 데이터 치환만
+```
+
+**Acceptance status caveat:** the above is agent-verified acceptance (CI + paired PNG review). It is NOT yet owner-witnessed formal acceptance. Owner acceptance is a separate mandatory gate before any further site onboarding.
 
 ### Third site / cross-domain
 
 ```text
-THIRD_SITE = BLOCKED_PENDING_SEOGU_GOLDEN_PARITY
+THIRD_SITE = BLOCKED_PENDING_OWNER_ACCEPTANCE
 ```
 
-Do not resume third-site onboarding merely because source/clone platform pieces exist or a docs issue is completed.
+Do not resume third-site onboarding because agent-side parity closed. Prerequisites, in order:
+
+1. owner-witnessed click-through acceptance of the deployed Seo-gu surface (all 8 scenarios), formally recorded;
+2. owner scope answers: which institution, does owner intent exist, who authorizes official-site boundary;
+3. cheap-debt items below cleared.
 
 ## 5. Current GitHub recovery state
 
 At this document update snapshot:
 
 ```text
-CURRENT_MAIN = dbc785e0dd16e4d2a73c7c0245747cfbb9459271
+CURRENT_MAIN = 219737199e8f1a5c09ba1648172b23742fd8f4c6
+OPEN_PRS = 0
+main CI = success (12 required checks + Cloudflare Pages)
 
-PR #1367
-  state = OPEN / DRAFT
-  branch = refactor/1365-bukgu-golden-informational-parity
-  head = 46d2e19f14fe2f2866772ceca95c52d40dd935ba
-  purpose = shared Golden informational choreography recovery
-  gate = architecture correction still required
+OPEN_ISSUES:
+  #1232  multi-site onboarding parent (third-site 검토 해금 조건 = 소유자 수용)
+  #1378  P2 shared engine '북구청' 리터럴 파라미터화
+  #1234  BLOCKED: license/provenance owner decision (Production 전환 시에만)
+  #1290  BLOCKED: Google Drive mirror resync (로컬 접근 복귀 시)
 
-PR #1372
-  state = OPEN / DRAFT
-  base = PR #1367 branch
-  branch = ci/1368-golden-master-state-graph-gate
-  head = 743b6be661bb5ecc4e6adf56069745f77ecaf14a
-  purpose = mandatory Golden state-graph CI gate
-  implementation = accepted pending parent reconciliation
+RECENTLY CLOSED (2026-08-21~22):
+  #1348  visual baseline authority — 목적 완료 close
+  #1364 #1365 #1366 #1368 #1369 #1370 #1371 #1363
 ```
 
 Do not treat these SHAs as permanent authority. Re-query GitHub before any new decision or mutation.
@@ -146,32 +152,29 @@ Do not treat these SHAs as permanent authority. Re-query GitHub before any new d
 The active order is:
 
 ```text
-#1365 / PR #1367
-→ retire Seo-gu resident behavior fork
-→ one shared Golden resident engine for S1/S2/S5/S6
-→ resolve focused Seo-gu mobile S5 chip-rail failure
+1. OWNER ACCEPTANCE GATE (최우선)
+   → 소유자를 배포된 Seo-gu 표면(https://cgbukku.pages.dev/static/seogu-citizen-action-demo) 앞에 세움
+   → 8개 시나리오 정식 클릭 수용, 서명/기록 남김
+   → green CI와 에이전트 PNG 리뷰는 state-graph 드리프트를 가릴 수 있음 (#1348 사례)
 
-#1368 / PR #1372
-→ reconcile onto accepted #1367 parent
-→ obtain authoritative exact-head Actions
-→ make Golden state-graph parity mandatory
+2. CHEAP DEBT (third-site 전 정리)
+   → #1378 shared engine '북구청' 리터럴 파라미터화 (기관 추가 시 노출 배수)
+   → seogu_mattrass_disposal journey_id 오타 수정 (참조 붕괴 전)
+   → 로컬 디스크 의존 자산 정리 (아래 §10a)
 
-#1369
-→ repository documentation authority aligned with #1366
+3. THIRD-SITE SCOPE QUESTIONS (소유자 질문 — 엔지니어링 이전 단계)
+   → 어떤 기관인가 / 소유자 의도 존재 여부 / 공식 사이트 경계 허가자
 
-#1370
-→ after #1368 is established, align repository settings/protection/merge policy
-
-then
-→ S3/S4 complaint-writing Golden recovery
-→ S7 mayor Golden recovery
-→ bulky-waste/mattress Golden recovery
-→ full state-by-state desktop/mobile paired visual acceptance
-→ Seo-gu parity closure
-→ only then third-site / cross-domain onboarding
+4. only then third-site / cross-domain onboarding
 ```
 
-#1363 stays HOLD throughout the current shared-engine/CI recovery.
+## 6a. Decision DNA map (새 CTO/워커 필독 3개)
+
+역사는 이슈 코멘트에 산재해 있다. 결정의 근거는 다음 3곳만 읽으면 된다:
+
+1. `docs/operations/multi-site-onboarding-golden-master.md` (#1366) — 규칙/교리
+2. PR #1377 리뷰 코멘트 — 외부 채널 링크/handoff 표면 금지 결정의 이유 (2026-08-21 owner decision)
+3. #1380 본문 — Golden 원형(state graph) 추출 방법
 
 ## 7. Mandatory multi-site acceptance rule
 
@@ -237,37 +240,56 @@ branch
 → squash merge with exact expected head
 ```
 
-Current repository technical enforcement is weaker than this documented process. #1370 tracks alignment of branch protection, required checks and merge methods.
+Technical enforcement (since 2026-08-21, #1370): main branch protection ON, squash-only, 12 required status contexts including the Golden parity gate.
 
-Do not configure final required status contexts until #1368 Golden parity CI is established and the exact check context is known.
+**Known hole:** `enforce_admins = false` (enforcement_level = `non_admins`). Administrators can still push directly to main. This was the initial protection configuration; whether it is intentional (emergency exception path) or an oversight is a pending owner decision. If unintentional, close it; if intentional, record the rationale here.
+
+### 10a. Local-disk-dependent assets (evidence-loss risk)
+
+The following exist only on local disk and are not committed/pushed. Loss of local access destroys them:
+
+```text
+worktree wt-1360-glm2 (refactor/1365-bukgu-golden-informational-parity @ 46d2e19)
+  - uncommitted modifications: citizen-action-demo.html,
+    citizen-first-use-shell.js, seogu-citizen-action-demo.html,
+    seogu-citizen-action-shell.js,
+    tests/browser/verify_seogu_resident_surface_focused_e2e.mjs
+  - untracked: src/web/static/citizen-confirmation-gate.js,
+    s6_visual_evidence/
+  - note: parent branch's purpose (#1367) was superseded by later merged work;
+    disposition (commit-as-archive vs discard) is a pending owner decision
+
+local stashes: 7 entries across multiple branches (incl. WIP on main,
+  feat/1355 harness, fix/1295 egress policy)
+
+local HOLD branches: ~10 refs inventoried in #1371 (closed with reasons)
+```
+
+GitHub remote remains authoritative. These items must be either committed to an archive ref or explicitly discarded before third-site work begins.
 
 ## 11. Current issue index
 
 ### Critical path
 
-- #1232 — multi-site onboarding parent
-- #1348 — Buk-gu canonical visual/interaction baseline
-- #1364 — Seo-gu Golden parity recovery parent
-- #1365 / PR #1367 — shared informational choreography
-- #1366 — operating doctrine authority
-- #1368 / PR #1372 — mandatory Golden state-graph CI
-- #1369 — documentation authority reconciliation
-- #1370 — repository-settings enforcement after #1368
-- #1363 — S7 HOLD
+- #1232 — multi-site onboarding parent (gate = owner acceptance + scope answers)
+- #1378 — P2 shared engine '북구청' 리터럴 파라미터화 (third-site 전 정리 대상)
 
 ### Lower-priority operations
 
-- #1371 — remote branch hygiene; read-only inventory first, unknown = HOLD
 - #1290 — Google Drive working-mirror resync; GitHub remains authoritative
 
 ### Deferred owner/public-release governance
 
 - #1234 — Production/public-release license/provenance owner decision; not a general blocker to the current controlled faithful-clone MVP.
 
+### Closed authority records (audit history)
+
+- #1348 — Buk-gu canonical visual baseline (목적 완료 close 2026-08-22)
+- #1364/#1365/#1366/#1368/#1369/#1370/#1371/#1363 — Golden Master recovery 체계
+- #1380 — Seo-gu PARITY CLOSURE 증거 기록
+
 ## 12. Historical execution order superseded
 
-Older current-status text identified #1303/#1312 and related G3 slices as the active execution order. Those items remain historical evidence of the clone-building phase, but they are **not the present critical path**.
-
-The current authoritative execution path is the Golden resident parity recovery described above.
+Older current-status text identified #1303/#1312 and related G3 slices as the active execution order, and later text identified #1364/PR #1367/PR #1372 as active. Both are superseded: the Golden resident parity recovery they describe is **complete** (agent-verified; owner acceptance pending). Those items remain historical evidence.
 
 No history is rewritten: prior issues, PRs and Git history remain evidence of how the product reached the current state.
