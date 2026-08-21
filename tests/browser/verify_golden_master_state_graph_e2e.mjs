@@ -34,6 +34,13 @@ const SCENARIOS = Object.freeze([
     expectedResult: "grounded",
     routeContains: "unmanned-kiosk",
   },
+  {
+    id: "S8",
+    journey_id: "seogu_mattrass_disposal",
+    selector: '[data-journey-id="seogu_mattrass_disposal"]',
+    expectedResult: "grounded",
+    routeContains: "bulky-waste-guidance",
+  },
 ]);
 
 function localOrigin(raw) {
