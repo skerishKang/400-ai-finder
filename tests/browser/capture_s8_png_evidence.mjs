@@ -31,7 +31,7 @@ async function walk(viewport, label) {
   await page.waitForFunction(() => document.querySelectorAll("#chat-chips .chat-chip").length > 0);
   await page.screenshot({ path: `${OUT}/${label}_0_entry.png` });
 
-  await page.locator('.chat-chip[data-journey-id="seogu_mattrass_disposal"]').click();
+  await page.locator('.chat-chip[data-journey-id="seogu_mattress_disposal"]').click();
   await page.waitForFunction(() => document.body.getAttribute("data-journey-state") === "answer");
   await page.screenshot({ path: `${OUT}/${label}_1_answer.png` });
 

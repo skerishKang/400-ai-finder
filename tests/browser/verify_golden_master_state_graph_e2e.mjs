@@ -39,8 +39,8 @@ const SCENARIOS = Object.freeze([
   },
   {
     id: "S8",
-    journey_id: "seogu_mattrass_disposal",
-    selector: '[data-journey-id="seogu_mattrass_disposal"]',
+    journey_id: "seogu_mattress_disposal",
+    selector: '[data-journey-id="seogu_mattress_disposal"]',
     expectedResult: "grounded",
     routeContains: "bulky-waste-guidance",
   },

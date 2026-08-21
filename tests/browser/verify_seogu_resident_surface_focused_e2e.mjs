@@ -88,7 +88,7 @@ const EXPECTED_MATRIX = [
   { journey_id: "seogu_mayor_proposal", label: "구청장에게 제안하고 싶어요", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
   { journey_id: "seogu_illegal_parking_report", label: "불법 주정차 신고", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
   { journey_id: "seogu_apartment_housing_dept", label: "공동주택 부서 문의", status: "DIRECT_REUSE" },
-  { journey_id: "seogu_mattrass_disposal", label: "대형폐기물 배출", status: "DIRECT_REUSE" },
+  { journey_id: "seogu_mattress_disposal", label: "대형폐기물 배출", status: "DIRECT_REUSE" },
   { journey_id: "seogu_passport_issuance", label: "여권 발급 안내", status: "DIRECT_REUSE" },
   { journey_id: "seogu_unmanned_kiosk", label: "무인민원발급기 안내", status: "DIRECT_REUSE" },
   { journey_id: "seogu_streetlight_report", label: "가로등 고장 신고 (AI)", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
@@ -1009,7 +1009,7 @@ try {
   // 4~7일) -> grounded, READ-derived answer with repository-clone provenance.
   // Fees MUST come from the captured official page — never from Buk-gu
   // fallback hardcodes (침대 매트리스 5,000원).
-  await confirmAndProceed(page, '[data-journey-id="seogu_mattrass_disposal"]', "grounded");
+  await confirmAndProceed(page, '[data-journey-id="seogu_mattress_disposal"]', "grounded");
   const s8 = await page.evaluate(() => {
     const shell = window.SeoguCitizenActionShell;
     const r = shell.getLastJourneyResult();
@@ -1036,7 +1036,7 @@ try {
   assert.ok(s8.result, "S8 bulky-waste journey result must exist");
   assert.strictEqual(s8.result.ok, true, "S8 bulky-waste journey must be ok");
   assert.strictEqual(s8.result.grounded, true, "S8 bulky-waste journey must be grounded");
-  assert.strictEqual(s8.result.journey_id, "seogu_mattrass_disposal");
+  assert.strictEqual(s8.result.journey_id, "seogu_mattress_disposal");
   assert.ok(
     String(s8.result.route).includes("bulky-waste-guidance"),
     `S8 must land on bulky-waste-guidance route, got ${s8.result.route}`,
