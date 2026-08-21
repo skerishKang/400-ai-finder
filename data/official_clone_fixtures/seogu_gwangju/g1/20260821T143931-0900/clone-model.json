@@ -1,0 +1,5151 @@
+{
+  "artifact_count": 4,
+  "boundaries": {
+    "exact_clone_claimed": false,
+    "network_at_generation": 0,
+    "renderer_wired": false,
+    "screenshot_used_at_runtime": false
+  },
+  "capture_id": "20260821T143931-0900",
+  "capture_mode": "controlled_read_only_reference",
+  "claim_gates": {
+    "actual_site_integrated": false,
+    "clone_mvp_ready": false,
+    "faithful_clone_candidate": false,
+    "reference_baseline_ready": true,
+    "reference_semantic_model_ready": true,
+    "visual_approval": false
+  },
+  "exception_queue": [
+    {
+      "code": "request_blocked_by_capture_policy",
+      "detail": "GET https://developers.kakao.com/sdk/js/kakao.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "code": "request_blocked_by_capture_policy",
+      "detail": "GET https://fonts.googleapis.com/css?family=Roboto:300,400,500,600,700,800,900",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    }
+  ],
+  "generator_id": "scripts/build_reference_clone_model.py",
+  "generator_version": "2.1.0",
+  "model_id": "seogu_gwangju.g1.reference_clone.20260821T143931-0900",
+  "model_kind": "reference_clone_model",
+  "provenance_manifest": [
+    {
+      "provenance_note": "browser-observed same-host GET; 2526 bytes; text/css",
+      "sha256": "c085e2da2c0e5d1f3d4213f82f0fea8ee975b0809fb954419e8df016a71b0d04",
+      "source_url": "https://www.seogu.gwangju.kr/css/animation.css",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 15530 bytes; text/css",
+      "sha256": "d50033d4b17fb7b4f695d22555e657b05ade7807622448a599be67d099cf89d5",
+      "source_url": "https://www.seogu.gwangju.kr/css/basic.css",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 19 bytes; text/css",
+      "sha256": "157cf9d1a9adc3a5f496a9ceadfe6e9204581b245c4a4687f8069d2d09215937",
+      "source_url": "https://www.seogu.gwangju.kr/css/printArea.css",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 3582 bytes; text/javascript",
+      "sha256": "e7ead7c7f7784adaf5b2848ed9d9e8bd212cbbbcd03ce2d00b075107a681844e",
+      "source_url": "https://www.seogu.gwangju.kr/ease_src/sEditor/js/HuskyEZCreator.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 39203 bytes; text/css",
+      "sha256": "67b8414cacdce9849b63726e1a8098aafdacba2aed9d7a2891ba02ecf887d233",
+      "source_url": "https://www.seogu.gwangju.kr/font/dingbat_xeicon.css",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 132116 bytes; font/woff2",
+      "sha256": "4c74f4b911eef972f077b70b2823168ae87e96894ef910a84ba562bd4b8c8354",
+      "source_url": "https://www.seogu.gwangju.kr/font/gmarketsans/GmarketSansBold.woff2",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 141248 bytes; font/woff2",
+      "sha256": "3f33802d06439d0d7bf216681eb9460c762418212936906ebf66ef6d7154dd62",
+      "source_url": "https://www.seogu.gwangju.kr/font/gmarketsans/GmarketSansMedium.woff2",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 147824 bytes; font/woff2",
+      "sha256": "bc16b83ae5f87730fbed27f810d75fcad341777866b43dd05e0ee03efe040b81",
+      "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Bold.woff2",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 144416 bytes; font/woff2",
+      "sha256": "8c1d60fc42757d152926ed43c829132ab5b8c0ca421a0e9e168b23d55755800b",
+      "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-DemiLight.woff2",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 140480 bytes; font/woff2",
+      "sha256": "0cb9f1d965c896baa64dae6e769181d223f38f73a62396c8d8434ecf174aab5f",
+      "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Light.woff2",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 146044 bytes; font/woff2",
+      "sha256": "3f2d313bf322a15b90c069e417f8d176d02ed6df216ab6323fc0792b295c257d",
+      "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Medium.woff2",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 684 bytes; text/css",
+      "sha256": "72a0046c7974742252be03a6e8a23413d889608a047e8e221a712dc2191db930",
+      "source_url": "https://www.seogu.gwangju.kr/font/webfonts_gmarketsans.css",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 57300 bytes; font/woff2",
+      "sha256": "b388035f0a6c34b48927d76634f08f82af556e288c47d7674335371f2deeee8a",
+      "source_url": "https://www.seogu.gwangju.kr/font/xeicon/xeicon.woff2?3ka2yj",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 1706 bytes; text/css",
+      "sha256": "f9e337fdea0da8912119992f4751a80e50366faed530c3eaff05180c9f1f5d6a",
+      "source_url": "https://www.seogu.gwangju.kr/jquery/css/jquery.bxslider.css?v=20260729",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 42839 bytes; text/css",
+      "sha256": "247184981eb6f698a94e431a83d68c6b0df623cce57b6e29dc5a6c11e23aa195",
+      "source_url": "https://www.seogu.gwangju.kr/jquery/css/jquery.mCustomScrollbar.min.css?v=2025012112",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 1336 bytes; text/css",
+      "sha256": "35dc4be859335b0576ac8f9bbe5ac96449d1c35501697c0163d678a6c2ba283c",
+      "source_url": "https://www.seogu.gwangju.kr/jquery/css/slick.css?v=20260729",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 18431 bytes; text/css",
+      "sha256": "e6792bc2356c88d7cacf7351d64da1e7eaade694b9485daef7f4c84f5844968c",
+      "source_url": "https://www.seogu.gwangju.kr/jquery/css/swiper.min.css?v=20260729",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 95931 bytes; text/javascript",
+      "sha256": "2ecd295d295bec062cedebe177e54b9d6b19fc0a841dc5c178c654c9ccff09c0",
+      "source_url": "https://www.seogu.gwangju.kr/jquery/js/jquery-1.11.2.min.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 19359 bytes; text/javascript",
+      "sha256": "bb9e7dc822c6b7b95a6329932885c72ff2caf74b243fc1c40aca0e858123b83e",
+      "source_url": "https://www.seogu.gwangju.kr/jquery/js/jquery.bxslider.min.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 45479 bytes; text/javascript",
+      "sha256": "fd8027b53a97cbd5782e85c5908e563c39776703ff9279f50658e630927b4167",
+      "source_url": "https://www.seogu.gwangju.kr/jquery/js/jquery.mCustomScrollbar.concat.min.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 19927 bytes; text/javascript",
+      "sha256": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36",
+      "source_url": "https://www.seogu.gwangju.kr/jquery/js/qrcode.min.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 91973 bytes; text/javascript",
+      "sha256": "1c27f6799779247331c2f1eab5524f0a0bbc09e1d272c88106e6fc645b440376",
+      "source_url": "https://www.seogu.gwangju.kr/jquery/js/slick.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 140562 bytes; text/javascript",
+      "sha256": "6f9df49fe12f77b66daba876cb33b7090b2443f570a2a4b9541cddd705440aa5",
+      "source_url": "https://www.seogu.gwangju.kr/jquery/js/swiper.min.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 40018 bytes; text/javascript",
+      "sha256": "d1bfe919b0a4a413c1ccbfdc8ba287c7b85f997046e3c87b1b707e7b909e8350",
+      "source_url": "https://www.seogu.gwangju.kr/js/global.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 12104 bytes; text/javascript",
+      "sha256": "6d216a94f8b866d0bba2dfe4d7c701eb24f9d55207fcca08ab7a2b0a7e1b7579",
+      "source_url": "https://www.seogu.gwangju.kr/js/instafeed.min.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2671 bytes; text/css",
+      "sha256": "96456d8b1eaee603ab7b4f4e5f125ce7c2282deaf9ec8aa14287c04c72606e55",
+      "source_url": "https://www.seogu.gwangju.kr/kor/css/button.css",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 63024 bytes; text/css",
+      "sha256": "3d097c94bd3a186e5af0bbe52362fbc2623ccb6488238c39d4c32f6a62e15486",
+      "source_url": "https://www.seogu.gwangju.kr/kor/css/contents.css",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 13113 bytes; text/css",
+      "sha256": "f92f1e2d31659074ff79af5f71f03c3fe754b9ac241001b36ac3dd67a0746ae1",
+      "source_url": "https://www.seogu.gwangju.kr/kor/css/default.css?v=20260729",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 17 bytes; text/css",
+      "sha256": "eeda6f6208cf7226321ea4ff61ec9b93fde032d5dd25cff49a4941fbca6b2816",
+      "source_url": "https://www.seogu.gwangju.kr/kor/css/layout_respond.css",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 41055 bytes; text/css",
+      "sha256": "e1112caf3c8b6079c2affbf1473ef935208c437fbf9f0a1af257d9ec2b63d303",
+      "source_url": "https://www.seogu.gwangju.kr/kor/css/layout.css?v=20260729",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 17 bytes; text/css",
+      "sha256": "d5571c4c58a7b14b65fe2ea97f84e6db6f32147a71487d07d7fbd56022ada0ae",
+      "source_url": "https://www.seogu.gwangju.kr/kor/css/sub_es.css?v=20260729",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 5074 bytes; text/css",
+      "sha256": "668722a22eee0ece18a00eab735905117e6a7fc6fd4897ab6dcdf207f591a155",
+      "source_url": "https://www.seogu.gwangju.kr/kor/css/sub_respond.css?v=20260729",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 15034 bytes; text/css",
+      "sha256": "6274bed90661b134e40f75dfdbc5f8990b5d43ac15a9e88830ec545a06a0c99b",
+      "source_url": "https://www.seogu.gwangju.kr/kor/css/sub.css?v=20260729",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 8545 bytes; text/css",
+      "sha256": "d895525d02da209bc8815501aabd2cb885add617f76a87813439f99d4d587b94",
+      "source_url": "https://www.seogu.gwangju.kr/kor/css/sub03.css?v=20260729",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 4449 bytes; image/png",
+      "sha256": "5fa669dfc1f2ee3f02d37c0c83e8fd3d3eaea19e78c352e48831273d5df02cec",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/bot-mark01.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2684 bytes; image/png",
+      "sha256": "0809ce482b481c1321bb7d7a16ef88bbadd21ec770e912e5a8fd38efce337da8",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/ico_nara.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 1603 bytes; image/png",
+      "sha256": "a5789795e0ef1011517db20cd81d738d854fd5bdd519d504b708fa6a38658513",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn01.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2101 bytes; image/png",
+      "sha256": "07c754f7b5a4a6b573bedcc290d3dc2522f7ccf8b79ac31550b690bd0aaef42e",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn02.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2399 bytes; image/png",
+      "sha256": "63da191ebeab81140988a197b21fd15bcea0d40d2b1306e6fbd0585c0ce01ef4",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn03.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2228 bytes; image/png",
+      "sha256": "ab2d0a50bf7a9d4bafcf93abee9ed6968909deaa34a66c354d54860f4d1d99d2",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn04.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 1722 bytes; image/png",
+      "sha256": "c8c2a1b334cc9e36144938f51bc4812b572ef0c73369181bce5c3c5c37a3ffea",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn05.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 1581 bytes; image/png",
+      "sha256": "616d65a2eb887774d5b7363c966083e6f8f9bc7b3653e86c93da6e13b575b676",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn06.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2224 bytes; image/png",
+      "sha256": "4c48883c1122ff29a1fc080e0e74382a9364be563c6e5439e6d802bef8372c65",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn07.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2103 bytes; image/png",
+      "sha256": "65da30f599443f207e7fe45b4e13e481aecbd3fbdc1c48ad02e61a024785b6d1",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn08.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2236 bytes; image/png",
+      "sha256": "17c6a15e61a2796b49bc54cc699dd3032bd12389eec23bfe4cb76c94222e4716",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn09.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2289 bytes; image/png",
+      "sha256": "7c69a3fc4606b71b1b7f6f91ab821ec7a3297da60c9e720c362032f7c5e5dd99",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn10.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2037 bytes; image/png",
+      "sha256": "8cf29d4e38c765297a0f3d670205eaab27f7fe528043f2a96746413cbd80f716",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn11.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2344 bytes; image/png",
+      "sha256": "065efd504dc82dcced062ea3b6975497de2cbd0b1369b534601cd1aa0096361f",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn15.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 3381 bytes; image/png",
+      "sha256": "c6e40c259afa601d8bd3f565cde341111d32cd2d9fdc84901c03ed0cf37cfc55",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn16.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 3319 bytes; image/png",
+      "sha256": "180bc68ef59d90c940a8b7553862d0dcd3763ead78a0524663939676eb5f93ed",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn17.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2026 bytes; image/png",
+      "sha256": "49db662533482d887b7b8400008321f256fd78712178a97939d6a8f81e8c376d",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/sns_blog.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 1501 bytes; image/png",
+      "sha256": "3818e4564a2e8742a6b4bd3b2f13badef46bd1af8e478c18f205a314064f0e61",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/sns_kakaoch.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 1267 bytes; image/png",
+      "sha256": "8295eae02861a303e96ba79081cee8dec6701d14745eb4ec02149e53fa3b5fd9",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/sns-band.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 5952 bytes; image/png",
+      "sha256": "aec93eb9d38a49f9309b1a955b21d0eb97ad37580cb7a6c6b6d441507f5d758b",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/top_logo.png",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 33417 bytes; image/svg+xml",
+      "sha256": "726929bc0ec5c501b4cc5caf39d38799c5684dc1a02fb9151dc37b9e5b2fe3f7",
+      "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/top_slogan.svg",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 12898 bytes; text/javascript",
+      "sha256": "ca597630ef537b4a7c9113b150dbef22e6f36af1d8e9bec5c63858a1d095c516",
+      "source_url": "https://www.seogu.gwangju.kr/kor/js/layout.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    },
+    {
+      "provenance_note": "browser-observed same-host GET; 2938 bytes; text/javascript",
+      "sha256": "f582b33ef29451b144907b671bbfb031e983810506e6d1f21b84a4c0914835b1",
+      "source_url": "https://www.seogu.gwangju.kr/kor/js/sub.js",
+      "state_id": "bulky_waste_guidance.default.desktop"
+    }
+  ],
+  "schema_version": 1,
+  "site_id": "seogu_gwangju",
+  "source_identity": {
+    "allowed_hosts": [
+      "www.seogu.gwangju.kr"
+    ],
+    "capture_root": "data/official_captures/seogu_gwangju/g1/20260821T143931-0900",
+    "g1_completion_claim": true,
+    "ledger_path": "data/official_captures/seogu_gwangju/g1/20260821T143931-0900/ledger.json",
+    "ledger_sha256": "00b86552992ffd518367fc8d259798f984af98e294c5307fcca59b4eb5c714eb",
+    "plan_id": "seogu_gwangju.g1.bulky_waste.v1",
+    "plan_path": "configs/reference-plans/seogu_gwangju_bulky_waste.json",
+    "plan_sha256": "ae03afa028844d20914c3b41b84ccaac045fd9d3475efe005a49b6f11835b317"
+  },
+  "state_count": 1,
+  "states": [
+    {
+      "artifacts": [
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260821T143931-0900/states/bulky_waste_guidance.default.desktop/source.html",
+          "class": "html_dom_content",
+          "sha256": "1056232f75e5a20b39032a457574a6a5765439a7ecc63fa82f58a0e10f9e1a2c"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260821T143931-0900/states/bulky_waste_guidance.default.desktop/source.png",
+          "class": "screenshot",
+          "sha256": "b2f79c0e26b27477483c754d2a13ac17d62489fcf5dee603368edf52fbcdffef"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260821T143931-0900/states/bulky_waste_guidance.default.desktop/visible-region-inventory.json",
+          "class": "visible_region_inventory",
+          "sha256": "86a70bf1c70f1e67623f2049e77c31011bbeb625ee7fe7e05c46133905c3e48c"
+        },
+        {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260821T143931-0900/states/bulky_waste_guidance.default.desktop/public-asset-provenance.json",
+          "class": "public_asset_provenance",
+          "sha256": "cc8f26bc0dda3df245d5fa8f9df1b45ccc72c151fed5d3d91e46b69aef3b319d"
+        }
+      ],
+      "attachment_document_extensions": [],
+      "board": null,
+      "captured_at": "2026-08-21T05:39:57.324Z",
+      "content_page": {
+        "blocks": [
+          {
+            "level": 3,
+            "text": "대형폐기물 신고",
+            "type": "heading"
+          },
+          {
+            "items": [
+              "처리대상 : 가구, 침구류, 가전제품류, 주방용품류, 카페트 등 기타류"
+            ],
+            "ordered": false,
+            "type": "list"
+          },
+          {
+            "items": [
+              "전남광주통합특별시 서구 시설관리공단 안내번호 062)374-9446",
+              "신고방법 :「한손」 홈페이지 접속 또는 어플 설치 후 접수(24시간 이용 가능)"
+            ],
+            "ordered": false,
+            "type": "list"
+          },
+          {
+            "text": "접수 시 당일 수거 불가(평균 4~7일 소요)",
+            "type": "paragraph"
+          },
+          {
+            "text": "예약 접수량이 많은 경우 방문 일정이 지연될 수 있습니다.",
+            "type": "paragraph"
+          },
+          {
+            "level": 3,
+            "text": "이불류 배출방법",
+            "type": "heading"
+          },
+          {
+            "items": [
+              "누비이불, 홑이불, 담요 등은 헌옷 수거함에 배출 가능",
+              "이불, 베개, 쿠션 등 대형폐기물로 신고, 접수"
+            ],
+            "ordered": false,
+            "type": "list"
+          },
+          {
+            "level": 3,
+            "text": "대형폐기물 수집·운반수수료 품목별 부과기준",
+            "type": "heading"
+          },
+          {
+            "headings": [
+              "품목류",
+              "품목별",
+              "규 격",
+              "부과금액(원)"
+            ],
+            "rows": [
+              [
+                "가 전제품류",
+                "냉장고(업소용제외)",
+                "800ℓ 이상",
+                "15,000"
+              ],
+              [
+                "500ℓ 이상",
+                "10,000"
+              ],
+              [
+                "300ℓ 이상",
+                "8,000"
+              ],
+              [
+                "300ℓ 미만",
+                "5,000"
+              ],
+              [
+                "텔레비젼",
+                "42인치 이상",
+                "5,000"
+              ],
+              [
+                "29인치 이상",
+                "4,000"
+              ],
+              [
+                "14인치 이상",
+                "3,000"
+              ],
+              [
+                "14인치 미만",
+                "2,000"
+              ],
+              [
+                "세탁기",
+                "통돌이 8kg 이상",
+                "6,000"
+              ],
+              [
+                "통돌이 8kg 미만",
+                "4,000"
+              ],
+              [
+                "드럼세탁기",
+                "10,000"
+              ],
+              [
+                "에어컨(온풍기)",
+                "264㎡ 이상(80평)",
+                "9,000"
+              ],
+              [
+                "66㎡ 이상(20평)",
+                "6,000"
+              ],
+              [
+                "66㎡ 미만(20평 미만)",
+                "4,000"
+              ],
+              [
+                "가스오븐렌지",
+                "높이 1m 이상",
+                "5,000"
+              ],
+              [
+                "높이 1m 미만",
+                "3,000"
+              ],
+              [
+                "탈수기",
+                "모 든 규 격",
+                "3,000"
+              ],
+              [
+                "공기청정기",
+                "높이 1m 이상",
+                "4,000"
+              ],
+              [
+                "높이 1m 미만",
+                "2,000"
+              ],
+              [
+                "청소기",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "팩스기기",
+                "모 든 규 격",
+                "3,000"
+              ],
+              [
+                "컴퓨터",
+                "본 체(키포드 포함)",
+                "5,000"
+              ],
+              [
+                "모 니 터",
+                "3,000"
+              ],
+              [
+                "프 린 터",
+                "4,000"
+              ],
+              [
+                "음향기기(전 축)",
+                "본 체",
+                "3,000"
+              ],
+              [
+                "스피커 1세트(높이 50cm 이상)",
+                "3,000"
+              ],
+              [
+                "스피커 1세트(높이 50cm 미만)",
+                "2,000"
+              ],
+              [
+                "가스렌지",
+                "모 든 규 격",
+                "3,000"
+              ],
+              [
+                "전자레인지",
+                "모 든 규 격",
+                "3,000"
+              ],
+              [
+                "선풍기",
+                "일 반 용",
+                "3,000"
+              ],
+              [
+                "업 소 용",
+                "5,000"
+              ],
+              [
+                "난 로",
+                "모 든 규 격",
+                "4,000"
+              ],
+              [
+                "비디오",
+                "모 든 규 격",
+                "3,000"
+              ],
+              [
+                "가습기",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "복사기",
+                "모 든 규 격",
+                "10,000"
+              ],
+              [
+                "정수기",
+                "높이 1m 이상",
+                "5,000"
+              ],
+              [
+                "높이 1m 미만",
+                "4,000"
+              ],
+              [
+                "식기세척기",
+                "가 정 용",
+                "5,000"
+              ],
+              [
+                "전화기",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "가구류",
+                "장 농",
+                "120cm 1쪽당",
+                "15,000"
+              ],
+              [
+                "90cm 1쪽당",
+                "10,000"
+              ],
+              [
+                "90cm미만 1쪽당",
+                "8,000"
+              ],
+              [
+                "서랍장",
+                "5단 이상",
+                "7,000"
+              ],
+              [
+                "4단 이하",
+                "5,000"
+              ],
+              [
+                "신발장",
+                "폭 1m이상 1쪽당(높이 1m 이상)",
+                "8,000"
+              ],
+              [
+                "폭 1m미만 1쪽당(높이 1m 미만)",
+                "4,000"
+              ],
+              [
+                "문 갑",
+                "4개 이상1세트(높이 1m 이상)",
+                "5,000"
+              ],
+              [
+                "4개 미만1세트(높이 1m 미만)",
+                "3,000"
+              ],
+              [
+                "화장대",
+                "상판 가로 90cm 이상",
+                "7,000"
+              ],
+              [
+                "상판 가로 90cm 미만",
+                "4,000"
+              ],
+              [
+                "거실장",
+                "150cm 이상",
+                "10,000"
+              ],
+              [
+                "60cm 이상",
+                "6,000"
+              ],
+              [
+                "60cm 미만",
+                "3,000"
+              ],
+              [
+                "책 장(책꽂이)",
+                "1.5×2.0m 내외",
+                "12,000"
+              ],
+              [
+                "1.5×1.0m 내외",
+                "8,000"
+              ],
+              [
+                "1.0×1.0m 내외",
+                "6,000"
+              ],
+              [
+                "응접셋트",
+                "6인용 이상 탁자",
+                "7,000"
+              ],
+              [
+                "6인용 미만 탁자",
+                "5,000"
+              ],
+              [
+                "5인용 이상 소파",
+                "15,000"
+              ],
+              [
+                "4인용 소파",
+                "14,000"
+              ],
+              [
+                "3인용 소파",
+                "10,000"
+              ],
+              [
+                "응접셋트",
+                "2인용 소파",
+                "7,000"
+              ],
+              [
+                "1인용 소파",
+                "5,000"
+              ],
+              [
+                "1인용 소파(팔걸이 없음)",
+                "3,000"
+              ],
+              [
+                "침 대",
+                "1인용 침대(세트)",
+                "12,000"
+              ],
+              [
+                "1인용 매트리스",
+                "8,000"
+              ],
+              [
+                "1인용 매트리스 틀",
+                "6,000"
+              ],
+              [
+                "2인용 침대(세트)",
+                "17,000"
+              ],
+              [
+                "2인용 매트리스",
+                "11,000"
+              ],
+              [
+                "2인용 2단 매트리스",
+                "15,000"
+              ],
+              [
+                "2인용 매트리스 틀",
+                "9,000"
+              ],
+              [
+                "2인용 매트리스 틀(플라스틱 재질)",
+                "6,000"
+              ],
+              [
+                "유아용 침대",
+                "10,000"
+              ],
+              [
+                "어린이 2층 침대",
+                "20,000"
+              ],
+              [
+                "침대(돌,옥,흙)",
+                "1인용",
+                "25,000"
+              ],
+              [
+                "2인용",
+                "30,000"
+              ],
+              [
+                "라텍스",
+                "싱글",
+                "6,000"
+              ],
+              [
+                "더블",
+                "9,000"
+              ],
+              [
+                "식 탁",
+                "목재 6인용 이상",
+                "6,000"
+              ],
+              [
+                "목재 6인용 미만",
+                "4,000"
+              ],
+              [
+                "대리석 6인용 이상",
+                "15,000"
+              ],
+              [
+                "대리석 6인용 미만",
+                "10,000"
+              ],
+              [
+                "밥 상",
+                "90cm×90cm 이상",
+                "4,000"
+              ],
+              [
+                "90cm×90cm 미만",
+                "2,000"
+              ],
+              [
+                "싱크대 및싱크 찬장",
+                "소형 1짝당(폭 1m당)",
+                "3,000"
+              ],
+              [
+                "생활용품",
+                "옷걸이",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "쌀 통",
+                "다용도",
+                "5,000"
+              ],
+              [
+                "일 반",
+                "3,000"
+              ],
+              [
+                "벽시계",
+                "모 든 규 격",
+                "3,000"
+              ],
+              [
+                "가 방",
+                "골프가방",
+                "3,000"
+              ],
+              [
+                "캐리어(20ℓ 초과)",
+                "3,000"
+              ],
+              [
+                "그 밖의 가방류",
+                "2,000"
+              ],
+              [
+                "책 상(책장, 책꽂이 별도)",
+                "양수, 대형",
+                "7,000"
+              ],
+              [
+                "편수, 소형",
+                "5,000"
+              ],
+              [
+                "의 자",
+                "고정식 의자",
+                "2,000"
+              ],
+              [
+                "회전식 의자",
+                "3,000"
+              ],
+              [
+                "협 탁",
+                "모 든 규 격",
+                "4,000"
+              ],
+              [
+                "TV 받침대",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "오디오 케이스",
+                "모 든 규 격",
+                "4,000"
+              ],
+              [
+                "장식장(차단스)",
+                "90cm×180cm 이상",
+                "8,000"
+              ],
+              [
+                "90cm×180cm 미만",
+                "6,000"
+              ],
+              [
+                "캐비넷",
+                "모 든 규 격",
+                "6,000"
+              ],
+              [
+                "파일캐비넷",
+                "4단 이상",
+                "6,000"
+              ],
+              [
+                "3단 이하",
+                "3,000"
+              ],
+              [
+                "피아노",
+                "어프라이트",
+                "16,000"
+              ],
+              [
+                "그 랜 드",
+                "25,000"
+              ],
+              [
+                "올 겐",
+                "모 든 규 격",
+                "10,000"
+              ],
+              [
+                "인형류",
+                "50ℓ(1마대)당",
+                "2,000"
+              ],
+              [
+                "장난감류",
+                "50ℓ(1마대)당",
+                "2,000"
+              ],
+              [
+                "재봉틀",
+                "모 든 규 격",
+                "4,000"
+              ],
+              [
+                "기 타",
+                "앰 프",
+                "모 든 규 격",
+                "4,000"
+              ],
+              [
+                "건조대",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "휠체어",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "조명기구",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "변압기",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "아이스박스",
+                "20ℓ 이상",
+                "4,000"
+              ],
+              [
+                "20ℓ 미만",
+                "2,000"
+              ],
+              [
+                "문 짝",
+                "대(방문)",
+                "5,000"
+              ],
+              [
+                "소(창문)",
+                "3,000"
+              ],
+              [
+                "수족관",
+                "가로 2m 이상",
+                "15,000"
+              ],
+              [
+                "가로 1m 이상",
+                "8,000"
+              ],
+              [
+                "가로 1m 미만",
+                "5,000"
+              ],
+              [
+                "오락기",
+                "높이 1.5m 이상(29인치 이상)",
+                "10,000"
+              ],
+              [
+                "높이 1m 이상(29인치 미만)",
+                "8,000"
+              ],
+              [
+                "높이 1m 미만(20인치 이하)",
+                "6,000"
+              ],
+              [
+                "액자, 거울표구, 병풍",
+                "1m 이상",
+                "3,000"
+              ],
+              [
+                "1m 미만",
+                "2,000"
+              ],
+              [
+                "자전거",
+                "일반용(2발)",
+                "4,000"
+              ],
+              [
+                "아동용(3발)",
+                "2,000"
+              ],
+              [
+                "유모차",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "항아리",
+                "20ℓ 이상",
+                "3,000"
+              ],
+              [
+                "20ℓ 미만",
+                "2,000"
+              ],
+              [
+                "세면대",
+                "모 든 규 격",
+                "4,000"
+              ],
+              [
+                "욕 조",
+                "일 반",
+                "8,000"
+              ],
+              [
+                "유 아",
+                "4,000"
+              ],
+              [
+                "변 기",
+                "모 든 규 격",
+                "5,000"
+              ],
+              [
+                "장 판",
+                "1평당(3.3㎡)",
+                "2,000"
+              ],
+              [
+                "전기장판",
+                "일반용(1인용)",
+                "2,000"
+              ],
+              [
+                "일반용(2인용)",
+                "3,000"
+              ],
+              [
+                "일반용(거실용)",
+                "4,000"
+              ],
+              [
+                "옥매트(1인용)",
+                "4,000"
+              ],
+              [
+                "옥매트(2인용)",
+                "6,000"
+              ],
+              [
+                "옥매트(3인용)",
+                "9,000"
+              ],
+              [
+                "카펫, 천막, 이불",
+                "1평당(3.3㎡)",
+                "3,000"
+              ],
+              [
+                "흙, 사기,(깨진)유리",
+                "20ℓ당",
+                "3,000"
+              ],
+              [
+                "목재류",
+                "50ℓ(1마대)당",
+                "3,000"
+              ],
+              [
+                "플라스틱류",
+                "50ℓ(1마대)당",
+                "3,000"
+              ],
+              [
+                "물탱크, 정화조(FRP)",
+                "용적 1.0㎡당",
+                "10,000"
+              ],
+              [
+                "화 분(흙, 돌 제외)",
+                "높이 70cm 미만",
+                "2,000"
+              ],
+              [
+                "높이 70cm 이상",
+                "4,000"
+              ],
+              [
+                "블라인드, 커튼",
+                "모든규격(1피스당)",
+                "3,000"
+              ],
+              [
+                "파티션",
+                "모 든 규 격",
+                "3,000"
+              ],
+              [
+                "밥 솥",
+                "모 든 규 격",
+                "2,000"
+              ],
+              [
+                "강화문",
+                "모 든 규 격",
+                "15,000"
+              ],
+              [
+                "운동기구",
+                "런닝머신",
+                "20,000"
+              ],
+              [
+                "싸이클",
+                "8,000"
+              ],
+              [
+                "그밖의 운동기구",
+                "5,000"
+              ],
+              [
+                "간 판",
+                "60×180cm 이상",
+                "8,000"
+              ],
+              [
+                "60×180cm 미만",
+                "5,000"
+              ],
+              [
+                "입간판",
+                "3,000"
+              ],
+              [
+                "고무통",
+                "90×100cm 이상",
+                "5,000"
+              ],
+              [
+                "90×100cm 미만",
+                "4,000"
+              ],
+              [
+                "70×80cm 이하",
+                "3,000"
+              ],
+              [
+                "도배지",
+                "50ℓ(1마대)당",
+                "3,300"
+              ],
+              [
+                "합 판",
+                "1장당",
+                "4,000"
+              ],
+              [
+                "분말소화기",
+                "3.3kg당",
+                "3,000"
+              ],
+              [
+                "안마의자",
+                "대(大)",
+                "20,000"
+              ],
+              [
+                "소(小)",
+                "15,000"
+              ]
+            ],
+            "type": "table"
+          },
+          {
+            "items": [
+              "아래에 표기되지 않은 품목은 유사품목에 준하여 부과합니다.",
+              "쓰레기봉투에 담기 어려운 폐기물 : 20ℓ당 3,000원",
+              "대형폐기물을 배출하고자 하는 경우 위탁업체(서구시설관리공단)에 어플 또는 홈페이지로 신고하여야 합니다."
+            ],
+            "ordered": false,
+            "type": "list"
+          }
+        ],
+        "contents_info": {
+          "items": [
+            {
+              "label": "담당부서",
+              "value": "자원순환과 자원순환관리"
+            },
+            {
+              "label": "연락처",
+              "value": "062-360-7287"
+            }
+          ],
+          "kind": "duty",
+          "title": "콘텐츠 정보책임자"
+        },
+        "kind": "content_page"
+      },
+      "controls": [
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "보건소"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "문화관광"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "서구의회"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "행정복지센터"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "소상공인경영지원센터"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "서구시설관리공단"
+        },
+        {
+          "class_name": "btn",
+          "id": null,
+          "tag": "a",
+          "text": "주요 누리집"
+        },
+        {
+          "class_name": "btn",
+          "id": null,
+          "tag": "a",
+          "text": "Language"
+        },
+        {
+          "class_name": "facebook",
+          "id": null,
+          "tag": "a",
+          "text": "페이스북"
+        },
+        {
+          "class_name": "kakaoch",
+          "id": null,
+          "tag": "a",
+          "text": "카카오톡채널"
+        },
+        {
+          "class_name": "kakaostory",
+          "id": null,
+          "tag": "a",
+          "text": "카카오스토리"
+        },
+        {
+          "class_name": "band",
+          "id": null,
+          "tag": "a",
+          "text": "밴드"
+        },
+        {
+          "class_name": "naver",
+          "id": null,
+          "tag": "a",
+          "text": "네이버"
+        },
+        {
+          "class_name": "instagram",
+          "id": null,
+          "tag": "a",
+          "text": "인스타그램"
+        },
+        {
+          "class_name": "youtube",
+          "id": null,
+          "tag": "a",
+          "text": "유튜브"
+        },
+        {
+          "class_name": "slogan",
+          "id": null,
+          "tag": "a",
+          "text": "함께 서구 우뚝서구"
+        },
+        {
+          "class_name": "search_keyword",
+          "id": "allKeyWord2",
+          "tag": "input",
+          "text": "검색"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "button",
+          "text": "검색"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "전남광주통합특별시 서구 GWANGJU CITY SEOGU"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "열린민원"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "소통참여"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "정보공개"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "구정소식"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "서구소개"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "분야별정보"
+        },
+        {
+          "class_name": "control open",
+          "id": null,
+          "tag": "a",
+          "text": "전체메뉴"
+        },
+        {
+          "class_name": "linkWindow",
+          "id": null,
+          "tag": "a",
+          "text": "세무"
+        },
+        {
+          "class_name": "linkWindow",
+          "id": null,
+          "tag": "a",
+          "text": "재정"
+        },
+        {
+          "class_name": "linkWindow",
+          "id": null,
+          "tag": "a",
+          "text": "복지정책"
+        },
+        {
+          "class_name": "linkWindow",
+          "id": null,
+          "tag": "a",
+          "text": "교통"
+        },
+        {
+          "class_name": "linkWindow",
+          "id": null,
+          "tag": "a",
+          "text": "문화관광"
+        },
+        {
+          "class_name": "linkWindow",
+          "id": null,
+          "tag": "a",
+          "text": "보건의료"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "여성/아동/청소년/청년"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "생활"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "홈"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "분야별정보"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "도시/환경/위생"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "폐기물"
+        },
+        {
+          "class_name": "active",
+          "id": null,
+          "tag": "a",
+          "text": "대형폐기물 신고"
+        },
+        {
+          "class_name": "btn up",
+          "id": null,
+          "tag": "a",
+          "text": "글자 크게"
+        },
+        {
+          "class_name": "btn down",
+          "id": null,
+          "tag": "a",
+          "text": "글자 작게"
+        },
+        {
+          "class_name": "btn open",
+          "id": null,
+          "tag": "a",
+          "text": "공유하기"
+        },
+        {
+          "class_name": "btn print",
+          "id": null,
+          "tag": "a",
+          "text": "인쇄"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "생활폐기물 배출/수거"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "대형폐기물 신고"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "재활용품 분리배출"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "폐의약품 처리요령"
+        },
+        {
+          "class_name": "",
+          "id": null,
+          "tag": "a",
+          "text": "안내번호 062)374-9446"
+        },
+        {
+          "class_name": "anchorLink up",
+          "id": null,
+          "tag": "a",
+          "text": "TOP"
+        }
+      ],
+      "device_class": "desktop",
+      "document_geometry": {
+        "full_page_screenshot": {
+          "artifact_id": "data/official_captures/seogu_gwangju/g1/20260821T143931-0900/states/bulky_waste_guidance.default.desktop/source.png",
+          "height": 11079,
+          "sha256": "b2f79c0e26b27477483c754d2a13ac17d62489fcf5dee603368edf52fbcdffef",
+          "width": 1440
+        },
+        "viewport": {
+          "height": 900,
+          "width": 1440
+        }
+      },
+      "download_references": [
+        {
+          "ext": "es",
+          "href": "/boardDownload.es?bid=ATT&amp;list_no=35515&amp;seq=2"
+        }
+      ],
+      "exceptions": [
+        {
+          "code": "request_blocked_by_capture_policy",
+          "detail": "GET https://developers.kakao.com/sdk/js/kakao.js"
+        },
+        {
+          "code": "request_blocked_by_capture_policy",
+          "detail": "GET https://fonts.googleapis.com/css?family=Roboto:300,400,500,600,700,800,900"
+        }
+      ],
+      "final_http_status": 200,
+      "final_url": "https://www.seogu.gwangju.kr/menu.es?mid=a10308010200",
+      "general_links": [
+        {
+          "href": "/health",
+          "order": 1,
+          "text": "보건소"
+        },
+        {
+          "href": "/culture",
+          "order": 2,
+          "text": "문화관광"
+        },
+        {
+          "href": "https://www.gjsc.or.kr/kr/main.do",
+          "order": 3,
+          "text": "서구의회"
+        },
+        {
+          "href": "/dong",
+          "order": 4,
+          "text": "행정복지센터"
+        },
+        {
+          "href": "/support",
+          "order": 5,
+          "text": "소상공인경영지원센터"
+        },
+        {
+          "href": "https://seogufmc.or.kr",
+          "order": 6,
+          "text": "서구시설관리공단"
+        },
+        {
+          "href": "/ceo/",
+          "order": 7,
+          "text": "내곁에 구청장실"
+        },
+        {
+          "href": "/finance/",
+          "order": 8,
+          "text": "구정살림"
+        },
+        {
+          "href": "/tax/",
+          "order": 9,
+          "text": "세무민원실"
+        },
+        {
+          "href": "/traffic/",
+          "order": 10,
+          "text": "교통민원실"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/trafficminwon/",
+          "order": 11,
+          "text": "불법주정차단속민원"
+        },
+        {
+          "href": "/child/",
+          "order": 12,
+          "text": "청소년소통방"
+        },
+        {
+          "href": "/welfare/",
+          "order": 13,
+          "text": "복지정책"
+        },
+        {
+          "href": "/health/",
+          "order": 14,
+          "text": "보건소"
+        },
+        {
+          "href": "/medical/",
+          "order": 15,
+          "text": "정신건강복지센터"
+        },
+        {
+          "href": "/town/",
+          "order": 16,
+          "text": "서구마을공동체지원센터"
+        },
+        {
+          "href": "/share/",
+          "order": 17,
+          "text": "물품공유센터"
+        },
+        {
+          "href": "/goodjob/",
+          "order": 18,
+          "text": "일자리센터"
+        },
+        {
+          "href": "/highedu/",
+          "order": 19,
+          "text": "하이에듀넷"
+        },
+        {
+          "href": "/seoro2eum/",
+          "order": 20,
+          "text": "사회적가치지원센터"
+        },
+        {
+          "href": "/support/",
+          "order": 21,
+          "text": "소상공인경영지원센터"
+        },
+        {
+          "href": "/info/",
+          "order": 22,
+          "text": "통합예약서비스"
+        },
+        {
+          "href": "/news/",
+          "order": 23,
+          "text": "구정소식"
+        },
+        {
+          "href": "/sgcc/",
+          "order": 24,
+          "text": "빛고을국악전수관"
+        },
+        {
+          "href": "/dong/",
+          "order": 25,
+          "text": "행정복지센터"
+        },
+        {
+          "href": "https://www.gjsc.or.kr/kr/main.do",
+          "order": 26,
+          "text": "서구의회"
+        },
+        {
+          "href": "/365edu/",
+          "order": 27,
+          "text": "평생학습관(세큰대)"
+        },
+        {
+          "href": "/library/",
+          "order": 28,
+          "text": "서구구립도서관"
+        },
+        {
+          "href": "/culture/",
+          "order": 29,
+          "text": "문화관광"
+        },
+        {
+          "href": "https://seobitmaru.seogu.gwangju.kr",
+          "order": 30,
+          "text": "서빛마루문화예술회관"
+        },
+        {
+          "href": "/sgfesta/",
+          "order": 31,
+          "text": "억새축제"
+        },
+        {
+          "href": "/eng/",
+          "order": 32,
+          "text": "ENG"
+        },
+        {
+          "href": "/cn/",
+          "order": 33,
+          "text": "CHN"
+        },
+        {
+          "href": "/jp/",
+          "order": 34,
+          "text": "JPN"
+        },
+        {
+          "href": "https://ko-kr.facebook.com/jngjseogu",
+          "order": 35,
+          "text": "페이스북"
+        },
+        {
+          "href": "https://pf.kakao.com/_MZDxlC",
+          "order": 36,
+          "text": "카카오톡채널"
+        },
+        {
+          "href": "https://story.kakao.com/ch/gjseogu",
+          "order": 37,
+          "text": "카카오스토리"
+        },
+        {
+          "href": "http://band.us/@gwangjuseogu",
+          "order": 38,
+          "text": "밴드"
+        },
+        {
+          "href": "http://blog.naver.com/gwangjuseogu",
+          "order": 39,
+          "text": "네이버"
+        },
+        {
+          "href": "https://www.instagram.com/jngjseogu/",
+          "order": 40,
+          "text": "인스타그램"
+        },
+        {
+          "href": "https://www.youtube.com/channel/UCsNLUJTyA0cKnawgyf1cNbg",
+          "order": 41,
+          "text": "유튜브"
+        },
+        {
+          "href": "/kor/",
+          "order": 42,
+          "text": "함께 서구 우뚝서구"
+        },
+        {
+          "href": "/findeepSearch.es?mid=a10700000000",
+          "order": 43,
+          "text": "검색"
+        },
+        {
+          "href": "/kor/",
+          "order": 44,
+          "text": "전남광주통합특별시 서구 GWANGJU CITY SEOGU"
+        },
+        {
+          "href": "/menu.es?mid=a10201070000",
+          "order": 45,
+          "text": "열린민원"
+        },
+        {
+          "href": "/menu.es?mid=a10201070000",
+          "order": 46,
+          "text": "민원안내"
+        },
+        {
+          "href": "/menu.es?mid=a10201070000",
+          "order": 47,
+          "text": "민원실안내"
+        },
+        {
+          "href": "/menu.es?mid=a10201160000",
+          "order": 48,
+          "text": "순번대기현황"
+        },
+        {
+          "href": "/menu.es?mid=a10201040000",
+          "order": 49,
+          "text": "무인민원발급안내"
+        },
+        {
+          "href": "/menu.es?mid=a10201130100",
+          "order": 50,
+          "text": "가족관계등록"
+        },
+        {
+          "href": "/menu.es?mid=a10201090000",
+          "order": 51,
+          "text": "민원사무편람"
+        },
+        {
+          "href": "/menu.es?mid=a10201100000",
+          "order": 52,
+          "text": "민원서식"
+        },
+        {
+          "href": "/menu.es?mid=a10201110100",
+          "order": 53,
+          "text": "민원편의시책"
+        },
+        {
+          "href": "https://www.share.go.kr/",
+          "order": 54,
+          "text": "행정정보공동이용"
+        },
+        {
+          "href": "/menu.es?mid=a10201140100",
+          "order": 55,
+          "text": "제증명 수수료"
+        },
+        {
+          "href": "/menu.es?mid=a10201150000",
+          "order": 56,
+          "text": "부동산종합증명서발급"
+        },
+        {
+          "href": "/menu.es?mid=a10204010000",
+          "order": 57,
+          "text": "민원상담"
+        },
+        {
+          "href": "/menu.es?mid=a10204010000",
+          "order": 58,
+          "text": "상담신청하기"
+        },
+        {
+          "href": "/menu.es?mid=a10204020000",
+          "order": 59,
+          "text": "나의민원보기"
+        },
+        {
+          "href": "/menu.es?mid=a10204030000",
+          "order": 60,
+          "text": "무료법률상담"
+        },
+        {
+          "href": "https://www.110.go.kr/start.do",
+          "order": 61,
+          "text": "수어/채팅상담"
+        },
+        {
+          "href": "/menu.es?mid=a10202010000",
+          "order": 62,
+          "text": "여권민원"
+        },
+        {
+          "href": "/menu.es?mid=a10202010000",
+          "order": 63,
+          "text": "여권안내"
+        },
+        {
+          "href": "/menu.es?mid=a10202020100",
+          "order": 64,
+          "text": "여권발급"
+        },
+        {
+          "href": "/menu.es?mid=a10202070000",
+          "order": 65,
+          "text": "여권 온라인 사전예약"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/tax/",
+          "order": 66,
+          "text": "세무민원"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/traffic/",
+          "order": 67,
+          "text": "교통민원"
+        },
+        {
+          "href": "/menu.es?mid=a10401010000",
+          "order": 68,
+          "text": "소통참여"
+        },
+        {
+          "href": "/menu.es?mid=a10401010000",
+          "order": 69,
+          "text": "주민참여"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/menu.es?mid=a50303000000",
+          "order": 70,
+          "text": "바로문자하랑께"
+        },
+        {
+          "href": "/menu.es?mid=a10401010000",
+          "order": 71,
+          "text": "칭찬합시다"
+        },
+        {
+          "href": "/menu.es?mid=a10401050000",
+          "order": 72,
+          "text": "설문조사"
+        },
+        {
+          "href": "https://www.epeople.go.kr/idea/gjseogu",
+          "order": 73,
+          "text": "국민생각함"
+        },
+        {
+          "href": "/menu.es?mid=a10401030100",
+          "order": 74,
+          "text": "주민제안"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/info/",
+          "order": 75,
+          "text": "통합예약"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/applySearchList.es?mid=c40101000000&srh_div=L",
+          "order": 76,
+          "text": "교육/강좌"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/applySearchList.es?mid=c40201000000&srh_div=A",
+          "order": 77,
+          "text": "문화/행사"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/applySearchList.es?mid=c40301000000&srh_div=C",
+          "order": 78,
+          "text": "시설/대관/여권"
+        },
+        {
+          "href": "/menu.es?mid=a10404010000",
+          "order": 79,
+          "text": "정보화교육"
+        },
+        {
+          "href": "/menu.es?mid=a10404010100",
+          "order": 80,
+          "text": "교육안내"
+        },
+        {
+          "href": "/menu.es?mid=a10404030000",
+          "order": 81,
+          "text": "교육신청"
+        },
+        {
+          "href": "/menu.es?mid=a10407010000",
+          "order": 82,
+          "text": "공유자원"
+        },
+        {
+          "href": "/menu.es?mid=a10407010000",
+          "order": 83,
+          "text": "공유도시소개"
+        },
+        {
+          "href": "/share/",
+          "order": 84,
+          "text": "물품공유센터"
+        },
+        {
+          "href": "http://sharegj.kr/app/board/index?md_id=notice",
+          "order": 85,
+          "text": "공유광주"
+        },
+        {
+          "href": "http://sharegj.kr/app/board/index?md_id=share",
+          "order": 86,
+          "text": "공유자원 주고받기"
+        },
+        {
+          "href": "/menu.es?mid=a10414010000",
+          "order": 87,
+          "text": "투명행정"
+        },
+        {
+          "href": "/menu.es?mid=a10414010100",
+          "order": 88,
+          "text": "청렴한 서구"
+        },
+        {
+          "href": "/menu.es?mid=a10414020100",
+          "order": 89,
+          "text": "적극행정"
+        },
+        {
+          "href": "/menu.es?mid=a10414030000",
+          "order": 90,
+          "text": "청원제도"
+        },
+        {
+          "href": "/menu.es?mid=a10515010000",
+          "order": 91,
+          "text": "정보공개"
+        },
+        {
+          "href": "/menu.es?mid=a10515010000",
+          "order": 92,
+          "text": "정보공개제도"
+        },
+        {
+          "href": "/menu.es?mid=a10515010100",
+          "order": 93,
+          "text": "사전정보공표"
+        },
+        {
+          "href": "/menu.es?mid=a10515020100",
+          "order": 94,
+          "text": "정보공개제도"
+        },
+        {
+          "href": "/menu.es?mid=a10515040000",
+          "order": 95,
+          "text": "비공개세부기준"
+        },
+        {
+          "href": "/menu.es?mid=a10515030200",
+          "order": 96,
+          "text": "정보목록/원문공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518010000",
+          "order": 97,
+          "text": "행정정보공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518010100",
+          "order": 98,
+          "text": "조직정보 공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518020100",
+          "order": 99,
+          "text": "위원회 공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518030100",
+          "order": 100,
+          "text": "업무추진비 공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518040000",
+          "order": 101,
+          "text": "상품권 구매 및 사용내역 공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518050000",
+          "order": 102,
+          "text": "공무원 겸직현황 공개"
+        },
+        {
+          "href": "/menu.es?mid=a10517010000",
+          "order": 103,
+          "text": "공공데이터 개방"
+        },
+        {
+          "href": "/menu.es?mid=a10517010000",
+          "order": 104,
+          "text": "공공데이터 개방"
+        },
+        {
+          "href": "https://www.data.go.kr/osd/eduSupport.do",
+          "order": 105,
+          "text": "공공데이터 교육"
+        },
+        {
+          "href": "/menu.es?mid=a10517030000",
+          "order": 106,
+          "text": "상시 수요조사"
+        },
+        {
+          "href": "http://gyeyak.seogu.gwangju.kr/",
+          "order": 107,
+          "text": "계약정보공개"
+        },
+        {
+          "href": "/menu.es?mid=a10507010000",
+          "order": 108,
+          "text": "정책실명제"
+        },
+        {
+          "href": "/menu.es?mid=a10507010000",
+          "order": 109,
+          "text": "중점관리대상사업 목록"
+        },
+        {
+          "href": "/menu.es?mid=a10507020000",
+          "order": 110,
+          "text": "중점관리대상사업 추진현황"
+        },
+        {
+          "href": "/menu.es?mid=a10507030000",
+          "order": 111,
+          "text": "국민신청실명제 신청"
+        },
+        {
+          "href": "/menu.es?mid=a10510020000",
+          "order": 112,
+          "text": "통계정보"
+        },
+        {
+          "href": "/menu.es?mid=a10510020000",
+          "order": 113,
+          "text": "통계연보"
+        },
+        {
+          "href": "/menu.es?mid=a10510030000",
+          "order": 114,
+          "text": "사업체통계"
+        },
+        {
+          "href": "/menu.es?mid=a10510050000",
+          "order": 115,
+          "text": "월별인구현황"
+        },
+        {
+          "href": "/menu.es?mid=a10511020000",
+          "order": 116,
+          "text": "기타"
+        },
+        {
+          "href": "/menu.es?mid=a10511020000",
+          "order": 117,
+          "text": "공개자료실"
+        },
+        {
+          "href": "https://www.elis.go.kr/locgovalr/locgovClAlrList?ctpvSggCd=29140",
+          "order": 118,
+          "text": "자치법규"
+        },
+        {
+          "href": "/menu.es?mid=a10511030000",
+          "order": 119,
+          "text": "구정백서"
+        },
+        {
+          "href": "/menu.es?mid=a10511040000",
+          "order": 120,
+          "text": "주요업무계획"
+        },
+        {
+          "href": "/menu.es?mid=a10511050000",
+          "order": 121,
+          "text": "영조물배상공제"
+        },
+        {
+          "href": "/menu.es?mid=a10801000000",
+          "order": 122,
+          "text": "구정소식"
+        },
+        {
+          "href": "/menu.es?mid=a10801000000",
+          "order": 123,
+          "text": "공지사항"
+        },
+        {
+          "href": "/menu.es?mid=a10807010000",
+          "order": 124,
+          "text": "고시/공고"
+        },
+        {
+          "href": "/menu.es?mid=a10807010000",
+          "order": 125,
+          "text": "현재 고시/공고"
+        },
+        {
+          "href": "/menu.es?mid=a10807020000",
+          "order": 126,
+          "text": "이전 고시/공고"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/board.es?mid=c50501000000&bid=0154",
+          "order": 127,
+          "text": "보도자료"
+        },
+        {
+          "href": "/menu.es?mid=a10810010000",
+          "order": 128,
+          "text": "채용공고"
+        },
+        {
+          "href": "/menu.es?mid=a10810010000",
+          "order": 129,
+          "text": "현재 채용공고"
+        },
+        {
+          "href": "/menu.es?mid=a10810020000",
+          "order": 130,
+          "text": "이전 채용공고"
+        },
+        {
+          "href": "/menu.es?mid=a10805010000",
+          "order": 131,
+          "text": "입찰공고"
+        },
+        {
+          "href": "/menu.es?mid=a10805010000",
+          "order": 132,
+          "text": "현재 입찰공고"
+        },
+        {
+          "href": "/menu.es?mid=a10805020000",
+          "order": 133,
+          "text": "이전 입찰공고"
+        },
+        {
+          "href": "/menu.es?mid=a10806000000",
+          "order": 134,
+          "text": "카드뉴스"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/board.es?mid=c50101000000&bid=0001",
+          "order": 135,
+          "text": "서구소식지"
+        },
+        {
+          "href": "/menu.es?mid=a10802000000",
+          "order": 136,
+          "text": "타기관소식"
+        },
+        {
+          "href": "/menu.es?mid=a10808000000",
+          "order": 137,
+          "text": "입법예고"
+        },
+        {
+          "href": "/menu.es?mid=a10809000000",
+          "order": 138,
+          "text": "시설관리공단소식"
+        },
+        {
+          "href": "/menu.es?mid=a10811000000",
+          "order": 139,
+          "text": "인사정보"
+        },
+        {
+          "href": "/menu.es?mid=a10101010000",
+          "order": 140,
+          "text": "서구소개"
+        },
+        {
+          "href": "/menu.es?mid=a10101010000",
+          "order": 141,
+          "text": "서구소개"
+        },
+        {
+          "href": "/menu.es?mid=a10101010000",
+          "order": 142,
+          "text": "서구연혁"
+        },
+        {
+          "href": "/menu.es?mid=a10101020100",
+          "order": 143,
+          "text": "서구상징"
+        },
+        {
+          "href": "/menu.es?mid=a10101110000",
+          "order": 144,
+          "text": "기본현황"
+        },
+        {
+          "href": "/menu.es?mid=a10101040000",
+          "order": 145,
+          "text": "행정구역안내"
+        },
+        {
+          "href": "/menu.es?mid=a10101120100",
+          "order": 146,
+          "text": "교류도시"
+        },
+        {
+          "href": "/menu.es?mid=a10101130000",
+          "order": 147,
+          "text": "수상실적"
+        },
+        {
+          "href": "/menu.es?mid=a10101140100",
+          "order": 148,
+          "text": "서구펜싱팀"
+        },
+        {
+          "href": "/menu.es?mid=a10106030000",
+          "order": 149,
+          "text": "청사안내"
+        },
+        {
+          "href": "/menu.es?mid=a10106030000",
+          "order": 150,
+          "text": "행정조직도"
+        },
+        {
+          "href": "/menu.es?mid=a10106040000",
+          "order": 151,
+          "text": "직원 업무안내"
+        },
+        {
+          "href": "/menu.es?mid=a10106050100",
+          "order": 152,
+          "text": "전화번호 안내"
+        },
+        {
+          "href": "/menu.es?mid=a10106010100",
+          "order": 153,
+          "text": "층별안내"
+        },
+        {
+          "href": "/menu.es?mid=a10106020000",
+          "order": 154,
+          "text": "오시는길"
+        },
+        {
+          "href": "/menu.es?mid=a10108020000",
+          "order": 155,
+          "text": "장학재단"
+        },
+        {
+          "href": "/menu.es?mid=a10108020000",
+          "order": 156,
+          "text": "장학재단 소개"
+        },
+        {
+          "href": "/menu.es?mid=a10108050000",
+          "order": 157,
+          "text": "장학기금 기탁"
+        },
+        {
+          "href": "/menu.es?mid=a10108060000",
+          "order": 158,
+          "text": "장학재단 소식"
+        },
+        {
+          "href": "/menu.es?mid=a10108070000",
+          "order": 159,
+          "text": "후원하신 분"
+        },
+        {
+          "href": "/menu.es?mid=a10108090000",
+          "order": 160,
+          "text": "포토갤러리"
+        },
+        {
+          "href": "/menu.es?mid=a10108080000",
+          "order": 161,
+          "text": "공익위반 제보"
+        },
+        {
+          "href": "/menu.es?mid=a10113010000",
+          "order": 162,
+          "text": "서구 아너스"
+        },
+        {
+          "href": "/menu.es?mid=a10113010000",
+          "order": 163,
+          "text": "아너스 소개"
+        },
+        {
+          "href": "/menu.es?mid=a10113020000",
+          "order": 164,
+          "text": "명예의 전당"
+        },
+        {
+          "href": "/menu.es?mid=a10113030100",
+          "order": 165,
+          "text": "아너스 사업"
+        },
+        {
+          "href": "/menu.es?mid=a10311000000",
+          "order": 166,
+          "text": "분야별정보"
+        },
+        {
+          "href": "/tax",
+          "order": 167,
+          "text": "세무"
+        },
+        {
+          "href": "/finance/",
+          "order": 168,
+          "text": "재정"
+        },
+        {
+          "href": "/welfare/",
+          "order": 169,
+          "text": "복지정책"
+        },
+        {
+          "href": "/traffic/",
+          "order": 170,
+          "text": "교통"
+        },
+        {
+          "href": "/culture/",
+          "order": 171,
+          "text": "문화관광"
+        },
+        {
+          "href": "/health/",
+          "order": 172,
+          "text": "보건의료"
+        },
+        {
+          "href": "/menu.es?mid=a10304080100",
+          "order": 173,
+          "text": "여성/아동/청소년/청년"
+        },
+        {
+          "href": "/menu.es?mid=a10304080100",
+          "order": 174,
+          "text": "여성"
+        },
+        {
+          "href": "/menu.es?mid=a10304090100",
+          "order": 175,
+          "text": "아동"
+        },
+        {
+          "href": "/menu.es?mid=a10304100100",
+          "order": 176,
+          "text": "가족(다문화)"
+        },
+        {
+          "href": "/menu.es?mid=a10304060000",
+          "order": 177,
+          "text": "드림스타트"
+        },
+        {
+          "href": "/menu.es?mid=a10304110000",
+          "order": 178,
+          "text": "청소년부모"
+        },
+        {
+          "href": "/menu.es?mid=a10304120000",
+          "order": 179,
+          "text": "청년"
+        },
+        {
+          "href": "/menu.es?mid=a10305010000",
+          "order": 180,
+          "text": "생활"
+        },
+        {
+          "href": "/menu.es?mid=a10305010000",
+          "order": 181,
+          "text": "생활지원서비스"
+        },
+        {
+          "href": "/menu.es?mid=a10305040100",
+          "order": 182,
+          "text": "공공일자리정보"
+        },
+        {
+          "href": "/menu.es?mid=a10305050100",
+          "order": 183,
+          "text": "365민원봉사실"
+        },
+        {
+          "href": "/menu.es?mid=a10315010100",
+          "order": 184,
+          "text": "경제"
+        },
+        {
+          "href": "/menu.es?mid=a10315010100",
+          "order": 185,
+          "text": "물가경제"
+        },
+        {
+          "href": "/menu.es?mid=a10315030100",
+          "order": 186,
+          "text": "서구일자리센터"
+        },
+        {
+          "href": "/menu.es?mid=a10315040100",
+          "order": 187,
+          "text": "사회적기업"
+        },
+        {
+          "href": "/menu.es?mid=a10315050100",
+          "order": 188,
+          "text": "협동조합"
+        },
+        {
+          "href": "/menu.es?mid=a10315060100",
+          "order": 189,
+          "text": "마을기업"
+        },
+        {
+          "href": "/menu.es?mid=a10315070200",
+          "order": 190,
+          "text": "동물복지"
+        },
+        {
+          "href": "/menu.es?mid=a10306150000",
+          "order": 191,
+          "text": "안전/민방위"
+        },
+        {
+          "href": "/menu.es?mid=a10306150000",
+          "order": 192,
+          "text": "안전관리헌장"
+        },
+        {
+          "href": "/menu.es?mid=a10306010100",
+          "order": 193,
+          "text": "국민행동요령"
+        },
+        {
+          "href": "/menu.es?mid=a10306020100",
+          "order": 194,
+          "text": "민방위"
+        },
+        {
+          "href": "/menu.es?mid=a10306030100",
+          "order": 195,
+          "text": "재난신고"
+        },
+        {
+          "href": "/menu.es?mid=a10306040000",
+          "order": 196,
+          "text": "지진옥외대피장소"
+        },
+        {
+          "href": "https://www.safetyreport.go.kr/#main",
+          "order": 197,
+          "text": "안전신문고"
+        },
+        {
+          "href": "/menu.es?mid=a10306070000",
+          "order": 198,
+          "text": "재난안전사고유형"
+        },
+        {
+          "href": "/menu.es?mid=a10306080100",
+          "order": 199,
+          "text": "풍수해·지진재해보험 가입안내"
+        },
+        {
+          "href": "/menu.es?mid=a10306130000",
+          "order": 200,
+          "text": "구민안전보험"
+        },
+        {
+          "href": "https://www.mois.go.kr/frt/sub/a06/b11/disasterGuarantee/screen.do",
+          "order": 201,
+          "text": "재난배상책임보험 안내"
+        },
+        {
+          "href": "https://www.safetv.go.kr/base/main/view",
+          "order": 202,
+          "text": "국민안전교육"
+        },
+        {
+          "href": "/menu.es?mid=a10306160100",
+          "order": 203,
+          "text": "소화기"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 204,
+          "text": "도시/환경/위생"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 205,
+          "text": "폐기물"
+        },
+        {
+          "href": "/menu.es?mid=a10308020100",
+          "order": 206,
+          "text": "재활용"
+        },
+        {
+          "href": "/menu.es?mid=a10308030200",
+          "order": 207,
+          "text": "청소/환경"
+        },
+        {
+          "href": "/menu.es?mid=a10308040800",
+          "order": 208,
+          "text": "위생관리"
+        },
+        {
+          "href": "/menu.es?mid=a10308120100",
+          "order": 209,
+          "text": "미세먼지"
+        },
+        {
+          "href": "/menu.es?mid=a10308140000",
+          "order": 210,
+          "text": "라돈측정기 대여 안내"
+        },
+        {
+          "href": "/menu.es?mid=a10308060100",
+          "order": 211,
+          "text": "주택재개발 정비사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308070100",
+          "order": 212,
+          "text": "주택재건축정비사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308150000",
+          "order": 213,
+          "text": "공동주택"
+        },
+        {
+          "href": "/menu.es?mid=a10308160000",
+          "order": 214,
+          "text": "주택임대사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308080100",
+          "order": 215,
+          "text": "건축정보"
+        },
+        {
+          "href": "/menu.es?mid=a10308170100",
+          "order": 216,
+          "text": "도로명주소"
+        },
+        {
+          "href": "/menu.es?mid=a10308100500",
+          "order": 217,
+          "text": "부동산정보"
+        },
+        {
+          "href": "/menu.es?mid=a10308110100",
+          "order": 218,
+          "text": "음식물쓰레기"
+        },
+        {
+          "href": "/menu.es?mid=a10308180000",
+          "order": 219,
+          "text": "2045 탄소중립 서구"
+        },
+        {
+          "href": "/menu.es?mid=a10308190500",
+          "order": 220,
+          "text": "자전거"
+        },
+        {
+          "href": "/menu.es?mid=a10308200100",
+          "order": 221,
+          "text": "현수막게시대"
+        },
+        {
+          "href": "/menu.es?mid=a10308210000",
+          "order": 222,
+          "text": "지역주택조합현황"
+        },
+        {
+          "href": "/menu.es?mid=a10308220000",
+          "order": 223,
+          "text": "주택건설사업계획승인현황"
+        },
+        {
+          "href": "/menu.es?mid=a10308230100",
+          "order": 224,
+          "text": "군소음보상"
+        },
+        {
+          "href": "/menu.es?mid=a10308240000",
+          "order": 225,
+          "text": "디지털저장매체파기 서비스"
+        },
+        {
+          "href": "/menu.es?mid=a10311020000",
+          "order": 226,
+          "text": "행정"
+        },
+        {
+          "href": "/menu.es?mid=a10311020100",
+          "order": 227,
+          "text": "행정규제개혁"
+        },
+        {
+          "href": "https://eminwon.seogu.gwangju.kr/emwp/gov/mogaha/ntis/web/caf/mwwd/action/CafMwWdOpenAction.do?method=selectListAdmm&menu_id=CAFOPNWebAdmmOpenL&jndinm=CafMwWdOpenEJB&methodnm=selectListAdmm&context=NTIS",
+          "order": 228,
+          "text": "행정처분공개"
+        },
+        {
+          "href": "/menu.es?mid=a10311040000",
+          "order": 229,
+          "text": "공유일반재산"
+        },
+        {
+          "href": "/menu.es?mid=a10311050100",
+          "order": 230,
+          "text": "ONE-CLICK 법령정보"
+        },
+        {
+          "href": "/menu.es?mid=a10311070000",
+          "order": 231,
+          "text": "인사·채용 통계"
+        },
+        {
+          "href": "/menu.es?mid=a10316010000",
+          "order": 232,
+          "text": "지속가능발전"
+        },
+        {
+          "href": "/menu.es?mid=a10316010000",
+          "order": 233,
+          "text": "지속가능발전"
+        },
+        {
+          "href": "/menu.es?mid=a10316020000",
+          "order": 234,
+          "text": "지속가능발전도시 광주 서구"
+        },
+        {
+          "href": "/menu.es?mid=a10316030100",
+          "order": 235,
+          "text": "기본계획 및 이행계획"
+        },
+        {
+          "href": "/menu.es?mid=a10316060100",
+          "order": 236,
+          "text": "기본전략 및 추진계획"
+        },
+        {
+          "href": "/menu.es?mid=a10316070100",
+          "order": 237,
+          "text": "지속가능발전 보고서"
+        },
+        {
+          "href": "/menu.es?mid=a10316050000",
+          "order": 238,
+          "text": "지속가능발전 영상"
+        },
+        {
+          "href": "/menu.es?mid=a10317010000",
+          "order": 239,
+          "text": "고향사랑기부제"
+        },
+        {
+          "href": "/menu.es?mid=a10317010000",
+          "order": 240,
+          "text": "소개"
+        },
+        {
+          "href": "/menu.es?mid=a10317020000",
+          "order": 241,
+          "text": "답례품"
+        },
+        {
+          "href": "/menu.es?mid=a10317030000",
+          "order": 242,
+          "text": "고향사랑기부금 접수·운용 현황"
+        },
+        {
+          "href": "/menu.es?mid=a10201070000",
+          "order": 243,
+          "text": "열린민원"
+        },
+        {
+          "href": "/menu.es?mid=a10201070000",
+          "order": 244,
+          "text": "민원안내"
+        },
+        {
+          "href": "/menu.es?mid=a10201070000",
+          "order": 245,
+          "text": "민원실안내"
+        },
+        {
+          "href": "/menu.es?mid=a10201160000",
+          "order": 246,
+          "text": "순번대기현황"
+        },
+        {
+          "href": "/menu.es?mid=a10201040000",
+          "order": 247,
+          "text": "무인민원발급안내"
+        },
+        {
+          "href": "/menu.es?mid=a10201130100",
+          "order": 248,
+          "text": "가족관계등록"
+        },
+        {
+          "href": "/menu.es?mid=a10201090000",
+          "order": 249,
+          "text": "민원사무편람"
+        },
+        {
+          "href": "/menu.es?mid=a10201100000",
+          "order": 250,
+          "text": "민원서식"
+        },
+        {
+          "href": "/menu.es?mid=a10201110100",
+          "order": 251,
+          "text": "민원편의시책"
+        },
+        {
+          "href": "https://www.share.go.kr/",
+          "order": 252,
+          "text": "행정정보공동이용"
+        },
+        {
+          "href": "/menu.es?mid=a10201140100",
+          "order": 253,
+          "text": "제증명 수수료"
+        },
+        {
+          "href": "/menu.es?mid=a10201150000",
+          "order": 254,
+          "text": "부동산종합증명서발급"
+        },
+        {
+          "href": "/menu.es?mid=a10204010000",
+          "order": 255,
+          "text": "민원상담"
+        },
+        {
+          "href": "/menu.es?mid=a10204010000",
+          "order": 256,
+          "text": "상담신청하기"
+        },
+        {
+          "href": "/menu.es?mid=a10204020000",
+          "order": 257,
+          "text": "나의민원보기"
+        },
+        {
+          "href": "/menu.es?mid=a10204030000",
+          "order": 258,
+          "text": "무료법률상담"
+        },
+        {
+          "href": "https://www.110.go.kr/start.do",
+          "order": 259,
+          "text": "수어/채팅상담"
+        },
+        {
+          "href": "/menu.es?mid=a10202010000",
+          "order": 260,
+          "text": "여권민원"
+        },
+        {
+          "href": "/menu.es?mid=a10202010000",
+          "order": 261,
+          "text": "여권안내"
+        },
+        {
+          "href": "/menu.es?mid=a10202020100",
+          "order": 262,
+          "text": "여권발급"
+        },
+        {
+          "href": "/menu.es?mid=a10202070000",
+          "order": 263,
+          "text": "여권 온라인 사전예약"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/tax/",
+          "order": 264,
+          "text": "세무민원"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/traffic/",
+          "order": 265,
+          "text": "교통민원"
+        },
+        {
+          "href": "/menu.es?mid=a10401010000",
+          "order": 266,
+          "text": "소통참여"
+        },
+        {
+          "href": "/menu.es?mid=a10401010000",
+          "order": 267,
+          "text": "주민참여"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/menu.es?mid=a50303000000",
+          "order": 268,
+          "text": "바로문자하랑께"
+        },
+        {
+          "href": "/menu.es?mid=a10401010000",
+          "order": 269,
+          "text": "칭찬합시다"
+        },
+        {
+          "href": "/menu.es?mid=a10401050000",
+          "order": 270,
+          "text": "설문조사"
+        },
+        {
+          "href": "https://www.epeople.go.kr/idea/gjseogu",
+          "order": 271,
+          "text": "국민생각함"
+        },
+        {
+          "href": "/menu.es?mid=a10401030100",
+          "order": 272,
+          "text": "주민제안"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/info/",
+          "order": 273,
+          "text": "통합예약"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/applySearchList.es?mid=c40101000000&srh_div=L",
+          "order": 274,
+          "text": "교육/강좌"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/applySearchList.es?mid=c40201000000&srh_div=A",
+          "order": 275,
+          "text": "문화/행사"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/applySearchList.es?mid=c40301000000&srh_div=C",
+          "order": 276,
+          "text": "시설/대관/여권"
+        },
+        {
+          "href": "/menu.es?mid=a10404010000",
+          "order": 277,
+          "text": "정보화교육"
+        },
+        {
+          "href": "/menu.es?mid=a10404010100",
+          "order": 278,
+          "text": "교육안내"
+        },
+        {
+          "href": "/menu.es?mid=a10404030000",
+          "order": 279,
+          "text": "교육신청"
+        },
+        {
+          "href": "/menu.es?mid=a10407010000",
+          "order": 280,
+          "text": "공유자원"
+        },
+        {
+          "href": "/menu.es?mid=a10407010000",
+          "order": 281,
+          "text": "공유도시소개"
+        },
+        {
+          "href": "/share/",
+          "order": 282,
+          "text": "물품공유센터"
+        },
+        {
+          "href": "http://sharegj.kr/app/board/index?md_id=notice",
+          "order": 283,
+          "text": "공유광주"
+        },
+        {
+          "href": "http://sharegj.kr/app/board/index?md_id=share",
+          "order": 284,
+          "text": "공유자원 주고받기"
+        },
+        {
+          "href": "/menu.es?mid=a10414010000",
+          "order": 285,
+          "text": "투명행정"
+        },
+        {
+          "href": "/menu.es?mid=a10414010100",
+          "order": 286,
+          "text": "청렴한 서구"
+        },
+        {
+          "href": "/menu.es?mid=a10414020100",
+          "order": 287,
+          "text": "적극행정"
+        },
+        {
+          "href": "/menu.es?mid=a10414030000",
+          "order": 288,
+          "text": "청원제도"
+        },
+        {
+          "href": "/menu.es?mid=a10515010000",
+          "order": 289,
+          "text": "정보공개"
+        },
+        {
+          "href": "/menu.es?mid=a10515010000",
+          "order": 290,
+          "text": "정보공개제도"
+        },
+        {
+          "href": "/menu.es?mid=a10515010100",
+          "order": 291,
+          "text": "사전정보공표"
+        },
+        {
+          "href": "/menu.es?mid=a10515020100",
+          "order": 292,
+          "text": "정보공개제도"
+        },
+        {
+          "href": "/menu.es?mid=a10515040000",
+          "order": 293,
+          "text": "비공개세부기준"
+        },
+        {
+          "href": "/menu.es?mid=a10515030200",
+          "order": 294,
+          "text": "정보목록/원문공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518010000",
+          "order": 295,
+          "text": "행정정보공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518010100",
+          "order": 296,
+          "text": "조직정보 공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518020100",
+          "order": 297,
+          "text": "위원회 공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518030100",
+          "order": 298,
+          "text": "업무추진비 공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518040000",
+          "order": 299,
+          "text": "상품권 구매 및 사용내역 공개"
+        },
+        {
+          "href": "/menu.es?mid=a10518050000",
+          "order": 300,
+          "text": "공무원 겸직현황 공개"
+        },
+        {
+          "href": "/menu.es?mid=a10517010000",
+          "order": 301,
+          "text": "공공데이터 개방"
+        },
+        {
+          "href": "/menu.es?mid=a10517010000",
+          "order": 302,
+          "text": "공공데이터 개방"
+        },
+        {
+          "href": "https://www.data.go.kr/osd/eduSupport.do",
+          "order": 303,
+          "text": "공공데이터 교육"
+        },
+        {
+          "href": "/menu.es?mid=a10517030000",
+          "order": 304,
+          "text": "상시 수요조사"
+        },
+        {
+          "href": "http://gyeyak.seogu.gwangju.kr/",
+          "order": 305,
+          "text": "계약정보공개"
+        },
+        {
+          "href": "/menu.es?mid=a10507010000",
+          "order": 306,
+          "text": "정책실명제"
+        },
+        {
+          "href": "/menu.es?mid=a10507010000",
+          "order": 307,
+          "text": "중점관리대상사업 목록"
+        },
+        {
+          "href": "/menu.es?mid=a10507020000",
+          "order": 308,
+          "text": "중점관리대상사업 추진현황"
+        },
+        {
+          "href": "/menu.es?mid=a10507030000",
+          "order": 309,
+          "text": "국민신청실명제 신청"
+        },
+        {
+          "href": "/menu.es?mid=a10510020000",
+          "order": 310,
+          "text": "통계정보"
+        },
+        {
+          "href": "/menu.es?mid=a10510020000",
+          "order": 311,
+          "text": "통계연보"
+        },
+        {
+          "href": "/menu.es?mid=a10510030000",
+          "order": 312,
+          "text": "사업체통계"
+        },
+        {
+          "href": "/menu.es?mid=a10510050000",
+          "order": 313,
+          "text": "월별인구현황"
+        },
+        {
+          "href": "/menu.es?mid=a10511020000",
+          "order": 314,
+          "text": "기타"
+        },
+        {
+          "href": "/menu.es?mid=a10511020000",
+          "order": 315,
+          "text": "공개자료실"
+        },
+        {
+          "href": "https://www.elis.go.kr/locgovalr/locgovClAlrList?ctpvSggCd=29140",
+          "order": 316,
+          "text": "자치법규"
+        },
+        {
+          "href": "/menu.es?mid=a10511030000",
+          "order": 317,
+          "text": "구정백서"
+        },
+        {
+          "href": "/menu.es?mid=a10511040000",
+          "order": 318,
+          "text": "주요업무계획"
+        },
+        {
+          "href": "/menu.es?mid=a10511050000",
+          "order": 319,
+          "text": "영조물배상공제"
+        },
+        {
+          "href": "/menu.es?mid=a10801000000",
+          "order": 320,
+          "text": "구정소식"
+        },
+        {
+          "href": "/menu.es?mid=a10801000000",
+          "order": 321,
+          "text": "공지사항"
+        },
+        {
+          "href": "/menu.es?mid=a10807010000",
+          "order": 322,
+          "text": "고시/공고"
+        },
+        {
+          "href": "/menu.es?mid=a10807010000",
+          "order": 323,
+          "text": "현재 고시/공고"
+        },
+        {
+          "href": "/menu.es?mid=a10807020000",
+          "order": 324,
+          "text": "이전 고시/공고"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/board.es?mid=c50501000000&bid=0154",
+          "order": 325,
+          "text": "보도자료"
+        },
+        {
+          "href": "/menu.es?mid=a10810010000",
+          "order": 326,
+          "text": "채용공고"
+        },
+        {
+          "href": "/menu.es?mid=a10810010000",
+          "order": 327,
+          "text": "현재 채용공고"
+        },
+        {
+          "href": "/menu.es?mid=a10810020000",
+          "order": 328,
+          "text": "이전 채용공고"
+        },
+        {
+          "href": "/menu.es?mid=a10805010000",
+          "order": 329,
+          "text": "입찰공고"
+        },
+        {
+          "href": "/menu.es?mid=a10805010000",
+          "order": 330,
+          "text": "현재 입찰공고"
+        },
+        {
+          "href": "/menu.es?mid=a10805020000",
+          "order": 331,
+          "text": "이전 입찰공고"
+        },
+        {
+          "href": "/menu.es?mid=a10806000000",
+          "order": 332,
+          "text": "카드뉴스"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/board.es?mid=c50101000000&bid=0001",
+          "order": 333,
+          "text": "서구소식지"
+        },
+        {
+          "href": "/menu.es?mid=a10802000000",
+          "order": 334,
+          "text": "타기관소식"
+        },
+        {
+          "href": "/menu.es?mid=a10808000000",
+          "order": 335,
+          "text": "입법예고"
+        },
+        {
+          "href": "/menu.es?mid=a10809000000",
+          "order": 336,
+          "text": "시설관리공단소식"
+        },
+        {
+          "href": "/menu.es?mid=a10811000000",
+          "order": 337,
+          "text": "인사정보"
+        },
+        {
+          "href": "/menu.es?mid=a10101010000",
+          "order": 338,
+          "text": "서구소개"
+        },
+        {
+          "href": "/menu.es?mid=a10101010000",
+          "order": 339,
+          "text": "서구소개"
+        },
+        {
+          "href": "/menu.es?mid=a10101010000",
+          "order": 340,
+          "text": "서구연혁"
+        },
+        {
+          "href": "/menu.es?mid=a10101020100",
+          "order": 341,
+          "text": "서구상징"
+        },
+        {
+          "href": "/menu.es?mid=a10101110000",
+          "order": 342,
+          "text": "기본현황"
+        },
+        {
+          "href": "/menu.es?mid=a10101040000",
+          "order": 343,
+          "text": "행정구역안내"
+        },
+        {
+          "href": "/menu.es?mid=a10101120100",
+          "order": 344,
+          "text": "교류도시"
+        },
+        {
+          "href": "/menu.es?mid=a10101130000",
+          "order": 345,
+          "text": "수상실적"
+        },
+        {
+          "href": "/menu.es?mid=a10101140100",
+          "order": 346,
+          "text": "서구펜싱팀"
+        },
+        {
+          "href": "/menu.es?mid=a10106030000",
+          "order": 347,
+          "text": "청사안내"
+        },
+        {
+          "href": "/menu.es?mid=a10106030000",
+          "order": 348,
+          "text": "행정조직도"
+        },
+        {
+          "href": "/menu.es?mid=a10106040000",
+          "order": 349,
+          "text": "직원 업무안내"
+        },
+        {
+          "href": "/menu.es?mid=a10106050100",
+          "order": 350,
+          "text": "전화번호 안내"
+        },
+        {
+          "href": "/menu.es?mid=a10106010100",
+          "order": 351,
+          "text": "층별안내"
+        },
+        {
+          "href": "/menu.es?mid=a10106020000",
+          "order": 352,
+          "text": "오시는길"
+        },
+        {
+          "href": "/menu.es?mid=a10108020000",
+          "order": 353,
+          "text": "장학재단"
+        },
+        {
+          "href": "/menu.es?mid=a10108020000",
+          "order": 354,
+          "text": "장학재단 소개"
+        },
+        {
+          "href": "/menu.es?mid=a10108050000",
+          "order": 355,
+          "text": "장학기금 기탁"
+        },
+        {
+          "href": "/menu.es?mid=a10108060000",
+          "order": 356,
+          "text": "장학재단 소식"
+        },
+        {
+          "href": "/menu.es?mid=a10108070000",
+          "order": 357,
+          "text": "후원하신 분"
+        },
+        {
+          "href": "/menu.es?mid=a10108090000",
+          "order": 358,
+          "text": "포토갤러리"
+        },
+        {
+          "href": "/menu.es?mid=a10108080000",
+          "order": 359,
+          "text": "공익위반 제보"
+        },
+        {
+          "href": "/menu.es?mid=a10113010000",
+          "order": 360,
+          "text": "서구 아너스"
+        },
+        {
+          "href": "/menu.es?mid=a10113010000",
+          "order": 361,
+          "text": "아너스 소개"
+        },
+        {
+          "href": "/menu.es?mid=a10113020000",
+          "order": 362,
+          "text": "명예의 전당"
+        },
+        {
+          "href": "/menu.es?mid=a10113030100",
+          "order": 363,
+          "text": "아너스 사업"
+        },
+        {
+          "href": "/menu.es?mid=a10311000000",
+          "order": 364,
+          "text": "분야별정보"
+        },
+        {
+          "href": "/tax",
+          "order": 365,
+          "text": "세무"
+        },
+        {
+          "href": "/finance/",
+          "order": 366,
+          "text": "재정"
+        },
+        {
+          "href": "/welfare/",
+          "order": 367,
+          "text": "복지정책"
+        },
+        {
+          "href": "/traffic/",
+          "order": 368,
+          "text": "교통"
+        },
+        {
+          "href": "/culture/",
+          "order": 369,
+          "text": "문화관광"
+        },
+        {
+          "href": "/health/",
+          "order": 370,
+          "text": "보건의료"
+        },
+        {
+          "href": "/menu.es?mid=a10304080100",
+          "order": 371,
+          "text": "여성/아동/청소년/청년"
+        },
+        {
+          "href": "/menu.es?mid=a10304080100",
+          "order": 372,
+          "text": "여성"
+        },
+        {
+          "href": "/menu.es?mid=a10304090100",
+          "order": 373,
+          "text": "아동"
+        },
+        {
+          "href": "/menu.es?mid=a10304100100",
+          "order": 374,
+          "text": "가족(다문화)"
+        },
+        {
+          "href": "/menu.es?mid=a10304060000",
+          "order": 375,
+          "text": "드림스타트"
+        },
+        {
+          "href": "/menu.es?mid=a10304110000",
+          "order": 376,
+          "text": "청소년부모"
+        },
+        {
+          "href": "/menu.es?mid=a10304120000",
+          "order": 377,
+          "text": "청년"
+        },
+        {
+          "href": "/menu.es?mid=a10305010000",
+          "order": 378,
+          "text": "생활"
+        },
+        {
+          "href": "/menu.es?mid=a10305010000",
+          "order": 379,
+          "text": "생활지원서비스"
+        },
+        {
+          "href": "/menu.es?mid=a10305040100",
+          "order": 380,
+          "text": "공공일자리정보"
+        },
+        {
+          "href": "/menu.es?mid=a10305050100",
+          "order": 381,
+          "text": "365민원봉사실"
+        },
+        {
+          "href": "/menu.es?mid=a10315010100",
+          "order": 382,
+          "text": "경제"
+        },
+        {
+          "href": "/menu.es?mid=a10315010100",
+          "order": 383,
+          "text": "물가경제"
+        },
+        {
+          "href": "/menu.es?mid=a10315030100",
+          "order": 384,
+          "text": "서구일자리센터"
+        },
+        {
+          "href": "/menu.es?mid=a10315040100",
+          "order": 385,
+          "text": "사회적기업"
+        },
+        {
+          "href": "/menu.es?mid=a10315050100",
+          "order": 386,
+          "text": "협동조합"
+        },
+        {
+          "href": "/menu.es?mid=a10315060100",
+          "order": 387,
+          "text": "마을기업"
+        },
+        {
+          "href": "/menu.es?mid=a10315070200",
+          "order": 388,
+          "text": "동물복지"
+        },
+        {
+          "href": "/menu.es?mid=a10306150000",
+          "order": 389,
+          "text": "안전/민방위"
+        },
+        {
+          "href": "/menu.es?mid=a10306150000",
+          "order": 390,
+          "text": "안전관리헌장"
+        },
+        {
+          "href": "/menu.es?mid=a10306010100",
+          "order": 391,
+          "text": "국민행동요령"
+        },
+        {
+          "href": "/menu.es?mid=a10306020100",
+          "order": 392,
+          "text": "민방위"
+        },
+        {
+          "href": "/menu.es?mid=a10306030100",
+          "order": 393,
+          "text": "재난신고"
+        },
+        {
+          "href": "/menu.es?mid=a10306040000",
+          "order": 394,
+          "text": "지진옥외대피장소"
+        },
+        {
+          "href": "https://www.safetyreport.go.kr/#main",
+          "order": 395,
+          "text": "안전신문고"
+        },
+        {
+          "href": "/menu.es?mid=a10306070000",
+          "order": 396,
+          "text": "재난안전사고유형"
+        },
+        {
+          "href": "/menu.es?mid=a10306080100",
+          "order": 397,
+          "text": "풍수해·지진재해보험 가입안내"
+        },
+        {
+          "href": "/menu.es?mid=a10306130000",
+          "order": 398,
+          "text": "구민안전보험"
+        },
+        {
+          "href": "https://www.mois.go.kr/frt/sub/a06/b11/disasterGuarantee/screen.do",
+          "order": 399,
+          "text": "재난배상책임보험 안내"
+        },
+        {
+          "href": "https://www.safetv.go.kr/base/main/view",
+          "order": 400,
+          "text": "국민안전교육"
+        },
+        {
+          "href": "/menu.es?mid=a10306160100",
+          "order": 401,
+          "text": "소화기"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 402,
+          "text": "도시/환경/위생"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 403,
+          "text": "폐기물"
+        },
+        {
+          "href": "/menu.es?mid=a10308020100",
+          "order": 404,
+          "text": "재활용"
+        },
+        {
+          "href": "/menu.es?mid=a10308030200",
+          "order": 405,
+          "text": "청소/환경"
+        },
+        {
+          "href": "/menu.es?mid=a10308040800",
+          "order": 406,
+          "text": "위생관리"
+        },
+        {
+          "href": "/menu.es?mid=a10308120100",
+          "order": 407,
+          "text": "미세먼지"
+        },
+        {
+          "href": "/menu.es?mid=a10308140000",
+          "order": 408,
+          "text": "라돈측정기 대여 안내"
+        },
+        {
+          "href": "/menu.es?mid=a10308060100",
+          "order": 409,
+          "text": "주택재개발 정비사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308070100",
+          "order": 410,
+          "text": "주택재건축정비사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308150000",
+          "order": 411,
+          "text": "공동주택"
+        },
+        {
+          "href": "/menu.es?mid=a10308160000",
+          "order": 412,
+          "text": "주택임대사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308080100",
+          "order": 413,
+          "text": "건축정보"
+        },
+        {
+          "href": "/menu.es?mid=a10308170100",
+          "order": 414,
+          "text": "도로명주소"
+        },
+        {
+          "href": "/menu.es?mid=a10308100500",
+          "order": 415,
+          "text": "부동산정보"
+        },
+        {
+          "href": "/menu.es?mid=a10308110100",
+          "order": 416,
+          "text": "음식물쓰레기"
+        },
+        {
+          "href": "/menu.es?mid=a10308180000",
+          "order": 417,
+          "text": "2045 탄소중립 서구"
+        },
+        {
+          "href": "/menu.es?mid=a10308190500",
+          "order": 418,
+          "text": "자전거"
+        },
+        {
+          "href": "/menu.es?mid=a10308200100",
+          "order": 419,
+          "text": "현수막게시대"
+        },
+        {
+          "href": "/menu.es?mid=a10308210000",
+          "order": 420,
+          "text": "지역주택조합현황"
+        },
+        {
+          "href": "/menu.es?mid=a10308220000",
+          "order": 421,
+          "text": "주택건설사업계획승인현황"
+        },
+        {
+          "href": "/menu.es?mid=a10308230100",
+          "order": 422,
+          "text": "군소음보상"
+        },
+        {
+          "href": "/menu.es?mid=a10308240000",
+          "order": 423,
+          "text": "디지털저장매체파기 서비스"
+        },
+        {
+          "href": "/menu.es?mid=a10311020000",
+          "order": 424,
+          "text": "행정"
+        },
+        {
+          "href": "/menu.es?mid=a10311020100",
+          "order": 425,
+          "text": "행정규제개혁"
+        },
+        {
+          "href": "https://eminwon.seogu.gwangju.kr/emwp/gov/mogaha/ntis/web/caf/mwwd/action/CafMwWdOpenAction.do?method=selectListAdmm&menu_id=CAFOPNWebAdmmOpenL&jndinm=CafMwWdOpenEJB&methodnm=selectListAdmm&context=NTIS",
+          "order": 426,
+          "text": "행정처분공개"
+        },
+        {
+          "href": "/menu.es?mid=a10311040000",
+          "order": 427,
+          "text": "공유일반재산"
+        },
+        {
+          "href": "/menu.es?mid=a10311050100",
+          "order": 428,
+          "text": "ONE-CLICK 법령정보"
+        },
+        {
+          "href": "/menu.es?mid=a10311070000",
+          "order": 429,
+          "text": "인사·채용 통계"
+        },
+        {
+          "href": "/menu.es?mid=a10316010000",
+          "order": 430,
+          "text": "지속가능발전"
+        },
+        {
+          "href": "/menu.es?mid=a10316010000",
+          "order": 431,
+          "text": "지속가능발전"
+        },
+        {
+          "href": "/menu.es?mid=a10316020000",
+          "order": 432,
+          "text": "지속가능발전도시 광주 서구"
+        },
+        {
+          "href": "/menu.es?mid=a10316030100",
+          "order": 433,
+          "text": "기본계획 및 이행계획"
+        },
+        {
+          "href": "/menu.es?mid=a10316060100",
+          "order": 434,
+          "text": "기본전략 및 추진계획"
+        },
+        {
+          "href": "/menu.es?mid=a10316070100",
+          "order": 435,
+          "text": "지속가능발전 보고서"
+        },
+        {
+          "href": "/menu.es?mid=a10316050000",
+          "order": 436,
+          "text": "지속가능발전 영상"
+        },
+        {
+          "href": "/menu.es?mid=a10317010000",
+          "order": 437,
+          "text": "고향사랑기부제"
+        },
+        {
+          "href": "/menu.es?mid=a10317010000",
+          "order": 438,
+          "text": "소개"
+        },
+        {
+          "href": "/menu.es?mid=a10317020000",
+          "order": 439,
+          "text": "답례품"
+        },
+        {
+          "href": "/menu.es?mid=a10317030000",
+          "order": 440,
+          "text": "고향사랑기부금 접수·운용 현황"
+        },
+        {
+          "href": "/tax",
+          "order": 441,
+          "text": "세무"
+        },
+        {
+          "href": "/finance/",
+          "order": 442,
+          "text": "재정"
+        },
+        {
+          "href": "/welfare/",
+          "order": 443,
+          "text": "복지정책"
+        },
+        {
+          "href": "/traffic/",
+          "order": 444,
+          "text": "교통"
+        },
+        {
+          "href": "/culture/",
+          "order": 445,
+          "text": "문화관광"
+        },
+        {
+          "href": "/health/",
+          "order": 446,
+          "text": "보건의료"
+        },
+        {
+          "href": "/menu.es?mid=a10304080100",
+          "order": 447,
+          "text": "여성/아동/청소년/청년"
+        },
+        {
+          "href": "/menu.es?mid=a10304080100",
+          "order": 448,
+          "text": "여성"
+        },
+        {
+          "href": "/menu.es?mid=a10304090100",
+          "order": 449,
+          "text": "아동"
+        },
+        {
+          "href": "/menu.es?mid=a10304100100",
+          "order": 450,
+          "text": "가족(다문화)"
+        },
+        {
+          "href": "/menu.es?mid=a10304060000",
+          "order": 451,
+          "text": "드림스타트"
+        },
+        {
+          "href": "/menu.es?mid=a10304110000",
+          "order": 452,
+          "text": "청소년부모"
+        },
+        {
+          "href": "/menu.es?mid=a10304120000",
+          "order": 453,
+          "text": "청년"
+        },
+        {
+          "href": "/menu.es?mid=a10305010000",
+          "order": 454,
+          "text": "생활"
+        },
+        {
+          "href": "/menu.es?mid=a10305010000",
+          "order": 455,
+          "text": "생활지원서비스"
+        },
+        {
+          "href": "/menu.es?mid=a10305040100",
+          "order": 456,
+          "text": "공공일자리정보"
+        },
+        {
+          "href": "/menu.es?mid=a10305050100",
+          "order": 457,
+          "text": "365민원봉사실"
+        },
+        {
+          "href": "/menu.es?mid=a10315010100",
+          "order": 458,
+          "text": "경제"
+        },
+        {
+          "href": "/menu.es?mid=a10315010100",
+          "order": 459,
+          "text": "물가경제"
+        },
+        {
+          "href": "/menu.es?mid=a10315030100",
+          "order": 460,
+          "text": "서구일자리센터"
+        },
+        {
+          "href": "/menu.es?mid=a10315040100",
+          "order": 461,
+          "text": "사회적기업"
+        },
+        {
+          "href": "/menu.es?mid=a10315050100",
+          "order": 462,
+          "text": "협동조합"
+        },
+        {
+          "href": "/menu.es?mid=a10315060100",
+          "order": 463,
+          "text": "마을기업"
+        },
+        {
+          "href": "/menu.es?mid=a10315070200",
+          "order": 464,
+          "text": "동물복지"
+        },
+        {
+          "href": "/menu.es?mid=a10306150000",
+          "order": 465,
+          "text": "안전/민방위"
+        },
+        {
+          "href": "/menu.es?mid=a10306150000",
+          "order": 466,
+          "text": "안전관리헌장"
+        },
+        {
+          "href": "/menu.es?mid=a10306010100",
+          "order": 467,
+          "text": "국민행동요령"
+        },
+        {
+          "href": "/menu.es?mid=a10306020100",
+          "order": 468,
+          "text": "민방위"
+        },
+        {
+          "href": "/menu.es?mid=a10306030100",
+          "order": 469,
+          "text": "재난신고"
+        },
+        {
+          "href": "/menu.es?mid=a10306040000",
+          "order": 470,
+          "text": "지진옥외대피장소"
+        },
+        {
+          "href": "https://www.safetyreport.go.kr/#main",
+          "order": 471,
+          "text": "안전신문고"
+        },
+        {
+          "href": "/menu.es?mid=a10306070000",
+          "order": 472,
+          "text": "재난안전사고유형"
+        },
+        {
+          "href": "/menu.es?mid=a10306080100",
+          "order": 473,
+          "text": "풍수해·지진재해보험 가입안내"
+        },
+        {
+          "href": "/menu.es?mid=a10306130000",
+          "order": 474,
+          "text": "구민안전보험"
+        },
+        {
+          "href": "https://www.mois.go.kr/frt/sub/a06/b11/disasterGuarantee/screen.do",
+          "order": 475,
+          "text": "재난배상책임보험 안내"
+        },
+        {
+          "href": "https://www.safetv.go.kr/base/main/view",
+          "order": 476,
+          "text": "국민안전교육"
+        },
+        {
+          "href": "/menu.es?mid=a10306160100",
+          "order": 477,
+          "text": "소화기"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 478,
+          "text": "도시/환경/위생"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 479,
+          "text": "폐기물"
+        },
+        {
+          "href": "/menu.es?mid=a10308020100",
+          "order": 480,
+          "text": "재활용"
+        },
+        {
+          "href": "/menu.es?mid=a10308030200",
+          "order": 481,
+          "text": "청소/환경"
+        },
+        {
+          "href": "/menu.es?mid=a10308040800",
+          "order": 482,
+          "text": "위생관리"
+        },
+        {
+          "href": "/menu.es?mid=a10308120100",
+          "order": 483,
+          "text": "미세먼지"
+        },
+        {
+          "href": "/menu.es?mid=a10308140000",
+          "order": 484,
+          "text": "라돈측정기 대여 안내"
+        },
+        {
+          "href": "/menu.es?mid=a10308060100",
+          "order": 485,
+          "text": "주택재개발 정비사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308070100",
+          "order": 486,
+          "text": "주택재건축정비사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308150000",
+          "order": 487,
+          "text": "공동주택"
+        },
+        {
+          "href": "/menu.es?mid=a10308160000",
+          "order": 488,
+          "text": "주택임대사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308080100",
+          "order": 489,
+          "text": "건축정보"
+        },
+        {
+          "href": "/menu.es?mid=a10308170100",
+          "order": 490,
+          "text": "도로명주소"
+        },
+        {
+          "href": "/menu.es?mid=a10308100500",
+          "order": 491,
+          "text": "부동산정보"
+        },
+        {
+          "href": "/menu.es?mid=a10308110100",
+          "order": 492,
+          "text": "음식물쓰레기"
+        },
+        {
+          "href": "/menu.es?mid=a10308180000",
+          "order": 493,
+          "text": "2045 탄소중립 서구"
+        },
+        {
+          "href": "/menu.es?mid=a10308190500",
+          "order": 494,
+          "text": "자전거"
+        },
+        {
+          "href": "/menu.es?mid=a10308200100",
+          "order": 495,
+          "text": "현수막게시대"
+        },
+        {
+          "href": "/menu.es?mid=a10308210000",
+          "order": 496,
+          "text": "지역주택조합현황"
+        },
+        {
+          "href": "/menu.es?mid=a10308220000",
+          "order": 497,
+          "text": "주택건설사업계획승인현황"
+        },
+        {
+          "href": "/menu.es?mid=a10308230100",
+          "order": 498,
+          "text": "군소음보상"
+        },
+        {
+          "href": "/menu.es?mid=a10308240000",
+          "order": 499,
+          "text": "디지털저장매체파기 서비스"
+        },
+        {
+          "href": "/menu.es?mid=a10311020000",
+          "order": 500,
+          "text": "행정"
+        },
+        {
+          "href": "/menu.es?mid=a10311020100",
+          "order": 501,
+          "text": "행정규제개혁"
+        },
+        {
+          "href": "https://eminwon.seogu.gwangju.kr/emwp/gov/mogaha/ntis/web/caf/mwwd/action/CafMwWdOpenAction.do?method=selectListAdmm&menu_id=CAFOPNWebAdmmOpenL&jndinm=CafMwWdOpenEJB&methodnm=selectListAdmm&context=NTIS",
+          "order": 502,
+          "text": "행정처분공개"
+        },
+        {
+          "href": "/menu.es?mid=a10311040000",
+          "order": 503,
+          "text": "공유일반재산"
+        },
+        {
+          "href": "/menu.es?mid=a10311050100",
+          "order": 504,
+          "text": "ONE-CLICK 법령정보"
+        },
+        {
+          "href": "/menu.es?mid=a10311070000",
+          "order": 505,
+          "text": "인사·채용 통계"
+        },
+        {
+          "href": "/menu.es?mid=a10316010000",
+          "order": 506,
+          "text": "지속가능발전"
+        },
+        {
+          "href": "/menu.es?mid=a10316010000",
+          "order": 507,
+          "text": "지속가능발전"
+        },
+        {
+          "href": "/menu.es?mid=a10316020000",
+          "order": 508,
+          "text": "지속가능발전도시 광주 서구"
+        },
+        {
+          "href": "/menu.es?mid=a10316030100",
+          "order": 509,
+          "text": "기본계획 및 이행계획"
+        },
+        {
+          "href": "/menu.es?mid=a10316060100",
+          "order": 510,
+          "text": "기본전략 및 추진계획"
+        },
+        {
+          "href": "/menu.es?mid=a10316070100",
+          "order": 511,
+          "text": "지속가능발전 보고서"
+        },
+        {
+          "href": "/menu.es?mid=a10316050000",
+          "order": 512,
+          "text": "지속가능발전 영상"
+        },
+        {
+          "href": "/menu.es?mid=a10317010000",
+          "order": 513,
+          "text": "고향사랑기부제"
+        },
+        {
+          "href": "/menu.es?mid=a10317010000",
+          "order": 514,
+          "text": "소개"
+        },
+        {
+          "href": "/menu.es?mid=a10317020000",
+          "order": 515,
+          "text": "답례품"
+        },
+        {
+          "href": "/menu.es?mid=a10317030000",
+          "order": 516,
+          "text": "고향사랑기부금 접수·운용 현황"
+        },
+        {
+          "href": "/index.es?sid=a1",
+          "order": 517,
+          "text": "홈"
+        },
+        {
+          "href": "/menu.es?mid=a10300000000",
+          "order": 518,
+          "text": "분야별정보"
+        },
+        {
+          "href": "/menu.es?mid=a10308000000",
+          "order": 519,
+          "text": "도시/환경/위생"
+        },
+        {
+          "href": "/menu.es?mid=a10308010000",
+          "order": 520,
+          "text": "폐기물"
+        },
+        {
+          "href": "/menu.es?mid=a10308010200",
+          "order": 521,
+          "text": "대형폐기물 신고"
+        },
+        {
+          "href": "/menu.es?mid=a10201070000",
+          "order": 522,
+          "text": "열린민원"
+        },
+        {
+          "href": "/menu.es?mid=a10401010000",
+          "order": 523,
+          "text": "소통참여"
+        },
+        {
+          "href": "/menu.es?mid=a10515010000",
+          "order": 524,
+          "text": "정보공개"
+        },
+        {
+          "href": "/menu.es?mid=a10801000000",
+          "order": 525,
+          "text": "구정소식"
+        },
+        {
+          "href": "/menu.es?mid=a10101010000",
+          "order": 526,
+          "text": "서구소개"
+        },
+        {
+          "href": "/menu.es?mid=a10311000000",
+          "order": 527,
+          "text": "분야별정보"
+        },
+        {
+          "href": "/menu.es?mid=a10311000000",
+          "order": 528,
+          "text": "분야별정보"
+        },
+        {
+          "href": "/menu.es?mid=a10601000000",
+          "order": 529,
+          "text": "서구도우미"
+        },
+        {
+          "href": "/menu.es?mid=a10700000000",
+          "order": 530,
+          "text": "통합검색"
+        },
+        {
+          "href": "/tax",
+          "order": 531,
+          "text": "세무"
+        },
+        {
+          "href": "/finance/",
+          "order": 532,
+          "text": "재정"
+        },
+        {
+          "href": "/welfare/",
+          "order": 533,
+          "text": "복지정책"
+        },
+        {
+          "href": "/traffic/",
+          "order": 534,
+          "text": "교통"
+        },
+        {
+          "href": "/culture/",
+          "order": 535,
+          "text": "문화관광"
+        },
+        {
+          "href": "/health/",
+          "order": 536,
+          "text": "보건의료"
+        },
+        {
+          "href": "/menu.es?mid=a10304080100",
+          "order": 537,
+          "text": "여성/아동/청소년/청년"
+        },
+        {
+          "href": "/menu.es?mid=a10305010000",
+          "order": 538,
+          "text": "생활"
+        },
+        {
+          "href": "/menu.es?mid=a10315010100",
+          "order": 539,
+          "text": "경제"
+        },
+        {
+          "href": "/menu.es?mid=a10306150000",
+          "order": 540,
+          "text": "안전/민방위"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 541,
+          "text": "도시/환경/위생"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 542,
+          "text": "도시/환경/위생"
+        },
+        {
+          "href": "/menu.es?mid=a10311020000",
+          "order": 543,
+          "text": "행정"
+        },
+        {
+          "href": "/menu.es?mid=a10316010000",
+          "order": 544,
+          "text": "지속가능발전"
+        },
+        {
+          "href": "/menu.es?mid=a10317010000",
+          "order": 545,
+          "text": "고향사랑기부제"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 546,
+          "text": "폐기물"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 547,
+          "text": "폐기물"
+        },
+        {
+          "href": "/menu.es?mid=a10308020100",
+          "order": 548,
+          "text": "재활용"
+        },
+        {
+          "href": "/menu.es?mid=a10308030200",
+          "order": 549,
+          "text": "청소/환경"
+        },
+        {
+          "href": "/menu.es?mid=a10308040800",
+          "order": 550,
+          "text": "위생관리"
+        },
+        {
+          "href": "/menu.es?mid=a10308120100",
+          "order": 551,
+          "text": "미세먼지"
+        },
+        {
+          "href": "/menu.es?mid=a10308140000",
+          "order": 552,
+          "text": "라돈측정기 대여 안내"
+        },
+        {
+          "href": "/menu.es?mid=a10308060100",
+          "order": 553,
+          "text": "주택재개발 정비사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308070100",
+          "order": 554,
+          "text": "주택재건축정비사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308150000",
+          "order": 555,
+          "text": "공동주택"
+        },
+        {
+          "href": "/menu.es?mid=a10308160000",
+          "order": 556,
+          "text": "주택임대사업"
+        },
+        {
+          "href": "/menu.es?mid=a10308080100",
+          "order": 557,
+          "text": "건축정보"
+        },
+        {
+          "href": "/menu.es?mid=a10308170100",
+          "order": 558,
+          "text": "도로명주소"
+        },
+        {
+          "href": "/menu.es?mid=a10308100500",
+          "order": 559,
+          "text": "부동산정보"
+        },
+        {
+          "href": "/menu.es?mid=a10308110100",
+          "order": 560,
+          "text": "음식물쓰레기"
+        },
+        {
+          "href": "/menu.es?mid=a10308180000",
+          "order": 561,
+          "text": "2045 탄소중립 서구"
+        },
+        {
+          "href": "/menu.es?mid=a10308190500",
+          "order": 562,
+          "text": "자전거"
+        },
+        {
+          "href": "/menu.es?mid=a10308200100",
+          "order": 563,
+          "text": "현수막게시대"
+        },
+        {
+          "href": "/menu.es?mid=a10308210000",
+          "order": 564,
+          "text": "지역주택조합현황"
+        },
+        {
+          "href": "/menu.es?mid=a10308220000",
+          "order": 565,
+          "text": "주택건설사업계획승인현황"
+        },
+        {
+          "href": "/menu.es?mid=a10308230100",
+          "order": 566,
+          "text": "군소음보상"
+        },
+        {
+          "href": "/menu.es?mid=a10308240000",
+          "order": 567,
+          "text": "디지털저장매체파기 서비스"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 568,
+          "text": "생활폐기물 배출/수거"
+        },
+        {
+          "href": "/menu.es?mid=a10308010200",
+          "order": 569,
+          "text": "대형폐기물 신고"
+        },
+        {
+          "href": "/menu.es?mid=a10308010200",
+          "order": 570,
+          "text": "대형폐기물 신고"
+        },
+        {
+          "href": "/menu.es?mid=a10308010300",
+          "order": 571,
+          "text": "재활용품 분리배출"
+        },
+        {
+          "href": "/menu.es?mid=a10308010400",
+          "order": 572,
+          "text": "폐의약품 처리요령"
+        },
+        {
+          "href": "/menu.es?mid=a10308010100",
+          "order": 573,
+          "text": "생활폐기물 배출/수거"
+        },
+        {
+          "href": "/menu.es?mid=a10308010200",
+          "order": 574,
+          "text": "대형폐기물 신고"
+        },
+        {
+          "href": "/menu.es?mid=a10308010300",
+          "order": 575,
+          "text": "재활용품 분리배출"
+        },
+        {
+          "href": "/menu.es?mid=a10308010400",
+          "order": 576,
+          "text": "폐의약품 처리요령"
+        },
+        {
+          "href": "/boardDownload.es?bid=ATT&list_no=35515&seq=2",
+          "order": 577,
+          "text": "품목별 부과기준 다운로드"
+        },
+        {
+          "href": "/attachPreview.es?bid=ATT&list_no=35515&seq=2",
+          "order": 578,
+          "text": "품목별 부과기준 미리보기"
+        },
+        {
+          "href": "/kor/",
+          "order": 579,
+          "text": "전남광주통합특별시 서구 GWANGJU CITY SEOGU"
+        },
+        {
+          "href": "/ceo",
+          "order": 580,
+          "text": "열린구청장실"
+        },
+        {
+          "href": "/finance",
+          "order": 581,
+          "text": "구정살림"
+        },
+        {
+          "href": "/culture",
+          "order": 582,
+          "text": "문화관광"
+        },
+        {
+          "href": "/tax",
+          "order": 583,
+          "text": "세무민원실"
+        },
+        {
+          "href": "/traffic",
+          "order": 584,
+          "text": "교통민원실"
+        },
+        {
+          "href": "https://www.seogu.gwangju.kr/trafficminwon/",
+          "order": 585,
+          "text": "불법주정차과태료조회서비스"
+        },
+        {
+          "href": "/child",
+          "order": 586,
+          "text": "청소년소통방"
+        },
+        {
+          "href": "/welfare",
+          "order": 587,
+          "text": "서구 복지정책"
+        },
+        {
+          "href": "/health",
+          "order": 588,
+          "text": "보건소"
+        },
+        {
+          "href": "/medical",
+          "order": 589,
+          "text": "서구정신건강복지센터"
+        },
+        {
+          "href": "/town",
+          "order": 590,
+          "text": "서구마을공동체지원센터"
+        },
+        {
+          "href": "/share",
+          "order": 591,
+          "text": "서구 물품공유센터"
+        },
+        {
+          "href": "/goodjob",
+          "order": 592,
+          "text": "일자리센터"
+        },
+        {
+          "href": "/highedu",
+          "order": 593,
+          "text": "서구 하이에듀넷"
+        },
+        {
+          "href": "/seoro2eum",
+          "order": 594,
+          "text": "서로이음사회적가치지원센터"
+        },
+        {
+          "href": "/sgfesta",
+          "order": 595,
+          "text": "억새축제"
+        },
+        {
+          "href": "/info",
+          "order": 596,
+          "text": "통합예약서비스"
+        },
+        {
+          "href": "/news",
+          "order": 597,
+          "text": "구정소식"
+        },
+        {
+          "href": "/sgcc",
+          "order": 598,
+          "text": "빛고을국악전수관"
+        },
+        {
+          "href": "/dong",
+          "order": 599,
+          "text": "행정복지센터"
+        },
+        {
+          "href": "https://365edu.seogu.gwangju.kr",
+          "order": 600,
+          "text": "평생학습관(세큰대)"
+        },
+        {
+          "href": "https://library.seogu.gwangju.kr/",
+          "order": 601,
+          "text": "서구구립도서관"
+        },
+        {
+          "href": "https://seogufmc.or.kr",
+          "order": 602,
+          "text": "서구시설관리공단"
+        },
+        {
+          "href": "https://seobitmaru.seogu.gwangju.kr",
+          "order": 603,
+          "text": "서빛마루문화예술회관"
+        },
+        {
+          "href": "https://www.jeonnam-gwangju.go.kr/",
+          "order": 604,
+          "text": "전남광주통합특별시청"
+        },
+        {
+          "href": "http://donggu.kr/",
+          "order": 605,
+          "text": "전남광주통합특별시 동구청"
+        },
+        {
+          "href": "http://namgu.gwangju.kr/",
+          "order": 606,
+          "text": "전남광주통합특별시 남구청"
+        },
+        {
+          "href": "http://bukgu.gwangju.kr/",
+          "order": 607,
+          "text": "전남광주통합특별시 북구청"
+        },
+        {
+          "href": "http://gwangsan.go.kr/",
+          "order": 608,
+          "text": "전남광주통합특별시 광산구청"
+        },
+        {
+          "href": "http://bus.gwangju.go.kr/main/main",
+          "order": 609,
+          "text": "광주버스운행정보"
+        },
+        {
+          "href": "https://www.grtc.co.kr/subway",
+          "order": 610,
+          "text": "광주교통공사"
+        },
+        {
+          "href": "http://g.nts.go.kr/",
+          "order": 611,
+          "text": "광주지방국세청"
+        },
+        {
+          "href": "http://www.jge.go.kr/",
+          "order": 612,
+          "text": "전남광주통합특별시교육청"
+        },
+        {
+          "href": "http://gwangju.kma.go.kr/",
+          "order": 613,
+          "text": "광주지방기상청"
+        },
+        {
+          "href": "http://www.nps.or.kr/",
+          "order": 614,
+          "text": "국민연금공단"
+        },
+        {
+          "href": "https://www.pps.go.kr/gwangju/index.do",
+          "order": 615,
+          "text": "광주지방조달청"
+        },
+        {
+          "href": "http://www.nhis.or.kr/",
+          "order": 616,
+          "text": "국민건강보험공단"
+        },
+        {
+          "href": "http://www.mma.go.kr/gwangju/index.do",
+          "order": 617,
+          "text": "광주전남지방병무청"
+        },
+        {
+          "href": "http://www.smba.go.kr/gwangju",
+          "order": 618,
+          "text": "광주·전남지방중소벤처기업청"
+        },
+        {
+          "href": "http://www.mfds.go.kr/",
+          "order": 619,
+          "text": "식품의약품안전처"
+        },
+        {
+          "href": "http://www.webwatch.or.kr/Situation/WA_Situation.html?MenuCD=110",
+          "order": 620,
+          "text": ""
+        },
+        {
+          "href": "/menu.es?mid=a10106020000",
+          "order": 621,
+          "text": "찾아오시는 길"
+        },
+        {
+          "href": "/menu.es?mid=a10602000000",
+          "order": 622,
+          "text": "이용안내"
+        },
+        {
+          "href": "/menu.es?mid=a10603000000",
+          "order": 623,
+          "text": "개인정보처리방침"
+        },
+        {
+          "href": "/menu.es?mid=a10604000000",
+          "order": 624,
+          "text": "영상정보처리기기 운영·관리 방침"
+        },
+        {
+          "href": "/menu.es?mid=a10602020000",
+          "order": 625,
+          "text": "저작권보호정책"
+        },
+        {
+          "href": "http://www.webwatch.or.kr/Situation/WA_Situation.html?MenuCD=110",
+          "order": 626,
+          "text": "웹 접근성 품질인증 마크 획득"
+        }
+      ],
+      "landmarks": [
+        {
+          "class_name": "",
+          "id": "header",
+          "tag": "header",
+          "text": "이 누리집은 대한민국 공식 전자정부 누리집입니다. 보건소 문화관광 서구의회 행정복지센터 소상공인경영지원센터 서구시설관리공단 주요 누리집 Language 페이스북 카카오톡채널 카카오스토리 밴드 네이버 인스타그램 유튜브 함께 서구 우뚝서구 검색 검색 전남광주통합특별시 서구 GWANGJU CITY SEOGU 열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보 전체메뉴"
+        },
+        {
+          "class_name": "",
+          "id": "gnb1",
+          "tag": "nav",
+          "text": "열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보"
+        },
+        {
+          "class_name": "scrollbar",
+          "id": "gnb2",
+          "tag": "nav",
+          "text": "전체메뉴"
+        },
+        {
+          "class_name": "",
+          "id": "main",
+          "tag": "main",
+          "text": "분야별정보 세무 재정 복지정책 교통 문화관광 보건의료 여성/아동/청소년/청년 생활 경제 안전/민방위 도시/환경/위생 폐기물 재활용 청소/환경 위생관리 미세먼지 라돈측정기 대여 안내 주택재개발 정비사업 주택재건축정비사업 공동주택 주택임대사업 건축정보 도로명주소 부동산정보 음식물쓰레기 2045 탄소중립 서구 자전거 현수막게시대 지역주택조합현황 주택건설사업계획승인현황 군소음보상 디지털저장매체파기 서비스 행정 지속가능발전 고향사랑기부제 폐기물 홈 분야별정보 도시/환경/위생 폐기물 대형폐기물 신고 글자 크게 글자 작게 공유하기 인쇄 생활폐기"
+        },
+        {
+          "class_name": "sub03",
+          "id": "snb",
+          "tag": "section",
+          "text": "분야별정보 세무 재정 복지정책 교통 문화관광 보건의료 여성/아동/청소년/청년 생활 경제 안전/민방위 도시/환경/위생 폐기물 재활용 청소/환경 위생관리 미세먼지 라돈측정기 대여 안내 주택재개발 정비사업 주택재건축정비사업 공동주택 주택임대사업 건축정보 도로명주소 부동산정보 음식물쓰레기 2045 탄소중립 서구 자전거 현수막게시대 지역주택조합현황 주택건설사업계획승인현황 군소음보상 디지털저장매체파기 서비스 행정 지속가능발전 고향사랑기부제"
+        },
+        {
+          "class_name": "list",
+          "id": null,
+          "tag": "nav",
+          "text": "세무 재정 복지정책 교통 문화관광 보건의료 여성/아동/청소년/청년 생활 경제 안전/민방위 도시/환경/위생 폐기물 재활용 청소/환경 위생관리 미세먼지 라돈측정기 대여 안내 주택재개발 정비사업 주택재건축정비사업 공동주택 주택임대사업 건축정보 도로명주소 부동산정보 음식물쓰레기 2045 탄소중립 서구 자전거 현수막게시대 지역주택조합현황 주택건설사업계획승인현황 군소음보상 디지털저장매체파기 서비스 행정 지속가능발전 고향사랑기부제"
+        },
+        {
+          "class_name": "",
+          "id": "contents",
+          "tag": "section",
+          "text": "폐기물 홈 분야별정보 도시/환경/위생 폐기물 대형폐기물 신고 글자 크게 글자 작게 공유하기 인쇄 생활폐기물 배출/수거 대형폐기물 신고 재활용품 분리배출 폐의약품 처리요령 대형폐기물 신고 전남광주통합특별시 서구 시설관리공단 안내번호 062)374-9446 신고방법 :「한손」 홈페이지 접속 또는 어플 설치 후 접수(24시간 이용 가능) 처리대상 : 가구, 침구류, 가전제품류, 주방용품류, 카페트 등 기타류 접수 시 당일 수거 불가(평균 4~7일 소요) 예약 접수량이 많은 경우 방문 일정이 지연될 수 있습니다. 이불류 배출방법 누비이불,"
+        },
+        {
+          "class_name": "location",
+          "id": null,
+          "tag": "nav",
+          "text": "홈 분야별정보 도시/환경/위생 폐기물 대형폐기물 신고"
+        }
+      ],
+      "list_no": null,
+      "organization": null,
+      "page_title": "대형폐기물 신고 | 폐기물 | 도시/환경/위생 | 분야별정보 : 전남광주통합특별시 서구청 #착한도시 서구",
+      "public_assets": [
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/001",
+          "provenance_note": "browser-observed same-host GET; 2526 bytes; text/css",
+          "sha256": "c085e2da2c0e5d1f3d4213f82f0fea8ee975b0809fb954419e8df016a71b0d04",
+          "source_url": "https://www.seogu.gwangju.kr/css/animation.css"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/002",
+          "provenance_note": "browser-observed same-host GET; 15530 bytes; text/css",
+          "sha256": "d50033d4b17fb7b4f695d22555e657b05ade7807622448a599be67d099cf89d5",
+          "source_url": "https://www.seogu.gwangju.kr/css/basic.css"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/003",
+          "provenance_note": "browser-observed same-host GET; 19 bytes; text/css",
+          "sha256": "157cf9d1a9adc3a5f496a9ceadfe6e9204581b245c4a4687f8069d2d09215937",
+          "source_url": "https://www.seogu.gwangju.kr/css/printArea.css"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/004",
+          "provenance_note": "browser-observed same-host GET; 3582 bytes; text/javascript",
+          "sha256": "e7ead7c7f7784adaf5b2848ed9d9e8bd212cbbbcd03ce2d00b075107a681844e",
+          "source_url": "https://www.seogu.gwangju.kr/ease_src/sEditor/js/HuskyEZCreator.js"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/005",
+          "provenance_note": "browser-observed same-host GET; 39203 bytes; text/css",
+          "sha256": "67b8414cacdce9849b63726e1a8098aafdacba2aed9d7a2891ba02ecf887d233",
+          "source_url": "https://www.seogu.gwangju.kr/font/dingbat_xeicon.css"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/006",
+          "provenance_note": "browser-observed same-host GET; 132116 bytes; font/woff2",
+          "sha256": "4c74f4b911eef972f077b70b2823168ae87e96894ef910a84ba562bd4b8c8354",
+          "source_url": "https://www.seogu.gwangju.kr/font/gmarketsans/GmarketSansBold.woff2"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/007",
+          "provenance_note": "browser-observed same-host GET; 141248 bytes; font/woff2",
+          "sha256": "3f33802d06439d0d7bf216681eb9460c762418212936906ebf66ef6d7154dd62",
+          "source_url": "https://www.seogu.gwangju.kr/font/gmarketsans/GmarketSansMedium.woff2"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/008",
+          "provenance_note": "browser-observed same-host GET; 147824 bytes; font/woff2",
+          "sha256": "bc16b83ae5f87730fbed27f810d75fcad341777866b43dd05e0ee03efe040b81",
+          "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Bold.woff2"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/009",
+          "provenance_note": "browser-observed same-host GET; 144416 bytes; font/woff2",
+          "sha256": "8c1d60fc42757d152926ed43c829132ab5b8c0ca421a0e9e168b23d55755800b",
+          "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-DemiLight.woff2"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/010",
+          "provenance_note": "browser-observed same-host GET; 140480 bytes; font/woff2",
+          "sha256": "0cb9f1d965c896baa64dae6e769181d223f38f73a62396c8d8434ecf174aab5f",
+          "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Light.woff2"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/011",
+          "provenance_note": "browser-observed same-host GET; 146044 bytes; font/woff2",
+          "sha256": "3f2d313bf322a15b90c069e417f8d176d02ed6df216ab6323fc0792b295c257d",
+          "source_url": "https://www.seogu.gwangju.kr/font/NotoSansKR/NotoSansCJKkr-Medium.woff2"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/012",
+          "provenance_note": "browser-observed same-host GET; 684 bytes; text/css",
+          "sha256": "72a0046c7974742252be03a6e8a23413d889608a047e8e221a712dc2191db930",
+          "source_url": "https://www.seogu.gwangju.kr/font/webfonts_gmarketsans.css"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/013",
+          "provenance_note": "browser-observed same-host GET; 57300 bytes; font/woff2",
+          "sha256": "b388035f0a6c34b48927d76634f08f82af556e288c47d7674335371f2deeee8a",
+          "source_url": "https://www.seogu.gwangju.kr/font/xeicon/xeicon.woff2?3ka2yj"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/014",
+          "provenance_note": "browser-observed same-host GET; 1706 bytes; text/css",
+          "sha256": "f9e337fdea0da8912119992f4751a80e50366faed530c3eaff05180c9f1f5d6a",
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/jquery.bxslider.css?v=20260729"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/015",
+          "provenance_note": "browser-observed same-host GET; 42839 bytes; text/css",
+          "sha256": "247184981eb6f698a94e431a83d68c6b0df623cce57b6e29dc5a6c11e23aa195",
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/jquery.mCustomScrollbar.min.css?v=2025012112"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/016",
+          "provenance_note": "browser-observed same-host GET; 1336 bytes; text/css",
+          "sha256": "35dc4be859335b0576ac8f9bbe5ac96449d1c35501697c0163d678a6c2ba283c",
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/slick.css?v=20260729"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/017",
+          "provenance_note": "browser-observed same-host GET; 18431 bytes; text/css",
+          "sha256": "e6792bc2356c88d7cacf7351d64da1e7eaade694b9485daef7f4c84f5844968c",
+          "source_url": "https://www.seogu.gwangju.kr/jquery/css/swiper.min.css?v=20260729"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/018",
+          "provenance_note": "browser-observed same-host GET; 95931 bytes; text/javascript",
+          "sha256": "2ecd295d295bec062cedebe177e54b9d6b19fc0a841dc5c178c654c9ccff09c0",
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/jquery-1.11.2.min.js"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/019",
+          "provenance_note": "browser-observed same-host GET; 19359 bytes; text/javascript",
+          "sha256": "bb9e7dc822c6b7b95a6329932885c72ff2caf74b243fc1c40aca0e858123b83e",
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/jquery.bxslider.min.js"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/020",
+          "provenance_note": "browser-observed same-host GET; 45479 bytes; text/javascript",
+          "sha256": "fd8027b53a97cbd5782e85c5908e563c39776703ff9279f50658e630927b4167",
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/jquery.mCustomScrollbar.concat.min.js"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/021",
+          "provenance_note": "browser-observed same-host GET; 19927 bytes; text/javascript",
+          "sha256": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36",
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/qrcode.min.js"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/022",
+          "provenance_note": "browser-observed same-host GET; 91973 bytes; text/javascript",
+          "sha256": "1c27f6799779247331c2f1eab5524f0a0bbc09e1d272c88106e6fc645b440376",
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/slick.js"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/023",
+          "provenance_note": "browser-observed same-host GET; 140562 bytes; text/javascript",
+          "sha256": "6f9df49fe12f77b66daba876cb33b7090b2443f570a2a4b9541cddd705440aa5",
+          "source_url": "https://www.seogu.gwangju.kr/jquery/js/swiper.min.js"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/024",
+          "provenance_note": "browser-observed same-host GET; 40018 bytes; text/javascript",
+          "sha256": "d1bfe919b0a4a413c1ccbfdc8ba287c7b85f997046e3c87b1b707e7b909e8350",
+          "source_url": "https://www.seogu.gwangju.kr/js/global.js"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/025",
+          "provenance_note": "browser-observed same-host GET; 12104 bytes; text/javascript",
+          "sha256": "6d216a94f8b866d0bba2dfe4d7c701eb24f9d55207fcca08ab7a2b0a7e1b7579",
+          "source_url": "https://www.seogu.gwangju.kr/js/instafeed.min.js"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/026",
+          "provenance_note": "browser-observed same-host GET; 2671 bytes; text/css",
+          "sha256": "96456d8b1eaee603ab7b4f4e5f125ce7c2282deaf9ec8aa14287c04c72606e55",
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/button.css"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/027",
+          "provenance_note": "browser-observed same-host GET; 63024 bytes; text/css",
+          "sha256": "3d097c94bd3a186e5af0bbe52362fbc2623ccb6488238c39d4c32f6a62e15486",
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/contents.css"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/028",
+          "provenance_note": "browser-observed same-host GET; 13113 bytes; text/css",
+          "sha256": "f92f1e2d31659074ff79af5f71f03c3fe754b9ac241001b36ac3dd67a0746ae1",
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/default.css?v=20260729"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/029",
+          "provenance_note": "browser-observed same-host GET; 17 bytes; text/css",
+          "sha256": "eeda6f6208cf7226321ea4ff61ec9b93fde032d5dd25cff49a4941fbca6b2816",
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/layout_respond.css"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/030",
+          "provenance_note": "browser-observed same-host GET; 41055 bytes; text/css",
+          "sha256": "e1112caf3c8b6079c2affbf1473ef935208c437fbf9f0a1af257d9ec2b63d303",
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/layout.css?v=20260729"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/031",
+          "provenance_note": "browser-observed same-host GET; 17 bytes; text/css",
+          "sha256": "d5571c4c58a7b14b65fe2ea97f84e6db6f32147a71487d07d7fbd56022ada0ae",
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/sub_es.css?v=20260729"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/032",
+          "provenance_note": "browser-observed same-host GET; 5074 bytes; text/css",
+          "sha256": "668722a22eee0ece18a00eab735905117e6a7fc6fd4897ab6dcdf207f591a155",
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/sub_respond.css?v=20260729"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/033",
+          "provenance_note": "browser-observed same-host GET; 15034 bytes; text/css",
+          "sha256": "6274bed90661b134e40f75dfdbc5f8990b5d43ac15a9e88830ec545a06a0c99b",
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/sub.css?v=20260729"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/034",
+          "provenance_note": "browser-observed same-host GET; 8545 bytes; text/css",
+          "sha256": "d895525d02da209bc8815501aabd2cb885add617f76a87813439f99d4d587b94",
+          "source_url": "https://www.seogu.gwangju.kr/kor/css/sub03.css?v=20260729"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/035",
+          "provenance_note": "browser-observed same-host GET; 4449 bytes; image/png",
+          "sha256": "5fa669dfc1f2ee3f02d37c0c83e8fd3d3eaea19e78c352e48831273d5df02cec",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/bot-mark01.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/036",
+          "provenance_note": "browser-observed same-host GET; 2684 bytes; image/png",
+          "sha256": "0809ce482b481c1321bb7d7a16ef88bbadd21ec770e912e5a8fd38efce337da8",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/ico_nara.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/037",
+          "provenance_note": "browser-observed same-host GET; 1603 bytes; image/png",
+          "sha256": "a5789795e0ef1011517db20cd81d738d854fd5bdd519d504b708fa6a38658513",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn01.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/038",
+          "provenance_note": "browser-observed same-host GET; 2101 bytes; image/png",
+          "sha256": "07c754f7b5a4a6b573bedcc290d3dc2522f7ccf8b79ac31550b690bd0aaef42e",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn02.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/039",
+          "provenance_note": "browser-observed same-host GET; 2399 bytes; image/png",
+          "sha256": "63da191ebeab81140988a197b21fd15bcea0d40d2b1306e6fbd0585c0ce01ef4",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn03.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/040",
+          "provenance_note": "browser-observed same-host GET; 2228 bytes; image/png",
+          "sha256": "ab2d0a50bf7a9d4bafcf93abee9ed6968909deaa34a66c354d54860f4d1d99d2",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn04.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/041",
+          "provenance_note": "browser-observed same-host GET; 1722 bytes; image/png",
+          "sha256": "c8c2a1b334cc9e36144938f51bc4812b572ef0c73369181bce5c3c5c37a3ffea",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn05.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/042",
+          "provenance_note": "browser-observed same-host GET; 1581 bytes; image/png",
+          "sha256": "616d65a2eb887774d5b7363c966083e6f8f9bc7b3653e86c93da6e13b575b676",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn06.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/043",
+          "provenance_note": "browser-observed same-host GET; 2224 bytes; image/png",
+          "sha256": "4c48883c1122ff29a1fc080e0e74382a9364be563c6e5439e6d802bef8372c65",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn07.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/044",
+          "provenance_note": "browser-observed same-host GET; 2103 bytes; image/png",
+          "sha256": "65da30f599443f207e7fe45b4e13e481aecbd3fbdc1c48ad02e61a024785b6d1",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn08.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/045",
+          "provenance_note": "browser-observed same-host GET; 2236 bytes; image/png",
+          "sha256": "17c6a15e61a2796b49bc54cc699dd3032bd12389eec23bfe4cb76c94222e4716",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn09.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/046",
+          "provenance_note": "browser-observed same-host GET; 2289 bytes; image/png",
+          "sha256": "7c69a3fc4606b71b1b7f6f91ab821ec7a3297da60c9e720c362032f7c5e5dd99",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn10.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/047",
+          "provenance_note": "browser-observed same-host GET; 2037 bytes; image/png",
+          "sha256": "8cf29d4e38c765297a0f3d670205eaab27f7fe528043f2a96746413cbd80f716",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn11.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/048",
+          "provenance_note": "browser-observed same-host GET; 2344 bytes; image/png",
+          "sha256": "065efd504dc82dcced062ea3b6975497de2cbd0b1369b534601cd1aa0096361f",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn15.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/049",
+          "provenance_note": "browser-observed same-host GET; 3381 bytes; image/png",
+          "sha256": "c6e40c259afa601d8bd3f565cde341111d32cd2d9fdc84901c03ed0cf37cfc55",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn16.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/050",
+          "provenance_note": "browser-observed same-host GET; 3319 bytes; image/png",
+          "sha256": "180bc68ef59d90c940a8b7553862d0dcd3763ead78a0524663939676eb5f93ed",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/lnb3-mn17.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/051",
+          "provenance_note": "browser-observed same-host GET; 2026 bytes; image/png",
+          "sha256": "49db662533482d887b7b8400008321f256fd78712178a97939d6a8f81e8c376d",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/sns_blog.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/052",
+          "provenance_note": "browser-observed same-host GET; 1501 bytes; image/png",
+          "sha256": "3818e4564a2e8742a6b4bd3b2f13badef46bd1af8e478c18f205a314064f0e61",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/sns_kakaoch.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/053",
+          "provenance_note": "browser-observed same-host GET; 1267 bytes; image/png",
+          "sha256": "8295eae02861a303e96ba79081cee8dec6701d14745eb4ec02149e53fa3b5fd9",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/sns-band.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/054",
+          "provenance_note": "browser-observed same-host GET; 5952 bytes; image/png",
+          "sha256": "aec93eb9d38a49f9309b1a955b21d0eb97ad37580cb7a6c6b6d441507f5d758b",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/top_logo.png"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/055",
+          "provenance_note": "browser-observed same-host GET; 33417 bytes; image/svg+xml",
+          "sha256": "726929bc0ec5c501b4cc5caf39d38799c5684dc1a02fb9151dc37b9e5b2fe3f7",
+          "source_url": "https://www.seogu.gwangju.kr/kor/img/layout/top_slogan.svg"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/056",
+          "provenance_note": "browser-observed same-host GET; 12898 bytes; text/javascript",
+          "sha256": "ca597630ef537b4a7c9113b150dbef22e6f36af1d8e9bec5c63858a1d095c516",
+          "source_url": "https://www.seogu.gwangju.kr/kor/js/layout.js"
+        },
+        {
+          "artifact_id": "bulky_waste_guidance.default.desktop/public-asset/057",
+          "provenance_note": "browser-observed same-host GET; 2938 bytes; text/javascript",
+          "sha256": "f582b33ef29451b144907b671bbfb031e983810506e6d1f21b84a4c0914835b1",
+          "source_url": "https://www.seogu.gwangju.kr/kor/js/sub.js"
+        }
+      ],
+      "requested_url": "https://www.seogu.gwangju.kr/menu.es?mid=a10308010200",
+      "result_status": "success",
+      "source_updated_at": null,
+      "staff_directory": null,
+      "state_id": "bulky_waste_guidance.default.desktop",
+      "state_name": "default",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      },
+      "viewport_geometry": {
+        "height": 900,
+        "width": 1440
+      }
+    }
+  ],
+  "validation": {
+    "artifact_files_present": true,
+    "artifact_sha256_match": true,
+    "artifacts_within_capture_root": true,
+    "inventories_valid": true,
+    "ledger_identity_valid": true,
+    "reference_baseline_ready": true,
+    "states_complete": true
+  }
+}

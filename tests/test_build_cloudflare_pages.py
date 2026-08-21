@@ -914,6 +914,8 @@ SEOGU_ADDITIVE_ROUTES = [
     "seogu/unmanned-kiosk/index.html",
     # #1363 S7 mayor-proposal informational evidence route.
     "seogu/mayor-proposal-guidance/index.html",
+    # #1376 S8 bulky-waste guidance evidence route.
+    "seogu/bulky-waste-guidance/index.html",
 ]
 
 

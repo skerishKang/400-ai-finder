@@ -87,16 +87,17 @@ const EXPECTED_MATRIX = [
   { journey_id: "seogu_mayor_proposal", label: "구청장에게 제안하고 싶어요", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
   { journey_id: "seogu_illegal_parking_report", label: "불법 주정차 신고", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
   { journey_id: "seogu_apartment_housing_dept", label: "공동주택 부서 문의", status: "DIRECT_REUSE" },
-  { journey_id: "seogu_mattrass_disposal", label: "대형폐기물 배출", status: "SOURCE_CAPTURE_NEEDED" },
+  { journey_id: "seogu_mattrass_disposal", label: "대형폐기물 배출", status: "DIRECT_REUSE" },
   { journey_id: "seogu_passport_issuance", label: "여권 발급 안내", status: "DIRECT_REUSE" },
   { journey_id: "seogu_unmanned_kiosk", label: "무인민원발급기 안내", status: "DIRECT_REUSE" },
   { journey_id: "seogu_streetlight_report", label: "가로등 고장 신고 (AI)", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
   { journey_id: "seogu_illegal_dumping_report", label: "쓰레기 무단투기 (AI)", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
 ];
 
-const CAPTURE_NEEDED_IDS = [
-  "seogu_mattrass_disposal",
-];
+// #1376 S8 was the last SOURCE_CAPTURE_NEEDED scenario — every canonical
+// Seo-gu chip now has an implemented journey shape. The list is kept as a
+// contract anchor: it must stay empty unless a NEW scenario is added.
+const CAPTURE_NEEDED_IDS = [];
 
 // #1364 Lane B: S3/S4 are NO LONGER external handoff journeys — they are
 // evidence-gated app-owned complaint-writing flows covered by the dedicated
@@ -889,6 +890,11 @@ try {
     iframePathAfterCapture, iframePathBeforeCapture,
     "capture-needed scenarios must not navigate the clone surface",
   );
+  // #1376: no canonical Seo-gu scenario may remain capture-needed.
+  assert.strictEqual(
+    CAPTURE_NEEDED_IDS.length, 0,
+    "all canonical Seo-gu scenarios must be implemented (no SOURCE_CAPTURE_NEEDED left)",
+  );
   // (3k) #1360 S6 kiosk chip: navigate -> bounded clone READ -> required
   // markers (무인민원발급안내/설치장소/도로명주소/서비스시간/발급종수) ->
   // grounded, READ-derived answer with visible repository-clone provenance.
@@ -1003,6 +1009,82 @@ try {
     return { scrollW: t.scrollWidth, clientW: t.clientWidth };
   });
   assert.ok(s6Overflow.scrollW <= s6Overflow.clientW + 1, "desktop S6 thread must not horizontally overflow");
+
+
+  // (3m) #1376 S8 bulky-waste chip: navigate -> bounded clone READ ->
+  // required markers (대형폐기물 신고/한손/시설관리공단/374-9446/자원순환과/
+  // 062-360-7287 + fee table 1인용 매트리스 8,000 / 2인용 매트리스 11,000 /
+  // 4~7일) -> grounded, READ-derived answer with repository-clone provenance.
+  // Fees MUST come from the captured official page — never from Buk-gu
+  // fallback hardcodes (침대 매트리스 5,000원).
+  await confirmAndProceed(page, '[data-journey-id="seogu_mattrass_disposal"]', "grounded");
+  const s8 = await page.evaluate(() => {
+    const shell = window.SeoguCitizenActionShell;
+    const r = shell.getLastJourneyResult();
+    const ev = shell.getEvidence();
+    const frame = document.getElementById("seogu-clone-frame");
+    let rcMainText = null;
+    try {
+      const doc = frame.contentDocument;
+      const main = doc && doc.querySelector("main.rc-main");
+      rcMainText = main ? main.innerText : null;
+    } catch {
+      rcMainText = null;
+    }
+    return {
+      result: r
+        ? { ok: r.ok, grounded: r.grounded, route: r.route, journey_id: r.journey_id,
+            source_kind: r.source_kind, evidence_kind: r.evidence_kind, excerpt: r.excerpt }
+        : null,
+      evidence: ev ? { route: ev.route, text: ev.text } : null,
+      rc_main_text: rcMainText,
+      iframe_url: frame.contentWindow ? frame.contentWindow.location.pathname : null,
+    };
+  });
+  assert.ok(s8.result, "S8 bulky-waste journey result must exist");
+  assert.strictEqual(s8.result.ok, true, "S8 bulky-waste journey must be ok");
+  assert.strictEqual(s8.result.grounded, true, "S8 bulky-waste journey must be grounded");
+  assert.strictEqual(s8.result.journey_id, "seogu_mattrass_disposal");
+  assert.ok(
+    String(s8.result.route).includes("bulky-waste-guidance"),
+    `S8 must land on bulky-waste-guidance route, got ${s8.result.route}`,
+  );
+  assert.ok(
+    String(s8.iframe_url || "").includes("bulky-waste-guidance"),
+    "iframe must actually navigate to the bulky-waste-guidance clone route",
+  );
+  for (const marker of [
+    "대형폐기물 신고", "한손", "시설관리공단", "374-9446",
+    "자원순환과", "062-360-7287",
+  ]) {
+    assert.ok(String(s8.evidence.text || "").includes(marker), `READ evidence missing S8 marker: ${marker}`);
+  }
+  // Fee facts from the FRESH capture only (CTO mandatory requirement #1).
+  for (const feeMarker of ["1인용 매트리스", "8,000", "2인용 매트리스", "11,000", "4~7일"]) {
+    assert.ok(
+      String(s8.rc_main_text || "").includes(feeMarker),
+      `rc-main READ region missing S8 fee/timeline fact: ${feeMarker}`,
+    );
+  }
+  // The stale Buk-gu fallback fee value must NOT appear in the Seo-gu capture.
+  assert.ok(
+    !String(s8.rc_main_text || "").includes("침대 매트리스 5,000"),
+    "S8 capture must not inherit the stale Buk-gu fallback fee (5,000원)",
+  );
+  assert.strictEqual(s8.result.source_kind, "repository_clone", "S8 provenance must be repository_clone");
+  assert.strictEqual(s8.result.evidence_kind, "clone_dom", "S8 evidence_kind must be clone_dom");
+  assert.ok(s8.result.excerpt && s8.result.excerpt.length > 0, "S8 excerpt must be non-empty");
+  assert.ok(s8.rc_main_text, "iframe rc-main must be readable (same-origin, script-disabled)");
+  const s8RcMainNormalized = String(s8.rc_main_text).replace(/\s+/g, " ");
+  for (const line of s8.result.excerpt.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const normalizedLine = trimmed.replace(/\s+/g, " ");
+    assert.ok(
+      s8RcMainNormalized.includes(normalizedLine),
+      `answer excerpt line not found in rc-main READ region: ${trimmed.slice(0, 60)}`,
+    );
+  }
 
 
   // (5) S2 EXTERNAL_OFFICIAL_HANDOFF — local-evidence-first, generic

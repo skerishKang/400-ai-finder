@@ -35,6 +35,9 @@
         // #1363 Lane B: S7 mayor-proposal informational evidence route
         // (bounded capture of the official 주민제안 participation-method page).
         "mayor-proposal-guidance/",
+        // #1376 Lane B: S8 bulky-waste guidance route (bounded capture of the
+        // official 대형폐기물 신고 page — DIRECT_REUSE).
+        "bulky-waste-guidance/",
         // #1364 Lane B: app-owned complaint-board/write surface routes.
         // These routes are NOT served by the clone iframe — they are rendered
         // by SeoguComplaintSurface inside #demo-canvas for S3/S4 complaint-

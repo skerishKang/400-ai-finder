@@ -192,11 +192,42 @@
     _freezeJourney({
       journey_id: "seogu_mattrass_disposal",
       questions: ["매트리스 폐기 신청은 어디서 하나요?"],
-      status: "SOURCE_CAPTURE_NEEDED",
-      capture_needed: true,
+      status: "DIRECT_REUSE",
+      capture_needed: false,
+      entry_route: "bulky-waste-guidance/",
+      evidence_route: "bulky-waste-guidance/",
+      required_markers: [
+        "대형폐기물 신고",
+        "한손",
+        "시설관리공단",
+        "374-9446",
+        "자원순환과",
+        "062-360-7287",
+        "1인용 매트리스",
+        "8,000",
+        "2인용 매트리스",
+        "11,000",
+        "4~7일",
+      ],
+      excerpt_markers: [
+        "대형폐기물 신고",
+        "한손",
+        "1인용 매트리스",
+        "8,000",
+        "2인용 매트리스",
+        "11,000",
+        "4~7일",
+      ],
+      max_excerpt_chars: 1200,
       substitution_note:
-        "서구 공식 대형폐기물 신고 페이지가 직접 존재함 (「한손」 홈페이지/앱 접수, 1인용 매트리스 8,000원, 2인용 11,000원). " +
-        "civil_form substitute가 아니며, 직접 공식 source를 bounded capture해야 하는 scenario.",
+        "#1376 S8 DIRECT_REUSE. 서구 공식 대형폐기물 신고 페이지(menu.es?mid=a10308010200)를 " +
+        "bounded read-only capture(20260821T143931-0900)하여 local route bulky-waste-guidance/로 " +
+        "렌더링. generic CMS content-page capability(#1357)가 main.rc-main에 대형폐기물 신고/한손/" +
+        "시설관리공단/374-9446/자원순환과/062-360-7287 marker와 수수료 표(1인용 매트리스 8,000원 · " +
+        "2인용 매트리스 11,000원 — Buk-gu 폴백 하드코딩 5,000원이 아닌 신규 캡처에서 조달)를 렌더링. " +
+        "READ evidence(main.rc-main innerText)에서 required/excerpt marker 검증 후 READ-derived " +
+        "answer 생성 (답변 문자열 hard-code 없음). 실제 신청/결제는 「한손」 앱·홈페이지(24시간)에서 " +
+        "주민이 직접 진행 — clone 밖 경계 유지, 처리기간 평균 4~7일.",
       chip: { label: "대형폐기물 배출", icon: "mattress", variant: "" },
     }),
     _freezeJourney({

@@ -1318,6 +1318,18 @@ class _GenericContentParser(HTMLParser):
         self.list_ordered = False
         self.list_items: list[str] = []
         self.list_buf: list[str] = []
+        # Nested-list context stack: a <ul> inside an <li> must not discard
+        # the outer list's accumulated items (#1376 S8 fee/info structure).
+        self._list_stack: list[dict[str, Any]] = []
+        # Source-backed table capture: official CMS content pages carry
+        # material facts (e.g. bulky-waste fee tables) in plain <table>s.
+        self._in_table = False
+        self._table_depth = 0
+        self._table_headings: list[str] = []
+        self._table_rows: list[list[str]] = []
+        self._cur_row: list[str] | None = None
+        self._cur_row_is_heading = True
+        self._cell_buf: list[str] = []
         self.saw_signal = False
         self._capturing = False
 
@@ -1389,11 +1401,60 @@ class _GenericContentParser(HTMLParser):
             self._capturing = True
         if not self._capturing:
             return
+        if tag == "table":
+            self._flush_cur()
+            if self.in_list:
+                self._flush_li()
+                if self.list_items:
+                    self.blocks.append({
+                        "type": "list",
+                        "ordered": self.list_ordered,
+                        "items": self.list_items,
+                    })
+                self._list_stack.clear()
+                self.in_list = False
+                self.list_items = []
+                self.list_buf = []
+            if self._in_table:
+                # Nested table: keep the outer table only.
+                self._table_depth += 1
+                return
+            self._in_table = True
+            self._table_depth = 0
+            self._table_headings = []
+            self._table_rows = []
+            self._cur_row = None
+            self._cur_row_is_heading = True
+            return
+        if self._in_table:
+            if tag == "tr":
+                self._flush_table_row()
+                self._cur_row = []
+                self._cur_row_is_heading = True
+                return
+            if tag in ("th", "td") and self._cur_row is not None:
+                self._flush_cell()
+                self._cell_buf = []
+                if tag == "td":
+                    self._cur_row_is_heading = False
+                return
+            if tag in ("p", "span", "strong", "em", "b", "i", "a"):
+                # Inline markup inside a cell: keep the text flowing into the
+                # current cell buffer.
+                return
         if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
             self._begin("heading", int(tag[1]), tag)
             return
         if tag in ("ul", "ol"):
             self._flush_cur()
+            if self.in_list:
+                # Nested list inside an <li>: preserve the outer list's
+                # accumulated items instead of discarding them.
+                self._flush_li()
+                self._list_stack.append({
+                    "ordered": self.list_ordered,
+                    "items": self.list_items,
+                })
             self.in_list = True
             self.list_ordered = (tag == "ol")
             self.list_items = []
@@ -1406,7 +1467,15 @@ class _GenericContentParser(HTMLParser):
         if "tt" in tokens:
             self._begin("heading", 2, tag)
             return
-        if tag == "p" or (tag == "div" and ("con" in tokens or "txt" in tokens)):
+        # Generic CMS info-note spans (e.g. <span class="i-info">접수 시 당일
+        # 수거 불가(평균 4~7일 소요)</span>) carry material guidance facts and
+        # sit outside lists — capture them as source-backed paragraphs.
+        if tag == "span" and "i-info" in tokens:
+            self._begin("paragraph", None, tag)
+            return
+        if not self.in_list and (
+            tag == "p" or (tag == "div" and ("con" in tokens or "txt" in tokens))
+        ):
             self._begin("paragraph", None, tag)
             return
         if tag == "li" and self.in_list:
@@ -1418,8 +1487,44 @@ class _GenericContentParser(HTMLParser):
                 self.list_buf.append(" ")
             return
 
+    def _flush_cell(self) -> None:
+        if self._cur_row is None:
+            self._cell_buf = []
+            return
+        text = re.sub(r"\s+", " ", "".join(self._cell_buf)).strip()
+        if text:
+            self._cur_row.append(text)
+        self._cell_buf = []
+
+    def _flush_table_row(self) -> None:
+        if self._cur_row is None:
+            return
+        self._flush_cell()
+        if self._cur_row:
+            if self._cur_row_is_heading and not self._table_rows:
+                self._table_headings = self._cur_row
+            else:
+                self._table_rows.append(self._cur_row)
+        self._cur_row = None
+        self._cur_row_is_heading = True
+
+    def _emit_table(self) -> None:
+        self._flush_table_row()
+        if self._table_headings or self._table_rows:
+            self.blocks.append({
+                "type": "table",
+                "headings": self._table_headings,
+                "rows": self._table_rows,
+            })
+        self._table_headings = []
+        self._table_rows = []
+        self._cur_row = None
+
     def handle_data(self, data):
         if self._skip_stack:
+            return
+        if self._in_table and self._cur_row is not None:
+            self._cell_buf.append(data)
             return
         if self.in_list:
             self.list_buf.append(data)
@@ -1434,6 +1539,22 @@ class _GenericContentParser(HTMLParser):
             return
         if self._skip_stack:
             return
+        if tag == "table" and self._in_table:
+            if self._table_depth > 0:
+                self._table_depth -= 1
+                return
+            self._emit_table()
+            self._in_table = False
+            return
+        if self._in_table:
+            if tag == "tr":
+                self._flush_table_row()
+                return
+            if tag in ("th", "td"):
+                self._flush_cell()
+                return
+            # Inline close tags inside cells are inert (text already captured).
+            return
         if tag in ("ul", "ol") and self.in_list:
             self._flush_li()
             if self.list_items:
@@ -1442,9 +1563,15 @@ class _GenericContentParser(HTMLParser):
                     "ordered": self.list_ordered,
                     "items": self.list_items,
                 })
-            self.in_list = False
-            self.list_items = []
-            self.list_buf = []
+            if self._list_stack:
+                outer = self._list_stack.pop()
+                self.list_ordered = outer["ordered"]
+                self.list_items = outer["items"]
+                self.list_buf = []
+            else:
+                self.in_list = False
+                self.list_items = []
+                self.list_buf = []
             return
         if tag == "li" and self.in_list:
             self._flush_li()

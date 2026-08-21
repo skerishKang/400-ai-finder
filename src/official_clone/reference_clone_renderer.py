@@ -2796,6 +2796,30 @@ def _render_content_main(
                 for it in (blk.get("items") or [])
             )
             parts.append(f'<ul class="rc-content-list">{items}</ul>')
+        elif btype == "table":
+            # Source-backed fee/fact tables (e.g. bulky-waste 부과기준). Fully
+            # inert: every cell is HTML-escaped plain text, no links emitted.
+            headings = blk.get("headings") or []
+            rows = blk.get("rows") or []
+            thead = ""
+            if headings:
+                head_cells = "".join(
+                    f'<th scope="col">{_esc(h)}</th>' for h in headings
+                )
+                thead = f"<thead><tr>{head_cells}</tr></thead>"
+            body_rows = "".join(
+                "<tr>"
+                + "".join(f"<td>{_esc(c)}</td>" for c in row)
+                + "</tr>"
+                for row in rows
+            )
+            tbody = f"<tbody>{body_rows}</tbody>" if body_rows else ""
+            parts.append(
+                '<table class="rc-content-table">'
+                + thead
+                + tbody
+                + "</table>"
+            )
     contents_info = content.get("contents_info")
     if isinstance(contents_info, dict) and contents_info.get("kind") == "duty":
         parts.append(_render_contents_info({"contents_info": contents_info}))
