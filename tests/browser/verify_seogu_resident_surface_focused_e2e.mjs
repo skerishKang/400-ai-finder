@@ -202,6 +202,23 @@ async function openDemo(context) {
     null,
     { timeout: 15000 },
   );
+  // #1378 — cross-institution literal contract: the Seo-gu resident surface
+  // must never render another institution's display identity. Fails on any
+  // visible '북구청' leak (copy, alt text, aria labels, document title).
+  const crossInstitutionLeak = await page.evaluate(() => {
+    const texts = [
+      document.title || "",
+      document.body.innerText || "",
+      ...Array.from(document.querySelectorAll("[alt],[aria-label],[placeholder]"))
+        .map((el) => `${el.getAttribute("alt") || ""}${el.getAttribute("aria-label") || ""}${el.getAttribute("placeholder") || ""}`),
+    ];
+    return texts.filter((t) => t.includes("북구청")).length;
+  });
+  if (crossInstitutionLeak > 0) {
+    throw new Error(
+      `CROSS_INSTITUTION_LITERAL_LEAK: ${crossInstitutionLeak} rendered node(s) contain '북구청' on the Seo-gu surface`,
+    );
+  }
   return page;
 }
 

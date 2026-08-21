@@ -41,7 +41,7 @@
     "구청장에게 제안하고 싶어요": "mayor_message_assist",
   };
   var SPLIT_FOLLOW_UP_MESSAGE =
-    "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
+    _institutionName() + " 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.";
 
   var body = document.body;
   var canvas = document.getElementById("demo-canvas");
@@ -257,7 +257,7 @@
     if (nextState === JOURNEY_ENTRY && options.announceReset) {
       text = _t("journey.entryReady", "새 질문을 입력할 수 있습니다.");
     } else if (nextState === JOURNEY_NAVIGATE) {
-      text = _t("journey.navigating", "북구청 안내 화면에서 경로를 진행하고 있습니다.");
+      text = _t("journey.navigating", _institutionName() + " 안내 화면에서 경로를 진행하고 있습니다.");
     } else if (nextState === JOURNEY_RESULT) {
       text = _t("journey.completed",
         "안내 경로가 완료되었습니다. 대화로 돌아가 새 질문을 입력할 수 있습니다.");
@@ -1081,9 +1081,9 @@
 
   function sourceModeLabel(value) {
     var sourceMode = textValue(value);
-    if (sourceMode === "local_static") return "북구청 공식 화면 기준";
-    if (sourceMode === "live_official" || sourceMode === "live") return "북구청 최신 공식 데이터";
-    if (sourceMode === "cached_official" || sourceMode === "cache") return "북구청 공식 데이터 사본";
+    if (sourceMode === "local_static") return _institutionName() + " 공식 화면 기준";
+    if (sourceMode === "live_official" || sourceMode === "live") return _institutionName() + " 최신 공식 데이터";
+    if (sourceMode === "cached_official" || sourceMode === "cache") return _institutionName() + " 공식 데이터 사본";
     return sourceMode ? "공식 자료 확인" : "";
   }
 
@@ -1498,7 +1498,7 @@
         // Government strip
         '<div class="bg-home-gov-strip">' +
           '<div class="bg-home-gov-strip__inner">' +
-            '<img src="' + assets + '/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 북구청 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
+            '<img src="' + assets + '/home-government-notice.png" alt="본 누리집은 전남광주통합특별시 ' + _institutionName() + ' 공식 누리집입니다." class="bg-home-gov-strip__notice" />' +
           '</div>' +
         '</div>' +
 
@@ -1896,7 +1896,7 @@
 
   function freshnessLabel(value) {
     if (value === "live_official") return _t("freshness.liveOfficial", "최신 공식자료 확인");
-    if (value === "official_snapshot") return _t("freshness.officialSnapshot", "북구청 공식 스냅샷");
+    if (value === "official_snapshot") return _t("freshness.officialSnapshot", _institutionName() + " 공식 스냅샷");
     if (value === "live_web") return _t("freshness.liveWeb", "최신 웹자료 확인 · 공식 출처 재확인 필요");
     if (value === "model_only") return _t("freshness.modelOnly", "현재 공식 출처 없음");
     return "";
@@ -2043,6 +2043,23 @@
     return window.CitizenI18n || null;
   }
 
+  // #1378 — institution display identity via the SiteSpec projection
+  // (single truth source). Fail-closed default mirrors the authoritative
+  // Buk-gu SiteSpec display block; the drift contract in
+  // tests/test_citizen_sitespec_parity.py keeps metadata aligned.
+  function _institutionName() {
+    var i18n = _i18n();
+    if (i18n && typeof i18n.getInstitutionName === "function") {
+      try {
+        var name = i18n.getInstitutionName(
+          typeof i18n.getLocale === "function" ? i18n.getLocale() : undefined
+        );
+        if (typeof name === "string" && name) return name;
+      } catch (err) { /* fall through to fail-closed default */ }
+    }
+    return "북구청";
+  }
+
   // Map a canonical question or MVP action to its i18n chip key so service
   // names render in the active locale (never flags-only; always text).
   var CANONICAL_TO_CHIPKEY = Object.freeze({
@@ -2116,7 +2133,7 @@
     appendChatMessage(
       "ai",
       _t("chat.welcome",
-        "안녕하세요. 북구청 민원 안내 AI입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다.")
+        _institutionName() + " 민원 안내 AI입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다.")
     );
   }
 
@@ -2198,7 +2215,7 @@
       appendChatMessage(
         "ai",
         _t("split.ready",
-          "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다.")
+          "질문을 확인했습니다. 왼쪽에 " + _institutionName() + " 안내 화면을 열었습니다.")
       );
       if (lastSplitQuestion) {
         showConfirmRun(lastSplitQuestion);
@@ -2843,7 +2860,7 @@
       appendChatMessage(
         "ai",
         _t("split.ready",
-          "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다.")
+          "질문을 확인했습니다. 왼쪽에 " + _institutionName() + " 안내 화면을 열었습니다.")
       );
       appendQuestProgressCard(chatThread);
       // Bridge answer already set answer; ack reinforces answer before confirm.
@@ -2896,7 +2913,7 @@
 
     // Clear canvas content so split-state HTML isn't left behind
     if (canvas) {
-      canvas.innerHTML = '<div class="demo-canvas__inner"><div class="demo-canvas__loading" aria-live="polite">북구청 안내 화면을 준비하는 중…</div></div>';
+      canvas.innerHTML = '<div class="demo-canvas__inner"><div class="demo-canvas__loading" aria-live="polite">' + _institutionName() + ' 안내 화면을 준비하는 중…</div></div>';
     }
 
     body.classList.add("first-use-shell--no-motion");
