@@ -1456,6 +1456,57 @@ try {
   assert.strictEqual(langControl.byIdVisible, false, "#chat-lang must not be a visible broken control (Blocker C)");
   assert.strictEqual(langControl.emptyLangSelectCount, 0, "no empty .chat-shell__lang select may remain in the DOM (Blocker C)");
 
+  // (8b) #1367: NO-path regression proof — uses a fresh desktop page
+  const noPage = await desktop.newPage();
+  await noPage.goto(DEMO_URL, { waitUntil: "networkidle", timeout: 20000 });
+  await noPage.waitForFunction(
+    () => document.querySelectorAll("#chat-chips .chat-chip").length > 0,
+    null, { timeout: 15000 },
+  );
+  await noPage.waitForFunction(
+    () => document.body.getAttribute("data-surface-state") === "ready",
+    null, { timeout: 15000 },
+  );
+  // (8b) #1367: NO-path regression proof — for each S1/S2/S5/S6 scenario,
+  // prove that declining the confirmation gate causes zero navigation.
+  const NO_PATH_SCENARIOS = [
+    { id: "seogu_apartment_housing_dept", label: "S1 housing" },
+    { id: "seogu_illegal_parking_report", label: "S2 illegal parking" },
+    { id: "seogu_passport_issuance", label: "S5 passport" },
+    { id: "seogu_unmanned_kiosk", label: "S6 kiosk" },
+  ];
+  for (const scenario of NO_PATH_SCENARIOS) {
+    const preRoute = await noPage.evaluate(() => {
+      const frame = document.getElementById("seogu-clone-frame");
+      return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+    });
+    await noPage.locator(`[data-journey-id="${scenario.id}"]`).click();
+    await noPage.waitForFunction(
+      () => document.body.getAttribute("data-journey-state") === "answer",
+      null, { timeout: 10000 },
+    );
+    await noPage.waitForFunction(
+      () => document.body.getAttribute("data-journey-state") === "confirm",
+      null, { timeout: 10000 },
+    );
+    const midRoute = await noPage.evaluate(() => {
+      const frame = document.getElementById("seogu-clone-frame");
+      return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+    });
+    assert.strictEqual(midRoute, preRoute, `${scenario.label}: route must not change during answer+confirm`);
+    await noPage.locator('[data-confirm-action="no"]').last().click();
+    await noPage.waitForFunction(
+      () => document.body.getAttribute("data-journey-state") === "answer",
+      null, { timeout: 10000 },
+    );
+    const postRoute = await noPage.evaluate(() => {
+      const frame = document.getElementById("seogu-clone-frame");
+      return frame && frame.contentWindow ? frame.contentWindow.location.pathname : null;
+    });
+    assert.strictEqual(postRoute, preRoute, `${scenario.label}: NO must not navigate the clone surface`);
+  }
+
+
   await desktop.close();
 
   // ── Mobile contract (390x844) ─────────────────────────────────────────────
@@ -1719,7 +1770,12 @@ try {
   assert.ok(mPassportConvGeo.sourceW >= 200, `mobile S5 provenance must span full content column (>=200px), got ${mPassportConvGeo.sourceW}`);
   assert.strictEqual(mPassportConvGeo.bubbleLeft, mPassportConvGeo.sourceLeft, "mobile S5 bubble and provenance must share the same content column left edge");
   assert.ok(mPassportConvGeo.docScrollW <= mPassportConvGeo.docClientW + 1, "mobile S5 conversation must not cause page-level horizontal overflow");
-  assert.ok(mPassportConvGeo.chipsScrollW > mPassportConvGeo.docClientW, "mobile S5 chip rail retains its own internal horizontal scroll (canonical behavior)");
+  // #1365: At 390px mobile, chips use flex-wrap:wrap (canonical Buk-gu
+  // behavior). They wrap to fit the viewport rather than horizontally
+  // scroll. The canonical invariant is: chips are visible, don't cause
+  // page-level overflow (checked above), and the rail has >= 8 chips.
+  const mChipCount = await mpage.evaluate(() => document.querySelectorAll("#chat-chips .chat-chip").length);
+  assert.ok(mChipCount >= 8, `mobile S5 chip rail must show all 8 chips, got ${mChipCount}`);
   // ── #1353 mobile handoff responsive hierarchy (S2) ──────────────────────────
   // The S2 final handoff row must NOT collapse the CTA into character-by-character
   // vertical stacking and must keep the authority readable in the content column
@@ -1732,6 +1788,12 @@ try {
   );
   // #1365: chip -> answer -> confirm -> YES -> handoff -> safe_handoff (mobile S2)
   await confirmAndProceed(mpage, '[data-journey-id="seogu_illegal_parking_report"]', "safe_handoff");
+  // Switch to conversation surface to measure the handoff row layout
+  await convTab.click();
+  await mpage.waitForFunction(
+    () => document.body.getAttribute("data-mobile-surface") === "conversation",
+    null, { timeout: 5000 },
+  );
   const mHandoff = await measureHandoffLayout(mpage, "seogu_illegal_parking_report");
   assert.ok(mHandoff, "mobile S2 handoff destination row must be present");
   assert.strictEqual(mHandoff.display, "grid", "mobile S2 handoff row must use the grid content-column layout");

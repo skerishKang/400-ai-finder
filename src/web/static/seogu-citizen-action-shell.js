@@ -2,14 +2,13 @@
  * seogu-citizen-action-shell.js
  * Seo-gu (서구) MVP resident-shell orchestration (#1343 Buk-gu parity slice).
  *
- * This is the Seo-gu-SPECIFIC orchestration layer. It reuses the SHARED,
- * site-parameterized machinery (MunicipalSiteSurfaceRegistry,
- * MunicipalCloneSurface, MunicipalResidentJourney, citizen-mvp-bridge) and the
- * Seo-gu site-data/config island (SeoguSiteSpecMetadata,
- * SeoguResidentJourneyRegistry). It contains NO Buk-gu facts, questions or
- * routes — those live in the config island. The Buk-gu canonical shell
- * STRUCTURE (CSS/layout) is reused via the linked stylesheets; only the
- * Seo-gu resident surface behaviour is implemented here.
+ * This is a THIN BOOTSTRAP/ADAPTER for Seo-gu. It does NOT own any
+ * canonical resident behavior (confirmation, state transitions, YES/NO
+ * semantics, journey progression). The shared CitizenConfirmationGate
+ * module owns the canonical answer→confirm→YES/NO progression. This file
+ * wires Seo-gu site copy, registry/evidence, and surface callbacks into
+ * the shared canonical engine. It contains NO Buk-gu facts, questions or
+ * routes — those live in the config island.
  *
  * Behaviour contract:
  * - capture_needed with no committed route  -> honest "근거 자료 미확보" state,
@@ -537,91 +536,45 @@
     _setCanvasAvailability(true);
   }
 
-  // ── Canonical Buk-gu confirmation gate (#1365) ────────────────────────────
-  // Buk-gu golden state graph for informational scenarios:
-  //   chip/question → first answer → confirm-run (YES/NO)
-  //   NO  → stay on answer, zero navigation, zero READ
-  //   YES → navigate + READ + grounded result
-  // A chip click is NOT confirmation. The Seo-gu shell must not collapse
-  // answer + confirm or confirm + navigate into one state.
-  var _confirmGeneration = 0;
+  // ── Shared canonical confirmation gate (#1365/#1366/#1367) ───────────────────
+  // This shell is a THIN BOOTSTRAP/ADAPTER. It does NOT own confirmation,
+  // state transitions, or YES/NO semantics. The shared
+  // CitizenConfirmationGate module owns the canonical answer→confirm→YES/NO
+  // progression. Site-specific code supplies only copy, registry/evidence,
+  // and surface callbacks.
+  var _gate = window.CitizenConfirmationGate
+    ? window.CitizenConfirmationGate.create({
+        thread: thread,
+        setJourneyState: function (state) {
+          document.body.setAttribute("data-journey-state", state);
+        },
+        getDisplayName: function (question) {
+          var journey = window.SeoguResidentJourneyRegistry
+            ? window.SeoguResidentJourneyRegistry.match(question)
+            : null;
+          return journey && journey.chip && journey.chip.label
+            ? journey.chip.label
+            : question;
+        },
+        isMobile: function () {
+          return window.matchMedia("(max-width: 767px)").matches;
+        },
+        onMobileSurface: function (surface) {
+          document.body.setAttribute("data-mobile-surface", surface);
+          if (surface === "guidance" && input) input.blur();
+        },
+        focusComposer: function () {
+          if (input) input.focus();
+        },
+        onConfirm: function (question) {
+          // YES → navigate + READ + grounded (the ONLY transition trigger)
+          _setCanvasAvailability(true);
+          _runConfirmedJourney(question);
+        },
+      })
+    : null;
 
-  function _showConfirmRun(question, journey) {
-    var gen = _confirmGeneration;
-    var displayName = journey && journey.chip && journey.chip.label
-      ? journey.chip.label
-      : question;
-
-    var msgDiv = document.createElement("div");
-    msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
-    msgDiv.setAttribute("data-msg-type", "confirm-run");
-
-    var avatar = document.createElement("div");
-    avatar.className = "chat-avatar";
-    avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = "A";
-
-    var bubble = document.createElement("div");
-    bubble.className = "chat-bubble chat-bubble--ai";
-
-    var text = document.createElement("p");
-    text.style.margin = "0 0 10px 0";
-    text.textContent = displayName + "에 대해 안내해 드릴까요?";
-    bubble.appendChild(text);
-
-    var btnRow = document.createElement("div");
-    btnRow.style.display = "flex";
-    btnRow.style.gap = "8px";
-
-    var yesBtn = document.createElement("button");
-    yesBtn.type = "button";
-    yesBtn.className = "chat-decision__button chat-decision__button--primary";
-    yesBtn.textContent = "예, 안내해 주세요";
-    yesBtn.setAttribute("data-confirm-action", "yes");
-    yesBtn.addEventListener("click", function () {
-      if (gen !== _confirmGeneration) return;
-      msgDiv.removeAttribute("data-msg-type");
-      var btns = bubble.querySelectorAll("button");
-      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
-      if (window.matchMedia("(max-width: 767px)").matches && input) {
-        input.blur();
-      }
-      if (window.matchMedia("(max-width: 767px)").matches) {
-        document.body.setAttribute("data-mobile-surface", "guidance");
-      }
-      _setCanvasAvailability(true);
-      document.body.setAttribute("data-journey-state", "navigate");
-      _runConfirmedJourney(question, journey);
-    });
-
-    var noBtn = document.createElement("button");
-    noBtn.type = "button";
-    noBtn.className = "chat-decision__button chat-decision__button--secondary";
-    noBtn.textContent = "아니요";
-    noBtn.setAttribute("data-confirm-action", "no");
-    noBtn.addEventListener("click", function () {
-      if (gen !== _confirmGeneration) return;
-      msgDiv.removeAttribute("data-msg-type");
-      var btns = bubble.querySelectorAll("button");
-      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
-      document.body.setAttribute("data-journey-state", "answer");
-      _setCanvasAvailability(false);
-      if (input) input.focus();
-    });
-
-    btnRow.appendChild(yesBtn);
-    btnRow.appendChild(noBtn);
-    bubble.appendChild(btnRow);
-
-    msgDiv.appendChild(avatar);
-    msgDiv.appendChild(bubble);
-    thread.appendChild(msgDiv);
-    thread.scrollTop = thread.scrollHeight;
-
-    document.body.setAttribute("data-journey-state", "confirm");
-  }
-
-  async function _runConfirmedJourney(question, journey) {
+  async function _runConfirmedJourney(question) {
     input.disabled = true;
     send.disabled = true;
     try {
@@ -640,7 +593,7 @@
 
   function _handleQuestion(question) {
     if (!surface) return;
-    _confirmGeneration += 1;
+    if (_gate) _gate.invalidate();
 
     var journey = null;
     if (window.SeoguResidentJourneyRegistry) {
@@ -651,15 +604,15 @@
     _appendMessage("user", question);
     input.value = "";
 
-    // ── Canonical Buk-gu state sequence (#1365) ─────────────────────────
+    // ── Canonical shared state sequence (#1365/#1366/#1367) ──────────────
     // chip → first answer → confirm-run (YES/NO) → YES = navigate → grounded
-    // A chip click is NOT confirmation.
-    if (journey && (journey.entry_route || journey.handoff)) {
+    // A chip click is NOT confirmation. The shared CitizenConfirmationGate
+    // owns the answer→confirm→YES/NO progression.
+    if (journey && (journey.entry_route || journey.handoff) && _gate) {
       document.body.setAttribute("data-journey-state", "answer");
       _appendMessage("ai", "질문을 확인했습니다. 왼쪽에 서구청 안내 화면을 준비했습니다.");
-      // Delay confirm-run so the answer state is observably distinct.
       window.setTimeout(function () {
-        _showConfirmRun(question, journey);
+        _gate.showConfirmRun(question);
       }, 300);
       return;
     }

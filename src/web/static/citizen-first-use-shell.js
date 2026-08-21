@@ -629,6 +629,7 @@
   function invalidateActiveRunsForHistoryRestore() {
     _mvpRequestToken++;
     _confirmGeneration++;
+    if (_gate) _gate.invalidate();
     if (window.CitizenMvpBridge && typeof window.CitizenMvpBridge.cancel === "function") {
       window.CitizenMvpBridge.cancel();
     }
@@ -2127,147 +2128,44 @@
     focusComposerIfAllowed();
   }
 
+  // #1367: Shared canonical confirmation gate. Both Buk-gu and Seo-gu
+  // delegate answer→confirm→YES/NO to ONE implementation. The gate owns the
+  // DOM structure, state transitions, and YES/NO semantics. Site-specific
+  // callbacks supply display name, mobile surface, and choreography start.
+  var _gate = window.CitizenConfirmationGate
+    ? window.CitizenConfirmationGate.create({
+        thread: chatThread,
+        setJourneyState: function (state) { setJourneyState(state); },
+        getDisplayName: function (question) {
+          return _localizedServiceName(question);
+        },
+        isMobile: function () { return isMobileSurfaceMode(); },
+        onMobileSurface: function (surface) {
+          setMobileSurface(surface);
+          if (surface === "guidance" && chatInput) chatInput.blur();
+        },
+        focusComposer: function () { focusComposerIfAllowed(); },
+        onConfirm: function (question) {
+          // YES is the ONLY trigger for navigation/choreography.
+          // The question may be a canonical question or an action code;
+          // startChoreography handles both.
+          startChoreography(question);
+        },
+      })
+    : null;
+
   function showConfirmRun(question) {
-    var displayName = _localizedServiceName(question);
-    var gen = _confirmGeneration;
-    var msgDiv = document.createElement("div");
-    msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
-    msgDiv.setAttribute("data-msg-type", "confirm-run");
-
-    var bubble = document.createElement("div");
-    bubble.className = "chat-bubble chat-bubble--ai";
-
-    var text = document.createElement("p");
-    text.style.margin = "0 0 10px 0";
-    text.textContent = displayName + _t("split.confirm", "에 대해 안내해 드릴까요?");
-    bubble.appendChild(text);
-
-    var btnRow = document.createElement("div");
-    btnRow.style.display = "flex";
-    btnRow.style.gap = "8px";
-
-    var yesBtn = document.createElement("button");
-    yesBtn.type = "button";
-    yesBtn.textContent = _t("action.yesGuide", "예, 안내해 주세요");
-    yesBtn.style.cssText = "padding:8px 16px;border:0;border-radius:18px;background:#ef6a4c;color:#fff;font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;";
-    yesBtn.addEventListener("click", function () {
-      if (gen !== _confirmGeneration) return;
-      msgDiv.removeAttribute("data-msg-type");
-      var btns = bubble.querySelectorAll("button");
-      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
-      // Mobile: switch the active surface to guidance BEFORE the
-      // scripted navigation starts, and close the composer keyboard.
-      if (isMobileSurfaceMode() && chatInput) {
-        chatInput.blur();
-      }
-      setMobileSurface("guidance");
-      startChoreography(question);
-    });
-
-    var noBtn = document.createElement("button");
-    noBtn.type = "button";
-    noBtn.textContent = _t("action.no", "아니요");
-    noBtn.style.cssText = "padding:8px 16px;border:1px solid #d0d0d5;border-radius:18px;background:#fff;color:#0d0d0f;font:inherit;font-size:0.85rem;cursor:pointer;";
-    noBtn.addEventListener("click", function () {
-      if (gen !== _confirmGeneration) return;
-      msgDiv.removeAttribute("data-msg-type");
-      var btns = bubble.querySelectorAll("button");
-      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
-      // Decline navigation — remain on the answered chat without clone drive.
-      setJourneyState(JOURNEY_ANSWER);
-      focusComposerIfAllowed();
-    });
-
-    btnRow.appendChild(yesBtn);
-    btnRow.appendChild(noBtn);
-    bubble.appendChild(btnRow);
-
-    var avatar = document.createElement("div");
-    avatar.className = "chat-avatar";
-    avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = "A";
-    msgDiv.appendChild(avatar);
-    msgDiv.appendChild(bubble);
-
-    var wasPinned = isChatPinnedToBottom();
-    chatThread.appendChild(msgDiv);
-    scrollChatToLatest(msgDiv, { wasPinned: wasPinned });
-    // #1067: confirm-run bubble shown — wait for resident decision.
-    setJourneyState(JOURNEY_CONFIRM);
+    if (_gate) {
+      _gate.showConfirmRun(question);
+    }
   }
 
-  // MVP confirm-run step: mirrors showConfirmRun but maps an action code to a
-  // display name instead of a free-text question. The local choreography must
-  // NOT start until the citizen explicitly chooses [예, 안내해 주세요].
   function showConfirmRunForAction(action) {
-    var displayName = _localizedServiceName(action);
-    var gen = _confirmGeneration;
-    var msgDiv = document.createElement("div");
-    msgDiv.className = "chat-msg chat-msg--ai chat-msg--confirm-run";
-    msgDiv.setAttribute("data-msg-type", "confirm-run");
-
-    var bubble = document.createElement("div");
-    bubble.className = "chat-bubble chat-bubble--ai";
-
-    var text = document.createElement("p");
-    text.style.margin = "0 0 10px 0";
-    text.textContent = displayName + _t("split.confirm", "에 대해 안내해 드릴까요?");
-    bubble.appendChild(text);
-
-    var btnRow = document.createElement("div");
-    btnRow.style.display = "flex";
-    btnRow.style.gap = "8px";
-
-    var yesBtn = document.createElement("button");
-    yesBtn.type = "button";
-    yesBtn.textContent = _t("action.yesGuide", "예, 안내해 주세요");
-    yesBtn.style.cssText = "padding:8px 16px;border:0;border-radius:18px;background:#ef6a4c;color:#fff;font:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;";
-    yesBtn.addEventListener("click", function () {
-      if (gen !== _confirmGeneration) return;
-      msgDiv.removeAttribute("data-msg-type");
-      var btns = bubble.querySelectorAll("button");
-      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
-      // Mobile: switch to guidance + close composer keyboard before
-      // the scripted navigation starts.
-      if (isMobileSurfaceMode() && chatInput) {
-        chatInput.blur();
-      }
-      setMobileSurface("guidance");
-      setJourneyState(JOURNEY_NAVIGATE);
-      if (window.CitizenFirstChoreography && action) {
-        window.CitizenFirstChoreography.start(action);
-      }
-    });
-
-    var noBtn = document.createElement("button");
-    noBtn.type = "button";
-    noBtn.textContent = _t("action.no", "아니요");
-    noBtn.style.cssText = "padding:8px 16px;border:1px solid #d0d0d5;border-radius:18px;background:#fff;color:#0d0d0f;font:inherit;font-size:0.85rem;cursor:pointer;";
-    noBtn.addEventListener("click", function () {
-      if (gen !== _confirmGeneration) return;
-      msgDiv.removeAttribute("data-msg-type");
-      var btns = bubble.querySelectorAll("button");
-      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
-      setJourneyState(JOURNEY_ANSWER);
-      focusComposerIfAllowed();
-    });
-
-    btnRow.appendChild(yesBtn);
-    btnRow.appendChild(noBtn);
-    bubble.appendChild(btnRow);
-
-    var avatar = document.createElement("div");
-    avatar.className = "chat-avatar";
-    avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = "A";
-    msgDiv.appendChild(avatar);
-    msgDiv.appendChild(bubble);
-
-    var wasPinned = isChatPinnedToBottom();
-    chatThread.appendChild(msgDiv);
-    scrollChatToLatest(msgDiv, { wasPinned: wasPinned });
-    setJourneyState(JOURNEY_CONFIRM);
+    if (_gate) {
+      _gate.showConfirmRun(action);
+    }
   }
+
 
   function completeSplit() {
     splitTimer = null;
@@ -2950,6 +2848,7 @@
     // #1133: new flow — prior history entries become stale and non-restorable.
     beginNewHistoryFlow();
     _confirmGeneration++;
+    if (_gate) _gate.invalidate();
     // Invalidate any in-flight MVP response so a late answer cannot re-open the
     // clone or restart an action after the user reset.
     _mvpRequestToken++;
