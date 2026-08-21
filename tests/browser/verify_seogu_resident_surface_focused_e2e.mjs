@@ -16,8 +16,8 @@
  *   3b. REAL desktop visibility after S3: split state + canvas inert removed /
  *      aria-hidden=false / non-zero rect in viewport + iframe non-zero rect +
  *      visible rc-main with grounded markers (blank canvas = FAIL);
- *   4. SOURCE_CAPTURE_NEEDED scenarios (S1/S4/S6-now-DIRECT_REUSE) produce honest
- *      capture-needed rows, no navigation, no fake success;
+ *   4. the remaining SOURCE_CAPTURE_NEEDED scenario (mattress disposal) produces
+ *      an honest capture-needed row, no navigation, no fake success;
  *   5. S2 EXTERNAL_OFFICIAL_HANDOFF (Blocker B + Blocker A):
  *      D1 — generic config-driven contract on the handoff row
  *           (action_kind=EXTERNAL_OFFICIAL_HANDOFF, claim_scope=HANDOFF_ONLY,
@@ -84,7 +84,7 @@ const KNOWN_BROWSER_PATHS = [
 
 // Round 2 canonical 8-row matrix (chips only; preserved infra proofs excluded).
 const EXPECTED_MATRIX = [
-  { journey_id: "seogu_mayor_proposal", label: "구청장에게 제안하고 싶어요", status: "SOURCE_CAPTURE_NEEDED" },
+  { journey_id: "seogu_mayor_proposal", label: "구청장에게 제안하고 싶어요", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
   { journey_id: "seogu_illegal_parking_report", label: "불법 주정차 신고", status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED" },
   { journey_id: "seogu_apartment_housing_dept", label: "공동주택 부서 문의", status: "DIRECT_REUSE" },
   { journey_id: "seogu_mattrass_disposal", label: "대형폐기물 배출", status: "SOURCE_CAPTURE_NEEDED" },
@@ -95,14 +95,16 @@ const EXPECTED_MATRIX = [
 ];
 
 const CAPTURE_NEEDED_IDS = [
-  "seogu_mayor_proposal",
   "seogu_mattrass_disposal",
 ];
 
 // #1364 Lane B: S3/S4 are NO LONGER external handoff journeys — they are
 // evidence-gated app-owned complaint-writing flows covered by the dedicated
 // complaint section below and tests/browser/verify_seogu_complaint_s3s4_e2e.mjs.
-// The only remaining EXTERNAL_OFFICIAL_HANDOFF scenario is S2.
+// #1363 Lane B (CTO rework): S7 mayor proposal is ALSO an evidence-gated
+// app-owned writing journey (Buk-gu mayor-complaint-write/receipt shape) —
+// covered by tests/browser/verify_seogu_s7_mayor_proposal_e2e.mjs. The only
+// remaining EXTERNAL_OFFICIAL_HANDOFF scenario is S2.
 const HANDOFF_IDS = [
   "seogu_illegal_parking_report",
 ];

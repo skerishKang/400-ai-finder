@@ -888,6 +888,57 @@ def build_seogu_unmanned_kiosk_addon(dist_root: str) -> None:
     print(f"[build] wrote {len(written)} additive S6 unmanned-kiosk route(s) -> seogu/unmanned-kiosk/ : {routes}")
 
 
+def build_seogu_mayor_proposal_addon(dist_root: str) -> None:
+    """Emit the additive #1363 S7 mayor-proposal guidance route under /seogu/.
+
+    Bounded one-page official Seo-gu resident-proposal (주민제안) guidance
+    capture (capture-id ``20260821T111106-0900``) for the
+    INFORMATIONAL_PLUS_EXTERNAL_OFFICIAL_HANDOFF scenario. The informational
+    participation-method page is modelled generically by the existing
+    reference-clone model (``content_page``), so the required markers become
+    clone-DOM-verifiable through the generic renderer with no bespoke
+    mayor-proposal renderer branch.
+
+    Additive only: ``write_site`` writes only the routes present in this
+    model, so the pinned 11-state baseline and all prior additive routes are
+    untouched. Fully offline; reads only the committed additive
+    clone-model.json. Rendered with ``visual_contract=None`` because the
+    additive capture has its own provenance chain and is not covered by the
+    pinned baseline visual contract.
+    """
+    import importlib
+
+    _src = os.path.join(_REPO_ROOT, "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+
+    renderer = importlib.import_module("official_clone.reference_clone_renderer")
+
+    model_path = os.path.join(
+        _REPO_ROOT,
+        "data",
+        "official_clone_fixtures",
+        "seogu_gwangju",
+        "g1",
+        "20260821T111106-0900",
+        "clone-model.json",
+    )
+    if not os.path.isfile(model_path):
+        raise RuntimeError(f"S7 mayor-proposal fail-closed: additive model not found: {model_path}")
+    model = renderer.load_model(model_path)
+    written = renderer.write_site(
+        model,
+        os.path.join(dist_root, "seogu"),
+        route_prefix="/seogu/",
+        visual_contract=None,
+    )
+    routes = sorted(
+        (str(w.relative_to(Path(dist_root))) if hasattr(w, "relative_to") else str(w))
+        for w in written
+    )
+    print(f"[build] wrote {len(written)} additive S7 mayor-proposal route(s) -> seogu/mayor-proposal-guidance/ : {routes}")
+
+
 def build(out_dir: str | None = None, mode: str = "static") -> None:
     _ensure_repo_on_path()
     from scripts.generate_bukgu_official_snapshots import check_generated_artifacts
@@ -1130,6 +1181,12 @@ def build(out_dir: str | None = None, mode: str = "static") -> None:
     #     /seogu/unmanned-kiosk/. Separate bounded one-page capture;
     #     additive only; never clobbers baseline/housing/handoff/passport routes.
     build_seogu_unmanned_kiosk_addon(dist_root)
+
+    # 9h. Emit the additive #1363 S7 mayor-proposal guidance route under
+    #     /seogu/mayor-proposal-guidance/. Separate bounded one-page capture;
+    #     additive only; never clobbers baseline/housing/handoff/passport/kiosk
+    #     routes.
+    build_seogu_mayor_proposal_addon(dist_root)
 
     print(f"[build] done -> {dist_root}")
 

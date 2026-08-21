@@ -669,7 +669,13 @@
     }
 
     var isS4 = journey.action.type === "COMPLAINT_AI_ASSIST";
-    var scenarioLabel = isS4 ? "쓰레기 무단투기 신고" : "가로등 고장 신고";
+    var isMayor = choreoKey === "mayor_message_assist";
+    var scenarioLabel = isMayor
+      ? "주민 제안"
+      : (isS4 ? "쓰레기 무단투기 신고" : "가로등 고장 신고");
+    // #1363 Lane B: the mayor-proposal choreography starts from the office
+    // entry route (its first step clicks #btn-open-mayor-office there).
+    var startRoute = isMayor ? "mayor-office-entry" : "complaint-board";
 
     // Pre-complaint-write confirmation message — the resident knows they are
     // entering the drafting area and that evidence has been validated.
@@ -691,7 +697,7 @@
     document.body.setAttribute("data-journey-state", "complaint_write");
 
     try {
-      window.SeoguComplaintSurface.navigateToRoute("complaint-board");
+      window.SeoguComplaintSurface.navigateToRoute(startRoute);
     } catch (_) {
       _complaintChoreographyActive = false;
       _appendMessage("ai", "현재 민원 작성 화면을 연결하지 못했습니다.");
@@ -709,8 +715,17 @@
   }
 
   function _restoreCloneSurfaceAfterComplaint() {
-    _complaintChoreographyActive = false;
+    // #1363 Lane B: when the mayor-proposal choreography completes at the
+    // receipt stage, the app-owned receipt view IS the terminal resident
+    // state (Buk-gu mayor-complaint-receipt shape) — preserve it instead of
+    // wiping the surface.
+    var receiptVisible = false;
     if (window.SeoguComplaintSurface) {
+      receiptVisible =
+        window.SeoguComplaintSurface.getCurrentRouteId() === "mayor-complaint-receipt";
+    }
+    _complaintChoreographyActive = false;
+    if (window.SeoguComplaintSurface && !receiptVisible) {
       window.SeoguComplaintSurface.reset();
     }
     if (window.CitizenFirstChoreography) {

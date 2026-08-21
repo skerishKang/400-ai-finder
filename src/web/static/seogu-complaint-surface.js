@@ -53,6 +53,12 @@
   var _SUPPORTED_ROUTES = Object.freeze([
     "complaint-board",
     "complaint-write",
+    // #1363 Lane B: S7 mayor-proposal writing journey (Buk-gu
+    // mayor-complaint-write/receipt shape, #1375 pattern).
+    "mayor-office-entry",
+    "mayor-office",
+    "mayor-complaint-write",
+    "mayor-complaint-receipt",
   ]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -304,6 +310,245 @@
     });
   }
 
+  // ── #1363 Lane B: S7 mayor-proposal routes ─────────────────────────────────
+  // Mirrors the Buk-gu mayor-complaint-write/receipt journey shape
+  // (열린구청장실 → 구청장에게 제안 → AI 제안작성 → 주민 검토 → 사전제출 STOP
+  //  → 수령) with Seo-gu branding and data. App-owned surface only: no real
+  // submit, no transport, no auth, no PII, no external channel anchor.
+
+  function _renderMayorOfficeEntry() {
+    var host = _viewHost();
+    if (!host) return;
+    host.innerHTML = "";
+
+    var page = document.createElement("div");
+    page.className = "bg-page bg-page--full bg-page--mayor";
+    page.setAttribute("data-complaint-route", "mayor-office-entry");
+
+    var main = document.createElement("main");
+    main.className = "bg-mayor-hero";
+
+    var copy = document.createElement("div");
+    copy.className = "bg-mayor-hero__copy";
+    copy.innerHTML =
+      '<p class="bg-product-eyebrow">SEO-GU MAYOR PROPOSAL</p>' +
+      '<h1>주민의 제안을 함께 작성합니다</h1>' +
+      '<p>서구청 홈페이지의 주민제안 안내(참여대상·참여방법·처리절차)를 근거로 ' +
+        'AI가 제안 초안 작성을 도와드립니다. 실제 접수는 서구청 공식 채널에서 ' +
+        '주민이 직접 확인하고 진행해야 합니다.</p>';
+    main.appendChild(copy);
+
+    var actions = document.createElement("div");
+    actions.className = "bg-mayor-hero__actions";
+
+    var openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.className = "bg-mayor-cta";
+    openBtn.id = "btn-open-mayor-office";
+    openBtn.setAttribute("data-action-target", "mayor-office");
+    openBtn.innerHTML = '열린 구청장실 바로가기 <span aria-hidden="true">→</span>';
+    actions.appendChild(openBtn);
+
+    main.appendChild(actions);
+    page.appendChild(main);
+
+    var facts = document.createElement("section");
+    facts.className = "bg-receipt-card";
+    facts.setAttribute("data-grounded-facts", "mayor-proposal-guidance");
+    facts.innerHTML =
+      '<div><span>참여대상</span><strong>전 주민 (연령·거주지 제한 없음, 단체 가능)</strong></div>' +
+      '<div><span>참여방법</span><strong>서구청 홈페이지 · 우편 · 팩스</strong></div>' +
+      '<div><span>처리절차</span><strong>주민제안 접수 → 검토 → 처리결과 회신</strong></div>';
+    page.appendChild(facts);
+
+    host.appendChild(page);
+  }
+
+  function _renderMayorOffice() {
+    var host = _viewHost();
+    if (!host) return;
+    host.innerHTML = "";
+
+    var page = document.createElement("div");
+    page.className = "bg-page bg-page--full bg-page--mayor";
+    page.setAttribute("data-complaint-route", "mayor-office");
+
+    var main = document.createElement("main");
+    main.className = "bg-mayor-hero";
+
+    var copy = document.createElement("div");
+    copy.className = "bg-mayor-hero__copy";
+    copy.innerHTML =
+      '<p class="bg-product-eyebrow">MAYOR OFFICE</p>' +
+      '<h1>열린 구청장실</h1>' +
+      '<p>주민과 함께 만드는 서구의 비전과 소통 창구입니다.\n' +
+        '아래에서 주민제안 작성을 시작할 수 있습니다.</p>';
+    main.appendChild(copy);
+
+    var actions = document.createElement("div");
+    actions.className = "bg-mayor-hero__actions";
+    actions.setAttribute("data-mayor-office-actions", "true");
+
+    var proposeBtn = document.createElement("button");
+    proposeBtn.type = "button";
+    proposeBtn.className = "bg-mayor-cta";
+    proposeBtn.id = "btn-mayor-message";
+    proposeBtn.setAttribute("data-action-target", "mayor-complaint-write");
+    proposeBtn.innerHTML = '구청장에게 제안하기 <span aria-hidden="true">→</span>';
+    actions.appendChild(proposeBtn);
+
+    main.appendChild(actions);
+    page.appendChild(main);
+    host.appendChild(page);
+  }
+
+  function _renderMayorComplaintWrite() {
+    var host = _viewHost();
+    if (!host) return;
+    host.innerHTML = "";
+
+    var page = document.createElement("div");
+    page.className = "bg-page bg-page--full bg-page--mayor bg-page--mayor-writing";
+    page.setAttribute("data-complaint-route", "mayor-complaint-write");
+
+    var main = document.createElement("main");
+    main.className = "bg-writing-main";
+
+    var breadcrumb = document.createElement("nav");
+    breadcrumb.className = "bg-product-breadcrumb";
+    breadcrumb.setAttribute("aria-label", "경로");
+    breadcrumb.innerHTML =
+      '<span>홈</span><span aria-hidden="true">&rsaquo;</span>' +
+      '<span>열린 구청장실</span><span aria-hidden="true">&rsaquo;</span>' +
+      '<span>주민제안</span><span aria-hidden="true">&rsaquo;</span>' +
+      '<span>AI 제안작성</span>';
+    main.appendChild(breadcrumb);
+
+    var heading = document.createElement("header");
+    heading.className = "bg-writing-heading";
+    heading.innerHTML =
+      '<div><p class="bg-product-eyebrow">AI WRITING ASSIST</p><h1>구청장에게 제안하기</h1>' +
+        '<p>주민의 제안을 편하게 말씀하시면 제목과 본문 초안으로 정리해 드립니다. 제출 전 반드시 내용을 직접 확인해 주세요.</p></div>' +
+      '<span class="bg-writing-heading__badge">주민제안</span>';
+    main.appendChild(heading);
+
+    var layout = document.createElement("div");
+    layout.className = "bg-writing-layout";
+
+    var card = document.createElement("section");
+    card.className = "bg-writing-card";
+    card.setAttribute("aria-labelledby", "mayor-writing-title");
+    card.setAttribute("data-pre-submit", "true");
+    card.innerHTML =
+      '<div class="bg-writing-card__top"><div><span>작성 단계</span><strong id="mayor-writing-title">제안 내용을 확인해 주세요</strong></div>' +
+        '<div class="bg-writing-progress" aria-label="작성 진행률"><span class="is-done"></span><span class="is-active"></span><span></span></div></div>' +
+      '<div class="bg-writing-field"><label for="mayor-write-title">제목 <b>필수</b></label>' +
+        '<p>담당자가 내용을 빠르게 파악할 수 있도록 핵심을 담아 주세요.</p>' +
+        '<input type="text" class="bg-dept-search__input bg-writing-input" id="mayor-write-title" maxlength="100" autocomplete="off" /></div>' +
+      '<div class="bg-writing-field"><div class="bg-writing-field__label"><label for="mayor-write-content">내용 <b>필수</b></label><span>최대 2,000자</span></div>' +
+        '<p>제안 배경, 원하는 조치를 편하게 말씀해 주세요. AI가 제안 문장으로 다듬습니다.</p>' +
+        '<textarea id="mayor-write-content" maxlength="2000"></textarea></div>' +
+      '<div class="bg-writing-consent"><span aria-hidden="true">✓</span><p><strong>제출 전 주민 확인</strong>AI는 초안만 작성하며 주민이 확인 버튼을 누르기 전에는 제출되지 않습니다.</p></div>';
+
+    var actions = document.createElement("div");
+    actions.className = "bg-writing-actions";
+    actions.setAttribute("data-writing-actions", "true");
+
+    var backBtn = document.createElement("button");
+    backBtn.type = "button";
+    backBtn.className = "bg-action-btn bg-action-btn--secondary";
+    backBtn.setAttribute("data-action-target", "mayor-office");
+    backBtn.textContent = "이전으로";
+    actions.appendChild(backBtn);
+
+    var submitBtn = document.createElement("button");
+    submitBtn.type = "button";
+    submitBtn.className = "bg-action-btn bg-action-btn--primary";
+    submitBtn.id = "btn-mayor-submit";
+    submitBtn.disabled = true;
+    submitBtn.setAttribute("aria-disabled", "true");
+    submitBtn.setAttribute("data-default-label", "검토 후 제출 가능");
+    submitBtn.textContent = "검토 후 제출 가능";
+    actions.appendChild(submitBtn);
+
+    card.appendChild(actions);
+    layout.appendChild(card);
+
+    var assistant = document.createElement("aside");
+    assistant.className = "bg-writing-assistant";
+    assistant.setAttribute("aria-label", "AI 작성 도움 상태");
+    assistant.innerHTML =
+      '<div class="bg-writing-assistant__orb"><span>AI</span></div>' +
+      '<p class="bg-product-eyebrow">SEOGU AI</p><h2>주민의 말은 그대로,<br>제안 문장은 더 명확하게</h2>' +
+      '<ol><li class="is-done"><b>1</b><span><strong>핵심 내용 파악</strong>제안 배경과 요청사항을 구분합니다.</span></li>' +
+        '<li class="is-active"><b>2</b><span><strong>제안 문장 작성</strong>정중하고 구체적인 문장으로 다듬습니다.</span></li>' +
+        '<li><b>3</b><span><strong>주민 최종 확인</strong>수정하거나 제출 여부를 선택합니다.</span></li></ol>' +
+      '<div class="bg-writing-assistant__tip"><span aria-hidden="true">✦</span><p>실제 주민제안 접수는 서구청 공식 채널에서 주민이 직접 진행해야 합니다.</p></div>';
+    layout.appendChild(assistant);
+
+    main.appendChild(layout);
+
+    var safety = document.createElement("section");
+    safety.className = "bg-writing-consent";
+    safety.setAttribute("data-safety-notice", "true");
+    safety.innerHTML =
+      '<span aria-hidden="true">!</span><p><strong>STOP boundary</strong>이 화면은 AI 보조 초안 작성 영역입니다. ' +
+        '실제 주민제안 접수는 서구청 공식 채널에서 주민이 직접 확인하고 진행해야 하며, 본 MVP는 제출을 대행하지 않습니다.</p>';
+    main.appendChild(safety);
+
+    page.appendChild(main);
+    host.appendChild(page);
+
+    backBtn.addEventListener("click", function () {
+      navigateToRoute("mayor-office");
+    });
+  }
+
+  function _renderMayorComplaintReceipt() {
+    var host = _viewHost();
+    if (!host) return;
+    host.innerHTML = "";
+
+    var page = document.createElement("div");
+    page.className = "bg-page bg-page--full bg-page--mayor bg-page--mayor-receipt";
+    page.setAttribute("data-complaint-route", "mayor-complaint-receipt");
+    page.setAttribute("data-receipt-route", "mayor-complaint-receipt");
+
+    var main = document.createElement("main");
+    main.className = "bg-receipt-main";
+
+    var mark = document.createElement("div");
+    mark.className = "bg-receipt-mark";
+    mark.setAttribute("aria-hidden", "true");
+    mark.innerHTML = "<span>✓</span>";
+    main.appendChild(mark);
+
+    var eyebrow = document.createElement("p");
+    eyebrow.className = "bg-product-eyebrow";
+    eyebrow.textContent = "PROPOSAL READY";
+    main.appendChild(eyebrow);
+
+    var h1 = document.createElement("h1");
+    h1.textContent = "제안 초안이 준비되었습니다";
+    main.appendChild(h1);
+
+    var desc = document.createElement("p");
+    desc.innerHTML = "작성한 내용을 확인했습니다.<br>공식 제출은 서구청 공식 채널에서 시민이 직접 확인하고 진행합니다.";
+    main.appendChild(desc);
+
+    var card = document.createElement("section");
+    card.className = "bg-receipt-card";
+    card.setAttribute("data-receipt-summary", "true");
+    card.innerHTML =
+      '<div><span>작성 유형</span><strong>주민제안 (구청장에게 제안)</strong></div>' +
+      '<div><span>현재 상태</span><strong class="is-accent">공식 제출 전</strong></div>' +
+      '<div><span>다음 단계</span><strong>공식 채널에서 확인 및 제출</strong></div>';
+    main.appendChild(card);
+
+    page.appendChild(main);
+    host.appendChild(page);
+  }
+
   // ── Public API (COMPATIBILITY_DRIVER) ──────────────────────────────────────
 
   function navigateToRoute(routeId) {
@@ -317,6 +562,18 @@
     } else if (routeId === "complaint-write") {
       _clearHighlights();
       _renderComplaintWrite();
+    } else if (routeId === "mayor-office-entry") {
+      _clearHighlights();
+      _renderMayorOfficeEntry();
+    } else if (routeId === "mayor-office") {
+      _clearHighlights();
+      _renderMayorOffice();
+    } else if (routeId === "mayor-complaint-write") {
+      _clearHighlights();
+      _renderMayorComplaintWrite();
+    } else if (routeId === "mayor-complaint-receipt") {
+      _clearHighlights();
+      _renderMayorComplaintReceipt();
     }
     try {
       if (window.CustomEvent) {

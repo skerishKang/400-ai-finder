@@ -1,0 +1,347 @@
+{
+  "title": "주민제안 | 주민제안 | 주민참여 | 소통참여 : 전남광주통합특별시 서구청 #착한도시 서구",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "landmarks": [
+    {
+      "tag": "header",
+      "text": "이 누리집은 대한민국 공식 전자정부 누리집입니다. 보건소 문화관광 서구의회 행정복지센터 소상공인경영지원센터 서구시설관리공단 주요 누리집 Language 페이스북 카카오톡채널 카카오스토리 밴드 네이버 인스타그램 유튜브 함께 서구 우뚝서구 검색 검색 전남광주통합특별시 서구 GWANGJU CITY SEOGU 열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보 전체메뉴",
+      "id": "header",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "열린민원 소통참여 정보공개 구정소식 서구소개 분야별정보",
+      "id": "gnb1",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "전체메뉴",
+      "id": "gnb2",
+      "class_name": "scrollbar"
+    },
+    {
+      "tag": "main",
+      "text": "소통참여 주민참여 바로문자하랑께 칭찬합시다 설문조사 국민생각함 주민제안 통합예약 정보화교육 공유자원 투명행정 주민제안 홈 소통참여 주민참여 주민제안 주민제안 글자 크게 글자 작게 공유하기 인쇄 주민제안 우수제안 우리구에서는 구민의 창의적인 아이디어를 발굴하여 구정에 적극 반영하고자 『제안제도』를 운영하고 있습니다. 많은 참여바랍니다. 단순한 진정·건의나 민원사항 또는 이미 채택된 제안이나 적용이 불가능한 제안등 제안으로 볼 수 없는 사항은 관련규정에 의거 반려하고 있음을 양지하여 주시기 바랍니다. 모집기간 연중수시모집 모집제안 서구",
+      "id": "main",
+      "class_name": ""
+    },
+    {
+      "tag": "section",
+      "text": "소통참여 주민참여 바로문자하랑께 칭찬합시다 설문조사 국민생각함 주민제안 통합예약 정보화교육 공유자원 투명행정",
+      "id": "snb",
+      "class_name": "sub04"
+    },
+    {
+      "tag": "nav",
+      "text": "주민참여 바로문자하랑께 칭찬합시다 설문조사 국민생각함 주민제안 통합예약 정보화교육 공유자원 투명행정",
+      "id": null,
+      "class_name": "list"
+    },
+    {
+      "tag": "section",
+      "text": "주민제안 홈 소통참여 주민참여 주민제안 주민제안 글자 크게 글자 작게 공유하기 인쇄 주민제안 우수제안 우리구에서는 구민의 창의적인 아이디어를 발굴하여 구정에 적극 반영하고자 『제안제도』를 운영하고 있습니다. 많은 참여바랍니다. 단순한 진정·건의나 민원사항 또는 이미 채택된 제안이나 적용이 불가능한 제안등 제안으로 볼 수 없는 사항은 관련규정에 의거 반려하고 있음을 양지하여 주시기 바랍니다. 모집기간 연중수시모집 모집제안 서구 발전을 위한 구정 모든 분야 구민생활 편익증진을 위한 행정업무 개선방안 예산절감, 세입증대 및 기타 구정발전",
+      "id": "contents",
+      "class_name": ""
+    },
+    {
+      "tag": "nav",
+      "text": "홈 소통참여 주민참여 주민제안 주민제안",
+      "id": null,
+      "class_name": "location"
+    }
+  ],
+  "controls": [
+    {
+      "tag": "a",
+      "text": "보건소",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "문화관광",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구의회",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "행정복지센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소상공인경영지원센터",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구시설관리공단",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주요 누리집",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "Language",
+      "id": null,
+      "class_name": "btn"
+    },
+    {
+      "tag": "a",
+      "text": "페이스북",
+      "id": null,
+      "class_name": "facebook"
+    },
+    {
+      "tag": "a",
+      "text": "카카오톡채널",
+      "id": null,
+      "class_name": "kakaoch"
+    },
+    {
+      "tag": "a",
+      "text": "카카오스토리",
+      "id": null,
+      "class_name": "kakaostory"
+    },
+    {
+      "tag": "a",
+      "text": "밴드",
+      "id": null,
+      "class_name": "band"
+    },
+    {
+      "tag": "a",
+      "text": "네이버",
+      "id": null,
+      "class_name": "naver"
+    },
+    {
+      "tag": "a",
+      "text": "인스타그램",
+      "id": null,
+      "class_name": "instagram"
+    },
+    {
+      "tag": "a",
+      "text": "유튜브",
+      "id": null,
+      "class_name": "youtube"
+    },
+    {
+      "tag": "a",
+      "text": "함께 서구 우뚝서구",
+      "id": null,
+      "class_name": "slogan"
+    },
+    {
+      "tag": "input",
+      "text": "검색",
+      "id": "allKeyWord2",
+      "class_name": "search_keyword"
+    },
+    {
+      "tag": "button",
+      "text": "검색",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전남광주통합특별시 서구 GWANGJU CITY SEOGU",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "열린민원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소통참여",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "정보공개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "구정소식",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "서구소개",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "분야별정보",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "전체메뉴",
+      "id": null,
+      "class_name": "control open"
+    },
+    {
+      "tag": "a",
+      "text": "주민참여",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "바로문자하랑께",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "칭찬합시다",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "설문조사",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "국민생각함",
+      "id": null,
+      "class_name": "linkWindow"
+    },
+    {
+      "tag": "a",
+      "text": "주민제안",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "통합예약",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "정보화교육",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "공유자원",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "투명행정",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "홈",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "소통참여",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주민참여",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주민제안",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "주민제안",
+      "id": null,
+      "class_name": "active"
+    },
+    {
+      "tag": "a",
+      "text": "글자 크게",
+      "id": null,
+      "class_name": "btn up"
+    },
+    {
+      "tag": "a",
+      "text": "글자 작게",
+      "id": null,
+      "class_name": "btn down"
+    },
+    {
+      "tag": "a",
+      "text": "공유하기",
+      "id": null,
+      "class_name": "btn open"
+    },
+    {
+      "tag": "a",
+      "text": "인쇄",
+      "id": null,
+      "class_name": "btn print"
+    },
+    {
+      "tag": "a",
+      "text": "주민제안",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "우수제안",
+      "id": null,
+      "class_name": ""
+    },
+    {
+      "tag": "a",
+      "text": "TOP",
+      "id": null,
+      "class_name": "anchorLink up"
+    }
+  ]
+}

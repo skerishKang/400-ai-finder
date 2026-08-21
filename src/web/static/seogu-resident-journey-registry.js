@@ -106,11 +106,41 @@
     _freezeJourney({
       journey_id: "seogu_mayor_proposal",
       questions: ["구청장에게 제안하고 싶어요"],
-      status: "SOURCE_CAPTURE_NEEDED",
-      capture_needed: true,
+      status: "SEO_GU_EQUIVALENT_SUBSTITUTION_NEEDED",
+      capture_needed: false,
+      // #1363 Lane B (CTO rework 2026-08-21): S7 mirrors the Buk-gu
+      // 구청장에게 제안하고 싶어요 mayor-complaint-write/receipt journey via the
+      // #1375 complaint-writing pattern. The bounded 주민제안 capture grounds
+      // the guidance facts (참여대상·참여방법·처리절차) before the app-owned
+      // proposal-writing surface opens. NO external channel anchor, NO
+      // safe_handoff destination — EXTERNAL_CHANNEL_REPLACES_CANONICAL_FLOW=NO.
+      handoff: {
+        action_kind: "COMPLAINT_EVIDENCE_GATE",
+        scenario_id: "seogu_mayor_proposal",
+        local_evidence_route: "mayor-proposal-guidance/",
+        required_markers: ["주민제안", "참여방법", "참여대상", "제안하기"],
+        claim_scope: "EVIDENCE_GATE_ONLY",
+        stop_boundary_code: "COMPLAINT_EVIDENCE_FAILED_STOP",
+        snapshot_captured_at: "2026-08-21T02:11:12.864Z",
+        source_urls: ["https://www.seogu.gwangju.kr/menu.es?mid=a10401030100"],
+        local_evidence_note:
+          "서구청 주민제안 안내 화면은 참여대상(전 주민, 단체 가능)·참여방법" +
+          "(홈페이지 제안하기, 우편, 팩스)·처리절차 등 주민제안 작성에 필요한 " +
+          "안내 사실을 제공합니다. 이 근거는 초안 작성 흐름의 안내에만 사용되며, " +
+          "실제 접수는 서구청 공식 채널에서 주민이 직접 진행해야 합니다.",
+      },
+      action: {
+        type: "COMPLAINT_AI_ASSIST",
+        // Canonical shared-choreography JOURNEY_MAP key (hasJourney()/start()
+        // resolve JOURNEY_MAP keys, not journey ids). Buk-gu mayor-proposal
+        // golden scenario: office → AI 제안작성 → 주민 검토 → 사전제출 STOP → 수령.
+        choreography_key: "mayor_message_assist",
+      },
       substitution_note:
-        "서구청 공식 주민제안 페이지가 직접 존재함 (소통/참여 → 주민제안 → 제안하기 참여방법). " +
-        "equivalent substitution 대상이 아니며, 현재 clone evidence가 없어 bounded capture 전까지 SOURCE_CAPTURE_NEEDED.",
+        "Buk-gu mayor-complaint-write/receipt 시나리오와 동일한 관측 상태 그래프. " +
+        "Seo-gu 데이터/근거(주민제안 bounded capture)/브랜딩만 치환. external 채널 " +
+        "치환 없음 — 수령 화면의 안내 문구(공식 제출은 서구청 공식 채널에서 시민이 " +
+        "직접 확인하고 진행)가 안전 경계.",
       chip: { label: "구청장에게 제안하고 싶어요", icon: "mayor", variant: "mayor-primary" },
     }),
     _freezeJourney({
