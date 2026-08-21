@@ -48,7 +48,7 @@
       "chat.badge": "안내",
       "chat.attribution": "AI 행정 브라우저",
       "chat.welcome":
-        "안녕하세요. 북구청 AI 민원 네비게이터입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다.",
+        "안녕하세요. {institution} AI 민원 네비게이터입니다. 궁금한 민원을 물어보시면 관련 화면을 함께 열어 경로를 안내해 드립니다.",
       "chat.reset": "새로 시작",
       "chat.send": "보내기",
       "chat.placeholder": "여기에 물어보세요",
@@ -56,7 +56,7 @@
       "chat.recommendationsAria": "추천 질문",
       "recommendations.show": "추천 질문 보기",
       "recommendations.hide": "추천 질문 숨기기",
-      "chat.hint": "첫 질문 후 북구청 안내 화면과 함께 경로를 보여드립니다.",
+      "chat.hint": "첫 질문 후 {institution} 안내 화면과 함께 경로를 보여드립니다.",
       "chat.privacyWarning":
         "주민등록번호·전화번호·이메일·상세주소 등 개인정보는 입력하지 마세요.",
       "chat.disclosure":
@@ -100,7 +100,7 @@
         "안내만 진행하며 실제 민원은 제출되지 않습니다.",
       "safety.preSubmit": "제출 전에 내용을 다시 확인해 주세요.",
       "safety.officialChannel":
-        "공식 제출은 북구청 공식 채널에서 직접 진행해 주세요.",
+        "공식 제출은 {institution} 공식 채널에서 직접 진행해 주세요.",
       "safety.koreanDraft":
         "한국어 행정 초안은 검수된 동일 본문입니다.",
 
@@ -131,9 +131,9 @@
 
       "split.confirm": "에 대해 안내해 드릴까요?",
       "split.ready":
-        "질문을 확인했습니다. 왼쪽에 북구청 안내 화면을 열었습니다.",
+        "질문을 확인했습니다. 왼쪽에 {institution} 안내 화면을 열었습니다.",
       "split.followUp":
-        "북구청 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.",
+        "{institution} 안내 화면을 왼쪽에 열어두었습니다. 메뉴 이동과 세부 안내를 이어서 보여드리겠습니다. 새 질문을 시작하려면 '새 대화'를 선택해 주세요.",
       "unsupported":
         "현재 첫 화면에서는 불법 주정차 신고, 공동주택 문의, 대형폐기물 처리, 여권 발급 안내, 무인민원발급기 안내를 준비했습니다. 예시 질문으로 다시 입력해 주세요.",
 
@@ -148,11 +148,11 @@
       "error.aiUnavailable": "현재 AI 안내를 연결하지 못했습니다.",
 
       "journey.entryReady": "새 질문을 입력할 수 있습니다.",
-      "journey.navigating": "북구청 안내 화면에서 경로를 진행하고 있습니다.",
+      "journey.navigating": "{institution} 안내 화면에서 경로를 진행하고 있습니다.",
       "journey.completed": "안내 경로가 완료되었습니다. 대화로 돌아가 새 질문을 입력할 수 있습니다.",
 
       "freshness.liveOfficial": "최신 공식자료 확인",
-      "freshness.officialSnapshot": "북구청 공식 스냅샷",
+      "freshness.officialSnapshot": "{institution} 공식 스냅샷",
       "freshness.liveWeb": "최신 웹자료 확인 · 공식 출처 재확인 필요",
       "freshness.modelOnly": "현재 공식 출처 없음",
 
@@ -176,7 +176,7 @@
       "recommendations.show": "Show recommendations",
       "recommendations.hide": "Hide recommendations",
       "chat.hint":
-        "After your first question, I will show the route together with the Gwangju Buk-gu guide screen.",
+        "After your first question, I will show the route together with the {institution} guide screen.",
       "chat.privacyWarning":
         "Do not enter personal information such as resident ID numbers, phone numbers, email addresses, or precise addresses.",
       "chat.disclosure":
@@ -220,7 +220,7 @@
         "Only guidance is provided; no real complaint is submitted.",
       "safety.preSubmit": "Please review the content before submitting.",
       "safety.officialChannel":
-        "Please complete the official submission directly through Gwangju Buk-gu's official channels.",
+        "Please complete the official submission directly through {institution}'s official channels.",
       "safety.koreanDraft":
         "The Korean administrative draft is a reviewed, consistent version.",
 
@@ -252,9 +252,9 @@
 
       "split.confirm": " — shall I guide you through this?",
       "split.ready":
-        "I have your question. The Gwangju Buk-gu guide screen is now open on the left.",
+        "I have your question. The {institution} guide screen is now open on the left.",
       "split.followUp":
-        "The Gwangju Buk-gu guide screen stays open on the left. I will continue with the menu and detailed guidance. To start a new question, choose 'Start over'.",
+        "The {institution} guide screen stays open on the left. I will continue with the menu and detailed guidance. To start a new question, choose 'Start over'.",
       "unsupported":
         "On this first screen I can help with illegal parking reports, apartment housing inquiries, bulky waste disposal, passport guidance, and unmanned kiosks. Please try one of the example questions.",
 
@@ -269,11 +269,11 @@
       "error.aiUnavailable": "The AI guide is currently unavailable. Please try again later.",
 
       "journey.entryReady": "You can enter a new question.",
-      "journey.navigating": "Guiding you along the route on the Gwangju Buk-gu screen.",
+      "journey.navigating": "Guiding you along the route on the {institution} screen.",
       "journey.completed": "The guidance route is complete. Return to the chat to enter a new question.",
 
       "freshness.liveOfficial": "Live official source verified",
-      "freshness.officialSnapshot": "Gwangju Buk-gu official snapshot",
+      "freshness.officialSnapshot": "{institution} official snapshot",
       "freshness.liveWeb": "Live web source · confirm official source again",
       "freshness.modelOnly": "No official source available now",
 
@@ -297,7 +297,7 @@
       "recommendations.show": "Hiện gợi ý",
       "recommendations.hide": "Ẩn gợi ý",
       "chat.hint":
-        "Sau câu hỏi đầu tiên, tôi sẽ hiện đường dẫn cùng màn hình hướng dẫn của Gwangju Buk-gu.",
+        "Sau câu hỏi đầu tiên, tôi sẽ hiện đường dẫn cùng màn hình hướng dẫn của {institution}.",
       "chat.privacyWarning":
         "Không nhập thông tin cá nhân như số định danh, số điện thoại, email hoặc địa chỉ chi tiết.",
       "chat.disclosure":
@@ -341,7 +341,7 @@
         "Chỉ hướng dẫn, không gửi khiếu nại thật.",
       "safety.preSubmit": "Vui lòng xem lại nội dung trước khi gửi.",
       "safety.officialChannel":
-        "Vui lòng hoàn tất việc nộp chính thức qua kênh chính thức của Gwangju Buk-gu.",
+        "Vui lòng hoàn tất việc nộp chính thức qua kênh chính thức của {institution}.",
       "safety.koreanDraft":
         "Bản nháp hành chính tiếng Hàn là văn bản nhất quán đã được kiểm duyệt.",
 
@@ -373,9 +373,9 @@
 
       "split.confirm": " — tôi có nên hướng dẫn bạn việc này không?",
       "split.ready":
-        "Tôi đã nhận câu hỏi. Màn hình hướng dẫn Gwangju Buk-gu đã mở bên trái.",
+        "Tôi đã nhận câu hỏi. Màn hình hướng dẫn {institution} đã mở bên trái.",
       "split.followUp":
-        "Màn hình hướng dẫn Gwangju Buk-gu vẫn mở bên trái. Tôi sẽ tiếp tục với menu và hướng dẫn chi tiết. Để bắt đầu câu hỏi mới, hãy chọn 'Bắt đầu lại'.",
+        "Màn hình hướng dẫn {institution} vẫn mở bên trái. Tôi sẽ tiếp tục với menu và hướng dẫn chi tiết. Để bắt đầu câu hỏi mới, hãy chọn 'Bắt đầu lại'.",
       "unsupported":
         "Ở màn hình đầu này, tôi hỗ trợ báo cáo đỗ xe trái phép, hỏi đáp nhà chung cư, vứt bỏ rác cồng kềnh, hướng dẫn hộ chiếu và máy tự động. Hãy thử một câu hỏi ví dụ.",
 
@@ -390,11 +390,11 @@
       "error.aiUnavailable": "Hiện không kết nối được hướng dẫn AI. Vui lòng thử lại sau.",
 
       "journey.entryReady": "Bạn có thể nhập câu hỏi mới.",
-      "journey.navigating": "Đang dẫn đường trên màn hình hướng dẫn Gwangju Buk-gu.",
+      "journey.navigating": "Đang dẫn đường trên màn hình hướng dẫn {institution}.",
       "journey.completed": "Lộ trình hướng dẫn đã hoàn tất. Quay lại trò chuyện để nhập câu hỏi mới.",
 
       "freshness.liveOfficial": "Đã xác minh nguồn chính thức trực tiếp",
-      "freshness.officialSnapshot": "Ảnh chụp chính thức Gwangju Buk-gu",
+      "freshness.officialSnapshot": "Ảnh chụp chính thức {institution}",
       "freshness.liveWeb": "Nguồn web trực tiếp · vui lòng xác nhận nguồn chính thức lại",
       "freshness.modelOnly": "Hiện không có nguồn chính thức",
 
@@ -418,7 +418,7 @@
       "recommendations.show": "แสดงคำแนะนำ",
       "recommendations.hide": "ซ่อนคำแนะนำ",
       "chat.hint":
-        "หลังคำถามแรก ฉันจะแสดงเส้นทางพร้อมหน้าจอแนะนำของเขต Gwangju Buk-gu",
+        "หลังคำถามแรก ฉันจะแสดงเส้นทางพร้อมหน้าจอแนะนำของเขต {institution}",
       "chat.privacyWarning":
         "อย่าป้อนข้อมูลส่วนบุคคล เช่น เลขประจำตัว หมายเลขโทรศัพท์ อีเมล หรือที่อยู่โดยละเอียด",
       "chat.disclosure":
@@ -462,7 +462,7 @@
         "ให้คำแนะนำเท่านั้น ไม่มีการส่งเรื่องราชการจริง",
       "safety.preSubmit": "โปรดตรวจสอบเนื้อหาอีกครั้งก่อนส่ง",
       "safety.officialChannel":
-        "โปรดดำเนินการส่งเรื่องทางการด้วยตนเองผ่านช่องทางทางการของเขต Gwangju Buk-gu",
+        "โปรดดำเนินการส่งเรื่องทางการด้วยตนเองผ่านช่องทางทางการของเขต {institution}",
       "safety.koreanDraft":
         "ร่างเอกสารราชการภาษาเกาหลีเป็นฉบับที่ตรวจสอบแล้วและสม่ำเสมอ",
 
@@ -494,9 +494,9 @@
 
       "split.confirm": " — ให้ฉันนำทางเรื่องนี้ไหม?",
       "split.ready":
-        "ฉันได้รับคำถามแล้ว หน้าจอแนะนำของเขต Gwangju Buk-gu เปิดอยู่ด้านซ้าย",
+        "ฉันได้รับคำถามแล้ว หน้าจอแนะนำของเขต {institution} เปิดอยู่ด้านซ้าย",
       "split.followUp":
-        "หน้าจอแนะนำของเขต Gwangju Buk-gu ยังคงเปิดด้านซ้าย ฉันจะดำเนินการต่อด้วยเมนูและคำแนะนำรายละเอียด หากต้องการเริ่มคำถามใหม่ ให้เลือก 'เริ่มใหม่'",
+        "หน้าจอแนะนำของเขต {institution} ยังคงเปิดด้านซ้าย ฉันจะดำเนินการต่อด้วยเมนูและคำแนะนำรายละเอียด หากต้องการเริ่มคำถามใหม่ ให้เลือก 'เริ่มใหม่'",
       "unsupported":
         "ในหน้าแรกนี้ ฉันช่วยเรื่องแจ้งจอดรถผิดกฎหมาย สอบถามอาคารชุด ทิ้งขยะชิ้นใหญ่ คู่มือหนังสือเดินทาง และเครื่องอัตโนมัติได้ โปรดลองคำถามตัวอย่าง",
 
@@ -511,11 +511,11 @@
       "error.aiUnavailable": "ขณะนี้ไม่สามารถเชื่อมต่อคำแนะนำ AI ได้ โปรดลองอีกครั้งในภายหลัง",
 
       "journey.entryReady": "คุณสามารถพิมพ์คำถามใหม่ได้",
-      "journey.navigating": "กำลังนำทางบนหน้าจอแนะนำของเขต Gwangju Buk-gu",
+      "journey.navigating": "กำลังนำทางบนหน้าจอแนะนำของเขต {institution}",
       "journey.completed": "เส้นทางแนะนำเสร็จสิ้น กลับไปที่การสนทนาเพื่อพิมพ์คำถามใหม่",
 
       "freshness.liveOfficial": "ตรวจสอบแหล่งทางการสดแล้ว",
-      "freshness.officialSnapshot": "สแนปช็อตทางการของเขต Gwangju Buk-gu",
+      "freshness.officialSnapshot": "สแนปช็อตทางการของเขต {institution}",
       "freshness.liveWeb": "แหล่งเว็บสด · โปรดตรวจสอบแหล่งทางการอีกครั้ง",
       "freshness.modelOnly": "ขณะนี้ไม่มีแหล่งทางการ",
 
@@ -539,7 +539,7 @@
       "recommendations.show": "Tampilkan saran",
       "recommendations.hide": "Sembunyikan saran",
       "chat.hint":
-        "Setelah pertanyaan pertama, saya akan menampilkan rute beserta layar panduan Gwangju Buk-gu.",
+        "Setelah pertanyaan pertama, saya akan menampilkan rute beserta layar panduan {institution}.",
       "chat.privacyWarning":
         "Jangan masukkan data pribadi seperti nomor identitas, nomor telepon, email, atau alamat lengkap.",
       "chat.disclosure":
@@ -583,7 +583,7 @@
         "Hanya panduan; tidak ada pengaduan sungguhan yang dikirim.",
       "safety.preSubmit": "Harap periksa kembali isi sebelum mengirim.",
       "safety.officialChannel":
-        "Harap selesaikan pengiriman resmi melalui saluran resmi Gwangju Buk-gu.",
+        "Harap selesaikan pengiriman resmi melalui saluran resmi {institution}.",
       "safety.koreanDraft":
         "Draf administratif bahasa Korea adalah teks yang telah ditinjau dan konsisten.",
 
@@ -615,9 +615,9 @@
 
       "split.confirm": " — ingin saya pandu hal ini?",
       "split.ready":
-        "Pertanyaan sudah saya terima. Layar panduan Gwangju Buk-gu kini terbuka di kiri.",
+        "Pertanyaan sudah saya terima. Layar panduan {institution} kini terbuka di kiri.",
       "split.followUp":
-        "Layar panduan Gwangju Buk-gu tetap terbuka di kiri. Saya lanjutkan dengan menu dan panduan rincinya. Untuk pertanyaan baru, pilih 'Mulai ulang'.",
+        "Layar panduan {institution} tetap terbuka di kiri. Saya lanjutkan dengan menu dan panduan rincinya. Untuk pertanyaan baru, pilih 'Mulai ulang'.",
       "unsupported":
         "Di layar pertama ini saya membantu laporan parkir liar, tanya perumahan, pembuangan sampah besar, panduan paspor, dan mesin mandiri. Silakan coba salah satu pertanyaan contoh.",
 
@@ -632,11 +632,11 @@
       "error.aiUnavailable": "Panduan AI saat ini tidak tersambung. Silakan coba lagi nanti.",
 
       "journey.entryReady": "Anda dapat memasukkan pertanyaan baru.",
-      "journey.navigating": "Memandu Anda menyusuri rute di layar panduan Gwangju Buk-gu.",
+      "journey.navigating": "Memandu Anda menyusuri rute di layar panduan {institution}.",
       "journey.completed": "Rute panduan telah selesai. Kembali ke percakapan untuk memasukkan pertanyaan baru.",
 
       "freshness.liveOfficial": "Sumber resmi langsung telah diverifikasi",
-      "freshness.officialSnapshot": "Snapshot resmi Gwangju Buk-gu",
+      "freshness.officialSnapshot": "Snapshot resmi {institution}",
       "freshness.liveWeb": "Sumber web langsung · harap verifikasi sumber resmi kembali",
       "freshness.modelOnly": "Tidak ada sumber resmi saat ini",
 
@@ -1256,16 +1256,26 @@
     return UI[locale] || UI.ko;
   }
 
+  // #1378 — UI table values may carry an {institution} token. It is
+  // substituted synchronously from the SiteSpec projection (single truth
+  // source for the institution display identity). Substitution is a no-op
+  // when the token is absent, so plain strings are untouched.
+  function _withInstitution(value, locale) {
+    var s = String(value);
+    if (s.indexOf("{institution}") === -1) return s;
+    return s.split("{institution}").join(getInstitutionName(locale));
+  }
+
   function t(key) {
     if (typeof key !== "string") return "";
     var loc = state.locale;
     var table = _uiTable(loc);
     if (Object.prototype.hasOwnProperty.call(table, key) && table[key] != null) {
-      return table[key];
+      return _withInstitution(table[key], loc);
     }
     var koTable = UI.ko;
     if (Object.prototype.hasOwnProperty.call(koTable, key) && koTable[key] != null) {
-      return koTable[key];
+      return _withInstitution(koTable[key], loc);
     }
     return key;
   }

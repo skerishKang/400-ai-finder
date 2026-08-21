@@ -158,7 +158,8 @@ The active order is:
    → green CI와 에이전트 PNG 리뷰는 state-graph 드리프트를 가릴 수 있음 (#1348 사례)
 
 2. CHEAP DEBT (third-site 전 정리)
-   → #1378 shared engine '북구청' 리터럴 파라미터화 (기관 추가 시 노출 배수)
+   → ~~#1378 shared engine '북구청' 리터럴 파라미터화~~ DONE (SiteSpec projection 단일 진실원,
+     i18n {institution} 토큰 치환 + shell 리터럴 제거 + Seo-gu 크로스기관 리터럴 0 e2e 잠금)
    → ~~seogu_mattrass_disposal journey_id 오타 수정~~ DONE (#1384, seogu_mattress_disposal)
    → 로컬 디스크 의존 자산 정리 — DONE 2026-08-22 (아래 §10a)
 

@@ -138,19 +138,26 @@ def test_no_invented_vi_th_id_institution_translation():
 
 
 def test_i18n_uses_projected_institution_name():
-    """The non-Korean official-identity UI strings reference the canonical
-    English label, not the stale 'Bukgu-gu' form."""
+    """Official-identity UI strings carry the {institution} token and are
+    substituted synchronously from the SiteSpec projection (#1378). The
+    tokenized form replaces the former hardcoded 'Gwangju Buk-gu' literals;
+    substitution is byte-identical for the Buk-gu projection (en label
+    'Gwangju Buk-gu'). The stale 'Bukgu-gu' form remains forbidden."""
     i18n = _read(I18N_PATH)
-    expected_en_strings = [
-        "After your first question, I will show the route together with the Gwangju Buk-gu guide screen.",
-        "Please complete the official submission directly through Gwangju Buk-gu's official channels.",
-        "I have your question. The Gwangju Buk-gu guide screen is now open on the left.",
-        "The Gwangju Buk-gu guide screen stays open on the left.",
-        "Guiding you along the route on the Gwangju Buk-gu screen.",
-        "Gwangju Buk-gu official snapshot",
+    expected_tokenized_en_strings = [
+        "After your first question, I will show the route together with the {institution} guide screen.",
+        "Please complete the official submission directly through {institution}'s official channels.",
+        "I have your question. The {institution} guide screen is now open on the left.",
+        "The {institution} guide screen stays open on the left.",
+        "Guiding you along the route on the {institution} screen.",
+        "{institution} official snapshot",
     ]
-    for s in expected_en_strings:
-        assert s in i18n, f"missing updated institution string: {s!r}"
+    for s in expected_tokenized_en_strings:
+        assert s in i18n, f"missing tokenized institution string: {s!r}"
+    # Substitution contract: t() must run values through the SiteSpec
+    # identity projection.
+    assert "_withInstitution" in i18n
+    assert "getInstitutionName(locale)" in i18n
 
 
 def test_i18n_has_no_stale_bukgu_gu_institution_references():
