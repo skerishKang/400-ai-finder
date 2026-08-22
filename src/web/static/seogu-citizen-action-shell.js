@@ -39,6 +39,38 @@
   var latestJourneyResult = null;
   var latestGeneralResult = null;
 
+  // #1388 split-state never-blank treatment. The clone iframe is revealed by
+  // the first supported resident action (entry → split) while its document may
+  // still be loading — per navigation, not only at boot. _navPending tracks the
+  // exact window between a navigation start and the iframe load event so the
+  // existing shell loading affordance ("… 안내 화면을 준비하는 중…") stays
+  // rendered inside .demo-canvas and the resident never sees a featureless
+  // void. Institution-neutral: driven solely by surface navigation events,
+  // with no kiosk/site-specific branch and no Buk-gu behavior change.
+  var _navPending = true;
+
+  function _canvasLoadingText() {
+    var meta = window.SeoguSiteSpecMetadata;
+    var copy = meta && meta.copy ? meta.copy : null;
+    return (copy && copy.canvas_loading) || "서구청 안내 화면을 준비하는 중…";
+  }
+
+  function _updateCanvasLoading() {
+    if (!canvasLoading) return;
+    if (latestEvidence && latestEvidence.ok && !_navPending) {
+      canvasLoading.style.display = "none";
+      canvasLoading.textContent = "";
+      return;
+    }
+    canvasLoading.style.display = "";
+    canvasLoading.textContent = _canvasLoadingText();
+  }
+
+  function _setNavPending(pending) {
+    _navPending = !!pending;
+    _updateCanvasLoading();
+  }
+
   // ── Site-data-ize the static shell copy from the Seo-gu metadata island ──
   function _applySiteCopy() {
     var meta = window.SeoguSiteSpecMetadata;
@@ -285,15 +317,8 @@
 
   function _setEvidenceState(evidence) {
     latestEvidence = evidence && typeof evidence === "object" ? evidence : null;
-    if (canvasLoading) {
-      if (latestEvidence && latestEvidence.ok) {
-        canvasLoading.style.display = "none";
-        canvasLoading.textContent = "";
-      } else {
-        canvasLoading.style.display = "";
-        canvasLoading.textContent = "서구청 안내 화면을 준비하는 중…";
-      }
-    }
+    if (latestEvidence && latestEvidence.ok) _navPending = false;
+    _updateCanvasLoading();
   }
 
   // ── Chip rendering from the Seo-gu config island ───────────────────────────
@@ -814,6 +839,12 @@
         window.addEventListener("municipal-clone-evidence", function (event) {
           if (!event || !event.detail || event.detail.site_id !== SITE_ID) return;
           _setEvidenceState(event.detail);
+        });
+        // #1388: every surface navigation (boot home route and later journey
+        // routes alike) re-opens the pending window until its load event.
+        window.addEventListener("municipal-clone-navstart", function (event) {
+          if (!event || !event.detail || event.detail.site_id !== SITE_ID) return;
+          _setNavPending(true);
         });
         if (!surface.navigate("")) {
           document.body.setAttribute("data-surface-state", "unavailable");
