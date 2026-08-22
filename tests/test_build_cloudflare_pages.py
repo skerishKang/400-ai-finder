@@ -1086,13 +1086,18 @@ def test_seogu_css_derives_from_validated_contract(build_dir):
     assert "background:#f0f0ff" in html  # corrected hero background
     assert "min-height:274px" in html  # corrected semantic desktop header height
     assert "width:600px" in html  # source-backed desktop search width
+    # #1383 R2 (owner defect directive 2026-08-22): rounded geometry is now
+    # REQUIRED and source-measured from the g1 capture (search pill 26px,
+    # banner corners 16px, CTA buttons 4px, pager pill 19px = half height).
+    assert "border-radius:26px" in html  # measured search pill
+    assert "border-radius:16px" in html  # measured key-visual banner corners
+    assert "border-radius:4px" in html  # measured CTA button corners
     for token in (
         "#e6e6ea",
         "#8a8a93",
         "#1f6feb",
         "980px",
         "999px",
-        "border-radius",
         "@media (max-width",
     ):
         assert token not in html, f"guessed CSS token leaked into seogu build: {token!r}"
