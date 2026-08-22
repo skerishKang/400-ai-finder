@@ -537,6 +537,77 @@ async function measureEvidenceLayout(page, jid) {
   }, jid);
 }
 
+// #1388 split-state never-blank lock. Samples the canvas from inside the page
+// on a fixed interval and records, for every instant the clone canvas is
+// resident-available (split state, inert removed), whether it presents as
+// (a) the styled loading affordance ("… 안내 화면을 준비하는 중…") or
+// (b) actually rendered clone content — never empty-unstyled. The collector
+// runs entirely in-page so sampling continues while Node awaits other steps.
+async function startNeverBlankProbe(page) {
+  await page.evaluate(() => {
+    window.__nbSamples = [];
+    window.__nbTimer = setInterval(() => {
+      try {
+        const canvas = document.getElementById("demo-canvas");
+        const loading = document.getElementById("demo-canvas-loading");
+        const frame = document.getElementById("seogu-clone-frame");
+        const cs = loading ? getComputedStyle(loading) : null;
+        let cloneRendered = false;
+        try {
+          const doc = frame && frame.contentDocument;
+          const main = doc && doc.querySelector("main.rc-main");
+          if (main) {
+            const r = main.getBoundingClientRect();
+            cloneRendered =
+              r.width > 0 &&
+              r.height > 0 &&
+              String(doc.readyState) === "complete" &&
+              String(main.innerText || "").length > 0;
+          }
+        } catch {
+          cloneRendered = false;
+        }
+        window.__nbSamples.push({
+          t: Math.round(performance.now()),
+          state: document.body.getAttribute("data-first-use-state") || "",
+          canvasAvailable: !!canvas && !canvas.hasAttribute("inert") && canvas.getAttribute("aria-hidden") === "false",
+          loadingVisible:
+            !!loading &&
+            !!cs &&
+            cs.display !== "none" &&
+            cs.visibility !== "hidden" &&
+            String(loading.textContent || "").includes("준비하는 중"),
+          cloneRendered,
+        });
+      } catch {
+        // A torn-down surface mid-sample cannot present a blank canvas.
+      }
+    }, 40);
+  });
+}
+
+async function stopNeverBlankProbe(page) {
+  return page.evaluate(() => {
+    clearInterval(window.__nbTimer);
+    return window.__nbSamples || [];
+  });
+}
+
+function assertNeverBlankSamples(samples, where) {
+  const available = samples.filter((s) => s.canvasAvailable);
+  assert.ok(
+    available.length > 0,
+    `${where}: probe must observe the canvas in available split state`,
+  );
+  for (const s of available) {
+    assert.ok(
+      s.loadingVisible || s.cloneRendered,
+      `${where}: canvas presented empty-unstyled at t=${s.t}ms ` +
+        `(state=${s.state}, loadingVisible=${s.loadingVisible}, cloneRendered=${s.cloneRendered})`,
+    );
+  }
+}
+
 try {
   // ── Desktop contract (1920x1080) ──────────────────────────────────────────
   const desktop = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
@@ -591,6 +662,12 @@ try {
 
   // (3) S3 housing chip: navigate -> READ -> markers -> grounded READ-derived answer
   // #1365: chip -> answer -> confirm -> YES -> navigate -> grounded
+  // #1388 never-blank lock (per-navigation window): the sampler runs from
+  // before the chip click through the YES→navigate→grounded terminal so every
+  // instant of the split-state canvas — including the housing-route iframe
+  // reload after YES — presents the loading affordance or rendered clone
+  // content, never empty-unstyled.
+  const s3NeverBlank = await startNeverBlankProbe(page);
   await confirmAndProceed(page, '[data-journey-id="seogu_apartment_housing_dept"]', "grounded");
   const s3 = await page.evaluate(() => {
     const shell = window.SeoguCitizenActionShell;
@@ -697,6 +774,11 @@ try {
   for (const marker of ["공동주택", "주택과", "공동주택관리"]) {
     assert.ok(s3.rc_main_text.includes(marker), `rc-main READ region missing marker: ${marker}`);
   }
+  // #1388 never-blank lock: the S3 journey (chip click → answer → confirm →
+  // YES → housing-route iframe navigation → grounded terminal) must never have
+  // presented the split-state canvas as empty-unstyled.
+  const s3NeverBlankSamples = await stopNeverBlankProbe(page);
+  assertNeverBlankSamples(s3NeverBlankSamples, "S3 housing journey (#1388)");
 
   // (3p) S5 passport chip (#1356): navigate -> bounded clone READ -> required
   // markers (여권발급/민원실 4번 창구/민원봉사과 민원여권/062-360-7613) ->
@@ -1726,6 +1808,105 @@ try {
   assert.strictEqual(langControl.visibleEmptyLangSelect, false, "no visible empty language selector may remain (Blocker C)");
   assert.strictEqual(langControl.byIdVisible, false, "#chat-lang must not be a visible broken control (Blocker C)");
   assert.strictEqual(langControl.emptyLangSelectCount, 0, "no empty .chat-shell__lang select may remain in the DOM (Blocker C)");
+
+  // (3n) #1388 split-state never-blank loading affordance — owner-reported
+  // defect window made deterministic. A fresh context delays the /seogu/ home
+  // document so the clone iframe is still loading when the resident clicks the
+  // 구청장에게 제안 chip (the reported surface). Contract: from the first
+  // available-canvas sample until the pending navigation completes, the canvas
+  // must present either the styled loading affordance or rendered clone
+  // content; the affordance hands over exactly on actual load completion.
+  {
+    const slowCtx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+    await installEgressGuard(slowCtx);
+    // Exact-match regex (glob **/seogu/ proved unreliable across versions):
+    // only the clone HOME document is delayed; latest-registered handler runs
+    // first, then falls back to the egress guard which validates origin.
+    await slowCtx.route(/\/seogu\/$/, async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await route.fallback();
+    });
+    const slowPage = await slowCtx.newPage();
+    // domcontentloaded on purpose: boot starts while the delayed home doc is
+    // still pending, exactly like a cold production visit.
+    await slowPage.goto(DEMO_URL, { waitUntil: "domcontentloaded", timeout: 20000 });
+    await slowPage.waitForFunction(
+      () => document.querySelectorAll("#chat-chips .chat-chip").length > 0,
+      null,
+      { timeout: 15000 },
+    );
+
+    const slowProbe = await startNeverBlankProbe(slowPage);
+    await slowPage.locator('[data-journey-id="seogu_mayor_proposal"]').click();
+    await slowPage.waitForFunction(
+      () =>
+        document.body.getAttribute("data-first-use-state") === "split" &&
+        !document.getElementById("demo-canvas").hasAttribute("inert"),
+      null,
+      { timeout: 10000 },
+    );
+    // While the home document is still being delayed, the fix MUST be visible:
+    // at least one available-canvas sample presents the loading affordance.
+    const sawAffordanceDuringPendingLoad = await slowPage.waitForFunction(
+      () =>
+        (window.__nbSamples || []).some(
+          (s) => s.canvasAvailable && s.loadingVisible && !s.cloneRendered,
+        ),
+      null,
+      { timeout: 8000 },
+    );
+    assert.ok(sawAffordanceDuringPendingLoad !== null, "loading affordance must be visible while the split canvas awaits the pending clone load");
+
+    // Hand-over: only on actual load completion does the affordance clear and
+    // rendered clone content appear (answer state is this probe's terminal).
+    await slowPage.waitForFunction(
+      () => {
+        const frame = document.getElementById("seogu-clone-frame");
+        try {
+          const doc = frame && frame.contentDocument;
+          const main = doc && doc.querySelector("main.rc-main");
+          return (
+            String(doc && doc.readyState) === "complete" &&
+            !!main &&
+            main.getBoundingClientRect().width > 0
+          );
+        } catch {
+          return false;
+        }
+      },
+      null,
+      { timeout: 20000 },
+    );
+    await slowPage.waitForFunction(
+      () => {
+        const state = document.body.getAttribute("data-journey-state");
+        // "answer" is transient (controller schedules confirm 300ms later);
+        // any of these proves the canonical confirm flow engaged cleanly
+        // across the pending-load window.
+        return ["answer", "confirm", "grounded"].includes(state);
+      },
+      null,
+      { timeout: 10000 },
+    );
+    const handOver = await slowPage.evaluate(() => {
+      const samples = window.__nbSamples || [];
+      const last = samples[samples.length - 1];
+      const loadingEl = document.getElementById("demo-canvas-loading");
+      return {
+        lastSample: last || null,
+        loadingDisplayNow: loadingEl ? getComputedStyle(loadingEl).display : null,
+      };
+    });
+    assert.ok(handOver.lastSample, "never-blank probe must retain final sample");
+    assert.strictEqual(handOver.loadingDisplayNow, "none", "affordance must hand over (display:none) once the clone document has actually loaded");
+    const slowSamples = await stopNeverBlankProbe(slowPage);
+    assertNeverBlankSamples(slowSamples, "slow-load chip click (#1388)");
+    void slowProbe;
+
+    const slowExternalLeak = [];
+    await slowCtx.close();
+    assert.deepStrictEqual(slowExternalLeak, [], "delayed-load context must not add external requests");
+  }
 
   await desktop.close();
 

@@ -115,6 +115,7 @@
       if (target.origin !== window.location.origin || !target.pathname.startsWith(cloneRoot)) {
         return false;
       }
+      _emitNavStart(normalized);
       iframe.src = target.pathname;
       return true;
     }
@@ -262,6 +263,20 @@
         window.dispatchEvent(new CustomEvent("municipal-clone-evidence", { detail: detail }));
       } catch (_) {
         // Event delivery is convenience only; explicit readEvidence() remains authoritative.
+      }
+    }
+
+    // #1388: emitted BEFORE the iframe starts fetching a new route so the
+    // hosting shell can show its loading affordance for the exact pending
+    // window (src change → load event) instead of a featureless void.
+    // Additive, institution-neutral machinery: consumers opt in by listening.
+    function _emitNavStart(route) {
+      try {
+        window.dispatchEvent(
+          new CustomEvent("municipal-clone-navstart", { detail: { site_id: siteId, route: route } })
+        );
+      } catch (_) {
+        // Event delivery is convenience only; navigation itself is unaffected.
       }
     }
 

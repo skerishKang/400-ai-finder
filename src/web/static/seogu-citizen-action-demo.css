@@ -18,6 +18,35 @@
   background: #ffffff;
 }
 
+/*
+ * #1388 split-state never-blank loading affordance.
+ *
+ * While the clone iframe has not fired its load event for the current
+ * navigation, the shell keeps this existing affordance rendered so the
+ * resident never sees a featureless gray void between a chip click (or a
+ * YES→navigate) and rendered clone content. Layering contract inside
+ * .demo-canvas: clone iframe (auto) < loading affordance (1) < app-owned
+ * complaint/proposal writing surface ([data-seogu-complaint-view], 2). The
+ * affordance is therefore always beneath any app-owned journey surface and
+ * can never cover resident writing UI; visibility itself is owned by
+ * seogu-citizen-action-shell.js (_updateCanvasLoading).
+ */
+#demo-canvas-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f4f6f9;
+  color: #1a4971;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+
 /* #1363/#1364 Lane B: while the app-owned complaint/proposal writing surface
    owns the canvas (S3/S4/S7), it must paint ABOVE the absolutely-positioned
    clone iframe — otherwise the resident sees only the clone evidence page
