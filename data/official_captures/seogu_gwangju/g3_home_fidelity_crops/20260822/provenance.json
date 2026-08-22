@@ -1,0 +1,165 @@
+{
+  "capture_id": "20260812T231018-0900",
+  "source": "data/official_captures/seogu_gwangju/g1/20260812T231018-0900/states/home.desktop.default/source.png",
+  "method": "offline bbox crops from committed g1 capture (live capture prohibited); kv-overlay pager-pill zone patched from neighboring clean band",
+  "authorization": "#1383 owner defect directive 2026-08-22 (issuecomment-5378899918)",
+  "crops": {
+    "brand-calligraphy.png": {
+      "bbox_src_px": [
+        16,
+        124,
+        298,
+        182
+      ],
+      "size_px": [
+        282,
+        58
+      ],
+      "sha256": "fc56aeb65108a7284f097ac60417ec072c82eaccfe62852594bfb24b462219b6"
+    },
+    "hero-calligraphy.png": {
+      "bbox_src_px": [
+        296,
+        323,
+        518,
+        382
+      ],
+      "size_px": [
+        222,
+        59
+      ],
+      "sha256": "d4f528a3d0cb5b3f2208a4af3c0cf86539f8bd9de16a8a538907fc19a3bc2c47"
+    },
+    "kv-chip-people.png": {
+      "bbox_src_px": [
+        614,
+        630,
+        656,
+        672
+      ],
+      "size_px": [
+        42,
+        42
+      ],
+      "sha256": "44591a0ccf3d4d08d6d17c0d9ed18ae95dd08e610e63c311001a1106711bf0a9"
+    },
+    "kv-chip-pin.png": {
+      "bbox_src_px": [
+        1148,
+        630,
+        1190,
+        672
+      ],
+      "size_px": [
+        42,
+        42
+      ],
+      "sha256": "fef8b32e2cec2e898c95515acc34c51b17a7bfbf4cdb74e811320c4eec692a04"
+    },
+    "sns-facebook.png": {
+      "bbox_src_px": [
+        1200,
+        58,
+        1232,
+        100
+      ],
+      "size_px": [
+        32,
+        42
+      ],
+      "sha256": "b87f160e428a87b9c7e9317782c7eb37f8af3f01dd79d79d7a458382a2953be9"
+    },
+    "sns-kakaoch.png": {
+      "bbox_src_px": [
+        1232,
+        58,
+        1264,
+        100
+      ],
+      "size_px": [
+        32,
+        42
+      ],
+      "sha256": "62ec2a8589a963489d0531e1bea7b097b0bbce62478bb44d87cf73b6809294bd"
+    },
+    "sns-kakaostory.png": {
+      "bbox_src_px": [
+        1264,
+        58,
+        1296,
+        100
+      ],
+      "size_px": [
+        32,
+        42
+      ],
+      "sha256": "cb21791372c6c96fbb697b07dfe60ab5769dfc78d1bc2a5ed2c236c78e39012a"
+    },
+    "sns-band.png": {
+      "bbox_src_px": [
+        1296,
+        58,
+        1328,
+        100
+      ],
+      "size_px": [
+        32,
+        42
+      ],
+      "sha256": "eefcb910da7e109fac7afba7f1348cae62c07b9fa08e990e0b83c54dc6420696"
+    },
+    "sns-naver.png": {
+      "bbox_src_px": [
+        1328,
+        58,
+        1360,
+        100
+      ],
+      "size_px": [
+        32,
+        42
+      ],
+      "sha256": "a4d0d22cc1eedaae6d17cb66a0979802ed93d44a5e0f9304dc22a95f8d90eb79"
+    },
+    "sns-instagram.png": {
+      "bbox_src_px": [
+        1360,
+        58,
+        1392,
+        100
+      ],
+      "size_px": [
+        32,
+        42
+      ],
+      "sha256": "a7dfe9db330a1742dedf98b3e22214743fed9cf76c86e5b3f939a685de80753d"
+    },
+    "sns-youtube.png": {
+      "bbox_src_px": [
+        1392,
+        58,
+        1424,
+        100
+      ],
+      "size_px": [
+        32,
+        42
+      ],
+      "sha256": "0e26f6c4b09544db2dc7d88cd16096538d9aed7b9a3740b33dca3822f348d32c"
+    },
+    "sms-badge.png": {
+      "bbox_src_px": [
+        298,
+        571,
+        558,
+        683
+      ],
+      "size_px": [
+        260,
+        112
+      ],
+      "sha256": "07ac1802af8d4eb4ed45abe932dbe0b9797c841e39999802416cc431f96f77be",
+      "note": "replaces g2 slogan.png binding; top bound y=571 clears CTA anti-aliased bottoms (end y=568)"
+    }
+  }
+}

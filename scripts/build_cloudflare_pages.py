@@ -707,6 +707,14 @@ def enrich_seogu_home_assets(dist_root: str) -> None:
     matched at re-capture time). Deterministic + offline: assets are
     committed, no runtime external fetch. Other routes and the Buk-gu root
     are untouched.
+
+    #1383 R2 fidelity repairs (owner defect directive 2026-08-22): rebind the
+    brand calligraphy slot to its real artwork, restructure the mayor hero
+    into the captured two-column composition (calligraphy / name / CTA pair /
+    SMS badge), convert utility SNS entries to their official icon marks,
+    reshape the brand search control, and rebuild the key-visual overlay
+    (rounded banner, info chips, dark pager pill). Crop provenance:
+    ``data/official_captures/seogu_gwangju/g3_home_fidelity_crops/20260822/provenance.json``.
     """
     index_path = os.path.join(dist_root, "seogu", "index.html")
     if not os.path.isfile(index_path):
@@ -734,6 +742,64 @@ def enrich_seogu_home_assets(dist_root: str) -> None:
             last = m.end()
         out.append(html[last:])
         html = "".join(out)
+
+    # --- #1383 R2: DOM surgeries on the home surface ---
+    hero_old = '<div class="rc-hero">#착한도시 서구 김이강 서구청장 입니다.</div>'
+    hero_new = (
+        '<div class="rc-hero">'
+        + f'<img class="rc-hero-cal" src="{IMG}hero-calligraphy.png" alt="#착한도시 서구">'
+        + '<span class="rc-hero-name"><em>김이강</em>서구청장 입니다.</span></div>'
+    )
+    if html.count(hero_old) != 1:
+        raise RuntimeError(
+            f"#1383 fail-closed: expected 1 mayor hero block, found {html.count(hero_old)}"
+        )
+    html = html.replace(hero_old, hero_new, 1)
+
+    kv_old = (
+        f'style="background:url({IMG}keyvisual.jpg) center/cover no-repeat;"'
+    )
+    kv_new = (
+        f'style="background:url({IMG}keyvisual.jpg) center/100% 100% no-repeat;"'
+    )
+    if html.count(kv_old) != 1:
+        raise RuntimeError(
+            f"#1383 fail-closed: expected 1 key-visual inline style, found {html.count(kv_old)}"
+        )
+    html = html.replace(kv_old, kv_new, 1)
+
+    chips = (
+        '<div class="rc-kv-chip rc-kv-chip-l" aria-hidden="true">시민 누구나 이용 가능</div>'
+        '<div class="rc-kv-chip rc-kv-chip-r" aria-hidden="true">관내 주요 건널목 20개소<br>장소 확인하기</div>'
+    )
+    ctrl_open = '<div class="rc-primary-slider-controls">'
+    if html.count(ctrl_open) != 1:
+        raise RuntimeError(
+            f"#1383 fail-closed: expected 1 primary slider controls, found {html.count(ctrl_open)}"
+        )
+    ctrl_pat = re.compile(re.escape(ctrl_open) + r".*?</div>", re.S)
+    controls = ctrl_pat.search(html)
+    if not controls:
+        raise RuntimeError("#1383 fail-closed: slider controls block not found")
+    block = (
+        ctrl_open
+        + '<span class="rc-pager-count" aria-hidden="true">1/4</span>'
+        + controls.group(0)[len(ctrl_open):]
+    )
+    html = html[: controls.start()] + html[controls.end():]
+    ph_pat = re.compile(r'(<div class="rc-key-visual-placeholder"[^>]*>)(\s*</div>)')
+    if not ph_pat.search(html):
+        raise RuntimeError("#1383 fail-closed: key-visual placeholder body not found")
+    html = ph_pat.subn(lambda m: m.group(1) + chips + block + m.group(2), html, count=1)[0]
+
+    search_pat = re.compile(r'(<span class="[^"]*rc-search-part"[^>]*>)검색(</span>)')
+    if len(search_pat.findall(html)) != 2:
+        raise RuntimeError(
+            f"#1383 fail-closed: expected 2 search parts, found {len(search_pat.findall(html))}"
+        )
+    html = search_pat.sub(
+        lambda m: m.group(1) + "검색어를 입력해 주세요" + m.group(2), html, count=1
+    )
 
     # Quick cards carry their icon on a ::before block; assign per-card via
     # nth-of-type so the DOM stays untouched.
@@ -768,9 +834,75 @@ def enrich_seogu_home_assets(dist_root: str) -> None:
         + "".join(quick_rules)
         + "</style>"
     )
+    r2_rules = [
+        # D1 utility bar: compact left list with separators, icon SNS marks.
+        ".rc-utility-inner{max-width:1400px;margin:0 auto;padding-left:20px;padding-right:20px;}",
+        ".rc-utility-left{gap:0;color:#555555;}",
+        ".rc-utility-left .rc-utility-item{font-size:13px;}",
+        ".rc-utility-left .rc-utility-item+.rc-utility-item{margin-left:12px;padding-left:13px;border-left:1px solid #dddddd;}",
+        ".rc-utility-right{gap:9px;}",
+        ".rc-utility-right>.btn.rc-utility-item{width:auto;height:auto;border-radius:0;background:none;margin-right:16px;font-size:13px;color:#555555;}",
+        ".rc-utility-right>.btn.rc-utility-item:after{content:'\\2304';margin-left:4px;font-size:11px;}",
+        ".rc-utility-right>.rc-utility-item{width:24px;height:24px;padding:0;justify-content:center;font-size:0;border-radius:50%;background-position:center;background-size:contain;background-repeat:no-repeat;}",
+        ".rc-gnb .rc-stub{color:#111111;font-weight:700;font-size:16px;}",
+        f".rc-utility-right>.facebook{{background-image:url({IMG}sns-facebook.png);}}",
+        f".rc-utility-right>.kakaoch{{background-image:url({IMG}sns-kakaoch.png);}}",
+        f".rc-utility-right>.kakaostory{{background-image:url({IMG}sns-kakaostory.png);}}",
+        f".rc-utility-right>.band{{background-image:url({IMG}sns-band.png);}}",
+        f".rc-utility-right>.naver{{background-image:url({IMG}sns-naver.png);}}",
+        f".rc-utility-right>.instagram{{background-image:url({IMG}sns-instagram.png);}}",
+        f".rc-utility-right>.youtube{{background-image:url({IMG}sns-youtube.png);}}",
+        # D1 brand search: pill input + rounded-square magnifier button.
+        ".rc-brand-search{width:360px;max-width:none;height:52px;border-radius:26px;border:1px solid #1663b6;}",
+        ".rc-brand-search .rc-search-part:first-child{padding:0 22px;font-size:15px;}",
+        ".rc-brand-search .rc-search-part:last-child{width:56px;flex:0 0 56px;border-radius:12px;margin-right:4px;position:relative;font-size:0;}",
+        ".rc-brand-search .rc-search-part:last-child:before{content:'';position:absolute;left:17px;top:15px;width:15px;height:15px;border:3px solid #ffffff;border-radius:50%;}",
+        ".rc-brand-search .rc-search-part:last-child:after{content:'';position:absolute;left:32px;top:30px;width:9px;height:3px;background:#ffffff;transform:rotate(45deg);border-radius:2px;}",
+        # D3 brand calligraphy logo (real artwork, fixed-height slot).
+        f".rc-brand-slogan{{background:url({IMG}brand-calligraphy.png) left center/auto 100% no-repeat;color:transparent;font-size:1px;line-height:0;width:254px;min-width:254px;height:52px;}}",
+        # D2 mayor hero: captured two-column composition.
+        ".rc-section01{grid-template-columns:minmax(0,calc(100% - 820px)) minmax(0,820px);}",
+        ".rc-mayor-panel{display:block;padding:44px 22px 0 300px;background:#f0f0ff url(" + IMG + "mayor_section.png) left 10px bottom 12px/auto 86% no-repeat;}",
+        ".rc-hero{display:flex;flex-direction:column;gap:12px;font-size:32px;line-height:1.28;font-weight:700;color:#111111;text-shadow:none;max-width:none;white-space:normal;}",
+        ".rc-hero-cal{display:block;width:222px;height:auto;}",
+        ".rc-hero-name em{font-style:normal;display:block;color:#1663b6;font-size:27px;margin-bottom:4px;}",
+        ".rc-mayor-actions{flex-wrap:wrap;gap:2px;margin-top:14px;}",
+        ".rc-mayor-action:nth-child(-n+2){border-radius:4px;min-height:72px;max-width:128px;padding:8px 10px;font-size:14px;font-weight:600;line-height:1.35;white-space:normal;word-break:keep-all;}",
+        ".rc-mayor-action:nth-child(1){background:#2a9757;}",
+        ".rc-mayor-action:nth-child(-n+2):after{content:'>';margin-left:8px;font-weight:400;}",
+        ".rc-mayor-action:nth-child(3){flex:0 0 auto;margin-top:10px;width:260px;min-height:115px;height:115px;padding:0;font-size:0;font-weight:400;background:url(" + IMG + "sms-badge.png) left center/contain no-repeat;justify-content:flex-start;}",
+        ".rc-banner{margin-top:12px;}",
+        ".hns_bn{font-size:15px;font-weight:500;color:#1663b6;}",
+        # D4 key visual: rounded banner, flat navy overlay strip with info
+        # chips and a dark pager pill (all live DOM, no baked text).
+        ".rc-key-visual-placeholder{position:relative;height:375px;border-radius:16px;overflow:hidden;}",
+        ".rc-key-visual-placeholder:after{content:'';position:absolute;left:0;right:0;bottom:0;height:72px;background:#083d7f;}",
+        ".rc-kv-chip{position:absolute;display:flex;align-items:center;gap:10px;color:#ffffff;font-size:15px;line-height:1.3;z-index:2;}",
+        ".rc-kv-chip:before{content:'';width:38px;height:38px;border-radius:50%;background-position:center;background-size:contain;background-repeat:no-repeat;flex:0 0 auto;}",
+        ".rc-kv-chip-l{left:14px;bottom:17px;}",
+        f".rc-kv-chip-l:before{{background-image:url({IMG}kv-chip-people.png);}}",
+        ".rc-kv-chip-r{right:18px;bottom:11px;max-width:250px;text-align:left;align-items:flex-start;}",
+        f".rc-kv-chip-r:before{{background-image:url({IMG}kv-chip-pin.png);}}",
+        ".rc-primary-slider-controls{left:50%;bottom:18px;transform:translateX(-50%);background:#091f4b;border-radius:19px;height:38px;padding:0 24px;gap:16px;font-size:0;z-index:3;}",
+        ".rc-pager-count{font-size:13px;color:#ffffff;font-weight:700;letter-spacing:.5px;}",
+        ".prev,.pause,.next{color:#ffffff;font-size:0;width:auto;height:auto;}",
+        ".prev:before,.next:before{font-size:15px;}",
+        ".prev:before{content:'\\2190';}",
+        ".next:before{content:'\\2192';}",
+        ".pause{position:relative;width:12px;height:14px;font-size:0;}",
+        ".pause:before,.pause:after{content:'';position:absolute;top:0;width:3px;height:12px;background:#ffffff;}",
+        ".pause:before{left:1px;}",
+        ".pause:after{right:1px;}",
+    ]
+    r2_style = (
+        '<style id="seogu-home-fidelity-r2">#1383-home-fidelity-r2{}'
+        + "".join(r2_rules)
+        + "</style>"
+    )
+
     if "</head>" not in html:
         raise RuntimeError("#1389 fail-closed: </head> not found in home route")
-    html = html.replace("</head>", style_block + "</head>", 1)
+    html = html.replace("</head>", style_block + r2_style + "</head>", 1)
 
     open(index_path, "w", encoding="utf-8").write(html)
     print("[build] #1389 enriched Seo-gu home surface with verified official assets")
