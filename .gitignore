@@ -53,5 +53,30 @@ Thumbs.db
 # Cloudflare Wrangler local runtime state
 .wrangler/
 
-# Resident Evidence Harness V1 — generated evidence artifacts
+# Generated evidence artifacts (subdirectories — root tracks s2_evidence/s7_evidence)
 artifacts/resident-evidence/
+artifacts/1279-controlled-live-benchmark/
+artifacts/1310-*/
+artifacts/local/
+artifacts/owner-review/
+
+# Tool caches & local temp directories
+.kilo/
+.playwright-mcp/
+.tmp.driveupload/
+.tmp/
+.workbuddy-ai/
+
+# Root-level generated/temp artifacts (NOT tracked source)
+/*.png
+/*.mjs
+/*.zip
+/*.gdoc
+/ISSUE_1232_*
+/SYNC_MANIFEST.md
+
+# Generated clone review data (untracked sub-sessions)
+data/official_clone_reviews/seogu/g3_1325_org_staff/
+
+# Generated evidence scripts
+scripts/g3_*.py
